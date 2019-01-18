@@ -11466,7 +11466,7 @@ previously-scanned sizeof expression, and return the result in *result
   an_operand            operand;
   a_constant_ptr        constant = local_constant();
   a_boolean             is_parenthesized = FALSE, is_type = FALSE;
-  a_type_ptr            sizeof_type;
+  a_type_ptr            sizeof_type, orig_sizeof_type;
   an_expr_stack_entry   expr_stack_entry;
   a_boolean             template_case = FALSE;
 #if UPC_EXTENSIONS_ALLOWED || CHECKING
@@ -11516,10 +11516,11 @@ previously-scanned sizeof expression, and return the result in *result
     operator_token = rcblock->operator_token;
 #endif /* UPC_EXTENSIONS_ALLOWED || CHECKING */
     make_sizeof_et_al_rescan_operands(rcblock,
-                                      &is_type, &operand, &sizeof_type,
+                                      &is_type, &operand, &orig_sizeof_type,
                                       &operator_position,
                                       &operator_tok_seq_number,
                                       &type_position);
+    sizeof_type = orig_sizeof_type;
     operand_was_created = !is_type;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
@@ -11612,7 +11613,7 @@ previously-scanned sizeof expression, and return the result in *result
       if (is_parenthesized) {
         /* Scan the type-name for a parenthesized type. */
         add_matching_stop_token(tok_rparen);
-        sizeof_type = scan_type_for_sizeof(
+        orig_sizeof_type = scan_type_for_sizeof(
                                       sizeof_itself_is_potentially_evaluated);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         end_position = end_pos_curr_token;
@@ -11629,12 +11630,12 @@ previously-scanned sizeof expression, and return the result in *result
                                 (an_init_component *)NULL,
                                 result,
                                 EOPT_NO_OPTIONS);
-          sizeof_type = result->type;
+          orig_sizeof_type = result->type;
         }  /* if */
       } else {
         /* Unparenthesized type, e.g., "sizeof T" (Microsoft extension). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        sizeof_type = simple_type_specifier_sequence();
+        orig_sizeof_type = simple_type_specifier_sequence();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -11642,6 +11643,7 @@ previously-scanned sizeof expression, and return the result in *result
         unexpected_condition();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
+      sizeof_type = orig_sizeof_type;
     } else {
       /* It has been determined that the operand of the sizeof is an expression
          and not a type.  Scan the operand. */
@@ -11665,6 +11667,13 @@ previously-scanned sizeof expression, and return the result in *result
      a rescan). */
   if (is_type) {
     /* Type case. */
+    /* If the top type is a reference, drop the reference so that the sizeof
+       applies to the type referenced.  Keep a dependent reference. */
+    if (is_any_reference_type(sizeof_type) &&
+        !(is_template_dependent_context() &&
+          is_template_dependent_type(sizeof_type))) {
+      sizeof_type = type_pointed_to(sizeof_type);
+    }  /* if */
   } else {
     /* Expression case. */
     /* Do not convert a type of "routine returning type" to "pointer to
@@ -11685,7 +11694,8 @@ previously-scanned sizeof expression, and return the result in *result
       }  /* if */
     }  /* if */
     force_complete_type_if_a_variable(&operand);
-    sizeof_type = operand.type;
+    orig_sizeof_type = operand.type;
+    sizeof_type = orig_sizeof_type;
     type_position = operand.position;
     if (operand_is_instantiation_dependent(&operand)) {
       template_case = TRUE;
@@ -11824,7 +11834,7 @@ previously-scanned sizeof expression, and return the result in *result
     } else {
       /* Make an expression node to represent a sizeof that cannot be
          evaluated until runtime. */
-      (void)make_sizeof_expr(/*is_alignof=*/FALSE, is_type, sizeof_type,
+      (void)make_sizeof_expr(/*is_alignof=*/FALSE, is_type, orig_sizeof_type,
                              &operand, result);
       operand_was_used = !is_type;
       nonconstant_case = TRUE;
@@ -11848,7 +11858,7 @@ previously-scanned sizeof expression, and return the result in *result
     } else {
       /* Make an expression node to represent a sizeof that cannot be
          evaluated until runtime. */
-      (void)make_sizeof_expr(/*is_alignof=*/FALSE, is_type, sizeof_type,
+      (void)make_sizeof_expr(/*is_alignof=*/FALSE, is_type, orig_sizeof_type,
                              &operand, result);
       operand_was_used = !is_type;
       nonconstant_case = TRUE;
@@ -11869,7 +11879,7 @@ previously-scanned sizeof expression, and return the result in *result
       make_error_operand(result);
     } else {
       /* Make an expression node to represent the sizeof. */
-      (void)make_sizeof_expr(/*is_alignof=*/FALSE, is_type, sizeof_type,
+      (void)make_sizeof_expr(/*is_alignof=*/FALSE, is_type, orig_sizeof_type,
                              &operand, result);
       operand_was_used = !is_type;
       nonconstant_case = TRUE;
@@ -11897,15 +11907,7 @@ previously-scanned sizeof expression, and return the result in *result
         constant->type = integer_type(targ_size_t_int_kind);
       } else {
         /* Normal case; known constant sizeof. */
-        a_type_ptr stripped_sizeof_type;
-        if (is_any_reference_type(sizeof_type)) {
-          /* If the top type is a reference, drop the reference so that the
-             sizeof applies to the type referenced. */
-          stripped_sizeof_type = type_pointed_to(sizeof_type);
-        } else {
-          stripped_sizeof_type = sizeof_type;
-        }  /* if */
-        stripped_sizeof_type = skip_typerefs(stripped_sizeof_type);
+        a_type_ptr stripped_sizeof_type = skip_typerefs(sizeof_type);
         set_unsigned_integer_constant(
                              constant,
                              (a_host_large_unsigned)stripped_sizeof_type->size,
@@ -11926,7 +11928,7 @@ previously-scanned sizeof expression, and return the result in *result
             is_type = TRUE;
           }  /* if */
           constant->expr = make_sizeof_expr(/*is_alignof=*/FALSE,
-                                            is_type, sizeof_type,
+                                            is_type, orig_sizeof_type,
                                             &operand,
                                             (an_operand *)NULL);
           operand_was_used = !is_type;
