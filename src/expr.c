@@ -11623,7 +11623,7 @@ previously-scanned sizeof expression, and return the result in *result
         if (compound_literals_allowed && curr_token == tok_lbrace) {
           /* Something like sizeof(int){37} -- the type is the beginning
              of a compound literal. */
-          scan_compound_literal(&sizeof_type,
+          scan_compound_literal(&orig_sizeof_type,
                                 &lparen_position,
                                 &type_position,
                                 (a_rescan_control_block *)NULL,
