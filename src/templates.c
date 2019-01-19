@@ -13255,7 +13255,7 @@ end_of_loop:
               ((options & CTWS_PARTIAL_ARG_LIST_OKAY) == 0 ||
                (template_sym != NULL &&
                 !symbol_is(template_sym, sk_function_template)))) {
-  /* If there are too many parameters, the copy should fail. */
+    /* If there are too many parameters, the copy should fail. */
     subst_fail(*copy_error);
   }  /* if */
   return new_list;
