@@ -679,6 +679,7 @@ Dump a field entry, for debug purposes.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (fp->is_initonly) fputs(", initonly", f_debug);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (fp->is_optimized_empty_class) fputs(", opt", f_debug);
   fputs(", type = ", f_debug);
   db_abbreviated_type(fp->type);
   fprintf(f_debug, ", offset = %lu", (unsigned long)fp->offset);

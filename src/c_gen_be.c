@@ -3109,10 +3109,23 @@ These two fields are normally consecutive members of the given "type", but
 {
   a_targ_size_t  padding = 0;
 
-  if (!C_mode() && type->kind != (a_type_kind)tk_union &&
-      (!field->is_bit_field ||
-       (prev_field != NULL &&
-        prev_field->base_class_subobject_with_tail_padding))) {
+  if (prev_field != NULL && prev_field->is_optimized_empty_class) {
+    /* If the previous field was an optimized empty class, skip it (and any
+       that follow). */
+    do {
+      prev_field = prev_field->next;
+    } while (prev_field != NULL && prev_field->is_optimized_empty_class);
+    if (prev_field == field) {
+      /* No padding needed. */
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (field->is_optimized_empty_class) {
+    /* Skip an optimized empty class field. */
+  } else if (!C_mode() && type->kind != (a_type_kind)tk_union &&
+             (!field->is_bit_field ||
+              (prev_field != NULL &&
+               prev_field->base_class_subobject_with_tail_padding))) {
     /* Compute any required padding before the field.  This only comes up
        for empty/promoted base class layout, so check this only when the
        field has a class type (hence also the is_bit_field test). */
@@ -3181,6 +3194,7 @@ These two fields are normally consecutive members of the given "type", but
       padding = field->offset - rounded_after_field;
     }  /* if */
   }  /* if */
+done:
   return padding;
 }  /* field_padding */
 
@@ -7693,6 +7707,19 @@ designated initializer.
 }  /* dump_designator */
 
 
+static a_field_ptr next_c_gen_be_field(a_field_ptr field)
+/*
+Similar to next_initializable_field, but skips optimized empty class fields.
+*/
+{
+  field = next_initializable_field(field);
+  while (field != NULL && field->is_optimized_empty_class) {
+    field = next_initializable_field(field->next);
+  }  /* while */
+  return field;
+}  /* next_c_gen_be_field */
+
+
 static void dump_initializer_part(a_variable_ptr           variable,
                                   a_type_ptr               type,
                                   a_constant_ptr           constant,
@@ -7876,7 +7903,7 @@ block with state information for the processing.
       case tk_union:
         /* Find the first field in the struct or union, skipping those that
            are ignored by initialization. */
-        ipdp->curr_field = next_initializable_field(
+        ipdp->curr_field = next_c_gen_be_field(
                                   type->variant.class_struct_union.field_list);
         if (ipdp->curr_field != NULL) {
           if (msvc_is_generated_code_target) {
@@ -7996,8 +8023,7 @@ block with state information for the processing.
           elem_con = elem_con->next;
           check_assertion(elem_con != NULL &&
                           elem_con->kind!=(a_constant_repr_kind)ck_designator);
-        } else if (!*gen_assignments && is_immediate_class_type(type) &&
-                   !ipdp->curr_field->is_optimized_empty_class) {
+        } else if (!*gen_assignments && is_immediate_class_type(type)) {
           /* Check if we added some padding before this field, and if so
              generate initializers for that padding. */
           a_targ_size_t  padding, p;
@@ -8012,7 +8038,7 @@ block with state information for the processing.
               }  /* for */
             }  /* if */
             if (after_prev != ipdp->curr_field) {
-              /* Adjust prev_field if next_initializable_field skipped some
+              /* Adjust prev_field if next_c_gen_be_field skipped some
                  non-initializable fields. */
               if (msvc_is_generated_code_target) {
                 track_microsoft_bit_field_allocation(prev_field);
@@ -8086,10 +8112,6 @@ block with state information for the processing.
             }  /* if */
           }  /* while */
           ipdp->repetition_count = NULL;
-        } else if (ipdp->curr_field != NULL &&
-                   ipdp->curr_field->is_optimized_empty_class) {
-          /* This field has been optimized out of the class, so skip any
-             initialization. */
         } else {
           /* Normal case (not a repeated constant). */
           dump_initializer_part(variable, elem_type, elem_con, gen_assignments,
@@ -8150,7 +8172,7 @@ block with state information for the processing.
             if (msvc_is_generated_code_target) {
               track_microsoft_bit_field_allocation(prev_field);
             }  /* if */
-            ipdp->curr_field= next_initializable_field(ipdp->curr_field->next);
+            ipdp->curr_field = next_c_gen_be_field(ipdp->curr_field->next);
           }  /* if */
         }  /* if */
       }  /* for */
