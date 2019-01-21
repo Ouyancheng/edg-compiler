@@ -6411,6 +6411,7 @@ re-ordered base classes.
         check_assertion(fp != NULL);
         fp = next_initializable_field(fp->next);
         if (fp != NULL &&
+            !fp->is_optimized_empty_class &&
             needs_virtual_function_table(class_type) &&
             ctsp->virtual_function_info_base_class == NULL &&
             fp->offset == ctsp->virtual_function_info_offset) {
