@@ -4840,11 +4840,16 @@ initialization in the constant.
 
   check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
   if (!C_mode() && !constant->has_been_prelowered) {
+    an_init_pos_descr_ptr save_prelower_aggr_con_ipdp = prelower_aggr_con_ipdp;
+    an_insert_location *save_prelower_aggr_con_insert_location =
+                                             prelower_aggr_con_insert_location;
     clear_expr_or_stmt_traversal_block(&tblock);
     tblock.process_constant = prelower_class_in_aggregate;
     prelower_aggr_con_ipdp = ipdp;
     prelower_aggr_con_insert_location = insert_location;
     traverse_constant(constant, &tblock);
+    prelower_aggr_con_ipdp = save_prelower_aggr_con_ipdp;
+    prelower_aggr_con_insert_location = save_prelower_aggr_con_insert_location;
   }  /* if */
 }  /* prelower_aggregate_constant */
 
