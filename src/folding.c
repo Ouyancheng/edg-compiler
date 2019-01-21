@@ -967,6 +967,37 @@ otherwise).
 }  /* base_object */
 
 
+static void implicit_or_explicit_base_cast(a_constant_ptr  cp,
+                                           a_type_ptr      new_type,
+                                           a_boolean       is_implicit_cast)
+/*
+cp is a constant representing a folded base class cast.  new_type is the base
+class type (with matching qualifiers applied).  is_implicit_cast is TRUE if
+the cast is implicit.  Update some flags and the type of the constant.  This
+is similar to implicit_or_explicit_cast.
+*/
+{
+  a_type_ptr  prev_type = skip_typerefs(cp->type);
+
+  check_assertion(prev_type->kind == (a_type_kind)tk_pointer);
+  if (prev_type->variant.pointer.is_reference) {
+    if (prev_type->variant.pointer.is_rvalue_reference) {
+      new_type = make_rvalue_reference_type(new_type);
+    } else {
+      new_type = make_reference_type(new_type);
+    }  /* if */
+  } else {
+    new_type = make_pointer_type(new_type);
+  }  /* if */
+  cp->type = new_type;
+  cp->implicit_cast = TRUE;
+  if (!is_implicit_cast) {
+    /* Note that the TRUE setting of explicit_cast_applied is sticky. */
+    cp->explicit_cast_applied = TRUE;
+  }  /* if */
+}  /* implicit_or_explicit_base_cast */
+
+
 void fold_base_class_cast(a_constant        *constant_1,
                           a_base_class      *bcp,
                           a_type_ptr        qualifiers_model,
@@ -1145,8 +1176,7 @@ is (successfully) folded to another error constant.
     /* Set the constant type.  It includes all the type qualifiers from the
        qualifiers_model. */
     new_type = make_identically_qualified_type(curr_type, qualifiers_model);
-    implicit_or_explicit_cast(result, make_pointer_type(new_type),
-                              is_implicit_cast);
+    implicit_or_explicit_base_cast(result, new_type, is_implicit_cast);
     /* Record the backing expression if the folding was successful. */
     if (*did_not_fold) {
       expr = NULL;
@@ -1287,7 +1317,9 @@ ec_no_error if there was no error.
         }  /* if */
       }  /* if */
     }  /* if */
-    implicit_or_explicit_cast(result, new_type, /*is_implicit_cast=*/FALSE);
+    result->type = new_type;
+    result->implicit_cast = TRUE;
+    result->explicit_cast_applied = TRUE;
     /* Update the backing expression if one was present. */
     if (expr != NULL) {
       a_boolean local_error_detected;
