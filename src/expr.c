@@ -11466,7 +11466,7 @@ previously-scanned sizeof expression, and return the result in *result
   an_operand            operand;
   a_constant_ptr        constant = local_constant();
   a_boolean             is_parenthesized = FALSE, is_type = FALSE;
-  a_type_ptr            sizeof_type, orig_sizeof_type;
+  a_type_ptr            sizeof_type = NULL, orig_sizeof_type;
   an_expr_stack_entry   expr_stack_entry;
   a_boolean             template_case = FALSE;
 #if UPC_EXTENSIONS_ALLOWED || CHECKING
