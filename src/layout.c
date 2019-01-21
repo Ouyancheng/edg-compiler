@@ -2725,7 +2725,7 @@ there's no overflow TRUE is returned.
             a_targ_size_t nvsize = class_type_supp(field_type)->
                                              size_without_virtual_base_classes;
             size_to_allocate = dsize;
-            if (nvsize <= size_to_allocate) {
+            if (nvsize > size_to_allocate) {
               size_to_allocate = nvsize;
             }  /* if */
           }  /* if */
