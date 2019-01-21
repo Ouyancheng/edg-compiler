@@ -4467,10 +4467,13 @@ class subobject members as needed to create the member name prefix.
        to build the mangling prefix by traversing the base class subobject
        fields. */
     a_member_name_prefix_component prefix;
+    a_field_ptr fp = field->type->variant.class_struct_union.field_list;
     push_member_name_prefix_component(&prefix, field);
-    /* Use the (mangled) name of the first member. */
-    create_prefix_and_dump_field_name(field->type->
-                                        variant.class_struct_union.field_list);
+    /* Use the (mangled) name of the first (non-empty class) member. */
+    for (; fp != NULL && fp->is_optimized_empty_class; fp = fp->next) {
+    }  /* for */
+    check_assertion(fp != NULL);
+    create_prefix_and_dump_field_name(fp);
     pop_member_name_prefix_component(&prefix);
   } else {
     dump_field_name(field);
