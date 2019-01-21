@@ -9355,6 +9355,66 @@ done:
 }  /* do_constexpr_typeid */
 
 
+static a_base_class_ptr  find_base_in_type(a_type_ptr  dtp,
+                                           a_type_ptr  btp)
+/*
+Find a base class entry of dtp with associated type btp and return it if found.
+Otherwise, return NULL.
+
+This is similar to find_base_class_of, but more efficient because no special
+cases are considered.
+*/
+{
+  a_base_class_ptr  bcp = base_classes_of(dtp);
+
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (same_entities(bcp->type, btp)) break;
+  }  /* for */
+  return bcp;
+}  /* find_base_in_type */
+
+
+static void remove_trailing_subobject_path_entry(a_constant_ptr  con)
+/*
+The given entry has kind ck_address and points to a non-empty subobject path.
+Remove the last entry on that path.
+*/
+{
+  a_subobject_path_ptr  *p_spp = &con->variant.address.subobject_path;
+
+  while ((*p_spp)->next != NULL) {
+    p_spp = &(*p_spp)->next;
+  }  /* while */
+  *p_spp = NULL;
+}  /* remove_trailing_subobject_path_entry */
+
+
+static void adjust_constexpr_address_for_base_class(
+                                            a_constexpr_address  *cap,
+                                            a_base_class_ptr     baseward_bcp)
+/*
+cap points to an interpreter address of a class type object of type
+baseward_bcp->derived_class.  Adjust the address so it points to the
+base subobject corresponding to baseward_bcp.
+*/
+{
+  a_derivation_step_ptr  dsp = baseward_bcp->derivation->path;
+  a_byte                 *subobj = cap->address;
+  a_type_ptr             subobj_type = baseward_bcp->derived_class;
+
+  for (; dsp != NULL; dsp = dsp->next) {
+    a_byte_count  offset;
+    a_base_class_ptr  bcp;
+    bcp = find_direct_base_class_of(subobj_type, dsp->base_class->type);
+    get_mapped_byte_count(&persistent_map, bcp, offset);
+    subobj += offset;
+    subobj_type = bcp->type;
+  }  /* for */
+  cap->address = subobj;
+  cap->flags &= ~CA_ARRAY_ELEMENT;
+}  /* adjust_constexpr_address_for_base_class */
+
+
 static a_boolean do_constexpr_dynamic_cast(
                                        an_interpreter_state  *ips,
                                        an_expr_node_ptr      expr,
@@ -9365,6 +9425,22 @@ static a_boolean do_constexpr_dynamic_cast(
 Evaluate the dynamic_cast operation represented by expr.  Its operand (of type
 opnd_type) has already been evaluated and the result of that evaluation is
 opnd_value.  Store the result at *result_storage.
+
+A dynamic_cast operation considers a number of strategies to produce a result:
+  - Given a null pointer, it preserves that null pointer.
+  - If the destination type represents a derived-to-base cast, the cast is
+    essentially a static_cast (the front end represents it as a static_cast
+    in some, but not all, configurations).
+  - If the destination type is void*, a pointer to the most-derived object
+    is produced.
+  - If the destination type represents a base-to-derived cast that can be
+    dynamically validated (i.e., we're not casting past the most-derived type
+    of the object involved), then that cast is performed.
+  - If the previous strategies failed, an attempt is made to perform a
+    derived-to-base cast from the most-derived object.
+This function implements those strategies both for objects stored in
+interpreter storage and for "run-time objects" that have a constant address
+represented by an entry of type a_constant (ck_address or ck_integer).
 */
 {
   a_boolean  result = TRUE;
@@ -9372,7 +9448,7 @@ opnd_value.  Store the result at *result_storage.
   if (constexpr_virtual_enabled) {
     a_constexpr_address  *opnd_addr = (a_constexpr_address*)opnd_value;
     a_constexpr_address  *result_addr = (a_constexpr_address*)result_storage;
-    a_boolean            success = FALSE, pointer_case = FALSE;
+    a_boolean            pointer_case = FALSE;
     a_type_ptr           tp = skip_typerefs(expr->type);
     if (tp->kind == (a_type_kind)tk_pointer) {
       tp = skip_typerefs(tp->variant.pointer.type);
@@ -9381,88 +9457,165 @@ opnd_value.  Store the result at *result_storage.
       opnd_type = skip_typerefs(opnd_type->variant.pointer.type);
       pointer_case = TRUE;
     }  /* if */
-    if (tp == opnd_type) {
-      /* The static type matches the dynamic type. */
+    if (same_entities(tp, opnd_type)) {
+      /* The type is already as requested. */
       *result_addr = *opnd_addr;
       goto done;
     }  /* if */
     if (is_runtime_data_address(opnd_addr)) {
+      /* The cast is applied to an IL constant. */
       a_constant_ptr  addr_con = opnd_addr->variant.addr_con;
       if (constant_is(addr_con, ck_address)) {
         /* We must compute a "dynamic_cast" applied to a subobject described
            by a ck_address IL constant.  Such an IL entry represents the
            address of a "complete object" adjusted for (a) field selections,
-           (b) array element selections, (c) derived-to-base casts, and
-           (d) base-to-derived casts.  In that context, a dynamic_cast
-           operation amounts to "undoing" some (c) and/or (d) cases.
-           Fortunately, the transformations are recorded on the ck_address
-           entry's "subobject path".  So we can traverse that to find which
-           trailing segment should be undone (and compute the corresponding
-           offset adjustment). */
-        a_subobject_path_ptr  path, base_casts_to_undo = NULL;
-        a_targ_ptrdiff_t      offset_to_undo = 0;
-        a_type_ptr            type, derived_type;
-        type = address_con_complete_object_type(addr_con);
-        derived_type = type;
-        path = addr_con->variant.address.subobject_path;
-        for (; path != NULL; path = path->next) {
-          if (!path->is_base_class) {
-            /* We're selecting a new field or array element: Previous base
-               class casts were not within the selected most-derived object. */
-            base_casts_to_undo = NULL;
-            offset_to_undo = 0;
-            if (path->is_offset) {
-              type = underlying_array_element_type(type);
-            } else {
-              type = path->variant.field->type;
-            }  /* if */
-            derived_type = type;
-          } else {
-            /* A base or derived class cast.  Tentatively assume that it's
-               within the selected most-derived object. */
-            if (base_casts_to_undo == NULL &&
-                (type == tp || tp->kind == (a_type_kind)tk_void)) {
-              /* This cast is from the type of interest (in the case of a cast
-                 to void*, all types are of interest).  Record this point in
-                 the subobject path. */
-              base_casts_to_undo = path;
-            }  /* if */
-            type = path->variant.base_class->type;
-            if (base_casts_to_undo != NULL) {
-              /* We're undoing a cast to a base class. */
-              offset_to_undo += path->variant.base_class->offset;
-            }  /* if */
-          }  /* if */
-        }  /* for */
-        if (base_casts_to_undo != NULL || tp->kind == (a_type_kind)tk_void) {
-          /* We successfully identified the subobject being cast to. */
-          a_constant_ptr        cp;
-          a_subobject_path_ptr  *p_copy;
-          cp = make_interpreter_copy_of_constant(ips, addr_con);
-          cp->type = pointer_case ? expr->type
-                                  : make_reference_type(expr->type);
-          cp->variant.address.offset -= offset_to_undo;
-          /* Copy the subobject path up until base_casts_to_undo. */
-          path = cp->variant.address.subobject_path;
-          p_copy = &cp->variant.address.subobject_path;
-          while (path != base_casts_to_undo) {
-            *p_copy = alloc_subobject_path();
-            **p_copy = *path;
-            path = path->next;
-            p_copy = &(*p_copy)->next;
-          }  /* while */
-          *p_copy = NULL;
-          clear_runtime_constant_address(result_addr, cp);
-        } else {
-          /* We didn't find a subobject matching the destination type. */
-          if (pointer_case) {
-            clear_address(result_addr, (a_byte*)0);
-          } else {
-            info_with_pos_type2(ec_constexpr_invalid_dynamic_cast,
-                                &expr->position, tp, derived_type, ips);
+           (b) array element selections, and (c) derived-to-base casts.
+           In that context, a dynamic_cast operation amounts to "undoing" some
+           trailing (c) cases and possibly adding a few.  Fortunately, the
+           transformations are recorded on the ck_address entry's "subobject
+           path".  So we can traverse that to find which trailing segment
+           should be undone (and compute the corresponding offset
+           adjustment). */
+        a_constant_ptr        new_con;
+        a_subobject_path_ptr  spp;
+        a_base_class_ptr      prev_bcp, baseward_bcp;
+
+        baseward_bcp = find_base_in_type(opnd_type, tp);
+        if (tp->kind != (a_type_kind)tk_void &&
+            (baseward_bcp = find_base_in_type(opnd_type, tp))!= NULL) {
+          /* The dynamic cast is actually a (static) derived-to-base cast. */
+          if (baseward_bcp->ambiguous) {
             do_constexpr_fail(result);
+            info_with_pos_type(ec_ambiguous_base_class, &expr->position,
+                               baseward_bcp->type, ips);
+            goto done;
+          } else if (!is_accessible_base_class(baseward_bcp)) {
+            do_constexpr_fail(result);
+            info_with_pos_type(ec_inaccessible_base_class, &expr->position,
+                               baseward_bcp->type, ips);
+            goto done;
+          } else {
+            new_con = make_interpreter_copy_of_constant(ips, addr_con);
+            spp = get_trailing_subobject_path_entry(
+                        new_con, /*is_offset=*/FALSE, /*is_base_class=*/TRUE);
+            prev_bcp = spp->variant.base_class;
+            if (prev_bcp != NULL) {
+              /* Undo the previous cast and find the corresponding baseward
+                 base class in the most-derived type. */
+              new_con->variant.address.offset -= prev_bcp->offset;
+              if (baseward_bcp->direct) {
+                /* This can only happen if baseward_bcp == prev_bcp, but we
+                   we previously checked for the equal types case. */
+                unexpected_condition();
+              } else {
+                a_base_class_ptr  disambiguator;
+                disambiguator = find_disambiguator(prev_bcp, baseward_bcp);
+                baseward_bcp = corresponding_base_class(
+                                                      baseward_bcp,
+                                                      prev_bcp->derived_class,
+                                                      disambiguator);
+              }  /* if */
+            }  /* if */
+            spp->variant.base_class = baseward_bcp;
+            new_con->variant.address.offset += baseward_bcp->offset;
+          }  /* if */
+        } else {
+          a_base_class_ptr  new_bcp = NULL;
+          /* A base-to-derived cast or a "sideways" cast. */
+          new_con = make_interpreter_copy_of_constant(ips, addr_con);
+          spp = get_trailing_subobject_path_entry(
+                        new_con, /*is_offset=*/FALSE, /*is_base_class=*/TRUE);
+          prev_bcp = spp->variant.base_class;
+          if (prev_bcp == NULL) {
+            /* We are already at the most derived class.  Since we already
+               checked for the equal types case, this must be an attempt to
+               cast past the most-derived class type. */
+            if (pointer_case) {
+              if (tp->kind == (a_type_kind)tk_void) {
+                remove_trailing_subobject_path_entry(new_con);
+                clear_runtime_constant_address(result_storage, new_con);
+              } else {
+                clear_address(result_storage, NULL);
+              }  /* if */
+            } else {
+              do_constexpr_fail(result);
+              info_with_pos_type2(ec_constexpr_invalid_dynamic_cast,
+                                  &expr->position, tp, opnd_type, ips);
+            }  /* if */
+            goto done;
+          } else {
+            a_base_class_derivation_ptr  bcdp = prev_bcp->derivation;
+            /* Undo the previous cast offset. */
+            new_con->variant.address.offset -= prev_bcp->offset;
+            if (tp->kind == (a_type_kind)tk_void ||
+                same_entities(tp, prev_bcp->derived_class)) {
+              /* A cast to the most-derived class (either by casting to void*
+                 or because the destination type happens to match the most-
+                 derived class type. */
+              remove_trailing_subobject_path_entry(new_con);
+              clear_runtime_constant_address(result_storage, new_con);
+              goto done;
+            }  /* if */
+            /* First try to find the destination base subobject on the
+               derivation paths. */
+            while (bcdp != NULL) {
+              a_derivation_step_ptr  dsp = bcdp->path;
+              bcdp = bcdp->next;
+              for (; dsp != NULL; dsp = dsp->next) {
+                if (same_entities(dsp->base_class->type, tp)) {
+                  if (new_bcp == NULL) {
+                    new_bcp = dsp->base_class;
+                  } else if (dsp->base_class != new_bcp) {
+                    /* The subobject on the derivation path is not unambiguous.
+                       Move on to the final strategy. */
+                    new_bcp = NULL;
+                    bcdp = NULL;
+                  }  /* if */
+                  break;
+                }  /* if */
+              }  /* for */
+            }  /* for */
+            /* If the former strategy did not work, start from the most derived
+               type and looks for a matching unambiguous public subobject. */
+            if (new_bcp == NULL) {
+              new_bcp = find_base_in_type(prev_bcp->derived_class, tp);
+              if (new_bcp != NULL) {
+                if (new_bcp->ambiguous) {
+                  if (pointer_case) {
+                    clear_address(result_storage, NULL);
+                  } else {
+                    do_constexpr_fail(result);
+                    info_with_pos_type(ec_ambiguous_base_class,
+                                       &expr->position, new_bcp->type, ips);
+                  }  /* if */
+                  goto done;
+                } else if (!is_accessible_base_class(baseward_bcp)) {
+                  if (pointer_case) {
+                    clear_address(result_storage, NULL);
+                  } else {
+                    do_constexpr_fail(result);
+                    info_with_pos_type(ec_inaccessible_base_class,
+                                       &expr->position, new_bcp->type, ips);
+                  }  /* if */
+                  goto done;
+                }  /* if */
+              } else {
+                if (pointer_case) {
+                  clear_address(result_storage, NULL);
+                } else {
+                  do_constexpr_fail(result);
+                  info_with_pos_type2(ec_constexpr_invalid_dynamic_cast,
+                                      &expr->position, tp,
+                                      prev_bcp->derived_class, ips);
+                }  /* if */
+                goto done;
+              }  /* if */
+            }  /* if */
+            spp->variant.base_class = new_bcp;
+            new_con->variant.address.offset += new_bcp->offset;
           }  /* if */
         }  /* if */
+        clear_runtime_constant_address(result_storage, new_con);
       } else if (constant_is(addr_con, ck_integer)) {
         /* Possibly a null pointer. */
         if (!pointer_case ||
@@ -9484,46 +9637,100 @@ opnd_value.  Store the result at *result_storage.
         unexpected_condition();
       }  /* if */
     } else {
-      a_byte  *subobj = opnd_addr->address,
-              *complete_obj = opnd_addr->complete_object;
-      for (;;) {
-        a_base_class_ptr  bcp = *(a_base_class_ptr*)subobj;
-        if (bcp == NULL) {
-          if (tp->kind == (a_type_kind)tk_void) {
-            /* dynamic_cast to void* produces the most-derived object
-               address. */
-            success = TRUE;
-          }  /* if */
-          break;
+      /* Perform the dynamic_cast operation on the address of an object in
+         interpreter storage. */
+      a_base_class_ptr  bcp, baseward_bcp;
+      a_type_ptr        dtp;
+      a_byte            *subobj = opnd_addr->address;
+      /* Check for the null address case first. */
+      if (subobj == NULL) {
+        /* Casting a null pointer value results in a null pointer value. */
+        if (pointer_case) {
+          clear_address(result_addr, (a_byte*)0);
         } else {
-          a_byte_count  offset;
-          /* Check the next-more-derived subobject. */
-          get_mapped_byte_count(&persistent_map, bcp, offset);
-          subobj -= offset;
-          if (!subobject_is_initialized(subobj, complete_obj)) {
-            /* The next-more-derived subobject is not constructed: It cannot
-               be the result of a dynamic_cast. */
-            break;
-          }  /* if */
-          if (bcp->derived_class == tp) {
-            success = TRUE;
-            break;
-          }  /* if */
-        }  /* if */
-      }  /* for */
-      if (!success) {
-        if (!pointer_case) {
-          /* A failed "reference" dynamic cast throws an exception, which is
-             not permitted in constexpr evaluation. */
-          a_type_ptr  derived = most_derived_object_type(opnd_addr, opnd_type);
-          info_with_pos_type2(ec_constexpr_invalid_dynamic_cast,
-                              &expr->position, tp, derived, ips);
+          info_with_pos(ec_constexpr_access_to_runtime_storage,
+                        &expr->position, ips);
           do_constexpr_fail(result);
-        } else {
-          subobj = NULL;
         }  /* if */
+        goto done;
       }  /* if */
-      clear_address(result_storage, subobj);
+      if (tp->kind != (a_type_kind)tk_void &&
+          (baseward_bcp = find_base_in_type(opnd_type, tp))!= NULL) {
+        /* The dynamic cast is actually a (static) derived-to-base cast. */
+        if (baseward_bcp->ambiguous) {
+          do_constexpr_fail(result);
+          info_with_pos_type(ec_ambiguous_base_class, &expr->position,
+                             baseward_bcp->type, ips);
+        } else if (!is_accessible_base_class(baseward_bcp)) {
+          do_constexpr_fail(result);
+          info_with_pos_type(ec_inaccessible_base_class, &expr->position,
+                             baseward_bcp->type, ips);
+        } else {
+          *result_addr = *opnd_addr;
+          adjust_constexpr_address_for_base_class(result_addr, baseward_bcp);
+        }  /* if */
+        goto done;
+      }  /* if */
+      /* Explore a base-to-derived cast. */
+      *result_addr = *opnd_addr;
+      dtp = opnd_type;
+      bcp = *(a_base_class_ptr*)subobj;
+      while (bcp != NULL) {
+        a_byte_count  offset;
+        get_mapped_byte_count(&persistent_map, bcp, offset);
+        result_addr->address -= offset;
+        dtp = bcp->derived_class;
+        if (same_entities(dtp, tp)) {
+          /* We found a derived subobject of the right type.  Since types with
+             virtual bases cannot be literal types (and thus cannot be stored
+             in interpreter memory), there is no concern about this being
+             ambiguous. */
+          goto done;
+        }  /* if */
+        bcp = *(a_base_class_ptr*)result_addr->address;
+      }  /* while */
+      if (tp->kind == (a_type_kind)tk_void) {
+        /* result_addr now points to the most-derived object, which is exactly
+           what dynamic_cast<void*>(...) must do. */
+        goto done;
+      }  /* if */
+      /* We've reached the most derived type (dtp) without encountering the
+         destination type.  This might still be a "sideways" cast. */
+      baseward_bcp = find_base_in_type(dtp, tp);
+      if (baseward_bcp != NULL) {
+        /* There is a subobject of the right kind: Verify that it is
+           unambiguous and accessible. */
+        if (baseward_bcp->ambiguous) {
+          if (pointer_case) {
+            clear_address(result_storage, NULL);
+          } else {
+            do_constexpr_fail(result);
+            info_with_pos_type(ec_ambiguous_base_class,
+                               &expr->position, tp, ips);
+          }  /* if */
+          goto done;
+        } else if (!is_accessible_base_class(baseward_bcp)) {
+          if (pointer_case) {
+            clear_address(result_storage, NULL);
+          } else {
+            do_constexpr_fail(result);
+            info_with_pos_type(ec_inaccessible_base_class,
+                               &expr->position, tp, ips);
+          }  /* if */
+          goto done;
+        }  /* if */
+      } else {
+        /* There is no subobject of the right type. */
+        if (pointer_case) {
+          clear_address(result_storage, NULL);
+        } else {
+          do_constexpr_fail(result);
+          info_with_pos_type2(ec_constexpr_invalid_dynamic_cast,
+                              &expr->position, tp, dtp, ips);
+        }  /* if */
+        goto done;
+      }  /* if */
+      adjust_constexpr_address_for_base_class(result_addr, baseward_bcp);
     }  /* if */
   } else {
     /* Prior to C++20, dynamic_cast expressions never produced core constant
@@ -9946,7 +10153,7 @@ the value representation of the integer value.
                 btp = tp;
               }  /* if */
               bcp = find_direct_base_class_of(dtp, btp);
-              if (bcp == NULL || bcp->is_virtual) {
+              if (bcp == NULL) {
                 /* bcp can be NULL for indirect virtual base classes (only). */
                 do_constexpr_fail(result);
                 info_with_pos_type(ec_constexpr_virtual_base, &expr->position,
