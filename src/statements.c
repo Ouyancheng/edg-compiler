@@ -4074,8 +4074,8 @@ statement sequence.  The syntax is:
       condition_expr = sp->expr;
     }  /* if */
     clear_diag_list(&diag_list);
-    if (interpret_expr(condition_expr, /*force_prvalue=*/TRUE, folded_con,
-                       &diag_list)) {
+    if (interpret_expr(condition_expr, /*is_constexpr_evaluated=*/TRUE,
+                       /*force_prvalue=*/TRUE, folded_con, &diag_list)) {
       value_known = TRUE;
       if (!is_error_constant(folded_con) && !is_false_constant(folded_con)) {
         expr_is_true = TRUE;

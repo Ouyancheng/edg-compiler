@@ -27,23 +27,35 @@ a_boolean is_core_constant_expr(an_expr_node_ptr  expr,
                                 a_diag_list_ptr   diag_list);
 
 a_boolean interpret_expr(an_expr_node_ptr  expr,
+                         a_boolean         is_constant_evaluated,
                          a_boolean         force_prvalue,
                          a_constant_ptr    result_con,
                          a_diag_list_ptr   diag_list);
 
 a_boolean interpret_constexpr_call(an_expr_node_ptr  call_expr,
+                                   a_boolean         is_constant_evaluated,
                                    a_constant_ptr    result_con,
                                    a_diag_list_ptr   diag_list);
 
 a_boolean interpret_dynamic_init(a_dynamic_init_ptr  dip,
                                  a_source_position   *pos,
                                  a_type_ptr          result_type,
+                                 a_boolean           is_constant_evaluated,
                                  a_constant_ptr      result_con,
                                  a_diag_list_ptr     diag_list);
 
 a_boolean interpret_constexpr_ctor(a_dynamic_init_ptr  dip,
+                                   a_boolean           is_constant_evaluated,
                                    a_constant_ptr      result_con,
                                    a_diag_list_ptr     diag_list);
+
+typedef enum a_constexpr_intrinsic_tag {
+  cit_std_is_constant_evaluated,
+  cit_last
+} a_constexpr_intrinsic_tag;
+
+void register_constexpr_intrinsic(a_constexpr_intrinsic_tag  tag,
+                                  a_routine_ptr              rp);
 
 #if DEBUG
 uintptr_t db_hash_ptr(void  *ptr);

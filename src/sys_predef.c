@@ -306,17 +306,19 @@ restrictions).
     } else {
       has_secondary = FALSE;
     }  /* if */
-    if (*p == 'g' || *p == 'L' || *p == 'm') {
+    if (*p == 'g' || *p == 'L' || *p == 'm' || *p == 's') {
       if (*p == 'g') {
         result = result && (gnu_mode && !clang_mode);
         version = gnu_version;
       } else if (*p == 'L') {
         result = result && (gnu_mode && clang_mode);
         version = clang_version;
-      } else {
-        check_assertion(*p == 'm');
+      } else if (*p == 'm') {
         result = result && ms_extensions;
         version = microsoft_version;
+      } else {
+        check_assertion(*p == 's');
+        version = std_version;
       }  /* if */
       p++;
       check_assertion(*p == 'x' || *p == 'c' || *p == '+');
@@ -1057,8 +1059,7 @@ Enter predeclared symbols as required by the implementation.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if BUILTIN_FUNCTIONS_ENABLED
-  if (is_primary_translation_unit &&
-      (gnu_mode || ms_extensions || cppcli_enabled)) {
+  if (is_primary_translation_unit) {
     /* Enter symbol headers for any applicable builtin functions.  The
        routines themselves will be lazily loaded as needed. */
     preload_builtin_symbols();

@@ -835,6 +835,10 @@ typedef struct an_interpreter_state {
 			   storage stack states.  This is used to detect
 			   dangling pointers. */
   a_bit_field
+		is_constant_evaluated:1;
+			/* The value returned by std::is_constant_evaluated in
+			   this interpretation. */
+  a_bit_field
 		static_storage_ready:1;
 			/* TRUE if static_storage has been initialized. */
   a_bit_field
@@ -2106,22 +2110,25 @@ typedef struct a_constexpr_ptr_to_mem {
 } a_constexpr_ptr_to_mem;
 
 
-static void init_interpreter_state(an_interpreter_state  *ips)
+static void init_interpreter_state(an_interpreter_state  *ips,
+                                   a_boolean             is_constant_evaluated)
 /*
-Initialize the given interpreter state.
+Initialize the given interpreter state.  is_constant_evaluated determines the
+result of calls to std::is_constant_evaluated().
 */
 {
   init_data_map(&ips->map, 3);
   init_constexpr_stack(&ips->storage_stack);
   init_live_set(&ips->live_set);
   add_to_live_set(&ips->live_set, 1);
-  ips->curr_alloc_seq_number = 1;
   ips->curr_call_frame = NULL;
   ips->extension_state = NULL;
   ips->constants = NULL;
   clear_diag_list(&ips->diag_list);
   ips->position = null_source_position;
   ips->cost = 0;
+  ips->curr_alloc_seq_number = 1;
+  ips->is_constant_evaluated = is_constant_evaluated;
   ips->static_storage_ready = FALSE;
   ips->side_effects_disabled = !relaxed_constexpr_enabled;
   ips->suspend_diag_list = FALSE;
@@ -5330,6 +5337,7 @@ otherwise, this routine will look up that storage in ips->map.
   a_boolean              result = TRUE;
   a_storage_stack_state  saved_stack_for_full_expr;
   a_dynamic_init_ptr     dip = vp->initializer.dynamic;
+  a_type_ptr             tp = skip_typerefs(vp->type);
 
   save_storage_stack(ips, saved_stack_for_full_expr);
   if (vp->extends_lifetime) {
@@ -5344,12 +5352,20 @@ otherwise, this routine will look up that storage in ips->map.
     get_stack_bytes(ips, vp, storage);
   }  /* if */
   if (dip->kind == (a_dynamic_init_kind)dik_zero) {
-    a_type_ptr  tp = skip_typerefs(vp->type);
     init_subobject_to_zero(ips, storage, tp, storage);
-  } else if (do_constexpr_dynamic_init(ips, dip, pos, storage, storage)) {
-    mark_complete_object_initialized(storage);
   } else {
-    do_constexpr_fail(result);
+    a_boolean  saved_is_constant_evaluated = ips->is_constant_evaluated;
+    if (vp->init_kind == (an_init_kind)initk_static ||
+        (tp->kind == (a_type_kind)tk_integer &&
+         is_const_qualified_type(vp->type))) {
+      ips->is_constant_evaluated = TRUE;
+    }  /* if */
+    if (do_constexpr_dynamic_init(ips, dip, pos, storage, storage)) {
+      mark_complete_object_initialized(storage);
+    } else {
+      do_constexpr_fail(result);
+    }  /* if */
+    ips->is_constant_evaluated = saved_is_constant_evaluated;
   }  /* if */
   if (vp->extends_lifetime) {
     /* Release the ordinary storage stack blocks for this expression.
@@ -7333,6 +7349,20 @@ to FALSE and the reason for the failure is recorded in *ips.
         }  /* if */
       }
       break;
+    case bufk_is_constant_evaluated:
+      {
+        interpreted = TRUE;
+        /* Return a true value if ips->is_constant_evaluated is TRUE, or
+           fail interpretation otherwise. */
+        if (args != NULL) {
+          unexpected_condition();
+        } else if (ips->is_constant_evaluated) {
+          *(an_integer_value*)result_storage = one_int;
+        } else {
+          do_constexpr_fail(*p_result);
+        }  /* if */
+      }
+      break;
     default:
       interpreted = FALSE;
   }  /* switch */
@@ -7340,6 +7370,77 @@ to FALSE and the reason for the failure is recorded in *ips.
 }  /* do_constexpr_builtin_function */
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+
+static a_boolean do_constexpr_std_is_constant_evaluated(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Return TRUE and set *result_storage to "true" if ips->is_constant_evaluated is
+TRUE.  Otherwise result FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (ips->is_constant_evaluated) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    do_constexpr_fail(result);
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_is_constant_evaluated */
+
+
+typedef a_boolean (*an_intrinsic_evaluator)(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj);
+
+
+static an_intrinsic_evaluator intrinsics_table[(int)cit_last] = {
+  do_constexpr_std_is_constant_evaluated
+};
+
+
+
+static a_boolean do_constexpr_intrinsic_call(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Evaluate the call represented by call_node, which is a call to the routine
+represented by callee and that routine is handled in a special way by the
+interpreter.  The arguments to the call have already been evaluated and their
+interpreter representations are pointed to by p_arg_bytes[0 .. N-1] (where N
+is the number of arguments).  The result of the call will be placed in storage
+pointed to by result_storage, which is part of the complete object pointed to
+by complete_obj.
+
+The caller has already pushed a call frame and is responsible for popping that
+frame when the call has completed.
+*/
+{
+  a_boolean     result = TRUE;
+  a_byte_count  index = (a_byte_count)cit_last;
+
+  /* Look up the index of this intrinsic in the intrinsics table */
+  get_mapped_byte_count(&persistent_map, callee, index);
+  check_assertion(index < (a_byte_count)cit_last);
+  /* Dispatch the call to the appropriate implementation. */
+  result = intrinsics_table[index](ips, callee, call_node, p_arg_bytes,
+                                   result_storage, complete_obj);
+  return result;
+}  /* do_constexpr_intrinsic_call */
+
 
 static a_boolean adjust_this_address(an_interpreter_state    *ips,
                                      a_constexpr_address     *this_addr,
@@ -7601,7 +7702,6 @@ otherwise, return FALSE and update *ips accordingly.
     }  /* if */
   }  /* if */
   /* Now interpret the call if possible. */
-#if BUILTIN_FUNCTIONS_ENABLED
   {
     a_routine_ptr  eff_callee = callee;
 #if GNU_EXTENSIONS_ALLOWED
@@ -7611,6 +7711,7 @@ otherwise, return FALSE and update *ips accordingly.
       eff_callee = gnu_routine_supp(eff_callee)->aliased_routine;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if BUILTIN_FUNCTIONS_ENABLED
     if (special_kind_is(eff_callee, sfk_none) &&
         eff_callee->variant.builtin_function_kind !=
                                           (a_builtin_function_kind)bfk_none &&
@@ -7620,8 +7721,8 @@ otherwise, return FALSE and update *ips accordingly.
     } else if (!result) {
       goto done;
     }  /* if */
-  }
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+  }
   if (special_kind_is(callee, sfk_lambda_entry_point)) {
     /* Use the real call operator instead of the entry point. */
     callee = callee->variant.lambda_call_operator;
@@ -7896,12 +7997,22 @@ otherwise, return FALSE and update *ips accordingly.
     /* Set up the call frame. */
     push_call_frame(ips, &frame, callee, &call_node->position,
                     result_storage, complete_object);
-    /* Run the function's top-level block statement. */
-    block_stmt = callee_scope->assoc_block;
-    if (block_stmt->kind == (a_statement_kind)stmk_try_block) {
-      block_stmt = block_stmt->variant.try_block->statement;
+    if (callee->is_constexpr_intrinsic) {
+      /* A standard library function or member function that the front end has
+         marked as "constexpr-intrinsic", which means we should implement its
+         semantics without regard for the actual definition.  For example,
+         this could be a call to std::is_constant_evaluated. */
+      result = do_constexpr_intrinsic_call(
+                                   ips, callee, call_node, (a_byte**)arg_ptrs,
+                                   result_storage, complete_object);
+    } else {
+      /* Run the function's top-level block statement. */
+      block_stmt = callee_scope->assoc_block;
+      if (block_stmt->kind == (a_statement_kind)stmk_try_block) {
+        block_stmt = block_stmt->variant.try_block->statement;
+      }  /* if */
+      result = do_constexpr_block_statement(ips, block_stmt, callee_scope);
     }  /* if */
-    result = do_constexpr_block_statement(ips, block_stmt, callee_scope);
     if (retval_offset != 0 && result) {
       /* A virtual call dispatching to an overriding function with a
          covariant return type.  The return value is an address that must
@@ -8409,7 +8520,7 @@ the body of the (constructor) function proper.
       }  /* if */
     }
     remove_from_live_set(&ips->live_set, alloc_seq_number);
-    /* Reduce the cost of the call to just 1. */
+    /* Reduce the cost of the call to just 2. */
     ips->cost -= up_front_cost-2;
   }  /* if */
 done:
@@ -13636,6 +13747,8 @@ the value representation of the integer value.
               }  /* if */
             }  /* if */
           } else {
+            /* This variable is not allocated in the interpreter.  See if it
+               is a constant-valued variable. */
             a_constant_ptr  con = var_constant_value(var);
             if (con != NULL) {
               a_boolean  saved_flag = ips->disallow_mutable_field_load;
@@ -14607,7 +14720,7 @@ expressions").
     initialize_interpreter_data();
     trans_unit_initialization_needed = FALSE;
   }  /* if */
-  init_interpreter_state(&ips);
+  init_interpreter_state(&ips, /*is_constant_evaluated=*/FALSE);
   ips.position = expr->position;
   n_bytes = expr_result_size(&ips, expr, result_type, &result); 
   if (!result) {
@@ -14636,6 +14749,7 @@ done:
 
 
 a_boolean interpret_expr(an_expr_node_ptr  expr,
+                         a_boolean         is_constant_evaluated,
                          a_boolean         force_prvalue,
                          a_constant_ptr    result_con,
                          a_diag_list_ptr   diag_list)
@@ -14643,7 +14757,8 @@ a_boolean interpret_expr(an_expr_node_ptr  expr,
 Attempt to interpret the given expression.  If force_prvalue is TRUE and expr
 is a glvalue, convert the glvalue result to a prvalue.  Return TRUE if
 successful, and produce the resulting value in result_con.  Otherwise, return
-FALSE, and record diagnostic info in *diag_list.
+FALSE, and record diagnostic info in *diag_list.  is_constant_evaluated
+indicates the value produced by std::is_constant_evaluated().
 */
 {
   a_boolean             result = TRUE;
@@ -14678,7 +14793,7 @@ FALSE, and record diagnostic info in *diag_list.
     initialize_interpreter_data();
     trans_unit_initialization_needed = FALSE;
   }  /* if */
-  init_interpreter_state(&ips);
+  init_interpreter_state(&ips, is_constant_evaluated);
   ips.position = expr->position;
   n_bytes = expr_result_size(&ips, expr, val_type, &result); 
   if (!result) {
@@ -14764,12 +14879,14 @@ done:
 
 
 a_boolean interpret_constexpr_call(an_expr_node_ptr  call_expr,
+                                   a_boolean         is_constant_evaluated,
                                    a_constant_ptr    result_con,
                                    a_diag_list_ptr   diag_list)
 /*
 Attempt to interpret the call represented by call_expr.  Return TRUE if
-successful, and produce the resulting value in result_con.  Otherwise,
-return FALSE, and record diagnostic info in *diag_list.
+successful, and produce the resulting value in result_con.  Otherwise, return
+FALSE, and record diagnostic info in *diag_list.  is_constant_evaluated
+indicates the value produced by std::is_constant_evaluated().
 */
 {
   a_boolean             result = TRUE;
@@ -14790,7 +14907,7 @@ return FALSE, and record diagnostic info in *diag_list.
     initialize_interpreter_data();
     trans_unit_initialization_needed = FALSE;
   }  /* if */
-  init_interpreter_state(&ips);
+  init_interpreter_state(&ips, is_constant_evaluated);
   ips.position = call_expr->position;
   n_bytes = expr_result_size(&ips, call_expr, result_type, &result); 
   if (!result) {
@@ -14835,13 +14952,15 @@ done:
 a_boolean interpret_dynamic_init(a_dynamic_init_ptr  dip,
                                  a_source_position   *pos,
                                  a_type_ptr          result_type,
+                                 a_boolean           is_constant_evaluated,
                                  a_constant_ptr      result_con,
                                  a_diag_list_ptr     diag_list)
 /*
 Attempt to interpret the given dynamic initialization entry.  Return TRUE if
 successful, and produce the resulting value (of the given type) in result_con.
 Otherwise, return FALSE, and record diagnostic info in *diag_list.  pos is the
-source position of the initialization.
+source position of the initialization.  is_constant_evaluated indicates the
+value produced by std::is_constant_evaluated().
 */
 {
   a_boolean             result = TRUE;
@@ -14861,7 +14980,7 @@ source position of the initialization.
     initialize_interpreter_data();
     trans_unit_initialization_needed = FALSE;
   }  /* if */
-  init_interpreter_state(&ips);
+  init_interpreter_state(&ips, is_constant_evaluated);
   ips.position = *pos;
   result_type = skip_typerefs(result_type);
   n_bytes = value_bytes_for_type(&ips, result_type, &result); 
@@ -14927,12 +15046,14 @@ done:
 
 
 a_boolean interpret_constexpr_ctor(a_dynamic_init_ptr  dip,
+                                   a_boolean           is_constant_evaluated,
                                    a_constant_ptr      result_con,
                                    a_diag_list_ptr     diag_list)
 /*
 Attempt to interpret the constructor call represented by dip.  Return TRUE if
-successful, and produce the resulting value in result_con.  Otherwise,
-return FALSE, and record diagnostic info in *diag_list.
+successful, and produce the resulting value in result_con.  Otherwise, return
+FALSE, and record diagnostic info in *diag_list.  is_constant_evaluated
+indicates the value produced by std::is_constant_evaluated().
 */
 {
   a_boolean             result = TRUE;
@@ -14954,7 +15075,7 @@ return FALSE, and record diagnostic info in *diag_list.
     initialize_interpreter_data();
     trans_unit_initialization_needed = FALSE;
   }  /* if */
-  init_interpreter_state(&ips);
+  init_interpreter_state(&ips, is_constant_evaluated);
   ips.position = error_position;
   if (is_error_dynamic_init(dip)) {
     set_error_constant(result_con);
@@ -15041,6 +15162,25 @@ storage available for another compilation, if any).
     free_stack_blocks = NULL;
   }  /* if */
 }  /* clean_up_interpreter */
+
+
+void register_constexpr_intrinsic(a_constexpr_intrinsic_tag  tag,
+                                  a_routine_ptr              rp)
+/*
+Mark the given routine as a "constexpr intrinsic" (i.e., a function that is
+treated specially when invoked at compile time) and associate it with the given
+tag in the persistent map.  (An example of such a function is
+std::is_constant_evaluated.)
+*/
+{
+  if (trans_unit_initialization_needed) {
+    initialize_interpreter_data();
+    trans_unit_initialization_needed = FALSE;
+  }  /* if */
+  rp->is_constexpr_intrinsic = TRUE;
+  map_byte_count(&persistent_map, rp, (a_byte_count)tag);
+}  /* register_constexpr_intrinsic */
+
 
 #if DEBUG
 

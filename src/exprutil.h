@@ -2451,11 +2451,19 @@ void set_operand_name_reference_from_locator(an_operand       *operand,
 extern void set_operand_id_details_from_locator(an_operand       *operand,
                                                 a_symbol_locator *locator);
 
-extern void force_operand_to_constant_if_possible(an_operand *operand);
+extern
+void force_operand_to_constant_if_possible_full(
+                                             an_operand *operand,
+                                             a_boolean  is_constant_evaluated);
+
+#define force_operand_to_constant_if_possible(opnd)                          \
+  (force_operand_to_constant_if_possible_full(                               \
+                                     opnd, /*is_constant_evaluated=*/FALSE))
 
 extern
 a_boolean expr_interpret_expression_operand(an_operand  *operand,
-                                            a_boolean   must_be_constant);
+                                            a_boolean   must_be_constant,
+                                            a_boolean   is_constant_evaluated);
 
 extern a_boolean constant_conv_function_result(a_routine_ptr   conv_func,
                                                an_operand      *source_operand,

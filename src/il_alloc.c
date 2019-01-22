@@ -2892,6 +2892,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_declared_constexpr       = FALSE;
   rp->is_constexpr                = FALSE;
   rp->is_consteval                = FALSE;
+  rp->is_constexpr_intrinsic      = FALSE;
   rp->compiler_generated          = FALSE;
   rp->defined                     = FALSE;
   rp->called                      = FALSE;

@@ -27,6 +27,7 @@ decls.c -- Scanning of declarations.
 /* Additional header files. */
 #include "disambig.h"
 #include "folding.h"
+#include "interpret.h"
 #include "statements.h"
 /* To get clear_initializer_cache: */
 #include "exprutil.h"
@@ -8383,6 +8384,42 @@ adjust *dps and *idlbp as needed.
 }  /* check_clang_c_overload */
 
 
+static void check_for_constexpr_intrinsic(a_routine_ptr     rp,
+                                          a_symbol_locator  *loc)
+/*
+The given routine is being declared with the given locator and that locator is
+associated with an intrinsic.  Check whether the routine is actually a
+"constexpr intrinsic" (i.e., a function handled specially by the constexpr
+interpreter) and if so mark it as such.
+*/
+{
+  a_constexpr_intrinsic_tag  tag = cit_last;
+
+  if (is_namespace_member(rp) &&
+      parent_namespace_of(rp) ==
+                       symbol_for_namespace_std->variant.namespace_info.ptr) {
+    /* A member of namespace "std". */
+    a_const_char  *name = loc->symbol_header->identifier;
+    switch (name[0]) {
+      case 'i':
+        if (strcmp(name, "is_constant_evaluated") == 0) {
+          a_type_ptr  rtp = skip_typerefs(rp->type);
+          if (function_type_params(rtp) == NULL &&
+              is_bool_type(rtp->variant.routine.return_type)) {
+            tag = cit_std_is_constant_evaluated;
+          }  /* if */
+        }  /* if */
+        break;
+      default:
+        break;
+    }  /* switch */
+  }  /* if */
+  if (tag != cit_last) {
+    register_constexpr_intrinsic(tag, rp);
+  }  /* if */
+}  /* check_for_constexpr_intrinsic */
+
+
 #if !(EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS)
 /* ARGSUSED */ /* decl_pos_block is not used in some configurations. */
 #endif /* !(EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS) */
@@ -9778,6 +9815,9 @@ skip_overloading:;
     routine_ptr->is_constexpr = TRUE;
     /* constexpr implies inline. */
     if (!routine_ptr->is_inline) set_inline_flag(routine_ptr, TRUE);
+    if (locator->symbol_header->has_intrinsic_name) {
+      check_for_constexpr_intrinsic(routine_ptr, locator);
+    }  /* if */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (gcc_pragma_options_stack != NULL && !func_info->is_main_function) {

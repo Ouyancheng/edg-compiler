@@ -11139,6 +11139,11 @@ typedef struct a_routine {
   a_bit_field	is_consteval:1;
 			/* TRUE for functions that were declared with the
 			   C++20 "consteval" specifier. */
+  a_bit_field	is_constexpr_intrinsic:1;
+			/* TRUE for certain standard library functions that the
+			   front end knows how to evaluate independently from
+			   the actual definition in the library (e.g.,
+			   "std::is_constant_evaluated"). */
   a_bit_field	compiler_generated:1;
 			/* TRUE for functions that are created by the
 			   compiler and have not been declared in the source,

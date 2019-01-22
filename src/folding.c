@@ -6053,8 +6053,8 @@ expression is a glvalue, do not fold (see fold_glvalue_expr instead).
   } else {
     a_diag_list  diag_list;
     clear_diag_list(&diag_list);
-    folded = interpret_expr(expr, /*force_rvalue=*/FALSE, result_con,
-                            &diag_list);
+    folded = interpret_expr(expr, /*is_constant_evaluated=*/FALSE,
+                            /*force_rvalue=*/FALSE, result_con, &diag_list);
     discard_more_info_list(&diag_list);
   }  /* if */
   return folded;
@@ -6085,8 +6085,8 @@ the expression is not a glvalue, do not fold (see fold_expr instead).
   } else {
     a_diag_list  diag_list;
     clear_diag_list(&diag_list);
-    folded = interpret_expr(expr, /*force_rvalue=*/FALSE, result_con,
-                            &diag_list);
+    folded = interpret_expr(expr, /*is_constant_evaluated=*/FALSE,
+                            /*force_rvalue=*/FALSE, result_con, &diag_list);
     if (folded && is_reference_type(result_con->type)) {
       /* The interpreter will produce a reference constant when folding a
          glvalue.  Make it a pointer constant instead. */
@@ -8986,6 +8986,7 @@ constant is set as well.
         break;
       case bok_builtin_addressof:
         *not_a_constant = !fold_constexpr_expr(expr, constant,
+                                               /*is_constant_evaluated=*/FALSE,
                                                /*force_prvalue=*/FALSE);
         break;
       default:
@@ -10340,7 +10341,8 @@ the variable to which p points has a constant value, return that value.
     a_diag_list    diag_list;
     result_con = local_constant();
     clear_diag_list(&diag_list);
-    if (interpret_expr(expr, /*force_prvalue=*/TRUE, result_con, &diag_list)) {
+    if (interpret_expr(expr, /*is_constant_evaluated=*/FALSE,
+                       /*force_prvalue=*/TRUE, result_con, &diag_list)) {
       result_con = move_local_constant_to_il(&result_con);
     } else {
       release_local_constant(&result_con);
@@ -10400,20 +10402,24 @@ value in *result_con and return TRUE; otherwise, return FALSE.
 
 a_boolean fold_constexpr_expr(an_expr_node_ptr  expr,
                               a_constant        *result_con,
+                              a_boolean         is_constant_evaluated,
                               a_boolean         force_prvalue)
 /*
 Attempt to fold the expression "expr" to a constant as part of a constexpr
 evaluation.  If the expression folds to a constant, place the constant in
-*result_con and return TRUE; otherwise, return FALSE.  The expression can be
-an lvalue, xvalue, or prvalue.  If force_prvalue is TRUE, the value is
-computed as if expr were converted to a prvalue.
+*result_con and return TRUE; otherwise, return FALSE.  is_constant_evaluated
+determines the value of a call to std::is_constant_evaluated() during this
+folding.  The expression can be an lvalue, xvalue, or prvalue.  If
+force_prvalue is TRUE, the value is computed as if expr were converted to a
+prvalue.
 */
 {
   a_boolean    folded;
   a_diag_list  diag_list;
 
   clear_diag_list(&diag_list);
-  folded = interpret_expr(expr, force_prvalue, result_con, &diag_list);
+  folded = interpret_expr(expr, is_constant_evaluated, force_prvalue,
+                          result_con, &diag_list);
   discard_more_info_list(&diag_list);
   return folded;
 }  /* fold_constexpr_expr */
@@ -10471,6 +10477,7 @@ error constant, and return TRUE.  Otherwise, return FALSE.
 a_boolean fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
                               a_boolean          record_backing_expr,
                               a_boolean          check_constexpr,
+                              a_boolean          is_constant_evaluated,
                               a_source_position  *pos,
                               a_constant         *result_con)
 /*
@@ -10481,7 +10488,8 @@ return TRUE; otherwise, return FALSE.  pos gives the source position of the
 initialization.  If record_backing_expr is TRUE, record a temp-init over
 ctor_dip as a backing expression for the resulting constant.  If
 check_constexpr is TRUE, call call_did_not_fold_to_constant if folding did
-not succeed.
+not succeed.  is_constant_evaluated determines the value produced by calls to
+std::is_constant_evaluated() during this folding.
 */
 {
   a_boolean    folded;
@@ -10490,7 +10498,8 @@ not succeed.
   check_assertion(ctor_dip != NULL &&
                   ctor_dip->kind == (a_dynamic_init_kind)dik_constructor);
   clear_diag_list(&diag_list);
-  folded = interpret_constexpr_ctor(ctor_dip, result_con, &diag_list);
+  folded = interpret_constexpr_ctor(ctor_dip, is_constant_evaluated,
+                                    result_con, &diag_list);
   if (folded) {
     if (record_backing_expr) {
       add_temp_init_backing_expression(result_con, ctor_dip);
@@ -10559,8 +10568,8 @@ prvalue result of the field selection.
       /* Interpret the member selection operation. */
       a_diag_list  diag_list;
       clear_diag_list(&diag_list);
-      folded = interpret_expr(expr, /*force_prvalue=*/TRUE, result_con,
-                              &diag_list);
+      folded = interpret_expr(expr, /*is_constant_evaluated=*/FALSE,
+                              /*force_prvalue=*/TRUE, result_con, &diag_list);
       discard_more_info_list(&diag_list);
     }  /* if */
   }  /* if */
@@ -10593,58 +10602,6 @@ static initialization.
   }  /* if */
   return result;
 }  /* is_static_init_constant */
-
-
-
-void fold_dynamic_init_if_possible(a_dynamic_init_ptr  dip,
-                                   a_type_ptr          dest_type)
-/*
-If the given dynamic initialization entry can be folded to a constant, replace
-it by a corresponding dik_constant entry.  If the resulting constant is the
-address of a local variable or of a temporary, do not perform the folding.
-This function has no effect if dip already is a dik_constant entry.  dest_type 
-is the type being initialized.
-*/
-{
-  if (constexpr_enabled && dip->kind != (a_dynamic_init_kind)dik_constant) {
-    a_constant_ptr      folded_value = local_constant();
-    a_diag_list         diag_list;
-    a_variable_ptr      var = dip->variable;
-    an_init_kind        init_kind;
-    if (var != NULL) {
-      /* Temporarily set the variable as uninitialized to avoid runaway
-         recursion. */
-      init_kind = var->init_kind;
-      var->init_kind = (an_init_kind)initk_none;
-    }  /* if */
-    clear_diag_list(&diag_list);
-    /* Interpret the dynamic initialization into a constant if possible.
-       If the resulting constant is the address of a temporary, keep the
-       dynamic initialization (otherwise, we may fold uses of references to
-       a mutable temporary later on).  Also, if the constant is the address
-       of a local variable (checked with is_static_init_constant) ignore the
-       resulting constant since it is not really "constant". */
-    if (interpret_dynamic_init(dip, &pos_curr_token, dest_type, folded_value,
-                               &diag_list) &&
-        !(constant_is(folded_value, ck_address) &&
-          folded_value->variant.address.kind == 
-                                       (an_address_base_kind)abk_temporary) &&
-        is_static_init_constant(folded_value)) {
-      dip->kind = (a_dynamic_init_kind)dik_constant;
-      set_dynamic_init_constant(dip, move_local_constant_to_il(&folded_value));
-    }  /* if */
-    discard_more_info_list(&diag_list);
-    if (folded_value != NULL) {
-      /* If folded_value was not moved to the IL above, release it now. */
-      release_local_constant(&folded_value);
-    }  /* if */
-    if (var != NULL) {
-      var->init_kind = init_kind;
-    }  /* if */
-  }  /* if */
-}  /* fold_dynamic_init_if_possible */
-
-
 
 #if DEBUG
 

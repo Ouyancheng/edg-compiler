@@ -571,7 +571,9 @@ given position and return an error constant.
 
   if (ctor->is_constexpr) {
     if (!fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE,
-                             /*check_constexpr=*/TRUE, diag_pos, result)) {
+                             /*check_constexpr=*/TRUE,
+                             /*is_constant_evaluated=*/TRUE,
+                             diag_pos, result)) {
       /* The call to the default constructor could not be folded. */
       expect_error();
       set_error_constant(result);
@@ -870,6 +872,7 @@ remove_any_extraneous_braces:
           a_source_position  *diag_pos = init_component_pos(icp);
           clear_diag_list(&diag_list);
           if (!interpret_dynamic_init(elem_is.init_dip, diag_pos, dest_type,
+                                      /*is_constant_evaluated=*/TRUE,
                                       folded_value, &diag_list)) {
             a_diagnostic_ptr  dp;
             dp = pos_start_error(ec_expr_not_constant, diag_pos);
@@ -1310,9 +1313,11 @@ given position, unless is->no_diagnostics is TRUE.
         } else {
           a_constant_ptr  class_con = local_constant();
           if (ctor_rp->is_constexpr &&
-              fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE,
-                                  /*check_constexpr=*/FALSE, diag_pos,
-                                  class_con)) {
+              fold_constexpr_ctor(
+                               dip, /*record_backing_expr=*/TRUE,
+                               /*check_constexpr=*/FALSE,
+                               /*is_constant_evaluated=*/ctor_rp->is_consteval,
+                               diag_pos, class_con)) {
             if (class_con->is_partially_initialized) {
               is->partial_initializer = TRUE;
             }  /* if */
@@ -1410,8 +1415,9 @@ Issue any diagnostics at the given position.
   if (dip == NULL) {
     /* This can happen in error cases: Don't attempt operations on *dip. */
     check_assertion(is->init_error && is->check_validity_only);
-  } else if (interpret_dynamic_init(dip, diag_pos, fp->type, folded_value,
-                                    &diag_list) &&
+  } else if (interpret_dynamic_init(dip, diag_pos, fp->type,
+                                    /*is_constant_evaluated=*/FALSE,
+                                    folded_value, &diag_list) &&
              is_static_init_constant(folded_value)) {
     /* A constant initializer. */
     if (folded_value->is_partially_initialized) {
@@ -3704,7 +3710,9 @@ particular situation.
     if (ctor->is_constexpr) {
       a_constant_ptr  con = local_constant();
       if (fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE,
-                              /*check_constexpr=*/FALSE, diag_pos, con)) {
+                              /*check_constexpr=*/FALSE,
+                              /*is_constant_evaluated=*/ctor->is_consteval,
+                              diag_pos, con)) {
         if (con->is_partially_initialized) {
           is->partial_initializer = TRUE;
         }  /* if */
@@ -5456,44 +5464,51 @@ returned set to TRUE.
         record_dtor_in_dynamic_init(
                   dtor, init_dip, !dps->init_state.not_potentially_evaluated);
       }  /* if */
-    } else {
-      a_boolean  is_consteval_init = FALSE;
+    } else if (constexpr_enabled &&
+               !scope_stack_top().in_prototype_instantiation && !init_err) {
+      /* See if the initializer can be evaluated as a constant expression. */
+      a_diag_list     diag_list;
+      a_constant_ptr  folded_con = local_constant();
+      a_boolean       is_consteval_init = FALSE;
+      a_boolean       is_constant_evaluated = FALSE;
       if (init_dip->kind == (a_dynamic_init_kind)dik_constructor) {
         a_routine_ptr  ctor = init_dip->variant.constructor.ptr;
         if (ctor != NULL && ctor->is_consteval) {
           is_consteval_init = TRUE;
         }  /* if */
       }  /* if */
-      if (constexpr_enabled &&
-          (dps->init_state.initializer_must_be_constant ||
-           is_consteval_init) &&
-          !scope_stack_top().in_prototype_instantiation && !init_err) {
-        /* A constant is expected.  See if the interpreter can fold the
-           dynamic initializer. */
-        a_diag_list     diag_list;
-        a_constant_ptr  folded_con = local_constant();
-        clear_diag_list(&diag_list);
-        if (init_dip->variable == NULL) init_dip->variable = vp;
-        if (interpret_dynamic_init(init_dip, &pos_first_token, vp_type,
-                                   folded_con, &diag_list)) {
-          if (static_lifetime) {
-            init_con = move_local_constant_to_il(&folded_con);
-            init_dip = NULL;
-          } else {
-            set_dynamic_init_kind(init_dip, (a_dynamic_init_kind)dik_constant);
-            set_dynamic_init_constant(init_dip,
-                                      move_local_constant_to_il(&folded_con));
-          }  /* if */
+      if (!vp->source_corresp.is_local_to_function || vp->is_constexpr ||
+          (is_const_qualified_type(vp->type) &&
+           is_integral_or_enum_type(vp->type)) ||
+          is_any_reference_type(vp->type)) {
+        is_constant_evaluated = TRUE;
+      }  /* if */
+      clear_diag_list(&diag_list);
+      if (init_dip->variable == NULL) init_dip->variable = vp;
+      if (interpret_dynamic_init(init_dip, &pos_first_token, vp_type,
+                                 is_constant_evaluated,
+                                 folded_con, &diag_list)) {
+        if (static_lifetime) {
+          init_con = move_local_constant_to_il(&folded_con);
+          init_dip = NULL;
         } else {
+          set_dynamic_init_kind(init_dip, (a_dynamic_init_kind)dik_constant);
+          set_dynamic_init_constant(init_dip,
+                                    move_local_constant_to_il(&folded_con));
+        }  /* if */
+      } else {
+        if (dps->init_state.initializer_must_be_constant ||
+            is_consteval_init) {
+          /* A constant was required: Issue a diagnostic. */
           a_diagnostic_ptr  dp;
           dp = pos_start_error(ec_expr_not_constant, &pos_first_token);
           add_more_info_list(dp, &diag_list);
           end_diagnostic(dp);
-          release_local_constant(&folded_con);
           init_err = TRUE;
         }  /* if */
-        discard_more_info_list(&diag_list);
+        release_local_constant(&folded_con);
       }  /* if */
+      discard_more_info_list(&diag_list);
     }  /* if */
     check_assertion((init_dip == NULL) != (init_con == NULL));
     if (init_dip != NULL) {
@@ -6375,10 +6390,12 @@ FALSE is returned) for non-class objects.
             /* Folding the constructor call may require access to the variable
                being initialized. */
             init_dip->variable = var;
-            folded = fold_constexpr_ctor(init_dip,
-                                         /*record_backing_expr=*/TRUE,
-                                         /*check_constexpr=*/FALSE,
-                                         err_pos, folded_con);
+            folded = fold_constexpr_ctor(
+                                  init_dip,
+                                  /*record_backing_expr=*/TRUE,
+                                  /*check_constexpr=*/FALSE,
+                                  /*is_constant_evaluated=*/ctor->is_consteval,
+                                  err_pos, folded_con);
             /* Clear the variable field again.  It may get recorded later if
                needed. */
             init_dip->variable = NULL;

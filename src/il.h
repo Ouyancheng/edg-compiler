@@ -1957,6 +1957,10 @@ typedef int a_conv_context_set;
 			/* When considering constructors or conversion
 			   operators ignore those that are "explicit" (possibly
 			   after substitution of "explicit( <bool-expr> )"). */
+#define CCO_IS_CONSTANT_EVALUATED ((a_conv_context_set)0x800000)
+			/* Used to indicate that in this context calls to
+			   std::is_constant_evaluated() should produce
+			   "true". */
 
 
 /*

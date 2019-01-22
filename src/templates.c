@@ -13508,7 +13508,9 @@ on the ck_template_param constant pointed to by the expression.
         /* Nothing more to try. */
       } else if (new_cp == NULL) {
         if (new_expr != NULL &&
-            fold_constexpr_expr(new_expr, constant, /*force_prvalue=*/TRUE)) {
+            fold_constexpr_expr(new_expr, constant,
+                                /*is_constant_evaluated=*/TRUE,
+                                /*force_prvalue=*/TRUE)) {
           /* Substitution produced an expression that could be folded. */
           new_expr = NULL;
         }  /* if */

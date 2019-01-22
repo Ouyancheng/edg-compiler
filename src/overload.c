@@ -5189,7 +5189,8 @@ If applicable, record the folded value in ap.
     } else {
       a_constant_ptr  cp = local_constant();
       a_diag_list     diag_list;
-      if (interpret_expr(cond, /*force_prvalue=*/TRUE, cp, &diag_list)) {
+      if (interpret_expr(cond, /*is_constant_evaluated=*/TRUE,
+                         /*force_prvalue=*/TRUE, cp, &diag_list)) {
         /* The condition expression is unconditionally constant.  Record the
            constant in the attribute to avoid repeating the interpretation in
            the future. */
@@ -21459,8 +21460,9 @@ like
       /* Extend the temporary lifetime appropriately. */
       extend_temporary_lifetime(dip, static_lifetime);
       if (static_lifetime) {
-        (void)expr_interpret_expression_operand(operand,
-                                                /*must_be_constant=*/FALSE);
+        (void)expr_interpret_expression_operand(
+                                          operand, /*must_be_constant=*/FALSE,
+                                          /*is_constant_evaluated=*/TRUE);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -21958,7 +21960,8 @@ appropriate.
     an_expr_node_ptr  expr;
     if (generalized_nontype_arguments &&
         expr_interpret_expression_operand(source_operand,
-                                          /*must_be_constant=*/FALSE)) {
+                                          /*must_be_constant=*/FALSE,
+                                          /*is_constant_evaluated=*/TRUE)) {
       /* We successfully folded the given lvalue to a (reference) constant. */
       if (is_any_reference_type(source_operand->type)) {
         /* Although the constant has a reference type (ck_address, presumably),
@@ -24897,7 +24900,10 @@ describes the context of the conversion.
     handle_elided_destructor(source_operand->type, &source_operand->position);
   }  /* if */
   if (expr_stack->favor_constant_result) {
-    force_operand_to_constant_if_possible(source_operand);
+    a_boolean  is_constant_evaluated = 
+                             (conv_context & CCO_IS_CONSTANT_EVALUATED) != 0;
+    force_operand_to_constant_if_possible_full(source_operand,
+                                               is_constant_evaluated);
   }  /* if */
 }  /* prep_initializer_operand */
 

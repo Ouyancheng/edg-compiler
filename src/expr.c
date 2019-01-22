@@ -35999,7 +35999,8 @@ an enumerator.
            operand is non-constant. */
         a_boolean  force_constant = !template_context ||
                                     expr_stack->possible_rescan_context;
-        if (!expr_interpret_expression_operand(operand, force_constant) &&
+        if (!expr_interpret_expression_operand(
+                   operand, force_constant, /*is_constant_evaluated=*/TRUE) &&
             !force_constant) {
           /* Even when the operand is not template-dependent in a shallow
              sense, the result of the expression might still dependent on a
@@ -37169,6 +37170,12 @@ dynamic init entry if one is created to represent this initializer
     check_assertion(var_sym != NULL);
     var = variable_for_symbol(var_sym);
     check_assertion(var != NULL);
+    if (!var->source_corresp.is_local_to_function ||
+        is_potentially_constant_valued_variable(var)) {
+      /* The initializer for the variable should be constexpr-evaluated with
+         std::is_constant_evaluated() tentatively set to true. */
+      conv_context |= CCO_IS_CONSTANT_EVALUATED;
+    }  /* if */
   }  /* if */
   push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                   (an_expression_kind)ek_normal,
@@ -41944,7 +41951,8 @@ expression context.  Return either *is_constant TRUE and a constant value in
        case. */
     do_operand_transformations(&result, TOPT_NO_OPTIONS);
   }  /* if */
-  /* Check that the expression is integral or enum. */
+  /* Check that the expression is integral or enum.  Attempt to fold the
+     expression if appropriate. */
   if (!is_template_param_type(result.type)) {
     if (is_new_or_delete_bound && (cpp14_mode || microsoft_mode) &&
         skip_typerefs(result.type)->kind == (a_type_kind)tk_float) {
@@ -41953,6 +41961,14 @@ expression context.  Return either *is_constant TRUE and a constant value in
       cast_operand(integer_type(targ_size_t_int_kind), &result,
                      /*is_implicit_cast=*/TRUE);
     } else {
+      if (is_expression_operand(&result)) {
+        /* Attempt to fold the expression with std::is_constant_evaluated()
+           producing true, except if this is the first bound of a
+           new-expression. */
+        (void)expr_interpret_expression_operand(
+                     &result, /*must_be_constant=*/FALSE,
+                     /*is_constant_evaluated=*/!is_new_or_delete_bound);
+      }  /* if */
       (void)check_integral_or_enum_operand(&result);
     }  /* if */
   }  /* if */
@@ -43862,6 +43878,7 @@ standard form).  Assumes copy-initialization ("="-form).
         clear_diag_list(&diag_list);
         check_assertion(constexpr_enabled);
         if (!interpret_dynamic_init(dip, init_component_pos(icp), dps->type,
+                                    /*is_constant_evaluated=*/TRUE,
                                     constant, &diag_list)) {
           a_diagnostic_ptr  dp;
           dp = pos_start_error(ec_expr_not_constant, init_component_pos(icp));

@@ -5623,29 +5623,40 @@ described by arguments.
 
 #if BUILTIN_FUNCTIONS_ENABLED
 
-static a_boolean is_intrinsic_func_replaced_by_argument(
-                                                    an_expr_node_ptr func_expr,
-                                                    an_expr_node_ptr arguments)
+static a_boolean dump_intrinsic_call(an_expr_node_ptr  call_expr)
 /*
-Return TRUE if func_expr designates a builtin function that should not be
-called in the generated code but simply replaced by its argument.  E.g.,
+If call_expr is a direct call to a builtin function that should not be called
+in the generated code return TRUE and render an equivalent expression instead.
+Otherwise, return FALSE.  E.g.,
         __builtin_launder(<expr>)
 should be replaced by just
         (<expr>)
  */
 {
   a_boolean         result = FALSE;
+  an_expr_node_ptr  func_expr = call_expr->variant.operation.operands;
 
   if (is_routine_node(func_expr)) {
-    if (routine_is_builtin_function_kind(node_routine(func_expr),
-                                         bufk_launder)) {
-      result = TRUE;
+    a_routine_ptr  rp = node_routine(func_expr);
+    if (special_kind_is(rp, sfk_none)) {
+      switch (rp->variant.builtin_function_kind) {
+        case bufk_launder:
+          dump_expr_with_parens(func_expr->next);
+          result = TRUE;
+          break;
+        case bufk_is_constant_evaluated:
+          result = TRUE;
+          m_write_tok_ch('(');
+          dump_cast(call_expr->type);
+          m_write_tok_str("0)");
+          break;
+        default:
+          result = FALSE;
+      }  /* switch */
     }  /* if */
   }  /* if */
-  check_assertion(!result ||
-                  (arguments!= NULL && arguments->next == NULL));
   return result;
-}  /* is_intrinsic_func_replaced_by_argument */
+}  /* dump_intrinsic_call */
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
@@ -6583,12 +6594,10 @@ process_assignment:
           /* N operand operator. */
           /* Put out the function to call. */
 #if BUILTIN_FUNCTIONS_ENABLED
-          if (is_intrinsic_func_replaced_by_argument(operand_1, operand_2)) {
+          if (dump_intrinsic_call(expr)) {
             /* A call to a C++ intrinsic function that the target C compiler is
-               unlikely to recognize, but which is equivalent in this context
-               to just evaluating its argument (e.g., __builtin_launder(ptr)).
-            */
-            dump_expr_with_parens(operand_2);
+               unlikely to recognize.  The call to dump_intrinsic_call renders
+               an equivalent expression in this case. */
           } else {
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
             dump_call(operand_1, operand_2);

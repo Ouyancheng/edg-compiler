@@ -1887,13 +1887,19 @@ Allocate a new symbol header, and return a pointer to it.
   num_symbol_headers_allocated++;
 #endif /* DEBUG */
   ptr->next              = NULL;
+  ptr->identifier        = NULL;
+  ptr->identifier_length = 0;
   ptr->symbol            = NULL;
   ptr->inactive_symbols  = NULL;
   ptr->other_symbols     = NULL;
-  ptr->variant.opname    = (an_opname_kind)onk_none;
-  ptr->identifier        = NULL;
-  ptr->identifier_length = 0;
+  ptr->saved_macro_stack = NULL;
   ptr->hash_value        = 0;
+  ptr->variant.opname    = (an_opname_kind)onk_none;
+  ptr->has_intrinsic_name = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ptr->microsoft_identifier_used = FALSE;
+  ptr->is_cli_operator = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ptr->any_nested_types_on_inactive_list = FALSE;
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   ptr->has_cfront_transitional_nested_type_mangled_name = FALSE;
@@ -1902,11 +1908,6 @@ Allocate a new symbol header, and return a pointer to it.
   ptr->any_tag_decl = FALSE;
   ptr->any_decl_in_file_or_namespace_scope = FALSE;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  ptr->saved_macro_stack = NULL;
-  ptr->microsoft_identifier_used = FALSE;
-  ptr->is_cli_operator = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ptr->any_function_referenced_in_dependent_call = FALSE;
 #if BUILTIN_FUNCTIONS_ENABLED
   ptr->is_builtin_function = FALSE;
@@ -16655,8 +16656,8 @@ a special version of the message that refers to the global namespace.
   }  /* if */
 }  /* namespace_has_no_actual_member_error */
 
-
 #if DEBUG
+
 unsigned long show_symbol_space_used(void)
 /*
 Display and return the amount of memory used for symbol-related entries,
@@ -16822,7 +16823,32 @@ for space tracking purposes.
 
   return grand_total;
 }  /* show_symbol_space_used */
+
 #endif /* DEBUG */
+
+
+static a_const_char* intrinsic_names[] = {
+  "is_constant_evaluated"
+};
+
+#define N_INTRINSIC_NAMES \
+   ((int)(sizeof(intrinsic_names)/sizeof(intrinsic_names[0])))
+
+static void init_intrinsic_symbol_headers(void)
+/*
+Pre-enter symbol headers for intrinsic names so they can efficiently be
+recognized during parsing.
+*/
+{
+  int  n;
+
+  for (n = 0; n<N_INTRINSIC_NAMES; ++n) {
+    a_symbol_locator  loc;
+    a_const_char      *name = intrinsic_names[n];
+    (void)find_symbol(name, strlen(name), &loc);
+    loc.symbol_header->has_intrinsic_name = TRUE;
+  }  /* for */
+}  /* init_intrinsic_symbol_headers */
 
 
 void symbol_tbl_one_time_init(void)
@@ -17331,6 +17357,7 @@ of the front end.
   num_ms_attr_alt_name_entries_allocated        = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* DEBUG */
+  init_intrinsic_symbol_headers();
 }  /* symbol_tbl_init */
 
 

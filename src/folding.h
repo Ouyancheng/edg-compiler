@@ -252,6 +252,7 @@ extern a_boolean fold_gnu_builtin_function_call_if_possible(
 
 extern a_boolean fold_constexpr_expr(an_expr_node_ptr  expr,
                                      a_constant        *result_con,
+                                     a_boolean         is_constant_evaluated,
                                      a_boolean         force_prvalue);
 
 extern void add_temp_init_backing_expression(a_constant         *con,
@@ -266,6 +267,7 @@ extern
 a_boolean fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
                               a_boolean          record_backing_expr,
                               a_boolean          check_constexpr,
+                              a_boolean          is_constant_evaluated,
                               a_source_position  *pos,
                               a_constant         *result_con);
 

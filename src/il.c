@@ -14063,6 +14063,56 @@ such initializers are instantiated on demand).
 }  /* get_variable_initializer */
 
 
+void fold_dynamic_var_init_if_possible(a_dynamic_init_ptr  dip,
+                                       a_type_ptr          dest_type)
+/*
+If the given dynamic initialization entry can be folded to a constant, replace
+it by a corresponding dik_constant entry.  If the resulting constant is the
+address of a local variable or of a temporary, do not perform the folding.
+This function has no effect if dip already is a dik_constant entry.  dest_type 
+is the type being initialized.
+*/
+{
+  if (constexpr_enabled && dip->kind != (a_dynamic_init_kind)dik_constant) {
+    a_constant_ptr      folded_value = local_constant();
+    a_diag_list         diag_list;
+    a_variable_ptr      var = dip->variable;
+    an_init_kind        init_kind;
+    if (var != NULL) {
+      /* Temporarily set the variable as uninitialized to avoid runaway
+         recursion. */
+      init_kind = var->init_kind;
+      var->init_kind = (an_init_kind)initk_none;
+    }  /* if */
+    clear_diag_list(&diag_list);
+    /* Interpret the dynamic initialization into a constant if possible.
+       If the resulting constant is the address of a temporary, keep the
+       dynamic initialization (otherwise, we may fold uses of references to
+       a mutable temporary later on).  Also, if the constant is the address
+       of a local variable (checked with is_static_init_constant) ignore the
+       resulting constant since it is not really "constant". */
+    if (interpret_dynamic_init(dip, &pos_curr_token, dest_type,
+                               /*is_constant_evaluated=*/TRUE,
+                               folded_value, &diag_list) &&
+        !(constant_is(folded_value, ck_address) &&
+          folded_value->variant.address.kind == 
+                                       (an_address_base_kind)abk_temporary) &&
+        is_static_init_constant(folded_value)) {
+      dip->kind = (a_dynamic_init_kind)dik_constant;
+      set_dynamic_init_constant(dip, move_local_constant_to_il(&folded_value));
+    }  /* if */
+    discard_more_info_list(&diag_list);
+    if (folded_value != NULL) {
+      /* If folded_value was not moved to the IL above, release it now. */
+      release_local_constant(&folded_value);
+    }  /* if */
+    if (var != NULL) {
+      var->init_kind = init_kind;
+    }  /* if */
+  }  /* if */
+}  /* fold_dynamic_var_init_if_possible */
+
+
 a_constant_ptr initializer_constant(a_variable_ptr var)
 /*
 If var is initialized with a constant expression, return the initializer
@@ -14080,7 +14130,7 @@ constant; otherwise, return NULL.
     con_val = init->constant;
   } else if (init_kind == (an_init_kind)initk_dynamic) {
 #if !STANDALONE_UTILITY_PROGRAM
-    fold_dynamic_init_if_possible(init->dynamic, var->type);
+    fold_dynamic_var_init_if_possible(init->dynamic, var->type);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
     if (init->dynamic->kind == (a_dynamic_init_kind)dik_constant) {
       /* The variable is dynamically initialized to a constant. */
@@ -18330,8 +18380,9 @@ name lookup options.
                  interpreted. */
               a_diag_list  diag_list;
               clear_diag_list(&diag_list);
-              if (interpret_expr(expr_copy, /*force_prvalue=*/FALSE,
-                                 constant, &diag_list)) {
+              if (interpret_expr(expr_copy, /*is_constant_evaluated=*/FALSE,
+                                 /*force_prvalue=*/FALSE, constant,
+                                 &diag_list)) {
                 expr_copy = NULL;
               }  /* if */
               discard_more_info_list(&diag_list);

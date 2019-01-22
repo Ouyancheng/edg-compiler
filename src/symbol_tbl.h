@@ -4120,10 +4120,6 @@ typedef struct a_symbol_header {
   sizeof_t	identifier_length;
 			/* The length of the identifier, not counting the
 			   final null. */
-  a_hash_value	hash_value;
-			/* The hash value for the identifier.  This is saved
-			   to avoid the need to recompute it if the header
-			   is entered into a scope's lookup table. */
   a_symbol_ptr	symbol;
 			/* This is the pointer to a symbol table entry.  This
 			   is actually a list of all symbols with the same
@@ -4136,6 +4132,15 @@ typedef struct a_symbol_header {
 			/* sk_extern_variable, sk_extern_routine and
                            synthesized namespace projection symbols
 			   associated with this name. */
+  a_saved_macro_state_ptr
+		saved_macro_stack;
+			/* A stack of entries used to save and restore macro
+			   state information.  Used by the push_macro and
+			   pop_macro pragmas. */
+  a_hash_value	hash_value;
+			/* The hash value for the identifier.  This is saved
+			   to avoid the need to recompute it if the header
+			   is entered into a scope's lookup table. */
   union {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* When is_cli_operator is TRUE: */
@@ -4151,16 +4156,22 @@ typedef struct a_symbol_header {
 			   identifies the particular operator kind.  For
 			   other kinds of symbols, this is onk_none. */
   } variant;
-  a_saved_macro_state_ptr
-		saved_macro_stack;
-			/* A stack of entries used to save and restore macro
-			   state information.  Used by the push_macro and
-			   pop_macro pragmas. */
+  a_bit_field	has_intrinsic_name:1;
+			/* TRUE if the identifier is used as the name of an
+			   intrinsic construct (e.g., C++20's
+			   "is_constant_evaluated"). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	microsoft_identifier_used:1;
 			/* TRUE if the identifier was named using a Microsoft
 			   __identifier operator.  This flag is set if any
 			   reference to the identifier used __identifier. */
+  a_bit_field	is_cli_operator:1;
+			/* TRUE C++/CLI mode if the symbol header is for a
+			   name that matches to the metadata name of a CLI
+			   operator.  (The symbols under this header may not
+			   actually represent CLI operators, but this flag
+			   permits a more efficient check in contexts where
+			   CLI operator names are reserved.) */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	any_nested_types_on_inactive_list:1;
 			/* TRUE if a symbol for a nested type has been
@@ -4185,15 +4196,6 @@ typedef struct a_symbol_header {
 			   non-class-member declaration that can be referred
 			   to with a qualified name). */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_bit_field	is_cli_operator:1;
-			/* TRUE C++/CLI mode if the symbol header is for a
-			   name that matches to the metadata name of a CLI
-			   operator.  (The symbols under this header may not
-			   actually represent CLI operators, but this flag
-			   permits a more efficient check in contexts where
-			   CLI operator names are reserved.) */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	any_function_referenced_in_dependent_call:1;
 			/* TRUE if a dependent function call referenced a
 			   non-member function with the name given by

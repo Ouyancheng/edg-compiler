@@ -3429,6 +3429,9 @@ Display the indicated routine.
   if (ptr->is_constexpr) {
     disp_boolean("is_constexpr", TRUE);
   }  /* if */
+  if (ptr->is_constexpr_intrinsic) {
+    disp_boolean("is_constexpr_intrinsic", TRUE);
+  }  /* if */
   if (ptr->compiler_generated) {
     disp_boolean("compiler_generated", TRUE);
   }  /* if */

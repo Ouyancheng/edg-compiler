@@ -5569,12 +5569,15 @@ the current context.
 }  /* constexpr_call_folding_should_be_done */
 
 
-void force_operand_to_constant_if_possible(an_operand *operand)
+void force_operand_to_constant_if_possible_full(
+                                             an_operand *operand,
+                                             a_boolean  is_constant_evaluated)
 /*
-If possible, force the indicated operand to be a constant.  Specifically,
-if the operand is an addressing expression of pointer type whose address
-is constant, turn the operand into that constant.  Also, in constexpr
-constant expressions, fold to a constant result.
+If possible, force the indicated operand to be a constant.  Specifically, if
+the operand is an addressing expression of pointer type whose address is
+constant, turn the operand into that constant.  Also, in constexpr constant
+expressions, fold to a constant result.  is_constant_evaluated is TRUE if
+calls to std::is_constant_evaluated should to "true".
 */
 {
   a_constant_ptr con = local_constant();
@@ -5589,7 +5592,7 @@ constant expressions, fold to a constant result.
       constexpr_call_folding_should_be_done() &&
       is_expression_operand(operand) && is_a_prvalue(operand) &&
       fold_constexpr_expr(operand->variant.expression, con,
-                          /*force_prvalue=*/FALSE)) {
+                          is_constant_evaluated, /*force_prvalue=*/FALSE)) {
     /* With constexpr enabled, the expression can be folded to a constant. */
     orig_operand = *operand;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5623,16 +5626,19 @@ constant expressions, fold to a constant result.
     release_local_constant(&conaddr);
   }  /* if */
   release_local_constant(&con);
-}  /* force_operand_to_constant_if_possible */
+}  /* force_operand_to_constant_if_possible_full */
 
 
 a_boolean expr_interpret_expression_operand(an_operand  *operand,
-                                            a_boolean   must_be_constant)
+                                            a_boolean   must_be_constant,
+                                            a_boolean   is_constant_evaluated)
 /*
 Interpret the given expression operand.  If successful, return TRUE and replace
 *operand by a corresponding constant operand.  Otherwise return FALSE, and, if
 must_be_constant is TRUE, issue a diagnostic (if diagnostics should be issued)
-and make *operand an error operand.
+and make *operand an error operand.  is_constant_evaluated indicates the result
+of calling std::is_constant_evaluated() during the interpretation of the
+given expression.
 */
 {
   a_boolean      result;
@@ -5641,7 +5647,7 @@ and make *operand an error operand.
 
   check_assertion(is_expression_operand(operand));
   clear_diag_list(&diag_list);
-  if (interpret_expr(operand->variant.expression,
+  if (interpret_expr(operand->variant.expression, is_constant_evaluated,
                      /*force_prvalue=*/FALSE, constant, &diag_list)) {
     an_operand  orig_operand;
     orig_operand = *operand;
@@ -5728,8 +5734,8 @@ return FALSE.
                       result_type, /*is_lvalue=*/FALSE, call_node);
   }  /* if */
   clear_diag_list(&diag_list);
-  is_constant = interpret_expr(rvalue_node, /*force_rvalue=*/FALSE,
-                               result_con, &diag_list);
+  is_constant = interpret_expr(rvalue_node, /*is_constant_evaluated=*/TRUE,
+                               /*force_rvalue=*/FALSE, result_con, &diag_list);
   discard_more_info_list(&diag_list);
 done:
   return is_constant;
@@ -5836,6 +5842,7 @@ Extract the constant value from the operand *operand and place it in
         a_diag_list  diag_list;
         clear_diag_list(&diag_list);
         if (interpret_expr(operand->variant.expression,
+                           /*is_constant_evaluated=*/TRUE,
                            /*force_prvalue=*/FALSE, constant, &diag_list)) {
           if (!curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
             constant->expr = NULL;
@@ -5985,7 +5992,7 @@ folding failed.  Return TRUE if an error was issued.
       } else {
         expr_pos_error(err_code, pos);
       }  /* if */
-    } else if (constexpr_enabled) {
+    } else if (constexpr_enabled && !relaxed_constexpr_enabled) {
       /* The following is similar to a call to
          construct_not_allowed_in_cpp11_constant_expr, except that it appends
          the diag_list notes if necessary. */
@@ -6051,12 +6058,13 @@ routine; for indirect calls, rout is NULL.
 */
 {
   a_boolean folded = FALSE;
+  a_boolean is_consteval = (rout != NULL && rout->is_consteval);
 
-  if (constexpr_call_folding_should_be_done() ||
-      (rout != NULL && rout->is_consteval)) {
+  if (constexpr_call_folding_should_be_done() || is_consteval) {
     a_constant_ptr  result_con = local_constant();
     a_boolean       release_constant = TRUE;
-    folded = interpret_constexpr_call(call_expr, result_con, diag_list);
+    folded = interpret_constexpr_call(call_expr, is_consteval, result_con,
+                                      diag_list);
     if (folded) {
       make_constant_operand(result_con, result);
       result->position = call_expr->position;
@@ -6083,9 +6091,9 @@ routine; for indirect calls, rout is NULL.
         release_constant = FALSE;
         make_expression_operand(temp_node, result);
       }  /* if */
-    } else if (rout != NULL && rout->is_consteval &&
-               consteval_failure(rout, result_con, &call_expr->position,
-                                 diag_list)) {
+    } else if (is_consteval && consteval_failure(rout, result_con,
+                                                 &call_expr->position,
+                                                 diag_list)) {
       /* The folding of a consteval call failed in a context where it cannot
          fail: Proceed as if folding succeeded. */
       make_constant_operand(result_con, result);
@@ -6114,7 +6122,8 @@ the description of the remaining parameters.
   if (constexpr_call_folding_should_be_done() || ctor->is_consteval) {
     a_boolean need_backing_expr =
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
-    if (fold_constexpr_ctor(ctor_dip, need_backing_expr, check_constexpr, pos,
+    if (fold_constexpr_ctor(ctor_dip, need_backing_expr, check_constexpr,
+                            /*is_constant_evaluated=*/FALSE, pos,
                             result_con)) {
       folded = TRUE;
     }  /* if */
@@ -14359,7 +14368,8 @@ token sequence number of the operator.
       }  /* if */
     }  /* if */
     if (did_not_fold) {
-      if (!template_constant && curr_expr_kind_is_evaluated_const()) {
+      if (!template_constant && curr_expr_kind_is_evaluated_const() &&
+          !relaxed_constexpr_enabled) {
         /* A constant operation could not be folded in a constant
            expression. */
         expr_pos_error(ec_expr_not_constant, start_position);
@@ -15484,7 +15494,8 @@ keep the folded result recorded in the attribute.
     } else {
       a_constant_ptr  cp = local_constant();
       a_diag_list     diag_list;
-      if (interpret_expr(cond, /*force_prvalue=*/TRUE, cp, &diag_list)) {
+      if (interpret_expr(cond, /*is_constant_evaluated=*/TRUE,
+                         /*force_prvalue=*/TRUE, cp, &diag_list)) {
         /* The condition expression is unconditionally constant.  Record the
            constant in the attribute to avoid repeating the interpretation in
            the future. */
@@ -19745,6 +19756,7 @@ it might produce an error).
             node->is_xvalue = FALSE;
             if (constexpr_enabled && allow_folding != NULL &&
                 fold_constexpr_expr(node, result_con,
+                                    /*is_constant_evaluated=*/FALSE,
                                     /*force_prvalue=*/FALSE)) {
               /* x.*y, where x is a constexpr object. */
               con_expr_value = alloc_shareable_constant(result_con);
