@@ -18402,9 +18402,6 @@ is an rvalue reference.
       a_constant_ptr con = &operand->variant.constant;
       a_constant_ptr addr_con = local_constant();
       if (!is_template_param_constant_operand(operand)) {
-        /* With constexpr, a class value can be a constant, more precisely here
-           the constant address of a temporary containing the class value. */
-        check_assertion(constexpr_enabled || compound_literals_allowed);
         set_temporary_address_constant(alloc_unshared_constant(con), addr_con);
       } else {
         if (is_template_param_expression_constant_operand(operand)) {

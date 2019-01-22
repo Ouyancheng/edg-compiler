@@ -4189,18 +4189,36 @@ qualification.
     a_type_ptr var_type = constant->type;
     if (const_okay) var_type = make_qualified_type(var_type, TQ_CONST);
     /* The variable must be allocated. */
-    if (in_file_scope((char *)constant)) {
-      /* The constant is in the file scope, so use a file-scope variable.
-         The constant is possibly shared, but we're going to rewrite
-         every use of it to reference the variable instead, so the constant
-         will end up being used only in the initialization of the
+    if (in_file_scope((char *)constant) ||
+        processing_file_scope_init_routine) {
+      /* The constant is (or was originally) in the file scope, so use a
+         file-scope variable.  The constant is possibly shared, but we're going
+         to rewrite every use of it to reference the variable instead, so the
+         constant will end up being used only in the initialization of the
          variable (and therefore unshared). */
+      a_memory_region_number region_to_switch_back_to;
+      if (processing_file_scope_init_routine) {
+        /* The constant has been copied from the file scope to a function
+           scope (of an initialization routine).  Creating a function scope
+           temporary here may cause problems if this constant is referred to
+           in a larger initialization (e.g., an aggregate whose constant
+           is kept and then re-copied back to the file scope region).  To
+           avoid this, use a file-scope temporary (which means copying this
+           portion of the constant back to the file scope). */
+        switch_to_file_scope_region(&region_to_switch_back_to);
+        constant = copy_constant_full(constant, (a_constant*)NULL,
+                                      CE_UNLINK_SOURCE_DESTRUCTIONS |
+                                      CE_TRANSFER_DESTR_ENTITY_DESCR);
+      }  /* if */
       assoc_var = make_file_scope_temporary(var_type);
       /* Make the constant the initial value of the variable. */
       assoc_var->init_kind = (an_init_kind)initk_static;
       assoc_var->initializer.constant = constant;
       /* Make sure the constant is lowered. */
       lower_os_constant(constant);
+      if (processing_file_scope_init_routine) {
+        switch_back_to_original_region(region_to_switch_back_to);
+      }  /* if */
     } else {
       /* The constant is in the function scope, so use a function-local
          static variable. */

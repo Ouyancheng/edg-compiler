@@ -1,5 +1,14 @@
 Version 5.1
 
+1/22/19  [EDGcpfe/19831]
+Variables with static storage duration that require a creation of a temporary
+for constant initialization not statically initialized
+
+If a constant initialization of a variable with static storage duration 
+required a creation of a temporary, the front end would not statically 
+initialize such a variable.  This has now been fixed.
+
+
 1/18/19  [EDGcpfe/20638]
 Assertion failure in expand_macro_buffer
 
