@@ -14062,9 +14062,10 @@ such initializers are instantiated on demand).
   *p_initializer = initializer;
 }  /* get_variable_initializer */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
-void fold_dynamic_var_init_if_possible(a_dynamic_init_ptr  dip,
-                                       a_type_ptr          dest_type)
+static void fold_dynamic_var_init_if_possible(a_dynamic_init_ptr  dip,
+                                              a_type_ptr          dest_type)
 /*
 If the given dynamic initialization entry can be folded to a constant, replace
 it by a corresponding dik_constant entry.  If the resulting constant is the
@@ -14112,6 +14113,7 @@ is the type being initialized.
   }  /* if */
 }  /* fold_dynamic_var_init_if_possible */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_constant_ptr initializer_constant(a_variable_ptr var)
 /*
