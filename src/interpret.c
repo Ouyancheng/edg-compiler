@@ -7432,13 +7432,13 @@ frame when the call has completed.
 */
 {
   a_boolean     result = TRUE;
-  a_byte_count  index = (a_byte_count)cit_last;
+  a_byte_count  idx = (a_byte_count)cit_last;
 
   /* Look up the index of this intrinsic in the intrinsics table */
-  get_mapped_byte_count(&persistent_map, callee, index);
-  check_assertion(index < (a_byte_count)cit_last);
+  get_mapped_byte_count(&persistent_map, callee, idx);
+  check_assertion(idx < (a_byte_count)cit_last);
   /* Dispatch the call to the appropriate implementation. */
-  result = intrinsics_table[index](ips, callee, call_node, p_arg_bytes,
+  result = intrinsics_table[idx](ips, callee, call_node, p_arg_bytes,
                                    result_storage, complete_obj);
   return result;
 }  /* do_constexpr_intrinsic_call */

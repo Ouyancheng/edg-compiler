@@ -277,9 +277,6 @@ a_boolean fold_constexpr_member_selection(an_expr_node_ptr  expr,
 
 extern a_boolean is_static_init_constant(a_constant_ptr  con);
 
-extern void fold_dynamic_init_if_possible(a_dynamic_init_ptr  dip,
-                                          a_type_ptr          dest_type);
-
 #if DEBUG
 extern unsigned long db_show_folding_fe_space_used(unsigned long grand_total);
 #endif /* DEBUG */

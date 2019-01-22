@@ -400,10 +400,6 @@ typedef struct an_init_state {
   a_bit_field	initializer_must_be_constant:1;
 			/* TRUE if an initializer is required to be
 			   constant. */
-  a_bit_field	is_constant_evaluated:1;
-			/* TRUE if an attempt should be made to interpret the
-			   initializer with std::is_constant_evaluated()
-			   producing "true". */
   a_bit_field	force_dynamic_init:1;
 			/* TRUE if a dynamic init entry should be produced in
 			   all cases (i.e., if a constant is produced, it
