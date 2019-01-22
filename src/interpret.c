@@ -7371,6 +7371,8 @@ to FALSE and the reason for the failure is recorded in *ips.
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
+/*ARGSUSED*/  /* Some parameters are unused, but they are needed to conform
+                 to a callback convention. */
 static a_boolean do_constexpr_std_is_constant_evaluated(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
