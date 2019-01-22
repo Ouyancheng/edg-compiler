@@ -21459,7 +21459,8 @@ like
       /* Extend the temporary lifetime appropriately. */
       extend_temporary_lifetime(dip, static_lifetime);
       if (static_lifetime) {
-        expr_interpret_expression_operand(operand, /*must_be_constant=*/FALSE);
+        (void)expr_interpret_expression_operand(operand,
+                                                /*must_be_constant=*/FALSE);
       }  /* if */
     }  /* if */
   }  /* if */
