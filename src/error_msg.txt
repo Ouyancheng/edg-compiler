@@ -3026,6 +3026,7 @@ ec_paste_cannot_be_first_in_VA_OPT;;"\"##\" may not be first in a __VA_OPT__ ope
 ec_paste_cannot_be_last_in_VA_OPT;;"\"##\" may not be last in a __VA_OPT__ operand"
 ec_nested_inline_namespace_nonstandard;;"C++20-style nested inline namespaces are nonstandard in this mode"
 ec_derived_class_too_far;;"cannot convert pointer to base class %t2 to pointer to derived class %t1 -- attempt to point beyond the most-derived object"
+ec_constexpr_non_const_temp;;"temporary object is not constant."
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

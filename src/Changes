@@ -1,5 +1,18 @@
 Version 5.1
 
+1/22/19  [EDGcpfe/20781]
+Temporary not checked for constness
+
+When a constant reference is bound to a temporary, the constness of the 
+temporary wasn't checked.  For example:
+  
+  constexpr int&& a = 37;
+  constexpr int b[1] = {a};
+
+The above would compile without errors even though the temporary a is bound 
+to isn't constant.  This has now been fixed. 
+
+
 1/22/19  [EDGcpfe/19831]
 Variables with static storage duration that require a creation of a temporary
 for constant initialization not statically initialized

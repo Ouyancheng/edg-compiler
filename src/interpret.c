@@ -1999,6 +1999,13 @@ addressed by the a_constexpr_address addr.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 
+/*
+Convenience macro to get the position of a constant.
+ */
+#define constant_pos(cp, ips) ((cp)->source_corresp.decl_position.seq != 0 ?  \
+                               &(cp)->source_corresp.decl_position :          \
+                               &(ips)->position)
+
 
 static void trim_bit_field(a_byte      *storage,
                            unsigned    length,
@@ -4424,13 +4431,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               if (rp->is_weak) {
                 /* Weakly declared functions have no definite address (they
                    could have a null address). */
-                a_source_position  *diag_pos;
-                diag_pos = &con->source_corresp.decl_position;
-                if (diag_pos->seq == 0) {
-                  diag_pos = &ips->position;
-                }  /* if */
-                info_with_pos_sym(ec_constexpr_weak_address, diag_pos,
-                                  symbol_for(rp), ips);
+                info_with_pos_sym(ec_constexpr_weak_address,
+                                  constant_pos(con, ips), symbol_for(rp), ips);
                 do_constexpr_fail(result);
                 break;
               }  /* if */
@@ -4538,13 +4540,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 if (vp->is_weak) {
                   /* Weakly declared variables have no definite address (they
                      could have a null address). */
-                  a_source_position  *diag_pos;
-                  diag_pos = &con->source_corresp.decl_position;
-                  if (diag_pos->seq == 0) {
-                    diag_pos = &ips->position;
-                  }  /* if */
-                  info_with_pos_sym(ec_constexpr_weak_address, diag_pos,
-                                    symbol_for(vp), ips);
+                  info_with_pos_sym(ec_constexpr_weak_address,
+                                    constant_pos(con, ips), symbol_for(vp),
+                                    ips);
                   do_constexpr_fail(result);
                   break;
                 }  /* if */
@@ -4558,6 +4556,13 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               a_constant_ptr  cp = con->variant.address.variant.constant;
               a_byte          *con_bytes;
               a_type_ptr      ctp = skip_typerefs(cp->type);
+              if (ips->disallow_mutable_field_load &&
+                  !is_const_qualified_type(cp->type)) {
+                  info_with_pos(ec_constexpr_non_const_temp,
+                                constant_pos(cp, ips), ips);
+                  do_constexpr_fail(result);
+                  break;
+              }  /* if */
               get_stack_bytes(ips, cp, con_bytes);
               if (con_bytes == NULL) {
                 alloc_static_object(ips, ctp, con_bytes, &result);
@@ -4626,12 +4631,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                                    con->variant.ptr_to_member.is_function_ptr,
                                    /*allow_qualifier_or_eh_mismatch=*/TRUE,
                                    &qualifiers_added)) {
-            a_source_position  *diag_pos = &con->source_corresp.decl_position;
-            if (diag_pos->seq == 0) {
-              diag_pos = &ips->position;
-            }  /* if */
             info_with_pos_type2(ec_constexpr_invalid_type_conversion,
-                                diag_pos, con->orig_type, con->type, ips);
+                                constant_pos(con, ips), con->orig_type,
+                                con->type, ips);
             do_constexpr_fail(result);
            }  /* if */
         }  /* if */
@@ -4892,13 +4894,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               /* Record the active field. */
               *(a_field_ptr*)value = fp;
             } else {
-              a_source_position  *diag_pos =
-                                           &con->source_corresp.decl_position;
-              if (diag_pos->seq == 0) {
-                diag_pos = &ips->position;
-              }  /* if */
               info_with_pos_sym(ec_constexpr_missing_initializer_for_field,
-                                diag_pos, symbol_for(fp), ips);
+                                constant_pos(con, ips), symbol_for(fp), ips);
               do_constexpr_fail(result);
             }  /* if */
             break;
@@ -5058,11 +5055,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       /* void values have no representation: Nothing to do. */
       break;
     default:
-      { a_source_position  *diag_pos = &con->source_corresp.decl_position;
-        if (diag_pos->seq == 0) {
-          diag_pos = &ips->position;
-        }  /* if */
-        info_with_pos(ec_constexpr_invalid_constant_kind, diag_pos, ips);
+      { info_with_pos(ec_constexpr_invalid_constant_kind,
+                      constant_pos(con, ips), ips);
         do_constexpr_fail(result);
       }
   }  /* switch */
