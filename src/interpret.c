@@ -9551,7 +9551,7 @@ represented by an entry of type a_constant (ck_address or ck_integer).
                 same_entities(tp, prev_bcp->derived_class)) {
               /* A cast to the most-derived class (either by casting to void*
                  or because the destination type happens to match the most-
-                 derived class type. */
+                 derived class type). */
               remove_trailing_subobject_path_entry(new_con);
               clear_runtime_constant_address(result_storage, new_con);
               goto done;
@@ -9576,7 +9576,7 @@ represented by an entry of type a_constant (ck_address or ck_integer).
               }  /* for */
             }  /* for */
             /* If the former strategy did not work, start from the most derived
-               type and looks for a matching unambiguous public subobject. */
+               type and look for a matching unambiguous public subobject. */
             if (new_bcp == NULL) {
               new_bcp = find_base_in_type(prev_bcp->derived_class, tp);
               if (new_bcp != NULL) {
