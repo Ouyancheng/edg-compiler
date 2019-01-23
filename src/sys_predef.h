@@ -58,7 +58,7 @@ typedef struct a_builtin_user_descr {
 
                              - prefix ('S') [optional]
                              - emulation ('L', 'g', or 'm') or
-			       "standard" ('s')
+                               "standard" ('s')
                              - mode ('c', '+', or 'x')
                              - arch ('4' or '8') [optional]
                              - version (version range in parens) [optional]

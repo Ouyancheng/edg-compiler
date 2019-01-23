@@ -4166,8 +4166,8 @@ typedef struct a_symbol_header {
 			   __identifier operator.  This flag is set if any
 			   reference to the identifier used __identifier. */
   a_bit_field	is_cli_operator:1;
-			/* TRUE C++/CLI mode if the symbol header is for a
-			   name that matches to the metadata name of a CLI
+			/* TRUE in C++/CLI mode if the symbol header is for a
+			   name that matches the metadata name of a CLI
 			   operator.  (The symbols under this header may not
 			   actually represent CLI operators, but this flag
 			   permits a more efficient check in contexts where

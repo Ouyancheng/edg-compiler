@@ -7435,7 +7435,7 @@ frame when the call has completed.
   a_boolean     result = TRUE;
   a_byte_count  impl_idx = (a_byte_count)cit_error;
 
-  /* Look up the index of this intrinsic in the intrinsics table */
+  /* Look up the index of this intrinsic in the intrinsics table. */
   get_mapped_byte_count(&persistent_map, callee, impl_idx);
   check_assertion(impl_idx < (a_byte_count)cit_last);
   /* Dispatch the call to the appropriate implementation. */
