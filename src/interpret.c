@@ -13351,8 +13351,25 @@ the value representation of the integer value.
             }
             break;
           case eok_comma:
-            result = do_constexpr_expression(
+          case eok_dot_static:
+          case eok_points_to_static:
+            { a_boolean  restore_lvalue = FALSE, restore_xvalue = FALSE;
+              /* The caller might have "rvalued" expr, but that didn't
+                 propagate to the operands.  Temporarily enable that
+                 propagation. */
+              if (opnd2->is_lvalue && !expr->is_lvalue) {
+                opnd2->is_lvalue = FALSE;
+                restore_lvalue = TRUE;
+              }  /* if */
+              if (opnd2->is_xvalue && !expr->is_xvalue) {
+                opnd2->is_xvalue = FALSE;
+                restore_xvalue = TRUE;
+              }  /* if */
+              result = do_constexpr_expression(
                                  ips, opnd2, result_storage, complete_object);
+              if (restore_xvalue) opnd2->is_xvalue = TRUE;
+              if (restore_lvalue) opnd2->is_lvalue = TRUE;
+            }
             break;
           case eok_subscript:
             /* Pointer + integer or integer + pointer. */
@@ -13635,13 +13652,8 @@ the value representation of the integer value.
               }  /* if */
             }
             break;
-          case eok_dot_static:
-          case eok_points_to_static:
-            result = do_constexpr_expression(
-                                 ips, opnd2, result_storage, complete_object);
-            break;
           case eok_question:
-            { a_boolean  bool_val;
+            { a_boolean  bool_val, restore_lvalue, restore_xvalue;
               if (!check_boolean_condition(ips, opnd1_value, opnd1, opnd1_type,
                                            &bool_val)) {
                 do_constexpr_fail(result);
@@ -13651,8 +13663,23 @@ the value representation of the integer value.
                 /* Evaluate the third operand. */
                 opnd2 = opnd2->next;
               }  /* if */
+              /* The caller might have "rvalued" expr, but that didn't
+                 propagate to the operands.  Temporarily enable that
+                 propagation. */
+              restore_lvalue = FALSE;
+              restore_xvalue = FALSE;
+              if (opnd2->is_lvalue && !expr->is_lvalue) {
+                opnd2->is_lvalue = FALSE;
+                restore_lvalue = TRUE;
+              }  /* if */
+              if (opnd2->is_xvalue && !expr->is_xvalue) {
+                opnd2->is_xvalue = FALSE;
+                restore_xvalue = TRUE;
+              }  /* if */
               result = do_constexpr_expression(
                                  ips, opnd2, result_storage, complete_object);
+              if (restore_xvalue) opnd2->is_xvalue = TRUE;
+              if (restore_lvalue) opnd2->is_lvalue = TRUE;
             }
             break;
           case eok_dynamic_cast:
