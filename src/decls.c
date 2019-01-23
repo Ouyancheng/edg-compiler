@@ -9815,7 +9815,8 @@ skip_overloading:;
     routine_ptr->is_constexpr = TRUE;
     /* constexpr implies inline. */
     if (!routine_ptr->is_inline) set_inline_flag(routine_ptr, TRUE);
-    if (locator->symbol_header->has_intrinsic_name) {
+    if (locator->symbol_header != NULL &&
+        locator->symbol_header->has_intrinsic_name) {
       check_for_constexpr_intrinsic(routine_ptr, locator);
     }  /* if */
   }  /* if */
