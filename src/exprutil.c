@@ -5925,6 +5925,7 @@ folding of C++14 constexpr functions is done using the interpreter.)
 
 a_boolean call_did_not_fold_to_constant(a_routine_ptr     routine,
                                         an_operand        *operand,
+                                        a_boolean         no_diagnostic,
                                         a_diag_list_ptr   diag_list,
                                         a_source_position *pos)
 /*
@@ -5934,10 +5935,14 @@ given operand if appropriate (this is also called in non-constant expressions,
 so that for C++11 it can record something that rules out a constant
 expression).  routine indicates the routine that was called, or is NULL if we
 don't know the specific routine (e.g., because of an error, or because the
-call was mapped to some other nonconstant construct).  operand can be NULL if
-it's not available; in that case pos gives the source position to use.
-If diag_list is non-NULL, it describes diagnostic notes with details of why
-folding failed.  Return TRUE if an error was issued.
+call was mapped to some other nonconstant construct).  operand is NULL for a
+constructor invocation (in that case pos gives the source position to use)
+and is an operand representing the call otherwise.  no_diagnostic is TRUE if
+the caller has determined that no diagnostic is justified even in a context
+that expects a constant expression (e.g., because we are possibly in a
+sub-expression that can turn out to produce a constant when the full expression
+is evaluated).  If diag_list is non-NULL, it describes diagnostic notes with
+details of why folding failed.  Return TRUE if an error was issued.
 */
 {
   an_error_code  err_code;
@@ -5992,7 +5997,7 @@ folding failed.  Return TRUE if an error was issued.
       } else {
         expr_pos_error(err_code, pos);
       }  /* if */
-    } else if (constexpr_enabled && !relaxed_constexpr_enabled) {
+    } else if (constexpr_enabled && !no_diagnostic) {
       /* The following is similar to a call to
          construct_not_allowed_in_cpp11_constant_expr, except that it appends
          the diag_list notes if necessary. */
@@ -16019,6 +16024,7 @@ successful folding.
       check_assertion(pos != NULL);
       if (!prior_error &&
           call_did_not_fold_to_constant(ctor_routine, (an_operand *)NULL,
+                                        /*no_diagnostic=*/FALSE,
                                         (a_diag_list_ptr)NULL, pos)) {
         set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constant);
         set_dynamic_init_constant(dip, alloc_error_constant());
@@ -17259,7 +17265,10 @@ whether the call was folded or not.
       } else {
         /* If needed, diagnose the folding failure or record that a
            constant-expression is now ruled out. */
-        (void)call_did_not_fold_to_constant(rout, result, &diag_list,
+        a_boolean  is_consteval = (rout != NULL && rout->is_consteval);
+        a_boolean  no_diagnostic = relaxed_constexpr_enabled && !is_consteval;
+        (void)call_did_not_fold_to_constant(rout, result, no_diagnostic,
+                                            &diag_list,
                                             (a_source_position*)NULL);
       }  /* if */
       discard_more_info_list(&diag_list);

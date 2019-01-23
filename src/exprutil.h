@@ -2487,6 +2487,7 @@ extern a_boolean in_potential_constant_constexpr_context(void);
 
 extern a_boolean call_did_not_fold_to_constant(a_routine_ptr     routine,
                                                an_operand        *operand,
+                                               a_boolean         no_diagnostic,
                                                a_diag_list_ptr   diag_list,
                                                a_source_position *pos);
 

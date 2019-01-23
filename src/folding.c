@@ -10513,6 +10513,7 @@ std::is_constant_evaluated() during this folding.
         folded = TRUE;
       } else if (check_constexpr) {
         if (call_did_not_fold_to_constant(rp, (an_operand *)NULL,
+                                          /*no_diagnostic=*/FALSE,
                                           &diag_list, pos)) {
           folded = TRUE;
           set_error_constant(result_con);

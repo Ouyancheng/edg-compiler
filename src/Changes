@@ -7,10 +7,13 @@ In C++20 mode, the constexpr interpreter now recognizes the standard library
 function:
 
   namespace std {
-    constexpr bool is_constant_evaluated() noexcept;
+    constexpr bool is_constant_evaluated() noexcept {
+      return false;
+    }
   }
 
-and evaluates it as a constant true value when evaluating expressions and
+and evaluates it as a constant true value (despite the source definition
+unconditionally returning a false value) when evaluating expressions and
 initializers in contexts where the language requires a (possibly tentative)
 constant evaluation.  Forthcoming versions of GCC and Clang will implement
 this standard function by delegating to a special builtin function
