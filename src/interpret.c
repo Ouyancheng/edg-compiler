@@ -7705,6 +7705,9 @@ otherwise, return FALSE and update *ips accordingly.
     }  /* if */
   }  /* if */
   /* Now interpret the call if possible. */
+#if BUILTIN_FUNCTIONS_ENABLED
+  /* First check the case of a built-in function that is handled specially by
+     the interpreter. */
   {
     a_routine_ptr  eff_callee = callee;
 #if GNU_EXTENSIONS_ALLOWED
@@ -7714,7 +7717,6 @@ otherwise, return FALSE and update *ips accordingly.
       eff_callee = gnu_routine_supp(eff_callee)->aliased_routine;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if BUILTIN_FUNCTIONS_ENABLED
     if (special_kind_is(eff_callee, sfk_none) &&
         eff_callee->variant.builtin_function_kind !=
                                           (a_builtin_function_kind)bfk_none &&
@@ -7724,8 +7726,8 @@ otherwise, return FALSE and update *ips accordingly.
     } else if (!result) {
       goto done;
     }  /* if */
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
   }
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
   if (special_kind_is(callee, sfk_lambda_entry_point)) {
     /* Use the real call operator instead of the entry point. */
     callee = callee->variant.lambda_call_operator;
