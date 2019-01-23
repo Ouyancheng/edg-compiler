@@ -5563,7 +5563,7 @@ operands to be parenthesized at that level.
 }  /* check_for_unprotected_comma_operation */
 
 
-static a_boolean expr_has_comma_operation(an_expr_node_ptr expr)
+a_boolean expr_has_comma_operation(an_expr_node_ptr expr)
 /*
 Return TRUE if the given expression has a comma operation that would need
 to be protected by parentheses to avoid misinterpretation (e.g., a function

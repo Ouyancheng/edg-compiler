@@ -17,6 +17,10 @@ il_to_str.c -- Produce an external string-form representation for various
 /* Header files common to all files. */
 #include "fe_common.h"
 
+#if BACK_END_IS_CP_GEN_BE
+#include "cp_gen_be.h"
+#endif /* BACK_END_IS_CP_GEN_BE */
+
 #ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
    processing. */
@@ -2792,6 +2796,8 @@ Output an array declarator for the indicated array type.  Do the output in
 the way described by octl.
 */
 {
+  a_boolean need_parens = FALSE;
+
   octl->output_str("[", octl);
   form_type_qualifier(type->variant.array.qualifiers, UPC_BLOCK_SIZE_NONE,
                       /*need_trailing_space=*/TRUE, octl);
@@ -2849,8 +2855,15 @@ the way described by octl.
     /* Use the recorded a_constant entry rather than a plain integer.  This
        allows the output to be closer to the original bound expression when
        the bound is more than just a literal (e.g., "2*2" instead of "4"). */
-    form_constant(type->variant.array.bound_constant,
-                  /*need_parens=*/FALSE, octl);
+    a_constant_ptr con = type->variant.array.bound_constant;
+#if BACK_END_IS_CP_GEN_BE
+    if (con->expr != NULL) {
+      /* It is an error if a comma appears outside of parentheses in a
+         bound expression. */
+      need_parens = expr_has_comma_operation(con->expr);
+    }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
+    form_constant(con, need_parens, octl);
   } else if (type->variant.array.is_template_dependent_size_array) {
     a_constant_ptr constant =
                             type->variant.array.variant.element_count_constant;

@@ -31,6 +31,8 @@ extern void back_end(void);
 extern void cp_gen_be_cleanup(void);
 #endif /* MAKE_FRONT_END_CALLABLE */
 
+extern a_boolean expr_has_comma_operation(an_expr_node_ptr expr);
+
 #endif /* BACK_END_IS_CP_GEN_BE */
 
 #endif /* ifndef CP_GEN_BE_H */

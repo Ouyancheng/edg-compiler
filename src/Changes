@@ -1,5 +1,15 @@
 Version 5.1
 
+1/23/19  [EDGcpfe/20792]
+C++-generating back end: unparenthesized comma in array bound
+
+The C++-generating back end could, for some expressions, put out an array
+bound expression containing an unparenthesized comma.  This is now fixed.
+For example, with --g++:
+
+  int a[(5, 10)];  // Previously generated as "a[5, 10]"
+
+
 1/22/19  [EDGcpfe/20647,EDGcpfe/20775]
 C++20: std::is_constant_evaluated and __builtin_is_constant_evaluated
 
