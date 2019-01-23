@@ -50,6 +50,7 @@ a_boolean interpret_constexpr_ctor(a_dynamic_init_ptr  dip,
                                    a_diag_list_ptr     diag_list);
 
 typedef enum a_constexpr_intrinsic_tag {
+  cit_error,
   cit_std_is_constant_evaluated,
   cit_last
 } a_constexpr_intrinsic_tag;

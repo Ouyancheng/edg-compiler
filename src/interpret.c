@@ -7406,6 +7406,7 @@ typedef a_boolean (*an_intrinsic_evaluator)(
 
 
 static an_intrinsic_evaluator intrinsics_table[(int)cit_last] = {
+  (an_intrinsic_evaluator)NULL,
   do_constexpr_std_is_constant_evaluated
 };
 
@@ -7432,14 +7433,14 @@ frame when the call has completed.
 */
 {
   a_boolean     result = TRUE;
-  a_byte_count  idx = (a_byte_count)cit_last;
+  a_byte_count  impl_idx = (a_byte_count)cit_error;
 
   /* Look up the index of this intrinsic in the intrinsics table */
-  get_mapped_byte_count(&persistent_map, callee, idx);
-  check_assertion(idx < (a_byte_count)cit_last);
+  get_mapped_byte_count(&persistent_map, callee, impl_idx);
+  check_assertion(impl_idx < (a_byte_count)cit_last);
   /* Dispatch the call to the appropriate implementation. */
-  result = intrinsics_table[idx](ips, callee, call_node, p_arg_bytes,
-                                   result_storage, complete_obj);
+  result = intrinsics_table[impl_idx](ips, callee, call_node, p_arg_bytes,
+                                      result_storage, complete_obj);
   return result;
 }  /* do_constexpr_intrinsic_call */
 
