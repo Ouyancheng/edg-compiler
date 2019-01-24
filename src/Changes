@@ -1,5 +1,12 @@
 Version 5.1
 
+1/24/19  [EDGcpfe/20555]
+Declaration statement for an anonymous union variable (IL CHANGE)
+
+Anonymous union variables at function scope are now represented with a 
+stmk_decl variable entry in the IL.  This is a minor IL CHANGE. 
+
+
 1/23/19  [EDGcpfe/20792]
 C++-generating back end: unparenthesized comma in array bound
 

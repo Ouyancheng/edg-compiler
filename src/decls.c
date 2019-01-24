@@ -2442,6 +2442,7 @@ is invalid.  Also promote the fields of the union type to the current scope.
   /* Promote symbols for anonymous unions members to the enclosing scope.
      Error checking is also done. */
   check_anonymous_union_symbols(assoc_object_sym, /*is_nonstd=*/FALSE);
+  record_entity_in_decl_stmt_if_needed(assoc_object_sym);
 }  /* decl_anonymous_union_variable */
 
 
