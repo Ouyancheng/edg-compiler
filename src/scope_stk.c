@@ -408,6 +408,36 @@ debugging).
 }  /* db_decl_pos_info_for_scope */
 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
+static a_scope_depth
+		max_depth_scope_stack = 0;
+			/* A variable tracking the maximum depth of the
+			   scopes stack. */
+
+static unsigned long
+		scope_kind_stats[1+(int)sck_none];
+
+void db_scope_stack_stats(void)
+/*
+Display some statistics about the scope stack.
+*/
+{
+  int           k;
+  unsigned long total = 0;
+
+  fprintf(f_debug, "\nScope stack statistics");
+  fprintf(f_debug, "\n======================\n");
+  fprintf(f_debug, "Stack entry size: %d\n", (int)sizeof(a_scope_stack_entry));
+  fprintf(f_debug, "Max. stack depth: %d\n", (int)max_depth_scope_stack);
+  for (k = 0; k <= (int)sck_none; ++k) {
+    int p = db_scope_kind((a_scope_kind)k);
+    for (; p<24; ++p) fputs(" ", f_debug);
+    fprintf(f_debug, ": %8lu\n", scope_kind_stats[k]);
+    total += scope_kind_stats[k];
+  }  /* for */
+  fprintf(f_debug, "%24s: %8lu\n", "TOTAL", total);
+}  /* db_scope_stack_stats */
+
 #endif /* DEBUG */
 
 #if NEED_NAME_MANGLING
@@ -3657,6 +3687,10 @@ the scope being pushed.
     }  /* if */
   }  /* if */
 #if DEBUG
+  ++scope_kind_stats[ssep->kind];
+  if (depth_scope_stack > max_depth_scope_stack) {
+    max_depth_scope_stack = depth_scope_stack;
+  }  /* if */
   if (debug_level >= 3) {
     db_scope_stack();
   }  /* if */

@@ -799,6 +799,9 @@ and before the back end (if any) is executed.
     /* Print total memory used. */
     show_space_used();
   }  /* if */
+  if (db_flag_is_set("scope_stack")) {
+    db_scope_stack_stats();
+  }  /* if */
 #endif /* DEBUG */
 
 #if CHECKING
