@@ -2856,13 +2856,13 @@ the way described by octl.
        allows the output to be closer to the original bound expression when
        the bound is more than just a literal (e.g., "2*2" instead of "4"). */
     a_constant_ptr con = type->variant.array.bound_constant;
-#if BACK_END_IS_CP_GEN_BE
+#if BACK_END_IS_CP_GEN_BE && BACK_END_SHOULD_BE_CALLED
     if (con->expr != NULL) {
       /* It is an error if a comma appears outside of parentheses in a
          bound expression. */
       need_parens = expr_has_comma_operation(con->expr);
     }  /* if */
-#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* BACK_END_IS_CP_GEN_BE && BACK_END_SHOULD_BE_CALLED */
     form_constant(con, need_parens, octl);
   } else if (type->variant.array.is_template_dependent_size_array) {
     a_constant_ptr constant =
