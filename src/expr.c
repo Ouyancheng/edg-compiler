@@ -781,7 +781,12 @@ to FALSE.
   pop_expr_stack_for_initializer(saved_expr_stack,
                                  /*is_full_expr=*/TRUE,
                                  dps, (an_init_state *)NULL);
-  if (dps != NULL) dps->has_initializer = FALSE;
+  if (dps != NULL) {
+    dps->has_initializer = FALSE;
+    if (dps->sym != NULL) {
+      dps->sym->is_error = TRUE;
+    }  /* if */
+  }  /* if */
   curr_object_lifetime = saved_curr_object_lifetime;
 }  /* scan_and_discard_init_component */
 
