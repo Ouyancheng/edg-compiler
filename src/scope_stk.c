@@ -412,7 +412,7 @@ debugging).
 static a_scope_depth
 		max_depth_scope_stack = 0;
 			/* A variable tracking the maximum depth of the
-			   scopes stack. */
+			   scope stack. */
 
 static unsigned long
 		scope_kind_stats[1+(int)sck_none];
