@@ -415,7 +415,7 @@ static a_scope_depth
 			   scope stack. */
 
 static unsigned long
-		scope_kind_stats[1+(int)sck_none];
+		scope_kind_stats[1+(int)sck_none] = {};
 
 void db_scope_stack_stats(void)
 /*
