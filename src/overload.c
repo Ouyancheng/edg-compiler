@@ -19671,6 +19671,7 @@ static void make_constructor_dynamic_init(a_routine_ptr     ctor_routine,
                                           a_boolean         result_is_lvalue,
                                           a_boolean         class_bitwise_copy,
                                           a_boolean         is_explicit_cast,
+                                          a_boolean         abstract_okay,
                                           a_source_position *position,
                                           an_operand        *result)
 /*
@@ -19686,7 +19687,9 @@ class type is used.  ctor_routine can be NULL to indicate that the
 constructor is unknown because one or more of the arguments is
 template-dependent in a prototype instantiation.  temp_type must be
 non-NULL in that case.  is_explicit_cast is TRUE if this node represents
-an explicit cast.  *position gives the source position.
+an explicit cast.  If abstract_okay is TRUE, initializing from an object of
+abstract class type is okay (e.g., if we are initializing a base subobject).
+*position gives the source position.
 */
 {
   a_dynamic_init_ptr  dip;
@@ -19711,13 +19714,10 @@ an explicit cast.  *position gives the source position.
   /* Create the dynamic initialization entry and the enk_temp_init node. */
   if (class_bitwise_copy) {
     /* Use a dik_expression to do a bitwise copy. */
-    temp_init_node = create_expr_temporary(temp_type,
-                                           result_is_lvalue,
-                                           is_explicit_cast,
-                                           /*suppress_abstract_test=*/FALSE,
+    temp_init_node = create_expr_temporary(temp_type, result_is_lvalue,
+                                           is_explicit_cast, abstract_okay,
                                            (a_dynamic_init_kind)dik_expression,
-                                           position,
-                                           &dip);
+                                           position, &dip);
     dip->variant.expression = arg_expr_list;
   } else {
     /* Call a constructor.  Possibly fold to a constant if constexpr. */
@@ -19733,7 +19733,8 @@ an explicit cast.  *position gives the source position.
                                        /*check_constexpr=*/FALSE,
                                        position);
     if (!is_error_type(temp_type) &&
-        !error_on_abstract_class_object(temp_type, position)) {
+        (abstract_okay ||
+         !error_on_abstract_class_object(temp_type, position))) {
       add_dtor_to_dynamic_init(dip, temp_type, temp_type, position);
     }  /* if */
     temp_init_node = alloc_temp_init_node(temp_type, dip, result_is_lvalue,
@@ -19974,6 +19975,7 @@ the temporary.
       make_constructor_dynamic_init(conversion_routine, arg_expr_list,
                                     dest_type, /*result_is_lvalue=*/FALSE,
                                     class_bitwise_copy, is_explicit_cast,
+                                    conversion->is_base_init,
                                     &orig_operand.position, operand);
     }  /* if */
   }  /* if */
@@ -21099,6 +21101,7 @@ the temporary if result_is_lvalue is FALSE.  Used only in C++ mode.
                                       result_is_lvalue,
                                       class_bitwise_copy,
                                       /*is_explicit_cast=*/FALSE,
+                                      /*abstract_okay=*/FALSE,
                                       &orig_operand.position,
                                       operand);
       }  /* if */

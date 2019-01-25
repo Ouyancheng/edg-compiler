@@ -1,5 +1,19 @@
 Version 5.1
 
+1/25/19  [EDGcpfe/19750,EDGcpfe/20481]
+Copying an abstract base subobject using a braced initializer
+
+Consider:
+
+  struct AB { virtual void f() = 0; };
+  struct D: AB {
+    D(D const &d): AB{d} {}  // Previously a error.  Now okay.
+  };
+
+Previously, this elicited a spurious error about creating an abstract base
+class.  That is now fixed.
+
+
 1/24/19  [EDGcpfe/20555]
 Declaration statement for an anonymous union variable (IL CHANGE)
 
