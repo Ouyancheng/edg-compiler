@@ -4185,7 +4185,8 @@ is called.
   }  /* if */
 #endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
   if (!invisible &&
-      ((curr_name_context->assoc_scope->kind == (a_scope_kind)sck_function &&
+      ((curr_name_context->assoc_scope != NULL &&
+        curr_name_context->assoc_scope->kind == (a_scope_kind)sck_function &&
         curr_name_context->assoc_scope->variant.routine.ptr != NULL &&
         curr_name_context->assoc_scope->variant.routine.ptr->
                                                  is_prototype_instantiation) ||
