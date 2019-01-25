@@ -19267,15 +19267,9 @@ invalid cases like "decltype(auto) f()->int", which are diagnosed elsewhere).
                                     !dps->has_deducible_class_templ_args)))) {
     /* Not a declaration that requires this checking. */
   } else if (dps->type != NULL && is_error_type(dps->type)) {
-    /* Some type error already occurred.  Additional diagnostics are unlikely
-       to be helpful.  Since we have an error type, no other error recovery is
-       needed. */
+    /* Some error already occurred.  Additional diagnostics are unlikely to
+       be helpful. */
     expect_error();
-  } else if (dps->sym != NULL && dps->sym->is_error) {
-    /* Some other error already occurred.  Additional diagnostics are unlikely
-       to be helpful, but we do apply error recovery actions on the type. */
-    expect_error();
-    err = TRUE;
   } else if (!dps->range_based_for && !dps->is_new_expr_type &&
              !(dps->assoc_func_decl_state != NULL && dps->auto_type_allowed &&
                dps->auto_type_specifier_seen) &&
