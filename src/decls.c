@@ -17883,7 +17883,9 @@ reference was applied on top of the type we're looking for.
     } else {
       a_type_qualifier_set 
                      container_tqs = get_type_qualifiers(container_type);
-      while (--idx != 0) fp = next_bindable_field(fp);
+      while (--idx != 0) {
+        fp = next_bindable_field(fp->next);
+      }  /* while */
       if (fp->is_mutable) {
         container_tqs &= ~TQ_CONST;
       }  /* if */
