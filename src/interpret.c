@@ -2467,7 +2467,7 @@ redo:
 #if DEBUG
             check_assertion(ips != NULL);
 #endif /* DEBUG */
-            info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp,ips),
+            info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp, ips),
                                tp, ips);
             do_constexpr_fail(*p_result);
             result = MAX_CONSTEXPR_TYPE_SIZE+1;
@@ -2478,7 +2478,7 @@ redo:
 #if DEBUG
           check_assertion(ips != NULL);
 #endif /* DEBUG */
-          info_with_pos(err_code,type_pos(tp,ips), ips);
+          info_with_pos(err_code,type_pos(tp, ips), ips);
           do_constexpr_fail(*p_result);
           result = 0;
         }  /* if */
@@ -2502,8 +2502,8 @@ redo:
           result += 4*sizeof(an_integer_value);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
-          info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp,ips), tp,
-                             ips);
+          info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp, ips),
+                             tp, ips);
           do_constexpr_fail(*p_result);
         }  /* if */
       } else if (result > MAX_CONSTEXPR_TYPE_SIZE) {
@@ -2654,7 +2654,7 @@ interpreter's limits; in that case, *p_result is set to FALSE.
     total_size += value_bytes_for_type(ips, fp->type, p_result);
     if (total_size > MAX_CONSTEXPR_TYPE_SIZE) {
       if (*p_result) {
-        info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp,ips), tp,
+        info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp, ips), tp,
                             ips);
         do_constexpr_fail(*p_result);
       }  /* if */
@@ -2679,7 +2679,7 @@ interpreter's limits; in that case, *p_result is set to FALSE.
                             size_without_virtual_bases);
       total_size += size_without_virtual_bases;
       if (total_size > MAX_CONSTEXPR_TYPE_SIZE) {
-        info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp,ips), tp,
+        info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp, ips), tp,
                            ips);
         do_constexpr_fail(*p_result);
         total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
@@ -2700,7 +2700,7 @@ interpreter's limits; in that case, *p_result is set to FALSE.
         total_size += value_bytes_for_type(ips, bcp->type, p_result);
         if (total_size > MAX_CONSTEXPR_TYPE_SIZE) {
           if (*p_result) {
-            info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp,ips),
+            info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp, ips),
                                tp, ips);
             do_constexpr_fail(*p_result);
           }  /* if */
@@ -2746,7 +2746,8 @@ exceeds the interpreter's limits; in that case, *p_result is set to FALSE.
   }  /* for */
   total_size = prefix_size+max_field_size;
   if (total_size >= MAX_CONSTEXPR_TYPE_SIZE) {
-    info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp,ips), tp, ips);
+    info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp, ips), tp,
+                       ips);
     *p_result = TRUE;
     total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
   }  /* if */
@@ -4564,6 +4565,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               a_type_ptr      ctp = skip_typerefs(cp->type);
               if (ips->disallow_mutable_field_load &&
                   !is_const_qualified_type(cp->type)) {
+                /* If disallow_mutable_field_load is set, we are in a context
+                   that expects the temporary to be immutable.  */
                   info_with_pos(ec_constexpr_non_const_temp,
                                 constant_pos(cp, ips), ips);
                   do_constexpr_fail(result);
