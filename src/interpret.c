@@ -2010,6 +2010,13 @@ Convenience macro to get the position of a constant.
                                &(cp)->source_corresp.decl_position :          \
                                &(ips)->position)
 
+/*
+Convenience macro to get the position of a type.
+ */
+#define type_pos(tp, ips) ((tp)->source_corresp.decl_position.seq != 0 ?  \
+                           &(tp)->source_corresp.decl_position :          \
+                           &(ips)->position)
+
 
 static void trim_bit_field(a_byte      *storage,
                            unsigned    length,
@@ -2457,24 +2464,21 @@ redo:
           } else if (n_elems > MAX_CONSTEXPR_TYPE_SIZE/result ||
                      n_elems > MAX_ARRAY_LENGTH) {
             /* Too many elements. */
-            a_source_position  *pos = &tp->source_corresp.decl_position;
 #if DEBUG
             check_assertion(ips != NULL);
 #endif /* DEBUG */
-            if (pos->seq == 0) pos = &ips->position;
-            info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
+            info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp,ips),
+                               tp, ips);
             do_constexpr_fail(*p_result);
             result = MAX_CONSTEXPR_TYPE_SIZE+1;
           } else {
             result *= (a_byte_count)n_elems;
           }  /* if */
         } else {
-          a_source_position  *pos = &tp->source_corresp.decl_position;
 #if DEBUG
           check_assertion(ips != NULL);
 #endif /* DEBUG */
-          if (pos->seq == 0) pos = &ips->position;
-          info_with_pos(err_code, pos, ips);
+          info_with_pos(err_code,type_pos(tp,ips), ips);
           do_constexpr_fail(*p_result);
           result = 0;
         }  /* if */
@@ -2498,8 +2502,8 @@ redo:
           result += 4*sizeof(an_integer_value);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
-          a_source_position  *pos = &tp->source_corresp.decl_position;
-          info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
+          info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp,ips), tp,
+                             ips);
           do_constexpr_fail(*p_result);
         }  /* if */
       } else if (result > MAX_CONSTEXPR_TYPE_SIZE) {
@@ -2650,9 +2654,8 @@ interpreter's limits; in that case, *p_result is set to FALSE.
     total_size += value_bytes_for_type(ips, fp->type, p_result);
     if (total_size > MAX_CONSTEXPR_TYPE_SIZE) {
       if (*p_result) {
-        a_source_position  *pos = &tp->source_corresp.decl_position;
-        if (pos->seq == 0) pos = &ips->position;
-        info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
+        info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp,ips), tp,
+                            ips);
         do_constexpr_fail(*p_result);
       }  /* if */
       total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
@@ -2676,9 +2679,8 @@ interpreter's limits; in that case, *p_result is set to FALSE.
                             size_without_virtual_bases);
       total_size += size_without_virtual_bases;
       if (total_size > MAX_CONSTEXPR_TYPE_SIZE) {
-        a_source_position  *pos = &tp->source_corresp.decl_position;
-        if (pos->seq == 0) pos = &ips->position;
-        info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
+        info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp,ips), tp,
+                           ips);
         do_constexpr_fail(*p_result);
         total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
         goto done;
@@ -2698,9 +2700,8 @@ interpreter's limits; in that case, *p_result is set to FALSE.
         total_size += value_bytes_for_type(ips, bcp->type, p_result);
         if (total_size > MAX_CONSTEXPR_TYPE_SIZE) {
           if (*p_result) {
-            a_source_position  *pos = &tp->source_corresp.decl_position;
-            if (pos->seq == 0) pos = &ips->position;
-            info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
+            info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp,ips),
+                               tp, ips);
             do_constexpr_fail(*p_result);
           }  /* if */
           total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
@@ -2745,9 +2746,7 @@ exceeds the interpreter's limits; in that case, *p_result is set to FALSE.
   }  /* for */
   total_size = prefix_size+max_field_size;
   if (total_size >= MAX_CONSTEXPR_TYPE_SIZE) {
-    a_source_position  *pos = &tp->source_corresp.decl_position;
-    if (pos->seq == 0) pos = &ips->position;
-    info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
+    info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp,ips), tp, ips);
     *p_result = TRUE;
     total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
   }  /* if */
@@ -13905,6 +13904,12 @@ the value representation of the integer value.
         if (C_mode()) {
           info_with_pos(ec_constexpr_access_to_runtime_storage,
                         &expr->position, ips);
+          do_constexpr_fail(result);
+          break;
+        }  /* if */
+        if (ips->disallow_mutable_field_load &&
+            !is_const_qualified_type(tp)) {
+          info_with_pos(ec_constexpr_non_const_temp, type_pos(tp, ips), ips);
           do_constexpr_fail(result);
           break;
         }  /* if */
