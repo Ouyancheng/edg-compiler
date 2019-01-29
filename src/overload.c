@@ -19888,6 +19888,7 @@ the temporary.
                                         &arg_expr_list);
     /* Make a node for the function. */
     rout_node = function_rvalue_expr(conversion_routine);
+    rout_node->position = operand->position;
     rout_node->next = arg_expr_list;
     /* Make an operand for the call. */
     make_function_call(rout_node, conversion_routine->type,
