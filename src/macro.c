@@ -3910,6 +3910,15 @@ treatment of rt_optional_text.
                rts_kind == rt_microsoft_magic_arg_marker) {
       /* Just a placeholder; it will not take up space in the expansion. */
       sect_len = 0;
+    } else if (rts_kind == rt_optional_text) {
+      /* If there are no tokens in the __VA_ARGS__ argument, skip over the
+         portion of the text corresponding to the operand; otherwise, it
+         will be processed normally.  The rt_optional_text operator itself
+         contributes nothing to the length. */
+      sect_len = 0;
+      if (empty_variadic_arg) {
+        rtp += rts_number;
+      }  /* if */
     } else {
       a_macro_arg_ptr map;
       /* Other section kinds have an associated parameter number. */
@@ -3983,17 +3992,6 @@ treatment of rt_optional_text.
             if (map->expanded_len == 0) {
               ++sect_len;
             }  /* if */
-          }  /* if */
-          break;
-        case rt_optional_text:
-          /* If there are no tokens in the __VA_ARGS__ argument, skip over
-             the portion of the text corresponding to the operand;
-             otherwise, it will be processed normally.  The
-             rt_optional_text operator itself contributes nothing to the
-             length. */
-          sect_len = 0;
-          if (empty_variadic_arg) {
-            rtp += rts_number;
           }  /* if */
           break;
         default:
@@ -6860,6 +6858,13 @@ end_arg_expansion:;
       } else if (rts_kind == rt_paste ||
                  rts_kind == rt_microsoft_magic_arg_marker) {
         sect_len = 0;
+      } else if (rts_kind == rt_optional_text) {
+        /* Skip over the text in the operand of __VA_OPT__ if the
+           argument for __VA_ARGS__ is empty. */
+        if (empty_variadic_arg) {
+          rtp += rts_number;
+        }  /* if */
+        sect_len = 0;
       } else {
         char *final_inert_escape;
         /* Other section kinds have an associated parameter number. */
@@ -7115,14 +7120,6 @@ end_arg_expansion:;
               src_loc += sect_len;
               goto copy_done;
             }  /* if */
-            break;
-          case rt_optional_text:
-            /* Skip over the text in the operand of __VA_OPT__ if the
-               argument for __VA_ARGS__ is empty. */
-            if (empty_variadic_arg) {
-              rtp += rts_number;
-            }  /* if */
-            sect_len = 0;
             break;
           default:
             unexpected_condition_str2("macro_invocation:",
@@ -8554,7 +8551,11 @@ Scan and process a #define directive.
                            size_t_arg(len_of_curr_token)) == 0) {
           /* This is the start of a __VA_OPT__ expression. */
 process_va_opt:
-          if (mdefn_get_token(param_list, &param_num, &param_ptr,
+          if (!variadic) {
+            pos_error(ec_VA_OPT_not_allowed, &pos_curr_token);
+            (void)mdefn_get_token(param_list, &param_num, &param_ptr,
+                                  &any_white_space_skipped);
+          } else if (mdefn_get_token(param_list, &param_num, &param_ptr,
                               &any_white_space_skipped) != tok_lparen) {
             pos_error(ec_missing_VA_OPT_paren, &pos_curr_token);
           } else {
