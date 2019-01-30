@@ -17165,12 +17165,13 @@ error cases.  If p_folded is non-NULL, *p_folded is set to reflect
 whether the call was folded or not.
 */
 {
-  an_expr_node_ptr call_node;
-  a_routine_ptr    rout = routine_from_function_expr(function_node);
+  an_expr_node_ptr call_node, rout_node;
+  a_routine_ptr    rout;
   a_boolean        folded = FALSE;
 
+  rout = routine_and_node_from_function_expr(function_node, &rout_node);
 #if GNU_EXTENSIONS_ALLOWED
-  if (gnu_mode && rout != NULL) {
+  if (gnu_mode && rout_node != NULL) {
     if (has_gnu_routine_supp(rout) &&
         gnu_routine_supp(rout)->inline_partner != NULL &&
         !rout->definition_for_inlining_only) {
@@ -17178,8 +17179,7 @@ whether the call was folded or not.
          only" and "for non-inline uses", record the call as being to the
          "for inlining only" version so the inliner can have a chance at
          processing the call. */
-      function_node->variant.routine.ptr =
-                                        gnu_routine_supp(rout)->inline_partner;
+      rout_node->variant.routine.ptr = gnu_routine_supp(rout)->inline_partner;
       check_assertion(gnu_routine_supp(rout)->
                                  inline_partner->definition_for_inlining_only);
     }  /* if */

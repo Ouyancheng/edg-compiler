@@ -1,5 +1,23 @@
 Version 5.1
 
+1/30/19  [EDGcpfe/20771]
+IL corruption in call to GCC function with "inline partner"
+
+Consider in GNU C mode:
+
+  extern inline void f(void) { }
+  extern void f(void);
+  void g(void) {
+     (f)();
+  }
+
+The two declarations of f are distinct "inline partners" (see the entry for
+EDGcpfe/14500).  In configurations with PARENS_IN_IL set to TRUE, the call to
+f (with the extraneous parentheses) resulted in IL corruption, which was
+likely to lead to an abort later on (e.g., in the C++-generating back end).
+That is now fixed.
+
+
 1/30/19  [EDGcpfe/20812]
 Abort in scope_depth_for_capture on nested generic lambda
 
