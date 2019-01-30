@@ -3257,7 +3257,18 @@ a name.  Never generate a qualified name.
 */
 {
   a_const_char *name = unmangled_name_of(scp);
-
+  
+  if (name != NULL && name[0] == '~' && name[1] == '<') {
+    /* This is a destructor for a class that was originally unnamed and has
+       a name for linkage purposes; the "name" for such a destructor is
+       given as "~<unnamed>".  Use the class's name for linkage purposes
+       instead. */
+    check_assertion(entry_kind == iek_routine &&
+                    ((a_routine_ptr)scp)->special_kind ==
+                                      (a_special_function_kind)sfk_destructor);
+    write_tok_ch('~');
+    name = unmangled_name_of(&scp_parent_class(scp)->source_corresp);
+  }  /* if */
   if (name == NULL) {
     /* For entities without names, create a name. */
     gen_temp_name((char *)scp);

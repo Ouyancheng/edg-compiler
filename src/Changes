@@ -1,5 +1,20 @@
 Version 5.1
 
+1/29/19  [EDGcpfe/20809]
+C++-generating back end: explicit call to destructor of unnamed class
+
+When the destructor of an unnamed class (that has a typedef-name for
+linkage purposes) is explicitly invoked, the C++-generating back end put
+out the call using the string "~<unnamed>" as the name of the destructor.
+This is now fixed.  For example:
+
+  typedef struct { } T;  
+  void f() {
+    T t;
+    t.~T();  // Previously generated as t.~<unnamed>()
+  }
+
+
 1/29/19  [EDGcpfe/17673]
 References to class type rvalues
 
