@@ -14074,7 +14074,8 @@ This function has no effect if dip already is a dik_constant entry.  dest_type
 is the type being initialized.
 */
 {
-  if (constexpr_enabled && dip->kind != (a_dynamic_init_kind)dik_constant) {
+  if (constexpr_enabled && dip->kind != (a_dynamic_init_kind)dik_constant &&
+      !is_template_dependent_type(dest_type)) {
     a_constant_ptr      folded_value = local_constant();
     a_diag_list         diag_list;
     a_variable_ptr      var = dip->variable;

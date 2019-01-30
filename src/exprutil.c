@@ -22250,10 +22250,25 @@ that identifies an object or a prvalue that is a pointer to an object.
        is_class_struct_union_type(expr->type))) {
     /* The expression passed in is a glvalue for an object (or a class
        prvalue object). */
-    while (is_operation_node(expr) &&
-           node_operator_is(expr, eok_lvalue_cast)) {
-      /* Skip lvalue cast nodes. */
-      expr = expr->variant.operation.operands;
+    /* Skip some operation nodes (like value casts) that do not affect the
+       underlying object. */
+    while (is_operation_node(expr)) {
+      if (node_operator_is(expr, eok_lvalue_cast) ||
+          node_operator_is(expr, eok_lvalue_adjust)) {
+        expr = expr->variant.operation.operands;
+      } else if (node_operator_is(expr, eok_ref_indirect)) {
+        an_expr_node_ptr  opnd = expr->variant.operation.operands;
+        if (is_operation_node(opnd) &&
+            node_operator_is(opnd, eok_reference_to)) {
+          /* An eok_ref_indirect+eok_reference_to pair is sometimes used to
+             turn a temporary into an xvalue. */
+            expr = opnd->variant.operation.operands;
+        } else {
+          break;
+        }  /* if */
+      } else {
+        break;
+      }  /* if */
     }  /* while */
     if (is_variable_node(expr)) {
       a_variable_ptr var = node_variable(expr);

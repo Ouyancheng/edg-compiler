@@ -9028,7 +9028,7 @@ is within the given complete_object.
   if (expr->is_lvalue || expr->is_xvalue) {
     /* result_storage is set up for the address of the closure, not the closure
        itself.  Allocate space for the closure now and point result_storage to
-       it. */
+       it.  (This is similar to the handling of enk_temp_init nodes.) */
     a_constexpr_address  *result_addr;
     a_boolean            temp_lifetime = dip->has_temporary_lifetime;
     a_type_ptr           tp = skip_typerefs(expr->type);
@@ -9048,7 +9048,12 @@ is within the given complete_object.
         alloc_seq_number = ips->extension_state->alloc_seq_number;
         ips->extension_state = NULL;
       } else {
-        unexpected_condition();
+        /* If we're processing the initializer of a static-lifetime variable,
+           there is no extended-lifetime storage.  Instead, the result will
+           eventually be stored in IL, which is persistent across interpreter
+           invocations. */
+        alloc_static_bytes(ips, n_bytes+prefix_size, tmp_bytes);
+        alloc_seq_number = 0;
       }  /* if */
     } else {
       alloc_stack_bytes(ips, n_bytes+prefix_size, tmp_bytes);
