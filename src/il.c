@@ -20294,12 +20294,13 @@ operator in the source code.  The returned node is a prvalue.
                       is_template_param_type(node->type) ||
                       is_error_type(node->type));
       /* Turn the node into an enk_temp_init xvalue node, unless it's already
-         an enk_temp_init node, an enk_lambda node, or a chain of eok_comma
-         nodes ending in an enk_temp_init or enk_lambda node. */
+         an enk_temp_init node, an enk_lambda node, or a chain of eok_comma and
+         eok_dot_field nodes ending in an enk_temp_init or enk_lambda node. */
       while (is_operation_node(chain_end)) {
         if (node_operator_is(chain_end, eok_comma)) {
           chain_end = chain_end->variant.operation.operands->next;
-        } else if (node_operator_is(chain_end, eok_parens)) {
+        } else if (node_operator_is(chain_end, eok_parens) ||
+                   node_operator_is(chain_end, eok_dot_field)) {
           chain_end = chain_end->variant.operation.operands;
         } else {
           break;
@@ -20321,7 +20322,8 @@ operator in the source code.  The returned node is a prvalue.
           chain->variant.operation
                         .returns_lvalue_instead_of_usual_rvalue = TRUE;
           chain = chain->variant.operation.operands->next;
-        } else if (node_operator_is(chain, eok_parens)) {
+        } else if (node_operator_is(chain, eok_parens) ||
+                   node_operator_is(chain, eok_dot_field)) {
           chain = chain->variant.operation.operands;
         } else {
           break;
