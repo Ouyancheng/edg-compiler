@@ -9020,16 +9020,62 @@ is within the given complete_object.
   a_dynamic_init_ptr    dip;
   a_constant_ptr        cp;
   a_constant_ptr        field_con;
-  a_boolean             is_constant = TRUE;
+  a_boolean             result = TRUE;
 
   check_assertion(expr->kind == (an_expr_node_kind)enk_lambda);
   lambda = expr->variant.lambda.ptr;
   dip = expr->variant.lambda.initialization;
+  if (expr->is_lvalue || expr->is_xvalue) {
+    /* result_storage is set up for the address of the closure, not the closure
+       itself.  Allocate space for the closure now and point result_storage to
+       it. */
+    a_constexpr_address  *cap;
+    a_boolean            temp_lifetime = dip->has_temporary_lifetime;
+    a_type_ptr           tp = skip_typerefs(expr->type);
+    a_byte               *tmp_bytes;
+    a_byte_count         prefix_size, n_bytes;
+    an_alloc_seq_number  alloc_seq_number;
+    n_bytes = value_bytes_for_type(ips, tp, &result);
+    if (!result) goto done;
+    compute_prefix_size_for_type(tp, n_bytes, prefix_size);
+    if (!temp_lifetime) {
+      /* A lifetime-extended temporary.  Switch to the storage stack
+         state that was saved at the time the stmk_init statement was
+         started. */
+      if (ips->extension_state != NULL) {
+        alloc_bytes(ips->extension_state, n_bytes+prefix_size,
+                    tmp_bytes);
+        alloc_seq_number = ips->extension_state->alloc_seq_number;
+        ips->extension_state = NULL;
+      } else {
+        unexpected_condition();
+      }  /* if */
+    } else {
+      alloc_stack_bytes(ips, n_bytes+prefix_size, tmp_bytes);
+      alloc_seq_number = ips->storage_stack.alloc_seq_number;
+    }  /* if */
+    memzero(tmp_bytes, size_t_arg(prefix_size-sizeof(a_type_ptr)));
+    tmp_bytes += prefix_size;
+    record_complete_object_type(tp, tmp_bytes);
+    mark_complete_class_object_if_needed(tp, tmp_bytes);
+    cap = (a_constexpr_address*)result_storage;
+    clear_address(cap, tmp_bytes);
+    /* Record the allocation sequence number for this temporary in the
+       address record. */ 
+    cap->alloc_seq_number = alloc_seq_number;
+    if (!temp_lifetime) {
+      cap->flags |= CA_LIFETIME_EXTENDED;
+    }  /* if */
+    /* Proceed with result_storage and complete_obj pointing to the newly
+       allocated space. */
+    result_storage = tmp_bytes;
+    complete_object = tmp_bytes;
+  }  /* if */
   if (dip->kind == (a_dynamic_init_kind)dik_none) {
     /* No initialization is required. */
   } else if (dip->kind == (a_dynamic_init_kind)dik_constant) {
-    is_constant = do_constexpr_dynamic_init(ips, dip, &expr->position,
-                                            result_storage, complete_object);
+    result = do_constexpr_dynamic_init(ips, dip, &expr->position,
+                                       result_storage, complete_object);
   } else {
     check_assertion(dip->kind ==
                                (a_dynamic_init_kind)dik_nonconstant_aggregate);
@@ -9038,7 +9084,7 @@ is within the given complete_object.
        capture. */
     for (cap = lambda->capture_list,
                               field_con = cp->variant.aggregate.first_constant;
-         is_constant && cap != NULL && field_con != NULL;
+         result && cap != NULL && field_con != NULL;
          cap = cap->next, field_con = field_con->next) {
       a_field_ptr         fp = cap->closure_field;
       a_byte_count        field_offset;
@@ -9059,9 +9105,8 @@ is within the given complete_object.
           a_type_ptr  tp = skip_typerefs(fp->type);
           init_subobject_to_zero(ips, dst_bytes, tp, complete_object);
         } else {
-          is_constant = do_constexpr_dynamic_init(ips, sub_dip,
-                                                  &expr->position, dst_bytes,
-                                                  complete_object);
+          result = do_constexpr_dynamic_init(ips, sub_dip, &expr->position,
+                                             dst_bytes, complete_object);
         }  /* if */
       } else if (cap->captured.variable == NULL ||
                  (cap->capture_info.source_closure_field != NULL &&
@@ -9080,7 +9125,7 @@ is within the given complete_object.
           get_mapped_byte_count(&persistent_map, src_fp, field_offset);
           get_stack_bytes(ips, &ips->curr_call_frame, this_bytes);
           if (this_bytes == NULL) {
-            do_constexpr_fail(is_constant);
+            do_constexpr_fail(result);
             info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
                           &expr->position, ips);
             break;
@@ -9088,14 +9133,13 @@ is within the given complete_object.
           src_bytes = ((a_constexpr_address*)this_bytes)->address+field_offset;
           if (!constexpr_copy_object(ips, src_fp->type, src_bytes, dst_bytes,
                                      complete_object)) {
-            do_constexpr_fail(is_constant);
+            do_constexpr_fail(result);
           } else {
             mark_complete_class_object_if_needed(src_fp->type, dst_bytes);
           }  /* if */
         } else {
-          is_constant =
-                      do_constexpr_dynamic_init(ips, sub_dip, &expr->position,
-                                                dst_bytes, complete_object);
+          result = do_constexpr_dynamic_init(ips, sub_dip, &expr->position,
+                                             dst_bytes, complete_object);
         }  /* if */
       } else {
         /* An ordinary simple capture. */
@@ -9121,22 +9165,22 @@ is within the given complete_object.
           /* Capturing a volatile variable prevents the lambda from being
              used in a constant expression. */
           info_with_pos(ec_constexpr_volatile_fetch, &expr->position, ips);
-          do_constexpr_fail(is_constant);
+          do_constexpr_fail(result);
         } else if (var_storage != NULL) {
           /* We already have the variable's value in interpreter storage. */
           if (!complete_object_is_initialized(var_storage)) {
             info_with_pos(ec_object_not_initialized, &expr->position, ips);
-            do_constexpr_fail(is_constant);
+            do_constexpr_fail(result);
           }  /* if */
         } else {
           /* This is the first interpreter reference to the variable's
              value, so copy it into the associated interpreter storage. */
           a_constant_ptr var_con = var_constant_value(vp);
           if (var_con != NULL) {
-            var_storage = do_constexpr_alloc_variable(ips, vp, &is_constant);
-            if (is_constant) {
-              is_constant = copy_val_from_constant(ips, var_con, var_storage,
-                                                   var_storage);
+            var_storage = do_constexpr_alloc_variable(ips, vp, &result);
+            if (result) {
+              result = copy_val_from_constant(ips, var_con, var_storage,
+                                              var_storage);
             }  /* if */
           } else {
             /* The variable does not have a constant value. Report the
@@ -9153,12 +9197,12 @@ is within the given complete_object.
               info_with_pos_sym(ec_variable_not_constant_valued,
                                 &expr->position, symbol_for(vp), ips);
             }  /* if */
-            do_constexpr_fail(is_constant);
+            do_constexpr_fail(result);
           }  /* if */
         }  /* if */
         /* If the capture has a constant value, copy it into the closure
            object field. */
-        if (is_constant) {
+        if (result) {
           a_constexpr_address  var_addr;
           if (ref_case && !cap->capture_by_reference) {
             /* When capturing a reference variable by value, the referenced
@@ -9167,12 +9211,12 @@ is within the given complete_object.
             if (is_runtime_data_address(&var_addr)) {
               info_with_pos(ec_constexpr_access_to_runtime_storage,
                             &expr->position, ips);
-              do_constexpr_fail(is_constant);
+              do_constexpr_fail(result);
               break;
             } else if (!is_function_address(&var_addr) &&
                        !is_initialized(&var_addr)) {
               info_with_pos(ec_object_not_initialized, &expr->position, ips);
-              do_constexpr_fail(is_constant);
+              do_constexpr_fail(result);
               break;
             }  /* if */
             var_storage = var_addr.address;
@@ -9183,27 +9227,27 @@ is within the given complete_object.
             check_assertion(sub_dip->variant.bitwise_copy.source == NULL);
             if (!constexpr_copy_object(ips, fp->type, var_storage, dst_bytes,
                                        complete_object)) {
-              do_constexpr_fail(is_constant);
+              do_constexpr_fail(result);
             }  /* if */
           } else if (sub_dip->kind == (a_dynamic_init_kind)dik_constructor) {
             if (!do_constexpr_ctor(ips, sub_dip, &expr->position, dst_bytes,
                                    complete_object, &var_addr)) {
-              do_constexpr_fail(is_constant);
+              do_constexpr_fail(result);
             }  /* if */
           } else if (sub_dip->kind == (a_dynamic_init_kind)dik_expression) {
             if (!do_constexpr_expression(ips, sub_dip->variant.expression,
                                          dst_bytes, complete_object)) {
-              do_constexpr_fail(is_constant);
+              do_constexpr_fail(result);
             }  /* if */
           } else if (sub_dip->kind == (a_dynamic_init_kind)dik_none) {
             /* This can happen in error cases. */
             expect_error();
             ips->input_error = TRUE;
-            do_constexpr_fail(is_constant);
+            do_constexpr_fail(result);
           } else {
             unexpected_condition();
           }  /* if */
-          if (is_constant) {
+          if (result) {
             mark_subobject_initialized(dst_bytes, complete_object);
             mark_complete_class_object_if_needed(fp->type, dst_bytes);
           }  /* if */
@@ -9212,9 +9256,10 @@ is within the given complete_object.
     }  /* for */
     /* Make sure we either bailed out because of an error or handled all
        the captured values. */
-    check_assertion(!is_constant || (cap == NULL && field_con == NULL));
+    check_assertion(!result || (cap == NULL && field_con == NULL));
   }  /* if */
-  return is_constant;
+done:
+  return result;
 }  /* do_constexpr_lambda */
 
 
@@ -13958,6 +14003,9 @@ the value representation of the integer value.
           /* Record the allocation sequence number for this temporary in the
              address record. */ 
           cap->alloc_seq_number = alloc_seq_number;
+          if (!temp_lifetime) {
+            cap->flags |= CA_LIFETIME_EXTENDED;
+	  }  /* if */
           if (is_const_qualified_type(expr->type)) {
             cap->flags |= CA_CONST_STORAGE;
           }  /* if */
@@ -13966,9 +14014,6 @@ the value representation of the integer value.
                of it.  Record the length in case it is needed later on. */
             cap->length = tp->variant.array.variant.number_of_elements;
           }  /* if */
-          if (!temp_lifetime) {
-            cap->flags |= CA_LIFETIME_EXTENDED;
-	  }  /* if */
           tmp_complete_obj = tmp_bytes;
         } else {
           /* The consumer of the temporary expects an rvalue.  So we can
