@@ -21324,7 +21324,7 @@ create a temporary for a by-value class return so we can mark it
 routines).
 */
 {
-  a_dynamic_init_ptr dip = NULL;
+  a_dynamic_init_ptr  dip = NULL;
 
   node = skip_parens(node);
   /* Drop any adjustment of the type. */
@@ -21336,6 +21336,14 @@ routines).
     node = node->variant.operation.operands;
     node = expr_before_type_adjustment(node);
   }  /* while */
+  if (is_operation_node(node) && node_operator_is(node, eok_ref_indirect)) {
+    an_expr_node_ptr  opnd = node->variant.operation.operands;
+    if (is_operation_node(opnd) && node_operator_is(opnd, eok_reference_to)) {
+      /* An eok_ref_indirect+eok_reference_to pair is sometimes used to turn
+         a temporary into an xvalue. */
+      node = opnd->variant.operation.operands;
+    }  /* if */
+  }  /* if */
   /* Drop any field selections on top of the expression.  (The C++ standard
      says that if the object bound to is a subobject of a complete object
      that is a temporary, the complete object temporary has its lifetime
@@ -21352,9 +21360,7 @@ routines).
     }  /* if */
     node = skip_parens(node);
   }  /* while */
-  if (create_class_temp &&
-      !is_glvalue_node(node) &&
-      is_call_node(node)) {
+  if (create_class_temp && !is_glvalue_node(node) && is_call_node(node)) {
     a_type_ptr  rtp = skip_typerefs(node->type);
     if (is_immediate_class_type(rtp)) {
       /* A call returning a class object by value.  Add an enk_temp_init
@@ -22441,10 +22447,10 @@ the conversion.
       add_copy_to_temp_for_microsoft_rvalue_question_mark(source_operand);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (is_a_prvalue(source_operand) && is_constant_operand(source_operand) &&
+    if (is_a_prvalue(source_operand) &&
         !is_any_reference_type(source_operand->type)) {
-      /* Turn a class prvalue constant into a glvalue to avoid slicing the
-         result when folding later on. */
+      /* Turn a class prvalue into a glvalue to avoid slicing the result (e.g.,
+         when folding later on). */
       take_reference_to_operand(source_operand, is_rvalue_ref);
       add_reference_indirection(source_operand);
       if (is_rvalue_ref) {

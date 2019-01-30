@@ -20287,10 +20287,46 @@ operator in the source code.  The returned node is a prvalue.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                make_reference_type(node->type);
     } else {
+      an_expr_node_ptr  chain, chain_end = node;
       /* For the prvalue case, the operand should be a class. */
       check_assertion(is_class_struct_union_type(node->type) ||
                       is_template_param_type(node->type) ||
                       is_error_type(node->type));
+      /* Turn the node into an enk_temp_init xvalue node, unless it's already
+         an enk_temp_init node, an enk_lambda node, or a chain of eok_comma
+         nodes ending in an enk_temp_init or enk_lambda node. */
+      while (is_operation_node(chain_end)) {
+        if (node_operator_is(chain_end, eok_comma)) {
+          chain_end = chain_end->variant.operation.operands->next;
+        } else if (node_operator_is(chain_end, eok_parens)) {
+          chain_end = chain_end->variant.operation.operands;
+        } else {
+          break;
+        }  /* if */
+      }  /* while */
+      if (chain_end->kind != (an_expr_node_kind)enk_temp_init &&
+          chain_end->kind != (an_expr_node_kind)enk_lambda) {
+        a_dynamic_init_ptr  dip = alloc_expr_dynamic_init(
+                                         (a_dynamic_init_kind)dik_expression);
+        dip->variant.expression = node;
+        node = alloc_temp_init_node(node->type, dip, /*is_lvalue=*/TRUE,
+                                    /*is_explicit_cast=*/FALSE);
+        node->is_lvalue = FALSE;
+        chain_end = node;
+      }  /* if */
+      for (chain = node; chain != chain_end;) {
+        chain->is_xvalue = TRUE;
+        if (node_operator_is(chain, eok_comma)) {
+          chain->variant.operation
+                        .returns_lvalue_instead_of_usual_rvalue = TRUE;
+          chain = chain->variant.operation.operands->next;
+        } else if (node_operator_is(chain, eok_parens)) {
+          chain = chain->variant.operation.operands;
+        } else {
+          break;
+        }  /* if */
+      }  /* for */
+      chain->is_xvalue = TRUE;
       /* If the entity is an rvalue of a ref class type, the reference
          created is a tracking reference. */
       ref_type =
