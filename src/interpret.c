@@ -9029,7 +9029,7 @@ is within the given complete_object.
     /* result_storage is set up for the address of the closure, not the closure
        itself.  Allocate space for the closure now and point result_storage to
        it. */
-    a_constexpr_address  *cap;
+    a_constexpr_address  *result_addr;
     a_boolean            temp_lifetime = dip->has_temporary_lifetime;
     a_type_ptr           tp = skip_typerefs(expr->type);
     a_byte               *tmp_bytes;
@@ -9058,13 +9058,13 @@ is within the given complete_object.
     tmp_bytes += prefix_size;
     record_complete_object_type(tp, tmp_bytes);
     mark_complete_class_object_if_needed(tp, tmp_bytes);
-    cap = (a_constexpr_address*)result_storage;
-    clear_address(cap, tmp_bytes);
+    result_addr = (a_constexpr_address*)result_storage;
+    clear_address(result_addr, tmp_bytes);
     /* Record the allocation sequence number for this temporary in the
        address record. */ 
-    cap->alloc_seq_number = alloc_seq_number;
+    result_addr->alloc_seq_number = alloc_seq_number;
     if (!temp_lifetime) {
-      cap->flags |= CA_LIFETIME_EXTENDED;
+      result_addr->flags |= CA_LIFETIME_EXTENDED;
     }  /* if */
     /* Proceed with result_storage and complete_obj pointing to the newly
        allocated space. */
