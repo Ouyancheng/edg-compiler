@@ -1,5 +1,17 @@
 Version 5.1
 
+1/30/19  [EDGcpfe/20812]
+Abort in scope_depth_for_capture on nested generic lambda
+
+In some relatively complex situations, the front end sometimes failed an
+assertion check in scope_depth_for_capture (expr.c) while instantiating a
+generic lambda appearing within another (not necessarily generic) lambda.
+The problematic situation arose because multiple scope stack entries were
+active for the body of the enclosing lambda, but only the first entry has
+access to the a_lambda IL entry describing the associate lambda expression.
+That problem is now fixed.
+
+
 1/29/19  [EDGcpfe/20809]
 C++-generating back end: explicit call to destructor of unnamed class
 

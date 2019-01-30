@@ -30903,13 +30903,24 @@ look_for_var:
       if (lambda != NULL && sd < depth_scope_stack) {
         /* Report the intermediate lambda to the caller. */
         a_scope_depth  body_depth = sd+1; 
+        a_lambda_ptr   assoc_lambda;
         if (scope_is(&scope_stack[body_depth], sck_template_instantiation)) {
           ++body_depth;
         }  /* if */
         check_assertion(body_depth <= depth_scope_stack &&
-                        scope_is(&scope_stack[body_depth], sck_function) &&
-                        scope_stack[body_depth].lambda != NULL);
-        *lambda = scope_stack[body_depth].lambda;
+                        scope_is(&scope_stack[body_depth], sck_function));
+        assoc_lambda = scope_stack[body_depth].lambda;
+        if (assoc_lambda == NULL) {
+          /* This is possible if we're in a scope stack entry that is a
+             reactivation of a lambda that is being defined. */
+          check_assertion(scope_stack[body_depth].is_reactivation &&
+                          scope_stack[body_depth].il_scope != NULL);
+          body_depth = scope_stack[body_depth].il_scope->depth_in_scope_stack;
+          check_assertion(body_depth != NO_SCOPE_DEPTH);
+          assoc_lambda = scope_stack[body_depth].lambda;
+          check_assertion(assoc_lambda != NULL);
+        }  /* if */
+        *lambda = assoc_lambda;
         /* The next call should pick up at the scope immediately enclosing the
            intermediate lambda. */
         --sd;
