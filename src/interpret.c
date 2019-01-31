@@ -13961,7 +13961,7 @@ the value representation of the integer value.
           break;
         }  /* if */
         if (ips->disallow_mutable_field_load &&
-            !is_const_qualified_type(tp)) {
+            !is_const_qualified_type(expr->type)) {
           info_with_pos(ec_constexpr_non_const_temp, type_pos(tp, ips), ips);
           do_constexpr_fail(result);
           break;
