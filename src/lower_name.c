@@ -10714,13 +10714,20 @@ typedef struct an_abi_tag_string {
 static an_abi_tag_string_ptr
               avail_abi_tag_strings;
                         /* A list of available abi_tag entries. */
-static a_routine_list_entry_ptr
-                abi_tag_implicit_routines;
-                        /* When mangling an entity that is promoted from a
-                           local scope, contains a list of enclosing routines
-                           that have implicit abi_tags.  Any abi_tag that
-                           exists on this list precludes the abi_tag from being
-                           an implicit abi_tag for the entity being mangled. */
+static a_constant_list_entry_ptr
+                implicit_tag_list;
+                        /* A list of string constants from abi_tag attributes
+                           of enclosing inline namespace(s) and local routines
+                           that apply to the entity being mangled.  Any abi_tag
+                           that exists on this list precludes the abi_tag from
+                           being an implicit abi_tag for the entity being
+                           mangled. */
+static a_constant_list_entry_ptr
+                avail_clep_entries;
+                        /* A list of available clep entries. */
+
+#if DO_IL_LOWERING
+
 static a_routine_list_entry_ptr
                 avail_rlep_entries;
                         /* A list of available rlep entries. */
@@ -10759,6 +10766,43 @@ Return the list of rlep entries to the pool of available entries.
     rlep->next = list;
   }  /* if */
 }  /* free_rlep_list */
+
+#endif /* DO_IL_LOWERING */
+
+static a_constant_list_entry_ptr alloc_clep_entry(void)
+/*
+Get an clep entry from a local pool or allocate one if necessary.
+*/
+{
+  a_constant_list_entry_ptr clep;
+
+  if (avail_clep_entries == NULL) {
+    clep = alloc_list_entry_for_constant();
+  } else {
+    clep = avail_clep_entries;
+    avail_clep_entries = clep->next;
+    clep->next = NULL;
+  }  /* if */
+  return clep;
+}  /* alloc_clep_entry */
+
+
+static void free_clep_list(a_constant_list_entry_ptr list)
+/*
+Return the list of clep entries to the pool of available entries.
+*/
+{
+  a_constant_list_entry_ptr clep;
+
+  if (avail_clep_entries == NULL) {
+    avail_clep_entries = list;
+  } else {
+    for (clep = avail_clep_entries;
+         clep->next != NULL;
+         clep = clep->next) {}
+    clep->next = list;
+  }  /* if */
+}  /* free_clep_list */
 
 
 static void add_abi_tag_mangling(an_attribute_ptr         ap,
@@ -10890,13 +10934,57 @@ where any abi_tags for "X" would not be implicitly added.
 /* Entities of interest for mangling during walk_parents traversal. */
 #define MY_WP (WP_NAMESPACE | WP_TYPE | WP_ROUTINE)
 
+static a_boolean abi_tag_is_on_list(a_constant_ptr            abi_tag_con,
+                                    a_constant_list_entry_ptr list)
+/*
+Return TRUE if the string constant specified by abi_tag_con is on the specified
+list.
+*/
+{
+  a_constant_list_entry_ptr clep;
+  a_boolean                 result = FALSE;
+
+  for (clep = list; clep != NULL; clep = clep->next) {
+    if (string_constants_are_the_same(abi_tag_con, clep->constant)) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* abi_tag_is_on_list */
+
+
+static void add_abi_tag_attributes_to_list(an_attribute_ptr          ap,
+                                           a_constant_list_entry_ptr *list)
+/*
+Add the string constants for the abi_tag attribute ap to the list pointed to
+by *list.  Any constant that is already on the list is skipped.
+*/
+{
+  an_attribute_arg_ptr  aap;
+
+  check_assertion(ap->kind == (a_byte_attribute_kind)ak_abi_tag);
+  for (aap = ap->arguments; aap != NULL; aap = aap->next) {
+    check_assertion(aap->kind == (an_attribute_arg_kind)aak_constant &&
+                    aap->variant.constant->kind ==
+                                              (a_constant_repr_kind)ck_string);
+    if (!abi_tag_is_on_list(aap->variant.constant, *list)) {
+      a_constant_list_entry_ptr clep = alloc_clep_entry();
+      clep->next = *list;
+      clep->constant = aap->variant.constant;
+      *list = clep;
+    }  /* if */
+  }  /* for */
+}  /* add_abi_tag_attributes_to_list */
+
+
 static void apply_implicit_abi_tags_from_entity(
                                             a_source_correspondence      *scp,
                                             an_il_entry_kind             kind,
                                             a_walk_parents_control_block *wpcb)
 /*
 Called as a callback from walk_parents.  The given entity is part of the
-signature.  If it unmarked, apply any applicable abi_tags to the entity given
+signature.  If unmarked, apply any applicable abi_tags to the entity given
 by ttt_scp_for_implicit_abi_tags, otherwise terminate the walk.
 */
 {
@@ -10929,7 +11017,7 @@ by ttt_scp_for_implicit_abi_tags, otherwise terminate the walk.
     if (has_gnu_abi_tag_attribute) {
       /* Apply any abi_tag attributes from scp as implicit abi_tag attributes
          for ttt_scp_for_implicit_abi_tags. */
-      an_attribute_arg_ptr  aap, r_aap;
+      an_attribute_arg_ptr  aap;
       an_attribute_ptr      ap;
 #if DEBUG
       if (db_flag_is_set("abi_tag")) {
@@ -10944,40 +11032,21 @@ by ttt_scp_for_implicit_abi_tags, otherwise terminate the walk.
             check_assertion(aap->kind == (an_attribute_arg_kind)aak_constant &&
                             aap->variant.constant->kind ==
                                               (a_constant_repr_kind)ck_string);
-            if (abi_tag_implicit_routines != NULL) {
-              /* Any implicit abi_tag attributes from enclosing routines
-                 should not appear as implicit abi_tag attributes for this
-                 entity.  Go through the list and skip any that already
-                 appear in the mangled name (i.e., as part of the mangling
-                 for the local function). */
-              a_routine_list_entry_ptr rlep;
-              for (rlep = abi_tag_implicit_routines;
-                   rlep != NULL;
-                   rlep = rlep->next) {
-                check_assertion(rlep->routine->source_corresp.attributes
-                                                                     != NULL &&
-                                rlep->routine->source_corresp.attributes->
-                                                is_implicit_abi_tag_attribute);
-                for (r_aap =
-                           rlep->routine->source_corresp.attributes->arguments;
-                     r_aap != NULL;
-                     r_aap = r_aap->next) {
-                  if (string_constants_are_the_same(r_aap->variant.constant,
-                                                    aap->variant.constant)) {
+            /* Any implicit abi_tag attributes from enclosing routines
+               or inline namespaces should not appear as implicit abi_tag
+               attributes for this entity.  Go through the list and skip any
+               that already appear in the mangled name. */
+            if (abi_tag_is_on_list(aap->variant.constant, implicit_tag_list)) {
 #if DEBUG
-                    if (db_flag_is_set("abi_tag")) {
-                      (void)fputs("Ignoring duplicate abi_tag\n", f_debug);
-                    }  /* if */
+              if (db_flag_is_set("abi_tag")) {
+                (void)fputs("Ignoring duplicate abi_tag\n", f_debug);
+              }  /* if */
 #endif /* DEBUG */
-                    goto skipped;
-                  }  /* if */
-                }  /* for */
-              }  /* for */
+            } else {
+              add_implicit_abi_tag_attribute(ttt_scp_for_implicit_abi_tags,
+                                             ttt_kind_for_implicit_abi_tags,
+                                             aap->variant.constant);
             }  /* if */
-            add_implicit_abi_tag_attribute(ttt_scp_for_implicit_abi_tags,
-                                           ttt_kind_for_implicit_abi_tags,
-                                           aap->variant.constant);
-skipped:;
           }  /* for */
         }  /* if */
       }  /* for */
@@ -11096,10 +11165,7 @@ any related entities that would appear in the mangled name of the entity.
         }  /* if */
         if (scp->attributes != NULL &&
             scp->attributes->is_implicit_abi_tag_attribute) {
-          a_routine_list_entry_ptr rlep = alloc_rlep_entry();
-          rlep->next = abi_tag_implicit_routines;
-          rlep->routine = rp;
-          abi_tag_implicit_routines = rlep;
+          add_abi_tag_attributes_to_list(scp->attributes, &implicit_tag_list);
         }  /* if */
       }  /* if */
     } else if (kind == iek_type) {
@@ -11107,6 +11173,19 @@ any related entities that would appear in the mangled name of the entity.
          also class templates. */
       (void)traverse_type_tree((a_type_ptr)scp, ttt_mark_entry,
                                ABI_TAG_TTT_FLAGS);
+#if ABI_COMPATIBILITY_VERSION >= 501
+    } else if (kind == iek_namespace &&
+               ((a_namespace_ptr)(scp))->is_inline) {
+      /* The entity being mangled is contained within an inline namespace.
+         Record any abi_tag attributes on this namespace so they will be
+         suppressed. */
+      an_attribute_ptr ap;
+      for (ap = scp->attributes; ap != NULL; ap = ap->next) {
+        if (ap->kind == (a_byte_attribute_kind)ak_abi_tag) {
+          add_abi_tag_attributes_to_list(ap, &implicit_tag_list);
+        }  /* if */
+      }  /* for */
+#endif /* ABI_COMPATIBILITY_VERSION >= 501 */
     }  /* if */
   }  /* if */
 }  /* mark_entry */
@@ -11222,7 +11301,7 @@ As implemented here, this involves three steps:
         /* These types will never have abi_tag components, so skip the
            expensive processing. */
       } else {
-        check_assertion(abi_tag_implicit_routines == NULL);
+        check_assertion(implicit_tag_list == NULL);
         /* Mark entities in the signature. */
         ttt_scp_for_implicit_abi_tags = scp;
         ttt_kind_for_implicit_abi_tags = kind;
@@ -11234,10 +11313,10 @@ As implemented here, this involves three steps:
         set_signature_mark(scp, kind, FALSE);
         ttt_scp_for_implicit_abi_tags = NULL;
         ttt_kind_for_implicit_abi_tags = iek_none;
-        if (abi_tag_implicit_routines != NULL) {
-          /* Free the list of routines with implicit abi_tags. */
-          free_rlep_list(abi_tag_implicit_routines);
-          abi_tag_implicit_routines = NULL;
+        if (implicit_tag_list != NULL) {
+          /* Free the list of implicit abi_tag constants. */
+          free_clep_list(implicit_tag_list);
+          implicit_tag_list = NULL;
         }  /* if */
 #if DEBUG
         if (db_flag_is_set("abi_tag")) {
@@ -14433,8 +14512,11 @@ Do one-time initialization of variables related to name mangling.
 #endif /* !IA64_ABI */
 #if GNU_EXTENSIONS_ALLOWED
   avail_abi_tag_strings = NULL;
-  abi_tag_implicit_routines = NULL;
+  implicit_tag_list = NULL;
+#if DO_IL_LOWERING
   avail_rlep_entries = NULL;
+#endif /* DO_IL_LOWERING */
+  avail_clep_entries = NULL;
   ttt_scp_for_implicit_abi_tags = NULL;
   ttt_kind_for_implicit_abi_tags = iek_none;
   ttt_mark_value = FALSE;

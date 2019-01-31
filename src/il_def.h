@@ -2754,7 +2754,8 @@ typedef struct an_attribute {
   a_bit_field	is_implicit_abi_tag_attribute:1;
 			/* TRUE if the attribute is an "implicit" abi_tag
 			   attribute.  Such attributes have been added during
-			   the mangling process. */
+			   the mangling process (and do not appear in the
+			   source). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_bit_field	namespace_from_using:1;
 			/* TRUE if the namespace name of the attribute was
@@ -7396,6 +7397,17 @@ typedef struct a_variable_list_entry {
   a_variable_ptr variable;
 			/* Pointer to the variable entry. */
 } a_variable_list_entry;
+
+
+typedef struct a_constant_list_entry *a_constant_list_entry_ptr;
+typedef struct a_constant_list_entry {
+  /* An entry used to represent a member of an arbitrary set of constants. */
+  a_constant_list_entry_ptr
+                next;	/* Next in a linked list of constant list entries. */
+  a_constant_ptr
+                constant;
+			/* Pointer to the constant entry. */
+} a_constant_list_entry;
 
 
 enum an_anonymous_union_kind_tag {

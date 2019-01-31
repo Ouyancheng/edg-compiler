@@ -42,6 +42,7 @@ static unsigned long
 		num_class_list_entries_allocated,
 		num_routine_list_entries_allocated,
 		num_variable_list_entries_allocated,
+		num_constant_list_entries_allocated,
 		num_overriding_virtual_functions_allocated,
 		num_derivation_steps_allocated,
 		num_base_class_derivations_allocated,
@@ -1619,6 +1620,25 @@ to it.
 
   return vlep;
 }  /* alloc_list_entry_for_variable */
+
+
+a_constant_list_entry_ptr alloc_list_entry_for_constant(void)
+/*
+Allocate a constant-list-entry, initialize its fields, and return a pointer
+to it.
+*/
+{
+  a_constant_list_entry_ptr clep;
+
+  clep = alloc_il_of_type(a_constant_list_entry);
+#if DEBUG
+  num_constant_list_entries_allocated++;
+#endif /* DEBUG */
+  clep->next  = NULL;
+  clep->constant = NULL;
+
+  return clep;
+}  /* alloc_list_entry_for_constant */
 
 
 a_based_type_list_member_ptr alloc_based_type_list_member(
@@ -5639,6 +5659,8 @@ Display and return the amount of space used for various IL tables.
                 a_routine_list_entry);
   db_space_used("variable list entry", num_variable_list_entries_allocated,
                 a_variable_list_entry);
+  db_space_used("constant list entry", num_constant_list_entries_allocated,
+                a_constant_list_entry);
   db_space_used("overriding virtual func",
                 num_overriding_virtual_functions_allocated,
                 an_overriding_virtual_function);
@@ -6060,6 +6082,7 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_pragmas_allocated),
       pch_saved_var_array_elem(num_routine_list_entries_allocated),
       pch_saved_var_array_elem(num_variable_list_entries_allocated),
+      pch_saved_var_array_elem(num_constant_list_entries_allocated),
       pch_saved_var_array_elem(num_routine_type_supplements_allocated),
       pch_saved_var_array_elem(num_routines_allocated),
       pch_saved_var_array_elem(num_object_lifetimes_allocated),
@@ -6209,6 +6232,7 @@ initializations that are done for each compilation.
   num_class_list_entries_allocated       = 0;
   num_routine_list_entries_allocated     = 0;
   num_variable_list_entries_allocated    = 0;
+  num_constant_list_entries_allocated    = 0;
   num_overriding_virtual_functions_allocated
                                          = 0;
   num_derivation_steps_allocated         = 0;

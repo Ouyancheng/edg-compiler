@@ -1,5 +1,27 @@
 Version 5.1
 
+1/31/19  [EDGcpfe/20704]
+GNU compatibility: abi_tag mangling
+
+GCC (and clang) do not include abi_tag strings in mangled name of a function
+when the function and the function's return type both have the same implicit
+abi_tags.  For example (with --gnu_version 80000):
+
+  namespace std {
+    inline namespace N __attribute__((__abi_tag__("cxx11"))) {
+      class B {};
+    }
+    namespace v1 {
+      inline namespace N __attribute__((__abi_tag__("cxx11"))) {
+        B foo();    // previously _ZNSt2v11N3fooB5cxx11Ev now _ZNSt2v11N3fooEv
+        void f() { foo(); }
+      }
+    }
+  }
+
+This change is only effective when ABI_COMPATIBILITY_VERSION >= 501.
+
+
 1/31/19  [EDGcpfe/20835]
 Copy elision in direct-initialization context
 
