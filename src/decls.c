@@ -12519,7 +12519,9 @@ avoid inconsistencies later on.)
 {
   if ((dps->dso_flags & DSO_DEFINES_SOMETHING) != 0 && !C_mode() &&
       !(gpp_mode && gnu_version < 30400 && !lambdas_enabled &&
-        !dps->is_alias_template_type)) {
+        !dps->is_alias_template_type &&
+        !(dps->is_template_type_argument &&
+          is_template_dependent_context()))) {
     pos_error(ec_type_definition_not_allowed, &dps->start_pos);
     dps->type = error_type();
   }  /* if */

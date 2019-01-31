@@ -1,5 +1,17 @@
 Version 5.1
 
+1/31/19  [EDGcpfe/20806]
+Abort in early GNU C++03 mode on class defined in default template argument
+
+Previously, in GNU C++03 modes with gnu_version < 30400, the front end aborted
+with an internal error (triggered in scan_class_definition) on the following
+invalid code:
+
+  template<typename = struct {}> void f();
+
+That is now fixed.
+
+
 1/31/19  [EDGcpfe/20805]
 GNU C++ compatibility: Inline static data member with incomplete array type
 
