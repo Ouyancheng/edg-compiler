@@ -1621,6 +1621,7 @@ to it.
   return vlep;
 }  /* alloc_list_entry_for_variable */
 
+#if NEED_NAME_MANGLING
 
 a_constant_list_entry_ptr alloc_list_entry_for_constant(void)
 /*
@@ -1640,6 +1641,7 @@ to it.
   return clep;
 }  /* alloc_list_entry_for_constant */
 
+#endif /* NEED_NAME_MANGLING */
 
 a_based_type_list_member_ptr alloc_based_type_list_member(
                                                a_based_type_kind  kind,

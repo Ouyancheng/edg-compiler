@@ -108,7 +108,9 @@ extern a_routine_list_entry_ptr alloc_list_entry_for_routine(void);
 
 extern a_variable_list_entry_ptr alloc_list_entry_for_variable(void);
 
+#if NEED_NAME_MANGLING
 extern a_constant_list_entry_ptr alloc_list_entry_for_constant(void);
+#endif /* NEED_NAME_MANGLING */
 
 extern a_based_type_list_member_ptr alloc_based_type_list_member(
                                                a_based_type_kind  kind,
