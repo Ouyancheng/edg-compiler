@@ -1,5 +1,23 @@
 Version 5.1
 
+1/31/19  [EDGcpfe/20805]
+GNU C++ compatibility: Inline static data member with incomplete array type
+
+Consider:
+
+  template<typename> struct S {
+    static constexpr int x[] = { 1, 2 };
+  };
+  S<int> si;  // Previously an error in GNU C++17 mode.  Now okay.
+
+
+In GNU C++ mode, the initializer of S<int>::x isn't fully instantiated because
+the static data member isn't used.  As a result, the length of the array is
+left undetermined.  However, since the variable is constexpr (and therefore
+implicitly inline), the front end previously required its type to complete at
+the point of declaration, which in turn triggered an error.  That is now fixed.
+
+
 1/30/19  [EDGcpfe/20771]
 IL corruption in call to GCC function with "inline partner"
 

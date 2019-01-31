@@ -16671,6 +16671,7 @@ template declaration and is NULL otherwise.
                            var_templ_tssp = NULL;
   a_token_cache_ptr        initializer_cache = NULL;
   a_token_sequence_number  start_tsn = curr_token_sequence_number;
+  a_boolean                initializer_delayed = FALSE;
 
   db_enter(3, "decl_static_data_member");
   if (is_void_type(member_type)) {
@@ -17029,6 +17030,7 @@ template declaration and is NULL otherwise.
               (curr_token == tok_assign &&
                next_token() == tok_removed_expr))) {
     /* The initializer was extracted for "on-demand" instantiation. */
+    initializer_delayed = TRUE;
     decl_state->has_initializer = TRUE;
     var->has_explicit_initializer = TRUE;
     var->initializer_in_class = TRUE;
@@ -17067,7 +17069,7 @@ template declaration and is NULL otherwise.
     if (var->is_inline) {
       /* Inline static data members are considered definitions. */
       srk_flags |= SRK_DEFINITION;
-      if (!decl_info->is_member_template) {
+      if (!decl_info->is_member_template && !initializer_delayed) {
         complete_type_is_needed(var->type);
         if (is_incomplete_type(var->type)) {
           /* As a definition, an inline static data member must have a
