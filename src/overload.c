@@ -20930,7 +20930,8 @@ was done.
 {
   a_conv_descr  conversion, ctor_arg_conversion;
   an_operand    orig_operand;
-  a_boolean     is_copy_initialization = TRUE;
+  a_boolean     is_copy_initialization =
+                                  !(conv_context & CCO_DIRECT_INITIALIZATION);
   a_boolean     orig_is_copy_initialization = is_copy_initialization;
   a_boolean     check_elided_cctor = TRUE;
 
@@ -23929,9 +23930,17 @@ will be an lvalue instead of the usual prvalue.
            in this context. */
         if (!issue_errors) record_suppressed_error();
         conv_to_error_operand(&operand);
-      } else if (dest_type_is_class && !is_direct_init) {
-        /* See if we can elide the copy for copy-initialization of
-           class-typed objects. */
+      } else if (dest_type_is_class &&
+                 (!is_direct_init ||
+                  (cpp17_mode && is_a_prvalue(&operand) &&
+                   identical_types_ignoring_qualifiers(dest_type,
+                                                       operand.type)))) {
+        /* See if we can elide the copy for copy-initialization of class-typed
+           objects.  In C++17 ode, elision is also mandated can also mandated
+           for some direct- initialization cases.  For example:
+               struct S { S(); S(S const&) = delete; };
+               S obj{X{}};  // Okay: Copy is elided.
+        */
         prep_elision_initializer_operand(&operand, dest_type,
                                          fill_in_dtor,
                                          conv_context,
