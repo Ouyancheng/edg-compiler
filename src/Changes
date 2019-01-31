@@ -1,5 +1,21 @@
 Version 5.1
 
+1/31/19  [EDGcpfe/20836]
+GNU C++11 compatibility: Using strlen in constexpr functions
+
+Consider:
+
+  using size_t = decltype(sizeof(42));
+  extern "C" size_t strlen(const char*);
+  constexpr size_t f(char const *s) { return strlen(s); }
+
+Previously, the front end issued an error in C++11 mode (but not C++14 mode)
+because "strlen" is not a constexpr function.  However, in GNU C++ mode, that
+function is recognized as the standard library function and the front end is
+able to fold calls to it when appropriate.  Therefore, no error is issued on
+this example anymore (which matches the behavior of GCC).
+
+
 1/31/19  [EDGcpfe/20704]
 GNU compatibility: abi_tag mangling
 
