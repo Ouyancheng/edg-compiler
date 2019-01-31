@@ -5961,7 +5961,9 @@ details of why folding failed.  Return TRUE if an error was issued.
   if (operand == NULL || !is_error_operand(operand)) {
     if (expr_stack != NULL && in_potential_constant_constexpr_context() &&
         (routine == NULL || routine->is_constexpr ||
+#if GNU_EXTENSIONS_ALLOWED
          (routine->implicit_alias && gpp_mode && !clang_mode) ||
+#endif /* GNU_EXTENSIONS_ALLOWED */
          ((clang_mode || gpp_mode || microsoft_mode) &&
           routine->is_template_function && !routine->is_specialized)
 #if BUILTIN_FUNCTIONS_ENABLED
