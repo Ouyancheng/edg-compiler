@@ -4,10 +4,11 @@ Version 5.1
 Constant-valued static data members without definitions
 
 Consider:
+
   template <typename T> struct S {
     static constexpr T x[2][2] = { {1, 2}, {3, 4} };
   };
-  int main() { return S<int>::x[1][2]; }
+  int main() { return S<int>::x[1][1]; }
 
 Prior to C++17, the static data member declaration is not a definition.  The
 handling of the reference to S<int>::x in the front end resulted in a linker
