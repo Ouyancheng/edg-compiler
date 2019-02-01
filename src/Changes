@@ -19,9 +19,9 @@ this example anymore (which matches the behavior of GCC).
 1/31/19  [EDGcpfe/20704]
 GNU compatibility: abi_tag mangling
 
-GCC (and clang) do not include abi_tag strings in mangled name of a function
-when the function and the function's return type both have the same implicit
-abi_tags.  For example (with --gnu_version 80000):
+GCC (and clang) do not include abi_tag strings in the mangled name of a
+function when the function and the function's return type both have the same
+implicit abi_tags.  For example (with --gnu_version 80000):
 
   namespace std {
     inline namespace N __attribute__((__abi_tag__("cxx11"))) {
