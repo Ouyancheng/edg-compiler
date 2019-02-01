@@ -23936,10 +23936,10 @@ will be an lvalue instead of the usual prvalue.
                    identical_types_ignoring_qualifiers(dest_type,
                                                        operand.type)))) {
         /* See if we can elide the copy for copy-initialization of class-typed
-           objects.  In C++17 ode, elision is also mandated can also mandated
-           for some direct- initialization cases.  For example:
+           objects.  In C++17 mode, elision is also mandated for some direct-
+           initialization cases.  For example:
                struct S { S(); S(S const&) = delete; };
-               S obj{X{}};  // Okay: Copy is elided.
+               S obj{S{}};  // Okay: Copy is elided.
         */
         prep_elision_initializer_operand(&operand, dest_type,
                                          fill_in_dtor,
