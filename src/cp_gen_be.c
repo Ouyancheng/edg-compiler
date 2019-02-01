@@ -18076,7 +18076,7 @@ Output the initializer, if any, for the indicated variable.
                                                 ->variant.dynamic_init;
                 if (subdip->kind == (a_dynamic_init_kind)dik_constructor &&
                     subdip->variant.constructor.is_array_copy) {
-                  an_expr_node_ptr  expr = subdip->variant.constructor.args;
+                  expr = subdip->variant.constructor.args;
                   saved_init = *dip;
                   dip->kind = (a_dynamic_init_kind)dik_expression;
                   dip->variant.expression = expr;
