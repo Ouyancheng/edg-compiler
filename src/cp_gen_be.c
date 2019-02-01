@@ -17650,6 +17650,14 @@ output_functional_notation_cast_arguments:
     case dik_constant:
       /* Constant (simple or aggregate). */
       con = dip->variant.constant;
+      if (is_reference_type(init_entity_type)) {
+        a_type_ptr referred_to_type = type_pointed_to(init_entity_type);
+        if (is_array_type(referred_to_type)) {
+          /* Use the referred-to type so gen_initializer_constant knows to
+             expect an array constant. */
+          init_entity_type = referred_to_type;
+        }  /* if */
+      }  /* if */
       gen_initializer_constant(con, init_entity_type,
                                /*transparent_case=*/FALSE, suppress_braces);
       break;
@@ -17777,12 +17785,7 @@ and the output of the type name.
       an_expr_node_ptr expr = dip->variant.expression;
       if (is_operation_node(expr) &&
           node_operator_is(expr, eok_reference_to)) {
-        expr = expr->variant.operation.operands;
-        while (is_operation_node(expr) &&
-               (node_operator_is(expr, eok_lvalue_adjust) ||
-                node_operator_is(expr, eok_class_rvalue_adjust))) {
-          expr = expr->variant.operation.operands;
-        }  /* while */
+        expr = skip_implicit_steps(expr);
         if (expr->kind == (an_expr_node_kind)enk_temp_init) {
           if (expr_is_braced_init_list(expr)) {
             dip = expr->variant.init.dynamic_init;
@@ -17989,6 +17992,8 @@ Output the initializer, if any, for the indicated variable.
       an_initializer_ptr initializer;
       a_constant_ptr     con;
       an_expr_node_ptr   expr = NULL;
+      a_dynamic_init_ptr dip;
+      a_boolean          restore_init = FALSE;
       a_boolean          context_pop_required = FALSE;
       get_variable_initializer(var, curr_name_context->assoc_scope,
                                &init_kind, &initializer);
@@ -18024,16 +18029,12 @@ Output the initializer, if any, for the indicated variable.
     switch (init_kind) {
       case initk_static:
         con = initializer->constant;
-        if ((parenthesized_init || braced_init) &&
-            constant_should_be_put_out_as_expr(con)) {
+        if (constant_should_be_put_out_as_expr(con)) {
           expr = skip_implicit_steps(con->expr);
         }  /* if */
         if (expr != NULL && expr->kind == (an_expr_node_kind)enk_temp_init) {
-          /* For a case like a folded constexpr constructor call, put out the
-             original form. */
-          gen_paren_or_brace_dynamic_init(expr->variant.init.dynamic_init,
-                                          var->type, parenthesized_init,
-                                          /*is_var_init=*/TRUE);
+          dip = expr->variant.init.dynamic_init;
+          goto handle_dynamic_init;
         } else {
           /* We can safely express this initialization with the " = " notation.
              However, if we know the original form used C++
@@ -18048,9 +18049,8 @@ Output the initializer, if any, for the indicated variable.
         }  /* if */
         break;
       case initk_dynamic:
-        { a_dynamic_init_ptr  dip = initializer->dynamic;
-          a_dynamic_init      saved_init;
-          a_boolean           restore_init = FALSE;
+        { a_dynamic_init      saved_init;
+          dip = initializer->dynamic;
           if (var->is_struct_binding_container) {
             /* A special case can occur when initializing a structured binding
                container variable for an array: If the elements of the array
@@ -18085,10 +18085,10 @@ Output the initializer, if any, for the indicated variable.
               }  /* if */
             }  /* if */
           }  /* if */
+handle_dynamic_init:
           if (parenthesized_init || braced_init) {
             /* Use a parenthesized or brace-enclosed initializer. */
-            gen_paren_or_brace_dynamic_init(initializer->dynamic,
-                                            var->type,
+            gen_paren_or_brace_dynamic_init(dip, var->type,
                                             parenthesized_init,
                                             /*is_var_init=*/TRUE);
           } else {
@@ -18096,9 +18096,8 @@ Output the initializer, if any, for the indicated variable.
             a_boolean need_parens = FALSE;
             write_tok_str(" = ");
             if (var->declared_with_decltype_auto &&
-                initializer->dynamic->kind ==
-                                         (a_dynamic_init_kind)dik_expression &&
-                initializer->dynamic->variant.expression->kind !=
+                dip->kind == (a_dynamic_init_kind)dik_expression &&
+                dip->variant.expression->kind !=
                                              (an_expr_node_kind)enk_variable) {
               /* Add parens for a case like
                    decltype(auto) x = (y);
@@ -18108,9 +18107,7 @@ Output the initializer, if any, for the indicated variable.
             if (need_parens) {
               write_tok_ch('(');
             }  /* if */
-            gen_dynamic_init(initializer->dynamic,
-                             var->type,
-                             (an_expr_node_ptr)NULL,
+            gen_dynamic_init(dip, var->type, (an_expr_node_ptr)NULL,
                              /*avoid_top_level_comma=*/TRUE,
                              /*obj_expr_of_mfunc_operator=*/FALSE);
             if (need_parens) {
