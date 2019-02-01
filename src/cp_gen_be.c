@@ -17988,6 +17988,7 @@ Output the initializer, if any, for the indicated variable.
       an_init_kind       init_kind;
       an_initializer_ptr initializer;
       a_constant_ptr     con;
+      an_expr_node_ptr   expr = NULL;
       a_boolean          context_pop_required = FALSE;
       get_variable_initializer(var, curr_name_context->assoc_scope,
                                &init_kind, &initializer);
@@ -18024,13 +18025,14 @@ Output the initializer, if any, for the indicated variable.
       case initk_static:
         con = initializer->constant;
         if ((parenthesized_init || braced_init) &&
-            constant_should_be_put_out_as_expr(con) &&
-            con->expr->kind == (an_expr_node_kind)enk_temp_init) {
+            constant_should_be_put_out_as_expr(con)) {
+          expr = skip_implicit_steps(con->expr);
+        }  /* if */
+        if (expr != NULL && expr->kind == (an_expr_node_kind)enk_temp_init) {
           /* For a case like a folded constexpr constructor call, put out the
              original form. */
-          gen_paren_or_brace_dynamic_init(con->expr->variant.init.dynamic_init,
-                                          var->type,
-                                          parenthesized_init,
+          gen_paren_or_brace_dynamic_init(expr->variant.init.dynamic_init,
+                                          var->type, parenthesized_init,
                                           /*is_var_init=*/TRUE);
         } else {
           /* We can safely express this initialization with the " = " notation.
