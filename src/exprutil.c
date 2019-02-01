@@ -1747,6 +1747,7 @@ is pushed regardless of any of the other factors.
   new_entry->marked_as_gnu_extension = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   new_entry->prefer_template_constant = FALSE;
+  new_entry->fold_prvalue_if_possible = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;
@@ -20369,6 +20370,36 @@ cases so we don't do it here.
         /* Normal case: not constant-valued, not a constant expression. */
         node->volatile_fetch = volatile_fetch;
         make_expression_operand(node, operand);
+        if (expr_stack->fold_prvalue_if_possible) {
+          /* Fold the expression if possible.  This is not just an optimization
+             because it may determine if underlying variables are "used": If
+             folding succeeds, and the resulting value no longer refers to (the
+             address of) a variable involved, that variable isn't used (i.e.,
+             no definition of the variable is needed for this particular sub-
+             expression). */
+          if (expr_interpret_expression_operand(
+                                          operand, /*must_be_constant=*/FALSE,
+                                          /*is_constant_evaluated=*/FALSE)) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            a_constant_ptr  con = &operand->variant.constant;
+            if (microsoft_mode && con->null_pointer_constant_ruled_out &&
+                constant_is(con, ck_integer) &&
+                cmplit_integer_constant(con, (a_host_large_integer)0) == 0) {
+              /* Microsoft compilers accept a broader range of "null pointer"
+                 forms.  After folding, restore the null pointer flag if
+                 needed. */
+              a_boolean       is_nullptr_constant;
+              a_constant_ptr  null_con;
+              adjust_constant_operand_info_for_microsoft_null_pointer_test(
+                                          &orig_operand, &is_nullptr_constant,
+                                          &null_con, (an_expr_node_ptr*)NULL);
+              if (is_nullptr_constant) {
+                con->null_pointer_constant_ruled_out = FALSE;
+              }  /* if */
+            }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          }  /* if */
+        }  /* if */
         if (operand->type != orig_operand.type &&
             unqual_operand_type->kind == (a_type_kind)tk_template_param &&
             unqual_operand_type->variant.template_param.kind ==
@@ -20391,6 +20422,7 @@ cases so we don't do it here.
       /* An lvalue-to-rvalue conversion rules out a constant expression. */
       rule_out_expr_kinds(ROEK_CONSTANT, operand);
     }  /* if */
+    expr_stack->fold_prvalue_if_possible = FALSE;
   }  /* if */
 }  /* conv_glvalue_to_prvalue */
 

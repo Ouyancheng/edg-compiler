@@ -980,6 +980,12 @@ typedef struct an_expr_stack_entry {
 			   representation even for expressions with a specific
 			   known value (for compatibility with other
 			   compilers). */
+  a_bit_field
+		fold_prvalue_if_possible:1;
+			/* Set to TRUE when conv_glvalue_to_prvalue should
+			   attempt to constant-fold the prvalue (which might
+			   affect whether variables involved are "odr-used"
+			   or not). */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor

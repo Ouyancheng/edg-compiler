@@ -2160,9 +2160,22 @@ for any diagnostics issued.
     goto exit;
   }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
-  if (is_vector_type(new_type)) {
-    /* We don't attempt to fold casts to vector types. */
-    *did_not_fold = TRUE;
+  if (new_type->kind == (a_type_kind)tk_vector ||
+      constant_type->kind == (a_type_kind)tk_vector) {
+    /* A conversion to or from a vector can be folded only if the other type
+       is a vector of equal length and whose elements are of the same nature
+       (integer vs. floating-point). */
+    if (new_type->kind != (a_type_kind)tk_vector ||
+        constant_type->kind != (a_type_kind)tk_vector ||
+        skip_typerefs(new_type->variant.vector.element_type)->kind !=
+            skip_typerefs(constant_type->variant.vector.element_type)->kind ||
+        num_vector_elements(new_type) != num_vector_elements(constant_type)) {
+      *did_not_fold = TRUE;
+    } else {
+      copy_constant(constant, new_constant);
+      /* Put in the actual type wanted, as it may have typedefs. */
+      new_constant->type = new_type_with_typedefs;
+    }  /* if */
     goto exit;
   }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */

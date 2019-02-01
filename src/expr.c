@@ -31900,6 +31900,21 @@ if rescan_is_template_id is TRUE, and return the result in *operand
             break;
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          if (var_ptr->initializer_in_class && curr_expr_is_evaluated()) {
+            /* In various modes a static data member can have an initializer
+               without being defined.  However, using the value of that
+               variable does not require the definition to exist if it appears
+               as a constant expression.  So we set a flag to indicate that
+               conversion to a prvalue should attempt to fold the prvalue (to
+               potentially eliminate the need for a definition).  For example:
+                  template <typename T> struct S {
+                    static constexpr T x[2][2] = { {1, 2}, {3, 4} };
+                  };
+                  int main() { return S<int>::x[1][2]; }
+               The definition of S<int>::x is not required here (though in
+               standard C++17 mode S<int>::x is, in fact, defined already). */
+            expr_stack->fold_prvalue_if_possible = TRUE;
+          }  /* if */
           goto variable;
         case sk_variable:
           var_ptr = sym_ptr->variant.variable.ptr;

@@ -1,5 +1,22 @@
 Version 5.1
 
+2/1/19   [EDGcpfe/20799]
+Constant-valued static data members without definitions
+
+Consider:
+  template <typename T> struct S {
+    static constexpr T x[2][2] = { {1, 2}, {3, 4} };
+  };
+  int main() { return S<int>::x[1][2]; }
+
+Prior to C++17, the static data member declaration is not a definition.  The
+handling of the reference to S<int>::x in the front end resulted in a linker
+error because the return expression was constant-folded.  However, the standard
+does in fact require constant-folding in cases like this and the front end now
+implements that, which in turn permits the example above to compile and link
+successfully.
+
+
 1/31/19  [EDGcpfe/20836]
 GNU C++11 compatibility: Using strlen in constexpr functions
 
