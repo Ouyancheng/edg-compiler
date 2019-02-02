@@ -18030,7 +18030,10 @@ Output the initializer, if any, for the indicated variable.
       case initk_static:
         con = initializer->constant;
         if (constant_should_be_put_out_as_expr(con)) {
-          expr = skip_implicit_steps(con->expr);
+          expr = con->expr;
+          if (expr->kind != (an_expr_node_kind)enk_temp_init) {
+            expr = skip_implicit_steps(con->expr);
+          }  /* if */
         }  /* if */
         if (expr != NULL && expr->kind == (an_expr_node_kind)enk_temp_init) {
           dip = expr->variant.init.dynamic_init;
