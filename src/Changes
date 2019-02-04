@@ -1,5 +1,32 @@
 Version 5.1
 
+2/4/19   [EDGcpfe/20840]
+Instantiating exception specifications
+
+Consider in C++11 or C++14 mode (but not in C++17 mode):
+
+  template<typename T> struct A { static constexpr bool v = true; };
+  template<typename T> int f(T&) noexcept(A<T>::v);
+  int i = f<int>(i);  // (1)
+  template<> struct A<int>;  // (2)
+
+The call to f<int>(int&) on line (1) triggers a point of instantiation at that
+location.  However, the language permits implementations to delay that point of
+instantiation to the end of the translation unit, which is what the front end
+does in this case.  However, other implementations appear to instantiate the
+exception specification earlier, which triggers the instantiation of A<int> at
+line (1): The explicit specialization of A<int> on line (2) is thus invalid.
+(Note that in C++17, the exception specification is part of the function type,
+and therefore it must be instantiated on line (1): The explicit specialization
+then becomes an error independently of the chosen point of instantiation for
+the function definition itself.)  The front end now also triggers the
+instantiation of exception specifications at the first point of instantiation.
+In configurations with TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS this
+affects the order in which source sequence entries are emitted for various
+specializations.  As a consequence, some cases that caused the C++-generating
+back end to produce invalid code now result in valid code.
+
+
 2/1/19   [EDGcpfe/20799]
 Constant-valued static data members without definitions
 

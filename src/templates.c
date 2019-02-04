@@ -17171,7 +17171,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
      is not attempted before the routine is completed. */
   defer_instantiations++;
   parent_class = templ_sym->is_class_member ? sym_parent_class(templ_sym)
-                                              : (a_type_ptr)NULL;
+                                            : (a_type_ptr)NULL;
   rp = alloc_routine();
   {
     /* Create a routine type by rescanning the original declaration
@@ -17637,6 +17637,9 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
   /* Do any instantiations that were deferred while this routine was being
      created. */
   process_deferred_class_fixups_and_instantiations(/*for_instantiation=*/TRUE);
+  if (!exc_spec_in_func_type && !special_kind_is(rp, sfk_deduction_guide)) {
+    instantiate_exception_spec_if_needed(sym);
+  }  /* if */
   db_exit();
   return sym;
 }  /* make_template_function */
