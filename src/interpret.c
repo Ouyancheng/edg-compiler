@@ -14343,8 +14343,7 @@ diagnostic in *ips.
             if (rt_con->variant.address.kind ==
                                          (an_address_base_kind)abk_variable) {
               a_variable_ptr  vp = rt_con->variant.address.variant.variable;
-              if (vp->source_corresp.is_local_to_function ||
-                  !variable_has_constant_address(vp)) {
+              if (!variable_has_constant_address(vp)) {
                 a_symbol_ptr  var_sym = symbol_for(vp);
                 do_constexpr_fail(result);
                 if (var_sym == NULL) {
