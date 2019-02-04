@@ -1,5 +1,19 @@
 Version 5.1
 
+2/4/19   [EDGcpfe/20841]
+GNU C++-mode abort on member function declared with alias type
+
+In GNU C++11 mode, the front end previously aborted on the following case
+(with "reconcile_routine_types: shared param types unexpected" in decls.c):
+
+  template<typename T> using F = void(T x);
+  struct S { template<typename T> static F<T> f; };
+  template<typename T> void S::f(T x) {}
+
+(This example declares a member function using an alias for a function type,
+which is highly unusual.)  That is now fixed.
+
+
 2/4/19   [EDGcpfe/20840]
 Instantiating exception specifications
 

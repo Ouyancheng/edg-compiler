@@ -5468,10 +5468,10 @@ a copy of the previous type).
       }  /* if */
       /* If rout_type is not what was returned, copy the composite
          type on top of the existing rout_type. */
+      comp_type = skip_typerefs(comp_type);
+      rout_type = skip_typerefs(rout_type);
       if (!same_entities(comp_type, rout_type)) {
-        comp_type = skip_typerefs(comp_type);
         comp_rtsp = comp_type->variant.routine.extra_info;
-        rout_type = skip_typerefs(rout_type);
         rtsp = rout_type->variant.routine.extra_info;
         /* Before overriding rout_type, preserve a copy of the original. */
         dps->prev_type = copy_routine_type_with_param_types(
