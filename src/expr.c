@@ -31910,7 +31910,7 @@ if rescan_is_template_id is TRUE, and return the result in *operand
                   template <typename T> struct S {
                     static constexpr T x[2][2] = { {1, 2}, {3, 4} };
                   };
-                  int main() { return S<int>::x[1][2]; }
+                  int main() { return S<int>::x[1][1]; }
                The definition of S<int>::x is not required here (though in
                standard C++17 mode S<int>::x is, in fact, defined already). */
             expr_stack->fold_prvalue_if_possible = TRUE;
