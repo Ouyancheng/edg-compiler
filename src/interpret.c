@@ -4567,9 +4567,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                   !is_const_qualified_type(cp->type)) {
                 /* If disallow_mutable_field_load is set, we are in a context
                    that expects the temporary to be immutable.  */
-                  info_with_pos(ec_constexpr_non_const_temp,
-                                constant_pos(cp, ips), ips);
-                  do_constexpr_fail(result);
+                  clear_runtime_constant_address(value, con);
                   break;
               }  /* if */
               get_stack_bytes(ips, cp, con_bytes);
