@@ -1,5 +1,13 @@
 Version 5.1
 
+2/5/19   [EDGcpfe/20767]
+Cost of reactivations during overload resolution
+
+A number of changes were made to reduce the overall cost of reactivating
+scopes when substituting templates during overload resolution.  In some
+complex cases the resulting improvement in compile time can be noticeable
+(e.g., half the previous time).
+
 
 2/5/19   [EDGcpfe/17598]
 Language linkage for main() (core issue 1886)
