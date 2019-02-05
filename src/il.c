@@ -13451,7 +13451,8 @@ routine.
   a_source_correspondence_ptr  scp = &routine->source_corresp;
   a_symbol_ptr                 sym = (a_symbol_ptr)scp->assoc_info;
 
-  if (sym != NULL && !scp_is_class_or_namespace_member(scp)) {
+  if (sym != NULL && !scp_is_class_or_namespace_member(scp) &&
+      sym->header->has_intrinsic_name) {
     result = (strcmp(sym->header->identifier, "main") == 0);
   }  /* if */
   return result;

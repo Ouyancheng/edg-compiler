@@ -16828,7 +16828,8 @@ for space tracking purposes.
 
 
 static a_const_char* intrinsic_names[] = {
-  "is_constant_evaluated"
+  "is_constant_evaluated",
+  "main"
 };
 
 #define N_INTRINSIC_NAMES \

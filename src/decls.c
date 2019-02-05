@@ -7269,6 +7269,17 @@ for use in generating cross-reference output describing this declaration.
      sequence entry in some cases). */
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
                             dps->source_sequence_entry);
+  /* N4762/p3 "A program that declares a variable main at global scope or that
+     declares the name main with C language linkage (in any namespace) is
+     ill-formed." */
+  if (sym->header->has_intrinsic_name && !redeclaration &&
+      (((depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) &&
+        (decl_scope_level == (a_scope_kind) sck_file) ) ||
+       (variable_ptr->source_corresp.name_linkage ==
+        (a_name_linkage_kind)nlk_external)
+      ) && (strcmp(locator->symbol_header->identifier, "main") == 0)){
+    pos_error(ec_invalid_variable_name, &locator->source_position);
+  }
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (is_variable_def || (!redeclaration && !linked_to_previous_variable)) {
     /* The position corresponds to that of the first declaration, or to that
@@ -9764,6 +9775,15 @@ skip_overloading:;
     /* This had to be delayed until the name linkage was set. */
     establish_block_extern_function_correspondence(routine_ptr);
   }  /* if */
+  /* N4762/p3 "A program that declares a variable main at global scope or that
+       declares the name main with C language linkage (in any namespace) is
+       ill-formed." */
+  if (sym->header->has_intrinsic_name && !func_info->is_main_function &&
+      (source_corresp_ptr->name_linkage ==
+       (a_name_linkage_kind)nlk_external) &&
+      (strcmp(locator->symbol_header->identifier, "main") == 0)){
+      pos_error(ec_c_linkage_main, &locator->source_position);
+  }
 #if BACK_END_IS_CP_GEN_BE
   if (!C_mode()) {
     /* Set the "name linkage environment" for this routine.  This is used by
@@ -10882,6 +10902,7 @@ definition of a member function of a class template.
     if (sym->header->identifier != NULL &&
         !sym->is_class_member &&
         sym_parent_namespace_or_null(sym) == NULL &&
+        sym->header->has_intrinsic_name &&
         (strcmp(sym->header->identifier, "main") == 0)) {
       /* A global scope function template named "main" is not allowed. */
       pos_error(ec_function_template_named_main, &locator->source_position);
@@ -16644,6 +16665,7 @@ proceed after the call.
     report_qualifiers_as_useless(&type, &state->declarator_pos);
   }  /* if */
   if (!is_error_locator(*locator) &&
+      locator->symbol_header->has_intrinsic_name &&
       locator->symbol_header->identifier != NULL &&
       (strcmp(locator->symbol_header->identifier, "main") == 0)) {
     a_boolean  is_main_func = FALSE;

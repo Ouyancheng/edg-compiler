@@ -1,5 +1,19 @@
 Version 5.1
 
+
+2/5/19   [EDGcpfe/17598]
+Language linkage for main() (core issue 1886)
+
+With the resolution of core issue 1886, a program that declares a variable
+main at global scope or that declares the name main with C language linkage
+(in any namespace) is ill-formed.  This has now been implemented.  For 
+example:
+  int main = 0;  // Now ill-formed. 
+  extern "C" {
+    int main();  // Now ill-formed.
+  } 
+
+
 2/4/19   [EDGcpfe/20841]
 GNU C++-mode abort on member function declared with alias type
 
