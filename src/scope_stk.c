@@ -2195,8 +2195,7 @@ specified after the point of definition of the template.
      list of scopes linked by the previous scope pointer.  When clearing
      the flags, consider all scopes. */
   for (ssep = &scope_stack[starting_depth]; ssep != NULL;
-       ssep = set_value ? previous_scope_of(ssep) :
-                          (ssep == &scope_stack[0] ? NULL : ssep - 1)) {
+       ssep = previous_scope_of(ssep) ) {
     an_active_using_directive_ptr	audp = ssep->active_using_directives;
     /* Set the flag for any active using directives for this scope. */
     for (; audp != NULL; audp = audp->next) {
@@ -2638,6 +2637,7 @@ the scope being pushed.
   }  /* if */
   /* Push the stack, initialize the new scope entry. */
   ssep = &scope_stack[++depth_scope_stack];
+  memzero((char*)ssep, sizeof(*ssep));
   /* Determine the scope number. */
   if ((scope_number_to_reuse != NO_SCOPE_NUMBER &&
        (kind == (a_scope_kind)sck_function ||
@@ -2804,62 +2804,16 @@ the scope being pushed.
   }  /* switch */
   /* Fill in the fields of the scope entry. */
   ssep->kind                     = kind;
-  ssep->current_access           = (an_access_specifier)as_public;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  ssep->current_assembly_access  = (an_access_specifier)as_public;
-  ssep->defer_constraint_checks  = FALSE;
-  ssep->scanning_cli_delegate_definition = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  ssep->inactive_symbols_may_be_visible = FALSE;
   ssep->inside_local_class       = inside_local_class;
-  ssep->template_param_decl_scope= FALSE;
-  ssep->is_loop_scope            = FALSE;
-  ssep->is_dissociated_from_loop_scope = FALSE;
-  ssep->slow_lookup_required     = FALSE;
-  ssep->return_value_optimization_possible = FALSE;
-  ssep->in_prototype_instantiation = FALSE;
-  ssep->in_nonreal_instantiation = FALSE;
-  ssep->in_generic_definition    = FALSE;
   ssep->alias_in_template_decl   = (options & PS_ALIAS_IN_TEMPLATE_DECL) != 0;
-  ssep->exception_specification  = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  ssep->instantiation_from_metadata = FALSE;
-  ssep->in_generic_instantiation = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  ssep->in_class_specialization  = FALSE;
-  ssep->in_template_deduction_context = FALSE;
-  ssep->in_variadic_template     = FALSE;
   ssep->record_form_of_name_reference = kind == (a_scope_kind)sck_file &&
                                         record_form_of_name_reference;
-  ssep->record_dependent_name_references = FALSE;
-  ssep->defer_access_checks      = FALSE;
-  ssep->nested_instantiation     = FALSE;
-  ssep->is_try_block             = FALSE;
-  ssep->within_try_block         = FALSE;
-  ssep->is_catch_in_function_try = FALSE;
-  ssep->within_unnamed_namespace = FALSE;
-  ssep->reactivated_class_being_defined = FALSE;
-  ssep->is_for_init_block        = FALSE;
-  ssep->namespace_pushed         = FALSE;
-  ssep->exclude_from_context_output = FALSE;
-  ssep->instantiation_scope_pushed = FALSE;
-  ssep->microsoft_specialization_scope_pushed = FALSE;
-  ssep->lexical_state_stack_pushed  = FALSE;
-  ssep->explicitly_declared_namespace_extension = FALSE;
   ssep->microsoft_specialization_instantiation_scope =
                                   (options & PS_MICROSOFT_SPECIALIZATION) != 0;
   ssep->function_partial_instantiation =
                             (options & PS_FUNCTION_PARTIAL_INSTANTIATION) != 0;
-  ssep->has_at_least_one_return = FALSE;
-  ssep->constexpr_ruled_out = FALSE;
-  ssep->make_access_errors_warnings = FALSE;
-  ssep->treat_as_specialization = FALSE;
-  ssep->in_discarded_statement = FALSE;
   ssep->is_generic_lambda = (options & PS_IS_GENERIC_LAMBDA) != 0;
-  ssep->is_instantiation_context = FALSE;
-  ssep->ignore_during_normal_lookup = FALSE;
   ssep->force_decl_seq_check = (options & PS_FORCE_DECL_SEQ_CHECK) != 0;
-  ssep->outside_parameter_list = FALSE;
   /* The in_template_arg_list flag indicates whether we're currently scanning
      tokens inside angle brackets.  If we push a scope that implies a new
      source of tokens (e.g., a template instantiation), clear the flag.
@@ -2869,15 +2823,7 @@ the scope being pushed.
       kind == (a_scope_kind)sck_template_instantiation ||
       kind == (a_scope_kind)sck_instantiation_context ||
       kind == (a_scope_kind)sck_pragma) {
-    ssep->in_template_arg_list = FALSE;
     ssep->implicit_typename = implicit_typename_enabled;
-    ssep->in_disambiguation = FALSE;
-    ssep->in_auto_prescan = FALSE;
-    ssep->in_field_initializer = FALSE;
-#if GNU_EXTENSIONS_ALLOWED
-    ssep->in_gnu_abi_tag_namespace = FALSE;
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    ssep->in_discarded_statement = FALSE;
     ssep->decl_seq_counter = &decl_seq_counter;
   } else {
     ssep->in_template_arg_list = (ssep-1)->in_template_arg_list;
@@ -2897,64 +2843,19 @@ the scope being pushed.
         kind == (a_scope_kind)sck_class_reactivation) {
       /* If we are entering a class context or a lambda, don't inherit the
          discarded statement context. */
-      ssep->in_discarded_statement = FALSE;
     } else {
       ssep->in_discarded_statement = (ssep-1)->in_discarded_statement;
     }  /* if */
   }  /* if */
   ssep->is_rescan = (options & PS_IS_RESCAN) != 0;
-  ssep->rescan_depth_exceeded = FALSE;
-  ssep->in_decltype_context = FALSE;
-  ssep->in_noexcept_spec = FALSE;
-  ssep->pragma_pack_is_local     = FALSE;
   ssep->is_reactivation          = (options & PS_IS_REACTIVATION) != 0;
-  ssep->discard_when_popped      = FALSE;
-#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
-  ssep->assign_string_literal_sequence_numbers = FALSE;
-  ssep->string_literal_table = NULL;
-  ssep->string_literal_sequence_number = 0;
-#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  ssep->ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-#if CENTERLINE_CHECKING 
-  ssep->avoid_codecenter_warnings    = FALSE;
-#endif /* CENTERLINE_CHECKING */
   ssep->il_scope                 = sp;
   ssep->assoc_type               = assoc_type;
   ssep->assoc_routine            = assoc_routine;
   ssep->assoc_namespace          = assoc_namespace;
-  ssep->vla_fixup_list           = NULL;
-  ssep->extern_type_fixup_list   = NULL;
-  ssep->generated_entities       = NULL;
-  ssep->shareable_constants_table
-                                 = NULL;
-  ssep->last_routine_fixup       = NULL;
-  ssep->last_initializer_fixup   = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  ssep->deferred_constraint_checks
-                                 = NULL;
-  ssep->types_using_pending_constraints
-                                 = NULL;
-  ssep->pending_dependent_if_exists
-                                 = 0;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  ssep->last_parameter           = NULL;
-  ssep->last_nonstatic_variable  = NULL;
-  ssep->last_label               = NULL;
-  ssep->first_scope              = NULL;
-  ssep->last_scope               = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  ssep->source_sequence_avail_list = NULL;
   ssep->source_sequence_entries_disallowed =
                                        source_sequence_entries_disallowed;
-#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  ssep->src_seq_entries_from_prototype_instantiation = FALSE;
-  ssep->ss_list_instantiation_insert_point = NULL;
-  ssep->classes_in_ss_list = NULL;
-#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-  ssep->source_sequence_list     = NULL;
-  ssep->end_of_source_sequence_list = NULL;
   if (kind == (a_scope_kind)sck_file && ssep->is_reactivation) {
     /* For a reactivation of the file scope, restore the source sequence list
        that was built up on the previous push/pop. */
@@ -2965,9 +2866,6 @@ the scope being pushed.
                    file_scope_pointers_block.last_source_sequence_entry = NULL;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
-  ssep->create_ms_if_exists_entries = FALSE;
-#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
   ssep->decl_scope_level         = decl_scope_level;
   ssep->depth_template_declaration_scope = depth_template_declaration_scope;
   ssep->depth_innermost_instantiation_scope =
@@ -2978,50 +2876,21 @@ the scope being pushed.
   ssep->source_position          = pos_curr_token;
   ssep->depth_innermost_function_scope = depth_innermost_function_scope;
   ssep->template_decl_info       = template_decl_info;
-  ssep->last_label_decl_seq      = 0;
-  ssep->exception_spec_decl_seq  = NO_DECL_SEQUENCE_NUMBER;
-  ssep->decl_seq_for_lookup      = NO_DECL_SEQUENCE_NUMBER;
-  ssep->pending_pragmas          = NULL;
-  ssep->curr_construct_pragmas	 = NULL;
   ssep->next_scope_that_affects_access_control =
                           depth_of_innermost_scope_that_affects_access_control;
   ssep->orig_access_depth        = NO_SCOPE_DEPTH;
-  ssep->deferred_access_checks   = NULL;
-  ssep->last_deferred_access_check
-                                 = NULL;
   ssep->saved_curr_deferred_access_scope
 				 = curr_deferred_access_scope;
   ssep->saved_expr_stack         = expr_stack;  /* See also the setting of
                                                    expr_stack to NULL below. */
-  ssep->curr_scope_object_lifetime = NULL;
-  ssep->object_lifetime_avail_list = NULL;
   ssep->saved_curr_object_lifetime = curr_object_lifetime;
-  ssep->templ_member_class_sym   = NULL;
   ssep->depth_innermost_namespace_scope = depth_innermost_namespace_scope;
-  ssep->num_of_extra_times_pushed = 0;;
-  ssep->active_using_directives   = NULL;
-  ssep->using_directives_that_apply_here = NULL;
   ssep->previous_scope            = NO_SCOPE_DEPTH;
   ssep->instantiation_context_depth = NO_SCOPE_DEPTH;
   ssep->instantiation_common_depth = NO_SCOPE_DEPTH;
   ssep->saved_depth_of_initial_lookup_scope = depth_of_initial_lookup_scope;
-  ssep->empty_contexts_pushed    = 0;
   ssep->orig_depth               = NO_SCOPE_DEPTH;
   ssep->saved_innermost_scope_that_affects_access = NO_SCOPE_DEPTH;
-  ssep->first_template_cache_segment = NULL;
-  ssep->last_template_cache_segment = NULL;
-  ssep->class_def_state          = NULL;
-  ssep->names_hidden_by_old_for_init = NULL;
-  ssep->tmpl_decl_state		 = NULL;
-  ssep->decl_parse_state	 = NULL;
-  ssep->pending_templ_arg_lists  = 0;
-  ssep->next_nondependent_call   = NULL;
-  ssep->last_pack_expansion_used = NULL;
-  ssep->packs_referenced         = NULL;
-  ssep->pack_expansion_stack     = NULL;
-  ssep->qualified_conversion_operator = FALSE;
-  ssep->conversion_parent_type   = NULL;
-  ssep->initial_decl_of_namespace_std = FALSE;
   ssep->fp_contract_state        = curr_fp_contract_state;
   ssep->fenv_access_state        = curr_fenv_access_state;
   ssep->cx_limited_range_state   = curr_cx_limited_range_state;
@@ -3030,26 +2899,6 @@ the scope being pushed.
   ssep->fx_fract_overflow_state = curr_fx_fract_overflow_state;
   ssep->fx_accum_overflow_state = curr_fx_accum_overflow_state;
 #endif /* FIXED_POINT_ALLOWED */
-#if NEED_NAME_MANGLING
-  if (is_local_scope_kind(ssep->kind)) {
-    ssep->name_discr.local_name_collision_table = NULL;
-  } else {
-    ssep->name_discr.last_unnamed_type_number = 0;
-  }  /* if */
-  ssep->last_closure_type_number = 0;
-#endif /* NEED_NAME_MANGLING */
-  /* Clear the substructure shared with namespace symbol supplements. */
-  ssep->assoc_pointers_block     = NULL;
-  clear_scope_pointers_block(&ssep->pointers_block);
-  ssep->lambda = NULL;
-  ssep->class_fixup_header.defer_inline_function_fixups = 0;
-  ssep->class_fixup_header.pending_class_definitions = 0;
-  ssep->class_fixup_header.fixup_list = NULL;
-  ssep->class_fixup_header.fixup_list_tail = NULL;
-  ssep->class_fixup_header.classes_that_may_need_fixups = NULL;
-  ssep->param_id_list = NULL;
-  ssep->orig_return_type = NULL;
-  ssep->var_templ_decl_name_tsn = NO_TOKEN_SEQUENCE_NUMBER;
   if (sp != NULL) {
     if (new_il_scope) {
       /* Set the parent scope. */
@@ -4676,9 +4525,11 @@ is used for generic lambdas and is the scope containing the lambda.
        context is the file scope, the common scope is also the file scope.
        Don't try to use common scopes that may have been pushed by a
        previous instantiation scope. */
-    if (reference_nsp == NULL ||
-        depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+    if (reference_nsp == NULL) {
       common_depth = DEPTH_OF_FILE_SCOPE;
+    } else if (scope_stack[depth_innermost_namespace_scope].assoc_namespace
+                                                          == definition_nsp) {
+      common_depth = depth_innermost_namespace_scope;
     } else {
       common_depth = find_depth_of_common_scope(definition_nsp);
     }  /* if */

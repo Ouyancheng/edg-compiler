@@ -4577,16 +4577,23 @@ static a_type_ptr function_template_call_argument_deduction(
                                        a_symbol_ptr         template_sym,
                                        a_type_ptr           routine_type,
                                        an_arg_list_elem_ptr arg_list,
-                                       a_template_arg_ptr   *template_arg_list)
+                                       a_template_arg_ptr   *template_arg_list,
+                                       a_boolean            *p_rescan_pushed)
 /*
 Do template type deduction on a call of the function template specified by
 template_sym (not a projection symbol).  routine_type is the type of the
 function, with explicitly-specified template arguments (if any) already
 substituted in.  arg_list is the list of arguments to the call.
 *template_arg_list points to the template argument list so far; anything
-deduced is added to that.  This routine returns a pointer to a routine
-type for the function as it appears after substitution with the deduced
-template arguments, or NULL if deduction failed.
+deduced is added to that.  *p_rescan_pushed is TRUE if an instantiation scope
+was previously pushed to substitute/rescan explicit template arguments (in
+which case this function can reuse that scope).  If no such scope has been
+pushed yet and this function pushes one itself, *p_rescan_pushed is set to
+TRUE.
+
+This routine returns a pointer to a routine type for the function as it
+appears after substitution with the deduced template arguments, or NULL if
+deduction failed.
 */
 {
   a_type_ptr           updated_routine_type = NULL;
@@ -4623,9 +4630,6 @@ template arguments, or NULL if deduction failed.
     goto skip;
   }  /* if */
   ++(tssp->variant.function.pending_deductions);
-  /* Push an instantiation scope that can be used by the substitution and
-     deduction process to find information about the template. */
-  push_instantiation_scope_for_rescan(template_sym);
   /* Look through the arguments/parameters to do template argument
      deduction. */
   for (ptp = rtsp->param_type_list, alep = arg_list;
@@ -4736,6 +4740,18 @@ template arguments, or NULL if deduction failed.
     }  /* if */
   }  /* if */
 #endif /* CHECKING */
+  /* Push an instantiation scope that can be used by the substitution and
+     deduction process to find information about the template. */
+  if (!*p_rescan_pushed) {
+    push_instantiation_scope_for_rescan(template_sym);
+    *p_rescan_pushed = TRUE;
+  } else {
+    /* The expression stack was restored after the earlier substitution.
+       Clear it now (as push_instantiation_scope_for_rescan would do) to
+       avoid surprises.  It will be restored when the rescan scope is
+       popped. */
+    expr_stack = NULL;
+  }  /* if */
   push_substitution(template_sym, *template_arg_list);
   if (in_substitution_loop()) {
     /* A substitution identical to this one is already under way.  Treat this
@@ -4785,7 +4801,10 @@ template arguments, or NULL if deduction failed.
     }  /* if */
   }  /* if */
 done:
-  pop_instantiation_scope_for_rescan();
+  if (*p_rescan_pushed) {
+    pop_instantiation_scope_for_rescan();
+    *p_rescan_pushed = FALSE;
+  }  /* if */
   /* Decrement the pending deduction count used to detect recursion. */
   --(tssp->variant.function.pending_deductions);
 skip:;
@@ -5389,6 +5408,7 @@ the point of call.  conv_context describes the context of the conversion.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean                enum_param_still_needed = FALSE;
   a_boolean                check_arg_count_mismatch = TRUE;
+  a_boolean                rescan_pushed = FALSE;
 
   *discarded_because_post_decl = FALSE;
   if (proj_function_symbol != NULL) {
@@ -5459,6 +5479,7 @@ the point of call.  conv_context describes the context of the conversion.
            an updated template argument list (template arguments are cast to
            the types of the template parameters), which may be different for
            each template considered. */
+        an_expr_stack_entry_ptr  saved_expr_stack;
         if (!(gpp_mode && !clang_mode)) {
           /* Filter out candidates that cannot match the number of
              arguments we have early, avoiding a partial substitution
@@ -5477,14 +5498,25 @@ the point of call.  conv_context describes the context of the conversion.
           report_excessive_rescan_depth();
           goto reject_function;
         }  /* if */
+        /* Substitution requires pushing an instantiation scope for
+           rescanning purposes.  We will need a similar scope when substituting
+           the candidate after deduction has completed (if we get that far).
+           Rather than calling push_instantiation_scope_for_rescan twice, we
+           record that the scope was pushed here and use the existing scope
+           in function_template_call_argument_deduction; rescan_pushed tracks
+           the fact that this happened.  However after substitution is done,
+           the current expression stack (which is suspended during the
+           substitution) must be restored. */
+        saved_expr_stack = expr_stack;
         ++(tssp->variant.function.pending_deductions);
         push_instantiation_scope_for_rescan(function_symbol);
+        rescan_pushed = TRUE;
         routine_type = substitute_template_arguments(
                          function_symbol, template_arg_list,
                          &local_template_arg_list, (a_template_param_ptr)NULL,
                          /*is_partial_order_check=*/FALSE);
         --(tssp->variant.function.pending_deductions);
-        pop_instantiation_scope_for_rescan();
+        expr_stack = saved_expr_stack;
         /* Bail out if there is a mismatch. */
         if (routine_type == NULL) goto reject_function;
       }  /* if */
@@ -5805,7 +5837,8 @@ next_argument:
                                                    function_symbol,
                                                    routine_type,
                                                    arg_list,
-                                                   &local_template_arg_list);
+                                                   &local_template_arg_list,
+                                                   &rescan_pushed);
     if (routine_type == NULL) {
       /* Deduction failed. */
       goto reject_function;
@@ -6038,7 +6071,10 @@ reject_function:
   free_arg_match_summary_list(arg_match_list);
   /* Free any template argument list built for it. */
   free_template_arg_list(local_template_arg_list);
-end_of_routine:;
+end_of_routine:
+  if (rescan_pushed) {
+    pop_instantiation_scope_for_rescan();
+  }  /* if */
 }  /* determine_function_viability */
 
 
