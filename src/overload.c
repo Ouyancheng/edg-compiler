@@ -5504,7 +5504,7 @@ the point of call.  conv_context describes the context of the conversion.
            Rather than calling push_instantiation_scope_for_rescan twice, we
            record that the scope was pushed here and use the existing scope
            in function_template_call_argument_deduction; rescan_pushed tracks
-           the fact that this happened.  However after substitution is done,
+           the fact that this happened.  However, after substitution is done,
            the current expression stack (which is suspended during the
            substitution) must be restored. */
         saved_expr_stack = expr_stack;
