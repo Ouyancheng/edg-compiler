@@ -7269,9 +7269,9 @@ for use in generating cross-reference output describing this declaration.
      sequence entry in some cases). */
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
                             dps->source_sequence_entry);
-  /* 6.8.3.1/p3 (N4762) says: "A program that declares a variable main at
-     global scope or that declares the name main with C language linkage (in
-     any namespace) is ill-formed." */
+  /* [basic.start.main]/p3 (N4762) says: "A program that declares a variable
+     main at global scope or that declares the name main with C language
+     linkage (in any namespace) is ill-formed." */
   if (sym->header->has_intrinsic_name && !redeclaration &&
       (((depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) &&
         (decl_scope_level == (a_scope_kind) sck_file) ) ||
@@ -9775,9 +9775,9 @@ skip_overloading:;
     /* This had to be delayed until the name linkage was set. */
     establish_block_extern_function_correspondence(routine_ptr);
   }  /* if */
-  /* 6.8.3.1/p3 (N4762) says: "A program that declares a variable main at
-     global scope or that declares the name main with C language linkage (in
-     any namespace) is ill-formed." */
+  /* [basic.start.main]/p3 (N4762) says: "A program that declares a variable
+     main at global scope or that declares the name main with C language
+     linkage (in any namespace) is ill-formed." */
   if (sym->header->has_intrinsic_name && !func_info->is_main_function &&
       (source_corresp_ptr->name_linkage ==
        (a_name_linkage_kind)nlk_external) &&
