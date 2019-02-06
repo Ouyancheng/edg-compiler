@@ -24076,6 +24076,11 @@ will be an lvalue instead of the usual prvalue.
          braces remain simple initializations. */
       aggregate_case = TRUE;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if GNU_VECTOR_TYPES_ALLOWED
+    } else if (gpp_mode && is_vector_type(dest_type)) {
+      /* g++ allows aggregate initialization of a vector type. */
+        aggregate_case = TRUE;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     }  /* if */
     if (icp->braced_init_in_parentheses && !dest_type_is_class &&
         !could_be_dependent_class_type(dest_type)) {

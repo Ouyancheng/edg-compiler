@@ -1,5 +1,14 @@
 Version 5.1
 
+2/5/19   [EDGcpfe/20822]
+GNU compatibility: aggregate initialization of vectors
+
+In GNU C++ mode, the front end now allows aggregate initialization of 
+vectors.  For example:
+  typedef int V __attribute__ ((__vector_size__ (16))); 
+  V const v = {0, 0};
+ 
+
 2/5/19   [EDGcpfe/20767]
 Cost of reactivations during overload resolution
 
