@@ -11343,8 +11343,7 @@ possibility.
          a member function template.  If none can be found, NULL is
          returned. */
       sym = find_matching_template_instance(
-                               sym, state, locator->template_arg_list,
-                               (a_boolean)locator->is_template_id,
+                               sym, state, locator,
                                /*in_class_specialization=*/FALSE,
                                /*prefer_template=*/
                                             (a_boolean)locator->is_template_id,

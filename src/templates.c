@@ -28704,27 +28704,23 @@ a friend declaration.
 a_symbol_ptr find_matching_template_instance(
 		a_symbol_ptr			sym,
 		a_decl_parse_state		*dps,
-		a_template_arg_ptr		explicit_arg_list,
-		a_boolean			explicit_arg_list_present,
+		a_symbol_locator		*loc,
 		a_boolean			in_class_specialization,
 		a_boolean			prefer_template,
 		a_template_nesting_depth	nesting_depth,
 		an_error_severity		severity_if_not_found,
 		a_boolean                       *is_new_template_instance)
 /*
-sym is some kind of function symbol.  *dps describes the declaration of a
-function template instance.  explicit_arg_list is an explicitly specified
-template argument list, which may be NULL.  explicit_arg_list_present
-is TRUE if an explicit argument list was provided, even an empty one
-(in which case explicit_arg_list would be NULL).  prefer_template is TRUE
-if a template instance should be preferred over a matching non-template
-member.  nesting_depth is the nesting depth specified on a specialization
-declaration and a matching template must match this depth, or
-NO_NESTING_DEPTH if the depth should not be checked.  severity_if_not_found
-is the severity of the diagnostic to be issued if no matching instance is
-found.  Return the symbol for the instance, or NULL if no instance is found.
-If this call created a matching instance set *is_new_template_instance to TRUE;
-otherwise, set it to FALSE.
+sym is some kind of function symbol.  *dps and *loc describes the declaration
+of a function template instance.  prefer_template is TRUE if a template
+instance should be preferred over a matching non-template member.
+nesting_depth is the nesting depth specified on a specialization declaration
+and a matching template must match this depth, or NO_NESTING_DEPTH if the
+depth should not be checked.  severity_if_not_found is the severity of the
+diagnostic to be issued if no matching instance is found.  Return the symbol
+for the instance, or NULL if no instance is found.  If this call created a
+matching instance set *is_new_template_instance to TRUE; otherwise, set it to
+FALSE.
 */
 {
   a_type_ptr			type = dps->type;
@@ -28739,7 +28735,7 @@ otherwise, set it to FALSE.
   orig_sym = sym;
   *is_new_template_instance = FALSE;
   from_using_dir = sym->synthesized_namespace_projection;
-  if (sym->is_class_member && !explicit_arg_list_present) {
+  if (sym->is_class_member && !loc->is_template_id) {
     /* A member function symbol, find the member function that matches
        the specified type.  This is used to find a normal member function
        of a template class.  Skip this step when an explicit template
@@ -28791,7 +28787,7 @@ otherwise, set it to FALSE.
       }  /* if */
       any_templates = TRUE;
       if (has_matching_template_function(
-                                       fund_sym, type, explicit_arg_list,
+                                       fund_sym, type, loc->template_arg_list,
                                        /*is_decl_context=*/TRUE,
                                        (dps->is_explicit_instantiation ||
                                         (microsoft_mode &&
@@ -28818,8 +28814,8 @@ otherwise, set it to FALSE.
         sym_error(ec_ambiguous_overloaded_function, orig_sym);
         new_sym = NULL;
       } else {
-        new_sym = matching_template_function(sym, type, explicit_arg_list,
-                                             explicit_arg_list_present,
+        new_sym = matching_template_function(sym, type, loc->template_arg_list,
+                                             (a_boolean)loc->is_template_id,
                                              /*is_decl_context=*/TRUE,
                                              dps->is_explicit_instantiation,
                                              in_class_specialization,
@@ -28841,11 +28837,13 @@ otherwise, set it to FALSE.
     } else {
       err_code = ec_not_compatible_with_previous_decl;
     }  /* if */
-    sym_diagnostic(severity_if_not_found, err_code, orig_sym);
+    pos_sy_diagnostic(severity_if_not_found, err_code,
+                      &loc->source_position, orig_sym);
   } else if (other_match != NULL) {
     /* Multiple matches were found.  This can happen if Microsoft mode
        selective overriders are involved. */
-    sym_diagnostic(severity_if_not_found, ec_ambiguous_name, orig_sym);
+    pos_sy_diagnostic(severity_if_not_found, ec_ambiguous_name,
+                      &loc->source_position, orig_sym);
     check_assertion(microsoft_mode);
   }  /* if */
   return new_sym;
@@ -29388,8 +29386,7 @@ that follows.
         } else {
           a_boolean  is_new_template_instance;
           sym = find_matching_template_instance(
-                        sym, dps, locator.template_arg_list,
-                        (a_boolean)locator.is_template_id,
+                        sym, dps, &locator,
                         /*in_class_specialization=*/decl_state->is_member_decl,
                         /*prefer_template=*/TRUE,
                         decl_state->nesting_depth + decl_state->friend_depth,
@@ -36934,8 +36931,7 @@ instantiation.
          accepted with a warning or a remark. */
       a_boolean  is_new_template_instance;
       new_sym = find_matching_template_instance(
-                                   sym, &state, locator.template_arg_list,
-                                   (a_boolean)locator.is_template_id,
+                                   sym, &state, &locator,
                                    /*in_class_specialization=*/FALSE,
                                    /*prefer_template=*/TRUE,
                                    NO_NESTING_DEPTH,

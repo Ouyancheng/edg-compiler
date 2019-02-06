@@ -5246,7 +5246,7 @@ the template that is being rescanned and can be NULL.
                               tdip, (a_type_ptr)NULL, rp,
                               (a_symbol_ptr)NULL, template_sym,
                               (a_template_arg_ptr)NULL,
-                              /*push_lex_state=*/TRUE,
+                              /*push_lex_state=*/FALSE,
                               PS_NONREAL_INSTANTIATION | PS_IS_RESCAN);
   /* Don't include this scope in any diagnostic output that may be produced. */
   ssep = &scope_stack_top();
