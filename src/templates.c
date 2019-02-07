@@ -3560,6 +3560,7 @@ in ps_arg_list.
   prototype_tap = template_arg_list_for_symbol(prototype_sym);
   if (matches_template_arg_list(instance_tap, prototype_tap, ps_arg_list,
                                 templ_param_list)) {
+    a_source_position  saved_error_pos = error_position;
     push_instantiation_scope_for_rescan(template_sym);
     if (wrapup_template_argument_deduction(
                         *ps_arg_list, template_sym, templ_param_list,
@@ -3590,6 +3591,7 @@ in ps_arg_list.
       }  /* if */
     }  /* if */
     pop_instantiation_scope_for_rescan();
+    error_position = saved_error_pos;
   }  /* if */
   if (!result || local_arg_list_used) {
     /* If no match was found, free the template argument list that was
