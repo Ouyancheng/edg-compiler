@@ -20280,7 +20280,7 @@ scope that is part of the indicated routine) to the file scope.
   if (scope->variables != NULL) {
     /* The list of static variables can change while we're promoting statics
        (due typically to adding local static temporaries), so lower the
-       exiting list (which may include some lowering-generated temporaries),
+       existing list (which may include some lowering-generated temporaries),
        but don't promote any temporaries that are generated during the
        promotion process (added at the head, i.e., scope->variables). */
     a_variable_ptr list = scope->variables;
