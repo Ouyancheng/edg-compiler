@@ -4392,8 +4392,10 @@ precedence confusion.  Do the output in the way described by octl.
       {
         /* Address of a string constant, e.g., &"abc".  Some ANSI/ISO C
            compilers have difficulty with that, perhaps because they don't
-           believe a string is an lvalue.  Force type decay and a cast. */
-        type_decay_used = TRUE;
+           believe a string is an lvalue.  Force type decay and a cast,
+           unless the string is part of a user-defined literal, in which
+           case the cast must not be put out. */
+        type_decay_used = !octl->part_of_ud_literal;
       }
     } else if (offset != 0) {
       /* Some compilers have difficulty with getting the size right when
@@ -4567,7 +4569,7 @@ precedence confusion.  Do the output in the way described by octl.
                                &need_char_star_cast_close_paren, octl);
     octl->output_str("(char *)", octl);
   }  /* if */
-  if (!form_lvalue) {
+  if (!form_lvalue && !octl->part_of_ud_literal) {
     /* Forming an address, not an lvalue. */
     if (is_reference_type(con_type) && !octl->gen_compilable_code) {
       /* Explicitly identify a reference type instead of using "&". */

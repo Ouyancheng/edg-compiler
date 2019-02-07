@@ -1,5 +1,16 @@
 Version 5.1
 
+2/7/19   [EDGcpfe/20862]
+C++-generating back end: user-defined string literal cast to const char*
+
+Given an invocation of a user-defined string literal, the C++-generating
+back end incorrectly cast the result of the call to "const char*".  This is
+now fixed.  For example, with --c++11:
+
+  int operator"" _i(const char*, unsigned);
+  int i = "abc"_i;  // Previously generated as (const char *)"abc"_i;
+
+
 2/5/19   [EDGcpfe/20822]
 GNU compatibility: aggregate initialization of vectors
 
