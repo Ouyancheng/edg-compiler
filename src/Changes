@@ -1,5 +1,24 @@
 Version 5.1
 
+2/8/19   [EDGcpfe/20857]
+Invocation of a virtual function on a non const temporary
+
+Previously, the front end would allow an invocation of a virtual function
+on a non const temporary in a context requiring a constant expression, even
+if the lifetime of the temporary didn't begin with the evaluation of the 
+constant expression.  For example :
+
+  struct A {
+    constexpr virtual int f()
+    {
+     return 1;
+    }
+  };
+  constexpr A&& ref = A{};
+  int x[ref.f()];  // previously accepted, now an error
+  int y[A{}.f()];  // okay
+
+
 2/7/19   [EDGcpfe/20862]
 C++-generating back end: user-defined string literal cast to const char*
 

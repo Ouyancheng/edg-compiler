@@ -7553,7 +7553,7 @@ done:
 }  /* eval_selector_arg */
 
 
-static void adjust_virtual_callee(a_routine_ptr         *p_callee,
+static a_boolean adjust_virtual_callee(a_routine_ptr         *p_callee,
                                   a_byte                **p_this_arg,
                                   a_byte_count          *p_retval_offset)
 /*
@@ -7572,8 +7572,11 @@ type).
                        *this_val = *p_this_val;
   a_byte               *subobj = this_val->address,
                        *complete_obj = this_val->complete_object;
+  a_boolean            result = TRUE;
 
-  if (subobj == complete_obj) {
+  if (is_runtime_data_address(this_val)) {
+    result = FALSE;
+  } else if (subobj == complete_obj) {
     /* We're already in the most-derived class: No adjustment is needed. */
   } else if (!subobject_is_initialized(subobj, complete_obj)) {
     /* The current subobject is not initialized (presumably because the
@@ -7617,6 +7620,7 @@ type).
     *p_callee = callee;
     this_val->address = subobj;
   }  /* if */
+  return result;
 }  /* adjust_virtual_callee */
 
 
@@ -7920,8 +7924,12 @@ otherwise, return FALSE and update *ips accordingly.
     }  /* if */
     /* If the function is virtual, we can now determine the actual callee. */
     if (callee->is_virtual &&
-        (call_node->variant.operation.is_virtual_call || pm_target != NULL)) {
-      adjust_virtual_callee(&callee, (a_byte**)arg_ptrs, &retval_offset);
+        (call_node->variant.operation.is_virtual_call || pm_target != NULL) &&
+        !adjust_virtual_callee(&callee, (a_byte**)arg_ptrs, &retval_offset)) {
+      info_with_pos(ec_constexpr_access_to_runtime_storage,
+                    &callee_node->position, ips);
+      do_constexpr_fail(result);
+      goto done;
     }  /* if */
     if (!callee->is_constexpr) {
       info_with_pos_sym(ec_constexpr_call_to_nonconstexpr_function,
