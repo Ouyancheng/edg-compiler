@@ -24079,7 +24079,7 @@ will be an lvalue instead of the usual prvalue.
 #if GNU_VECTOR_TYPES_ALLOWED
     } else if (gpp_mode && is_vector_type(dest_type)) {
       /* g++ allows aggregate initialization of a vector type. */
-        aggregate_case = TRUE;
+      aggregate_case = TRUE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     }  /* if */
     if (icp->braced_init_in_parentheses && !dest_type_is_class &&
