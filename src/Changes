@@ -7,7 +7,7 @@ Given an invocation of a user-defined string literal, the C++-generating
 back end incorrectly cast the result of the call to "const char*".  This is
 now fixed.  For example, with --c++11:
 
-  int operator"" _i(const char*, unsigned);
+  int operator"" _i(const char*, __EDG_SIZE_TYPE__);
   int i = "abc"_i;  // Previously generated as (const char *)"abc"_i;
 
 
