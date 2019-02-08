@@ -3027,7 +3027,7 @@ ec_paste_cannot_be_last_in_VA_OPT;;"\"##\" may not be last in a __VA_OPT__ opera
 ec_nested_inline_namespace_nonstandard;;"C++20-style nested inline namespaces are nonstandard in this mode"
 ec_derived_class_too_far;;"cannot convert pointer to base class %t2 to pointer to derived class %t1 -- attempt to point beyond the most-derived object"
 ec_constexpr_non_const_temp;;"temporary object is not constant"
-ec_invalid_variable_name;;"invalid variable name"
+ec_invalid_variable_main;;"\“main\” cannot be used as a global variable name or given C language linkage"
 ec_c_linkage_main;;"function \"main\" may not have C language linkage"
 ###############################################################################
 #                                                             \  ___  /       #

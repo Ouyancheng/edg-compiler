@@ -7278,7 +7278,7 @@ for use in generating cross-reference output describing this declaration.
        (variable_ptr->source_corresp.name_linkage ==
         (a_name_linkage_kind)nlk_external)
       ) && (strcmp(locator->symbol_header->identifier, "main") == 0)){
-    pos_error(ec_invalid_variable_name, &locator->source_position);
+    pos_error(ec_invalid_variable_main, &locator->source_position);
   }
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (is_variable_def || (!redeclaration && !linked_to_previous_variable)) {
