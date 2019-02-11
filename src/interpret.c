@@ -7554,8 +7554,8 @@ done:
 
 
 static a_boolean adjust_virtual_callee(a_routine_ptr         *p_callee,
-                                  a_byte                **p_this_arg,
-                                  a_byte_count          *p_retval_offset)
+                                       a_byte                **p_this_arg,
+                                       a_byte_count          *p_retval_offset)
 /*
 The front end has evaluated the arguments to a virtual call with the
 statically-resolved callee indicated by *p_callee.  Update *p_callee to be the
@@ -7565,7 +7565,8 @@ the overriding member).  If the overriding function has a covariant return type
 with respect to the statically-resolved callee, add to *p_retval_offset the
 adjustment that will have to be made to the address returned by the call (to
 translate the dynamically returned address back to the statically resolved
-type).
+type).  Returns FALSE if *p_callee is not a constant expression (for example,
+if *p_this_arg is not statically initialized.)
 */
 {
   a_constexpr_address  **p_this_val = (a_constexpr_address**)p_this_arg,
@@ -7575,6 +7576,8 @@ type).
   a_boolean            result = TRUE;
 
   if (is_runtime_data_address(this_val)) {
+    /* The current subobject is not statically initialized.  Invoking a virtual
+       function on such an object is not a constant expression. */
     result = FALSE;
   } else if (subobj == complete_obj) {
     /* We're already in the most-derived class: No adjustment is needed. */

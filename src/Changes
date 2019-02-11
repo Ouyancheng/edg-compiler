@@ -1,11 +1,11 @@
 Version 5.1
 
 2/8/19   [EDGcpfe/20857]
-Invocation of a virtual function on a non const temporary
+Invocation of a virtual function on a non-const temporary
 
 Previously, the front end would allow an invocation of a virtual function
-on a non const temporary in a context requiring a constant expression, even
-if the lifetime of the temporary didn't begin with the evaluation of the 
+on a non-const temporary in a context requiring a constant expression, even
+if the lifetime of the temporary didn't begin within the evaluation of the 
 constant expression.  For example :
 
   struct A {
