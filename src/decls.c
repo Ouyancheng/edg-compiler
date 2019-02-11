@@ -16130,7 +16130,8 @@ issued at the given position.
   rtsp = skip_typerefs(type)->variant.routine.extra_info;
   if (!C_mode()) {
     if (rtsp->routine_name_linkage_is_explicit) {
-      pos_warning(ec_linkage_specifier_not_allowed, pos);
+      pos_diagnostic(es_discretionary_error, ec_linkage_specifier_not_allowed,
+                     pos);
       rtsp->routine_name_linkage_is_explicit = FALSE;
     }  /* if */
     rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
