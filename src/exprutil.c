@@ -21970,14 +21970,14 @@ and the instance is static, change the operand to an un-bound static
 selection for the specific function.
 */
 {
-  a_boolean    converted = FALSE;
+  a_boolean    converted = FALSE, dependent = FALSE;
   a_symbol_ptr single_func_sym;
 
   check_assertion(operand->bound_function);
   convert_function_template_to_single_function_full(operand,
                                                     /*will_call=*/FALSE,
                                                     &single_func_sym,
-                                                    (a_boolean*)NULL);
+                                                    &dependent);
   if (single_func_sym != NULL) {
     a_symbol_ptr sym = fundamental_symbol_of(single_func_sym);
     if (sym->kind == (a_symbol_kind)sk_member_function &&
@@ -21986,14 +21986,20 @@ selection for the specific function.
       /* A single function has been identified, and it is a static member
          function, so we can convert the bound function to a static
          selection. */
-      operand->bound_function = FALSE;
-      combine_unneeded_selector_with_operand(
-                                           bound_function_selector,
-                                           (a_boolean)bound_function_selector->
-                                                    selector_is_object_pointer,
-                                           operand);
       converted = TRUE;
     }  /* if */
+  } else if (dependent) {
+    /* If the construct is dependent, we cannot reliably tell whether a static
+       selection is possible until a real instantiation is performed.  Proceed
+       as if a static selection will be possible. */
+    converted = TRUE;
+  }  /* if */
+  if (converted) {
+    operand->bound_function = FALSE;
+    combine_unneeded_selector_with_operand(bound_function_selector,
+                                           (a_boolean)bound_function_selector
+                                                 ->selector_is_object_pointer,
+                                           operand);
   }  /* if */
   return converted;
 }  /* conv_bound_function_to_static_selection */

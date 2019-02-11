@@ -1,5 +1,24 @@
 Version 5.1
 
+2/11/19  [EDGcpfe/19066]
+Spurious error on address of static member function template
+
+Consider:
+
+  struct S {
+    template<typename T> static void f();
+  } s;
+  template<typename T> void g() {
+    void (*fp)(void) = &s.f<T>;  // Previously an error.  Now okay.
+  }
+
+Previously, in modes that parse function templates in their generic form, this
+resulted in a spurious error saying that "s.f<T>" can only be used directly in
+a call (i.e., for an expression like "s.f<T>()").  However, that error is
+invalid because the member is static, and thus "&s.f<T>" is a valid way to
+designate the address of S<T>::f.  That issue is now fixed.
+
+
 2/11/19  [EDGcpfe/19122]
 Referring to generated trivial constructors and destructors
 
