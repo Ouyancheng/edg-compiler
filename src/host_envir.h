@@ -244,16 +244,11 @@ compared.  The ptr_in_range macro gives a convenient way
 to use this flag to test that a pointer lies in a certain range.
 */
 #ifndef ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED
-#ifdef __CENTERLINE__
-/* Avoid CodeCenter warnings about non-standard comparisons. */
-#define ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED FALSE
-#else /* !defined(__CENTERLINE__) */
 #if EDG_MSDOS
 #define ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED FALSE
 #else /* !EDG_MSDOS */
 #define ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED TRUE
 #endif /* EDG_MSDOS */
-#endif /* ifdef __CENTERLINE__ */
 #endif /* ifndef ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED */
 
 /* Check that a pointer lies within a certain address range (lower bound

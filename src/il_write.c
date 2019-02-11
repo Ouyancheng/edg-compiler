@@ -67,18 +67,22 @@ static an_il_entry_number
    region.  By setting the variables trace_memory_region_number,
    trace_entry_kind, and trace_entry_number after loading il_write.c into
    the debugging environment, execution can be intercepted (by setting a
-   breakpoint on trace_entry_assignment; unneeded in CodeCenter where
-   centerline_stop() is invoked) when the entry number is assigned for the
-   specified IL entry.
+   breakpoint on trace_entry_assignment) when the entry number is assigned
+   for the specified IL entry.
 
-        1. load il_write.c (if using CodeCenter)
-        2. set stop in assign_entry_number
-        3. run the test compilation
-        4. when the debugger stops in assign_entry_number:
-            a. set the 3 tracing variable values
-            b. remove the stop at the entry of assign_entry_number
-        5. continue
-        6. breakpoint in trace_entry_assignment is reached
+     1. set two breakpoints:
+        - trace_entry_assignment
+        - main (or some other early routine)
+     2. run the test compilation
+     3. when the debugger stops in "main" set the 3 tracing variable values
+        by calling trace_entry with the appropriate arguments -- e.g.,
+        "call trace_entry(265, 22, 1)" if the diagnostic from a previous
+        run was:
+          IL entry write-read difference: region number 265
+          entry kind = 22 (object-lifetime), written = 1, read = 0
+          missing entry = 1
+     4. continue
+     5. breakpoint in trace_entry_assignment is reached
 
    The contents of the IL entry and its position on the IL tree as shown
    by the stack trace can help to determine the cause of the error.
@@ -106,15 +110,11 @@ assigned its entry number.  It is often useful to set a debugger breakpoint
 on this routine.
 */
 {
-#ifdef __CENTERLINE__
-  centerline_stop();
-#else /* !defined(__CENTERLINE__) */
   (void)fprintf(f_debug,
                 "Entry number %ld in region %ld (kind = %ld: %s).\n",
                 (long)trace_entry_number, (long)trace_memory_region_number,
                 (long)trace_entry_kind,
                 il_entry_kind_names[(long)trace_entry_kind]);
-#endif /* ifdef __CENTERLINE__ */
 }  /* trace_entry_assignment */
 
 

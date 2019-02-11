@@ -79,12 +79,6 @@ of the host system.
 
 */
 
-#ifdef __CENTERLINE__
-/* Centerline does not define the __sun or __sparc macros. */
-#define __sun 1
-#define __sparc 1
-#endif /* __CENTERLINE__ */
-
 /* Used for union-as-struct testing mode. */
 #ifdef UNION_AS_STRUCT
 #define union struct
@@ -200,13 +194,12 @@ Flags to be set for any version that uses the C++ generating back end.
 #else /* !SUNOS, i.e. SOLARIS */
 #endif /* SUNOS */
 
-/* Assume we are generating code for gcc when being compiled by gcc or
-   codecenter. */
+/* Assume we are generating code for gcc when being compiled by gcc */
 #ifndef CP_GEN_BE_VERSION
 #ifndef GCC_IS_GENERATED_CODE_TARGET
-#if (defined(__GNUC__) || defined(__CENTERLINE__))
+#if defined(__GNUC__)
 #define GCC_IS_GENERATED_CODE_TARGET 1
-#endif /* defined(__GNUC__) || defined(__CENTERLINE__) */
+#endif /* defined(__GNUC__) */
 #endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
 #endif /* ifndef CP_GEN_BE_VERSION */
 
@@ -220,9 +213,6 @@ Flags to be set for any version that uses the C++ generating back end.
 #define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
 #define TARG_SIZEOF_LONG_DOUBLE 8
 #define ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE 1
-#ifdef __sparc
-#define CENTERLINE_CHECKING 1
-#endif /* ifdef __sparc */
 #ifndef UNICODE_SOURCE_SUPPORTED
 #define UNICODE_SOURCE_SUPPORTED 1
 #endif /* ifndef UNICODE_SOURCE_SUPPORTED */

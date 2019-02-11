@@ -5630,11 +5630,6 @@ file.
 #else /* !defined(C99_IL_EXTENSIONS_SUPPORTED) */
   comment_undefined_macro_name(C99_IL_EXTENSIONS_SUPPORTED);
 #endif /* defined(C99_IL_EXTENSIONS_SUPPORTED) */
-#if defined(CENTERLINE_CHECKING)
-  define_numeric_valued_macro(CENTERLINE_CHECKING);
-#else /* !defined(CENTERLINE_CHECKING) */
-  comment_undefined_macro_name(CENTERLINE_CHECKING);
-#endif /* defined(CENTERLINE_CHECKING) */
 #if defined(CFRONT_2_1_OBJECT_CODE_COMPATIBILITY)
   define_numeric_valued_macro(CFRONT_2_1_OBJECT_CODE_COMPATIBILITY);
 #else /* !defined(CFRONT_2_1_OBJECT_CODE_COMPATIBILITY) */

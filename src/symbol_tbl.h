@@ -1394,7 +1394,6 @@ typedef struct a_class_symbol_supplement {
   a_bit_field	default_ctor_body_delayed:1;
 			/* TRUE if the generation of the default constructor
 			   body has been delayed. */
-  bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block
 		pointers_block;
 			/* A block of pointers that are logically part of the
@@ -2104,7 +2103,6 @@ typedef struct a_template_param {
   a_bit_field	uses_auto:1;
 			/* TRUE if this is a nontype parameter whose type
 			   involves "auto" or "decltype(auto)". */
-  bitfield_to_avoid_codecenter_warnings()
   uint32_t	param_num;
 			/* The ordinal position of the parameter (1, 2, ...).
 			   In the instantiation of a variadic template, this
@@ -2131,7 +2129,6 @@ typedef struct a_template_param {
 			/* TRUE if the type entry associated with the
 			   parameter constant involves (anywhere in its
 			   type tree) a tk_template_param type entry. */
-      bitfield_to_avoid_codecenter_warnings()
     } constant;
     /* When param_symbol->kind = sk_class_template. */
     a_template_symbol_supplement_ptr
@@ -2717,7 +2714,6 @@ typedef struct a_template_symbol_supplement {
 			   the redeclaration with the constraints is
 			   processed.) */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  bitfield_to_avoid_codecenter_warnings()
   union {
     /* For class templates, nested classes of class templates, member
        enumerations of those, and for alias templates. */
@@ -2926,7 +2922,6 @@ typedef struct a_template_symbol_supplement {
 			/* TRUE if implicit_deduction_guides_added is TRUE but
 			   the generated guides were generated when the class
 			   template was not defined. */
-      bitfield_to_avoid_codecenter_warnings()
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       a_source_sequence_entry_ptr
 		source_sequence_list;
@@ -3068,7 +3063,6 @@ typedef struct a_template_symbol_supplement {
 		implicit_deduction_guide:1;
 			/* TRUE if this is a function template generated to
 			   serve as an implicit deduction guide. */
-      bitfield_to_avoid_codecenter_warnings()
     } function;
     /* When symbol kind = sk_variable_template or sk_static_data_member: */
     struct {
@@ -3570,7 +3564,6 @@ typedef struct a_symbol {
 			   Also TRUE for a variable if its storage class is
 			   extern, since its value will be set elsewhere in the
 			   definition. */
-  bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */

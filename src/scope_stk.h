@@ -287,7 +287,6 @@ typedef struct a_scope_pointers_block {
 			   symbols added to the scope should be added
 			   directly to the inactive list, instead of being
 			   added to the active list as is usually done. */
-  bitfield_to_avoid_codecenter_warnings()
 } a_scope_pointers_block;
 
 
@@ -1040,7 +1039,6 @@ typedef struct a_scope_stack_entry {
 			   prototype instantiation) of a generic lambda,
 			   and for the template declaration scope for the
 			   template parameters of a generic lambda. */
-  bitfield_to_avoid_codecenter_warnings()
   a_decl_sequence_number
 		*decl_seq_counter;
 			/* Pointer to the decl_seq_counter to be used within

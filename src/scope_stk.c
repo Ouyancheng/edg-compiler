@@ -2350,9 +2350,6 @@ Initialize the fields in a scope-pointers-block substructure.
   spbp->unnamed_namespace_sym        = NULL;
   spbp->inline_namespaces            = NULL;
   spbp->add_symbols_to_inactive_list = FALSE;
-#if CENTERLINE_CHECKING 
-  spbp->avoid_codecenter_warnings    = FALSE;
-#endif /* CENTERLINE_CHECKING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   spbp->last_source_sequence_entry   = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

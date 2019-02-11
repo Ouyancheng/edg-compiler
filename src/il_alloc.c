@@ -870,9 +870,6 @@ fields to default values.
       cp->variant.ptr_to_member.name_reference     = NULL;
       cp->variant.ptr_to_member.cast_to_base    = FALSE;
       cp->variant.ptr_to_member.is_function_ptr = FALSE;
-#if CENTERLINE_CHECKING
-      cp->variant.ptr_to_member.avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
       cp->variant.ptr_to_member.variant.field   = NULL;
       break;
 #if GNU_EXTENSIONS_ALLOWED
@@ -978,9 +975,6 @@ associated variant fields to default values.
   cp->constant_for_base_class = FALSE;
   cp->constant_for_base_class_from_constexpr_folding = FALSE;
   cp->part_of_constexpr_master_expr = FALSE;
-#if CENTERLINE_CHECKING
-  cp->avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
   set_constant_kind(cp, kind);
 }  /* clear_constant */
 
@@ -1170,9 +1164,6 @@ in the file scope memory region.
   ptp->is_cli_param_array = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ptp->move_ctor_or_assign_parameter = FALSE;
-#if CENTERLINE_CHECKING
-  ptp->avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
   ptp->param_num = 0;
   ptp->default_arg_expr = NULL;
   ptp->orig_param_type_for_unevaluated_default_arg_expr = NULL;
@@ -1230,9 +1221,6 @@ to it.
   bcdp->preferred  = FALSE;
   bcdp->direct     = FALSE;
   bcdp->access     = (an_access_specifier)as_public;
-#if CENTERLINE_CHECKING
-  bcdp->avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
   db_exit();
   return bcdp;
 }  /* alloc_base_class_derivation */
@@ -1315,9 +1303,6 @@ allocated.
   tap->is_pack = FALSE;
   tap->has_pack_ellipsis = FALSE;
   tap->is_integer_pack = FALSE;
-#if CENTERLINE_CHECKING
-  tap->avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
   switch (kind) {
     case tak_type:
       tap->variant.type = NULL;
@@ -1544,9 +1529,6 @@ to it.
   bcp->vbase_offset_index              = 0;
 #endif /* IA64_ABI */
 #endif /* DO_IL_LOWERING */
-#if CENTERLINE_CHECKING
-  bcp->avoid_codecenter_warnings       = 0;
-#endif /* CENTERLINE_CHECKING */
 
   return bcp;
 }  /* alloc_base_class */
@@ -1904,9 +1886,6 @@ to default values.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pte->variant.integer.microsoft_sized_int_type = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if CENTERLINE_CHECKING
-      pte->variant.integer.avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
       /* Clear field of all variants for union-as-struct testing. */
       pte->variant.integer.enum_info.constant_list = NULL;
       pte->variant.integer.enum_info.affiliated_type = NULL;
@@ -2023,9 +2002,6 @@ to default values.
       pte->variant.class_struct_union.default_ctor_decl_suppressed = FALSE;
       pte->variant.class_struct_union.dtor_decl_suppressed = FALSE;
       pte->variant.class_struct_union.inc_class_used_in_array_type = FALSE;
-#if CENTERLINE_CHECKING
-      pte->variant.class_struct_union.avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
       pte->variant.class_struct_union.max_member_alignment = 0;
       /* Allocate the class type supplement. */
       {
@@ -2080,9 +2056,6 @@ to default values.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
       rtsp->had_been_implicitly_const = FALSE;
       rtsp->is_conditionally_explicit = FALSE;
-#if CENTERLINE_CHECKING
-      rtsp->avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
       rtsp->lint_varargs_count       = NOT_LINT_VARARGS;
       rtsp->arg_pragma               = (a_pragma_kind)pk_none;
 #if GNU_EXTENSIONS_ALLOWED
@@ -2137,9 +2110,6 @@ to default values.
 #if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX
       pte->variant.typeref.is_lowered_complex_type = FALSE;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX */
-#if CENTERLINE_CHECKING
-      pte->variant.typeref.avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
       /* Clear size and alignment because they aren't used in typerefs. */
       pte->size = 0;
       pte->alignment = 1;
@@ -2321,9 +2291,6 @@ the associated variant fields to default values.
       dip->variant.constructor.value_initialization = FALSE;
       dip->variant.constructor.has_sequenced_arguments = FALSE;
       dip->variant.constructor.is_array_copy = FALSE;
-#if CENTERLINE_CHECKING
-      dip->variant.constructor.avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
       break;
     case dik_bitwise_copy:
       dip->variant.bitwise_copy.source = NULL;
@@ -2382,9 +2349,6 @@ Initialize a dynamic_init entry of the kind specified.
   dip->suppress_init_list_arg_braces = FALSE;
   dip->suppress_template_arguments_for_cast = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
-#if CENTERLINE_CHECKING
-  dip->avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
   set_dynamic_init_kind(dip, kind);
 #if DO_IL_LOWERING
   dip->destructible_entity_descr     = NULL;
@@ -2736,9 +2700,6 @@ to it.
   fp->bit_size_constant_expr_in_local_expr_node_ref = FALSE;
   fp->has_no_unique_address_attribute = FALSE;
   fp->is_optimized_empty_class = FALSE;
-#if CENTERLINE_CHECKING
-  fp->avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
   fp->initializer          = NULL;
   fp->entities_defined_in_initializer = NULL;
   fp->bit_size_constant    = NULL;
@@ -3070,9 +3031,6 @@ to it.  The entry is allocated in the file scope memory region.
 #endif /* COROUTINES_ALLOWED */
   rp->is_top_level_in_mem_region  = FALSE;
   rp->friend_defined_in_instantiation = FALSE;
-#if CENTERLINE_CHECKING
-  rp->avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
 #if DECL_MODIFIERS_IN_USE
   rp->decl_modifiers              = DM_NONE;
 #endif /* DECL_MODIFIERS_IN_USE */
@@ -3143,9 +3101,6 @@ ensure_gnu_routine_supp for the typical invocation.
 #if GNU_FUNCTION_MULTIVERSIONING
   grsp->is_representative    = FALSE;
   grsp->is_target_specific_version  = FALSE;
-#if CENTERLINE_CHECKING
-  grsp->avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
 #if USE_X86_FUNCTION_MULTIVERSIONING
   grsp->mv_resolver_required = FALSE;
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
@@ -3314,9 +3269,6 @@ to it.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   lp->is_likely = FALSE;
   lp->is_unlikely = FALSE;
-#if CENTERLINE_CHECKING
-  lp->avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
   lp->exec_stmt = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   lp->num_microsoft_trys_inside_of = 0;
@@ -3622,9 +3574,6 @@ its kind to the indicated kind.
   node->type_definition_needed = FALSE;
   node->volatile_fetch = FALSE;
   node->do_not_interpret = FALSE;
-#if CENTERLINE_CHECKING
-  node->avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
   node->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   node->expr_range = null_source_range; 
@@ -3837,9 +3786,6 @@ values, and return a pointer to it.
   entry->colon_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   entry->reachable_by_fall_through = TRUE;
-#if CENTERLINE_CHECKING
-  entry->avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
 #if DEBUG
   num_switch_case_entries_allocated++;
 #endif /* DEBUG */
@@ -4149,9 +4095,6 @@ to it.  The statement kind is set as indicated.
   sp->is_fallthrough_statement= FALSE;
   sp->is_likely               = FALSE;
   sp->is_unlikely             = FALSE;
-#if CENTERLINE_CHECKING
-  sp->avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sp->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -4738,10 +4681,6 @@ and return a pointer to it.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   sssdp->is_event_interface          = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if CENTERLINE_CHECKING
-  sssdp->avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
-
   return sssdp;
 }  /* alloc_src_seq_secondary_decl */
 
@@ -4881,9 +4820,6 @@ fields, and return a pointer to it.
                                         = FALSE;
   hnp->hidden_by_class_name             = FALSE;
   hnp->hidden_by_template_parameter     = FALSE;
-#if CENTERLINE_CHECKING
-  hnp->avoid_codecenter_warnings        = 0;
-#endif /* CENTERLINE_CHECKING */
 
   return hnp;
 }  /* alloc_hidden_name */

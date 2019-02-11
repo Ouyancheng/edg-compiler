@@ -5985,9 +5985,6 @@ used to find this file.
   curr_ise->prev_line_terminator_was_carriage_return = FALSE;
 #endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
   curr_ise->cloned_for_line_directive = FALSE;
-#if CENTERLINE_CHECKING
-  curr_ise->avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
   /* Create an intermediate file record describing this file.  It is
      useful later in converting sequence numbers into file name/line
      information. */

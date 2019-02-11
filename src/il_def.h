@@ -1874,7 +1874,6 @@ typedef struct a_src_seq_secondary_decl {
 			/* TRUE if this declaration is for an "__event
 			   __interface". */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  bitfield_to_avoid_codecenter_warnings()
 } a_src_seq_secondary_decl;
 
 
@@ -3745,7 +3744,6 @@ typedef struct a_dynamic_init {
 			   arguments cannot be expressed explicitly (e.g.,
 			   closure types). */
 #endif /* BACK_END_IS_CP_GEN_BE */
-  bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == dik_none or dik_zero: no variant fields. */
     /* When kind == dik_constant or dik_nonconstant_aggregate: */
@@ -3830,7 +3828,6 @@ typedef struct a_dynamic_init {
 			   not be passed to the constructor directly; instead,
 			   its elements should be passed to repeated calls of
 			   the constructor). */
-      bitfield_to_avoid_codecenter_warnings()
     } constructor;
     /* When kind == dik_bitwise_copy: */
     struct {
@@ -4350,7 +4347,6 @@ typedef struct a_constant {
 			   do constexpr evaluation.  As such, if should never
 			   be incorporated directly into "real" IL; a copy
 			   should always be made. */
-  bitfield_to_avoid_codecenter_warnings()
   a_constant_repr_kind
                 kind;
                         /* The kind of representation for the constant. */
@@ -4519,7 +4515,6 @@ typedef struct a_constant {
 		is_function_ptr:1;
 			/* TRUE if the pointer is to a member function,
 			   FALSE if to a data member. */
-      bitfield_to_avoid_codecenter_warnings()
       union {
         /* When is_function_ptr == TRUE: */
         a_routine_ptr
@@ -5642,7 +5637,6 @@ typedef struct a_param_type {
   a_bit_field	move_ctor_or_assign_parameter:1;
 			/* TRUE if this is the first parameter of a move
 			   constructor or a move assignment operator. */
-  bitfield_to_avoid_codecenter_warnings()
   uint32_t	param_num;
 			/* The ordinal position of the parameter (1, 2, ...).
 			   In the instantiation of a variadic template, this
@@ -6707,7 +6701,6 @@ typedef struct a_routine_type_supplement {
 			   type because it is substituted as part of template
 			   argument deduction, which works with types rather
 			   than routines.) */
-  bitfield_to_avoid_codecenter_warnings()
   a_lint_varargs_count
 	         lint_varargs_count;
                         /* If not equal to NOT_LINT_VARARGS (-1), this
@@ -6855,7 +6848,6 @@ typedef struct a_template_arg {
   a_bit_field	is_integer_pack:1;
 			/* TRUE for a dependent nontype template argument of
    			   the form "__integer_pack(expr)...". */
-  bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == tak_type. */
     a_type_ptr  type;   /* The type supplied as the argument.  This type can
@@ -7056,7 +7048,6 @@ typedef struct a_base_class_derivation {
 			   preferred over one that has a virtual base class,
 			   and a direct derivation is preferred over an
 			   indirect derivation. */
-  bitfield_to_avoid_codecenter_warnings()
   an_access_specifier
 		access; /* The kind of derivation (public, protected, or
 			   private) specified for the final step of the
@@ -7223,7 +7214,6 @@ typedef struct a_base_class {
 			   types (e.g., System::ValueType is usually added
 			   implicitly to value class types). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  bitfield_to_avoid_codecenter_warnings()
   a_base_class_sequence_number
 		direct_base_number;
 			/* For a direct base class, the sequence number of
@@ -8973,7 +8963,6 @@ typedef struct a_type {
 		is_specialized:1;
 			/* TRUE for enum instances that were explicitly
 			   specialized. */
-      bitfield_to_avoid_codecenter_warnings()
       union {
         /* When enum_type is TRUE, but is_scoped_enum is FALSE: */
         a_constant_ptr
@@ -9499,7 +9488,6 @@ typedef struct a_type {
 			   avoid using an incomplete struct type as an
 			   array element type in the generated code, which
 			   is an error in C. */
-      bitfield_to_avoid_codecenter_warnings()
       a_targ_alignment
 		max_member_alignment;
 			/* If nonzero, the maximum alignment of any nonstatic
@@ -9656,7 +9644,6 @@ typedef struct a_type {
 			/* TRUE if this typeref represents a lowered complex
 			   type. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX */
-      bitfield_to_avoid_codecenter_warnings()
     } typeref;
     /* When kind == tk_ptr_to_member: */
     struct {
@@ -10790,7 +10777,6 @@ typedef struct a_field {
 			   rewrite any expressions that may refer to them.
 			   Only TRUE if has_no_unique_address_attribute is also
 			   TRUE. */
-  bitfield_to_avoid_codecenter_warnings()
   a_dynamic_init_ptr
 		initializer;
 			/* The initializer specified on the field (initializers
@@ -11744,7 +11730,6 @@ typedef struct a_routine {
 			   TRUE for friends of local classes where the classes
 			   are defined in some kind of instantiation
 			   context. */
-  bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
 		decl_modifiers;
@@ -11969,7 +11954,6 @@ typedef struct a_gnu_routine_supplement {
                            only one target routine), a resolver routine isn't
                            needed.  Set only on the representative routine. */
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
-  bitfield_to_avoid_codecenter_warnings()
   union {
     /* For GNU function multiversioning. */
     /* When is_representative is TRUE: */
@@ -12153,7 +12137,6 @@ typedef struct a_label {
 			/* TRUE if this label has the [[unlikely]] attribute
 			   applied to it.  The front end does not take any
 			   action based on this value. */
-  bitfield_to_avoid_codecenter_warnings()
   a_statement_ptr
                 exec_stmt;
                         /* Pointer to the stmk_label statement that defines
@@ -13450,7 +13433,6 @@ typedef struct an_expr_node {
   a_bit_field	do_not_interpret:1;
 			/* TRUE if the interpreter should not attempt to
 			   evaluate this node. */
-  bitfield_to_avoid_codecenter_warnings()
   a_source_position
 		position;
 			/* When kind == enk_operation, the position at which
@@ -14548,7 +14530,6 @@ typedef struct a_switch_case_entry {
 			/* TRUE if this switch case can be reached by falling
 			   through to it from the code immediately
 			   preceding. */
-  bitfield_to_avoid_codecenter_warnings()
 } a_switch_case_entry;
 
 
@@ -14804,7 +14785,6 @@ typedef struct a_statement {
                         /* TRUE if this statement has the [[unlikely]]
                            attribute applied to it.  No action is taken by the
                            front end based on this attribute. */
-  bitfield_to_avoid_codecenter_warnings()
   an_expr_node_ptr
                 expr;
                         /* The primary expression, if applicable
@@ -15301,7 +15281,6 @@ typedef struct a_hidden_name {
   a_bit_field	hidden_by_template_parameter:1;
 			/* TRUE if the hiding entity is a template
 			   parameter. */
-  bitfield_to_avoid_codecenter_warnings()
 } a_hidden_name;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 

@@ -6681,7 +6681,7 @@ must be initialized for each compilation.
     a_targ_alignment align;
     /* Find out how big a field is used for region numbers. */
     get_integer_size_and_alignment(targ_region_number_int_kind, &size, &align);
-    size = size * targ_char_bit; /* Not "*=" to avoid CodeCenter bug. */
+    size = size * targ_char_bit;
     /* Make a bit mask "size" bits long. */
     if (size >= sizeof(unsigned long)*CHAR_BIT) {
       null_eh_region_number = ~(unsigned long)0;

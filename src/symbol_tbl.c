@@ -3542,9 +3542,6 @@ and return a pointer to it.
   tssp->from_metadata = FALSE;
   tssp->generic_constraints_pending = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if CENTERLINE_CHECKING 
-  tssp->avoid_codecenter_warnings = FALSE;
-#endif /* CENTERLINE_CHECKING */
   switch (kind) {
     case sk_class_template:
     case sk_class_or_struct_tag:
@@ -3587,9 +3584,6 @@ and return a pointer to it.
       tssp->variant.class_template.deduction_guides = NULL;
       clear_template_cache(&tssp->variant.class_template.initial_decl_cache,
                            /*reusable=*/TRUE);
-#if CENTERLINE_CHECKING 
-      tssp->variant.class_template.avoid_codecenter_warnings = FALSE;
-#endif /* CENTERLINE_CHECKING */
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       tssp->variant.class_template.source_sequence_list = NULL;
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
@@ -3617,9 +3611,6 @@ and return a pointer to it.
           variant.function.exception_spec_prototype_instantiation_done = FALSE;
       tssp->variant.function.must_have_only_one_decl = FALSE;
       tssp->variant.function.implicit_deduction_guide = FALSE;
-#if CENTERLINE_CHECKING 
-      tssp->variant.function.avoid_codecenter_warnings = FALSE;
-#endif /* CENTERLINE_CHECKING */
       break;
     case sk_static_data_member:
     case sk_variable_template:
@@ -3883,9 +3874,6 @@ state.
         cssp->check_hiding_attr = FALSE;
         cssp->has_field_with_attr_to_merge = FALSE;
         cssp->standard_layout = TRUE;
-#if CENTERLINE_CHECKING
-        cssp->avoid_codecenter_warnings = FALSE;
-#endif /* CENTERLINE_CHECKING */
         clear_scope_pointers_block(&cssp->pointers_block);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -15511,17 +15499,11 @@ and return a pointer to it.
   ptr->is_dependent = FALSE;
   ptr->used_in_alias = FALSE;
   ptr->uses_auto = FALSE;
-#if CENTERLINE_CHECKING
-  ptr->avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
   if (sym->kind == (a_symbol_kind)sk_type) {
     ptr->variant.type     = sym->variant.type.ptr;
   } else if (sym->kind == (a_symbol_kind)sk_constant) {
     ptr->variant.constant.ptr = sym->variant.constant;
     ptr->variant.constant.type_involves_template_param = FALSE;
-#if CENTERLINE_CHECKING
-    ptr->variant.constant.avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
   } else {
     /* A template template parameter. */
     check_assertion(sym->kind == (a_symbol_kind)sk_class_template);
@@ -17026,9 +17008,6 @@ are handled in symbol_tbl_init.)
 #endif /* GNU_EXTENSIONS_ALLOWED */
   cleared_symbol.is_pack_element                   = FALSE;
   cleared_symbol.value_has_been_set                = FALSE;
-#if CENTERLINE_CHECKING
-  cleared_symbol.avoid_codecenter_warnings         = FALSE;
-#endif /* CENTERLINE_CHECKING */
   dummy_undefined_symbol = NULL;
   size_of_trans_unit_for_scope = 0;
   trans_unit_for_scope = NULL;

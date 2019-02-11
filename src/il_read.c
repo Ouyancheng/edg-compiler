@@ -41,10 +41,6 @@ il_read.c -- Read the intermediate language.
 #include "il_walk.h"
 #include "fe_init.h"
 
-#ifdef __CENTERLINE__
-extern int centerline_untype(void *, unsigned int);
-#endif /* ifdef __CENTERLINE__ */
-
 
 static FILE	*f_il_input;
 			/* Intermediate language file. */
@@ -113,19 +109,10 @@ static a_block_remap_entry_ptr
 Interface to fread.  Read "size" bytes from f_il_input and put them at
 "*ptr".  If the read is unsuccessful, generate a catastrophic error.
 */
-/* Macro to inform CenterLine's environment that the area has been
-   reused, to avoid wrong-type errors. */
-#ifdef __CENTERLINE__
-#define conditional_centerline_untype(ptr, size)                      \
-  (void)centerline_untype((void *)(ptr), (unsigned int)(size))
-#else /* !defined(__CENTERLINE__) */
-#define conditional_centerline_untype(ptr, size) /* Nothing */
-#endif /* ifdef __CENTERLINE__ */
 #define fread_with_check(ptr, size)                                   \
 { if (fread((ptr), size_t_arg(size), 1, f_il_input) != 1) {           \
     catastrophe(ec_bad_il_file);                                      \
   }  /* if */                                                         \
-  conditional_centerline_untype(ptr, size);                           \
 }  /* fread_with_check */
 
 #if ALTERNATE_IL_FILE_FORMAT

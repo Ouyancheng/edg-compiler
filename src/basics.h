@@ -679,13 +679,6 @@ extern void debug_exit(void);
 #define ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING FALSE
 #endif /* ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING */
 
-#ifndef CENTERLINE_CHECKING
-/* Include checking code that is specific to versions that use Codecenter.
-   In particular, this enables the declaration and initialization of the
-   "avoid_codecenter_warnings" bit fields. */
-#define CENTERLINE_CHECKING FALSE
-#endif /* ifndef CENTERLINE_CHECKING */
-
 #ifndef DUMP_CONFIG_ENABLED
 /* Include code for the --dump_configuration option.  
    The --dump_configuration option displays on the error output the
@@ -701,22 +694,6 @@ extern void debug_exit(void);
 #define DUMP_CONFIG_ENABLED TRUE /* Okay to change this. */
 #endif /* DEBUG */
 #endif /* ifndef DUMP_CONFIG_ENABLED */
-
-/*
-Macro used to add a 2-bit bit field after any sequence of bit fields.
-By clearing this bit field to zero we can avoid warnings about
-uninitialized values from CodeCenter on those bit fields (because the
-value used for "uninitialized" has no two adjacent zero bits).
-This expands to an empty string when checking code is not being used.
-Note that the semicolon that terminates the declaration is provided by
-the macro, so one should not follow a reference to the macro.
-*/
-#if CENTERLINE_CHECKING
-#define bitfield_to_avoid_codecenter_warnings() \
-  a_bit_field	avoid_codecenter_warnings:2;
-#else /* !CENTERLINE_CHECKING */
-#define bitfield_to_avoid_codecenter_warnings()  /* nothing */
-#endif /* CENTERLINE_CHECKING */
 
 /*
 Overwrite the contents of the blocks that make up memory regions before

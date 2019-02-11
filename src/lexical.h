@@ -856,7 +856,6 @@ typedef struct an_input_stack_entry {
 			/* TRUE if this entry was created to track #line
 			   directives by cloning the previous top of the
 			   input stack. */
-  bitfield_to_avoid_codecenter_warnings()
   a_byte        ifg_state;
 			/* Include file guard state information used to
                            determine whether subsequent inclusions of this
