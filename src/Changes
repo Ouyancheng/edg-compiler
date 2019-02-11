@@ -1,5 +1,21 @@
 Version 5.1
 
+2/11/19  [EDGcpfe/19122]
+Referring to generated trivial constructors and destructors
+
+Consider:
+
+  struct S {};
+  struct F {
+    friend S::~S() noexcept;  // Previously an error.  Now okay.
+  };
+
+Previously, the front end did not accept that example because the trivial
+destructor of S has no explicit representation.  Now, such a representation
+is synthesized when needed.  Similar changes were made for trivial default
+constructors and trivial copy/move constructors.
+
+
 2/8/19   [EDGcpfe/20857]
 Invocation of a virtual function on a non-const temporary
 

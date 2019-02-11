@@ -4856,26 +4856,43 @@ bypass_normal_search:
         {
           sym = cssp->constructor;
         }  /* if */
+        if (sym == NULL && !class_type->incomplete &&
+            !class_type->variant.class_struct_union.is_nonreal_class) {
+          sym = generate_trivial_ctors(class_symbol);
+        }  /* if */
         if (sym != NULL) {
-          /* There is a constructor.  Change the locator symbol header to
-             the header for the constructor rather than the header for the
-             class.  They have the same name, but different headers. */
+          /* Change the locator symbol header to the header for the constructor
+             rather than the header for the class.  They have the same name,
+             but different headers. */
           locator->symbol_header = sym->header;
           goto end_lookup;
         }  /* if */
-      } else if (cssp->destructor != NULL &&
-                 locator->symbol_header == cssp->destructor->header) {
-        /* This is the destructor. */
+      }  /* if */
+      if (locator->is_destructor_name) {
         sym = cssp->destructor;
-        goto end_lookup;
+        if (sym == NULL && !class_type->incomplete &&
+            !class_type->variant.class_struct_union.is_nonreal_class) {
+          sym = generate_trivial_dtor(class_symbol);
+        }  /* if */
+        if (sym != NULL) {
+          if (locator->symbol_header == sym->header) {
+            /* This is the destructor. */
+          } else {
+            /* Something like "X::~Y".  That is not a valid name for the
+               destructor. */
+            sym = NULL;
+          }  /* if */
+          goto end_lookup;
+        }  /* if */
+      }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (cli_or_cx_enabled && cssp->finalizer != NULL &&
-                 locator->symbol_header == cssp->finalizer->header) {
+      if (cli_or_cx_enabled && cssp->finalizer != NULL &&
+          locator->symbol_header == cssp->finalizer->header) {
         /* This is the finalizer. */
         sym = cssp->finalizer;
         goto end_lookup;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (sym == NULL && !direct_class_members_only &&
           locator->is_conversion_name &&
           (options & IDL_USING_DECLARATION) == 0) {

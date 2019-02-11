@@ -14684,9 +14684,6 @@ implicitly declared member functions.
   }  /* if */
   decl_state->sym = sym;
   /* Create the routine entry for the member function. */
-  /* The routine is allocated in the current memory region, as indicated
-     by curr_il_region_number -- i.e., in the memory region of the scope in
-     which its class is declared. */
   /* Member functions are static by default. */
   /* Pass NO_SCOPE_DEPTH for trivial default constructor so that routine entry
      will not actually be added to the IL. */
@@ -15406,6 +15403,236 @@ implicitly declared member functions.
   treat_declaration_as_okay_in_property_or_event(class_state);
   db_exit();
 }  /* decl_member_function */
+
+
+a_symbol_ptr generate_trivial_ctors(a_symbol_ptr  class_sym)
+/*
+class_sym represents a class that is complete and has no nontrivial
+constructors.  Ordinarily, the trivial default, copy, and move constructors
+are not represented in such cases, but sometimes a representation is needed
+after all.  E.g.:
+        struct S {};
+        struct X { friend S::S() noexcept; };
+In this example, we must generate the trivial default constructor so it can be
+referred to by the befriending class.
+
+This function creates the needed IL entries and symbols to create the
+representation.
+*/
+{
+  a_type_ptr        ctor_type, class_type;
+  a_routine_type_supplement_ptr
+                    rtsp;
+  a_routine_ptr     ctor;
+  a_symbol_ptr      ctor_sym;
+  a_memory_region_number
+                    region_to_switch_back_to;
+  a_scope_ptr       class_scope;
+  a_class_symbol_supplement_ptr
+                    cssp = class_symbol_supp(class_sym);
+  a_symbol_locator  loc;
+
+  class_type = class_sym->variant.class_struct_union.type;
+  class_scope = class_type_supp(class_type)->assoc_scope;
+  make_locator_for_symbol(class_sym, &loc);
+  change_class_locator_into_constructor_locator(&loc, &null_source_position,
+                                                /*is_static_ctor=*/FALSE);
+  cssp->constructor = alloc_symbol((a_symbol_kind)sk_overloaded_function,
+                                   loc.symbol_header, &loc.source_position);
+  cssp->constructor->decl_scope = class_scope->number;
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  /* The trivial default constructor. */
+  ctor_type = make_routine_type(void_type(),
+                                /*param1_type=*/(a_type_ptr)NULL,
+                                /*param2_type=*/(a_type_ptr)NULL,
+                                /*param3_type=*/(a_type_ptr)NULL,
+                                /*param4_type=*/(a_type_ptr)NULL);
+  rtsp = ctor_type->variant.routine.extra_info;
+  rtsp->assoc_routine_is_ctor = TRUE;
+  rtsp->this_class = class_type;
+  if (exceptions_enabled) {
+    an_exception_specification_ptr  esp = alloc_exception_specification();
+    esp->is_noexcept = TRUE;
+    esp->compiler_generated = TRUE;
+    rtsp->exception_specification = esp;
+  }  /* if */
+  ctor = alloc_routine();
+  ctor->type = ctor_type;
+  ctor->special_kind = (a_special_function_kind)sfk_constructor;
+  ctor->compiler_generated = TRUE;
+  ctor->is_trivial_default_constructor = TRUE;
+  if (class_type->variant.class_struct_union.is_prototype_instantiation) {
+    ctor->is_prototype_instantiation = TRUE;
+  }  /* if */
+  ctor->never_throws = TRUE;
+  ctor->next = class_scope->routines;
+  class_scope->routines = ctor;
+  ctor_sym = alloc_symbol((a_symbol_kind)sk_member_function,
+                          loc.symbol_header, &loc.source_position);
+  ctor_sym->decl_scope = class_scope->number;
+  ctor_sym->variant.routine.ptr = ctor;
+  ctor->source_corresp.assoc_info = (char*)ctor_sym;
+  set_source_corresp_name(&ctor->source_corresp, ctor_sym->header);
+  set_class_membership(ctor_sym, &ctor->source_corresp, class_type);
+  ctor->source_corresp.is_local_to_function =
+                              class_type->source_corresp.is_local_to_function;
+  cssp->trivial_default_constructor = ctor_sym;
+  cssp->constructor->variant.overloaded_function.symbols = ctor_sym;
+  /* The trivial copy constructor. */
+  ctor_type = make_routine_type(void_type(),
+                                make_reference_type(
+                                   make_qualified_type(class_type, TQ_CONST)),
+                                /*param2_type=*/(a_type_ptr)NULL,
+                                /*param3_type=*/(a_type_ptr)NULL,
+                                /*param4_type=*/(a_type_ptr)NULL);
+  rtsp = ctor_type->variant.routine.extra_info;
+  rtsp->assoc_routine_is_ctor = TRUE;
+  rtsp->this_class = class_type;
+  if (exceptions_enabled) {
+    an_exception_specification_ptr  esp = alloc_exception_specification();
+    esp->is_noexcept = TRUE;
+    esp->compiler_generated = TRUE;
+    rtsp->exception_specification = esp;
+  }  /* if */
+  ctor = alloc_routine();
+  ctor->type = ctor_type;
+  ctor->special_kind = (a_special_function_kind)sfk_constructor;
+  ctor->compiler_generated = TRUE;
+  ctor->is_trivial_copy_function = TRUE;
+  if (class_type->variant.class_struct_union.is_prototype_instantiation) {
+    ctor->is_prototype_instantiation = TRUE;
+  }  /* if */
+  ctor->never_throws = TRUE;
+  ctor->next = class_scope->routines;
+  class_scope->routines = ctor;
+  ctor_sym = alloc_symbol((a_symbol_kind)sk_member_function,
+                          loc.symbol_header, &loc.source_position);
+  ctor_sym->decl_scope = class_scope->number;
+  ctor_sym->variant.routine.ptr = ctor;
+  ctor->source_corresp.assoc_info = (char*)ctor_sym;
+  set_source_corresp_name(&ctor->source_corresp, ctor_sym->header);
+  set_class_membership(ctor_sym, &ctor->source_corresp, class_type);
+  ctor->source_corresp.is_local_to_function =
+                              class_type->source_corresp.is_local_to_function;
+  cssp->constructor->variant.overloaded_function.symbols->next = ctor_sym;
+  if (!generate_move_operations) goto past_trivial_move_ctor;
+  /* The trivial move constructor. */
+  ctor_type = make_routine_type(void_type(),
+                                make_rvalue_reference_type(class_type),
+                                /*param2_type=*/(a_type_ptr)NULL,
+                                /*param3_type=*/(a_type_ptr)NULL,
+                                /*param4_type=*/(a_type_ptr)NULL);
+  rtsp = ctor_type->variant.routine.extra_info;
+  rtsp->assoc_routine_is_ctor = TRUE;
+  rtsp->this_class = class_type;
+  if (exceptions_enabled) {
+    an_exception_specification_ptr  esp = alloc_exception_specification();
+    esp->is_noexcept = TRUE;
+    esp->compiler_generated = TRUE;
+    rtsp->exception_specification = esp;
+  }  /* if */
+  ctor = alloc_routine();
+  ctor->type = ctor_type;
+  ctor->special_kind = (a_special_function_kind)sfk_constructor;
+  ctor->compiler_generated = TRUE;
+  ctor->is_trivial_copy_function = TRUE;
+  if (class_type->variant.class_struct_union.is_prototype_instantiation) {
+    ctor->is_prototype_instantiation = TRUE;
+  }  /* if */
+  ctor->never_throws = TRUE;
+  ctor->next = class_scope->routines;
+  class_scope->routines = ctor;
+  ctor_sym = alloc_symbol((a_symbol_kind)sk_member_function,
+                          loc.symbol_header, &loc.source_position);
+  ctor_sym->decl_scope = class_scope->number;
+  ctor_sym->variant.routine.ptr = ctor;
+  ctor->source_corresp.assoc_info = (char*)ctor_sym;
+  set_source_corresp_name(&ctor->source_corresp, ctor_sym->header);
+  set_class_membership(ctor_sym, &ctor->source_corresp, class_type);
+  ctor->source_corresp.is_local_to_function =
+                              class_type->source_corresp.is_local_to_function;
+  cssp->constructor
+      ->variant.overloaded_function.symbols->next->next = ctor_sym;
+past_trivial_move_ctor:
+  set_class_membership(cssp->constructor, (a_source_correspondence*)NULL,
+                       class_type);
+  enter_symbol_into_completed_class(cssp->constructor);
+  switch_back_to_original_region(region_to_switch_back_to);
+  return cssp->constructor;
+}  /* generate_trivial_ctors */
+
+
+a_symbol_ptr generate_trivial_dtor(a_symbol_ptr  class_sym)
+/*
+class_sym represents a class that is complete and has no nontrivial destructor.
+Ordinarily, the trivial default destructor is not represented in such cases,
+but sometimes a representation is needed after all.
+E.g.:
+        struct S {};
+        struct X { friend S::~S(); };
+In this example, we must generate the trivial destructor so it can be referred
+to by the befriending class.
+
+This function creates the needed IL entries and the symbol to create that
+representation.
+*/
+{
+  a_type_ptr        dtor_type, class_type;
+  a_routine_type_supplement_ptr
+                    rtsp;
+  a_routine_ptr     dtor;
+  a_symbol_ptr      dtor_sym;
+  a_memory_region_number
+                    region_to_switch_back_to;
+  a_scope_ptr       class_scope;
+  a_class_symbol_supplement_ptr
+                    cssp = class_symbol_supp(class_sym);
+  a_symbol_locator  loc;
+
+  class_type = class_sym->variant.class_struct_union.type;
+  class_scope = class_type_supp(class_type)->assoc_scope;
+  make_locator_for_symbol(class_sym, &loc);
+  change_to_destructor_or_finalizer_locator(&loc, /*is_finalizer=*/FALSE);
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  dtor_type = make_routine_type(void_type(),
+                                /*param1_type=*/(a_type_ptr)NULL,
+                                /*param2_type=*/(a_type_ptr)NULL,
+                                /*param3_type=*/(a_type_ptr)NULL,
+                                /*param4_type=*/(a_type_ptr)NULL);
+  rtsp = dtor_type->variant.routine.extra_info;
+  rtsp->assoc_routine_is_dtor = TRUE;
+  rtsp->this_class = class_type;
+  if (exceptions_enabled) {
+    an_exception_specification_ptr  esp = alloc_exception_specification();
+    esp->is_noexcept = TRUE;
+    esp->compiler_generated = TRUE;
+    rtsp->exception_specification = esp;
+  }  /* if */
+  dtor = alloc_routine();
+  dtor->type = dtor_type;
+  dtor->special_kind = (a_special_function_kind)sfk_destructor;
+  dtor->compiler_generated = TRUE;
+  dtor->is_trivial_destructor = TRUE;
+  if (class_type->variant.class_struct_union.is_prototype_instantiation) {
+    dtor->is_prototype_instantiation = TRUE;
+  }  /* if */
+  dtor->never_throws = TRUE;
+  dtor->next = class_scope->routines;
+  class_scope->routines = dtor;
+  dtor_sym = alloc_symbol((a_symbol_kind)sk_member_function,
+                          loc.symbol_header, &loc.source_position);
+  dtor_sym->decl_scope = class_scope->number;
+  dtor_sym->variant.routine.ptr = dtor;
+  dtor->source_corresp.assoc_info = (char*)dtor_sym;
+  set_source_corresp_name(&dtor->source_corresp, dtor_sym->header);
+  set_class_membership(dtor_sym, &dtor->source_corresp, class_type);
+  dtor->source_corresp.is_local_to_function =
+                              class_type->source_corresp.is_local_to_function;
+  enter_symbol_into_completed_class(dtor_sym);
+  cssp->destructor = dtor_sym;
+  switch_back_to_original_region(region_to_switch_back_to);
+  return cssp->destructor;
+}  /* generate_trivial_ctors */
 
 
 static a_boolean compatible_member_function_template_param_types(

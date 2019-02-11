@@ -97,6 +97,10 @@ extern void remove_routine_typedef_if_needed(a_symbol_locator    *loc,
                                              a_decl_parse_state  *dps,
                                              a_boolean           no_cv_quals);
 
+extern a_symbol_ptr generate_trivial_ctors(a_symbol_ptr  class_sym);
+
+extern a_symbol_ptr generate_trivial_dtor(a_symbol_ptr  class_sym);
+
 extern void add_noexcept_specification(a_routine_type_supplement_ptr  rtsp);
 
 extern void check_for_conflicts_with_using_decls(

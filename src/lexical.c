@@ -20989,7 +20989,7 @@ See also coalesce_and_lookup_generalized_identifier.
           } else if (!qualifier_is_super &&
                      qualifier_is_type && !is_nonclass_dtor_or_finalizer && 
                      is_incomplete_type(qualifier_type) &&
-                     is_class_struct_union_type(qualifier_type) &&
+                     is_immediate_class_type(qualifier_type) &&
                      qualifier_type->variant.class_struct_union.
                                          extra_info->assoc_scope == NULL) {
             /* An error must have occurred while scanning the class
@@ -21028,8 +21028,8 @@ See also coalesce_and_lookup_generalized_identifier.
             if (locator_for_curr_id.is_destructor_name &&
                 qualifier_is_type &&
                 (ilm != ilm_declarator || microsoft_bugs) &&
-                is_class_struct_union_type(qualifier_type)) {
-              cssp_for_dtor = symbol_supplement_for_class(qualifier_type);
+                is_immediate_class_type(qualifier_type)) {
+              cssp_for_dtor = class_symbol_supp(symbol_for(qualifier_type));
             }  /* if */
             /* Don't try to look up a vacuous destructor name. */
             if (is_vacuous_dtor_or_finalizer) {
@@ -21062,9 +21062,9 @@ See also coalesce_and_lookup_generalized_identifier.
                 locator_for_curr_id.specific_symbol =
                                                      cssp_for_dtor->destructor;
               } else if (qualifier_is_type && !qualifier_is_enum_type &&
-                  class_qualified_id_lookup(&locator_for_curr_id,
-                                            qualifier_type,
-					    idl_options) != NULL) {
+                         class_qualified_id_lookup(&locator_for_curr_id,
+                                                   qualifier_type,
+                                                   idl_options) != NULL) {
                 /* Ambiguity and access control checking is not done because
                    we don't know yet what kind of reference this is. */
               } else if (!qualifier_is_type && qualifier_namespace != NULL &&
