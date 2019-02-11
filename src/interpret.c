@@ -7576,8 +7576,6 @@ if *p_this_arg is not statically initialized.)
   a_boolean            result = TRUE;
 
   if (is_runtime_data_address(this_val)) {
-    /* The current subobject is not statically initialized.  Invoking a virtual
-       function on such an object is not a constant expression. */
     result = FALSE;
   } else if (subobj == complete_obj) {
     /* We're already in the most-derived class: No adjustment is needed. */
