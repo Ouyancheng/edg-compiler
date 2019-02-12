@@ -6076,8 +6076,8 @@ details of why folding failed.  Return TRUE if an error was issued.
           ctor->is_constexpr = FALSE;
         }  /* if */
       }  /* if */
-    }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+    }  /* if */
   }  /* if */
   return err;
 }  /* call_did_not_fold_to_constant */
