@@ -9782,7 +9782,8 @@ skip_overloading:;
       (source_corresp_ptr->name_linkage ==
        (a_name_linkage_kind)nlk_external) &&
       (strcmp(locator->symbol_header->identifier, "main") == 0)){
-      pos_error(ec_c_linkage_main, &locator->source_position);
+      pos_diagnostic(strict_ansi_discretionary_severity, ec_linkage_main,
+                     &locator->source_position);
   }
 #if BACK_END_IS_CP_GEN_BE
   if (!C_mode()) {
@@ -16130,8 +16131,7 @@ issued at the given position.
   rtsp = skip_typerefs(type)->variant.routine.extra_info;
   if (!C_mode()) {
     if (rtsp->routine_name_linkage_is_explicit) {
-      pos_diagnostic(es_discretionary_error, ec_linkage_specifier_not_allowed,
-                     pos);
+      pos_diagnostic(strict_ansi_discretionary_severity, ec_linkage_main, pos);
       rtsp->routine_name_linkage_is_explicit = FALSE;
     }  /* if */
     rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
