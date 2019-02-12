@@ -15633,7 +15633,7 @@ representation.  A symbol representing the destructor is returned.
   cssp->destructor = dtor_sym;
   switch_back_to_original_region(region_to_switch_back_to);
   return cssp->destructor;
-}  /* generate_trivial_dtors */
+}  /* generate_trivial_dtor */
 
 
 static a_boolean compatible_member_function_template_param_types(
