@@ -17652,9 +17652,11 @@ output_functional_notation_cast_arguments:
       con = dip->variant.constant;
       if (is_reference_type(init_entity_type)) {
         a_type_ptr referred_to_type = type_pointed_to(init_entity_type);
-        if (is_array_type(referred_to_type)) {
+        if (is_array_type(referred_to_type) ||
+            (is_class_struct_union_type(referred_to_type) &&
+             con->kind == (a_constant_repr_kind)ck_aggregate)) {
           /* Use the referred-to type so gen_initializer_constant knows to
-             expect an array constant. */
+             expect an array or class constant. */
           init_entity_type = referred_to_type;
         }  /* if */
       }  /* if */
