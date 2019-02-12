@@ -15329,7 +15329,7 @@ during wrapup processing by compare_function_templates.
                                           /*is_templ_templ_param_check=*/FALSE,
                                           &templ_sym->decl_position);
     *new_arg_list = templ_arg_list;
-    if (tssp->is_variadic) {
+    if (tssp->has_variadic_template_params) {
       /* This is a preliminary substitution.   Keep any deduced packs for which
          we may not yet have arguments. */
       ctws_options |= CTWS_PRESERVE_DEDUCED_PACKS | CTWS_PARTIAL_ARG_LIST_OKAY;
