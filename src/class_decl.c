@@ -15417,7 +15417,8 @@ In this example, we must generate the trivial default constructor so it can be
 referred to by the befriending class.
 
 This function creates the needed IL entries and symbols to create the
-representation.
+representation.  A symbol representing the constructors (as an overload set)
+is returned.
 */
 {
   a_type_ptr        ctor_type, class_type;
@@ -15574,7 +15575,7 @@ In this example, we must generate the trivial destructor so it can be referred
 to by the befriending class.
 
 This function creates the needed IL entries and the symbol to create that
-representation.
+representation.  A symbol representing the destructor is returned.
 */
 {
   a_type_ptr        dtor_type, class_type;
@@ -15632,7 +15633,7 @@ representation.
   cssp->destructor = dtor_sym;
   switch_back_to_original_region(region_to_switch_back_to);
   return cssp->destructor;
-}  /* generate_trivial_ctors */
+}  /* generate_trivial_dtors */
 
 
 static a_boolean compatible_member_function_template_param_types(
