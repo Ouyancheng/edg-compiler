@@ -4191,6 +4191,7 @@ qualification.
     /* The variable must be allocated. */
     if (in_file_scope((char *)constant) ||
         processing_file_scope_init_routine) {
+      a_constant_ptr orig_constant = constant;
       /* The constant is (or was originally) in the file scope, so use a
          file-scope variable.  The constant is possibly shared, but we're going
          to rewrite every use of it to reference the variable instead, so the
@@ -4206,7 +4207,7 @@ qualification.
            avoid this, use a file-scope temporary (which means copying this
            portion of the constant back to the file scope). */
         switch_to_file_scope_region(&region_to_switch_back_to);
-        constant = copy_constant_full(constant, (a_constant*)NULL,
+        constant = copy_constant_full(orig_constant, (a_constant*)NULL,
                                       CE_UNLINK_SOURCE_DESTRUCTIONS |
                                       CE_TRANSFER_DESTR_ENTITY_DESCR);
       }  /* if */
@@ -4218,6 +4219,7 @@ qualification.
       lower_os_constant(constant);
       if (processing_file_scope_init_routine) {
         switch_back_to_original_region(region_to_switch_back_to);
+        orig_constant->assoc_var = assoc_var;
       }  /* if */
     } else {
       /* The constant is in the function scope, so use a function-local
