@@ -15459,7 +15459,7 @@ is returned.
   }  /* if */
   ctor = alloc_routine();
   ctor->type = ctor_type;
-  ctor->special_kind = (a_special_function_kind)sfk_constructor;
+  set_routine_special_kind(ctor, (a_special_function_kind)sfk_constructor);
   ctor->compiler_generated = TRUE;
   ctor->is_trivial_default_constructor = TRUE;
   if (class_type->variant.class_struct_union.is_prototype_instantiation) {
@@ -15497,7 +15497,7 @@ is returned.
   }  /* if */
   ctor = alloc_routine();
   ctor->type = ctor_type;
-  ctor->special_kind = (a_special_function_kind)sfk_constructor;
+  set_routine_special_kind(ctor, (a_special_function_kind)sfk_constructor);
   ctor->compiler_generated = TRUE;
   ctor->is_trivial_copy_function = TRUE;
   if (class_type->variant.class_struct_union.is_prototype_instantiation) {
@@ -15534,7 +15534,7 @@ is returned.
   }  /* if */
   ctor = alloc_routine();
   ctor->type = ctor_type;
-  ctor->special_kind = (a_special_function_kind)sfk_constructor;
+  set_routine_special_kind(ctor, (a_special_function_kind)sfk_constructor);
   ctor->compiler_generated = TRUE;
   ctor->is_trivial_copy_function = TRUE;
   if (class_type->variant.class_struct_union.is_prototype_instantiation) {
@@ -15611,7 +15611,7 @@ representation.  A symbol representing the destructor is returned.
   }  /* if */
   dtor = alloc_routine();
   dtor->type = dtor_type;
-  dtor->special_kind = (a_special_function_kind)sfk_destructor;
+  set_routine_special_kind(dtor, (a_special_function_kind)sfk_destructor);
   dtor->compiler_generated = TRUE;
   dtor->is_trivial_destructor = TRUE;
   if (class_type->variant.class_struct_union.is_prototype_instantiation) {
