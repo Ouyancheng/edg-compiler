@@ -6047,7 +6047,37 @@ details of why folding failed.  Return TRUE if an error was issued.
         }  /* if */
         end_diagnostic(dp);
       }  /* if */
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    } else if (scope_stack_top().in_ctor_initializer &&
+               routine != NULL && !routine->is_constexpr) {
+      /* Consider the following example:
+            struct S { using I = int; int f(); };
+            template<typename T> struct X {
+              int i;
+              constexpr X(typename T::I i): i(i) {};
+              constexpr X(T s): X(s.f()) {}
+            };
+            X<S> xs{S{}};
+         In the instantiation X<S>::X(S) the expression "s.f()" is never a
+         constant expression.  For implicit instantiations, that is not an
+         error.  However, if we are going to turn the implicit instantiation
+         into an explicit instantiation like:
+            template<> struct X<S> { ... };
+            constexpr X<S> ::X(S s) : X(s.f()) {}
+         the resulting code is invalid.  No diagnostic is required in that case
+         but some C++ compilers (e.g., some versions of GCC) do detect the
+         problem.  We therefore have to make sure in that case that the
+         "constexpr" specifier is dropped in the generated code. */
+      a_routine_ptr  ctor = current_routine_entry();
+      if (ctor->is_constexpr &&
+          is_unspecialized_template_member_function(ctor)) {
+        if (curr_expr_is_evaluated() &&
+            !curr_expr_is_potentially_unevaluated()) {
+          ctor->is_constexpr = FALSE;
+        }  /* if */
+      }  /* if */
     }  /* if */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   return err;
 }  /* call_did_not_fold_to_constant */

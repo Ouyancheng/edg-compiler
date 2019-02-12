@@ -1,5 +1,43 @@
 Version 5.1
 
+2/11/19  [EDGcpfe/20871]
+Constexpr constructor specializations with non-constant ctor-initializers
+
+Consider:
+
+  struct S {
+    using I = int;
+    int f();
+  };
+  template<typename T> struct X {
+    int i;
+    constexpr X(typename T::I i): i(i) {};
+    constexpr X(T s): X(s.f()) {}  // Okay.
+  };
+  X<S> xs{S{}};
+
+in a configuration that includes the C++-generating back end and the macro
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE.
+Previously, that resulted in the rendering of an explicit specialization for
+X<S> and a definition of its constructor like the following:
+
+  template<> struct X<S> { ... };
+  ...
+  constexpr X<S>::X(S s) : X(s.f()) {}  // Error.
+
+Note how in the original template the "s.f()" may or may not be a constant
+expression, but in the explicit specialization it is definitely not a constant
+expression since S::f() is not constexpr.  The explicit specialization is
+therefore invalid; although the standard does not require a diagnostic in such
+cases, some compilers do emit one (e.g., some versions of GCC).  The front end
+now detects such cases and drops the "constexpr" property from the instance so
+that the rendering is now like the following:
+
+  template<> struct X<S> { ... };
+  ...
+  X<S>::X(S s) : X(s.f()) {}  // Okay.
+
+
 2/11/19  [EDGcpfe/19066]
 Spurious error on address of static member function template
 

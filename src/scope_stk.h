@@ -1039,6 +1039,9 @@ typedef struct a_scope_stack_entry {
 			   prototype instantiation) of a generic lambda,
 			   and for the template declaration scope for the
 			   template parameters of a generic lambda. */
+  a_bit_field	in_ctor_initializer:1;
+			/* TRUE while scanning the arguments of a constructor
+			   initializer. */
   a_decl_sequence_number
 		*decl_seq_counter;
 			/* Pointer to the decl_seq_counter to be used within

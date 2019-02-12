@@ -7710,6 +7710,7 @@ initialized and array_type is the array type.  pos is the start position of
 the mem-initializer.
 */
 {
+  scope_stack_top().in_ctor_initializer = TRUE;
   if (curr_token == tok_lparen) {
     /* A classic (i.e., parenthesized) mem-initializer argument. */
     scan_parenthesized_mem_init_args(ctor, cip, init_type, array_type);
@@ -7727,6 +7728,7 @@ the mem-initializer.
     cip->ctor_init_range.end = curr_construct_end_position;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  scope_stack_top().in_ctor_initializer = FALSE;
 }  /* scan_mem_init_args */
 
 
