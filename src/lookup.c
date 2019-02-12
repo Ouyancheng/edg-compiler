@@ -4872,7 +4872,7 @@ bypass_normal_search:
         sym = cssp->destructor;
         if (sym == NULL && !class_type->incomplete &&
             !class_type->variant.class_struct_union.is_nonreal_class) {
-          sym = generate_trivial_dtor(class_symbol);
+          sym = generate_trivial_dtor(class_symbol, locator);
         }  /* if */
         if (sym != NULL) {
           if (locator->symbol_header == sym->header) {

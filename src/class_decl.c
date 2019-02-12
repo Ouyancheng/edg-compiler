@@ -15563,7 +15563,8 @@ past_trivial_move_ctor:
 }  /* generate_trivial_ctors */
 
 
-a_symbol_ptr generate_trivial_dtor(a_symbol_ptr  class_sym)
+a_symbol_ptr generate_trivial_dtor(a_symbol_ptr      class_sym,
+                                   a_symbol_locator  *src_loc)
 /*
 class_sym represents a class that is complete and has no nontrivial destructor.
 Ordinarily, the trivial default destructor is not represented in such cases,
@@ -15574,8 +15575,10 @@ E.g.:
 In this example, we must generate the trivial destructor so it can be referred
 to by the befriending class.
 
-This function creates the needed IL entries and the symbol to create that
-representation.  A symbol representing the destructor is returned.
+If src_loc is non-NULL, it describes the name in the source code that prompted
+the call to this function.  If that given name is not an appropriate destructor
+name (e.g., "X::~Y" instead of "X::~X) return NULL.  Otherwise, create the
+needed IL entries for the destructor and return the associated symbol.
 */
 {
   a_type_ptr        dtor_type, class_type;
@@ -15594,6 +15597,12 @@ representation.  A symbol representing the destructor is returned.
   class_scope = class_type_supp(class_type)->assoc_scope;
   make_locator_for_symbol(class_sym, &loc);
   change_to_destructor_or_finalizer_locator(&loc, /*is_finalizer=*/FALSE);
+  if (src_loc != NULL && src_loc->symbol_header != loc.symbol_header) {
+    /* The source name that triggered the call to this function doesn't
+       actually match the destructor name.  (E.g., "X::~Y" instead of
+       "X::~X".)  Do not generate the destructor after all. */
+    goto done;
+  }  /* if */
   switch_to_file_scope_region(&region_to_switch_back_to);
   dtor_type = make_routine_type(void_type(),
                                 /*param1_type=*/(a_type_ptr)NULL,
@@ -15632,6 +15641,7 @@ representation.  A symbol representing the destructor is returned.
   enter_symbol_into_completed_class(dtor_sym);
   cssp->destructor = dtor_sym;
   switch_back_to_original_region(region_to_switch_back_to);
+done:
   return cssp->destructor;
 }  /* generate_trivial_dtor */
 
