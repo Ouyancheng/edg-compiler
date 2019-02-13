@@ -14184,16 +14184,16 @@ error variable generated for error recovery purposes.
   } else if (dps->secondary_declarator) {
     pos_error(ec_condition_with_multiple_declarators, diag_pos);
   } else if (dps->is_struct_binding_decl) {
-    pos_error(ec_struct_binding_in_condition, diag_pos);
     an_il_entity_list_entry_ptr bp =
                                    sym->variant.variable.ptr->variant.bindings;
     if (bp != NULL) {
-      a_variable_ptr  vp = (a_variable_ptr)bp->entity.ptr;
+      a_variable_ptr  sb = (a_variable_ptr)bp->entity.ptr;
       /* Mark the structured binding as referenced/used to avoid the spurious
        "set but never used" warning. */
-      symbol_for(vp)->referenced = TRUE;
-      vp->used = TRUE;
-    }
+      symbol_for(sb)->referenced = TRUE;
+      sb->used = TRUE;
+    }  /* if */
+    pos_error(ec_struct_binding_in_condition, diag_pos);
   } else {
     vp = sym->variant.variable.ptr;
     if (((strict_ansi_mode || clang_mode || gpp_mode) ?
