@@ -14277,9 +14277,9 @@ gen_expr that might end up generating this expr as a temporary.
                  problem. */
               if (in_generated_instance &&
                   type->typedef_for_vacuous_dtor_call_put_out) {
-                /* Use the generated temporary typedef to name the type. */
-                gen_temp_name((char *)type);
-                write_str("::");
+                /* Do not put out a qualifier using the generated typedef
+                   name; it is not needed and can cause problems for some
+                   compilers. */
               } else if (!is_immediate_class_type(type)) {
                 gen_type(type);
                 write_str("::");
@@ -19137,9 +19137,11 @@ static void gen_typedef_for_unnamed_pseudo_dtor_type(
 This routine is called for each expression encountered during a traversal
 of the body of a generated instance of a function template.  If expr is an
 eok_dot_vacuous_destructor_call or an eok_points_to_vacuous_destructor_call
-in which the type has no name, generate a temporary typedef that will be
-used in generating the call.  (This avoids constructs like "int::~int()",
-which are nonstandard and rejected by many compilers.)
+in which the type cannot be used in a pseudo-destructor (i.e., it has no
+name or, to accommodate a g++ bug, is an enumeration type), generate a
+temporary typedef that will be used in generating the call.  (This avoids
+constructs like "int::~int()", which are nonstandard and rejected by many
+compilers.)
 */
 {
   if (is_operation_node(expr) &&
@@ -19149,7 +19151,7 @@ which are nonstandard and rejected by many compilers.)
     if (node_operator_is(expr, eok_points_to_vacuous_destructor_call)) {
       type = type_pointed_to(type);
     }  /* if */
-    if (!has_name_before_mangling(type) &&
+    if ((!has_name_before_mangling(type) || is_immediate_enum_type(type)) &&
         !type->typedef_for_vacuous_dtor_call_put_out) {
       /* Generate a typedef using a temporary name. */
       write_tok_str("typedef ");

@@ -1,5 +1,44 @@
 Version 5.1
 
+2/13/19  [EDGcpfe/20874]
+C++-generating back end: pseudo-destructor with enumeration type
+
+Consider the following example:
+
+  enum E { };
+  template<typename T> struct S {
+    void f(T *p) {
+      p->~T();
+    }
+  };
+  void g() {
+    S<E> se;
+    se.f(new E);
+  }
+
+In configurations with
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE, the
+C++-generating back end produced an explicit specialization for
+S<E>::f(E *) as follows:
+
+  inline void S<E>::f(E *p) {
+    p->E::~E();
+  }
+
+Although that is valid C++, g++ issues a spurious error for a
+pseudo-destructor call involving an enumeration type.  To work around this
+problem, the C++-generating back end now defines a typedef for an
+enumeration type appearing in a pseudo-destructor call and uses that
+typedef in the generated code:
+
+  typedef E __T12345678;
+  inline void S<E>::f(E *p) {
+    p->~__T12345678();
+  }
+
+which does not trigger the g++ bug.
+
+
 2/13/19  [EDGcpfe/20540]
 Structured binding in the condition of a selection or iteration 
 statement
