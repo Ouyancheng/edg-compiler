@@ -1,5 +1,22 @@
 Version 5.1
 
+2/13/19  [EDGcpfe/20540]
+Structured binding in the condition of statements and loops
+
+The standard does not allow structured bindings in the condition of
+statements and loops, but the front end used to accept this.  For 
+example:
+
+  struct X {
+    bool i;
+  };
+  void f(X x) {
+    if (auto [a] = x) {} // Previously okay, now error
+  }
+
+This has now been fixed.
+
+
 2/11/19  [EDGcpfe/20871]
 Constexpr constructor specializations with non-constant ctor-initializers
 
