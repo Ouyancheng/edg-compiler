@@ -1447,6 +1447,7 @@ extern int fileno(FILE *);
 /*lint -esym(765,rvalue_pointer_for_class_expression)*/
 /*lint -esym(552,vcmeta_directory_name)*/
 /*lint -esym(552,put_variable_into_comdat_group)*/
+/*lint -esym(757,put_variable_into_comdat_group)*/
 
 #endif /* ifndef LINT_H */
 
