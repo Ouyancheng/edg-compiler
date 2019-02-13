@@ -4,7 +4,7 @@ Version 5.1
 Structured binding in the condition of a selection or iteration 
 statement
 
-The standard does not allow structured bindings in the condition of a
+The standard does not allow a structured binding in the condition of a
 selection or iteration statement, but the front end used to accept this.  
 For example:
 
