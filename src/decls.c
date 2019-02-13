@@ -14189,7 +14189,7 @@ error variable generated for error recovery purposes.
     if (bp != NULL) {
       a_variable_ptr  sb = (a_variable_ptr)bp->entity.ptr;
       /* Mark the structured binding as referenced/used to avoid the spurious
-       "set but never used" warning. */
+         "set but never used" warning. */
       symbol_for(sb)->referenced = TRUE;
       sb->used = TRUE;
     }  /* if */

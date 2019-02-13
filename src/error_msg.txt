@@ -3029,7 +3029,7 @@ ec_derived_class_too_far;;"cannot convert pointer to base class %t2 to pointer t
 ec_constexpr_non_const_temp;;"temporary object is not constant"
 ec_invalid_variable_main;;"\"main\" cannot be used as a global variable name or given C language linkage"
 ec_linkage_main;;"function \"main\" cannot be declared in a linkage-specification"
-ec_struct_binding_in_condition;;"structured binding isn't allowed in a condition"
+ec_struct_binding_in_condition;;"structured binding is not allowed in a condition"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
