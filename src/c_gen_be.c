@@ -8683,11 +8683,13 @@ parameters.
          for template static data members that are arrays, or otherwise
          the template prelinker could loop. */
       if ((dump_initializers && init_con != NULL) ||
-           force_zeroing_of_comdat_variable ||
+          force_zeroing_of_comdat_variable ||
           (init_kind == (an_init_kind)initk_zero &&
+           !variable->suppress_inline_definition &&
            (!var_has_static_or_thread_storage_duration(variable) ||
             !is_array_type(variable->type) ||
-            variable->is_template_variable))) {
+            variable->is_template_variable ||
+            variable->is_inline))) {
         dump_initializer(variable, init_con);
       }  /* if */
       write_tok_ch(';');

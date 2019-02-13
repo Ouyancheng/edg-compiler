@@ -9462,6 +9462,7 @@ local-variable-static-init entry.
   }  /* switch */
 }  /* lower_initializer */
 
+#if LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS
 
 void put_variable_into_comdat_group(a_variable_ptr  var)
 /*
@@ -9475,6 +9476,7 @@ variable's mangled name.
   var->comdat_group = var->source_corresp.name;
 } /* put_variable_into_comdat_group */
 
+#endif /* LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS */
 
 static void lower_variable(a_variable_ptr variable)
 /*
@@ -9611,13 +9613,16 @@ Do IL lowering of the indicated variable and everything under it.
       put_variable_into_comdat_group(variable);
     }  /* if */
 #endif /* IA64_ABI */
+#if LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS
     if (variable->is_inline &&
         variable->source_corresp.name_linkage !=
-                                          (a_name_linkage_kind)nlk_internal) {
-      /* Ensure that externally-lined inline variables are put into their
+                                          (a_name_linkage_kind)nlk_internal &&
+        inline_variables_in_comdat) {
+      /* Ensure that externally-linked inline variables are put into their
          own COMDAT groups. */
       put_variable_into_comdat_group(variable);
     }  /* if */
+#endif /* LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS */
   }  /* if */
 }  /* lower_variable */
 

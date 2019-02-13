@@ -9921,7 +9921,8 @@ C99 mode for the same reason.
     /* See if this is a local static variable promoted out of an extern
        inline function, an inline variable, or template instantiated
        wherever used. */
-    if ((variable->promoted_local_static || variable->is_inline) &&
+    if ((variable->promoted_local_static ||
+         (variable->is_inline && inline_variables_in_comdat)) &&
         variable->storage_class == (a_storage_class)sc_unspecified
 #if IA64_ABI
         && variable->comdat_group == NULL

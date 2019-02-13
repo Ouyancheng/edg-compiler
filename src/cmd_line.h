@@ -683,6 +683,13 @@ EXTERN a_boolean
 			   allowed. */
 
 EXTERN a_boolean
+		inline_variables_in_comdat;
+			/* TRUE if inline variables should be placed in
+			   COMDAT sections.  Always TRUE in IA-64 ABI
+			   configurations, but can also be TRUE if COMDAT
+			   sections are available in Cfront configs. */
+
+EXTERN a_boolean
 		overaligned_allocation_enabled;
 			/* TRUE if variables of types with stringent
 			   alignment requirements are to be allocated using

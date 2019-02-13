@@ -1,5 +1,14 @@
 Version 5.1
 
+2/13/19  [EDGcpfe/20083]
+Inline variable support in configurations with INSTANTIATE_EXTERN_INLINE
+
+The original support for C++17 inline variables inadvertently assumed that
+COMDAT support was available and that is often not the case in configurations
+where INSTANTIATE_EXTERN_INLINE is TRUE.  Changes have been made to provide
+proper support for this configuration.
+
+
 2/13/19  [EDGcpfe/20874]
 C++-generating back end: pseudo-destructor with enumeration type
 

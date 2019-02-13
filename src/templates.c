@@ -35483,12 +35483,10 @@ emitted in this translation unit.
        /* Inline variables that are exported from a DLL must be emitted. */
     result = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if IA64_ABI
-  } else if (!var->suppress_inline_definition) {
-    /* With the IA-64 ABI, inline variables should be emitted unless
-       suppressed (e.g., by an "extern template"). */
+  } else if (inline_variables_in_comdat && !var->suppress_inline_definition) {
+    /* When inline variables are in a COMDAT section, they should be emitted
+       unless suppressed (e.g., by an "extern template"). */
     result = TRUE;
-#endif /* IA64_ABI */
   } else if (instantiation_mode == tim_used ||
              instantiation_mode == tim_all) {
     /* In -tused and -tall modes, emit the variable if it was referenced. */
