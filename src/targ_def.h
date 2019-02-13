@@ -4292,11 +4292,6 @@ INSTANTIATE_EXTERN_INLINE and LOWER_EXTERN_INLINE are mutually exclusive.
            template instantiation is disabled
 #endif /* INSTANTIATE_EXTERN_INLINE && !AUTOMATIC_TEMPLATE_INSTANTIATION */
 
-#if !LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS && !INSTANTIATE_EXTERN_INLINE
- #error -- inline variables require a linker that supports COMDAT sections \
-           or prelinker support
-#endif /* !LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS && !INSTANTIATE_...*/
-
 /*
 This switch controls whether "extern inline" functions are rewritten as
 normal inline functions (Cfront-like ABI) or put into COMDAT sections
