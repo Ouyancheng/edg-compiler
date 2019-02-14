@@ -613,6 +613,13 @@ are diagnosed.
     internal_error("check_target_config: "
                      "ctors_return_this or dtors_return_this set incorrectly");
   }  /* if */
+#if !LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS && !INSTANTIATE_EXTERN_INLINE
+  if (inline_variables_allowed) {
+    internal_error("check_target_config: "
+                   "inline variables require a linker that supports COMDAT "
+                   "sections or prelinker support");
+  }  /* if */
+#endif /* !LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS && !...*/
 #endif /* DO_IL_LOWERING */
 #endif /* IA64_ABI */
 #if !HOST_TARGET_ENDIAN_MISMATCH_OKAY
