@@ -328,10 +328,12 @@ static an_attr_descr known_attr_table[] = {
   { "__edg_interior_ptr_alias", "", "m+", ak_edg_interior_ptr_alias },
   { "__edg_pin_ptr_alias", "", "m+", ak_edg_pin_ptr_alias },
   { "empty_bases", "", "m+", ak_empty_bases },
+  { "hybrid_patchable", "", "mx", ak_hybrid_patchable },
   { "implementation_key", "(ci)", "mx", ak_implementation_key },
   { "intrin_type", "", "mx", ak_intrin_type },
   { "jitintrinsic", "", "m+", ak_jitintrinsic },
   { "naked", "", "mx", ak_naked },
+  { "no_init_all", "", "mx", ak_no_init_all },
   { "noalias", "", "mx(1400-)", ak_noalias },
   { "noinline", "", "mx", ak_noinline },
   { "non_user_code", "", "m+", ak_non_user_code },
@@ -340,9 +342,11 @@ static an_attr_descr known_attr_table[] = {
   { "novtable", "", "m+", ak_novtable },
   { "process", "", "m+", ak_process },
   { "property", "(*)", "m+", ak_property },
+  { "pure", "", "mx", ak_pure },
   { "restrict", "", "mx(1400-)", ak_restrict },
   { "safebuffers", "", "mx", ak_safebuffers },
   { "selectany", "", "mx", ak_selectany },
+  { "spectre", "(*)", "mx", ak_spectre },
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   { "thread", "", "mx", ak_thread },
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
@@ -646,6 +650,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   { ak_noinline, "t|p|r|v|d", apply_noinline_attr },
   { ak_nothrow, "t|r|v|d", apply_nothrow_attr },
+  { ak_pure, "r|Wv", apply_pure_attr },
   { ak_section, "r|v:-a!", apply_section_attr },
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
@@ -686,7 +691,6 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_nonnull, "t|r|v|d|p", apply_nonnull_attr },
   { ak_noplt, "r", NO_APPL_FN },
   { ak_packed, "c|e|d|Wv|Wp|Wr|Wt", apply_packed_attr },
-  { ak_pure, "r|Wv", apply_pure_attr },
   { ak_sentinel, "t|r|v|d", apply_sentinel_attr },
 #if GNU_X86_ATTRIBUTES_ALLOWED
   { ak_stdcall, "t|r|v|d|p", apply_stdcall_attr },
@@ -720,9 +724,11 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_edg_interior_ptr_alias, "t", apply_edg_interior_ptr_alias_attr },
   { ak_edg_pin_ptr_alias, "t", apply_edg_pin_ptr_alias_attr },
   { ak_empty_bases, "c", NO_APPL_FN },
+  { ak_hybrid_patchable, "", NO_APPL_FN },
   { ak_implementation_key, "", apply_implementation_key_attr },
   { ak_intrin_type, "c|Wp", apply_intrin_type_attr },
   { ak_jitintrinsic, "r", apply_jitintrinsic_attr },
+  { ak_no_init_all, "", NO_APPL_FN },
   { ak_noalias, "r|Wp", apply_noalias_attr },
   { ak_non_user_code, "t|p|r|v|d", apply_non_user_code_attr },
   { ak_novtable, "c|Wp", apply_novtable_attr },
@@ -731,6 +737,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_restrict, "r|Wp", apply_restrict_attr },
   { ak_safebuffers, "r", apply_safebuffers_attr },
   { ak_selectany, "v:+x!|Wr|Wt|Wp|Wd", apply_selectany_attr },
+  { ak_spectre, "", NO_APPL_FN },
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   { ak_thread, "v|Wt|Wp", apply_thread_attr },
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */

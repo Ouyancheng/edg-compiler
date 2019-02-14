@@ -2574,6 +2574,7 @@ typedef enum an_attribute_kind_tag {
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   ak_noinline,		/* "noinline" (gnu, ms). */
   ak_nothrow,		/* "nothrow" (gnu, ms). */
+  ak_pure,		/* "pure" (gnu, ms). */
   ak_section,		/* "section" (gnu) or "allocate" (ms). */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -2618,7 +2619,6 @@ typedef enum an_attribute_kind_tag {
   ak_nonnull,		/* "nonnull" (gnu). */
   ak_noplt,		/* "noplt" (gnu). */
   ak_packed,		/* "packed" (gnu). */
-  ak_pure,		/* "pure" (gnu). */
   ak_sentinel,		/* "sentinel" (gnu). */
 #if GNU_X86_ATTRIBUTES_ALLOWED
   ak_stdcall,		/* "stdcall" (gnu). */
@@ -2655,10 +2655,12 @@ typedef enum an_attribute_kind_tag {
 			/* "__edg_interior_ptr_alias" (ms). */
   ak_edg_pin_ptr_alias,	/* "__edg_pin_ptr_alias" (ms). */
   ak_empty_bases,	/* "empty_bases" (ms). */
+  ak_hybrid_patchable,	/* "hybrid_patchable" (ms). */
   ak_implementation_key,
 			/* "implementation_key" (ms). */
   ak_intrin_type,	/* "intrin_type" (ms). */
   ak_jitintrinsic,	/* "jitintrinsic" (ms). */
+  ak_no_init_all,	/* "no_init_all" (ms). */
   ak_noalias,		/* "noalias" (ms). */
   ak_non_user_code,	/* "non_user_code" (ms). */
   ak_novtable,		/* "novtable" (ms). */
@@ -2667,6 +2669,7 @@ typedef enum an_attribute_kind_tag {
   ak_restrict,		/* "restrict" (ms). */
   ak_safebuffers,	/* "safebuffers" (ms). */
   ak_selectany,		/* "selectany" (ms). */
+  ak_spectre,		/* "spectre" (ms). */
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   ak_thread,		/* "thread" (ms). */
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
