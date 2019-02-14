@@ -2915,7 +2915,6 @@ to it.  The entry is allocated in the file scope memory region.
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   rp->is_initialization_routine   = FALSE;
   rp->is_finalization_routine     = FALSE;
-  rp->is_pure                     = FALSE;
   rp->is_weak                     = FALSE;
   rp->is_weakref                  = FALSE;
   rp->is_gnu_alias                = FALSE;
@@ -2928,6 +2927,7 @@ to it.  The entry is allocated in the file scope memory region.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   rp->never_inline                = FALSE;
+  rp->is_pure                     = FALSE;
 #if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   rp->is_naked                    = FALSE;
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */

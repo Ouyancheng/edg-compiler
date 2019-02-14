@@ -11273,6 +11273,9 @@ typedef struct a_routine {
 			   attribute; this indicates that a code generator
 			   should never attempt to inline calls to this
 			   routine. */
+  a_bit_field	is_pure:1;
+			/* TRUE if this routine was declared with the
+			   pure attribute. */
 #if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	is_naked:1;
 			/* TRUE if this routine was declared with the "naked"
@@ -11327,9 +11330,6 @@ typedef struct a_routine {
   a_bit_field	is_finalization_routine:1;
 			/* TRUE if this routine was declared with the
 			   destructor attribute. */
-  a_bit_field	is_pure:1;
-			/* TRUE if this routine was declared with the
-			   pure attribute. */
   a_bit_field	is_weak:1;
 			/* TRUE if this routine was declared with the
 			   weak or weakref attribute. */

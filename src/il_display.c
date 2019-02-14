@@ -3500,6 +3500,9 @@ Display the indicated routine.
   if (ptr->never_inline) {
     disp_boolean("never_inline", TRUE);
   }  /* if */
+  if (ptr->is_pure) {
+    disp_boolean("is_pure", TRUE);
+  }  /* if */
 #if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->is_naked) {
     disp_boolean("is_naked", TRUE);
@@ -3537,9 +3540,6 @@ Display the indicated routine.
   }  /* if */
   if (ptr->is_finalization_routine) {
     disp_boolean("is_finalization_routine", TRUE);
-  }  /* if */
-  if (ptr->is_pure) {
-    disp_boolean("is_pure", TRUE);
   }  /* if */
   if (ptr->is_weak) {
     disp_boolean("is_weak", TRUE);
