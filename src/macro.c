@@ -4785,7 +4785,7 @@ by subsequent calls.
   a_source_line_modif_ptr slmp;
   int                     char_len;
   a_const_char            *start_of_id = NULL;
-  a_const_char            *end_of_id;
+  a_const_char            *end_of_id = NULL;
   a_const_char            *p;
   a_const_char            *end_of_arg;
   a_boolean               full_id_seen = FALSE;
