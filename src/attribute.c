@@ -523,6 +523,7 @@ static an_attr_application_fn apply_naked_attr;
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 static an_attr_application_fn apply_noinline_attr;
 static an_attr_application_fn apply_nothrow_attr;
+static an_attr_application_fn apply_pure_attr;
 static an_attr_application_fn apply_section_attr;
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -557,7 +558,6 @@ static an_attr_application_fn apply_no_check_memory_usage_attr;
 static an_attr_application_fn apply_nocommon_attr;
 static an_attr_application_fn apply_nonnull_attr;
 static an_attr_application_fn apply_packed_attr;
-static an_attr_application_fn apply_pure_attr;
 static an_attr_application_fn apply_sentinel_attr;
 #if GNU_X86_ATTRIBUTES_ALLOWED
 static an_attr_application_fn apply_stdcall_attr;
@@ -5202,6 +5202,22 @@ done:
 }  /* apply_nothrow_attr */
 
 
+/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
+static char* apply_pure_attr(an_attribute_ptr  ap,
+                             char              *entity,
+                             an_il_entry_kind  entity_kind)
+/*
+The given entity must be a function or variable.  If it's a function, apply
+the GNU "pure" attribute to it.  Otherwise, ignore the attribute with a
+warning.  Return the given entity.
+*/
+{
+  check_assertion(entity_kind == iek_routine);
+  ((a_routine_ptr)entity)->is_pure = TRUE;
+  return entity;
+}  /* apply_pure_attr */
+
+
 static char* apply_section_attr(an_attribute_ptr  ap,
                                 char              *entity,
                                 an_il_entry_kind  entity_kind)
@@ -6469,22 +6485,6 @@ entity.
   }  /* if */
   return entity;
 }  /* apply_packed_attr */
-
-
-/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
-static char* apply_pure_attr(an_attribute_ptr  ap,
-                             char              *entity,
-                             an_il_entry_kind  entity_kind)
-/*
-The given entity must be a function or variable.  If it's a function, apply
-the GNU "pure" attribute to it.  Otherwise, ignore the attribute with a
-warning.  Return the given entity.
-*/
-{
-  check_assertion(entity_kind == iek_routine);
-  ((a_routine_ptr)entity)->is_pure = TRUE;
-  return entity;
-}  /* apply_pure_attr */
 
 
 static char* apply_sentinel_attr(an_attribute_ptr  ap,
