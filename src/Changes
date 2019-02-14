@@ -5,8 +5,11 @@ Inline variable support in configurations with INSTANTIATE_EXTERN_INLINE
 
 The original support for C++17 inline variables inadvertently assumed that
 COMDAT support was available and that is often not the case in configurations
-where INSTANTIATE_EXTERN_INLINE is TRUE.  Changes have been made to provide
-proper support for this configuration.
+where INSTANTIATE_EXTERN_INLINE is TRUE.  A change has been made to use
+COMDAT sections in configurations where it is available (i.e., IA-64 ABI
+or configurations where LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS is TRUE).
+In other configurations, the prelinker is used to ensure that a single
+definition of an inline variable exists in the program.
 
 
 2/13/19  [EDGcpfe/20874]

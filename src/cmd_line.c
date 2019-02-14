@@ -11492,8 +11492,8 @@ variables declared in cmd_line.h.
   implicit_typename_enabled = DEFAULT_IMPLICIT_TYPENAME_ENABLED;
   extern_inline_allowed = DEFAULT_EXTERN_INLINE_ALLOWED;
   inline_variables_allowed = FALSE;
-  inline_variables_in_comdat = IA64_ABI ||
-                               !INSTANTIATE_EXTERN_INLINE; /*lint !e506*/
+  inline_variables_in_comdat = LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS ||
+                               IA64_ABI; /*lint !e506*/
   overaligned_allocation_enabled = FALSE;
   floating_point_template_parameters_allowed =
                             DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED;
