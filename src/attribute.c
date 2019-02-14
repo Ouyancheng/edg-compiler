@@ -9173,7 +9173,7 @@ a_boolean attribute_is_supported(a_const_char        *name,
                                  a_const_char        *namespace_name,
                                  an_attribute_family family)
 /*
-Return TRUE if name (and namespace_name, if non-NULL) designates an
+Return TRUE if name (and namespace_name, if non-NULL) designate an
 attribute of the specified family that is enabled in the current execution
 of the front end, FALSE otherwise.  Passing af_internal as the value of
 family indicates that an attribute in any family is permitted, with
@@ -9221,7 +9221,7 @@ standard attributes given preference.
       }  /* if */
       if (!supported && family == af_std && gnu_mode &&
           namespace_name != NULL && strcmp(namespace_name, "gnu") == 0) {
-        /* g++ ignores a "gnu::" namespace on attributes. */
+        /* g++ ignores a "gnu::" namespace on gnu attributes. */
         dummy_attr->namespace_name = NULL;
         dummy_attr->family = (a_byte_attribute_family)af_gnu;
         supported = cond_matches_gnu_attr_mode(cond, dummy_attr);
