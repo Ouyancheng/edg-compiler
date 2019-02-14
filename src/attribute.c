@@ -9198,8 +9198,8 @@ standard attributes given preference.
     if (dummy_attr == NULL) {
       /* Allocate a dummy attribute for matching. */
       dummy_attr = alloc_attribute();
-      dummy_attr->family = (a_byte_attribute_kind)family;
     }  /* if */
+    dummy_attr->family = (a_byte_attribute_kind)family;
     dummy_attr->name = name;
     dummy_attr->namespace_name = namespace_name;
     /* Scan through the attributes with this name to see if one meets the
@@ -9218,6 +9218,15 @@ standard attributes given preference.
         supported = cond_matches_std_attr_mode(cond, dummy_attr);
       } else {
         supported = cond_matches_ms_declspec_mode(cond, dummy_attr);
+      }  /* if */
+      if (!supported && family == af_std && gnu_mode &&
+          namespace_name != NULL && strcmp(namespace_name, "gnu") == 0) {
+        /* g++ ignores a "gnu::" namespace on attributes. */
+        dummy_attr->namespace_name = NULL;
+        dummy_attr->family = af_gnu;
+        supported = cond_matches_gnu_attr_mode(cond, dummy_attr);
+        dummy_attr->family = af_std;
+        dummy_attr->namespace_name = namespace_name;
       }  /* if */
     }  /* for */
   }  /* if */

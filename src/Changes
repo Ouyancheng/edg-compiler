@@ -1,5 +1,16 @@
 Version 5.1
 
+2/14/19  [EDGcpfe/19786,EDGcpfe/20110,EDGcpfe/20773]
+Attribute namespaces in __has_cpp_attribute
+
+The front end now supports attribute namespaces in the argument to the
+__has_cpp_attribute preprocessor operator.  For example, with --g++ --c++17:
+
+  #if !__has_cpp_attribute(gnu::noinline)
+  #error Missing noinline support
+  #endif
+
+
 2/13/19  [EDGcpfe/20083]
 Inline variable support in configurations with INSTANTIATE_EXTERN_INLINE
 

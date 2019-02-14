@@ -4833,7 +4833,9 @@ by subsequent calls.
         full_id_seen = TRUE;
       }  /* if */
       ch = *p;
-      if (ch == ATTENTION_MARKER) {
+      if (ch == ' ') {
+        ++p;
+      } else if (ch == ATTENTION_MARKER) {
         go_into_insertion(slmp, p);
       } else if (namespace_allowed && ch == ':' && p[1] == ':') {
         /* This is the "::" that separates the attribute namespace from
