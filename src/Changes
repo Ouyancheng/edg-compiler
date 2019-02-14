@@ -27,8 +27,7 @@ Consider the following example:
 
 In configurations with
 NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE, the
-C++-generating back end produced an explicit specialization for
-S<E>::f(E *) as follows:
+C++-generating back end produced a definition for S<E>::f(E *) as follows:
 
   inline void S<E>::f(E *p) {
     p->E::~E();
