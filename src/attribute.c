@@ -9223,9 +9223,9 @@ standard attributes given preference.
           namespace_name != NULL && strcmp(namespace_name, "gnu") == 0) {
         /* g++ ignores a "gnu::" namespace on attributes. */
         dummy_attr->namespace_name = NULL;
-        dummy_attr->family = (an_attribute_family)af_gnu;
+        dummy_attr->family = (a_byte_attribute_family)af_gnu;
         supported = cond_matches_gnu_attr_mode(cond, dummy_attr);
-        dummy_attr->family = (an_attribute_family)af_std;
+        dummy_attr->family = (a_byte_attribute_family)af_std;
         dummy_attr->namespace_name = namespace_name;
       }  /* if */
     }  /* for */
