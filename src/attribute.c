@@ -9170,12 +9170,14 @@ A dummy attribute used solely for the processing of attribute_is_supported.
 static an_attribute_ptr dummy_attr;
 
 a_boolean attribute_is_supported(a_const_char        *name,
+                                 a_const_char        *namespace_name,
                                  an_attribute_family family)
 /*
-Return TRUE if name designates an attribute of the specified family that is
-enabled in the current execution of the front end, FALSE otherwise.
-Passing af_internal as the value of family indicates that an attribute in
-any family is permitted, with standard attributes given preference.
+Return TRUE if name (and namespace_name, if non-NULL) designates an
+attribute of the specified family that is enabled in the current execution
+of the front end, FALSE otherwise.  Passing af_internal as the value of
+family indicates that an attribute in any family is permitted, with
+standard attributes given preference.
 */
 {
   an_attr_name_map_entry_ptr ep;
@@ -9199,6 +9201,7 @@ any family is permitted, with standard attributes given preference.
       dummy_attr->family = (a_byte_attribute_kind)family;
     }  /* if */
     dummy_attr->name = name;
+    dummy_attr->namespace_name = namespace_name;
     /* Scan through the attributes with this name to see if one meets the
        criteria of the current emulation mode and version. */
     for (ep = *p_ep; !supported && ep != NULL; ep = ep->next) {

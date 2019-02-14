@@ -4764,60 +4764,131 @@ END_EXTERN_C_BLOCK
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 static a_const_char *clang_feature_test_id(a_macro_arg_ptr   macro_arg,
+                                           a_const_char      **ns_id_ptr,
                                            a_source_position *error_pos)
 /*
-macro_arg is the argument of a clang-style feature-test macro
-(__has_feature, __has_extension, __has_attribute, or __has_builtin);
-whether the raw_text or expanded_text is used depends on the value of
-clang_version.  The argument must be an identifier, which means that either
-the text is an identifier or (if the expanded text is being used) its first
-character is an ATTENTION_MARKER denoting the expansion of a macro
-invocation, which might itself be the expansion of a macro invocation, etc.
-If the ultimate expansion is not a simple identifier, report an error at
-error_pos and return NULL.  Otherwise, return a pointer to the identifier
-(after stripping leading/trailing double-underscores, if present).  The
+macro_arg is the argument of a clang-style or standard feature-test macro
+(__has_feature, __has_extension, __has_attribute, __has_cpp_attribute, or
+__has_builtin); whether the raw_text or expanded_text is used depends on
+whether we are emulating clang or not and, if so, the value of
+clang_version.  The argument must be an identifier or, if ns_id_ptr is
+non-NULL, an identifier optionally prefixed by an attribute-namespace
+identifier and "::".  If the ultimate expansion does not satisfy this
+requirement, report an error at error_pos and return NULL.  Otherwise,
+return a pointer to the identifier (after stripping leading/trailing
+double-underscores, if present), setting *ns_id_ptr to point to the
+attribute-namespace identifier, if present, and to NULL otherwise.  The
 returned pointer may point into a local buffer, which will be overwritten
 by subsequent calls.
 */
 {
   a_source_line_modif_ptr slmp;
   int                     char_len;
-  a_const_char            *id;
+  a_const_char            *start_of_id = NULL;
+  a_const_char            *end_of_id;
   a_const_char            *p;
+  a_const_char            *end_of_arg;
+  a_boolean               full_id_seen = FALSE;
+  a_boolean               diagnostic_issued = FALSE;
+  a_boolean               saw_colon_colon = FALSE;
   static char             buff[MAX_CLANG_FEATURE_NAME_LEN];
+  a_boolean               namespace_allowed = (ns_id_ptr != NULL);
 
+  if (ns_id_ptr != NULL) {
+    *ns_id_ptr = NULL;
+  }  /* if */
   if (clang_mode && clang_version < 30300) {
     /* Clang versions before 3.3 macro-expand the argument. */
-    id = macro_arg->expanded_text;
+    p = macro_arg->expanded_text;
+    end_of_arg = p + macro_arg->expanded_len;
   } else {
     /* Clang versions 3.3 and later, as well as non-clang mode, do not
        macro-expand the argument. */
-    id = macro_arg->raw_text;
+    p = macro_arg->raw_text;
+    end_of_arg = p + macro_arg->raw_len;
   }  /* if */
-  while (*id == ATTENTION_MARKER) {
-    go_into_insertion(slmp, id);
-  }  /* while */
-  /* Check to ensure that the expanded string is an identifier. */
-  for (p = id; *p != 0; p += char_len) {
-    if (!is_identifier_char(p, &char_len, p == id)) {
-      break;
+  while (p != end_of_arg) {
+    if (is_identifier_char(p, &char_len, start_of_id == NULL)) {
+      if (start_of_id == NULL) {
+        /* This is the beginning of the attribute identifier or namespace
+           identifier. */
+        if (full_id_seen && !diagnostic_issued) {
+          /* We already saw an identifier; only one is permitted. */
+          pos_diagnostic(es_discretionary_error, ec_feature_test_macro_req_id,
+                         error_pos);
+          full_id_seen = FALSE;
+          diagnostic_issued = TRUE;
+        }  /* if */
+        /* Remember the beginning of the identifier. */
+        start_of_id = p;
+      }  /* if */
+      /* Keep track of the last identifier character seen. */
+      end_of_id = p;
+      p += char_len;
+    } else {
+      /* This is not an identifier character, so it terminates an
+         identifier. */
+      char ch;
+      if (start_of_id != NULL) {
+        full_id_seen = TRUE;
+      }  /* if */
+      ch = *p;
+      if (ch == ATTENTION_MARKER) {
+        go_into_insertion(slmp, p);
+      } else if (namespace_allowed && ch == ':' && p[1] == ':') {
+        /* This is the "::" that separates the attribute namespace from
+           the attribute name. */
+        if (start_of_id == NULL && !diagnostic_issued) {
+          /* There was no identifier preceding the "::". */
+          pos_diagnostic(es_discretionary_error, ec_missing_attr_namespace,
+                         error_pos);
+          diagnostic_issued = TRUE;
+        } else {
+          if (saw_colon_colon && !diagnostic_issued) {
+            /* We already saw an attribute namespace, so this is something
+               like "a::b::c", which is ill-formed. */
+            pos_diagnostic(es_discretionary_error, ec_multiple_attr_namespaces,
+                           error_pos);
+            diagnostic_issued = TRUE;
+          }  /* if */
+          /* Return the start of the attribute namespace to the caller and
+             set up to scan for the attribute name. */
+          *ns_id_ptr = start_of_id;
+          start_of_id = NULL;
+          full_id_seen = FALSE;
+          saw_colon_colon = TRUE;
+          p += 2;
+        }  /* if */
+      } else if (ch == LE_ESCAPE) {
+        if (p[1] == LE_END_OF_INSERTION) {
+          slmp = assoc_source_line_modif(p);
+          leave_insertion(slmp, p);
+        } else {
+          /* Ignore all other lexical escapes. */
+          p += LE_ESCAPE_LEN;
+        }  /* if */
+      } else {
+        /* An invalid non-identifier character.  Report an error. */
+        start_of_id = NULL;
+        break;
+      }  /* if */
     }  /* if */
-  }  /* for */
-  if (p == id || p[0] != LE_ESCAPE || p[1] != LE_END_OF_INSERTION) {
-    /* The argument is empty or contains something other than a simple
-       identifier. */
+  }  /* while */
+  if (start_of_id == NULL && !diagnostic_issued) {
     pos_diagnostic(es_discretionary_error, ec_feature_test_macro_req_id,
                    error_pos);
-    id = NULL;
-  }  /* if */
-  if (id != NULL && p - id > 4 && p - id < MAX_CLANG_FEATURE_NAME_LEN &&
-      id[0] == '_' && id[1] == '_' && p[-1] == '_' && p[-2] == '_') {
+    diagnostic_issued = TRUE;
+  } else if (start_of_id != NULL && !namespace_allowed &&
+             end_of_id - start_of_id > 3 &&
+             end_of_id - start_of_id + 1 < MAX_CLANG_FEATURE_NAME_LEN &&
+             start_of_id[0] == '_' && start_of_id[1] == '_' &&
+             *end_of_id == '_' && end_of_id[-1] == '_') {
     /* Need to strip off leading and trailing "__" sequences. */
-    strcpy(buff, id + 2);
-    buff[p - id - 4] = '\0';
-    id = buff;
+    strcpy(buff, start_of_id + 2);
+    buff[end_of_id - start_of_id - 3] = '\0';
+    start_of_id = buff;
   }  /* if */
-  return id;
+  return start_of_id;
 }  /* clang_feature_test_id */
 
 
@@ -6612,7 +6683,8 @@ end_arg_expansion:;
          of the front end and 0 otherwise.  __has_feature tests both
          whether the feature is enabled and that the current C++ version
          contains the feature. */
-      a_const_char *feature_name = clang_feature_test_id(map, &arg_position);
+      a_const_char *feature_name = clang_feature_test_id(map, NULL,
+                                                         &arg_position);
       a_boolean    feature_supported = FALSE;
       if (feature_name != NULL) {
         /* First check to see if the specified identifier is the name of a
@@ -6648,9 +6720,10 @@ end_arg_expansion:;
       /* The clang-style __has_attribute macro.  Has the value 1 if the
          named attribute is available in the current execution of the front
          end and 0 otherwise. */
-      a_const_char *attribute_name = clang_feature_test_id(map, &arg_position);
+      a_const_char *attribute_name = clang_feature_test_id(map, NULL,
+                                                           &arg_position);
       if (attribute_name != NULL &&
-          attribute_is_supported(attribute_name, af_gnu)) {
+          attribute_is_supported(attribute_name, NULL, af_gnu)) {
         strcpy(repl_text, "1");
       } else {
         strcpy(repl_text, "0");
@@ -6664,6 +6737,7 @@ end_arg_expansion:;
          is 0. */
       a_const_char *attribute_name = NULL;
       a_const_char *value = "0";
+      a_const_char *namespace_name = NULL;
       if (strict_ansi_mode && !in_pp_if_expression) {
         /* __has_cpp_attribute may only appear inside #if or #elif.*/
         pos_diagnostic(strict_ansi_discretionary_severity,
@@ -6672,9 +6746,11 @@ end_arg_expansion:;
         *rescan = FALSE;
         goto return_point;
       }  /* if */
-      attribute_name = clang_feature_test_id(map, &arg_position);;
+      attribute_name = clang_feature_test_id(map, &namespace_name,
+                                             &arg_position);;
       if (attribute_name != NULL &&
-          attribute_is_supported(attribute_name, af_internal)) {
+          attribute_is_supported(attribute_name, namespace_name,
+                                 af_internal)) {
         a_void_ptr attr_supp_entry;
         attr_supp_entry = bsearch((a_bsearch_arg_type)attribute_name,
                                   (a_bsearch_arg_type)attribute_support_list,
@@ -6697,7 +6773,8 @@ end_arg_expansion:;
          builtin function is available in the current execution of the
          front end and 0 otherwise. */
 #if BUILTIN_FUNCTIONS_ENABLED
-      a_const_char *builtin_name = clang_feature_test_id(map, &arg_position);
+      a_const_char *builtin_name = clang_feature_test_id(map, NULL,
+                                                         &arg_position);
       if (builtin_name != NULL &&
           (builtin_function_is_enabled(builtin_name) ||
            (clangcpp_version_is(>=30900) &&
@@ -6713,7 +6790,7 @@ end_arg_expansion:;
 #else /* !BUILTIN_FUNCTIONS_ENABLED */
       /* There are no GNU-style builtin functions.  Just check the argument for
          correctness and give the value 0. */
-      (void)clang_feature_test_id(map, &arg_position);
+      (void)clang_feature_test_id(map, NULL, &arg_position);
       strcpy(repl_text, "0");
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
     } else {

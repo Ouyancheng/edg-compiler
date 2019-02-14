@@ -319,6 +319,7 @@ Opaque pointer to the result of looking up an attribute name.
 typedef struct an_attr_name_map_entry *an_attr_name_map_entry_ptr;
 
 extern a_boolean attribute_is_supported(a_const_char        *name,
+                                        a_const_char        *namespace_name,
                                         an_attribute_family family);
 
 extern void apply_attributes_to_prototype_instantiation(
