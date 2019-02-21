@@ -19732,12 +19732,10 @@ by things that will be in the file scope.
         get_variable_initializer(var, scope, &init_kind, &initializer);
         if (init_kind == (an_init_kind)initk_dynamic) {
           dip = initializer->dynamic;
-          if (dip->destructor != NULL ||
-              (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate ||
-               dip->kind == (a_dynamic_init_kind)dik_constructor)) {
-            /* The initialization has a destructor, or it's an aggregate or a
-               constructor that might have a ck_dynamic_init with a destructor
-               somewhere in it (it's not worth the effort to look). */
+          if (dip->destructor != NULL && is_array_type(var->type)) {
+            /* The initialization of a variable with array type has a
+               destructor, which might require a helper routine to delete it
+               (see make_destruction_routine). */
             promotion_needed = TRUE;
             break;
           }  /* if */
