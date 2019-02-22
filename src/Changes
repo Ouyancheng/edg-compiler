@@ -1,5 +1,26 @@
 Version 5.1
 
+2/22/19  [EDGcpfe/20902]
+Internal error in active_scope_lookup during hidden name processing
+
+In configurations that do hidden name processing (e.g., C++-generating back
+end configurations), an internal error could occur in active_scope_lookup
+if a namespace named in a using-directive contains both a using-declaration
+for a typedef and a direct declaration of an equivalent typedef.  Now fixed.
+
+  namespace N {
+    typedef unsigned long A;
+  }
+ using N::A;
+  typedef long unsigned A;
+  namespace {
+    struct A;
+  }
+  int main() {
+      using namespace N;
+  }
+
+
 2/14/19  [EDGcpfe/20873]
 Microsoft compatibility: accept additional declspec attributes
 
