@@ -1,5 +1,24 @@
 Version 5.1
 
+2/25/19  [EDGcpfe/20861]
+IA-64 ABI: Promotion of local entities from functions
+
+A change has been made to restrict the cases where local entities are
+promoted to the file scope in IA-64 ABI configurations where
+PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE is TRUE.  Previously, any static
+variable with a dik_nonconstant_aggregate or dik_constructor initializer
+requiring destruction had triggered promotion of all entities in the function.
+That test has been narrowed so local entities in cases like the one below are
+no longer promoted.  For example:
+
+  struct A { A() {} };
+  int f(void) {
+    static A a;       // Had triggered promotion of "a" and "i" to file scope
+    static int i = 0;
+    return ++i;
+  }
+
+
 2/22/19  [EDGcpfe/20902]
 Internal error in active_scope_lookup during hidden name processing
 
