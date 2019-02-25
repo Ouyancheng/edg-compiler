@@ -12217,6 +12217,12 @@ The subtree of the node has not yet been lowered.
 #endif /* DEBUG */
       /* There's no need to call this constructor. */
       remove_constructor_with_no_effect(dip);
+      if (ndsp->freeing_of_storage_on_exception != NULL &&
+          dip->kind == (a_dynamic_init_kind)dik_none) {
+        /* If an operator delete call was needed for this new call, it is
+           not needed any longer. */
+        remove_from_destruction_list(ndsp->freeing_of_storage_on_exception);
+      }  /* if */
     }  /* if */
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
     /* Note that the type of the "new" call might be unrelated to the type

@@ -1,5 +1,27 @@
 Version 5.1
 
+2/25/19  [EDGcpfe/17900,EDGcpfe/17956,EDGcpfe/20612]
+Erroneous destruction for removed operator new construction
+
+In configurations where
+LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS is TRUE, lowering
+elides calls to constructors and destructors that have no effect.  In the case
+where a new operator is invoking such a constructor, the lowering process had
+erroneously left the cleanup call (to operator delete) on the
+next_in_destruction list.  That could result in assertion failures (in
+record_partial_aggregate_cleanup_destruction), or segfaults (in
+clone_raw_region_table_entry) or incorrect cleanup information (in
+configurations where lowering doesn't generate exception handling tables).
+For example:
+
+  struct A { A() {} };
+  struct B { B(A*); ~B(); };
+  struct C { C(B); ~C(); };
+  void f() {
+    C c(B(new A));
+  }
+
+
 2/25/19  [EDGcpfe/20861]
 IA-64 ABI: Promotion of local entities from functions
 
