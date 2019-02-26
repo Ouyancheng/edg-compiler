@@ -1,5 +1,16 @@
 Version 5.1
 
+2/26/19  [EDGcpfe/20888]
+GNU compatibility: attributes on an alias declaration
+
+In GNU compatibility mode, using GNU-style attributes on an alias declaration
+had resulted in a spurious error.  Now fixed.  For example (with --gnu_version
+80000):
+
+  using T __attribute__((deprecated)) = int;
+  T val;
+
+
 2/25/19  [EDGcpfe/17900,EDGcpfe/17956,EDGcpfe/20612]
 Erroneous destruction for removed operator new construction
 

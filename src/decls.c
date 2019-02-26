@@ -18700,10 +18700,10 @@ processing should proceed after the call.
         if (alias_declarations_enabled &&
             is_generalized_identifier_start(GID_NO_OPTIONS) &&
             ((next_tok = next_token()) == tok_assign ||
-             (std_attributes_enabled && next_tok == tok_lbracket))) {
-          /* An identifier followed by a "=" or a bracket (presumably the
-             start of C++11-style attributes): This looks like an alias
-             declaration. */
+             (std_attributes_enabled && next_tok == tok_lbracket) ||
+             (gnu_attributes_enabled && next_tok == tok_attribute))) {
+          /* An identifier followed by a "=" or something that looks like an
+             attribute: This looks like an alias declaration. */
           alias_declaration(state, &end_of_using_pos);
         } else {
           nonmember_using_declaration(state);
