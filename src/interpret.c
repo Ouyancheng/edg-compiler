@@ -7337,6 +7337,19 @@ to FALSE and the reason for the failure is recorded in *ips.
         }  /* if */
       }
       break;
+    case bfk_expect:
+      {
+        interpreted = TRUE;
+        /* Evaluate the first argument instead of the call.  (The second
+           argument is ignored.) */
+        if (args == NULL || args->next == NULL || args->next->next != NULL) {
+          unexpected_condition();
+        } else if (!do_constexpr_expression(ips, args, result_storage,
+                                            result_storage)) {
+          do_constexpr_fail(*p_result);
+        }  /* if */
+      }
+      break;
     case bufk_launder:
       {
         interpreted = TRUE;
