@@ -5207,9 +5207,7 @@ static char* apply_pure_attr(an_attribute_ptr  ap,
                              char              *entity,
                              an_il_entry_kind  entity_kind)
 /*
-The given entity must be a function or variable.  If it's a function, apply
-the GNU "pure" attribute to it.  Otherwise, ignore the attribute with a
-warning.  Return the given entity.
+Apply the "pure" attribute to the specified entity (which must be a routine).
 */
 {
   check_assertion(entity_kind == iek_routine);

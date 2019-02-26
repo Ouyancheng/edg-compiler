@@ -66,8 +66,8 @@ for a typedef and a direct declaration of an equivalent typedef.  Now fixed.
 Microsoft compatibility: accept additional declspec attributes
 
 A number of new Microsoft declspec attributes now appear in the latest
-header files.  These new attributes: hybrid_patchable, no_init_all, pure,
-and spectre are now accepted (in any location) and ignored in Microsoft
+header files.  These new attributes (hybrid_patchable, no_init_all, pure,
+and spectre) are now accepted (in any location) and ignored in Microsoft
 emulation modes.
 
 
