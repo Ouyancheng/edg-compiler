@@ -1,6 +1,6 @@
 Version 5.1
 
-2/26/19  [EDGcpfe/20906]
+2/26/19  [EDGcpfe/19838,EDGcpfe/20478,EDGcpfe/20906]
 __builtin_expect(expr, c) and constexpr evaluation
 
 The front end now treats calls to __builtin_expect(expr, c) as evaluations of
