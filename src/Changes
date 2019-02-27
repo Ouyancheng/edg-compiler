@@ -1,5 +1,26 @@
 Version 5.1
 
+2/27/19  [EDGcpfe/20850]
+Friend function that was called before being defined was not generated
+
+If a friend function that is defined in a class template was called prior
+to being defined by an instantiation of the class template, a definition
+of the function was sometimes not evaluated, which could result in a
+linker error.  Now fixed.
+
+  void f();
+  inline void g() {
+    f();
+  }
+  template <typename T> struct C {
+    friend void f() { }
+  };
+  int main() {
+    C<int> ci;
+    g();
+  }
+
+
 2/27/19  [EDGcpfe/20904]
 Spurious access error on noexcept specifier in C++17 mode
 

@@ -3343,6 +3343,8 @@ nested class.
         } else if (defer_friend_instantiation &&
                    is_real_template_instantiation &&
                    is_function_symbol(sym) &&
+                   !(is_friend &&
+                    sym->variant.routine.ptr->source_corresp.referenced) &&
                    (is_friend || rfp->is_specialization ||
                     in_class_specialization)) {
           /* In some modes friend functions defined in a class template
@@ -3354,7 +3356,9 @@ nested class.
              templates, not for declarations in normal classes.  The
              rfp->is_specialization handles the case of a function
              specialized in a class, in_class_pecialization handles a
-             member function of a class that is specialized in-class. */
+             member function of a class that is specialized in-class.
+             If a friend function has already been referenced, handle the
+             fixup now so that the definition will be generated. */
           defer_routine_fixup_until_use(rfp);
           /* Set rfp to NULL to prevent it from being freed below. */
           rfp = NULL;
