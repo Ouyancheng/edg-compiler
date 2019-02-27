@@ -12270,6 +12270,23 @@ to access_for_symbol, but deals with the overloaded function case.
 }  /* access_across_derivations */
 
 
+static a_boolean is_member_of_prototype_instantiation(a_symbol_ptr	sym)
+/*
+Return TRUE if sym is for a member of a class template prototype instantiation.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (sym->is_class_member) {
+    a_type_ptr	parent_type = sym->parent.class_type;
+    if (parent_type->variant.class_struct_union.is_prototype_instantiation) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_member_of_prototype_instantiation */
+
+
 a_boolean have_access_to_symbol(a_symbol_ptr symbol)
 /*
 Return TRUE if the indicated symbol is accessible from the current location
@@ -12282,6 +12299,11 @@ in the source program.
   if (scope_stack_top().in_prototype_instantiation) {
     /* Suppress access checking during prototype instantiations.  Access
        checking cannot be done for a template, only for instances. */
+  }  else if (scope_stack_top().is_rescan &&
+              symbol->is_class_member &&
+              is_member_of_prototype_instantiation(symbol)) {
+    /* In a rescan context don't recheck the access of a member of a prototype
+       instantiation. */
   } else if (microsoft_mode &&
              depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
              scope_stack[depth_innermost_instantiation_scope].

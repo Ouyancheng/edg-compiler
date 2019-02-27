@@ -1,5 +1,28 @@
 Version 5.1
 
+2/27/19  [EDGcpfe/20904]
+Spurious access error on noexcept specifier in C++17 mode
+
+A spurious access error could be issued in C++17 mode when performing
+substitution on a noexcept specifier of a function template if the noexcept
+specifier referenced a private member of a class template.  Now fixed.
+
+  template <class> struct A;
+  template <class T> struct B {
+    template <class U> static A<decltype(U()())>* bv;
+    typedef decltype(bv<T>) t;
+  };
+  template <class> class C {
+    int n;
+  public:
+    template <class...> auto operator()() noexcept(noexcept(n)) -> decltype(n);
+  };
+  int main() {
+    C<int> c;
+    B<C<int>> bc;
+ }
+
+
 2/26/19  [EDGcpfe/19838,EDGcpfe/20478,EDGcpfe/20906]
 __builtin_expect(expr, c) and constexpr evaluation
 
