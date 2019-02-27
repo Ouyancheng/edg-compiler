@@ -80,7 +80,7 @@ for a typedef and a direct declaration of an equivalent typedef.  Now fixed.
   namespace N {
     typedef unsigned long A;
   }
- using N::A;
+  using N::A;
   typedef long unsigned A;
   namespace {
     struct A;

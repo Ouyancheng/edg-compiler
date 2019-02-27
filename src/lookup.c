@@ -2517,9 +2517,9 @@ lookup processing.
           /* If a tag symbol is followed by a projection to a different tag,
              use the first symbol. */
           check_assertion_or_expect_error(
-              type_tag_symbol == NULL ||
-              symbol_is(active_sym, sk_projection) ||
-              symbol_is(active_sym, sk_namespace_projection));
+                               type_tag_symbol == NULL ||
+                               symbol_is(active_sym, sk_projection) ||
+                               symbol_is(active_sym, sk_namespace_projection));
           if (type_tag_symbol == NULL) type_tag_symbol = active_sym;
         } else {
           /* Use this symbol. */
@@ -2714,9 +2714,9 @@ that do normal id lookup processing.
                   /* If a tag symbol is followed by a projection to a
                      different tag, use the first symbol. */
                   check_assertion_or_expect_error(
-                          tag_symbol == NULL ||
-                          symbol_is(sym, sk_projection) ||
-                          symbol_is(sym, sk_namespace_projection));
+                                      tag_symbol == NULL ||
+                                      symbol_is(sym, sk_projection) ||
+                                      symbol_is(sym, sk_namespace_projection));
                   if (tag_symbol == NULL) tag_symbol = sym;
                 } else {
                   if (is_namespace_symbol(sym) &&
