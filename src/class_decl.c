@@ -4207,6 +4207,11 @@ created.
          special_kind_is(rp, sfk_destructor) ||
          (special_kind_is(rp, sfk_operator) &&
           rp->variant.opname_kind == (an_opname_kind)onk_assign))) {
+      if (rp->is_trivial_default_constructor || rp->is_trivial_destructor) {
+        /* MSVC does not appear to generate code for dllexported trivial
+           default constructors and trivial destructors. */
+        continue;
+      }  /* if */
       check_assertion((rp->decl_modifiers & DM_DLLEXPORT) != 0 &&
                       rp->need_out_of_line_copy);
       force_definition_of_compiler_generated_routine(rp);
@@ -15483,6 +15488,17 @@ is returned.
                               class_type->source_corresp.is_local_to_function;
   cssp->trivial_default_constructor = ctor_sym;
   cssp->constructor->variant.overloaded_function.symbols = ctor_sym;
+  set_inline_flag(ctor, TRUE);
+  if (instantiate_extern_inline) {
+    /* When inline functions are instantiated like templates, add the
+       function to the list of inline functions. */
+    add_to_inline_function_list(ctor);
+  }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (class_type_supp(class_type)->decl_modifiers & DM_DLLEXPORT) {
+    ctor->decl_modifiers |= DM_DLLEXPORT;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* The trivial copy constructor. */
   ctor_type = make_routine_type(void_type(),
                                 make_reference_type(
@@ -15520,6 +15536,18 @@ is returned.
   ctor->source_corresp.is_local_to_function =
                               class_type->source_corresp.is_local_to_function;
   cssp->constructor->variant.overloaded_function.symbols->next = ctor_sym;
+  set_inline_flag(ctor, TRUE);
+  if (instantiate_extern_inline) {
+    /* When inline functions are instantiated like templates, add the
+       function to the list of inline functions. */
+    add_to_inline_function_list(ctor);
+  }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (class_type_supp(class_type)->decl_modifiers & DM_DLLEXPORT) {
+    ctor->decl_modifiers |= DM_DLLEXPORT;
+    ctor->need_out_of_line_copy = TRUE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!generate_move_operations) goto past_trivial_move_ctor;
   /* The trivial move constructor. */
   ctor_type = make_routine_type(void_type(),
@@ -15558,6 +15586,18 @@ is returned.
                               class_type->source_corresp.is_local_to_function;
   cssp->constructor
       ->variant.overloaded_function.symbols->next->next = ctor_sym;
+  set_inline_flag(ctor, TRUE);
+  if (instantiate_extern_inline) {
+    /* When inline functions are instantiated like templates, add the
+       function to the list of inline functions. */
+    add_to_inline_function_list(ctor);
+  }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (class_type_supp(class_type)->decl_modifiers & DM_DLLEXPORT) {
+    ctor->decl_modifiers |= DM_DLLEXPORT;
+    ctor->need_out_of_line_copy = TRUE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 past_trivial_move_ctor:
   set_class_membership(cssp->constructor, (a_source_correspondence*)NULL,
                        class_type);
@@ -15645,6 +15685,17 @@ needed IL entries for the destructor and return the associated symbol.
   enter_symbol_into_completed_class(dtor_sym);
   cssp->destructor = dtor_sym;
   switch_back_to_original_region(region_to_switch_back_to);
+  set_inline_flag(dtor, TRUE);
+  if (instantiate_extern_inline) {
+    /* When inline functions are instantiated like templates, add the
+       function to the list of inline functions. */
+    add_to_inline_function_list(dtor);
+  }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (class_type_supp(class_type)->decl_modifiers & DM_DLLEXPORT) {
+    dtor->decl_modifiers |= DM_DLLEXPORT;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 done:
   return cssp->destructor;
 }  /* generate_trivial_dtor */
@@ -22785,6 +22836,18 @@ The routine body is not generated until it is known to be needed.
     check_for_user_defined_inheritance_conversions(class_type);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (more_than_one_non_export_translation_unit || export_template_allowed) {
+    /* If there is a possibility of multiple translation units, we must ensure
+       that trivial constructors and destructors are generated consistently
+       across those translation units. */
+    a_symbol_ptr  class_sym = symbol_for(class_type);
+    if (cssp->constructor == NULL) {
+      generate_trivial_ctors(class_sym);
+    }  /* if */
+    if (cssp->destructor == NULL) {
+      generate_trivial_dtor(class_sym, (a_symbol_locator*)NULL);
+    }  /* if */
+  }  /* if */
   db_exit();
 }  /* check_special_member_functions */
 

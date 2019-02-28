@@ -13936,9 +13936,9 @@ Passing need_lvalue_result TRUE for a direct-binding case is used to
 test for only the conversions that produce an lvalue, which is needed
 as a first pass in determining reference bindings.  The case with
 ref_binding_type non-NULL and is_direct_binding FALSE is essentially
-the same as passing ref_binding_type NULL; it exists to prevent
-selection of a conversion that produces an lvalue when the ultimate
-binding is to an rvalue reference.
+the same as passing ref_binding_type NULL; it exists to prevent dropping
+cv-qualifiers or selecting a conversion that produces an lvalue when the
+ultimate binding is to an rvalue reference .
 */
 {
   a_symbol_ptr              conversion_symbol, base_conversion_symbol;
@@ -14007,9 +14007,10 @@ binding is to an rvalue reference.
       need_rvalue_ref_compat_result = TRUE;
     }  /* if */
     if (!is_direct_binding) {
-      /* A non-direct-binding case is supposed to be treated the same as
+      /* A non-direct-binding case is supposed to be treated similarly to
          passing ref_binding_type NULL, except for setting
-         need_rvalue_ref_compat_result (already done above). */
+         need_rvalue_ref_compat_result (already done above) and for checking
+         against dropped cv-qualifiers. */
       goto not_direct_binding_case;
     }  /* if */
     is_reference_binding = TRUE;
@@ -14323,7 +14324,6 @@ not_direct_binding_case:
         if (types_match_ignoring_qualifiers ||
             ((is_reference_binding || is_copy_initialization) &&
              is_class_struct_union_type(dest_type) &&
-             is_immediate_class_type(unqual_return_type) &&
              (bcp = find_base_class_of(unqual_return_type,
                                        dest_type)) != NULL)) {
           /* The source and destination types are the same, ignoring
@@ -14339,7 +14339,7 @@ not_direct_binding_case:
             compatible = TRUE;
           } else {
             class_object_adjustment_required = TRUE;
-            if (is_reference_binding) {
+            if (is_reference_binding || ref_binding_type != NULL) {
               if (!any_qualifier_missing(dest_type, return_type)) {
                 /* When binding a reference, it's okay to add qualifiers,
                    but not to drop them. */
@@ -18042,10 +18042,10 @@ error.  conv_context describes the context of the conversion.
      has a reference-to-const parameter and cannot copy a volatile object).
      Note that bitwise_copy_okay is TRUE only when no overload resolution
      is required in order to decide how to do the copy, and also only when
-     there is no symbol for the copy constructor so that access checking and
-     similar checks need not be done. */
+     there is no user-declared or nontrivial generated copy constructor so
+     that access checking and similar checks need not be done. */
   cctor_is_bitwise_copy = (cssp->construction_by_bitwise_copy_allowed &&
-                           cssp->constructor == NULL);
+                           !cssp->has_copy_constructor);
   bitwise_copy_okay = try_bitwise_copy &&
                       cctor_is_bitwise_copy &&
                       !any_qualifier_in_set_missing(TQ_CONST, /*lint --e(845)*/
@@ -18166,7 +18166,7 @@ error.  conv_context describes the context of the conversion.
       try_conversion_functions = TRUE;
     } else {
       /* Direct-initialization. */
-      if (constructor_symbol == NULL && cctor_is_bitwise_copy) {
+      if (!cssp->has_copy_constructor && cctor_is_bitwise_copy) {
         /* Direct-initialization really only tries constructors, but if
            the only constructor is an implicit bitwise copy constructor
            check conversion functions also (conceptually, the result of
@@ -23532,8 +23532,9 @@ be suppressed (i.e., SFINAE mode).
           dip2->is_explicit_cast = is_cast;
         }  /* if */
       }  /* if */
-      if (symbol_supplement_for_class(list_type)->destructor != NULL) {
-        /* std::initializer_list is not supposed to have a destructor. */
+      if (!symbol_supplement_for_class(list_type)->has_trivial_destructor) {
+        /* std::initializer_list is not supposed to have a nontrivial
+           destructor. */
         expr_pos_error(ec_std_initializer_list_has_dtor, pos);
       }  /* if */
       if (p_dip != NULL) *p_dip = dip;

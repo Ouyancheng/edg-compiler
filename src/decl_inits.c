@@ -6252,7 +6252,7 @@ FALSE is returned) for non-class objects.
                        tp, tp, err_pos, /*check_access=*/TRUE,
                        (a_boolean *)NULL);
           }  /* if */
-          if (is_const) {
+          if (is_const && !tp->variant.class_struct_union.is_empty_class) {
             /* A user-provided default constructor is normally required for a
                const-qualified variable. */
             if (any_cfront_mode() || microsoft_mode) {
@@ -6268,12 +6268,16 @@ FALSE is returned) for non-class objects.
             }  /* if */
           }  /* if */
         }  /* if */
-        /* Set def_init_performed, which is returned to the caller. */
-        /* Even if ctor is NULL (as a result of failing to find a default
-           constructor) we still set def_init_performed as though default
-           initialization were done even though it wasn't -- this will
-           prevent a redundant diagnostic from being issued. */
-        def_init_performed = TRUE;
+        if (cssp->trivial_default_constructor == NULL ||
+            tp->variant.class_struct_union.is_empty_class) {
+          /* Even if ctor is NULL (as a result of failing to find a default
+             constructor) we still set def_init_performed as though default
+             initialization were done even though it wasn't -- this will
+             prevent a redundant diagnostic from being issued.  In the case of
+             an empty class, default initialization was done since there is
+             nothing to initialize. */
+          def_init_performed = TRUE;
+        }  /* if */
       } else {
         /* The class has no user-declared constructors. */
         if (is_const) {
@@ -6298,7 +6302,7 @@ FALSE is returned) for non-class objects.
       if (ctor == NULL && dtor == NULL && !is_nonreal_class && !var->is_vla) {
         /* No constructor for default initialization; no destructor either.
            Not a variable-length array (VLA). */
-        if (innermost_function_scope != NULL) {
+        if (innermost_function_scope != NULL && !cssp->is_cpp03_POD) {
           /* Although no init statement is needed, we still need to track
              attempts to branch past the trivial initialization. */
           record_trivial_init_control_flow(var);

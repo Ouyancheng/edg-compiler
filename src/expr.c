@@ -33,6 +33,7 @@ expr.c -- Expression scanning routines.
 #include "func_def.h"
 #endif /* COROUTINES_ALLOWED */
 #include "interpret.h"
+#include "layout.h"
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* The Microsoft-specific predefined identifier __FUNCDNAME__ refers to the
    mangled name of the current function.  Hence, we may need access to the
@@ -19915,7 +19916,8 @@ expression, and return the result in *result (or an error indication in
         /* When the initializer is omitted on a "new" of a const class
            object, the default constructor is required to be explicitly
            declared; it can't be implicit. */
-        if (is_generated_ctor && is_const_qualified_type(new_type)) {
+        if (is_generated_ctor && is_const_qualified_type(new_type) &&
+            !is_empty_class_type(new_type)) {
           if (expr_error_should_be_issued()) {
             type_error(ec_missing_default_constructor_on_unnamed_const,
                        unqual_base_new_type);
