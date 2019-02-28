@@ -22842,10 +22842,10 @@ The routine body is not generated until it is known to be needed.
        across those translation units. */
     a_symbol_ptr  class_sym = symbol_for(class_type);
     if (cssp->constructor == NULL) {
-      generate_trivial_ctors(class_sym);
+      (void)generate_trivial_ctors(class_sym);
     }  /* if */
     if (cssp->destructor == NULL) {
-      generate_trivial_dtor(class_sym, (a_symbol_locator*)NULL);
+      (void)generate_trivial_dtor(class_sym, (a_symbol_locator*)NULL);
     }  /* if */
   }  /* if */
   db_exit();
