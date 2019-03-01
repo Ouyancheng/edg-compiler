@@ -6,7 +6,7 @@ GNU statement expressions in unevaluated contexts
 In GNU modes, the front end now accepts GNU statements expressions in non-
 local scopes when they appear in unevaluated contexts.  For example:
 
-  unsigned long s = sizeof( ({ 42; }) );
+  unsigned long s = sizeof( ({ 42; }) );  // Now okay in GNU modes.
 
 
 2/27/19  [EDGcpfe/20850]
