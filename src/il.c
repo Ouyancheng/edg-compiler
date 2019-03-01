@@ -4775,14 +4775,20 @@ set correctly.
                   !scp->parent_via_local_scope_ref);
   scp->parent_scope = parent_scope;
   if (!in_file_scope(parent_scope)) {
-    /* The entity is a member of a function-local scope. */
+    /* The entity appears in a function-local scope or, possibly, a GNU
+       statement expression appearing in a nonlocal context. */
     a_scope_ptr   func_scope;
     a_scope_depth depth = parent_scope->depth_in_scope_stack;
     if (depth != NO_SCOPE_DEPTH) {
       /* The parent scope is on the scope stack, so get its enclosing routine
          from the stack. */
       depth = scope_stack[depth].depth_innermost_function_scope;
-      check_assertion(depth != NO_SCOPE_DEPTH);
+      if (depth == NO_SCOPE_DEPTH) {
+        /* This can happen with a GNU statement expression appearing in a
+           nonlocal context. */
+        check_assertion(gnu_mode);
+        goto done;
+      }  /* if */
       func_scope = scope_stack[depth].il_scope;
     } else {
       /* The parent scope is not on the scope stack, so use
@@ -4802,6 +4808,7 @@ set correctly.
       scp->parent_via_local_scope_ref = TRUE;
     }  /* if */
   }  /* if */
+done:;
 }  /* set_parent_scope */
 
 

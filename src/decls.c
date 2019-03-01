@@ -18027,7 +18027,7 @@ if one is present.
     /* For ordinary variables and parameters (but not for static data members
        or variable declarations erroneously using a qualified-id), not
        specifying a storage class implies "auto" storage. */
-    if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
+    if (is_local_scope_kind(scope_stack_top().kind) ||
         state->param_id != NULL) {
       /* We are inside a function body or this is an old-style parameter
          declaration, so an unspecified storage class means "auto", unless
