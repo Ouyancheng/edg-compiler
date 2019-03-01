@@ -3032,6 +3032,7 @@ ec_linkage_main;;"function \"main\" cannot be declared in a linkage-specificatio
 ec_struct_binding_in_condition;;"structured binding is not allowed in a condition"
 ec_missing_attr_namespace;;"an attribute namespace identifier is required before \"::\""
 ec_multiple_attr_namespaces;;"only one attribute namespace is allowed"
+ec_bad_return;;"\"return\" not allowed here"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

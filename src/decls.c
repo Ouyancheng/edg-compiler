@@ -3589,7 +3589,8 @@ information in the specified id-linkage block.
   if (is_error_locator(*idlbp->locator)) {
     /* Symbol is compiler-generated as a result of an error, so there are
        no other declarations of the same symbol. */
-  } else if (is_object && depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+  } else if (is_object &&
+             is_local_scope_kind(scope_stack_top().kind) &&
              local_storage_class != (a_storage_class)sc_extern) {
     /* Local variable declaration. */
   } else if (scope_stack[decl_scope_level].kind ==
@@ -7045,7 +7046,7 @@ for use in generating cross-reference output describing this declaration.
     a_scope_depth  scope_depth;
     if (!alloc_at_file_scope) {
       scope_depth = decl_scope_level;
-      if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+      if (!is_local_scope_kind(scope_stack_top().kind)) {
         /* The variable will be allocated in file scope after all.
            (This should only occur in error situations.) */
         check_assertion(total_errors != 0);

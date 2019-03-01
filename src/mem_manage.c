@@ -1871,11 +1871,13 @@ to be displayed.
 }  /* db_text_buffer */
 
 
-void db_prefix(char  *entry)
+void db_prefix(void  *entry_ptr)
 /*
 Display the IL entry prefix of the given IL entry.
 */
 {
+  char  *entry = (char*)entry_ptr;
+
   if (entry == NULL) {
     fprintf(f_debug, "NULL pointer\n");
   } else {

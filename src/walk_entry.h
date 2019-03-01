@@ -2036,16 +2036,28 @@ do_set_proper_definition_needed_flag:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case iek_block:
       {
-#if !NEEDED_FLAG_WALK
 #define eptr ((a_block_ptr)entry_ptr)
-        /* The associated scope, if any, will appear on the list of local
-           scopes for the current scope.  Therefore, here we just remap
-           the pointer but do not walk the subtree. */
-        remap_ptr_not_needed(eptr->assoc_scope, a_scope_ptr, iek_scope);
-        remap_ptr_not_needed(eptr->lifetime, an_object_lifetime_ptr,
-                             iek_object_lifetime);
-#undef eptr
+#if !NEEDED_FLAG_WALK
+#if GNU_EXTENSIONS_ALLOWED
+        if (eptr->is_statement_expression) {
+          /* The block scope for a statement expression that appears in a
+             nonlocal scope (in an unevaluated context) doesn't appear on any
+             scopes list.  So it must be walked here. */
+          walk_ptr(eptr->assoc_scope, a_scope_ptr, iek_scope);
+          walk_ptr(eptr->lifetime, an_object_lifetime_ptr,
+                   iek_object_lifetime);
+        } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        {
+          /* The associated scope, if any, will appear on the list of local
+             scopes for the current scope.  Therefore, here we just remap
+             the pointer but do not walk the subtree. */
+          remap_ptr_not_needed(eptr->assoc_scope, a_scope_ptr, iek_scope);
+          remap_ptr_not_needed(eptr->lifetime, an_object_lifetime_ptr,
+                               iek_object_lifetime);
+        }  /* if */
 #endif /* !NEEDED_FLAG_WALK */
+#undef eptr
       }
       break;
     case iek_statement:

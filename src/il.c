@@ -8434,18 +8434,31 @@ caller is responsible for sorting that out.)
     if (ssep->kind == (a_scope_kind)sck_block ||
         ssep->kind == (a_scope_kind)sck_condition) {
       a_scope_stack_entry_ptr	parent_ssep = previous_scope_of(ssep);
+      a_boolean                 il_region_changed;
       /* Create the IL scope in a block scope. */
       (void)ensure_il_scope_exists(parent_ssep);
-      region_to_switch_back_to = curr_il_region_number;
-      switch_il_region(ssep->il_memory_region);
+      if (curr_il_region_number == file_scope_region_number) {
+        region_to_switch_back_to = curr_il_region_number;
+        switch_il_region(ssep->il_memory_region);
+        il_region_changed = TRUE;
+      } else {
+        ssep->il_memory_region = curr_il_region_number;
+        il_region_changed = FALSE;
+      }  /* if */
       ssep->il_scope = sp = alloc_scope(ssep->kind, ssep->number,
                                         (a_routine_ptr)NULL);
-      switch_il_region(region_to_switch_back_to);
+      if (il_region_changed) {
+        switch_il_region(region_to_switch_back_to);
+      }  /* if */
       /* Set the parent scope. */
       ssep->il_scope->parent = parent_ssep->il_scope;
       /* Add it to the scopes list for the scope enclosing the scope indicated
-         by ssep. */
-      add_to_scopes_list(sp, ssep-1);
+         by ssep.  Don't do this if the parent scope is in file-scope memory
+         (possible when GNU statement expressions appear in unevaluated
+         contexts). */
+      if (is_local_scope_kind(parent_ssep->kind)) {
+        add_to_scopes_list(sp, ssep-1);
+      }  /* if */
       if (!C_mode()) {
         /* An object lifetime will have been created for this scope in
            push scope.  Now that the scope entry exists, bind the two entries

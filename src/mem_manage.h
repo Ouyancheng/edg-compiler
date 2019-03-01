@@ -383,7 +383,7 @@ Add the specified character to the text buffer specifier by "buf".
 extern void db_text_buffer(a_const_char      *prefix,
 			   a_text_buffer_ptr buf);
 
-extern void db_prefix(char  *entry);
+extern void db_prefix(void  *entry_ptr);
 
 extern an_il_entry_prefix_ptr db_prefix_ptr(char  *entry);
 #endif /* DEBUG */

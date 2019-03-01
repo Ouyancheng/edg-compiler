@@ -6443,6 +6443,53 @@ Otherwise, just return "type".
 }  /* orig_type_if_nonreal_prototype_type */
 
 
+static void activate_delayed_type_definition_sse(a_type_ptr  tp)
+/*
+The given type's definition was not rendered when its source sequence entry
+was first encountered.  We're now ready to render that definition: Make the
+corresponding source sequence entry the current entry.  In cases where
+sublist_parent_source_sequence_entry might not be NULL (before or after the
+activation), this requires a slightly sophisticated search process.
+*/
+{
+  if (innermost_function_scope != NULL) {
+    /* We are in a function scope, so the types source sequence entry must
+       be on a sublist.  Search backwards to find the iek_src_seq_sublist
+       that holds the source sequence entry for the given type. */
+    a_source_sequence_entry_ptr  ssep = curr_source_sequence_entry;
+    if (sublist_parent_source_sequence_entry != NULL) {
+      /* We're currently on a sublist: Start the search from its parent
+         entry. */
+      ssep = sublist_parent_source_sequence_entry;
+    }  /* if */
+    for (;;) {
+      /* Find the preceding sublist (there must be at least one). */
+      while (!is_sublist_parent(ssep)) {
+        check_assertion(ssep != NULL);
+        ssep = ssep->prev;
+      }  /* while */
+      curr_source_sequence_entry =
+                               assoc_sublist_of(ssep)->source_sequence_list;
+      /* Search the sublist to see if it is the one on which the source
+         sequence entry of the given type appears. */
+      while (curr_source_sequence_entry != NULL) {
+        if (curr_source_sequence_entry ==
+                                 tp->source_corresp.source_sequence_entry) {
+          goto srq_seq_sublist_parent_found;
+        }  /* if */
+        curr_source_sequence_entry = curr_source_sequence_entry->next;
+      }  /* while */
+      ssep = ssep->prev;
+    }  /* for */
+srq_seq_sublist_parent_found:
+    sublist_parent_source_sequence_entry = ssep;
+  } else {
+    sublist_parent_source_sequence_entry = NULL;
+    curr_source_sequence_entry = tp->source_corresp.source_sequence_entry;
+  }  /* if */
+}  /* activate_delayed_type_definition_sse */
+
+
 static void gen_tag_reference(a_type_ptr             type,
                               a_gen_name_options_set options,
                               an_attribute_ptr       attributes)
@@ -6467,8 +6514,7 @@ al_tag_name attributes (if any).
     /* Save the current position in the source sequence stream and change it
        to the source sequence entry for the type. */
     save_source_sequence_scan_state(&saved_state);
-    curr_source_sequence_entry = type->source_corresp.source_sequence_entry;
-    sublist_parent_source_sequence_entry = NULL;  /* Arbitrary. */
+    activate_delayed_type_definition_sse(type);
 #if GNU_EXTENSIONS_ALLOWED
     if (type->source_corresp.marked_as_gnu_extension &&
         type->autonomous_primary_tag_decl) {
@@ -6754,41 +6800,7 @@ such cases.
        Save the current position in the source sequence stream and change it
        to the source sequence entries associated with the type. */
     save_source_sequence_scan_state(&saved_state);
-    if (innermost_function_scope != NULL) {
-      /* We are in a function scope, so the types source sequence entry must
-         be on a sublist.  Search backwards to find the iek_src_seq_sublist
-         that holds the source sequence entry for the given type. */
-      a_source_sequence_entry_ptr  ssep = curr_source_sequence_entry;
-      if (sublist_parent_source_sequence_entry != NULL) {
-        /* We're currently on a sublist: Start the search from its parent
-           entry. */
-        ssep = sublist_parent_source_sequence_entry;
-      }  /* if */
-      for (;;) {
-        /* Find the preceding sublist (there must be at least one). */
-        while (!is_sublist_parent(ssep)) {
-          check_assertion(ssep != NULL);
-          ssep = ssep->prev;
-        }  /* while */
-        curr_source_sequence_entry =
-                                 assoc_sublist_of(ssep)->source_sequence_list;
-        /* Search the sublist to see if it is the one on which the source
-           sequence entry of the given type appears. */
-        while (curr_source_sequence_entry != NULL) {
-          if (curr_source_sequence_entry ==
-                                   tp->source_corresp.source_sequence_entry) {
-            goto srq_seq_sublist_parent_found;
-          }  /* if */
-          curr_source_sequence_entry = curr_source_sequence_entry->next;
-        }  /* while */
-        ssep = ssep->prev;
-      }  /* for */
-srq_seq_sublist_parent_found:
-      sublist_parent_source_sequence_entry = ssep;
-    } else {
-      sublist_parent_source_sequence_entry = NULL;
-      curr_source_sequence_entry = tp->source_corresp.source_sequence_entry;
-    }  /* if */
+    activate_delayed_type_definition_sse(tp);
     adv_curr_source_sequence_entry();
   }  /* if */
   if (is_underlying_type || is_bases

@@ -6436,6 +6436,11 @@ The syntax is:
   }  /* if */
 #endif /* VLA_DEALLOCATIONS_IN_IL */
   /* Get a pointer to the current routine entry, and its return type. */
+  if (innermost_function_scope == NULL) {
+    add_stop_token(tok_semicolon);
+    syntax_error(ec_bad_return);
+    goto done;
+  }  /* if */
   rout = current_routine_entry();
   rout_type = skip_typerefs(rout->type);
   return_type = rout_type->variant.routine.return_type;
@@ -6689,6 +6694,7 @@ The syntax is:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
+done:
   remove_stop_token(tok_semicolon);
   db_exit();
 }  /* return_statement */
@@ -7233,7 +7239,8 @@ this statement was preceded by the GNU keyword __extension__.
   a_source_position  start_pos;
   an_il_entity_list_entry_ptr
                      entity_list;
-  a_routine_ptr      current_rp = current_routine_entry();
+  a_routine_ptr      current_rp = innermost_function_scope != NULL ?
+                                                current_routine_entry() : NULL;
 
   db_enter(3, "statement");
 
@@ -7327,7 +7334,7 @@ rescan_statement:
 #endif /* COROUTINES_ALLOWED */
       /* Return or co-return statement. */
       return_statement();
-      if (current_rp->is_constexpr &&
+      if (current_rp != NULL && current_rp->is_constexpr &&
           !special_kind_is(current_rp, sfk_constructor)) {
         /* No return statements are allowed in constexpr constructors. */
         can_appear_in_constexpr_body = TRUE;
@@ -7529,7 +7536,8 @@ expr_statement:
       }  /* if */
       break;
   }  /* switch */
-  if (current_rp->is_constexpr && !can_appear_in_constexpr_body) {
+  if (current_rp != NULL && current_rp->is_constexpr &&
+      !can_appear_in_constexpr_body) {
     if (current_rp->is_declared_constexpr) {
       /* Report an error if the statement is not one that is allowed in a
          constexpr function or constexpr constructor. */
@@ -7616,14 +7624,10 @@ through *p_result_type.
   db_enter (3, "compound_statement");
 
   /* We expect something on the statement stack unless we are starting a
-     new function or this is a statement expression in the ctor-initializer
-     of a constructor. */ 
+     new function or this is a statement expression. */
   check_assertion(at_function_level ||
                   depth_stmt_stack >= 0 ||
-                  (is_statement_expr &&
-                   (innermost_function_scope != NULL &&
-                    innermost_function_scope->variant.routine.ptr->special_kind
-                                == (a_special_function_kind)sfk_constructor)));
+                  is_statement_expr);
   /* Allocate the statement block. */
   if (at_function_level) {
     /* Block for a function. */
