@@ -14339,18 +14339,15 @@ not_direct_binding_case:
             compatible = TRUE;
           } else {
             class_object_adjustment_required = TRUE;
-            if (is_reference_binding ||
-                (ref_binding_type != NULL && !microsoft_bugs)) {
+            if (is_reference_binding || ref_binding_type != NULL) {
               if (!any_qualifier_missing(dest_type, return_type)) {
                 /* When binding a reference, it's okay to add qualifiers,
                    but not to drop them. */
                 compatible = TRUE;
               }  /* if */
-            } else if (is_copy_initialization ||
-                       (!any_cfront_mode() && !microsoft_mode)) {
-              /* The value will be copied, so qualifiers are not significant.
-                 (MSVC and Cfront do take the qualifiers into account if this
-                 is not copy initialization.) */
+            } else if (is_copy_initialization) {
+              /* In copy-initialization, the value will be copied, so
+                 qualifiers are not significant. */
               compatible = TRUE;
             }  /* if */
           }  /* if */
@@ -18182,11 +18179,11 @@ error.  conv_context describes the context of the conversion.
         } else {
           try_as_arg_of_bitwise_cctor = TRUE;
         }  /* if */
-      } else if (any_cfront_mode() || mandatory_copy_elision) {
-        /* Look for a conversion function that converts to exactly the
-           required type.  That makes sense because in that case the copy
-           constructor call can be elided and we call just one user-defined
-           conversion rather than two. */
+      } else if (any_cfront_mode()) {
+        /* In a departure from the standard, look for a conversion function
+           that converts to exactly the required type.  That makes sense
+           because in that case the copy constructor call can be elided
+           and we call just one user-defined conversion rather than two. */
         try_conversion_functions = TRUE;
       }  /* if */
     }  /* if */

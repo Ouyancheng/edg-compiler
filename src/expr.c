@@ -3293,14 +3293,6 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
     if (!(conv_context & CCO_DIRECT_INITIALIZATION)) {
       conv_context |= CCO_IGNORE_EXPLICIT_MEMBERS;
     }  /* if */
-    if (elision_allowed && arg_list != NULL && arg_list->next == NULL &&
-        is_expression_component(arg_list) && mandatory_copy_elision) {
-      an_operand  *opnd = operand_of_arg_list_elem(arg_list);
-      prep_elision_initializer_operand(opnd, class_type, /*fill_in_dtor=*/TRUE,
-                                       conv_context, ec_bad_initializer_type,
-                                       elision_done, &dip);
-      goto build_temp_init_if_needed;
-    }  /* if */
     /* The constructors are overloaded.  Select the proper one. */
     /* Note that a special case allows passing have_selector == TRUE and
        NULL for the selector operand when dealing with constructors. */
@@ -3585,7 +3577,6 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
       }  /* if */
     }  /* if */
   }  /* if */
-build_temp_init_if_needed:
   *p_dip = dip;
   /* Build an enk_temp_init node if one is needed and one did not exist
      already. */
@@ -44473,14 +44464,12 @@ will be indicated in the dynamic initialization.  *source_pos is the
 source position to be used in overall errors.
 */
 {
-  an_expr_stack_entry            *saved_expr_stack;
-  an_expr_stack_entry            expr_stack_entry;
-  a_class_symbol_supplement_ptr  cssp;
+  an_expr_stack_entry           *saved_expr_stack;
+  an_expr_stack_entry           expr_stack_entry;
+  a_class_symbol_supplement_ptr cssp;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position              end_position;
+  a_source_position             end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_conv_context_set             conv_context = CCO_DIRECT_INITIALIZATION;
-  a_decl_parse_state             *dps = is->decl_parse_state;
 
   db_enter(4, "scan_class_parenthesized_initializer");
   /* Force an object lifetime around the initialization if this routine is
@@ -44494,22 +44483,21 @@ source position to be used in overall errors.
   cssp = symbol_supplement_for_class(class_type);
   check_assertion(cssp->constructor != NULL);
   /* Scan the constructor argument list. */
-  if (dps != NULL && dps->sym != NULL &&
-      (symbol_is(dps->sym, sk_variable) ||
-       symbol_is(dps->sym, sk_static_data_member))) {
-    conv_context |= CCO_INITIALIZING_VARIABLE;
-  }  /* if */
   scan_ctor_arguments(cssp->constructor, source_pos,
-                      object_class_type, (a_type_ptr)NULL, fill_in_dtor,
-                      !is->is_base_init, /*is_custom_ms_attr_arg_list=*/FALSE,
-                      conv_context, (a_rescan_control_block *)NULL,
-                      args_supplied, arg_list, (an_arg_list_elem *)NULL,
+                      object_class_type, (a_type_ptr)NULL,
+                      fill_in_dtor, !is->is_base_init,
+                      /*is_custom_ms_attr_arg_list=*/FALSE,
+                      CCO_DIRECT_INITIALIZATION,
+                      (a_rescan_control_block *)NULL,
+                      args_supplied, arg_list,
+                      (an_arg_list_elem *)NULL,
                       /*trivial_ctor=*/(a_boolean *)NULL,
                       /*elision_done=*/(a_boolean *)NULL,
                       /*unboxing_conv=*/(a_boolean *)NULL,
                       /*string_ctor_skip=*/(a_boolean *)NULL,
                       /*simple_result=*/(an_operand *)NULL,
-                      &is->init_dip, (an_expr_node_ptr *)NULL,
+                      &is->init_dip,
+                      (an_expr_node_ptr *)NULL,
                       (a_source_position *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = curr_construct_end_position;
