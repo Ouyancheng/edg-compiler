@@ -1,5 +1,12 @@
 Version 5.1
 
+3/1/19  [EDGcpfe/20946]
+__has_*_assign macros in Microsoft mode
+
+Prior to MSVC 2015, the Microsoft compiler rejected all __has_*_assign
+macros for all non-class types. Starting with MSVC 2015 this was fixed,
+however microsoft_version >= 1900 still rejected these.  Now fixed.
+
 2/11/19  [EDGcpfe/19122]
 Initialization and cv-qualifiers
 

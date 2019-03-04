@@ -8446,8 +8446,10 @@ and, if pos is not NULL, an error will be reported.
         case bok_has_nothrow_assign:
         case bok_has_trivial_move_assign:
         case bok_has_nothrow_move_assign:
-          if (microsoft_mode) {
-            /* MSVC always returns FALSE for nonclass types. */
+          if (microsoft_version < 1900 ||
+              kind == (a_builtin_operation_kind)bok_has_assign) {
+            /* MSVC pre-2015 always returns FALSE for nonclass types.
+               Newer versions still reject has_assign. */
             result = FALSE;
           } else if (is_reference_type(type) || is_function_type(type) ||
                      is_void_type(type) || is_const) {
