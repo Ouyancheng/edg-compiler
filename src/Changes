@@ -1,5 +1,29 @@
 Version 5.1
 
+2/11/19  [EDGcpfe/19122]
+Initialization and cv-qualifiers
+
+Consider the following example:
+
+  struct A {
+    A();
+    A(const A&);
+  };
+  struct B {
+    operator volatile A();
+  };
+  int main() {
+    B b;
+    A a(b);  // Now an error in pre-C++17 modes.
+  }
+
+The front end previously accepted this in most modes, even though if the
+initialization is performed through the copy constructor of A, the "volatile"
+qualifier makes it invalid.  That is now fixed.  Note that in C++17 mode,
+the copy constructor of A is not involved because of the mandatory copy
+elision rules, and hence the case is accepted in that mode.
+
+
 3/1/19   [EDGcpfe/20896]
 GNU statement expressions in unevaluated contexts
 
