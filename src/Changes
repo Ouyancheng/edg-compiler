@@ -27,7 +27,7 @@ elision rules, and hence the case is accepted in that mode.
 3/1/19   [EDGcpfe/20896]
 GNU statement expressions in unevaluated contexts
 
-In GNU modes, the front end now accepts GNU statements expressions in non-
+In GNU modes, the front end now accepts GNU statement expressions in non-
 local scopes when they appear in unevaluated contexts.  For example:
 
   unsigned long s = sizeof( ({ 42; }) );  // Now okay in GNU modes.

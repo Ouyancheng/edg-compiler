@@ -6443,6 +6443,33 @@ Otherwise, just return "type".
 }  /* orig_type_if_nonreal_prototype_type */
 
 
+static a_boolean generating_function_body(void)
+/*
+Return TRUE if we are currently generating a function body.
+*/
+{
+  a_boolean  in_function_body = FALSE;
+
+  if (innermost_function_scope != NULL) {
+    /* innermost_function_scope is set before we actually enter the function
+       body.  We know we are really in the function body when the name context
+       stack contains the associated function scope. */
+    a_name_context_ptr  ncp = curr_name_context;
+    for (; ncp != NULL; ncp = ncp->next) {
+      if (ncp->assoc_scope == NULL) {
+        continue;
+      } else if (scope_is(ncp->assoc_scope, sck_function)) {
+        in_function_body = TRUE;
+        break;
+      } else if (is_file_or_namespace_scope(ncp->assoc_scope)) {
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return in_function_body;
+}  /* generating_function_body */
+
+
 static void activate_delayed_type_definition_sse(a_type_ptr  tp)
 /*
 The given type's definition was not rendered when its source sequence entry
@@ -6452,8 +6479,8 @@ sublist_parent_source_sequence_entry might not be NULL (before or after the
 activation), this requires a slightly sophisticated search process.
 */
 {
-  if (innermost_function_scope != NULL) {
-    /* We are in a function scope, so the types source sequence entry must
+  if (generating_function_body) {
+    /* We are in a function scope, so the type's source sequence entry must
        be on a sublist.  Search backwards to find the iek_src_seq_sublist
        that holds the source sequence entry for the given type. */
     a_source_sequence_entry_ptr  ssep = curr_source_sequence_entry;

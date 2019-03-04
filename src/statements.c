@@ -3458,6 +3458,15 @@ block under the "try" in a function try block.
   } else {
     /* Push an associated scope.  This does not allocate the IL scope yet. */
     push_block_scope_with_lifetime(function_try_lifetime);
+    if (is_statement_expr) {
+      /* The previous call sets scope_stack_top().il_memory_region to the
+         region of the enclosing (local) scope.  However, statement expressions
+         can appear in local classes where the enclosing (class) scope is
+         associated with file scope memory, but the memory region for the
+         statement expression (already reflected in curr_il_region_number)
+         is that of the enclosing function. */
+      scope_stack_top().il_memory_region = curr_il_region_number;
+    }  /* if */
     if (depth_stmt_stack >= 0) {
       /* Set appropriate flags in the scope stack entry. */
       kind = struct_stmt_stack[depth_stmt_stack].kind;
