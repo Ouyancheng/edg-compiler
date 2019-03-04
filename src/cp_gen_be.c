@@ -6479,7 +6479,7 @@ sublist_parent_source_sequence_entry might not be NULL (before or after the
 activation), this requires a slightly sophisticated search process.
 */
 {
-  if (generating_function_body) {
+  if (generating_function_body()) {
     /* We are in a function scope, so the type's source sequence entry must
        be on a sublist.  Search backwards to find the iek_src_seq_sublist
        that holds the source sequence entry for the given type. */
