@@ -2648,11 +2648,11 @@ it is zero.
 */
 {
   a_type_ptr	new_type = NULL;
+  a_template_symbol_supplement_ptr	tssp;
 
+  tssp = template_supplement_for_symbol(rout_templ_sym);
   if (templ_param_list == NULL) {
     /* Get the template parameter list, if one was not passed in. */
-    a_template_symbol_supplement_ptr	tssp;
-    tssp = template_supplement_for_symbol(rout_templ_sym);
     templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
   }  /* if */
   /* If there is no template argument list yet, create it now.  This can
@@ -2686,6 +2686,11 @@ it is zero.
       if (routine_has_abstract_param_or_return_type(new_type)) {
         new_type = NULL;
       }  /* if */
+    }  /* if */
+    if (!is_partial_order_check && new_type != NULL) {
+      /* Add the new type to the list of substituted types. */
+      (void)find_substituted_type(rout_templ_sym, tssp, *templ_arg_list,
+                                  new_type);
     }  /* if */
   }  /* if */
   return new_type;
@@ -15110,7 +15115,7 @@ do not match, copy_error is set to TRUE.
 }  /* check_template_template_argument_types */
 
 
-static a_type_ptr find_substituted_type(
+a_type_ptr find_substituted_type(
 			a_symbol_ptr				template_sym,
 			a_template_symbol_supplement_ptr	tssp,
 			a_template_arg_ptr			templ_arg_list,
@@ -15396,11 +15401,6 @@ during wrapup processing by compare_function_templates.
         /* Reset the flags in the param type entry to reflect whether the
            parameter contains any template parameters. */
         set_parameter_list_template_param_flags(templ_rout_type);
-      }  /* if */
-      if ((ctws_options & CTWS_PRESERVE_DEDUCED_PACKS) == 0) {
-        /* Add the new type to the list of substituted types. */
-        (void)find_substituted_type(templ_sym, tssp, templ_arg_list,
-                                    templ_rout_type);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -18081,6 +18081,10 @@ matches, a new argument list is returned in *new_arg_list.
   if (result_type == NULL && *new_arg_list != NULL) {
     free_template_arg_list(*new_arg_list);
     *new_arg_list = NULL;
+  } else {
+    /* Add the new type to the list of substituted types. */
+    (void)find_substituted_type(template_sym, tssp, *new_arg_list,
+                                result_type);
   }  /* if */
   return result_type;
 }  /* explicit_arg_list_identifies_specialization */

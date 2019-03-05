@@ -191,8 +191,7 @@ has a corresponding earlier entry.
       }  /* if */
       if (ssep->substitution_hash == hash_value) {
         an_equiv_templ_param_options_set  eta_flags = ETA_EXACT_MATCH_REQUIRED;
-        if (sym->variant.template_info->has_variadic_template_params &&
-            scope_stack_top().in_nonreal_instantiation) {
+        if (sym->variant.template_info->has_variadic_template_params) {
           eta_flags |= ETA_IS_VARIADIC;
         }  /* if */
         if (equiv_template_arg_lists(ssep->templ_args, templ_args,
@@ -4740,18 +4739,6 @@ deduction failed.
     }  /* if */
   }  /* if */
 #endif /* CHECKING */
-  /* Push an instantiation scope that can be used by the substitution and
-     deduction process to find information about the template. */
-  if (!*p_rescan_pushed) {
-    push_instantiation_scope_for_rescan(template_sym);
-    *p_rescan_pushed = TRUE;
-  } else {
-    /* The expression stack was restored after the earlier substitution.
-       Clear it now (as push_instantiation_scope_for_rescan would do) to
-       avoid surprises.  It will be restored when the rescan scope is
-       popped. */
-    expr_stack = NULL;
-  }  /* if */
   push_substitution(template_sym, *template_arg_list);
   if (in_substitution_loop()) {
     /* A substitution identical to this one is already under way.  Treat this
@@ -4760,17 +4747,38 @@ deduction failed.
     pop_substitution();
     goto done;
   }  /* if */
-  /* Make sure that the types of nontype template parameters that depend
-     on other template parameters agree with the types of the deduced
-     values.  Also check for the case where not all template parameters
-     have been deduced.  Create a routine type with all the substitution
-     done. */
-  updated_routine_type = wrapup_function_template_argument_deduction(
+  if (*template_arg_list != NULL) {
+    /* Look for a previously created routine type that results from this
+       template argument list. */
+    updated_routine_type = find_substituted_type(template_sym, tssp,
+                                                 *template_arg_list,
+                                                 (a_type_ptr)NULL);
+  }  /* if */
+  if (updated_routine_type == NULL) {
+    /* Push an instantiation scope that can be used by the substitution and
+       deduction process to find information about the template. */
+    if (!*p_rescan_pushed) {
+      push_instantiation_scope_for_rescan(template_sym);
+      *p_rescan_pushed = TRUE;
+    } else {
+      /* The expression stack was restored after the earlier substitution.
+         Clear it now (as push_instantiation_scope_for_rescan would do) to
+         avoid surprises.  It will be restored when the rescan scope is
+         popped. */
+      expr_stack = NULL;
+    }  /* if */
+    /* Make sure that the types of nontype template parameters that depend
+       on other template parameters agree with the types of the deduced
+       values.  Also check for the case where not all template parameters
+       have been deduced.  Create a routine type with all the substitution
+       done. */
+    updated_routine_type = wrapup_function_template_argument_deduction(
                                            template_arg_list,
                                            template_sym,
                                            (a_template_param_ptr)NULL,
                                            /*is_partial_order_check=*/FALSE,
                                            /*param_count=*/0);
+  }  /* if */
   pop_substitution();
   if (updated_routine_type != NULL) {
     a_routine_ptr routine = template_sym->variant.template_info
