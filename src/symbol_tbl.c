@@ -7070,8 +7070,9 @@ The symbol must be a function or function template symbol.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #define ctor_is_trivial(sym)                                          \
-  ((sym)->variant.routine.ptr->is_trivial_default_constructor ||      \
-   (sym)->variant.routine.ptr->is_trivial_copy_function)
+  (symbol_is(sym, sk_member_function) &&                              \
+   ((sym)->variant.routine.ptr->is_trivial_default_constructor ||     \
+    (sym)->variant.routine.ptr->is_trivial_copy_function))
 
 a_boolean f_has_nontrivial_constructor(a_class_symbol_supplement_ptr  cssp)
 /*
