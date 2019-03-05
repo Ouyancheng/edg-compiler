@@ -25035,25 +25035,7 @@ freed by this routine.
            a one-argument constructor for the class; if there is, it will
            be considered along with the conversion function. */
         /* ctor_case = FALSE; -- already set. */
-      } else if (cssp->trivial_default_constructor != NULL) {
-        /* Check for the case where all the constructors are trivial. */
-        a_symbol_ptr  sym = ctor_sym;
-        if (symbol_is(sym, sk_overloaded_function)) {
-          sym = sym->variant.overloaded_function.symbols;
-        }  /* if */
-        for (; sym != NULL; sym = sym->next) {
-          if (symbol_is(sym, sk_member_function)) {
-            a_routine_ptr  rp = sym->variant.routine.ptr;
-            if (rp->is_trivial_default_constructor ||
-                rp->is_trivial_copy_function) {
-              continue;
-            }  /* if */
-            /* A nontrivial constructor. */
-            ctor_case = TRUE;
-            break;
-          }  /* if */
-        }  /* for */
-      } else {
+      } else if (has_nontrivial_constructor(cssp)) {
         ctor_case = TRUE;
       }  /* if */
     }  /* if */

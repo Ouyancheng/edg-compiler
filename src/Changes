@@ -1,5 +1,6 @@
 Version 5.1
 
+<<<<<<< Updated upstream
 3/1/19  [EDGcpfe/20946]
 __has_*_assign macros in Microsoft mode
 
@@ -8,6 +9,9 @@ macros for all non-class types. Starting with MSVC 2015 this was fixed,
 however microsoft_version >= 1900 still rejected these.  Now fixed.
 
 2/11/19  [EDGcpfe/19122]
+=======
+3/4/19   [EDGcpfe/19122]
+>>>>>>> Stashed changes
 Initialization and cv-qualifiers
 
 Consider the following example:
