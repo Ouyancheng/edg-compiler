@@ -8440,8 +8440,8 @@ caller is responsible for sorting that out.)
     /* There is no IL scope. */
     if (ssep->kind == (a_scope_kind)sck_block ||
         ssep->kind == (a_scope_kind)sck_condition) {
-      a_scope_stack_entry_ptr	parent_ssep = previous_scope_of(ssep);
-      a_boolean                 il_region_changed;
+      a_scope_stack_entry_ptr  parent_ssep = previous_scope_of(ssep);
+      a_boolean                il_region_changed;
       /* Create the IL scope in a block scope. */
       (void)ensure_il_scope_exists(parent_ssep);
       if (curr_il_region_number == file_scope_region_number) {
