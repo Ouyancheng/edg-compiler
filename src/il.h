@@ -1622,8 +1622,11 @@ extern a_scope_ptr ensure_il_scope_exists(struct a_scope_stack_entry *ssep);
 
 extern void add_to_namespaces_list(a_namespace_ptr  nsp);
 
-extern void add_to_using_decls_list(a_using_decl_ptr  udp,
-				    a_scope_depth     depth);
+extern void add_to_using_declarations_list(a_using_decl_ptr  udp,
+					   a_scope_depth     depth);
+
+extern void add_to_using_directives_list(a_using_decl_ptr  udp,
+					 a_scope_depth     depth);
 
 extern void add_to_constants_list(a_constant_ptr con_ptr,
                                   a_boolean      at_file_scope);

@@ -6343,7 +6343,10 @@ do_assoc_type:
     case sck_function:
     case sck_block:
     case sck_class_struct_union:
-      disp_ptr("using_decls", (char *)ptr->using_decls, iek_using_decl);
+      disp_ptr("using_declarations", (char *)ptr->using_declarations,
+               iek_using_decl);
+      disp_ptr("using_directives", (char *)ptr->using_directives,
+               iek_using_decl);
       break;
     default:;
   }  /* if */
@@ -6433,7 +6436,7 @@ Display the indicated namespace entry.
 
 static void disp_using_decl(a_using_decl_ptr  ptr)
 /*
-Display the indicated using-directive entry.
+Display the indicated using-declaration or using-directive entry.
 */
 {
   disp_ptr("next", (char *)ptr->next, iek_using_decl);

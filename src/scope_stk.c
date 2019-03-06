@@ -1550,19 +1550,18 @@ parent_decl_seq is the declaration sequence number of the using-directive
 that made it visible.
 */
 {
-  a_using_decl_ptr  udp = scope->using_decls;
+  a_using_decl_ptr  udp = scope->using_directives;
 
   while (udp != NULL) {
-    if (udp->is_using_directive) {
-      a_decl_sequence_number	effective_decl_seq;
-      /* A using-directive.  Use the higher of the parent's declaration
-         sequence number or the one associated with the using directive
-         now being processed.  If the namespace that nominated this namespace
-         should not be visible then neither should this one. */
-      effective_decl_seq = parent_decl_seq > udp->decl_sequence_number ?
-                                   parent_decl_seq : udp->decl_sequence_number;
-      add_active_using_directive_to_scope(udp, ssep, effective_decl_seq);
-    }  /* if */
+    a_decl_sequence_number	effective_decl_seq;
+    check_assertion(udp->is_using_directive);
+    /* A using-directive.  Use the higher of the parent's declaration
+       sequence number or the one associated with the using directive
+       now being processed.  If the namespace that nominated this namespace
+       should not be visible then neither should this one. */
+    effective_decl_seq = parent_decl_seq > udp->decl_sequence_number ?
+                                 parent_decl_seq : udp->decl_sequence_number;
+    add_active_using_directive_to_scope(udp, ssep, effective_decl_seq);
     udp = udp->next;
   }  /* while */
 }  /* add_active_using_directives_for_scope */
@@ -2341,7 +2340,8 @@ Initialize the fields in a scope-pointers-block substructure.
   spbp->last_asm_entry               = NULL;
   spbp->last_dynamic_init            = NULL;
   spbp->last_namespace               = NULL;
-  spbp->last_using_decl              = NULL;
+  spbp->last_using_declaration       = NULL;
+  spbp->last_using_directive         = NULL;
   spbp->last_pragma                  = NULL;
 #if RECORD_HIDDEN_NAMES_IN_IL
   spbp->last_hidden_name             = NULL;
@@ -3747,29 +3747,28 @@ popped (when end_of_scope is TRUE) and applying the using-directive to the
 file scope if it refers to the namespace being popped.
 */
 {
-  a_using_decl_ptr	udp = nsp->variant.assoc_scope->using_decls;
+  a_using_decl_ptr	udp = nsp->variant.assoc_scope->using_directives;
   a_scope_depth		depth;
   a_boolean		any_using_dirs_added = FALSE;
 
   /* Create using-directives for each of the namespaces nominated in a
      using-directive of the namespace scope specified by nsp. */
   while (udp != NULL) {
-    if (udp->is_using_directive) {
-      a_namespace_ptr	udp_nsp;
-      check_assertion(udp->entity.kind == (a_byte_il_entry_kind)iek_namespace);
-      /* Get a pointer to the namespace to be used. */
-      udp_nsp = skip_namespace_aliases((a_namespace_ptr)udp->entity.ptr);
-      if (!end_of_scope || udp_nsp == nsp) {
-        a_memory_region_number region_to_switch_back_to;
-        switch_to_file_scope_region(&region_to_switch_back_to);
-        make_using_directive(udp_nsp, DEPTH_OF_FILE_SCOPE,
-                             &null_source_position,
-                             /*compiler_generated=*/TRUE,
-                             /*inline_namespace=*/FALSE,
-			     (an_attribute_ptr)NULL);
-        any_using_dirs_added = TRUE;
-        switch_back_to_original_region(region_to_switch_back_to);
-      }  /* if */
+    check_assertion(udp->is_using_directive);
+    a_namespace_ptr	udp_nsp;
+    check_assertion(udp->entity.kind == (a_byte_il_entry_kind)iek_namespace);
+    /* Get a pointer to the namespace to be used. */
+    udp_nsp = skip_namespace_aliases((a_namespace_ptr)udp->entity.ptr);
+    if (!end_of_scope || udp_nsp == nsp) {
+      a_memory_region_number region_to_switch_back_to;
+      switch_to_file_scope_region(&region_to_switch_back_to);
+      make_using_directive(udp_nsp, DEPTH_OF_FILE_SCOPE,
+                           &null_source_position,
+                           /*compiler_generated=*/TRUE,
+                           /*inline_namespace=*/FALSE,
+                          (an_attribute_ptr)NULL);
+      any_using_dirs_added = TRUE;
+      switch_back_to_original_region(region_to_switch_back_to);
     }  /* if */
     udp = udp->next;
   }  /* while */

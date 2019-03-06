@@ -14446,7 +14446,7 @@ this using-directive.
     udp->decl_sequence_number = FIRST_DECL_SEQUENCE_NUMBER;
   }  /* if */
   attach_attributes(attributes, (char*)udp, iek_using_decl);
-  add_to_using_decls_list(udp, depth);
+  add_to_using_directives_list(udp, depth);
   /* Activate it. */
   add_active_using_directive(udp, depth);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -15262,7 +15262,7 @@ placed.
   udp->entity.ptr = entity;
   udp->position = *pos;
   /* Attach it the list for the current scope. */
-  add_to_using_decls_list(udp, scope_depth);
+  add_to_using_declarations_list(udp, scope_depth);
 
   return udp;
 }  /* make_using_decl */

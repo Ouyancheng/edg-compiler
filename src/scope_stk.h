@@ -223,9 +223,11 @@ typedef struct a_scope_pointers_block {
 			/* End of list of namespace entries in this scope,
 			   NULL if there are none. */
   a_using_decl_ptr
-		last_using_decl;
-			/* End of list of using-decl entries in this scope;
-			   NULL if there are none. */
+		last_using_declaration,
+		last_using_directive;
+			/* End of lists of using-declaration and
+                           using-directive entries in this scope; NULL if
+			   there are none. */
   a_pragma_ptr	last_pragma;
 			/* End of list of IL pragma entries entered on the
 			   pragma_list of il_scope, NULL if none. */

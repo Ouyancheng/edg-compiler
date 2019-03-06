@@ -5509,7 +5509,7 @@ If no symbol is found in the specified namespace, NULL is returned.
 
   /* Get the list of using directives from the scope in which the lookup
      is being done. */
-  udp = ns_scope->using_decls;
+  udp = ns_scope->using_directives;
   if (ns_ptr != NULL) nssp = symbol_supplement_for_namespace(ns_ptr);
   /* Set a flag that indicates that this namespace is being processed so
      that in case of a recursive reference it is not visited again.

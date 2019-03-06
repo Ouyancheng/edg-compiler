@@ -4544,7 +4544,8 @@ points to the associated routine if the kind is sck_function.
   sp->asm_entries                 = NULL;
   sp->scopes                      = NULL;
   sp->namespaces                  = NULL;
-  sp->using_decls                 = NULL;
+  sp->using_declarations          = NULL;
+  sp->using_directives            = NULL;
   sp->dynamic_inits               = NULL;
   sp->local_static_variable_inits = NULL;
   sp->vla_dimensions              = NULL;

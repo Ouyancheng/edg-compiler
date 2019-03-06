@@ -1,5 +1,15 @@
 Version 5.1
 
+3/6/19   [EDGcpfe/20968]
+Performance improvement with large numbers of using-declarations (IL CHANGE)
+
+Formerly, using-declarations and using-directives were placed on the same
+scope list.  This could result in performance issues in routines that need to
+process using-directives frequently (e.g., qualified_using_directive_lookup).
+Using directives are now placed on a separate scope list.  This is a minor
+IL CHANGE. 
+
+
 3/5/19   [EDGcpfe/20959]
 Performance improvement for overload resolution of function templates
 

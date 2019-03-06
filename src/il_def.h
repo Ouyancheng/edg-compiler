@@ -16674,18 +16674,15 @@ typedef struct a_scope {
 			   and sck_block scopes, to either in sck_file and
 			   sck_namespace scopes; NULL otherwise. */
   a_using_decl_ptr
-		using_decls;
-			/* List of using-declarations and/or using-directives
+		using_declarations,
+		using_directives;
+			/* List of using-declarations or using-directives
 			   appearing within the current scope (C++ only).  If
 			   this is an sck_file, sck_namespace, sck_function,
-			   or sck_block scope, this list may be a mix of
-			   nonmember using-declarations and using-directives
-			   (and may be NULL if no such declarations appeared);
-			   if it is an sck_class_struct_union scope, the list
-			   will only contain class member using-declarations
-			   (and will be NULL if there are none and/or if the
-			   associated class is not a derived class).  Cleared
-			   to NULL by IL lowering. */
+			   or sck_block scope, both lists may be non-NULL.
+			   If it is an sck_class_struct_union scope, the
+			   using-directives list will always be NULL.
+			   Cleared to NULL by IL lowering. */
   a_dynamic_init_ptr
 		dynamic_inits;
 			/* List of dynamic initializations to be done in the

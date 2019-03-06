@@ -6034,8 +6034,8 @@ Return TRUE if the parent namespace of sym is an inline namespace of scope.
   /* Go through the using-directives of the scope.  Look for an
      inline namespace using-directive that names the parent namespace of
      the symbol. */
-  for (udp = scope->using_decls; udp != NULL; udp = udp->next) {
-    if (udp->is_using_directive && udp->inline_namespace) {
+  for (udp = scope->using_directives; udp != NULL; udp = udp->next) {
+    if (udp->inline_namespace) {
       a_namespace_ptr	udp_nsp = (a_namespace_ptr)udp->entity.ptr;
       if (same_entities(parent_nsp, udp_nsp)) {
         result = TRUE;

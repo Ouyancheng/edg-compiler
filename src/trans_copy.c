@@ -574,7 +574,11 @@ front-end-only data structure, not one in the IL.
                    a_dynamic_init_ptr, iek_dynamic_init);
   fix_last_pointer(pointers_block->last_namespace, scope->namespaces,
                    a_namespace_ptr, iek_namespace);
-  fix_last_pointer(pointers_block->last_using_decl, scope->using_decls,
+  fix_last_pointer(pointers_block->last_using_directive,
+                   scope->using_directives,
+                   a_using_decl_ptr, iek_using_decl);
+  fix_last_pointer(pointers_block->last_using_declaration,
+                   scope->using_declarations,
                    a_using_decl_ptr, iek_using_decl);
   fix_last_pointer(pointers_block->last_pragma, scope->pragmas,
                    a_pragma_ptr, iek_pragma);

@@ -2807,7 +2807,9 @@ do_set_proper_definition_needed_flag:
         walk_list(eptr->scopes, a_scope_ptr, iek_scope);
         walk_list_with_keep_in_il_reset(eptr->namespaces, a_namespace_ptr,
                                         iek_namespace);
-        walk_list_not_needed(eptr->using_decls, a_using_decl_ptr,
+        walk_list_not_needed(eptr->using_declarations, a_using_decl_ptr,
+                             iek_using_decl);
+        walk_list_not_needed(eptr->using_directives, a_using_decl_ptr,
                              iek_using_decl);
         walk_list(eptr->asm_entries, an_asm_entry_ptr, iek_asm_entry);
         walk_list(eptr->dynamic_inits, a_dynamic_init_ptr, iek_dynamic_init);

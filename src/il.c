@@ -1455,7 +1455,8 @@ Dump the contents of the indicated type entry, for debug purposes.
           if (ctsp != NULL && ctsp->assoc_scope != NULL) {
             a_variable_ptr    vp = ctsp->assoc_scope->variables;
             a_routine_ptr     rp = ctsp->assoc_scope->routines;
-            a_using_decl_ptr  udp = ctsp->assoc_scope->using_decls;
+            a_using_decl_ptr  udecp = ctsp->assoc_scope->using_declarations;
+            a_using_decl_ptr  udirp = ctsp->assoc_scope->using_directives;
   
             db_virtual_function_info(tp, /*nesting_depth=*/0);
             if (any_virtual_base_classes) {
@@ -1481,10 +1482,16 @@ Dump the contents of the indicated type entry, for debug purposes.
                   ctsp->highest_virtual_function_number);
               for (; rp != NULL; rp = rp->next) db_member_function(rp);
             }  /* if */
-            if (udp != NULL) {
-              fputs("\n  using decls:", f_debug);
-              for (; udp != NULL; udp = udp->next) {
-                db_using_decl(udp);
+            if (udecp != NULL) {
+              fputs("\n  using-declarations:", f_debug);
+              for (; udecp != NULL; udecp = udecp->next) {
+                db_using_decl(udecp);
+              }  /* if */
+            }  /* if */
+            if (udirp != NULL) {
+              fputs("\n  using-directives:", f_debug);
+              for (; udirp != NULL; udirp = udirp->next) {
+                db_using_decl(udirp);
               }  /* if */
             }  /* if */
           }  /* if */
@@ -4837,10 +4844,10 @@ will be either the file scope or a namespace scope.
 }  /* add_to_namespaces_list */
 
 
-void add_to_using_decls_list(a_using_decl_ptr  udp,
-			     a_scope_depth     depth)
+void add_to_using_declarations_list(a_using_decl_ptr  udp,
+				    a_scope_depth     depth)
 /*
-Add the given using-decl entry to the using_decls list for the scope
+Add the given using-decl entry to the using_declarations list for the scope
 specified by depth.
 */
 {
@@ -4852,13 +4859,37 @@ specified by depth.
   ssep = &scope_stack[depth];
   sp = ensure_il_scope_exists(ssep);
   pointers_block = assoc_pointers_block_of(ssep);
-  if (sp->using_decls == NULL) {
-    sp->using_decls = udp;
+  if (sp->using_declarations == NULL) {
+    sp->using_declarations = udp;
   } else {
-    pointers_block->last_using_decl->next = udp;
+    pointers_block->last_using_declaration->next = udp;
   }  /* if */
-  pointers_block->last_using_decl = udp;
-}  /* add_to_using_decl_list */
+  pointers_block->last_using_declaration = udp;
+}  /* add_to_using_declarations_list */
+
+
+void add_to_using_directives_list(a_using_decl_ptr  udp,
+				  a_scope_depth     depth)
+/*
+Add the given using-decl entry to the using_directives list for the scope
+specified by depth.
+*/
+{
+  a_scope_stack_entry_ptr     ssep;
+  a_scope_ptr                 sp;
+  a_scope_pointers_block_ptr  pointers_block;
+
+  assert_is_valid_scope_depth(depth);
+  ssep = &scope_stack[depth];
+  sp = ensure_il_scope_exists(ssep);
+  pointers_block = assoc_pointers_block_of(ssep);
+  if (sp->using_directives == NULL) {
+    sp->using_directives = udp;
+  } else {
+    pointers_block->last_using_directive->next = udp;
+  }  /* if */
+  pointers_block->last_using_directive = udp;
+}  /* add_to_using_directives_list */
 
 
 static void add_to_scopes_list(a_scope_ptr             scope_ptr,

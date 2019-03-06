@@ -5964,7 +5964,7 @@ overriding of which orep is a part.
   a_type_ptr           type = tsym->variant.class_struct_union.type;
   a_class_type_supplement_ptr
                        ctsp = type->variant.class_struct_union.extra_info;
-  a_using_decl_ptr     udecl = ctsp->assoc_scope->using_decls;
+  a_using_decl_ptr     udecl = ctsp->assoc_scope->using_declarations;
   a_symbol_header_ptr  header = orep->overridden_sym->header;
 
   for (; udecl != NULL; udecl = udecl->next) {
@@ -11936,7 +11936,7 @@ base-class member indicated by sym.
   check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
   rp = sym->variant.routine.ptr;
   udp = class_type->variant.class_struct_union.extra_info->
-                                                 assoc_scope->using_decls;
+                                              assoc_scope->using_declarations;
   for (; udp != NULL; udp = udp->next) {
     if (udp->entity.ptr == (char *)rp) {
       udp->hidden = TRUE;
@@ -23250,7 +23250,7 @@ any needed inherited constructors.
   a_scope_ptr       class_scope = ensure_il_scope_exists(&scope_stack_top());
   a_using_decl_ptr  udp;
 
-  for (udp = class_scope->using_decls; udp != NULL; udp = udp->next) {
+  for (udp = class_scope->using_declarations; udp != NULL; udp = udp->next) {
     if (udp->is_inheriting_ctor) {
       generate_inheriting_constructors_for_using_decl(udp, cdsp);
     }  /*if */
@@ -23613,7 +23613,7 @@ TRUE.
   check_assertion(sp != NULL &&
                   sp->kind == (a_scope_kind)sck_class_struct_union);
   /* Using declarations are recorded in the scope for the class. */
-  udp = sp->using_decls;
+  udp = sp->using_declarations;
   /* Traverse the list looking for a name and qualifier match. */
   for (; udp != NULL; udp = udp->next) {
     if (same_entities(udp->qualifier.class_type, sym_parent_class(sym))) {
@@ -23923,7 +23923,7 @@ declared).
                    &locator_for_curr_id.source_position);
     discard_curr_construct_pragmas();
   } else {
-    a_using_decl_ptr  udp = scope_stack_top().il_scope->using_decls;
+    a_using_decl_ptr  udp = scope_stack_top().il_scope->using_declarations;
     for (; udp != NULL; udp = udp->next) {
       if (udp->is_inheriting_ctor &&
           identical_types(udp->qualifier.class_type, parent_class)) {
@@ -23941,7 +23941,7 @@ declared).
       udp->entity.kind = (a_byte_il_entry_kind)iek_type;
       udp->entity.ptr = (char*)parent_class;
       udp->position = *pos;
-      add_to_using_decls_list(udp, depth_scope_stack);
+      add_to_using_declarations_list(udp, depth_scope_stack);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       add_to_source_sequence_list((char*)udp,
                                   (an_il_entry_kind)iek_using_decl);
@@ -29015,7 +29015,8 @@ the name of the given base class member (bsym), return an a_using_decl entry
 associated with that using declaration.  Otherwise, return NULL.
 */
 {
-  a_using_decl_ptr     udp = class_type_supp(dtype)->assoc_scope->using_decls;
+  a_using_decl_ptr     udp = class_type_supp(dtype)->
+                                               assoc_scope->using_declarations;
   a_symbol_header_ptr  hdr = bsym->header;
 
   check_assertion(bsym->is_class_member);

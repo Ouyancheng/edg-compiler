@@ -3734,8 +3734,8 @@ type is in fact valid.
       {
         /* Member using declaration entries do not have a correspondence
            pointer set.  However, they must match across translation units. */
-        a_using_decl_ptr  ud = scope->using_decls;
-        a_using_decl_ptr  corresp_ud = corresp_scope->using_decls;
+        a_using_decl_ptr  ud = scope->using_declarations;
+        a_using_decl_ptr  corresp_ud = corresp_scope->using_declarations;
         for (; ud != NULL && corresp_ud != NULL;
              ud = ud->next, corresp_ud = corresp_ud->next) {
           if (!equiv_base_using_decls(ud, corresp_ud)) {
@@ -3749,6 +3749,8 @@ type is in fact valid.
           report_error = TRUE;
           goto done;
         }  /* if */
+        /* Class scopes cannot have using-directives. */
+        check_assertion(scope->using_directives == NULL);
       }
       /* Traverse friend function declarations. */
       {
