@@ -3754,8 +3754,8 @@ file scope if it refers to the namespace being popped.
   /* Create using-directives for each of the namespaces nominated in a
      using-directive of the namespace scope specified by nsp. */
   while (udp != NULL) {
-    check_assertion(udp->is_using_directive);
     a_namespace_ptr	udp_nsp;
+    check_assertion(udp->is_using_directive);
     check_assertion(udp->entity.kind == (a_byte_il_entry_kind)iek_namespace);
     /* Get a pointer to the namespace to be used. */
     udp_nsp = skip_namespace_aliases((a_namespace_ptr)udp->entity.ptr);
