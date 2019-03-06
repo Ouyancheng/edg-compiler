@@ -2647,7 +2647,7 @@ being considered in the call when is_partial_ord_check is TRUE.  Otherwise
 it is zero.
 */
 {
-  a_type_ptr	new_type = NULL;
+  a_type_ptr				new_type = NULL;
   a_template_symbol_supplement_ptr	tssp;
 
   tssp = template_supplement_for_symbol(rout_templ_sym);
