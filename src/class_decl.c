@@ -17675,8 +17675,7 @@ for the union type (class_type).
         }  /* if */
       }  /* if */
     } else {
-      if (has_nontrivial_constructor(cssp) ||
-          has_nontrivial_destructor(cssp)) {
+      if (has_nontrivial_ctor(cssp) || has_nontrivial_destructor(cssp)) {
         /* A union member's (underlying) type cannot be a class with a
            nontrivial constructor or destructor. */
         severity = es_error;

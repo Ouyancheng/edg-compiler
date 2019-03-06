@@ -6234,7 +6234,7 @@ FALSE is returned) for non-class objects.
            we should assume that they have them.  Proceed with ctor and dtor
            set to NULL, but do generate dynamic initializers in the IL. */
         def_init_performed = TRUE;
-      } else if (has_nontrivial_constructor(cssp)) {
+      } else if (has_nontrivial_or_deleted_ctor(cssp)) {
         /* There are user-declared constructor(s) and/or implicitly-declared
            constructors represented in the normal cssp->constructor symbol.
            Look for a default constructor. */
