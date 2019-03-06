@@ -1035,7 +1035,8 @@ hidden name checking on its own members, too.
             /* Check to see if there's a using-declaration in this scope
                that would make the inherited access irrelevant. */
             a_using_decl_ptr udp;
-            for (udp = sp->using_decls; udp != NULL && !found_using_decl;
+            for (udp = sp->using_declarations;
+                 udp != NULL && !found_using_decl;
                  udp = udp->next) {
               a_source_correspondence *sdp =
                                     (a_source_correspondence *)udp->entity.ptr;
