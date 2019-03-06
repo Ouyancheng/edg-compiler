@@ -1,5 +1,15 @@
 Version 5.1
 
+3/5/19   [EDGcpfe/20959]
+Performance improvement for overload resolution of function templates
+
+The creation of "rescan contexts" in overload resolution for function
+templates can be an expensive process.  A change was made to avoid
+creating such contexts if substitution had already been done for a given
+function template and a given set of template arguments.  This can result
+in a significant improvement in performance in certain cases.
+
+
 3/4/19   [EDGcpfe/19122]
 Initialization and cv-qualifiers
 
