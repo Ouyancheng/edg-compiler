@@ -1,5 +1,19 @@
 Version 5.1
 
+3/7/19   [EDGcpfe/20973]
+Missing diagnostic on empty init-statement in while loop condition
+
+Consider:
+
+  int main() {
+    while (; false) {}  // Previously accepted in C++17 mode.  Now an error.
+  }
+
+Previously this example was accepted in C++17 mode (which accepts init-
+statements in "if" and "switch" statement conditions).  Now an error is issued
+as required by the language definition.
+
+
 3/7/19   [EDGcpfe/20975]
 Reduction in memory consumption by expression rescanning information
 

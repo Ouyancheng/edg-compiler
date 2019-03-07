@@ -3899,7 +3899,7 @@ in C++.
   }  /* if */
   if (!C_mode() &&
       (is_decl_not_expr(flags) ||
-       (curr_token == tok_semicolon && selection_initializers_enabled))) {
+       (curr_token == tok_semicolon && potential_decl_stmt))) {
     /* A condition declaration.  Start a scope for the variable declared in
        the condition and scan the declaration. */
     is_condition_decl = TRUE;
