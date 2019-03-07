@@ -5694,6 +5694,12 @@ are expected to be NULL in that case.
                               &operator_position,
                               &opening_paren_tok_seq_number,
                               &closing_paren_position);
+    if (rcblock->error_detected) {
+    /* If there were suppressed errors, the call is unreliable and further
+       substitutions are not helpful. */
+      make_error_operand(result);
+      goto done;
+    }  /* if */
   } else {
     /* Normal, non-rescan, processing. */
     /* Save the position of the "(". */
@@ -6169,6 +6175,12 @@ are expected to be NULL in that case.
     }  /* if */
   }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+  if (expr_stack->any_suppressed_error) {
+    /* If there were suppressed errors, the call is unreliable and further
+       substitutions are not helpful. */
+    make_error_operand(result);
+    goto done;
+  }  /* if */
 
   if (orig_routine_type == NULL) {
     /* If this call is the result of optimizing a virtual function call to
@@ -6194,7 +6206,13 @@ are expected to be NULL in that case.
                       &arg_list,
                       (an_operand *)NULL, (a_boolean *)NULL,
                       &closing_paren_position);
-
+  if (expr_stack->any_suppressed_error ||
+      (rcblock != NULL && rcblock->error_detected)) {
+    /* If there were suppressed errors, the call is unreliable and further
+       substitutions are not helpful. */
+    make_error_operand(result);
+    goto done;
+  }  /* if */
   error_position = call_position;
 #if BUILTIN_FUNCTIONS_ENABLED
   if (builtin_needs_adjustment) {
@@ -6401,8 +6419,8 @@ are expected to be NULL in that case.
        calls. */
     cast_operand(bcap->result_type, result, /*is_implicit_cast=*/TRUE);
   }  /* if */
-done:
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+done:
   free_arg_list(arg_list);
   db_exit();
 }  /* scan_function_call */
@@ -19586,6 +19604,7 @@ expression, and return the result in *result (or an error indication in
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (!unknown_dependent_new) {
       a_boolean saved_supp_diags = expr_stack->suppress_diagnostics;
+      a_boolean saved_any_error = expr_stack->any_suppressed_error;
       a_boolean saved_defer_access_ck = scope_stack_top().defer_access_checks;
       /* Select the proper "new" function if there are several.  Note that
          this call does not adjust the argument types or build the function
@@ -19621,8 +19640,9 @@ expression, and return the result in *result (or an error indication in
                                         (a_symbol_ptr *)NULL,
                                         &arg_match_list);
       /* Restore diagnostics and access checking to their previous
-         state.. */
+         state. */
       expr_stack->suppress_diagnostics = saved_supp_diags;
+      expr_stack->any_suppressed_error = saved_any_error;
       scope_stack_top().defer_access_checks = saved_defer_access_ck;
       if (proj_function_symbol == NULL && alignment_alep != NULL) {
         /* Try overload resolution again without the alignment argument. */
@@ -36033,7 +36053,9 @@ an enumerator.
     do_operand_transformations(operand, TOPT_NO_OPTIONS);
     if (constexpr_enabled && is_expression_operand(operand)) {
       a_boolean  template_context = is_template_dependent_context();
-      if (template_context && operand_is_instantiation_dependent(operand)) {
+      a_boolean  dependent_opnd = template_context &&
+                                  operand_is_instantiation_dependent(operand);
+      if (dependent_opnd) {
         /* Assume we'll be able to fold the operand after substitution. */
         make_template_param_constant_from_operand(operand, result_con,
                                                   dest_type);
@@ -36043,7 +36065,8 @@ an enumerator.
            a failure will produce a diagnostic indicating the reason the
            operand is non-constant. */
         a_boolean  force_constant = !template_context ||
-                                    expr_stack->possible_rescan_context;
+                                    expr_stack->possible_rescan_context ||
+                                    expr_stack->template_deduction_context;
         if (!expr_interpret_expression_operand(
                    operand, force_constant, /*is_constant_evaluated=*/TRUE) &&
             !force_constant) {
@@ -37319,7 +37342,7 @@ pointer to that entry (or NULL in error cases).  If needed, update *is
   } else if (is_constant_operand(operand)) {
     cp = alloc_unshared_constant(&operand->variant.constant);
   } else if (is_expression_operand(operand)) {
-    an_expr_node_ptr    expr = operand->variant.expression;
+    an_expr_node_ptr    expr = make_node_from_operand(operand);
     a_dynamic_init_ptr  dip;
     dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
     dip->variant.expression = expr;
@@ -43292,6 +43315,15 @@ alternative callable from outside, see rescan_expr_with_substitution.
   a_saved_expr_rescan_context   saved_context;
   a_type_ptr                    orig_expr_type = expr->type;
 
+  check_assertion(!rcblock->error_detected);
+  if (total_errors != 0 &&
+      template_arg_list_involves_error_entity(rcblock->template_arg_list)) {
+    /* Do not spend resources substituting a template argument list containing
+       error entities. */
+    make_error_operand(result);
+    subst_fail(rcblock->error_detected);
+    goto done;
+  }  /* if */
   if (bound_function_selector == NULL) {
     bound_function_selector = &local_bound_function_selector;
   }  /* if */
@@ -43328,6 +43360,19 @@ alternative callable from outside, see rescan_expr_with_substitution.
     saved_in_noexcept_operand_expression =
                                    expr_stack->in_noexcept_operand_expression;
     expr_stack->in_noexcept_operand_expression = TRUE;
+  }  /* if */
+  if ((rcblock->options & (CTWS_PRESERVE_DEDUCED_PACKS |
+                           CTWS_PARTIAL_ARG_LIST_OKAY |
+                           CTWS_MAY_BE_RESCANNED |
+                           CTWS_DEDUCTION_GUIDE)) == 0) {
+    /* A rescanned expression normally does not need rescanning itself.  An
+       exception occurs when we are in a context where only part of the
+       template parameters are rescanned (e.g., substituting explicit template
+       arguments).  The flag indicating that "deduced packs" should be
+       preserved is also an indication that another substitution might
+       follow.  Similarly for the flag indicating that we are creating the
+       type for a deduction guide. */
+    expr_stack->possible_rescan_context = FALSE;
   }  /* if */
   if (explicit_eriep != NULL) {
     /* This expression has rescan info, so save it as the model for
@@ -43699,6 +43744,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
   pop_expr_rescan_context_if_necessary(&saved_context);
   rcblock->expr = saved_expr;
   rcblock->options = saved_rcblock_options;
+done:;
 }  /* rescan_expr_with_substitution_internal */
 
 

@@ -3564,7 +3564,11 @@ in ps_arg_list.
   instance_tap = template_arg_list_for_symbol(instance_sym);
   prototype_tap = template_arg_list_for_symbol(prototype_sym);
   if (matches_template_arg_list(instance_tap, prototype_tap, ps_arg_list,
-                                templ_param_list)) {
+                                templ_param_list) &&
+      (total_errors == 0 ||
+       !template_arg_list_involves_error_entity(*ps_arg_list))) {
+    /* We found a match without errors: Check that substituting the resulting
+       arguments is valid. */
     a_source_position  saved_error_pos = error_position;
     push_instantiation_scope_for_rescan(template_sym);
     if (wrapup_template_argument_deduction(
@@ -6185,7 +6189,8 @@ template with any needed substitutions.  In case of substitution errors set
       substitute_constant(&esp->variant.noexcept_arg, parent_class_of(rp),
                           (a_template_param_ptr)NULL,
                           (a_template_arg_ptr)NULL,
-                          CTWS_PRESERVE_DEDUCED_PACKS,
+                          (CTWS_PRESERVE_DEDUCED_PACKS |
+                           CTWS_IS_RESCAN_OF_NOEXCEPT_OPERAND),
                           &ctws_state, &rp->source_corresp.decl_position,
                           &err);
       free_list_of_variadic_param_info(ctws_state.variadic_param_info);
@@ -7849,8 +7854,9 @@ an error entity.
     } else {
       /* A normal nontype parameter represented as a constant. */
       a_constant_ptr	cp = tap->variant.constant;
-      check_assertion(cp != NULL);
-      result = constant_contains_error(cp);
+      if (cp != NULL) {
+        result = constant_contains_error(cp);
+      }  /* if */
     }  /* if */
   } else if (is_template_templ_arg(tap)) {
     /* A template template parameter. */
@@ -7858,12 +7864,14 @@ an error entity.
     a_template_ptr			templ_ptr;
     a_symbol_ptr			templ_sym;
     templ_ptr = tap->variant.templ.ptr;
-    /* Look at the argument template, not the original symbol (which,
-       unlike other template parameters, always points to the prototype
-       argument symbol). */
-    templ_sym = symbol_for(templ_ptr);
-    tssp = templ_sym->variant.template_info;
-    result = tssp->is_error;
+    if (templ_ptr != NULL) {
+      /* Look at the argument template, not the original symbol (which,
+         unlike other template parameters, always points to the prototype
+         argument symbol). */
+      templ_sym = symbol_for(templ_ptr);
+      tssp = templ_sym->variant.template_info;
+      result = tssp->is_error;
+    }  /* if */
   } else {
     check_assertion(is_start_of_pack_expansion_templ_arg(tap));
   }  /* if */
@@ -15334,6 +15342,7 @@ during wrapup processing by compare_function_templates.
                                           /*is_templ_templ_param_check=*/FALSE,
                                           &templ_sym->decl_position);
     *new_arg_list = templ_arg_list;
+    ctws_options |= CTWS_MAY_BE_RESCANNED;
     if (tssp->has_variadic_template_params) {
       /* This is a preliminary substitution.   Keep any deduced packs for which
          we may not yet have arguments. */

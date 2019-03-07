@@ -4391,7 +4391,7 @@ in *bound_function_selector.
 {
   an_expr_node_ptr              orig_expr = expr;
   an_expr_node_ptr              expr_copy = NULL;
-  a_boolean                     copy_error = FALSE, rescanned_case = FALSE;
+  a_boolean                     rescanned_case = FALSE;
   a_constant_ptr                constant = local_constant();
   a_constant_ptr                alloc_con;
   an_expr_rescan_info_entry_ptr eriep;
@@ -4406,7 +4406,6 @@ in *bound_function_selector.
   if (rcblock->error_detected) {
     /* For speed, stop substituting if there was a deduction error on
        a previous operand. */
-    copy_error = TRUE;
   } else if (expr_is_rescannable(expr)) {
     /* Rescan the expression.  Note that going this route rather than through
        copy_template_param_expr allows us to keep the rescanned expression
@@ -4420,6 +4419,7 @@ in *bound_function_selector.
     rescanned_case = TRUE;
   } else {
     /* Copy the expression with substitution. */
+    a_boolean  copy_error = FALSE;
     expr_copy = copy_template_param_expr(expr,
                                          rcblock->template_arg_list,
                                          rcblock->template_param_list,
@@ -4430,9 +4430,11 @@ in *bound_function_selector.
                                          rcblock->ctws_state,
                                          constant,
                                          &alloc_con);
+    if (copy_error) {
+      subst_fail(rcblock->error_detected);
+    }  /* if */
   }  /* if */
-  if (copy_error) {
-    subst_fail(rcblock->error_detected);
+  if (rcblock->error_detected) {
     make_error_operand(operand);
     copy_operand_position(&eriep->saved_operand, operand);
   } else {
@@ -4620,6 +4622,7 @@ the call, to be converted to operand form later.
   op1 = expr->variant.operation.operands;
   make_rescan_operand_full(op1, rcblock, EOPT_NO_OPTIONS,
                            operand, bound_function_selector);
+  if (rcblock->error_detected) goto done;
   args = op1->next;
   /* A call like p->f(x) where the p->f part was treated as a static
      selection during prototype instantiation (because we didn't know what
@@ -4643,6 +4646,7 @@ the call, to be converted to operand form later.
                                 operator_tok_seq_number,
                                 closing_paren_position);
   check_incomplete_return_type_allowed_for_rescan(expr);
+done:;
 }  /* make_call_rescan_operands */
 
 
@@ -4755,7 +4759,8 @@ substituted type, or an error indication in rcblock.
   a_ctws_options_set  ctws_options = CTWS_NON_CONSTANT_EXPR;
 
   ctws_options |= (rcblock->options & (CTWS_PRESERVE_DEDUCED_PACKS |
-                                       CTWS_PARTIAL_ARG_LIST_OKAY));
+                                       CTWS_PARTIAL_ARG_LIST_OKAY |
+                                       CTWS_MAY_BE_RESCANNED));
   new_type = copy_type_with_substitution(type,
                                          rcblock->template_arg_list,
                                          rcblock->template_param_list,
@@ -5278,6 +5283,8 @@ substitutions to be done.
     /* Rescan a single expression. */
     an_expr_node_ptr expr;
     an_operand       *operand = operand_of_arg_list_elem(icp);
+    a_boolean        saved_possible_rescan_context =
+                                          expr_stack->possible_rescan_context;
     if (is_indefinite_function_operand(operand)) {
       conv_indefinite_function_to_unknown_dependent_function(
                                                     operand,
@@ -5289,7 +5296,11 @@ substitutions to be done.
          operands. */
       eliminate_unusual_operand_kinds(operand);
     }  /* if */
+    /* When calling make_node_from_operand, make sure possible_rescan_context
+       is TRUE so that necessary rescan info is recorded in the node. */
+    expr_stack->possible_rescan_context = TRUE;
     expr = make_node_from_operand(operand);
+    expr_stack->possible_rescan_context = saved_possible_rescan_context;
     copy_icp = rescan_expr_as_arg_list_elem(expr, rcblock);
   } else if (is_braced_init_component(icp)) {
     /* Rescan a brace-enclosed list of init-components. */

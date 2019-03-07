@@ -2022,6 +2022,10 @@ typedef int a_ctws_options_set;
 #define CTWS_DEDUCTION_GUIDE		0x2000
 			/* TRUE when doing substitution to create a
 			   deduction guide routine type. */
+#define CTWS_MAY_BE_RESCANNED		0x4000
+			/* TRUE if the result of substituting an expression may
+			   itself be subject to substitution ("rescanning")
+			   later on. */
 
 /*
 Structure used to represent a set of function parameters that resulted from

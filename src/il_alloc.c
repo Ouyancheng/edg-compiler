@@ -343,7 +343,7 @@ used instead by setting the variable trace_seq_number to the entry to be
 traced.  The sequence number of an allocated entry can be determined from
 the debugger using the db_prefix debug function.
 */
-static void *trace_alloc_ptr = NULL;
+void *trace_alloc_ptr = NULL;
 
 #if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
 static unsigned long trace_seq_number = 0;

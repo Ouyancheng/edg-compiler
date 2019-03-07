@@ -4551,6 +4551,7 @@ succeeds, FALSE if it fails.
       break;
     }  /* if */
     /* Do the deduction. */
+    check_assertion(!expr_stack->any_suppressed_error);
     deduction_okay = deduce_from_one_pair(
                          param_type, arg_type, qc_param_type, qc_arg_type,
                          template_arg_list, templ_params);
@@ -4628,6 +4629,11 @@ deduction failed.
        here. */
     goto skip;
   }  /* if */
+#if EXPENSIVE_CHECKING
+  check_assertion(total_errors != 0 ||
+                  !template_arg_list_involves_error_entity(
+                                                         *template_arg_list));
+#endif /* EXPENSIVE_CHECKING */
   ++(tssp->variant.function.pending_deductions);
   /* Look through the arguments/parameters to do template argument
      deduction. */
@@ -5418,6 +5424,9 @@ the point of call.  conv_context describes the context of the conversion.
   a_boolean                check_arg_count_mismatch = TRUE;
   a_boolean                rescan_pushed = FALSE;
 
+  if (expr_stack != NULL && expr_stack->any_suppressed_error) {
+    goto reject_function;
+  }  /* if */
   *discarded_because_post_decl = FALSE;
   if (proj_function_symbol != NULL) {
     /* Normal case: a known function. */
@@ -9677,7 +9686,8 @@ This routine is called only in C++ mode.
          time. */
       defer_overload_resolution = TRUE;
     } else if ((clang_mode || microsoft_mode) && !stricter_template_checking &&
-               !expr_stack->possible_rescan_context &&
+               !(expr_stack->possible_rescan_context ||
+                 expr_stack->template_deduction_context) &&
                expr_stack->uses_this_operand) {
         /* In a template-dependent context Clang appears to defer resolution
            of a call of the form "f(<expr-list>)" where <expr-list> is
@@ -9685,7 +9695,8 @@ This routine is called only in C++ mode.
            implicitly).  We extend this behavior to Microsoft mode since it
            results in behavior closer to that of the Microsoft compiler when
            parsing function template definitions (which the Microsoft compiler
-           doesn't do). */
+           doesn't do).  (Don't defer in deduction contexts since we may have
+           to rescan the call later on.) */
       defer_overload_resolution = TRUE;
     }  /* if */
     if (dependent_call || defer_overload_resolution) {

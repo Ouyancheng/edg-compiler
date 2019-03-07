@@ -1,5 +1,19 @@
 Version 5.1
 
+3/7/19   [EDGcpfe/20975]
+Reduction in memory consumption by expression rescanning information
+
+When the front end processes expressions in deduction contexts (e.g., in
+function template parameter or return types) it associated with many of the
+expression node "rescanning information" that can later be used to substitute
+template arguments in the expression nodes.  Various changes were made to
+avoid recording this information when we can determine that an expression node
+will not need further substitution.  For some complex template-based libraries,
+the resulting reduction is overall memory use by the front end can be
+substantial (the case that prompted these changes reduced the memory use
+to about a third of the use before the changes).
+
+
 3/6/19   [EDGcpfe/20968]
 Performance improvement with large numbers of using-declarations (IL CHANGE)
 
