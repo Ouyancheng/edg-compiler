@@ -38361,7 +38361,7 @@ fails.
              copy_type_with_substitution(const_type,
                                          templ_arg_list, templ_param_list,
                                          &template_sym->decl_position,
-                                         CTWS_NO_OPTIONS,
+                                         CTWS_MAY_BE_RESCANNED,
                                          copy_error, &ctws_state);
       if (*copy_error) break;
       tpp->variant.constant.ptr->type = const_type;
@@ -38380,7 +38380,7 @@ fails.
                                    templ_param_list,
                                    templ_arg_list, templ_param_list,
                                    &template_sym->decl_position,
-                                   CTWS_NO_OPTIONS,
+                                   CTWS_MAY_BE_RESCANNED,
                                    /*is_generic=*/FALSE,
                                    copy_error, &ctws_state);
       if (*copy_error) break;
