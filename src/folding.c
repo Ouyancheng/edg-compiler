@@ -8367,7 +8367,6 @@ and, if pos is not NULL, an error will be reported.
   } else {
     a_boolean                 result = FALSE, incomplete_class_error = FALSE;
     a_boolean                 is_list = FALSE;
-    a_boolean                 non_move_assign_case = FALSE;
     a_builtin_operation_kind  kind = expr->variant.builtin_operation.kind;
     a_symbol_ptr              sym = NULL;
     a_class_symbol_supplement_ptr
@@ -8443,47 +8442,20 @@ and, if pos is not NULL, an error will be reported.
           }  /* if */
           break;
         case bok_has_assign:
-          if (microsoft_mode) {
-            /* MSVC always returns FALSE for nonclass types. */
-            result = FALSE;
-            break;
-          }
-          /*FALLTHROUGH*/
         case bok_has_trivial_assign:
         case bok_has_nothrow_assign:
-          non_move_assign_case = TRUE;
-          /*FALLTHROUGH*/
         case bok_has_trivial_move_assign:
         case bok_has_nothrow_move_assign:
-          if (microsoft_mode && microsoft_version < 1800) {
-            /* Early versions of MSVC always return FALSE for nonclass types. */
-            result = FALSE;
-          } else if (microsoft_mode && microsoft_version < 1900 &&
-                     !is_enum_type(type) && non_move_assign_case) {
-            /* Earlier versions of MSVC always returned FALSE for enums and
-               non-move assigns. */
+          if (microsoft_version < 1900 ||
+              kind == (a_builtin_operation_kind)bok_has_assign) {
+            /* MSVC pre-2015 always returns FALSE for nonclass types.
+               Newer versions still reject has_assign. */
             result = FALSE;
           } else if (is_reference_type(type) || is_function_type(type) ||
                      is_void_type(type) || is_const) {
             /* References, const objects, functions, and void expressions
                cannot be assigned to. */
             result = FALSE;
-          } else if (is_array_type(type)) {
-            a_type_ptr element_type = underlying_array_element_type(type);
-            if (microsoft_mode &&
-                (microsoft_version < 1800 || microsoft_version >= 1900)) {
-              /* All versions of MSVC outside of an intermediate range
-                 always return FALSE for arrays. */
-              result = FALSE;
-            } else if (!is_immediate_class_type(element_type) ||
-                       is_pod_class(element_type) ||
-                       !non_move_assign_case) {
-              /* Arrays of PODs and nonclass types have trivial/nothrow assigns.
-                 All arrays have trivial/nothrow move assigns. */
-              result = TRUE;
-            } else {
-              result = FALSE;
-            }  /* if */
           } else {
             result = TRUE;
           }  /* if */
