@@ -928,7 +928,10 @@ command-line when compiling system headers.
 #ifdef __CYGWIN__
 
 /* Options for Windows/Cygwin version. */
+#ifndef DEFAULT_INSTANTIATION_MODE
 #define DEFAULT_INSTANTIATION_MODE tim_all
+#endif /* DEFAULT_INSTANTIATION_MODE */
+
 #define UNICODE_SOURCE_SUPPORTED 1
 #define DEFAULT_CHECK_CONCATENATIONS 1
 #define ASM_FUNCTION_ALLOWED 1
@@ -942,7 +945,9 @@ command-line when compiling system headers.
 #define INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES 1
 #define INCLUDE_EDG_TEST_NAMED_REGISTERS 1
 #endif /* ifdef DEMO_VERSION */
+#ifndef TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION
 #define TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION 1
+#endif /* TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION */
 #define MIN_GNU_VERSION 30200
 
 #ifndef DEFAULT_EDG_BASE
@@ -1006,16 +1011,23 @@ command-line when compiling system headers.
 #define USE_MMAP_FOR_MEMORY_REGIONS 0
 
 #define LONG_LONG_ALLOWED 1
+#if INT128_EXTENSIONS_ALLOWED
+#define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 0
+#else  /* !INT128_EXTENSIONS_ALLOWED */
 #define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 1
 #define TYPE_FOR_AN_INTEGER_VALUE unsigned long long
 #define TYPE_FOR_A_SIGNED_INTEGER_VALUE long long
+#endif /* INT128_EXTENSIONS_ALLOWED */
 #define PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE   "%lld"
 #define PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE "%llu"
 #define PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE      "%llx"
 #define MAX_INTEGER_VALUE 9223372036854775807LL
 #define MIN_INTEGER_VALUE (-MAX_INTEGER_VALUE-1)
 #define MAX_UNSIGNED_INTEGER_VALUE 18446744073709551615ULL
+
+#ifndef USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
 #define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 1
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 
 #define TARG_MICROSOFT_BIT_FIELD_ALLOCATION 1
 
@@ -1038,6 +1050,9 @@ command-line when compiling system headers.
 #define TARG_ALIGNOF_DOUBLE 8
 #define TARG_SIZEOF_LONG_DOUBLE 12
 #define TARG_ALIGNOF_LONG_DOUBLE 4
+#define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
+#define TARG_SSIZE_T_INT_KIND ((an_integer_kind)ik_long)
+#define TARG_SIZE_T_MAX ((a_targ_size_t)0xffffffffUL)
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_unsigned_short)
 #ifndef _lint
 /* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
