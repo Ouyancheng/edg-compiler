@@ -102,12 +102,19 @@ elision rules, and hence the case is accepted in that mode.
 
 
 3/1/19  [EDGcpfe/20946]
-__has_*_assign macros in Microsoft mode
+__has_*_assign helpers in Microsoft mode
 
-Prior to MSVC 2015, the Microsoft compiler rejected all __has_*_assign
-macros for all non-class types. Starting with MSVC 2015 this was fixed,
-however microsoft_version >= 1900 still rejected these.  Now fixed.
+Earlier versions of MSVC always returned false for non-class types with
+these helpers.  This was changed in Visual Studio 2013, with more changes
+in Visual Studio 2015; however, the front end continued to reflect the old
+behaviour in all Microsoft modes.  The front end's behaviour now matches
+Visual Studio's behaviour with the respective versions. For example:
 
+  // Previously always false, now true with --microsoft_version=1800
+  bool a = __has_trivial_nothrow_assign(int);
+
+  // Previously always false, now true with --microsoft_version=1900
+  bool b = __has_trivial_assign(int);
 
 3/1/19   [EDGcpfe/17886,EDGcpfe/19556,EDGcpfe/19680,EDGcpfe/20896]
 GNU statement expressions in unevaluated contexts
