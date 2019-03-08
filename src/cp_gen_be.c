@@ -19941,8 +19941,44 @@ handle_as_definition:
          specialization.  However, for defaulted members, is_constexpr may
          be set implicitly but specifying it could change the type of the
          member.) */
-      write_tok_str("constexpr ");
-      suppress_inline_kwd = TRUE;
+      a_boolean write_constexpr = TRUE;
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS && \
+    GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
+      if (gcc_is_generated_code_target && gnu_target_version_number < 70200 &&
+          rout->source_corresp.is_class_member) {
+        /* Older versions of g++ require that a constexpr member function
+           be a member of a literal class.  That's not enforced for a
+           member of a class template, but it is for a member of an
+           explicitly-specialized class template.  Make sure we don't put
+           out a "constexpr" keyword that will elicit an error when the
+           generated code is compiled. */
+        a_type_ptr  parent = parent_class_of(rout);
+        a_scope_ptr sp =
+                    parent->variant.class_struct_union.extra_info->assoc_scope;
+        if (parent->variant.class_struct_union.is_template_class &&
+            !parent->variant.class_struct_union.is_specialized &&
+            class_type_supp(parent)->template_arg_list != NULL &&
+            !parent->variant.class_struct_union.is_prototype_instantiation &&
+            sp != NULL) {
+          a_routine_ptr rp;
+          write_constexpr = FALSE;
+          for (rp = sp->routines; !write_constexpr && rp != NULL;
+               rp = rp->next) {
+            if (rp->special_kind == (a_special_function_kind)sfk_constructor &&
+                !rp->compiler_generated) {
+              if (rp->is_constexpr || rp->is_trivial_default_constructor) {
+                /* A constexpr member function is acceptable. */
+                write_constexpr = TRUE;
+              }  /* if */
+            }  /* if */
+          }  /* for */
+        }  /* if */
+      }  /* if */
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS && ... */
+      if (write_constexpr) {
+        write_tok_str("constexpr ");
+        suppress_inline_kwd = TRUE;
+      }  /* if */
     } else if (rout->is_inline && !is_definition && c99_mode &&
                !rout->definition_for_inlining_only) {
       /* We must omit the "inline" specifier on a non-defining declaration
