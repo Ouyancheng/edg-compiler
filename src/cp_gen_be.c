@@ -19961,17 +19961,26 @@ handle_as_definition:
             !parent->variant.class_struct_union.is_prototype_instantiation &&
             sp != NULL) {
           a_routine_ptr rp;
+          a_boolean     nontrivial_ctor_seen = FALSE;
           write_constexpr = FALSE;
           for (rp = sp->routines; !write_constexpr && rp != NULL;
                rp = rp->next) {
-            if (rp->special_kind == (a_special_function_kind)sfk_constructor &&
-                !rp->compiler_generated) {
-              if (rp->is_constexpr || rp->is_trivial_default_constructor) {
+            if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
+              if ((rp->is_constexpr || rp->is_trivial_default_constructor) &&
+                  !rp->compiler_generated) {
                 /* A constexpr member function is acceptable. */
                 write_constexpr = TRUE;
               }  /* if */
+              if (!rp->is_constexpr && !rp->is_trivial_default_constructor) {
+                nontrivial_ctor_seen = TRUE;
+              }  /* if */
             }  /* if */
           }  /* for */
+          if (!write_constexpr && !nontrivial_ctor_seen) {
+            /* The class is probably an aggregate, allowing a constexpr
+               member function. */
+            write_constexpr = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS && ... */
