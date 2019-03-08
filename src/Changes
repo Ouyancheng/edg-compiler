@@ -1,5 +1,34 @@
 Version 5.1
 
+3/7/19   [EDGcpfe/20891]
+C++-generating back end: constexpr member functions of generated instances
+
+In versions before 7.2.0, g++ enforced a rule that permitted constexpr
+member functions only in classes that are literal types.  However, it
+accepted constexpr member functions of class templates whose instances are
+not literal types.  In C++-generating back end configurations with
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE,
+implicit instantiations of class templates are represented by explicit
+specializations, and the code generated for these explicit specializations
+preserved the constexpr specifier for member functions of the class
+template, resulting in an error when compiling the generated code if the
+explicit specialization is not a literal type.  The C++-generating back end
+has now been updated to suppress the constexpr specifier for a member
+function of such an explicit specialization when
+gcc_is_generated_code_target is TRUE and gnu_target_version_number is less
+than 70200.  For example, with --gnu_version=60300 --c++11:
+
+  template<typename T> struct S {
+    constexpr int f() { return 17; }
+    S();
+  };
+  S<int> si;
+
+The generated code previously contained an explicit specialization of
+S<int> in which f() was declared constexpr, and the constexpr specifier is
+now suppressed in the explicit specialization.
+
+
 3/7/19   [EDGcpfe/20973]
 Missing diagnostic on empty init-statement in while loop condition
 
