@@ -4551,6 +4551,7 @@ succeeds, FALSE if it fails.
       break;
     }  /* if */
     /* Do the deduction. */
+    check_assertion(!expr_stack->any_suppressed_error);
     deduction_okay = deduce_from_one_pair(
                          param_type, arg_type, qc_param_type, qc_arg_type,
                          template_arg_list, templ_params);
@@ -4628,6 +4629,11 @@ deduction failed.
        here. */
     goto skip;
   }  /* if */
+#if EXPENSIVE_CHECKING
+  check_assertion(total_errors != 0 ||
+                  !template_arg_list_involves_error_entity(
+                                                         *template_arg_list));
+#endif /* EXPENSIVE_CHECKING */
   ++(tssp->variant.function.pending_deductions);
   /* Look through the arguments/parameters to do template argument
      deduction. */

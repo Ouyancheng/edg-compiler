@@ -6175,7 +6175,7 @@ are expected to be NULL in that case.
     }  /* if */
   }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-  if (expr_stack->any_suppressed_error && rcblock != NULL) {
+  if (expr_stack->any_suppressed_error) {
     /* If there were suppressed errors, the call is unreliable and further
        substitutions are not helpful. */
     make_error_operand(result);
@@ -6206,8 +6206,8 @@ are expected to be NULL in that case.
                       &arg_list,
                       (an_operand *)NULL, (a_boolean *)NULL,
                       &closing_paren_position);
-  if (rcblock != NULL &&
-      (expr_stack->any_suppressed_error || rcblock->error_detected)) {
+  if (expr_stack->any_suppressed_error ||
+      (rcblock != NULL && rcblock->error_detected)) {
     /* If there were suppressed errors, the call is unreliable and further
        substitutions are not helpful. */
     make_error_operand(result);
