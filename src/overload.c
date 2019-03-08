@@ -4576,13 +4576,15 @@ static a_type_ptr function_template_call_argument_deduction(
                                        a_symbol_ptr         template_sym,
                                        a_type_ptr           routine_type,
                                        an_arg_list_elem_ptr arg_list,
+                                       an_overload_context  ovl_context,
                                        a_template_arg_ptr   *template_arg_list,
                                        a_boolean            *p_rescan_pushed)
 /*
 Do template type deduction on a call of the function template specified by
 template_sym (not a projection symbol).  routine_type is the type of the
 function, with explicitly-specified template arguments (if any) already
-substituted in.  arg_list is the list of arguments to the call.
+substituted in.  arg_list is the list of arguments to the call.  ovl_context
+is the overload resolution context in which this deduction is performed.
 *template_arg_list points to the template argument list so far; anything
 deduced is added to that.  *p_rescan_pushed is TRUE if an instantiation scope
 was previously pushed to substitute/rescan explicit template arguments (in
@@ -4755,6 +4757,7 @@ deduction failed.
                                                  (a_type_ptr)NULL);
   }  /* if */
   if (updated_routine_type == NULL) {
+    a_ctws_options_set  ctws_options = CTWS_NO_OPTIONS;
     /* Push an instantiation scope that can be used by the substitution and
        deduction process to find information about the template. */
     if (!*p_rescan_pushed) {
@@ -4772,12 +4775,15 @@ deduction failed.
        values.  Also check for the case where not all template parameters
        have been deduced.  Create a routine type with all the substitution
        done. */
+    if (ovl_context == oc_ctad) {
+      /* Substitutions made for class template argument deduction may need
+         additional rescanning later on. */
+      ctws_options |= CTWS_MAY_BE_RESCANNED;
+    }  /* if */
     updated_routine_type = wrapup_function_template_argument_deduction(
-                                           template_arg_list,
-                                           template_sym,
-                                           (a_template_param_ptr)NULL,
-                                           /*is_partial_order_check=*/FALSE,
-                                           /*param_count=*/0);
+                                          template_arg_list, template_sym,
+                                          (a_template_param_ptr)NULL,
+                                          ctws_options, /*param_count=*/0);
   }  /* if */
   pop_substitution();
   if (updated_routine_type != NULL) {
@@ -5335,6 +5341,7 @@ static void determine_function_viability(
                  a_boolean                is_overloaded_operator,
                  a_boolean                allow_post_declared_functions,
                  a_conv_context_set       conv_context,
+                 an_overload_context      ovl_context,
                  a_candidate_function_ptr *candidate_functions,
                  a_boolean                *matched_except_for_missing_selector,
                  a_boolean                *matched_except_for_selector,
@@ -5485,6 +5492,7 @@ the point of call.  conv_context describes the context of the conversion.
       routine = tssp->variant.function.routine;
       routine_type = routine->type;
       if (template_arg_list != NULL) {
+        a_ctws_options_set  ctws_options = CTWS_NO_OPTIONS;
         /* Substitute the explicitly-specified template arguments into the
            template and get the updated routine type.  This also creates
            an updated template argument list (template arguments are cast to
@@ -5522,10 +5530,15 @@ the point of call.  conv_context describes the context of the conversion.
         ++(tssp->variant.function.pending_deductions);
         push_instantiation_scope_for_rescan(function_symbol);
         rescan_pushed = TRUE;
+        if (ovl_context == oc_ctad) {
+          /* Substitutions made for class template argument deduction may need
+             additional rescanning later on. */
+          ctws_options |= CTWS_MAY_BE_RESCANNED;
+        }  /* if */
         routine_type = substitute_template_arguments(
                          function_symbol, template_arg_list,
                          &local_template_arg_list, (a_template_param_ptr)NULL,
-                         /*is_partial_order_check=*/FALSE);
+                         ctws_options);
         --(tssp->variant.function.pending_deductions);
         expr_stack = saved_expr_stack;
         /* Bail out if there is a mismatch. */
@@ -5848,6 +5861,7 @@ next_argument:
                                                    function_symbol,
                                                    routine_type,
                                                    arg_list,
+                                                   ovl_context,
                                                    &local_template_arg_list,
                                                    &rescan_pushed);
     if (routine_type == NULL) {
@@ -6421,7 +6435,7 @@ retry2:
                                  known_to_be_visible,
                                  is_overloaded_operator,
                                  allow_post_declared_functions,
-                                 conv_context,
+                                 conv_context, ovl_context,
                                  candidate_functions,
                                  matched_except_for_missing_selector,
                                  matched_except_for_selector,
@@ -6715,6 +6729,7 @@ hide-by-sig lookup.
                                        /*is_overloaded_operator=*/FALSE,
                                        /*allow_post_declared_functions=*/FALSE,
                                        CCO_IGNORE_EXPLICIT_MEMBERS,
+                                       oc_default,
                                        candidate_functions,
                                        &matched_except_for_missing_selector,
                                        &matched_except_for_selector,
@@ -14253,11 +14268,10 @@ not_direct_binding_case:
       /* Make a version of the routine type with the proper types/values
          substituted for the template parameters. */
       conv_routine_type = wrapup_function_template_argument_deduction(
-                                           &template_arg_list, 
-                                           base_conversion_symbol,
-                                           (a_template_param_ptr)NULL,
-                                           /*is_partial_order_check=*/FALSE,
-                                           /*param_count=*/0);
+                                          &template_arg_list, 
+                                          base_conversion_symbol,
+                                          (a_template_param_ptr)NULL,
+                                          CTWS_NO_OPTIONS, /*param_count=*/0);
       if (conv_routine_type == NULL) {
         goto reject_function;
       } else { 
@@ -25959,10 +25973,9 @@ source_is_rvalue.
       goto reject_function;
     }  /* if */
     routine_type = wrapup_function_template_argument_deduction(
-                                           template_arg_list, sym,
-                                           (a_template_param_ptr)NULL,
-                                           /*is_partial_order_check=*/FALSE,
-                                           /*param_count=*/0);
+                                          template_arg_list, sym,
+                                          (a_template_param_ptr)NULL,
+                                          CTWS_NO_OPTIONS, /*param_count=*/0);
     if (routine_type == NULL) {
       /* Deduction failed. */
       goto reject_function;

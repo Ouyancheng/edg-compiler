@@ -1923,7 +1923,7 @@ static void substitute_template_argument(
 static a_boolean all_templ_params_have_values(
 	a_template_arg_ptr			templ_arg_list,
 	a_template_param_ptr			templ_param_list,
-	a_boolean				is_partial_order_check,
+	a_ctws_options_set                      ctws_options,
 	a_boolean				is_templ_templ_param_check,
 	a_symbol_ptr				template_sym,
 	a_template_symbol_supplement_ptr	tssp,
@@ -1933,15 +1933,15 @@ This routine is used after doing argument deduction for a template
 argument list.  Its purpose is to make sure that a value has been deduced
 for each parameter.
 
-is_partial_order_check is TRUE when this function is called (indirectly)
-during wrapup processing by compare_function_templates.  template_sym is
-the symbol of the template being checked.  tssp is the associated template
-symbol supplement.  is_templ_templ_param_check is TRUE if this routine
-is being called to (possibly) supply default template argument values as
-part of template template parameter compatibility checking when doing
-C++17-style template template argument matching.  param_count provides
-the count of parameters being considered in the call when is_partial_ord_check
-is TRUE.  Otherwise it must be zero.
+ctws_options are options to be passed to parameter substitution routines.
+param_count provides the count of parameters being considered in the call
+when ctws_options has the CTWS_IS_PARTIAL_ORDER_CHECK flag set to TRUE.
+Otherwise it must be zero.  template_sym is the symbol of the template
+being checked.  tssp is the associated template symbol supplement.
+is_templ_templ_param_check is TRUE if this routine is being called to
+(possibly) supply default template argument values as part of template
+template parameter compatibility checking when doing C++17-style template
+template argument matching.
 */
 {
   a_boolean		result = TRUE;
@@ -1952,6 +1952,8 @@ is TRUE.  Otherwise it must be zero.
   a_boolean		default_allowed;
   a_template_arg_ptr	prev_tap = NULL;
   a_boolean		implicit_guide;
+  a_boolean             is_partial_order_check =
+                          (ctws_options & CTWS_IS_PARTIAL_ORDER_CHECK) != 0;
 
   default_allowed = (function_template_default_args_allowed &&
                      !is_partial_order_check) || is_templ_templ_param_check;
@@ -2002,8 +2004,7 @@ is TRUE.  Otherwise it must be zero.
                                      templ_param_list,
                                      templ_arg_list, templ_param_list,
                                      &template_sym->decl_position,
-                                     CTWS_NO_OPTIONS,
-                                     /*is_generic=*/FALSE,
+                                     ctws_options, /*is_generic=*/FALSE,
                                      &copy_error, &ctws_state);
         if (copy_error ||
             (!implicit_guide && !is_templ_templ_param_check &&
@@ -2431,7 +2432,7 @@ static a_boolean wrapup_template_argument_deduction(
 				a_template_arg_ptr   templ_arg_list,
 				a_symbol_ptr         template_sym,
 				a_template_param_ptr templ_param_list,
-				a_boolean	     is_partial_order_check,
+				a_ctws_options_set   ctws_options,
 				uint32_t	     param_count)
 /*
 This routine is used after doing argument deduction for each argument to
@@ -2449,10 +2450,10 @@ For partial specializations the only tests that are needed are the
 check that all parameters have values, and the handling of array
 bounds of unknown type.
 
-is_partial_order_check is TRUE when this function is called (indirectly)
-during wrapup processing by compare_function_templates.  param_count
-provides the count of parameters being considered in the call when
-is_partial_ord_check is TRUE.  Otherwise it must be zero.
+ctws_options are options to be passed to parameter substitution routines.
+param_count provides the count of parameters being considered in the call
+when ctws_options has the CTWS_IS_PARTIAL_ORDER_CHECK flag set to TRUE.
+Otherwise it is zero.
 */
 {
   a_boolean				match = TRUE;
@@ -2462,7 +2463,9 @@ is_partial_ord_check is TRUE.  Otherwise it must be zero.
 
   /* g++, prior to version 4.1, does not allow parameters to have
      nondeduced values in partial ordering. */
-  if (gpp_mode && gnu_version < 40100) is_partial_order_check = FALSE;
+  if (gpp_mode && gnu_version < 40100) {
+    ctws_options &= ~CTWS_IS_PARTIAL_ORDER_CHECK;
+  }  /* if */
   check_assertion(template_sym != NULL);
   tssp = template_supplement_for_symbol(template_sym);
   if (templ_param_list == NULL) {
@@ -2480,7 +2483,7 @@ is_partial_ord_check is TRUE.  Otherwise it must be zero.
     match = FALSE;
   } else {
     match = all_templ_params_have_values(templ_arg_list, templ_param_list,
-                                         is_partial_order_check,
+                                         ctws_options,
                                          /*is_templ_templ_param_check=*/FALSE,
                                          template_sym, tssp, param_count);
   }  /* if */
@@ -2489,9 +2492,12 @@ is_partial_ord_check is TRUE.  Otherwise it must be zero.
                                       &tpp, &tap);
     for (; tap != NULL && match; advance_to_next_template_arg(&tpp, &tap)) {
       a_type_ptr	constant_type;
-      /* Some template arguments may not have values when
-         is_partial_order_check is TRUE.  Skip such arguments. */
-      if (is_partial_order_check && !template_arg_has_value(tap)) continue;
+      /* When the CTWS_IS_PARTIAL_ORDER_CHECK flag is set to TRUE, some
+         template arguments may not have values: Skip such arguments. */
+      if ((ctws_options & CTWS_IS_PARTIAL_ORDER_CHECK) &&
+          !template_arg_has_value(tap)) {
+        continue;
+      }  /* if */
       if (is_nontype_templ_arg(tap)) {
         /* Check whether this nontype template parameter must be rescanned
            because of a dependence on another template argument. */
@@ -2630,7 +2636,7 @@ a_type_ptr wrapup_function_template_argument_deduction(
 				a_template_arg_ptr   *templ_arg_list,
 				a_symbol_ptr         rout_templ_sym,
 				a_template_param_ptr templ_param_list,
-				a_boolean	     is_partial_order_check,
+				a_ctws_options_set   ctws_options,
 				uint32_t	     param_count)
 /*
 Calls wrapup_template_argument_deduction and then produces a final
@@ -2641,10 +2647,10 @@ occurred in the substitution process, a NULL pointer is returned.
 NULL if all of the template arguments are coming from default values.
 If it is NULL, it will be created by this routine.
 
-is_partial_order_check is TRUE when this function is called by
-compare_function_templates.  param_count provides the count of parameters
-being considered in the call when is_partial_ord_check is TRUE.  Otherwise
-it is zero.
+ctws_options are options to be passed to parameter substitution routines.
+param_count provides the count of parameters being considered in the call
+when ctws_options has the CTWS_IS_PARTIAL_ORDER_CHECK flag set to TRUE.
+Otherwise it is zero.
 */
 {
   a_type_ptr				new_type = NULL;
@@ -2666,14 +2672,12 @@ it is zero.
                                           &rout_templ_sym->decl_position);
   }  /* if */
   if (wrapup_template_argument_deduction(*templ_arg_list, rout_templ_sym,
-                                         templ_param_list,
-                                         is_partial_order_check,
+                                         templ_param_list, ctws_options,
                                          param_count)) {
     /* Substitute the template arguments in the routine type. */
     new_type = substitute_template_arguments(rout_templ_sym, *templ_arg_list,
                                              (a_template_arg_ptr*)NULL,
-                                             templ_param_list,
-                                             is_partial_order_check);
+                                             templ_param_list, ctws_options);
     if (new_type != NULL && (microsoft_mode || gpp_mode)) {
       /* Normally, a function type will have been considered invalid if
          a parameter or return type was an abstract class type, but in
@@ -2687,7 +2691,7 @@ it is zero.
         new_type = NULL;
       }  /* if */
     }  /* if */
-    if (!is_partial_order_check && new_type != NULL) {
+    if (!(ctws_options & CTWS_IS_PARTIAL_ORDER_CHECK) && new_type != NULL) {
       /* Add the new type to the list of substituted types. */
       (void)find_substituted_type(rout_templ_sym, tssp, *templ_arg_list,
                                   new_type);
@@ -3278,7 +3282,7 @@ parameter matching.
     match1 = FALSE;
     if (wrapup_function_template_argument_deduction(
                &dummy_arg_list1, templ_sym2, templ_param_list1,
-               /*is_partial_order_check=*/TRUE, param_count) != NULL) {
+               CTWS_IS_PARTIAL_ORDER_CHECK, param_count) != NULL) {
       match1 = TRUE;
     }  /* if */
   }  /* if */
@@ -3288,7 +3292,7 @@ parameter matching.
     if (is_templ_templ_param_check ||
         wrapup_function_template_argument_deduction(
                &dummy_arg_list2, templ_sym1, templ_param_list2,
-               /*is_partial_order_check=*/TRUE, param_count) != NULL) {
+               CTWS_IS_PARTIAL_ORDER_CHECK, param_count) != NULL) {
       match2 = TRUE;
     }  /* if */
   }  /* if */
@@ -3573,7 +3577,7 @@ in ps_arg_list.
     push_instantiation_scope_for_rescan(template_sym);
     if (wrapup_template_argument_deduction(
                         *ps_arg_list, template_sym, templ_param_list,
-                        /*is_partial_order_check=*/FALSE, /*param_count=*/0)) {
+                        CTWS_NO_OPTIONS, /*param_count=*/0)) {
       a_template_arg_ptr		test_arg_list;
       a_boolean				copy_error = FALSE;
       a_ctws_state			ctws_state;
@@ -15292,7 +15296,7 @@ a_type_ptr substitute_template_arguments(
 				a_template_arg_ptr	templ_arg_list,
 				a_template_arg_ptr	*new_arg_list,
 				a_template_param_ptr	templ_param_list,
-				a_boolean		is_partial_order_check)
+				a_ctws_options_set	ctws_options)
 /*
 In the function template specified by templ_sym, replace the template
 parameters in the function type with the values specified by
@@ -15305,15 +15309,13 @@ returned in *new_arg_list.  templ_param_list is the template parameter
 list to be used.  If a NULL pointer is provided, the template
 parameter list from the template symbol supplement is used.  The
 parameter is supplied because some calls of this routine occur before
-the field in the template symbol supplement has been set.
-is_partial_order_check is TRUE when this function is called (indirectly)
-during wrapup processing by compare_function_templates.
+the field in the template symbol supplement has been set.  ctws_options 
+are flags passed down to the substitution routines.
 */
 {
   a_boolean				copy_error = FALSE;
   a_template_symbol_supplement_ptr	tssp;
   a_type_ptr				templ_rout_type = NULL;
-  a_ctws_options_set			ctws_options = CTWS_NO_OPTIONS;
   a_boolean				preserve_deduced_packs = FALSE;
 
   tssp = template_supplement_for_symbol(templ_sym);
@@ -15365,7 +15367,6 @@ during wrapup processing by compare_function_templates.
       a_ctws_state	ctws_state;
       init_ctws_state(&ctws_state);
       ctws_state.preserve_deduced_packs = preserve_deduced_packs;
-      if (is_partial_order_check) ctws_options |= CTWS_IS_PARTIAL_ORDER_CHECK;
       templ_rout_type = skip_typerefs(tssp->variant.function.routine->type);
       ++(tssp->variant.function.pending_deductions);
       templ_rout_type = copy_type_with_substitution(templ_rout_type,
@@ -16487,7 +16488,7 @@ declared and before the partial instantiation of the function was done.
                                   templ_sym, templ_arg_list,
                                   (a_template_arg_ptr*)NULL,
                                   (a_template_param_ptr)NULL,
-                                  /*is_partial_order_check=*/FALSE);
+                                  CTWS_NO_OPTIONS);
   if (exc_spec_in_func_type && substituted_type != NULL &&
       substituted_type->kind == (a_type_kind)tk_routine &&
       rout->type->kind == (a_type_kind)tk_routine) {
@@ -17781,9 +17782,8 @@ are ignored even in modes where such specifiers are part of that type.
        produce an updated template routine type. */
     a_template_arg_ptr	new_arg_list;
     templ_rout_type = substitute_template_arguments(
-                                  templ_sym, explicit_arg_list, &new_arg_list,
-                                  (a_template_param_ptr)NULL,
-                                  /*is_partial_order_check=*/FALSE);
+                                 templ_sym, explicit_arg_list, &new_arg_list,
+                                 (a_template_param_ptr)NULL, CTWS_NO_OPTIONS);
     *templ_arg_list = new_arg_list;
     /* A NULL type will be returned if the copy could not be done because
        the substitution of the template arguments would result in an invalid
@@ -17817,8 +17817,7 @@ are ignored even in modes where such specifiers are part of that type.
        is correct. */
     new_type = wrapup_function_template_argument_deduction(
                                 templ_arg_list, templ_sym, templ_param_list,
-                                /*is_partial_order_check=*/FALSE,
-                                /*param_count=*/0);
+                                CTWS_NO_OPTIONS, /*param_count=*/0);
     match = FALSE;
     if (new_type != NULL) {
       a_routine_ptr  proto_rp = tssp->variant.function.routine;
@@ -18056,14 +18055,14 @@ matches, a new argument list is returned in *new_arg_list.
   push_instantiation_scope_for_rescan(template_sym);
   if (*new_arg_list != NULL &&
       all_templ_params_have_values(*new_arg_list, templ_param_list,
-                                   /*is_partial_order_check=*/FALSE,
+                                   CTWS_NO_OPTIONS,
                                    /*is_templ_templ_param_check=*/FALSE,
                                    template_sym, tssp, /*param_count=*/0)) {
     /* Create a substituted type based on the template arguments. */
     result_type = substitute_template_arguments(
                            template_sym, *new_arg_list,
                            (a_template_arg_ptr*)NULL,
-                           templ_param_list, /*is_partial_order_check=*/FALSE);
+                           templ_param_list, CTWS_NO_OPTIONS);
   }  /* if */
   pop_instantiation_scope_for_rescan();
   if (result_type != NULL && symbol_is(template_sym, sk_function_template) &&

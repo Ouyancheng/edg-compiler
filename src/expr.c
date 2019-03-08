@@ -34102,8 +34102,7 @@ issue an error; otherwise, return TRUE.
         if (substitute_template_arguments(sym, templ_arg_list,
                                           (a_template_arg_ptr*)NULL,
                                           (a_template_param_ptr)NULL,
-                                          /*is_partial_order_check=*/FALSE)
-                                                                    != NULL) {
+                                          CTWS_NO_OPTIONS) != NULL) {
           if (op_sym != NULL) {
             pos_error(ec_ambig_literal_operator, &pos_curr_token);
           } else {
