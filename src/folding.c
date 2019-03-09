@@ -8456,12 +8456,13 @@ and, if pos is not NULL, an error will be reported.
         case bok_has_trivial_move_assign:
         case bok_has_nothrow_move_assign:
           if (microsoft_mode && microsoft_version < 1800) {
-            /* Early versions of MSVC always return FALSE for nonclass types. */
+            /* Early versions of MSVC always return FALSE for nonclass types.
+             */
             result = FALSE;
           } else if (microsoft_mode && microsoft_version < 1900 &&
                      !is_enum_type(type) && non_move_assign_case) {
-            /* Earlier versions of MSVC always returned FALSE for enums and
-               non-move assigns. */
+            /* Earlier versions of MSVC always returned FALSE for non-enums
+               and non-move assigns. */
             result = FALSE;
           } else if (is_reference_type(type) || is_function_type(type) ||
                      is_void_type(type) || is_const) {
@@ -8478,8 +8479,8 @@ and, if pos is not NULL, an error will be reported.
             } else if (!is_immediate_class_type(element_type) ||
                        is_pod_class(element_type) ||
                        !non_move_assign_case) {
-              /* Arrays of PODs and nonclass types have trivial/nothrow assigns.
-                 All arrays have trivial/nothrow move assigns. */
+              /* Arrays of PODs and nonclass types have trivial/nothrow
+                 assigns. All arrays have trivial/nothrow move assigns. */
               result = TRUE;
             } else {
               result = FALSE;
