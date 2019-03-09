@@ -12792,18 +12792,19 @@ parameters.
         /* Get the type from the argument.  This will be checked below. */
         new_const_type = tap->variant.constant->type;
       } else {
+        new_const_type = const_type;
         if (tpp->variant.constant.type_involves_template_param) {
           /* The type of the template parameter involves a template
              parameter.   Substitute the current set of template arguments
              (the ones being created by this routine) into the type.
              The outer template arguments will also be substituted below. */
-          const_type =
-             copy_type_with_substitution(const_type,
+          new_const_type =
+             copy_type_with_substitution(new_const_type,
                                          arg_list_to_copy, param_list_for_copy,
 					 source_pos, options, copy_error,
                                          ctws_state);
         }  /* if */
-        new_const_type = copy_type_with_substitution(const_type,
+        new_const_type = copy_type_with_substitution(new_const_type,
                                                      templ_arg_list,
                                                      templ_param_list,
                                                      source_pos, options,
@@ -13191,7 +13192,7 @@ If there is an error in the copying, set *copy_error to TRUE.
 do_substitution:
       /* Do the substitution on the argument. */
       if (!is_start_of_pack_expansion_templ_arg(tap)) {
-        substitute_template_argument(new_tap, tpp, arg_list_to_copy,
+        substitute_template_argument(new_tap, tpp, new_list,
                                      param_list_for_copy,
                                      templ_arg_list, templ_param_list,
                                      source_pos,
