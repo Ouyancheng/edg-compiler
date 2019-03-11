@@ -6290,13 +6290,15 @@ FALSE is returned) for non-class objects.
         } else {
           /* There is no user-declared or nontrivial implicitly declared
              default constructor.  However, the language definition says an
-             object is "default initialized", which means the trivial default
-             constructor will be called.  We apply the as-if rule and suppress
-             the call (since it's a no-op), but the definition still needs to
-             be generated, since it may have side-effects. */
+             object is "default initialized" (for the non-POD case), which
+             means the trivial default constructor will be called.  We apply
+             the as-if rule and suppress the call (since it's a no-op), but the
+             definition still needs to be generated, since that generations may
+             have side-effects. */
           if (reference_to_trivial_default_constructor(tp, tp, err_pos,
                                                        /*check_access=*/TRUE,
-                                                       (a_boolean *)NULL)) {
+                                                       (a_boolean *)NULL) &&
+              !cssp->is_cpp03_POD) {
             def_init_performed = TRUE;
           }  /* if */
         }  /* if */
