@@ -3432,39 +3432,47 @@ template arguments, since they cannot be named.
   begin_template_arg_list_traversal_simple(argp, &argp);
   for (result = 0; argp != NULL;
        advance_to_next_template_arg_simple(&argp), ++result) {
-    a_boolean      is_unnamed = FALSE;
-    a_type_ptr     tp;
-    a_constant_ptr con;
+    a_type_ptr                  tp;
+    a_constant_ptr              con;
+    a_template_ptr              tplp;
+    a_source_correspondence_ptr scp = NULL;
+    a_source_correspondence_ptr remapped_scp = NULL;
     switch (argp->kind) {
       case tak_type:
         tp = argp->variant.type;
         if (tp->kind == (a_type_kind)tk_template_param &&
             tp->variant.template_param.kind ==
-                                      (a_template_param_type_kind)tptk_param &&
-            tp->source_corresp.name == NULL) {
-          is_unnamed = TRUE;
+                                      (a_template_param_type_kind)tptk_param) {
+          scp = &tp->source_corresp;
+          remapped_scp = source_corresp_for_template_param(
+                          &tp->variant.template_param.extra_info->coordinates);
         }  /* if */
         break;
       case tak_nontype:
         con = argp->variant.constant;
         if (con->kind == (a_constant_repr_kind)ck_template_param &&
             con->variant.template_param.kind ==
-                                  (a_template_param_constant_kind)tpck_param &&
-            con->source_corresp.name == NULL) {
-          is_unnamed = TRUE;
+                                  (a_template_param_constant_kind)tpck_param) {
+          scp = &con->source_corresp;
+          remapped_scp = source_corresp_for_template_param(
+                             &con->variant.template_param.variant.coordinates);
         }  /* if */
         break;
       case tak_template:
-        if (argp->variant.templ.ptr->source_corresp.name == NULL) {
-          is_unnamed = TRUE;
-        }  /* if */
+        tplp = argp->variant.templ.ptr;
+        scp = &tplp->source_corresp;
+        remapped_scp = source_corresp_for_template_param(&tplp->coordinates);
         break;
       case tak_start_of_pack_expansion:
         break;
       default:
         unexpected_condition();
     }  /* switch */
-    if (is_unnamed) {
+    if (remapped_scp != NULL) {
+      scp = remapped_scp;
+    }  /* if */
+    if (scp != NULL && scp->name == NULL) {
+      /* The parameter is unnamed. */
       break;
     }  /* if */
   }  /* for */
