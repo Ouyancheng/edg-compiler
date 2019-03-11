@@ -7101,34 +7101,6 @@ Return TRUE if any of the constructors associated with cssp is nontrivial.
 }  /* f_has_nontrivial_ctor */
 
 
-a_boolean f_has_nontrivial_or_deleted_ctor(a_class_symbol_supplement_ptr  cssp)
-/*
-Return TRUE if any of the constructors associated with cssp is nontrivial or
-deleted.
-*/
-{
-  a_boolean     result = FALSE;
-  a_symbol_ptr  sym = cssp->constructor;
-
-  if (sym) {
-    if (symbol_is(sym, sk_overloaded_function)) {
-      /* An overloaded set of constructors: Check each one in turn. */
-      sym = cssp->constructor->variant.overloaded_function.symbols;
-      for (; sym != NULL; sym = sym->next) {
-        if (!ctor_is_trivial(sym) || sym->variant.routine.ptr->is_deleted) {
-          result = TRUE;
-          break;
-        }  /* if */
-      }  /* for */
-    } else if (!ctor_is_trivial(sym) || sym->variant.routine.ptr->is_deleted) {
-      /* A single constructor and it is nontrivial or deleted. */
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* f_has_nontrivial_or_deleted_ctor */
-
-
 a_base_class_ptr find_base_with_type(a_type_ptr        base_type,
                                      a_type_ptr        class_type,
                                      a_base_class_ptr  ref_bcp)

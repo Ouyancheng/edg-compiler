@@ -6529,14 +6529,6 @@ extern a_boolean f_has_nontrivial_ctor(a_class_symbol_supplement_ptr  cssp);
 #define has_nontrivial_ctor(cssp)                                         \
   ((cssp)->constructor != NULL && f_has_nontrivial_ctor(cssp))
 
-extern a_boolean f_has_nontrivial_or_deleted_ctor(
-                                         a_class_symbol_supplement_ptr  cssp);
-
-/* Return TRUE if a class symbol supplement is for a class with a nontrivial
-   constructor. */
-#define has_nontrivial_or_deleted_ctor(cssp)                              \
-  ((cssp)->constructor != NULL && f_has_nontrivial_or_deleted_ctor(cssp))
-
 /* Return TRUE if a class symbol supplement is for a class with a nontrivial
    destructor.  (The cssp->destructor != NULL test ensures that the macro
    returns FALSE for nonreal class templates.) */

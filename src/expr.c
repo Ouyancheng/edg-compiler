@@ -25068,7 +25068,10 @@ freed by this routine.
            a one-argument constructor for the class; if there is, it will
            be considered along with the conversion function. */
         /* ctor_case = FALSE; -- already set. */
-      } else if (has_nontrivial_or_deleted_ctor(cssp)) {
+      } else if (cssp->has_user_declared_default_constructor ||
+                 cssp->has_copy_constructor ||
+                 cssp->has_user_declared_move_constructor ||
+                 has_nontrivial_ctor(cssp)) {
         ctor_case = TRUE;
       }  /* if */
     }  /* if */
