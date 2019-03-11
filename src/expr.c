@@ -43771,6 +43771,14 @@ function or template.
   an_expr_stack_entry         expr_stack_entry;
   a_boolean                   nontype_template_arg = FALSE;
 
+  if (total_errors != 0 && expr_contains_error(expr)) {
+    /* Don't attempt to substitute an expression containing errors, since it
+       may lack the needed rescanning info. */
+    subst_fail(rcblock->error_detected);
+    make_error_operand(&result);
+    expr = make_node_from_operand(&result);
+    goto done;
+  }  /* if */
   push_expr_rescan_context_if_necessary(rcblock, &saved_context);
   if (rcblock->options & CTWS_NONTYPE_TEMPLATE_ARG) {
     /* Rescanning a nontype template argument. */
@@ -43836,6 +43844,7 @@ function or template.
   }  /* if */
   pop_expr_stack();
   pop_expr_rescan_context_if_necessary(&saved_context);
+done:
   return expr;
 }  /* rescan_expr_with_substitution */
 

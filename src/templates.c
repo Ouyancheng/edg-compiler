@@ -13192,7 +13192,25 @@ If there is an error in the copying, set *copy_error to TRUE.
 do_substitution:
       /* Do the substitution on the argument. */
       if (!is_start_of_pack_expansion_templ_arg(tap)) {
-        substitute_template_argument(new_tap, tpp, new_list,
+        a_template_arg_ptr     list_for_subst = new_list;
+        /* Ordinarily we can just use new_list for substitutions, since that
+           is what we have substituted so far.  However, when dealing with
+           partial specializations, that doesn't always work, and instead we
+           must work from the original arg_list_to_copy.  E.g.:
+             struct S { int s; };
+             template<typename T, T> struct X;
+             template<typename R, typename... As, R (*PF)(As...)>
+               struct X<R(*)(As...), PF> {};
+             template<typename... As, void (*PF)(As...)>
+               struct X<void(*)(As...), PF> {};
+             void g(int);
+             X<void(*)(int), &g> x;
+           Using "new_list" here, ends up substituting <void> for "As...",
+           triggering a spurious substitution error. */
+        if ((options & CTWS_IS_PARTIAL_SPECIALIZATION_CHECK) != 0) {
+          list_for_subst = arg_list_to_copy;
+        }  /* if */
+        substitute_template_argument(new_tap, tpp, list_for_subst,
                                      param_list_for_copy,
                                      templ_arg_list, templ_param_list,
                                      source_pos,

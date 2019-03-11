@@ -2847,6 +2847,11 @@ it's the initializer for an aggregate.
             unexpected_condition_str(
                             "traverse_constant: bad template parameter kind.");
         }  /* switch */
+        if (!tblock->result && constant->source_corresp.is_class_member &&
+            tblock->process_type != NULL) {
+          tblock->process_type(parent_class_of(constant), tblock);
+          if (tblock->terminate) goto end_of_routine;
+        }  /* if */
       }  /* if */
       break;
     default:
