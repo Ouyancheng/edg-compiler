@@ -5347,55 +5347,52 @@ static void determine_function_viability(
                  a_boolean                *matched_except_for_selector,
                  a_boolean                *discarded_because_post_decl)
 /*
-Determine whether a function is viable in overload resolution, which
-means whether it has the right number of parameters of the right
-types.  proj_function_symbol indicates the function; it may be a
-projection symbol, but it is not an overloaded function.
-overloaded_function_symbol is the overloaded function symbol that gave
-rise to proj_function_symbol; it also may be a projection symbol, or
-the same symbol as proj_function_symbol, or it may be NULL if it
-doesn't apply (e.g., when proj_function_symbol is a conversion
-function).  is_template_id is TRUE if the symbol has an associated
-explicit template argument list; if so, template_arg_list gives the
-argument list.  If surrogate_function_conv_sym is non-NULL, we are
-evaluating a surrogate function call (see [over.call.object] in the
-C++ standard); proj_function_symbol is NULL and routine_type gives the
-function type.  The argument list for the call is given by
-arg_list, and the selector is given by bound_function_selector
-(if have_selector is TRUE).  have_selector can be TRUE and
-bound_function_selector NULL when calling constructors.
+Determine whether a function is viable in overload resolution, which means
+whether it has the right number of parameters of the right types.
+proj_function_symbol indicates the function; it may be a projection symbol,
+but it is not an overloaded function.  overloaded_function_symbol is the
+overloaded function symbol that gave rise to proj_function_symbol; it also may
+be a projection symbol, or the same symbol as proj_function_symbol, or it may
+be NULL if it doesn't apply (e.g., when proj_function_symbol is a conversion
+function).  is_template_id is TRUE if the symbol has an associated explicit
+template argument list; if so, template_arg_list gives the argument list.  If
+surrogate_function_conv_sym is non-NULL, we are evaluating a surrogate
+function call (see [over.call.object] in the C++ standard);
+proj_function_symbol is NULL and routine_type gives the function type.  The
+argument list for the call is given by arg_list, and the selector is given by
+bound_function_selector (if have_selector is TRUE).  have_selector can be TRUE
+and bound_function_selector NULL when calling constructors.
 bound_function_selector is an object pointer if
 bound_function_selector->selector_is_object_pointer is TRUE, an object
-otherwise.  implicit_selector_type indicates the type of an implicit
-"this->" selector, if applicable, or is NULL otherwise.  Any viable
-functions are added to the candidate_functions list along with
-information on the level of argument matches.  If a match would have
-been found except for the absence of a selector, set
-*matched_except_for_missing_selector TRUE, and if a match would have
-been found except for a mismatch on the selector, set
-*matched_except_for_selector TRUE; those allow different error
-messages.  If ctor_conversion_case is TRUE, this analysis is being
-done as part of resolving an implicit or explicit conversion to a
-class type: the functions are constructors, have_selector is FALSE
-(sic; the "this" parameter is not matched up); the "conversion" field
-is set in any candidate function entries created.
+otherwise.  implicit_selector_type indicates the type of an implicit "this->"
+selector, if applicable, or is NULL otherwise.  Any viable functions are added
+to the candidate_functions list along with information on the level of
+argument matches.  If a match would have been found except for the absence of
+a selector, set *matched_except_for_missing_selector TRUE, and if a match
+would have been found except for a mismatch on the selector, set
+*matched_except_for_selector TRUE; those allow different error messages.  If
+ctor_conversion_case is TRUE, this analysis is being done as part of resolving
+an implicit or explicit conversion to a class type: the functions are
+constructors, have_selector is FALSE (sic; the "this" parameter is not matched
+up); the "conversion" field is set in any candidate function entries created.
 effects_copy_initialization is TRUE if this call is the user-defined
-conversion in a copy-initialization; constructors that are marked
-"explicit" are ignored.  allow_udc_on_arguments is TRUE if
-user-defined conversions should be allowed on the argument matches.
-arg_dep_lookup_done is TRUE if argument-dependent lookup is enabled
-for this call.  from_arg_dep_lookup is TRUE if the function was found
-by argument-dependent lookup.  dependent_call is TRUE if the call is a
-template-dependent call.  known_to_be_visible is TRUE if the function
-is known to be visible and the visibility check should be suppressed.
-is_overloaded_operator is TRUE if the call is written in operator
-form, e.g., a+b rather than operator+(a, b).
-allow_post_declared_functions is TRUE if functions declared after the
-point of reference in a dependent call should be visible to the normal
-lookup (in violation of the requirements of the standard).
-*discarded_because_post_decl goes along with that: it is returned TRUE
-if the function was not viable (at least) because it is declared after
-the point of call.  conv_context describes the context of the conversion.
+conversion in a copy-initialization; constructors that are marked "explicit"
+are ignored.  allow_udc_on_arguments is TRUE if user-defined conversions
+should be allowed on the argument matches.  arg_dep_lookup_done is TRUE if
+argument-dependent lookup is enabled for this call.  from_arg_dep_lookup is
+TRUE if the function was found by argument-dependent lookup.  dependent_call
+is TRUE if the call is a template-dependent call.  known_to_be_visible is TRUE
+if the function is known to be visible and the visibility check should be
+suppressed.  is_overloaded_operator is TRUE if the call is written in operator
+form, e.g., a+b rather than operator+(a, b).  allow_post_declared_functions is
+TRUE if functions declared after the point of reference in a dependent call
+should be visible to the normal lookup (in violation of the requirements of
+the standard).  *discarded_because_post_decl goes along with that: it is
+returned TRUE if the function was not viable (at least) because it is declared
+after the point of call.  conv_context describes the context of the conversion.
+ovl_context describes the kind of construct that requires overload resolution
+(e.g., an ordinary user-specified call or an implicit allocation function call
+in a new-expression).
 */
 {
   a_symbol_ptr             function_symbol = NULL;
@@ -6204,7 +6201,7 @@ is TRUE if user-defined conversions should be allowed on the argument matches.
 arg_dep_lookup_done is TRUE if argument-dependent lookup is enabled for this
 call.  from_arg_dep_lookup is TRUE if the function was found by
 argument-dependent lookup.  dependent_call is TRUE if the call is a
-template-dependent call. ovl_context describes the kind of construct that
+template-dependent call.  ovl_context describes the kind of construct that
 requires overload resolution (e.g., an ordinary user-specified call or an
 implicit allocation function call in a new-expression).  ignore_templates is
 TRUE if template functions should be ignored.  known_to_be_visible is TRUE if
