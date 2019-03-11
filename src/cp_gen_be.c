@@ -11792,11 +11792,12 @@ function reference.
                        variant.class_struct_union.is_prototype_instantiation &&
             find_base_class_of(selection_class,
                                parent_class_of(rout)) == NULL) {
-        /* Versions of g++ beginning with 7.3 complain about "this->" if
-           the function isn't a member of the current instantiation or a
-           direct base class; that situation is represented in the IL by a
-           NULL return from find_base_class_of, which can occur if the
-           function's class is a non-dependent base of a dependent base. */
+          /* Versions of g++ beginning with 7.3 complain about "this->" if
+             the function isn't a member of the current instantiation or a
+             direct base class; that situation is represented in the IL by
+             a NULL return from find_base_class_of, which can occur if the
+             function's class is a non-dependent base of a dependent
+             base. */
         } else
 #endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
         /* Do not insert code here. */
