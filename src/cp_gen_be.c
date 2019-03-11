@@ -11783,22 +11783,23 @@ function reference.
            early builds of MSVC 13, although later versions accept it, and
            similarly for versions of g++ before 7.0.0. */
         suppress_this = TRUE;
+      } else if (suppress_this && (!msvc_is_generated_code_target ||
+                                   msvc_target_version_number != 1000)) {
 #if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
-      } else if (gcc_is_generated_code_target &&
-                 gnu_target_version_number >= 70300 &&
-                 selection_class->
+        if (gcc_is_generated_code_target &&
+            gnu_target_version_number >= 70300 &&
+            selection_class->
                        variant.class_struct_union.is_prototype_instantiation &&
-                 find_base_class_of(selection_class,
-                                    parent_class_of(rout)) == NULL) {
+            find_base_class_of(selection_class,
+                               parent_class_of(rout)) == NULL) {
         /* Versions of g++ beginning with 7.3 complain about "this->" if
            the function isn't a member of the current instantiation or a
            direct base class; that situation is represented in the IL by a
            NULL return from find_base_class_of, which can occur if the
            function's class is a non-dependent base of a dependent base. */
-        suppress_this = TRUE;
+        } else
 #endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
-      } else if (!msvc_is_generated_code_target ||
-                 msvc_target_version_number != 1000) {
+        /* Do not insert code here. */
         /* Now that we've done all the work, suppress "this->" only in
            Microsoft version 4.2 mode, where it's needed to get around some
            bugs.  Otherwise, it doesn't seem to add much. */
