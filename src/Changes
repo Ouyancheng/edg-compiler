@@ -1,6 +1,23 @@
 Version 5.1
 
-3/8/19  [EDGcpfe/20946]
+3/11/19  [EDGcpfe/20898]
+Overload resolution of value-dependent template function calls
+
+During template parsing, the overload resolution of non-type-dependent
+function calls is recorded, and that resolution used during instantiation.
+In cases where the function call is value-dependent, this resolution could
+be incorrect and lead to spurious failures in overload resolution.  Now fixed.
+For example (with --instantiate=used):
+
+struct A { };
+template<int idx>
+void foo (A *x, A *y) {
+  *x = y[idx*1]; // Previously a 'no matching operator "="' error here
+}
+auto ptr = &foo<0>;
+
+
+3/8/19   [EDGcpfe/20946]
 __has_*_assign type traits helpers in Microsoft mode
 
 Earlier versions of MSVC always returned false for non-class types with
