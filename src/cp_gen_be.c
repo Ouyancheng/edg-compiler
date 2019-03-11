@@ -11800,11 +11800,11 @@ function reference.
              base. */
         } else
 #endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
-        /* Do not insert code here. */
-        /* Now that we've done all the work, suppress "this->" only in
-           Microsoft version 4.2 mode, where it's needed to get around some
-           bugs.  Otherwise, it doesn't seem to add much. */
-        suppress_this = FALSE;
+          /* Do not insert code here. */
+          /* Now that we've done all the work, suppress "this->" only in
+             Microsoft version 4.2 mode, where it's needed to get around
+             some bugs.  Otherwise, it doesn't seem to add much. */
+          suppress_this = FALSE;
       }  /* if */
       if (!suppress_this) {
         if (object_expr->kind == (an_expr_node_kind)enk_reuse_value) {
