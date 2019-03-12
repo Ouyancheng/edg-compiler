@@ -3293,18 +3293,6 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
     if (!(conv_context & CCO_DIRECT_INITIALIZATION)) {
       conv_context |= CCO_IGNORE_EXPLICIT_MEMBERS;
     }  /* if */
-    if (elision_allowed && arg_list != NULL && arg_list->next == NULL &&
-        is_expression_component(arg_list) && mandatory_copy_elision &&
-        init_list_ctor_arg_list == NULL) {
-      /* If we are initializing from a single expression (not brace-enclosed),
-         handle the initialization with a potential elision of the
-         constructor. */
-      an_operand  *opnd = operand_of_arg_list_elem(arg_list);
-      prep_elision_initializer_operand(opnd, class_type, fill_in_dtor,
-                                       conv_context, ec_bad_initializer_type,
-                                       elision_done, &dip);
-      goto build_temp_init_if_needed;
-    }  /* if */
     /* The constructors are overloaded.  Select the proper one. */
     /* Note that a special case allows passing have_selector == TRUE and
        NULL for the selector operand when dealing with constructors. */
@@ -3589,7 +3577,6 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
       }  /* if */
     }  /* if */
   }  /* if */
-build_temp_init_if_needed:
   *p_dip = dip;
   /* Build an enk_temp_init node if one is needed and one did not exist
      already. */
