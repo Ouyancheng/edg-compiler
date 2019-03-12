@@ -5867,11 +5867,13 @@ Extract the constant value from the operand *operand and place it in
                    operand_is_instantiation_dependent(operand)) {
           make_template_param_constant_from_operand(operand, constant,
                                                     (a_type_ptr)NULL);
-        } else if (expr_error_should_be_issued()) {
-          a_diagnostic_ptr  dp;
-          dp = pos_start_error(ec_expr_not_constant, &operand->position);
-          add_more_info_list(dp, &diag_list);
-          end_diagnostic(dp);
+        } else {
+          if (expr_error_should_be_issued()) {
+            a_diagnostic_ptr  dp;
+            dp = pos_start_error(ec_expr_not_constant, &operand->position);
+            add_more_info_list(dp, &diag_list);
+            end_diagnostic(dp);
+          }  /* if */
           set_error_constant(constant);
         }  /* if */
         discard_more_info_list(&diag_list);
