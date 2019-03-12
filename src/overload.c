@@ -17678,8 +17678,8 @@ no_applicable_operator_function:
                 is_prototype_instantiation_context()) {
               /* Record the outcome of overload resolution for a nondependent
                  call in a prototype instantiation.  Type-dependent calls in
-                 such a context don't get here, but value-dependent calls may.
-               */
+                 such a context don't get here, but value-dependent calls
+                 may. */
               check_assertion(!dependent_call &&
                               operator_tok_seq_number != 0);
               record_nondependent_call(proj_function_symbol,

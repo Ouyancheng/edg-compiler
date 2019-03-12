@@ -26,12 +26,12 @@ In cases where the function call is value-dependent, this resolution could
 be incorrect and lead to spurious failures in overload resolution.  Now fixed.
 For example (with --instantiate=used):
 
-struct A { };
-template<int idx>
-void foo (A *x, A *y) {
-  *x = y[idx*1]; // Previously a 'no matching operator "="' error here
-}
-auto ptr = &foo<0>;
+  struct A { };
+  template<int idx>
+  void foo (A *x, A *y) {
+    *x = y[idx*1]; // Previously a 'no matching operator "="' error here
+  }
+  auto ptr = &foo<0>;
 
 
 3/8/19   [EDGcpfe/20946]
