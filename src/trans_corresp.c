@@ -6403,6 +6403,9 @@ with sym.  This is called from find_corresponding_routine_on_list.
                    is_delete_operator(routine->variant.opname_kind)) &&
                   (is_new_operator(corresp_routine->variant.opname_kind) ||
                    is_delete_operator(corresp_routine->variant.opname_kind)));
+  } else if (corresp_routine->source_corresp.name_linkage !=
+                                        routine->source_corresp.name_linkage) {
+    /* Routines with different name linkage don't correspond. */
   } else if (param_types_are_compatible(routine->type,
                                         sym_type,
                                         TCF_REDECLARATION |
@@ -6412,8 +6415,6 @@ with sym.  This is called from find_corresponding_routine_on_list.
               is_main_function(corresp_routine))) {
     corresp_sym = (a_symbol_ptr)corresp_routine->source_corresp.assoc_info;
   } else if (routine->source_corresp.name_linkage ==
-                          (a_name_linkage_kind)nlk_external &&
-             corresp_routine->source_corresp.name_linkage ==
                           (a_name_linkage_kind)nlk_external &&
              !(routine->compiler_generated ||
                corresp_routine->compiler_generated)) {

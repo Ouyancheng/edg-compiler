@@ -1,5 +1,14 @@
 Version 5.1
 
+3/12/19  [EDGcpfe/20572]
+Spurious correspondence errors when overloading "C" and "C++" functions
+
+In some cases with translation units containing functions of the same name
+with "C" and "C++" name linkage respectively, the front end sometimes issued
+a spurious error a declaration having distinct meanings in different contexts.
+That is now fixed.
+
+
 3/12/19  [EDGcpfe/20558]
 Spurious correspondence error on "generic" builtins
 
