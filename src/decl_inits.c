@@ -6293,7 +6293,7 @@ FALSE is returned) for non-class objects.
              object is "default initialized" (for the non-POD case), which
              means the trivial default constructor will be called.  We apply
              the as-if rule and suppress the call (since it's a no-op), but the
-             definition still needs to be generated, since that generations may
+             definition still needs to be generated, since that generation may
              have side-effects. */
           if (reference_to_trivial_default_constructor(tp, tp, err_pos,
                                                        /*check_access=*/TRUE,
