@@ -25038,8 +25038,9 @@ freed by this routine.
   if (is_class_struct_union_type(type_cast_to)) {
     /* If the class is a template class, instantiate it to make its
        constructors visible. */
-    instantiate_template_class(type_cast_to);
-    cssp = symbol_supplement_for_class(type_cast_to);
+    a_type_ptr  class_type = skip_typerefs(type_cast_to);
+    instantiate_template_class(class_type);
+    cssp = class_symbol_supp(symbol_for(class_type));
     ctor_sym = cssp->constructor;
     if (ctor_sym != NULL) {
       /* The class has a constructor. */
@@ -25056,7 +25057,8 @@ freed by this routine.
            be considered along with the conversion function. */
         /* ctor_case = FALSE; -- already set. */
       } else if (cssp->has_user_declared_default_constructor ||
-                 cssp->has_copy_constructor ||
+                 (cssp->has_copy_constructor &&
+                  !class_type_supp(class_type)->is_lambda_closure_class) ||
                  cssp->has_user_declared_move_constructor ||
                  has_nontrivial_ctor(cssp)) {
         ctor_case = TRUE;
