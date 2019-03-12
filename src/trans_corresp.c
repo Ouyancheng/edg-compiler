@@ -6414,7 +6414,13 @@ with sym.  This is called from find_corresponding_routine_on_list.
   } else if (routine->source_corresp.name_linkage ==
                           (a_name_linkage_kind)nlk_external &&
              corresp_routine->source_corresp.name_linkage ==
-                          (a_name_linkage_kind)nlk_external) {
+                          (a_name_linkage_kind)nlk_external &&
+             !(routine->compiler_generated ||
+               corresp_routine->compiler_generated)) {
+    /* Two C-linkage functions with corresponding names but different types are
+       usually an error.  An exception occurs with certain built-in functions
+       that are "instantiated" for various invocation points (e.g.,
+       __c11_atomic_load). */
     f_report_bad_trans_unit_corresp((char*)routine,
                                     &sym->decl_position);
   }  /* if */
