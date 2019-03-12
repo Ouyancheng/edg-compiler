@@ -1050,9 +1050,11 @@ command-line when compiling system headers.
 #define TARG_ALIGNOF_DOUBLE 8
 #define TARG_SIZEOF_LONG_DOUBLE 12
 #define TARG_ALIGNOF_LONG_DOUBLE 4
+#if SIZE_T_IS_LONG
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
 #define TARG_SSIZE_T_INT_KIND ((an_integer_kind)ik_long)
 #define TARG_SIZE_T_MAX ((a_targ_size_t)0xffffffffUL)
+#endif /* SIZE_T_IS_LONG */
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_unsigned_short)
 #ifndef _lint
 /* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
