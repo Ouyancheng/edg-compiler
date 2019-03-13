@@ -1,5 +1,23 @@
 Version 5.1
 
+3/12/19  [EDGcpfe/20977]
+const_cast conversions sometimes lead to spurious constexpr failures
+
+Consider (in C++11 or later mode):
+
+  constexpr int i = 0;
+  constexpr int *p = const_cast<int*>(&i);
+  constexpr int g(int*) { return 42; }
+  static_assert(g(p) == 42, "Unexpected");  // Previously sometimes an error.
+                                            // Now okay.
+
+Previously, some configurations caused the constexpr interpreter to be unable
+to load the folded value of p for the call "g(p)" because that value was
+produced through a const_cast.  This resulted in a spurious error about "g(p)"
+not being a constant because of an invalid conversion.  That problem is now
+fixed.
+
+
 3/12/19  [EDGcpfe/20572]
 Spurious correspondence errors when overloading "C" and "C++" functions
 
