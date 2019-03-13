@@ -1,5 +1,14 @@
 Version 5.1
 
+3/13/19  [EDGcpfe/20990]
+Performance improvement when using brief diagnostics
+
+When brief diagnostics are being produced (e.g., with --brief_diagnostics),
+the source line was sometimes read when it was not needed, which can be
+an expensive operation.  This is no longer done in any cases when brief
+diagnostics are being generated.
+
+
 3/13/19  [EDGcpfe/20876]
 Issue with constexpr functions used in secondary translation units
 

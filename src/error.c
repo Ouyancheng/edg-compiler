@@ -2575,7 +2575,8 @@ number is added into the output.
       } else {
         /* The sequence number is not in the current logical source line.
            Try to relocate the source line in the known source files. */
-        if (can_locate_source_line(pos->seq,
+        if (!brief_diagnostics &&
+            can_locate_source_line(pos->seq,
                                    &sifpp->unicode_source_kind)) {
           /* The source line has been read into the error_source_line
              buffer. */
