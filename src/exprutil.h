@@ -1227,10 +1227,14 @@ below.
 #if DO_IL_LOWERING && !RECORD_BACKING_EXPRS_WITH_IL_LOWERING
 /* In IL-lowering configurations, unless otherwise requested, the only
    backing expressions kept are those appearing in template declarations,
-   where they may be needed for mangling, at least in the IA-64 ABI. */
+   where they may be needed for mangling (at least in the IA-64 ABI), and
+   those that might be referred to by a_local_expr_node_ref entries (since
+   otherwise we may end up with IL write-read errors and the like). */
 #define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
   (!curr_expr_kind_is(ek_pp) &&                                   \
-   depth_template_declaration_scope != NO_SCOPE_DEPTH)
+   ((innermost_function_scope != NULL &&                          \
+     innermost_function_scope->expr_node_refs != NULL) ||         \
+    depth_template_declaration_scope != NO_SCOPE_DEPTH))
 #else /* !(DO_IL_LOWERING && !RECORD_BACKING_EXPRS_WITH_IL_LOWERING) */
 #if !KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION || \
     TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS

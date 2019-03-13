@@ -24189,6 +24189,10 @@ already been consumed.
                                  /*explicit_return_type=*/FALSE,
                                  /*is_catch_clause=*/FALSE,
                                  /*is_statement_expr=*/TRUE, &expr_type);
+    if (sp->kind == (a_statement_kind)stmk_block &&
+        sp->variant.block.extra_info->assoc_scope != NULL) {
+      sp->variant.block.extra_info->assoc_scope->is_stmt_expr_block = TRUE;
+    }  /* if */
     restore_expr_stack(saved_expr_stack);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     source_sequence_entries_disallowed = saved_sses_disallowed;

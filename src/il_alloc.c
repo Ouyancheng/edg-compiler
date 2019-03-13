@@ -4532,6 +4532,7 @@ points to the associated routine if the kind is sck_function.
   sp->scope_orphaned_list_header_generated = FALSE;
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   sp->is_constexpr_routine = FALSE;
+  sp->is_stmt_expr_block = FALSE;
   set_scope_kind(sp, kind, assoc_routine);
   sp->assoc_block                 = NULL;
   sp->lifetime                    = NULL;

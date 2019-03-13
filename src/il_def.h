@@ -16527,6 +16527,10 @@ typedef struct a_scope {
 		is_constexpr_routine:1;
 			/* TRUE for a constexpr function or constructor
 			   which is valid for constexpr expansion. */
+  a_bit_field
+		is_stmt_expr_block:1;
+			/* TRUE for the top-level block scope of a statement
+			   expression. */
   union {
     /* When kind == sck_file, no variant fields. */
     /* When kind == sck_template_declaration, no variant fields. */

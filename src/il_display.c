@@ -6324,6 +6324,12 @@ do_assoc_type:
   if (ptr->do_not_free_memory_region) {
     disp_boolean("do_not_free_memory_region", TRUE);
   }  /* if */
+  if (ptr->is_constexpr_routine) {
+    disp_boolean("is_constexpr_routine", TRUE);
+  }  /* if */
+  if (ptr->is_stmt_expr_block) {
+    disp_boolean("is_stmt_expr_block", TRUE);
+  }  /* if */
   disp_ptr("assoc_block", (char *)ptr->assoc_block, iek_statement);
   disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
   disp_ptr("constants", (char *)ptr->constants, iek_constant);
