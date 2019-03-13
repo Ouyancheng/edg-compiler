@@ -34130,11 +34130,16 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
     if (use_master_instance &&
         !defer_inline && is_inline_template_function(tip, 
                                                      /*in_class=*/FALSE)) {
-      if (!mip->already_instantiated &&
-          should_be_instantiated(tip, /*implicit_inclusion_okay=*/FALSE)) {
+      if ((!mip->already_instantiated &&
+           should_be_instantiated(tip, /*implicit_inclusion_okay=*/FALSE)) ||
+          (rout_is_constexpr && secondary_translation_unit_seen() &&
+           !sym->defined)) {
         /* Inline (member or nonmember) functions are instantiated at the
            point of first use, in case the back end requires the function
-           body immediately to perform inlining. */
+           body immediately to perform inlining.  If this is a constexpr
+           function that was instantiated in one translation unit but
+           used in another one, do the instantiation again in the translation
+           unit of the new use. */
         instantiate_entity(tip);
       }  /* if */
     } else if (flag_already_set) {
