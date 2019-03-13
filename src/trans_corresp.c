@@ -6420,6 +6420,8 @@ with sym.  This is called from find_corresponding_routine_on_list.
     corresp_sym = (a_symbol_ptr)corresp_routine->source_corresp.assoc_info;
   } else if (routine->source_corresp.name_linkage ==
                           (a_name_linkage_kind)nlk_external &&
+             corresp_routine->source_corresp.name_linkage ==
+                          (a_name_linkage_kind)nlk_external &&
              !(routine->compiler_generated ||
                corresp_routine->compiler_generated)) {
     /* Two C-linkage functions with corresponding names but different types are
