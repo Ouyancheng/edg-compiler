@@ -1,5 +1,32 @@
 Version 5.1
 
+3/13/19  [EDGcpfe/20910]
+IA-64 mangling of certain qualified types
+
+The changes for EDGcpfe/17801 (in release 4.13) had the unintended consequence
+of changing certain mangled names.  In particular, mangled names involving
+substitutable types that are cv-qualified versions of types that have standard
+abbreviations may be affected.  For example:
+
+  namespace std {
+    template<typename> class allocator;
+    template<typename> struct char_traits;
+    template<typename> struct allocator {};
+    template<typename T, typename = char_traits<T>, typename = allocator<T> >
+    struct basic_string {};
+    typedef basic_string<char> string;
+  }
+  using namespace std;
+  template <typename T, typename _Alloc = allocator<T> > class map {};
+  void bar(const string*, map<const basic_string<char> >*);
+  void f() {
+    bar(0,0);
+  }
+
+Note that this change is not protected by ABI_COMPATIBILITY_VERSION as it
+restores previous behavior.
+
+
 3/13/19  [EDGcpfe/20983]
 Structured bindings in secondary declarators
 

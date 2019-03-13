@@ -1570,6 +1570,23 @@ and opts being available in the context in which it appears.
 
 static a_boolean record_substitution_for_type(a_type_ptr type);
 
+static a_boolean type_has_abbreviation(a_type_ptr type)
+/*
+Returns TRUE if the specified type has an IA-64 substitution abbreviation
+for it (e.g., ::std::basic_string).
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_class_struct_type(type) && is_in_namespace_std(type)) {
+    result = is_Ss_substitution(type) ||
+             is_stream_substitution(type, "basic_istream") ||
+             is_stream_substitution(type, "basic_ostream") ||
+             is_stream_substitution(type, "basic_iostream");
+  }  /* if */
+  return result;
+}  /* type_has_abbreviation */
+
 
 static a_boolean add_substitution_if_available_full(
                             char                     *entity,
@@ -1680,16 +1697,25 @@ substitution (and is unset otherwise).
     if (!test) add_str_to_mangled_name(str, mctl);
   } else {
     /* Otherwise, see if there is an existing substitution for something
-       that appears earlier in the mangled name. */
+       that appears earlier in the mangled name.  Most cases that have
+       substitutions have been handled above, but in some cases, two types
+       may have different addresses but the same mangling.  Two such cases are
+       nonreal types and cv-qualified types where the underlying types are
+       equivalent (but not the same, e.g., because of a typedef).  Those are
+       handled here. */
     an_itf_flag_set  opts;
     secondary_tu = secondary_translation_unit_seen();
     if (secondary_tu || kind == iek_type) {
       if (kind == iek_type && !secondary_tu &&
           type_kind_is_struct_or_class &&
           !type->source_corresp.on_mangling_substitution_list &&
-          !utype->source_corresp.on_mangling_substitution_list &&
-          !utype->variant.class_struct_union.is_nonreal_class) {
-        /* Exclude classes that don't have template parameters. */
+          !utype->variant.class_struct_union.is_nonreal_class &&
+          !(utype->source_corresp.on_mangling_substitution_list ||
+            type_has_abbreviation(utype))) {
+        /* Searching for (unlikely) cases that get substitutions that aren't
+           covered by the code above can be time consuming -- this test tries
+           to detect cases where the code below will never find a substitution.
+           */
         goto end_of_routine;
       }  /* if */
       opts = ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
