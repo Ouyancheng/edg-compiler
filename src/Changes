@@ -9,7 +9,7 @@ could result when constexpr functions templates were used.  Now fixed.
 
 
 3/12/19  [EDGcpfe/20977]
-const_cast conversions sometimes lead to spurious constexpr failures
+const_cast conversions sometimes led to spurious constexpr failures
 
 Consider (in C++11 or later mode):
 
