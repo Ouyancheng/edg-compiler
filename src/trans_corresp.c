@@ -6404,8 +6404,12 @@ with sym.  This is called from find_corresponding_routine_on_list.
                   (is_new_operator(corresp_routine->variant.opname_kind) ||
                    is_delete_operator(corresp_routine->variant.opname_kind)));
   } else if (corresp_routine->source_corresp.name_linkage !=
-                                        routine->source_corresp.name_linkage) {
-    /* Routines with different name linkage don't correspond. */
+                                        routine->source_corresp.name_linkage &&
+             !compatible_enable_if_attributes(
+                                       skip_typerefs(routine->type),
+                                       skip_typerefs(corresp_routine->type))) {
+    /* Routines with different name linkage don't correspond if they have
+       distinct enable_if attributes. */
   } else if (param_types_are_compatible(routine->type,
                                         sym_type,
                                         TCF_REDECLARATION |
