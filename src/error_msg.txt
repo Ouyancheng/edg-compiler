@@ -3033,6 +3033,7 @@ ec_struct_binding_in_condition;;"structured binding is not allowed in a conditio
 ec_missing_attr_namespace;;"an attribute namespace identifier is required before \"::\""
 ec_multiple_attr_namespaces;;"only one attribute namespace is allowed"
 ec_bad_return;;"\"return\" not allowed here"
+ec_struct_binding_with_multiple_declarators;;"a structured binding cannot be combined with other declarators"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

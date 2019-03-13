@@ -17825,11 +17825,12 @@ can be fully determined.
        misleading back ends). */
     container->source_corresp.name = NULL;
   }  /* if */
-  if (curr_token == tok_comma) {
+  if (curr_token == tok_comma || dps->secondary_declarator) {
     /* Structured binding declarations cannot contain multiple "declarators".
        Issue an error and proceed with an error type for the common
        specifiers. */
-    pos_error(ec_exp_semicolon, &pos_curr_token);
+    pos_error(ec_struct_binding_with_multiple_declarators,
+              &dps->declarator_pos);
     dps->specifiers_type = error_type();
     dps->auto_type_specifier_seen = FALSE;
     dps->has_deduced_type = FALSE;
