@@ -7113,6 +7113,9 @@ Return the operand in *result.
   /* Make the operand. */
   make_constant_operand(con, operand);
   restore_operand_details(operand, &orig_operand);
+  /* Retain the original operand state, as doing otherwise may confuse
+     overload resolution for value-dependent operands. */
+  operand->state = orig_operand.state;
   release_local_constant(&con);
 }  /* make_template_param_expr_constant_operand */
 
@@ -20345,6 +20348,11 @@ cases so we don't do it here.
          managed nullptr type, although prohibited as the type of an
          object, etc., is acceptable in an lvalue-to-rvalue conversion. */
       error_in_operand(ec_incomplete_type_not_allowed, operand);
+    } else if (is_template_param_expression_constant_operand(operand)) {
+      /* A template param constant operand will retain the state of the
+         original operand, rather than being set to os_prvalue. Always
+         allow conversion if requested. */
+      operand->state = (an_operand_state)os_prvalue;
     } else {
       using_lvalue(operand);
       check_assertion(is_expression_operand(operand));

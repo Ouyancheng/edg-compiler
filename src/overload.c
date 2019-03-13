@@ -17083,8 +17083,8 @@ operand when initializer lists are enabled.
           /* In a real (not prototype) instantiation, and doing dependent
              name processing.  Look up this call to see whether it was a
              dependent call in the prototype instantiation.  If it was a
-             (type) nondependent call, it was recorded, along with (usually)
-             the symbol chosen by overload resolution. */
+             nondependent call, it was recorded, along with (usually) the
+             symbol chosen by overload resolution. */
           a_nondependent_call_info_ptr ndcall_info = NULL;
           if (operator_tok_seq_number != 0) {
             ndcall_info = get_nondependent_call_info(operator_tok_seq_number,
@@ -17135,13 +17135,7 @@ operand when initializer lists are enabled.
                                          &matched_except_for_selector);
             operand_1->selector_is_object_pointer =
                                               saved_selector_is_object_pointer;
-            /* If the nondependent call recorded earlier was actually value
-               dependent, then the recorded function may not actually match.
-               Fall back to standard overload resolution if this selection
-               fails. */
-            if (candidate_functions != NULL) {
-              goto select_best_function;
-            }
+            goto select_best_function;
           }  /* if */
         }  /* if */
         /* Find any member function for the operator. */
@@ -17677,9 +17671,8 @@ no_applicable_operator_function:
             if (do_dependent_name_processing &&
                 is_prototype_instantiation_context()) {
               /* Record the outcome of overload resolution for a nondependent
-                 call in a prototype instantiation.  Type-dependent calls in
-                 such a context don't get here, but value-dependent calls
-                 may. */
+                 call in a prototype instantiation.  Dependent calls in such
+                 a context don't get here. */
               check_assertion(!dependent_call &&
                               operator_tok_seq_number != 0);
               record_nondependent_call(proj_function_symbol,
