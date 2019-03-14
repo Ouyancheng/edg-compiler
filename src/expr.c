@@ -24130,14 +24130,17 @@ already been consumed.
   a_type_ptr        expr_type;
 
   left_brace_position = pos_curr_token;
-  if (curr_expr_kind_is_traditional_const()) {
-    /* Not allowed in a constant expression. */
+  if (gnu_version_is(< 50100) && curr_expr_kind_is_traditional_const()) {
+    /* Earlier versions of GCC did not permit statement expressions in
+       traditional constant expressions. */
     expr_pos_error(ec_expr_not_constant, &left_brace_position);
     err = TRUE;
-  } else if (construct_not_allowed_in_cpp11_constant_expr(
+  } else if (gnu_version_is(< 50100) &&
+             construct_not_allowed_in_cpp11_constant_expr(
                                                        ec_expr_not_constant,
                                                        &left_brace_position)) {
-    /* Statement expressions not allowed in C++11 constant expressions. */
+    /* Earlier versions of GCC did not permit statement expressions in
+       C++11 constant expressions. */
     err = TRUE;
   }  /* if */
   if (expr_stack->expression_kind != (an_expression_kind)ek_sizeof &&
@@ -24234,6 +24237,7 @@ already been consumed.
       }  /* if */
     }  /* if */
     if (!err) {
+      a_constant_ptr  con = local_constant();
       expr = alloc_expr_node((an_expr_node_kind)enk_statement);
       expr->variant.statement = sp;
       expr->type = expr_type;
@@ -24254,7 +24258,16 @@ already been consumed.
         dip->variant.expression = expr;
         expr = temp_init;
       }  /* if */
-      make_expression_operand(expr, result);
+      if (fold_constexpr_expr(expr, con, /*is_constant_evaluated=*/FALSE,
+                              /*force_prvalue=*/FALSE)) {
+        /* Folding succeeded.  Unconditionally record the backing
+           expression. */
+        con->expr = expr;
+        make_constant_operand(con, result);
+      } else {
+        make_expression_operand(expr, result);
+      }  /* if */
+      release_local_constant(&con);
       if (innermost_function_scope != NULL) {
         current_routine_entry()->contains_statement_expression = TRUE;
       }  /* if */

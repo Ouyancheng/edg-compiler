@@ -1,5 +1,22 @@
 Version 5.1
 
+3/14/19  [EDGcpfe/20980]
+GNU statement expressions as constants
+
+The front end now attempts to constant-evaluate GNU statement expressions in
+GNU modes with gnu_version >= 50100.  For example:
+
+  int main() {
+    enum { x = ({42;}) };
+    return x;
+  }
+
+Note that GCC itself only performs the constant-evaluation is limited contexts
+(e.g., it does accept the case above, but it performs the evaluation for
+_Static_assert constructs).  Our more general folding of statement expressions
+is not expected to hamper compatibility.
+
+
 3/14/19  [EDGcpfe/20969]
 Abort when promoting variable bindings for bit fields
 

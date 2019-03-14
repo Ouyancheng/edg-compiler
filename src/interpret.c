@@ -450,7 +450,8 @@ Release the storage for the given map's table.
 
 
 /*
-Structure describing a call context.
+Structure describing a call context or a GNU statement expression evaluation
+context.
 */
 typedef struct a_call_frame *a_call_frame_ptr;
 typedef struct a_call_frame {
@@ -458,10 +459,18 @@ typedef struct a_call_frame {
 		parent;
 			/* The frame in which this frame was created. */
   a_routine_ptr	routine;
-			/* The routine being called. */
-  a_source_position
+			/* The routine being called or NULL for a GNU
+			   statement expression. */
+  struct {
+    /* When routine != NULL: */
+    a_source_position
 		*position;
 			/* The source position of the call. */
+    /* When routine == NULL: */
+    an_expr_node_ptr
+		expr;
+			/* The source position of the call. */
+  } variant;
   a_byte	*result_storage;
 			/* The storage in which returned expression results
 			   should be placed. */
@@ -1126,7 +1135,7 @@ Macros to push and pop call frames.
   {                                                                          \
     (p_frame)->parent = (ips)->curr_call_frame;                              \
     (p_frame)->routine = (rp);                                               \
-    (p_frame)->position = (pos);                                             \
+    (p_frame)->variant.position = (pos);                                     \
     (p_frame)->result_storage = (p_result);                                  \
     (p_frame)->complete_object = (p_complete);                               \
     (p_frame)->return_active = FALSE;                                        \
@@ -1139,6 +1148,25 @@ Macros to push and pop call frames.
 
 #define pop_call_frame(ips)                                                  \
   ((ips)->curr_call_frame = (ips)->curr_call_frame->parent)
+
+/*
+Macro to push a GNU statement expressions frame (which is a special kind of
+call frame).
+*/
+#define push_stmt_expr(ips, p_frame, stmt_expr, p_result, p_complete)        \
+  {                                                                          \
+    (p_frame)->parent = (ips)->curr_call_frame;                              \
+    (p_frame)->routine = NULL;                                               \
+    (p_frame)->variant.expr = (stmt_expr);                                   \
+    (p_frame)->result_storage = (p_result);                                  \
+    (p_frame)->complete_object = (p_complete);                               \
+    (p_frame)->return_active = FALSE;                                        \
+    (p_frame)->loop_break_active = FALSE;                                    \
+    (p_frame)->continue_active = FALSE;                                      \
+    (p_frame)->switch_break_active = FALSE;                                  \
+    (ips)->curr_call_frame = (p_frame);                                      \
+    (ips)->call_seen = FALSE;                                                \
+  }
 
 
 #if HOST_ALIGNMENT_REQUIRED == 1
@@ -2182,7 +2210,12 @@ the interpreter's current call stack.
 
   if (frame != NULL) {
     for (; frame->parent != NULL; frame = frame->parent) {
-      more_info_diagnostic(ec_constexpr_called_from, frame->position,
+      if (frame->routine == NULL) {
+        /* Ignore frames not associated with actual call (this can happen
+           with GNU statement expressions). */
+        continue;
+      }  /* if */
+      more_info_diagnostic(ec_constexpr_called_from, frame->variant.position,
                            &ips->diag_list);
     }  /* for */
   }  /* if */
@@ -4416,6 +4449,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                                               (a_type_qualifier_set)TQ_CONST);
               break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            case abk_label:
+              orig_type = con->type;
+              break;
             default:
               orig_type = con->type;
               unexpected_condition();
@@ -6356,8 +6392,18 @@ successfully interpreted, FALSE otherwise.
       break;
     case stmk_return:
       { a_call_frame_ptr  frame = ips->curr_call_frame;
-        a_byte            *result_storage = frame->result_storage;
-        a_byte            *complete_obj = frame->complete_object;
+        a_byte            *result_storage, *complete_obj;
+        /* Skip GNU statement expression frames. */
+        while (frame->routine == NULL) {
+          frame = frame->parent;
+          if (frame == NULL) {
+            info_with_pos(ec_branch_out_of_constant, &stmt->position, ips);
+            do_constexpr_fail(result);
+            goto done_with_return_statement;
+          }  /* if */
+        }  /* while */
+        result_storage = frame->result_storage;
+        complete_obj = frame->complete_object;
         if (stmt->expr != NULL) {
           do_constexpr_full_expression(ips, stmt->expr, result_storage,
                                        complete_obj, result);
@@ -6400,7 +6446,31 @@ successfully interpreted, FALSE otherwise.
         }  /* if */
         frame->return_active = TRUE;
       }
+done_with_return_statement:
       break;
+#if GNU_EXTENSIONS_ALLOWED
+    case stmk_stmt_expr_result:
+      { a_call_frame_ptr  frame = ips->curr_call_frame;
+        a_byte            *result_storage = frame->result_storage;
+        a_byte            *complete_obj = frame->complete_object;
+        if (stmt->expr != NULL) {
+          do_constexpr_full_expression(ips, stmt->expr, result_storage,
+                                       complete_obj, result);
+        } else if (stmt->variant.stmt_expr_result.dynamic_init != NULL) {
+          /* Handle return_dynamic_init case. */
+          a_dynamic_init_ptr  dip;
+          dip = stmt->variant.stmt_expr_result.dynamic_init;
+          if (dip->kind == (a_dynamic_init_kind)dik_zero) {
+            tp = skip_typerefs(frame->variant.expr->type);
+            init_subobject_to_zero(ips, result_storage, tp, complete_obj);
+          } else {
+            result = do_constexpr_dynamic_init(ips, dip, &stmt->position, 
+                                               result_storage, complete_obj);
+          }  /* if */
+        }  /* if */
+      }
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case stmk_block:
       { a_block_ptr  block = stmt->variant.block.extra_info;
         result = do_constexpr_block_statement(ips, stmt, block->assoc_scope);
@@ -14105,6 +14175,25 @@ the value representation of the integer value.
         do_constexpr_fail(result);
       }  /* if */
       break;
+#if GNU_EXTENSIONS_ALLOWED
+    case enk_statement:
+      { a_call_frame     frame;
+        a_statement_ptr  stmt = expr->variant.statement;
+        push_stmt_expr(ips, &frame, expr, result_storage, complete_object);
+        result = do_constexpr_block_statement(
+                      ips, stmt, stmt->variant.block.extra_info->assoc_scope);
+        if (frame.parent == NULL &&
+            (frame.return_active || frame.loop_break_active ||
+             frame.continue_active || frame.switch_break_active)) {
+          /* A branch is still active, but we're no longer in a statement
+             context. That is not valid. */
+          info_with_pos(ec_branch_out_of_constant, &expr->position, ips);
+          do_constexpr_fail(result);
+        }  /* if */
+        pop_call_frame(ips);
+      }
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       do_constexpr_fail(result);
       info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
