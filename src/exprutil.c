@@ -9444,14 +9444,14 @@ desired.
     if (field_size > int_size) field_size = (unsigned int)int_size;
   }  /* if */
 #if LONG_LONG_ALLOWED
-  if ((microsoft_mode || gpp_mode ||
+  if ((microsoft_mode || (gpp_mode && gnu_version < 40800) ||
        (gcc_mode && gnu_version < 40000 &&
         field->bit_size == (unsigned int)(targ_sizeof_long*targ_char_bit))) &&
       (ikind == (an_integer_kind)ik_long_long ||
        ikind == (an_integer_kind)ik_unsigned_long_long)) {
-    /* MSVC++ and g++ consider long long and unsigned long long bit
-       fields to retain those types even if the bit field size is less than
-       the size of int.  This is possibly justified in C99 (6.3.1.1p2)
+    /* MSVC++ and g++ before 4.8.0 consider long long and unsigned long long
+       bit fields to retain those types even if the bit field size is less
+       than the size of int.  This is possibly justified in C99 (6.3.1.1p2)
        but is probably wrong in C++.  gcc before 4.0 also does this for
        bit fields that are exactly as long as "long". */
   } else
@@ -9525,6 +9525,11 @@ case it sets *p_type to the bit-field's promoted type.
   } else if (!bit_field_promotion_applies_to_some_operations) {
     /* Just check the case of a direct access to a bit field. */
     if (is_bit_field_extract_node(node)) {
+      if (is_variable_node(node)) {
+        a_variable_ptr vp = node_variable(node);
+        check_assertion(vp->init_kind == (an_init_kind)initk_binding);
+        node = vp->initializer.bound_expr;
+      }
       *p_type = type_after_bit_field_integral_promotion(node);
     } else {
       result = FALSE;
@@ -9532,10 +9537,7 @@ case it sets *p_type to the bit-field's promoted type.
     goto loop_done;
   }  /* if */
   for (;;) {
-    if (!is_operation_node(node)) {
-      result = FALSE;
-      goto loop_done;
-    } else {
+    if (is_operation_node(node)) {
       switch (node->variant.operation.kind) {
         case eok_dot_field:
         case eok_points_to_field:
@@ -9596,6 +9598,16 @@ case it sets *p_type to the bit-field's promoted type.
           result = FALSE;
           goto loop_done;
       }  /* switch */
+    } else if (is_variable_node(node)) {
+      a_variable_ptr vp = node_variable(node);
+      if (vp->init_kind != (an_init_kind)initk_binding) {
+        result = FALSE;
+        break;
+      }  /* if */
+      node = vp->initializer.bound_expr;
+    } else {
+      result = FALSE;
+      break;
     }  /* if */
   }  /* for */
 loop_done:

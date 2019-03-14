@@ -1,5 +1,20 @@
 Version 5.1
 
+3/14/19  [EDGcpfe/20969]
+Abort when promoting variable bindings for bit fields
+
+When 'bit_field_promotion_applies_to_some_operations' is set to FALSE and
+variable bindings to bit fields are being parsed, the front end would abort
+with an internal assertion failure.  Now fixed.
+
+  struct S { unsigned long long x : 4, y : 32; int z; };
+
+  void f(S s) {
+     auto [a, b, c] = s;
+     decltype(+a) foo;  // Would previously abort
+  }
+
+
 3/14/19  [EDGcpfe/20994]
 Missing narrowing diagnostic on float->enum class conversion
 
