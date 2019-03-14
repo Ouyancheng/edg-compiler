@@ -4862,7 +4862,7 @@ and a vector are compatible.
     dependent_constant = TRUE;
   }  /* if */
   if (is_floating_type(source_type)) {
-    if (is_integral_type(dest_type)) {
+    if (is_integral_or_enum_type(dest_type)) {
       /* Floating-point to integer is always narrowing. */
       is_narrowing = TRUE;
 #if C99_IL_EXTENSIONS_SUPPORTED

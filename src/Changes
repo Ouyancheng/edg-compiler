@@ -1,5 +1,16 @@
 Version 5.1
 
+3/14/19  [EDGcpfe/20994]
+Missing narrowing diagnostic on float->enum class conversion
+
+The front end would issue a narrowing diagnostic message when converting a
+floating type to an integral type.  However, in C++ mode, this diagnostic was
+not issued when converting a floating type to an enum class type.  Now fixed.
+
+  enum class A : char { } ;
+  A a5{ 1.5 };  // Previously silent, now diagnosed
+
+
 3/13/19  [EDGcpfe/20910]
 IA-64 mangling of certain qualified types
 
