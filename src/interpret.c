@@ -461,15 +461,17 @@ typedef struct a_call_frame {
   a_routine_ptr	routine;
 			/* The routine being called or NULL for a GNU
 			   statement expression. */
-  struct {
+  union {
     /* When routine != NULL: */
     a_source_position
 		*position;
 			/* The source position of the call. */
+#if GNU_EXTENSIONS_ALLOWED
     /* When routine == NULL: */
     an_expr_node_ptr
 		expr;
 			/* The source position of the call. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } variant;
   a_byte	*result_storage;
 			/* The storage in which returned expression results
@@ -1149,6 +1151,7 @@ Macros to push and pop call frames.
 #define pop_call_frame(ips)                                                  \
   ((ips)->curr_call_frame = (ips)->curr_call_frame->parent)
 
+#if GNU_EXTENSIONS_ALLOWED
 /*
 Macro to push a GNU statement expressions frame (which is a special kind of
 call frame).
@@ -1167,6 +1170,7 @@ call frame).
     (ips)->curr_call_frame = (p_frame);                                      \
     (ips)->call_seen = FALSE;                                                \
   }
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 
 #if HOST_ALIGNMENT_REQUIRED == 1
