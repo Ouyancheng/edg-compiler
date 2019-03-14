@@ -3523,13 +3523,17 @@ the block statement.
        blocks with no declarations. */
     a_scope_ptr              scope_ptr;
     a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
-    if (is_statement_expression &&
-        ssep->curr_scope_object_lifetime != NULL &&
-        ssep->curr_scope_object_lifetime->block_lifetime_with_label_or_goto) {
-      /* For statement expressions containing a label or goto, we want to be
-         sure the scope is represented in the IL so the block object lifetime
-         can be bound to it. */
-      (void)ensure_il_scope_exists(ssep);
+    an_object_lifetime_ptr   curr_scope_olp, prev_scope_olp = NULL;
+    if (is_statement_expression) {
+      curr_scope_olp = ssep->curr_scope_object_lifetime;
+      prev_scope_olp = ssep->saved_curr_object_lifetime;
+      if (curr_scope_olp != NULL &&
+          curr_scope_olp->block_lifetime_with_label_or_goto) {
+        /* For statement expressions containing a label or goto, we want to be
+           sure the scope is represented in the IL so the block object lifetime
+           can be bound to it. */
+        (void)ensure_il_scope_exists(ssep);
+      }  /* if */
     }  /* if */
     scope_ptr = ssep->il_scope;
     if (scope_ptr != NULL) {
@@ -3538,6 +3542,9 @@ the block statement.
     }  /* if */
     /* Pop the name scope. */
     pop_scope();
+    if (prev_scope_olp != NULL) {
+      curr_object_lifetime = prev_scope_olp;
+    }  /* if */
   }  /* if */
   /* If a label appeared in the context of the block that was just
      terminated, it may be appropriate to push a new object lifetime for

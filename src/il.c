@@ -23863,6 +23863,14 @@ entry is needed.)
                          "pushing on top of olk_expr_temporary not allowed");
     /* Link the new entry into the object lifetime tree. */
     parent = curr_object_lifetime;
+    if (entity_kind == (an_il_entry_kind)iek_scope &&
+        kind == (an_object_lifetime_kind)olk_block &&
+        in_file_scope(olp) && !in_file_scope(parent)) {
+      /* This can happen with a GNU statement expression appearing, e.g., in a
+         local enumerator constant.  Use the global scope static lifetime as
+         the parent instead. */
+      parent = scope_stack[DEPTH_OF_FILE_SCOPE].curr_scope_object_lifetime;
+    }  /* if */
     olp->parent_lifetime = parent;
     if (entity_kind == (an_il_entry_kind)iek_scope && entity_ptr != NULL &&
         ((a_scope_ptr)entity_ptr)->kind == (a_scope_kind)sck_function) {
@@ -23874,20 +23882,7 @@ entry is needed.)
                              (a_scope_ptr)parent->entity.ptr);
       /* Don't add the current entry to the parent's list of children, and
          don't update the sibling pointer. */
-    } else {
-#if CHECKING
-      if (in_file_scope(olp) != in_file_scope(parent)) {
-        if (in_file_scope(parent)) {
-          unexpected_condition_str2(
-                         "push_or_repush_object_lifetime: parent is in",
-                         "file scope memory, new olp is not");
-        } else {
-          unexpected_condition_str2(
-                         "push_or_repush_object_lifetime: new olp is in",
-                         "file scope memory, parent is not");
-        }  /* if */
-      }  /* if */
-#endif /* CHECKING */
+    } else if (in_file_scope(olp) == in_file_scope(parent)) {
       /* If the parent already has a list of children, add the new entry to
          the front of the list. */
       olp->next = parent->child_lifetime;
@@ -23898,6 +23893,18 @@ entry is needed.)
       /* Record the current position in the dynamic inits list of the
          parent. */
       olp->parent_destruction_sublist = parent->destructions;
+#if CHECKING
+    } else {
+      if (in_file_scope(parent)) {
+        unexpected_condition_str2(
+                         "push_or_repush_object_lifetime: parent is in",
+                         "file scope memory, new olp is not");
+      } else {
+        unexpected_condition_str2(
+                        "push_or_repush_object_lifetime: new olp is in",
+                        "file scope memory, parent is not");
+      }  /* if */
+#endif /* CHECKING */
     }  /* if */
   }  /* if */
   if (entity_ptr != NULL) {
