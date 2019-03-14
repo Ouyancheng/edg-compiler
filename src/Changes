@@ -54,7 +54,7 @@ Issue with constexpr functions used in secondary translation units
 
 In configurations where COMPILE_MULTIPLE_TRANSLATION_UNITS is TRUE and
 when actually compiling multiple translation units, spurious errors
-could result when constexpr functions templates were used.  Now fixed.
+could result when constexpr function templates were used.  Now fixed.
 
 
 3/12/19  [EDGcpfe/20977]
