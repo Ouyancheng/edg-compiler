@@ -80,14 +80,16 @@ static unsigned long
 			   underway. */ 
 
 static unsigned long
-		n_viability_checks,
-		n_viability_failures,
-		n_explicit_arg_viability_checks,
-		n_explicit_arg_viability_failures,
-		n_deduction_viability_checks,
-		n_deduction_viability_failures,
-		n_deduced_substitition_lookups,
-		n_deduced_substitition_lookup_failures;
+		n_viability_checks = 0,
+		n_viability_failures = 0,
+		n_explicit_arg_viability_checks = 0,
+		n_explicit_arg_viability_failures = 0,
+		n_deduction_viability_checks = 0,
+		n_deduction_viability_failures = 0,
+		n_deduced_substitition_lookups = 0,
+		n_deduced_substitition_lookup_failures = 0;
+			/* Various statistics maintained about calls to
+			   determine_function_viability. */
 
 void db_viability_stats(void)
 /*
