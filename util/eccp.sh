@@ -613,6 +613,7 @@ check_abbreviation()
 --c_to_obj_option
 --cfront_2.1
 --cfront_3.0
+--char8_t
 --check_concatenations
 --clang
 --clang_version
@@ -754,6 +755,7 @@ check_abbreviation()
 --no_c++11_sfinae_ignore_access
 --no_c++cli
 --no_c++cx
+--no_char8_t
 --no_check_concatenations
 --no_clang
 --no_class_name_injection
@@ -1558,6 +1560,8 @@ process_option()
          --no_digit_separators | \
          --aligned_new | \
          --no_aligned_new | \
+         --char8_t | \
+         --no_char8_t | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
