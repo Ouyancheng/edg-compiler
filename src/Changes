@@ -136,9 +136,8 @@ Spurious correspondence errors when overloading "C" and "C++" functions
 
 In configurations where COMPILE_MULTIPLE_TRANSLATION_UNITS is TRUE the front
 end issued a spurious error in some Clang-mode cases with translation units
-containing validly overloaded functions with "C" and "C++" name linkage
-respectively (which is possible with the Clang enable_if attribute).  That is
-now fixed.
+containing overloaded functions with "C" and "C++" name linkage that differ
+only in the presence of enable_if attributes.  That is now fixed.
 
 
 3/12/19  [EDGcpfe/20558]
