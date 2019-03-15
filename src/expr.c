@@ -19050,6 +19050,131 @@ static a_type_ptr rescan_new_deduce_placeholder_type(
 }  /* rescan_new_deduce_placeholder_type */
 
 
+static a_type_ptr scan_new_type(a_decl_parse_state *dps,
+                                a_boolean          is_gcnew,
+                                a_boolean          trapped_left_paren,
+                                a_boolean          *deducible_new_type,
+                                a_source_position  *type_position)
+/* Scan the new-type-name or ( type-name ) from source. */
+{
+  a_type_ptr new_type;
+
+  dps->is_new_expr_type = TRUE;
+  dps->auto_type_allowed = auto_type_specifier_enabled;
+  dps->trailing_return_type_allowed = trailing_return_types_enabled;
+  dps->declarator_pos = pos_curr_token;
+  *type_position = pos_curr_token;
+
+  new_type_name(dps, trapped_left_paren);
+  new_type = dps->type;
+  *deducible_new_type = (dps->has_deduced_type &&
+                         !dps->has_trailing_return_type) ||
+                        dps->has_deducible_class_templ_args;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_gcnew) {
+    if (*deducible_new_type) {
+      /* Do not allow auto syntax with gcnew. */
+      expr_pos_error(ec_gcnew_used_with_auto_syntax, type_position);
+      new_type = error_type();
+      *deducible_new_type = FALSE;
+    } else if (is_array_type(new_type)) {
+      /* An error should have been emitted for this.  Ensure we recover
+         appropriately. */
+      expr_pos_error(ec_gcnew_of_native_array, type_position);
+      new_type = error_type();
+      *deducible_new_type = FALSE;
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+  return new_type;
+}  /* scan_new_type */
+
+
+static void scan_new_initializer(a_decl_parse_state *dps,
+                                 a_boolean          deducible_new_type,
+                                 a_boolean          *has_new_initializer,
+                                 a_boolean          *has_braced_initializer,
+                                 a_boolean          *using_expr_cache,
+                                 a_source_position  *init_position,
+                                 a_type_ptr         *new_type,
+                                 a_source_position  *type_position)
+{
+  a_boolean local_has_new_initializer = *has_new_initializer;
+  a_boolean local_has_braced_initializer = *has_braced_initializer;
+
+  if (curr_token == tok_lparen) {
+    /* A parenthesized new-initializer is present. */
+    local_has_new_initializer = TRUE;
+    *init_position = pos_curr_token;
+    /* Advance past the "(". */
+    (void)get_token();
+  } else if (list_init_enabled && curr_token == tok_lbrace) {
+    /* A C++11-style list initializer, e.g., new A{x, y}. */
+    *init_position = pos_curr_token;
+    local_has_new_initializer = TRUE;
+    local_has_braced_initializer = TRUE;
+    /* Don't advance past the "{", because the scan routine expects to
+       still see it as the current token. */
+  }  /* if */
+  *has_new_initializer = local_has_new_initializer;
+  *has_braced_initializer = local_has_braced_initializer;
+
+  if (deducible_new_type) {
+    if (dps->auto_type_specifier_seen && !local_has_new_initializer) {
+      /* An auto type specifier not followed by a new-initializer or a
+         trailing return type is an error. */
+      expr_pos_error(ec_auto_type_requires_initializer, type_position);
+      *new_type = error_type();
+      deducible_new_type = FALSE;
+    } else if (dps->auto_type_specifier_seen && local_has_braced_initializer) {
+      /* A braced initializer cannot be used with "auto". */
+      expr_pos_error(ec_auto_new_with_braced_init, type_position);
+      *new_type = error_type();
+      deducible_new_type = FALSE;
+    } else if (!local_has_new_initializer) {
+      /* A class template name placeholder can be deduced without an
+         initializer. */
+      a_boolean  still_dependent = FALSE;
+      check_assertion(is_class_template_placeholder_type(dps->auto_type));
+      if (deduce_class_template_args(dps->type, /*is_direct_init=*/TRUE,
+                                     /*parenthesized_init=*/FALSE,
+                                     /*keep_placeholder=*/TRUE,
+                                     (an_arg_list_elem *)NULL,
+                                     &pos_curr_token, new_type,
+                                     &still_dependent)) {
+        complete_type_is_needed(*new_type);
+        deducible_new_type = FALSE;
+      } else if (!still_dependent) {
+        /* There was an error.  Proceed as if no placeholder appeared. */
+        *new_type = error_type();
+        deducible_new_type = FALSE;
+      }  /* if */
+    } else {
+      /* Prescan the initializer to deduce the type to allocate. */
+      prescan_initializer_for_auto_type_deduction(
+                                          dps, !local_has_braced_initializer);
+      *using_expr_cache = TRUE;
+      if (!dps->has_deduced_type) {
+        /* There was an error.  Proceed as if "auto" did not appear. */
+        *new_type = error_type();
+        deducible_new_type = FALSE;
+      } else if (dps->deduced_auto_type == NULL ||
+                 dps->deduced_auto_type->kind == (a_type_kind)tk_unknown) {
+        /* The deduction was not done because the initializer or the auto
+           type is dependent.  The new_type will still involve "auto". */
+      } else {
+        /* In other cases, the deduction succeeded and "auto" is gone
+           from the new_type. */
+        *new_type = dps->type;
+        deducible_new_type = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* scan_new_initializer */
+
+
 static void scan_new_operator(a_rescan_control_block *rcblock,
                               an_operand             *result)
 /*
@@ -19255,101 +19380,16 @@ expression, and return the result in *result (or an error indication in
       using_expr_cache = TRUE;
     }  /* if */
   } else {
-    /* Scan the new-type-name or ( type-name ) from source. */
-    dps.is_new_expr_type = TRUE;
-    dps.auto_type_allowed = auto_type_specifier_enabled;
-    dps.trailing_return_type_allowed = trailing_return_types_enabled;
-    dps.declarator_pos = pos_curr_token;
-    type_position = pos_curr_token;
-    new_type_name(&dps, trapped_left_paren);
+    new_type = scan_new_type(&dps, is_gcnew, trapped_left_paren,
+                             &deducible_new_type, &type_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    new_type = dps.type;
-    deducible_new_type = (dps.has_deduced_type &&
-                          !dps.has_trailing_return_type) ||
-                         dps.has_deducible_class_templ_args;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (is_gcnew) {
-      if (deducible_new_type) {
-        /* Do not allow auto syntax with gcnew. */
-        expr_pos_error(ec_gcnew_used_with_auto_syntax, &type_position);
-        new_type = error_type();
-        deducible_new_type = FALSE;
-      } else if (is_array_type(new_type)) {
-        /* An error should have been emitted for this.  Ensure we recover
-           appropriately. */
-        expr_pos_error(ec_gcnew_of_native_array, &type_position);
-        new_type = error_type();
-        deducible_new_type = FALSE;
-      }  /* if */
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (curr_token == tok_lparen) {
-      /* A parenthesized new-initializer is present. */
-      has_new_initializer = TRUE;
-      init_position = pos_curr_token;
-      /* Advance past the "(". */
-      (void)get_token();
-    } else if (list_init_enabled && curr_token == tok_lbrace) {
-      /* A C++11-style list initializer, e.g., new A{x, y}. */
-      init_position = pos_curr_token;
-      has_new_initializer = TRUE;
-      has_braced_initializer = TRUE;
-      /* Don't advance past the "{", because the scan routine expects to
-         still see it as the current token. */
-    }  /* if */
-    if (deducible_new_type) {
-      if (dps.auto_type_specifier_seen && !has_new_initializer) {
-        /* An auto type specifier not followed by a new-initializer or a
-           trailing return type is an error. */
-        expr_pos_error(ec_auto_type_requires_initializer, &type_position);
-        new_type = error_type();
-        deducible_new_type = FALSE;
-      } else if (dps.auto_type_specifier_seen && has_braced_initializer) {
-        /* A braced initializer cannot be used with "auto". */
-        expr_pos_error(ec_auto_new_with_braced_init, &type_position);
-        new_type = error_type();
-        deducible_new_type = FALSE;
-      } else if (!has_new_initializer) {
-        /* A class template name placeholder can be deduced without an
-           initializer. */
-        a_boolean  still_dependent = FALSE;
-        check_assertion(is_class_template_placeholder_type(dps.auto_type));
-        if (deduce_class_template_args(dps.type, /*is_direct_init=*/TRUE,
-                                       /*parenthesized_init=*/FALSE,
-                                       /*keep_placeholder=*/TRUE,
-                                       (an_arg_list_elem*)NULL,
-                                       &pos_curr_token, &new_type,
-                                       &still_dependent)) {
-          complete_type_is_needed(new_type);
-          deducible_new_type = FALSE;
-        } else if (!still_dependent) {
-          /* There was an error.  Proceed as if no placeholder appeared. */
-          new_type = error_type();
-          deducible_new_type = FALSE;
-        }  /* if */
-      } else {
-        /* Prescan the initializer to deduce the type to allocate. */
-        prescan_initializer_for_auto_type_deduction(
-                                               &dps, !has_braced_initializer);
-        using_expr_cache = TRUE;
-        if (!dps.has_deduced_type) {
-          /* There was an error.  Proceed as if "auto" did not appear. */
-          new_type = error_type();
-          deducible_new_type = FALSE;
-        } else if (dps.deduced_auto_type == NULL ||
-                   dps.deduced_auto_type->kind == (a_type_kind)tk_unknown) {
-          /* The deduction was not done because the initializer or the auto
-             type is dependent.  The new_type will still involve "auto". */
-        } else {
-          /* In other cases, the deduction succeeded and "auto" is gone
-             from the new_type. */
-          new_type = dps.type;
-          deducible_new_type = FALSE;
-        }  /* if */
-      }  /* if */
-    }  /* if */
+
+    scan_new_initializer(&dps,
+                         deducible_new_type, &has_new_initializer,
+                         &has_braced_initializer, &using_expr_cache,
+                         &init_position, &new_type, &type_position);
   }  /* if */
 
   if (using_expr_cache) {
