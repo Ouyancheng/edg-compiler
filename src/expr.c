@@ -7690,8 +7690,9 @@ a left parenthesis in the source.
             if ((!is_qualified ||
                  parent_type == type_of_unknown_templ_param_nontype) &&
                 !is_conversion_func) {
-              if (is_class_struct_union_type(class_struct_union_type) &&
-                  !is_incomplete_type(class_struct_union_type) &&
+              a_type_ptr  lookup_type = skip_typerefs(class_struct_union_type);
+              if (is_immediate_class_type(lookup_type) &&
+                  class_type_supp(lookup_type)->assoc_scope != NULL &&
                   symbol_for(member_con) != NULL) {
                 check_assertion(qualified_member_position != NULL);
                 clear_locator(locator, qualified_member_position);

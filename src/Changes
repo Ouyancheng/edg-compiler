@@ -1,5 +1,29 @@
 Version 5.1
 
+3/14/19  [EDGcpfe/20899]
+Spurious SFINAE failure on lookup in class instance being defined
+
+Consider:
+
+  template<typename T> T val();
+  template<class T> struct Test_mf : T {
+      template<class U = Test_mf>
+      static auto test(int)
+          -> decltype(val<int&>() = val<U const&>().mf(),
+                      char{});
+      static auto test(...) -> char(&)[2];
+      static constexpr bool value = sizeof(test(0)) == 1;
+  };
+  struct S { int mf() const; };
+  static_assert(Test_mf<S>::value, "Unexpected");
+
+During the instantiation of Test_mf<S>, the expression "val<U const&>().mf()"
+is substituted with U = Test_mf<S> itself, which means that "mf" must be
+looked up in that type.  Previously, this produced a substitution (SFINAE)
+failure, which resulted in the code above producing the wrong outcome.  That
+is now fixed.
+
+
 3/14/19  [EDGcpfe/20530,EDGcpfe/20644]
 C++20: char8_t type and keyword
 
