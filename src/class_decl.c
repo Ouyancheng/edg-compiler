@@ -19848,10 +19848,9 @@ information about the member declaration, respectively.
                                          decl_info->bit_field_size);
     if (decl_info->bit_field_size->expr != NULL &&
         class_state->is_local_class &&
-        expr_has_reference_to_routine_scope_variable(
-                                            decl_info->bit_field_size->expr)) {
+        expr_has_reference_to_local_entity(decl_info->bit_field_size->expr)) {
       /* The expression for the bit-field width contains a reference to a
-         local variable.  Since the type, and consequently the constant for
+         local entity.  Since the type, and consequently the constant for
          the bit-field width, will be in file scope, the backing expression
          will be moved to a local expression node reference. */
       expr_for_local_ref = decl_info->bit_field_size->expr;

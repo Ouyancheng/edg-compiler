@@ -21763,6 +21763,49 @@ treat_as_potential_prvalue should always be FALSE when called during lowering
   return is_invariant;
 }  /* is_invariant_expr */
 
+
+static void check_for_reference_to_local_entity(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called via traverse_expr from expr_has_reference_to_routine_scope_variable;
+sets tblock->result to TRUE and terminates the traversal if expr is an
+enk_variable node that refers to a variable in a local scope.
+*/
+{
+  if (expr != NULL &&
+      ((is_variable_node(expr) && !in_file_scope(node_variable(expr))) ||
+       (expr->kind == (an_expr_node_kind)enk_statement &&
+        !in_file_scope(expr->variant.statement)))) {
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* check_for_reference_to_local_entity */
+
+
+a_boolean expr_has_reference_to_local_entity(an_expr_node_ptr expr)
+/*
+Return TRUE if any of the nodes in the expression tree rooted in expr
+(which may be NULL) is an enk_variable node that refers to a variable in a
+local scope or an enk_statement node.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+  a_boolean                       result = FALSE;
+
+  if (expr != NULL) {
+    clear_expr_or_stmt_traversal_block(&tblock);
+    tblock.process_expr = check_for_reference_to_local_entity;
+    tblock.process_non_dynamic_constants = TRUE;
+    tblock.process_expressions_for_constants = TRUE;
+    tblock.process_template_parameter_constants_and_expressions = TRUE;
+    traverse_expr(expr, &tblock);
+    result = tblock.result;
+  }  /* if */
+  return result;
+}  /* expr_has_reference_to_local_entity */
+
+
 static an_expr_node_ptr
 		last_routine_scope_variable_node_found;
 			/* A pointer to the last node found by

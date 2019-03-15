@@ -4134,15 +4134,15 @@ bound case, FALSE for the "expr" field of the constant itself.
 */
 {
   if (*expr != NULL) {
-    if (expr_has_reference_to_routine_scope_variable(*expr)) {
-      /* The expression refers to a function-scope variable, so it can't be
-         referenced from file scope.  Create a local expr node reference to
-         it instead.  Use get_innermost_function_scope because we could be
-         in a local class here. */
+    if (expr_has_reference_to_local_entity(*expr)) {
+      /* The expression refers to a local entity that can't be referenced from
+         file scope.  Create a local expr node reference to it instead.  Use
+         get_innermost_function_scope because we could be in a local class
+         here. */
       a_scope_ptr function_scope = get_innermost_function_scope();
       check_assertion(function_scope != NULL);
       if (in_file_scope(*expr)) {
-        /* Even though there is a reference to a local variable somewhere
+        /* Even though there is a reference to a local entity somewhere
            in the expression tree, the top-level node is in file-scope
            memory.  Make a copy in the innermost function scope and use
            that for the local expr node reference.  This copy is necessary
@@ -4152,7 +4152,6 @@ bound case, FALSE for the "expr" field of the constant itself.
            have to be reversed here.  That's wrong, but for the reasons given
            there it can't be fixed immediately, and this undoes most of the
            damage.*/
-
         check_assertion(function_scope != NULL &&
                         curr_il_region_number == file_scope_region_number);
         switch_il_region(mem_region_for_routine(

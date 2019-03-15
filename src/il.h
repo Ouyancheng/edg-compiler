@@ -1276,6 +1276,8 @@ extern a_boolean is_invariant_expr(
                                   a_boolean        vars_can_change,
                                   a_boolean        treat_as_potential_prvalue);
 
+extern a_boolean expr_has_reference_to_local_entity(an_expr_node_ptr expr);
+
 extern a_boolean expr_has_reference_to_routine_scope_variable(
                                                         an_expr_node_ptr expr);
 
