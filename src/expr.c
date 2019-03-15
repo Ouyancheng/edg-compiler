@@ -18738,7 +18738,7 @@ Return a newly created list of expression nodes for each of these dimensions
 
 
 static a_token_kind get_new_operator_token(a_rescan_control_block *rcblock,
-                                           a_boolean *is_gcnew)
+                                           a_boolean              *is_gcnew)
 /* Get the C++ "new" or C++/CLI "gcnew" operator token.
 */
 {
@@ -18784,19 +18784,20 @@ static a_token_kind get_new_operator_token(a_rescan_control_block *rcblock,
 }  /* get_new_operator_token */
 
 
-static void rescan_new_operator_expr(a_rescan_control_block *rcblock,
-                                     a_boolean is_gcnew,
-                                     a_source_position *start_position,
-                                     a_type_ptr *new_type,
-                                     a_source_position *type_position,
-                                     a_boolean *has_new_initializer,
-                                     a_boolean *use_global_new,
-                                     a_boolean *placement_new,
-                                     a_boolean *deducible_new_type,
-                                     a_boolean *has_braced_initializer,
-                                     a_boolean *gcnew_has_array_init,
-                                     an_arg_list_elem_ptr *placement_arg_list,
-                                     an_arg_list_elem_ptr *braced_init_list)
+static void rescan_new_operator_expr(
+                               a_rescan_control_block *rcblock,
+                               a_boolean              is_gcnew,
+                               a_source_position      *start_position,
+                               a_type_ptr             *new_type,
+                               a_source_position      *type_position,
+                               a_boolean              *has_new_initializer,
+                               a_boolean              *use_global_new,
+                               a_boolean              *placement_new,
+                               a_boolean              *deducible_new_type,
+                               a_boolean              *has_braced_initializer,
+                               a_boolean              *gcnew_has_array_init,
+                               an_arg_list_elem_ptr   *placement_arg_list,
+                               an_arg_list_elem_ptr   *braced_init_list)
 /*
 Collect the C++ "new" or the C++/CLI "gcnew" operator operands,
 placement and initializer from a rescan block for the operator.
@@ -18903,6 +18904,70 @@ placement and initializer from a rescan block for the operator.
     }  /* if */
   }  /* if */
 }  /* rescan_new_operator_expr */
+
+
+static void scan_new_operator_placement(
+                                    a_boolean            is_gcnew,
+                                    a_boolean            *trapped_left_paren,
+                                    a_boolean            *placement_new,
+                                    a_boolean            *err,
+                                    an_arg_list_elem_ptr *placement_arg_list)
+/*
+Check for the presence of the "placement" term, which provides extra
+arguments for the operator new function.  It is a list of expressions
+in parentheses.
+*/
+{
+  an_expr_node_ptr dummy;
+
+  if (curr_token == tok_lparen) {
+    (void)get_token();
+    /* Both the placement term and the type can start with a parenthesis.
+       Look inside to tell them apart.  For example:
+         new (int(1.5)) A     // placement
+         new (int(*  ))       // type
+    */
+    if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                         DFS_SINGLE_TYPE_REQUIRED)) {
+      /* This is the type name. */
+      *trapped_left_paren = TRUE;
+    } else {
+      /* This is the placement expression list. */
+      *placement_new = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* Ensure that gcnew is not used with placement syntax. */
+      if (is_gcnew) {
+        expr_pos_error(ec_gcnew_used_with_placement_syntax,
+                       &pos_curr_token);
+        *err = TRUE;
+        /* Recover from erroneous use of placement new. */
+        *placement_new = FALSE;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      if (curr_token == tok_rparen) {
+        /* An empty list is not allowed. */
+        expr_pos_error(ec_exp_primary_expr, &pos_curr_token);
+        (void)get_token();
+      } else {
+        /* Scan the expression list as an argument list for which we do
+           not yet know the function.  The argument values are returned
+           in a list headed by arg_list. */
+        scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
+                            /*already_after_left_paren=*/TRUE,
+                            &dummy, /*return_raw_arguments=*/TRUE,
+                            /*unknown_dependent_function=*/FALSE,
+                            /*args_will_be_discarded=*/FALSE,
+                            /*is_custom_ms_attr_arg_list=*/FALSE,
+                            (a_rescan_control_block *)NULL,
+                            /*arg_list_supplied=*/FALSE,
+                            (an_arg_list_elem *)NULL,
+                            placement_arg_list,
+                            (an_operand *)NULL, (a_boolean *)NULL,
+                            (a_source_position *)NULL);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}
 
 
 static void scan_new_operator(a_rescan_control_block *rcblock,
@@ -19085,58 +19150,13 @@ expression, and return the result in *result (or an error indication in
     }  /* if */
 #endif /* CHECKING */
     new_position = pos_curr_token;
+
     (void)get_token();
-    /* Check for the presence of the "placement" term, which provides extra
-       arguments for the operator new function.  It is a list of expressions
-       in parentheses. */
-    if (curr_token == tok_lparen) {
-      (void)get_token();
-      /* Both the placement term and the type can start with a parenthesis.
-         Look inside to tell them apart.  For example:
-           new (int(1.5)) A     // placement
-           new (int(*  ))       // type
-      */
-      if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
-                           DFS_SINGLE_TYPE_REQUIRED)) {
-        /* This is the type name. */
-        trapped_left_paren = TRUE;
-      } else {
-        /* This is the placement expression list. */
-        placement_new = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        /* Ensure that gcnew is not used with placement syntax. */
-        if (is_gcnew) {
-          expr_pos_error(ec_gcnew_used_with_placement_syntax,
-                         &pos_curr_token);
-          err = TRUE;
-          /* Recover from erroneous use of placement new. */
-          placement_new = FALSE;
-        }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        if (curr_token == tok_rparen) {
-          /* An empty list is not allowed. */
-          expr_pos_error(ec_exp_primary_expr, &pos_curr_token);
-          (void)get_token();
-        } else {
-          /* Scan the expression list as an argument list for which we do
-             not yet know the function.  The argument values are returned
-             in a list headed by arg_list. */
-          scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
-                              /*already_after_left_paren=*/TRUE,
-                              &dummy, /*return_raw_arguments=*/TRUE,
-                              /*unknown_dependent_function=*/FALSE,
-                              /*args_will_be_discarded=*/FALSE,
-                              /*is_custom_ms_attr_arg_list=*/FALSE,
-                              (a_rescan_control_block *)NULL,
-                              /*arg_list_supplied=*/FALSE,
-                              (an_arg_list_elem *)NULL,
-                              &arg_list,
-                              (an_operand *)NULL, (a_boolean *)NULL,
-                              (a_source_position *)NULL);
-        }  /* if */
-      }  /* if */
-    }  /* if */
+    scan_new_operator_placement(is_gcnew,
+                                &trapped_left_paren, &placement_new, &err,
+                                &arg_list);
   }  /* if */
+
   /* Use a declaration parse state block to manage the "auto" case. */
   init_decl_parse_state(&dps);
   /* Next, get the type of entity to be allocated (new_type). */
