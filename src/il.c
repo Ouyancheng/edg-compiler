@@ -21774,9 +21774,12 @@ enk_variable node that refers to a variable in a local scope.
 */
 {
   if (expr != NULL &&
-      ((is_variable_node(expr) && !in_file_scope(node_variable(expr))) ||
-       (expr->kind == (an_expr_node_kind)enk_statement &&
-        !in_file_scope(expr->variant.statement)))) {
+      ((is_variable_node(expr) && !in_file_scope(node_variable(expr)))
+#if GNU_EXTENSIONS_ALLOWED
+       || (expr->kind == (an_expr_node_kind)enk_statement &&
+           !in_file_scope(expr->variant.statement))
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                                   )) {
     tblock->result = TRUE;
     tblock->terminate = TRUE;
   }  /* if */
