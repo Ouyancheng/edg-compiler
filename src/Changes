@@ -24,7 +24,7 @@ GNU modes with gnu_version >= 50100.  For example:
     return x;
   }
 
-Note that GCC itself only performs the constant-evaluation is limited contexts
+Note that GCC itself only performs the constant-evaluation in limited contexts
 (e.g., it does accept the case above, but it performs the evaluation for
 _Static_assert constructs).  Our more general folding of statement expressions
 is not expected to hamper compatibility.

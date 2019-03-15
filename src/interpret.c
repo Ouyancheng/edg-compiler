@@ -469,8 +469,8 @@ typedef struct a_call_frame {
 #if GNU_EXTENSIONS_ALLOWED
     /* When routine == NULL: */
     an_expr_node_ptr
-		expr;
-			/* The source position of the call. */
+		expr;	/* The statement expression associated with this
+			   frame. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   } variant;
   a_byte	*result_storage;
@@ -2215,7 +2215,7 @@ the interpreter's current call stack.
   if (frame != NULL) {
     for (; frame->parent != NULL; frame = frame->parent) {
       if (frame->routine == NULL) {
-        /* Ignore frames not associated with actual call (this can happen
+        /* Ignore frames not associated with an actual call (this can happen
            with GNU statement expressions). */
         continue;
       }  /* if */
@@ -14190,7 +14190,7 @@ the value representation of the integer value.
             (frame.return_active || frame.loop_break_active ||
              frame.continue_active || frame.switch_break_active)) {
           /* A branch is still active, but we're no longer in a statement
-             context. That is not valid. */
+             context.  That is not valid. */
           info_with_pos(ec_branch_out_of_constant, &expr->position, ips);
           do_constexpr_fail(result);
         }  /* if */
