@@ -278,14 +278,12 @@ Consider the following example:
   };
   int main() {
     B b;
-    A a(b);  // Now an error in pre-C++17 modes.
+    A a(b);  // Now an error.
   }
 
-The front end previously accepted this in most modes, even though if the
-initialization is performed through the copy constructor of A, the "volatile"
-qualifier makes it invalid.  That is now fixed.  Note that in C++17 mode,
-the copy constructor of A is not involved because of the mandatory copy
-elision rules, and hence the case is accepted in that mode.
+The front end previously accepted this in most modes, but the initialization
+"A a(b);" is invalid because the copy constructor of A cannot accept the
+volatile-qualified result of "B::operator volatile A()".  That is now fixed.
 
 
 2/27/19  [EDGcpfe/20850]
