@@ -18736,6 +18736,54 @@ Return a newly created list of expression nodes for each of these dimensions
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+
+static a_token_kind get_new_operator_token(a_rescan_control_block *rcblock,
+                                           a_boolean *is_gcnew)
+/* Get the C++ "new" or C++/CLI "gcnew" operator token.
+*/
+{
+  a_token_kind operator_token;
+
+  *is_gcnew = FALSE;
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+#if CHECKING
+    if (!(rcblock->operator_token == tok_new
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          || rcblock->operator_token == tok_gcnew
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+         )) {
+      /* Ensure that the rescan operator token is either a tok_new
+         or tok_gcnew */
+      unexpected_condition();
+    }  /* if */
+#endif /* CHECKING */
+    operator_token = rcblock->operator_token;
+  }
+  else {
+    /* Normal, non-rescan, processing. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* For operator new, the current token may not be tok_new,
+       but for gcnew the current token will always be tok_gcnew */
+    if (curr_token == tok_gcnew) {
+      operator_token = tok_gcnew;
+    }
+    else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+    {
+      operator_token = tok_new;
+    }  /* if */
+  }  /* if */
+
+  if (operator_token == tok_gcnew) {
+    *is_gcnew = TRUE;
+  } /* if */
+
+  return operator_token;
+}  /* get_new_operator_token */
+
+
 static void scan_new_operator(a_rescan_control_block *rcblock,
                               an_operand             *result)
 /*
@@ -18844,23 +18892,13 @@ expression, and return the result in *result (or an error indication in
 
   db_enter(4, "scan_new_operator");
 
+  operator_token = get_new_operator_token(rcblock, &is_gcnew);
+  /* Will get overwritten later if re-scanning. */
+  start_position = pos_curr_token;
+
   if (rcblock != NULL) {
-    /* Redoing semantic analysis on a previously-scanned expression. */
-#if CHECKING
-    if (!(rcblock->operator_token == tok_new
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          || rcblock->operator_token == tok_gcnew
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-         )) {
-      /* Ensure that the rescan operator token is either a tok_new
-         or tok_gcnew */
-      unexpected_condition();
-    }  /* if */
-#endif /* CHECKING */
-    operator_token = rcblock->operator_token;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (operator_token == tok_gcnew) {
-      is_gcnew = TRUE;
       make_gcnew_rescan_operands(rcblock, &rescan_gsp, &start_position,
                                  &new_type, &type_position);
       has_new_initializer = rescan_gsp->has_new_initializer;
@@ -18962,21 +19000,6 @@ expression, and return the result in *result (or an error indication in
       /* Use init_position as an approximate end position. */
       end_new_init_position = init_position;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    }  /* if */
-  } else {
-    /* Normal, non-rescan, processing. */
-    start_position = pos_curr_token;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    /* For operator new, the current token may not be tok_new,
-       but for gcnew the current token will always be tok_gcnew */
-    if (curr_token == tok_gcnew) {
-      operator_token = tok_gcnew;
-      is_gcnew = TRUE;
-    } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    {
-      operator_token = tok_new;
     }  /* if */
   }  /* if */
 
