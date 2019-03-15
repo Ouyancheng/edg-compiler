@@ -161,7 +161,17 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_NULLPTR "Dn"
 #define MANGLING_STRING_FOR_DECLTYPE_TYPE "Dt"
 #define MANGLING_STRING_FOR_DECLTYPE_EXPR "DT"
+/*
+There is no currently specified encoding for __underlying_type.  Clang uses
+the "U3eut" vendor extension, and EDG had used "Du" (as an EDG extension) but
+the "Du" encoding has now been allocated for char8_t.  A change has been
+made to use the Clang mangling as of the 5.1 version.
+*/
+#if ABI_COMPATIBILITY_VERSION >= 510
+#define MANGLING_STRING_FOR_UNDERLYING_TYPE "U3eut"  /* Clang's mangling */
+#else /* ABI_COMPATIBILITY_VERSION < 510 */
 #define MANGLING_STRING_FOR_UNDERLYING_TYPE "Du"  /* an EDG extension */
+#endif /* ABI_COMPATIBILITY_VERSION >= 510 */
 #define MANGLING_STRING_FOR_CAST "cv"
 #define MANGLING_STRING_FOR_STATIC_CAST "sc"
 #define MANGLING_STRING_FOR_CONST_CAST "cc"
@@ -197,6 +207,85 @@ differs (see the IA-64 ABI spec for details).
 
 #else /* !IA64_ABI */
 /* Cfront-like name mangling codes. */
+/*
+The original Cfront-like mangling codes were specified in the Annotated
+Reference Manual (7.2c), but advances in the language have required adding
+additional encodings, and unlike the IA-64 ABI where these encodings are
+mutually agreed upon, the Cfront encodings are now specific to EDG.
+
+The encodings have used single characters, but almost all characters have
+been used.  The following table lists each letter of the alphabet and how
+it is being used.  Note that recent additions have used "D" as an "escape"
+character (i.e., to create two-character encodings).
+
+Here is a list of the encodings currently in use (as well as a couple of
+characters that are currently unused):
+
+builtin types:
+D8 = char8_t
+L = long long
+S = signed
+U = unsigned
+Y = decltype(expr)
+a = GNU vector_size attribute
+b = bool
+c = char
+d = double
+e = ellipses
+f = float
+g = char16_t
+h = unsigned char
+i = int
+j = __nullptr
+k = char32_t
+l = long
+m[1248] = __intN
+n = nullptr_t
+o = __underlying_type
+p = typeof(expression)
+q = decltype(auto)
+r = long double
+s = short
+t = typeof(type)
+u = auto
+v = void
+w = wchar_t
+x = complex
+y = decltype(type)
+z =
+
+
+A = array
+B = externalized name
+C = const
+D = "escape"
+Dp = pack expansion
+Dr = restrict
+E = rvalue reference
+F = function type
+G = global scope (i.e., ::)
+H = handle
+I = decltype parameter reference
+J = compression
+K = extern "C"
+L = pointer to member, long long
+M = pointer-to-member
+N = function parameters
+O = operation
+P = pointer
+Q = nested name (demangle_type_name)
+R = reference
+S = string literal constant, signed
+T = repeated parameter types
+U = unsigned
+V = volatile
+W =
+X = constant template argument
+Y = decltype
+Z = template parameter (demangle_type_name)
+
+
+*/
 #define MANGLING_CODE_FOR_CONST 'C'
 #define MANGLING_CODE_FOR_VOLATILE 'V'
 #if ABI_COMPATIBILITY_VERSION >= 405
@@ -209,7 +298,7 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_NOEXCEPT_EXPR "DO"
 #define MANGLING_STRING_FOR_VOID "v"
 #define MANGLING_STRING_FOR_WCHAR_T "w"
-#define MANGLING_STRING_FOR_CHAR8_T "FIXME"
+#define MANGLING_STRING_FOR_CHAR8_T "D8"
 #define MANGLING_STRING_FOR_CHAR16_T "g"
 #define MANGLING_STRING_FOR_CHAR32_T "k"
 #define MANGLING_STRING_FOR_BOOL "b"
@@ -9961,24 +10050,17 @@ top_of_loop:
 #endif /* IA64_ABI */
           goto have_whole_mangled_name;
         } else if (type->variant.typeref.is_underlying_type) {
-          /* Provide mangling for __underlying_type. */
+          /* Provide mangling for __underlying_type.  Note that in the IA-64
+             case, the encoding used will vary depending on the value of
+             ABI_COMPATIBILITY_VERSION (see the definition of
+             MANGLING_STRING_FOR_UNDERLYING_TYPE above). */
 #if IA64_ABI
           a_boolean need_closing_E = FALSE;
 #endif /* IA64_ABI */
-#if ABI_COMPATIBILITY_VERSION >= 510
-          if (clang_mode) {
-            /* Clang uses a vendor extended type qualifier.  GCC doesn't
-               implement any mangling for __underlying_type yet. */
-            add_str_to_mangled_name("U3eut", mctl);
-          } else
-#endif /* ABI_COMPATIBILITY_VERSION >= 510 */
-          /* Do not insert code here. */
-          {
-            add_str_to_mangled_name(MANGLING_STRING_FOR_UNDERLYING_TYPE, mctl);
+          add_str_to_mangled_name(MANGLING_STRING_FOR_UNDERLYING_TYPE, mctl);
 #if IA64_ABI
-            need_closing_E = TRUE;
+          need_closing_E = TRUE;
 #endif /* IA64_ABI */
-          }  /* if */
           mangled_encoding_for_type(type->variant.typeref.type, mctl);
 #if IA64_ABI
           if (need_closing_E) {

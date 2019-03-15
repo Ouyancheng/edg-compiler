@@ -12,6 +12,12 @@ command-line option.  For example, with --c++20:
   const char8_t str[] = u8"abc";  // Accepted with --c++20
   const char s2[] = u8"xyz";      // Now an error with --c++20
 
+Note that the IA-64 mangling encoding for the char8_t type is "Du" which had
+previously been used (as an EDG extension) to mangle __underlying_type.  As
+a result of these changes, when ABI_COMPATIBILITY_VERSION >= 510,
+__underlying_type will be mangled as "U3eut" (see EDGcpfe/20541) in all
+(IA-64 ABI) cases.
+
 
 3/14/19  [EDGcpfe/20980]
 GNU statement expressions as constants

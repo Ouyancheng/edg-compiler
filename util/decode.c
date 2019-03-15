@@ -3121,6 +3121,18 @@ to the character position following what was demangled.
         p = demangle_type(p, dctl);
         s = ")";
         break;
+      case 'D':
+        /* Used as an "escape" character. */
+        switch (get_char(p++, dctl)) {
+          case '8':
+            /* char8_t */
+            s = "char8_t";
+            break;
+          default:
+            bad_mangled_name(dctl);
+            s = "";
+        }  /* switch */
+        break;
       default:
         bad_mangled_name(dctl);
         s = "";
@@ -3371,18 +3383,10 @@ not empty, because it contains a name or a derived type).
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
     if (under_lhs_declarator) write_id_ch('(', dctl);
-  } else if (kind == 'D') {
-    /* The 'D' is used as an "escape" character.  The following character
-       determines the actual action to be taken. */
-    p++;
-    kind = get_char(p, dctl);
-    if (kind == 'p') {
-      /* A pack expansion. */
-      p = demangle_type_first_part(p+1, /*under_lhs_declarator=*/FALSE,
-                                   /*need_trailing_space=*/FALSE, dctl);
-    } else {
-      bad_mangled_name(dctl);
-    }  /* if */
+  } else if (kind == 'D' && get_char(p+1, dctl) == 'p') {
+    /* A pack expansion. */
+    p = demangle_type_first_part(p+2, /*under_lhs_declarator=*/FALSE,
+                                 /*need_trailing_space=*/FALSE, dctl);
   } else {
     /* No declarator part to process.  Handle the specifier type. */
     p = demangle_type_specifier(qualp, dctl);
@@ -3515,19 +3519,11 @@ use of parentheses around parts of the declarator.)
     write_id_ch(']', dctl);
     /* Process the element type. */
     demangle_type_second_part(p, /*under_lhs_declarator=*/FALSE, dctl);
-  } else if (kind == 'D') {
-    /* The 'D' is used as an "escape" character.  The following character
-       determines the actual action to be taken. */
-    p++;
-    kind = get_char(p, dctl);
-    if (kind == 'p') {
-      /* A pack expansion. */
-      p++;
-      write_id_str("...", dctl);
-      demangle_type_second_part(p, /*under_lhs_declarator=*/FALSE, dctl);
-    } else {
-      bad_mangled_name(dctl);
-    }  /* if */
+  } else if (kind == 'D' && get_char(p+1, dctl) == 'p') {
+    /* A pack expansion. */
+    p+=2;
+    write_id_str("...", dctl);
+    demangle_type_second_part(p, /*under_lhs_declarator=*/FALSE, dctl);
   } else {
     /* No declarator part to process.  No need to scan the specifiers type --
        it was done by demangle_type_first_part. */
@@ -5034,15 +5030,15 @@ Macro to determine if the character string pointed to by "p" is a
 <builtin-type>.  <builtin-type>s are a single lower-case letter or two
 characters starting with the character "D".  Exceptions to this rule are
 the mangling for decltype (i.e., "DT" and "Dt") as well as the EDG extension
-for typeof (i.e., "DY" and "Dy"), __underlying_type (i.e., "Du") and pack
-expansions (i.e., "Dp").  The lower case letter "r" is used in <CV-qualifiers>
-for "restrict" and is not a <builtin-type>.
+for typeof (i.e., "DY" and "Dy") and pack expansions (i.e., "Dp").  The lower
+case letter "r" is used in <CV-qualifiers> for "restrict" and is not a
+<builtin-type>.
 */
 #define is_builtin_type(p)                                                \
   ((islower((unsigned char)*(p)) &&                                       \
     *(p) != 'r') ||                                                       \
    (*(p) == 'D' &&                                                        \
-    !((p)[1] == 'p' || (p)[1] == 'u' ||                                   \
+    !((p)[1] == 'p' ||                                                    \
       (p)[1] == 'T' || (p)[1] == 't' ||                                   \
       (p)[1] == 'Y' || (p)[1] == 'y')))
 
@@ -5074,7 +5070,6 @@ to the character position following what was demangled.  The syntax is:
          ::= DT <expression> E  # decltype of an expression (C++11)
          ::= Dy <type> E        # typeof(type) (EDG extension)
          ::= DY <expression> E  # typeof(expression) (EDG extension)
-         ::= Du <type> E        # __underlying_type(type) (EDG extension)
 
 Other parts of <type> are handled in demangle_type_first_part and
 demangle_type_second_part.  In particular, substitutions are handled
@@ -5137,18 +5132,6 @@ demangled as part of the template function instead).
       } else {
         p = demangle_expression(p+2, dctl);
       }  /* if */
-      write_id_ch(')', dctl);
-      p = advance_past('E', p, dctl);
-    } else if (*p == 'D' && p[1] == 'u') {
-      /* __underlying_type:
-         This is an EDG extension to the IA-64 ABI spec to handle
-         __underlying_type (a helper function used to implement the C++11
-         underlying_type type trait):
-
-            <type> ::= Du <type> E       # __underlying_type(type)
-         */
-      write_id_str("__underlying_type(", dctl);
-      p = demangle_type(p+2, dctl);
       write_id_ch(')', dctl);
       p = advance_past('E', p, dctl);
     } else {
@@ -5242,6 +5225,9 @@ demangled as part of the template function instead).
           case 'N':
             /* EDG extension for C++/CLI managed __nullptr. */
             s = "__nullptr";
+            break;
+          case 'u':
+            s = "char8_t";
             break;
           case 's':
             s = "char16_t";
@@ -5390,6 +5376,10 @@ to be on top of the type.  If parse_template_args is TRUE then any
       } else if (num == 9 && start_of_id_is("__pin_ptr", p)) {
         write_id_str("pin_ptr<", dctl);
         vendor_ext = ">";
+        need_space = FALSE;
+      } else if (num == 3 && start_of_id_is("eut", p)) {
+        write_id_str("__underlying_type(", dctl);
+        vendor_ext = ")";
         need_space = FALSE;
       } else {
         /* This is a vendor string that we don't recognize; simply emit the
