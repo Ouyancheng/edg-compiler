@@ -78,6 +78,43 @@ static unsigned long
 		overload_level;
 			/* Number of levels of overload resolution
 			   underway. */ 
+
+static unsigned long
+		n_viability_checks,
+		n_viability_failures,
+		n_explicit_arg_viability_checks,
+		n_explicit_arg_viability_failures,
+		n_deduction_viability_checks,
+		n_deduction_viability_failures,
+		n_deduced_substitition_lookups,
+		n_deduced_substitition_lookup_failures;
+
+void db_viability_stats(void)
+/*
+Display some statistics regarding calls to determine_function_viability.
+*/
+{
+  fprintf(f_debug, "\nViability statistics");
+  fprintf(f_debug, "\n====================\n");
+  fprintf(f_debug, "%30s : %10lu\n",
+          "#checks", n_viability_checks);
+  fprintf(f_debug, "%30s : %10lu\n",
+          "#failures", n_viability_failures);
+  fprintf(f_debug, "%30s : %10lu\n",
+          "#explicit arg checks", n_explicit_arg_viability_checks);
+  fprintf(f_debug, "%30s : %10lu\n",
+          "#explicit arg failures", n_explicit_arg_viability_failures);
+  fprintf(f_debug, "%30s : %10lu\n",
+          "#deductions", n_deduction_viability_checks);
+  fprintf(f_debug, "%30s : %10lu\n",
+          "#deduction failures", n_deduction_viability_failures);
+  fprintf(f_debug, "%30s : %10lu\n",
+          "#substitution lookups", n_deduced_substitition_lookups);
+  fprintf(f_debug, "%30s : %10lu\n",
+          "#substitution lookup failures",
+          n_deduced_substitition_lookup_failures);
+}  /* db_viability_stats */
+
 #endif /* DEBUG */
 
 
@@ -4755,6 +4792,12 @@ deduction failed.
     updated_routine_type = find_substituted_type(template_sym, tssp,
                                                  *template_arg_list,
                                                  (a_type_ptr)NULL);
+#if DEBUG
+    n_deduced_substitition_lookups += 1;
+    if (updated_routine_type == NULL) {
+      n_deduced_substitition_lookup_failures += 1;
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
   if (updated_routine_type == NULL) {
     a_ctws_options_set  ctws_options = CTWS_NO_OPTIONS;
@@ -5423,8 +5466,14 @@ in a new-expression).
   a_boolean                rescan_pushed = FALSE;
 
   if (expr_stack != NULL && expr_stack->any_suppressed_error) {
+    /* Do not continue overload resolution if we have already found a
+       substitution error in the operands.  This case is not counted as a
+       viability check in the debug statistics. */
     goto reject_function;
   }  /* if */
+#if DEBUG
+  n_viability_checks += 1;
+#endif /* DEBUG */
   *discarded_because_post_decl = FALSE;
   if (proj_function_symbol != NULL) {
     /* Normal case: a known function. */
@@ -5532,6 +5581,9 @@ in a new-expression).
              additional rescanning later on. */
           ctws_options |= CTWS_MAY_BE_RESCANNED;
         }  /* if */
+#if DEBUG
+        n_explicit_arg_viability_checks += 1;
+#endif /* DEBUG */
         routine_type = substitute_template_arguments(
                          function_symbol, template_arg_list,
                          &local_template_arg_list, (a_template_param_ptr)NULL,
@@ -5539,7 +5591,12 @@ in a new-expression).
         --(tssp->variant.function.pending_deductions);
         expr_stack = saved_expr_stack;
         /* Bail out if there is a mismatch. */
-        if (routine_type == NULL) goto reject_function;
+        if (routine_type == NULL) {
+#if DEBUG
+          n_explicit_arg_viability_failures += 1;
+#endif /* DEBUG */
+          goto reject_function;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (rvalue_references_enabled &&
@@ -5854,6 +5911,9 @@ next_argument:
     first_pass = FALSE;
     arg_match = arg_match_list;
     /* Do template argument deduction on the parameter types. */
+#if DEBUG
+    n_deduction_viability_checks += 1;
+#endif /* DEBUG */
     routine_type = function_template_call_argument_deduction(
                                                    function_symbol,
                                                    routine_type,
@@ -5863,6 +5923,9 @@ next_argument:
                                                    &rescan_pushed);
     if (routine_type == NULL) {
       /* Deduction failed. */
+#if DEBUG
+      n_deduction_viability_failures += 1;
+#endif /* DEBUG */
       goto reject_function;
     }  /* if */
     routine_type = skip_typerefs(routine_type);
@@ -6089,6 +6152,9 @@ accept_function:
   goto end_of_routine;
 reject_function:
   /* The function is not suitable. */
+#if DEBUG
+  n_viability_failures += 1;
+#endif /* DEBUG */
   /* Free any argument match summary entries built for it. */
   free_arg_match_summary_list(arg_match_list);
   /* Free any template argument list built for it. */

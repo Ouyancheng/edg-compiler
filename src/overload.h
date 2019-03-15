@@ -1178,6 +1178,8 @@ extern an_expr_node_ptr convert_arg_list_to_expr_list(
 
 #if DEBUG
 extern void db_substitution_stack(void);
+
+extern void db_viability_stats(void);
 #endif /* DEBUG */
 
 #endif /* ifndef OVERLOAD_H */

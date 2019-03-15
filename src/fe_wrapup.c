@@ -29,6 +29,9 @@ fe_wrapup.c - End of front end processing.
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_write.h"
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+#if DEBUG
+#include "overload.h"
+#endif /* DEBUG */
 #include "templates.h"
 #include "trans_corresp.h"
 #include "trans_copy.h"
@@ -801,6 +804,9 @@ and before the back end (if any) is executed.
   }  /* if */
   if (db_flag_is_set("scope_stack")) {
     db_scope_stack_stats();
+  }  /* if */
+  if (db_flag_is_set("viability")) {
+    db_viability_stats();
   }  /* if */
 #endif /* DEBUG */
 
