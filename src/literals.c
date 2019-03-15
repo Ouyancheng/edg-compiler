@@ -1431,7 +1431,7 @@ the actual number of converted characters may be less than num_chars.  */
         temp_ptr = start_of_curr_token + 3;
         con_type =
              char8_t_enabled ? eff_char8_t_type()
-                             : integer_type((an_integer_kind)ik_unsigned_char);
+                             : integer_type((an_integer_kind)ik_char);
       } else {
         /* char16_t character literal. */
         character_kind = (a_character_kind)chk_char16_t;
