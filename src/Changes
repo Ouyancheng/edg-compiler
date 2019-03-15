@@ -47,7 +47,7 @@ front end would abort with an internal assertion failure in
 
 
 3/14/19  [EDGcpfe/20994]
-Missing narrowing diagnostic on float->enum class conversion
+Missing narrowing diagnostic on float->enum conversion
 
 In C++-mode the front end was not issuing a narrowing diagnostic message when
 initializing an enum type from a brace-enclosed expression containing a
