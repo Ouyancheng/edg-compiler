@@ -18967,7 +18967,87 @@ in parentheses.
       }  /* if */
     }  /* if */
   }  /* if */
-}
+}  /* scan_new_operator_placement */
+
+
+static a_type_ptr rescan_new_deduce_placeholder_type(
+                                  a_rescan_control_block *rcblock,
+                                  a_decl_parse_state     *dps,
+                                  a_boolean              *deducible_new_type,
+                                  a_type_ptr             new_type,
+                                  a_source_position      *type_position)
+/* The type involves a placeholder type.  Deduce the type from the
+   initializer expression. */
+{
+  an_operand           auto_operand;
+  an_arg_list_elem_ptr auto_alep = NULL;
+  a_type_ptr           deduced_new_type, deduced_auto_type;
+  a_boolean            deduced, still_dependent, no_operand = FALSE;
+
+  if (rcblock->argument_list == NULL) {
+    /* Class template argument deduction doesn't require an initializer. */
+    no_operand = TRUE;
+  } else {
+    make_rescan_operand(rcblock->argument_list, rcblock, &auto_operand);
+    if (is_braced_init_list_operand(&auto_operand)) {
+      auto_alep = auto_operand.variant.braced_init_list;
+    }  /* if */
+  }  /* if */
+
+  /* Deduce the type. */
+  if (is_class_template_placeholder_type(new_type)) {
+    a_boolean  alloc_alep = (!no_operand && auto_alep == NULL);
+    if (alloc_alep) {
+      /* Temporarily wrap the operand in an init-component. */
+      auto_alep = alloc_arg_list_elem_for_operand(&auto_operand);
+    }  /* if */
+    deduced = deduce_class_template_args(new_type, /*is_direct_init=*/TRUE,
+                                         /*keep_placeholder=*/TRUE,
+                                         !no_operand,
+                                         auto_alep, type_position,
+                                         &deduced_new_type,
+                                         &still_dependent);
+    if (alloc_alep) {
+      free_init_component_list(auto_alep);
+      auto_alep = NULL;
+    }  /* if */
+  } else {
+    deduced = deduce_auto_type(new_type, /*auto_type=*/(a_type_ptr)NULL,
+                               /*keep_placeholder=*/TRUE, &auto_operand,
+                               auto_alep, type_position,
+                               &deduced_new_type, &deduced_auto_type,
+                               &still_dependent);
+  }  /* if */
+
+  if (deduced) {
+    /* Deduction succeeded. */
+    *deducible_new_type = FALSE;
+  } else if (still_dependent) {
+    /* The deduction could not be done because the types are still
+       dependent, so new_type stays as it is. */
+    deduced_new_type = new_type;
+  } else {
+    /* Deduction failed. */
+    deduced_new_type = error_type();
+    subst_fail(rcblock->error_detected);
+  }  /* if */
+
+  /* Save the expression in the cache so it will get picked up below,
+     avoiding rescanning it again. */
+  if (auto_alep != NULL) {
+    add_init_component_to_initializer_cache(
+      auto_alep,
+      /*to_front=*/TRUE,
+      &dps->prescanned_initializer_cache);
+  } else if (!no_operand) {
+    add_operand_to_initializer_cache(&auto_operand,
+                                     /*to_front=*/TRUE,
+                                     /*bundle=*/FALSE,
+                                     &dps->prescanned_initializer_cache);
+  }  /* if */
+
+  return deduced_new_type;
+}  /* rescan_new_deduce_placeholder_type */
 
 
 static void scan_new_operator(a_rescan_control_block *rcblock,
@@ -19163,77 +19243,15 @@ expression, and return the result in *result (or an error indication in
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned "new". */
     if (deducible_new_type) {
-      /* The type involves a placeholder type.  Deduce the type from the
-         initializer expression. */
-      an_operand           auto_operand;
-      an_arg_list_elem_ptr auto_alep = NULL;
-      a_type_ptr           deduced_new_type, deduced_auto_type;
-      a_boolean            deduced, still_dependent, no_operand = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* gcnew auto was prohibited on the initial scan, so it should not
          get here for a rescan. */
       check_assertion(!is_gcnew);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      if (rcblock->argument_list == NULL) {
-        /* Class template argument deduction doesn't require an initializer. */
-        no_operand = TRUE;
-      } else {
-        make_rescan_operand(rcblock->argument_list, rcblock, &auto_operand);
-        if (is_braced_init_list_operand(&auto_operand)) {
-          auto_alep = auto_operand.variant.braced_init_list;
-        }  /* if */
-      }  /* if */
-      /* Deduce the type. */
-      if (is_class_template_placeholder_type(new_type)) {
-        a_boolean  alloc_alep = (!no_operand && auto_alep == NULL);
-        if (alloc_alep) {
-          /* Temporarily wrap the operand in an init-component. */
-          auto_alep = alloc_arg_list_elem_for_operand(&auto_operand);
-        }  /* if */
-        deduced = deduce_class_template_args(new_type, /*is_direct_init=*/TRUE,
-                                             /*keep_placeholder=*/TRUE,
-                                             !no_operand,
-                                             auto_alep, &type_position,
-                                             &deduced_new_type,
-                                             &still_dependent);
-        if (alloc_alep) {
-          free_init_component_list(auto_alep);
-          auto_alep = NULL;
-        }  /* if */
-      } else {
-        check_assertion(!has_braced_initializer &&
-                        braced_init_list == NULL);
-        deduced = deduce_auto_type(new_type, /*auto_type=*/(a_type_ptr)NULL,
-                                   /*keep_placeholder=*/TRUE, &auto_operand,
-                                   auto_alep, &type_position,
-                                   &deduced_new_type, &deduced_auto_type,
-                                   &still_dependent);
-      }  /* if */
-      if (deduced) {
-        /* Deduction succeeded. */
-        new_type = deduced_new_type;
-        deducible_new_type = FALSE;
-      } else if (still_dependent) {
-        /* The deduction could not be done because the types are still
-           dependent, so new_type stays as it is. */
-      } else {
-        /* Deduction failed. */
-        new_type = error_type();
-        subst_fail(rcblock->error_detected);
-      }  /* if */
-      /* Save the expression in the cache so it will get picked up below,
-         avoiding rescanning it again. */
-      if (auto_alep != NULL) {
-        add_init_component_to_initializer_cache(
-                                            auto_alep,
-                                            /*to_front=*/TRUE,
-                                            &dps.prescanned_initializer_cache);
-      } else if (!no_operand) {
-        add_operand_to_initializer_cache(&auto_operand,
-                                         /*to_front=*/TRUE,
-                                         /*bundle=*/FALSE,
-                                         &dps.prescanned_initializer_cache);
-      }  /* if */
+
+      new_type =
+        rescan_new_deduce_placeholder_type(rcblock, &dps, &deducible_new_type,
+                                           new_type, &type_position);
       using_expr_cache = TRUE;
     }  /* if */
   } else {
@@ -19333,6 +19351,7 @@ expression, and return the result in *result (or an error indication in
       }  /* if */
     }  /* if */
   }  /* if */
+
   if (using_expr_cache) {
     /* Activate the prescanned initializer cache so the expression will be
        considered pre-scanned for the code below. */
