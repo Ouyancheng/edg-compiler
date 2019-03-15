@@ -31,11 +31,12 @@ is not expected to hamper compatibility.
 
 
 3/14/19  [EDGcpfe/20969]
-Abort when promoting variable bindings for bit fields
+Abort when promoting structured bindings for bit fields
 
-When 'bit_field_promotion_applies_to_some_operations' is set to FALSE and
-variable bindings to bit fields are being parsed, the front end would abort
-with an internal assertion failure.  Now fixed.
+When 'bit_field_promotion_applies_to_some_operations' is set to FALSE and a
+structured binding to a bit field was involved in integral promotion, the
+front end would abort with an internal assertion failure in
+'type_after_bit_field_integral_promotion'.  Now fixed.
 
   struct S { unsigned long long x : 4, y : 32; int z; };
 
