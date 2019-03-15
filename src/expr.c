@@ -18784,6 +18784,127 @@ static a_token_kind get_new_operator_token(a_rescan_control_block *rcblock,
 }  /* get_new_operator_token */
 
 
+static void rescan_new_operator_expr(a_rescan_control_block *rcblock,
+                                     a_boolean is_gcnew,
+                                     a_source_position *start_position,
+                                     a_type_ptr *new_type,
+                                     a_source_position *type_position,
+                                     a_boolean *has_new_initializer,
+                                     a_boolean *use_global_new,
+                                     a_boolean *placement_new,
+                                     a_boolean *deducible_new_type,
+                                     a_boolean *has_braced_initializer,
+                                     a_boolean *gcnew_has_array_init,
+                                     an_arg_list_elem_ptr *placement_arg_list,
+                                     an_arg_list_elem_ptr *braced_init_list)
+/*
+Collect the C++ "new" or the C++/CLI "gcnew" operator operands,
+placement and initializer from a rescan block for the operator.
+*/
+{
+  an_expr_node_ptr            arg_expr_list;
+  an_expr_node_ptr            dummy;
+  an_arg_list_elem_ptr        local_braced_init_list;
+  a_gcnew_supplement_ptr      rescan_gsp = NULL;
+  a_new_delete_supplement_ptr rescan_ndsp = NULL;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_gcnew) {
+    make_gcnew_rescan_operands(rcblock, &rescan_gsp, start_position,
+                               new_type, type_position);
+    *has_new_initializer = rescan_gsp->has_new_initializer;
+    *gcnew_has_array_init =
+      rescan_gsp->is_cli_array &&
+      rescan_gsp->dynamic_init != NULL &&
+      /* In C++/CX mode, an array-init only exists if the dyanmic_init is
+         an aggregate. */
+      !(cppcx_enabled &&
+        rescan_gsp->dynamic_init->kind !=
+                     (a_dynamic_init_kind)dik_nonconstant_aggregate);
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+  {
+    make_new_delete_rescan_operands(rcblock, &rescan_ndsp, start_position,
+                                    new_type, type_position);
+    *use_global_new = rescan_ndsp->global_new_or_delete;
+    *placement_new = rescan_ndsp->placement_new;
+    *has_new_initializer = rescan_ndsp->has_new_initializer;
+    *deducible_new_type = rescan_ndsp->deducible_type;
+  }  /* if */
+  if (*placement_new) {
+    /* Pick up the placement new argument list. */
+    rcblock->argument_list = rescan_ndsp->arg;
+    scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
+                        /*already_after_left_paren=*/TRUE,
+                        &dummy, /*return_raw_arguments=*/TRUE,
+                        /*unknown_dependent_function=*/FALSE,
+                        /*args_will_be_discarded=*/FALSE,
+                        /*is_custom_ms_attr_arg_list=*/FALSE,
+                        rcblock,
+                        /*arg_list_supplied=*/FALSE,
+                        (an_arg_list_elem *)NULL,
+                        placement_arg_list,
+                        (an_operand *)NULL, (a_boolean *)NULL,
+                        (a_source_position *)NULL);
+  }  /* if */
+  if (*has_new_initializer) {
+    /* Set up the argument list for the new initializer. */
+    a_dynamic_init_ptr init_dip;
+    if (rescan_ndsp != NULL &&
+      (init_dip = rescan_ndsp->dynamic_init) != NULL &&
+        init_dip->is_braced_initializer &&
+        init_dip->rescan_info != NULL &&
+        is_braced_init_list_operand(&init_dip->rescan_info->saved_operand)) {
+      /* A braced-init-list was saved with the dynamic init for the rescan.
+         Use it. */
+      *has_braced_initializer = TRUE;
+      local_braced_init_list = rescan_init_component(
+        init_dip->rescan_info->saved_operand.variant.braced_init_list,
+        rcblock);
+      check_assertion(local_braced_init_list != NULL &&
+                      is_braced_init_component(local_braced_init_list));
+      *braced_init_list = local_braced_init_list;
+    } else {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (is_gcnew) {
+        if (cppcx_enabled && rescan_gsp->is_cli_array &&
+            rescan_gsp->dynamic_init != NULL) {
+          /* The only kind of dynamic_init expected here during a rescan is
+             a dik_constructor.  Aggregates (i.e., an array-init) were
+             disallowed earlier. */
+          check_assertion(rescan_gsp->dynamic_init->kind ==
+            (a_dynamic_init_kind)dik_constructor);
+          init_dip = rescan_gsp->dynamic_init;
+          arg_expr_list = arg_list_from_dyn_init(init_dip);
+        } else if (rescan_gsp->is_cli_array) {
+          check_assertion(rescan_gsp->cli_array_dimension_lengths != NULL);
+          arg_expr_list = rescan_gsp->cli_array_dimension_lengths;
+        } else {
+          init_dip = rescan_gsp->dynamic_init;
+          check_assertion(init_dip != NULL &&
+                          !init_dip->is_explicit_cast);
+          arg_expr_list = arg_list_from_dyn_init(init_dip);
+        }  /* if */
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+      {
+        init_dip = rescan_ndsp->dynamic_init;
+        check_assertion(init_dip != NULL);
+        if (init_dip->kind == (a_dynamic_init_kind)dik_constant) {
+          arg_expr_list =
+            alloc_node_for_allocated_constant(init_dip->variant.constant);
+        } else {
+          arg_expr_list = arg_list_from_dyn_init(init_dip);
+        }  /* if */
+      }  /* if */
+      rcblock->argument_list = arg_expr_list;
+    }  /* if */
+  }  /* if */
+}  /* rescan_new_operator_expr */
+
+
 static void scan_new_operator(a_rescan_control_block *rcblock,
                               an_operand             *result)
 /*
@@ -18866,8 +18987,6 @@ expression, and return the result in *result (or an error indication in
   a_boolean         using_expr_cache = FALSE;
   a_boolean         empty_initializer;
   a_boolean         trapped_left_paren = FALSE;
-  a_new_delete_supplement_ptr
-                    rescan_ndsp = NULL;
   a_decl_parse_state
                     dps;
   an_initializer_cache
@@ -18878,12 +18997,11 @@ expression, and return the result in *result (or an error indication in
                     init_raw_args = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean         is_gcnew = FALSE;
-  a_gcnew_supplement_ptr
-                    rescan_gsp = NULL;
   a_boolean         cli_array_new = FALSE;
   an_expr_node_ptr
                     cli_array_new_init_args = NULL;
   a_boolean         has_array_init = FALSE;
+  a_boolean         gcnew_has_array_init = FALSE;
   a_boolean         is_gcnew_string_special_case = FALSE;
   an_operand        gcnew_special_case_operand;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -18897,96 +19015,23 @@ expression, and return the result in *result (or an error indication in
   start_position = pos_curr_token;
 
   if (rcblock != NULL) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (operator_token == tok_gcnew) {
-      make_gcnew_rescan_operands(rcblock, &rescan_gsp, &start_position,
-                                 &new_type, &type_position);
-      has_new_initializer = rescan_gsp->has_new_initializer;
-    } else 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    {
-      make_new_delete_rescan_operands(rcblock, &rescan_ndsp, &start_position,
-                                      &new_type, &type_position);
-      use_global_new = rescan_ndsp->global_new_or_delete;
-      placement_new = rescan_ndsp->placement_new;
-      has_new_initializer = rescan_ndsp->has_new_initializer;
-      deducible_new_type = rescan_ndsp->deducible_type; 
-    }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_position = rcblock->expr->expr_range.end;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    rescan_new_operator_expr(rcblock, is_gcnew, &start_position,
+                             &new_type, &type_position,
+                             &has_new_initializer, &use_global_new,
+                             &placement_new, &deducible_new_type,
+                             &has_braced_initializer, &gcnew_has_array_init,
+                             &arg_list, &braced_init_list);
     /* On the rescan, we can't distinguish start_position and new_position
        (they differ if there's a leading "::"). */
     new_position = start_position;
-    if (placement_new) {
-      /* Pick up the placement new argument list. */
-      rcblock->argument_list = rescan_ndsp->arg;
-      scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
-                          /*already_after_left_paren=*/TRUE,
-                          &dummy, /*return_raw_arguments=*/TRUE,
-                          /*unknown_dependent_function=*/FALSE,
-                          /*args_will_be_discarded=*/FALSE,
-                          /*is_custom_ms_attr_arg_list=*/FALSE,
-                          rcblock,
-                          /*arg_list_supplied=*/FALSE,
-                          (an_arg_list_elem *)NULL,
-                          &arg_list,
-                          (an_operand *)NULL, (a_boolean *)NULL,
-                          (a_source_position *)NULL);
-    }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = rcblock->expr->expr_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (has_new_initializer) {
-      /* Set up the argument list for the new initializer. */
-      a_dynamic_init_ptr init_dip;
-      if (rescan_ndsp != NULL &&
-          (init_dip = rescan_ndsp->dynamic_init) != NULL &&
-          init_dip->is_braced_initializer &&
-          init_dip->rescan_info != NULL &&
-          is_braced_init_list_operand(&init_dip->rescan_info->saved_operand)) {
-        /* A braced-init-list was saved with the dynamic init for the rescan.
-           Use it. */
-        has_braced_initializer = TRUE;
-        braced_init_list = rescan_init_component(
-                 init_dip->rescan_info->saved_operand.variant.braced_init_list,
-                 rcblock);
-        check_assertion(braced_init_list != NULL &&
-                        is_braced_init_component(braced_init_list));
+      if (has_braced_initializer) {
         init_position = *init_component_pos(braced_init_list);
       } else {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (is_gcnew) {
-          if (cppcx_enabled && rescan_gsp->is_cli_array &&
-              rescan_gsp->dynamic_init != NULL) {
-            /* The only kind of dynamic_init expected here during a rescan is
-               a dik_constructor.  Aggregates (i.e., an array-init) were
-               disallowed earlier. */
-            check_assertion (rescan_gsp->dynamic_init->kind ==
-                                        (a_dynamic_init_kind)dik_constructor);
-            init_dip = rescan_gsp->dynamic_init;
-            arg_expr_list = arg_list_from_dyn_init(init_dip);
-          } else if (rescan_gsp->is_cli_array) {
-            check_assertion(rescan_gsp->cli_array_dimension_lengths != NULL);
-            arg_expr_list = rescan_gsp->cli_array_dimension_lengths;
-          } else {
-            init_dip = rescan_gsp->dynamic_init;
-            check_assertion(init_dip != NULL &&
-                            !init_dip->is_explicit_cast);
-            arg_expr_list = arg_list_from_dyn_init(init_dip);
-          }  /* if */
-        } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        /* Do not insert code here. */
-        {
-          init_dip = rescan_ndsp->dynamic_init;
-          check_assertion(init_dip != NULL);
-          if (init_dip->kind == (a_dynamic_init_kind)dik_constant) {
-            arg_expr_list =
-                 alloc_node_for_allocated_constant(init_dip->variant.constant);
-          } else {
-            arg_expr_list = arg_list_from_dyn_init(init_dip);
-          }  /* if */
-        }  /* if */
-        rcblock->argument_list = arg_expr_list;
+        arg_expr_list = rcblock->argument_list;
         if (arg_expr_list != NULL &&
             arg_expr_list->extra.rescan_info != NULL) {
           init_position = arg_expr_list->extra.rescan_info
@@ -20319,15 +20364,7 @@ handle_empty_parens_new_initializer:
     /* Now that the gcnew new-init has been scanned, check for an array-init
        and make a definitive decision over whether this is a C++/CLI array
        initialization node. */
-    if (rcblock == NULL ?
-           curr_token == tok_lbrace :
-           (rescan_gsp->is_cli_array &&
-            rescan_gsp->dynamic_init != NULL &&
-            /* In C++/CX mode, an array-init only exists if the dyanmic_init is
-               an aggregate. */
-            !(cppcx_enabled &&
-              rescan_gsp->dynamic_init->kind !=
-                           (a_dynamic_init_kind)dik_nonconstant_aggregate))) {
+    if (rcblock == NULL ? curr_token == tok_lbrace : gcnew_has_array_init) {
       cli_array_new = TRUE;
       has_array_init = TRUE;
     }  /* if */
