@@ -748,7 +748,7 @@ implicit abi_tags.  For example (with --gnu_version 80000):
     }
   }
 
-This change is only effective when ABI_COMPATIBILITY_VERSION >= 501.
+This change is only effective when ABI_COMPATIBILITY_VERSION >= 510.
 
 
 1/31/19  [EDGcpfe/20835]

@@ -11203,7 +11203,7 @@ any related entities that would appear in the mangled name of the entity.
          also class templates. */
       (void)traverse_type_tree((a_type_ptr)scp, ttt_mark_entry,
                                ABI_TAG_TTT_FLAGS);
-#if ABI_COMPATIBILITY_VERSION >= 501
+#if ABI_COMPATIBILITY_VERSION >= 510
     } else if (kind == iek_namespace &&
                ((a_namespace_ptr)(scp))->is_inline) {
       /* The entity being mangled is contained within an inline namespace.
@@ -11215,7 +11215,7 @@ any related entities that would appear in the mangled name of the entity.
           add_abi_tag_attributes_to_list(ap, &implicit_tag_list);
         }  /* if */
       }  /* for */
-#endif /* ABI_COMPATIBILITY_VERSION >= 501 */
+#endif /* ABI_COMPATIBILITY_VERSION >= 510 */
     }  /* if */
   }  /* if */
 }  /* mark_entry */
