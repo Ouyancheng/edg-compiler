@@ -4886,7 +4886,10 @@ and a vector are compatible.
     dependent_constant = TRUE;
   }  /* if */
   if (is_floating_type(source_type)) {
-    if (is_integral_or_enum_type(dest_type)) {
+    if (is_integral(dest_type) ||
+        (is_enum(dest_type) &&
+         (dest_type->variant.integer.is_scoped_enum ||
+          dest_type->variant.integer.has_explicit_enum_base))) {
       /* Floating-point to integer is always narrowing. */
       is_narrowing = TRUE;
 #if C99_IL_EXTENSIONS_SUPPORTED
