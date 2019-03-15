@@ -50,6 +50,7 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_NOEXCEPT_EXPR "DO"
 #define MANGLING_STRING_FOR_VOID "v"
 #define MANGLING_STRING_FOR_WCHAR_T "w"
+#define MANGLING_STRING_FOR_CHAR8_T "Du"
 #define MANGLING_STRING_FOR_CHAR16_T "Ds"
 #define MANGLING_STRING_FOR_CHAR32_T "Di"
 #define MANGLING_STRING_FOR_BOOL "b"
@@ -208,6 +209,7 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_NOEXCEPT_EXPR "DO"
 #define MANGLING_STRING_FOR_VOID "v"
 #define MANGLING_STRING_FOR_WCHAR_T "w"
+#define MANGLING_STRING_FOR_CHAR8_T "FIXME"
 #define MANGLING_STRING_FOR_CHAR16_T "g"
 #define MANGLING_STRING_FOR_CHAR32_T "k"
 #define MANGLING_STRING_FOR_BOOL "b"
@@ -9656,6 +9658,8 @@ top_of_loop:
         }  /* if */
         if (type->variant.integer.wchar_t_type) {
           s = MANGLING_STRING_FOR_WCHAR_T;
+        } else if (type->variant.integer.char8_t_type) {
+          s = MANGLING_STRING_FOR_CHAR8_T;
         } else if (type->variant.integer.char16_t_type) {
           s = MANGLING_STRING_FOR_CHAR16_T;
         } else if (type->variant.integer.char32_t_type) {

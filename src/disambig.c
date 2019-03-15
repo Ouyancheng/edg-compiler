@@ -804,6 +804,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_void:
       case tok_bool:
       case tok_wchar_t:
+      case tok_char8_t:
       case tok_char16_t:
       case tok_char32_t:
 #if MICROSOFT_EXTENSIONS_ALLOWED

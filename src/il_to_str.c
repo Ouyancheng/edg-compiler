@@ -1798,6 +1798,11 @@ by octl.
         } else {
           octl->output_str("wchar_t", octl);
         }  /* if */
+      } else if (type->variant.integer.char8_t_type &&
+                 !octl->c_generating_back_end) {
+        /* Output a char8_t type as "char8_t", except in the C-generating
+           back end, where it is output as its underlying type. */
+        octl->output_str("char8_t", octl);
       } else if (type->variant.integer.char16_t_type &&
                  !octl->c_generating_back_end) {
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
@@ -3400,9 +3405,10 @@ static int form_wide_char(unsigned long                         wc,
                           an_il_to_str_output_control_block_ptr octl)
 /*
 Output the indicated wide character (which may be a wchar_t, char16_t, or
-char32_t character) as part of a string literal or character constant.
-Handle unprintable characters and necessary escapes.  Do the output in the
-way described by octl.  Return the number of characters output.
+char32_t character) or UTF-8 character as part of a string literal or
+character constant.  Handle unprintable characters and necessary escapes.
+Do the output in the way described by octl.  Return the number of
+characters output.
 */
 {
   int   result;
@@ -5555,7 +5561,7 @@ precedence confusion.  Do the output in the way described by octl.
         }  /* if */
         output_partial_token_str("'", octl);
         /* Coverity complains because form_char passes the character value
-           to isprint, but it casts it to unsigned char the complaint is
+           to isprint, but it casts it to unsigned char; the complaint is
            spurious. */
         /* coverity[negative_returns] */  /* Coverity bug. */
         (void)form_char((char)value_of_integer_constant(constant, &ovflo),
@@ -5565,12 +5571,15 @@ precedence confusion.  Do the output in the way described by octl.
         /* coverity[var_deref_op] */
       } else if (!octl->c_generating_back_end &&
                  con_type->kind == (a_type_kind)tk_integer &&
-                 !is_normal_character_kind(constant->character_kind)) {
-        /* A wide character literal (wchar_t, char16_t, or char32_t). */
+                 (constant->character_kind == (a_character_kind)chk_char8_t ||
+                  !is_normal_character_kind(constant->character_kind))) {
+        /* A wide character literal (wchar_t, char16_t, or char32_t) or a
+           char8_t literal. */
         a_boolean    ovflo;
         a_const_char *prefix = NULL;
         switch (constant->character_kind) {
           case chk_wchar_t:   prefix = "L'";     break;
+          case chk_char8_t:   prefix = "u8'";    break;
           case chk_char16_t:  prefix = "u'";     break;
           case chk_char32_t:  prefix = "U'";     break;
           default:            unexpected_condition();
@@ -5628,7 +5637,8 @@ precedence confusion.  Do the output in the way described by octl.
                generated C code, should be put out that way. */
             octl->output_str("{", octl);
           }  /* if */
-          if (!is_normal_character_kind(character_kind)) {
+          if (!is_normal_character_kind(character_kind) ||
+              character_kind == (a_character_kind)chk_char8_t) {
             /* A string literal with a prefix, e.g., L"abc" or U"xyz". */
             /* The processing here must invert the processing done in
                conv_single_wide_char.  Do something that's right for the
@@ -5637,6 +5647,7 @@ precedence confusion.  Do the output in the way described by octl.
             a_targ_size_t char_size = character_size[character_kind];
             switch (character_kind) {
               case chk_wchar_t:   prefix = "L\"";     break;
+              case chk_char8_t:   prefix = "u8\"";    break;
               case chk_char16_t:  prefix = "u\"";     break;
               case chk_char32_t:  prefix = "U\"";     break;
               default:            unexpected_condition();

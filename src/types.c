@@ -91,12 +91,14 @@ predicates.
     (tp)->variant.integer.int_kind == (an_integer_kind)ik_unsigned_char || \
     (tp)->variant.integer.int_kind == (an_integer_kind)ik_signed_char) && \
    !(tp)->variant.integer.wchar_t_type && \
+   !(tp)->variant.integer.char8_t_type && \
    !(tp)->variant.integer.char16_t_type && \
    !(tp)->variant.integer.char32_t_type && \
    !(tp)->variant.integer.enum_type && \
    !(tp)->variant.integer.bool_type)
 
-/* A general character is a char-type, a wchar_t, a char16_t, or a char32_t. */
+/* A general character is a char-type, a wchar_t, char8_t, char16_t, or
+   char32_t. */
 #define is_general_character(tp) \
   (is_integral(tp) && \
    ((((tp)->variant.integer.int_kind == (an_integer_kind)ik_char || \
@@ -111,6 +113,7 @@ predicates.
       (!char16_t_and_char32_t_are_keywords && \
        ((tp)->variant.integer.int_kind == targ_char32_t_int_kind)))) || \
     (tp)->variant.integer.wchar_t_type || \
+    (tp)->variant.integer.char8_t_type || \
     (tp)->variant.integer.char16_t_type || \
     (tp)->variant.integer.char32_t_type))
 
@@ -733,6 +736,7 @@ Return TRUE if the type is a "plain" char type (not signed or unsigned).
          !tp->variant.integer.enum_type &&
          !tp->variant.integer.bool_type &&
          !tp->variant.integer.wchar_t_type &&
+         !tp->variant.integer.char8_t_type &&
          !tp->variant.integer.char16_t_type &&
          !tp->variant.integer.char32_t_type;
 }  /* is_plain_char_type */
@@ -2330,6 +2334,25 @@ Return TRUE if the given type is an array of wchar_t.
 }  /* is_wchar_t_array_type */
 
 
+a_boolean is_char8_t_array_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is an array of char8_t.
+*/
+{
+  a_boolean  is_char8_t_array = FALSE;
+  a_type_ptr elem_type;
+
+  tp = skip_typerefs(tp);
+  if (is_array(tp)) {
+    elem_type = skip_typerefs(tp->variant.array.element_type);
+    if (is_integral(elem_type)) {
+      is_char8_t_array = elem_type->variant.integer.char8_t_type;
+    }  /* if */
+  }  /* if */
+  return is_char8_t_array;
+}  /* is_char8_t_array_type */
+
+
 a_boolean is_char16_t_array_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an array of char16_t.
@@ -2391,7 +2414,7 @@ Return TRUE if the given type is an array of char32_t.
 a_boolean is_string_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an array of character (any kind, including
-wchar_t, char16_t, and char32_t).
+wchar_t, char8_t, char16_t, and char32_t).
 */
 {
   a_boolean   result = FALSE;
@@ -4686,7 +4709,8 @@ receive an rvalue type.
     } else {
       switch (ikind) {
         case ik_char:
-          if (targ_has_signed_chars) goto do_signed_char;
+          if (targ_has_signed_chars &&
+              !unqual_type->variant.integer.char8_t_type) goto do_signed_char;
           goto do_unsigned_char;
         case ik_unsigned_char:
 do_unsigned_char:
@@ -6413,6 +6437,8 @@ check_typerefs:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               type_1->variant.integer.wchar_t_type ==
                                       type_2->variant.integer.wchar_t_type &&
+              type_1->variant.integer.char8_t_type ==
+                                      type_2->variant.integer.char8_t_type &&
               type_1->variant.integer.char16_t_type ==
                                       type_2->variant.integer.char16_t_type &&
               type_1->variant.integer.char32_t_type ==
@@ -7311,6 +7337,8 @@ check_typerefs:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                 type_1->variant.integer.wchar_t_type ==
                                         type_2->variant.integer.wchar_t_type &&
+                type_1->variant.integer.char8_t_type ==
+                                        type_2->variant.integer.char8_t_type &&
                 type_1->variant.integer.char16_t_type ==
                                        type_2->variant.integer.char16_t_type &&
                 type_1->variant.integer.char32_t_type ==
@@ -7899,6 +7927,8 @@ that are not present in standalone back ends and utilities.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                    type_1->variant.integer.wchar_t_type ==
                                         type_2->variant.integer.wchar_t_type &&
+                   type_1->variant.integer.char8_t_type ==
+                                        type_2->variant.integer.char8_t_type &&
                    type_1->variant.integer.char16_t_type ==
                                        type_2->variant.integer.char16_t_type &&
                    type_1->variant.integer.char32_t_type ==

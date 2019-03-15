@@ -122,10 +122,11 @@ standard C behavior of trimming the terminating null character if needed),
 
   if (excess != NULL) *excess = FALSE;
   check_assertion(string_con->kind == (a_constant_repr_kind)ck_string);
-  /* The object to be initialized is an array (possibly incomplete) of char,
-     wchar_t, char16_t, or char32_t -- i.e., a string or wide string.  During
-     prototype instantiations, we assume that any template-dependent array
-     type may end up with an appropriate type during a real instantiation. */
+  /* The object to be initialized is an array (possibly incomplete) of
+     char, char8_t, wchar_t, char16_t, or char32_t -- i.e., a string or
+     wide string.  During prototype instantiations, we assume that any
+     template-dependent array type may end up with an appropriate type
+     during a real instantiation. */
   check_assertion(is_string_type(*dst_type) ||
                   (is_array_type(*dst_type) && is_template_dependent));
   if (!is_template_dependent) {
@@ -138,6 +139,9 @@ standard C behavior of trimming the terminating null character if needed),
         break;
       case chk_wchar_t:
         err = !is_wchar_t_array_type(*dst_type);
+        break;
+      case chk_char8_t:
+        err = !is_char8_t_array_type(*dst_type);
         break;
       case chk_char16_t:
         err = !is_char16_t_array_type(*dst_type);

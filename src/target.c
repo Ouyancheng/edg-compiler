@@ -939,6 +939,7 @@ file.  Called after target configuration (if any) has been determined.
   init_character_sizes();
   character_size[(int)chk_char] = 1;
   character_size[(int)chk_wchar_t] = targ_sizeof_wchar_t;
+  character_size[(int)chk_char8_t] = 1;
   character_size[(int)chk_char16_t] = targ_sizeof_char16_t;
   character_size[(int)chk_char32_t] = targ_sizeof_char32_t;
   if (targ_dual_alignments_for_builtin_types) {

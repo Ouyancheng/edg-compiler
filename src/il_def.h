@@ -1030,6 +1030,8 @@ typedef enum /*a_token_kind*/ {
   /* C++11 types: char16_t and char32_t. */
   tok_char16_t,
   tok_char32_t,
+  /* C++20 type: char8_t. */
+  tok_char8_t,
   /* Tokens for fixed-point type support ("_Fract", "_Accum", and "_Sat"). */
   tok_fract,
   tok_accum,
@@ -1338,7 +1340,7 @@ EXTERN a_const_char
    "__builtin_offsetof",
    "restrict", "__restrict",
    "_Bool", "_Complex", "_Imaginary", "__I__", "__NAN__", "__INFINITY__",
-   "char16_t", "char32_t",
+   "char16_t", "char32_t", "char8_t",
    "_Fract", "_Accum", "_Sat", "__declspec",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "abstract", "sealed",
@@ -4025,11 +4027,16 @@ typedef struct a_template_param_coordinate {
 enum a_character_kind_tag {
   /* String and character literals can involve one of several character kinds
      represented by the following enumerator constants. */
-  chk_char,		/* The "normal" string or character literal, expressed
-			   without prefix (character type "char"). */
+  chk_char,		/* The "normal" string or character literal,
+			   expressed without prefix or, before C++20, with
+			   prefix "u8" (character type "char"). */
   chk_default = chk_char,
   chk_wchar_t,		/* String or character literals expressed with the
 			   prefix "L" (e.g., L'x') (character type wchar_t). */
+  chk_char8_t,		/* String or character literals expressed with the
+			   prefix "u8" (character type char8_t, in C++20
+			   only; in earlier versions of C++, "u8"-prefixed
+			   literals implied type "char"). */
   chk_char16_t,		/* String or character literals expressed with the
 			   prefix "u" (character type char16_t).  This is an
 			   extension specified in ISO/IEC TR 19769. */
@@ -4042,7 +4049,7 @@ enum a_character_kind_tag {
 /* Number of bits required to hold a character code kind.  chk_last need not
    be accounted for. */
 #ifndef NUM_BITS_FOR_CHARACTER_KIND
-#define NUM_BITS_FOR_CHARACTER_KIND 2
+#define NUM_BITS_FOR_CHARACTER_KIND 3
 #endif /* ifndef NUM_BITS_FOR_CHARACTER_KIND */
 
 /* Define as "a_byte" to explicitly control storage size. */
@@ -8932,6 +8939,10 @@ typedef struct a_type {
                            is a distinct type.  (This can also be TRUE in
 			   Microsoft C mode for the type produced by the
 			   __wchar_t keyword.) */
+      a_bit_field
+		char8_t_type:1;
+			/* TRUE if this type is char8_t in C++ when
+			   char8_t_enabled is TRUE. */
       a_bit_field
 		char16_t_type:1;
 			/* TRUE if this type is char16_t in C++ when char16_t

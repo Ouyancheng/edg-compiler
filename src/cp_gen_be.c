@@ -12146,6 +12146,8 @@ return FALSE and let the caller generate the code normally.
             con_type = tap->next->next->variant.constant->type;
             if (con_type->variant.integer.wchar_t_type) {
               write_ch('L');
+            } else if (con_type->variant.integer.char8_t_type) {
+              write_str("u8");
             } else if (con_type->variant.integer.char16_t_type) {
               write_ch('u');
             } else if (con_type->variant.integer.char32_t_type) {

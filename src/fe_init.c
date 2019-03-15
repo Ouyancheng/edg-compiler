@@ -1190,6 +1190,9 @@ Install the keywords in the symbol table.
     if (wchar_t_is_keyword) {
       enter_keyword((a_token_kind)tok_wchar_t, "wchar_t");
     }  /* if */
+    if (char8_t_enabled) {
+      enter_keyword((a_token_kind)tok_char8_t, "char8_t");
+    }  /* if */
     if (char16_t_and_char32_t_are_keywords) {
       enter_keyword((a_token_kind)tok_char16_t, "char16_t");
       enter_keyword((a_token_kind)tok_char32_t, "char32_t");

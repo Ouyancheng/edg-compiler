@@ -1548,6 +1548,10 @@ Initialize the option information table.
                          "no_ms_std_preprocessor", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_char8_t, "char8_t", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_char8_t, "no_char8_t", '\0', /*value=*/FALSE,
+                         /*arg_required=*/FALSE, pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -3559,6 +3563,9 @@ default mode (e.g., exception handling).
         rvalue_allowed_with_const_qual_memptr = TRUE;
         va_opt_enabled = TRUE;
         nested_inline_namespace_definitions_enabled = TRUE;
+        if (!option_kind_used[(int)optk_char8_t]) {
+          char8_t_enabled = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -10559,6 +10566,9 @@ enable_microsoft_mode:
       case optk_aligned_new:
         overaligned_allocation_enabled = opt_value;
         break;
+      case optk_char8_t:
+        char8_t_enabled = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -11967,6 +11977,7 @@ variables declared in cmd_line.h.
   spaceship_enabled = FALSE;
   rvalue_allowed_with_const_qual_memptr = FALSE;
   va_opt_enabled = FALSE;
+  char8_t_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 

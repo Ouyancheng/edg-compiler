@@ -75,6 +75,7 @@ static a_type_ptr canonical_imaginary_types[(int)fk_last];
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 static a_type_ptr canonical_il_void_type;
 static a_type_ptr canonical_il_wchar_t_type;
+static a_type_ptr canonical_il_char8_t_type;
 static a_type_ptr canonical_il_char16_t_type;
 static a_type_ptr canonical_il_char32_t_type;
 static a_type_ptr canonical_il_bool_type;
@@ -1336,6 +1337,8 @@ is set to point to the first created type.
         set_builtin_type_corresp(&canonical_il_bool_type, type);
       } else if (type->variant.integer.wchar_t_type) {
         set_builtin_type_corresp(&canonical_il_wchar_t_type, type);
+      } else if (type->variant.integer.char8_t_type) {
+        set_builtin_type_corresp(&canonical_il_char8_t_type, type);
       } else if (type->variant.integer.char16_t_type) {
         set_builtin_type_corresp(&canonical_il_char16_t_type, type);
       } else if (type->variant.integer.char32_t_type) {
@@ -1496,6 +1499,24 @@ created such an entry as a result of copying an entry into the primary IL.
   }  /* if */
   return result;
 }  /* primary_wchar_t_type */
+
+
+a_type_ptr primary_char8_t_type(void)
+/*
+Return the char8_t type entry used in the primary translation unit IL, or NULL
+if the type hasn't been used in the primary IL.  This routine takes into
+account the possibility that the trans_copy process (which must have completed)
+created such an entry as a result of copying an entry into the primary IL.
+*/
+{
+  a_type_ptr  result = canonical_il_char8_t_type;
+
+  if (result != NULL) {
+    result = (a_type_ptr)canonical_il_entry_of(result);
+    check_assertion(!in_secondary_trans_unit(result));
+  }  /* if */
+  return result;
+}  /* primary_char8_t_type */
 
 
 a_type_ptr primary_char16_t_type(void)
@@ -7751,6 +7772,7 @@ for each compilation.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   canonical_il_void_type = NULL;
   canonical_il_wchar_t_type = NULL;
+  canonical_il_char8_t_type = NULL;
   canonical_il_char16_t_type = NULL;
   canonical_il_char32_t_type = NULL;
   canonical_il_bool_type = NULL;

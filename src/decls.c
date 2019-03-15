@@ -8204,10 +8204,10 @@ static a_boolean is_valid_udl_char_parameter_type(a_type_ptr  char_type)
 /*
 Return TRUE if char_type is a valid unqualified type underlying the pointer
 type parameter of a user-defined literal operator for user-defined string
-literals.  Usually, the type must be one of: char, unsigned char, signed char,
-wchar_t, char16_t, or char32_t.  However, in some Microsoft modes, a typedef
-named wchar_t may be acceptable too (if its underlying type is the integer
-type for wide character literals).
+literals.  Usually, the type must be one of: char, unsigned char, signed
+char, wchar_t, char8_t, char16_t, or char32_t.  However, in some Microsoft
+modes, a typedef named wchar_t may be acceptable too (if its underlying
+type is the integer type for wide character literals).
 */
 {
   a_type_ptr  tp = skip_typerefs(char_type);
@@ -8217,6 +8217,7 @@ type for wide character literals).
     result = FALSE;
   } else if (is_plain_char_type(tp) ||
              tp->variant.integer.wchar_t_type ||
+             tp->variant.integer.char8_t_type ||
              tp->variant.integer.char16_t_type ||
              tp->variant.integer.char32_t_type) {
     result = TRUE;
@@ -8312,6 +8313,7 @@ needed.
         param_err = TRUE;
       } else if (tp->variant.integer.int_kind != (an_integer_kind)ik_char &&
                  !tp->variant.integer.wchar_t_type &&
+                 !tp->variant.integer.char8_t_type &&
                  !tp->variant.integer.char16_t_type &&
                  !tp->variant.integer.char32_t_type &&
                  tp->variant.integer.int_kind !=
@@ -13071,6 +13073,9 @@ types, e.g., "unsigned int".  See ARM 7.1.6 and 5.2.3.
       break;
     case tok_bool:
       type = bool_type();
+      break;
+    case tok_char8_t:
+      type = char8_t_type();
       break;
     case tok_char16_t:
       type = char16_t_type();

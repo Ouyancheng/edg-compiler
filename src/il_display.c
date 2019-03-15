@@ -1215,6 +1215,7 @@ Display the indicated constant entry.
       switch(ptr->character_kind) {
         case chk_char:     (void)printf("char\n");                 break;
         case chk_wchar_t:  (void)printf("wchar_t\n");              break;
+        case chk_char8_t:  (void)printf("char8_t\n");              break;
         case chk_char16_t: (void)printf("char16_t\n");             break;
         case chk_char32_t: (void)printf("char32_t\n");             break;
         default:           (void)printf("**BAD CHARACTER KIND**");
@@ -1999,6 +2000,9 @@ Display the indicated type entry.
       }  /* if */
       if (ptr->variant.integer.wchar_t_type) {
         disp_boolean("wchar_t_type", TRUE);
+      }  /* if */
+      if (ptr->variant.integer.char8_t_type) {
+        disp_boolean("char8_t_type", TRUE);
       }  /* if */
       if (ptr->variant.integer.char16_t_type) {
         disp_boolean("char16_t_type", TRUE);

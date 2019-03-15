@@ -59,6 +59,8 @@ extern a_type_ptr primary_microsoft_sized_signed_int_type(
 
 extern a_type_ptr primary_wchar_t_type(void);
 
+extern a_type_ptr primary_char8_t_type(void);
+
 extern a_type_ptr primary_char16_t_type(void);
 
 extern a_type_ptr primary_char32_t_type(void);

@@ -15828,6 +15828,7 @@ const_for_curr_token.
     is_string = FALSE;
     if (literal_type->variant.integer.int_kind == (an_integer_kind)ik_char ||
         literal_type->variant.integer.wchar_t_type ||
+        literal_type->variant.integer.char8_t_type ||
         literal_type->variant.integer.char16_t_type ||
         literal_type->variant.integer.char32_t_type) {
       /* This is a character literal.  Raw literal operators and literal

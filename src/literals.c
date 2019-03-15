@@ -911,18 +911,18 @@ position in the token is *state->next_token_char (it is incremented
 appropriately for what is taken).  Escapes (beginning with "\") are
 recognized and processed if process_escapes is TRUE.  The character gotten
 is returned (not sign-extended) in ch.  centity_mask defines the size of
-the character entity into which this character is going (char, wchar_t,
-char16_t, or char32_t); narrow_literal is TRUE for narrow-character string
-and character literals, and utf8_literal is TRUE for UTF-8 string and
-character literals.  When multibyte characters are enabled and for
-universal-character-names, each byte of the multibyte character is returned
-on a separate call of this routine.  state->remaining_char_count is set to
-the number of characters remaining to be extracted on subsequent calls, and
-serves to disable recognition of escapes, etc., on bytes after the first in
-a multibyte character.  The caller must set state->remaining_char_count to
-zero before the first call of this routine in a given string, even if
-multibyte characters are not enabled.  When
-NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE and
+the character entity into which this character is going (char, char8_t,
+wchar_t, char16_t, or char32_t); narrow_literal is TRUE for
+narrow-character string and character literals, and utf8_literal is TRUE
+for UTF-8 string and character literals.  When multibyte characters are
+enabled and for universal-character-names, each byte of the multibyte
+character is returned on a separate call of this routine.
+state->remaining_char_count is set to the number of characters remaining to
+be extracted on subsequent calls, and serves to disable recognition of
+escapes, etc., on bytes after the first in a multibyte character.  The
+caller must set state->remaining_char_count to zero before the first call
+of this routine in a given string, even if multibyte characters are not
+enabled.  When NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE and
 state->translate_utf8_to_mbc are TRUE, the bytes returned for a UTF-8
 character will be those of the corresponding character in the system
 default locale.  When state->create_surrogate_pairs is TRUE and a character
@@ -1371,7 +1371,7 @@ the actual number of converted characters may be less than num_chars.  */
 
   /* Determine the constant type as follows:
        Single-character constant     ('x'): int in C, char in C++
-       UTF-8 character constant    (u8'x"): char (C++17)
+       UTF-8 character constant    (u8'x"): char (C++17) or char8_t (C++20)
        Multi-character constant     ('xy'): int
        Wide character constant      (L'x'): wchar_t
        char16_t character constant  (u'x'): char16_t
@@ -1422,12 +1422,16 @@ the actual number of converted characters may be less than num_chars.  */
       if (start_of_curr_token[1] == '8') {
         /* UTF-8 character literal. */
         utf8_literal = TRUE;
-        character_kind = (a_character_kind)chk_char;
+        character_kind = char8_t_enabled ? (a_character_kind)chk_char8_t
+                                         : (a_character_kind)chk_char;
         char_size = 1;
         centity_bits = targ_char_bit;
-        centity_is_signed = targ_has_signed_chars;
+        centity_is_signed = char8_t_enabled ? FALSE
+                                            : targ_has_signed_chars;
         temp_ptr = start_of_curr_token + 3;
-        con_type = integer_type((an_integer_kind)ik_char);
+        con_type =
+             char8_t_enabled ? eff_char8_t_type()
+                             : integer_type((an_integer_kind)ik_unsigned_char);
       } else {
         /* char16_t character literal. */
         character_kind = (a_character_kind)chk_char16_t;
@@ -1464,6 +1468,7 @@ the actual number of converted characters may be less than num_chars.  */
     /* Convert one character of the char constant. */
     switch (character_kind) {
       case chk_char:
+      case chk_char8_t:
         conv_single_char(&conv_state, /*process_escapes=*/TRUE, &ch,
                          centity_mask, /*narrow_literal=*/TRUE, utf8_literal);
         if ((i >= targ_sizeof_int && !gnu_mode) ||
@@ -1670,8 +1675,12 @@ the string.
   check_assertion(lit_kind & SCLK_STRING_LITERAL);
   switch (prefix_kind) {
     case SCLK_ORDINARY_LITERAL:
-    case SCLK_UTF8_LITERAL:
       character_kind = (a_character_kind)chk_char;
+      char_size = 1;
+      break;
+    case SCLK_UTF8_LITERAL:
+      character_kind = char8_t_enabled ? (a_character_kind)chk_char8_t
+                                       : (a_character_kind)chk_char;
       char_size = 1;
       break;
     case SCLK_WIDE_LITERAL:
@@ -1762,6 +1771,7 @@ the string.
     /* Convert one character of the string literal. */
     switch (character_kind) {
       case chk_char:
+      case chk_char8_t:
         conv_single_char(
                  &conv_state,
                  /*process_escapes=*/(lit_kind & SCLK_RAW_STRING_LITERAL) == 0,
@@ -1786,6 +1796,7 @@ the string.
   check_assertion(pstr < str_start + constant_size);
   switch (character_kind) {
     case chk_char:
+    case chk_char8_t:
       /* Normal string literal. */
       *(pstr++) = '\0';
       /* The actual length of the string may be less than was originally

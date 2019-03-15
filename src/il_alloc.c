@@ -1875,6 +1875,7 @@ to default values.
       pte->variant.integer.packed = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       pte->variant.integer.wchar_t_type = FALSE;
+      pte->variant.integer.char8_t_type = FALSE;
       pte->variant.integer.char16_t_type = FALSE;
       pte->variant.integer.char32_t_type = FALSE;
       pte->variant.integer.bool_type = FALSE;

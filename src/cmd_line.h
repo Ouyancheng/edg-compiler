@@ -327,6 +327,7 @@ typedef enum /*an_option_kind*/ {
   optk_aligned_new,
   optk_cpp20_mode,
   optk_ms_std_preproc,
+  optk_char8_t,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -2490,6 +2491,11 @@ EXTERN a_boolean
 		va_opt_enabled;
 			/* TRUE if support for the C++20 __VA_OPT__ macro
 			   operator is enabled. */
+
+EXTERN a_boolean
+		char8_t_enabled;
+			/* TRUE if support for the C++20 char8_t type is
+			   enabled. */
 
 
 /* Process the command line arguments. */

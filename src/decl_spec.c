@@ -7245,6 +7245,7 @@ typedef enum {
   bt_void,
   bt_char,
   bt_wchar_t,
+  bt_char8_t,
   bt_char16_t,
   bt_char32_t,
   bt_bool,
@@ -7568,6 +7569,13 @@ _Sat was specified.
     case bt_wchar_t:
       if (sign == sign_none && size == size_none) {
         dps->specifiers_type = wchar_t_type();
+      } else {
+        bad_combination = TRUE;
+      }  /* if */
+      break;
+    case bt_char8_t:
+      if (sign == sign_none && size == size_none) {
+        dps->specifiers_type = char8_t_type();
       } else {
         bad_combination = TRUE;
       }  /* if */
@@ -10748,6 +10756,7 @@ storage_class_specifier:
         /*FALLTHROUGH*/
       case tok_char:
       case tok_wchar_t:
+      case tok_char8_t:
       case tok_char16_t:
       case tok_char32_t:
       case tok_c99_bool:
@@ -10790,6 +10799,7 @@ storage_class_specifier:
             case tok_void:     basic_type = bt_void;    break;
             case tok_char:     basic_type = bt_char;    break;
             case tok_wchar_t:  basic_type = bt_wchar_t; break;
+            case tok_char8_t:  basic_type = bt_char8_t; break;
             case tok_char16_t: basic_type = bt_char16_t; break;
             case tok_char32_t: basic_type = bt_char32_t; break;
             case tok_c99_bool:

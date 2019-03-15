@@ -33337,6 +33337,7 @@ token following the operator, and should not be discarded.
         case chk_wchar_t:
           /* Already an L"..." string: Nothing to do. */
           break;
+        case chk_char8_t:
         case chk_char16_t:
         case chk_char32_t:
           /* u"..." and U"..." strings are invalid here. */
@@ -35169,6 +35170,7 @@ handle_trapped_left_paren:
     case tok_double:
     case tok_void:
     case tok_wchar_t:
+    case tok_char8_t:
     case tok_char16_t:
     case tok_char32_t:
     case tok_bool:
