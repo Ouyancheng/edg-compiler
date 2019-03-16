@@ -21768,9 +21768,10 @@ static void check_for_reference_to_local_entity(
                                     an_expr_node_ptr                    expr,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-Called via traverse_expr from expr_has_reference_to_routine_scope_variable;
-sets tblock->result to TRUE and terminates the traversal if expr is an
-enk_variable node that refers to a variable in a local scope.
+Called via traverse_expr from expr_has_reference_to_local_entity; sets
+tblock->result to TRUE and terminates the traversal if expr is an enk_variable
+node that refers to a variable in a local scope or if expr is an enk_statement
+node allocated in function-scope memory.
 */
 {
   if (expr != NULL &&
@@ -21790,7 +21791,7 @@ a_boolean expr_has_reference_to_local_entity(an_expr_node_ptr expr)
 /*
 Return TRUE if any of the nodes in the expression tree rooted in expr
 (which may be NULL) is an enk_variable node that refers to a variable in a
-local scope or an enk_statement node.
+local scope or an enk_statement node allocated in function-scope memory.
 */
 {
   an_expr_or_stmt_traversal_block tblock;
