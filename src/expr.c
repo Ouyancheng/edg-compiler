@@ -19528,6 +19528,206 @@ Otherwise returns NULL.
 }  /* get_new_alignment_arg */
 
 
+static a_symbol_ptr get_operator_new_symbol(
+                                  a_type_ptr           base_new_type,
+                                  a_type_ptr           unqual_base_new_type,
+                                  a_source_position    *new_position,
+                                  an_arg_list_elem_ptr arg_list,
+                                  a_boolean            array_new,
+                                  a_boolean            use_global_new,
+                                  a_boolean            *unknown_dependent_new,
+                                  a_boolean            *template_case)
+/*
+Returns the matching operator "new" symbol, if found.
+*/
+{
+  a_boolean            local_unknown_dependent_new = *unknown_dependent_new;
+  a_symbol_ptr         operator_new_symbol;
+  an_opname_kind       opname_kind;
+
+  opname_kind = (an_opname_kind)onk_new;
+  if (array_new_and_delete_enabled && array_new) {
+    opname_kind = (an_opname_kind)onk_array_new;
+  }  /* if */
+
+  if (gpp_mode && gnu_version >= 30400) {
+    /* g++ 3.4 and above always treat a "new" operator as dependent. */
+    if (is_prototype_instantiation_context()) {
+      /* During a prototype instantiation, suppress the lookup. */
+      local_unknown_dependent_new = TRUE;
+    }  /* if */
+  } else if (microsoft_mode && is_prototype_instantiation_context()) {
+    /* Microsoft compilers do very limited processing of templates in
+       general.  If we perform prototype instantiations in Microsoft mode,
+       we treat this case as dependent to reduce the amount of checking
+       performed in generic code. */
+    local_unknown_dependent_new = TRUE;
+  }  /* if */
+  if (!use_global_new && (array_new_and_delete_enabled || !array_new)) {
+    /* Check for a member "operator new" or "operator new[]". */
+    if (local_unknown_dependent_new) {
+      /* Suppress this processing if the unknown flag was already set
+         above. */
+    } else if (is_template_param_or_nonreal_class_type(base_new_type)) {
+      /* In a prototype instantiation, you might not be able to tell
+         whether a class-specific operator new should be used. */
+      local_unknown_dependent_new = TRUE;
+    } else if (is_class_struct_union_type(base_new_type)) {
+      operator_new_symbol = opname_member_function_symbol(
+        opname_kind,
+        unqual_base_new_type);
+    }  /* if */
+  }  /* if */
+
+  if (local_unknown_dependent_new) *template_case = TRUE;
+
+#if GNU_EXTENSIONS_ALLOWED
+  if (gpp_mode && gnu_version < 40000 && operator_new_symbol == NULL &&
+      depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
+      !local_unknown_dependent_new) {
+    /* Early GNU C++ compilers accept namespace-scope declarations of
+       new/delete operators and (unlike Microsoft C++ compilers) find those
+       using an ordinary lookup.  (This is true even when using "::new X":
+       The lookup starts in the current namespace.) */
+    a_symbol_locator  loc;
+    make_opname_locator(opname_kind, &loc, new_position);
+    operator_new_symbol = normal_id_lookup(&loc, IDL_SKIP_CLASS_SCOPES);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
+  if (operator_new_symbol == NULL && !local_unknown_dependent_new) {
+    /* Use the global "operator new" or "operator new[]". */
+    operator_new_symbol = opname_function_symbol(opname_kind);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode &&
+        microsoft_version < 1300 &&
+        operator_new_symbol == NULL) {
+      /* In Microsoft mode, if no array new is found, search for a
+         non-array operator new.  Note that there is no predeclared
+         operator new[] in Microsoft mode.  This behavior applies only
+         up to MSVC++ 6.0. */
+      opname_kind = (an_opname_kind)onk_new;
+      operator_new_symbol = opname_function_symbol(opname_kind);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode &&
+      microsoft_version >= 1300 &&
+      opname_kind == (an_opname_kind)onk_array_new) {
+    /* As of MSVC++ 7.0, if no array operator new[] is found, try
+       looking for a non-array operator new.  Do a tentative match
+       on the array new, and if that fails fall back to the non-array
+       new.*/
+    if (!local_unknown_dependent_new &&
+      (operator_new_symbol == NULL ||
+       !overloaded_function_match_possible(operator_new_symbol,
+                                           oc_new_expression,
+                                           /*is_template_id=*/FALSE,
+                                           (a_template_arg_ptr)NULL,
+                                           arg_list,
+                                           /*have_selector=*/FALSE,
+                                           (an_operand *)NULL))) {
+      opname_kind = (an_opname_kind)onk_new;
+      operator_new_symbol = opname_function_symbol(opname_kind);
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+  *unknown_dependent_new = local_unknown_dependent_new;
+  return operator_new_symbol;
+}  /* get_operator_new_symbol */
+
+
+static a_symbol_ptr get_operator_new_function(
+                              a_symbol_ptr             operator_new_symbol,
+                              a_source_position        *new_position,
+                              an_arg_list_elem_ptr     arg_list,
+                              an_arg_list_elem_ptr     *alignment_alep,
+                              an_arg_match_summary_ptr *arg_match_list,
+                              a_boolean                *unknown_dependent_new)
+/*
+Returns the matching operator "new" function symbol, if found.
+*/
+{
+  a_symbol_ptr         proj_function_symbol = NULL;
+
+  if (!*unknown_dependent_new) {
+    a_boolean saved_supp_diags = expr_stack->suppress_diagnostics;
+    a_boolean saved_any_error = expr_stack->any_suppressed_error;
+    a_boolean saved_defer_access_ck = scope_stack_top().defer_access_checks;
+    /* Select the proper "new" function if there are several.  Note that
+       this call does not adjust the argument types or build the function
+       call, since we may yet fold the call into a constructor call. */
+    if (*alignment_alep != NULL) {
+      /* There is an alignment argument.  Suppress diagnostics and
+         detect access violations in case there is no matching operator
+         new and we need to repeat overload resolution without the
+         alignment argument.  A failure in overload resolution at this
+         stage is not an error. */
+      expr_stack->suppress_diagnostics = TRUE;
+      scope_stack_top().defer_access_checks = FALSE;
+    }  /* if */
+    proj_function_symbol = select_overloaded_function(
+      operator_new_symbol,
+      /*is_template_id=*/FALSE,
+      (a_template_arg_ptr)NULL,
+      /*have_selector=*/FALSE,
+      (an_operand *)NULL,
+      arg_list,
+      (an_arg_list_elem *)NULL,
+      CCO_DIRECT_INITIALIZATION,
+      /*do_arg_dep_lookup=*/FALSE,
+      /*use_pure_arg_dep_lookup=*/FALSE,
+      /*use_std_for_arg_dep_lookup=*/FALSE,
+      oc_new_expression,
+      new_position,
+      (a_token_sequence_number)0,
+      (a_boolean *)NULL,
+      (a_boolean *)NULL,
+      unknown_dependent_new,
+      (a_boolean *)NULL,
+      (a_symbol_ptr *)NULL,
+      arg_match_list);
+    /* Restore diagnostics and access checking to their previous
+       state. */
+    expr_stack->suppress_diagnostics = saved_supp_diags;
+    expr_stack->any_suppressed_error = saved_any_error;
+    scope_stack_top().defer_access_checks = saved_defer_access_ck;
+    if (proj_function_symbol == NULL && *alignment_alep != NULL) {
+      /* Try overload resolution again without the alignment argument. */
+      arg_list->next = (*alignment_alep)->next;
+      free_arg_list(*alignment_alep);
+      *alignment_alep = NULL;
+      proj_function_symbol = select_overloaded_function(
+        operator_new_symbol,
+        /*is_template_id=*/FALSE,
+        (a_template_arg_ptr)NULL,
+        /*have_selector=*/FALSE,
+        (an_operand *)NULL,
+        arg_list,
+        (an_arg_list_elem *)NULL,
+        CCO_DIRECT_INITIALIZATION,
+        /*do_arg_dep_lookup=*/FALSE,
+        /*use_pure_arg_dep_lookup=*/FALSE,
+        /*use_std_for_arg_dep_lookup=*/FALSE,
+        oc_new_expression,
+        new_position,
+        (a_token_sequence_number)0,
+        (a_boolean *)NULL,
+        (a_boolean *)NULL,
+        unknown_dependent_new,
+        (a_boolean *)NULL,
+        (a_symbol_ptr *)NULL,
+        arg_match_list);
+    }  /* if */
+  }  /* if */
+
+  return proj_function_symbol;
+}  /* get_operator_new_function */
+
+
 static void scan_new_operator(a_rescan_control_block *rcblock,
                               an_operand             *result)
 /*
@@ -19596,7 +19796,6 @@ expression, and return the result in *result (or an error indication in
                     dyn_init_to_free_storage = NULL;
   a_boolean         saved_inside_conditional_expression =
                                      expr_stack->inside_conditional_expression;
-  an_opname_kind    opname_kind;
   a_dynamic_init_ptr
                     dip;
   a_boolean         unknown_dependent_new = FALSE;
@@ -19828,170 +20027,21 @@ expression, and return the result in *result (or an error indication in
        the keyword "new", always use the global ::new.  Choose new[]
        operators instead of the usual ones if the thing being allocated
        is an array. */
-    opname_kind = (an_opname_kind)onk_new;
-    if (array_new_and_delete_enabled && array_new) {
-      opname_kind = (an_opname_kind)onk_array_new;
+    operator_new_symbol =
+      get_operator_new_symbol(base_new_type, unqual_base_new_type,
+                              &new_position, arg_list,
+                              array_new, use_global_new,
+                              &unknown_dependent_new, &template_case);
+    proj_function_symbol =
+      get_operator_new_function(operator_new_symbol, &new_position,
+                                arg_list, &alignment_alep, &arg_match_list,
+                                &unknown_dependent_new);
+    if (proj_function_symbol != NULL) {
+      function_symbol = fundamental_symbol_of(proj_function_symbol);
     }  /* if */
-    operator_new_symbol = NULL;
-    if (gpp_mode && gnu_version >= 30400) {
-      /* g++ 3.4 and above always treat a "new" operator as dependent. */
-      if (is_prototype_instantiation_context()) {
-        /* During a prototype instantiation, suppress the lookup. */
-        unknown_dependent_new = TRUE;
-      }  /* if */
-    } else if (microsoft_mode && is_prototype_instantiation_context()) {
-      /* Microsoft compilers do very limited processing of templates in
-         general.  If we perform prototype instantiations in Microsoft mode,
-         we treat this case as dependent to reduce the amount of checking
-         performed in generic code. */
-      unknown_dependent_new = TRUE;
-    }  /* if */
-    if (!use_global_new && (array_new_and_delete_enabled || !array_new)) {
-      /* Check for a member "operator new" or "operator new[]". */
-      if (unknown_dependent_new) {
-        /* Suppress this processing if the unknown flag was already set
-           above. */
-      } else if (is_template_param_or_nonreal_class_type(base_new_type)) {
-        /* In a prototype instantiation, you might not be able to tell
-           whether a class-specific operator new should be used. */
-        unknown_dependent_new = TRUE;
-      } else if (is_class_struct_union_type(base_new_type)) {
-        operator_new_symbol = opname_member_function_symbol(
-                                                         opname_kind,
-                                                         unqual_base_new_type);
-      }  /* if */
-    }  /* if */
-    if (unknown_dependent_new) template_case = TRUE;
-#if GNU_EXTENSIONS_ALLOWED
-    if (gpp_mode && gnu_version < 40000 && operator_new_symbol == NULL &&
-        depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
-        !unknown_dependent_new) {
-      /* Early GNU C++ compilers accept namespace-scope declarations of
-         new/delete operators and (unlike Microsoft C++ compilers) find those
-         using an ordinary lookup.  (This is true even when using "::new X":
-         The lookup starts in the current namespace.) */
-      a_symbol_locator  loc;
-      make_opname_locator(opname_kind, &loc, &new_position);
-      operator_new_symbol = normal_id_lookup(&loc, IDL_SKIP_CLASS_SCOPES);
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    if (operator_new_symbol == NULL && !unknown_dependent_new) {
-      /* Use the global "operator new" or "operator new[]". */
-      operator_new_symbol = opname_function_symbol(opname_kind);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_mode &&
-          microsoft_version < 1300 &&
-          operator_new_symbol == NULL) {
-        /* In Microsoft mode, if no array new is found, search for a
-           non-array operator new.  Note that there is no predeclared
-           operator new[] in Microsoft mode.  This behavior applies only
-           up to MSVC++ 6.0. */
-        opname_kind = (an_opname_kind)onk_new;
-        operator_new_symbol = opname_function_symbol(opname_kind);
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode &&
-        microsoft_version >= 1300 &&
-        opname_kind == (an_opname_kind)onk_array_new) {
-      /* As of MSVC++ 7.0, if no array operator new[] is found, try
-         looking for a non-array operator new.  Do a tentative match
-         on the array new, and if that fails fall back to the non-array
-         new.*/
-      if (!unknown_dependent_new &&
-          (operator_new_symbol == NULL ||
-           !overloaded_function_match_possible(operator_new_symbol,
-                                               oc_new_expression,
-                                               /*is_template_id=*/FALSE,
-                                               (a_template_arg_ptr)NULL,
-                                               arg_list,
-                                               /*have_selector=*/FALSE,
-                                               (an_operand *)NULL))) {
-        opname_kind = (an_opname_kind)onk_new;
-        operator_new_symbol = opname_function_symbol(opname_kind);
-      }  /* if */
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (!unknown_dependent_new) {
-      a_boolean saved_supp_diags = expr_stack->suppress_diagnostics;
-      a_boolean saved_any_error = expr_stack->any_suppressed_error;
-      a_boolean saved_defer_access_ck = scope_stack_top().defer_access_checks;
-      /* Select the proper "new" function if there are several.  Note that
-         this call does not adjust the argument types or build the function
-         call, since we may yet fold the call into a constructor call. */
-      if (has_alignment_arg) {
-        /* There is an alignment argument.  Suppress diagnostics and
-           detect access violations in case there is no matching operator
-           new and we need to repeat overload resolution without the
-           alignment argument.  A failure in overload resolution at this
-           stage is not an error. */
-        expr_stack->suppress_diagnostics = TRUE;
-        scope_stack_top().defer_access_checks = FALSE;
-      }  /* if */
-      proj_function_symbol = select_overloaded_function(
-                                        operator_new_symbol,
-                                        /*is_template_id=*/FALSE,
-                                        (a_template_arg_ptr)NULL,
-                                        /*have_selector=*/FALSE,
-                                        (an_operand *)NULL,
-                                        arg_list,
-                                        (an_arg_list_elem *)NULL,
-                                        CCO_DIRECT_INITIALIZATION,
-                                        /*do_arg_dep_lookup=*/FALSE,
-                                        /*use_pure_arg_dep_lookup=*/FALSE,
-                                        /*use_std_for_arg_dep_lookup=*/FALSE,
-                                        oc_new_expression,
-                                        &new_position,
-                                        (a_token_sequence_number)0,
-                                        (a_boolean *)NULL,
-                                        (a_boolean *)NULL,
-                                        &unknown_dependent_new,
-                                        (a_boolean *)NULL,
-                                        (a_symbol_ptr *)NULL,
-                                        &arg_match_list);
-      /* Restore diagnostics and access checking to their previous
-         state. */
-      expr_stack->suppress_diagnostics = saved_supp_diags;
-      expr_stack->any_suppressed_error = saved_any_error;
-      scope_stack_top().defer_access_checks = saved_defer_access_ck;
-      if (proj_function_symbol == NULL && alignment_alep != NULL) {
-        /* Try overload resolution again without the alignment argument. */
-        arg_list->next = alignment_alep->next;
-        alignment_alep->next = NULL;
-        free_arg_list(alignment_alep);
-        alignment_alep = NULL;
-        proj_function_symbol = select_overloaded_function(
-                                        operator_new_symbol,
-                                        /*is_template_id=*/FALSE,
-                                        (a_template_arg_ptr)NULL,
-                                        /*have_selector=*/FALSE,
-                                        (an_operand *)NULL,
-                                        arg_list,
-                                        (an_arg_list_elem *)NULL,
-                                        CCO_DIRECT_INITIALIZATION,
-                                        /*do_arg_dep_lookup=*/FALSE,
-                                        /*use_pure_arg_dep_lookup=*/FALSE,
-                                        /*use_std_for_arg_dep_lookup=*/FALSE,
-                                        oc_new_expression,
-                                        &new_position,
-                                        (a_token_sequence_number)0,
-                                        (a_boolean *)NULL,
-                                        (a_boolean *)NULL,
-                                        &unknown_dependent_new,
-                                        (a_boolean *)NULL,
-                                        (a_symbol_ptr *)NULL,
-                                        &arg_match_list);
-      }  /* if */
-      if (proj_function_symbol != NULL) {
-        function_symbol = fundamental_symbol_of(proj_function_symbol);
-      } else {
-        function_symbol = NULL;
-      }  /* if */
-      /* We check later for function_symbol != NULL.  We don't set err
-         here for that case because it shouldn't affect the scanning of
-         the initial value. */
-    }  /* if */
+    /* We check later for function_symbol != NULL.  We don't set err
+        here for that case because it shouldn't affect the scanning of
+        the initial value. */
   }  /* if */
 
   /* Determine whether the initializer is an empty set of parentheses, "()"
