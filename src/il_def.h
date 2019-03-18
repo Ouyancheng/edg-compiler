@@ -6858,6 +6858,14 @@ typedef struct a_template_arg {
   a_bit_field	is_integer_pack:1;
 			/* TRUE for a dependent nontype template argument of
    			   the form "__integer_pack(expr)...". */
+  a_bit_field	type_is_injected_class_name:1;
+			/* TRUE for a type argument if the type was specified
+			   using the injected class name.  This is only
+			   set when scanning "unknown" template argument
+			   lists where the corresponding parameter is not
+			   known.  In such cases the injected class name
+			   could end up being used as a template template
+			   argument. */
   union {
     /* When kind == tak_type. */
     a_type_ptr  type;   /* The type supplied as the argument.  This type can

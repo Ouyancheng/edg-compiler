@@ -11555,6 +11555,8 @@ process_enum_specifier:
                 basic_type = bt_typedef;
                 *type_ptr = tp = type_symbol_type(curr_token_type_symbol);
                 decl_specifiers_seen |= DS_TYPE;
+                state->type_is_injected_class_name = 
+                              is_injected_class_symbol(curr_token_type_symbol);
                 if (class_template_arg_deduction_enabled &&
                     type_is(tp, tk_template_param) &&
                     !locator_for_curr_id.is_template_id) {

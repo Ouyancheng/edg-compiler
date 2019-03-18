@@ -1037,6 +1037,9 @@ typedef struct a_decl_parse_state {
   a_bit_field	last_declarator:1;
 			/* TRUE to indicate end-of-parse actions for the last
 			   declarator are being run. */
+  a_bit_field	type_is_injected_class_name:1;
+			/* TRUE if the type was specified using the
+			   injected class name. */
   an_init_state
 		init_state;
 			/* Information about the initializer (if any)
@@ -1420,7 +1423,8 @@ extern a_type_ptr scan_type_for_cast(a_boolean  const_expr_context,
 
 extern a_type_ptr scan_type_for_sizeof(a_boolean  evaluated_context);
 
-extern a_type_ptr scan_template_type_argument(void);
+extern
+a_type_ptr scan_template_type_argument(a_boolean *is_injected_class_name);
 
 extern void new_type_name(a_decl_parse_state  *state,
                           a_boolean           is_parenthesized);

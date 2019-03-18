@@ -7422,6 +7422,10 @@ the same constant.
        purposes. */
     if (arg1->is_pack || arg2->is_pack) pack_seen = TRUE;
 #endif /* CHECKING */
+    /* This flag should not be set on template argument lists that are
+       associated with an actual instantiation. */
+    check_assertion(!arg1->type_is_injected_class_name &&
+                    !arg2->type_is_injected_class_name);
     /* For a given non-variadic class, argument lists should always have
        the same sequence of type, constant, and template arguments. */
     if (arg1->kind != arg2->kind) {
@@ -10510,8 +10514,12 @@ doing C++17-style template template parameter matching.
         tap_is_pack = TRUE;
         tap = tap->next;
       }  /* while */
+      /* An injected class name is acceptable for a template template
+         parameter. */
       if (tap != NULL &&
-          templ_arg_kind_for_symbol_kind(sym_kind) != tap->kind) {
+          templ_arg_kind_for_symbol_kind(sym_kind) != tap->kind &&
+          !(tap->type_is_injected_class_name &&
+            sym_kind == (a_symbol_kind)sk_class_template)) {
         arg_kind_mismatch = TRUE;
         break;
       }  /* if */
@@ -10594,7 +10602,9 @@ doing C++17-style template template parameter matching.
       } else {
         arg_kind = templ_arg_kind_for_symbol_kind(sym_kind);
         tap = alloc_template_arg(arg_kind);
-        if (specified_tap != NULL && specified_tap->kind != arg_kind) {
+        if (specified_tap != NULL && specified_tap->kind != arg_kind &&
+            !(specified_tap->type_is_injected_class_name &&
+              arg_kind == (a_templ_arg_kind)tak_template)) {
           /* This should only occur in error cases. */
           expect_error();
           arg_kind_mismatch = TRUE;
@@ -10610,7 +10620,26 @@ doing C++17-style template template parameter matching.
         if (is_type_templ_arg(tap)) {
           tap->variant.type = specified_tap->variant.type;
         } else if (is_template_templ_arg(tap)) {
-          tap->variant.templ = specified_tap->variant.templ;
+          if (specified_tap->type_is_injected_class_name) {
+            /* An injected class name can sometimes be used as a template
+               template argument.  Get the template (if any) associated with
+               this type. */
+            a_symbol_ptr			class_sym;
+            a_class_symbol_supplement_ptr	cssp;
+            class_sym = symbol_for(specified_tap->variant.type);
+            check_assertion(class_sym != NULL);
+            cssp = class_sym->variant.class_struct_union.extra_info;
+            if (cssp->class_template == NULL) {
+              /* If there is no template, consider this a mismatch. */
+              arg_kind_mismatch = TRUE;
+              break;
+            } else {
+              tap->variant.templ.ptr = cssp->class_template->
+                                      variant.template_info->il_template_entry;
+            }  /* if */
+          } else {
+            tap->variant.templ = specified_tap->variant.templ;
+          }  /* if */
         } else {
           a_type_ptr		constant_type = NULL;
           a_constant_ptr	constant;
@@ -23541,7 +23570,7 @@ Scan the default argument of the type template parameter specified by tpp.
 {
   a_type_ptr		default_arg_type;
 
-  default_arg_type = scan_template_type_argument();
+  default_arg_type = scan_template_type_argument((a_boolean*)NULL);
   /* If the default argument type is dependent, update the flag in the
      template parameter.  Note that it could already have been set
      for other cases that force the re-evaluation of the default

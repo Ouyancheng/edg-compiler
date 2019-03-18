@@ -1,5 +1,23 @@
 Version 5.1
 
+3/18/19  [EDGcpfe/20098]
+Use of injected class name as a template template argument
+
+An injected class name of a class template can be used as both a type template
+argument and a template template argument.  This worked in some cases, but
+not as an explicit template argument in a function template call.  Now
+fixed.
+
+  template <typename T> struct A {
+    template <template<typename> class> void f(){}
+    void g() { f<A>(); }
+  };
+  int main() {
+    A<int> a;
+    a.g();
+  }
+
+
 3/18/19  [EDGcpfe/21009]
 Substituting decltype constructs
 

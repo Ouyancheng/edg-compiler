@@ -228,6 +228,7 @@ be restored).
     dps->is_nontype_template_param = FALSE;
     dps->retrieve_initializer_from_cache = FALSE;
     dps->last_declarator = FALSE;
+    dps->type_is_injected_class_name = FALSE;
     dps->prefix_attributes = NULL;
     dps->specifier_attributes = NULL;
     dps->tag_attributes = NULL;
@@ -12624,10 +12625,11 @@ will itself be evaluated.
 }  /* scan_type_for_sizeof */
 
 
-a_type_ptr scan_template_type_argument(void)
+a_type_ptr scan_template_type_argument(a_boolean *is_injected_class_name)
 /*
 Scan a template type argument.  The heavy lifting for this routine is done by
-type_name_full.
+type_name_full.  If non-NULL, *is_injected_class_name is set to a value
+that indicates whether the type was specified as the injected class name.
 */
 {
   a_decl_parse_state  dps;
@@ -12637,6 +12639,12 @@ type_name_full.
   dps.disallow_variably_modified_type = TRUE;
   type_name_full(&dps);
   check_type_definition_in_type_name(&dps);
+  if (is_injected_class_name != NULL) {
+    /* If the type was specified using the injected class name and the result
+       type is a class type, return this information to the caller. */
+    *is_injected_class_name = dps.type_is_injected_class_name &&
+                              is_immediate_class_type(dps.type);
+  }  /* if */
   return dps.type;
 }  /* scan_template_type_argument */
 

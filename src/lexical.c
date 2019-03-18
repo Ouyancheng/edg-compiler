@@ -16290,7 +16290,16 @@ If p_err is non-NULL, set *p_err to TRUE if an error is detected.
       }  /* if */
       arg_ptr = alloc_template_arg(arg_kind);
       if (is_type_templ_arg(arg_ptr)) {
-        arg_ptr->variant.type = scan_template_type_argument();
+        a_boolean	is_injected_class_name;
+        arg_ptr->variant.type = scan_template_type_argument(
+                                                      &is_injected_class_name);
+        if (!is_nonreal) {
+          /* The "real" case will be for function template explicit arguments.
+             If the type was specified using the injected class name, record
+             that information.  The injected class name can be used as
+             both a type and a template template argument in certain cases. */
+          arg_ptr->type_is_injected_class_name = is_injected_class_name;
+        }  /* if */
       } else if (is_nontype_templ_arg(arg_ptr)) {
         if (is_nonreal) {
           /* Scan a constant.  We can't know the type, so pass in a NULL type
@@ -16623,7 +16632,7 @@ next_integer_pack_element:
           integer_pack_elems = NULL;
           argument_type = error_type();
         } else {
-          argument_type = scan_template_type_argument();
+          argument_type = scan_template_type_argument((a_boolean*)NULL);
         }  /* if */
         /* In standard C++98/C++03, template type arguments must have linkage,
            and therefore cannot be based on local or unnamed classes/enums.  In
@@ -17127,7 +17136,7 @@ Its value is unchanged if no errors are detected.
     arity++;
     add_stop_token(tok_comma);
     start_pos = pos_curr_token;
-    argument_type = scan_template_type_argument();
+    argument_type = scan_template_type_argument((a_boolean*)NULL);
     /* Make sure that the argument is a type that can be used as a generic
        argument.  Constraint checking will be done later after we have
        identified the arity of this reference. */
