@@ -1226,7 +1226,8 @@ of lambda expressions.
                                reactivate_template_params,
                                rout_ptr->is_specialized,
                                /*extend_namespace=*/TRUE,
-                               /*force_new_context=*/TRUE);
+                               /*force_new_context=*/TRUE,
+                               PS_NO_OPTIONS);
         use_microsoft_specialization_scope =
                                      saved_use_microsoft_specialization_scope;
       }  /* if */
@@ -3306,7 +3307,8 @@ empty statement block.
                                            /*reactivate_template_params=*/TRUE,
                                            /*is_specialized=*/FALSE,
                                            /*extend_namespace=*/TRUE,
-                                           /*force_new_context=*/TRUE);
+                                           /*force_new_context=*/TRUE,
+                                           PS_NO_OPTIONS);
     /* Push the scope for the new function itself. */
     scope = push_scope((a_scope_kind)sck_function, NO_SCOPE_NUMBER,
                        (a_type_ptr)NULL, rout_ptr);

@@ -841,13 +841,18 @@ class, too, and thus must be flagged as requiring qualification.
     /* Get the base class scope's hidden names before trying to clone them
        (unless the scope belongs to a secondary translation unit; it's an
        error to try to put hidden names into such scopes). */
-    a_scope_depth init_depth = depth_scope_stack;
-    a_scope_depth saved_previous_scope;
+    a_scope_depth		init_depth = depth_scope_stack;
+    a_scope_depth		saved_previous_scope;
+    a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
+    if (base_class->variant.class_struct_union.is_prototype_instantiation) {
+      ps_options |= PS_PROTOTYPE_INSTANTIATION;
+    }  /* if */
     push_class_and_template_reactivation_scope_full(
                               base_class, /*is_specialization=*/FALSE,
                               /*reactivate_template_params=*/FALSE,
                               /*extend_namespace=*/FALSE,
-                              /*force_new_entry_for_namespace=*/TRUE);
+                              /*force_new_entry_for_namespace=*/TRUE,
+                              ps_options);
     /* Skip scopes that were previously pushed for hidden name processing. */
     saved_previous_scope = scope_stack[init_depth+1].previous_scope;
     scope_stack[init_depth+1].previous_scope = DEPTH_OF_FILE_SCOPE;

@@ -6231,7 +6231,8 @@ declared entity is known to not be a function.
                             /*reactivate_template_params=*/FALSE,
                             is_specialization,
                             /*extend_namespace=*/FALSE,
-                            /*force_new_context=*/FALSE);
+                            /*force_new_context=*/FALSE,
+                            PS_NO_OPTIONS);
             *output_flags |= DO_SCOPE_DEACTIVATION_REQUIRED;
             if (any_deferred_access_checks()) {
               /* Discard any access errors that occurred while scanning

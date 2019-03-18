@@ -3740,7 +3740,8 @@ type must be complete.
          on-demand when the enclosing context may not be correct. */
       push_class_and_template_reactivation_scope_full(
                      parent_type, is_template_based, /*is_specialized=*/FALSE,
-                     /*extend_namespace=*/TRUE, /*force_new_context=*/TRUE);
+                     /*extend_namespace=*/TRUE, /*force_new_context=*/TRUE,
+                     PS_NO_OPTIONS);
       class_reactivated = TRUE;
     }  /* if */
     /* Class reactivation doesn't automatically switch the current memory
@@ -30629,7 +30630,8 @@ classes.
                             /*reactivate_template_params=*/FALSE,
                             is_template_specialization,
                             /*extend_namespace=*/TRUE,
-                            /*force_new_context=*/FALSE);
+                            /*force_new_context=*/FALSE,
+                            PS_NO_OPTIONS);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (ctsp->assembly_scope_index != 0) {

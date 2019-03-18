@@ -1,5 +1,13 @@
 Version 5.1
 
+3/18/19  [EDGcpfe/20553]
+C++-generating back end: internal error in hidden name processing
+
+Under some rare conditions, in configurations that do hidden name processing,
+an internal error could occur (in push_template_instantiation_scope).  Now
+fixed.
+
+
 3/18/19  [EDGcpfe/20098]
 Use of injected class name as a template template argument
 

@@ -5322,13 +5322,16 @@ class_type by get_definition_of_class.
 }  /* set_template_decl_info_for_class_definition */
 
 
-static void push_definition_context_for_class(a_type_ptr	class_type)
+static void push_definition_context_for_class(
+				a_type_ptr			class_type,
+				a_push_scope_options_set	options)
 /*
 This routine is used when we need to reactivate a class, but we are no
 longer in the context of the class (i.e., we are not in the class scope
 or a class reactivation scope).  This routine pushes a dummy instantiation
 context.  This routine is not used for template classes, which will have
-their own actual instantiation scopes pushed.
+their own actual instantiation scopes pushed.    options is a set of option
+flags that is passed down to the other scope pushing routines.
 */
 {
   a_symbol_ptr			class_sym;
@@ -5342,8 +5345,8 @@ their own actual instantiation scopes pushed.
                               class_sym, class_sym,
                               (a_template_arg_ptr)NULL,
                               /*push_lex_state=*/FALSE,
-                              PS_CLASS_DEFINITION_CONTEXT |
-                                PS_NEW_INSTANTIATION_CONTEXT);
+                              options | PS_CLASS_DEFINITION_CONTEXT |
+                                        PS_NEW_INSTANTIATION_CONTEXT);
 }  /* push_definition_context_for_class */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -9801,11 +9804,12 @@ the class symbol supplement points to the partial specialization).
 
 
 void push_class_and_template_reactivation_scope_full(
-				a_type_ptr	class_type,
-				a_boolean	reactivate_template_params,
-				a_boolean	is_specialization,
-				a_boolean	extend_namespace,
-				a_boolean	force_new_context)
+		a_type_ptr			class_type,
+		a_boolean			reactivate_template_params,
+		a_boolean			is_specialization,
+		a_boolean			extend_namespace,
+		a_boolean			force_new_context,
+		a_push_scope_options_set	options)
 /*
 Push the scopes needed to reactivate the context of the specified class.
 If the class is a template class, or a class defined within a template class,
@@ -9819,7 +9823,8 @@ scope is pushed (depending on the value of extend_namespace); however, if
 force_new_context is FALSE the enclosing namespace will be not be pushed if
 it is the current scope. When force_new_context is TRUE, an instantiation
 context will be pushed even for non-template classes to guarantee that the
-enclosing context will not influence subsequent processing.
+enclosing context will not influence subsequent processing.  options is a
+set of option flags that is passed down to the other scope pushing routines.
 */
 {
   a_boolean	is_template = FALSE;
@@ -9904,7 +9909,7 @@ enclosing context will not influence subsequent processing.
         force_new_context) {
       /* A normal class but in a context where some other instantiation is
          underway.  Push the definition context for desired class. */
-      push_definition_context_for_class(class_type);
+      push_definition_context_for_class(class_type, options);
       use_new_orig_depth = FALSE;
     }  /* if */
     /* Push the reactivation for the class.  Unless a definition context
@@ -9949,7 +9954,7 @@ extend_namespace) unless that namespace is already the current scope.
   push_class_and_template_reactivation_scope_full(
                       class_type, reactivate_template_params,
                       /*is_specialization=*/FALSE, extend_namespace,
-                      /*force_new_context=*/FALSE);
+                      /*force_new_context=*/FALSE, PS_NO_OPTIONS);
 }  /* push_class_and_template_reactivation_scope */
 
 void push_class_reactivation_scope(a_type_ptr class_type,
@@ -9967,7 +9972,7 @@ current scope.
   push_class_and_template_reactivation_scope_full
                            (class_type, /*reactivate_template_params=*/FALSE,
                             /*is_specialization=*/FALSE, extend_namespace,
-                            /*force_new_context=*/FALSE);
+                            /*force_new_context=*/FALSE, PS_NO_OPTIONS);
 }  /* push_class_reactivation_scope */
 
 
