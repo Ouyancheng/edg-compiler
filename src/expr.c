@@ -42663,6 +42663,12 @@ is TRUE if the expression is the immediate operand of an "&" operator.
       /* A reference to a parameter name or "this" within the header of the
          function, where a parameter variable is not available. */
       expr_copy = copy_node(expr);
+      if (expr_copy->variant.param_ref.param_num != 0) {
+        /* If this is not a reference to "this", it is an lvalue unless a
+           glvalue-to-prvalue conversion is applied later on. */
+        expr_copy->is_lvalue = TRUE;
+        expr_copy->is_xvalue = FALSE;
+      }  /* if */
       /* See if this is a reference to a pack element.  This routine will
          return NULL if this is not a pack reference. */
       new_type = get_curr_variadic_param_type(expr_copy);
