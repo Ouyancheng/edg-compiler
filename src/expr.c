@@ -19728,6 +19728,32 @@ Returns the matching operator "new" function symbol, if found.
 }  /* get_operator_new_function */
 
 
+static a_symbol_ptr get_ctor_sym_for_new_type(
+                             a_type_ptr                    base_new_type,
+                             a_boolean                     cli_array_new,
+                             a_boolean                     dependent_new_type,
+                             a_class_symbol_supplement_ptr *cssp)
+/* Returns non-NULL if the type is a class that has a constructor
+   or an array with elements of such a class. */
+{
+  a_symbol_ptr                  ctor_sym = NULL;
+
+  if (is_class_struct_union_type(base_new_type) &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* For C++/CLI arrays, don't use the associated class constructors.
+         In C++/CX mode, we do use the constructor symbols of
+         Platform::Array, however. */
+         (cppcx_enabled || !cli_array_new) &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      !dependent_new_type) {
+    *cssp = symbol_supplement_for_class(base_new_type);
+    ctor_sym = (*cssp)->constructor;
+  }  /* if */
+
+  return ctor_sym;
+}  /* get_ctor_sym_for_new_type */
+
+
 static void scan_new_operator(a_rescan_control_block *rcblock,
                               an_operand             *result)
 /*
@@ -20064,20 +20090,12 @@ expression, and return the result in *result (or an error indication in
       dependent_new_type = TRUE;
     }  /* if */
   }  /* if */
-  /* Set ctor_sym non-NULL if the type is a class that has a constructor
-     or an array with elements of such a class. */
-  ctor_sym = NULL;
-  if (is_class_struct_union_type(base_new_type) &&
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      /* For C++/CLI arrays, don't use the associated class constructors.
-         In C++/CX mode, we do use the constructor symbols of
-         Platform::Array, however. */
-      (cppcx_enabled || !cli_array_new) &&
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      !dependent_new_type) {
-    cssp = symbol_supplement_for_class(base_new_type);
-    ctor_sym = cssp->constructor;
-  }  /* if */
+
+  /* Get constructor symbol, if it exists. */
+  ctor_sym = get_ctor_sym_for_new_type(base_new_type,
+                                       cli_array_new, dependent_new_type,
+                                       &cssp);
+
   if (!err && function_symbol != NULL) {
     a_boolean access_error_reported;
     /* Work out the "new" routine and its arguments. */
