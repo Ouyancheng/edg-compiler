@@ -19175,6 +19175,71 @@ static void scan_new_initializer(a_decl_parse_state *dps,
 }  /* scan_new_initializer */
 
 
+static a_type_ptr get_base_new_type(a_type_ptr new_type,
+                                    a_type_ptr unqual_new_type,
+                                    a_source_position *type_position,
+                                    an_expr_node_ptr *new_array_dimension,
+                                    a_boolean *array_new,
+                                    a_boolean *cli_array_new,
+                                    a_boolean *variable_size_array,
+                                    a_boolean *type_err)
+/*
+Get the base type for the new statement.
+*/
+{
+  a_type_ptr base_new_type = new_type;
+
+  /* Instantiate the type if it is a template class. */
+  complete_type_is_needed(new_type);
+
+  /* Determine the type of pointer returned from "new". */
+  *new_array_dimension = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_cli_array_type(new_type)) {
+    /* This is a gcnew with the C++/CLI array type.  Even if we don't
+       detect a C++/CLI array type at this point, we still may create a C++/CLI
+       array initialization node if we see an array-init later. */
+       /* Note that we set this even if is_gcnew is false, for better error
+          recovery. */
+    *cli_array_new = TRUE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+  if (is_array_type(new_type)) {
+    /* A "new" of an array returns a pointer to the initial element.
+       Note that this is only done for one level, e.g., new int [i][10]
+       returns int (*)[10] not int * (ARM 5.3.3). */
+    base_new_type = array_element_type(new_type);
+    *array_new = TRUE;
+    if (unqual_new_type->variant.array.is_variable_size_array) {
+      *variable_size_array = TRUE;
+      /* The first bound is an expression.  Extract the expression. */
+      *new_array_dimension =
+        unqual_new_type->variant.array.variant.element_count_expr;
+      if (!expr_stack->possible_rescan_context) {
+        /* Change the array type to a simple incomplete array type so
+           that the variable-size type does not escape from the front end. */
+        unqual_new_type->variant.array.is_variable_size_array = FALSE;
+        unqual_new_type->variant.array.variant.number_of_elements = 0;
+        unqual_new_type->size = 0;
+        set_type_size(unqual_new_type);
+      }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_mode &&
+               is_incomplete_array_type(unqual_new_type)) {
+      /* MSVC treats "new T[]" as "new T[0]". */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (is_incomplete_type(new_type)) {
+      /* A case like "new int[]" -- an incomplete array type. */
+      expr_pos_error(incomplete_type_err_code(new_type), type_position);
+      *type_err = TRUE;
+    }  /* if */
+  }  /* if */
+
+  return base_new_type;
+}  /* get_base_new_type */
+
+
 static void scan_new_operator(a_rescan_control_block *rcblock,
                               an_operand             *result)
 /*
@@ -19399,6 +19464,7 @@ expression, and return the result in *result (or an error indication in
     expr_stack->initializer_cache = NULL;
     set_up_initializer_rescan(&dps);
   }  /* if */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_gcnew &&
       is_cli_generic_definition_argument_type(new_type)) {
@@ -19407,58 +19473,23 @@ expression, and return the result in *result (or an error indication in
     if (is_handle_type(new_type)) new_type = type_pointed_to(new_type);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
   unqual_new_type = skip_typerefs(new_type);
-  /* Instantiate the type if it is a template class. */
-  complete_type_is_needed(new_type);
-  /* Determine the type of pointer returned from "new". */
-  base_new_type = new_type;
-  new_array_dimension = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (is_cli_array_type(new_type)) {
-    /* This is a gcnew with the C++/CLI array type.  Even if we don't
-       detect a C++/CLI array type at this point, we still may create a C++/CLI
-       array initialization node if we see an array-init later. */
-    /* Note that we set this even if is_gcnew is false, for better error
-       recovery. */
-    cli_array_new = TRUE;
-    if (has_braced_initializer) {
-      /* We thought we had a braced initializer, but in this case it's the
-         array initializer after an omitted new-initializer. */
-      has_braced_initializer = FALSE;
-      has_new_initializer = FALSE;
-    }  /* if */
+  base_new_type = get_base_new_type(new_type, unqual_new_type,
+                                    &type_position, &new_array_dimension,
+                                    &array_new, &cli_array_new,
+                                    &variable_size_array, &type_err);
+  err = err || type_err;
+  if (array_new) {
+    element_type = base_new_type;
+  }
+  if (cli_array_new && has_braced_initializer) {
+    /* We thought we had a braced initializer, but in this case it's the
+       array initializer after an omitted new-initializer. */
+    has_braced_initializer = FALSE;
+    has_new_initializer = FALSE;
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (is_array_type(new_type)) {
-    /* A "new" of an array returns a pointer to the initial element.
-       Note that this is only done for one level, e.g., new int [i][10]
-       returns int (*)[10] not int * (ARM 5.3.3). */
-    base_new_type = element_type = array_element_type(new_type);
-    array_new = TRUE;
-    if (unqual_new_type->variant.array.is_variable_size_array) {
-      variable_size_array = TRUE;
-      /* The first bound is an expression.  Extract the expression. */
-      new_array_dimension =
-                     unqual_new_type->variant.array.variant.element_count_expr;
-      if (!expr_stack->possible_rescan_context) {
-        /* Change the array type to a simple incomplete array type so
-           that the variable-size type does not escape from the front end. */
-        unqual_new_type->variant.array.is_variable_size_array = FALSE;
-        unqual_new_type->variant.array.variant.number_of_elements = 0;
-        unqual_new_type->size = 0;
-        set_type_size(unqual_new_type);
-      }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_mode &&
-               is_incomplete_array_type(unqual_new_type)) {
-      /* MSVC treats "new T[]" as "new T[0]". */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else if (is_incomplete_type(new_type)) {
-      /* A case like "new int[]" -- an incomplete array type. */
-      expr_pos_error(incomplete_type_err_code(new_type), &type_position);
-      type_err = err = TRUE;
-    }  /* if */
-  }  /* if */
+
   /* Check that the type to be allocated is valid.  It must be an object
      type. */
   if (type_err) {
