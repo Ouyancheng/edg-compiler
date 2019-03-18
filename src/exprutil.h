@@ -2928,6 +2928,8 @@ extern void make_upc_thread_operand(an_operand            *operand,
 extern a_boolean type_has_nodiscard_attribute(a_type_ptr type);
 
 #if DEBUG
+extern void count_rescan_fs_expr_nodes(unsigned long *p_count);
+
 extern unsigned long show_expr_space_used(void);
 #endif /* DEBUG */
 #if CHECKING && DEBUG
