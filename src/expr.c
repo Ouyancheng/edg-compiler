@@ -19359,8 +19359,64 @@ static void validate_cpp_cli_cx_new_type(a_type_ptr        new_type,
       }  /* if */
     }  /* if */
   }  /* if */
-}
+}  /* validate_cpp_cli_cx_new_type */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
+static a_type_ptr get_new_result_type(
+                                  a_type_ptr       new_type,
+                                  a_type_ptr       *base_new_type,
+                                  a_boolean        is_gcnew,
+                                  a_boolean        array_new,
+                                  a_boolean        cli_array_new,
+                                  an_expr_node_ptr new_array_dimension,
+                                  a_targ_size_t    *effective_num_of_elements)
+/*
+Determine the result type of the "new".
+*/
+{
+  a_type_ptr unqual_new_type = skip_typerefs(new_type);
+  a_type_ptr unqual_base_new_type = skip_typerefs(*base_new_type);
+  a_type_ptr ptr_new_type;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_gcnew || cli_array_new /* for error recovery. */) {
+    /* For gcnew, base_new_type and new_type and their variants should be
+       equivalent. */
+    check_assertion(identical_types(new_type, *base_new_type) &&
+                    identical_types(unqual_new_type, unqual_base_new_type));
+    ptr_new_type = make_handle_type(*base_new_type);
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+  {
+    ptr_new_type = make_pointer_type(*base_new_type);
+  }  /* if */
+  if (array_new) {
+    /* For multi-dimensional arrays: even though only one level of array is
+       dropped to determine the pointer type, all levels must be dropped
+       to get the real base type to do allocation and initialization.  In
+       particular, we want to know if the underlying type of a
+       multi-dimensional array is a class, so we can know whether or not
+       to call a constructor or a class-specific new[].  Note that the
+       original first-level element type is retained in element_type. */
+       /* Also determine the effective number of elements. */
+    if (new_array_dimension != NULL) {
+      /* Variable-length array; count is deferred to runtime. */
+      *effective_num_of_elements = 0;
+    } else {
+      *effective_num_of_elements = 1;
+      accumulate_array_size(unqual_new_type, effective_num_of_elements);
+    }  /* if */
+    while (unqual_base_new_type->kind == (a_type_kind)tk_array) {
+      accumulate_array_size(unqual_base_new_type, effective_num_of_elements);
+      *base_new_type = unqual_base_new_type->variant.array.element_type;
+      unqual_base_new_type = skip_typerefs(*base_new_type);
+    }  /* while */
+  }  /* if */
+
+  return ptr_new_type;
+}  /* get_new_result_type */
 
 
 static void scan_new_operator(a_rescan_control_block *rcblock,
@@ -19624,43 +19680,14 @@ expression, and return the result in *result (or an error indication in
     array_new = FALSE;
   }  /* if */
   unqual_new_type = skip_typerefs(new_type);
+
+  ptr_new_type = get_new_result_type(new_type, &base_new_type, is_gcnew,
+                                     array_new, cli_array_new,
+                                     new_array_dimension,
+                                     &effective_num_of_elements);
   unqual_base_new_type = skip_typerefs(base_new_type);
-  /* Determine the result type of the "new". */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (is_gcnew || cli_array_new /* for error recovery. */) {
-    /* For gcnew, base_new_type and new_type and their variants should be
-       equivalent. */
-    check_assertion(identical_types(new_type, base_new_type) &&
-                    identical_types(unqual_new_type, unqual_base_new_type));
-    ptr_new_type = make_handle_type(base_new_type);
-  } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */  
-  {
-    ptr_new_type = make_pointer_type(base_new_type);
-  }  /* if */
-  if (array_new) {
-     /* For multi-dimensional arrays: even though only one level of array is
-        dropped to determine the pointer type, all levels must be dropped
-        to get the real base type to do allocation and initialization.  In
-        particular, we want to know if the underlying type of a
-        multi-dimensional array is a class, so we can know whether or not
-        to call a constructor or a class-specific new[].  Note that the
-        original first-level element type is retained in element_type. */
-    /* Also determine the effective number of elements. */
-    if (new_array_dimension != NULL) {
-      /* Variable-length array; count is deferred to runtime. */
-      effective_num_of_elements = 0;
-    } else {
-      effective_num_of_elements = 1;
-      accumulate_array_size(unqual_new_type, &effective_num_of_elements);
-    }  /* if */
-    while (unqual_base_new_type->kind == (a_type_kind)tk_array) {
-      accumulate_array_size(unqual_base_new_type, &effective_num_of_elements);
-      base_new_type = unqual_base_new_type->variant.array.element_type;
-      unqual_base_new_type = skip_typerefs(base_new_type);
-    }  /* while */
-  }  /* if */
+
+
   /* If no error was encountered thus far, determine the correct overload
      for the "new" routine.  This is not performed for gcnew. */
   function_symbol = proj_function_symbol = NULL;
