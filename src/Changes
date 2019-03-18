@@ -1,5 +1,21 @@
 Version 5.1
 
+3/18/19  [EDGcpfe/19059]
+C++-generating back end: incorrect pack ellipsis emitted
+
+The C++-generating back end could emit a ellipsis where one was not valid
+when a variadic alias was instantiated in a non-variadic context.  Now fixed.
+
+
+  template <typename T, T t> struct A { };
+  struct B { static const bool value = false; };
+  template <typename... Ts> struct C { using type = B; };
+  template <typename... Args> using D = typename C<Args...>::type;
+  template <typename T> struct E {
+    using type = A<bool, D<T>::value>;
+    // Formerly emitted as: using type = A< bool, C< T...> ::type::value>
+  };
+
 3/18/19  [EDGcpfe/20553]
 C++-generating back end: internal error in hidden name processing
 
