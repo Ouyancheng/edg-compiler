@@ -19175,14 +19175,14 @@ static void scan_new_initializer(a_decl_parse_state *dps,
 }  /* scan_new_initializer */
 
 
-static a_type_ptr get_base_new_type(a_type_ptr new_type,
-                                    a_type_ptr unqual_new_type,
+static a_type_ptr get_base_new_type(a_type_ptr        new_type,
+                                    a_type_ptr        unqual_new_type,
                                     a_source_position *type_position,
-                                    an_expr_node_ptr *new_array_dimension,
-                                    a_boolean *array_new,
-                                    a_boolean *cli_array_new,
-                                    a_boolean *variable_size_array,
-                                    a_boolean *type_err)
+                                    an_expr_node_ptr  *new_array_dimension,
+                                    a_boolean         *array_new,
+                                    a_boolean         *cli_array_new,
+                                    a_boolean         *variable_size_array,
+                                    a_boolean         *type_err)
 /*
 Get the base type for the new statement.
 */
@@ -19238,6 +19238,129 @@ Get the base type for the new statement.
 
   return base_new_type;
 }  /* get_base_new_type */
+
+
+static void validate_new_type(a_type_ptr        new_type,
+                              a_type_ptr        base_new_type,
+                              a_source_position *type_position,
+                              a_boolean         *type_err)
+  /*
+  Validate the type obtained for a new statement.
+  */
+{
+  /* Check that the type to be allocated is valid.  It must be an object
+     type. */
+  if (*type_err) {
+    /* A type error has already been issued (invalid array type). */
+    expr_expect_error();
+  } else if (!is_complete_object_type(base_new_type)) {
+    /* Invalid type.  Note that base_new_type is tested instead of
+       new_type, so the first-level element type of arrays is tested. */
+    if (is_error_type(base_new_type)) {
+      /* Error already issued. */
+    } else if (is_incomplete_type(base_new_type)) {
+      expr_pos_error(incomplete_type_err_code(base_new_type), type_position);
+    } else {
+      expr_pos_error(ec_type_must_be_object_type, type_position);
+    }  /* if */
+    *type_err = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cli_or_cx_enabled && is_cli_interface_type(new_type)) {
+    /* A C++/CLI interface class object can never be allocated. */
+    expr_pos_error(ec_new_of_cli_interface_class, type_position);
+    *type_err = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else if (is_abstract_class_type(new_type)
+             if_microsoft_extensions(
+               && !(cppcx_enabled &&
+                    class_type_supp(new_type)->is_cppcx_box))) {
+    /* The type is an abstract class type, so an object of the type cannot be
+       allocated.  One exception is the C++/CX Platform::Box<T> class, which
+       is defined as "abstract" to disallow stack-based instances, but
+       allocating an instance with "ref new" is allowed. */
+    if (expr_error_should_be_issued()) {
+      abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
+                                new_type, type_position);
+    }  /* if */
+    *type_err = TRUE;
+  } else if (vla_enabled && is_variably_modified_type(new_type)) {
+    /* Variable-length arrays are not allowed.  These can only come from
+       typedefs, because new_type_name will not scan a VLA directly. */
+    expr_pos_error(ec_vla_not_allowed, type_position);
+    *type_err = TRUE;
+  } else {
+    /* Valid type. */
+  }  /* if */
+}  /* validate_new_type */
+
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static void validate_cpp_cli_cx_new_type(a_type_ptr        new_type,
+                                         a_type_ptr        base_new_type,
+                                         a_source_position *type_position,
+                                         a_boolean         cli_or_cx_enabled,
+                                         a_boolean         is_gcnew,
+                                         a_boolean         use_global_new,
+                                         a_boolean         prev_err_seen,
+                                         a_boolean         *type_err)
+{
+  if (cli_or_cx_enabled && !prev_err_seen) {
+    /* We have parsed through the type (the initializer will be parsed later
+       below).  This is enough to issue diagnostics related to "gcnew" or
+       "new" with managed types.
+       Note: This is not part of the above semantic check control flow because
+       this branch will not necessarily emit an error. */
+    if (is_gcnew) {
+      /* Validate that gcnew is used on an appropriate type.
+         Any class or struct must be of ref or value type. */
+      if (!(is_ref_class_type(base_new_type) ||
+            /* Note, not interfaces. */
+            is_cli_enum_type(base_new_type) ||
+            is_value_class_or_fundamental_type(base_new_type) ||
+            is_error_type(base_new_type) ||
+            is_template_param_or_nonreal_class_type(base_new_type))) {
+        if (expr_error_should_be_issued()) {
+          pos_ty_error(ec_invalid_gcnew_type, type_position, new_type);
+        }  /* if */
+        *type_err = TRUE;
+      }  /* if */
+      /* It is illegal to use gcnew with a global qualifier.  However,
+         that will have already been caught as a syntax error.  This serves
+         as an internal consistency check. */
+      check_assertion(!use_global_new);
+    } else {
+      /* Error checks on standard "new" with C++/CLI managed types. */
+      if (is_managed_class_type(base_new_type)) {
+        if (is_value_class_type(base_new_type)) {
+          if (is_simple_value_class_type(base_new_type)) {
+            /* No semantic error for new with simple value types. */
+          } else {
+            /* Only simple value types are allowed with "new". */
+            expr_pos_error(ec_new_used_on_unsuitable_value_type,
+                           type_position);
+            *type_err = TRUE;
+          }  /* if */
+        } else {
+          /* This is an attempt to use new on a ref class or interface type. */
+          expr_pos_error(ec_new_used_on_managed_class_type, type_position);
+          *type_err = TRUE;
+        }  /* if */
+      } else if (cppcx_enabled && is_handle_type(base_new_type)) {
+        /* In C++/CX, "new" can be used to allocate handle types.  Reference
+           types result in error ec_type_must_be_object_type above. */
+      } else if (is_handle_or_tracking_ref_type(base_new_type)) {
+        /* "new" cannot be used to allocate handle or tracking reference
+           types. */
+        expr_pos_error(ec_new_used_on_handle_or_tracking_reference_type,
+                       type_position);
+        *type_err = TRUE;
+      } else {
+        /* No semantic errors were detected. */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 static void scan_new_operator(a_rescan_control_block *rcblock,
@@ -19479,6 +19602,12 @@ expression, and return the result in *result (or an error indication in
                                     &type_position, &new_array_dimension,
                                     &array_new, &cli_array_new,
                                     &variable_size_array, &type_err);
+  validate_new_type(new_type, base_new_type, &type_position, &type_err);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  validate_cpp_cli_cx_new_type(new_type, base_new_type, &type_position,
+                               cli_or_cx_enabled, is_gcnew, use_global_new,
+                               /*prev_err_seen=*/err || type_err, &type_err);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   err = err || type_err;
   if (array_new) {
     element_type = base_new_type;
@@ -19490,106 +19619,6 @@ expression, and return the result in *result (or an error indication in
     has_new_initializer = FALSE;
   }  /* if */
 
-  /* Check that the type to be allocated is valid.  It must be an object
-     type. */
-  if (type_err) {
-    /* A type error has already been issued (invalid array type). */
-    expr_expect_error();
-  } else if (!is_complete_object_type(base_new_type)) {
-    /* Invalid type.  Note that base_new_type is tested instead of
-       new_type, so the first-level element type of arrays is tested. */
-    if (is_error_type(base_new_type)) {
-      /* Error already issued. */
-    } else if (is_incomplete_type(base_new_type)) {
-      expr_pos_error(incomplete_type_err_code(base_new_type), &type_position);
-    } else {
-      expr_pos_error(ec_type_must_be_object_type, &type_position);
-    }  /* if */
-    type_err = err = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cli_or_cx_enabled && is_cli_interface_type(new_type)) {
-    /* A C++/CLI interface class object can never be allocated. */
-    expr_pos_error(ec_new_of_cli_interface_class, &type_position);
-    type_err = err = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if (is_abstract_class_type(new_type)
-             if_microsoft_extensions(
-                             && !(cppcx_enabled &&
-                                  class_type_supp(new_type)->is_cppcx_box))) {
-    /* The type is an abstract class type, so an object of the type cannot be
-       allocated.  One exception is the C++/CX Platform::Box<T> class, which
-       is defined as "abstract" to disallow stack-based instances, but
-       allocating an instance with "ref new" is allowed. */
-    if (expr_error_should_be_issued()) {
-      abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
-                                new_type, &type_position);
-    }  /* if */
-    type_err = err = TRUE;
-  } else if (vla_enabled && is_variably_modified_type(new_type)) {
-    /* Variable-length arrays are not allowed.  These can only come from
-       typedefs, because new_type_name will not scan a VLA directly. */
-    expr_pos_error(ec_vla_not_allowed, &type_position);
-    type_err = err = TRUE;
-  } else {
-    /* Valid type. */
-  }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cli_or_cx_enabled && !err) {
-    /* We have parsed through the type (the initializer will be parsed later
-       below).  This is enough to issue diagnostics related to "gcnew" or
-       "new" with managed types.
-       Note: This is not part of the above semantic check control flow because
-       this branch will not necessarily emit an error. */
-    if (is_gcnew) {
-      /* Validate that gcnew is used on an appropriate type.
-         Any class or struct must be of ref or value type. */
-      if (!(is_ref_class_type(base_new_type) ||
-            /* Note, not interfaces. */
-            is_cli_enum_type(base_new_type) ||
-            is_value_class_or_fundamental_type(base_new_type) ||
-            is_error_type(base_new_type) ||
-            is_template_param_or_nonreal_class_type(base_new_type))) {
-        if (expr_error_should_be_issued()) {
-          pos_ty_error(ec_invalid_gcnew_type, &type_position, new_type);
-        }  /* if */
-        type_err = err = TRUE;
-      }  /* if */
-      /* It is illegal to use gcnew with a global qualifier.  However,
-         that will have already been caught as a syntax error.  This serves
-         as an internal consistency check. */
-      check_assertion (!use_global_new);
-    } else {
-      /* Error checks on standard "new" with C++/CLI managed types. */
-      if (is_managed_class_type(base_new_type)) {
-        if (is_value_class_type(base_new_type)) {
-          if (is_simple_value_class_type(base_new_type)) {
-            /* No semantic error for new with simple value types. */
-          } else {
-            /* Only simple value types are allowed with "new". */
-            expr_pos_error(ec_new_used_on_unsuitable_value_type,
-                           &type_position);
-            type_err = err = TRUE;
-          }  /* if */
-        } else {
-          /* This is an attempt to use new on a ref class or interface type. */
-          expr_pos_error(ec_new_used_on_managed_class_type, &type_position);
-          type_err = err = TRUE;
-        }  /* if */
-      } else if (cppcx_enabled && is_handle_type(base_new_type)) {
-        /* In C++/CX, "new" can be used to allocate handle types.  Reference
-           types result in error ec_type_must_be_object_type above. */
-      } else if (is_handle_or_tracking_ref_type(base_new_type)) {
-        /* "new" cannot be used to allocate handle or tracking reference
-           types. */
-        expr_pos_error(ec_new_used_on_handle_or_tracking_reference_type,
-                       &type_position);
-        type_err = err = TRUE;
-      } else {
-        /* No semantic errors were detected. */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (type_err) {
     new_type = base_new_type = error_type();
     array_new = FALSE;
