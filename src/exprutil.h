@@ -2622,6 +2622,8 @@ extern void expr_expect_error(void);
 
 extern a_boolean expr_access_checking_should_be_done(void);
 
+extern void reclaim_fs_nodes_of_operand(an_operand *opnd);
+
 extern void make_error_operand(an_operand *operand);
 
 extern void expr_check_ambiguity_and_verify_access(a_symbol_locator *locator);

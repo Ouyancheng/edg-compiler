@@ -64,6 +64,8 @@ static unsigned long
 		num_asm_entries_allocated,
 		num_labels_allocated,
 		num_expr_nodes_allocated,
+		num_fs_expr_nodes_allocated,
+		num_rescan_fs_expr_nodes_allocated,
 		num_new_delete_supplements_allocated,
 #if MICROSOFT_EXTENSIONS_ALLOWED
 		num_gcnew_supplements_allocated,
@@ -3579,7 +3581,7 @@ its kind to the indicated kind.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   node->expr_range = null_source_range; 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  node->rescan_info = NULL;
+  node->extra.rescan_info = NULL;
   set_expr_node_kind(node, kind);
 }  /* clear_expr_node */
 
@@ -3593,15 +3595,34 @@ Allocate and initialize an expression node.
 
   db_enter(5, "alloc_expr_node");
 
-  ptr = (an_expr_node_ptr)alloc_cil(sizeof(an_expr_node));
+  if (curr_il_region_number == file_scope_region_number) {
+    if (avail_fs_nodes != NULL) {
+      ptr = avail_fs_nodes;
+      avail_fs_nodes = ptr->extra.next_avail;
+    } else {
+      ptr = (an_expr_node_ptr)alloc_il(sizeof(an_expr_node));
 #if DEBUG
-  num_expr_nodes_allocated++;
+      num_fs_expr_nodes_allocated += 1;
+      num_expr_nodes_allocated += 1;
+      { /* Increment num_rescan_fs_expr_nodes_allocated if we're in an
+           expression rescan context (this is approximate). */
+        extern void count_rescan_fs_expr_nodes(unsigned long*);
+        count_rescan_fs_expr_nodes(&num_rescan_fs_expr_nodes_allocated);
+      }
 #endif /* DEBUG */
+    }  /* if */
+  } else {
+    ptr = (an_expr_node_ptr)alloc_cil(sizeof(an_expr_node));
+#if DEBUG
+    num_expr_nodes_allocated += 1;
+#endif /* DEBUG */
+  }  /* if */
   clear_expr_node(ptr, kind);
 
   db_exit();
   return ptr;
 }  /* alloc_expr_node */
+
 
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
 
@@ -5642,6 +5663,22 @@ Display and return the amount of space used for various IL tables.
   db_space_used("asm entry", num_asm_entries_allocated, an_asm_entry);
   db_space_used("label", num_labels_allocated, a_label);
   db_space_used("expr node", num_expr_nodes_allocated, an_expr_node);
+  /* Report some more specific numbers. */
+  fprintf(f_debug, "%25s %8lu %8lu %8lu\n", "(fs expr node)",
+          num_fs_expr_nodes_allocated, sizeof(an_expr_node), 
+          num_fs_expr_nodes_allocated*sizeof(an_expr_node));
+  { unsigned long     num_avail_fs_nodes = 0;
+    an_expr_node_ptr  node = avail_fs_nodes;
+    for (; node != NULL; node = node->extra.next_avail) {
+      num_avail_fs_nodes += 1;
+    }  /* for */
+    fprintf(f_debug, "%25s %8lu %8lu %8lu\n", "(avail. fs expr node)",
+            num_avail_fs_nodes, sizeof(an_expr_node), 
+            num_avail_fs_nodes*sizeof(an_expr_node));
+  }
+  fprintf(f_debug, "%25s %8lu %8lu %8lu\n", "(fs rescan expr node)",
+          num_rescan_fs_expr_nodes_allocated, sizeof(an_expr_node), 
+          num_rescan_fs_expr_nodes_allocated*sizeof(an_expr_node));
   db_space_used("new/delete supplement", num_new_delete_supplements_allocated,
                 a_new_delete_supplement);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5968,6 +6005,7 @@ in il_alloc_init.)
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_template_args),
       pch_saved_var_array_elem(available_local_constants),
+      pch_saved_var_array_elem(avail_fs_nodes),
 #if DEBUG
 #if !ABI_CHANGES_FOR_RTTI
       pch_saved_var_array_elem(num_accessible_base_classes_allocated),
@@ -5991,6 +6029,8 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_exception_specification_types_allocated),
       pch_saved_var_array_elem(num_exception_specifications_allocated),
       pch_saved_var_array_elem(num_expr_nodes_allocated),
+      pch_saved_var_array_elem(num_fs_expr_nodes_allocated),
+      pch_saved_var_array_elem(num_rescan_fs_expr_nodes_allocated),
       pch_saved_var_array_elem(num_fields_allocated),
 #if COROUTINES_ALLOWED
       pch_saved_var_array_elem(num_coroutine_descriptions_allocated),
@@ -6101,6 +6141,7 @@ in il_alloc_init.)
   register_trans_unit_variable(file_scope_entry_prefix_size);
   register_trans_unit_variable(avail_template_args);
   register_trans_unit_variable(available_local_constants);
+  register_trans_unit_variable(avail_fs_nodes);
   register_trans_unit_variable(file_scope_entry_prefix_alignment_offset);
 }  /* il_alloc_one_time_init */
 
@@ -6152,6 +6193,7 @@ that need initialization for every (primary and secondary) translation unit.
 {
   avail_template_args = NULL;
   available_local_constants = NULL;
+  avail_fs_nodes = NULL;
 }  /* il_alloc_trans_unit_init */
 
 
@@ -6199,6 +6241,8 @@ initializations that are done for each compilation.
   num_asm_entries_allocated              = 0;
   num_labels_allocated                   = 0;
   num_expr_nodes_allocated               = 0;
+  num_fs_expr_nodes_allocated            = 0;
+  num_rescan_fs_expr_nodes_allocated     = 0;
   num_new_delete_supplements_allocated   = 0;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   num_gcnew_supplements_allocated        = 0;

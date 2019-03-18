@@ -130,8 +130,22 @@ static unsigned long
 		num_seq_pt_var_entries_allocated,
 		num_sequence_info_entries_allocated;
 #endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
-#endif /* DEBUG */
 
+
+void count_rescan_fs_expr_nodes(unsigned long *p_count)
+/*
+Increment *p_count (which is an estimate of the number of expression nodes
+allocated in file-scope memory during rescanning) if we are currently in a
+"rescanning context".  The current context is considered  "rescanning context"
+if expr_stack->suppress_diagnostics is TRUE.
+*/
+{
+  if (expr_stack != NULL && expr_stack->suppress_diagnostics) {
+    *p_count += 1;
+  }  /* if */
+}  /* count_rescan_fs_expr_nodes */
+
+#endif /* DEBUG */
 #if SEQUENCING_DIAGNOSTICS_ENABLED
 
 static a_seq_pt_info_entry_ptr alloc_sequence_info_entry(
@@ -3963,8 +3977,9 @@ entry attached to the expression node so it will be available for the rescan.
 {
   an_expr_rescan_info_entry_ptr eriep;
 
-  eriep = save_operand_info_in_rescan_info_entry(operand, node->rescan_info);
-  node->rescan_info = eriep;
+  eriep = save_operand_info_in_rescan_info_entry(operand,
+                                                 node->extra.rescan_info);
+  node->extra.rescan_info = eriep;
   if (is_explicitly_typed_operator_node(node) && eriep->type == NULL) {
     /* A node with an explicitly-specified type (a cast or a new/gcnew):
        Record that type in the rescan info. */
@@ -4042,9 +4057,9 @@ context.
 */
 {
   if (expr_stack->possible_rescan_context) {
-    an_expr_rescan_info_entry_ptr eriep = node->rescan_info;
+    an_expr_rescan_info_entry_ptr eriep = node->extra.rescan_info;
     if (eriep == NULL) {
-      node->rescan_info = eriep = alloc_expr_rescan_info_entry();
+      node->extra.rescan_info = eriep = alloc_expr_rescan_info_entry();
     }  /* if */
     eriep->operator_position = *operator_position;
     eriep->operator_token_sequence_number = operator_tok_seq_number;
@@ -4106,7 +4121,7 @@ and type is the specified type.
     record_operator_position_in_expr_rescan_info(expr, start_position,
                                                  NO_TOKEN_SEQUENCE_NUMBER,
                                                  type_position);
-    eriep = expr->rescan_info;
+    eriep = expr->extra.rescan_info;
     check_assertion(eriep != NULL);
     eriep->type = type;
   }  /* if */
@@ -4151,15 +4166,15 @@ type within the cast; and cast_type is the type cast to.
            directly. */
         a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
         if (dip->rescan_info == NULL) {
-          dip->rescan_info = expr->rescan_info;
-        } else if (dip->rescan_info != expr->rescan_info) {
+          dip->rescan_info = expr->extra.rescan_info;
+        } else if (dip->rescan_info != expr->extra.rescan_info) {
           /* If the dynamic init already has rescan info, as it does when
              it records a braced-init-list, keep the saved_operand but
              copy the rest of the fields, so the type and positions are
              recorded. */
           an_operand orig_operand;
           orig_operand = dip->rescan_info->saved_operand;
-          *dip->rescan_info  = *expr->rescan_info;
+          *dip->rescan_info  = *expr->extra.rescan_info;
           dip->rescan_info->saved_operand = orig_operand;
         }  /* if */
       }  /* if */
@@ -4251,8 +4266,8 @@ that has it.
 */
 {
   if (periep != NULL) {
-    if (expr->rescan_info != NULL) {
-      *periep = expr->rescan_info;
+    if (expr->extra.rescan_info != NULL) {
+      *periep = expr->extra.rescan_info;
     } else {
       *periep = NULL;
     }  /* if */
@@ -4317,7 +4332,7 @@ that has it.
       /* Constant dynamic inits can't be stripped because there's no underlying
          expression to return. */
       if (dip->kind == (a_dynamic_init_kind)dik_constant) {
-        check_assertion(expr->rescan_info != NULL);
+        check_assertion(expr->extra.rescan_info != NULL);
         goto end_of_loop;
       }  /* if */
       /* Anything else is implicit and stripped. */
@@ -4326,8 +4341,8 @@ that has it.
       break;
     }  /* if */
     /* Remember the last rescan info block we encounter. */
-    if (periep != NULL && expr->rescan_info != NULL) {
-      *periep = expr->rescan_info;
+    if (periep != NULL && expr->extra.rescan_info != NULL) {
+      *periep = expr->extra.rescan_info;
     }  /* if */
   }  /* for */
 end_of_loop:
@@ -4348,7 +4363,7 @@ and return a pointer to that.  If default information is needed and
 rescan_info is NULL or no default information is available, abort.
 */
 {
-  an_expr_rescan_info_entry_ptr eriep = expr->rescan_info, default_eriep;
+  an_expr_rescan_info_entry_ptr eriep = expr->extra.rescan_info, default_eriep;
 
   if (eriep == NULL) {
     /* Generate default rudimentary rescan information from the information
@@ -5477,12 +5492,12 @@ that extra work.
        operand. */
     save_operand_info_in_expr_rescan_info_entry(operand, node);
     if (preexisting_node != NULL && preexisting_node != node &&
-        preexisting_node->rescan_info == NULL) {
+        preexisting_node->extra.rescan_info == NULL) {
       /* Record the same rescan info on any other equivalent expression.
          This is particularly important for a ck_template_param constant
          that has an expression under it; we'd like the rescan information
          on that expression also. */
-      preexisting_node->rescan_info = node->rescan_info;
+      preexisting_node->extra.rescan_info = node->extra.rescan_info;
     }  /* if */
   }  /* if */
   return node;
@@ -6574,6 +6589,57 @@ though it does not do access checking in general in those contexts.
   }  /* if */
   return check_access;
 }  /* base_class_cast_access_checking_should_be_done */
+
+
+static void reclaim_fs_node(an_expr_node_ptr                    node,
+                            an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+If the given expression node is allocated in file-scope memory, place it on
+the avail_fs_nodes list.
+*/
+{
+  if (in_file_scope(node)) {
+    node->extra.next_avail = avail_fs_nodes;
+    avail_fs_nodes = node;
+  }  /* if */
+}  /* reclaim_fs_node */
+
+
+static void reclaim_fs_nodes_of_expr_tree(an_expr_node  *expr_tree)
+/*
+Traverse the given expression tree and reclaim every file-scope-memory node it
+contains for potentially reuse later on.
+*/
+{
+  an_expr_or_stmt_traversal_block  tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = reclaim_fs_node;
+  traverse_expr(expr_tree, &tblock);
+}  /* reclaim_fs_nodes_of_expr_tree */
+
+
+void reclaim_fs_nodes_of_operand(an_operand  *opnd)
+/*
+Reclaim file-scope-memory nodes referred to by the given operand.
+*/
+{
+  switch (opnd->kind) {
+    case ok_expression:
+      if (opnd->variant.expression != NULL) {
+        reclaim_fs_nodes_of_expr_tree(opnd->variant.expression);
+        opnd->variant.expression = NULL;
+      }  /* if */
+      break;
+    case ok_constant:
+      if (opnd->variant.constant.expr != NULL) {
+        reclaim_fs_nodes_of_expr_tree(opnd->variant.constant.expr);
+        opnd->variant.constant.expr = NULL;
+      }  /* if */
+    default:
+      break;
+  }  /* switch */
+}  /* reclaim_fs_nodes_of_operand */
 
 
 void make_error_operand(an_operand *operand)
@@ -11820,7 +11886,7 @@ member function.  If no nonreal member is found, return NULL.
         /* Add an eok_lvalue node to make the nonreal member an lvalue. */
         an_expr_node_ptr new_expr = alloc_node_for_constant(con);
         check_assertion(!new_expr->is_lvalue);
-        new_expr->rescan_info = expr->rescan_info;
+        new_expr->extra.rescan_info = expr->extra.rescan_info;
         new_expr->variant.constant.name_reference =
                                         expr->variant.constant.name_reference;
         new_expr = make_lvalue_operator_node((an_expr_operator_kind)eok_lvalue,
@@ -14241,11 +14307,11 @@ Make and return an expression for an argument in arg-list-element form.
     check_assertion(is_braced_init_component(arg));
     expr = make_braced_init_expr_from_arg_list_elem(arg);
   }  /* if */
-  if (expr->rescan_info != NULL && arg->pack_expansion_descr != NULL) {
+  if (expr->extra.rescan_info != NULL && arg->pack_expansion_descr != NULL) {
     /* If this expression may need rescanning in the future and it is part of
        a pack expansion, make sure the pack expansion descriptor is available
        in the operand saved for rescanning. */
-    expr->rescan_info->saved_operand.pack_expansion_descr =
+    expr->extra.rescan_info->saved_operand.pack_expansion_descr =
                                                     arg->pack_expansion_descr;
   }  /* if */
   return expr;

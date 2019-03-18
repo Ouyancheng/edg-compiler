@@ -1,5 +1,21 @@
 Version 5.1
 
+3/18/19  [EDGcpfe/21009]
+Substituting decltype constructs
+
+A change has been made to considerably reduce the cost of substituting
+template-dependent decltype constructs (this is substitution as performed
+during deduction, as opposed to actual template instantiation): The
+substitution now produces the underlying type instead of a typeref entry
+pointing to the underlying type, and the nodes of rescanned expression
+associated with the substituted constructed are reclaimed.  For some complex
+template-based libraries, the resulting reduction in overall memory use by
+the front end can be substantial (the case that prompted these changes
+reduced the memory use to about a third of the use before the changes; the
+combination of these changes and those described for EDGcpfe/20975 resulted
+in an order of magnitude reduction in memory use).
+
+
 3/18/19  [EDGcpfe/21005]
 Singleton instantiation of fold-expressions
 

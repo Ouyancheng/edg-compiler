@@ -14038,12 +14038,18 @@ typedef struct an_expr_node {
 			/* TRUE if this is a "left (associative) fold". */
     } fold;
   } variant;
-  an_expr_rescan_info_entry_ptr
+  union {
+    an_expr_rescan_info_entry_ptr
 		rescan_info;
 			/* For expressions scanned in templates that might
 			   be rescanned later to redo semantic analysis,
 			   points to extra front-end-only information that
 			   is needed for the rescan.  NULL otherwise. */
+    an_expr_node_ptr
+		next_avail;
+			/* For file-scope expressions that have been
+			   reclaimed, the next node on the available list. */
+  } extra;
 } an_expr_node;
 
 /*

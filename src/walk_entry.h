@@ -1520,7 +1520,7 @@ debug builds) don't recognize that these variables are mutually-exclusive.
           definition_needed_if_class(eptr->type);
         }  /* if */
         remap_next_ptr(eptr->next, an_expr_node_ptr, iek_expr_node);
-        conditionally_clear_fe_pointer(eptr->rescan_info);
+        conditionally_clear_fe_pointer(eptr->extra.rescan_info);
         switch (eptr->kind) {
           case enk_error:
             /* No pointers. */

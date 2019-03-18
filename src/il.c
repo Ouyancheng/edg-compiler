@@ -7208,8 +7208,8 @@ are done.
       if (!identical_types_full(node1->type, node2->type, itf_options)) {
         eq = FALSE;
       } else if ((options & CC_EXACT_EQUIVALENCE) &&
-                 (node1->rescan_info != NULL) !=
-                                               (node2->rescan_info != NULL)) {
+                 (node1->extra.rescan_info != NULL) !=
+                                         (node2->extra.rescan_info != NULL)) {
         /* The two expressions are equivalent, but one has associated rescan
            information and the other not.  With the given option, the two
            should not be considered equivalent because it could cause the
@@ -19125,7 +19125,7 @@ Allocate a copy of an expression node and return a pointer to it.
   expr_copy->next = NULL;
   expr_copy->result_is_not_used = FALSE;
   expr_copy->is_pack_expansion = FALSE;
-  expr_copy->rescan_info = NULL;
+  expr_copy->extra.rescan_info = NULL;
   if (kind == (an_expr_node_kind)enk_new_delete) {
     /* Copy the new/delete supplement. */
     *copy_new_delete = *expr->variant.new_delete;
@@ -19225,7 +19225,7 @@ be called to start a copy.
   /* Copy the top node. */
   expr_copy = copy_node(expr);
   if (options & (CE_COPYING_FOR_CONSTEXPR_FOLDING | CE_PRESERVE_RESCAN_INFO)) {
-    expr_copy->rescan_info = expr->rescan_info;
+    expr_copy->extra.rescan_info = expr->extra.rescan_info;
   }  /* if */
   switch (expr->kind) {
     case enk_error:

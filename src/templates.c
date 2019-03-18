@@ -14385,7 +14385,7 @@ a pointer over a reference type or creating an array of references.
         if (typeref_is_type_operator(type) &&
             type->variant.typeref.is_dependent_type_operator &&
             (expr = decltype_arg(type)) != NULL &&
-            expr->rescan_info != NULL) {
+            expr->extra.rescan_info != NULL) {
           /* decltype or typeof based on an expression: do substitution on the
              expression and see what its type is.  For typeof(type), fall into
              the code below to do substitution. */

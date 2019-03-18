@@ -33,6 +33,7 @@ expr.c -- Expression scanning routines.
 #include "func_def.h"
 #endif /* COROUTINES_ALLOWED */
 #include "interpret.h"
+#include "il_walk.h"
 #include "layout.h"
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* The Microsoft-specific predefined identifier __FUNCDNAME__ refers to the
@@ -11347,7 +11348,7 @@ indication in *rcblock).
     } else {
       if ((rcblock->options & CTWS_PRESERVE_DEDUCED_PACKS) != 0) {
         /* Just copy the saved operand for another rescan later on. */
-        copy_operand(&rcblock->expr->rescan_info->saved_operand, result);
+        copy_operand(&rcblock->expr->extra.rescan_info->saved_operand, result);
         make_template_param_expr_constant_operand(result);
         goto operand_ready;
       }  /* if */
@@ -12774,7 +12775,8 @@ indication in *rcblock).
                    element. */
                 argn->is_pack_expansion = TRUE;
                 if (expr_stack->possible_rescan_context) {
-                  an_expr_rescan_info_entry_ptr rescan_info=argn->rescan_info;
+                  an_expr_rescan_info_entry_ptr
+                                        rescan_info = argn->extra.rescan_info;
                   check_assertion(rescan_info != NULL);
                   rescan_info->saved_operand.pack_expansion_descr = pedep;
                 }  /* if */
@@ -14182,6 +14184,7 @@ operand for eok_comma nodes.  Return the node found at the end of such a chain
   return expr;
 }  /* skip_commas_and_parens */
 
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /* ARGSUSED */  /* <-- decl_pos_block is not used in some configurations. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -14303,6 +14306,18 @@ name.  We do not advance to the token after the decltype in this case.
     /* We'll just return the error type. */
     /* The expression is discarded. */
     expr_stack->unevaluated_expr_will_be_kept_in_il = FALSE;
+  } else if (rcblock != NULL &&
+             (rcblock->options & (CTWS_PRESERVE_DEDUCED_PACKS |
+                                  CTWS_PARTIAL_ARG_LIST_OKAY |
+                                  CTWS_MAY_BE_RESCANNED |
+                                  CTWS_DEDUCTION_GUIDE)) == 0) {
+    /* A rescanned decltype construct that will not itself require further
+       rescanning.  Rather than produce a typeref type representing the
+       decltype construct, we just return the underlying type in this case,
+       and reclaim the expression node if possible. */
+    a_boolean   no_parens_matters;
+    result = decltype_from_operand(&operand, &no_parens_matters);
+    reclaim_fs_nodes_of_operand(&operand);
   } else {
     a_type_ptr  tp = alloc_type((a_type_kind)tk_typeref);
     a_boolean   dependent_arg = is_template_dependent_context() &&
@@ -18908,8 +18923,9 @@ expression, and return the result in *result (or an error indication in
         }  /* if */
         rcblock->argument_list = arg_expr_list;
         if (arg_expr_list != NULL &&
-            arg_expr_list->rescan_info != NULL) {
-          init_position = arg_expr_list->rescan_info->saved_operand.position;
+            arg_expr_list->extra.rescan_info != NULL) {
+          init_position = arg_expr_list->extra.rescan_info
+                                       ->saved_operand.position;
         } else {
           /* Use the type position as an approximate initializer position. */
           init_position = type_position;
@@ -46626,8 +46642,8 @@ left_associative is TRUE if the expansion should be evaluated as
       check_assertion(next_elem(alep) == NULL);
     }  /* if */
     if (unary || !left_associative) {
-      if (opnd_nodes->rescan_info != NULL &&
-          opnd_nodes->rescan_info
+      if (opnd_nodes->extra.rescan_info != NULL &&
+          opnd_nodes->extra.rescan_info
                     ->saved_operand.pack_expansion_descr == NULL) {
         /* A rescannable node, but we didn't record a pack-expansion
            description entry.  That can happen during a partial substitution
@@ -46636,8 +46652,8 @@ left_associative is TRUE if the expansion should be evaluated as
         opnd_nodes->is_pack_expansion = TRUE;
       }  /* if */
     } else {
-      if (opnd_nodes->next->rescan_info != NULL &&
-          opnd_nodes->next->rescan_info
+      if (opnd_nodes->next->extra.rescan_info != NULL &&
+          opnd_nodes->next->extra.rescan_info
                           ->saved_operand.pack_expansion_descr == NULL) {
         /* A rescannable node, but we didn't record a pack-expansion
            description entry. */
@@ -46877,7 +46893,7 @@ cases the selector is returned via bound_function_selector).
   a_boolean             left_associative = expr->variant.fold.left_associative;
   a_token_kind          op_token = expr->variant.fold.operator_token;
   a_source_position     *op_pos = &expr->position;
-  an_operand            *saved_opnd = &expr->rescan_info->saved_operand;
+  an_operand            *saved_opnd = &expr->extra.rescan_info->saved_operand;
   an_arg_list_elem_ptr  opnd_list;
   a_boolean             generic = FALSE;
   a_boolean             preserve_deduced_packs =
@@ -46891,12 +46907,12 @@ cases the selector is returned via bound_function_selector).
     /* Turn the generic fold operand nodes into an_arg_list_elem entries
        that can be passed to assemble_fold_expression_operand. */
     opnd_list = alloc_arg_list_elem_for_operand(
-                                  &generic_opnds->rescan_info->saved_operand);
+                            &generic_opnds->extra.rescan_info->saved_operand);
     generic_opnds = generic_opnds->next;
     if (generic_opnds != NULL) {
       append_elem(opnd_list,
                   alloc_arg_list_elem_for_operand(
-                                 &generic_opnds->rescan_info->saved_operand));
+                           &generic_opnds->extra.rescan_info->saved_operand));
       check_assertion(generic_opnds->next == NULL);
     }  /* if */
   } else {
