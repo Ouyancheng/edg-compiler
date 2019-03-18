@@ -1,5 +1,26 @@
 Version 5.1
 
+3/18/19  [EDGcpfe/21005]
+Singleton instantiation of fold-expressions
+
+Consider:
+
+  template<typename ...Ts> auto f(Ts ...ps) -> decltype((...*ps)) {
+    return 42;
+  }
+  int main() {
+    int x = 0;
+    f3<int>(x);  // Previously an error.  Now okay.
+  }
+
+The expansion of "(...*ps)" for a single element is actually "ps0" (where ps0
+denotes the single parameter of f) without any parentheses.  That means that
+it is technically an "id-expression", and thus decltype should produce the
+type of the parameter.  Previously, however, the "id-expression" nature of the
+expansion was lost and a reference type was produced (because the expression
+is also an lvalue).  That is now fixed.
+
+
 3/14/19  [EDGcpfe/20899]
 Spurious SFINAE failure on lookup in class instance being defined
 

@@ -24705,10 +24705,10 @@ just an expression in parentheses.  Return the scanned expression in
            expression still represents the thing inside the parentheses). */
         set_base_operand_position(result, &start_position, &end_position);
       }  /* if */
-      /* Something like "(i)" is not an id-expression; clear the flag that
-         was recorded for the "i" subexpression in such cases. */
-      result->is_id_expression = FALSE;
       if (!is_fold_expression) {
+        /* Something like "(i)" is not an id-expression; clear the flag that
+           was recorded for the "i" subexpression in such cases. */
+        result->is_id_expression = FALSE;
         result->is_parenthesized = TRUE;
         /* Record the fact that the expression is parenthesized in the node
            (if there is any). */
