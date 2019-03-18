@@ -136,8 +136,8 @@ void count_rescan_fs_expr_nodes(unsigned long *p_count)
 /*
 Increment *p_count (which is an estimate of the number of expression nodes
 allocated in file-scope memory during rescanning) if we are currently in a
-"rescanning context".  The current context is considered  "rescanning context"
-if expr_stack->suppress_diagnostics is TRUE.
+"rescanning context".  The current context is considered a "rescanning
+context" if expr_stack->suppress_diagnostics is TRUE.
 */
 {
   if (expr_stack != NULL && expr_stack->suppress_diagnostics) {
@@ -6591,6 +6591,8 @@ though it does not do access checking in general in those contexts.
 }  /* base_class_cast_access_checking_should_be_done */
 
 
+/*ARGSUSED*/  /* The tblock parameter is needed because of the callback
+                 requirement, but it is not actually used. */
 static void reclaim_fs_node(an_expr_node_ptr                    node,
                             an_expr_or_stmt_traversal_block_ptr tblock)
 /*
@@ -6608,7 +6610,7 @@ the avail_fs_nodes list.
 static void reclaim_fs_nodes_of_expr_tree(an_expr_node  *expr_tree)
 /*
 Traverse the given expression tree and reclaim every file-scope-memory node it
-contains for potentially reuse later on.
+contains for potential reuse later on.
 */
 {
   an_expr_or_stmt_traversal_block  tblock;
@@ -6636,6 +6638,7 @@ Reclaim file-scope-memory nodes referred to by the given operand.
         reclaim_fs_nodes_of_expr_tree(opnd->variant.constant.expr);
         opnd->variant.constant.expr = NULL;
       }  /* if */
+      break;
     default:
       break;
   }  /* switch */

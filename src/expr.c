@@ -33,7 +33,6 @@ expr.c -- Expression scanning routines.
 #include "func_def.h"
 #endif /* COROUTINES_ALLOWED */
 #include "interpret.h"
-#include "il_walk.h"
 #include "layout.h"
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* The Microsoft-specific predefined identifier __FUNCDNAME__ refers to the

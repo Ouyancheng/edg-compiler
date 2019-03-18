@@ -7,8 +7,8 @@ A change has been made to considerably reduce the cost of substituting
 template-dependent decltype constructs (this is substitution as performed
 during deduction, as opposed to actual template instantiation): The
 substitution now produces the underlying type instead of a typeref entry
-pointing to the underlying type, and the nodes of rescanned expression
-associated with the substituted constructed are reclaimed.  For some complex
+pointing to the underlying type, and the nodes of rescanned expressions
+associated with the substituted constructs are reclaimed.  For some complex
 template-based libraries, the resulting reduction in overall memory use by
 the front end can be substantial (the case that prompted these changes
 reduced the memory use to about a third of the use before the changes; the

@@ -5664,20 +5664,20 @@ Display and return the amount of space used for various IL tables.
   db_space_used("label", num_labels_allocated, a_label);
   db_space_used("expr node", num_expr_nodes_allocated, an_expr_node);
   /* Report some more specific numbers. */
-  fprintf(f_debug, "%25s %8lu %8lu %8lu\n", "(fs expr node)",
-          num_fs_expr_nodes_allocated, sizeof(an_expr_node), 
+  fprintf(f_debug, "%25s %8lu %8u %8lu\n", "(fs expr node)",
+          num_fs_expr_nodes_allocated, (unsigned)sizeof(an_expr_node), 
           num_fs_expr_nodes_allocated*sizeof(an_expr_node));
   { unsigned long     num_avail_fs_nodes = 0;
     an_expr_node_ptr  node = avail_fs_nodes;
     for (; node != NULL; node = node->extra.next_avail) {
       num_avail_fs_nodes += 1;
     }  /* for */
-    fprintf(f_debug, "%25s %8lu %8lu %8lu\n", "(avail. fs expr node)",
-            num_avail_fs_nodes, sizeof(an_expr_node), 
+    fprintf(f_debug, "%25s %8lu %8u %8lu\n", "(avail. fs expr node)",
+            num_avail_fs_nodes, (unsigned)sizeof(an_expr_node), 
             num_avail_fs_nodes*sizeof(an_expr_node));
   }
-  fprintf(f_debug, "%25s %8lu %8lu %8lu\n", "(fs rescan expr node)",
-          num_rescan_fs_expr_nodes_allocated, sizeof(an_expr_node), 
+  fprintf(f_debug, "%25s %8lu %8u %8lu\n", "(fs rescan expr node)",
+          num_rescan_fs_expr_nodes_allocated, (unsigned)sizeof(an_expr_node), 
           num_rescan_fs_expr_nodes_allocated*sizeof(an_expr_node));
   db_space_used("new/delete supplement", num_new_delete_supplements_allocated,
                 a_new_delete_supplement);
