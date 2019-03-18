@@ -19100,6 +19100,9 @@ static void scan_new_initializer(a_decl_parse_state *dps,
                                  a_source_position  *init_position,
                                  a_type_ptr         *new_type,
                                  a_source_position  *type_position)
+/*
+Scans the new initializer expression (if present).
+*/
 {
   a_boolean local_has_new_initializer = *has_new_initializer;
   a_boolean local_has_braced_initializer = *has_braced_initializer;
@@ -19184,7 +19187,7 @@ static a_type_ptr get_base_new_type(a_type_ptr        new_type,
                                     a_boolean         *variable_size_array,
                                     a_boolean         *type_err)
 /*
-Get the base type for the new statement.
+Returns the base type for the new statement.
 */
 {
   a_type_ptr base_new_type = new_type;
@@ -19244,9 +19247,9 @@ static void validate_new_type(a_type_ptr        new_type,
                               a_type_ptr        base_new_type,
                               a_source_position *type_position,
                               a_boolean         *type_err)
-  /*
-  Validate the type obtained for a new statement.
-  */
+/*
+Validate the type obtained for a new statement.
+*/
 {
   /* Check that the type to be allocated is valid.  It must be an object
      type. */
@@ -19303,6 +19306,9 @@ static void validate_cpp_cli_cx_new_type(a_type_ptr        new_type,
                                          a_boolean         use_global_new,
                                          a_boolean         prev_err_seen,
                                          a_boolean         *type_err)
+/*
+Validates the "new" type in the context of C++/CLI/CX "new".
+*/
 {
   if (cli_or_cx_enabled && !prev_err_seen) {
     /* We have parsed through the type (the initializer will be parsed later
@@ -19372,7 +19378,7 @@ static a_type_ptr get_new_result_type(
                                   an_expr_node_ptr new_array_dimension,
                                   a_targ_size_t    *effective_num_of_elements)
 /*
-Determine the result type of the "new".
+Returns the result type of the "new".
 */
 {
   a_type_ptr unqual_new_type = skip_typerefs(new_type);
@@ -19419,19 +19425,19 @@ Determine the result type of the "new".
 }  /* get_new_result_type */
 
 
-static void get_new_allocation_size_operand(
+static an_arg_list_elem_ptr get_new_allocation_size_arg(
                                         a_type_ptr        unqual_new_type,
                                         a_source_position *type_position,
                                         a_type_ptr        element_type,
-                                        an_expr_node_ptr  new_array_dimension,
-                                        an_operand        *sizeof_operand)
+                                        an_expr_node_ptr  new_array_dimension)
 /*
-Compute the allocation size in bytes for the new statement and create an
-operand for that.
+Compute the allocation size in bytes for the new statement and return an
+argument for that.
 */
 {
   a_constant_ptr   sizeof_constant = local_constant();
   an_expr_node_ptr sizeof_node;
+  an_operand       sizeof_operand;
 
   if (new_array_dimension != NULL) {
     /* The type is a variable-dimension array, as in
@@ -19472,7 +19478,7 @@ operand for that.
                                        array_size_expr);
       sizeof_node->variant.operation.compiler_generated = TRUE;
     }  /* if */
-    make_expression_operand(sizeof_node, sizeof_operand);
+    make_expression_operand(sizeof_node, &sizeof_operand);
   } else {
     /* Not a variable-dimension array.  The size is known at compile
        time, as in
@@ -19483,11 +19489,43 @@ operand for that.
     set_integer_constant(sizeof_constant,
       (a_host_large_integer)unqual_new_type->size,
                          targ_size_t_int_kind);
-    make_constant_operand(sizeof_constant, sizeof_operand);
+    make_constant_operand(sizeof_constant, &sizeof_operand);
   }  /* if */
 
   release_local_constant(&sizeof_constant);
-}  /* get_new_allocation_size_operand */
+  return alloc_arg_list_elem_for_operand(&sizeof_operand);
+}  /* get_new_allocation_size_arg */
+
+
+static an_arg_list_elem_ptr get_new_alignment_arg(
+                                            a_type_ptr        unqual_new_type,
+                                            a_source_position *type_position)
+/*
+If needed, creates and returns an alignment argument for the new operator.
+Otherwise returns NULL.
+*/
+{
+  an_arg_list_elem_ptr align_alep = NULL;
+  an_operand           alignment_operand;
+
+  if (overaligned_allocation_enabled &&
+      unqual_new_type->alignment > targ_default_new_alignment) {
+    a_constant_ptr alignment_con = local_constant();
+    a_boolean      did_not_fold;
+    set_integer_constant(alignment_con,
+                         (a_host_large_integer)unqual_new_type->alignment,
+                         targ_size_t_int_kind);
+    type_change_constant(alignment_con, type_of_align_val_t,
+                         /*is_implicit_cast=*/TRUE,
+                         /*maintain_expression=*/FALSE, &did_not_fold,
+                         type_position);
+    make_constant_operand(alignment_con, &alignment_operand);
+    align_alep = alloc_arg_list_elem_for_operand(&alignment_operand);
+    release_local_constant(&alignment_con);
+  }  /* if */
+
+  return align_alep;
+}  /* get_new_alignment_arg */
 
 
 static void scan_new_operator(a_rescan_control_block *rcblock,
@@ -19537,8 +19575,6 @@ expression, and return the result in *result (or an error indication in
   a_class_symbol_supplement_ptr
                     cssp = NULL;
   an_expr_node_ptr  new_array_dimension;
-  an_operand        sizeof_operand;
-  an_operand        alignment_operand;
   a_boolean         use_global_new = FALSE;
   a_symbol_ptr      operator_new_symbol = NULL, ctor_sym;
   a_symbol_ptr      function_symbol = NULL, proj_function_symbol = NULL;
@@ -19549,9 +19585,7 @@ expression, and return the result in *result (or an error indication in
   a_boolean         has_braced_initializer = FALSE;
   an_expr_node_ptr  arg_expr_list, init_val_node;
   an_arg_list_elem_ptr
-                    arg_list = NULL, sizeof_alep;
-  an_arg_list_elem_ptr
-                    alignment_alep = NULL;
+                    arg_list = NULL;
   an_expr_node_ptr  dummy;
   a_boolean         placement_new = FALSE, array_new = FALSE;
   a_targ_size_t     effective_num_of_elements;
@@ -19585,6 +19619,7 @@ expression, and return the result in *result (or an error indication in
   an_expr_node_ptr
                     cli_array_new_init_args = NULL;
   a_boolean         has_array_init = FALSE;
+  a_boolean         has_alignment_arg = FALSE;
   a_boolean         gcnew_has_array_init = FALSE;
   a_boolean         is_gcnew_string_special_case = FALSE;
   an_operand        gcnew_special_case_operand;
@@ -19766,38 +19801,28 @@ expression, and return the result in *result (or an error indication in
       && !is_gcnew
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
      ) {
+    an_arg_list_elem_ptr sizeof_alep, alignment_alep;
 
-    get_new_allocation_size_operand(unqual_new_type, &type_position,
-                                    element_type, new_array_dimension,
-                                    &sizeof_operand);
+    sizeof_alep =
+      get_new_allocation_size_arg(unqual_new_type, &type_position,
+                                  element_type, new_array_dimension);
+    alignment_alep = get_new_alignment_arg(unqual_new_type, &type_position);
 
-    if (overaligned_allocation_enabled &&
-        unqual_new_type->alignment > targ_default_new_alignment) {
-      /* Create an alignment argument and add it to the placement arguments
-         (if any).  It will be removed and overload resolution retried if
-         there is no match for the argument list containing the
-         alignment. */
-      a_constant_ptr alignment_con = local_constant();
-      a_boolean      did_not_fold;
-      set_integer_constant(alignment_con,
-                           (a_host_large_integer)unqual_new_type->alignment,
-                           targ_size_t_int_kind);
-      type_change_constant(alignment_con, type_of_align_val_t,
-                           /*is_implicit_cast=*/TRUE,
-                           /*maintain_expression=*/FALSE, &did_not_fold,
-                           &type_position);
-      make_constant_operand(alignment_con, &alignment_operand);
-      alignment_alep = alloc_arg_list_elem_for_operand(&alignment_operand);
+    /* Add the alignment argument (if needed) to the placement arguments
+       (if any).  It will be removed and overload resolution retried if
+       there is no match for the argument list containing the alignment. */
+    if (alignment_alep != NULL) {
+      has_alignment_arg = TRUE;
       append_elem(alignment_alep, arg_list);
       arg_list = alignment_alep;
-      release_local_constant(&alignment_con);
     }  /* if */
+
     /* Add the sizeof operand to the front of the list of expressions
-       (if any) from the "placement" option.  This gives the full set
-       of arguments for the "new" function call. */
-    sizeof_alep = alloc_arg_list_elem_for_operand(&sizeof_operand);
+        (if any) from the "placement" option.  This gives the full set
+        of arguments for the "new" function call. */
     append_elem(sizeof_alep, arg_list);
     arg_list = sizeof_alep;
+
     /* Select the proper "new" routine.  If the type is a class type and
        the class has a "new" operator, use it.  However, if "::" preceded
        the keyword "new", always use the global ::new.  Choose new[]
@@ -19895,7 +19920,7 @@ expression, and return the result in *result (or an error indication in
       /* Select the proper "new" function if there are several.  Note that
          this call does not adjust the argument types or build the function
          call, since we may yet fold the call into a constructor call. */
-      if (alignment_alep != NULL) {
+      if (has_alignment_arg) {
         /* There is an alignment argument.  Suppress diagnostics and
            detect access violations in case there is no matching operator
            new and we need to repeat overload resolution without the
@@ -20856,7 +20881,7 @@ handle_empty_parens_new_initializer:
     ndsp = new_node->variant.new_delete;
     ndsp->is_new = TRUE;
     ndsp->placement_new = placement_new;
-    ndsp->aligned_version = alignment_alep != NULL;
+    ndsp->aligned_version = has_alignment_arg;
     ndsp->global_new_or_delete = use_global_new;
     ndsp->has_new_initializer = has_new_initializer;
     ndsp->new_initializer_is_brace_enclosed = has_braced_initializer;
