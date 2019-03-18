@@ -19419,6 +19419,77 @@ Determine the result type of the "new".
 }  /* get_new_result_type */
 
 
+static void get_new_allocation_size_operand(
+                                        a_type_ptr        unqual_new_type,
+                                        a_source_position *type_position,
+                                        a_type_ptr        element_type,
+                                        an_expr_node_ptr  new_array_dimension,
+                                        an_operand        *sizeof_operand)
+/*
+Compute the allocation size in bytes for the new statement and create an
+operand for that.
+*/
+{
+  a_constant_ptr   sizeof_constant = local_constant();
+  an_expr_node_ptr sizeof_node;
+
+  if (new_array_dimension != NULL) {
+    /* The type is a variable-dimension array, as in
+         new char[i+1]
+       The amount to allocate is the size of the array element times
+       the expression giving the number of elements.  We're going to
+       build an expression for that, and use it as the first argument
+       to operator new.  That may be overkill, since probably anything
+       with the right type would work (it's just for overload resolution),
+       but maybe it will matter with constexpr operator new routines. */
+    an_expr_node_ptr array_size_expr =
+      copy_expr_tree(new_array_dimension,
+                     CE_COPY_NOT_EVALUATED);
+    /* Note that the original first-level element type was retained in
+       element_type (that matters for multi-dimension arrays). */
+    element_type = skip_typerefs(element_type);
+    /* Cast the dimension expression to size_t (it's already an integral
+       type). */
+    if (!is_template_param_type(array_size_expr->type)) {
+      cast_node(&array_size_expr, integer_type(targ_size_t_int_kind),
+                /*check_cast_access=*/FALSE, /*check_ambiguity=*/FALSE,
+                /*is_implicit_cast=*/TRUE,
+                /*is_reinterpret_cast=*/FALSE,
+                /*reinterpret_semantics=*/FALSE,
+                /*within_expr_processing=*/TRUE,
+                type_position);
+    }  /* if */
+    if (element_type->size == 1) {
+      /* If the element size is 1, skip the multiplication. */
+      sizeof_node = array_size_expr;
+    } else {
+      /* Multiply the number of elements by the size of each element. */
+      sizeof_node = node_for_host_large_integer(
+        (a_host_large_integer)element_type->size, targ_size_t_int_kind);
+      array_size_expr->next = sizeof_node;
+      sizeof_node = make_operator_node((an_expr_operator_kind)eok_multiply,
+                                       sizeof_node->type,
+                                       array_size_expr);
+      sizeof_node->variant.operation.compiler_generated = TRUE;
+    }  /* if */
+    make_expression_operand(sizeof_node, sizeof_operand);
+  } else {
+    /* Not a variable-dimension array.  The size is known at compile
+       time, as in
+         new char[17]
+       or
+         new int
+    */
+    set_integer_constant(sizeof_constant,
+      (a_host_large_integer)unqual_new_type->size,
+                         targ_size_t_int_kind);
+    make_constant_operand(sizeof_constant, sizeof_operand);
+  }  /* if */
+
+  release_local_constant(&sizeof_constant);
+}  /* get_new_allocation_size_operand */
+
+
 static void scan_new_operator(a_rescan_control_block *rcblock,
                               an_operand             *result)
 /*
@@ -19465,19 +19536,18 @@ expression, and return the result in *result (or an error indication in
   a_type_ptr        unqual_new_type, unqual_base_new_type;
   a_class_symbol_supplement_ptr
                     cssp = NULL;
-  an_expr_node_ptr  new_array_dimension, sizeof_node;
+  an_expr_node_ptr  new_array_dimension;
   an_operand        sizeof_operand;
   an_operand        alignment_operand;
   a_boolean         use_global_new = FALSE;
-  a_symbol_ptr      operator_new_symbol = NULL, function_symbol, ctor_sym;
-  a_symbol_ptr      proj_function_symbol;
+  a_symbol_ptr      operator_new_symbol = NULL, ctor_sym;
+  a_symbol_ptr      function_symbol = NULL, proj_function_symbol = NULL;
   a_routine_ptr     delete_routine = NULL;
   a_boolean         delete_ambiguous = FALSE;
   a_boolean         needs_initialization, variable_size_array = FALSE;
   a_boolean         zero_initialization, has_new_initializer = FALSE;
   a_boolean         has_braced_initializer = FALSE;
   an_expr_node_ptr  arg_expr_list, init_val_node;
-  a_constant_ptr    sizeof_constant = local_constant();
   an_arg_list_elem_ptr
                     arg_list = NULL, sizeof_alep;
   an_arg_list_elem_ptr
@@ -19690,66 +19760,17 @@ expression, and return the result in *result (or an error indication in
 
   /* If no error was encountered thus far, determine the correct overload
      for the "new" routine.  This is not performed for gcnew. */
-  function_symbol = proj_function_symbol = NULL;
   if (!err
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* The "new" routine is not applicable for "gcnew". */
       && !is_gcnew
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
      ) {
-    /* Compute the allocation size in bytes. */
-    if (new_array_dimension != NULL) {
-      /* The type is a variable-dimension array, as in
-           new char[i+1]
-         The amount to allocate is the size of the array element times
-         the expression giving the number of elements.  We're going to
-         build an expression for that, and use it as the first argument
-         to operator new.  That may be overkill, since probably anything
-         with the right type would work (it's just for overload resolution),
-         but maybe it will matter with constexpr operator new routines. */
-      an_expr_node_ptr array_size_expr =
-                            copy_expr_tree(new_array_dimension,
-                                           CE_COPY_NOT_EVALUATED);
-      /* Note that the original first-level element type was retained in
-         element_type (that matters for multi-dimension arrays). */
-      element_type = skip_typerefs(element_type);
-      /* Cast the dimension expression to size_t (it's already an integral
-         type). */
-      if (!is_template_param_type(array_size_expr->type)) {
-        cast_node(&array_size_expr, integer_type(targ_size_t_int_kind),
-                  /*check_cast_access=*/FALSE, /*check_ambiguity=*/FALSE,
-                  /*is_implicit_cast=*/TRUE,
-                  /*is_reinterpret_cast=*/FALSE,
-                  /*reinterpret_semantics=*/FALSE,
-                  /*within_expr_processing=*/TRUE,
-                  &type_position);
-      }  /* if */
-      if (element_type->size == 1) {
-        /* If the element size is 1, skip the multiplication. */
-        sizeof_node = array_size_expr;
-      } else {
-        /* Multiply the number of elements by the size of each element. */
-        sizeof_node = node_for_host_large_integer(
-               (a_host_large_integer)element_type->size, targ_size_t_int_kind);
-        array_size_expr->next = sizeof_node;
-        sizeof_node = make_operator_node((an_expr_operator_kind)eok_multiply,
-                                         sizeof_node->type,
-                                         array_size_expr);
-        sizeof_node->variant.operation.compiler_generated = TRUE;
-      }  /* if */
-      make_expression_operand(sizeof_node, &sizeof_operand);
-    } else {
-      /* Not a variable-dimension array.  The size is known at compile
-         time, as in
-           new char[17]
-         or
-           new int
-      */
-      set_integer_constant(sizeof_constant,
-                           (a_host_large_integer)unqual_new_type->size,
-                           targ_size_t_int_kind);
-      make_constant_operand(sizeof_constant, &sizeof_operand);
-    }  /* if */
+
+    get_new_allocation_size_operand(unqual_new_type, &type_position,
+                                    element_type, new_array_dimension,
+                                    &sizeof_operand);
+
     if (overaligned_allocation_enabled &&
         unqual_new_type->alignment > targ_default_new_alignment) {
       /* Create an alignment argument and add it to the placement arguments
@@ -19947,6 +19968,7 @@ expression, and return the result in *result (or an error indication in
          the initial value. */
     }  /* if */
   }  /* if */
+
   /* Determine whether the initializer is an empty set of parentheses, "()"
      (or, if list initializers are allowed, an empty set of braces; in that
      case the current token is still the opening brace). */
@@ -20910,7 +20932,6 @@ handle_empty_parens_new_initializer:
   rule_out_expr_kinds(ROEK_CONSTANT, result);
   /* Make sure we restored the initializer cache if we saved it. */
   check_assertion(saved_initializer_cache == NULL);
-  release_local_constant(&sizeof_constant);
   db_exit();
 }  /* scan_new_operator */
 
