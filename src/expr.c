@@ -20639,6 +20639,89 @@ template case.
 }  /* prep_new_object_init_templ_initializer */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static void create_gcnew_result_operand(
+                                  a_type_ptr         new_type,
+                                  a_type_ptr         ptr_new_type,
+                                  a_dynamic_init_ptr dip,
+                                  a_source_position  *start_position,
+                                  a_source_position  *type_position,
+                                  an_expr_node_ptr   cli_array_new_init_args,
+                                  an_expr_node_ptr   init_val_node,
+                                  a_boolean          cli_array_new,
+                                  a_boolean          has_new_initializer,
+                                  a_boolean          needs_initialization,
+                                  a_boolean          zero_initialization,
+                                  an_operand         *result)
+/*
+Create the resulting operand for the gcnew variant of "new".
+*/
+{
+  a_boolean  rank_unknown = TRUE;
+  if (curr_expr_is_cli_attribute_argument() &&
+      (!cli_array_new ||
+       (cli_array_rank(new_type, &rank_unknown) != 1 &&
+        (!rank_unknown ||
+         is_or_contains_cli_generic_param(
+                                 cli_array_rank_constant(new_type)->type))) ||
+       (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_constant))) {
+    /* An array gcnew expression can appear in an attribute argument, but not
+    if its rank differs from 1.  An unknown rank that depends on a generic
+    parameter is not permitted either (but an unknown rank that depends on
+    a standard template parameter is fine). */
+    expr_pos_error(ec_cli_attribute_invalid_argument, start_position);
+    make_error_operand(result);
+  } else {
+    an_expr_node_ptr        gcnew_node;
+    a_gcnew_supplement_ptr  gsp;
+    /* Use an enk_gcnew node to represent the "gcnew". */
+    gcnew_node = alloc_expr_node((an_expr_node_kind)enk_gcnew);
+    gcnew_node->type = ptr_new_type;
+    gsp = gcnew_node->variant.gcnew_info;
+    gsp->type = new_type;
+    gsp->has_new_initializer = has_new_initializer;
+    gsp->is_cli_array = cli_array_new;
+    gsp->cli_array_dimension_lengths = cli_array_new_init_args;
+    if (needs_initialization) {
+      if (dip != NULL || cli_array_new) {
+        /* Nothing to do because a_dynamic_init was allocated above. */
+      } else if (zero_initialization) {
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+      } else {
+        /* This handles cases like "gcnew int(3)" in which there is no
+        constructor to call but an initializer is provided. */
+        check_assertion(init_val_node != NULL);
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
+        dip->variant.expression = init_val_node;
+      }  /* if */
+    }  /* if */
+    if (!cppcx_enabled && dip != NULL &&
+        dip->kind == (a_dynamic_init_kind)dik_constructor) {
+      /* Any constructor invocation emanating from a gcnew expression should
+      have the type zero-initialized first.  (However, C++/CX
+      constructors do not value initialize by default.) */
+      dip->variant.constructor.value_initialization = TRUE;
+    }  /* if */
+    gcnew_node->variant.gcnew_info->dynamic_init = dip;
+    record_typed_operator_position_in_expr_rescan_info(gcnew_node,
+                                                       start_position,
+                                                       type_position,
+                                                       new_type);
+    if (curr_expr_is_cli_attribute_argument()) {
+      /* Make an operand for the C++/CLI array constant. */
+      a_constant_ptr cli_array_constant = local_constant();
+      make_cli_array_constant(gcnew_node, cli_array_constant);
+      make_constant_operand(cli_array_constant, result);
+      release_local_constant(&cli_array_constant);
+    } else {
+      /* Make an operand for the result. */
+      make_expression_operand(gcnew_node, result);
+    }  /* if */
+  }  /* if */
+}  /* create_gcnew_result_operand */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
 static void scan_new_operator(a_rescan_control_block *rcblock,
                               an_operand             *result)
 /*
@@ -21171,67 +21254,18 @@ expression, and return the result in *result (or an error indication in
   } else if (is_gcnew) {
     /* This code is not shared with the "new" case below because it is
        generating a different expr_node_kind. */
-    a_boolean  rank_unknown = TRUE;
-    if (curr_expr_is_cli_attribute_argument() &&
-        (!cli_array_new ||
-         (cli_array_rank(new_type, &rank_unknown) != 1 &&
-          (!rank_unknown ||
-           is_or_contains_cli_generic_param(
-                                 cli_array_rank_constant(new_type)->type))) ||
-         (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_constant))) {
-      /* An array gcnew expression can appear in an attribute argument, but not
-         if its rank differs from 1.  An unknown rank that depends on a generic
-         parameter is not permitted either (but an unknown rank that depends on
-         a standard template parameter is fine). */
-      expr_pos_error(ec_cli_attribute_invalid_argument, &start_position);
-      make_error_operand(result);
-    } else {
-      an_expr_node_ptr        gcnew_node;
-      a_gcnew_supplement_ptr  gsp;
-      /* Use an enk_gcnew node to represent the "gcnew". */
-      gcnew_node = alloc_expr_node((an_expr_node_kind)enk_gcnew);
-      gcnew_node->type = ptr_new_type;
-      gsp = gcnew_node->variant.gcnew_info;
-      gsp->type = new_type;
-      gsp->has_new_initializer = has_new_initializer;
-      gsp->is_cli_array = cli_array_new;
-      gsp->cli_array_dimension_lengths = cli_array_new_init_args;
-      if (needs_initialization) {
-        if (dip != NULL || cli_array_new) {
-          /* Nothing to do because a_dynamic_init was allocated above. */
-        } else if (zero_initialization) {
-          dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
-        } else {
-          /* This handles cases like "gcnew int(3)" in which there is no
-             constructor to call but an initializer is provided. */
-          check_assertion(init_val_node != NULL);
-          dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
-          dip->variant.expression = init_val_node;
-        }  /* if */
-      }  /* if */
-      if (!cppcx_enabled && dip != NULL &&
-          dip->kind == (a_dynamic_init_kind)dik_constructor) {
-        /* Any constructor invocation emanating from a gcnew expression should
-           have the type zero-initialized first.  (However, C++/CX
-           constructors do not value initialize by default.) */
-        dip->variant.constructor.value_initialization = TRUE;
-      }  /* if */
-      gcnew_node->variant.gcnew_info->dynamic_init = dip;
-      record_typed_operator_position_in_expr_rescan_info(gcnew_node,
-        &start_position,
-        &type_position,
-        new_type);
-      if (curr_expr_is_cli_attribute_argument()) {
-        /* Make an operand for the C++/CLI array constant. */
-        a_constant_ptr cli_array_constant = local_constant();
-        make_cli_array_constant(gcnew_node, cli_array_constant);
-        make_constant_operand(cli_array_constant, result);
-        release_local_constant(&cli_array_constant);
-      } else {
-        /* Make an operand for the result. */
-        make_expression_operand(gcnew_node, result);
-      }  /* if */
-    }  /* if */
+    create_gcnew_result_operand(new_type,
+                                ptr_new_type,
+                                dip,
+                                &start_position,
+                                &type_position,
+                                cli_array_new_init_args,
+                                init_val_node,
+                                cli_array_new,
+                                has_new_initializer,
+                                needs_initialization,
+                                zero_initialization,
+                                result);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     an_expr_node_ptr            new_node;
