@@ -20602,6 +20602,43 @@ C++/CLI/CX array case.
 }  /* prep_new_object_init_cli_array_initializer */
 
 
+static void prep_new_object_init_templ_initializer(
+                                        a_type_ptr           base_new_type,
+                                        an_arg_list_elem_ptr *init_raw_args,
+                                        a_source_position    *start_position,
+                                        a_dynamic_init_ptr   *dip)
+/*
+Validate and prepare (if warranted) initializer for the object in the
+template case.
+*/
+{
+  an_expr_node_ptr   expr_list;
+  an_arg_check_block arg_block;
+
+  start_call_argument_processing(/*function_type=*/(a_type_ptr)NULL,
+                                 /*routine=*/(a_routine_ptr)NULL,
+                                 &arg_block);
+  arg_block.unknown_dependent_function = TRUE;
+  process_call_argument_list(*init_raw_args, &arg_block);
+  expr_list = arg_block.argument_head;
+  free_arg_list(*init_raw_args);
+  *init_raw_args = NULL;
+  /* Set the dynamic init entry to represent "constructor" initialization,
+  leaving the constructor pointer NULL. */
+  *dip = alloc_expr_ctor_dynamic_init((a_routine_ptr)NULL,
+                                      expr_list,
+                                      base_new_type,
+                                      /*static_temp=*/FALSE,
+                                      /*add_default_args=*/FALSE,
+                                      /*implied_source=*/FALSE,
+                                      /*value_init=*/FALSE,
+                                      /*sequenced_args=*/FALSE,
+                                      /*fold_constexpr=*/FALSE,
+                                      /*check_constexpr=*/FALSE,
+                                      start_position);
+}  /* prep_new_object_init_templ_initializer */
+
+
 static void scan_new_operator(a_rescan_control_block *rcblock,
                               an_operand             *result)
 /*
@@ -21102,30 +21139,10 @@ expression, and return the result in *result (or an error indication in
   if (templ_init_scanned) {
     /* Finish processing the previously scanned new-init as if the
        arguments are passed to a template-dependent constructor. */
-    an_expr_node_ptr   expr_list;
-    an_arg_check_block arg_block;
-
-    start_call_argument_processing(/*function_type=*/(a_type_ptr)NULL,
-                                   /*routine=*/(a_routine_ptr)NULL,
-                                   &arg_block);
-    arg_block.unknown_dependent_function = TRUE;
-    process_call_argument_list(init_raw_args, &arg_block);
-    expr_list = arg_block.argument_head;
-    free_arg_list(init_raw_args);
-    init_raw_args = NULL;
-    /* Set the dynamic init entry to represent "constructor" initialization,
-       leaving the constructor pointer NULL. */
-    dip = alloc_expr_ctor_dynamic_init((a_routine_ptr)NULL,
-                                       expr_list,
-                                       base_new_type,
-                                       /*static_temp=*/FALSE,
-                                       /*add_default_args=*/FALSE,
-                                       /*implied_source=*/FALSE,
-                                       /*value_init=*/FALSE,
-                                       /*sequenced_args=*/FALSE,
-                                       /*fold_constexpr=*/FALSE,
-                                       /*check_constexpr=*/FALSE,
-                                       &start_position);
+    prep_new_object_init_templ_initializer(base_new_type,
+                                           &init_raw_args,
+                                           &start_position,
+                                           &dip);
   }  /* if */
 
   expr_stack->inside_conditional_expression =
