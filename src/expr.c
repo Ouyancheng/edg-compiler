@@ -17856,7 +17856,7 @@ the deallocation and return a pointer to it.
 }  /* f_make_dyn_init_for_deletion_for_throw */
 
 
-static inline void make_dyn_init_for_deletion_for_throw(
+static void make_dyn_init_for_deletion_for_throw(
                                             a_dynamic_init_ptr *dyn_init,
                                             a_routine_ptr      new_routine,
                                             a_routine_ptr      delete_routine,
@@ -17885,7 +17885,7 @@ as new_routine will always be NULL and array_new will always be FALSE.
 }  /* make_dyn_init_for_deletion_for_throw */
 
 
-static inline void warn_about_missing_delete(a_routine_ptr delete_routine,
+static void warn_about_missing_delete(a_routine_ptr delete_routine,
                                              a_symbol_ptr  function_symbol,
                                              a_source_position
                                                            *new_position,
@@ -18748,14 +18748,16 @@ Return a newly created list of expression nodes for each of these dimensions
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
-static a_token_kind get_new_operator_token(a_rescan_control_block *rcblock,
-                                           a_boolean              *is_gcnew)
+static a_token_kind get_new_operator_token(a_rescan_control_block *rcblock
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                           , a_boolean              *is_gcnew
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                          )
 /* Get the C++ "new" or C++/CLI "gcnew" operator token.
 */
 {
   a_token_kind operator_token;
 
-  *is_gcnew = FALSE;
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
 #if CHECKING
@@ -18787,9 +18789,13 @@ static a_token_kind get_new_operator_token(a_rescan_control_block *rcblock,
     }  /* if */
   }  /* if */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (operator_token == tok_gcnew) {
     *is_gcnew = TRUE;
-  } /* if */
+  } else {
+    *is_gcnew = FALSE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   return operator_token;
 }  /* get_new_operator_token */
@@ -18797,7 +18803,9 @@ static a_token_kind get_new_operator_token(a_rescan_control_block *rcblock,
 
 static void rescan_new_operator_expr(
                                a_rescan_control_block *rcblock,
+#if MICROSOFT_EXTENSIONS_ALLOWED
                                a_boolean              is_gcnew,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                a_source_position      *start_position,
                                a_type_ptr             *new_type,
                                a_source_position      *type_position,
@@ -18806,7 +18814,9 @@ static void rescan_new_operator_expr(
                                a_boolean              *placement_new,
                                a_boolean              *deducible_new_type,
                                a_boolean              *has_braced_initializer,
+#if MICROSOFT_EXTENSIONS_ALLOWED
                                a_boolean              *gcnew_has_array_init,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                an_arg_list_elem_ptr   *placement_arg_list,
                                an_arg_list_elem_ptr   *braced_init_list)
 /*
@@ -18817,7 +18827,9 @@ placement and initializer from a rescan block for the operator.
   an_expr_node_ptr            arg_expr_list;
   an_expr_node_ptr            dummy;
   an_arg_list_elem_ptr        local_braced_init_list;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_gcnew_supplement_ptr      rescan_gsp = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_new_delete_supplement_ptr rescan_ndsp = NULL;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -18917,8 +18929,13 @@ placement and initializer from a rescan block for the operator.
 }  /* rescan_new_operator_expr */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* err is unused here. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void scan_new_operator_placement(
+#if MICROSOFT_EXTENSIONS_ALLOWED
                                     a_boolean            is_gcnew,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                     a_boolean            *trapped_left_paren,
                                     a_boolean            *placement_new,
                                     a_boolean            *err,
@@ -19062,7 +19079,9 @@ static a_type_ptr rescan_new_deduce_placeholder_type(
 
 
 static a_type_ptr scan_new_type(a_decl_parse_state *dps,
+#if MICROSOFT_EXTENSIONS_ALLOWED
                                 a_boolean          is_gcnew,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                 a_boolean          trapped_left_paren,
                                 a_boolean          *deducible_new_type,
                                 a_source_position  *type_position)
@@ -19194,7 +19213,9 @@ static a_type_ptr get_base_new_type(a_type_ptr        new_type,
                                     a_source_position *type_position,
                                     an_expr_node_ptr  *new_array_dimension,
                                     a_boolean         *array_new,
+#if MICROSOFT_EXTENSIONS_ALLOWED
                                     a_boolean         *cli_array_new,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                     a_boolean         *variable_size_array,
                                     a_boolean         *type_err)
 /*
@@ -19312,7 +19333,6 @@ Validate the type obtained for a new statement.
 static void validate_cpp_cli_cx_new_type(a_type_ptr        new_type,
                                          a_type_ptr        base_new_type,
                                          a_source_position *type_position,
-                                         a_boolean         cli_or_cx_enabled,
                                          a_boolean         is_gcnew,
                                          a_boolean         use_global_new,
                                          a_boolean         prev_err_seen,
@@ -19383,9 +19403,11 @@ Validates the "new" type in the context of C++/CLI/CX "new".
 static a_type_ptr get_new_result_type(
                                   a_type_ptr       new_type,
                                   a_type_ptr       *base_new_type,
-                                  a_boolean        is_gcnew,
                                   a_boolean        array_new,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                  a_boolean        is_gcnew,
                                   a_boolean        cli_array_new,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                   an_expr_node_ptr new_array_dimension,
                                   a_targ_size_t    *effective_num_of_elements)
 /*
@@ -19539,6 +19561,10 @@ Otherwise returns NULL.
 }  /* get_new_alignment_arg */
 
 
+#if !GNU_EXTENSIONS_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* new_position is used if GNU_EXTENSIONS_ALLOWED.
+                arg_list is used if MICROSOFT_EXTENSIONS_ALLOWED. */
+#endif /* !GNU_EXTENSIONS_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_symbol_ptr get_operator_new_symbol(
                                   a_type_ptr           base_new_type,
                                   a_type_ptr           unqual_base_new_type,
@@ -19741,7 +19767,9 @@ Returns the matching operator "new" function symbol, if found.
 
 static a_symbol_ptr get_ctor_sym_for_new_type(
                              a_type_ptr                    base_new_type,
+#if MICROSOFT_EXTENSIONS_ALLOWED
                              a_boolean                     cli_array_new,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                              a_boolean                     dependent_new_type,
                              a_class_symbol_supplement_ptr *cssp)
 /* Returns non-NULL if the type is a class that has a constructor
@@ -19765,6 +19793,12 @@ static a_symbol_ptr get_ctor_sym_for_new_type(
 }  /* get_ctor_sym_for_new_type */
 
 
+#if !NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE || \
+    !NEW_CAN_BE_FOLDED_INTO_CTOR
+/*ARGSUSED*/ /* If either of these is undefined, many of these parameters are
+                unused. */
+#endif /* !NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE ||
+          !NEW_CAN_BE_FOLDED_INTO_CTOR */
 static a_routine_ptr get_new_routine(a_symbol_ptr      function_symbol,
                                      a_source_position *new_position,
                                      a_type_ptr        base_new_type,
@@ -19803,79 +19837,82 @@ Work out the "new" routine and its arguments.  Returns the new routine.
                                                  delete_ambiguous);
   }  /* if */
 
-  #if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
-    if (array_new) {
-      /* If allocating an array and a runtime routine will be used, the
-         "new" routine can be implicit if it is the default global new[]. */
-      if (new_or_delete_type_requires_array_handling(
-                                                 base_new_type,
-                                                 /*check_constructor=*/TRUE)) {
-        an_opname_kind array_opname_kind = array_new_and_delete_enabled ?
-                                             (an_opname_kind)onk_array_new :
-                                             (an_opname_kind)onk_new;
-        a_symbol_ptr   sym = opname_function_symbol(array_opname_kind);
-        a_boolean      ambiguous;
+#if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
+  if (array_new) {
+    /* If allocating an array and a runtime routine will be used, the
+        "new" routine can be implicit if it is the default global new[]. */
+    if (new_or_delete_type_requires_array_handling(
+                                                base_new_type,
+                                                /*check_constructor=*/TRUE)) {
+      an_opname_kind array_opname_kind = array_new_and_delete_enabled ?
+                                            (an_opname_kind)onk_array_new :
+                                            (an_opname_kind)onk_new;
+      a_symbol_ptr   sym = opname_function_symbol(array_opname_kind);
+      a_boolean      ambiguous;
 
-        /* In Microsoft mode, because the non-array new routine can be used
-           for an array new, the symbol can be NULL. */
-        if (sym != NULL &&
-            function_symbol == find_default_operator_new_sym(sym, &ambiguous)&&
-            /* See core issue 412: avoid problems if user-provided new is
-               inline. */
-            !new_routine->is_inline) {
-          new_routine = NULL;
-        }  /* if */
+      /* In Microsoft mode, because the non-array new routine can be used
+          for an array new, the symbol can be NULL. */
+      if (sym != NULL &&
+          function_symbol == find_default_operator_new_sym(sym, &ambiguous)&&
+          /* See core issue 412: avoid problems if user-provided new is
+              inline. */
+          !new_routine->is_inline) {
+        new_routine = NULL;
       }  /* if */
-    } else
+    }  /* if */
+  } else {
 #endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
-    /* No code above this line. */
-    {
-      /* If allocating a class with a constructor, determine the default
-         "new" routine for the class and see whether it is the one that
-         was selected.  If so, the "new" call can be folded into the
-         constructor call. */
-      if (ctor_sym != NULL) {
-        /* If the entity gets value-initialization, suppress this
-           optimization, because there's no way to tell the constructor
-           to do the necessary zeroing after the allocation.  Also
-           suppress this if the constructor that will be chosen is
-           a trivial default constructor (a trivial copy constructor is
-           okay; we can generate the body for that and call it). */
-        a_boolean value_init = (empty_initializer &&
-                                value_initialization_enabled);
-        a_boolean trivial_ctor_init = ((empty_initializer ||
-                                        !has_new_initializer) &&
-                                       !value_init &&
-                                       has_trivial_default_constructor(cssp));
-        if (!value_init && !trivial_ctor_init &&
-            /* A braced-initializer always does some kind of initialization
-               (at least value-initialization), so we can't fold. */
-            !has_braced_initializer &&
-            /* If the expression that follows might be an empty pack
-               expansion, we might end up with value initialization anyway
-               so we can't fold. */
-            !is_variadic_template_context()) {
-          set_class_assoc_operator_new_routine(unqual_base_new_type);
-          if (exceptions_enabled) {
-            set_class_assoc_operator_delete_routine(unqual_base_new_type);
-          }  /* if */
-          if (class_type_supp(unqual_base_new_type)
-                                 ->assoc_operator_new_routine == new_routine &&
-              (!exceptions_enabled ||
-               class_type_supp(unqual_base_new_type)
-                        ->assoc_operator_delete_routine == *delete_routine)) {
-            new_routine = NULL;
-          }  /* if */
+    /* If allocating a class with a constructor, determine the default
+        "new" routine for the class and see whether it is the one that
+        was selected.  If so, the "new" call can be folded into the
+        constructor call. */
+    if (ctor_sym != NULL) {
+      /* If the entity gets value-initialization, suppress this
+          optimization, because there's no way to tell the constructor
+          to do the necessary zeroing after the allocation.  Also
+          suppress this if the constructor that will be chosen is
+          a trivial default constructor (a trivial copy constructor is
+          okay; we can generate the body for that and call it). */
+      a_boolean value_init = (empty_initializer &&
+                              value_initialization_enabled);
+      a_boolean trivial_ctor_init = ((empty_initializer ||
+                                      !has_new_initializer) &&
+                                      !value_init &&
+                                      has_trivial_default_constructor(cssp));
+      if (!value_init && !trivial_ctor_init &&
+          /* A braced-initializer always does some kind of initialization
+              (at least value-initialization), so we can't fold. */
+          !has_braced_initializer &&
+          /* If the expression that follows might be an empty pack
+              expansion, we might end up with value initialization anyway
+              so we can't fold. */
+          !is_variadic_template_context()) {
+        set_class_assoc_operator_new_routine(unqual_base_new_type);
+        if (exceptions_enabled) {
+          set_class_assoc_operator_delete_routine(unqual_base_new_type);
+        }  /* if */
+        if (class_type_supp(unqual_base_new_type)
+                                ->assoc_operator_new_routine == new_routine &&
+            (!exceptions_enabled ||
+              class_type_supp(unqual_base_new_type)
+                      ->assoc_operator_delete_routine == *delete_routine)) {
+          new_routine = NULL;
         }  /* if */
       }  /* if */
     }  /* if */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+#if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
+  }  /* if */
+#endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
 
-    return new_routine;
+  return new_routine;
 }  /* get_new_routine */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* zero_initialization is unused here. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void prep_new_object_init_no_initializer(
                                 a_type_ptr         new_type,
                                 a_type_ptr         base_new_type,
@@ -19889,9 +19926,11 @@ static void prep_new_object_init_no_initializer(
                                 a_class_symbol_supplement_ptr
                                                    cssp,
                                 a_boolean          dependent_new_type,
-                                a_boolean          is_gcnew,
                                 a_boolean          array_new,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                a_boolean          is_gcnew,
                                 a_boolean          cli_array_new,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                 a_boolean          delete_ambiguous,
                                 a_dynamic_init_ptr *dip,
                                 a_dynamic_init_ptr *dyn_init_to_free_storage,
@@ -20126,6 +20165,10 @@ braced initializer was provided.
 }  /* prep_new_object_init_braced_initializer */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* type_position, ptr_new_type and unqual_base_new_type are
+                used if MICROSOFT_EXTENSIONS_ALLOWED. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void prep_new_object_init_paren_initializer(
                         a_rescan_control_block *rcblock,
                         a_type_ptr             new_type,
@@ -20142,10 +20185,12 @@ static void prep_new_object_init_paren_initializer(
                         a_routine_ptr          delete_routine,
                         a_symbol_ptr           function_symbol,
                         a_symbol_ptr           ctor_sym,
-                        a_boolean              is_gcnew,
-                        a_boolean              placement_new,
                         a_boolean              array_new,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                        a_boolean              placement_new,
+                        a_boolean              is_gcnew,
                         a_boolean              cli_array_new,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                         a_boolean              template_case,
                         a_boolean              delete_ambiguous,
                         a_decl_parse_state     *dps,
@@ -20159,8 +20204,10 @@ static void prep_new_object_init_paren_initializer(
                         a_boolean              *has_new_initializer,
                         a_boolean              *zero_initialization,
                         a_boolean              *empty_initializer,
+#if MICROSOFT_EXTENSIONS_ALLOWED
                         a_boolean              *is_gcnew_string_special_case,
                         an_operand             *gcnew_special_case_operand,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                         a_boolean              *err)
 /*
 Validate and prepare (if warranted) initializer for the object when a
@@ -20404,6 +20451,7 @@ handle_empty_parens_new_initializer:
 }  /* prep_new_object_init_paren_initializer */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 static void prep_new_object_init_cli_array_initializer(
                               a_rescan_control_block *rcblock,
                               a_type_ptr             new_type,
@@ -20600,6 +20648,7 @@ C++/CLI/CX array case.
     *err = TRUE;
   }  /* if */
 }  /* prep_new_object_init_cli_array_initializer */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 static void prep_new_object_init_templ_initializer(
@@ -20880,6 +20929,7 @@ expression, and return the result in *result (or an error indication in
   a_boolean         delete_ambiguous = FALSE;
   a_boolean         needs_initialization, variable_size_array = FALSE;
   a_boolean         zero_initialization, has_new_initializer = FALSE;
+  a_boolean         has_alignment_arg = FALSE;
   a_boolean         has_braced_initializer = FALSE;
   an_expr_node_ptr  arg_expr_list, init_val_node;
   an_arg_list_elem_ptr
@@ -20915,7 +20965,6 @@ expression, and return the result in *result (or an error indication in
   an_expr_node_ptr
                     cli_array_new_init_args = NULL;
   a_boolean         has_array_init = FALSE;
-  a_boolean         has_alignment_arg = FALSE;
   a_boolean         gcnew_has_array_init = FALSE;
   a_boolean         is_gcnew_string_special_case = FALSE;
   an_operand        gcnew_special_case_operand;
@@ -20925,16 +20974,27 @@ expression, and return the result in *result (or an error indication in
 
   db_enter(4, "scan_new_operator");
 
-  operator_token = get_new_operator_token(rcblock, &is_gcnew);
+  operator_token = get_new_operator_token(rcblock
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                          , &is_gcnew
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                         );
   /* Will get overwritten later if re-scanning. */
   start_position = pos_curr_token;
 
   if (rcblock != NULL) {
-    rescan_new_operator_expr(rcblock, is_gcnew, &start_position,
+    rescan_new_operator_expr(rcblock,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                             is_gcnew,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                             &start_position,
                              &new_type, &type_position,
                              &has_new_initializer, &use_global_new,
                              &placement_new, &deducible_new_type,
-                             &has_braced_initializer, &gcnew_has_array_init,
+                             &has_braced_initializer,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                             &gcnew_has_array_init,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                              &arg_list, &braced_init_list);
     /* On the rescan, we can't distinguish start_position and new_position
        (they differ if there's a leading "::"). */
@@ -21002,7 +21062,10 @@ expression, and return the result in *result (or an error indication in
     new_position = pos_curr_token;
 
     (void)get_token();
-    scan_new_operator_placement(is_gcnew,
+    scan_new_operator_placement(
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                is_gcnew,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                 &trapped_left_paren, &placement_new, &err,
                                 &arg_list);
   }  /* if */
@@ -21025,7 +21088,11 @@ expression, and return the result in *result (or an error indication in
       using_expr_cache = TRUE;
     }  /* if */
   } else {
-    new_type = scan_new_type(&dps, is_gcnew, trapped_left_paren,
+    new_type = scan_new_type(&dps,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                             is_gcnew,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                             trapped_left_paren,
                              &deducible_new_type, &type_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = curr_construct_end_position;
@@ -21057,24 +21124,29 @@ expression, and return the result in *result (or an error indication in
   unqual_new_type = skip_typerefs(new_type);
   base_new_type = get_base_new_type(new_type, unqual_new_type,
                                     &type_position, &new_array_dimension,
-                                    &array_new, &cli_array_new,
+                                    &array_new,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                    &cli_array_new,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                     &variable_size_array, &type_err);
   validate_new_type(new_type, base_new_type, &type_position, &type_err);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   validate_cpp_cli_cx_new_type(new_type, base_new_type, &type_position,
-                               cli_or_cx_enabled, is_gcnew, use_global_new,
+                               is_gcnew, use_global_new,
                                /*prev_err_seen=*/err || type_err, &type_err);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   err = err || type_err;
   if (array_new) {
     element_type = base_new_type;
   }
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (cli_array_new && has_braced_initializer) {
     /* We thought we had a braced initializer, but in this case it's the
        array initializer after an omitted new-initializer. */
     has_braced_initializer = FALSE;
     has_new_initializer = FALSE;
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   if (type_err) {
     new_type = base_new_type = error_type();
@@ -21082,8 +21154,10 @@ expression, and return the result in *result (or an error indication in
   }  /* if */
   unqual_new_type = skip_typerefs(new_type);
 
-  ptr_new_type = get_new_result_type(new_type, &base_new_type, is_gcnew,
-                                     array_new, cli_array_new,
+  ptr_new_type = get_new_result_type(new_type, &base_new_type, array_new,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                     is_gcnew, cli_array_new,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                      new_array_dimension,
                                      &effective_num_of_elements);
   unqual_base_new_type = skip_typerefs(base_new_type);
@@ -21164,7 +21238,10 @@ expression, and return the result in *result (or an error indication in
 
   /* Get constructor symbol, if it exists. */
   ctor_sym = get_ctor_sym_for_new_type(base_new_type,
-                                       cli_array_new, dependent_new_type,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                       cli_array_new,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                       dependent_new_type,
                                        &cssp);
 
   if (!err && function_symbol != NULL) {
@@ -21233,8 +21310,10 @@ expression, and return the result in *result (or an error indication in
                                         &new_position, &type_position,
                                         new_routine, delete_routine,
                                         function_symbol, ctor_sym, cssp,
-                                        dependent_new_type, is_gcnew,
-                                        array_new, cli_array_new,
+                                        dependent_new_type, array_new,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                        is_gcnew, cli_array_new,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                         delete_ambiguous,
                                         &dip,
                                         &dyn_init_to_free_storage,
@@ -21269,8 +21348,11 @@ expression, and return the result in *result (or an error indication in
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
                                            new_routine, delete_routine,
                                            function_symbol, ctor_sym,
-                                           is_gcnew, placement_new,
-                                           array_new, cli_array_new,
+                                           array_new,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                           placement_new,
+                                           is_gcnew, cli_array_new,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                            template_case, delete_ambiguous,
                                            &dps,
                                            &dip, &dyn_init_to_free_storage,
@@ -21282,8 +21364,10 @@ expression, and return the result in *result (or an error indication in
                                            &has_new_initializer,
                                            &zero_initialization,
                                            &empty_initializer,
+#if MICROSOFT_EXTENSIONS_ALLOWED
                                            &is_gcnew_string_special_case,
                                            &gcnew_special_case_operand,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                            &err);
   }  /* if */
 
