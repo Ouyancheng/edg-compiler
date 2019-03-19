@@ -1,5 +1,32 @@
 Version 5.1
 
+1/29/19  [EDGcpfe/17673,EDGcpfe/20597,EDGcpfe/20881]
+References to class type rvalues
+
+Consider:
+
+  struct B { int i = 1; };
+  struct D: B { int i = 2; };
+  constexpr int f() {
+    D d;
+    B &&rr = static_cast<D>(d);  // (1)
+    return rr.i;
+  }
+  static_assert(f() == 1);  // Previously an error.
+
+Line (1) involves binding a reference to an rvalue of class type.  In this
+case, that rvalue was represented by an enk_temp_init node on top of which an
+eok_base_class_cast was applied.  However, the enk_temp_init was a prvalue and
+thus the eok_base_class_cast looked like a slicing operation when it really
+should be seen as a reference cast.  This could result in various problems in
+later processing.  In this particular case, the lifetime of the temporary was
+not correctly extended and as a result the call to f() failed to fold to a
+constant.  Other similar cases could trigger internal errors.  Although this
+example involves a derived-to-base conversion, the problem could also occur
+with implicit type qualifier adjustments (e.g., the addition of "const" on top
+of a temporary).  This class of problems is now fixed.
+
+
 3/18/19  [EDGcpfe/19059]
 C++-generating back end: incorrect pack ellipsis emitted
 
@@ -949,33 +976,6 @@ This is now fixed.  For example:
     T t;
     t.~T();  // Previously generated as t.~<unnamed>()
   }
-
-
-1/29/19  [EDGcpfe/17673]
-References to class type rvalues
-
-Consider:
-
-  struct B { int i = 1; };
-  struct D: B { int i = 2; };
-  constexpr int f() {
-    D d;
-    B &&rr = static_cast<D>(d);  // (1)
-    return rr.i;
-  }
-  static_assert(f() == 1);  // Previously an error.
-
-Line (1) involves binding a reference to an rvalue of class type.  In this
-case, that rvalue was represented by an enk_temp_init node on top of which an
-eok_base_class_cast was applied.  However, the enk_temp_init was a prvalue and
-thus the eok_base_class_cast looked like a slicing operation when it really
-should be seen as a reference cast.  This could result in various problems in
-later processing.  In this particular case, the lifetime of the temporary was
-not correctly extended and as a result the call to f() failed to fold to a
-constant.  Other similar cases could trigger internal errors.  Although this
-example involves a derived-to-base conversion, the problem could also occur
-with implicit type qualifier adjustments (e.g., the addition of "const" on top
-of a temporary).  This class of problems is now fixed.
 
 
 1/28/19  [EDGcpfe/18708]

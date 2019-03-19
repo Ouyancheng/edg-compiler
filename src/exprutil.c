@@ -6591,6 +6591,19 @@ though it does not do access checking in general in those contexts.
 }  /* base_class_cast_access_checking_should_be_done */
 
 
+static void reclaim_node_if_possible(an_expr_node_ptr  node)
+/*
+If the given expression node is allocated in file-scope memory, place it on
+the avail_fs_nodes list.
+*/
+{
+  if (in_file_scope(node)) {
+    node->extra.next_avail = avail_fs_nodes;
+    avail_fs_nodes = node;
+  }  /* if */
+}  /* reclaim_node_if_possible */
+
+
 /*ARGSUSED*/  /* The tblock parameter is needed because of the callback
                  requirement, but it is not actually used. */
 static void reclaim_fs_node(an_expr_node_ptr                    node,
@@ -19238,11 +19251,13 @@ set *top_cast and *bottom_cast to NULL and return the original expression.
 }  /* strip_rvalue_base_class_casts */
 
 
-void conv_class_prvalue_operand_to_lvalue(an_operand *operand)
+void conv_class_prvalue_operand_to_glvalue(an_operand *operand,
+                                           a_boolean  is_xvalue)
 /*
-Convert a prvalue class operand into an operand for an lvalue for the
-object.  If necessary, this will involve creating a temporary and
-initializing it from the prvalue.  This routine is used only in C++ mode.
+Convert a prvalue class operand into an operand for a glvalue for the object.
+The result is an xvalue if is_xvalue is TRUE, and an lvalue otherwise.  If
+necessary, this will involve creating a temporary and initializing it from the
+prvalue.  This routine is used only in C++ mode.
 */
 {
   an_operand        orig_operand;
@@ -19270,49 +19285,18 @@ initializing it from the prvalue.  This routine is used only in C++ mode.
                                          (a_type_ptr *)NULL);
       if (optimized_case) {
         /* The expression has been rewritten as an lvalue. */
-        make_glvalue_expression_operand(node, operand);
-      } else {
-        /* Couldn't convert to an lvalue directly.  The prvalue will have to be
-           copied to a temporary, and an lvalue for the temporary used. */
-        /* Avoid recursion loops if the class does not allow bitwise copy.
-           The conversion to an lvalue really must succeed (i.e., it's not
-           merely an optimization) if a "real" copy constructor would have
-           to be used, since in that case we would need the address of this
-           prvalue to be able to call the copy constructor. */
-        /* Ignore template parameter cases. */
-        /* Also ignore cases where we're in a prototype instantiation with
-           a non-real class. */
-        if (is_class_struct_union_type(operand->type) &&
-            !(is_template_dependent_context() &&
-              skip_typerefs(operand->type)->
-                                variant.class_struct_union.is_nonreal_class)) {
-          a_class_symbol_supplement_ptr cssp =
-                                    symbol_supplement_for_class(operand->type);
-          if (!cssp->construction_by_bitwise_copy_allowed &&
-              cssp->has_user_provided_copy_constructor) {
-            /* Cases like this can come up when an implicitly-generated
-               copy constructor is later defined explicitly outside the
-               class. */
-#if CHECKING
-            if (total_errors == 0) {
-#if DEBUG
-              db_expression(node);
-#endif /* DEBUG */
-              internal_error(
-              "conv_class_prvalue_operand_to_lvalue: couldn't convert to ptr");
-            }  /* if */
-#endif /* CHECKING */
-            conv_to_error_operand(operand);
-            optimized_case = TRUE;
-          }  /* if */
+        if (is_xvalue) {
+          node->is_xvalue = TRUE;
+          node->is_lvalue = FALSE;
         }  /* if */
+        make_glvalue_expression_operand(node, operand);
       }  /* if */
     }  /* if */
-    if (!optimized_case) {
+    if (!optimized_case && !is_error_operand(operand)) {
       /* Create a temporary, copy the prvalue into the temporary, and return
-         an lvalue for the temporary. */
-      /* Remove any class rvalue base class casts so that we make the
-         temporary for the derived class and don't slice.  The casts will
+         a glvalue for the temporary. */
+      /* Temporarily remove any class rvalue base class casts so that we make
+         the temporary for the derived class without slicing.  The casts will
          be reattached to the new expression below. */
       an_expr_node_ptr top_cast = NULL, bottom_cast = NULL;
       if (is_expression_operand(operand)) {
@@ -19324,36 +19308,57 @@ initializing it from the prvalue.  This routine is used only in C++ mode.
           make_expression_operand(node, operand);
           restore_operand_details(operand, &orig_operand);
         }  /* if */
+      } else {
+        node = make_node_from_operand(operand);
       }  /* if */
-      temp_init_from_operand(operand, /*result_is_lvalue=*/TRUE);
-      if (top_cast != NULL && !is_error_operand(operand)) {
+      node = glvalue_from_class_prvalue_node(node, is_xvalue);
+      if (top_cast != NULL) {
         /* Restore the base class casts on top of the initialization of the
            temporary. */
-        check_assertion(is_expression_operand(operand));
-        bottom_cast->variant.operation.operands = operand->variant.expression;
-        /* Change the rvalue casts to lvalue casts. */
+        bottom_cast->variant.operation.operands = node;
         node = top_cast;
+        /* Change the rvalue casts to glvalue casts. */
         check_assertion(is_operation_node(node));
         if (node_operator_is(node, eok_class_rvalue_adjust)) {
           set_node_operator(node, (an_expr_operator_kind)eok_lvalue_adjust,
                             node->type, /*is_lvalue=*/TRUE,
                             node->variant.operation.operands);
+          if (is_xvalue) {
+            node->is_xvalue = TRUE;
+            node->is_lvalue = FALSE;
+          }  /* if */
           node = node->variant.operation.operands;
         }  /* if */
         for (;;) {
           check_assertion(is_operation_node(node) &&
                           node_operator_is(node, eok_base_class_cast));
-          node->is_lvalue = TRUE;
+          if (is_xvalue) {
+            node->is_xvalue = TRUE;
+          } else {
+            node->is_lvalue = TRUE;
+          }  /* if */
           if (node == bottom_cast) break;
           node = node->variant.operation.operands;
           check_assertion(node != NULL);
         }  /* for */
-        make_glvalue_expression_operand(top_cast, operand);
+        node = top_cast;
       }  /* if */
+      make_glvalue_expression_operand(node, operand);
     }  /* if */
     /* Restore the original source position, etc. */
     restore_operand_details(operand, &orig_operand);
   }  /* if */
+}  /* conv_class_prvalue_operand_to_glvalue */
+
+
+void conv_class_prvalue_operand_to_lvalue(an_operand  *operand)
+/*
+Convert a prvalue class operand into an operand for an lvalue for the
+object.  If necessary, this will involve creating a temporary and
+initializing it from the prvalue.  This routine is used only in C++ mode.
+*/
+{
+  conv_class_prvalue_operand_to_glvalue(operand, /*xvalue=*/FALSE);
 }  /* conv_class_prvalue_operand_to_lvalue */
 
 
@@ -20209,6 +20214,22 @@ lvalue_adjust:
         default:
           break;
       }  /* switch */
+    }  /* if */
+  } else if (node->kind == (an_expr_node_kind)enk_temp_init) {
+    /* If the given node is a generated temporary initialized with an rvalue
+       expression of the right type, just get back that expression. */
+    a_dynamic_init_ptr  dip = node->variant.init.dynamic_init;
+    if (dip->kind == (a_dynamic_init_kind)dik_expression &&
+        !dip->is_result_for_class_rvalue_question_mark) {
+      an_expr_node_ptr  dip_expr = dip->variant.expression;
+      if (!dip_expr->is_lvalue && !dip_expr->is_xvalue &&
+          is_generated_dynamic_init(dip) &&
+          identical_types_full(dip_expr->type, prvalue_node_type,
+                               ITF_EXACT_EQUIVALENCE)) {
+        reclaim_node_if_possible(node);
+        node = dip_expr;
+        processed = TRUE;
+      }  /* if */
     }  /* if */
   } else if (node->kind == (an_expr_node_kind)enk_object_lifetime) {
     /* We don't expect an lvalue-to-rvalue conversion to be done after the

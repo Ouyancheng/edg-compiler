@@ -21209,6 +21209,10 @@ the temporary if result_is_lvalue is FALSE.  Used only in C++ mode.
       /* A copy constructor must be used.  An error is issued if there
          is no applicable copy constructor.  No access checking is done
          here because set_up_for_constructor_call does it below. */
+      /* Binding the operand to the reference of the copy constructor could
+         lead to unbounded recursion.  Mark it with a special flag so
+         prep_reference_initializer will know not to attempt creating another
+         temporary on top of it. */
       cctor_routine = expr_select_copy_constructor(
                                 unqual_temp_type,
                                 get_type_qualifiers(operand->type),
@@ -22580,14 +22584,17 @@ the conversion.
       add_copy_to_temp_for_microsoft_rvalue_question_mark(source_operand);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (is_a_prvalue(source_operand) &&
-        !is_any_reference_type(source_operand->type)) {
-      /* Turn a class prvalue into a glvalue to avoid slicing the result (e.g.,
-         when folding later on). */
-      take_reference_to_operand(source_operand, is_rvalue_ref);
-      add_reference_indirection(source_operand);
-      if (is_rvalue_ref) {
-        conv_rvalue_reference_result_to_xvalue(source_operand);
+    if (is_a_prvalue(source_operand)) {
+      a_type_ptr  utp = skip_typerefs(source_operand->type);
+      if (!is_any_reference_type(utp)) {
+        /* Turn a class prvalue into a glvalue to avoid slicing the result
+           (e.g., when folding later on). */
+        complete_type_is_needed(utp);
+        if (utp->incomplete) {
+          expect_error();
+        } else {
+          conv_class_prvalue_operand_to_glvalue(source_operand, is_rvalue_ref);
+        }  /* if */
       }  /* if */
     }  /* if */
     full_adjust_class_object_type(source_operand, adj_base_dest_type);

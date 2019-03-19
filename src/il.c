@@ -20374,6 +20374,67 @@ The returned node is a prvalue.
 }  /* add_address_of_to_node */
 
 
+an_expr_node_ptr glvalue_from_class_prvalue_node(an_expr_node_ptr node,
+                                                 a_boolean        is_xvalue)
+/*
+Turn the node given node into a glvalue node.  This is done by adding an
+enk_temp_init node on top, unless it's already an enk_temp_init node, an
+enk_lambda node, or a chain of eok_comma and eok_dot_field nodes ending
+in an enk_temp_init or enk_lambda node.  Return an xvalue if is_xvalue is
+TRUE or an lvalue otherwise.
+*/
+{
+  an_expr_node_ptr  chain, chain_end = node;
+
+  /* Skip any eok_comma, eok_parens, and eok_dot_field nodes. */
+  while (is_operation_node(chain_end)) {
+    if (node_operator_is(chain_end, eok_comma)) {
+      chain_end = chain_end->variant.operation.operands->next;
+    } else if (node_operator_is(chain_end, eok_parens) ||
+               node_operator_is(chain_end, eok_dot_field)) {
+      chain_end = chain_end->variant.operation.operands;
+    } else {
+      break;
+    }  /* if */
+  }  /* while */
+  /* Add an enk_temp_init node, unless we're already dealing with a node
+     representing a temporary. */
+  if (chain_end->kind != (an_expr_node_kind)enk_temp_init &&
+      chain_end->kind != (an_expr_node_kind)enk_lambda) {
+    a_dynamic_init_ptr  dip = alloc_expr_dynamic_init(
+                                     (a_dynamic_init_kind)dik_expression);
+    dip->variant.expression = node;
+    node = alloc_temp_init_node(node->type, dip, /*is_lvalue=*/TRUE,
+                                /*is_explicit_cast=*/FALSE);
+    node->is_lvalue = FALSE;
+    chain_end = node;
+  }  /* if */
+  for (chain = node; chain != chain_end;) {
+    if (is_xvalue) {
+      chain->is_xvalue = TRUE;
+    } else {
+      chain->is_lvalue = TRUE;
+    }  /* if */
+    if (node_operator_is(chain, eok_comma)) {
+      chain->variant.operation
+                    .returns_lvalue_instead_of_usual_rvalue = TRUE;
+      chain = chain->variant.operation.operands->next;
+    } else if (node_operator_is(chain, eok_parens) ||
+               node_operator_is(chain, eok_dot_field)) {
+      chain = chain->variant.operation.operands;
+    } else {
+      break;
+    }  /* if */
+  }  /* for */
+  if (is_xvalue) {
+    chain->is_xvalue = TRUE;
+  } else {
+    chain->is_lvalue = TRUE;
+  }  /* if */
+  return node;
+}  /* glvalue_from_class_prvalue_node */
+
+
 an_expr_node_ptr add_reference_to_to_node(an_expr_node_ptr node)
 /*
 Add an eok_reference_to operation on top of the given node (a glvalue
@@ -20396,48 +20457,12 @@ operator in the source code.  The returned node is a prvalue.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                make_reference_type(node->type);
     } else {
-      an_expr_node_ptr  chain, chain_end = node;
       /* For the prvalue case, the operand should be a class. */
       check_assertion(is_class_struct_union_type(node->type) ||
                       is_template_param_type(node->type) ||
                       is_error_type(node->type));
-      /* Turn the node into an enk_temp_init xvalue node, unless it's already
-         an enk_temp_init node, an enk_lambda node, or a chain of eok_comma and
-         eok_dot_field nodes ending in an enk_temp_init or enk_lambda node. */
-      while (is_operation_node(chain_end)) {
-        if (node_operator_is(chain_end, eok_comma)) {
-          chain_end = chain_end->variant.operation.operands->next;
-        } else if (node_operator_is(chain_end, eok_parens) ||
-                   node_operator_is(chain_end, eok_dot_field)) {
-          chain_end = chain_end->variant.operation.operands;
-        } else {
-          break;
-        }  /* if */
-      }  /* while */
-      if (chain_end->kind != (an_expr_node_kind)enk_temp_init &&
-          chain_end->kind != (an_expr_node_kind)enk_lambda) {
-        a_dynamic_init_ptr  dip = alloc_expr_dynamic_init(
-                                         (a_dynamic_init_kind)dik_expression);
-        dip->variant.expression = node;
-        node = alloc_temp_init_node(node->type, dip, /*is_lvalue=*/TRUE,
-                                    /*is_explicit_cast=*/FALSE);
-        node->is_lvalue = FALSE;
-        chain_end = node;
-      }  /* if */
-      for (chain = node; chain != chain_end;) {
-        chain->is_xvalue = TRUE;
-        if (node_operator_is(chain, eok_comma)) {
-          chain->variant.operation
-                        .returns_lvalue_instead_of_usual_rvalue = TRUE;
-          chain = chain->variant.operation.operands->next;
-        } else if (node_operator_is(chain, eok_parens) ||
-                   node_operator_is(chain, eok_dot_field)) {
-          chain = chain->variant.operation.operands;
-        } else {
-          break;
-        }  /* if */
-      }  /* for */
-      chain->is_xvalue = TRUE;
+      /* Turn the node into an xvalue node. */
+      node = glvalue_from_class_prvalue_node(node, /*is_xvalue=*/TRUE);
       /* If the entity is an rvalue of a ref class type, the reference
          created is a tracking reference. */
       ref_type =
