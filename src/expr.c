@@ -19754,6 +19754,117 @@ static a_symbol_ptr get_ctor_sym_for_new_type(
 }  /* get_ctor_sym_for_new_type */
 
 
+static a_routine_ptr get_new_routine(a_symbol_ptr      function_symbol,
+                                     a_source_position *new_position,
+                                     a_type_ptr        base_new_type,
+                                     a_type_ptr        unqual_base_new_type,
+                                     a_symbol_ptr      ctor_sym,
+                                     a_class_symbol_supplement_ptr
+                                                       cssp,
+                                     a_boolean         use_global_new,
+                                     a_boolean         placement_new,
+                                     a_boolean         array_new,
+                                     a_boolean         empty_initializer,
+                                     a_boolean         has_new_initializer,
+                                     a_boolean         has_braced_initializer,
+                                     a_routine_ptr     *delete_routine,
+                                     a_boolean         *delete_ambiguous)
+/*
+Work out the "new" routine and its arguments.  Returns the new routine.
+*/
+{
+  a_routine_ptr new_routine = function_symbol->variant.routine.ptr;
+
+  /* Determine the delete routine to be called if an exception is
+  thrown before the initialization completes. */
+  if (exceptions_enabled
+#if !ABI_CHANGES_FOR_PLACEMENT_DELETE
+      /* When placement delete is not supported do not look for a delete
+      routine. */
+      && !placement_new
+#endif /* !ABI_CHANGES_FOR_PLACEMENT_DELETE */
+      ) {
+    *delete_routine = determine_deletion_for_new(base_new_type,
+                                                 function_symbol,
+                                                 use_global_new,
+                                                 placement_new,
+                                                 new_position,
+                                                 delete_ambiguous);
+  }  /* if */
+
+  #if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
+    if (array_new) {
+      /* If allocating an array and a runtime routine will be used, the
+         "new" routine can be implicit if it is the default global new[]. */
+      if (new_or_delete_type_requires_array_handling(
+                                                 base_new_type,
+                                                 /*check_constructor=*/TRUE)) {
+        an_opname_kind array_opname_kind = array_new_and_delete_enabled ?
+                                             (an_opname_kind)onk_array_new :
+                                             (an_opname_kind)onk_new;
+        a_symbol_ptr   sym = opname_function_symbol(array_opname_kind);
+        a_boolean      ambiguous;
+
+        /* In Microsoft mode, because the non-array new routine can be used
+           for an array new, the symbol can be NULL. */
+        if (sym != NULL &&
+            function_symbol == find_default_operator_new_sym(sym, &ambiguous)&&
+            /* See core issue 412: avoid problems if user-provided new is
+               inline. */
+            !new_routine->is_inline) {
+          new_routine = NULL;
+        }  /* if */
+      }  /* if */
+    } else
+#endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+    /* No code above this line. */
+    {
+      /* If allocating a class with a constructor, determine the default
+         "new" routine for the class and see whether it is the one that
+         was selected.  If so, the "new" call can be folded into the
+         constructor call. */
+      if (ctor_sym != NULL) {
+        /* If the entity gets value-initialization, suppress this
+           optimization, because there's no way to tell the constructor
+           to do the necessary zeroing after the allocation.  Also
+           suppress this if the constructor that will be chosen is
+           a trivial default constructor (a trivial copy constructor is
+           okay; we can generate the body for that and call it). */
+        a_boolean value_init = (empty_initializer &&
+                                value_initialization_enabled);
+        a_boolean trivial_ctor_init = ((empty_initializer ||
+                                        !has_new_initializer) &&
+                                       !value_init &&
+                                       has_trivial_default_constructor(cssp));
+        if (!value_init && !trivial_ctor_init &&
+            /* A braced-initializer always does some kind of initialization
+               (at least value-initialization), so we can't fold. */
+            !has_braced_initializer &&
+            /* If the expression that follows might be an empty pack
+               expansion, we might end up with value initialization anyway
+               so we can't fold. */
+            !is_variadic_template_context()) {
+          set_class_assoc_operator_new_routine(unqual_base_new_type);
+          if (exceptions_enabled) {
+            set_class_assoc_operator_delete_routine(unqual_base_new_type);
+          }  /* if */
+          if (class_type_supp(unqual_base_new_type)
+                                 ->assoc_operator_new_routine == new_routine &&
+              (!exceptions_enabled ||
+               class_type_supp(unqual_base_new_type)
+                        ->assoc_operator_delete_routine == *delete_routine)) {
+            new_routine = NULL;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+
+    return new_routine;
+}  /* get_new_routine */
+
+
 static void scan_new_operator(a_rescan_control_block *rcblock,
                               an_operand             *result)
 /*
@@ -20098,93 +20209,16 @@ expression, and return the result in *result (or an error indication in
 
   if (!err && function_symbol != NULL) {
     a_boolean access_error_reported;
-    /* Work out the "new" routine and its arguments. */
-    new_routine = function_symbol->variant.routine.ptr;
-    /* Determine the delete routine to be called if an exception is
-       thrown before the initialization completes. */
-    if (exceptions_enabled
-#if !ABI_CHANGES_FOR_PLACEMENT_DELETE
-        /* When placement delete is not supported do not look for a delete
-           routine. */
-        && !placement_new
-#endif /* !ABI_CHANGES_FOR_PLACEMENT_DELETE */
-                         ) {
-      delete_routine = determine_deletion_for_new(base_new_type,
-                                                  function_symbol,
-                                                  use_global_new,
-                                                  placement_new,
-                                                  &new_position,
-                                                  &delete_ambiguous);
-    }  /* if */
-#if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
-    if (array_new) {
-      /* If allocating an array and a runtime routine will be used, the
-         "new" routine can be implicit if it is the default global new[]. */
-      if (new_or_delete_type_requires_array_handling(
-                                                 base_new_type,
-                                                 /*check_constructor=*/TRUE)) {
-        an_opname_kind array_opname_kind = array_new_and_delete_enabled ?
-                                             (an_opname_kind)onk_array_new :
-                                             (an_opname_kind)onk_new;
-        a_symbol_ptr   sym = opname_function_symbol(array_opname_kind);
-        a_boolean      ambiguous;
 
-        /* In Microsoft mode, because the non-array new routine can be used
-           for an array new, the symbol can be NULL. */
-        if (sym != NULL &&
-            function_symbol == find_default_operator_new_sym(sym, &ambiguous)&&
-            /* See core issue 412: avoid problems if user-provided new is
-               inline. */
-            !new_routine->is_inline) {
-          new_routine = NULL;
-        }  /* if */
-      }  /* if */
-    } else {
-#endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
-#if NEW_CAN_BE_FOLDED_INTO_CTOR
-      /* If allocating a class with a constructor, determine the default
-         "new" routine for the class and see whether it is the one that
-         was selected.  If so, the "new" call can be folded into the
-         constructor call. */
-      if (ctor_sym != NULL) {
-        /* If the entity gets value-initialization, suppress this
-           optimization, because there's no way to tell the constructor
-           to do the necessary zeroing after the allocation.  Also
-           suppress this if the constructor that will be chosen is
-           a trivial default constructor (a trivial copy constructor is
-           okay; we can generate the body for that and call it). */
-        a_boolean value_init = (empty_initializer &&
-                                value_initialization_enabled);
-        a_boolean trivial_ctor_init = ((empty_initializer ||
-                                        !has_new_initializer) &&
-                                       !value_init &&
-                                       has_trivial_default_constructor(cssp));
-        if (!value_init && !trivial_ctor_init &&
-            /* A braced-initializer always does some kind of initialization
-               (at least value-initialization), so we can't fold. */
-            !has_braced_initializer &&
-            /* If the expression that follows might be an empty pack
-               expansion, we might end up with value initialization anyway
-               so we can't fold. */
-            !is_variadic_template_context()) {
-          set_class_assoc_operator_new_routine(unqual_base_new_type);
-          if (exceptions_enabled) {
-            set_class_assoc_operator_delete_routine(unqual_base_new_type);
-          }  /* if */
-          if (class_type_supp(unqual_base_new_type)
-                                 ->assoc_operator_new_routine == new_routine &&
-              (!exceptions_enabled ||
-               class_type_supp(unqual_base_new_type)
-                          ->assoc_operator_delete_routine == delete_routine)) {
-            new_routine = NULL;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
-#if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
-    }  /* if */
-#endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
+    new_routine = get_new_routine(function_symbol, &new_position,
+                                  base_new_type, unqual_base_new_type,
+                                  ctor_sym, cssp,
+                                  use_global_new, placement_new, array_new,
+                                  empty_initializer, has_new_initializer,
+                                  has_braced_initializer,
+                                  &delete_routine, &delete_ambiguous);
     if (new_routine != NULL) new_routine->called = TRUE;
+
     /* Mark the "new" routine as referenced, check access to it. */
     overloaded_function_catch_up(proj_function_symbol,
                                  operator_new_symbol,
@@ -20197,6 +20231,7 @@ expression, and return the result in *result (or an error indication in
                                  (an_operand *)NULL,
                                  &access_error_reported);
   }  /* if */
+
   if (!err && (proj_function_symbol != NULL || unknown_dependent_new)) {
     /* Adjust the argument types, issue any warnings, create an
        argument expression list, and free arg_list and arg_match_list. */
