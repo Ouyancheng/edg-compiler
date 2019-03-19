@@ -17856,8 +17856,13 @@ the deallocation and return a pointer to it.
 }  /* f_make_dyn_init_for_deletion_for_throw */
 
 
+static inline void make_dyn_init_for_deletion_for_throw(
+                                            a_dynamic_init_ptr *dyn_init,
+                                            a_routine_ptr      new_routine,
+                                            a_routine_ptr      delete_routine,
+                                            a_boolean          array_new)
 /*
-Macro used to call f_make_dyn_init_for_deletion_for_throw from within
+Function used to call f_make_dyn_init_for_deletion_for_throw from within
 scan_new_operator.  Sets dyn_init_to_free_storage, if necessary, to
 point to a dynamic init entry that will free the storage allocated by
 the "new" if an exception is thrown before the initialization of the
@@ -17867,21 +17872,27 @@ initialization is scanned (so the cleanup entry gets onto the object
 lifetime list in the right place).  For gcnew, this macro does nothing
 as new_routine will always be NULL and array_new will always be FALSE.
 */
-/* Do not record the deletion if no delete routine is needed or if
-   allocation is folded into a constructor (new_routine == NULL
-   on a non-array new). */
-#define make_dyn_init_for_deletion_for_throw()                        \
-{ if (delete_routine != NULL &&                                       \
-      (new_routine != NULL || array_new) &&                           \
-      !curr_expr_kind_is_const()) {                                   \
-    dyn_init_to_free_storage =                                        \
-      f_make_dyn_init_for_deletion_for_throw(delete_routine, array_new); \
-  }  /* if */                                                         \
+{
+  /* Do not record the deletion if no delete routine is needed or if
+     allocation is folded into a constructor (new_routine == NULL
+     on a non-array new). */
+  if (delete_routine != NULL &&
+      (new_routine != NULL || array_new) &&
+      !curr_expr_kind_is_const()) {
+    *dyn_init =
+      f_make_dyn_init_for_deletion_for_throw(delete_routine, array_new);
+  }  /* if */
 }  /* make_dyn_init_for_deletion_for_throw */
 
 
+static inline void warn_about_missing_delete(a_routine_ptr delete_routine,
+                                             a_symbol_ptr  function_symbol,
+                                             a_source_position
+                                                           *new_position,
+                                             a_boolean     array_new,
+                                             a_boolean     delete_ambiguous)
 /*
-Macro to issue a warning about a missing operator delete corresponding to a
+Function to issue a warning about a missing operator delete corresponding to a
 new-expression that might throw an exception.  The warning is only issued if
 the operator is missing and the given boolean flag is TRUE.  There is no
 need to issue the warning if exceptions are disabled (since no exceptions
@@ -17890,16 +17901,16 @@ instantiations or errors) the actual operator new being called is not known
 and hence we cannot examine the matching operator delete either.  For gcnew,
 this macro does nothing as function_symbol will always be NULL.
 */
-#define warn_about_missing_delete_if(cond)                                  \
-{ if (/*lint --e(506)*/delete_routine == NULL && exceptions_enabled &&      \
-      !delete_ambiguous && function_symbol != NULL && (cond)) {             \
-    if (expr_diagnostic_should_be_issued(es_warning,                        \
-                                         ec_no_corresponding_delete)) {     \
-      pos_stsy_warning(ec_no_corresponding_delete, &new_position,           \
-                       (char *)(array_new ? "[]" : ""), function_symbol);   \
-    }  /* if */                                                             \
-  }  /* if */                                                               \
-}  /* warn_about_missing_delete_if */
+{
+  if (delete_routine == NULL && exceptions_enabled &&
+      !delete_ambiguous && function_symbol != NULL) {
+    if (expr_diagnostic_should_be_issued(es_warning,
+                                         ec_no_corresponding_delete)) {
+      pos_stsy_warning(ec_no_corresponding_delete, new_position,
+                       (char *)(array_new ? "[]" : ""), function_symbol);
+    }  /* if */
+  }  /* if */
+}  /* warn_about_missing_delete */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -19865,6 +19876,180 @@ Work out the "new" routine and its arguments.  Returns the new routine.
 }  /* get_new_routine */
 
 
+static void prep_new_object_init_no_initializer(
+                                a_type_ptr         new_type,
+                                a_type_ptr         base_new_type,
+                                a_type_ptr         unqual_base_new_type,
+                                a_source_position  *new_position,
+                                a_source_position  *type_position,
+                                a_routine_ptr      new_routine,
+                                a_routine_ptr      delete_routine,
+                                a_symbol_ptr       function_symbol,
+                                a_symbol_ptr       ctor_sym,
+                                a_class_symbol_supplement_ptr
+                                                   cssp,
+                                a_boolean          dependent_new_type,
+                                a_boolean          is_gcnew,
+                                a_boolean          array_new,
+                                a_boolean          cli_array_new,
+                                a_boolean          delete_ambiguous,
+                                a_dynamic_init_ptr *dip,
+                                a_dynamic_init_ptr *dyn_init_to_free_storage,
+                                a_boolean          *needs_initialization,
+                                a_boolean          *zero_initialization,
+                                a_boolean          *err)
+/*
+Validate and prepare (if warranted) initializer for the object when no
+initializer was provided.
+*/
+{
+  if (is_class_struct_union_type(base_new_type) && !dependent_new_type &&
+    (cssp == NULL || !cssp->is_cpp03_POD || cssp->constructor != NULL)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      && !(cli_or_cx_enabled && is_value_class_type(base_new_type))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      ) {
+    /* A class type (or array thereof) where the class is either not a POD
+    class or is a POD class with a user-declared (defaulted or deleted)
+    constructor. */
+    a_boolean is_generated_ctor = FALSE, do_const_test = FALSE;
+    /* Look for a default constructor. */
+    if (unqual_base_new_type->variant.class_struct_union.is_nonreal_class) {
+      /* Don't look for a default constructor in a dependent type. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcx_enabled && cli_array_new) {
+      /* The new-init is not required for the Platform::Array type so long
+      as an array-init follows.  We'll check for the array-init later.
+      There is a similar check for the C++/CLI case below, but we have to
+      perform this check earlier for C++/CX since the array type has a
+      constructor symbol. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (ctor_sym != NULL) {
+      a_boolean     def_ctor_err;
+      a_routine_ptr ctor_routine;
+      /* The class has one or more constructors.  Look for a default
+      constructor.  The call issues an error and returns NULL
+      if no default constructor is found. */
+      /* Develop the dynamic init entry, if any, used to free storage
+      if an exception is thrown before the initialization is finished.
+      This must be done after it has been determined that initialization
+      is required, but before the initialization is actually processed. */
+      make_dyn_init_for_deletion_for_throw(dyn_init_to_free_storage,
+                                           new_routine,
+                                           delete_routine,
+                                           array_new);
+      ctor_routine = expr_select_default_constructor(base_new_type,
+                                                     type_position,
+                                                     &def_ctor_err);
+      if (!def_ctor_err) {
+        do_const_test = TRUE;
+        if (ctor_routine == NULL) {
+          /* A user-declared defaulted trivial default constructor. */
+          is_generated_ctor = TRUE;
+        } else {
+          /* A non-trivial constructor. */
+          is_generated_ctor = ctor_routine->compiler_generated;
+          *needs_initialization = TRUE;
+          warn_about_missing_delete(delete_routine,
+                                    function_symbol,
+                                    new_position,
+                                    array_new,
+                                    delete_ambiguous);
+          /* Make the dynamic initialization entry (possibly folded
+          to a constant if constexpr, but not if we've folded the
+          "new" into the constructor call). */
+          *dip = alloc_expr_ctor_dynamic_init(ctor_routine,
+                                              (an_expr_node_ptr)NULL,
+                                              base_new_type,
+                                              /*static_temp=*/FALSE,
+                                              /*add_default_args=*/TRUE,
+                                              /*implied_source=*/FALSE,
+                                              /*value_init=*/FALSE,
+                                              /*sequenced_args=*/FALSE,
+                                              /*fold_constexpr=*/
+                                              (new_routine != NULL),
+                                              /*check_constexpr=*/FALSE,
+                                              type_position);
+        }  /* if */
+      }  /* if */
+    } else if (expr_reference_to_trivial_default_constructor(base_new_type,
+                                                             type_position)) {
+      /* The class has an assumed trivial default constructor. */
+      do_const_test = TRUE;
+      is_generated_ctor = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cli_array_new) {
+      /* The new-init is not required for a C++/CLI array type so long as an
+      array-init follows.  We'll check for the array-init later. */
+    } else if (is_gcnew &&
+               is_cli_generic_definition_argument_type(new_type)) {
+      /* This is a gcnew of a generic type, and it doesn't have a gcnew
+      constraint, because no default constructor was found above. */
+      if (expr_error_should_be_issued()) {
+        pos_ty_error(ec_invalid_gcnew_type, type_position, new_type);
+      }  /* if */
+      *err = TRUE;
+    } else if (microsoft_mode &&
+               skip_typerefs(new_type)->variant.class_struct_union
+               .default_ctor_decl_suppressed) {
+      /* In Microsoft mode default constructors can be suppressed. */
+      if (expr_error_should_be_issued()) {
+        pos_ty_error(ec_no_default_constructor, type_position, new_type);
+      }  /* if */
+      *err = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else {
+      /* Note that this case comes up if the class type is incomplete.
+      An error was issued previously. */
+      check_assertion_str(*err,
+      "scan_new_operator: non-POD class has neither actual nor assumed ctor");
+    }  /* if */
+    if (do_const_test && (!any_cfront_mode() && !microsoft_mode)) {
+      /* When the initializer is omitted on a "new" of a const class
+      object, the default constructor is required to be explicitly
+      declared; it can't be implicit. */
+      if (is_generated_ctor && is_const_qualified_type(new_type) &&
+          !is_empty_class_type(new_type)) {
+        if (expr_error_should_be_issued()) {
+          type_error(ec_missing_default_constructor_on_unnamed_const,
+                     unqual_base_new_type);
+        }  /* if */
+        *err = TRUE;
+      }  /* if */
+    }  /* if */
+  } else {
+    /* A non-class type or a POD class with no user-declared constructor.
+    Check for error cases like const entities not being initialized
+    (since there is no initializer). */
+    if (!*err && !dependent_new_type) {
+      a_boolean  *p_err = NULL;
+      if (expr_stack->suppress_diagnostics) {
+        /* Don't issue diagnostics in SFINAE contexts. */
+        p_err = err;
+      }  /* if */
+      check_for_missing_initializer_full((a_symbol_ptr)NULL, new_type,
+                                         /*explicitly_internal=*/FALSE,
+                                         p_err);
+      if (*err) {
+        record_suppressed_error();
+      }  /* if */
+    }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (is_gcnew) {
+      /* Check to see if this is a fundamental, value, or cli enum type
+      without a new initializer and ensure that they are
+      zero-initialized. */
+      if (is_value_class_or_fundamental_type(base_new_type) ||
+          is_cli_enum_type(base_new_type)) {
+        *needs_initialization = TRUE;
+        *zero_initialization = TRUE;
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+}  /* prep_new_object_init_no_initializer */
+
+
 static void scan_new_operator(a_rescan_control_block *rcblock,
                               an_operand             *result)
 /*
@@ -20252,11 +20437,13 @@ expression, and return the result in *result (or an error indication in
     check_assertion(arg_expr_list != NULL);
     arg_expr_list = arg_expr_list->next;
   }  /* if */
+
   /* If the new routine will be called (and not folded into a constructor),
      the initializer expression is actually inside a conditional expression
      context, because if the allocation fails the initialization will
      not be done. */
   if (new_routine != NULL) expr_stack->inside_conditional_expression = TRUE;
+
   /* See if the object has or needs initialization.  Note that we need to
      scan the initializer (if there is one) even if an error was detected
      above. */
@@ -20266,143 +20453,19 @@ expression, and return the result in *result (or an error indication in
   init_val_node = NULL;
   if (!has_new_initializer) {
     /* No new-initializer is present. */
-    if (is_class_struct_union_type(base_new_type) && !dependent_new_type &&
-        (cssp == NULL || !cssp->is_cpp03_POD || cssp->constructor != NULL)
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        && !(cli_or_cx_enabled && is_value_class_type(base_new_type))
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-       ) {
-      /* A class type (or array thereof) where the class is either not a POD
-        class or is a POD class with a user-declared (defaulted or deleted)
-        constructor. */
-      a_boolean is_generated_ctor = FALSE, do_const_test = FALSE;
-      /* Look for a default constructor. */
-      if (unqual_base_new_type->variant.class_struct_union.is_nonreal_class) {
-        /* Don't look for a default constructor in a dependent type. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (cppcx_enabled && cli_array_new) {
-        /* The new-init is not required for the Platform::Array type so long
-           as an array-init follows.  We'll check for the array-init later.
-           There is a similar check for the C++/CLI case below, but we have to
-           perform this check earlier for C++/CX since the array type has a
-           constructor symbol. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      } else if (ctor_sym != NULL) {
-        a_boolean     def_ctor_err;
-        a_routine_ptr ctor_routine;
-        /* The class has one or more constructors.  Look for a default
-           constructor.  The call issues an error and returns NULL
-           if no default constructor is found. */
-        /* Develop the dynamic init entry, if any, used to free storage
-           if an exception is thrown before the initialization is finished.
-           This must be done after it has been determined that initialization
-           is required, but before the initialization is actually processed. */
-        make_dyn_init_for_deletion_for_throw();
-        ctor_routine = expr_select_default_constructor(base_new_type,
-                                                       &type_position,
-                                                       &def_ctor_err);
-        if (!def_ctor_err) {
-          do_const_test = TRUE;
-          if (ctor_routine == NULL) {
-            /* A user-declared defaulted trivial default constructor. */
-            is_generated_ctor = TRUE;
-          } else {
-            /* A non-trivial constructor. */
-            is_generated_ctor = ctor_routine->compiler_generated;
-            needs_initialization = TRUE;
-            warn_about_missing_delete_if(TRUE);
-            /* Make the dynamic initialization entry (possibly folded
-               to a constant if constexpr, but not if we've folded the
-               "new" into the constructor call). */
-            dip = alloc_expr_ctor_dynamic_init(ctor_routine,
-                                               (an_expr_node_ptr)NULL,
-                                               base_new_type,
-                                               /*static_temp=*/FALSE,
-                                               /*add_default_args=*/TRUE,
-                                               /*implied_source=*/FALSE,
-                                               /*value_init=*/FALSE,
-                                               /*sequenced_args=*/FALSE,
-                                               /*fold_constexpr=*/
-                                                         (new_routine != NULL),
-                                               /*check_constexpr=*/FALSE,
-                                               &type_position);
-          }  /* if */
-        }  /* if */
-      } else if (expr_reference_to_trivial_default_constructor(base_new_type,
-                                                             &type_position)) {
-        /* The class has an assumed trivial default constructor. */
-        do_const_test = TRUE;
-        is_generated_ctor = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (cli_array_new) {
-        /* The new-init is not required for a C++/CLI array type so long as an
-           array-init follows.  We'll check for the array-init later. */
-      } else if (is_gcnew &&
-                 is_cli_generic_definition_argument_type(new_type)) {
-        /* This is a gcnew of a generic type, and it doesn't have a gcnew
-           constraint, because no default constructor was found above. */
-        if (expr_error_should_be_issued()) {
-          pos_ty_error(ec_invalid_gcnew_type, &type_position, new_type);
-        }  /* if */
-        err = TRUE;
-      } else if (microsoft_mode &&
-                 skip_typerefs(new_type)->variant.class_struct_union
-                                              .default_ctor_decl_suppressed) {
-        /* In Microsoft mode default constructors can be suppressed. */
-        if (expr_error_should_be_issued()) {
-          pos_ty_error(ec_no_default_constructor, &type_position, new_type);
-        }  /* if */
-        err = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      } else {
-        /* Note that this case comes up if the class type is incomplete.
-           An error was issued previously. */
-        check_assertion_str(err,
-       "scan_new_operator: non-POD class has neither actual nor assumed ctor");
-      }  /* if */
-      if (do_const_test && (!any_cfront_mode() && !microsoft_mode)) {
-        /* When the initializer is omitted on a "new" of a const class
-           object, the default constructor is required to be explicitly
-           declared; it can't be implicit. */
-        if (is_generated_ctor && is_const_qualified_type(new_type) &&
-            !is_empty_class_type(new_type)) {
-          if (expr_error_should_be_issued()) {
-            type_error(ec_missing_default_constructor_on_unnamed_const,
-                       unqual_base_new_type);
-          }  /* if */
-          err = TRUE;
-        }  /* if */
-      }  /* if */
-    } else {
-      /* A non-class type or a POD class with no user-declared constructor.
-         Check for error cases like const entities not being initialized
-         (since there is no initializer). */
-      if (!err && !dependent_new_type) {
-        a_boolean  *p_err = NULL;
-        if (expr_stack->suppress_diagnostics) {
-          /* Don't issue diagnostics in SFINAE contexts. */
-          p_err = &err;
-        }  /* if */
-        check_for_missing_initializer_full((a_symbol_ptr)NULL, new_type,
-                                           /*explicitly_internal=*/FALSE,
-                                           p_err);
-        if (err) {
-          record_suppressed_error();
-        }  /* if */
-      }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (is_gcnew) {
-        /* Check to see if this is a fundamental, value, or cli enum type
-           without a new initializer and ensure that they are
-           zero-initialized. */
-        if (is_value_class_or_fundamental_type(base_new_type) ||
-            is_cli_enum_type(base_new_type)) {
-          needs_initialization = TRUE;
-          zero_initialization = TRUE;
-        }  /* if */
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    }  /* if */
+    prep_new_object_init_no_initializer(new_type, base_new_type,
+                                        unqual_base_new_type,
+                                        &new_position, &type_position,
+                                        new_routine, delete_routine,
+                                        function_symbol, ctor_sym, cssp,
+                                        dependent_new_type, is_gcnew,
+                                        array_new, cli_array_new,
+                                        delete_ambiguous,
+                                        &dip,
+                                        &dyn_init_to_free_storage,
+                                        &needs_initialization,
+                                        &zero_initialization,
+                                        &err);
   } else if (has_braced_initializer) {
     /* A C++11-style list initializer, e.g., new T{x, y}. */
     an_init_state        init_state;
@@ -20414,7 +20477,10 @@ expression, and return the result in *result (or an error indication in
        if an exception is thrown before the initialization is finished.
        This must be done after it has been determined that initialization
        is required, but before the initialization is actually processed. */
-    make_dyn_init_for_deletion_for_throw();
+    make_dyn_init_for_deletion_for_throw(&dyn_init_to_free_storage,
+                                         new_routine,
+                                         delete_routine,
+                                         array_new);
     if (rcblock != NULL) {
       /* On a rescan, use the substituted version of the braced-init-list
          scanned originally. */
@@ -20545,7 +20611,10 @@ expression, and return the result in *result (or an error indication in
          if an exception is thrown before the initialization is finished.
          This must be done after it has been determined that initialization
          is required, but before the initialization is actually processed. */
-      make_dyn_init_for_deletion_for_throw();
+      make_dyn_init_for_deletion_for_throw(&dyn_init_to_free_storage,
+                                           new_routine,
+                                           delete_routine,
+                                           array_new);
       /* Scan the constructor arguments and build the dynamic initialization
          entry. */
       scan_ctor_arguments(ctor_sym, &init_position,
@@ -20582,7 +20651,11 @@ expression, and return the result in *result (or an error indication in
            through. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
-        warn_about_missing_delete_if(TRUE);
+        warn_about_missing_delete(delete_routine,
+                                  function_symbol,
+                                  &new_position,
+                                  array_new,
+                                  delete_ambiguous);
         needs_initialization = TRUE;
         if (dip == NULL) {
           /* Some error. */
@@ -20628,7 +20701,10 @@ expression, and return the result in *result (or an error indication in
            if an exception is thrown before the initialization is finished.
            This must be done after it has been determined that initialization
            is required, but before the initialization is actually processed. */
-        make_dyn_init_for_deletion_for_throw();
+        make_dyn_init_for_deletion_for_throw(&dyn_init_to_free_storage,
+                                             new_routine,
+                                             delete_routine,
+                                             array_new);
         init_val_node = scan_parenthesized_initializer_expression(
                                                 &dps,
                                                 rcblock,
@@ -20642,8 +20718,13 @@ expression, and return the result in *result (or an error indication in
           empty_initializer = TRUE;
           goto handle_empty_parens_new_initializer;
         }  /* if */
-        warn_about_missing_delete_if(node_has_side_effects(init_val_node,
-                                                           (a_boolean*)NULL));
+        if (node_has_side_effects(init_val_node, (a_boolean*)NULL)) {
+          warn_about_missing_delete(delete_routine,
+                                    function_symbol,
+                                    &new_position,
+                                    array_new,
+                                    delete_ambiguous);
+        }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         if (rcblock == NULL) end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -20675,6 +20756,7 @@ handle_empty_parens_new_initializer:
       }  /* if */
     }  /* if */
   }  /* if */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_gcnew || cli_array_new /* for error recovery. */) {
     /* Now that the gcnew new-init has been scanned, check for an array-init
