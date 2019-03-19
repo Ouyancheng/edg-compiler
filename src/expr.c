@@ -20050,6 +20050,82 @@ initializer was provided.
 }  /* prep_new_object_init_no_initializer */
 
 
+static void prep_new_object_init_braced_initializer(
+                            a_rescan_control_block *rcblock,
+                            a_type_ptr             new_type,
+                            a_routine_ptr          new_routine,
+                            a_routine_ptr          delete_routine,
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+                            a_source_position      *end_position,
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+                            an_arg_list_elem_ptr   braced_init_list,
+                            a_boolean              array_new,
+                            a_boolean              variable_size_array,
+                            a_boolean              using_expr_cache,
+                            a_dynamic_init_ptr     *dip,
+                            a_dynamic_init_ptr     *dyn_init_to_free_storage,
+                            a_boolean              *needs_initialization,
+                            a_boolean              *err)
+/*
+Validate and prepare (if warranted) initializer for the object when a
+braced initializer was provided.
+*/
+{
+  an_init_state        init_state;
+  an_arg_list_elem_ptr alep;
+
+  /* Develop the dynamic init entry, if any, used to free storage
+  if an exception is thrown before the initialization is finished.
+  This must be done after it has been determined that initialization
+  is required, but before the initialization is actually processed. */
+  make_dyn_init_for_deletion_for_throw(dyn_init_to_free_storage,
+                                       new_routine,
+                                       delete_routine,
+                                       array_new);
+  if (rcblock != NULL) {
+    /* On a rescan, use the substituted version of the braced-init-list
+    scanned originally. */
+    check_assertion(braced_init_list != NULL &&
+                    is_braced_init_component(braced_init_list));
+    alep = braced_init_list;
+  } else if (using_expr_cache) {
+    alep = fetch_init_component_from_initializer_cache(
+                                               expr_stack->initializer_cache);
+  } else {
+    /* Scan from source. */
+    alep = parse_braced_init_list(/*bundle=*/FALSE);
+  }  /* if */
+
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  *end_position = *init_component_end_pos(alep);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  expr_clear_init_state(&init_state);
+  init_state.variable_size_array = variable_size_array;
+  init_state.initializer_can_dimension_array = TRUE;
+  init_state.force_dynamic_init = TRUE;
+  if (rcblock != NULL) init_state.no_diagnostics = TRUE;
+  prep_list_initializer(alep, new_type,
+                        /*is_direct_init=*/TRUE,
+                        /*check_narrowing=*/TRUE,
+                        /*warning_on_narrowing=*/FALSE,
+                        CCO_NEW_INITIALIZER,
+                        /*fill_in_dtor=*/FALSE,
+                        /*force_temp=*/FALSE,
+                        /*make_lvalue_temp=*/FALSE,
+                        (an_operand *)NULL, &init_state,
+                        (an_arg_match_summary *)NULL);
+  if (init_state.init_error) {
+    *err = TRUE;
+    if (rcblock != NULL) subst_fail(rcblock->error_detected);
+  } else {
+    *needs_initialization = TRUE;
+    *dip = init_state.init_dip;
+    check_assertion(*dip != NULL);
+  }  /* if */
+  free_init_component_list(alep);
+}  /* prep_new_object_init_braced_initializer */
+
+
 static void scan_new_operator(a_rescan_control_block *rcblock,
                               an_operand             *result)
 /*
@@ -20468,59 +20544,20 @@ expression, and return the result in *result (or an error indication in
                                         &err);
   } else if (has_braced_initializer) {
     /* A C++11-style list initializer, e.g., new T{x, y}. */
-    an_init_state        init_state;
-    an_arg_list_elem_ptr alep;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     check_assertion(!cli_array_new);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Develop the dynamic init entry, if any, used to free storage
-       if an exception is thrown before the initialization is finished.
-       This must be done after it has been determined that initialization
-       is required, but before the initialization is actually processed. */
-    make_dyn_init_for_deletion_for_throw(&dyn_init_to_free_storage,
-                                         new_routine,
-                                         delete_routine,
-                                         array_new);
-    if (rcblock != NULL) {
-      /* On a rescan, use the substituted version of the braced-init-list
-         scanned originally. */
-      check_assertion(braced_init_list != NULL &&
-                      is_braced_init_component(braced_init_list));
-      alep = braced_init_list;
-    } else if (using_expr_cache) {
-      alep = fetch_init_component_from_initializer_cache(
-                                               expr_stack->initializer_cache);
-    } else {
-      /* Scan from source. */
-      alep = parse_braced_init_list(/*bundle=*/FALSE);
-    }  /* if */
+    prep_new_object_init_braced_initializer(rcblock, new_type,
+                                            new_routine, delete_routine,
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_position = *init_component_end_pos(alep);
+                                            &end_position,
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    expr_clear_init_state(&init_state);
-    init_state.variable_size_array = variable_size_array;
-    init_state.initializer_can_dimension_array = TRUE;
-    init_state.force_dynamic_init = TRUE;
-    if (rcblock != NULL) init_state.no_diagnostics = TRUE;
-    prep_list_initializer(alep, new_type,
-                          /*is_direct_init=*/TRUE,
-                          /*check_narrowing=*/TRUE,
-                          /*warning_on_narrowing=*/FALSE,
-                          CCO_NEW_INITIALIZER,
-                          /*fill_in_dtor=*/FALSE,
-                          /*force_temp=*/FALSE,
-                          /*make_lvalue_temp=*/FALSE,
-                          (an_operand *)NULL, &init_state,
-                          (an_arg_match_summary *)NULL);
-    if (init_state.init_error) {
-      err = TRUE;
-      if (rcblock != NULL) subst_fail(rcblock->error_detected);
-    } else {
-      needs_initialization = TRUE;
-      dip = init_state.init_dip;
-      check_assertion(dip != NULL);
-    }  /* if */
-    free_init_component_list(alep);
+                                            braced_init_list, array_new,
+                                            variable_size_array,
+                                            using_expr_cache,
+                                            &dip, &dyn_init_to_free_storage,
+                                            &needs_initialization,
+                                            &err);
   } else {
     /* A parenthesized new-initializer is present. */
     /* No need to add tok_rparen to the stop tokens set: it's done by
