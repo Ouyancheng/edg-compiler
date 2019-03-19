@@ -5330,7 +5330,7 @@ This routine is used when we need to reactivate a class, but we are no
 longer in the context of the class (i.e., we are not in the class scope
 or a class reactivation scope).  This routine pushes a dummy instantiation
 context.  This routine is not used for template classes, which will have
-their own actual instantiation scopes pushed.    options is a set of option
+their own actual instantiation scopes pushed.  options is a set of option
 flags that is passed down to the other scope pushing routines.
 */
 {
