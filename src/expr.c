@@ -20125,6 +20125,283 @@ braced initializer was provided.
   free_init_component_list(alep);
 }  /* prep_new_object_init_braced_initializer */
 
+static void prep_new_object_init_paren_initializer(
+                        a_rescan_control_block *rcblock,
+                        a_type_ptr             new_type,
+                        a_type_ptr             base_new_type,
+                        a_type_ptr             unqual_base_new_type,
+                        a_type_ptr             ptr_new_type,
+                        a_source_position      *new_position,
+                        a_source_position      *type_position,
+                        a_source_position      *init_position,
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+                        a_source_position      *end_position,
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+                        a_routine_ptr          new_routine,
+                        a_routine_ptr          delete_routine,
+                        a_symbol_ptr           function_symbol,
+                        a_symbol_ptr           ctor_sym,
+                        a_boolean              is_gcnew,
+                        a_boolean              placement_new,
+                        a_boolean              array_new,
+                        a_boolean              cli_array_new,
+                        a_boolean              template_case,
+                        a_boolean              delete_ambiguous,
+                        a_decl_parse_state     *dps,
+                        a_dynamic_init_ptr     *dip,
+                        a_dynamic_init_ptr     *dyn_init_to_free_storage,
+                        an_arg_list_elem_ptr   *init_raw_args,
+                        a_source_position      *end_new_init_position,
+                        an_expr_node_ptr       *init_val_node,
+                        a_boolean              *templ_init_scanned,
+                        a_boolean              *needs_initialization,
+                        a_boolean              *has_new_initializer,
+                        a_boolean              *zero_initialization,
+                        a_boolean              *empty_initializer,
+                        a_boolean              *is_gcnew_string_special_case,
+                        an_operand             *gcnew_special_case_operand,
+                        a_boolean              *err)
+/*
+Validate and prepare (if warranted) initializer for the object when a
+parenthesized initializer was provided.
+*/
+{
+  an_expr_node_ptr dummy;
+
+  /* No need to add tok_rparen to the stop tokens set: it's done by
+  scan_ctor_arguments or scan_parenthesized_initializer_expression. */
+  if (array_new && !*empty_initializer) {
+    /* No initializer except "()" may be specified for an array type. */
+    expr_pos_error(ec_initializer_not_allowed_on_array_new,
+                   rcblock != NULL ? init_position : &pos_curr_token);
+    *err = TRUE;
+  }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cli_array_new) {
+    /* Scan the new-init for a C++/CLI array, but handle semantic checks
+    later.  The expressions in the new-init for a C++/CLI array specify
+    the lengths for each dimension of the array.  In C++/CX mode, if
+    an array-init is absent, the new-init operands will be treated as
+    constructor arguments. */
+    scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
+                        /*already_after_left_paren=*/TRUE, &dummy,
+                        /*return_raw_arguments=*/TRUE,
+                        /*unknown_dependent_function=*/FALSE,
+                        /*args_will_be_discarded=*/FALSE,
+                        /*is_custom_ms_attr_arg_list=*/FALSE,
+                        rcblock,
+                        /*arg_list_supplied=*/FALSE,
+                        (an_arg_list_elem *)NULL,
+                        init_raw_args,
+                        (an_operand_ptr)NULL,
+                        (a_boolean *)NULL,
+                        end_new_init_position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (rcblock == NULL) *end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  } else if (cli_or_cx_enabled && is_delegate_type(unqual_base_new_type)) {
+    /* The initializer for C++/CLI and C++/CX delegates is scanned
+    specially. */
+    check_assertion(is_gcnew);
+    if (cppcx_enabled) {
+      scan_cppcx_delegate_initializer(new_type, type_position, rcblock,
+                                      end_new_init_position, dip);
+    } else {
+      scan_delegate_initializer(new_type, type_position, rcblock,
+                                end_new_init_position, dip);
+    }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (rcblock == NULL) *end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  } else if (*empty_initializer &&
+    ((cli_or_cx_enabled && is_value_class_type(base_new_type)) ||
+             (is_gcnew &&
+     (system_type_from_fundamental_type(unqual_base_new_type)
+      != NULL ||
+      is_cli_enum_type(unqual_base_new_type))))) {
+    /* Make sure that C++/CLI value types with an empty new-init are zero
+    initialized for both "new" and "gcnew" expressions.  This must happen
+    before we process constructors since value classes do not have
+    default constructors, but they may have non-default constructors.
+    Also, ensure that for "gcnew" all enums and basic types are
+    initialized. */
+    *needs_initialization = TRUE;
+    *zero_initialization = TRUE;
+    if (rcblock == NULL) {
+      (void)get_token();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      *end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    }  /* if */
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  if (ctor_sym != NULL) {
+    /* Class with a (nontrivial) constructor. */
+    a_boolean  trivial_ctor;
+    a_boolean  *string_ctor_skip = NULL;
+    an_operand *simple_result = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (is_gcnew &&
+        f_identical_types(ptr_new_type, make_handle_to_system_string(),
+                          ITF_NO_FLAGS)) {
+      /* A gcnew of System::String with a single argument of type String
+      just passes through the argument without doing a gcnew. */
+      string_ctor_skip = is_gcnew_string_special_case;
+      simple_result = gcnew_special_case_operand;
+      check_assertion(!cli_array_new && !placement_new);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Develop the dynamic init entry, if any, used to free storage
+        if an exception is thrown before the initialization is finished.
+        This must be done after it has been determined that initialization
+        is required, but before the initialization is actually processed. */
+    make_dyn_init_for_deletion_for_throw(dyn_init_to_free_storage,
+                                         new_routine,
+                                         delete_routine,
+                                         array_new);
+    /* Scan the constructor arguments and build the dynamic initialization
+    entry. */
+    scan_ctor_arguments(ctor_sym, init_position,
+                        (a_type_ptr)NULL, (a_type_ptr)NULL,
+                        /*fill_in_dtor=*/FALSE,
+                        /* The constructor call cannot be eliminated or
+                        turned into a bitwise move if it's doing the
+                        allocation. */
+                        /*elision_allowed=*/(new_routine != NULL),
+                        /*is_custom_ms_attr_arg_list=*/FALSE,
+                        CCO_DIRECT_INITIALIZATION,
+                        rcblock,
+                        /*arg_list_supplied=*/FALSE,
+                        (an_arg_list_elem *)NULL,
+                        (an_arg_list_elem *)NULL,
+                        &trivial_ctor,
+                        /*elision_done=*/(a_boolean *)NULL,
+                        /*unboxing_conv=*/(a_boolean *)NULL,
+                        string_ctor_skip,
+                        simple_result,
+                        dip, (an_expr_node_ptr *)NULL,
+                        (a_source_position *)NULL);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (rcblock == NULL) *end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    if (trivial_ctor) {
+      /* The constructor selected is a trivial default constructor, which
+      does nothing (not even value initialization). */
+      *needs_initialization = FALSE;
+      check_assertion(new_routine != NULL || function_symbol == NULL);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (*is_gcnew_string_special_case) {
+      /* A case where the single String argument of a gcnew is just passed
+      through. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else {
+      warn_about_missing_delete(delete_routine,
+                                function_symbol,
+                                new_position,
+                                array_new,
+                                delete_ambiguous);
+      *needs_initialization = TRUE;
+      if (*dip == NULL) {
+        /* Some error. */
+        *needs_initialization = *has_new_initializer = FALSE;
+      }  /* if */
+    }  /* if */
+  } else if (template_case) {
+    /* A "new" or "gcnew" of a template-dependent type, in a prototype
+    instantiation. */
+    /* Scan the argument list. */
+    *templ_init_scanned = TRUE;
+    scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
+                        /*already_after_left_paren=*/TRUE,
+                        &dummy, /*return_raw_arguments=*/TRUE,
+                        /*unknown_dependent_function=*/FALSE,
+                        /*args_will_be_discarded=*/FALSE,
+                        /*is_custom_ms_attr_arg_list=*/FALSE,
+                        rcblock,
+                        /*arg_list_supplied=*/FALSE,
+                        (an_arg_list_elem *)NULL,
+                        init_raw_args,
+                        /*single_operand=*/(an_operand *)NULL,
+                        /*single_operand_returned=*/(a_boolean *)NULL,
+                        end_new_init_position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (rcblock == NULL) *end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    *needs_initialization = TRUE;
+  } else if (is_error_type(base_new_type)) {
+    /* The type is not known.  Scan the argument list and discard it. */
+    scan_error_parenthesized_initializer(rcblock,
+                                         /*arg_list_supplied=*/FALSE,
+                                         (an_arg_list_elem *)NULL);
+    *needs_initialization = FALSE;
+    *dip = NULL;
+    *err = TRUE;
+  } else {
+    /* Not a class with a constructor. */
+    if (!*empty_initializer) {
+      a_boolean expr_not_present;
+      /* The new-initializer is not empty.  Scan it. */
+      /* Develop the dynamic init entry, if any, used to free storage
+      if an exception is thrown before the initialization is finished.
+      This must be done after it has been determined that initialization
+      is required, but before the initialization is actually processed. */
+      make_dyn_init_for_deletion_for_throw(dyn_init_to_free_storage,
+                                           new_routine,
+                                           delete_routine,
+                                           array_new);
+      *init_val_node = scan_parenthesized_initializer_expression(
+                                                dps,
+                                                rcblock,
+                                                *err ? error_type() : new_type,
+                                                ec_bad_initializer_type,
+                                                &expr_not_present);
+      if (expr_not_present) {
+        /* There was an expression, but it is a pack expansion that expanded
+        to zero expressions.  Go handle the new-initializer as if it
+        were "()". */
+        *empty_initializer = TRUE;
+        goto handle_empty_parens_new_initializer;
+      }  /* if */
+      if (node_has_side_effects(*init_val_node, (a_boolean*)NULL)) {
+        warn_about_missing_delete(delete_routine,
+                                  function_symbol,
+                                  new_position,
+                                  array_new,
+                                  delete_ambiguous);
+      }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      if (rcblock == NULL) *end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      *needs_initialization = TRUE;
+    } else {
+      /* The initializer is empty, i.e., "()".  This means
+      value-initialization.  Note that "()" for class types with
+      (nontrivial) constructors is handled above, however, so
+      value-initialization here is effectively zero-initialization. */
+handle_empty_parens_new_initializer:
+      if (rcblock == NULL) {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        *end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        (void)get_token();
+      }  /* if */
+      if (microsoft_bugs &&
+          emulate_msvc_value_initialization_bugs &&
+          (microsoft_version < 1310 ||
+          (is_class_struct_union_type(base_new_type) &&
+            !symbol_supplement_for_class(base_new_type)->is_cpp03_POD))) {
+        /* MSVC++ up to version 7.1 does not initialize non-POD classes
+        without constructors. 6.0 and 7.0 did not initialize even
+        POD classes and non-class objects. */
+      } else {
+        *needs_initialization = TRUE;
+        *zero_initialization = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* prep_new_object_init_paren_initializer */
+
 
 static void scan_new_operator(a_rescan_control_block *rcblock,
                               an_operand             *result)
@@ -20184,7 +20461,6 @@ expression, and return the result in *result (or an error indication in
   an_expr_node_ptr  arg_expr_list, init_val_node;
   an_arg_list_elem_ptr
                     arg_list = NULL;
-  an_expr_node_ptr  dummy;
   a_boolean         placement_new = FALSE, array_new = FALSE;
   a_targ_size_t     effective_num_of_elements;
   an_arg_match_summary_ptr
@@ -20560,238 +20836,32 @@ expression, and return the result in *result (or an error indication in
                                             &err);
   } else {
     /* A parenthesized new-initializer is present. */
-    /* No need to add tok_rparen to the stop tokens set: it's done by
-       scan_ctor_arguments or scan_parenthesized_initializer_expression. */
-    if (array_new && !empty_initializer) {
-      /* No initializer except "()" may be specified for an array type. */
-      expr_pos_error(ec_initializer_not_allowed_on_array_new,
-                     rcblock != NULL ? &init_position : &pos_curr_token);
-      err = TRUE;
-    }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cli_array_new) {
-      /* Scan the new-init for a C++/CLI array, but handle semantic checks
-         later.  The expressions in the new-init for a C++/CLI array specify
-         the lengths for each dimension of the array.  In C++/CX mode, if
-         an array-init is absent, the new-init operands will be treated as
-         constructor arguments. */
-      scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
-                          /*already_after_left_paren=*/TRUE, &dummy,
-                          /*return_raw_arguments=*/TRUE,
-                          /*unknown_dependent_function=*/FALSE,
-                          /*args_will_be_discarded=*/FALSE,
-                          /*is_custom_ms_attr_arg_list=*/FALSE,
-                          rcblock,
-                          /*arg_list_supplied=*/FALSE,
-                          (an_arg_list_elem *)NULL,
-                          &init_raw_args,
-                          (an_operand_ptr)NULL,
-                          (a_boolean *)NULL,
-                          &end_new_init_position);
+    prep_new_object_init_paren_initializer(rcblock,
+                                           new_type, base_new_type,
+                                           unqual_base_new_type, ptr_new_type,
+                                           &new_position, &type_position,
+                                           &init_position,
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      if (rcblock == NULL) end_position = curr_construct_end_position;
+                                           &end_position,
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    } else if (cli_or_cx_enabled && is_delegate_type(unqual_base_new_type)) {
-      /* The initializer for C++/CLI and C++/CX delegates is scanned
-         specially. */
-      check_assertion(is_gcnew);
-      if (cppcx_enabled) {
-        scan_cppcx_delegate_initializer(new_type, &type_position, rcblock,
-                                        &end_new_init_position, &dip);
-      } else {
-        scan_delegate_initializer(new_type, &type_position, rcblock,
-                                  &end_new_init_position, &dip);
-      }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      if (rcblock == NULL) end_position = curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    } else if (empty_initializer &&
-               ((cli_or_cx_enabled && is_value_class_type(base_new_type)) ||
-                (is_gcnew &&
-                 (system_type_from_fundamental_type(unqual_base_new_type)
-                                                                     != NULL ||
-                  is_cli_enum_type(unqual_base_new_type))))) {
-      /* Make sure that C++/CLI value types with an empty new-init are zero
-         initialized for both "new" and "gcnew" expressions.  This must happen
-         before we process constructors since value classes do not have
-         default constructors, but they may have non-default constructors.
-         Also, ensure that for "gcnew" all enums and basic types are
-         initialized. */
-      needs_initialization = TRUE;
-      zero_initialization = TRUE;
-      if (rcblock == NULL) {
-        (void)get_token();
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        end_position = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      }  /* if */
-    } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    if (ctor_sym != NULL) {
-      /* Class with a (nontrivial) constructor. */
-      a_boolean  trivial_ctor;
-      a_boolean  *string_ctor_skip = NULL;
-      an_operand *simple_result = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (is_gcnew &&
-          f_identical_types(ptr_new_type, make_handle_to_system_string(),
-                            ITF_NO_FLAGS)) {
-        /* A gcnew of System::String with a single argument of type String
-           just passes through the argument without doing a gcnew. */
-        string_ctor_skip = &is_gcnew_string_special_case;
-        simple_result = &gcnew_special_case_operand;
-        check_assertion(!cli_array_new && !placement_new);
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Develop the dynamic init entry, if any, used to free storage
-         if an exception is thrown before the initialization is finished.
-         This must be done after it has been determined that initialization
-         is required, but before the initialization is actually processed. */
-      make_dyn_init_for_deletion_for_throw(&dyn_init_to_free_storage,
-                                           new_routine,
-                                           delete_routine,
-                                           array_new);
-      /* Scan the constructor arguments and build the dynamic initialization
-         entry. */
-      scan_ctor_arguments(ctor_sym, &init_position,
-                          (a_type_ptr)NULL, (a_type_ptr)NULL,
-                          /*fill_in_dtor=*/FALSE,
-                          /* The constructor call cannot be eliminated or
-                             turned into a bitwise move if it's doing the
-                             allocation. */
-                          /*elision_allowed=*/(new_routine != NULL),
-                          /*is_custom_ms_attr_arg_list=*/FALSE,
-                          CCO_DIRECT_INITIALIZATION,
-                          rcblock,
-                          /*arg_list_supplied=*/FALSE,
-                          (an_arg_list_elem *)NULL,
-                          (an_arg_list_elem *)NULL,
-                          &trivial_ctor,
-                          /*elision_done=*/(a_boolean *)NULL,
-                          /*unboxing_conv=*/(a_boolean *)NULL,
-                          string_ctor_skip,
-                          simple_result,
-                          &dip, (an_expr_node_ptr *)NULL,
-                          (a_source_position *)NULL);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      if (rcblock == NULL) end_position = curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      if (trivial_ctor) {
-        /* The constructor selected is a trivial default constructor, which
-           does nothing (not even value initialization). */
-        needs_initialization = FALSE;
-        check_assertion(new_routine != NULL || function_symbol == NULL);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (is_gcnew_string_special_case) {
-        /* A case where the single String argument of a gcnew is just passed
-           through. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      } else {
-        warn_about_missing_delete(delete_routine,
-                                  function_symbol,
-                                  &new_position,
-                                  array_new,
-                                  delete_ambiguous);
-        needs_initialization = TRUE;
-        if (dip == NULL) {
-          /* Some error. */
-          needs_initialization = has_new_initializer = FALSE;
-        }  /* if */
-      }  /* if */
-    } else if (template_case) {
-      /* A "new" or "gcnew" of a template-dependent type, in a prototype
-         instantiation. */
-      /* Scan the argument list. */
-      templ_init_scanned = TRUE;
-      scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
-                          /*already_after_left_paren=*/TRUE,
-                          &dummy, /*return_raw_arguments=*/TRUE,
-                          /*unknown_dependent_function=*/FALSE,
-                          /*args_will_be_discarded=*/FALSE,
-                          /*is_custom_ms_attr_arg_list=*/FALSE,
-                          rcblock,
-                          /*arg_list_supplied=*/FALSE,
-                          (an_arg_list_elem *)NULL,
-                          &init_raw_args,
-                          /*single_operand=*/(an_operand *)NULL,
-                          /*single_operand_returned=*/(a_boolean *)NULL,
-                          &end_new_init_position);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      if (rcblock == NULL) end_position = curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      needs_initialization = TRUE;
-    } else if (is_error_type(base_new_type)) {
-      /* The type is not known.  Scan the argument list and discard it. */
-      scan_error_parenthesized_initializer(rcblock,
-                                           /*arg_list_supplied=*/FALSE,
-                                           (an_arg_list_elem *)NULL);
-      needs_initialization = FALSE;
-      dip = NULL;
-      err = TRUE;
-    } else {
-      /* Not a class with a constructor. */
-      if (!empty_initializer) {
-        a_boolean expr_not_present;
-        /* The new-initializer is not empty.  Scan it. */
-        /* Develop the dynamic init entry, if any, used to free storage
-           if an exception is thrown before the initialization is finished.
-           This must be done after it has been determined that initialization
-           is required, but before the initialization is actually processed. */
-        make_dyn_init_for_deletion_for_throw(&dyn_init_to_free_storage,
-                                             new_routine,
-                                             delete_routine,
-                                             array_new);
-        init_val_node = scan_parenthesized_initializer_expression(
-                                                &dps,
-                                                rcblock,
-                                                err ? error_type() : new_type,
-                                                ec_bad_initializer_type,
-                                                &expr_not_present);
-        if (expr_not_present) {
-          /* There was an expression, but it is a pack expansion that expanded
-             to zero expressions.  Go handle the new-initializer as if it
-             were "()". */
-          empty_initializer = TRUE;
-          goto handle_empty_parens_new_initializer;
-        }  /* if */
-        if (node_has_side_effects(init_val_node, (a_boolean*)NULL)) {
-          warn_about_missing_delete(delete_routine,
-                                    function_symbol,
-                                    &new_position,
-                                    array_new,
-                                    delete_ambiguous);
-        }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        if (rcblock == NULL) end_position = curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        needs_initialization = TRUE;
-      } else {
-        /* The initializer is empty, i.e., "()".  This means
-           value-initialization.  Note that "()" for class types with
-           (nontrivial) constructors is handled above, however, so
-           value-initialization here is effectively zero-initialization. */
-handle_empty_parens_new_initializer:
-        if (rcblock == NULL) {
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-          end_position = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-          (void)get_token();
-        }  /* if */
-        if (microsoft_bugs &&
-            emulate_msvc_value_initialization_bugs &&
-            (microsoft_version < 1310 ||
-             (is_class_struct_union_type(base_new_type) &&
-             !symbol_supplement_for_class(base_new_type)->is_cpp03_POD))) {
-          /* MSVC++ up to version 7.1 does not initialize non-POD classes
-             without constructors. 6.0 and 7.0 did not initialize even
-             POD classes and non-class objects. */
-        } else {
-          needs_initialization = TRUE;
-          zero_initialization = TRUE;
-        }  /* if */
-      }  /* if */
-    }  /* if */
+                                           new_routine, delete_routine,
+                                           function_symbol, ctor_sym,
+                                           is_gcnew, placement_new,
+                                           array_new, cli_array_new,
+                                           template_case, delete_ambiguous,
+                                           &dps,
+                                           &dip, &dyn_init_to_free_storage,
+                                           &init_raw_args,
+                                           &end_new_init_position,
+                                           &init_val_node,
+                                           &templ_init_scanned,
+                                           &needs_initialization,
+                                           &has_new_initializer,
+                                           &zero_initialization,
+                                           &empty_initializer,
+                                           &is_gcnew_string_special_case,
+                                           &gcnew_special_case_operand,
+                                           &err);
   }  /* if */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
