@@ -20125,6 +20125,7 @@ braced initializer was provided.
   free_init_component_list(alep);
 }  /* prep_new_object_init_braced_initializer */
 
+
 static void prep_new_object_init_paren_initializer(
                         a_rescan_control_block *rcblock,
                         a_type_ptr             new_type,
@@ -20401,6 +20402,204 @@ handle_empty_parens_new_initializer:
     }  /* if */
   }  /* if */
 }  /* prep_new_object_init_paren_initializer */
+
+
+static void prep_new_object_init_cli_array_initializer(
+                              a_rescan_control_block *rcblock,
+                              a_type_ptr             new_type,
+                              a_type_ptr             ptr_new_type,
+                              a_symbol_ptr           ctor_sym,
+                              an_arg_list_elem_ptr   *init_raw_args,
+                              a_source_position      *type_position,
+                              a_source_position      *init_position,
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+                              a_source_position      *end_position,
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+                              a_source_position      *end_new_init_position,
+                              a_boolean              has_new_initializer,
+                              a_boolean              has_array_init,
+                              a_boolean              template_case,
+                              a_decl_parse_state     *dps,
+                              a_dynamic_init_ptr     *dip,
+                              an_expr_node_ptr       *cli_array_new_init_args,
+                              a_boolean              *templ_init_scanned,
+                              a_boolean              *needs_initialization,
+                              a_boolean              *err)
+/*
+Validate and prepare (if warranted) initializer for the object in the
+C++/CLI/CX array case.
+*/
+{
+  if (cppcx_enabled && has_new_initializer && !has_array_init) {
+    /* Microsoft uses the presence of the array-init in C++/CX mode to
+    interpret the new-init.  If it is absent, the new-init is a
+    constructor invocation.  Otherwise, the new-init is processed using
+    cli::array-style new-init initialization. */
+    /* Since has_array_init is FALSE and cli_array_new is TRUE, we know
+    that the type must be a C++/CX array type (though it may not be a
+    valid one). */
+    check_assertion (is_cli_array_type(new_type) ||
+                     is_error_type(new_type));
+    if (ctor_sym != NULL) {
+      a_boolean   trivial_ctor;
+      a_boolean   unboxing_conversion;
+      a_boolean   string_ctor_skip;
+      an_operand  simple_result;
+      scan_ctor_arguments(ctor_sym,
+                          init_position, (a_type_ptr)NULL,
+                          (a_type_ptr)NULL, /*fill_in_dtor=*/FALSE,
+                          /* To simplify the IL and defend against the
+                          (unlikely) possibility of a copy constructor
+                          being added to Array, disallow elision. */
+                          /*elision_allowed=*/FALSE,
+                          /*is_custom_ms_attr_arg_list=*/FALSE,
+                          CCO_DIRECT_INITIALIZATION,
+                          rcblock,
+                          /*arg_list_supplied=*/TRUE,
+                          *init_raw_args,
+                          (an_arg_list_elem *)NULL,
+                          &trivial_ctor,
+                          /*elision_done=*/(a_boolean *)NULL,
+                          &unboxing_conversion,
+                          &string_ctor_skip,
+                          &simple_result,
+                          dip, (an_expr_node_ptr *)NULL,
+                          (a_source_position *)NULL);
+      /* The constructor invocation shouldn't involve a trivial_ctor, an
+      unboxing_conversion, or a skipped string ctor. */
+      check_assertion (!(trivial_ctor || unboxing_conversion ||
+                         string_ctor_skip));
+      free_arg_list(*init_raw_args);
+      *init_raw_args = NULL;
+      if (*dip == NULL) {
+        *err = TRUE;
+      }  /* if */
+    } else if (template_case) {
+      /* Give init_raw_args to the template init scanner then. */
+      *templ_init_scanned = TRUE;
+    } else {
+      /* If this is not the template_case, then there must an error in the
+      array type. */
+      expect_error();
+      /* The type is not known.  Scan the argument list and discard it. */
+      scan_error_parenthesized_initializer(rcblock,
+                                           /*arg_list_supplied=*/TRUE,
+                                           *init_raw_args);
+      free_arg_list(*init_raw_args);
+      *init_raw_args = NULL;
+      *needs_initialization = FALSE;
+      *dip = NULL;
+      *err = TRUE;
+    }  /* if */
+    /* The constructor's already handled the initialization of
+       Platform::Array's new-init.  No special processing is necessary. */
+  } else if (has_new_initializer) {
+    /* If a C++/CLI array has a new initializer, perform semantic checks
+    on the previously scanned new-init and convert the arguments into
+    an expression list.  If a new initializer is present, the arguments
+    specify the length of each dimension of the array, in order.  If
+    a new-init does not exist, the length of each dimension will be
+    inferred from the array-init later. */
+    an_arg_list_elem_ptr  arg_ptr;
+    a_type_ptr            param_type;
+    a_boolean             too_many_args = FALSE, rank_unknown = TRUE;
+    a_source_position     diag_pos;
+    a_host_large_unsigned rank = 0, count;
+    param_type =
+      cppcx_enabled ? integer_type((an_integer_kind)ik_unsigned_int) :
+                      integer_type((an_integer_kind)ik_int);
+    if (is_cli_array_type(new_type)) {
+      rank = cli_array_rank(new_type, &rank_unknown);
+    }  /* if */
+
+    for (arg_ptr = *init_raw_args, count = 1;
+         arg_ptr != NULL;
+         arg_ptr = next_elem(arg_ptr), ++count) {
+      an_operand_ptr operand;
+      check_arg_list_elem_is_expression(arg_ptr);
+      operand = operand_of_arg_list_elem(arg_ptr);
+      /* Convert the bound size expression to int. */
+      prep_initializer_operand(
+        operand,
+        param_type,
+        (a_boolean *)NULL,
+        (a_conv_descr_ptr)NULL,
+        /*is_copy_initialization=*/FALSE,
+        CCO_DEFAULT,
+        ec_incompatible_param);
+
+      if (is_constant_operand(operand) &&
+          operand->variant.constant.kind ==
+          (a_constant_repr_kind)ck_integer &&
+          cmpulit_integer_constant(&operand->variant.constant,
+          (a_host_large_unsigned)0) < 0) {
+        expr_pos_error(ec_new_array_size_must_be_nonnegative,
+                       &operand->position);
+      }  /* if */
+      if (!too_many_args && !rank_unknown && count > rank) {
+        too_many_args = TRUE;
+        diag_pos = operand->position;
+      }  /* if */
+    }  /* for */
+
+    if (too_many_args) {
+      /* More arguments than expected. */
+      expr_pos_error(ec_too_many_array_bounds, &diag_pos);
+    } else if (!rank_unknown && count <= rank) {
+      /* Fewer arguments than expected. */
+      expr_pos_error(ec_too_few_array_bounds, end_new_init_position);
+    }  /* if */
+    *cli_array_new_init_args =
+      convert_arg_list_to_expr_list(*init_raw_args,
+                                    (an_expr_node_ptr *)NULL);
+    free_arg_list(*init_raw_args);
+    *init_raw_args = NULL;
+    *templ_init_scanned = FALSE;
+  }  /* if */
+
+  if (has_array_init) {
+    /* Scan the CLI array-init. */
+    a_type_ptr  temp_type;
+    if (is_cli_array_type(new_type)) {
+      temp_type = ptr_new_type;
+    } else if (is_template_param_or_nonreal_class_type(new_type)) {
+      temp_type = make_handle_type(type_of_unknown_templ_param_nontype);
+    } else {
+      temp_type = error_type();
+      if (!is_error_type(new_type)) {
+        expr_pos_error(ec_gcnew_bad_type_used_with_array_init,
+                       &pos_curr_token);
+      }  /* if */
+      *err = TRUE;
+    }  /* if */
+    if (rcblock == NULL) {
+      /* Scan the CLI array-init.  If cli_array_new_init_args is NULL
+      (i.e., if a new-init is not present) then aggr_init_cli_array
+      will infer dimension lengths of the array, returning them
+      through cli_array_new_init_args.  If cli_array_new_init_args is
+      non-NULL, then any constant arguments specified in the new-init
+      will serve as compile-time bound checks for each array
+      dimension. */
+      an_init_component_ptr  icp_tree;
+      icp_tree = get_braced_init_list(/*is_full_expr=*/FALSE, dps);
+      aggr_init_cli_array(icp_tree, temp_type, &dps->init_state, dip,
+                          cli_array_new_init_args);
+      free_init_component_list(icp_tree);
+      if (dps->init_state.init_error) *err = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      *end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    } else {
+      /* Rescanning of array inits is not currently supported.
+      That should have been disallowed higher up. */
+      unexpected_condition();
+    }  /* if */
+  } else if (!has_new_initializer) {
+    expr_pos_error(ec_cli_array_must_have_new_or_array_init,
+                   rcblock == NULL ? &pos_curr_token : type_position);
+    *err = TRUE;
+  }  /* if */
+}  /* prep_new_object_init_cli_array_initializer */
 
 
 static void scan_new_operator(a_rescan_control_block *rcblock,
@@ -20876,174 +21075,30 @@ expression, and return the result in *result (or an error indication in
     /* Beyond this point, cli_array_new tells us definitively whether this
        is a C++/CLI array initialization or not. */
     if (cli_array_new) {
-      if (cppcx_enabled && has_new_initializer && !has_array_init) {
-        /* Microsoft uses the presence of the array-init in C++/CX mode to
-           interpret the new-init.  If it is absent, the new-init is a
-           constructor invocation.  Otherwise, the new-init is processed using
-           cli::array-style new-init initialization. */
-        /* Since has_array_init is FALSE and cli_array_new is TRUE, we know
-           that the type must be a C++/CX array type (though it may not be a
-           valid one). */
-        check_assertion (is_cli_array_type(new_type) ||
-                         is_error_type(new_type));
-        if (ctor_sym != NULL) {
-          a_boolean   trivial_ctor;
-          a_boolean   unboxing_conversion;
-          a_boolean   string_ctor_skip;
-          an_operand  simple_result;
-          scan_ctor_arguments(ctor_sym,
-                              &init_position, (a_type_ptr)NULL,
-                              (a_type_ptr)NULL, /*fill_in_dtor=*/FALSE,
-                              /* To simplify the IL and defend against the
-                                 (unlikely) possibility of a copy constructor
-                                 being added to Array, disallow elision. */
-                              /*elision_allowed=*/FALSE,
-                              /*is_custom_ms_attr_arg_list=*/FALSE,
-                              CCO_DIRECT_INITIALIZATION,
-                              rcblock,
-                              /*arg_list_supplied=*/TRUE,
-                              init_raw_args,
-                              (an_arg_list_elem *)NULL,
-                              &trivial_ctor,
-                              /*elision_done=*/(a_boolean *)NULL,
-                              &unboxing_conversion,
-                              &string_ctor_skip,
-                              &simple_result,
-                              &dip, (an_expr_node_ptr *)NULL,
-                              (a_source_position *)NULL);
-          /* The constructor invocation shouldn't involve a trivial_ctor, an
-             unboxing_conversion, or a skipped string ctor. */
-          check_assertion (!(trivial_ctor || unboxing_conversion ||
-                             string_ctor_skip));
-          free_arg_list(init_raw_args);
-          init_raw_args = NULL;
-          if (dip == NULL) {
-            err = TRUE;
-          }  /* if */
-        } else if (template_case) {
-          /* Give init_raw_args to the template init scanner then. */
-          templ_init_scanned = TRUE;
-        } else {
-          /* If this is not the template_case, then there must an error in the
-             array type. */
-          expect_error();
-          /* The type is not known.  Scan the argument list and discard it. */
-          scan_error_parenthesized_initializer(rcblock,
-                                               /*arg_list_supplied=*/TRUE,
-                                               init_raw_args);
-          free_arg_list(init_raw_args);
-          init_raw_args = NULL;
-          needs_initialization = FALSE;
-          dip = NULL;
-          err = TRUE;
-        }  /* if */
-        /* The constructors already handled the initialization of
-           Platform::Array's new-init.  No special processing is necessary. */
-      } else if (has_new_initializer) {
-        /* If a C++/CLI array has a new initializer, perform semantic checks
-           on the previously scanned new-init and convert the arguments into
-           an expression list.  If a new initializer is present, the arguments
-           specify the length of each dimension of the array, in order.  If
-           a new-init does not exist, the length of each dimension will be
-           inferred from the array-init later. */
-        an_arg_list_elem_ptr  arg_ptr;
-        a_type_ptr            param_type;
-        a_boolean             too_many_args = FALSE, rank_unknown = TRUE;
-        a_source_position     diag_pos;
-        a_host_large_unsigned rank = 0, count;
-        param_type = cppcx_enabled ?
-                              integer_type((an_integer_kind)ik_unsigned_int) :
-                              integer_type((an_integer_kind)ik_int);
-        if (is_cli_array_type(new_type)) {
-          rank = cli_array_rank(new_type, &rank_unknown);
-        }  /* if */
-        for (arg_ptr = init_raw_args, count = 1;
-             arg_ptr != NULL;
-             arg_ptr = next_elem(arg_ptr), ++count) {
-          an_operand_ptr operand;
-          check_arg_list_elem_is_expression(arg_ptr);
-          operand = operand_of_arg_list_elem(arg_ptr);
-          /* Convert the bound size expression to int. */
-          prep_initializer_operand(
-                        operand,
-                        param_type,
-                        (a_boolean *)NULL,
-                        (a_conv_descr_ptr)NULL,
-                        /*is_copy_initialization=*/FALSE,
-                        CCO_DEFAULT,
-                        ec_incompatible_param);
-          if (is_constant_operand(operand) &&
-              operand->variant.constant.kind ==
-                                            (a_constant_repr_kind)ck_integer &&
-              cmpulit_integer_constant(&operand->variant.constant,
-                                       (a_host_large_unsigned)0) < 0) {
-            expr_pos_error(ec_new_array_size_must_be_nonnegative,
-                           &operand->position);
-          }  /* if */
-          if (!too_many_args && !rank_unknown && count > rank) {
-            too_many_args = TRUE;
-            diag_pos = operand->position;
-          }  /* if */
-        }  /* for */
-        if (too_many_args) {
-          /* More arguments than expected. */
-          expr_pos_error(ec_too_many_array_bounds, &diag_pos);
-        } else if (!rank_unknown && count <= rank) {
-          /* Fewer arguments than expected. */
-          expr_pos_error(ec_too_few_array_bounds, &end_new_init_position);
-        }  /* if */
-        cli_array_new_init_args = convert_arg_list_to_expr_list(
-                                                     init_raw_args,
-                                                     (an_expr_node_ptr *)NULL);
-        free_arg_list(init_raw_args);
-        init_raw_args = NULL;
-        templ_init_scanned = FALSE;
-      }  /* if */
-      if (has_array_init) {
-        /* Scan the CLI array-init. */
-        a_type_ptr  temp_type;
-        if (is_cli_array_type(new_type)) {
-          temp_type = ptr_new_type;
-        } else if (is_template_param_or_nonreal_class_type(new_type)) {
-          temp_type = make_handle_type(type_of_unknown_templ_param_nontype);
-        } else {
-          temp_type = error_type();
-          if (!is_error_type(new_type)) {
-            expr_pos_error(ec_gcnew_bad_type_used_with_array_init,
-                           &pos_curr_token);
-          }  /* if */
-          err = TRUE;
-        }  /* if */
-        if (rcblock == NULL) {
-          /* Scan the CLI array-init.  If cli_array_new_init_args is NULL
-             (i.e., if a new-init is not present) then aggr_init_cli_array
-             will infer dimension lengths of the array, returning them
-             through cli_array_new_init_args.  If cli_array_new_init_args is
-             non-NULL, then any constant arguments specified in the new-init
-             will serve as compile-time bound checks for each array
-             dimension. */
-          an_init_component_ptr  icp_tree;
-          icp_tree = get_braced_init_list(/*is_full_expr=*/FALSE, &dps);
-          aggr_init_cli_array(icp_tree, temp_type, &dps.init_state, &dip, 
-                              &cli_array_new_init_args);
-          free_init_component_list(icp_tree);
-          if (dps.init_state.init_error) err = TRUE;
+      prep_new_object_init_cli_array_initializer(rcblock,
+                                                 new_type,
+                                                 ptr_new_type,
+                                                 ctor_sym,
+                                                 &init_raw_args,
+                                                 &type_position,
+                                                 &init_position,
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-          end_position = curr_construct_end_position;
+                                                 &end_position,
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        } else {
-          /* Rescanning of array inits is not currently supported.
-             That should have been disallowed higher up. */
-          unexpected_condition();
-        }  /* if */
-      } else if (!has_new_initializer) {
-        expr_pos_error(ec_cli_array_must_have_new_or_array_init,
-                       rcblock == NULL ? &pos_curr_token : &type_position);
-        err = TRUE;
-      }  /* if */
+                                                 &end_new_init_position,
+                                                 has_new_initializer,
+                                                 has_array_init,
+                                                 template_case,
+                                                 &dps,
+                                                 &dip,
+                                                 &cli_array_new_init_args,
+                                                 &templ_init_scanned,
+                                                 &needs_initialization,
+                                                 &err);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
   if (templ_init_scanned) {
     /* Finish processing the previously scanned new-init as if the
        arguments are passed to a template-dependent constructor. */
@@ -21072,6 +21127,7 @@ expression, and return the result in *result (or an error indication in
                                        /*check_constexpr=*/FALSE,
                                        &start_position);
   }  /* if */
+
   expr_stack->inside_conditional_expression =
                                            saved_inside_conditional_expression;
   if (using_expr_cache) {
@@ -21084,6 +21140,7 @@ expression, and return the result in *result (or an error indication in
     expr_stack->initializer_cache = saved_initializer_cache;
     saved_initializer_cache = NULL;
   }  /* if */
+
   /* Now build the IL for the operation. */
   if (err || (function_symbol == NULL && !unknown_dependent_new &&
               operator_token == tok_new)) {
