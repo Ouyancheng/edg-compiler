@@ -823,6 +823,9 @@ extern int fileno(FILE *);
 /*lint -esym(759, alloc_list_entry_for_constant)*/
 /*lint -esym(765, alloc_list_entry_for_constant)*/
 /*lint -esym(714, alloc_list_entry_for_constant)*/
+/*lint -esym(759, free_list_entry_for_constant)*/
+/*lint -esym(765, free_list_entry_for_constant)*/
+/*lint -esym(714, free_list_entry_for_constant)*/
 #endif /* !(GNU_EXTENSIONS_ALLOWED && NEED_NAME_MANGLING) */
 /*lint -esym(768, a_walk_parents_control_block::ptr)*/
 #if !LOWER_COMPLEX
