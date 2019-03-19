@@ -20722,6 +20722,110 @@ Create the resulting operand for the gcnew variant of "new".
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
+static void create_new_result_operand(
+                                a_type_ptr         new_type,
+                                a_type_ptr         base_new_type,
+                                a_type_ptr         ptr_new_type,
+                                a_source_position  *start_position,
+                                a_source_position  *type_position,
+                                a_routine_ptr      new_routine,
+                                an_expr_node_ptr   arg_expr_list,
+                                an_expr_node_ptr   init_val_node,
+                                an_expr_node_ptr   new_array_dimension,
+                                a_targ_size_t      effective_num_of_elements,
+                                a_dynamic_init_ptr dip,
+                                a_dynamic_init_ptr dyn_init_to_free_storage,
+                                a_boolean          deducible_new_type,
+                                a_boolean          placement_new,
+                                a_boolean          array_new,
+                                a_boolean          has_alignment_arg,
+                                a_boolean          use_global_new,
+                                a_boolean          has_new_initializer,
+                                a_boolean          has_braced_initializer,
+                                a_boolean          needs_initialization,
+                                a_boolean          zero_initialization,
+                                an_operand         *result)
+/*
+Create the resulting operand for "new".
+*/
+{
+  an_expr_node_ptr            new_node;
+  a_new_delete_supplement_ptr ndsp;
+
+  /* Use an enk_new_delete node to represent the "new". */
+  new_node = alloc_expr_node((an_expr_node_kind)enk_new_delete);
+  new_node->type = deducible_new_type ?
+                      /* Keep the special type used for "auto" from escaping
+                      from the new. */
+                      make_pointer_type(type_of_unknown_templ_param_nontype) :
+                      ptr_new_type;
+  ndsp = new_node->variant.new_delete;
+  ndsp->is_new = TRUE;
+  ndsp->placement_new = placement_new;
+  ndsp->aligned_version = has_alignment_arg;
+  ndsp->global_new_or_delete = use_global_new;
+  ndsp->has_new_initializer = has_new_initializer;
+  ndsp->new_initializer_is_brace_enclosed = has_braced_initializer;
+  ndsp->deducible_type = deducible_new_type;
+  ndsp->type = new_type;
+  ndsp->routine = new_routine;
+  ndsp->arg = arg_expr_list;
+  ndsp->number_of_elements = new_array_dimension;
+  if (needs_initialization) {
+    /* The allocated space must be initialized.  A dynamic init entry is
+    used. */
+    if (dip != NULL) {
+      /* The dynamic initialization has already been determined above. */
+      if (array_new && !has_braced_initializer &&
+        (dip->kind == (a_dynamic_init_kind)dik_constructor ||
+         dip->kind == (a_dynamic_init_kind)dik_constant)) {
+        /* The entity is an array whose elements have a class type that
+        has a default constructor.  Use a dik_nonconstant_aggregate
+        initialization. */
+        a_routine_ptr dtor_routine = NULL;
+        /* If exceptions are enabled, put in a destructor.  It's needed
+        to destroy elements if a throw is done part-way through the
+        initialization of the array. */
+        if (exceptions_enabled &&
+            /* Avoid an error recovery problem: */
+            is_class_struct_union_type(base_new_type)) {
+          dtor_routine = expr_select_destructor(base_new_type,
+                                                base_new_type,
+                                                type_position,
+                                                /*honor_virtual=*/FALSE);
+        }  /* if */
+        dip = add_array_nonconstant_aggregate_init(dip, new_type,
+                                                   base_new_type,
+                                                   dtor_routine,
+                                                   effective_num_of_elements);
+      }  /* if */
+    } else if (zero_initialization) {
+      /* Zero-initialization. */
+      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+    } else {
+      /* Expression as initial value. */
+      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
+      dip->variant.expression = init_val_node;
+    }  /* if */
+    ndsp->dynamic_init = dip;
+    /* Remember the dynamic init entry, if any, used to free storage
+    if an exception is thrown before the initialization is finished. */
+    ndsp->freeing_of_storage_on_exception = dyn_init_to_free_storage;
+#if DO_IL_LOWERING
+    if (dyn_init_to_free_storage != NULL) {
+      dyn_init_to_free_storage->assoc_new = ndsp;
+    }  /* if */
+#endif /* DO_IL_LOWERING */
+  }  /* if */
+  record_typed_operator_position_in_expr_rescan_info(new_node,
+                                                     start_position,
+                                                     type_position,
+                                                     new_type);
+  /* Make an operand for the result. */
+  make_expression_operand(new_node, result);
+}  /* create_new_result_operand */
+
+
 static void scan_new_operator(a_rescan_control_block *rcblock,
                               an_operand             *result)
 /*
@@ -21268,81 +21372,30 @@ expression, and return the result in *result (or an error indication in
                                 result);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
-    an_expr_node_ptr            new_node;
-    a_new_delete_supplement_ptr ndsp;
-
-    /* Use an enk_new_delete node to represent the "new". */
-    new_node = alloc_expr_node((an_expr_node_kind)enk_new_delete);
-    new_node->type = deducible_new_type ?
-                       /* Keep the special type used for "auto" from escaping
-                          from the new. */
-                       make_pointer_type(type_of_unknown_templ_param_nontype) :
-                       ptr_new_type;
-    ndsp = new_node->variant.new_delete;
-    ndsp->is_new = TRUE;
-    ndsp->placement_new = placement_new;
-    ndsp->aligned_version = has_alignment_arg;
-    ndsp->global_new_or_delete = use_global_new;
-    ndsp->has_new_initializer = has_new_initializer;
-    ndsp->new_initializer_is_brace_enclosed = has_braced_initializer;
-    ndsp->deducible_type = deducible_new_type;
-    ndsp->type = new_type;
-    ndsp->routine = new_routine;
-    ndsp->arg = arg_expr_list;
-    ndsp->number_of_elements = new_array_dimension;
-    if (needs_initialization) {
-      /* The allocated space must be initialized.  A dynamic init entry is
-         used. */
-      if (dip != NULL) {
-        /* The dynamic initialization has already been determined above. */
-        if (array_new && !has_braced_initializer &&
-            (dip->kind == (a_dynamic_init_kind)dik_constructor ||
-             dip->kind == (a_dynamic_init_kind)dik_constant)) {
-          /* The entity is an array whose elements have a class type that
-             has a default constructor.  Use a dik_nonconstant_aggregate
-             initialization. */
-          a_routine_ptr dtor_routine = NULL;
-          /* If exceptions are enabled, put in a destructor.  It's needed
-             to destroy elements if a throw is done part-way through the
-             initialization of the array. */
-          if (exceptions_enabled &&
-              /* Avoid an error recovery problem: */
-              is_class_struct_union_type(base_new_type)) {
-            dtor_routine = expr_select_destructor(base_new_type,
-                                                  base_new_type,
-                                                  &type_position,
-                                                  /*honor_virtual=*/FALSE);
-          }  /* if */
-          dip = add_array_nonconstant_aggregate_init(dip, new_type,
-                                                     base_new_type,
-                                                     dtor_routine,
-                                                    effective_num_of_elements);
-        }  /* if */
-      } else if (zero_initialization) {
-        /* Zero-initialization. */
-        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
-      } else {
-        /* Expression as initial value. */
-        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
-        dip->variant.expression = init_val_node;
-      }  /* if */
-      ndsp->dynamic_init = dip;
-      /* Remember the dynamic init entry, if any, used to free storage
-         if an exception is thrown before the initialization is finished. */
-      ndsp->freeing_of_storage_on_exception = dyn_init_to_free_storage;
-#if DO_IL_LOWERING
-      if (dyn_init_to_free_storage != NULL) {
-        dyn_init_to_free_storage->assoc_new = ndsp;
-      }  /* if */
-#endif /* DO_IL_LOWERING */
-    }  /* if */
-    record_typed_operator_position_in_expr_rescan_info(new_node,
-                                                       &start_position,
-                                                       &type_position,
-                                                       new_type);
-    /* Make an operand for the result. */
-    make_expression_operand(new_node, result);
+    create_new_result_operand(new_type,
+                              base_new_type,
+                              ptr_new_type,
+                              &start_position,
+                              &type_position,
+                              new_routine,
+                              arg_expr_list,
+                              init_val_node,
+                              new_array_dimension,
+                              effective_num_of_elements,
+                              dip,
+                              dyn_init_to_free_storage,
+                              deducible_new_type,
+                              placement_new,
+                              array_new,
+                              has_alignment_arg,
+                              use_global_new,
+                              has_new_initializer,
+                              has_braced_initializer,
+                              needs_initialization,
+                              zero_initialization,
+                              result);
   }  /* if */
+
   /* Free the lists if they have not been freed already. */
   if (arg_list != NULL) {
     /* This list is only non-NULL if there was an error and the list was not
@@ -21352,6 +21405,7 @@ expression, and return the result in *result (or an error indication in
   }  /* if */
   check_assertion(init_raw_args == NULL);
   free_arg_match_summary_list(arg_match_list);
+
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
