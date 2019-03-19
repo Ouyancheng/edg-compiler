@@ -11457,6 +11457,32 @@ operand_ready:
   db_exit();
 }  /* scan_sizeof_pack_operator */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static a_boolean curr_expr_has_gnu_statement_expression(void)
+/*
+Return whether the current expression contains a GNU statement expression.
+*/
+{
+  a_boolean    result = FALSE;
+  a_scope_ptr  scope = expr_stack->last_subscope_preceding_expr;
+
+  if (scope == NULL) {
+    scope = scope_stack_top().first_scope;
+  }  /* if */
+  for (; scope != NULL; scope = scope->next) {
+    if (scope->is_stmt_expr_block) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* curr_expr_has_gnu_statement_expression */
+
+#else /* !GNU_EXTENSIONS_ALLOWED */
+#define curr_expr_has_gnu_statement_expression()  FALSE
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 
 static void scan_sizeof_operator(a_rescan_control_block *rcblock,
                                  an_operand             *result)
@@ -11774,7 +11800,6 @@ previously-scanned sizeof expression, and return the result in *result
     if (gnu_mode && is_void_type(sizeof_type)) {
       /* GNU C/C++ evaluates sizeof(void) as 1. */
       sizeof_type = integer_type((an_integer_kind)ik_char);
-      is_type = TRUE;
       if (gpp_mode) {
         expr_pos_warning(ec_incomplete_type_not_allowed, &type_position);
       }  /* if */
@@ -11933,8 +11958,11 @@ previously-scanned sizeof expression, and return the result in *result
                              (a_host_large_unsigned)stripped_sizeof_type->size,
                              targ_size_t_int_kind);
         /* Make a sizeof expression that sits behind the constant and
-           gives the original expression. */
-        if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+           gives the original expression.  If the expression contains a
+           statement expression, this is required to avoid file-scope memory
+           orphans (and potential IL write-read errors). */
+        if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded() ||
+            curr_expr_has_gnu_statement_expression()) {
           switch_back_to_original_region(region_to_switch_back_to);
           if (!is_type &&
               curr_il_region_number == file_scope_region_number &&

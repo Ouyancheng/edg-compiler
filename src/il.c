@@ -24567,7 +24567,11 @@ Write out a scope entry for debugging purposes.
       (void)fputs(" (", f_debug);
       if (sp->kind == (a_scope_kind)sck_class_struct_union ||
           sp->kind == (a_scope_kind)sck_enum) {
-        db_type_name(sp->variant.assoc_type);
+        if (sp->variant.assoc_type != NULL) {
+          db_type_name(sp->variant.assoc_type);
+        } else {
+          fprintf(f_debug, "<null type>");
+        }  /* if */
       } else if (sp->kind == (a_scope_kind)sck_namespace) {
         db_name(&sp->variant.assoc_namespace->source_corresp);
       } else {
