@@ -1608,23 +1608,51 @@ to it.
 
 #if NEED_NAME_MANGLING
 
+static a_constant_list_entry_ptr
+                avail_constant_list_entries;
+                        /* A list of available a_constant_list_entry
+                           entries. */
+
 a_constant_list_entry_ptr alloc_list_entry_for_constant(void)
 /*
-Allocate a constant-list-entry, initialize its fields, and return a pointer
-to it.
+Allocate a constant-list-entry (in the file scope), initialize its fields, and
+return a pointer to it.
 */
 {
   a_constant_list_entry_ptr clep;
 
-  clep = alloc_il_of_type(a_constant_list_entry);
+  if (avail_constant_list_entries == NULL) {
+    clep = alloc_il_of_type(a_constant_list_entry);
 #if DEBUG
-  num_constant_list_entries_allocated++;
+    num_constant_list_entries_allocated++;
 #endif /* DEBUG */
+  } else {
+    clep = avail_constant_list_entries;
+    avail_constant_list_entries = clep->next;
+  }  /* if */
   clep->next  = NULL;
   clep->constant = NULL;
 
   return clep;
 }  /* alloc_list_entry_for_constant */
+
+
+void free_list_entry_for_constant(a_constant_list_entry_ptr list)
+/*
+Return the list of clep entries to the pool of available entries.
+*/
+{
+  a_constant_list_entry_ptr clep;
+
+  if (avail_constant_list_entries == NULL) {
+    avail_constant_list_entries = list;
+  } else {
+    for (clep = avail_constant_list_entries;
+         clep->next != NULL;
+         clep = clep->next) {}
+    clep->next = list;
+  }  /* if */
+}  /* free_list_entry_for_constant */
 
 #endif /* NEED_NAME_MANGLING */
 
@@ -6007,6 +6035,9 @@ in il_alloc_init.)
       pch_saved_var_array_elem(avail_template_args),
       pch_saved_var_array_elem(available_local_constants),
       pch_saved_var_array_elem(avail_fs_nodes),
+#if NEED_NAME_MANGLING
+      pch_saved_var_array_elem(avail_constant_list_entries),
+#endif /* NEED_NAME_MANGLING */
 #if DEBUG
 #if !ABI_CHANGES_FOR_RTTI
       pch_saved_var_array_elem(num_accessible_base_classes_allocated),
@@ -6143,6 +6174,9 @@ in il_alloc_init.)
   register_trans_unit_variable(avail_template_args);
   register_trans_unit_variable(available_local_constants);
   register_trans_unit_variable(avail_fs_nodes);
+#if NEED_NAME_MANGLING
+  register_trans_unit_variable(avail_constant_list_entries);
+#endif /* NEED_NAME_MANGLING */
   register_trans_unit_variable(file_scope_entry_prefix_alignment_offset);
 }  /* il_alloc_one_time_init */
 
@@ -6195,6 +6229,9 @@ that need initialization for every (primary and secondary) translation unit.
   avail_template_args = NULL;
   available_local_constants = NULL;
   avail_fs_nodes = NULL;
+#if NEED_NAME_MANGLING
+  avail_constant_list_entries = NULL;
+#endif /* NEED_NAME_MANGLING */
 }  /* il_alloc_trans_unit_init */
 
 

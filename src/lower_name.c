@@ -10834,9 +10834,6 @@ static a_constant_list_entry_ptr
                            that exists on this list precludes the abi_tag from
                            being an implicit abi_tag for the entity being
                            mangled. */
-static a_constant_list_entry_ptr
-                avail_clep_entries;
-                        /* A list of available clep entries. */
 
 #if DO_IL_LOWERING
 
@@ -10880,42 +10877,6 @@ Return the list of rlep entries to the pool of available entries.
 }  /* free_rlep_list */
 
 #endif /* DO_IL_LOWERING */
-
-static a_constant_list_entry_ptr alloc_clep_entry(void)
-/*
-Get an clep entry from a local pool or allocate one if necessary.
-*/
-{
-  a_constant_list_entry_ptr clep;
-
-  if (avail_clep_entries == NULL) {
-    clep = alloc_list_entry_for_constant();
-  } else {
-    clep = avail_clep_entries;
-    avail_clep_entries = clep->next;
-    clep->next = NULL;
-  }  /* if */
-  return clep;
-}  /* alloc_clep_entry */
-
-
-static void free_clep_list(a_constant_list_entry_ptr list)
-/*
-Return the list of clep entries to the pool of available entries.
-*/
-{
-  a_constant_list_entry_ptr clep;
-
-  if (avail_clep_entries == NULL) {
-    avail_clep_entries = list;
-  } else {
-    for (clep = avail_clep_entries;
-         clep->next != NULL;
-         clep = clep->next) {}
-    clep->next = list;
-  }  /* if */
-}  /* free_clep_list */
-
 
 static void add_abi_tag_mangling(an_attribute_ptr         ap,
                                  a_mangling_control_block *mctl)
@@ -11081,7 +11042,7 @@ by *list.  Any constant that is already on the list is skipped.
                     aap->variant.constant->kind ==
                                               (a_constant_repr_kind)ck_string);
     if (!abi_tag_is_on_list(aap->variant.constant, *list)) {
-      a_constant_list_entry_ptr clep = alloc_clep_entry();
+      a_constant_list_entry_ptr clep = alloc_list_entry_for_constant();
       clep->next = *list;
       clep->constant = aap->variant.constant;
       *list = clep;
@@ -11427,7 +11388,7 @@ As implemented here, this involves three steps:
         ttt_kind_for_implicit_abi_tags = iek_none;
         if (implicit_tag_list != NULL) {
           /* Free the list of implicit abi_tag constants. */
-          free_clep_list(implicit_tag_list);
+          free_list_entry_for_constant(implicit_tag_list);
           implicit_tag_list = NULL;
         }  /* if */
 #if DEBUG
@@ -14628,7 +14589,6 @@ Do one-time initialization of variables related to name mangling.
 #if DO_IL_LOWERING
   avail_rlep_entries = NULL;
 #endif /* DO_IL_LOWERING */
-  avail_clep_entries = NULL;
   ttt_scp_for_implicit_abi_tags = NULL;
   ttt_kind_for_implicit_abi_tags = iek_none;
   ttt_mark_value = FALSE;
