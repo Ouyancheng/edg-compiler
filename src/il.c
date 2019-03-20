@@ -20377,11 +20377,11 @@ The returned node is a prvalue.
 an_expr_node_ptr glvalue_from_class_prvalue_node(an_expr_node_ptr node,
                                                  a_boolean        is_xvalue)
 /*
-Turn the node given node into a glvalue node.  This is done by adding an
-enk_temp_init node on top, unless it's already an enk_temp_init node, an
-enk_lambda node, or a chain of eok_comma and eok_dot_field nodes ending
-in an enk_temp_init or enk_lambda node.  Return an xvalue if is_xvalue is
-TRUE or an lvalue otherwise.
+Return a node that is the given node converted to a glvalue.  This is done by
+adding an enk_temp_init node on top of the given node, unless it's already an
+enk_temp_init node, an enk_lambda node, or a chain of eok_comma and
+eok_dot_field nodes ending in an enk_temp_init or enk_lambda node.  Return an
+xvalue if is_xvalue is TRUE or an lvalue otherwise.
 */
 {
   an_expr_node_ptr  chain, chain_end = node;

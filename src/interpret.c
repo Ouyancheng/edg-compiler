@@ -14054,13 +14054,40 @@ the value representation of the integer value.
           do_constexpr_fail(result);
           break;
         }  /* if */
-        if (ips->disallow_mutable_field_load &&
+        dip = expr->variant.init.dynamic_init;
+        if ((ips->disallow_mutable_field_load || dip->static_temp) &&
             !is_const_qualified_type(expr->type)) {
-          info_with_pos(ec_constexpr_non_const_temp, type_pos(tp, ips), ips);
+          /* Usually we do not fold a non-constant temporary in contexts that
+             require mutability or are static (and therefore could be mutated
+             because they are bound to a reference).  However, if the
+             expression is a glvalue with static storage, we can produce a
+             run-time address constant (ck_address/abk_temporary). */
+          if (dip->static_temp &&
+              (expr->is_lvalue || expr->is_xvalue)) {
+            a_constant_ptr  temp_con = local_constant();
+            if (interpret_dynamic_init(dip, &expr->position, expr->type,
+                                       ips->is_constant_evaluated, temp_con,
+                                       &ips->diag_list)) {
+              a_constant_ptr  addr_con = local_constant();
+              set_constant_kind(addr_con, (a_constant_repr_kind)ck_address);
+              addr_con->variant.address.kind =
+                                          (an_address_base_kind)abk_temporary;
+              addr_con->variant.address.variant.constant = temp_con;
+              addr_con->type = (expr->is_xvalue && rvalue_references_enabled) ?
+                                  make_rvalue_reference_type(temp_con->type) :
+                                  make_reference_type(temp_con->type);
+              addr_con->next = ips->constants;
+              temp_con->next = addr_con;
+              ips->constants = temp_con;
+              clear_runtime_constant_address(result_storage, addr_con);
+              break;
+            }  /* if */
+            release_local_constant(&temp_con);
+          }  /* if */
+          info_with_pos(ec_constexpr_non_const_temp, &expr->position, ips);
           do_constexpr_fail(result);
           break;
         }  /* if */
-        dip = expr->variant.init.dynamic_init;
         if (expr->is_lvalue || expr->is_xvalue) {
           /* A glvalue temporary is expected.  I.e., the caller expects an
              interpreter address for the temporary object.  Allocate the
@@ -14535,7 +14562,9 @@ diagnostic in *ips.
           a_byte          *mptr;
           a_constant_ptr  cp;
           a_variable_ptr  vp = NULL;
-          a_boolean       permit_local_temp;
+          a_boolean       is_subobj_addr, permit_local_temp;
+          is_subobj_addr = cap->complete_object != cap->address ||
+                           is_array_element(cap);
           permit_local_temp = ips->permit_address_of_local_temporary;
           if (permit_local_temp) {
             ips->permit_address_of_local_temporary = FALSE;
@@ -14568,9 +14597,6 @@ diagnostic in *ips.
               cp = NULL;
             } else {
               cp = prev_con->variant.address.variant.constant;
-            }  /* if */
-            if (cap->address != cap->complete_object) {
-              translate_interpreter_offset(ips, cap, con);
             }  /* if */
           } else {
             /* Create an abk_constant or abk_temporary entry. */
@@ -14614,11 +14640,26 @@ diagnostic in *ips.
                object can use the same constant entry (see the case where mptr
                points to a non-ck_address entry above). */
             map_stack_bytes(ips, cap->complete_object, (a_byte*)cp);
-            if (!copy_interpreter_object_to_constant(
-                          ips, base_address, cap->complete_object, utp, cp)) {
-              do_constexpr_fail(result);
-              break;
-            }  /* if */
+            /* Create an IL representation of the pointed-to-object.  In some
+               cases, we may be pointing to a subobject; the representation is
+               still needed for the complete object, however. */
+            { a_type_ptr  otp;
+              if (is_subobj_addr) {
+                otp = complete_object_type(cap->complete_object);
+                if (is_const_storage(cap)) {
+                  otp = make_qualified_type(otp,
+                                            (a_type_qualifier_set)TQ_CONST);
+                }  /* if */
+              } else {
+                otp = utp;
+              }  /* if */
+              if (!copy_interpreter_object_to_constant(
+                              ips, cap->complete_object, cap->complete_object,
+                              otp, cp)) {
+                do_constexpr_fail(result);
+                break;
+              }  /* if */
+            }
           }  /* if */
           if (is_array_element(cap)) {
             /* Taking the address of an array implies a pointer-to-array
@@ -14682,6 +14723,9 @@ diagnostic in *ips.
               }  /* if */
             }  /* if */
             con->variant.address.variant.constant = cp;
+          }  /* if */
+          if (is_subobj_addr) {
+            translate_interpreter_offset(ips, cap, con);
           }  /* if */
         }  /* if */
         if (is_variant_path(cap)) {
