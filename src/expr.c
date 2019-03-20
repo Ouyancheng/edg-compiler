@@ -19580,7 +19580,7 @@ Returns the matching operator "new" symbol, if found.
 */
 {
   a_boolean            local_unknown_dependent_new = *unknown_dependent_new;
-  a_symbol_ptr         operator_new_symbol;
+  a_symbol_ptr         operator_new_symbol = NULL;
   an_opname_kind       opname_kind;
 
   opname_kind = (an_opname_kind)onk_new;
@@ -19684,7 +19684,8 @@ static a_symbol_ptr get_operator_new_function(
                               an_arg_list_elem_ptr     arg_list,
                               an_arg_list_elem_ptr     *alignment_alep,
                               an_arg_match_summary_ptr *arg_match_list,
-                              a_boolean                *unknown_dependent_new)
+                              a_boolean                *unknown_dependent_new,
+                              a_boolean                *has_alignment_arg)
 /*
 Returns the matching operator "new" function symbol, if found.
 */
@@ -19698,7 +19699,7 @@ Returns the matching operator "new" function symbol, if found.
     /* Select the proper "new" function if there are several.  Note that
        this call does not adjust the argument types or build the function
        call, since we may yet fold the call into a constructor call. */
-    if (*alignment_alep != NULL) {
+    if (*has_alignment_arg) {
       /* There is an alignment argument.  Suppress diagnostics and
          detect access violations in case there is no matching operator
          new and we need to repeat overload resolution without the
@@ -19708,57 +19709,59 @@ Returns the matching operator "new" function symbol, if found.
       scope_stack_top().defer_access_checks = FALSE;
     }  /* if */
     proj_function_symbol = select_overloaded_function(
-      operator_new_symbol,
-      /*is_template_id=*/FALSE,
-      (a_template_arg_ptr)NULL,
-      /*have_selector=*/FALSE,
-      (an_operand *)NULL,
-      arg_list,
-      (an_arg_list_elem *)NULL,
-      CCO_DIRECT_INITIALIZATION,
-      /*do_arg_dep_lookup=*/FALSE,
-      /*use_pure_arg_dep_lookup=*/FALSE,
-      /*use_std_for_arg_dep_lookup=*/FALSE,
-      oc_new_expression,
-      new_position,
-      (a_token_sequence_number)0,
-      (a_boolean *)NULL,
-      (a_boolean *)NULL,
-      unknown_dependent_new,
-      (a_boolean *)NULL,
-      (a_symbol_ptr *)NULL,
-      arg_match_list);
+                                        operator_new_symbol,
+                                        /*is_template_id=*/FALSE,
+                                        (a_template_arg_ptr)NULL,
+                                        /*have_selector=*/FALSE,
+                                        (an_operand *)NULL,
+                                        arg_list,
+                                        (an_arg_list_elem *)NULL,
+                                        CCO_DIRECT_INITIALIZATION,
+                                        /*do_arg_dep_lookup=*/FALSE,
+                                        /*use_pure_arg_dep_lookup=*/FALSE,
+                                        /*use_std_for_arg_dep_lookup=*/FALSE,
+                                        oc_new_expression,
+                                        new_position,
+                                        (a_token_sequence_number)0,
+                                        (a_boolean *)NULL,
+                                        (a_boolean *)NULL,
+                                        unknown_dependent_new,
+                                        (a_boolean *)NULL,
+                                        (a_symbol_ptr *)NULL,
+                                        arg_match_list);
     /* Restore diagnostics and access checking to their previous
        state. */
     expr_stack->suppress_diagnostics = saved_supp_diags;
     expr_stack->any_suppressed_error = saved_any_error;
     scope_stack_top().defer_access_checks = saved_defer_access_ck;
-    if (proj_function_symbol == NULL && *alignment_alep != NULL) {
+    if (proj_function_symbol == NULL && *has_alignment_arg) {
       /* Try overload resolution again without the alignment argument. */
       arg_list->next = (*alignment_alep)->next;
+      (*alignment_alep)->next = NULL;
       free_arg_list(*alignment_alep);
       *alignment_alep = NULL;
+      *has_alignment_arg = FALSE;
       proj_function_symbol = select_overloaded_function(
-        operator_new_symbol,
-        /*is_template_id=*/FALSE,
-        (a_template_arg_ptr)NULL,
-        /*have_selector=*/FALSE,
-        (an_operand *)NULL,
-        arg_list,
-        (an_arg_list_elem *)NULL,
-        CCO_DIRECT_INITIALIZATION,
-        /*do_arg_dep_lookup=*/FALSE,
-        /*use_pure_arg_dep_lookup=*/FALSE,
-        /*use_std_for_arg_dep_lookup=*/FALSE,
-        oc_new_expression,
-        new_position,
-        (a_token_sequence_number)0,
-        (a_boolean *)NULL,
-        (a_boolean *)NULL,
-        unknown_dependent_new,
-        (a_boolean *)NULL,
-        (a_symbol_ptr *)NULL,
-        arg_match_list);
+                                        operator_new_symbol,
+                                        /*is_template_id=*/FALSE,
+                                        (a_template_arg_ptr)NULL,
+                                        /*have_selector=*/FALSE,
+                                        (an_operand *)NULL,
+                                        arg_list,
+                                        (an_arg_list_elem *)NULL,
+                                        CCO_DIRECT_INITIALIZATION,
+                                        /*do_arg_dep_lookup=*/FALSE,
+                                        /*use_pure_arg_dep_lookup=*/FALSE,
+                                        /*use_std_for_arg_dep_lookup=*/FALSE,
+                                        oc_new_expression,
+                                        new_position,
+                                        (a_token_sequence_number)0,
+                                        (a_boolean *)NULL,
+                                        (a_boolean *)NULL,
+                                        unknown_dependent_new,
+                                        (a_boolean *)NULL,
+                                        (a_symbol_ptr *)NULL,
+                                        arg_match_list);
     }  /* if */
   }  /* if */
 
@@ -21207,7 +21210,7 @@ expression, and return the result in *result (or an error indication in
     proj_function_symbol =
       get_operator_new_function(operator_new_symbol, &new_position,
                                 arg_list, &alignment_alep, &arg_match_list,
-                                &unknown_dependent_new);
+                                &unknown_dependent_new, &has_alignment_arg);
     if (proj_function_symbol != NULL) {
       function_symbol = fundamental_symbol_of(proj_function_symbol);
     }  /* if */
