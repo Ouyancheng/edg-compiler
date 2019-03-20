@@ -1266,7 +1266,17 @@ of lambda expressions.
   scope_ptr = push_scope((a_scope_kind)sck_function, scope_number,
                          (a_type_ptr)NULL, rout_ptr);
   if (func_info->lambda != NULL) {
+    a_symbol_ptr  call_op_sym;
     scope_stack_top().lambda = func_info->lambda;
+    /* Make the lambda call operator invisible to unqualified lookup inside
+       its own definition. */
+    if (rout_ptr->is_template_function) {
+      call_op_sym = symbol_for(rout_ptr->assoc_template);
+    } else {
+      call_op_sym = symbol_for(rout_ptr);
+    }  /* if */
+    call_op_sym->is_invisible = TRUE;
+    call_op_sym->qualified_lookup = TRUE;
   }  /* if */
   /* Make sure the implicit_typename flag is FALSE during prototype
      instantiations.  It could be set if we are in a mode where

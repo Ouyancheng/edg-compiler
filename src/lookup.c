@@ -4599,8 +4599,10 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
     is_tag_or_tag_proxy_symbol(fund_sym,			      \
                                (options & IDL_FRIEND_LOOKUP) != 0) || \
     (microsoft_bugs && fund_sym->kind == (a_symbol_kind)sk_type)) &&  \
-   /* Ignore invisible symbols except for invisible projection symbols. */ \
-   (!(sym)->is_invisible || (sym)->kind == (a_symbol_kind)sk_projection))
+   /* Ignore invisible symbols except for invisible projection symbols */  \
+   /* and class member symbol marked as visible to qualified lookup. */    \
+   (!(sym)->is_invisible || (sym)->kind == (a_symbol_kind)sk_projection || \
+     (sym)->qualified_lookup))
 
   db_enter(4, "class_qualified_id_lookup");
 #if MICROSOFT_EXTENSIONS_ALLOWED

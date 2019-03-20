@@ -3435,7 +3435,9 @@ typedef struct a_symbol {
   a_bit_field	qualified_lookup:1;
 			/* TRUE for synthesized namespace projection symbols
 			   that were generated as a result of a namespace
-			   qualified lookup. */
+			   qualified lookup.  Also TRUE for class member
+			   symbols that are invisible (is_invisible is TRUE),
+			   but should be found by qualified lookup. */
   a_bit_field	must_be_class_or_namespace_lookup:1;
 			/* TRUE for synthesized namespace projection symbols
 			   that were generated as a result of an
