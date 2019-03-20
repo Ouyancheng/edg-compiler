@@ -116,7 +116,7 @@ extern a_variable_list_entry_ptr alloc_list_entry_for_variable(void);
 #if NEED_NAME_MANGLING
 extern a_constant_list_entry_ptr alloc_list_entry_for_constant(void);
 
-extern void free_list_entry_for_constant(a_constant_list_entry_ptr list);
+extern void free_list_of_constant_list_entries(a_constant_list_entry_ptr list);
 #endif /* NEED_NAME_MANGLING */
 
 extern a_based_type_list_member_ptr alloc_based_type_list_member(

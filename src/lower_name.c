@@ -11388,7 +11388,7 @@ As implemented here, this involves three steps:
         ttt_kind_for_implicit_abi_tags = iek_none;
         if (implicit_tag_list != NULL) {
           /* Free the list of implicit abi_tag constants. */
-          free_list_entry_for_constant(implicit_tag_list);
+          free_list_of_constant_list_entries(implicit_tag_list);
           implicit_tag_list = NULL;
         }  /* if */
 #if DEBUG

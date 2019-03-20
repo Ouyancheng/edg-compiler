@@ -1637,9 +1637,9 @@ return a pointer to it.
 }  /* alloc_list_entry_for_constant */
 
 
-void free_list_entry_for_constant(a_constant_list_entry_ptr list)
+void free_list_of_constant_list_entries(a_constant_list_entry_ptr list)
 /*
-Return the list of clep entries to the pool of available entries.
+Return the list of constant-list-entries to the pool of available entries.
 */
 {
   a_constant_list_entry_ptr clep;
@@ -1652,7 +1652,7 @@ Return the list of clep entries to the pool of available entries.
          clep = clep->next) {}
     clep->next = list;
   }  /* if */
-}  /* free_list_entry_for_constant */
+}  /* free_list_of_constant_list_entries */
 
 #endif /* NEED_NAME_MANGLING */
 
