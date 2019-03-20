@@ -19123,7 +19123,7 @@ static a_type_ptr scan_new_type(a_decl_parse_state *dps,
 
 
 static void scan_new_initializer(a_decl_parse_state *dps,
-                                 a_boolean          deducible_new_type,
+                                 a_boolean          *deducible_new_type,
                                  a_boolean          *has_new_initializer,
                                  a_boolean          *has_braced_initializer,
                                  a_boolean          *using_expr_cache,
@@ -19151,21 +19151,19 @@ Scans the new initializer expression (if present).
     /* Don't advance past the "{", because the scan routine expects to
        still see it as the current token. */
   }  /* if */
-  *has_new_initializer = local_has_new_initializer;
-  *has_braced_initializer = local_has_braced_initializer;
 
-  if (deducible_new_type) {
+  if (*deducible_new_type) {
     if (dps->auto_type_specifier_seen && !local_has_new_initializer) {
       /* An auto type specifier not followed by a new-initializer or a
          trailing return type is an error. */
       expr_pos_error(ec_auto_type_requires_initializer, type_position);
       *new_type = error_type();
-      deducible_new_type = FALSE;
+      *deducible_new_type = FALSE;
     } else if (dps->auto_type_specifier_seen && local_has_braced_initializer) {
       /* A braced initializer cannot be used with "auto". */
       expr_pos_error(ec_auto_new_with_braced_init, type_position);
       *new_type = error_type();
-      deducible_new_type = FALSE;
+      *deducible_new_type = FALSE;
     } else if (!local_has_new_initializer) {
       /* A class template name placeholder can be deduced without an
          initializer. */
@@ -19178,11 +19176,11 @@ Scans the new initializer expression (if present).
                                      &pos_curr_token, new_type,
                                      &still_dependent)) {
         complete_type_is_needed(*new_type);
-        deducible_new_type = FALSE;
+        *deducible_new_type = FALSE;
       } else if (!still_dependent) {
         /* There was an error.  Proceed as if no placeholder appeared. */
         *new_type = error_type();
-        deducible_new_type = FALSE;
+        *deducible_new_type = FALSE;
       }  /* if */
     } else {
       /* Prescan the initializer to deduce the type to allocate. */
@@ -19192,7 +19190,7 @@ Scans the new initializer expression (if present).
       if (!dps->has_deduced_type) {
         /* There was an error.  Proceed as if "auto" did not appear. */
         *new_type = error_type();
-        deducible_new_type = FALSE;
+        *deducible_new_type = FALSE;
       } else if (dps->deduced_auto_type == NULL ||
                  dps->deduced_auto_type->kind == (a_type_kind)tk_unknown) {
         /* The deduction was not done because the initializer or the auto
@@ -19201,10 +19199,13 @@ Scans the new initializer expression (if present).
         /* In other cases, the deduction succeeded and "auto" is gone
            from the new_type. */
         *new_type = dps->type;
-        deducible_new_type = FALSE;
+        *deducible_new_type = FALSE;
       }  /* if */
     }  /* if */
   }  /* if */
+
+  *has_new_initializer = local_has_new_initializer;
+  *has_braced_initializer = local_has_braced_initializer;
 }  /* scan_new_initializer */
 
 
@@ -21099,7 +21100,7 @@ expression, and return the result in *result (or an error indication in
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
     scan_new_initializer(&dps,
-                         deducible_new_type, &has_new_initializer,
+                         &deducible_new_type, &has_new_initializer,
                          &has_braced_initializer, &using_expr_cache,
                          &init_position, &new_type, &type_position);
   }  /* if */
