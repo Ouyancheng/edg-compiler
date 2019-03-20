@@ -18999,11 +18999,13 @@ in parentheses.
 
 
 static a_type_ptr rescan_new_deduce_placeholder_type(
-                                  a_rescan_control_block *rcblock,
-                                  a_decl_parse_state     *dps,
-                                  a_boolean              *deducible_new_type,
-                                  a_type_ptr             new_type,
-                                  a_source_position      *type_position)
+                                a_rescan_control_block *rcblock,
+                                a_decl_parse_state     *dps,
+                                a_boolean              *deducible_new_type,
+                                a_type_ptr             new_type,
+                                a_source_position      *type_position,
+                                a_boolean              has_braced_initializer,
+                                an_arg_list_elem_ptr   braced_init_list)
 /* The type involves a placeholder type.  Deduce the type from the
    initializer expression. */
 {
@@ -19040,6 +19042,7 @@ static a_type_ptr rescan_new_deduce_placeholder_type(
       auto_alep = NULL;
     }  /* if */
   } else {
+    check_assertion(!has_braced_initializer && braced_init_list == NULL);
     deduced = deduce_auto_type(new_type, /*auto_type=*/(a_type_ptr)NULL,
                                /*keep_placeholder=*/TRUE, &auto_operand,
                                auto_alep, type_position,
@@ -21088,7 +21091,9 @@ expression, and return the result in *result (or an error indication in
 
       new_type =
         rescan_new_deduce_placeholder_type(rcblock, &dps, &deducible_new_type,
-                                           new_type, &type_position);
+                                           new_type, &type_position,
+                                           has_braced_initializer,
+                                           braced_init_list);
       using_expr_cache = TRUE;
     }  /* if */
   } else {
