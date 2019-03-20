@@ -1267,12 +1267,6 @@ of lambda expressions.
                          (a_type_ptr)NULL, rout_ptr);
   if (func_info->lambda != NULL) {
     scope_stack_top().lambda = func_info->lambda;
-    /* Make the lambda call operator invisible inside its own definition. */
-    if (rout_ptr->is_template_function) {
-      symbol_for(rout_ptr->assoc_template)->is_invisible = TRUE;
-    } else {
-      symbol_for(rout_ptr)->is_invisible = TRUE;
-    }  /* if */
   }  /* if */
   /* Make sure the implicit_typename flag is FALSE during prototype
      instantiations.  It could be set if we are in a mode where
