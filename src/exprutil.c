@@ -9525,21 +9525,21 @@ desired.
     int_size *= targ_char_bit;
     if (field_size > int_size) field_size = (unsigned int)int_size;
   }  /* if */
-#if LONG_LONG_ALLOWED
-  if ((microsoft_mode || (gpp_mode && gnu_version < 40800) ||
-       (gcc_mode && gnu_version < 40000 &&
-        field->bit_size == (unsigned int)(targ_sizeof_long*targ_char_bit))) &&
-      (ikind == (an_integer_kind)ik_long_long ||
-       ikind == (an_integer_kind)ik_unsigned_long_long)) {
-    /* MSVC++ and g++ before 4.8.0 consider long long and unsigned long long
-       bit fields to retain those types even if the bit field size is less
-       than the size of int.  This is possibly justified in C99 (6.3.1.1p2)
-       but is probably wrong in C++.  gcc before 4.0 also does this for
-       bit fields that are exactly as long as "long". */
-  } else
-#endif /* LONG_LONG_ALLOWED */
-  /* Do not insert code here. */
-  if (field->bit_field_is_signed) {
+
+  if (is_immediate_enum_type(promoted_type)) {
+    /* Enum bitfields keep their underlying type when being promoted. */
+  } else if (gcc_version_is(< 40000) &&
+      field->bit_size == (unsigned int)(targ_sizeof_long*targ_char_bit)) {
+    /* gcc before 4.0 considers bit fields that are exactly as long as long
+       to retain their types. */
+  } else if ((microsoft_mode || gpp_version_is(< 40200)) &&
+             ikind >= (an_integer_kind)ik_int) {
+    /* MSVC++ and g++ before 4.2.0 consider int and larger bit fields to
+       retain those types even if the bit field size is less than the size of
+       int.  This is possibly justified in C99 (6.3.1.1p2) but is probably
+       wrong in C++.  gcc before 4.0 also does this for bit fields that are
+       exactly as long as "long". */
+  } else if (field->bit_field_is_signed) {
     /* Bit-field is signed, so it is promoted to int if all its values will
        fit in int. */
     if (field_size <= (unsigned int)(targ_sizeof_int*targ_char_bit)) {
@@ -9550,7 +9550,13 @@ desired.
   } else {
     /* Bit-field is unsigned, so it is promoted to the first of int or
        unsigned int into which all its values will fit. */
-    if (field_size < (unsigned int)(targ_sizeof_int*targ_char_bit)) {
+    if (clang_mode && field->declared_bit_size ==
+                              (unsigned int)(targ_sizeof_int*targ_char_bit)) {
+      /* Clang will promote over-sized unsigned bitfields with width of an
+         int to be unsigned ints, not ints.  e.g) unsigned char c:32 gets
+         promoted to unsigned int. */
+      ikind = (an_integer_kind)ik_unsigned_int;
+    } else if (field_size < (unsigned int)(targ_sizeof_int*targ_char_bit)) {
       ikind = (an_integer_kind)ik_int;
     } else if (field_size == (unsigned int)(targ_sizeof_int*targ_char_bit)) {
       ikind = (an_integer_kind)ik_unsigned_int;
