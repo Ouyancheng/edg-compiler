@@ -4603,8 +4603,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               a_constant_ptr  cp = con->variant.address.variant.constant;
               a_byte          *con_bytes;
               a_type_ptr      ctp = skip_typerefs(cp->type);
-              a_boolean       is_const = is_const_qualified_type(cp->type);
-              if (ips->disallow_mutable_field_load && !is_const) {
+              if (ips->disallow_mutable_field_load &&
+                  !is_const_qualified_type(cp->type)) {
                 /* If disallow_mutable_field_load is set, we are in a context
                    that expects the temporary to be immutable.  */
                   clear_runtime_constant_address(value, con);
@@ -4629,9 +4629,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 }  /* if */
               }  /* if */
               clear_address(value, con_bytes);
-              if (is_const) {
-                ((a_constexpr_address*)value)->flags |= CA_CONST_STORAGE;
-              }  /* if */
+              ((a_constexpr_address*)value)->flags |= CA_CONST_STORAGE;
               obj_type = ctp;
             }
             break;
@@ -15215,6 +15213,7 @@ value produced by std::is_constant_evaluated().
   a_boolean             result = TRUE;
   an_interpreter_state  ips;
   a_byte                *result_storage;
+  a_byte_count          n_bytes;
 
   if (!in_front_end
 #if DO_IL_LOWERING
@@ -15231,15 +15230,7 @@ value produced by std::is_constant_evaluated().
   init_interpreter_state(&ips, is_constant_evaluated);
   ips.position = *pos;
   result_type = skip_typerefs(result_type);
-  if (dip->variable != NULL) {
-    result_storage = do_constexpr_alloc_variable(&ips, dip->variable, &result);
-  } else {
-    a_byte_count  n_bytes;
-    n_bytes = value_bytes_for_type(&ips, result_type, &result); 
-    if (result) {
-      alloc_complete_object(&ips, n_bytes, result_type, result_storage);
-    }  /* if */
-  }  /* if */
+  n_bytes = value_bytes_for_type(&ips, result_type, &result); 
   if (!result) {
     if (ips.input_error) {
       /* Interpretation failed due to an error node in the IL.  Continue
@@ -15249,6 +15240,7 @@ value produced by std::is_constant_evaluated().
     }  /* if */
     /* Nothing more to be done. */
   } else {
+    alloc_complete_object(&ips, n_bytes, result_type, result_storage);
     result_con->type = result_type;
     if (dip->kind == (a_dynamic_init_kind)dik_zero) {
       init_subobject_to_zero(&ips, result_storage, result_type,
