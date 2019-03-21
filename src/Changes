@@ -1,5 +1,19 @@
 Version 5.1
 
+3/20/19  [EDGcpfe/20976]
+Self-referential aggregate initializers and constexpr evaluation
+
+The front end previously did not correctly evaluate aggregate initializers
+that refer to their own elements.  For example:
+
+  constexpr int g(int &r) { r *= 2; return r; }
+  struct S { int &&rr; int i; };
+  constexpr S s = { 42, g(s.rr) };  // Previously an error.  Now okay.
+
+Previously, this elicited an error because the evaluation of s.rr was not
+considered constant while s is being initializer.  That is now fixed.
+
+
 3/19/19  [EDGcpfe/20926]
 Recursive calls to generic lambdas
 
