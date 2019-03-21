@@ -4600,7 +4600,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                                (options & IDL_FRIEND_LOOKUP) != 0) || \
     (microsoft_bugs && fund_sym->kind == (a_symbol_kind)sk_type)) &&  \
    /* Ignore invisible symbols except for invisible projection symbols */  \
-   /* and class member symbol marked as visible to qualified lookup. */    \
+   /* and class member symbols marked as visible to qualified lookup. */   \
    (!(sym)->is_invisible || (sym)->kind == (a_symbol_kind)sk_projection || \
      (sym)->qualified_lookup))
 
