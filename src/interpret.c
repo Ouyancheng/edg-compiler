@@ -4380,10 +4380,20 @@ formats as necessary.  Return FALSE if the constant is an error constant.
     if (con->is_reinterpret_cast) {
       info_with_pos(ec_constexpr_reinterpret_cast, &ips->position, ips);
       do_constexpr_fail(result);
-    } else if (con->expr != NULL && !constant_is(con, ck_integer) &&
-               !con->is_reinterpret_like_cast) {
+    } else if (con->expr != NULL && !con->is_reinterpret_like_cast &&
+               !(constant_is(con, ck_integer) ||
+                 (constant_is(con, ck_address) &&
+                  con->variant.address.kind ==
+                                      (an_address_base_kind)abk_temporary))) {
       /* If the constant includes a conversion, evaluate the constant through
-         the backing expression so that the conversion is correctly applied. */
+         the backing expression so that the conversion is correctly applied.
+         Do not attempt this if a reinterpret-like cast is involved (which we
+         might not be able to interpret) or if we ended up with an integer
+         value (which we can just load here).  ck_address/abk_temporary entries
+         should generally be treated as run-time address constants if they
+         refer to a mutable temporary: Evaluating the underlying enk_temp_init
+         node would make the storage subject to mutation during this evaluation
+         and that is not permitted. */
       if (!do_constexpr_expression(ips, con->expr, value, complete_object)) {
         result = FALSE;
       }  /* if */
@@ -4603,10 +4613,10 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               a_constant_ptr  cp = con->variant.address.variant.constant;
               a_byte          *con_bytes;
               a_type_ptr      ctp = skip_typerefs(cp->type);
-              if (ips->disallow_mutable_field_load &&
-                  !is_const_qualified_type(cp->type)) {
-                /* If disallow_mutable_field_load is set, we are in a context
-                   that expects the temporary to be immutable.  */
+              a_boolean       is_const = is_const_qualified_type(cp->type);
+              if (!is_const) {
+                /* Do not load mutable temporaries (they're runtime entities
+                   even when referred to by "constant" ck_address entries). */
                   clear_runtime_constant_address(value, con);
                   break;
               }  /* if */
@@ -4629,7 +4639,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 }  /* if */
               }  /* if */
               clear_address(value, con_bytes);
-              ((a_constexpr_address*)value)->flags |= CA_CONST_STORAGE;
+              if (is_const) {
+                ((a_constexpr_address*)value)->flags |= CA_CONST_STORAGE;
+              }  /* if */
               obj_type = ctp;
             }
             break;
@@ -14055,39 +14067,6 @@ the value representation of the integer value.
           break;
         }  /* if */
         dip = expr->variant.init.dynamic_init;
-        if ((ips->disallow_mutable_field_load || dip->static_temp) &&
-            !is_const_qualified_type(expr->type)) {
-          /* Usually we do not fold a non-constant temporary in contexts that
-             require mutability or are static (and therefore could be mutated
-             because they are bound to a reference).  However, if the
-             expression is a glvalue with static storage, we can produce a
-             run-time address constant (ck_address/abk_temporary). */
-          if (dip->static_temp &&
-              (expr->is_lvalue || expr->is_xvalue)) {
-            a_constant_ptr  temp_con = local_constant();
-            if (interpret_dynamic_init(dip, &expr->position, expr->type,
-                                       ips->is_constant_evaluated, temp_con,
-                                       &ips->diag_list)) {
-              a_constant_ptr  addr_con = local_constant();
-              set_constant_kind(addr_con, (a_constant_repr_kind)ck_address);
-              addr_con->variant.address.kind =
-                                          (an_address_base_kind)abk_temporary;
-              addr_con->variant.address.variant.constant = temp_con;
-              addr_con->type = (expr->is_xvalue && rvalue_references_enabled) ?
-                                  make_rvalue_reference_type(temp_con->type) :
-                                  make_reference_type(temp_con->type);
-              addr_con->next = ips->constants;
-              temp_con->next = addr_con;
-              ips->constants = temp_con;
-              clear_runtime_constant_address(result_storage, addr_con);
-              break;
-            }  /* if */
-            release_local_constant(&temp_con);
-          }  /* if */
-          info_with_pos(ec_constexpr_non_const_temp, &expr->position, ips);
-          do_constexpr_fail(result);
-          break;
-        }  /* if */
         if (expr->is_lvalue || expr->is_xvalue) {
           /* A glvalue temporary is expected.  I.e., the caller expects an
              interpreter address for the temporary object.  Allocate the
@@ -14710,6 +14689,24 @@ diagnostic in *ips.
                 }  /* if */
               }  /* if */
               con->variant.address.kind = (an_address_base_kind)abk_constant;
+            } else if (!ips->is_constant_evaluated) {
+              /* If we're not in a "manifest-constant" context, do not produce
+                 a ck_address/abk_temporary entry.  If the temporary has a
+                 mutable type, we will not load its value in a later evaluation
+                 but we may have to do so if an enclosing context is in fact a
+                 "manifest constant".  For example:
+                     constexpr int g(int &r) { r *= 2; return r; }
+                     struct S { int &&rr; int i; };
+                     constexpr S s = { 42, g(s.rr) };
+                 Here, if we folded the binding of 42 to s.rr into a ck_address
+                 constant, we'd fail to later evaluate accesses to s.rr when
+                 evaluating the braced initializer as a whole.  So, by leaving
+                 the associated enk_temporary in the IL, we enable the
+                 possibility of a successful interpretation at a higher level.
+              */
+              do_constexpr_fail(result);
+              info_with_pos(ec_constexpr_access_to_runtime_storage,
+                            &ips->position, ips);
             } else {
               con->variant.address.kind = (an_address_base_kind)abk_temporary;
               if (!((cap->flags & CA_LIFETIME_EXTENDED) ||
@@ -15213,7 +15210,6 @@ value produced by std::is_constant_evaluated().
   a_boolean             result = TRUE;
   an_interpreter_state  ips;
   a_byte                *result_storage;
-  a_byte_count          n_bytes;
 
   if (!in_front_end
 #if DO_IL_LOWERING
@@ -15230,7 +15226,15 @@ value produced by std::is_constant_evaluated().
   init_interpreter_state(&ips, is_constant_evaluated);
   ips.position = *pos;
   result_type = skip_typerefs(result_type);
-  n_bytes = value_bytes_for_type(&ips, result_type, &result); 
+  if (dip->variable != NULL) {
+    result_storage = do_constexpr_alloc_variable(&ips, dip->variable, &result);
+  } else {
+    a_byte_count  n_bytes;
+    n_bytes = value_bytes_for_type(&ips, result_type, &result); 
+    if (result) {
+      alloc_complete_object(&ips, n_bytes, result_type, result_storage);
+    }  /* if */
+  }  /* if */
   if (!result) {
     if (ips.input_error) {
       /* Interpretation failed due to an error node in the IL.  Continue
@@ -15240,7 +15244,6 @@ value produced by std::is_constant_evaluated().
     }  /* if */
     /* Nothing more to be done. */
   } else {
-    alloc_complete_object(&ips, n_bytes, result_type, result_storage);
     result_con->type = result_type;
     if (dip->kind == (a_dynamic_init_kind)dik_zero) {
       init_subobject_to_zero(&ips, result_storage, result_type,

@@ -21609,7 +21609,7 @@ like
       if (static_lifetime) {
         (void)expr_interpret_expression_operand(
                                           operand, /*must_be_constant=*/FALSE,
-                                          /*is_constant_evaluated=*/TRUE);
+                                          /*is_constant_evaluated=*/FALSE);
       }  /* if */
     }  /* if */
   }  /* if */
