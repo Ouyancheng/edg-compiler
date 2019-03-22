@@ -9551,7 +9551,7 @@ desired.
     if (clang_mode && field->declared_bit_size ==
                               (unsigned int)(targ_sizeof_int*targ_char_bit)) {
       /* Clang promotes over-sized unsigned bitfields with the width of an
-         int to be unsigned ints, not ints.  E.g) "unsigned char c:32"
+         int to be unsigned ints, not ints.  E.g. "unsigned char c:32"
          promotes to unsigned int. */
       ikind = (an_integer_kind)ik_unsigned_int;
     } else if (field_size < (unsigned int)(targ_sizeof_int*targ_char_bit)) {
