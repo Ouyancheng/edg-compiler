@@ -15227,6 +15227,10 @@ value produced by std::is_constant_evaluated().
   ips.position = *pos;
   result_type = skip_typerefs(result_type);
   if (dip->variable != NULL) {
+    /* An initializer might refer to the variable it initializes.  E.g.:
+          constexpr int * const x[2] = { 0, x[0] };
+       That requires the variable to be associated with its interpreter
+       representation. */
     result_storage = do_constexpr_alloc_variable(&ips, dip->variable, &result);
   } else {
     a_byte_count  n_bytes;

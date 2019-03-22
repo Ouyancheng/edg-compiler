@@ -5489,7 +5489,7 @@ returned set to TRUE.
       }  /* if */
       clear_diag_list(&diag_list);
       if (init_dip->variable == NULL) init_dip->variable = vp;
-      if (interpret_dynamic_init(init_dip, &pos_first_token, vp_type,
+      if (interpret_dynamic_init(init_dip, &pos_first_token, vp->type,
                                  is_constant_evaluated,
                                  folded_con, &diag_list)) {
         if (static_lifetime) {
