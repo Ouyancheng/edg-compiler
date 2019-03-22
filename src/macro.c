@@ -8420,6 +8420,7 @@ Scan and process a #define directive.
             }  /* if */
           }  /* if */
         } else if (curr_token == tok_identifier &&
+                   len_of_curr_token == sizeof("__VA_OPT__") - 1 &&
                    strncmp(start_of_curr_token, "__VA_OPT__",
                            size_t_arg(len_of_curr_token)) == 0) {
           /* Nested use of __VA_OPT__.  Report an error and set the section
@@ -8571,6 +8572,7 @@ Scan and process a #define directive.
           (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                                 &any_white_space_skipped);
           if (curr_token == tok_identifier && va_opt_enabled &&
+              len_of_curr_token == sizeof("__VA_OPT__") - 1 &&
               strncmp(start_of_curr_token, "__VA_OPT__",
                       size_t_arg(len_of_curr_token)) == 0) {
             /* Defer the operation to the __VA_OPT__ processing. */
@@ -8631,6 +8633,7 @@ Scan and process a #define directive.
             need_end_of_token_marker = TRUE;
           }  /* if */
         } else if (va_opt_enabled && curr_token == tok_identifier &&
+                   len_of_curr_token == sizeof("__VA_OPT__") - 1 &&
                    strncmp(start_of_curr_token, "__VA_OPT__",
                            size_t_arg(len_of_curr_token)) == 0) {
           /* This is the start of a __VA_OPT__ expression. */
