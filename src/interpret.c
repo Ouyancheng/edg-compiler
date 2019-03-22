@@ -4432,6 +4432,15 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case ck_address:
+      if (con->variant.address.kind == (an_address_base_kind)abk_temporary) {
+        a_constant_ptr  cp = con->variant.address.variant.constant;
+        if (!is_const_qualified_type(cp->type)) {
+          /* Do not load mutable temporaries (they're runtime entities even
+             when referred to by "constant" ck_address entries). */
+          clear_runtime_constant_address(value, con);
+          break;
+        }  /* if */
+      }  /* if */
       if (con->variant.address.subobject_path != NULL && con->expr != NULL) {
         /* To reconstruct the offset in interpreter storage, interpret the
            backing expression. */
@@ -4613,13 +4622,6 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               a_constant_ptr  cp = con->variant.address.variant.constant;
               a_byte          *con_bytes;
               a_type_ptr      ctp = skip_typerefs(cp->type);
-              a_boolean       is_const = is_const_qualified_type(cp->type);
-              if (!is_const) {
-                /* Do not load mutable temporaries (they're runtime entities
-                   even when referred to by "constant" ck_address entries). */
-                  clear_runtime_constant_address(value, con);
-                  break;
-              }  /* if */
               get_stack_bytes(ips, cp, con_bytes);
               if (con_bytes == NULL) {
                 alloc_static_object(ips, ctp, con_bytes, &result);
@@ -4639,9 +4641,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 }  /* if */
               }  /* if */
               clear_address(value, con_bytes);
-              if (is_const) {
-                ((a_constexpr_address*)value)->flags |= CA_CONST_STORAGE;
-              }  /* if */
+              ((a_constexpr_address*)value)->flags |= CA_CONST_STORAGE;
               obj_type = ctp;
             }
             break;
@@ -14622,15 +14622,9 @@ diagnostic in *ips.
             /* Create an IL representation of the pointed-to-object.  In some
                cases, we may be pointing to a subobject; the representation is
                still needed for the complete object, however. */
-            { a_type_ptr  otp;
-              if (is_subobj_addr) {
-                otp = complete_object_type(cap->complete_object);
-                if (is_const_storage(cap)) {
-                  otp = make_qualified_type(otp,
-                                            (a_type_qualifier_set)TQ_CONST);
-                }  /* if */
-              } else {
-                otp = utp;
+            { a_type_ptr  otp = complete_object_type(cap->complete_object);
+              if (is_const_storage(cap)) {
+                otp = make_qualified_type(otp, (a_type_qualifier_set)TQ_CONST);
               }  /* if */
               if (!copy_interpreter_object_to_constant(
                               ips, cap->complete_object, cap->complete_object,
