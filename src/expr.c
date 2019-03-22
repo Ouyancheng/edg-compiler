@@ -108,6 +108,271 @@ static void scan_await_expression(an_operand  *result);
                  (local_options))
 
 
+/*
+Data structure to retain the current state of scanning the "new" operator.
+*/
+typedef struct a_new_parse_state {
+  a_source_position
+		start_position;
+			/* The starting position of the "new" operator. */
+  a_source_position
+		type_position;
+			/* The position of the "new" type declaration. */
+  a_source_position
+		init_position;
+			/* The position of the "new" initializer, if present.
+			*/
+  a_source_position
+		end_new_init_position;
+			/* The end position of the new initializer.  Only set
+			   for template and array new-init cases. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		end_position;
+			/* The end position for the entire "new" operator,
+			   including type and initializer. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_source_position
+		new_position;
+			/* The position of the "new" operator itself. */
+  a_type_ptr
+		new_type;
+  a_type_ptr
+		unqual_new_type;
+			/* The type of the object being allocated. */
+  a_type_ptr
+		base_new_type;
+  a_type_ptr
+		unqual_base_new_type;
+			/* The underlying type of the object being allocated.
+			   This will be the same as "new_type" except when
+			   allocating an (possibly multi-dimensional) array of
+			   objects, in which case it will be the type that
+			   makes up the array.  Also see "element_type". */
+  a_type_ptr
+		ptr_new_type;
+			/* The result type of the "new" operator. */
+  a_type_ptr
+		element_type;
+			/* The underlying type of the object being allocated.
+			   Similar to "base_new_type" except that only one
+			   array dimension is stripped away. */
+  a_class_symbol_supplement_ptr
+		cssp;
+			/* The supplemental information for the class being
+			   allocated, if the type being allocated is a
+                           class-type. */
+  an_expr_node_ptr
+		new_array_dimension;
+			/* The expression for the new array dimension(s). */
+  an_expr_node_ptr
+		arg_expr_list;
+			/* The argument expression list corresponding to the
+			   arguments in "arg_list". */
+  an_expr_node_ptr
+		init_val_node;
+			/* The "new" initializer expression. */
+  a_symbol_ptr
+		operator_new_symbol;
+			/* The resolved operator "new" symbol. */
+  a_symbol_ptr
+		ctor_sym;
+			/* The constructor of the class being allocated, if
+			   the type being allocated is a class-type. */
+  a_symbol_ptr
+		function_symbol;
+  a_symbol_ptr
+		proj_function_symbol;
+			/* The symbol for the "new" function. */
+  a_routine_ptr
+		new_routine;
+			/* The "new" routine that will be called. */
+  a_routine_ptr
+		delete_routine;
+			/* The associated "delete" routine, if present. */
+  an_arg_list_elem_ptr
+		arg_list;
+			/* The argument list for the "new" function call,
+			   including the size argument.  May also include an
+			   alignment argument. */
+  an_arg_list_elem_ptr
+		alignment_alep;
+			/* The alignment argument for the "new" operator. */
+  an_arg_list_elem_ptr
+		braced_init_list;
+			/* The argument list representing the braced
+			   initializer for "new", if one was provided. */
+  an_arg_list_elem_ptr
+		init_raw_args;
+			/* The argument list representing the parenthesized
+                           initializer for "new", if one was provided. */
+  an_arg_match_summary_ptr
+		arg_match_list;
+			/* The argument match summary list corresponding to
+			   the match between the provided argument list and
+                           the selected "new" function. */
+  a_dynamic_init_ptr
+		dip;
+			/* The dynamic initialization needed when an
+			   initializer was provided. */
+  a_dynamic_init_ptr
+		dyn_init_to_free_storage;
+			/* The dynamic initialization used to free storage if
+			   an exception was thrown before initialization
+			   completed. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  an_expr_node_ptr
+		cli_array_new_init_args;
+			/* The expression form of "init_raw_args".  Used to
+			   infer array bounds. */
+  an_operand	gcnew_special_case_operand;
+			/* A replacement operand for when a gcnew of
+			   System::String with a single argument of type
+			   String is made, which just passes through the
+			   argument without doing a gcnew. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_token_kind	operator_token;
+			/* The kind of "new" that is being scanned. */
+  a_targ_size_t
+		effective_num_of_elements;
+			/* The effective number of array elements when taking
+			   into account all array dimensions. */
+  a_bit_field	use_global_new : 1;
+			/* TRUE if the global "new" operator should be used.
+			*/
+  a_bit_field	delete_ambiguous : 1;
+			/* TRUE if the "delete" operator corresponding to the
+			   "new" operator is ambiguous. */
+  a_bit_field	needs_initialization : 1;
+			/* TRUE if the allocated object(s) need to be
+			   initialized. */
+  a_bit_field	variable_size_array : 1;
+			/* TRUE if the allocated object is a variable size
+			   array. */
+  a_bit_field	zero_initialization : 1;
+			/* TRUE if the initialization amounts to
+			   zero-initialization. */
+  a_bit_field	has_new_initializer : 1;
+			/* TRUE if an initializer was provided to "new". */
+  a_bit_field	has_alignment_arg : 1;
+			/* TRUE if an alignment argument was provided to
+			   "new". */
+  a_bit_field	has_braced_initializer : 1;
+			/* TRUE if the new initializer took the form of a
+			   braced initializer list. */
+  a_bit_field	placement_new : 1;
+			/* TRUE if the "new" expression has a placement
+			   argument. */
+  a_bit_field	array_new : 1;
+			/* TRUE if using the array version of "new". */
+  a_bit_field	unknown_dependent_new : 1;
+			/* TRUE if, during prototype instantiation, it's not
+			   currently known which "new" operator should be
+			   used. */
+  a_bit_field	template_case : 1;
+			/* TRUE if, during prototype instantiation, the type
+			   being allocated is a template-dependent type. */
+  a_bit_field	dependent_new_type : 1;
+			/* TRUE if, during prototype instantiation, the type
+			   being allocated is a non-real class. */
+  a_bit_field	deducible_new_type : 1;
+			/* TRUE if the type of the "new" expression is
+			   deducible - i.e., "auto" was used for the type. */
+  a_bit_field	using_expr_cache : 1;
+			/* TRUE if the initializer expression has been pre-
+			   scanned and should therefore be retrieved from the
+			   initializer cache. */
+  a_bit_field	empty_initializer : 1;
+			/* TRUE if the initializer expression is empty. */
+  a_bit_field	trapped_left_paren : 1;
+			/* TRUE if the type in the "new" expression is
+			   parenthesized. */
+  a_bit_field	templ_init_scanned : 1;
+			/* TRUE if, during prototype instantiation,
+			   "init_raw_args" have been prepared for passage to a
+			   template-dependent constructor. */
+  a_bit_field	err : 1;
+			/* TRUE if an error has occurred during the parsing of
+			   the "new" expression. */
+  a_bit_field	type_err : 1;
+			/* TRUE if an error has occurred during the
+			   determination of the "new" expression's type. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	is_gcnew : 1;
+			/* TRUE if this is the "gcnew" variant of "new". */
+  a_bit_field	cli_array_new : 1;
+			/* TRUE if this is a "gcnew" of the C++/CLI array
+			   type. */
+  a_bit_field	has_array_init : 1;
+			/* TRUE if the initializer is a CLI array initializer.
+			*/
+  a_bit_field	gcnew_has_array_init : 1;
+			/* TRUE if the "gcnew" has an array initializer. */
+  a_bit_field	is_gcnew_string_special_case : 1;
+			/* TRUE if this is the "gcnew" special case.  See
+			   "gcnew_special_case_operand". */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+} a_new_parse_state;
+
+
+static void init_new_parse_state(a_new_parse_state *nps)
+{
+  nps->err = FALSE;
+  nps->type_err = FALSE;
+  nps->new_type = NULL;
+  nps->base_new_type = NULL;
+  nps->ptr_new_type = NULL;
+  nps->element_type = NULL;
+  nps->unqual_new_type = NULL;
+  nps->unqual_base_new_type = NULL;
+  nps->cssp = NULL;
+  nps->new_array_dimension = NULL;;
+  nps->use_global_new = FALSE;
+  nps->operator_new_symbol = NULL;
+  nps->ctor_sym = NULL;;
+  nps->function_symbol = NULL;
+  nps->proj_function_symbol = NULL;
+  nps->delete_routine = NULL;
+  nps->delete_ambiguous = FALSE;
+  nps->needs_initialization = FALSE;
+  nps->variable_size_array = FALSE;
+  nps->zero_initialization = FALSE;
+  nps->has_new_initializer = FALSE;
+  nps->has_alignment_arg = FALSE;
+  nps->has_braced_initializer = FALSE;
+  nps->braced_init_list = NULL;
+  nps->arg_expr_list = NULL;
+  nps->init_val_node = NULL;;
+  nps->arg_list = NULL;
+  nps->alignment_alep = NULL;
+  nps->placement_new = FALSE;
+  nps->array_new = FALSE;
+  nps->effective_num_of_elements = 0;
+  nps->arg_match_list = NULL;
+  nps->new_routine = NULL;
+  nps->dyn_init_to_free_storage = NULL;
+  nps->dip = NULL;
+  nps->unknown_dependent_new = FALSE;
+  nps->template_case = FALSE;
+  nps->dependent_new_type = FALSE;
+  nps->deducible_new_type = FALSE;
+  nps->using_expr_cache = FALSE;
+  nps->empty_initializer = FALSE;
+  nps->trapped_left_paren = FALSE;
+  nps->operator_token = (a_token_kind)tok_error;
+  nps->templ_init_scanned = FALSE;
+  nps->init_raw_args = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  nps->is_gcnew = FALSE;
+  nps->cli_array_new = FALSE;
+  nps->cli_array_new_init_args = NULL;
+  nps->has_array_init = FALSE;
+  nps->gcnew_has_array_init = FALSE;
+  nps->is_gcnew_string_special_case = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* init_new_parse_state */
+
+
 static void save_expr_stack(an_expr_stack_entry_ptr *saved_expr_stack)
 /*
 Clear the expression stack, returning the old expression stack pointer
@@ -17699,13 +17964,7 @@ when determining whether or not special handling is required.
 }  /* new_or_delete_type_requires_array_handling */
 
 
-static a_routine_ptr determine_deletion_for_new(
-                                           a_type_ptr        base_new_type,
-                                           a_symbol_ptr      new_sym,
-                                           a_boolean         use_global_delete,
-                                           a_boolean         placement_new,
-                                           a_source_position *position,
-                                           a_boolean         *ambiguous)
+static a_routine_ptr determine_deletion_for_new(a_new_parse_state *nps)
 /*
 Exceptions are enabled, and a "new" is being scanned.  Determine the
 delete routine to be called if an exception is thrown between the time
@@ -17726,23 +17985,26 @@ the delete routine is ambiguous (an error will have been issued).
   a_type_ptr    class_type;
   a_symbol_ptr  delete_sym, overload_delete_sym;
   a_boolean     is_sized_ver;
+  a_boolean     ambiguous = FALSE;
 
-  *ambiguous = FALSE;
   /* Select the delete routine that corresponds to the new routine selected. */
   class_type = NULL;
-  if (!use_global_delete && is_class_struct_union_type(base_new_type)) {
-    class_type = skip_typerefs(base_new_type);
+  if (!nps->use_global_new &&
+      is_class_struct_union_type(nps->base_new_type)) {
+    class_type = nps->unqual_base_new_type;
   }  /* if */
-  delete_sym = find_corresponding_operator_delete_sym(new_sym,
+  delete_sym = find_corresponding_operator_delete_sym(nps->function_symbol,
                                                       class_type,
-                                                      base_new_type,
+                                                      nps->base_new_type,
                                                       /*template_okay=*/FALSE,
-                                                      ambiguous,
+                                                      &ambiguous,
                                                       &overload_delete_sym);
-  if (*ambiguous) {
+  nps->delete_ambiguous = ambiguous;
+  if (nps->delete_ambiguous) {
     /* The symbol is ambiguous. */
     if (expr_error_should_be_issued()) {
-      pos_sy_error(ec_ambiguous_name, position, overload_delete_sym);
+      pos_sy_error(ec_ambiguous_name,
+                   &nps->new_position, overload_delete_sym);
     }  /* if */
   } else if (delete_sym == NULL) {
     /* There is no available appropriate operator delete, so the deletion
@@ -17756,15 +18018,16 @@ the delete routine is ambiguous (an error will have been issued).
                     fund_delete_sym->kind ==
                                             (a_symbol_kind)sk_member_function);
     delete_routine = fund_delete_sym->variant.routine.ptr;
-    if (placement_new &&
+    if (nps->placement_new &&
         /* Is two-operand delete: */
-        is_default_operator_delete(delete_routine, base_new_type,
+        is_default_operator_delete(delete_routine, nps->base_new_type,
                                    &is_sized_ver, &is_aligned_delete) &&
         is_sized_ver &&
         /* Is not a "usual deallocation function" (because the routine is a
            member of a class that has another delete as its default delete): */
         !(delete_routine->source_corresp.is_class_member &&
-          find_default_operator_delete_sym(overload_delete_sym, base_new_type,
+          find_default_operator_delete_sym(overload_delete_sym,
+                                           nps->base_new_type,
                                            &delete_ambiguous) !=
                                                              fund_delete_sym &&
           !delete_ambiguous)) {
@@ -17783,14 +18046,14 @@ the delete routine is ambiguous (an error will have been issued).
                   (dtor_routine =
                     expr_select_destructor(class_type,
                                            class_type,
-                                           position,
+                                           &nps->new_position,
                                            /*honor_virtual=*/TRUE)) == NULL ||
                   !dtor_routine->is_virtual)) {
         /* Early versions of GCC perform this check only when the class'
            destructor is virtual. */
       } else {
-        pos_sy_error(ec_placement_new_refers_to_non_placement_delete, position,
-                     delete_sym);
+        pos_sy_error(ec_placement_new_refers_to_non_placement_delete,
+                     &nps->new_position, delete_sym);
         delete_routine = NULL;
       }  /* if */
     } else {
@@ -17799,7 +18062,7 @@ the delete routine is ambiguous (an error will have been issued).
         /* Check access and ambiguity for class member operator deletes. */
         a_symbol_locator locator_for_delete;
         make_locator_for_symbol(delete_sym, &locator_for_delete);
-        locator_for_delete.source_position = *position;
+        locator_for_delete.source_position = nps->new_position;
         expr_overload_check_ambiguity_and_verify_access(&locator_for_delete,
                                                         overload_delete_sym);
       }  /* if */
@@ -17809,7 +18072,7 @@ the delete routine is ambiguous (an error will have been issued).
         restore_is_deleted = TRUE;
       }  /* if */
       record_symbol_reference(SRK_REFERENCE, fund_delete_sym,
-                              position, /*update_il_entry=*/FALSE);
+                              &nps->new_position, /*update_il_entry=*/FALSE);
       if (restore_is_deleted) {
         delete_routine->is_deleted = TRUE;
       }  /* if */
@@ -17856,13 +18119,8 @@ the deallocation and return a pointer to it.
 }  /* f_make_dyn_init_for_deletion_for_throw */
 
 
-static void make_dyn_init_for_deletion_for_throw(
-                                            a_dynamic_init_ptr *dyn_init,
-                                            a_routine_ptr      new_routine,
-                                            a_routine_ptr      delete_routine,
-                                            a_boolean          array_new)
 /*
-Function used to call f_make_dyn_init_for_deletion_for_throw from within
+Macro used to call f_make_dyn_init_for_deletion_for_throw from within
 scan_new_operator.  Sets dyn_init_to_free_storage, if necessary, to
 point to a dynamic init entry that will free the storage allocated by
 the "new" if an exception is thrown before the initialization of the
@@ -17872,27 +18130,22 @@ initialization is scanned (so the cleanup entry gets onto the object
 lifetime list in the right place).  For gcnew, this macro does nothing
 as new_routine will always be NULL and array_new will always be FALSE.
 */
-{
-  /* Do not record the deletion if no delete routine is needed or if
-     allocation is folded into a constructor (new_routine == NULL
-     on a non-array new). */
-  if (delete_routine != NULL &&
-      (new_routine != NULL || array_new) &&
-      !curr_expr_kind_is_const()) {
-    *dyn_init =
-      f_make_dyn_init_for_deletion_for_throw(delete_routine, array_new);
-  }  /* if */
+/* Do not record the deletion if no delete routine is needed or if
+   allocation is folded into a constructor (new_routine == NULL
+   on a non-array new). */
+#define make_dyn_init_for_deletion_for_throw(nps)                             \
+{ if ((nps)->delete_routine != NULL &&                                        \
+      ((nps)->new_routine != NULL || (nps)->array_new) &&                     \
+      !curr_expr_kind_is_const()) {                                           \
+    (nps)->dyn_init_to_free_storage =                                         \
+      f_make_dyn_init_for_deletion_for_throw((nps)->delete_routine,           \
+                                             (nps)->array_new);               \
+  }  /* if */                                                                 \
 }  /* make_dyn_init_for_deletion_for_throw */
 
 
-static void warn_about_missing_delete(a_routine_ptr delete_routine,
-                                             a_symbol_ptr  function_symbol,
-                                             a_source_position
-                                                           *new_position,
-                                             a_boolean     array_new,
-                                             a_boolean     delete_ambiguous)
 /*
-Function to issue a warning about a missing operator delete corresponding to a
+Macro to issue a warning about a missing operator delete corresponding to a
 new-expression that might throw an exception.  The warning is only issued if
 the operator is missing and the given boolean flag is TRUE.  There is no
 need to issue the warning if exceptions are disabled (since no exceptions
@@ -17901,15 +18154,16 @@ instantiations or errors) the actual operator new being called is not known
 and hence we cannot examine the matching operator delete either.  For gcnew,
 this macro does nothing as function_symbol will always be NULL.
 */
-{
-  if (delete_routine == NULL && exceptions_enabled &&
-      !delete_ambiguous && function_symbol != NULL) {
-    if (expr_diagnostic_should_be_issued(es_warning,
-                                         ec_no_corresponding_delete)) {
-      pos_stsy_warning(ec_no_corresponding_delete, new_position,
-                       (char *)(array_new ? "[]" : ""), function_symbol);
-    }  /* if */
-  }  /* if */
+#define warn_about_missing_delete(nps)                                       \
+{ if ((nps)->delete_routine == NULL && exceptions_enabled &&                 \
+      !(nps)->delete_ambiguous && (nps)->function_symbol != NULL) {          \
+    if (expr_diagnostic_should_be_issued(es_warning,                         \
+                                         ec_no_corresponding_delete)) {      \
+      pos_stsy_warning(ec_no_corresponding_delete, &(nps)->new_position,     \
+                       (char *)((nps)->array_new ? "[]" : ""),               \
+                       (nps)->function_symbol);                              \
+    }  /* if */                                                              \
+  }  /* if */                                                                \
 }  /* warn_about_missing_delete */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -18748,11 +19002,11 @@ Return a newly created list of expression nodes for each of these dimensions
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
-static a_token_kind get_new_operator_token(a_rescan_control_block *rcblock
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                                           , a_boolean              *is_gcnew
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* nps is only used when MICROSOFT_EXTENSIONS_ALLOWED. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                          )
+static a_token_kind get_new_operator_token(a_rescan_control_block *rcblock,
+                                           a_new_parse_state      *nps)
 /* Get the C++ "new" or C++/CLI "gcnew" operator token.
 */
 {
@@ -18791,9 +19045,9 @@ static a_token_kind get_new_operator_token(a_rescan_control_block *rcblock
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (operator_token == tok_gcnew) {
-    *is_gcnew = TRUE;
+    nps->is_gcnew = TRUE;
   } else {
-    *is_gcnew = FALSE;
+    nps->is_gcnew = FALSE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -18801,24 +19055,8 @@ static a_token_kind get_new_operator_token(a_rescan_control_block *rcblock
 }  /* get_new_operator_token */
 
 
-static void rescan_new_operator_expr(
-                               a_rescan_control_block *rcblock,
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                               a_boolean              is_gcnew,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                               a_source_position      *start_position,
-                               a_type_ptr             *new_type,
-                               a_source_position      *type_position,
-                               a_boolean              *has_new_initializer,
-                               a_boolean              *use_global_new,
-                               a_boolean              *placement_new,
-                               a_boolean              *deducible_new_type,
-                               a_boolean              *has_braced_initializer,
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                               a_boolean              *gcnew_has_array_init,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                               an_arg_list_elem_ptr   *placement_arg_list,
-                               an_arg_list_elem_ptr   *braced_init_list)
+static void rescan_new_operator_expr(a_rescan_control_block *rcblock,
+                                     a_new_parse_state      *nps)
 /*
 Collect the C++ "new" or the C++/CLI "gcnew" operator operands,
 placement and initializer from a rescan block for the operator.
@@ -18826,18 +19064,17 @@ placement and initializer from a rescan block for the operator.
 {
   an_expr_node_ptr            arg_expr_list;
   an_expr_node_ptr            dummy;
-  an_arg_list_elem_ptr        local_braced_init_list;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_gcnew_supplement_ptr      rescan_gsp = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_new_delete_supplement_ptr rescan_ndsp = NULL;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (is_gcnew) {
-    make_gcnew_rescan_operands(rcblock, &rescan_gsp, start_position,
-                               new_type, type_position);
-    *has_new_initializer = rescan_gsp->has_new_initializer;
-    *gcnew_has_array_init =
+  if (nps->is_gcnew) {
+    make_gcnew_rescan_operands(rcblock, &rescan_gsp, &nps->start_position,
+                               &nps->new_type, &nps->type_position);
+    nps->has_new_initializer = rescan_gsp->has_new_initializer;
+    nps->gcnew_has_array_init =
       rescan_gsp->is_cli_array &&
       rescan_gsp->dynamic_init != NULL &&
       /* In C++/CX mode, an array-init only exists if the dyanmic_init is
@@ -18849,14 +19086,15 @@ placement and initializer from a rescan block for the operator.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
   {
-    make_new_delete_rescan_operands(rcblock, &rescan_ndsp, start_position,
-                                    new_type, type_position);
-    *use_global_new = rescan_ndsp->global_new_or_delete;
-    *placement_new = rescan_ndsp->placement_new;
-    *has_new_initializer = rescan_ndsp->has_new_initializer;
-    *deducible_new_type = rescan_ndsp->deducible_type;
+    make_new_delete_rescan_operands(rcblock, &rescan_ndsp,
+                                    &nps->start_position,
+                                    &nps->new_type, &nps->type_position);
+    nps->use_global_new = rescan_ndsp->global_new_or_delete;
+    nps->placement_new = rescan_ndsp->placement_new;
+    nps->has_new_initializer = rescan_ndsp->has_new_initializer;
+    nps->deducible_new_type = rescan_ndsp->deducible_type;
   }  /* if */
-  if (*placement_new) {
+  if (nps->placement_new) {
     /* Pick up the placement new argument list. */
     rcblock->argument_list = rescan_ndsp->arg;
     scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
@@ -18868,11 +19106,11 @@ placement and initializer from a rescan block for the operator.
                         rcblock,
                         /*arg_list_supplied=*/FALSE,
                         (an_arg_list_elem *)NULL,
-                        placement_arg_list,
+                        &nps->arg_list,
                         (an_operand *)NULL, (a_boolean *)NULL,
                         (a_source_position *)NULL);
   }  /* if */
-  if (*has_new_initializer) {
+  if (nps->has_new_initializer) {
     /* Set up the argument list for the new initializer. */
     a_dynamic_init_ptr init_dip;
     if (rescan_ndsp != NULL &&
@@ -18882,16 +19120,15 @@ placement and initializer from a rescan block for the operator.
         is_braced_init_list_operand(&init_dip->rescan_info->saved_operand)) {
       /* A braced-init-list was saved with the dynamic init for the rescan.
          Use it. */
-      *has_braced_initializer = TRUE;
-      local_braced_init_list = rescan_init_component(
+      nps->has_braced_initializer = TRUE;
+      nps->braced_init_list = rescan_init_component(
         init_dip->rescan_info->saved_operand.variant.braced_init_list,
         rcblock);
-      check_assertion(local_braced_init_list != NULL &&
-                      is_braced_init_component(local_braced_init_list));
-      *braced_init_list = local_braced_init_list;
+      check_assertion(nps->braced_init_list != NULL &&
+                      is_braced_init_component(nps->braced_init_list));
     } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (is_gcnew) {
+      if (nps->is_gcnew) {
         if (cppcx_enabled && rescan_gsp->is_cli_array &&
             rescan_gsp->dynamic_init != NULL) {
           /* The only kind of dynamic_init expected here during a rescan is
@@ -18929,17 +19166,7 @@ placement and initializer from a rescan block for the operator.
 }  /* rescan_new_operator_expr */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* err is unused here. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static void scan_new_operator_placement(
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                                    a_boolean            is_gcnew,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                    a_boolean            *trapped_left_paren,
-                                    a_boolean            *placement_new,
-                                    a_boolean            *err,
-                                    an_arg_list_elem_ptr *placement_arg_list)
+static void scan_new_operator_placement(a_new_parse_state *nps)
 /*
 Check for the presence of the "placement" term, which provides extra
 arguments for the operator new function.  It is a list of expressions
@@ -18958,18 +19185,18 @@ in parentheses.
     if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
                          DFS_SINGLE_TYPE_REQUIRED)) {
       /* This is the type name. */
-      *trapped_left_paren = TRUE;
+      nps->trapped_left_paren = TRUE;
     } else {
       /* This is the placement expression list. */
-      *placement_new = TRUE;
+      nps->placement_new = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* Ensure that gcnew is not used with placement syntax. */
-      if (is_gcnew) {
+      if (nps->is_gcnew) {
         expr_pos_error(ec_gcnew_used_with_placement_syntax,
                        &pos_curr_token);
-        *err = TRUE;
+        nps->err = TRUE;
         /* Recover from erroneous use of placement new. */
-        *placement_new = FALSE;
+        nps->placement_new = FALSE;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (curr_token == tok_rparen) {
@@ -18989,7 +19216,7 @@ in parentheses.
                             (a_rescan_control_block *)NULL,
                             /*arg_list_supplied=*/FALSE,
                             (an_arg_list_elem *)NULL,
-                            placement_arg_list,
+                            &nps->arg_list,
                             (an_operand *)NULL, (a_boolean *)NULL,
                             (a_source_position *)NULL);
       }  /* if */
@@ -18998,14 +19225,10 @@ in parentheses.
 }  /* scan_new_operator_placement */
 
 
-static a_type_ptr rescan_new_deduce_placeholder_type(
-                                a_rescan_control_block *rcblock,
-                                a_decl_parse_state     *dps,
-                                a_boolean              *deducible_new_type,
-                                a_type_ptr             new_type,
-                                a_source_position      *type_position,
-                                a_boolean              has_braced_initializer,
-                                an_arg_list_elem_ptr   braced_init_list)
+static void rescan_new_deduce_placeholder_type(
+                                              a_rescan_control_block *rcblock,
+                                              a_new_parse_state      *nps,
+                                              a_decl_parse_state     *dps)
 /* The type involves a placeholder type.  Deduce the type from the
    initializer expression. */
 {
@@ -19025,16 +19248,17 @@ static a_type_ptr rescan_new_deduce_placeholder_type(
   }  /* if */
 
   /* Deduce the type. */
-  if (is_class_template_placeholder_type(new_type)) {
+  if (is_class_template_placeholder_type(nps->new_type)) {
     a_boolean  alloc_alep = (!no_operand && auto_alep == NULL);
     if (alloc_alep) {
       /* Temporarily wrap the operand in an init-component. */
       auto_alep = alloc_arg_list_elem_for_operand(&auto_operand);
     }  /* if */
-    deduced = deduce_class_template_args(new_type, /*is_direct_init=*/TRUE,
+    deduced = deduce_class_template_args(nps->new_type,
+                                         /*is_direct_init=*/TRUE,
                                          /*keep_placeholder=*/TRUE,
                                          !no_operand,
-                                         auto_alep, type_position,
+                                         auto_alep, &nps->type_position,
                                          &deduced_new_type,
                                          &still_dependent);
     if (alloc_alep) {
@@ -19042,21 +19266,22 @@ static a_type_ptr rescan_new_deduce_placeholder_type(
       auto_alep = NULL;
     }  /* if */
   } else {
-    check_assertion(!has_braced_initializer && braced_init_list == NULL);
-    deduced = deduce_auto_type(new_type, /*auto_type=*/(a_type_ptr)NULL,
+    check_assertion(!nps->has_braced_initializer &&
+                    nps->braced_init_list == NULL);
+    deduced = deduce_auto_type(nps->new_type, /*auto_type=*/(a_type_ptr)NULL,
                                /*keep_placeholder=*/TRUE, &auto_operand,
-                               auto_alep, type_position,
+                               auto_alep, &nps->type_position,
                                &deduced_new_type, &deduced_auto_type,
                                &still_dependent);
   }  /* if */
 
   if (deduced) {
     /* Deduction succeeded. */
-    *deducible_new_type = FALSE;
+    nps->deducible_new_type = FALSE;
   } else if (still_dependent) {
     /* The deduction could not be done because the types are still
        dependent, so new_type stays as it is. */
-    deduced_new_type = new_type;
+    deduced_new_type = nps->new_type;
   } else {
     /* Deduction failed. */
     deduced_new_type = error_type();
@@ -19077,97 +19302,79 @@ static a_type_ptr rescan_new_deduce_placeholder_type(
                                      &dps->prescanned_initializer_cache);
   }  /* if */
 
-  return deduced_new_type;
+  nps->new_type = deduced_new_type;
 }  /* rescan_new_deduce_placeholder_type */
 
 
-static a_type_ptr scan_new_type(a_decl_parse_state *dps,
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                                a_boolean          is_gcnew,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                a_boolean          trapped_left_paren,
-                                a_boolean          *deducible_new_type,
-                                a_source_position  *type_position)
+static void scan_new_type(a_new_parse_state  *nps,
+                          a_decl_parse_state *dps)
 /* Scan the new-type-name or ( type-name ) from source. */
 {
-  a_type_ptr new_type;
-
   dps->is_new_expr_type = TRUE;
   dps->auto_type_allowed = auto_type_specifier_enabled;
   dps->trailing_return_type_allowed = trailing_return_types_enabled;
   dps->declarator_pos = pos_curr_token;
-  *type_position = pos_curr_token;
+  nps->type_position = pos_curr_token;
 
-  new_type_name(dps, trapped_left_paren);
-  new_type = dps->type;
-  *deducible_new_type = (dps->has_deduced_type &&
-                         !dps->has_trailing_return_type) ||
-                        dps->has_deducible_class_templ_args;
+  new_type_name(dps, nps->trapped_left_paren);
+  nps->new_type = dps->type;
+  nps->deducible_new_type = (dps->has_deduced_type &&
+                             !dps->has_trailing_return_type) ||
+                             dps->has_deducible_class_templ_args;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (is_gcnew) {
-    if (*deducible_new_type) {
+  if (nps->is_gcnew) {
+    if (nps->deducible_new_type) {
       /* Do not allow auto syntax with gcnew. */
-      expr_pos_error(ec_gcnew_used_with_auto_syntax, type_position);
-      new_type = error_type();
-      *deducible_new_type = FALSE;
-    } else if (is_array_type(new_type)) {
+      expr_pos_error(ec_gcnew_used_with_auto_syntax, &nps->type_position);
+      nps->new_type = error_type();
+      nps->deducible_new_type = FALSE;
+    } else if (is_array_type(nps->new_type)) {
       /* An error should have been emitted for this.  Ensure we recover
          appropriately. */
-      expr_pos_error(ec_gcnew_of_native_array, type_position);
-      new_type = error_type();
-      *deducible_new_type = FALSE;
+      expr_pos_error(ec_gcnew_of_native_array, &nps->type_position);
+      nps->new_type = error_type();
+      nps->deducible_new_type = FALSE;
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-  return new_type;
 }  /* scan_new_type */
 
 
-static void scan_new_initializer(a_decl_parse_state *dps,
-                                 a_boolean          *deducible_new_type,
-                                 a_boolean          *has_new_initializer,
-                                 a_boolean          *has_braced_initializer,
-                                 a_boolean          *using_expr_cache,
-                                 a_source_position  *init_position,
-                                 a_type_ptr         *new_type,
-                                 a_source_position  *type_position)
+static void scan_new_initializer(a_new_parse_state  *nps,
+                                 a_decl_parse_state *dps)
 /*
 Scans the new initializer expression (if present).
 */
 {
-  a_boolean local_has_new_initializer = *has_new_initializer;
-  a_boolean local_has_braced_initializer = *has_braced_initializer;
-
   if (curr_token == tok_lparen) {
     /* A parenthesized new-initializer is present. */
-    local_has_new_initializer = TRUE;
-    *init_position = pos_curr_token;
+    nps->has_new_initializer = TRUE;
+    nps->init_position = pos_curr_token;
     /* Advance past the "(". */
     (void)get_token();
   } else if (list_init_enabled && curr_token == tok_lbrace) {
     /* A C++11-style list initializer, e.g., new A{x, y}. */
-    *init_position = pos_curr_token;
-    local_has_new_initializer = TRUE;
-    local_has_braced_initializer = TRUE;
+    nps->init_position = pos_curr_token;
+    nps->has_new_initializer = TRUE;
+    nps->has_braced_initializer = TRUE;
     /* Don't advance past the "{", because the scan routine expects to
        still see it as the current token. */
   }  /* if */
 
-  if (*deducible_new_type) {
-    if (dps->auto_type_specifier_seen && !local_has_new_initializer) {
+  if (nps->deducible_new_type) {
+    if (dps->auto_type_specifier_seen && !nps->has_new_initializer) {
       /* An auto type specifier not followed by a new-initializer or a
          trailing return type is an error. */
-      expr_pos_error(ec_auto_type_requires_initializer, type_position);
-      *new_type = error_type();
-      *deducible_new_type = FALSE;
-    } else if (dps->auto_type_specifier_seen && local_has_braced_initializer) {
+      expr_pos_error(ec_auto_type_requires_initializer, &nps->type_position);
+      nps->new_type = error_type();
+      nps->deducible_new_type = FALSE;
+    } else if (dps->auto_type_specifier_seen && nps->has_braced_initializer) {
       /* A braced initializer cannot be used with "auto". */
-      expr_pos_error(ec_auto_new_with_braced_init, type_position);
-      *new_type = error_type();
-      *deducible_new_type = FALSE;
-    } else if (!local_has_new_initializer) {
+      expr_pos_error(ec_auto_new_with_braced_init, &nps->type_position);
+      nps->new_type = error_type();
+      nps->deducible_new_type = FALSE;
+    } else if (!nps->has_new_initializer) {
       /* A class template name placeholder can be deduced without an
          initializer. */
       a_boolean  still_dependent = FALSE;
@@ -19176,24 +19383,24 @@ Scans the new initializer expression (if present).
                                      /*parenthesized_init=*/FALSE,
                                      /*keep_placeholder=*/TRUE,
                                      (an_arg_list_elem *)NULL,
-                                     &pos_curr_token, new_type,
+                                     &pos_curr_token, &nps->new_type,
                                      &still_dependent)) {
-        complete_type_is_needed(*new_type);
-        *deducible_new_type = FALSE;
+        complete_type_is_needed(nps->new_type);
+        nps->deducible_new_type = FALSE;
       } else if (!still_dependent) {
         /* There was an error.  Proceed as if no placeholder appeared. */
-        *new_type = error_type();
-        *deducible_new_type = FALSE;
+        nps->new_type = error_type();
+        nps->deducible_new_type = FALSE;
       }  /* if */
     } else {
       /* Prescan the initializer to deduce the type to allocate. */
       prescan_initializer_for_auto_type_deduction(
-                                          dps, !local_has_braced_initializer);
-      *using_expr_cache = TRUE;
+                                           dps, !nps->has_braced_initializer);
+      nps->using_expr_cache = TRUE;
       if (!dps->has_deduced_type) {
         /* There was an error.  Proceed as if "auto" did not appear. */
-        *new_type = error_type();
-        *deducible_new_type = FALSE;
+        nps->new_type = error_type();
+        nps->deducible_new_type = FALSE;
       } else if (dps->deduced_auto_type == NULL ||
                  dps->deduced_auto_type->kind == (a_type_kind)tk_unknown) {
         /* The deduction was not done because the initializer or the auto
@@ -19201,132 +19408,117 @@ Scans the new initializer expression (if present).
       } else {
         /* In other cases, the deduction succeeded and "auto" is gone
            from the new_type. */
-        *new_type = dps->type;
-        *deducible_new_type = FALSE;
+        nps->new_type = dps->type;
+        nps->deducible_new_type = FALSE;
       }  /* if */
     }  /* if */
   }  /* if */
-
-  *has_new_initializer = local_has_new_initializer;
-  *has_braced_initializer = local_has_braced_initializer;
 }  /* scan_new_initializer */
 
 
-static a_type_ptr get_base_new_type(a_type_ptr        new_type,
-                                    a_type_ptr        unqual_new_type,
-                                    a_source_position *type_position,
-                                    an_expr_node_ptr  *new_array_dimension,
-                                    a_boolean         *array_new,
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                                    a_boolean         *cli_array_new,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                    a_boolean         *variable_size_array,
-                                    a_boolean         *type_err)
+static void get_base_new_type(a_new_parse_state *nps)
 /*
 Returns the base type for the new statement.
 */
 {
-  a_type_ptr base_new_type = new_type;
+  nps->base_new_type = nps->new_type;
 
   /* Instantiate the type if it is a template class. */
-  complete_type_is_needed(new_type);
+  complete_type_is_needed(nps->new_type);
 
   /* Determine the type of pointer returned from "new". */
-  *new_array_dimension = NULL;
+  nps->new_array_dimension = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (is_cli_array_type(new_type)) {
+  if (is_cli_array_type(nps->new_type)) {
     /* This is a gcnew with the C++/CLI array type.  Even if we don't
        detect a C++/CLI array type at this point, we still may create a C++/CLI
        array initialization node if we see an array-init later. */
        /* Note that we set this even if is_gcnew is false, for better error
           recovery. */
-    *cli_array_new = TRUE;
+    nps->cli_array_new = TRUE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-  if (is_array_type(new_type)) {
+  if (is_array_type(nps->new_type)) {
     /* A "new" of an array returns a pointer to the initial element.
        Note that this is only done for one level, e.g., new int [i][10]
        returns int (*)[10] not int * (ARM 5.3.3). */
-    base_new_type = array_element_type(new_type);
-    *array_new = TRUE;
-    if (unqual_new_type->variant.array.is_variable_size_array) {
-      *variable_size_array = TRUE;
+    nps->base_new_type = array_element_type(nps->new_type);
+    nps->array_new = TRUE;
+    if (nps->unqual_new_type->variant.array.is_variable_size_array) {
+      nps->variable_size_array = TRUE;
       /* The first bound is an expression.  Extract the expression. */
-      *new_array_dimension =
-        unqual_new_type->variant.array.variant.element_count_expr;
+      nps->new_array_dimension =
+               nps->unqual_new_type->variant.array.variant.element_count_expr;
       if (!expr_stack->possible_rescan_context) {
         /* Change the array type to a simple incomplete array type so
            that the variable-size type does not escape from the front end. */
-        unqual_new_type->variant.array.is_variable_size_array = FALSE;
-        unqual_new_type->variant.array.variant.number_of_elements = 0;
-        unqual_new_type->size = 0;
-        set_type_size(unqual_new_type);
+        nps->unqual_new_type->variant.array.is_variable_size_array = FALSE;
+        nps->unqual_new_type->variant.array.variant.number_of_elements = 0;
+        nps->unqual_new_type->size = 0;
+        set_type_size(nps->unqual_new_type);
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (microsoft_mode &&
-               is_incomplete_array_type(unqual_new_type)) {
+               is_incomplete_array_type(nps->unqual_new_type)) {
       /* MSVC treats "new T[]" as "new T[0]". */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else if (is_incomplete_type(new_type)) {
+    } else if (is_incomplete_type(nps->new_type)) {
       /* A case like "new int[]" -- an incomplete array type. */
-      expr_pos_error(incomplete_type_err_code(new_type), type_position);
-      *type_err = TRUE;
+      expr_pos_error(incomplete_type_err_code(nps->new_type),
+                     &nps->type_position);
+      nps->err = nps->type_err = TRUE;
     }  /* if */
   }  /* if */
-
-  return base_new_type;
 }  /* get_base_new_type */
 
 
-static void validate_new_type(a_type_ptr        new_type,
-                              a_type_ptr        base_new_type,
-                              a_source_position *type_position,
-                              a_boolean         *type_err)
+static void validate_new_type(a_new_parse_state *nps)
 /*
 Validate the type obtained for a new statement.
 */
 {
   /* Check that the type to be allocated is valid.  It must be an object
      type. */
-  if (*type_err) {
+  if (nps->type_err) {
     /* A type error has already been issued (invalid array type). */
     expr_expect_error();
-  } else if (!is_complete_object_type(base_new_type)) {
+  } else if (!is_complete_object_type(nps->base_new_type)) {
     /* Invalid type.  Note that base_new_type is tested instead of
        new_type, so the first-level element type of arrays is tested. */
-    if (is_error_type(base_new_type)) {
+    if (is_error_type(nps->base_new_type)) {
       /* Error already issued. */
-    } else if (is_incomplete_type(base_new_type)) {
-      expr_pos_error(incomplete_type_err_code(base_new_type), type_position);
+    } else if (is_incomplete_type(nps->base_new_type)) {
+      expr_pos_error(incomplete_type_err_code(nps->base_new_type),
+                     &nps->type_position);
     } else {
-      expr_pos_error(ec_type_must_be_object_type, type_position);
+      expr_pos_error(ec_type_must_be_object_type, &nps->type_position);
     }  /* if */
-    *type_err = TRUE;
+    nps->err = nps->type_err = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cli_or_cx_enabled && is_cli_interface_type(new_type)) {
+  } else if (cli_or_cx_enabled && is_cli_interface_type(nps->new_type)) {
     /* A C++/CLI interface class object can never be allocated. */
-    expr_pos_error(ec_new_of_cli_interface_class, type_position);
-    *type_err = TRUE;
+    expr_pos_error(ec_new_of_cli_interface_class, &nps->type_position);
+    nps->err = nps->type_err = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if (is_abstract_class_type(new_type)
+  } else if (is_abstract_class_type(nps->new_type)
              if_microsoft_extensions(
                && !(cppcx_enabled &&
-                    class_type_supp(new_type)->is_cppcx_box))) {
+                    class_type_supp(nps->new_type)->is_cppcx_box))) {
     /* The type is an abstract class type, so an object of the type cannot be
        allocated.  One exception is the C++/CX Platform::Box<T> class, which
        is defined as "abstract" to disallow stack-based instances, but
        allocating an instance with "ref new" is allowed. */
     if (expr_error_should_be_issued()) {
       abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
-                                new_type, type_position);
+                                nps->new_type, &nps->type_position);
     }  /* if */
-    *type_err = TRUE;
-  } else if (vla_enabled && is_variably_modified_type(new_type)) {
+    nps->err = nps->type_err = TRUE;
+  } else if (vla_enabled && is_variably_modified_type(nps->new_type)) {
     /* Variable-length arrays are not allowed.  These can only come from
        typedefs, because new_type_name will not scan a VLA directly. */
-    expr_pos_error(ec_vla_not_allowed, type_position);
-    *type_err = TRUE;
+    expr_pos_error(ec_vla_not_allowed, &nps->type_position);
+    nps->err = nps->type_err = TRUE;
   } else {
     /* Valid type. */
   }  /* if */
@@ -19334,67 +19526,63 @@ Validate the type obtained for a new statement.
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-static void validate_cpp_cli_cx_new_type(a_type_ptr        new_type,
-                                         a_type_ptr        base_new_type,
-                                         a_source_position *type_position,
-                                         a_boolean         is_gcnew,
-                                         a_boolean         use_global_new,
-                                         a_boolean         prev_err_seen,
-                                         a_boolean         *type_err)
+static void validate_cpp_cli_cx_new_type(a_new_parse_state *nps)
 /*
 Validates the "new" type in the context of C++/CLI/CX "new".
 */
 {
-  if (cli_or_cx_enabled && !prev_err_seen) {
+  if (cli_or_cx_enabled && !nps->err) {
     /* We have parsed through the type (the initializer will be parsed later
        below).  This is enough to issue diagnostics related to "gcnew" or
        "new" with managed types.
        Note: This is not part of the above semantic check control flow because
        this branch will not necessarily emit an error. */
-    if (is_gcnew) {
+    if (nps->is_gcnew) {
       /* Validate that gcnew is used on an appropriate type.
          Any class or struct must be of ref or value type. */
-      if (!(is_ref_class_type(base_new_type) ||
+      if (!(is_ref_class_type(nps->base_new_type) ||
             /* Note, not interfaces. */
-            is_cli_enum_type(base_new_type) ||
-            is_value_class_or_fundamental_type(base_new_type) ||
-            is_error_type(base_new_type) ||
-            is_template_param_or_nonreal_class_type(base_new_type))) {
+            is_cli_enum_type(nps->base_new_type) ||
+            is_value_class_or_fundamental_type(nps->base_new_type) ||
+            is_error_type(nps->base_new_type) ||
+            is_template_param_or_nonreal_class_type(nps->base_new_type))) {
         if (expr_error_should_be_issued()) {
-          pos_ty_error(ec_invalid_gcnew_type, type_position, new_type);
+          pos_ty_error(ec_invalid_gcnew_type,
+                       &nps->type_position, nps->new_type);
         }  /* if */
-        *type_err = TRUE;
+        nps->err = nps->type_err = TRUE;
       }  /* if */
       /* It is illegal to use gcnew with a global qualifier.  However,
          that will have already been caught as a syntax error.  This serves
          as an internal consistency check. */
-      check_assertion(!use_global_new);
+      check_assertion(!nps->use_global_new);
     } else {
       /* Error checks on standard "new" with C++/CLI managed types. */
-      if (is_managed_class_type(base_new_type)) {
-        if (is_value_class_type(base_new_type)) {
-          if (is_simple_value_class_type(base_new_type)) {
+      if (is_managed_class_type(nps->base_new_type)) {
+        if (is_value_class_type(nps->base_new_type)) {
+          if (is_simple_value_class_type(nps->base_new_type)) {
             /* No semantic error for new with simple value types. */
           } else {
             /* Only simple value types are allowed with "new". */
             expr_pos_error(ec_new_used_on_unsuitable_value_type,
-                           type_position);
-            *type_err = TRUE;
+                           &nps->type_position);
+            nps->err = nps->type_err = TRUE;
           }  /* if */
         } else {
           /* This is an attempt to use new on a ref class or interface type. */
-          expr_pos_error(ec_new_used_on_managed_class_type, type_position);
-          *type_err = TRUE;
+          expr_pos_error(ec_new_used_on_managed_class_type,
+                         &nps->type_position);
+          nps->err = nps->type_err = TRUE;
         }  /* if */
-      } else if (cppcx_enabled && is_handle_type(base_new_type)) {
+      } else if (cppcx_enabled && is_handle_type(nps->base_new_type)) {
         /* In C++/CX, "new" can be used to allocate handle types.  Reference
            types result in error ec_type_must_be_object_type above. */
-      } else if (is_handle_or_tracking_ref_type(base_new_type)) {
+      } else if (is_handle_or_tracking_ref_type(nps->base_new_type)) {
         /* "new" cannot be used to allocate handle or tracking reference
            types. */
         expr_pos_error(ec_new_used_on_handle_or_tracking_reference_type,
-                       type_position);
-        *type_err = TRUE;
+                       &nps->type_position);
+        nps->err = nps->type_err = TRUE;
       } else {
         /* No semantic errors were detected. */
       }  /* if */
@@ -19404,38 +19592,26 @@ Validates the "new" type in the context of C++/CLI/CX "new".
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
-static a_type_ptr get_new_result_type(
-                                  a_type_ptr       new_type,
-                                  a_type_ptr       *base_new_type,
-                                  a_boolean        array_new,
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                                  a_boolean        is_gcnew,
-                                  a_boolean        cli_array_new,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                  an_expr_node_ptr new_array_dimension,
-                                  a_targ_size_t    *effective_num_of_elements)
+static void get_new_result_type(a_new_parse_state *nps)
 /*
 Returns the result type of the "new".
 */
 {
-  a_type_ptr unqual_new_type = skip_typerefs(new_type);
-  a_type_ptr unqual_base_new_type = skip_typerefs(*base_new_type);
-  a_type_ptr ptr_new_type;
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (is_gcnew || cli_array_new /* for error recovery. */) {
+  if (nps->is_gcnew || nps->cli_array_new /* for error recovery. */) {
     /* For gcnew, base_new_type and new_type and their variants should be
        equivalent. */
-    check_assertion(identical_types(new_type, *base_new_type) &&
-                    identical_types(unqual_new_type, unqual_base_new_type));
-    ptr_new_type = make_handle_type(*base_new_type);
+    check_assertion(identical_types(nps->new_type, nps->base_new_type) &&
+                    identical_types(nps->unqual_new_type,
+                                    nps->unqual_base_new_type));
+    nps->ptr_new_type = make_handle_type(nps->base_new_type);
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
   {
-    ptr_new_type = make_pointer_type(*base_new_type);
+    nps->ptr_new_type = make_pointer_type(nps->base_new_type);
   }  /* if */
-  if (array_new) {
+  if (nps->array_new) {
     /* For multi-dimensional arrays: even though only one level of array is
        dropped to determine the pointer type, all levels must be dropped
        to get the real base type to do allocation and initialization.  In
@@ -19444,29 +19620,26 @@ Returns the result type of the "new".
        to call a constructor or a class-specific new[].  Note that the
        original first-level element type is retained in element_type. */
        /* Also determine the effective number of elements. */
-    if (new_array_dimension != NULL) {
+    if (nps->new_array_dimension != NULL) {
       /* Variable-length array; count is deferred to runtime. */
-      *effective_num_of_elements = 0;
+      nps->effective_num_of_elements = 0;
     } else {
-      *effective_num_of_elements = 1;
-      accumulate_array_size(unqual_new_type, effective_num_of_elements);
+      nps->effective_num_of_elements = 1;
+      accumulate_array_size(nps->unqual_new_type,
+                            &nps->effective_num_of_elements);
     }  /* if */
-    while (unqual_base_new_type->kind == (a_type_kind)tk_array) {
-      accumulate_array_size(unqual_base_new_type, effective_num_of_elements);
-      *base_new_type = unqual_base_new_type->variant.array.element_type;
-      unqual_base_new_type = skip_typerefs(*base_new_type);
+    while (nps->unqual_base_new_type->kind == (a_type_kind)tk_array) {
+      accumulate_array_size(nps->unqual_base_new_type,
+                            &nps->effective_num_of_elements);
+      nps->base_new_type =
+        nps->unqual_base_new_type->variant.array.element_type;
+      nps->unqual_base_new_type = skip_typerefs(nps->base_new_type);
     }  /* while */
   }  /* if */
-
-  return ptr_new_type;
 }  /* get_new_result_type */
 
 
-static an_arg_list_elem_ptr get_new_allocation_size_arg(
-                                        a_type_ptr        unqual_new_type,
-                                        a_source_position *type_position,
-                                        a_type_ptr        element_type,
-                                        an_expr_node_ptr  new_array_dimension)
+static an_arg_list_elem_ptr get_new_allocation_size_arg(a_new_parse_state *nps)
 /*
 Compute the allocation size in bytes for the new statement and return an
 argument for that.
@@ -19476,7 +19649,7 @@ argument for that.
   an_expr_node_ptr sizeof_node;
   an_operand       sizeof_operand;
 
-  if (new_array_dimension != NULL) {
+  if (nps->new_array_dimension != NULL) {
     /* The type is a variable-dimension array, as in
          new char[i+1]
        The amount to allocate is the size of the array element times
@@ -19486,11 +19659,10 @@ argument for that.
        with the right type would work (it's just for overload resolution),
        but maybe it will matter with constexpr operator new routines. */
     an_expr_node_ptr array_size_expr =
-      copy_expr_tree(new_array_dimension,
-                     CE_COPY_NOT_EVALUATED);
+              copy_expr_tree(nps->new_array_dimension, CE_COPY_NOT_EVALUATED);
     /* Note that the original first-level element type was retained in
        element_type (that matters for multi-dimension arrays). */
-    element_type = skip_typerefs(element_type);
+    nps->element_type = skip_typerefs(nps->element_type);
     /* Cast the dimension expression to size_t (it's already an integral
        type). */
     if (!is_template_param_type(array_size_expr->type)) {
@@ -19500,15 +19672,15 @@ argument for that.
                 /*is_reinterpret_cast=*/FALSE,
                 /*reinterpret_semantics=*/FALSE,
                 /*within_expr_processing=*/TRUE,
-                type_position);
+                &nps->type_position);
     }  /* if */
-    if (element_type->size == 1) {
+    if (nps->element_type->size == 1) {
       /* If the element size is 1, skip the multiplication. */
       sizeof_node = array_size_expr;
     } else {
       /* Multiply the number of elements by the size of each element. */
       sizeof_node = node_for_host_large_integer(
-        (a_host_large_integer)element_type->size, targ_size_t_int_kind);
+        (a_host_large_integer)nps->element_type->size, targ_size_t_int_kind);
       array_size_expr->next = sizeof_node;
       sizeof_node = make_operator_node((an_expr_operator_kind)eok_multiply,
                                        sizeof_node->type,
@@ -19524,7 +19696,7 @@ argument for that.
          new int
     */
     set_integer_constant(sizeof_constant,
-      (a_host_large_integer)unqual_new_type->size,
+                         (a_host_large_integer)nps->unqual_new_type->size,
                          targ_size_t_int_kind);
     make_constant_operand(sizeof_constant, &sizeof_operand);
   }  /* if */
@@ -19534,9 +19706,7 @@ argument for that.
 }  /* get_new_allocation_size_arg */
 
 
-static an_arg_list_elem_ptr get_new_alignment_arg(
-                                            a_type_ptr        unqual_new_type,
-                                            a_source_position *type_position)
+static an_arg_list_elem_ptr get_new_alignment_arg(a_new_parse_state *nps)
 /*
 If needed, creates and returns an alignment argument for the new operator.
 Otherwise returns NULL.
@@ -19546,16 +19716,16 @@ Otherwise returns NULL.
   an_operand           alignment_operand;
 
   if (overaligned_allocation_enabled &&
-      unqual_new_type->alignment > targ_default_new_alignment) {
+      nps->unqual_new_type->alignment > targ_default_new_alignment) {
     a_constant_ptr alignment_con = local_constant();
     a_boolean      did_not_fold;
     set_integer_constant(alignment_con,
-                         (a_host_large_integer)unqual_new_type->alignment,
+                        (a_host_large_integer)nps->unqual_new_type->alignment,
                          targ_size_t_int_kind);
     type_change_constant(alignment_con, type_of_align_val_t,
                          /*is_implicit_cast=*/TRUE,
                          /*maintain_expression=*/FALSE, &did_not_fold,
-                         type_position);
+                         &nps->type_position);
     make_constant_operand(alignment_con, &alignment_operand);
     align_alep = alloc_arg_list_elem_for_operand(&alignment_operand);
     release_local_constant(&alignment_con);
@@ -19565,29 +19735,15 @@ Otherwise returns NULL.
 }  /* get_new_alignment_arg */
 
 
-#if !GNU_EXTENSIONS_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* new_position is used if GNU_EXTENSIONS_ALLOWED.
-                arg_list is used if MICROSOFT_EXTENSIONS_ALLOWED. */
-#endif /* !GNU_EXTENSIONS_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED */
-static a_symbol_ptr get_operator_new_symbol(
-                                  a_type_ptr           base_new_type,
-                                  a_type_ptr           unqual_base_new_type,
-                                  a_source_position    *new_position,
-                                  an_arg_list_elem_ptr arg_list,
-                                  a_boolean            array_new,
-                                  a_boolean            use_global_new,
-                                  a_boolean            *unknown_dependent_new,
-                                  a_boolean            *template_case)
+static void get_operator_new_symbol(a_new_parse_state *nps)
 /*
 Returns the matching operator "new" symbol, if found.
 */
 {
-  a_boolean            local_unknown_dependent_new = *unknown_dependent_new;
-  a_symbol_ptr         operator_new_symbol = NULL;
   an_opname_kind       opname_kind;
 
   opname_kind = (an_opname_kind)onk_new;
-  if (array_new_and_delete_enabled && array_new) {
+  if (array_new_and_delete_enabled && nps->array_new) {
     opname_kind = (an_opname_kind)onk_array_new;
   }  /* if */
 
@@ -19595,60 +19751,60 @@ Returns the matching operator "new" symbol, if found.
     /* g++ 3.4 and above always treat a "new" operator as dependent. */
     if (is_prototype_instantiation_context()) {
       /* During a prototype instantiation, suppress the lookup. */
-      local_unknown_dependent_new = TRUE;
+      nps->unknown_dependent_new = TRUE;
     }  /* if */
   } else if (microsoft_mode && is_prototype_instantiation_context()) {
     /* Microsoft compilers do very limited processing of templates in
        general.  If we perform prototype instantiations in Microsoft mode,
        we treat this case as dependent to reduce the amount of checking
        performed in generic code. */
-    local_unknown_dependent_new = TRUE;
+    nps->unknown_dependent_new = TRUE;
   }  /* if */
-  if (!use_global_new && (array_new_and_delete_enabled || !array_new)) {
+  if (!nps->use_global_new &&
+      (array_new_and_delete_enabled || !nps->array_new)) {
     /* Check for a member "operator new" or "operator new[]". */
-    if (local_unknown_dependent_new) {
+    if (nps->unknown_dependent_new) {
       /* Suppress this processing if the unknown flag was already set
          above. */
-    } else if (is_template_param_or_nonreal_class_type(base_new_type)) {
+    } else if (is_template_param_or_nonreal_class_type(nps->base_new_type)) {
       /* In a prototype instantiation, you might not be able to tell
          whether a class-specific operator new should be used. */
-      local_unknown_dependent_new = TRUE;
-    } else if (is_class_struct_union_type(base_new_type)) {
-      operator_new_symbol = opname_member_function_symbol(
-        opname_kind,
-        unqual_base_new_type);
+      nps->unknown_dependent_new = TRUE;
+    } else if (is_class_struct_union_type(nps->base_new_type)) {
+      nps->operator_new_symbol =
+        opname_member_function_symbol(opname_kind, nps->base_new_type);
     }  /* if */
   }  /* if */
 
-  if (local_unknown_dependent_new) *template_case = TRUE;
+  if (nps->unknown_dependent_new) nps->template_case = TRUE;
 
 #if GNU_EXTENSIONS_ALLOWED
-  if (gpp_mode && gnu_version < 40000 && operator_new_symbol == NULL &&
+  if (gpp_mode && gnu_version < 40000 && nps->operator_new_symbol == NULL &&
       depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
-      !local_unknown_dependent_new) {
+      !nps->unknown_dependent_new) {
     /* Early GNU C++ compilers accept namespace-scope declarations of
        new/delete operators and (unlike Microsoft C++ compilers) find those
        using an ordinary lookup.  (This is true even when using "::new X":
        The lookup starts in the current namespace.) */
     a_symbol_locator  loc;
-    make_opname_locator(opname_kind, &loc, new_position);
-    operator_new_symbol = normal_id_lookup(&loc, IDL_SKIP_CLASS_SCOPES);
+    make_opname_locator(opname_kind, &loc, &nps->new_position);
+    nps->operator_new_symbol = normal_id_lookup(&loc, IDL_SKIP_CLASS_SCOPES);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-  if (operator_new_symbol == NULL && !local_unknown_dependent_new) {
+  if (nps->operator_new_symbol == NULL && !nps->unknown_dependent_new) {
     /* Use the global "operator new" or "operator new[]". */
-    operator_new_symbol = opname_function_symbol(opname_kind);
+    nps->operator_new_symbol = opname_function_symbol(opname_kind);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode &&
         microsoft_version < 1300 &&
-        operator_new_symbol == NULL) {
+        nps->operator_new_symbol == NULL) {
       /* In Microsoft mode, if no array new is found, search for a
          non-array operator new.  Note that there is no predeclared
          operator new[] in Microsoft mode.  This behavior applies only
          up to MSVC++ 6.0. */
       opname_kind = (an_opname_kind)onk_new;
-      operator_new_symbol = opname_function_symbol(opname_kind);
+      nps->operator_new_symbol = opname_function_symbol(opname_kind);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -19661,48 +19817,39 @@ Returns the matching operator "new" symbol, if found.
        looking for a non-array operator new.  Do a tentative match
        on the array new, and if that fails fall back to the non-array
        new.*/
-    if (!local_unknown_dependent_new &&
-      (operator_new_symbol == NULL ||
-       !overloaded_function_match_possible(operator_new_symbol,
-                                           oc_new_expression,
-                                           /*is_template_id=*/FALSE,
-                                           (a_template_arg_ptr)NULL,
-                                           arg_list,
-                                           /*have_selector=*/FALSE,
-                                           (an_operand *)NULL))) {
+    if (!nps->unknown_dependent_new &&
+        (nps->operator_new_symbol == NULL ||
+         !overloaded_function_match_possible(nps->operator_new_symbol,
+                                             oc_new_expression,
+                                             /*is_template_id=*/FALSE,
+                                             (a_template_arg_ptr)NULL,
+                                             nps->arg_list,
+                                             /*have_selector=*/FALSE,
+                                             (an_operand *)NULL))) {
       opname_kind = (an_opname_kind)onk_new;
-      operator_new_symbol = opname_function_symbol(opname_kind);
+      nps->operator_new_symbol = opname_function_symbol(opname_kind);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-  *unknown_dependent_new = local_unknown_dependent_new;
-  return operator_new_symbol;
 }  /* get_operator_new_symbol */
 
 
-static a_symbol_ptr get_operator_new_function(
-                              a_symbol_ptr             operator_new_symbol,
-                              a_source_position        *new_position,
-                              an_arg_list_elem_ptr     arg_list,
-                              an_arg_list_elem_ptr     *alignment_alep,
-                              an_arg_match_summary_ptr *arg_match_list,
-                              a_boolean                *unknown_dependent_new,
-                              a_boolean                *has_alignment_arg)
+static a_symbol_ptr get_operator_new_function(a_new_parse_state *nps)
 /*
 Returns the matching operator "new" function symbol, if found.
 */
 {
   a_symbol_ptr         proj_function_symbol = NULL;
 
-  if (!*unknown_dependent_new) {
+  if (!nps->unknown_dependent_new) {
     a_boolean saved_supp_diags = expr_stack->suppress_diagnostics;
     a_boolean saved_any_error = expr_stack->any_suppressed_error;
     a_boolean saved_defer_access_ck = scope_stack_top().defer_access_checks;
+    a_boolean unknown_dependent_new = nps->unknown_dependent_new;
     /* Select the proper "new" function if there are several.  Note that
        this call does not adjust the argument types or build the function
        call, since we may yet fold the call into a constructor call. */
-    if (*has_alignment_arg) {
+    if (nps->has_alignment_arg) {
       /* There is an alignment argument.  Suppress diagnostics and
          detect access violations in case there is no matching operator
          new and we need to repeat overload resolution without the
@@ -19712,120 +19859,95 @@ Returns the matching operator "new" function symbol, if found.
       scope_stack_top().defer_access_checks = FALSE;
     }  /* if */
     proj_function_symbol = select_overloaded_function(
-                                        operator_new_symbol,
+                                        nps->operator_new_symbol,
                                         /*is_template_id=*/FALSE,
                                         (a_template_arg_ptr)NULL,
                                         /*have_selector=*/FALSE,
                                         (an_operand *)NULL,
-                                        arg_list,
+                                        nps->arg_list,
                                         (an_arg_list_elem *)NULL,
                                         CCO_DIRECT_INITIALIZATION,
                                         /*do_arg_dep_lookup=*/FALSE,
                                         /*use_pure_arg_dep_lookup=*/FALSE,
                                         /*use_std_for_arg_dep_lookup=*/FALSE,
                                         oc_new_expression,
-                                        new_position,
+                                        &nps->new_position,
                                         (a_token_sequence_number)0,
                                         (a_boolean *)NULL,
                                         (a_boolean *)NULL,
-                                        unknown_dependent_new,
+                                        &unknown_dependent_new,
                                         (a_boolean *)NULL,
                                         (a_symbol_ptr *)NULL,
-                                        arg_match_list);
+                                        &nps->arg_match_list);
     /* Restore diagnostics and access checking to their previous
        state. */
     expr_stack->suppress_diagnostics = saved_supp_diags;
     expr_stack->any_suppressed_error = saved_any_error;
     scope_stack_top().defer_access_checks = saved_defer_access_ck;
-    if (proj_function_symbol == NULL && *has_alignment_arg) {
+    if (proj_function_symbol == NULL && nps->has_alignment_arg) {
       /* Try overload resolution again without the alignment argument. */
-      arg_list->next = (*alignment_alep)->next;
-      (*alignment_alep)->next = NULL;
-      free_arg_list(*alignment_alep);
-      *alignment_alep = NULL;
-      *has_alignment_arg = FALSE;
+      nps->arg_list->next = nps->alignment_alep->next;
+      nps->alignment_alep->next = NULL;
+      free_arg_list(nps->alignment_alep);
+      nps->alignment_alep = NULL;
+      nps->has_alignment_arg = FALSE;
       proj_function_symbol = select_overloaded_function(
-                                        operator_new_symbol,
+                                        nps->operator_new_symbol,
                                         /*is_template_id=*/FALSE,
                                         (a_template_arg_ptr)NULL,
                                         /*have_selector=*/FALSE,
                                         (an_operand *)NULL,
-                                        arg_list,
+                                        nps->arg_list,
                                         (an_arg_list_elem *)NULL,
                                         CCO_DIRECT_INITIALIZATION,
                                         /*do_arg_dep_lookup=*/FALSE,
                                         /*use_pure_arg_dep_lookup=*/FALSE,
                                         /*use_std_for_arg_dep_lookup=*/FALSE,
                                         oc_new_expression,
-                                        new_position,
+                                        &nps->new_position,
                                         (a_token_sequence_number)0,
                                         (a_boolean *)NULL,
                                         (a_boolean *)NULL,
-                                        unknown_dependent_new,
+                                        &unknown_dependent_new,
                                         (a_boolean *)NULL,
                                         (a_symbol_ptr *)NULL,
-                                        arg_match_list);
+                                        &nps->arg_match_list);
     }  /* if */
+    nps->unknown_dependent_new = unknown_dependent_new;
   }  /* if */
 
   return proj_function_symbol;
 }  /* get_operator_new_function */
 
 
-static a_symbol_ptr get_ctor_sym_for_new_type(
-                             a_type_ptr                    base_new_type,
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                             a_boolean                     cli_array_new,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                             a_boolean                     dependent_new_type,
-                             a_class_symbol_supplement_ptr *cssp)
+static a_symbol_ptr get_ctor_sym_for_new_type(a_new_parse_state *nps)
 /* Returns non-NULL if the type is a class that has a constructor
    or an array with elements of such a class. */
 {
   a_symbol_ptr                  ctor_sym = NULL;
 
-  if (is_class_struct_union_type(base_new_type) &&
+  if (is_class_struct_union_type(nps->base_new_type) &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* For C++/CLI arrays, don't use the associated class constructors.
          In C++/CX mode, we do use the constructor symbols of
          Platform::Array, however. */
-         (cppcx_enabled || !cli_array_new) &&
+         (cppcx_enabled || !nps->cli_array_new) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      !dependent_new_type) {
-    *cssp = symbol_supplement_for_class(base_new_type);
-    ctor_sym = (*cssp)->constructor;
+      !nps->dependent_new_type) {
+    nps->cssp = symbol_supplement_for_class(nps->base_new_type);
+    ctor_sym = nps->cssp->constructor;
   }  /* if */
 
   return ctor_sym;
 }  /* get_ctor_sym_for_new_type */
 
 
-#if !NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE || \
-    !NEW_CAN_BE_FOLDED_INTO_CTOR
-/*ARGSUSED*/ /* If either of these is undefined, many of these parameters are
-                unused. */
-#endif /* !NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE ||
-          !NEW_CAN_BE_FOLDED_INTO_CTOR */
-static a_routine_ptr get_new_routine(a_symbol_ptr      function_symbol,
-                                     a_source_position *new_position,
-                                     a_type_ptr        base_new_type,
-                                     a_type_ptr        unqual_base_new_type,
-                                     a_symbol_ptr      ctor_sym,
-                                     a_class_symbol_supplement_ptr
-                                                       cssp,
-                                     a_boolean         use_global_new,
-                                     a_boolean         placement_new,
-                                     a_boolean         array_new,
-                                     a_boolean         empty_initializer,
-                                     a_boolean         has_new_initializer,
-                                     a_boolean         has_braced_initializer,
-                                     a_routine_ptr     *delete_routine,
-                                     a_boolean         *delete_ambiguous)
+static a_routine_ptr get_new_routine(a_new_parse_state *nps)
 /*
 Work out the "new" routine and its arguments.  Returns the new routine.
 */
 {
-  a_routine_ptr new_routine = function_symbol->variant.routine.ptr;
+  a_routine_ptr new_routine = nps->function_symbol->variant.routine.ptr;
 
   /* Determine the delete routine to be called if an exception is
   thrown before the initialization completes. */
@@ -19833,23 +19955,18 @@ Work out the "new" routine and its arguments.  Returns the new routine.
 #if !ABI_CHANGES_FOR_PLACEMENT_DELETE
       /* When placement delete is not supported do not look for a delete
       routine. */
-      && !placement_new
+      && !nps->placement_new
 #endif /* !ABI_CHANGES_FOR_PLACEMENT_DELETE */
       ) {
-    *delete_routine = determine_deletion_for_new(base_new_type,
-                                                 function_symbol,
-                                                 use_global_new,
-                                                 placement_new,
-                                                 new_position,
-                                                 delete_ambiguous);
+    nps->delete_routine = determine_deletion_for_new(nps);
   }  /* if */
 
 #if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
-  if (array_new) {
+  if (nps->array_new) {
     /* If allocating an array and a runtime routine will be used, the
         "new" routine can be implicit if it is the default global new[]. */
     if (new_or_delete_type_requires_array_handling(
-                                                base_new_type,
+                                                nps->base_new_type,
                                                 /*check_constructor=*/TRUE)) {
       an_opname_kind array_opname_kind = array_new_and_delete_enabled ?
                                             (an_opname_kind)onk_array_new :
@@ -19860,7 +19977,8 @@ Work out the "new" routine and its arguments.  Returns the new routine.
       /* In Microsoft mode, because the non-array new routine can be used
           for an array new, the symbol can be NULL. */
       if (sym != NULL &&
-          function_symbol == find_default_operator_new_sym(sym, &ambiguous)&&
+          nps->function_symbol ==
+                             find_default_operator_new_sym(sym, &ambiguous) &&
           /* See core issue 412: avoid problems if user-provided new is
               inline. */
           !new_routine->is_inline) {
@@ -19874,36 +19992,37 @@ Work out the "new" routine and its arguments.  Returns the new routine.
         "new" routine for the class and see whether it is the one that
         was selected.  If so, the "new" call can be folded into the
         constructor call. */
-    if (ctor_sym != NULL) {
+    if (nps->ctor_sym != NULL) {
       /* If the entity gets value-initialization, suppress this
           optimization, because there's no way to tell the constructor
           to do the necessary zeroing after the allocation.  Also
           suppress this if the constructor that will be chosen is
           a trivial default constructor (a trivial copy constructor is
           okay; we can generate the body for that and call it). */
-      a_boolean value_init = (empty_initializer &&
+      a_boolean value_init = (nps->empty_initializer &&
                               value_initialization_enabled);
-      a_boolean trivial_ctor_init = ((empty_initializer ||
-                                      !has_new_initializer) &&
-                                      !value_init &&
-                                      has_trivial_default_constructor(cssp));
+      a_boolean trivial_ctor_init =
+                                 ((nps->empty_initializer ||
+                                   !nps->has_new_initializer) &&
+                                  !value_init &&
+                                  has_trivial_default_constructor(nps->cssp));
       if (!value_init && !trivial_ctor_init &&
           /* A braced-initializer always does some kind of initialization
               (at least value-initialization), so we can't fold. */
-          !has_braced_initializer &&
+          !nps->has_braced_initializer &&
           /* If the expression that follows might be an empty pack
               expansion, we might end up with value initialization anyway
               so we can't fold. */
           !is_variadic_template_context()) {
-        set_class_assoc_operator_new_routine(unqual_base_new_type);
+        set_class_assoc_operator_new_routine(nps->unqual_base_new_type);
         if (exceptions_enabled) {
-          set_class_assoc_operator_delete_routine(unqual_base_new_type);
+          set_class_assoc_operator_delete_routine(nps->unqual_base_new_type);
         }  /* if */
-        if (class_type_supp(unqual_base_new_type)
+        if (class_type_supp(nps->unqual_base_new_type)
                                 ->assoc_operator_new_routine == new_routine &&
             (!exceptions_enabled ||
-              class_type_supp(unqual_base_new_type)
-                      ->assoc_operator_delete_routine == *delete_routine)) {
+              class_type_supp(nps->unqual_base_new_type)
+                    ->assoc_operator_delete_routine == nps->delete_routine)) {
           new_routine = NULL;
         }  /* if */
       }  /* if */
@@ -19917,42 +20036,18 @@ Work out the "new" routine and its arguments.  Returns the new routine.
 }  /* get_new_routine */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* zero_initialization is unused here. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static void prep_new_object_init_no_initializer(
-                                a_type_ptr         new_type,
-                                a_type_ptr         base_new_type,
-                                a_type_ptr         unqual_base_new_type,
-                                a_source_position  *new_position,
-                                a_source_position  *type_position,
-                                a_routine_ptr      new_routine,
-                                a_routine_ptr      delete_routine,
-                                a_symbol_ptr       function_symbol,
-                                a_symbol_ptr       ctor_sym,
-                                a_class_symbol_supplement_ptr
-                                                   cssp,
-                                a_boolean          dependent_new_type,
-                                a_boolean          array_new,
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                                a_boolean          is_gcnew,
-                                a_boolean          cli_array_new,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                a_boolean          delete_ambiguous,
-                                a_dynamic_init_ptr *dip,
-                                a_dynamic_init_ptr *dyn_init_to_free_storage,
-                                a_boolean          *needs_initialization,
-                                a_boolean          *zero_initialization,
-                                a_boolean          *err)
+static void prep_new_object_init_no_initializer(a_new_parse_state *nps)
 /*
 Validate and prepare (if warranted) initializer for the object when no
 initializer was provided.
 */
 {
-  if (is_class_struct_union_type(base_new_type) && !dependent_new_type &&
-    (cssp == NULL || !cssp->is_cpp03_POD || cssp->constructor != NULL)
+  if (is_class_struct_union_type(nps->base_new_type) &&
+      !nps->dependent_new_type &&
+      (nps->cssp == NULL || !nps->cssp->is_cpp03_POD ||
+       nps->cssp->constructor != NULL)
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      && !(cli_or_cx_enabled && is_value_class_type(base_new_type))
+      && !(cli_or_cx_enabled && is_value_class_type(nps->base_new_type))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       ) {
     /* A class type (or array thereof) where the class is either not a POD
@@ -19960,17 +20055,18 @@ initializer was provided.
     constructor. */
     a_boolean is_generated_ctor = FALSE, do_const_test = FALSE;
     /* Look for a default constructor. */
-    if (unqual_base_new_type->variant.class_struct_union.is_nonreal_class) {
+    if (nps->unqual_base_new_type->
+                                variant.class_struct_union.is_nonreal_class) {
       /* Don't look for a default constructor in a dependent type. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcx_enabled && cli_array_new) {
+    } else if (cppcx_enabled && nps->cli_array_new) {
       /* The new-init is not required for the Platform::Array type so long
       as an array-init follows.  We'll check for the array-init later.
       There is a similar check for the C++/CLI case below, but we have to
       perform this check earlier for C++/CX since the array type has a
       constructor symbol. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else if (ctor_sym != NULL) {
+    } else if (nps->ctor_sym != NULL) {
       a_boolean     def_ctor_err;
       a_routine_ptr ctor_routine;
       /* The class has one or more constructors.  Look for a default
@@ -19980,12 +20076,9 @@ initializer was provided.
       if an exception is thrown before the initialization is finished.
       This must be done after it has been determined that initialization
       is required, but before the initialization is actually processed. */
-      make_dyn_init_for_deletion_for_throw(dyn_init_to_free_storage,
-                                           new_routine,
-                                           delete_routine,
-                                           array_new);
-      ctor_routine = expr_select_default_constructor(base_new_type,
-                                                     type_position,
+      make_dyn_init_for_deletion_for_throw(nps);
+      ctor_routine = expr_select_default_constructor(nps->base_new_type,
+                                                     &nps->type_position,
                                                      &def_ctor_err);
       if (!def_ctor_err) {
         do_const_test = TRUE;
@@ -19995,100 +20088,102 @@ initializer was provided.
         } else {
           /* A non-trivial constructor. */
           is_generated_ctor = ctor_routine->compiler_generated;
-          *needs_initialization = TRUE;
-          warn_about_missing_delete(delete_routine,
-                                    function_symbol,
-                                    new_position,
-                                    array_new,
-                                    delete_ambiguous);
+          nps->needs_initialization = TRUE;
+          warn_about_missing_delete(nps);
           /* Make the dynamic initialization entry (possibly folded
           to a constant if constexpr, but not if we've folded the
           "new" into the constructor call). */
-          *dip = alloc_expr_ctor_dynamic_init(ctor_routine,
-                                              (an_expr_node_ptr)NULL,
-                                              base_new_type,
-                                              /*static_temp=*/FALSE,
-                                              /*add_default_args=*/TRUE,
-                                              /*implied_source=*/FALSE,
-                                              /*value_init=*/FALSE,
-                                              /*sequenced_args=*/FALSE,
-                                              /*fold_constexpr=*/
-                                              (new_routine != NULL),
-                                              /*check_constexpr=*/FALSE,
-                                              type_position);
+          nps->dip = alloc_expr_ctor_dynamic_init(ctor_routine,
+                                                  (an_expr_node_ptr)NULL,
+                                                  nps->base_new_type,
+                                                  /*static_temp=*/FALSE,
+                                                  /*add_default_args=*/TRUE,
+                                                  /*implied_source=*/FALSE,
+                                                  /*value_init=*/FALSE,
+                                                  /*sequenced_args=*/FALSE,
+                                                  /*fold_constexpr=*/
+                                                  (nps->new_routine != NULL),
+                                                  /*check_constexpr=*/FALSE,
+                                                  &nps->type_position);
         }  /* if */
       }  /* if */
-    } else if (expr_reference_to_trivial_default_constructor(base_new_type,
-                                                             type_position)) {
+    } else if (expr_reference_to_trivial_default_constructor(
+                                                       nps->base_new_type,
+                                                       &nps->type_position)) {
       /* The class has an assumed trivial default constructor. */
       do_const_test = TRUE;
       is_generated_ctor = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cli_array_new) {
+    } else if (nps->cli_array_new) {
       /* The new-init is not required for a C++/CLI array type so long as an
       array-init follows.  We'll check for the array-init later. */
-    } else if (is_gcnew &&
-               is_cli_generic_definition_argument_type(new_type)) {
+    } else if (nps->is_gcnew &&
+               is_cli_generic_definition_argument_type(nps->new_type)) {
       /* This is a gcnew of a generic type, and it doesn't have a gcnew
       constraint, because no default constructor was found above. */
       if (expr_error_should_be_issued()) {
-        pos_ty_error(ec_invalid_gcnew_type, type_position, new_type);
+        pos_ty_error(ec_invalid_gcnew_type,
+                     &nps->type_position, nps->new_type);
       }  /* if */
-      *err = TRUE;
+      nps->err = TRUE;
     } else if (microsoft_mode &&
-               skip_typerefs(new_type)->variant.class_struct_union
+               skip_typerefs(nps->new_type)->variant.class_struct_union
                .default_ctor_decl_suppressed) {
       /* In Microsoft mode default constructors can be suppressed. */
       if (expr_error_should_be_issued()) {
-        pos_ty_error(ec_no_default_constructor, type_position, new_type);
+        pos_ty_error(ec_no_default_constructor,
+                     &nps->type_position, nps->new_type);
       }  /* if */
-      *err = TRUE;
+      nps->err = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* Note that this case comes up if the class type is incomplete.
       An error was issued previously. */
-      check_assertion_str(*err,
+      check_assertion_str(nps->err,
       "scan_new_operator: non-POD class has neither actual nor assumed ctor");
     }  /* if */
     if (do_const_test && (!any_cfront_mode() && !microsoft_mode)) {
       /* When the initializer is omitted on a "new" of a const class
       object, the default constructor is required to be explicitly
       declared; it can't be implicit. */
-      if (is_generated_ctor && is_const_qualified_type(new_type) &&
-          !is_empty_class_type(new_type)) {
+      if (is_generated_ctor && is_const_qualified_type(nps->new_type) &&
+          !is_empty_class_type(nps->new_type)) {
         if (expr_error_should_be_issued()) {
           type_error(ec_missing_default_constructor_on_unnamed_const,
-                     unqual_base_new_type);
+                     nps->unqual_base_new_type);
         }  /* if */
-        *err = TRUE;
+        nps->err = TRUE;
       }  /* if */
     }  /* if */
   } else {
     /* A non-class type or a POD class with no user-declared constructor.
     Check for error cases like const entities not being initialized
     (since there is no initializer). */
-    if (!*err && !dependent_new_type) {
-      a_boolean  *p_err = NULL;
+    if (!nps->err && !nps->dependent_new_type) {
+      a_boolean *p_err = NULL;
+      a_boolean err = nps->err;
+
       if (expr_stack->suppress_diagnostics) {
         /* Don't issue diagnostics in SFINAE contexts. */
-        p_err = err;
+        p_err = &err;
       }  /* if */
-      check_for_missing_initializer_full((a_symbol_ptr)NULL, new_type,
+      check_for_missing_initializer_full((a_symbol_ptr)NULL, nps->new_type,
                                          /*explicitly_internal=*/FALSE,
                                          p_err);
-      if (*err) {
+      nps->err = err;
+      if (nps->err) {
         record_suppressed_error();
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (is_gcnew) {
+    if (nps->is_gcnew) {
       /* Check to see if this is a fundamental, value, or cli enum type
       without a new initializer and ensure that they are
       zero-initialized. */
-      if (is_value_class_or_fundamental_type(base_new_type) ||
-          is_cli_enum_type(base_new_type)) {
-        *needs_initialization = TRUE;
-        *zero_initialization = TRUE;
+      if (is_value_class_or_fundamental_type(nps->base_new_type) ||
+          is_cli_enum_type(nps->base_new_type)) {
+        nps->needs_initialization = TRUE;
+        nps->zero_initialization = TRUE;
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -20097,21 +20192,8 @@ initializer was provided.
 
 
 static void prep_new_object_init_braced_initializer(
-                            a_rescan_control_block *rcblock,
-                            a_type_ptr             new_type,
-                            a_routine_ptr          new_routine,
-                            a_routine_ptr          delete_routine,
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-                            a_source_position      *end_position,
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-                            an_arg_list_elem_ptr   braced_init_list,
-                            a_boolean              array_new,
-                            a_boolean              variable_size_array,
-                            a_boolean              using_expr_cache,
-                            a_dynamic_init_ptr     *dip,
-                            a_dynamic_init_ptr     *dyn_init_to_free_storage,
-                            a_boolean              *needs_initialization,
-                            a_boolean              *err)
+                                              a_rescan_control_block *rcblock,
+                                              a_new_parse_state      *nps)
 /*
 Validate and prepare (if warranted) initializer for the object when a
 braced initializer was provided.
@@ -20124,17 +20206,14 @@ braced initializer was provided.
   if an exception is thrown before the initialization is finished.
   This must be done after it has been determined that initialization
   is required, but before the initialization is actually processed. */
-  make_dyn_init_for_deletion_for_throw(dyn_init_to_free_storage,
-                                       new_routine,
-                                       delete_routine,
-                                       array_new);
+  make_dyn_init_for_deletion_for_throw(nps);
   if (rcblock != NULL) {
     /* On a rescan, use the substituted version of the braced-init-list
     scanned originally. */
-    check_assertion(braced_init_list != NULL &&
-                    is_braced_init_component(braced_init_list));
-    alep = braced_init_list;
-  } else if (using_expr_cache) {
+    check_assertion(nps->braced_init_list != NULL &&
+                    is_braced_init_component(nps->braced_init_list));
+    alep = nps->braced_init_list;
+  } else if (nps->using_expr_cache) {
     alep = fetch_init_component_from_initializer_cache(
                                                expr_stack->initializer_cache);
   } else {
@@ -20143,14 +20222,14 @@ braced initializer was provided.
   }  /* if */
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  *end_position = *init_component_end_pos(alep);
+  nps->end_position = *init_component_end_pos(alep);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   expr_clear_init_state(&init_state);
-  init_state.variable_size_array = variable_size_array;
+  init_state.variable_size_array = nps->variable_size_array;
   init_state.initializer_can_dimension_array = TRUE;
   init_state.force_dynamic_init = TRUE;
   if (rcblock != NULL) init_state.no_diagnostics = TRUE;
-  prep_list_initializer(alep, new_type,
+  prep_list_initializer(alep, nps->new_type,
                         /*is_direct_init=*/TRUE,
                         /*check_narrowing=*/TRUE,
                         /*warning_on_narrowing=*/FALSE,
@@ -20161,61 +20240,21 @@ braced initializer was provided.
                         (an_operand *)NULL, &init_state,
                         (an_arg_match_summary *)NULL);
   if (init_state.init_error) {
-    *err = TRUE;
+    nps->err = TRUE;
     if (rcblock != NULL) subst_fail(rcblock->error_detected);
   } else {
-    *needs_initialization = TRUE;
-    *dip = init_state.init_dip;
-    check_assertion(*dip != NULL);
+    nps->needs_initialization = TRUE;
+    nps->dip = init_state.init_dip;
+    check_assertion(nps->dip != NULL);
   }  /* if */
   free_init_component_list(alep);
 }  /* prep_new_object_init_braced_initializer */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* type_position, ptr_new_type and unqual_base_new_type are
-                used if MICROSOFT_EXTENSIONS_ALLOWED. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void prep_new_object_init_paren_initializer(
-                        a_rescan_control_block *rcblock,
-                        a_type_ptr             new_type,
-                        a_type_ptr             base_new_type,
-                        a_type_ptr             unqual_base_new_type,
-                        a_type_ptr             ptr_new_type,
-                        a_source_position      *new_position,
-                        a_source_position      *type_position,
-                        a_source_position      *init_position,
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-                        a_source_position      *end_position,
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-                        a_routine_ptr          new_routine,
-                        a_routine_ptr          delete_routine,
-                        a_symbol_ptr           function_symbol,
-                        a_symbol_ptr           ctor_sym,
-                        a_boolean              array_new,
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                        a_boolean              placement_new,
-                        a_boolean              is_gcnew,
-                        a_boolean              cli_array_new,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                        a_boolean              template_case,
-                        a_boolean              delete_ambiguous,
-                        a_decl_parse_state     *dps,
-                        a_dynamic_init_ptr     *dip,
-                        a_dynamic_init_ptr     *dyn_init_to_free_storage,
-                        an_arg_list_elem_ptr   *init_raw_args,
-                        a_source_position      *end_new_init_position,
-                        an_expr_node_ptr       *init_val_node,
-                        a_boolean              *templ_init_scanned,
-                        a_boolean              *needs_initialization,
-                        a_boolean              *has_new_initializer,
-                        a_boolean              *zero_initialization,
-                        a_boolean              *empty_initializer,
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                        a_boolean              *is_gcnew_string_special_case,
-                        an_operand             *gcnew_special_case_operand,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                        a_boolean              *err)
+                                              a_rescan_control_block *rcblock,
+                                              a_new_parse_state      *nps,
+                                              a_decl_parse_state     *dps)
 /*
 Validate and prepare (if warranted) initializer for the object when a
 parenthesized initializer was provided.
@@ -20225,14 +20264,14 @@ parenthesized initializer was provided.
 
   /* No need to add tok_rparen to the stop tokens set: it's done by
   scan_ctor_arguments or scan_parenthesized_initializer_expression. */
-  if (array_new && !*empty_initializer) {
+  if (nps->array_new && !nps->empty_initializer) {
     /* No initializer except "()" may be specified for an array type. */
     expr_pos_error(ec_initializer_not_allowed_on_array_new,
-                   rcblock != NULL ? init_position : &pos_curr_token);
-    *err = TRUE;
+                   rcblock != NULL ? &nps->init_position : &pos_curr_token);
+    nps->err = TRUE;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cli_array_new) {
+  if (nps->cli_array_new) {
     /* Scan the new-init for a C++/CLI array, but handle semantic checks
     later.  The expressions in the new-init for a C++/CLI array specify
     the lengths for each dimension of the array.  In C++/CX mode, if
@@ -20247,83 +20286,83 @@ parenthesized initializer was provided.
                         rcblock,
                         /*arg_list_supplied=*/FALSE,
                         (an_arg_list_elem *)NULL,
-                        init_raw_args,
+                        &nps->init_raw_args,
                         (an_operand_ptr)NULL,
                         (a_boolean *)NULL,
-                        end_new_init_position);
+                        &nps->end_new_init_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    if (rcblock == NULL) *end_position = curr_construct_end_position;
+    if (rcblock == NULL) nps->end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  } else if (cli_or_cx_enabled && is_delegate_type(unqual_base_new_type)) {
+  } else if (cli_or_cx_enabled &&
+             is_delegate_type(nps->unqual_base_new_type)) {
     /* The initializer for C++/CLI and C++/CX delegates is scanned
     specially. */
-    check_assertion(is_gcnew);
+    check_assertion(nps->is_gcnew);
     if (cppcx_enabled) {
-      scan_cppcx_delegate_initializer(new_type, type_position, rcblock,
-                                      end_new_init_position, dip);
+      scan_cppcx_delegate_initializer(nps->new_type, &nps->type_position,
+                                      rcblock, &nps->end_new_init_position,
+                                      &nps->dip);
     } else {
-      scan_delegate_initializer(new_type, type_position, rcblock,
-                                end_new_init_position, dip);
+      scan_delegate_initializer(nps->new_type, &nps->type_position, rcblock,
+                                &nps->end_new_init_position, &nps->dip);
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    if (rcblock == NULL) *end_position = curr_construct_end_position;
+    if (rcblock == NULL) nps->end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  } else if (*empty_initializer &&
-    ((cli_or_cx_enabled && is_value_class_type(base_new_type)) ||
-             (is_gcnew &&
-     (system_type_from_fundamental_type(unqual_base_new_type)
-      != NULL ||
-      is_cli_enum_type(unqual_base_new_type))))) {
+  } else if (nps->empty_initializer &&
+    ((cli_or_cx_enabled && is_value_class_type(nps->base_new_type)) ||
+     (nps->is_gcnew &&
+      (system_type_from_fundamental_type(nps->unqual_base_new_type) != NULL ||
+       is_cli_enum_type(nps->unqual_base_new_type))))) {
     /* Make sure that C++/CLI value types with an empty new-init are zero
     initialized for both "new" and "gcnew" expressions.  This must happen
     before we process constructors since value classes do not have
     default constructors, but they may have non-default constructors.
     Also, ensure that for "gcnew" all enums and basic types are
     initialized. */
-    *needs_initialization = TRUE;
-    *zero_initialization = TRUE;
+    nps->needs_initialization = TRUE;
+    nps->zero_initialization = TRUE;
     if (rcblock == NULL) {
       (void)get_token();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      *end_position = end_pos_curr_token;
+      nps->end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
-  if (ctor_sym != NULL) {
+  if (nps->ctor_sym != NULL) {
     /* Class with a (nontrivial) constructor. */
     a_boolean  trivial_ctor;
     a_boolean  *string_ctor_skip = NULL;
     an_operand *simple_result = NULL;
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (is_gcnew &&
-        f_identical_types(ptr_new_type, make_handle_to_system_string(),
+    a_boolean  special_case = nps->is_gcnew_string_special_case;
+    if (nps->is_gcnew &&
+        f_identical_types(nps->ptr_new_type, make_handle_to_system_string(),
                           ITF_NO_FLAGS)) {
       /* A gcnew of System::String with a single argument of type String
       just passes through the argument without doing a gcnew. */
-      string_ctor_skip = is_gcnew_string_special_case;
-      simple_result = gcnew_special_case_operand;
-      check_assertion(!cli_array_new && !placement_new);
+      string_ctor_skip = &special_case;
+      simple_result = &nps->gcnew_special_case_operand;
+      check_assertion(!nps->cli_array_new && !nps->placement_new);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Develop the dynamic init entry, if any, used to free storage
         if an exception is thrown before the initialization is finished.
         This must be done after it has been determined that initialization
         is required, but before the initialization is actually processed. */
-    make_dyn_init_for_deletion_for_throw(dyn_init_to_free_storage,
-                                         new_routine,
-                                         delete_routine,
-                                         array_new);
+    make_dyn_init_for_deletion_for_throw(nps);
     /* Scan the constructor arguments and build the dynamic initialization
     entry. */
-    scan_ctor_arguments(ctor_sym, init_position,
+    scan_ctor_arguments(nps->ctor_sym, &nps->init_position,
                         (a_type_ptr)NULL, (a_type_ptr)NULL,
                         /*fill_in_dtor=*/FALSE,
                         /* The constructor call cannot be eliminated or
                         turned into a bitwise move if it's doing the
                         allocation. */
-                        /*elision_allowed=*/(new_routine != NULL),
+                        /*elision_allowed=*/(nps->new_routine != NULL),
                         /*is_custom_ms_attr_arg_list=*/FALSE,
                         CCO_DIRECT_INITIALIZATION,
                         rcblock,
@@ -20335,38 +20374,39 @@ parenthesized initializer was provided.
                         /*unboxing_conv=*/(a_boolean *)NULL,
                         string_ctor_skip,
                         simple_result,
-                        dip, (an_expr_node_ptr *)NULL,
+                        &nps->dip, (an_expr_node_ptr *)NULL,
                         (a_source_position *)NULL);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    nps->is_gcnew_string_special_case = special_case;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    if (rcblock == NULL) *end_position = curr_construct_end_position;
+    if (rcblock == NULL) nps->end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (trivial_ctor) {
       /* The constructor selected is a trivial default constructor, which
       does nothing (not even value initialization). */
-      *needs_initialization = FALSE;
-      check_assertion(new_routine != NULL || function_symbol == NULL);
+      nps->needs_initialization = FALSE;
+      check_assertion(nps->new_routine != NULL ||
+                      nps->function_symbol == NULL);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (*is_gcnew_string_special_case) {
+    } else if (nps->is_gcnew_string_special_case) {
       /* A case where the single String argument of a gcnew is just passed
       through. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
-      warn_about_missing_delete(delete_routine,
-                                function_symbol,
-                                new_position,
-                                array_new,
-                                delete_ambiguous);
-      *needs_initialization = TRUE;
-      if (*dip == NULL) {
+      warn_about_missing_delete(nps);
+      nps->needs_initialization = TRUE;
+      if (nps->dip == NULL) {
         /* Some error. */
-        *needs_initialization = *has_new_initializer = FALSE;
+        nps->needs_initialization = nps->has_new_initializer = FALSE;
       }  /* if */
     }  /* if */
-  } else if (template_case) {
+  } else if (nps->template_case) {
     /* A "new" or "gcnew" of a template-dependent type, in a prototype
     instantiation. */
     /* Scan the argument list. */
-    *templ_init_scanned = TRUE;
+    nps->templ_init_scanned = TRUE;
     scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
                         /*already_after_left_paren=*/TRUE,
                         &dummy, /*return_raw_arguments=*/TRUE,
@@ -20376,59 +20416,52 @@ parenthesized initializer was provided.
                         rcblock,
                         /*arg_list_supplied=*/FALSE,
                         (an_arg_list_elem *)NULL,
-                        init_raw_args,
+                        &nps->init_raw_args,
                         /*single_operand=*/(an_operand *)NULL,
                         /*single_operand_returned=*/(a_boolean *)NULL,
-                        end_new_init_position);
+                        &nps->end_new_init_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    if (rcblock == NULL) *end_position = curr_construct_end_position;
+    if (rcblock == NULL) nps->end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    *needs_initialization = TRUE;
-  } else if (is_error_type(base_new_type)) {
+    nps->needs_initialization = TRUE;
+  } else if (is_error_type(nps->base_new_type)) {
     /* The type is not known.  Scan the argument list and discard it. */
     scan_error_parenthesized_initializer(rcblock,
                                          /*arg_list_supplied=*/FALSE,
                                          (an_arg_list_elem *)NULL);
-    *needs_initialization = FALSE;
-    *dip = NULL;
-    *err = TRUE;
+    nps->needs_initialization = FALSE;
+    nps->dip = NULL;
+    nps->err = TRUE;
   } else {
     /* Not a class with a constructor. */
-    if (!*empty_initializer) {
+    if (!nps->empty_initializer) {
       a_boolean expr_not_present;
       /* The new-initializer is not empty.  Scan it. */
       /* Develop the dynamic init entry, if any, used to free storage
       if an exception is thrown before the initialization is finished.
       This must be done after it has been determined that initialization
       is required, but before the initialization is actually processed. */
-      make_dyn_init_for_deletion_for_throw(dyn_init_to_free_storage,
-                                           new_routine,
-                                           delete_routine,
-                                           array_new);
-      *init_val_node = scan_parenthesized_initializer_expression(
-                                                dps,
-                                                rcblock,
-                                                *err ? error_type() : new_type,
-                                                ec_bad_initializer_type,
-                                                &expr_not_present);
+      make_dyn_init_for_deletion_for_throw(nps);
+      nps->init_val_node = scan_parenthesized_initializer_expression(
+                                      dps,
+                                      rcblock,
+                                      nps->err ? error_type() : nps->new_type,
+                                      ec_bad_initializer_type,
+                                      &expr_not_present);
       if (expr_not_present) {
         /* There was an expression, but it is a pack expansion that expanded
         to zero expressions.  Go handle the new-initializer as if it
         were "()". */
-        *empty_initializer = TRUE;
+        nps->empty_initializer = TRUE;
         goto handle_empty_parens_new_initializer;
       }  /* if */
-      if (node_has_side_effects(*init_val_node, (a_boolean*)NULL)) {
-        warn_about_missing_delete(delete_routine,
-                                  function_symbol,
-                                  new_position,
-                                  array_new,
-                                  delete_ambiguous);
+      if (node_has_side_effects(nps->init_val_node, (a_boolean*)NULL)) {
+        warn_about_missing_delete(nps);
       }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      if (rcblock == NULL) *end_position = curr_construct_end_position;
+      if (rcblock == NULL) nps->end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      *needs_initialization = TRUE;
+      nps->needs_initialization = TRUE;
     } else {
       /* The initializer is empty, i.e., "()".  This means
       value-initialization.  Note that "()" for class types with
@@ -20437,21 +20470,21 @@ parenthesized initializer was provided.
 handle_empty_parens_new_initializer:
       if (rcblock == NULL) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-        *end_position = end_pos_curr_token;
+        nps->end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         (void)get_token();
       }  /* if */
       if (microsoft_bugs &&
           emulate_msvc_value_initialization_bugs &&
           (microsoft_version < 1310 ||
-          (is_class_struct_union_type(base_new_type) &&
-            !symbol_supplement_for_class(base_new_type)->is_cpp03_POD))) {
+          (is_class_struct_union_type(nps->base_new_type) &&
+           !symbol_supplement_for_class(nps->base_new_type)->is_cpp03_POD))) {
         /* MSVC++ up to version 7.1 does not initialize non-POD classes
         without constructors. 6.0 and 7.0 did not initialize even
         POD classes and non-class objects. */
       } else {
-        *needs_initialization = TRUE;
-        *zero_initialization = TRUE;
+        nps->needs_initialization = TRUE;
+        nps->zero_initialization = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -20460,32 +20493,15 @@ handle_empty_parens_new_initializer:
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 static void prep_new_object_init_cli_array_initializer(
-                              a_rescan_control_block *rcblock,
-                              a_type_ptr             new_type,
-                              a_type_ptr             ptr_new_type,
-                              a_symbol_ptr           ctor_sym,
-                              an_arg_list_elem_ptr   *init_raw_args,
-                              a_source_position      *type_position,
-                              a_source_position      *init_position,
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-                              a_source_position      *end_position,
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-                              a_source_position      *end_new_init_position,
-                              a_boolean              has_new_initializer,
-                              a_boolean              has_array_init,
-                              a_boolean              template_case,
-                              a_decl_parse_state     *dps,
-                              a_dynamic_init_ptr     *dip,
-                              an_expr_node_ptr       *cli_array_new_init_args,
-                              a_boolean              *templ_init_scanned,
-                              a_boolean              *needs_initialization,
-                              a_boolean              *err)
+                                              a_rescan_control_block *rcblock,
+                                              a_new_parse_state      *nps,
+                                              a_decl_parse_state     *dps)
 /*
 Validate and prepare (if warranted) initializer for the object in the
 C++/CLI/CX array case.
 */
 {
-  if (cppcx_enabled && has_new_initializer && !has_array_init) {
+  if (cppcx_enabled && nps->has_new_initializer && !nps->has_array_init) {
     /* Microsoft uses the presence of the array-init in C++/CX mode to
     interpret the new-init.  If it is absent, the new-init is a
     constructor invocation.  Otherwise, the new-init is processed using
@@ -20493,15 +20509,15 @@ C++/CLI/CX array case.
     /* Since has_array_init is FALSE and cli_array_new is TRUE, we know
     that the type must be a C++/CX array type (though it may not be a
     valid one). */
-    check_assertion (is_cli_array_type(new_type) ||
-                     is_error_type(new_type));
-    if (ctor_sym != NULL) {
+    check_assertion(is_cli_array_type(nps->new_type) ||
+                    is_error_type(nps->new_type));
+    if (nps->ctor_sym != NULL) {
       a_boolean   trivial_ctor;
       a_boolean   unboxing_conversion;
       a_boolean   string_ctor_skip;
       an_operand  simple_result;
-      scan_ctor_arguments(ctor_sym,
-                          init_position, (a_type_ptr)NULL,
+      scan_ctor_arguments(nps->ctor_sym,
+                          &nps->init_position, (a_type_ptr)NULL,
                           (a_type_ptr)NULL, /*fill_in_dtor=*/FALSE,
                           /* To simplify the IL and defend against the
                           (unlikely) possibility of a copy constructor
@@ -20511,27 +20527,27 @@ C++/CLI/CX array case.
                           CCO_DIRECT_INITIALIZATION,
                           rcblock,
                           /*arg_list_supplied=*/TRUE,
-                          *init_raw_args,
+                          nps->init_raw_args,
                           (an_arg_list_elem *)NULL,
                           &trivial_ctor,
                           /*elision_done=*/(a_boolean *)NULL,
                           &unboxing_conversion,
                           &string_ctor_skip,
                           &simple_result,
-                          dip, (an_expr_node_ptr *)NULL,
+                          &nps->dip, (an_expr_node_ptr *)NULL,
                           (a_source_position *)NULL);
       /* The constructor invocation shouldn't involve a trivial_ctor, an
       unboxing_conversion, or a skipped string ctor. */
       check_assertion (!(trivial_ctor || unboxing_conversion ||
                          string_ctor_skip));
-      free_arg_list(*init_raw_args);
-      *init_raw_args = NULL;
-      if (*dip == NULL) {
-        *err = TRUE;
+      free_arg_list(nps->init_raw_args);
+      nps->init_raw_args = NULL;
+      if (nps->dip == NULL) {
+        nps->err = TRUE;
       }  /* if */
-    } else if (template_case) {
+    } else if (nps->template_case) {
       /* Give init_raw_args to the template init scanner then. */
-      *templ_init_scanned = TRUE;
+      nps->templ_init_scanned = TRUE;
     } else {
       /* If this is not the template_case, then there must an error in the
       array type. */
@@ -20539,16 +20555,16 @@ C++/CLI/CX array case.
       /* The type is not known.  Scan the argument list and discard it. */
       scan_error_parenthesized_initializer(rcblock,
                                            /*arg_list_supplied=*/TRUE,
-                                           *init_raw_args);
-      free_arg_list(*init_raw_args);
-      *init_raw_args = NULL;
-      *needs_initialization = FALSE;
-      *dip = NULL;
-      *err = TRUE;
+                                           nps->init_raw_args);
+      free_arg_list(nps->init_raw_args);
+      nps->init_raw_args = NULL;
+      nps->needs_initialization = FALSE;
+      nps->dip = NULL;
+      nps->err = TRUE;
     }  /* if */
     /* The constructor's already handled the initialization of
        Platform::Array's new-init.  No special processing is necessary. */
-  } else if (has_new_initializer) {
+  } else if (nps->has_new_initializer) {
     /* If a C++/CLI array has a new initializer, perform semantic checks
     on the previously scanned new-init and convert the arguments into
     an expression list.  If a new initializer is present, the arguments
@@ -20563,25 +20579,24 @@ C++/CLI/CX array case.
     param_type =
       cppcx_enabled ? integer_type((an_integer_kind)ik_unsigned_int) :
                       integer_type((an_integer_kind)ik_int);
-    if (is_cli_array_type(new_type)) {
-      rank = cli_array_rank(new_type, &rank_unknown);
+    if (is_cli_array_type(nps->new_type)) {
+      rank = cli_array_rank(nps->new_type, &rank_unknown);
     }  /* if */
 
-    for (arg_ptr = *init_raw_args, count = 1;
+    for (arg_ptr = nps->init_raw_args, count = 1;
          arg_ptr != NULL;
          arg_ptr = next_elem(arg_ptr), ++count) {
       an_operand_ptr operand;
       check_arg_list_elem_is_expression(arg_ptr);
       operand = operand_of_arg_list_elem(arg_ptr);
       /* Convert the bound size expression to int. */
-      prep_initializer_operand(
-        operand,
-        param_type,
-        (a_boolean *)NULL,
-        (a_conv_descr_ptr)NULL,
-        /*is_copy_initialization=*/FALSE,
-        CCO_DEFAULT,
-        ec_incompatible_param);
+      prep_initializer_operand(operand,
+                               param_type,
+                               (a_boolean *)NULL,
+                               (a_conv_descr_ptr)NULL,
+                               /*is_copy_initialization=*/FALSE,
+                               CCO_DEFAULT,
+                               ec_incompatible_param);
 
       if (is_constant_operand(operand) &&
           operand->variant.constant.kind ==
@@ -20602,30 +20617,30 @@ C++/CLI/CX array case.
       expr_pos_error(ec_too_many_array_bounds, &diag_pos);
     } else if (!rank_unknown && count <= rank) {
       /* Fewer arguments than expected. */
-      expr_pos_error(ec_too_few_array_bounds, end_new_init_position);
+      expr_pos_error(ec_too_few_array_bounds, &nps->end_new_init_position);
     }  /* if */
-    *cli_array_new_init_args =
-      convert_arg_list_to_expr_list(*init_raw_args,
+    nps->cli_array_new_init_args =
+      convert_arg_list_to_expr_list(nps->init_raw_args,
                                     (an_expr_node_ptr *)NULL);
-    free_arg_list(*init_raw_args);
-    *init_raw_args = NULL;
-    *templ_init_scanned = FALSE;
+    free_arg_list(nps->init_raw_args);
+    nps->init_raw_args = NULL;
+    nps->templ_init_scanned = FALSE;
   }  /* if */
 
-  if (has_array_init) {
+  if (nps->has_array_init) {
     /* Scan the CLI array-init. */
     a_type_ptr  temp_type;
-    if (is_cli_array_type(new_type)) {
-      temp_type = ptr_new_type;
-    } else if (is_template_param_or_nonreal_class_type(new_type)) {
+    if (is_cli_array_type(nps->new_type)) {
+      temp_type = nps->ptr_new_type;
+    } else if (is_template_param_or_nonreal_class_type(nps->new_type)) {
       temp_type = make_handle_type(type_of_unknown_templ_param_nontype);
     } else {
       temp_type = error_type();
-      if (!is_error_type(new_type)) {
+      if (!is_error_type(nps->new_type)) {
         expr_pos_error(ec_gcnew_bad_type_used_with_array_init,
                        &pos_curr_token);
       }  /* if */
-      *err = TRUE;
+      nps->err = TRUE;
     }  /* if */
     if (rcblock == NULL) {
       /* Scan the CLI array-init.  If cli_array_new_init_args is NULL
@@ -20637,32 +20652,28 @@ C++/CLI/CX array case.
       dimension. */
       an_init_component_ptr  icp_tree;
       icp_tree = get_braced_init_list(/*is_full_expr=*/FALSE, dps);
-      aggr_init_cli_array(icp_tree, temp_type, &dps->init_state, dip,
-                          cli_array_new_init_args);
+      aggr_init_cli_array(icp_tree, temp_type, &dps->init_state, &nps->dip,
+                          &nps->cli_array_new_init_args);
       free_init_component_list(icp_tree);
-      if (dps->init_state.init_error) *err = TRUE;
+      if (dps->init_state.init_error) nps->err = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      *end_position = curr_construct_end_position;
+      nps->end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     } else {
       /* Rescanning of array inits is not currently supported.
       That should have been disallowed higher up. */
       unexpected_condition();
     }  /* if */
-  } else if (!has_new_initializer) {
+  } else if (!nps->has_new_initializer) {
     expr_pos_error(ec_cli_array_must_have_new_or_array_init,
-                   rcblock == NULL ? &pos_curr_token : type_position);
-    *err = TRUE;
+                   rcblock == NULL ? &pos_curr_token : &nps->type_position);
+    nps->err = TRUE;
   }  /* if */
 }  /* prep_new_object_init_cli_array_initializer */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
-static void prep_new_object_init_templ_initializer(
-                                        a_type_ptr           base_new_type,
-                                        an_arg_list_elem_ptr *init_raw_args,
-                                        a_source_position    *start_position,
-                                        a_dynamic_init_ptr   *dip)
+static void prep_new_object_init_templ_initializer(a_new_parse_state *nps)
 /*
 Validate and prepare (if warranted) initializer for the object in the
 template case.
@@ -20675,94 +20686,85 @@ template case.
                                  /*routine=*/(a_routine_ptr)NULL,
                                  &arg_block);
   arg_block.unknown_dependent_function = TRUE;
-  process_call_argument_list(*init_raw_args, &arg_block);
+  process_call_argument_list(nps->init_raw_args, &arg_block);
   expr_list = arg_block.argument_head;
-  free_arg_list(*init_raw_args);
-  *init_raw_args = NULL;
+  free_arg_list(nps->init_raw_args);
+  nps->init_raw_args = NULL;
   /* Set the dynamic init entry to represent "constructor" initialization,
   leaving the constructor pointer NULL. */
-  *dip = alloc_expr_ctor_dynamic_init((a_routine_ptr)NULL,
-                                      expr_list,
-                                      base_new_type,
-                                      /*static_temp=*/FALSE,
-                                      /*add_default_args=*/FALSE,
-                                      /*implied_source=*/FALSE,
-                                      /*value_init=*/FALSE,
-                                      /*sequenced_args=*/FALSE,
-                                      /*fold_constexpr=*/FALSE,
-                                      /*check_constexpr=*/FALSE,
-                                      start_position);
+  nps->dip = alloc_expr_ctor_dynamic_init((a_routine_ptr)NULL,
+                                          expr_list,
+                                          nps->base_new_type,
+                                          /*static_temp=*/FALSE,
+                                          /*add_default_args=*/FALSE,
+                                          /*implied_source=*/FALSE,
+                                          /*value_init=*/FALSE,
+                                          /*sequenced_args=*/FALSE,
+                                          /*fold_constexpr=*/FALSE,
+                                          /*check_constexpr=*/FALSE,
+                                          &nps->start_position);
 }  /* prep_new_object_init_templ_initializer */
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-static void create_gcnew_result_operand(
-                                  a_type_ptr         new_type,
-                                  a_type_ptr         ptr_new_type,
-                                  a_dynamic_init_ptr dip,
-                                  a_source_position  *start_position,
-                                  a_source_position  *type_position,
-                                  an_expr_node_ptr   cli_array_new_init_args,
-                                  an_expr_node_ptr   init_val_node,
-                                  a_boolean          cli_array_new,
-                                  a_boolean          has_new_initializer,
-                                  a_boolean          needs_initialization,
-                                  a_boolean          zero_initialization,
-                                  an_operand         *result)
+static void create_gcnew_result_operand(a_new_parse_state *nps,
+                                        an_operand        *result)
 /*
 Create the resulting operand for the gcnew variant of "new".
 */
 {
   a_boolean  rank_unknown = TRUE;
   if (curr_expr_is_cli_attribute_argument() &&
-      (!cli_array_new ||
-       (cli_array_rank(new_type, &rank_unknown) != 1 &&
+      (!nps->cli_array_new ||
+       (cli_array_rank(nps->new_type, &rank_unknown) != 1 &&
         (!rank_unknown ||
          is_or_contains_cli_generic_param(
-                                 cli_array_rank_constant(new_type)->type))) ||
-       (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_constant))) {
+                            cli_array_rank_constant(nps->new_type)->type))) ||
+       (nps->dip != NULL &&
+        nps->dip->kind != (a_dynamic_init_kind)dik_constant))) {
     /* An array gcnew expression can appear in an attribute argument, but not
     if its rank differs from 1.  An unknown rank that depends on a generic
     parameter is not permitted either (but an unknown rank that depends on
     a standard template parameter is fine). */
-    expr_pos_error(ec_cli_attribute_invalid_argument, start_position);
+    expr_pos_error(ec_cli_attribute_invalid_argument, &nps->start_position);
     make_error_operand(result);
   } else {
     an_expr_node_ptr        gcnew_node;
     a_gcnew_supplement_ptr  gsp;
     /* Use an enk_gcnew node to represent the "gcnew". */
     gcnew_node = alloc_expr_node((an_expr_node_kind)enk_gcnew);
-    gcnew_node->type = ptr_new_type;
+    gcnew_node->type = nps->ptr_new_type;
     gsp = gcnew_node->variant.gcnew_info;
-    gsp->type = new_type;
-    gsp->has_new_initializer = has_new_initializer;
-    gsp->is_cli_array = cli_array_new;
-    gsp->cli_array_dimension_lengths = cli_array_new_init_args;
-    if (needs_initialization) {
-      if (dip != NULL || cli_array_new) {
+    gsp->type = nps->new_type;
+    gsp->has_new_initializer = nps->has_new_initializer;
+    gsp->is_cli_array = nps->cli_array_new;
+    gsp->cli_array_dimension_lengths = nps->cli_array_new_init_args;
+    if (nps->needs_initialization) {
+      if (nps->dip != NULL || nps->cli_array_new) {
         /* Nothing to do because a_dynamic_init was allocated above. */
-      } else if (zero_initialization) {
-        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+      } else if (nps->zero_initialization) {
+        nps->dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
       } else {
         /* This handles cases like "gcnew int(3)" in which there is no
         constructor to call but an initializer is provided. */
-        check_assertion(init_val_node != NULL);
-        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
-        dip->variant.expression = init_val_node;
+        check_assertion(nps->init_val_node != NULL);
+        nps->dip =
+          alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
+        nps->dip->variant.expression = nps->init_val_node;
       }  /* if */
     }  /* if */
-    if (!cppcx_enabled && dip != NULL &&
-        dip->kind == (a_dynamic_init_kind)dik_constructor) {
+    if (!cppcx_enabled && nps->dip != NULL &&
+        nps->dip->kind == (a_dynamic_init_kind)dik_constructor) {
       /* Any constructor invocation emanating from a gcnew expression should
       have the type zero-initialized first.  (However, C++/CX
       constructors do not value initialize by default.) */
-      dip->variant.constructor.value_initialization = TRUE;
+      nps->dip->variant.constructor.value_initialization = TRUE;
     }  /* if */
-    gcnew_node->variant.gcnew_info->dynamic_init = dip;
+    gcnew_node->variant.gcnew_info->dynamic_init = nps->dip;
     record_typed_operator_position_in_expr_rescan_info(gcnew_node,
-                                                       start_position,
-                                                       type_position,
-                                                       new_type);
+                                                       &nps->start_position,
+                                                       &nps->type_position,
+                                                       nps->new_type);
     if (curr_expr_is_cli_attribute_argument()) {
       /* Make an operand for the C++/CLI array constant. */
       a_constant_ptr cli_array_constant = local_constant();
@@ -20778,29 +20780,8 @@ Create the resulting operand for the gcnew variant of "new".
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
-static void create_new_result_operand(
-                                a_type_ptr         new_type,
-                                a_type_ptr         base_new_type,
-                                a_type_ptr         ptr_new_type,
-                                a_source_position  *start_position,
-                                a_source_position  *type_position,
-                                a_routine_ptr      new_routine,
-                                an_expr_node_ptr   arg_expr_list,
-                                an_expr_node_ptr   init_val_node,
-                                an_expr_node_ptr   new_array_dimension,
-                                a_targ_size_t      effective_num_of_elements,
-                                a_dynamic_init_ptr dip,
-                                a_dynamic_init_ptr dyn_init_to_free_storage,
-                                a_boolean          deducible_new_type,
-                                a_boolean          placement_new,
-                                a_boolean          array_new,
-                                a_boolean          has_alignment_arg,
-                                a_boolean          use_global_new,
-                                a_boolean          has_new_initializer,
-                                a_boolean          has_braced_initializer,
-                                a_boolean          needs_initialization,
-                                a_boolean          zero_initialization,
-                                an_operand         *result)
+static void create_new_result_operand(a_new_parse_state *nps,
+                                      an_operand        *result)
 /*
 Create the resulting operand for "new".
 */
@@ -20810,31 +20791,31 @@ Create the resulting operand for "new".
 
   /* Use an enk_new_delete node to represent the "new". */
   new_node = alloc_expr_node((an_expr_node_kind)enk_new_delete);
-  new_node->type = deducible_new_type ?
+  new_node->type = nps->deducible_new_type ?
                       /* Keep the special type used for "auto" from escaping
                       from the new. */
                       make_pointer_type(type_of_unknown_templ_param_nontype) :
-                      ptr_new_type;
+                      nps->ptr_new_type;
   ndsp = new_node->variant.new_delete;
   ndsp->is_new = TRUE;
-  ndsp->placement_new = placement_new;
-  ndsp->aligned_version = has_alignment_arg;
-  ndsp->global_new_or_delete = use_global_new;
-  ndsp->has_new_initializer = has_new_initializer;
-  ndsp->new_initializer_is_brace_enclosed = has_braced_initializer;
-  ndsp->deducible_type = deducible_new_type;
-  ndsp->type = new_type;
-  ndsp->routine = new_routine;
-  ndsp->arg = arg_expr_list;
-  ndsp->number_of_elements = new_array_dimension;
-  if (needs_initialization) {
+  ndsp->placement_new = nps->placement_new;
+  ndsp->aligned_version = nps->has_alignment_arg;
+  ndsp->global_new_or_delete = nps->use_global_new;
+  ndsp->has_new_initializer = nps->has_new_initializer;
+  ndsp->new_initializer_is_brace_enclosed = nps->has_braced_initializer;
+  ndsp->deducible_type = nps->deducible_new_type;
+  ndsp->type = nps->new_type;
+  ndsp->routine = nps->new_routine;
+  ndsp->arg = nps->arg_expr_list;
+  ndsp->number_of_elements = nps->new_array_dimension;
+  if (nps->needs_initialization) {
     /* The allocated space must be initialized.  A dynamic init entry is
     used. */
-    if (dip != NULL) {
+    if (nps->dip != NULL) {
       /* The dynamic initialization has already been determined above. */
-      if (array_new && !has_braced_initializer &&
-        (dip->kind == (a_dynamic_init_kind)dik_constructor ||
-         dip->kind == (a_dynamic_init_kind)dik_constant)) {
+      if (nps->array_new && !nps->has_braced_initializer &&
+          (nps->dip->kind == (a_dynamic_init_kind)dik_constructor ||
+           nps->dip->kind == (a_dynamic_init_kind)dik_constant)) {
         /* The entity is an array whose elements have a class type that
         has a default constructor.  Use a dik_nonconstant_aggregate
         initialization. */
@@ -20844,39 +20825,40 @@ Create the resulting operand for "new".
         initialization of the array. */
         if (exceptions_enabled &&
             /* Avoid an error recovery problem: */
-            is_class_struct_union_type(base_new_type)) {
-          dtor_routine = expr_select_destructor(base_new_type,
-                                                base_new_type,
-                                                type_position,
+            is_class_struct_union_type(nps->base_new_type)) {
+          dtor_routine = expr_select_destructor(nps->base_new_type,
+                                                nps->base_new_type,
+                                                &nps->type_position,
                                                 /*honor_virtual=*/FALSE);
         }  /* if */
-        dip = add_array_nonconstant_aggregate_init(dip, new_type,
-                                                   base_new_type,
-                                                   dtor_routine,
-                                                   effective_num_of_elements);
+        nps->dip = add_array_nonconstant_aggregate_init(
+                                              nps->dip, nps->new_type,
+                                              nps->base_new_type,
+                                              dtor_routine,
+                                              nps->effective_num_of_elements);
       }  /* if */
-    } else if (zero_initialization) {
+    } else if (nps->zero_initialization) {
       /* Zero-initialization. */
-      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+      nps->dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
     } else {
       /* Expression as initial value. */
-      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
-      dip->variant.expression = init_val_node;
+      nps->dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
+      nps->dip->variant.expression = nps->init_val_node;
     }  /* if */
-    ndsp->dynamic_init = dip;
+    ndsp->dynamic_init = nps->dip;
     /* Remember the dynamic init entry, if any, used to free storage
     if an exception is thrown before the initialization is finished. */
-    ndsp->freeing_of_storage_on_exception = dyn_init_to_free_storage;
+    ndsp->freeing_of_storage_on_exception = nps->dyn_init_to_free_storage;
 #if DO_IL_LOWERING
-    if (dyn_init_to_free_storage != NULL) {
-      dyn_init_to_free_storage->assoc_new = ndsp;
+    if (nps->dyn_init_to_free_storage != NULL) {
+      nps->dyn_init_to_free_storage->assoc_new = ndsp;
     }  /* if */
 #endif /* DO_IL_LOWERING */
   }  /* if */
   record_typed_operator_position_in_expr_rescan_info(new_node,
-                                                     start_position,
-                                                     type_position,
-                                                     new_type);
+                                                     &nps->start_position,
+                                                     &nps->type_position,
+                                                     nps->new_type);
   /* Make an operand for the result. */
   make_expression_operand(new_node, result);
 }  /* create_new_result_operand */
@@ -20915,117 +20897,45 @@ expression, and return the result in *result (or an error indication in
 *rcblock).
 */
 {
-  a_boolean         err = FALSE, type_err = FALSE;
-  a_source_position start_position, type_position, init_position;
-  /* end_new_init_position is only set for template and array new-init
-     cases */
-  a_source_position end_new_init_position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_source_position new_position;
-  a_type_ptr        new_type, base_new_type, ptr_new_type, element_type = NULL;
-  a_type_ptr        unqual_new_type, unqual_base_new_type;
-  a_class_symbol_supplement_ptr
-                    cssp = NULL;
-  an_expr_node_ptr  new_array_dimension;
-  a_boolean         use_global_new = FALSE;
-  a_symbol_ptr      operator_new_symbol = NULL, ctor_sym;
-  a_symbol_ptr      function_symbol = NULL, proj_function_symbol = NULL;
-  a_routine_ptr     delete_routine = NULL;
-  a_boolean         delete_ambiguous = FALSE;
-  a_boolean         needs_initialization, variable_size_array = FALSE;
-  a_boolean         zero_initialization, has_new_initializer = FALSE;
-  a_boolean         has_alignment_arg = FALSE;
-  a_boolean         has_braced_initializer = FALSE;
-  an_expr_node_ptr  arg_expr_list, init_val_node;
-  an_arg_list_elem_ptr
-                    arg_list = NULL;
-  a_boolean         placement_new = FALSE, array_new = FALSE;
-  a_targ_size_t     effective_num_of_elements;
-  an_arg_match_summary_ptr
-                    arg_match_list = NULL;
-  a_routine_ptr     new_routine = NULL;
-  a_dynamic_init_ptr
-                    dyn_init_to_free_storage = NULL;
-  a_boolean         saved_inside_conditional_expression =
-                                     expr_stack->inside_conditional_expression;
-  a_dynamic_init_ptr
-                    dip;
-  a_boolean         unknown_dependent_new = FALSE;
-  a_boolean         template_case = FALSE, dependent_new_type = FALSE;
-  a_boolean         deducible_new_type = FALSE;
-  a_boolean         using_expr_cache = FALSE;
-  a_boolean         empty_initializer;
-  a_boolean         trapped_left_paren = FALSE;
-  a_decl_parse_state
-                    dps;
-  an_initializer_cache
-                    *saved_initializer_cache = NULL;
-  a_token_kind      operator_token;
-  a_boolean         templ_init_scanned = FALSE;
-  an_arg_list_elem_ptr
-                    init_raw_args = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_boolean         is_gcnew = FALSE;
-  a_boolean         cli_array_new = FALSE;
-  an_expr_node_ptr
-                    cli_array_new_init_args = NULL;
-  a_boolean         has_array_init = FALSE;
-  a_boolean         gcnew_has_array_init = FALSE;
-  a_boolean         is_gcnew_string_special_case = FALSE;
-  an_operand        gcnew_special_case_operand;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  an_arg_list_elem_ptr
-                    braced_init_list = NULL;
+  a_new_parse_state    nps;
+  a_decl_parse_state   dps;
+  a_boolean            saved_inside_conditional_expression =
+                                    expr_stack->inside_conditional_expression;
+  an_initializer_cache *saved_initializer_cache = NULL;
 
   db_enter(4, "scan_new_operator");
 
-  operator_token = get_new_operator_token(rcblock
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                                          , &is_gcnew
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                         );
+  init_new_parse_state(&nps);
+
+  nps.operator_token = get_new_operator_token(rcblock, &nps);
   /* Will get overwritten later if re-scanning. */
-  start_position = pos_curr_token;
+  nps.start_position = pos_curr_token;
 
   if (rcblock != NULL) {
-    rescan_new_operator_expr(rcblock,
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                             is_gcnew,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                             &start_position,
-                             &new_type, &type_position,
-                             &has_new_initializer, &use_global_new,
-                             &placement_new, &deducible_new_type,
-                             &has_braced_initializer,
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                             &gcnew_has_array_init,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                             &arg_list, &braced_init_list);
+    rescan_new_operator_expr(rcblock, &nps);
     /* On the rescan, we can't distinguish start_position and new_position
        (they differ if there's a leading "::"). */
-    new_position = start_position;
+    nps.new_position = nps.start_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_position = rcblock->expr->expr_range.end;
+    nps.end_position = rcblock->expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    if (has_new_initializer) {
-      if (has_braced_initializer) {
-        init_position = *init_component_pos(braced_init_list);
+    if (nps.has_new_initializer) {
+      if (nps.has_braced_initializer) {
+        nps.init_position = *init_component_pos(nps.braced_init_list);
       } else {
-        arg_expr_list = rcblock->argument_list;
-        if (arg_expr_list != NULL &&
-            arg_expr_list->extra.rescan_info != NULL) {
-          init_position = arg_expr_list->extra.rescan_info
-                                       ->saved_operand.position;
+        nps.arg_expr_list = rcblock->argument_list;
+        if (nps.arg_expr_list != NULL &&
+            nps.arg_expr_list->extra.rescan_info != NULL) {
+          nps.init_position =
+            nps.arg_expr_list->extra.rescan_info->saved_operand.position;
         } else {
           /* Use the type position as an approximate initializer position. */
-          init_position = type_position;
+          nps.init_position = nps.type_position;
         }  /* if */
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* Use init_position as an approximate end position. */
-      end_new_init_position = init_position;
+      nps.end_new_init_position = nps.init_position;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
@@ -21033,8 +20943,8 @@ expression, and return the result in *result (or an error indication in
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* We shouldn't be scanning a gcnew expression unless C++/CLI is
      enabled */
-  check_assertion(!(is_gcnew && !cli_or_cx_enabled));
-  if (is_gcnew && curr_expr_is_cli_attribute_argument()) {
+  check_assertion(!(nps.is_gcnew && !cli_or_cx_enabled));
+  if (nps.is_gcnew && curr_expr_is_cli_attribute_argument()) {
     /* "gcnew" is allowed in C++/CLI custom attribute arguments expressions
        that create single-dimensional CLI array instances or System::String
        instances with a single string argument.  If this is not the case,
@@ -21044,37 +20954,33 @@ expression, and return the result in *result (or an error indication in
   /* Do not insert code here. */
   if (curr_expr_kind_is_traditional_const()) {
     /* "new" nor "gcnew" allowed in constant expressions. */
-    expr_pos_error(ec_bad_constant_operator, &start_position);
-    err = TRUE;
-  } else if (operator_not_allowed_in_cpp11_constant_expr(&start_position)) {
+    expr_pos_error(ec_bad_constant_operator, &nps.start_position);
+    nps.err = TRUE;
+  } else if (operator_not_allowed_in_cpp11_constant_expr(
+                                                       &nps.start_position)) {
     /* "new" and "gcnew" not allowed in C++11 constant expressions. */
-    err = TRUE;
+    nps.err = TRUE;
   }  /* if */
 
   if (rcblock == NULL) {
     if (curr_token == tok_colon_colon) {
       /* "::" appears first, meaning use the global new operator. */
-      use_global_new = TRUE;
+      nps.use_global_new = TRUE;
       (void)get_token();
     }  /* if */
 #if CHECKING
-    if (operator_token != tok_new
+    if (nps.operator_token != tok_new
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        && !is_gcnew
+        && !nps.is_gcnew
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         ) {
       internal_error("scan_new_operator: expected new or gcnew");
     }  /* if */
 #endif /* CHECKING */
-    new_position = pos_curr_token;
+    nps.new_position = pos_curr_token;
 
     (void)get_token();
-    scan_new_operator_placement(
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                                is_gcnew,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                &trapped_left_paren, &placement_new, &err,
-                                &arg_list);
+    scan_new_operator_placement(&nps);
   }  /* if */
 
   /* Use a declaration parse state block to manage the "auto" case. */
@@ -21082,38 +20988,26 @@ expression, and return the result in *result (or an error indication in
   /* Next, get the type of entity to be allocated (new_type). */
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned "new". */
-    if (deducible_new_type) {
+    if (nps.deducible_new_type) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* gcnew auto was prohibited on the initial scan, so it should not
          get here for a rescan. */
-      check_assertion(!is_gcnew);
+      check_assertion(!nps.is_gcnew);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-      new_type =
-        rescan_new_deduce_placeholder_type(rcblock, &dps, &deducible_new_type,
-                                           new_type, &type_position,
-                                           has_braced_initializer,
-                                           braced_init_list);
-      using_expr_cache = TRUE;
+      rescan_new_deduce_placeholder_type(rcblock, &nps, &dps);
+      nps.using_expr_cache = TRUE;
     }  /* if */
   } else {
-    new_type = scan_new_type(&dps,
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                             is_gcnew,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                             trapped_left_paren,
-                             &deducible_new_type, &type_position);
+    scan_new_type(&nps, &dps);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_position = curr_construct_end_position;
+    nps.end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
-    scan_new_initializer(&dps,
-                         &deducible_new_type, &has_new_initializer,
-                         &has_braced_initializer, &using_expr_cache,
-                         &init_position, &new_type, &type_position);
+    scan_new_initializer(&nps, &dps);
   }  /* if */
 
-  if (using_expr_cache) {
+  if (nps.using_expr_cache) {
     /* Activate the prescanned initializer cache so the expression will be
        considered pre-scanned for the code below. */
     saved_initializer_cache = expr_stack->initializer_cache;
@@ -21122,102 +21016,81 @@ expression, and return the result in *result (or an error indication in
   }  /* if */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (is_gcnew &&
-      is_cli_generic_definition_argument_type(new_type)) {
+  if (nps.is_gcnew &&
+      is_cli_generic_definition_argument_type(nps.new_type)) {
     /* This is a gcnew of a generic type.  Drop the added handle if it's
        present. */
-    if (is_handle_type(new_type)) new_type = type_pointed_to(new_type);
+    if (is_handle_type(nps.new_type)) {
+      nps.new_type = type_pointed_to(nps.new_type);
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-  unqual_new_type = skip_typerefs(new_type);
-  base_new_type = get_base_new_type(new_type, unqual_new_type,
-                                    &type_position, &new_array_dimension,
-                                    &array_new,
+  nps.unqual_new_type = skip_typerefs(nps.new_type);
+  get_base_new_type(&nps);
+  validate_new_type(&nps);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-                                    &cli_array_new,
+  validate_cpp_cli_cx_new_type(&nps);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                    &variable_size_array, &type_err);
-  validate_new_type(new_type, base_new_type, &type_position, &type_err);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  validate_cpp_cli_cx_new_type(new_type, base_new_type, &type_position,
-                               is_gcnew, use_global_new,
-                               /*prev_err_seen=*/err || type_err, &type_err);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  err = err || type_err;
-  if (array_new) {
-    element_type = base_new_type;
+  if (nps.array_new) {
+    nps.element_type = nps.base_new_type;
   }
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cli_array_new && has_braced_initializer) {
+  if (nps.cli_array_new && nps.has_braced_initializer) {
     /* We thought we had a braced initializer, but in this case it's the
        array initializer after an omitted new-initializer. */
-    has_braced_initializer = FALSE;
-    has_new_initializer = FALSE;
+    nps.has_braced_initializer = FALSE;
+    nps.has_new_initializer = FALSE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-  if (type_err) {
-    new_type = base_new_type = error_type();
-    array_new = FALSE;
+  if (nps.type_err) {
+    nps.new_type = nps.base_new_type = error_type();
+    nps.array_new = FALSE;
   }  /* if */
-  unqual_new_type = skip_typerefs(new_type);
 
-  ptr_new_type = get_new_result_type(new_type, &base_new_type, array_new,
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                                     is_gcnew, cli_array_new,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                     new_array_dimension,
-                                     &effective_num_of_elements);
-  unqual_base_new_type = skip_typerefs(base_new_type);
+  nps.unqual_new_type = skip_typerefs(nps.new_type);
+  nps.unqual_base_new_type = skip_typerefs(nps.base_new_type);
+  get_new_result_type(&nps);
 
 
   /* If no error was encountered thus far, determine the correct overload
      for the "new" routine.  This is not performed for gcnew. */
-  if (!err
+  if (!nps.err
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* The "new" routine is not applicable for "gcnew". */
-      && !is_gcnew
+      && !nps.is_gcnew
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
      ) {
-    an_arg_list_elem_ptr sizeof_alep, alignment_alep;
+    an_arg_list_elem_ptr sizeof_alep;
 
-    sizeof_alep =
-      get_new_allocation_size_arg(unqual_new_type, &type_position,
-                                  element_type, new_array_dimension);
-    alignment_alep = get_new_alignment_arg(unqual_new_type, &type_position);
+    sizeof_alep = get_new_allocation_size_arg(&nps);
+    nps.alignment_alep = get_new_alignment_arg(&nps);
 
     /* Add the alignment argument (if needed) to the placement arguments
        (if any).  It will be removed and overload resolution retried if
        there is no match for the argument list containing the alignment. */
-    if (alignment_alep != NULL) {
-      has_alignment_arg = TRUE;
-      append_elem(alignment_alep, arg_list);
-      arg_list = alignment_alep;
+    if (nps.alignment_alep != NULL) {
+      nps.has_alignment_arg = TRUE;
+      append_elem(nps.alignment_alep, nps.arg_list);
+      nps.arg_list = nps.alignment_alep;
     }  /* if */
 
     /* Add the sizeof operand to the front of the list of expressions
         (if any) from the "placement" option.  This gives the full set
         of arguments for the "new" function call. */
-    append_elem(sizeof_alep, arg_list);
-    arg_list = sizeof_alep;
+    append_elem(sizeof_alep, nps.arg_list);
+    nps.arg_list = sizeof_alep;
 
     /* Select the proper "new" routine.  If the type is a class type and
        the class has a "new" operator, use it.  However, if "::" preceded
        the keyword "new", always use the global ::new.  Choose new[]
        operators instead of the usual ones if the thing being allocated
        is an array. */
-    operator_new_symbol =
-      get_operator_new_symbol(base_new_type, unqual_base_new_type,
-                              &new_position, arg_list,
-                              array_new, use_global_new,
-                              &unknown_dependent_new, &template_case);
-    proj_function_symbol =
-      get_operator_new_function(operator_new_symbol, &new_position,
-                                arg_list, &alignment_alep, &arg_match_list,
-                                &unknown_dependent_new, &has_alignment_arg);
-    if (proj_function_symbol != NULL) {
-      function_symbol = fundamental_symbol_of(proj_function_symbol);
+    get_operator_new_symbol(&nps);
+    nps.proj_function_symbol = get_operator_new_function(&nps);
+    if (nps.proj_function_symbol != NULL) {
+      nps.function_symbol = fundamental_symbol_of(nps.proj_function_symbol);
     }  /* if */
     /* We check later for function_symbol != NULL.  We don't set err
         here for that case because it shouldn't affect the scanning of
@@ -21227,50 +21100,40 @@ expression, and return the result in *result (or an error indication in
   /* Determine whether the initializer is an empty set of parentheses, "()"
      (or, if list initializers are allowed, an empty set of braces; in that
      case the current token is still the opening brace). */
-  empty_initializer = (has_new_initializer &&
-                       !cached_initializer_present() &&
-                       ((rcblock != NULL) ?
-                          (has_braced_initializer ?
-                             braced_init_list->variant.braced.list == NULL :
-                             rcblock->argument_list == NULL) :
-                          (has_braced_initializer ?
-                             next_token() == tok_rbrace :
-                             curr_token == tok_rparen)));
+  nps.empty_initializer = (nps.has_new_initializer &&
+                           !cached_initializer_present() &&
+                           ((rcblock != NULL) ?
+                            (nps.has_braced_initializer ?
+                           nps.braced_init_list->variant.braced.list == NULL :
+                              rcblock->argument_list == NULL) :
+                            (nps.has_braced_initializer ?
+                              next_token() == tok_rbrace :
+                              curr_token == tok_rparen)));
   if (is_template_dependent_context() &&
-      is_template_dependent_type(new_type)) {
-    template_case = TRUE;
-    if (is_immediate_class_type(unqual_base_new_type) &&
-        unqual_base_new_type->variant.class_struct_union.is_nonreal_class) {
-      dependent_new_type = TRUE;
+      is_template_dependent_type(nps.new_type)) {
+    nps.template_case = TRUE;
+    if (is_immediate_class_type(nps.unqual_base_new_type) &&
+        nps.unqual_base_new_type->
+                                variant.class_struct_union.is_nonreal_class) {
+      nps.dependent_new_type = TRUE;
     }  /* if */
   }  /* if */
 
   /* Get constructor symbol, if it exists. */
-  ctor_sym = get_ctor_sym_for_new_type(base_new_type,
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                                       cli_array_new,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                       dependent_new_type,
-                                       &cssp);
+  nps.ctor_sym = get_ctor_sym_for_new_type(&nps);
 
-  if (!err && function_symbol != NULL) {
+  if (!nps.err && nps.function_symbol != NULL) {
     a_boolean access_error_reported;
 
-    new_routine = get_new_routine(function_symbol, &new_position,
-                                  base_new_type, unqual_base_new_type,
-                                  ctor_sym, cssp,
-                                  use_global_new, placement_new, array_new,
-                                  empty_initializer, has_new_initializer,
-                                  has_braced_initializer,
-                                  &delete_routine, &delete_ambiguous);
-    if (new_routine != NULL) new_routine->called = TRUE;
+    nps.new_routine = get_new_routine(&nps);
+    if (nps.new_routine != NULL) nps.new_routine->called = TRUE;
 
     /* Mark the "new" routine as referenced, check access to it. */
-    overloaded_function_catch_up(proj_function_symbol,
-                                 operator_new_symbol,
+    overloaded_function_catch_up(nps.proj_function_symbol,
+                                 nps.operator_new_symbol,
                                  (an_operand *)NULL,
-                                 &new_position,
-                                 /*elided_reference=*/(new_routine==NULL),
+                                 &nps.new_position,
+                                 /*elided_reference=*/(nps.new_routine==NULL),
                                  /*compiler_generated=*/FALSE,
                                  /*result_is_lvalue=*/FALSE,
                                  /*address_taken=*/FALSE,
@@ -21278,156 +21141,80 @@ expression, and return the result in *result (or an error indication in
                                  &access_error_reported);
   }  /* if */
 
-  if (!err && (proj_function_symbol != NULL || unknown_dependent_new)) {
+  if (!nps.err && 
+      (nps.proj_function_symbol != NULL || nps.unknown_dependent_new)) {
     /* Adjust the argument types, issue any warnings, create an
        argument expression list, and free arg_list and arg_match_list. */
-    adjust_overloaded_function_call_arguments(proj_function_symbol,
-                                              unknown_dependent_new,
+    adjust_overloaded_function_call_arguments(nps.proj_function_symbol,
+                                              nps.unknown_dependent_new,
                                               (a_type_ptr)NULL,
                                               /*have_selector=*/FALSE,
                                               (an_operand *)NULL,
-                                              arg_list,
-                                              arg_match_list,
-                                              &arg_expr_list);
-    free_arg_list(arg_list);
-    arg_list = NULL;
+                                              nps.arg_list,
+                                              nps.arg_match_list,
+                                              &nps.arg_expr_list);
+    free_arg_list(nps.arg_list);
+    nps.arg_list = NULL;
     /* Avoid freeing the arg match list twice. */
-    arg_match_list = NULL;
+    nps.arg_match_list = NULL;
     /* Remove the size argument from the argument list, since it is
        implied in the IL. */
-    check_assertion(arg_expr_list != NULL);
-    arg_expr_list = arg_expr_list->next;
+    check_assertion(nps.arg_expr_list != NULL);
+    nps.arg_expr_list = nps.arg_expr_list->next;
   }  /* if */
 
   /* If the new routine will be called (and not folded into a constructor),
      the initializer expression is actually inside a conditional expression
      context, because if the allocation fails the initialization will
      not be done. */
-  if (new_routine != NULL) expr_stack->inside_conditional_expression = TRUE;
+  if (nps.new_routine != NULL) {
+    expr_stack->inside_conditional_expression = TRUE;
+  }  /* if */
 
   /* See if the object has or needs initialization.  Note that we need to
      scan the initializer (if there is one) even if an error was detected
      above. */
-  dip = NULL;
-  needs_initialization = FALSE;
-  zero_initialization = FALSE;
-  init_val_node = NULL;
-  if (!has_new_initializer) {
+  if (!nps.has_new_initializer) {
     /* No new-initializer is present. */
-    prep_new_object_init_no_initializer(new_type, base_new_type,
-                                        unqual_base_new_type,
-                                        &new_position, &type_position,
-                                        new_routine, delete_routine,
-                                        function_symbol, ctor_sym, cssp,
-                                        dependent_new_type, array_new,
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                                        is_gcnew, cli_array_new,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                        delete_ambiguous,
-                                        &dip,
-                                        &dyn_init_to_free_storage,
-                                        &needs_initialization,
-                                        &zero_initialization,
-                                        &err);
-  } else if (has_braced_initializer) {
+    prep_new_object_init_no_initializer(&nps);
+  } else if (nps.has_braced_initializer) {
     /* A C++11-style list initializer, e.g., new T{x, y}. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    check_assertion(!cli_array_new);
+    check_assertion(!nps.cli_array_new);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    prep_new_object_init_braced_initializer(rcblock, new_type,
-                                            new_routine, delete_routine,
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-                                            &end_position,
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-                                            braced_init_list, array_new,
-                                            variable_size_array,
-                                            using_expr_cache,
-                                            &dip, &dyn_init_to_free_storage,
-                                            &needs_initialization,
-                                            &err);
+    prep_new_object_init_braced_initializer(rcblock, &nps);
   } else {
     /* A parenthesized new-initializer is present. */
-    prep_new_object_init_paren_initializer(rcblock,
-                                           new_type, base_new_type,
-                                           unqual_base_new_type, ptr_new_type,
-                                           &new_position, &type_position,
-                                           &init_position,
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-                                           &end_position,
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-                                           new_routine, delete_routine,
-                                           function_symbol, ctor_sym,
-                                           array_new,
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                                           placement_new,
-                                           is_gcnew, cli_array_new,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                           template_case, delete_ambiguous,
-                                           &dps,
-                                           &dip, &dyn_init_to_free_storage,
-                                           &init_raw_args,
-                                           &end_new_init_position,
-                                           &init_val_node,
-                                           &templ_init_scanned,
-                                           &needs_initialization,
-                                           &has_new_initializer,
-                                           &zero_initialization,
-                                           &empty_initializer,
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                                           &is_gcnew_string_special_case,
-                                           &gcnew_special_case_operand,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                           &err);
+    prep_new_object_init_paren_initializer(rcblock, &nps, &dps);
   }  /* if */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (is_gcnew || cli_array_new /* for error recovery. */) {
+  if (nps.is_gcnew || nps.cli_array_new /* for error recovery. */) {
     /* Now that the gcnew new-init has been scanned, check for an array-init
        and make a definitive decision over whether this is a C++/CLI array
        initialization node. */
-    if (rcblock == NULL ? curr_token == tok_lbrace : gcnew_has_array_init) {
-      cli_array_new = TRUE;
-      has_array_init = TRUE;
+    if (rcblock == NULL ?
+        curr_token == tok_lbrace : nps.gcnew_has_array_init) {
+      nps.cli_array_new = TRUE;
+      nps.has_array_init = TRUE;
     }  /* if */
     /* Beyond this point, cli_array_new tells us definitively whether this
        is a C++/CLI array initialization or not. */
-    if (cli_array_new) {
-      prep_new_object_init_cli_array_initializer(rcblock,
-                                                 new_type,
-                                                 ptr_new_type,
-                                                 ctor_sym,
-                                                 &init_raw_args,
-                                                 &type_position,
-                                                 &init_position,
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-                                                 &end_position,
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-                                                 &end_new_init_position,
-                                                 has_new_initializer,
-                                                 has_array_init,
-                                                 template_case,
-                                                 &dps,
-                                                 &dip,
-                                                 &cli_array_new_init_args,
-                                                 &templ_init_scanned,
-                                                 &needs_initialization,
-                                                 &err);
+    if (nps.cli_array_new) {
+      prep_new_object_init_cli_array_initializer(rcblock, &nps, &dps);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-  if (templ_init_scanned) {
+  if (nps.templ_init_scanned) {
     /* Finish processing the previously scanned new-init as if the
        arguments are passed to a template-dependent constructor. */
-    prep_new_object_init_templ_initializer(base_new_type,
-                                           &init_raw_args,
-                                           &start_position,
-                                           &dip);
+    prep_new_object_init_templ_initializer(&nps);
   }  /* if */
 
   expr_stack->inside_conditional_expression =
-                                           saved_inside_conditional_expression;
-  if (using_expr_cache) {
+                                          saved_inside_conditional_expression;
+  if (nps.using_expr_cache) {
     /* Deactivate the initializer cache used for "auto". */
     if (expr_stack->initializer_cache != NULL) {
       check_assertion(expr_stack->initializer_cache ==
@@ -21439,68 +21226,37 @@ expression, and return the result in *result (or an error indication in
   }  /* if */
 
   /* Now build the IL for the operation. */
-  if (err || (function_symbol == NULL && !unknown_dependent_new &&
-              operator_token == tok_new)) {
+  if (nps.err ||
+      (nps.function_symbol == NULL && !nps.unknown_dependent_new &&
+       nps.operator_token == tok_new)) {
     /* Some error. */
     make_error_operand(result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (is_gcnew_string_special_case) {
+  } else if (nps.is_gcnew_string_special_case) {
     /* A case where the single String argument of a gcnew is just passed
        through. */
-    copy_operand(&gcnew_special_case_operand, result);
-  } else if (is_gcnew) {
+    copy_operand(&nps.gcnew_special_case_operand, result);
+  } else if (nps.is_gcnew) {
     /* This code is not shared with the "new" case below because it is
        generating a different expr_node_kind. */
-    create_gcnew_result_operand(new_type,
-                                ptr_new_type,
-                                dip,
-                                &start_position,
-                                &type_position,
-                                cli_array_new_init_args,
-                                init_val_node,
-                                cli_array_new,
-                                has_new_initializer,
-                                needs_initialization,
-                                zero_initialization,
-                                result);
+    create_gcnew_result_operand(&nps, result);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
-    create_new_result_operand(new_type,
-                              base_new_type,
-                              ptr_new_type,
-                              &start_position,
-                              &type_position,
-                              new_routine,
-                              arg_expr_list,
-                              init_val_node,
-                              new_array_dimension,
-                              effective_num_of_elements,
-                              dip,
-                              dyn_init_to_free_storage,
-                              deducible_new_type,
-                              placement_new,
-                              array_new,
-                              has_alignment_arg,
-                              use_global_new,
-                              has_new_initializer,
-                              has_braced_initializer,
-                              needs_initialization,
-                              zero_initialization,
-                              result);
+    create_new_result_operand(&nps, result);
   }  /* if */
 
   /* Free the lists if they have not been freed already. */
-  if (arg_list != NULL) {
+  if (nps.arg_list != NULL) {
     /* This list is only non-NULL if there was an error and the list was not
        used, so change its references to errors. */
-    change_arg_list_refs_to_error(arg_list);
-    free_arg_list(arg_list);
+    change_arg_list_refs_to_error(nps.arg_list);
+    free_arg_list(nps.arg_list);
   }  /* if */
-  check_assertion(init_raw_args == NULL);
-  free_arg_match_summary_list(arg_match_list);
+  check_assertion(nps.init_raw_args == NULL);
+  free_arg_match_summary_list(nps.arg_match_list);
 
-  set_operand_position(result, &start_position, &end_position,
-                       &start_position);
+  set_operand_position(result, &nps.start_position, &nps.end_position,
+                       &nps.start_position);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
   /* Make sure we restored the initializer cache if we saved it. */
   check_assertion(saved_initializer_cache == NULL);
