@@ -900,7 +900,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
     }  /* if */
     if (icp != NULL && is_braced_init_component(icp) &&
         dps->has_direct_initializer && !dps->has_deducible_class_templ_args &&
-        ((cpp14_mode && !(clang_mode ? clang_version < 30800 :
+        ((cpp11_mode && !(clang_mode ? clang_version < 30800 :
                           gpp_mode   ? gnu_version < 50000 : FALSE)) ||
          (microsoft_mode && microsoft_version >= 1900))) {
       /* In C++14 mode, direct-list-initialization with a placeholder type only
@@ -19369,7 +19369,9 @@ Scans the new initializer expression (if present).
       expr_pos_error(ec_auto_type_requires_initializer, &nps->type_position);
       nps->new_type = error_type();
       nps->deducible_new_type = FALSE;
-    } else if (dps->auto_type_specifier_seen && nps->has_braced_initializer) {
+    } else if (dps->auto_type_specifier_seen && nps->has_braced_initializer &&
+               (microsoft_mode ||
+                gpp_version_is(<40600) || clang_version_is(<60000))) {
       /* A braced initializer cannot be used with "auto". */
       expr_pos_error(ec_auto_new_with_braced_init, &nps->type_position);
       nps->new_type = error_type();
@@ -19394,6 +19396,7 @@ Scans the new initializer expression (if present).
       }  /* if */
     } else {
       /* Prescan the initializer to deduce the type to allocate. */
+      dps->has_direct_initializer = TRUE;
       prescan_initializer_for_auto_type_deduction(
                                            dps, !nps->has_braced_initializer);
       nps->using_expr_cache = TRUE;

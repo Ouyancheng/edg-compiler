@@ -1,5 +1,18 @@
 Version 5.1
 
+3/25/19  [EDGcpfe/20972]
+Braced initializer lists in "new" expressions
+
+The front end would issue an error when providing braced-initializers in "new"
+expressions when type deduction was required.  This is now fixed.
+For example:
+
+  void f() {
+    new auto {1};            // Previously rejected, now accepted
+    new decltype(auto)({2}); // Previously rejected, now accepted
+  }
+
+
 3/21/19  [EDGcpfe/21025]
 Clang compatibility: Support for 8.0.0 builtins
 
