@@ -15272,6 +15272,8 @@ value produced by std::is_constant_evaluated().
                                          result_type, result_con)) {
         do_constexpr_fail(result);
       } else {
+        /* Transfer some properties from the dynamic init entry to the constant
+           representation. */
         if ((dip->kind == (a_dynamic_init_kind)dik_expression ||
              dip->kind == (a_dynamic_init_kind)dik_class_result_via_ctor) &&
             (curr_il_region_number == file_scope_region_number) ==
@@ -15280,6 +15282,10 @@ value produced by std::is_constant_evaluated().
         }  /* if */
         if (dip->is_explicit_cast) {
           result_con->explicit_cast_applied = TRUE;
+        }  /* if */
+        if (dip->is_braced_initializer &&
+            constant_is(result_con, ck_aggregate)) {
+          result_con->explicit_braces_on_aggregate = TRUE;
         }  /* if */
       }  /* if */
       unmap_stack_bytes(&ips, result_storage);
