@@ -893,6 +893,7 @@ fields to default values.
       cp->variant.aggregate.first_constant = NULL;
       cp->variant.aggregate.last_constant  = NULL;
       cp->variant.aggregate.has_dynamic_init_component = FALSE;
+      cp->variant.aggregate.is_creation_of_initializer_list_object = FALSE;
       break;
     case ck_init_repeat:
       cp->variant.init_repeat.constant = NULL;

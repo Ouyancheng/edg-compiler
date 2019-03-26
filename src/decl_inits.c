@@ -5492,6 +5492,7 @@ returned set to TRUE.
       if (init_dip->kind == (a_dynamic_init_kind)dik_constant &&
           !is_constant_evaluated) {
         /* We already have a constant.  No need to try to evaluate it again. */
+        release_local_constant(&folded_con);
       } else if (interpret_dynamic_init(init_dip, &pos_first_token, vp->type,
                                         is_constant_evaluated,
                                         folded_con, &diag_list)) {

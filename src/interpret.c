@@ -14761,6 +14761,7 @@ diagnostic in *ips.
         a_field_ptr       fp = type->variant.class_struct_union.field_list;
         a_boolean         is_static_init_list;
         set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
+        con->explicit_braces_on_aggregate = TRUE;
         /* Add direct base sub-object constants first. */
         for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
           a_byte_count    offset;
@@ -14823,6 +14824,17 @@ diagnostic in *ips.
             do_constexpr_fail(result);
             break;
           }  /* if */
+          if (constant_is(cp, ck_address) &&
+              cp->variant.address.kind ==
+                                        (an_address_base_kind)abk_temporary &&
+              con->variant.aggregate.first_constant == NULL) {
+            /* A constant whose first element is a ck_address/abk_temporary
+               entry might represent an initializer list object. */
+            if (class_type_supp(type)->is_initializer_list) {
+              con->variant.aggregate
+                          .is_creation_of_initializer_list_object = TRUE;
+            }  /* if */
+          }  /* if */
           add_constant_to_aggregate(cp, con);
         }  /* for */
       }
@@ -14834,6 +14846,7 @@ diagnostic in *ips.
          field. */
       { a_field_ptr  fp, afp;
         set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
+        con->explicit_braces_on_aggregate = TRUE;
         fp = type->variant.class_struct_union.field_list,
         fp = next_alloc_field(fp);
         if (fp == NULL || (afp = (a_field_ptr)*(void**)object) == NULL) {
@@ -14870,6 +14883,7 @@ diagnostic in *ips.
         a_byte          *sub_obj = object;
         if (!result) break;
         set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
+        con->explicit_braces_on_aggregate = TRUE;
         for (k = 0; k<n_elems; k += 1, sub_obj += elem_size) {
           a_constant_ptr  elem_con;
           elem_con = alloc_constant((a_constant_repr_kind)ck_error);
@@ -14890,6 +14904,7 @@ diagnostic in *ips.
         a_byte          *sub_obj = object;
         if (!result) break;
         set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
+        con->explicit_braces_on_aggregate = TRUE;
         for (k = 0; k<n_elems; k += 1, sub_obj += elem_size) {
           a_constant_ptr  elem_con;
           elem_con = alloc_constant((a_constant_repr_kind)ck_error);
@@ -15282,10 +15297,6 @@ value produced by std::is_constant_evaluated().
         }  /* if */
         if (dip->is_explicit_cast) {
           result_con->explicit_cast_applied = TRUE;
-        }  /* if */
-        if (dip->is_braced_initializer &&
-            constant_is(result_con, ck_aggregate)) {
-          result_con->explicit_braces_on_aggregate = TRUE;
         }  /* if */
       }  /* if */
       unmap_stack_bytes(&ips, result_storage);

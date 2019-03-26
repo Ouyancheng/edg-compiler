@@ -6076,7 +6076,20 @@ field designator.
   } else if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
     /* Aggregate constant (e.g., "{1, 2, 3}"). */
     a_boolean      array_case = FALSE, template_dependent_case = FALSE;
-    a_constant_ptr first_con = constant->variant.aggregate.first_constant;
+    a_constant_ptr first_con;
+    if (constant->variant.aggregate.is_creation_of_initializer_list_object) {
+      /* A folded initializer_list initializer has a structure that would
+         render as "{ &{ ... }, ... }" (which is not valid syntax), where the
+         first inner aggregate corresponds to what was specified in the source.
+         Render just that inner aggregate. */
+      constant = constant->variant.aggregate.first_constant;
+      check_assertion(constant_is(constant, ck_address) &&
+                      constant->variant.address.kind ==
+                                         (an_address_base_kind)abk_temporary);
+      constant = constant->variant.address.variant.constant;
+      type = constant->type;
+    }  /* if */
+    first_con = constant->variant.aggregate.first_constant;
     /* Ordinarily, we don't put out braces if they weren't in the source.
        However, in some unusual cases, we add a designator to the aggregate
        (to indicate which element of a union should be initialized), and the

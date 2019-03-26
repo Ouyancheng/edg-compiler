@@ -4586,6 +4586,11 @@ typedef struct a_constant {
 			/* TRUE if one of the constants on the list is a
 			   ck_dynamic_init entry, or a ck_aggregate entry with
 			   this flag set to TRUE. */
+      a_bit_field
+		is_creation_of_initializer_list_object:1;
+			/* TRUE if this is the result of folding a dynamic
+			   initializer entry for which the corresponding flag
+			   is_creation_of_initializer_list_object is TRUE. */
     } aggregate;
     /* When kind == ck_init_repeat: */
     /* A ck_init_repeat constant is used only in initialization.  As such,

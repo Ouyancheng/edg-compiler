@@ -1359,6 +1359,9 @@ display_constant_value:
       if (ptr->variant.aggregate.has_dynamic_init_component) {
         disp_boolean("has_dynamic_init_component", TRUE);
       }  /* if */
+      if (ptr->variant.aggregate.is_creation_of_initializer_list_object) {
+        disp_boolean("is_creation_of_initializer_list_object", TRUE);
+      }  /* if */
       break;
     case ck_init_repeat:
       (void)printf("ck_init_repeat\n");
