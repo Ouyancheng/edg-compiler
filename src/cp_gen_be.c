@@ -13467,11 +13467,13 @@ operations in one of its operands to be parenthesized at that level.
     if (node_operator_is(expr, eok_gt) ||
         node_operator_is(expr, eok_shiftr) ||
         node_operator_is(expr, eok_comma) ||
-        (msvc_is_generated_code_target && node_operator_is(expr, eok_lt))) {
+        (msvc_is_generated_code_target &&
+         (node_operator_is(expr, eok_lt) ||
+          node_operator_is(expr, eok_question)))) {
         /* Found an unprotected ">" or ">>" operator.  (Note: the Microsoft
-           compiler sometimes reports spurious errors if a top-level "<"
-           appears in a non-type template argument, so we check for that
-           case also when msvc_is_generated_code_target.) */
+           compiler sometimes reports spurious errors if a top-level "<" or
+           "?:" appear in a non-type template argument, so we check for
+           those cases also when msvc_is_generated_code_target.) */
         tblock->result = TRUE;
         tblock->terminate = TRUE;
     } else if (!expr->variant.operation.compiler_generated &&

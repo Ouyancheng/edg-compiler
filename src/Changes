@@ -1,5 +1,21 @@
 Version 5.1
 
+3/26/19  [EDGcpfe/20893]
+C++-generating back end, Microsoft compatibility: conditional expressions in
+template arguments
+
+MSVC has a bug that sometimes results in spurious errors when a non-type
+template argument consists of an unparenthesized conditional ("?:")
+expression.  The C++-generating back end previously failed to enclose such
+template arguments in parentheses, resulting in code that could not be
+compiled by MSVC.  This is now fixed; the C++-generating back end now
+adds parentheses in such cases when msvc_is_generated_code_target is TRUE.
+For example, with --microsoft --parse:
+
+  template <long> struct S { };
+  template<typename> S<true ? 1 : 2> foo();  // Now with parentheses
+
+
 3/26/19  [EDGcpfe/20971]
 Conditional operator and pointers to noexcept function types
 
