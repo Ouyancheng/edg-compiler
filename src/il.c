@@ -11111,8 +11111,8 @@ exception are certain template instantiation cases in GNU and Microsoft modes
 }  /* ptr_to_member_type_full */
 
 
-a_type_ptr related_member_type(a_type_ptr member_type,
-                               a_type_ptr class_type)
+static a_type_ptr related_member_type(a_type_ptr member_type,
+                                      a_type_ptr class_type)
 /*
 member_type is intended to be the member type under a pointer-to-member type
 for the class class_type.  If member_type is a function type, check that

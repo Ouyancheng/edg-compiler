@@ -1099,9 +1099,6 @@ extern a_type_ptr ptr_to_member_type_full(a_type_ptr              member_type,
 #define ptr_to_member_type(tp, cp)                                           \
   (ptr_to_member_type_full((tp), (cp), PM_NONE))
 
-extern a_type_ptr related_member_type(a_type_ptr member_type,
-                                      a_type_ptr class_type);
-
 extern a_type_ptr related_ptr_to_member_type(a_type_ptr member_type,
                                              a_type_ptr class_type);
 
