@@ -18053,14 +18053,14 @@ Output the initializer, if any, for the indicated variable.
     get_variable_initializer(var, curr_name_context->assoc_scope,
                              &init_kind, &initializer);
     if (init_kind == (an_init_kind)initk_static) {
-      an_expr_node_ptr  expr = initializer->constant->expr;
-      if (expr != NULL && expr->kind == (an_expr_node_kind)enk_initializer) {
+      an_expr_node_ptr  node = initializer->constant->expr;
+      if (node != NULL && node->kind == (an_expr_node_kind)enk_initializer) {
         /* The constant is a folded dynamic initializer.  Render the
            initializer from the dynamic initializer entry, because we may
            not be able to render valid code from the constant representation
            (e.g., if it involves a class with a constexpr constructor). */
         init_kind = (an_init_kind)initk_dynamic;
-        initializer->dynamic = expr->variant.initializer.dyn_init;
+        initializer->dynamic = node->variant.initializer.dyn_init;
       }  /* if */
     }  /* if */
     /* Push the name context for a class/namespace member. */
