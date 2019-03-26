@@ -6076,7 +6076,9 @@ field designator.
   } else if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
     /* Aggregate constant (e.g., "{1, 2, 3}"). */
     a_boolean      array_case = FALSE, template_dependent_case = FALSE;
+    a_boolean      explicit_cast = constant->explicit_cast_applied;
     a_constant_ptr first_con;
+    a_type_ptr     cast_type = type;
     if (constant->variant.aggregate.is_creation_of_initializer_list_object) {
       /* A folded initializer_list initializer has a structure that would
          render as "{ &{ ... }, ... }" (which is not valid syntax), where the
@@ -6094,18 +6096,16 @@ field designator.
        However, in some unusual cases, we add a designator to the aggregate
        (to indicate which element of a union should be initialized), and the
        designator would be invalid without the braces. */
-    if (!constant->explicit_braces_on_aggregate &&
-        !constant->explicit_cast_applied &&
+    if (!constant->explicit_braces_on_aggregate && !explicit_cast &&
         !(first_con != NULL &&
           first_con->kind == (a_constant_repr_kind)ck_designator)) {
       suppress_braces = TRUE;
     }  /* if */
     if (!suppress_braces && !transparent_case) {
-      if (constant->explicit_cast_applied) {
+      if (explicit_cast) {
         /* A functional-notation cast with braces; e.g., "X{1, 2}".  (The
            type name and left brace were already put out by the caller when
            suppress_braces is TRUE.) */
-        a_type_ptr  cast_type = type != NULL ? type : constant->type;
         /* Skip type qualifiers (which can be specified on the cast). */
         cast_type = skip_typerefs_not_typedefs_or_type_operators(cast_type);
         gen_type_reference(cast_type);
