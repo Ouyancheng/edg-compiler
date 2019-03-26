@@ -69,7 +69,7 @@ in an overload-resolution context.  For example:
 That problem is now fixed.
 
 
-3/19/19  [EDGcpfe/17673,EDGcpfe/20597,EDGcpfe/20881]
+3/19/19  [EDGcpfe/17673,EDGcpfe/18799,EDGcpfe/20597,EDGcpfe/20881]
 References to class type rvalues
 
 Consider:
