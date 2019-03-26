@@ -28578,7 +28578,6 @@ that case.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_type_ptr            type_pointed_to_2, type_pointed_to_3;
   a_type_ptr            unqual_type_pointed_to_2, unqual_type_pointed_to_3;
-  a_type_ptr            operation_type_underlying_class;
   a_boolean             operand_2_is_ptr_to_member = FALSE;
   a_boolean             operand_3_is_ptr_to_member = FALSE;
   a_boolean             saved_cpp11_constant_expr_ruled_out = FALSE;
@@ -29373,46 +29372,7 @@ that case.
         if (check_ptr_to_member_operands_for_compatibility(
                                     &operand_2, &operand_3, &colon_position,
                                     &operation_type)) {
-          /* The operands are compatible.  Determine the result type.  Usually,
-             it's the operation type just determined, but it can be a different
-             type (a composite) if the two operands are pointers to compatible
-             but not identical types. */
-          if (!operand_2_is_ptr_to_member || !operand_3_is_ptr_to_member) {
-            /* One of the operands is not a pointer-to-member (e.g., it's a
-               null pointer constant).  Use the operation type. */
-            result_type = operation_type;
-          } else {
-            /* Both operands are pointers-to-members, of compatible underlying
-               type if you ignore the type qualifiers.  (There is no
-               equivalent of "void *" for pointers-to-members.) */
-            type_pointed_to_2 = pm_member_type(operand_2.type);
-            unqual_type_pointed_to_2 = skip_typerefs(type_pointed_to_2);
-            type_pointed_to_3 = pm_member_type(operand_3.type);
-            unqual_type_pointed_to_3 = skip_typerefs(type_pointed_to_3);
-            /* If the member types are function types, make their "this"
-               parameter types have the same underlying class. */
-            operation_type_underlying_class = pm_class_type(operation_type);
-            unqual_type_pointed_to_2 =
-                          related_member_type(unqual_type_pointed_to_2,
-                                              operation_type_underlying_class);
-            unqual_type_pointed_to_3 =
-                          related_member_type(unqual_type_pointed_to_3,
-                                              operation_type_underlying_class);
-            /* Form a composite of the member types. */
-            ptr_result_type = composite_type(unqual_type_pointed_to_2,
-                                             unqual_type_pointed_to_3);
-            /* Add to the type pointed to any qualifiers present on either of
-               the operand types pointed to. */
-            ptr_result_type = type_plus_operand_type_qualifiers(
-                                               ptr_result_type,
-                                               type_pointed_to_2,
-                                               type_pointed_to_3,
-                                               pm_member_type(operation_type));
-            /* The result type is an unqualified pointer-to-member to the
-               properly-qualified underlying type. */
-            result_type = ptr_to_member_type(ptr_result_type,
-                                             operation_type_underlying_class);
-          }  /* if */
+          result_type = operation_type;
         }  else {
           /* The operands are incompatible. */
           err = TRUE;

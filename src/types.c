@@ -11767,6 +11767,58 @@ component in tp2 (so the recursion can end there).
 }  /* make_cv_combined_type */
 
 
+static a_type_ptr make_composite_ptr_mem_fun_type(a_type_ptr  pmft1,
+                                                  a_type_ptr  pmft2)
+/*
+The given types are known to be pointer-to-member types with an underlying
+class type (e.g., not a template parameter type), and at least one of the two
+types is known to be a pointer-to-member-function type.  If applicable, return
+the corresponding "composite pointer type" (see [expr.type]/4 in N4791).  This
+requires related class types and function types that are compatible except that
+one might be "noexcept": The result type uses the least-derived of the two
+class types and the function type that permits exceptions.  If no composite
+pointer type exists, return NULL.
+*/
+{
+  a_type_ptr  result = NULL;
+  a_type_ptr  upmft1 = skip_typerefs(pmft1), upmft2 = skip_typerefs(pmft2);
+  a_type_ptr  ctp1 = upmft1->variant.ptr_to_member.class_of_which_a_member,
+              ctp2 = upmft2->variant.ptr_to_member.class_of_which_a_member;
+  a_type_ptr  uctp1 = skip_typerefs(ctp1), uctp2 = skip_typerefs(ctp2);
+  a_type_ptr  stp1 = upmft1->variant.ptr_to_member.type,
+              stp2 = upmft2->variant.ptr_to_member.type;
+  a_type_ptr  ustp1 = skip_typerefs(stp1), ustp2 = skip_typerefs(stp2);
+
+  if (f_types_are_compatible(ustp1, ustp2, (TCF_IGNORE_THIS_CLASS_TYPE |
+                                            TCF_IGNORE_TOP_LEVEL_NOEXCEPT))) {
+    a_type_ptr  ftp = is_nothrow_type(ustp1) ? stp2 : stp1;
+    if (identical_types(ctp1, ctp2)) {
+      /* If the class types are identical, we can pick either one and combine
+         it with ftp (which has the less restrictive exception
+         specification). */
+      result = ptr_to_member_type(ftp, ctp1);
+    } else if (find_base_class_of(ctp1, ctp2) != NULL) {
+      /* The result type has to be based on the first class type (ctp1).
+         If ftp is from the second type, we have to adjust its this_class. */
+      if (ftp == stp2) {
+        ftp = routine_type_without_this_class(ustp2,
+                                              /*copy_default_args=*/FALSE);
+        ftp->variant.routine.extra_info->this_class = uctp1;
+      }  /* if */
+      result = ptr_to_member_type(ftp, ctp1);
+    } else if (find_base_class_of(ctp2, ctp1) != NULL) {
+      if (ftp == stp1) {
+        ftp = routine_type_without_this_class(ustp1,
+                                              /*copy_default_args=*/FALSE);
+        ftp->variant.routine.extra_info->this_class = uctp2;
+      }  /* if */
+      result = ptr_to_member_type(ftp, ctp2);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* make_composite_ptr_mem_fun_type */
+
+
 a_type_ptr make_cv_combined_type_if_possible(a_type_ptr  tp1,
                                              a_type_ptr  tp2)
 /*
@@ -11822,6 +11874,14 @@ cv-qualification signature is determined as follows:
       } else {
         goto done;
       }  /* if */
+    } else if (type_is(ustp1, tk_routine) && type_is(ustp2, tk_routine)) {
+      if (f_identical_types(ustp1, ustp2, ITF_IGNORE_TOP_LEVEL_NOEXCEPT)) {
+        if (is_nothrow_type(ustp1)) {
+          result = make_pointer_type(stp2);
+        } else {
+          result = make_pointer_type(stp1);
+        }  /* if */
+      }  /* if */
     } else if (is_immediate_class_type(ustp1) &&
                is_immediate_class_type(ustp2)) {
       /* Check for related-class cases. */
@@ -11843,22 +11903,29 @@ cv-qualification signature is determined as follows:
     a_type_ptr  ctp2 = ustp2->variant.ptr_to_member.class_of_which_a_member;
     a_type_ptr  uctp1 = skip_typerefs(ctp1), uctp2 = skip_typerefs(ctp2);
     a_boolean   qualifiers_added;
-    stp1 = ustp1->variant.ptr_to_member.type;
-    stp2 = ustp2->variant.ptr_to_member.type;
-    if (is_immediate_class_type(uctp1) && is_immediate_class_type(uctp2) &&
-        member_types_correspond(skip_typerefs(stp1),
-                                skip_typerefs(stp2),
-                                /*source_is_function=*/FALSE,
-                                /*allow_qualifier_or_eh_mismatch=*/TRUE,
-                                &qualifiers_added)) {
-      /* Check for related-class cases. */
-      if (identical_types(ctp1, ctp2) ||
-          find_base_class_of(ctp1, ctp2) != NULL) {
-        stp1 = make_qualified_type(stp1, get_type_qualifiers(stp2));
-        result = ptr_to_member_type(stp1, ctp1);
-      } else if (find_base_class_of(ctp2, ctp1) != NULL) {
-        stp2 = make_qualified_type(stp2, get_type_qualifiers(stp1));
-        result = ptr_to_member_type(stp2, ctp2);
+    if (is_immediate_class_type(uctp1) && is_immediate_class_type(uctp2)) {
+      stp1 = ustp1->variant.ptr_to_member.type;
+      stp2 = ustp2->variant.ptr_to_member.type;
+      ustp1 = skip_typerefs(stp1);
+      ustp2 = skip_typerefs(stp2);
+      if (type_is(ustp1, tk_routine) || type_is(ustp2, tk_routine)) {
+        /* Pointer-to-member-function types are handled separately (pending
+           resolution of Core issue 2381). */
+        result = make_composite_ptr_mem_fun_type(tp1, tp2);
+      } else if (member_types_correspond(
+                                      ustp1, ustp2,
+                                      /*source_is_function=*/FALSE,
+                                      /*allow_qualifier_or_eh_mismatch=*/TRUE,
+                                      &qualifiers_added)) {
+        /* Check for related-class cases. */
+        if (identical_types(ctp1, ctp2) ||
+            find_base_class_of(ctp1, ctp2) != NULL) {
+          stp1 = make_qualified_type(stp1, get_type_qualifiers(stp2));
+          result = ptr_to_member_type(stp1, ctp1);
+        } else if (find_base_class_of(ctp2, ctp1) != NULL) {
+          stp2 = make_qualified_type(stp2, get_type_qualifiers(stp1));
+          result = ptr_to_member_type(stp2, ctp2);
+        }  /* if */
       }  /* if */
     }  /* if */
   } else if (ustp1->kind == (a_type_kind)tk_error ||
