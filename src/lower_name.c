@@ -6820,6 +6820,7 @@ is TRUE.
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_type_operand:  /* Only expected under enk_builtin_operation. */
+    case enk_initializer:
     default:
       /* Unexpected expression kind. */
       unexpected_condition_str(

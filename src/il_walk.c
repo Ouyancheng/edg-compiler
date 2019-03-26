@@ -3409,6 +3409,9 @@ as specified in the control block.
     case enk_fold:
       traverse_expr_list(expr->variant.fold.operands, tblock);
       break;
+    case enk_initializer:
+      traverse_dynamic_init(expr->variant.initializer.dyn_init, tblock);
+      break;
     default:
       unexpected_condition_str("traverse_expr: bad expr kind");
   }  /* switch */

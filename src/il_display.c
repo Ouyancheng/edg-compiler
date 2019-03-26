@@ -1359,9 +1359,6 @@ display_constant_value:
       if (ptr->variant.aggregate.has_dynamic_init_component) {
         disp_boolean("has_dynamic_init_component", TRUE);
       }  /* if */
-      if (ptr->variant.aggregate.is_creation_of_initializer_list_object) {
-        disp_boolean("is_creation_of_initializer_list_object", TRUE);
-      }  /* if */
       break;
     case ck_init_repeat:
       (void)printf("ck_init_repeat\n");
@@ -4679,6 +4676,11 @@ cleanup_state_common:
                    (a_boolean)ptr->variant.fold.left_associative);
       disp_ptr("fold.operands", (char *)ptr->variant.fold.operands,
                iek_expr_node);
+      break;
+    case enk_initializer:
+      (void)printf("enk_initializer\n");
+      disp_ptr("initializer.dyn_init",
+               (char *)ptr->variant.initializer.dyn_init, iek_dynamic_init);
       break;
     default:
       (void)printf("**BAD EXPR NODE KIND**\n");

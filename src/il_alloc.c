@@ -893,7 +893,6 @@ fields to default values.
       cp->variant.aggregate.first_constant = NULL;
       cp->variant.aggregate.last_constant  = NULL;
       cp->variant.aggregate.has_dynamic_init_component = FALSE;
-      cp->variant.aggregate.is_creation_of_initializer_list_object = FALSE;
       break;
     case ck_init_repeat:
       cp->variant.init_repeat.constant = NULL;
@@ -3563,6 +3562,9 @@ fields to default values.
       node->variant.fold.operands = NULL;
       node->variant.fold.operator_token = (a_token_kind)tok_error;
       node->variant.fold.left_associative = FALSE;
+      break;
+    case enk_initializer:
+      node->variant.initializer.dyn_init = NULL;
       break;
     default:
       unexpected_condition_str("set_expr_node_kind: bad kind");

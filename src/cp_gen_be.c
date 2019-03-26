@@ -6076,36 +6076,23 @@ field designator.
   } else if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
     /* Aggregate constant (e.g., "{1, 2, 3}"). */
     a_boolean      array_case = FALSE, template_dependent_case = FALSE;
-    a_boolean      explicit_cast = constant->explicit_cast_applied;
-    a_constant_ptr first_con;
-    a_type_ptr     cast_type = type;
-    if (constant->variant.aggregate.is_creation_of_initializer_list_object) {
-      /* A folded initializer_list initializer has a structure that would
-         render as "{ &{ ... }, ... }" (which is not valid syntax), where the
-         first inner aggregate corresponds to what was specified in the source.
-         Render just that inner aggregate. */
-      constant = constant->variant.aggregate.first_constant;
-      check_assertion(constant_is(constant, ck_address) &&
-                      constant->variant.address.kind ==
-                                         (an_address_base_kind)abk_temporary);
-      constant = constant->variant.address.variant.constant;
-      type = constant->type;
-    }  /* if */
-    first_con = constant->variant.aggregate.first_constant;
+    a_constant_ptr first_con = constant->variant.aggregate.first_constant;
     /* Ordinarily, we don't put out braces if they weren't in the source.
        However, in some unusual cases, we add a designator to the aggregate
        (to indicate which element of a union should be initialized), and the
        designator would be invalid without the braces. */
-    if (!constant->explicit_braces_on_aggregate && !explicit_cast &&
+    if (!constant->explicit_braces_on_aggregate &&
+        !constant->explicit_cast_applied &&
         !(first_con != NULL &&
           first_con->kind == (a_constant_repr_kind)ck_designator)) {
       suppress_braces = TRUE;
     }  /* if */
     if (!suppress_braces && !transparent_case) {
-      if (explicit_cast) {
+      if (constant->explicit_cast_applied) {
         /* A functional-notation cast with braces; e.g., "X{1, 2}".  (The
            type name and left brace were already put out by the caller when
            suppress_braces is TRUE.) */
+        a_type_ptr  cast_type = type != NULL ? type : constant->type;
         /* Skip type qualifiers (which can be specified on the cast). */
         cast_type = skip_typerefs_not_typedefs_or_type_operators(cast_type);
         gen_type_reference(cast_type);
@@ -14784,6 +14771,7 @@ sizeof_cases:
       gen_fold_expression(expr);
       break;
 
+    case enk_initializer:
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
@@ -18053,18 +18041,28 @@ Output the initializer, if any, for the indicated variable.
   /* Output the initializer only if it's explicit.  A condition always has an
      initializer. */
   if (var->has_explicit_initializer) {
-      a_boolean          parenthesized_init =
-                                           var->has_parenthesized_initializer;
-      a_boolean          braced_init = var->has_direct_braced_initializer;
-      an_init_kind       init_kind;
-      an_initializer_ptr initializer;
-      a_constant_ptr     con;
-      an_expr_node_ptr   expr = NULL;
-      a_dynamic_init_ptr dip;
-      a_boolean          restore_init = FALSE;
-      a_boolean          context_pop_required = FALSE;
-      get_variable_initializer(var, curr_name_context->assoc_scope,
-                               &init_kind, &initializer);
+    a_boolean          parenthesized_init = var->has_parenthesized_initializer;
+    a_boolean          braced_init = var->has_direct_braced_initializer;
+    an_init_kind       init_kind;
+    an_initializer_ptr initializer;
+    a_constant_ptr     con;
+    an_expr_node_ptr   expr = NULL;
+    a_dynamic_init_ptr dip;
+    a_boolean          restore_init = FALSE;
+    a_boolean          context_pop_required = FALSE;
+    get_variable_initializer(var, curr_name_context->assoc_scope,
+                             &init_kind, &initializer);
+    if (init_kind == (an_init_kind)initk_static) {
+      an_expr_node_ptr  expr = initializer->constant->expr;
+      if (expr != NULL && expr->kind == (an_expr_node_kind)enk_initializer) {
+        /* The constant is a folded dynamic initializer.  Render the
+           initializer from the dynamic initializer entry, because we may
+           not be able to render valid code from the constant representation
+           (e.g., if it involves a class with a constexpr constructor). */
+        init_kind = (an_init_kind)initk_dynamic;
+        initializer->dynamic = expr->variant.initializer.dyn_init;
+      }  /* if */
+    }  /* if */
     /* Push the name context for a class/namespace member. */
     if (microsoft_dialect_is_generated_code_target &&
         is_namespace_member(var)) {

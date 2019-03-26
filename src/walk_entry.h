@@ -1866,6 +1866,10 @@ do_set_proper_definition_needed_flag:
             walk_list(eptr->variant.fold.operands, an_expr_node_ptr,
                       iek_expr_node);
             break;
+          case enk_initializer:
+            walk_ptr(eptr->variant.initializer.dyn_init,
+                     a_dynamic_init_ptr, iek_dynamic_init);
+            break;
           default:
             unexpected_condition_str(
                                  "walk_entry_and_subtree: bad expr node kind");

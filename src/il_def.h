@@ -4586,11 +4586,6 @@ typedef struct a_constant {
 			/* TRUE if one of the constants on the list is a
 			   ck_dynamic_init entry, or a ck_aggregate entry with
 			   this flag set to TRUE. */
-      a_bit_field
-		is_creation_of_initializer_list_object:1;
-			/* TRUE if this is the result of folding a dynamic
-			   initializer entry for which the corresponding flag
-			   is_creation_of_initializer_list_object is TRUE. */
     } aggregate;
     /* When kind == ck_init_repeat: */
     /* A ck_init_repeat constant is used only in initialization.  As such,
@@ -12300,6 +12295,9 @@ enum an_expr_node_kind_tag {
 			   expression.  (Concrete instantiations are
 			   represented using a chain of enk_operation
 			   nodes.) */
+  enk_initializer,	/* When a dynamic_initializer is folded to a constant,
+			   this represents the original initializer in the
+			   backing expression. */
   enk_last		/*lint -esym(769,an_expr_node_kind_tag::enk_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -14050,6 +14048,12 @@ typedef struct an_expr_node {
 		left_associative:1;
 			/* TRUE if this is a "left (associative) fold". */
     } fold;
+    /* When kind == enk_initializer: */
+    struct {
+      a_dynamic_init_ptr
+		dyn_init;
+			/* The dynamic initializer that was folded. */
+    } initializer;
   } variant;
   union {
     an_expr_rescan_info_entry_ptr
