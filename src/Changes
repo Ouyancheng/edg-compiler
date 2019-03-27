@@ -13,7 +13,7 @@ adds parentheses in such cases when msvc_is_generated_code_target is TRUE.
 For example, with --microsoft --parse:
 
   template <long> struct S { };
-  template<typename> S<true ? 1 : 2> foo();  // Now with parentheses
+  template<typename> S<true ? 1 : 2> foo();  // Now generated with parentheses
 
 
 3/26/19  [EDGcpfe/20971]
