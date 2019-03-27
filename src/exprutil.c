@@ -16453,7 +16453,7 @@ represents an explicit cast.
       /* dip might be the result of constexpr evaluation of a constructor call,
          in which case an underlying dik_constructor entry should also be
          marked as representing an explicit cast. */
-      a_dynamic_init_ptr  udip = skip_constexpr_ctor_eval(dip);
+      a_dynamic_init_ptr  udip = skip_constexpr_init_folding(dip);
       if (udip != dip) {
         udip->is_explicit_cast = TRUE;
       }  /* if */

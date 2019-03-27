@@ -1778,7 +1778,7 @@ extern a_type_kind binary_operation_type_kind(an_expr_operator_kind  op,
 
 extern a_constant_ptr constant_value_of_dynamic_init(a_dynamic_init_ptr dip);
 
-extern a_dynamic_init_ptr skip_constexpr_ctor_eval(a_dynamic_init_ptr dip);
+extern a_dynamic_init_ptr skip_constexpr_init_folding(a_dynamic_init_ptr dip);
 
 extern
 a_dynamic_init_ptr effective_dynamic_init_for_initializer_list_object(

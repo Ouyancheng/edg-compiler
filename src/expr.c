@@ -25779,12 +25779,12 @@ freed by this routine.
                (folded_con = constant_value_of_dynamic_init(dip)) != NULL &&
                folded_con->is_result_of_constexpr_call) {
       /* The construction was folded to a constant result. */
-      skip_constexpr_ctor_eval(dip)->is_explicit_cast = TRUE;
+      skip_constexpr_init_folding(dip)->is_explicit_cast = TRUE;
       make_constant_operand(folded_con, result);
       result->position = *start_position;
     } else {
       dip->is_explicit_cast = TRUE;
-      skip_constexpr_ctor_eval(dip)->is_explicit_cast = TRUE;
+      skip_constexpr_init_folding(dip)->is_explicit_cast = TRUE;
       make_expression_operand(temp_init_node, result);
       result->position = *start_position;
       rule_out_expr_kinds(ROEK_CONSTANT, result);

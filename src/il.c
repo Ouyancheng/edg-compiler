@@ -15292,26 +15292,32 @@ otherwise NULL.
 }  /* constant_value_of_dynamic_init */
 
 
-a_dynamic_init_ptr skip_constexpr_ctor_eval(a_dynamic_init_ptr dip)
+a_dynamic_init_ptr skip_constexpr_init_folding(a_dynamic_init_ptr dip)
 /*
-If dip is an initialization to the result of a constexpr constructor
-evaluation, return the dynamic init for the unfolded constructor call;
-otherwise, return the original dip.
+If dip is an initialization to a constant value obtained by folding another
+dynamic initialization entry, return the dynamic init entry that was folded;
+otherwise, return dip.  (The original entry will be pointed to by an
+enk_temp_init or enk_initializer entry in the backing expression of the
+a_constant entry produced by folding.)
 */
 {
   a_constant_ptr con = constant_value_of_dynamic_init(dip);
 
-  if (con != NULL && con->is_result_of_constexpr_call) {
+  if (con != NULL) {
     /* The original form of the constructor call is stored as a backing
        expression under the constant. */
     an_expr_node_ptr expr = con->expr;
-    if (expr != NULL &&
-        expr->kind == (an_expr_node_kind)enk_temp_init) {
-      dip = expr->variant.init.dynamic_init;
+    if (expr != NULL) {
+      if (expr->kind == (an_expr_node_kind)enk_temp_init &&
+          con->is_result_of_constexpr_call) {
+        dip = expr->variant.init.dynamic_init;
+      } else if (expr->kind == (an_expr_node_kind)enk_initializer) {
+        dip = expr->variant.initializer.dyn_init;
+      }  /* if */
     }  /* if */
   }  /* if */
   return dip;
-}  /* skip_constexpr_ctor_eval */
+}  /* skip_constexpr_init_folding */
 
 
 a_dynamic_init_ptr effective_dynamic_init_for_initializer_list_object(
@@ -15330,7 +15336,7 @@ init_entity_type can be NULL if the caller does not need that information.
   an_expr_node_ptr arg1;
 
   check_assertion(dip->is_creation_of_initializer_list_object);
-  dip = skip_constexpr_ctor_eval(dip);
+  dip = skip_constexpr_init_folding(dip);
   check_assertion(dip->kind == (a_dynamic_init_kind)dik_constructor);
   arg1 = dip->variant.constructor.args;
   check_assertion(arg1 != NULL);

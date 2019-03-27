@@ -4658,7 +4658,7 @@ source code, not what the front end has distilled it into).
     prev_dip = dip;
     /* For constexpr constructors, skip the constant form to retrieve the
        underlying dik_constructor. */
-    dip = skip_constexpr_ctor_eval(dip);
+    dip = skip_constexpr_init_folding(dip);
     if (dip->is_creation_of_initializer_list_object) {
       /* Get the dynamic initialization entry for the underlying temporary
          array for this std::initializer_list object. */

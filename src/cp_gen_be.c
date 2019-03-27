@@ -11261,7 +11261,7 @@ Return TRUE if the given expression will be put out as a braced-init-list.
     is_braced_init = TRUE;
   } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
     a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
-    dip = skip_constexpr_ctor_eval(dip);
+    dip = skip_constexpr_init_folding(dip);
     if (!dip->is_explicit_cast && !dip->is_compound_literal &&
         (dip->is_braced_initializer ||
          dip->is_creation_of_initializer_list_object)) {
@@ -17243,7 +17243,7 @@ source.
   a_boolean      is_default_init = FALSE, is_value_init;
   a_constant_ptr con;
 
-  dip = skip_constexpr_ctor_eval(dip);
+  dip = skip_constexpr_init_folding(dip);
   if (dip->is_explicit_cast) {
     /* An explicit cast is not a default initialization. */
   } else if (dip->kind == (a_dynamic_init_kind)dik_none) {
@@ -17390,7 +17390,7 @@ when possible.
   a_boolean        suppress_braces = FALSE;
   a_boolean        saved_suppress_template_args = octl.suppress_template_args;
 
-  dip = skip_constexpr_ctor_eval(dip);
+  dip = skip_constexpr_init_folding(dip);
   braced_init = dip->is_braced_initializer;
   if (dip->is_creation_of_initializer_list_object) {
     /* For a dynamic init that is a generated constructor call for the
@@ -17402,7 +17402,7 @@ when possible.
     a_dynamic_init_ptr dipa =
         effective_dynamic_init_for_initializer_list_object(dip,
                                                            &init_entity_typea);
-    dipa = skip_constexpr_ctor_eval(dipa);
+    dipa = skip_constexpr_init_folding(dipa);
     braced_init = dipa->is_braced_initializer;
     if (braced_init && dip->suppress_init_list_arg_braces) {
       /* The initializer list is already brace-enclosed, so the argument to
@@ -17851,14 +17851,14 @@ and the output of the type name.
       }  /* if */
     }  /* if */
   }  /* if */
-  dip = skip_constexpr_ctor_eval(dip);
+  dip = skip_constexpr_init_folding(dip);
   if (dip->is_creation_of_initializer_list_object) {
     /* For a dynamic init that is a generated constructor call for the
        creation of a std::initializer_list object, skip down to the
        part of the initializer that is not implicit. */
     dip = effective_dynamic_init_for_initializer_list_object(dip,
                                                             &init_entity_type);
-    dip = skip_constexpr_ctor_eval(dip);
+    dip = skip_constexpr_init_folding(dip);
   }  /* if */
   write_tok_ch(paren_form ? '(' : '{');
   if (dip->is_compound_literal) {

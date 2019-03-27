@@ -23630,7 +23630,7 @@ be suppressed (i.e., SFINAE mode).
              can't skip down if the backing expression is not there). */
           dip->is_creation_of_initializer_list_object = FALSE;
         } else {
-          a_dynamic_init_ptr dip2 = skip_constexpr_ctor_eval(dip);
+          a_dynamic_init_ptr dip2 = skip_constexpr_init_folding(dip);
           dip2->is_creation_of_initializer_list_object = TRUE;
           dip2->is_explicit_cast = is_cast;
         }  /* if */
@@ -24958,11 +24958,11 @@ will be an lvalue instead of the usual prvalue.
        the is_braced_initializer flag. */
     if (is_cast) {
       dip->is_explicit_cast = TRUE;
-      skip_constexpr_ctor_eval(dip)->is_explicit_cast = TRUE;
+      skip_constexpr_init_folding(dip)->is_explicit_cast = TRUE;
     }  /* if */
     if (braced_init) {
       dip->is_braced_initializer = TRUE;
-      skip_constexpr_ctor_eval(dip)->is_braced_initializer = TRUE;
+      skip_constexpr_init_folding(dip)->is_braced_initializer = TRUE;
     }  /* if */
     if (braced_init && expr_stack->possible_rescan_context) {
       /* For brace-initialized cases, save the original braced-init-list as
