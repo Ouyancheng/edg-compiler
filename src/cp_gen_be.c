@@ -18482,10 +18482,6 @@ this one is such a continuation.
          extern const int N::i = 42;
        triggers an error on Sun compilers.  We therefore don't force the
        "extern" if a declaration was already put out. */
-    an_init_kind       init_kind;
-    an_initializer_ptr initializer;
-    get_variable_initializer(var, curr_name_context->assoc_scope,
-                             &init_kind, &initializer);
     if (var->has_explicit_initializer &&
         !(sun_is_generated_code_target && var->declaration_has_been_put_out)) {
       storage_class = (a_storage_class)sc_extern;
