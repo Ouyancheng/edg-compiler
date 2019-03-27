@@ -16,7 +16,7 @@ For example, with --microsoft --parse:
   template<typename> S<true ? 1 : 2> foo();  // Now generated with parentheses
 
 
-3/26/19  [EDGcpfe/20971]
+3/26/19  [EDGcpfe/19536,EDGcpfe/20971]
 Conditional operator and pointers to noexcept function types
 
 Consider:
