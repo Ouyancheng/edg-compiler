@@ -11775,9 +11775,9 @@ class type (e.g., not a template parameter type), and at least one of the two
 types is known to be a pointer-to-member-function type.  If applicable, return
 the corresponding "composite pointer type" (see [expr.type]/4 in N4791).  This
 requires related class types and function types that are compatible except that
-one might be "noexcept": The result type uses the least-derived of the two
-class types and the function type that permits exceptions.  If no composite
-pointer type exists, return NULL.
+one might be "noexcept": The result type uses the more-derived of the two class
+types and the function type that permits exceptions.  If no composite pointer
+type exists, return NULL.
 */
 {
   a_type_ptr  result = NULL;
@@ -11794,7 +11794,7 @@ pointer type exists, return NULL.
     a_type_ptr  ftp = is_nothrow_type(ustp1) ? stp2 : stp1;
     if (identical_types(ctp1, ctp2)) {
       /* If the class types are identical, we can pick either one and combine
-         it with ftp (which has the less restrictive exception
+         it with ftp (which has the less-restrictive exception
          specification). */
       result = ptr_to_member_type(ftp, ctp1);
     } else if (find_base_class_of(ctp1, ctp2) != NULL) {
@@ -11909,7 +11909,7 @@ cv-qualification signature is determined as follows:
       ustp1 = skip_typerefs(stp1);
       ustp2 = skip_typerefs(stp2);
       if (type_is(ustp1, tk_routine) || type_is(ustp2, tk_routine)) {
-        /* Pointer-to-member-function types are handled separately (pending
+        /* Pointer-to-member-function types are handled separately (per
            resolution of Core issue 2381). */
         result = make_composite_ptr_mem_fun_type(tp1, tp2);
       } else if (member_types_correspond(

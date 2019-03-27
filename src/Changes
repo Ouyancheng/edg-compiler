@@ -26,10 +26,10 @@ Consider:
   auto r = true ? pfx : pfn;  // Previously an error.  Now accepted.
 
 Previously, this elicited a spurious error about the operands of the
-conditional operator being incompatible.  Now it is accepted (the result
-type is the type of pfx).  Related issues with pointer-to-member functions
-have also been fixed.  A part of these fixes implement a draft resolution
-for the standardization committee's Core issue 2381.
+conditional operator being incompatible.  Now it is accepted (the result type
+is the type of pfx).  Related issues with pointer-to-member functions have
+also been fixed.  A part of these fixes implement the resolution for the
+standardization committee's Core issue 2381.
 
 
 3/25/19  [EDGcpfe/20810, EDGcpfe/20892, EDGcpfe/20972]
