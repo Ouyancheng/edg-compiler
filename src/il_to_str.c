@@ -4415,6 +4415,13 @@ precedence confusion.  Do the output in the way described by octl.
       achieved_type = array_element_type(achieved_type);
       final_cast_needed = TRUE;
     }  /* if */
+  } else if (type_decay_used && octl->processing_nontype_template_argument &&
+             is_pointer_type(orig_type) && desired_type != NULL &&
+             is_function_type(desired_type)) {
+    /* In case the template argument is being passed to an auto template
+       parameter, add the "&" to ensure that the constant has a pointer
+       type in the generated code. */
+    type_decay_used = FALSE;
   }  /* if */
   if (offset != 0) {
     /* The offset is nonzero.  The general way of dealing with this is to cast
