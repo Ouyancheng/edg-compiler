@@ -5006,8 +5006,10 @@ and a vector are compatible.
                       dest_type->kind   == (a_type_kind)tk_integer);
       if (source_type->size > dest_type->size ||
           (source_type->size == dest_type->size &&
-           int_kind_is_signed[(int)source_type->variant.integer.int_kind] !=
-           int_kind_is_signed[(int)  dest_type->variant.integer.int_kind])) {
+           !int_kind_is_signed[(int)source_type->variant.integer.int_kind] &&
+           int_kind_is_signed[(int)  dest_type->variant.integer.int_kind]) ||
+          (int_kind_is_signed[(int)source_type->variant.integer.int_kind] &&
+           !int_kind_is_signed[(int)  dest_type->variant.integer.int_kind])) {
         /* Integer or unscoped enum to integer to integer that cannot represent
            all the values of the source type.  Okay if the value is constant
            and is preserved. */

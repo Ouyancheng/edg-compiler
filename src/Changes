@@ -1,5 +1,18 @@
 Version 5.1
 
+3/28/19  [EDGcpfe/21069]
+Narrowing conversion not correctly diagnosed
+
+The front end previously did not treat a conversion from a signed integer type
+to a larger unsigned integer type as a narrowing conversion (in C++11 and later
+modes).  For example:
+
+  unsigned long long x[] = { -1 };  // Previously a warning in strict C++11
+                                    // mode.  Now an error.
+
+That is now fixed.
+
+
 3/28/19  [EDGcpfe/20986]
 Missing diagnostic (and potential abort) on structured binding templates
 
