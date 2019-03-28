@@ -15509,7 +15509,8 @@ are traversed while searching for the matching constant).
   a_type_ptr      class_type = skip_typerefs(aggr_con->type);
 
   check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
-  cp = aggr_con->variant.aggregate.first_constant;
+  cp = skip_optimized_empty_constants(
+                                  aggr_con->variant.aggregate.first_constant);
   for (field = next_non_empty_initializable_field(
                             class_type->variant.class_struct_union.field_list);
        field != NULL && cp != NULL;
@@ -15548,7 +15549,7 @@ are traversed while searching for the matching constant).
       break;
     }  /* if */
     check_assertion(f_offset < b_offset);
-    cp = cp->next;
+    cp = skip_optimized_empty_constants(cp->next);
   }  /* for */
   check_assertion(cp != NULL);
   return cp;
