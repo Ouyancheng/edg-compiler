@@ -25915,6 +25915,9 @@ supplement for this template should be returned to the caller.
     /* Prior definition. */
     pos_sy_error(ec_already_defined, &locator->source_position, sym);
     err = TRUE;
+  } else if (dps->is_struct_binding_decl) {
+    pos_error(ec_struct_binding_template, &locator->source_position);
+    err = TRUE;
   } else if (!is_initial_decl) {
     /* This is a template definition of a static data member of a
        class template or a redeclaration of a variable template. */
