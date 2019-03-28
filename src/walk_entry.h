@@ -865,14 +865,32 @@ debug builds) don't recognize that these variables are mutually-exclusive.
             break;
 #endif /* DO_IL_LOWERING && ... */
           case ck_dynamic_init:
-              walk_ptr(eptr->variant.dynamic_init, a_dynamic_init_ptr,
-                       iek_dynamic_init);
+            walk_ptr(eptr->variant.dynamic_init.ptr, a_dynamic_init_ptr,
+                     iek_dynamic_init);
+#if DO_IL_LOWERING
+            if (eptr->constant_for_base_class) {
+              remap_ptr(eptr->variant.dynamic_init.field_or_base.base,
+                        a_base_class_ptr, iek_base_class);
+            } else {
+              remap_ptr(eptr->variant.dynamic_init.field_or_base.field,
+                        a_field_ptr, iek_field);
+            }  /* if */
+#endif /* DO_IL_LOWERING */
             break;
           case ck_aggregate:
             walk_list(eptr->variant.aggregate.first_constant, a_constant_ptr,
                       iek_constant);
             remap_ptr(eptr->variant.aggregate.last_constant, a_constant_ptr,
                       iek_constant);
+#if DO_IL_LOWERING
+            if (eptr->constant_for_base_class) {
+              remap_ptr(eptr->variant.aggregate.field_or_base.base,
+                        a_base_class_ptr, iek_base_class);
+            } else {
+              remap_ptr(eptr->variant.aggregate.field_or_base.field,
+                        a_field_ptr, iek_field);
+            }  /* if */
+#endif /* DO_IL_LOWERING */
             break;
           case ck_init_repeat:
             walk_ptr(eptr->variant.init_repeat.constant, a_constant_ptr,

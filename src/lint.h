@@ -372,6 +372,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,form_property_or_event_name_as_qualifier_if_needed)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #else /* BACK_END_IS_CP_GEN_BE */
+/*lint -esym(755,next_non_empty_initializable_field)*/
 /*lint -esym(759,conv_prvalue_expr_to_object_pointer)*/
 /*lint -esym(765,conv_prvalue_expr_to_object_pointer)*/
 /*lint -esym(714,conv_prvalue_expr_to_object_pointer)*/

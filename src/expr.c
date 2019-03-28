@@ -34169,12 +34169,12 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
                                lambda->closure_class, &is, capture_pos);
       if (is.has_dynamic_init_component) {
         nonconstant = TRUE;
-        if (init_con->variant.dynamic_init->destructor != NULL) {
+        if (init_con->variant.dynamic_init.ptr->destructor != NULL) {
           /* Make sure that an exception during a later capture cleans up this
              one. */
           record_partial_aggregate_cleanup_destruction(
-                                               init_con->variant.dynamic_init,
-                                               curr_expr_is_evaluated());
+                                            init_con->variant.dynamic_init.ptr,
+                                            curr_expr_is_evaluated());
         }  /* if */
       }  /* if */
       check_assertion_or_expect_error(!is.init_error);
@@ -34204,7 +34204,7 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
       this_dip->variant.expression = expr;
       init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
       init_con->type = this_type;
-      init_con->variant.dynamic_init = this_dip;
+      init_con->variant.dynamic_init.ptr = this_dip;
       nonconstant = TRUE;
     } else {
       /* A simple capture. */
@@ -34372,7 +34372,7 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
          the aggregate. */
       init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
       init_con->type = dest_type;
-      init_con->variant.dynamic_init = dip;
+      init_con->variant.dynamic_init.ptr = dip;
       nonconstant = TRUE;
     }  /* if */
     /* Add the initialization to the aggregate being built up.  Allocate the
@@ -34381,7 +34381,8 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
       aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
       aggr_con->type = lambda->closure_class;
     }  /* if */
-    add_constant_to_aggregate(init_con, aggr_con);
+    add_constant_to_aggregate(init_con, aggr_con, (a_base_class_ptr)NULL,
+                              (a_field_ptr)NULL);
   }  /* for */
   /* Make a dynamic initializer for the aggregate.  If no initialization
      is needed, make a dik_none dynamic init. */
@@ -37954,7 +37955,7 @@ pointer to that entry (or NULL in error cases).  If needed, update *is
     dip->variant.expression = expr;
     cp = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
     cp->type = expr->type;
-    cp->variant.dynamic_init = dip;
+    cp->variant.dynamic_init.ptr = dip;
     is->has_dynamic_init_component = TRUE;
   } else {
     expect_error();

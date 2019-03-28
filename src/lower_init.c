@@ -6037,7 +6037,7 @@ expression).
   a_constant_ptr     next_con;
   a_type_ptr         desired_type;
   a_constant_ptr     constant_to_keep = NULL;
-  a_dynamic_init_ptr dip = con_ptr->variant.dynamic_init;
+  a_dynamic_init_ptr dip = con_ptr->variant.dynamic_init.ptr;
   a_boolean          need_copy_to_file_scope = FALSE;
 
   if (processing_file_scope_init_routine && in_file_scope(dip) &&
@@ -6065,8 +6065,7 @@ expression).
 #if LOWER_DESIGNATED_INITIALIZERS
     /* Explicitly lower designators here (where the type of the aggregate
        is known). */
-    lower_dynamic_init_designated_initializers(dip, con_ptr->type, ipdp,
-                                               insert_location);
+    lower_dynamic_init_designated_initializers(dip, con_ptr->type);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
     lower_dynamic_init(dip, ipdp, source_desc, (a_variable_ptr)NULL,
                        options, others_follow_in_aggr,
@@ -6205,236 +6204,16 @@ contains a dynamic initialization.
   } else if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
     result = has_aggregate_with_dynamic(con->variant.init_repeat.constant);
   } else if (con->kind == (a_constant_repr_kind)ck_dynamic_init &&
-             con->variant.dynamic_init->kind ==
+             con->variant.dynamic_init.ptr->kind ==
                              (a_dynamic_init_kind)dik_nonconstant_aggregate &&
              has_aggregate_with_dynamic(
-                               con->variant.dynamic_init->variant.constant)) {
+                            con->variant.dynamic_init.ptr->variant.constant)) {
     result = TRUE;
   } else {
     result = FALSE;
   }  /* if */
   return result;
 }  /* has_aggregate_with_dynamic */
-
-
-void remove_initializers_for_empty_classes(
-                                        a_constant_ptr        constant,
-                                        an_init_pos_descr_ptr ipdp,
-                                        an_insert_location    *insert_location)
-/*
-Remove any initializers for empty classes (either base classes or fields with
-the no_unique_address attribute) that might appear in the ck_aggregate constant
-or any sub-aggregates.  In some cases, a ck_dynamic_init may be present for an
-otherwise-empty optimized empty class; in that case the lowering is done here.
-The constant has not been lowered yet (in fact this processing is performed as
-part of pre-lowering the aggregate so that lowering routines that depend on a
-one-to-one mapping of initializable fields and constants in the aggregate will
-work properly).  ipdp represents the initialization position for the beginning
-of the aggregate and insert_location points to the location where executable
-code (if any) should be inserted.  ipdp and insert_location can both be NULL
-(in cases where the aggregate constant is known not to contain any dynamic
-initialization).
-
-In the IA-64 ABI, this routine also rearranges an aggregate constant (in
-canonical order) to match the layout order when the IA-64 layout has
-re-ordered base classes.
-*/
-{
-  a_class_type_supplement_ptr ctsp;
-  a_base_class_ptr            bcp;
-  a_type_ptr                  class_type = skip_typerefs(constant->type);
-  a_constant_ptr              cp, cp_next, prev = NULL;
-  an_init_pos_modifier        ipm;
-  an_init_pos_descr           local_ipd, *local_ipdp = NULL;
-  a_field_ptr                 fp;
-  a_boolean                   update_prev;
-  a_boolean                   advance_fp;
-  a_boolean                   remove_constant;
-
-  check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
-  if (!constant->empty_classes_have_been_removed &&
-      is_immediate_class_type(class_type)) {
-    constant->empty_classes_have_been_removed = TRUE;
-    prelower_class_type(class_type);
-    if (ipdp != NULL) {
-      /* If we may be generating executable code for the initialization,
-         add a modifier to the initialization position (we'll decide later
-         if it's a field or base class modifier).  Use a copy so as not to
-         modify the caller's version. */
-      local_ipd = *ipdp;
-      local_ipd.next = NULL;
-      local_ipdp = &local_ipd;
-      push_aggregate_this(local_ipdp);
-    }  /* if */
-    ctsp = class_type_supp(class_type);
-    bcp = ctsp->base_classes;
-    fp = next_initializable_field(
-                            class_type->variant.class_struct_union.field_list);
-    if (fp != NULL &&
-        needs_virtual_function_table(class_type) &&
-        ctsp->virtual_function_info_base_class == NULL &&
-        fp->offset == ctsp->virtual_function_info_offset) {
-      /* Skip __vptr field. */
-      fp = next_initializable_field(fp->next);
-    }  /* if */
-    /* Loop through every constant in the aggregate.  Match each constant with
-       a direct base class or a field.  For empty classes that have
-       been optimized, remove the constant (after possibly lowering any
-       dynamic initialization it contains).  In all cases, recurse for any
-       aggregate (though the initialization position for fields and base
-       classes is handled differently). */
-    /*lint --e{850} cp modified in loop */
-    for (cp = constant->variant.aggregate.first_constant;
-         cp != NULL;
-         cp = cp_next) {
-      cp_next = cp->next;
-      remove_constant = FALSE;
-      advance_fp = TRUE;
-      update_prev = TRUE;
-      if (cp->kind == (a_constant_repr_kind)ck_designator) {
-        check_assertion(cp->variant.designator.is_field_designator);
-        fp = cp->variant.designator.variant.field;
-        cp = cp_next;
-        cp_next = cp->next;
-      }  /* if */
-      /* Move to next direct base class, if any. */
-      while (bcp != NULL && !bcp->direct) {
-        bcp = bcp->next;
-      }  /* while */
-      if (bcp != NULL) {
-        /* cp is used to initialize bcp. */
-        check_assertion(cp->constant_for_base_class &&
-                        identical_types(cp->type, bcp->type));
-        if (ipdp != NULL) {
-          add_init_pos_modifier(&ipm, local_ipdp);
-          ipm.curr_base = bcp;
-          ipm.type = cp->type;
-          local_ipdp->base_class_subobject = TRUE;
-        }  /* if */
-        if (bcp->is_optimized_empty_base) {
-          /* This constant initializes an empty base class; it will be removed
-             after being processed. */
-          remove_constant = TRUE;
-          advance_fp = FALSE;
-        }  /* if */
-      } else {
-        /* Remaining constants initialize fields of the class; remove any
-           empty classes they may contain. */
-        if (fp->is_optimized_empty_class) {
-          /* This constant initializes an empty class; it will be removed
-             after being processed. */
-          remove_constant = TRUE;
-        }  /* if */
-        if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
-#if CHECKING
-          /* Verify that the field and constant have the same type (though
-             they may have slightly different forms). */
-          { a_type_ptr ftp = skip_typerefs(fp->type);
-            a_type_ptr ctp = skip_typerefs(cp->type);
-            if (is_flexible_array_type(ftp)) {
-              ftp = skip_typerefs(ftp->variant.array.element_type);
-              ctp = skip_typerefs(ctp->variant.array.element_type);
-            }  /* if */
-            check_assertion(il_identical_types(ftp, ctp) ||
-                            il_identical_types(
-                                  orig_class_for_potential_subobject_type(ftp),
-                                  ctp));
-          }
-#endif /* CHECKING */
-          if (ipdp != NULL) {
-            add_init_pos_modifier(&ipm, local_ipdp);
-            ipm.curr_field = fp;
-            ipm.type = cp->type;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
-        /* Recurse to remove initializers for empty classes. */
-        remove_initializers_for_empty_classes(cp, local_ipdp,
-                                                   insert_location);
-      } else if (cp->kind == (a_constant_repr_kind)ck_dynamic_init &&
-                 remove_constant) {
-        /* A dynamic initialization in the aggregate for an optimized empty
-           class, lower it now (because the aggregate will be removed);
-           otherwise leave it for the caller to lower. */
-        a_boolean keep_constant = FALSE;
-        check_assertion(ipdp != NULL && insert_location != NULL);
-        lower_ck_dynamic_init(cp, local_ipdp, /*dtor_case=*/FALSE,
-                              (an_implied_copy_source*)NULL,
-                              /*others_follow_in_aggr=*/(cp->next != NULL),
-                              insert_location, &keep_constant, LDIO_NONE);
-        check_assertion(!keep_constant);
-      }  /* if */
-      if (remove_constant) {
-        /* This class is an empty class that has been optimized (so it won't
-           exist in the lowered type).  The constant for it must be removed
-           from the aggregate. */
-        if (prev == NULL) {
-          constant->variant.aggregate.first_constant = cp->next;
-        } else {
-          prev->next = cp->next;
-        }  /* if */
-        if (constant->variant.aggregate.last_constant == cp) {
-          constant->variant.aggregate.last_constant = prev;
-        }  /* if */
-        update_prev = FALSE;
-      } else if (bcp != NULL) {
-#if IA64_ABI
-        if (ctsp->primary_base_class != NULL &&
-            ctsp->primary_base_class != ctsp->base_classes) {
-          /* In this case, lowering has placed the primary base class at
-             offset zero, which means that the ordering of constants in the
-             aggregate does not match the ordering of the fields that is
-             returned by next_initializable_field.  Find the initializer for
-             the primary base class and move it to the beginning of the
-             aggregate so it'll match the layout order. */
-          if (identical_types(cp->type, ctsp->primary_base_class->type)) {
-            check_assertion(cp->constant_for_base_class);
-            if (constant->variant.aggregate.first_constant == cp) {
-              /* The constant may already be first, in which case no
-                 action is necessary. */
-            } else {
-              check_assertion(prev != NULL);
-              prev->next = cp->next;
-              cp->next = constant->variant.aggregate.first_constant;
-              constant->variant.aggregate.first_constant = cp;
-              if (constant->variant.aggregate.last_constant == cp) {
-                constant->variant.aggregate.last_constant = prev;
-              }  /* if */
-              update_prev = FALSE;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-#endif /* IA64_ABI */
-      }  /* if */
-      if (advance_fp) {
-        check_assertion(fp != NULL);
-        fp = next_initializable_field(fp->next);
-        if (fp != NULL &&
-            !fp->is_optimized_empty_class &&
-            needs_virtual_function_table(class_type) &&
-            ctsp->virtual_function_info_base_class == NULL &&
-            fp->offset == ctsp->virtual_function_info_offset) {
-          /* Skip __vptr field. */
-          fp = next_initializable_field(fp->next);
-        }  /* if */
-      }  /* if */
-      if (update_prev) {
-        prev = cp;
-      }  /* if */
-      if (ipdp != NULL && local_ipdp->modifiers != NULL) {
-        /* Remove any modifiers that may have been added in the loop. */
-        local_ipdp->modifiers = NULL;
-      }  /* if */
-      if (bcp != NULL) {
-        bcp = bcp->next;
-      }  /* if */
-    }  /* for */
-    if (ipdp != NULL) {
-      pop_aggregate_this();
-    }  /* if */
-  }  /* if */
-}  /* remove_initializers_for_empty_classes */
 
 
 static a_routine_ptr helper_routine_to_initialize_repeated_constant(
@@ -6576,7 +6355,12 @@ last).  Insert statements to implement the initialization at *insert_location
 and update *insert_location.  If there are any (genuine) constants in the
 aggregate, set *keep_constant to TRUE.  options is a bit mask specifying any
 special treatment of this initialization (e.g., whether this initialization
-represents a full expression).
+represents a full expression).  The constant is still in canonical format
+meaning that the constants may not align with fields of the lowered type,
+constants for virtual function table pointers need to be added and there may
+be constants for optimized empty classes.  At the conclusion of this routine
+the constant will match the lowered type (i.e., all of those issues will be
+dealt with).
 */
 {
   an_init_pos_descr    ipd;
@@ -6584,6 +6368,7 @@ represents a full expression).
   a_type_ptr           aggr_type;
   a_constant_ptr       con_ptr, repeated_con, prev_con, next_con;
   a_boolean            array_aggr, array_or_vector = FALSE;
+  a_field_ptr          curr_field = NULL;
 #if EXPENSIVE_CHECKING && CHECKING
   a_boolean            was_complex_type = FALSE;
 #endif /* EXPENSIVE_CHECKING && CHECKING */
@@ -6662,8 +6447,8 @@ represents a full expression).
        type of the aggregate. */
     /* Note that ipdp is the original initialization position (not the local
        copy). */
-    prelower_aggregate_constant(aggr_const, ipdp, insert_location);
-    ipmp->curr_field = next_initializable_field(
+    prelower_aggregate_constant(aggr_const);
+    curr_field = next_non_empty_initializable_field(
                              aggr_type->variant.class_struct_union.field_list);
     /* Push a pointer to the beginning of the constant in case a reference to
        "this" is needed later (see lower_param_ref). */
@@ -6691,7 +6476,7 @@ represents a full expression).
   for (prev_con = NULL;
        con_ptr != NULL;
        prev_con = con_ptr, con_ptr = next_con) {
-    a_boolean others_follow;
+    a_boolean others_follow, remove_constant;
 #if C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX
     check_assertion(!ipmp->is_complex || ipmp->curr_elem < 2);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX */
@@ -6700,7 +6485,7 @@ represents a full expression).
          initialization).  Update the current position. */
       if (con_ptr->variant.designator.is_field_designator) {
         check_assertion(!array_or_vector);
-        ipmp->curr_field = con_ptr->variant.designator.variant.field;
+        curr_field = con_ptr->variant.designator.variant.field;
       } else {
         check_assertion(array_aggr);
         ipmp->curr_elem = con_ptr->variant.designator.variant.array_element;
@@ -6709,14 +6494,49 @@ represents a full expression).
       check_assertion(con_ptr != NULL &&
                       con_ptr->kind != (a_constant_repr_kind)ck_designator);
     }  /* if */
+    remove_constant = FALSE;
     next_con = con_ptr->next;
     others_follow = (others_follow_in_aggr || next_con != NULL);
     if (!array_or_vector) {
-      check_assertion_str(ipmp->curr_field != NULL,
+      /* Initializing a class type.  Set the modifiers (ipmp) to indicate
+         the appropriate field to initialize.  Normally this is just the
+         next field in the list, but we may have constants for optimized
+         empty classes (which are skipped when traversing the field list). */
+      ipmp->curr_base = NULL;
+      ipmp->curr_field = NULL;
+      ipd.base_class_subobject = FALSE;
+      if (con_ptr->initializes_empty_object) {
+        /* A constant that initializes an empty object.  The field or base
+           that it came from will give us the information we need.  Remove
+           the constant once it has been lowered. */
+        a_field_or_base *ptr;
+        remove_constant = TRUE;
+        if (con_ptr->kind == (a_constant_repr_kind)ck_aggregate) {
+          ptr = &con_ptr->variant.aggregate.field_or_base;
+        } else {
+          check_assertion(con_ptr->kind ==
+                                        (a_constant_repr_kind)ck_dynamic_init);
+          ptr = &con_ptr->variant.dynamic_init.field_or_base;
+        }  /* if */
+        if (con_ptr->constant_for_base_class) {
+          /* Initializer for an optimized empty base class. */
+          ipmp->curr_base = ptr->base;
+          ipmp->type = ipmp->curr_base->type;
+          ipd.base_class_subobject = TRUE;
+        } else {
+          /* Initializer for an optimized empty class (i.e.,
+             [[no_unique_addr]]). */
+          ipmp->curr_field = ptr->field;
+          ipmp->type = ipmp->curr_field->type;
+        }  /* if */
+      } else {
+        check_assertion_str(curr_field != NULL,
              "lower_dynamic_init_aggregate_constant: have constant, no field");
-      /* For class and struct initialization, get the type of the member
-         next up to be initialized. */
-      ipmp->type = ipmp->curr_field->type;
+        /* For class and struct initialization, get the type of the member
+           next up to be initialized. */
+        ipmp->curr_field = curr_field;
+        ipmp->type = curr_field->type;
+      }  /* if */
     }  /* if */
     /* Initialize one member of the aggregate (of type ipmp->type) with
        one constant (con_ptr). */
@@ -6778,7 +6598,7 @@ represents a full expression).
           }  /* if */
         }  /* if */
         if (repeated_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
-            repeated_con->variant.dynamic_init->kind !=
+            repeated_con->variant.dynamic_init.ptr->kind !=
                              (a_dynamic_init_kind)dik_nonconstant_aggregate) {
           /* Most repeated dynamic initialization can be handled without
              invoking a generic "helper" routine (e.g., a dik_constructor will
@@ -6816,15 +6636,7 @@ represents a full expression).
                               args, (an_expr_node_ptr)NULL, insert_location);
           /* Remove the ck_init_repeat constant, in case the overall aggregate
              is kept for the constant parts. */
-          if (prev_con == NULL) {
-            aggr_const->variant.aggregate.first_constant = NULL;
-          } else {
-            prev_con->next = NULL;
-          }  /* if */
-          if (aggr_const->variant.aggregate.last_constant == con_ptr) {
-            check_assertion(con_ptr->next == NULL);
-            aggr_const->variant.aggregate.last_constant = prev_con;
-          }  /* if */
+          remove_constant = TRUE;
         }  /* if */
       } else {
         /* Some constant that doesn't contain a ck_dynamic_init; lower it
@@ -6939,8 +6751,12 @@ represents a full expression).
         ipmp->curr_elem += con_ptr->variant.init_repeat.count;
       }  /* if */
     } else {
-      /* Class or struct -- go on to next field (nonstatic data member). */
-      ipmp->curr_field = next_initializable_field(ipmp->curr_field->next);
+      if (con_ptr->initializes_empty_object) {
+        /* No need to advance to next field. */
+      } else {
+        /* Class or struct -- go on to next field (nonstatic data member). */
+        curr_field = next_non_empty_initializable_field(curr_field->next);
+      }  /* if */
     }  /* if */
     if (is_immediate_class_type(aggr_type) &&
         aggr_type->variant.class_struct_union.extra_info->
@@ -6949,6 +6765,17 @@ represents a full expression).
          advance the source of an implied copy to the next variable in
          the capture list. */
       advance_to_next_lambda_capture_if_necessary(source_desc);
+    }  /* if */
+    if (remove_constant) {
+      /* Remove a constant for an optimized empty class or ck_init_repeat. */
+      if (prev_con == NULL) {
+        aggr_const->variant.aggregate.first_constant = con_ptr->next;
+      } else {
+        prev_con->next = con_ptr->next;
+      }  /* if */
+      if (aggr_const->variant.aggregate.last_constant == con_ptr) {
+        aggr_const->variant.aggregate.last_constant = prev_con;
+      }  /* if */
     }  /* if */
     /* Loop while there are more constants. */
   }  /* for */
@@ -9880,8 +9707,7 @@ C99 mode for the same reason.
   /* If the initialization still contains designated initializers, lower
      those now (note that this may end up lowering nested ck_dynamic_init
      initializations). */
-  lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL, ipdp,
-                                             insert_location);
+  lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
   variable = dip->variable;
   if (dip->master_entry != NULL) {
@@ -11350,7 +11176,7 @@ the dynamic init entry that applies to each element and return a pointer to it.
     internal_error("elem_dynamic_init: not ck_dynamic_init");
   }  /* if */
 #endif /* CHECKING */
-  elem_dip = con->variant.dynamic_init;
+  elem_dip = con->variant.dynamic_init.ptr;
   return elem_dip;
 }  /* elem_dynamic_init */
 
@@ -12798,8 +12624,7 @@ Do IL lowering of an enk_temp_init expression node.
 #if LOWER_DESIGNATED_INITIALIZERS
     /* Explicitly lower designators here (where the type of the aggregate
        is known). */
-    lower_dynamic_init_designated_initializers(dip, expr->type,
-                                               &ipd, &insert_location);
+    lower_dynamic_init_designated_initializers(dip, expr->type);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
     lower_dynamic_init(dip, &ipd,
                        (an_implied_copy_source *)NULL,
@@ -13058,9 +12883,7 @@ eff_insert_location specifies the insert location for any added statements
   an_insert_location insert_location;
 
 #if LOWER_DESIGNATED_INITIALIZERS
-  lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL,
-                                             (an_init_pos_descr_ptr)NULL,
-                                             eff_insert_location);
+  lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
   /* Only lower the cases that do not come up in C: */
   if (dip->destructor != NULL) {
@@ -13444,7 +13267,7 @@ position of the first member of the aggregate constant aggr_con.
   } else {
     /* Initializing members of a struct or union. */
     a_field_ptr first_field =
-                    next_initializable_field(
+                    next_non_empty_initializable_field(
                              aggr_type->variant.class_struct_union.field_list);
     if (first_field != NULL) {
       set_aggregate_position_for_field(first_field, aggr_pos);
@@ -13465,7 +13288,7 @@ the aggregate.
   } else {
     a_field_ptr field = aggr_pos->curr_field;
     check_assertion(field != NULL);
-    field = next_initializable_field(field->next);
+    field = next_non_empty_initializable_field(field->next);
     check_assertion(field != NULL);
     set_aggregate_position_for_field(field, aggr_pos);
   }  /* if */
@@ -13485,7 +13308,7 @@ position indicated by aggr_pos.
   } else {
     a_field_ptr field = aggr_pos->curr_field;
     more_members = (field != NULL &&
-                    next_initializable_field(field->next) != NULL);
+                    next_non_empty_initializable_field(field->next) != NULL);
   }  /* if */
   return more_members;
 }  /* any_more_members_in_aggregate */
@@ -13586,9 +13409,14 @@ static void set_init_con_pos(a_constant_ptr  con,
                              an_init_con_pos *init_con_pos)
 /*
 Set an init constant position for the indicated constant.  It's okay for
-con to be NULL, to set a null position.
+con to be NULL, to set a null position.  This routine assumes that constants
+for empty objects may still exist in the aggregate and skips those.
 */
 {
+  while (con != NULL && con->initializes_empty_object) {
+    /* Skip any constants for empty classes. */
+    con = con->next;
+  }  /* while */
   init_con_pos->ptr = con;
   init_con_pos->repeat_count = 0;
   if (con != NULL && con->kind == (a_constant_repr_kind)ck_init_repeat) {
@@ -14029,7 +13857,7 @@ have already had their designated initializers lowered.
       /* For a union, see whether the previous initialization and the
          new one initialize the same member. */
       a_constant_ptr prev_union_designator = NULL;
-      a_field_ptr    first_field = next_initializable_field(
+      a_field_ptr    first_field = next_non_empty_initializable_field(
                              aggr_type->variant.class_struct_union.field_list);
       if (temp_con != NULL &&
           temp_con->kind == (a_constant_repr_kind)ck_designator) {
@@ -14155,10 +13983,8 @@ have already had their designated initializers lowered.
         if (con.ptr->kind == (a_constant_repr_kind)ck_dynamic_init) {
           /* Lower designators in a dynamic initialization subtree. */
           lower_dynamic_init_designated_initializers(
-                                                con.ptr->variant.dynamic_init,
-                                                con.ptr->type,
-                                                (an_init_pos_descr_ptr)NULL,
-                                                (an_insert_location*)NULL);
+                                             con.ptr->variant.dynamic_init.ptr,
+                                             con.ptr->type);
         }  /* if */
         if (earlier_con.ptr != NULL) {
           /* con overwrites an earlier initialization at the same location,
@@ -14247,7 +14073,7 @@ have already had their designated initializers lowered.
       a_constant_ptr prev_union_designator = union_designator;
       prev_con = NULL;
       if (con.ptr->variant.designator.variant.field ==
-                  next_initializable_field(
+                  next_non_empty_initializable_field(
                            aggr_type->variant.class_struct_union.field_list)) {
         /* The ck_designator is not needed when initializing the first
            field. */
@@ -14549,22 +14375,15 @@ as C++ mode.
 }  /* lower_designated_initializers */
 
 
-void lower_dynamic_init_designated_initializers(
-                                       a_dynamic_init_ptr    dip,
-                                       a_type_ptr            aggr_type,
-                                       an_init_pos_descr_ptr ipdp,
-                                       an_insert_location    *insert_location)
+void lower_dynamic_init_designated_initializers(a_dynamic_init_ptr dip,
+                                                a_type_ptr         aggr_type)
 /*
 If the dynamic initialization pointed to by dip contains any designated
 initializers, rewrite them as standard C.  If non-NULL, aggr_type specifies the
 type of the aggregate being initialized (it can be NULL in cases where
 dip->variable is non-NULL, in which case the type of dip->variable is used).
 If the initialization is an aggregate initialization, the aggregate constant
-is prelowered here, which may involve lowering of dynamic initialization
-in the aggregate (or a subaggregate).  In those cases, ipdp and
-insert_location should be non-NULL and represent a description of the entity
-being initialized (ipdp) and a location where code generated by dynamic
-initialization can be inserted (insert_location).
+is prelowered here.
 
 Note that this is called in C mode as well as C++ mode.
 */
@@ -14575,7 +14394,7 @@ Note that this is called in C mode as well as C++ mode.
     a_constant_ptr cp = dip->variant.constant;
     if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
       /* If the constant is an aggregate, prelower it now. */
-      prelower_aggregate_constant(cp, ipdp, insert_location);
+      prelower_aggregate_constant(cp);
     }  /* if */
     lower_designated_initializers(cp, dip, aggr_type);
   }  /* if */
@@ -15680,10 +15499,10 @@ are traversed while searching for the matching constant).
 
   check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
   cp = aggr_con->variant.aggregate.first_constant;
-  for (field = next_initializable_field(
+  for (field = next_non_empty_initializable_field(
                             class_type->variant.class_struct_union.field_list);
        field != NULL && cp != NULL;
-       field = next_initializable_field(field->next)) {
+       field = next_non_empty_initializable_field(field->next)) {
     a_targ_size_t b_offset = bcp->offset, f_offset = field->offset;
     if (bcp->direct && b_offset == f_offset) {
       /* This field is at the proper offset; return the corresponding
@@ -15778,6 +15597,8 @@ given by vptr_node.
     /* Search through the (original or base-class) constant to find the
        offset that corresponds to the __vptr field; then add a new initializer
        at that location. */
+    /* Note that optimized empty class constants may still be present in the
+       constant, so use next_initializable_field. */
     cp = aggr_con->variant.aggregate.first_constant;
     for (field = next_initializable_field(
                             class_type->variant.class_struct_union.field_list);

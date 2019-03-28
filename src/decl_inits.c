@@ -911,7 +911,7 @@ remove_any_extraneous_braces:
       a_dynamic_init_ptr  dip = elem_is.init_dip;
       check_assertion(!is->check_validity_only);
       *init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-      (*init_con)->variant.dynamic_init = dip;
+      (*init_con)->variant.dynamic_init.ptr = dip;
       (*init_con)->type = dest_type;
       (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -1025,7 +1025,8 @@ of the whole initialization (*is) as appropriate.
       a_constant_ptr  elem_con;
       aggr_init_generic_element(icp, dest_type, is, &elem_con);
       if (elem_con != NULL) {
-        add_constant_to_aggregate(elem_con, *init_con);
+        add_constant_to_aggregate(elem_con, *init_con, (a_base_class_ptr)NULL,
+                                  (a_field_ptr)NULL);
       } else {
         check_assertion(is->init_error);
       }  /* if */
@@ -1132,7 +1133,8 @@ diagnostics.
       a_constant_ptr  elem_con;
       aggr_init_element(&icp, etype, is, diag_pos, &elem_con);
       if (!is->check_validity_only) {
-        add_constant_to_aggregate(elem_con, *init_con);
+        add_constant_to_aggregate(elem_con, *init_con, (a_base_class_ptr)NULL,
+                                  (a_field_ptr)NULL);
       }  /* if */
       if (is->pack_expansion_handled) {
         /* If a pack expansion was seen, don't try to track element counts. */
@@ -1223,11 +1225,13 @@ braced initializer (or NULL if there is none) is returned through *p_icp.
   check_assertion(icp != NULL && next_elem(icp) != NULL);
   aggr_init_element(&icp, ftype, is, diag_pos, &elem_con);
   if (!is->check_validity_only) {
-    add_constant_to_aggregate(elem_con, *init_con);
+    add_constant_to_aggregate(elem_con, *init_con, (a_base_class_ptr)NULL,
+                              (a_field_ptr)NULL);
   }  /* if */
   aggr_init_element(&icp, ftype, is, diag_pos, &elem_con);
   if (!is->check_validity_only) {
-    add_constant_to_aggregate(elem_con, *init_con);
+    add_constant_to_aggregate(elem_con, *init_con, (a_base_class_ptr)NULL,
+                              (a_field_ptr)NULL);
   }  /* if */
   /* Issue an error if there are extraneous elements. */
   if (icp != NULL) {
@@ -1367,7 +1371,7 @@ given position, unless is->no_diagnostics is TRUE.
     /* Now create the constant entry (if needed). */
     if (!is->check_validity_only && result == NULL) {
       result = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-      result->variant.dynamic_init = dip;
+      result->variant.dynamic_init.ptr = dip;
       result->type = tp;
       is->has_dynamic_init_component = TRUE;
     }  /* if */
@@ -1458,7 +1462,7 @@ Issue any diagnostics at the given position.
         }  /* if */
       }  /* if */
       elem_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-      elem_con->variant.dynamic_init = dip;
+      elem_con->variant.dynamic_init.ptr = dip;
       if (dip->is_partially_initialized) {
         is->partial_initializer = TRUE;
         elem_con->is_partially_initialized = TRUE;
@@ -1537,10 +1541,11 @@ is->no_diagnostics is TRUE.
                 des_con = alloc_constant((a_constant_repr_kind)ck_designator);
           des_con->variant.designator.is_field_designator = TRUE;
           des_con->variant.designator.variant.field = fp;
-          add_constant_to_aggregate(des_con, result);
+          add_constant_to_aggregate(des_con, result, (a_base_class_ptr)NULL,
+                                    (a_field_ptr)NULL);
         }  /* if */
         con->implicit_aggr_element = TRUE;
-        add_constant_to_aggregate(con, result);
+        add_constant_to_aggregate(con, result, (a_base_class_ptr)NULL, fp);
       }  /* if */
     } else {
       /* A traditional (POD) union.  Just keep the empty aggregate constant. */
@@ -1641,7 +1646,10 @@ with every element initialized with the given constant.
        non-array ck_aggregate constant applies.  IL lowering relies on this. */
     cp = add_repeat_con(cp, count);
   }  /* if */
-  if (count > 0) add_constant_to_aggregate(cp, result);
+  if (count > 0) {
+    add_constant_to_aggregate(cp, result, (a_base_class_ptr)NULL,
+                              (a_field_ptr)NULL);
+  }  /* if */
   return result;
 }  /* repeat_constant_for_array_init */
 
@@ -1829,7 +1837,8 @@ the position at which diagnostics should be issued.
            match these implicit initializers. */
         remainder_con = add_repeat_con(remainder_con, count);
         remainder_con->implicit_aggr_element = TRUE;
-        add_constant_to_aggregate(remainder_con, array_con);
+        add_constant_to_aggregate(remainder_con, array_con,
+                                  (a_base_class_ptr)NULL, (a_field_ptr)NULL);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1974,7 +1983,8 @@ available.
       des_con->variant.designator.is_field_designator = FALSE;
       des_con->variant.designator.variant.array_element = *idx;
       des_con->source_corresp.decl_position = *init_component_pos(*p_icp);
-      add_constant_to_aggregate(des_con, aggr_con);
+      add_constant_to_aggregate(des_con, aggr_con,
+                                (a_base_class_ptr)NULL, (a_field_ptr)NULL);
       aggr_con->is_partially_initialized = TRUE;
     }  /* if */
     if (icp != NULL) {
@@ -2020,7 +2030,8 @@ available.
           next_con = add_repeat_con(next_con, repeat_count);
           set_aggr_tail_not_repeated_flag(next_con);
         }  /* if */
-        add_constant_to_aggregate(next_con, aggr_con);
+        add_constant_to_aggregate(next_con, aggr_con,
+                                  (a_base_class_ptr)NULL, (a_field_ptr)NULL);
       }  /* if */
     } else {
       expect_error();
@@ -2186,7 +2197,9 @@ initialization).  *is describes the initialization as a whole.
               char_con = con_list;
               con_list = con_list->next;
               char_con->next = NULL;
-              add_constant_to_aggregate(char_con, *init_con);
+              add_constant_to_aggregate(char_con, *init_con,
+                                        (a_base_class_ptr)NULL,
+                                        (a_field_ptr)NULL);
               ++idx;
             }  /* while */
             icp = icp->next;
@@ -2214,7 +2227,9 @@ initialization).  *is describes the initialization as a whole.
           }  /* if */
           aggr_init_element(&icp, etype, is, diag_pos, &elem_con);
           if (!is->check_validity_only) {
-            add_constant_to_aggregate(elem_con, *init_con);
+            add_constant_to_aggregate(elem_con, *init_con,
+                                      (a_base_class_ptr)NULL,
+                                      (a_field_ptr)NULL);
           }  /* if */
           ++idx;
           if (is->pack_expansion_handled) {
@@ -2388,7 +2403,8 @@ dims[rank].  Produce an aggregate constant representing this initialization in
         aggr_init_element(&icp, etype, is, init_component_pos(icp), &elem_con);
       }  /* if */
       if (!is->check_validity_only) {
-        add_constant_to_aggregate(elem_con, *result);
+        add_constant_to_aggregate(elem_con, *result, (a_base_class_ptr)NULL,
+                                  (a_field_ptr)NULL);
       }  /* if */
     }  /* for */
     if (deduce_dims && idx > dims[rank]) {
@@ -2592,7 +2608,7 @@ members up to end_field, but not including end_field, should be initialized.
         /* Add the constant entry to the list of constants. */
         init_con->implicit_aggr_element = TRUE;
         init_con->constant_for_base_class = TRUE;
-        add_constant_to_aggregate(init_con, aggr_con);
+        add_constant_to_aggregate(init_con, aggr_con, bcp, (a_field_ptr)NULL);
       }  /* if */
     }  /* for */
   }  /* if */
@@ -2647,7 +2663,8 @@ members up to end_field, but not including end_field, should be initialized.
                 des_con = alloc_constant((a_constant_repr_kind)ck_designator);
           des_con->variant.designator.is_field_designator = TRUE;
           des_con->variant.designator.variant.field = next_field;
-          add_constant_to_aggregate(des_con, aggr_con);
+          add_constant_to_aggregate(des_con, aggr_con, (a_base_class_ptr)NULL,
+                                    (a_field_ptr)NULL);
         }  /* if */
       } else if (end_field == NULL) {
         a_field_ptr  field2 =
@@ -2728,7 +2745,8 @@ members up to end_field, but not including end_field, should be initialized.
         }  /* if */
         /* Add the constant entry to the list of constants. */
         init_con->implicit_aggr_element = TRUE;
-        add_constant_to_aggregate(init_con, aggr_con);
+        add_constant_to_aggregate(init_con, aggr_con, (a_base_class_ptr)NULL,
+                                  fp);
       }  /* if */
     }  /* for */
   }  /* if */
@@ -2893,7 +2911,7 @@ position is available).
          type_change_constant_full for the constant and add_cast for the
          non-constant case.) */
       if (elem_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-        a_dynamic_init_ptr  dip = elem_con->variant.dynamic_init;
+        a_dynamic_init_ptr  dip = elem_con->variant.dynamic_init.ptr;
         check_assertion(dip->kind == (a_dynamic_init_kind)dik_expression);
         dip->variant.expression = add_cast(dip->variant.expression, fp->type);
         elem_con->type = dip->variant.expression->type;
@@ -2914,7 +2932,7 @@ position is available).
                                   init_component_pos(icp));
       }  /* if */
     }  /* if */
-    add_constant_to_aggregate(elem_con, aggr_con);
+    add_constant_to_aggregate(elem_con, aggr_con, (a_base_class_ptr)NULL, fp);
   }  /* if */
   if (class_type->kind == (a_type_kind)tk_union) {
     /* In the case of a union, only one field is usually initialized.
@@ -3239,7 +3257,8 @@ initialization. */
       des_con->variant.designator.is_field_designator = TRUE;
       des_con->variant.designator.variant.field = *field;
       des_con->source_corresp.decl_position = *init_component_pos(*p_icp);
-      add_constant_to_aggregate(des_con, aggr_con);
+      add_constant_to_aggregate(des_con, aggr_con, (a_base_class_ptr)NULL,
+                                (a_field_ptr)NULL);
       if (class_type->kind != (a_type_kind)tk_union) {
         aggr_con->is_partially_initialized = TRUE;
       }  /* if */
@@ -3271,7 +3290,9 @@ initialization. */
           if (next_con == NULL) {
             check_assertion(is->init_error);
           } else if (!is->check_validity_only) {
-            add_constant_to_aggregate(next_con, aggr_con);
+            add_constant_to_aggregate(next_con, aggr_con,
+                                      (a_base_class_ptr)NULL,
+                                      (a_field_ptr)NULL);
           }  /* if */
         }  /* if */
       } else {
@@ -3325,7 +3346,7 @@ position is available).
                          &elem_con);
   if (!is->check_validity_only && elem_con != NULL) {
     elem_con->constant_for_base_class = TRUE;
-    add_constant_to_aggregate(elem_con, aggr_con);
+    add_constant_to_aggregate(elem_con, aggr_con, bcp, (a_field_ptr)NULL);
   }  /* if */
   if (!is->pack_expansion_handled) {
     *p_bcp = next_direct_base(bcp->next);
@@ -3524,7 +3545,7 @@ issued if no more specific position is available.
           record_partial_aggregate_cleanup_destruction(dip,
                                                        !is->not_evaluated);
           *init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-          (*init_con)->variant.dynamic_init = dip;
+          (*init_con)->variant.dynamic_init.ptr = dip;
           (*init_con)->type = class_type;
           is->has_dynamic_init_component = TRUE;
         }  /* if */
@@ -3749,7 +3770,7 @@ particular situation.
         }  /* if */
       }  /* if */
       *init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-      (*init_con)->variant.dynamic_init = dip;
+      (*init_con)->variant.dynamic_init.ptr = dip;
       (*init_con)->type = etype;
       is->has_dynamic_init_component = TRUE;
     }  /* if */
@@ -3887,7 +3908,7 @@ a ck_aggregate constant.
       *init_con = NULL;
     } else {
       *init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-      (*init_con)->variant.dynamic_init = cli_array_dip;
+      (*init_con)->variant.dynamic_init.ptr = cli_array_dip;
       (*init_con)->type = etype;
       (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -4166,7 +4187,7 @@ variable initialization.
       if (is->init_dip != NULL) {
         is->init_con = NULL;
       } else if (is->init_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-        is->init_dip = is->init_con->variant.dynamic_init;
+        is->init_dip = is->init_con->variant.dynamic_init.ptr;
         is->init_con = NULL;
       } else {
         is->init_dip = NULL;
@@ -4728,7 +4749,8 @@ to use for diagnostics by default.
       is->init_con = repeat_constant_for_array_init(fill_con, tp);
     } else {
       is->init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-      add_constant_to_aggregate(fill_con, is->init_con);
+      add_constant_to_aggregate(fill_con, is->init_con,
+                                (a_base_class_ptr)NULL, (a_field_ptr)NULL);
     }  /* if */
     is->init_con->type = atype;
     is->init_con->source_corresp.decl_position = *init_component_pos(expr_icp);
@@ -6131,7 +6153,7 @@ arrays are treated as one-dimensional arrays.
   /* Create the new ck_dynamic_init constant representing the constructor
      call. */
   dynamic_init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-  dynamic_init_con->variant.dynamic_init = ctor_dip;
+  dynamic_init_con->variant.dynamic_init.ptr = ctor_dip;
   dynamic_init_con->type = elem_type;
   /* Create a ck_aggregate constant and point *new_dip to it. */
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
@@ -7962,7 +7984,7 @@ whole array.
     acon->type = atype;
     add_constant_to_aggregate(
                       add_repeat_con(econ, array_element_count(atype, etype)),
-                      acon);
+                      acon, (a_base_class_ptr)NULL, (a_field_ptr)NULL);
     dip->variant.constant = acon;
     result = dip;
   } else {

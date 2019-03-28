@@ -4125,6 +4125,24 @@ typedef struct a_subobject_path {
   } variant;
 } a_subobject_path;
 		
+#if DO_IL_LOWERING
+/*
+Define a union type to store either a pointer to a field or a base class.
+This is used when lowering an optimized empty class (which could be either
+an optimized base class or an optimized empty field).  A pointer to either
+the field/base class from which a (ck_aggregate or ck_dynamic_init) constant
+derived is stored here for easy access during lowering.  When
+a_constant::constant_for_base_class is TRUE, the "base" member is active,
+otherwise "field" is.
+*/
+typedef union a_field_or_base {
+  a_field_ptr   field;  /* Points to a field whose is_optimized_empty_class
+                           flag is TRUE. */
+  a_base_class_ptr
+                base;   /* Points to a base class whose
+                           is_optimized_empty_base flag is TRUE. */
+} a_field_or_base;
+#endif /* DO_IL_LOWERING */
 
 typedef struct a_constant {
   /* Description of a constant.  Also used as an element on an initializer
@@ -4338,11 +4356,13 @@ typedef struct a_constant {
 			   ck_aggregate constants are only visited one time.
 			   TRUE for ck_aggregate constants that have had
 			   an initializer for the __vptr field inserted. */
-  a_bit_field	empty_classes_have_been_removed:1;
-			/* Flag that is used during lowering to ensure that
-			   ck_aggregate constants only have their empty classes
-			   removed one time.  TRUE for ck_aggregate constants
-			   that have had empty classes removed. */
+  a_bit_field
+		initializes_empty_object:1;
+			/* TRUE if the constant initializes an "empty object",
+			   i.e., an optimized empty base class or an optimized
+			   empty class.  These constants are lowered (because
+			   they may contain dynamic initialization) and then
+			   removed from the final aggregate constant. */
 #endif /* DO_IL_LOWERING */
   a_bit_field	constant_for_base_class:1;
 			/* TRUE if this constant (under a ck_aggregate) is
@@ -4565,13 +4585,21 @@ typedef struct a_constant {
     } stack_offset;
 #endif /* DO_IL_LOWERING && ... */
     /* When kind == ck_dynamic_init: */
-    a_dynamic_init_ptr
-		dynamic_init;
-			/* A pointer to the dynamic-init entry that describes
-                           a required dynamic initialization that appears in
+    struct {
+      a_dynamic_init_ptr
+		ptr;    /* A pointer to the dynamic-init entry that describes
+			   a required dynamic initialization that appears in
 			   the middle of a ck_aggregate constant list used as
 			   an initializer.  Obviously, this is not a constant.
 			   Only used in C++. */
+#if DO_IL_LOWERING
+      a_field_or_base
+		field_or_base;
+			/* When the constant refers to an optimized empty
+			   object (in an aggregate), refers to the associated
+			   field or base class. */
+#endif /* DO_IL_LOWERING */
+    } dynamic_init;
     /* When kind == ck_aggregate: */
     /* A ck_aggregate constant is used only in initialization.  As such, it
        is always an unshared constant. */
@@ -4586,6 +4614,13 @@ typedef struct a_constant {
 			/* TRUE if one of the constants on the list is a
 			   ck_dynamic_init entry, or a ck_aggregate entry with
 			   this flag set to TRUE. */
+#if DO_IL_LOWERING
+      a_field_or_base
+		field_or_base;
+			/* When the constant refers to an optimized empty
+			   object (in an aggregate), refers to the associated
+			   field or base class. */
+#endif /* DO_IL_LOWERING */
     } aggregate;
     /* When kind == ck_init_repeat: */
     /* A ck_init_repeat constant is used only in initialization.  As such,

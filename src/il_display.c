@@ -1347,7 +1347,7 @@ display_constant_value:
 #endif /* DO_IL_LOWERING && ... */
     case ck_dynamic_init:
       (void)printf("ck_dynamic_init\n");
-      disp_ptr("dynamic_init", (char *)ptr->variant.dynamic_init,
+      disp_ptr("dynamic_init", (char *)ptr->variant.dynamic_init.ptr,
                iek_dynamic_init);
       break;
     case ck_aggregate:

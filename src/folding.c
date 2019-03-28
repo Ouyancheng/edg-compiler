@@ -3041,7 +3041,8 @@ description of the parameters.
     unary_operation(op, opnd_elem, opnd_elem->type, result_elem,
                     constant_context, evaluated_context, &local_not_folded,
                     template_constant, error_detected, err_pos);
-    add_constant_to_aggregate(result_elem, result);
+    add_constant_to_aggregate(result_elem, result, (a_base_class_ptr)NULL,
+                              (a_field_ptr)NULL);
     /* Step to the next element, unless we already ran off the end of the
        operand aggregate and are using a local zero. */
     if (!opnd_local_constant) {
@@ -5547,7 +5548,8 @@ description of the parameters.
     binary_operation(op, opnd1_elem, opnd2_elem, result_elem_type, result_elem,
                      constant_context, evaluated_context, &local_not_folded,
                      template_constant, error_detected, err_pos);
-    add_constant_to_aggregate(result_elem, result);
+    add_constant_to_aggregate(result_elem, result, (a_base_class_ptr)NULL,
+                              (a_field_ptr)NULL);
     /* Step to the next element in both operands, unless the operand is a
        scalar or we ran off the end of the operand aggregate and are using
        a local zero. */

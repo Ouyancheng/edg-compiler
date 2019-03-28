@@ -2412,7 +2412,7 @@ dik_nonconstant_aggregate.
     }  /* if */
     fputs(": ", f_debug);
     if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-      a_dynamic_init_ptr  dip = con->variant.dynamic_init;
+      a_dynamic_init_ptr  dip = con->variant.dynamic_init.ptr;
       db_dynamic_initializer(dip, level+2);
     } else {
       if (con->kind == (a_constant_repr_kind)ck_aggregate) {
@@ -5624,15 +5624,46 @@ character kind.
 }  /* character_type */
 
 
-void add_constant_to_aggregate(a_constant_ptr con,
-                               a_constant_ptr aggr_con)
+#if !DO_IL_LOWERING
+/*ARGSUSED*/ /* <-- bcp and fp are not used in that case. */
+#endif /* !DO_IL_LOWERING */
+void add_constant_to_aggregate(a_constant_ptr   con,
+                               a_constant_ptr   aggr_con,
+                               a_base_class_ptr bcp,
+                               a_field_ptr      fp)
 /*
 Add con at the end of the list of constants in the aggregate constant aggr_con.
 Update some flags in aggr_con if appropriate (e.g., if con uses a designated
-initializer, then aggr_con does also).
+initializer, then aggr_con does also).  If the constant being added to the
+aggregate is for a class type that may be empty, one of bcp or fp should be
+set to point to the base class or field that corresponds to the constant.
 */
 {
-  check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
+  check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate &&
+                  (bcp == NULL || fp == NULL));
+#if DO_IL_LOWERING
+  if (con->type != NULL && is_class_struct_union_type(con->type)) {
+    if (bcp != NULL && bcp->is_optimized_empty_base) {
+      check_assertion(con->constant_for_base_class);
+      con->initializes_empty_object = TRUE;
+      if (con->kind == (a_constant_repr_kind)ck_aggregate) {
+        con->variant.aggregate.field_or_base.base = bcp;
+      } else {
+        check_assertion(con->kind == (a_constant_repr_kind)ck_dynamic_init);
+        con->variant.dynamic_init.field_or_base.base = bcp;
+      }  /* if */
+    }  /* if */
+    if (fp != NULL && fp->is_optimized_empty_class) {
+      con->initializes_empty_object = TRUE;
+      if (con->kind == (a_constant_repr_kind)ck_aggregate) {
+        con->variant.aggregate.field_or_base.field = fp;
+      } else {
+        check_assertion(con->kind == (a_constant_repr_kind)ck_dynamic_init);
+        con->variant.dynamic_init.field_or_base.field = fp;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* DO_IL_LOWERING */
   if (aggr_con->variant.aggregate.first_constant == NULL) {
     aggr_con->variant.aggregate.first_constant = con;
   } else {
@@ -5690,7 +5721,8 @@ characters.  The constant is updated in place.
                                    (a_host_large_unsigned)val);
       }  /* if */
       char_con = alloc_unshared_constant(char_val);
-      add_constant_to_aggregate(char_con, con);
+      add_constant_to_aggregate(char_con, con, (a_base_class_ptr)NULL,
+                                (a_field_ptr)NULL);
     }  /* for */
     release_local_constant(&char_val);
   }  /* if */
@@ -5721,7 +5753,7 @@ expressions aren't copied; they're just linked together into one tree.
   an_expr_node_ptr expr = NULL;
 
   if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-    a_dynamic_init_ptr dip = con->variant.dynamic_init;
+    a_dynamic_init_ptr dip = con->variant.dynamic_init.ptr;
     a_boolean          suppress_warning;
     if (dynamic_init_has_side_effects(dip, /*for_unused_var=*/FALSE,
                                       &suppress_warning)) {
@@ -5768,7 +5800,7 @@ that expression.
   an_expr_node_ptr *expr_ptr;
 
   if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-    a_dynamic_init_ptr dip = con->variant.dynamic_init;
+    a_dynamic_init_ptr dip = con->variant.dynamic_init.ptr;
     if (dip->kind != (a_dynamic_init_kind)dik_expression) {
       /* Dynamic init other than dik_expression (e.g., dik_constructor).
          Turn the initialization into a dik_expression with the
@@ -5779,7 +5811,7 @@ that expression.
       expr->type = prvalue_type(con->type);
       dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
       dip->variant.expression = expr;
-      con->variant.dynamic_init = dip;
+      con->variant.dynamic_init.ptr = dip;
     }  /* if */
     expr_ptr = &dip->variant.expression;
   } else if (con->kind == (a_constant_repr_kind)ck_aggregate &&
@@ -5820,7 +5852,7 @@ that expression.
     dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
     dip->variant.expression = expr;
     set_constant_kind(con, (a_constant_repr_kind)ck_dynamic_init);
-    con->variant.dynamic_init = dip;
+    con->variant.dynamic_init.ptr = dip;
     expr_ptr = &dip->variant.expression;
   }  /* if */
   return expr_ptr;
@@ -6069,7 +6101,8 @@ copy_constant_full should be called to start a copy.
       new_aggr_con = i_copy_constant_full(old_aggr_con, (a_constant *)NULL,
                                           options_unshared, cblock);
       /* Add the constant to the aggregate list. */
-      add_constant_to_aggregate(new_aggr_con, new_constant);
+      add_constant_to_aggregate(new_aggr_con, new_constant,
+                                (a_base_class_ptr)NULL, (a_field_ptr)NULL);
     }  /* for */
   } else if (new_constant->kind == (a_constant_repr_kind)ck_init_repeat) {
     /* For ck_init_repeat constants, copy the subtree also. */
@@ -6079,9 +6112,9 @@ copy_constant_full should be called to start a copy.
                                     options_unshared, cblock);
   } else if (new_constant->kind == (a_constant_repr_kind)ck_dynamic_init) {
     /* For ck_dynamic_init constants, copy the subtree also. */
-    new_constant->variant.dynamic_init =
-                        i_copy_dynamic_init(old_constant->variant.dynamic_init,
-                                            options_unshared, cblock);
+    new_constant->variant.dynamic_init.ptr =
+                    i_copy_dynamic_init(old_constant->variant.dynamic_init.ptr,
+                                        options_unshared, cblock);
   } else if (new_constant->kind == (a_constant_repr_kind)ck_address) {
     if (new_constant->variant.address.kind ==
                                          (an_address_base_kind)abk_constant ||
@@ -7554,8 +7587,8 @@ definition of the CC flags in il.h for more information.
                               multidimensional_aggr_tail_not_repeated);
         break;
       case ck_dynamic_init:
-        eq = compare_dynamic_inits(cp1->variant.dynamic_init,
-                                   cp2->variant.dynamic_init,
+        eq = compare_dynamic_inits(cp1->variant.dynamic_init.ptr,
+                                   cp2->variant.dynamic_init.ptr,
                                    options);
         break;
 #if GNU_EXTENSIONS_ALLOWED
@@ -8036,7 +8069,7 @@ at the file scope (it would contain a pointer down into a function scope).
       }  /* switch */
       break;
     case ck_dynamic_init:
-      { a_dynamic_init_ptr dip = cp->variant.dynamic_init;
+      { a_dynamic_init_ptr dip = cp->variant.dynamic_init.ptr;
         switch (dip->kind) {
           case dik_none:
           case dik_zero:
@@ -8682,7 +8715,7 @@ which case the resulting constant is an empty aggregate.
           }  /* if */
           base_con->constant_for_base_class = TRUE;
           base_con->constant_for_base_class_from_constexpr_folding = TRUE;
-          add_constant_to_aggregate(base_con, con);
+          add_constant_to_aggregate(base_con, con, bcp, (a_field_ptr)NULL);
         } /* if */
       }  /* for */
     }  /* if */
@@ -14666,59 +14699,45 @@ the list formed by the "next" links, or NULL if there is no such base.
 }  /* next_direct_base */
 
 
-a_field_ptr next_initializable_field(a_field_ptr field)
+a_field_ptr next_applicable_field(a_field_ptr              field,
+                                  a_next_field_options_set options)
 /*
 Given a pointer to a field (or NULL), return a pointer to the first field
-at or after the given field that is initializable.  Unnamed bit fields and
-Microsoft properties, for example, are not initializable, and are skipped by
-initialization processing.  If there is no next such field, return NULL.
-Note that fields with is_optimized_empty_class are considered to be
-initializable.  That's certainly true for the front end, but lowering removes
-initialization of these fields (as they will not appear in the lowered struct).
+at or after the given field that matches the criteria specified by "options".
+If there is no next such field, return NULL.
 */
 {
   for (; field != NULL; field = field->next) {
+    if (options & NF_SKIP_FIELDS_ADDED_BY_LOWERING &&
+        symbol_for(field) == NULL) {
+      /* Skip fields generated by lowering. */
+      continue;
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    /* Skip any property or event fields. */
-    if (field->property_or_event_descr != NULL) continue;
+    if (options & NF_SKIP_PROPERTY_OR_EVENT &&
+        field->property_or_event_descr != NULL) {
+      /* Skip any property or event fields. */
+      continue;
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Unnamed bit fields are not initializable. */
-    if (has_name(field) || !field->is_bit_field) break;
-    /* Anonymous unions are also initializable in C++.  An extension allows
-       anonymous parent objects in C too. */
-    if (field->is_anonymous_parent_object) break;
+    if (options & NF_SKIP_OPTIMIZED_EMPTY_CLASS &&
+        field->is_optimized_empty_class) {
+      /* Skip fields for optimized empty classes. */
+      continue;
+    }  /* if */
+    if (options & NF_INITIALIZABLE) {
+      /* Unnamed bit fields are not initializable. */
+      if (has_name(field) || !field->is_bit_field) break;
+      /* Anonymous unions are also initializable in C++.  An extension allows
+         anonymous parent objects in C too. */
+      if (field->is_anonymous_parent_object) break;
+    } else {
+      /* Field has not been skipped and doesn't need to be initializable. */
+      break;
+    }  /* if */
   }  /* for */
   return field;
-}  /* next_initializable_field */
-
-
-a_field_ptr next_proper_initializable_field(a_field_ptr field)
-/*
-Given a pointer to a field (or NULL), return a pointer to the first field at
-or after the given field that is initializable and not generated by lowering.
-Unnamed bit fields and Microsoft properties, for example, are not
-initializable, and are skipped by initialization processing.  If there is no
-next such field, return NULL.  Note that fields with is_optimized_empty_class
-are considered to be initializable.  That's certainly true for the front end,
-but lowering removes initialization of these fields (as they will not appear in
-the lowered struct).
-*/
-{
-  for (; field != NULL; field = field->next) {
-    /* Skip fields generated by lowering. */
-    if (symbol_for(field) == NULL) continue;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    /* Skip any property or event fields. */
-    if (field->property_or_event_descr != NULL) continue;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Unnamed bit fields are not initializable. */
-    if (has_name(field) || !field->is_bit_field) break;
-    /* Anonymous unions are also initializable in C++.  An extension allows
-       anonymous parent objects in C too. */
-    if (field->is_anonymous_parent_object) break;
-  }  /* for */
-  return field;
-}  /* next_proper_initializable_field */
+}  /* next_applicable_field */
 
 
 a_boolean is_compound_assignment_operator(an_expr_operator_kind  op)
@@ -26262,7 +26281,7 @@ associated with the constant (e.g., if it's a nonconstant aggregate).
       remove_constant_initializer_dynamic_initializations(sub_con);
     }  /* for */
   } else if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-    remove_dynamic_initialization(con->variant.dynamic_init);
+    remove_dynamic_initialization(con->variant.dynamic_init.ptr);
   } else if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
     remove_constant_initializer_dynamic_initializations(
                                             con->variant.init_repeat.constant);

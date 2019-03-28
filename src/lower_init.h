@@ -337,10 +337,8 @@ extern void lower_designated_initializers(a_constant_ptr init_con,
                                           a_type_ptr     aggr_type);
 
 extern void lower_dynamic_init_designated_initializers(
-                                       a_dynamic_init_ptr    dip,
-                                       a_type_ptr            aggr_type,
-                                       an_init_pos_descr_ptr ipdp,
-                                       an_insert_location    *insert_location);
+                                                a_dynamic_init_ptr dip,
+                                                a_type_ptr         aggr_type);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
 
 extern void lower_file_scope_dynamic_inits(void);
@@ -392,11 +390,6 @@ extern void initialize_vptrs_in_class(
                                      a_variable_ptr     construction_vtbls_var,
                                      a_constant_ptr     aggr_con,
                                      an_insert_location *insert_location);
-
-extern void remove_initializers_for_empty_classes(
-                                       a_constant_ptr        constant,
-                                       an_init_pos_descr_ptr ipdp,
-                                       an_insert_location    *insert_location);
 
 #endif /* DO_IL_LOWERING */
 #endif /* ifndef LOWER_INIT_H */

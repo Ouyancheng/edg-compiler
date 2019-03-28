@@ -6200,7 +6200,7 @@ field designator.
     if (sub_con != NULL &&
         (sub_con->implicit_aggr_element ||
          (sub_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
-          is_default_dynamic_init(sub_con->variant.dynamic_init)))) {
+          is_default_dynamic_init(sub_con->variant.dynamic_init.ptr)))) {
       /* First member gets default initialization, so we're done with
          this aggregate. */
     } else if (sub_con != NULL &&
@@ -6253,7 +6253,7 @@ field designator.
         }  /* if */
         if (eff_sub_con->is_pack_expansion &&
             eff_sub_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
-            eff_sub_con->variant.dynamic_init->kind ==
+            eff_sub_con->variant.dynamic_init.ptr->kind ==
                                          (a_dynamic_init_kind)dik_expression) {
           /* The expression won't be marked with is_pack_expansion, so we
              have to provide parentheses at this level to prevent something
@@ -6283,7 +6283,7 @@ field designator.
         /* Stop on default initialization of trailing elements. */
         if (sub_con->implicit_aggr_element ||
             (sub_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
-             is_default_dynamic_init(sub_con->variant.dynamic_init))) {
+             is_default_dynamic_init(sub_con->variant.dynamic_init.ptr))) {
           break;
         }  /* if */
         if (sub_con->kind == (a_constant_repr_kind)ck_init_repeat) {
@@ -6300,7 +6300,7 @@ field designator.
     }  /* if */
   } else if (constant->kind == (a_constant_repr_kind)ck_dynamic_init) {
     /* Dynamic initialization for an element of an aggregate. */
-    gen_dynamic_init(constant->variant.dynamic_init, type,
+    gen_dynamic_init(constant->variant.dynamic_init.ptr, type,
                      (an_expr_node_ptr)NULL,
                      /*avoid_top_level_comma=*/TRUE,
                      /*obj_expr_of_mfunc_operator=*/FALSE);
@@ -17218,7 +17218,7 @@ on an array, *value_init is returned TRUE, and the function returns FALSE.
       is_default_array_init = TRUE;
       con= con->variant.aggregate.first_constant->variant.init_repeat.constant;
       if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-        a_dynamic_init_ptr dip2 = con->variant.dynamic_init;
+        a_dynamic_init_ptr dip2 = con->variant.dynamic_init.ptr;
         if (dip2->kind == (a_dynamic_init_kind)dik_constructor) {
           /* Value-initialization is not default-initialization. */
           if (dip2->variant.constructor.value_initialization) {
@@ -18142,7 +18142,7 @@ Output the initializer, if any, for the indicated variable.
                   constant_is(con->variant.init_repeat.constant,
                               ck_dynamic_init)) {
                 a_dynamic_init_ptr  subdip = con->variant.init_repeat.constant
-                                                ->variant.dynamic_init;
+                                                ->variant.dynamic_init.ptr;
                 if (subdip->kind == (a_dynamic_init_kind)dik_constructor &&
                     subdip->variant.constructor.is_array_copy) {
                   expr = subdip->variant.constructor.args;

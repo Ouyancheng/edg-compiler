@@ -4430,10 +4430,10 @@ or contain a pointer to data member, which must be initialized to -1.
              is prelowered.  Make sure it is. */
           prelower_class_type(type);
           con->type = type;
-          for (f = next_initializable_field(
+          for (f = next_non_empty_initializable_field(
                                   type->variant.class_struct_union.field_list);
                f != NULL;
-               f = next_initializable_field(f->next)) {
+               f = next_non_empty_initializable_field(f->next)) {
             field_con = lower_zero_initialization(f->type);
             if (con->variant.aggregate.first_constant == NULL) {
               con->variant.aggregate.first_constant = field_con;
@@ -4476,6 +4476,8 @@ The indicated aggregate constant is an initializer.  If it does not
 initialize some part of the aggregate, and that part contains pointers
 to data members, add initialization constants to ensure that the
 pointers to data members are properly initialized to -1 for NULL.
+Note that the constant should not contain any optimized empty classes
+at this point.
 */
 {
   a_type_ptr type = skip_typerefs(constant->type);
@@ -4523,7 +4525,8 @@ pointers to data members are properly initialized to -1 for NULL.
        virtual function table pointers, etc., because the class
        is prelowered.  Make sure it is. */
     prelower_class_type(type);
-    f = next_initializable_field(type->variant.class_struct_union.field_list);
+    f = next_non_empty_initializable_field(
+                                  type->variant.class_struct_union.field_list);
 #if LOWER_DESIGNATED_INITIALIZERS
     /* Skip over the initialized fields.  Note that they have previously
        been run through this routine so they fully initialize any pointer
@@ -4532,7 +4535,7 @@ pointers to data members are properly initialized to -1 for NULL.
          cp != NULL;
          cp = cp->next) {
       check_assertion(f != NULL);
-      f = next_initializable_field(f->next);
+      f = next_non_empty_initializable_field(f->next);
     }  /* for */
     /* At this point f points to the first field that is uninitialized. */
     first_f = f;
@@ -4543,7 +4546,7 @@ pointers to data members are properly initialized to -1 for NULL.
       if (contains_ptr_to_data_member(f->type)) {
         last_f = f;
       }  /* if */
-      f = next_initializable_field(f->next);
+      f = next_non_empty_initializable_field(f->next);
     }  /* while */
     /* Create initializers for the uninitialized fields until we get to
        the last field that contains a pointer to data member. */
@@ -4560,7 +4563,7 @@ pointers to data members are properly initialized to -1 for NULL.
         if (f == last_f) {
           break;
         }  /* if */
-        f = next_initializable_field(f->next);
+        f = next_non_empty_initializable_field(f->next);
       }  /* for */
     }  /* if */
 #else /* !LOWER_DESIGNATED_INITIALIZERS */
@@ -4587,7 +4590,7 @@ pointers to data members are properly initialized to -1 for NULL.
         constant->variant.aggregate.last_constant = prev_con;
         break;
       }  /* if */
-      f = next_initializable_field(f->next);
+      f = next_non_empty_initializable_field(f->next);
     }  /* for */
     /* Look for so-far uninitialized fields that contain pointers to
        members and put out designators initializing them to "zero". */
@@ -4605,7 +4608,7 @@ pointers to data members are properly initialized to -1 for NULL.
         }  /* if */
         constant->variant.aggregate.last_constant = cp;
       }  /* if */
-      f = next_initializable_field(f->next);
+      f = next_non_empty_initializable_field(f->next);
     }  /* while */
     if (rest_of_list != NULL) {
       /* Replace the end of the list, which starts with a designator. */
@@ -4780,19 +4783,59 @@ std::typeinfo object returned by the corresponding typeid(...) construct.
 #endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* lower_typeid_constant */
 
-/*
-A couple of static variables used to "pass" information from
-prelower_aggregate_constant to prelower_class_in_aggregate.
-*/
-static an_init_pos_descr_ptr
-                prelower_aggr_con_ipdp;
-                        /* An initialization position description for
-                           the aggregate constant that is being prelowered. */
+#if IA64_ABI
 
-static an_insert_location
-                *prelower_aggr_con_insert_location;
-                        /* An insert location for the aggregate constant that
-                           is being prelowered. */
+static void reorder_constants_to_match_fields(a_constant_ptr constant)
+/*
+If the (ck_aggregate) constant initializes a class type whose bases have
+been re-arranged to better share a virtual function table, then this code
+re-arranges the constant to match the order of the lowered base class fields.
+*/
+{
+  a_class_type_supplement_ptr ctsp = skip_typerefs(constant->type)->
+                                         variant.class_struct_union.extra_info;
+  a_constant_ptr cp, prev = NULL;
+  a_boolean      reordering_needed =
+                              (ctsp->primary_base_class != NULL &&
+                               ctsp->primary_base_class != ctsp->base_classes);
+
+  check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
+  for (cp = constant->variant.aggregate.first_constant;
+       cp != NULL;
+       cp = cp->next) {
+    if (cp->kind == (a_constant_repr_kind)ck_aggregate &&
+        is_class_struct_type(cp->type)) {
+      reorder_constants_to_match_fields(cp);
+    }  /* if */
+    if (reordering_needed) {
+      /* In this case, lowering has placed the primary base class at
+         offset zero, which means that the ordering of constants in the
+         aggregate does not match the ordering of the fields that is
+         returned by next_appropriate_field.  Find the initializer for
+         the primary base class and move it to the beginning of the
+         aggregate so it'll match the layout order. */
+      if (cp->constant_for_base_class &&
+          identical_types(cp->type, ctsp->primary_base_class->type)) {
+        if (constant->variant.aggregate.first_constant == cp) {
+          /* The constant may already be first, in which case no
+             action is necessary. */
+        } else {
+          check_assertion(prev != NULL);
+          prev->next = cp->next;
+          cp->next = constant->variant.aggregate.first_constant;
+          constant->variant.aggregate.first_constant = cp;
+          if (constant->variant.aggregate.last_constant == cp) {
+            constant->variant.aggregate.last_constant = prev;
+          }  /* if */
+        }  /* if */
+        reordering_needed = FALSE;
+      }  /* if */
+      prev = cp;
+    }  /* if */
+  }  /* for */
+}  /* reorder_constants_to_match_fields */
+
+#endif /* IA64_ABI */
 
 /*ARGSUSED*/  /* <-- tblock is not used. */
 static void prelower_class_in_aggregate(
@@ -4802,14 +4845,14 @@ static void prelower_class_in_aggregate(
 Called during a constant traversal to pre-lower the specified constant
 (if it's an aggregate).  The aggregate constants that are generated for
 class/struct/unions by the front end reflect the canonical layout and don't
-account for empty base classes that have been removed, layout re-ordering, or
-the insertion of pointers to virtual tables.  This routine massages the
-aggregate constant so that it will match the lowered layout.  Note that
-sub-aggregates in the constant will have their empty base classes removed and
-any base classes will have their vptrs initialized (as needed), but this
-routine itself is not recursive (relying instead on the caller).
-The routines invoked herein avoid unnecessary processing by setting flags
-in the constants that they've previously processed.
+account for layout re-ordering (in the IA-64 ABI), or the insertion of
+constants to initialize vtable pointers.  This routine massages the aggregate
+constant so that it will match the lowered layout but leaves optimized empty
+class objects intact (those will be lowered by the normal process and removed
+there).  Note that sub-aggregates in the constant will have their vptrs
+initialized (as needed), but this routine itself is not recursive (relying
+instead on the caller).  The routines invoked herein avoid unnecessary
+processing by setting flags in the constants that they've previously processed.
 */
 {
   if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
@@ -4817,11 +4860,12 @@ in the constants that they've previously processed.
     check_assertion(!constant->has_been_prelowered);
     if (is_immediate_class_type(con_type)) {
       prelower_class_type(con_type);
-      /* Remove any initializers that the front end may have added for
-         empty classes.  Do this before vptrs are inserted below. */
-      remove_initializers_for_empty_classes(constant,
-                                            prelower_aggr_con_ipdp,
-                                            prelower_aggr_con_insert_location);
+#if IA64_ABI
+      /* Re-order constants, if necessary, to match the IA-64 layout (which
+         may differ from the canonical layout if the class shares a virtual
+         table with one of its base classes). */
+      reorder_constants_to_match_fields(constant);
+#endif /* IA64_ABI */
       if (constant->is_result_of_constexpr_call &&
           !constant->vptr_has_been_lowered) {
         /* Initialize any __vptr fields if they exist in the aggregate.  This
@@ -4838,38 +4882,23 @@ in the constants that they've previously processed.
 }  /* prelower_class_in_aggregate */
 
 
-void prelower_aggregate_constant(a_constant_ptr        constant,
-                                 an_init_pos_descr_ptr ipdp,
-                                 an_insert_location    *insert_location)
+void prelower_aggregate_constant(a_constant_ptr constant)
 /*
 The aggregate constants that are generated for class/struct/unions by the
-front end reflect the canonical layout and don't account for empty base classes
-that have been removed, layout re-ordering, or the insertion of pointers to
-virtual tables.  This routine pre-lowers the specified constant and any
-aggregate constants it contains.  Pre-lowering is only needed once (and skipped
-if the constant has already been pre-lowered or in C mode).
-
-If the aggregate constant contains dynamic initialization for optimized empty
-base classes, ipdp should point to the initialization position for the
-aggregate constant and insert_location to the location where generated code
-should be placed.  These parameters can be NULL if there is no dynamic
-initialization in the constant.
+front end reflect the canonical layout and don't account for layout re-ordering
+or the insertion of pointers to virtual tables.  This routine pre-lowers the
+specified constant and any aggregate constants it contains.  Pre-lowering is
+only needed once (and skipped if the constant has already been pre-lowered or
+in C mode).
 */
 {
   an_expr_or_stmt_traversal_block tblock;
 
   check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
   if (!C_mode() && !constant->has_been_prelowered) {
-    an_init_pos_descr_ptr save_prelower_aggr_con_ipdp = prelower_aggr_con_ipdp;
-    an_insert_location *save_prelower_aggr_con_insert_location =
-                                             prelower_aggr_con_insert_location;
     clear_expr_or_stmt_traversal_block(&tblock);
     tblock.process_constant = prelower_class_in_aggregate;
-    prelower_aggr_con_ipdp = ipdp;
-    prelower_aggr_con_insert_location = insert_location;
     traverse_constant(constant, &tblock);
-    prelower_aggr_con_ipdp = save_prelower_aggr_con_ipdp;
-    prelower_aggr_con_insert_location = save_prelower_aggr_con_insert_location;
   }  /* if */
 }  /* prelower_aggregate_constant */
 
@@ -5024,9 +5053,11 @@ IL prefix is accessed).
         break;
       case ck_aggregate:
         /* Make any necessary changes in constant so that it corresponds to
-           the fields in the lowered type. */
-        prelower_aggregate_constant(constant, (an_init_pos_descr_ptr)NULL,
-                                    (an_insert_location*)NULL);
+           the fields in the lowered type.  At this point the constant is
+           in "canonical" format and it needs to be transformed to match
+           the lowered type.  Do that in several stages below. */
+        /* Initialize vptrs and re-order constants in aggregate. */
+        prelower_aggregate_constant(constant);
 #if LOWER_DESIGNATED_INITIALIZERS
         /* Re-write any designated initializers in the aggregate constant. */
         lower_designated_initializers(constant,
@@ -5041,7 +5072,26 @@ IL prefix is accessed).
           lower_c99_complex_aggregate_constant(constant);
         }  /* if */
 #endif /* LOWER_COMPLEX */
-        lower_constant_list(constant->variant.aggregate.first_constant);
+        /* Lower each constant in the aggregate, and, after lowering,
+           remove any constants that correspond to optimized empty classes
+           (there is no such field in the lowered type to initialize). */
+        { a_constant_ptr cp, prev = NULL;
+          for (cp = constant->variant.aggregate.first_constant; cp != NULL;
+               cp = cp->next) {
+            lower_constant(cp);
+            if (cp->kind == (a_constant_repr_kind)ck_aggregate &&
+                cp->initializes_empty_object) {
+              if (constant->variant.aggregate.first_constant == cp) {
+                constant->variant.aggregate.first_constant = cp->next;
+              } else {
+                prev->next = cp->next;
+              }  /* if */
+            } else {
+              prev = cp;
+            }  /* if */
+          }  /* for */
+          constant->variant.aggregate.last_constant = prev;
+        }
 #if IA64_ABI
         fill_out_aggregate_ptr_to_data_member_initialization(constant);
 #endif /* IA64_ABI */
@@ -21970,8 +22020,6 @@ for each compilation.
                                                                  );
   /* name_lower_init is called from fe_init.c because name mangling can
      be used separately from the rest of IL lowering. */
-  prelower_aggr_con_ipdp = NULL;
-  prelower_aggr_con_insert_location = NULL;
   /* Do lower_init.c initialization. */
   init_lower_init();
   /* Do lower_eh.c initialization. */

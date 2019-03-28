@@ -4451,7 +4451,7 @@ do_unknown_function:
     case ck_dynamic_init:
       /* These can occur while mangling constants in a compound literal
          aggregate. */
-      mangled_dynamic_init(con->variant.dynamic_init, con->type,
+      mangled_dynamic_init(con->variant.dynamic_init.ptr, con->type,
                            /*is_static_cast=*/FALSE, mctl);
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -5957,10 +5957,10 @@ mangling for the constant, is provided; otherwise, the list of expressions
             cp->kind != (a_constant_repr_kind)ck_designator &&
             !cp->implicit_aggr_element) {
           if (cp->kind == (a_constant_repr_kind)ck_dynamic_init &&
-              cp->variant.dynamic_init != NULL &&
-              cp->variant.dynamic_init->kind ==
+              cp->variant.dynamic_init.ptr != NULL &&
+              cp->variant.dynamic_init.ptr->kind ==
                                         (a_dynamic_init_kind)dik_constructor &&
-              !dip_has_args_that_need_mangling(cp->variant.dynamic_init)) {
+              !dip_has_args_that_need_mangling(cp->variant.dynamic_init.ptr)) {
             /* A case like "new A[1]{}" where a constructor call (with no
                arguments -- or at least no non-default arguments).  When
                mangled later, this constant produces no mangled output, so

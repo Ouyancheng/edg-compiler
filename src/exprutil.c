@@ -4922,7 +4922,7 @@ top_of_routine:
       if (con->kind == (a_constant_repr_kind)ck_init_repeat &&
           con->variant.init_repeat.constant->kind ==
                                        (a_constant_repr_kind)ck_dynamic_init) {
-        dip = con->variant.init_repeat.constant->variant.dynamic_init;
+        dip = con->variant.init_repeat.constant->variant.dynamic_init.ptr;
         goto top_of_routine;
       }  /* if */
       unexpected_condition_str("unexpected dynamic init kind");

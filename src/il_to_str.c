@@ -5302,7 +5302,7 @@ for debug output).
   check_assertion(!octl->gen_compilable_code &&
                   constant->kind == (a_constant_repr_kind)ck_dynamic_init);
   octl->output_str("dynamic-init: ", octl);
-  dip = constant->variant.dynamic_init;
+  dip = constant->variant.dynamic_init.ptr;
   form_dynamic_init(dip, octl);
 }  /* form_dynamic_init_constant */
 
@@ -5811,9 +5811,9 @@ precedence confusion.  Do the output in the way described by octl.
 #endif /* DO_IL_LOWERING && ... */
     case ck_dynamic_init:
       if (octl->gen_compilable_code &&
-          constant->variant.dynamic_init->kind ==
+          constant->variant.dynamic_init.ptr->kind ==
                                          (a_dynamic_init_kind)dik_expression) {
-        form_expression(constant->variant.dynamic_init->variant.expression,
+        form_expression(constant->variant.dynamic_init.ptr->variant.expression,
                         octl);
       } else {
         form_dynamic_init_constant(constant, octl);

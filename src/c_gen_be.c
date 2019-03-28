@@ -3109,23 +3109,10 @@ These two fields are normally consecutive members of the given "type", but
 {
   a_targ_size_t  padding = 0;
 
-  if (prev_field != NULL && prev_field->is_optimized_empty_class) {
-    /* If the previous field was an optimized empty class, skip it (and any
-       that follow). */
-    do {
-      prev_field = prev_field->next;
-    } while (prev_field != NULL && prev_field->is_optimized_empty_class);
-    if (prev_field == field) {
-      /* No padding needed. */
-      goto done;
-    }  /* if */
-  }  /* if */
-  if (field->is_optimized_empty_class) {
-    /* Skip an optimized empty class field. */
-  } else if (!C_mode() && type->kind != (a_type_kind)tk_union &&
-             (!field->is_bit_field ||
-              (prev_field != NULL &&
-               prev_field->base_class_subobject_with_tail_padding))) {
+  if (!C_mode() && type->kind != (a_type_kind)tk_union &&
+      (!field->is_bit_field ||
+       (prev_field != NULL &&
+        prev_field->base_class_subobject_with_tail_padding))) {
     /* Compute any required padding before the field.  This only comes up
        for empty/promoted base class layout, so check this only when the
        field has a class type (hence also the is_bit_field test). */
@@ -3194,7 +3181,6 @@ These two fields are normally consecutive members of the given "type", but
       padding = field->offset - rounded_after_field;
     }  /* if */
   }  /* if */
-done:
   return padding;
 }  /* field_padding */
 
@@ -3321,29 +3307,12 @@ padding in the generated code.
        container. */
     msvc_bit_field_tracker.container_type = NULL;
   }  /* if */
-  for (field = type->variant.class_struct_union.field_list;
+  /* Ignore any optimized empty class fields in this loop. */
+  for (field = next_non_empty_field(
+                                  type->variant.class_struct_union.field_list);
        field != NULL;
-       field = field->next) {
+       field = next_non_empty_field(field->next)) {
     a_targ_size_t padding;
-    if (field->is_optimized_empty_class) {
-      /* This field has been "optimized" out of the lowered struct (there
-         should be no references to it).  Skip to the next field. */
-      if (annotate) {
-        /* Display field information in an annotation comment. */
-        set_output_position(&field->source_corresp.decl_position);
-        write_space();
-        start_comment();
-        write_space();
-        dump_type(field->type, /*add_pointer_to=*/FALSE);
-        write_space();
-        dump_field_name(field);
-        write_ch(';');
-        write_space();
-        end_comment();
-        dump_field_annotation_comment(field);
-      }  /* if */
-      continue;
-    }  /* if */
     /* Add any required padding before the field. */
     padding = field_padding(prev_field, field, type);
     check_assertion(padding <= type->size);
@@ -3741,7 +3710,7 @@ final semicolon if output_final_semi is TRUE.
                   !(il_header.gcc_mode &&
                     gcc_or_clang_is_generated_code_target) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
-                  next_initializable_field(
+                  next_non_empty_initializable_field(
                        type->variant.class_struct_union.field_list) == NULL)) {
         /* One byte of padding needed, or... */
         /* Avoid a zero-sized struct for the bizarre case "struct {int :0;}"
@@ -4467,13 +4436,10 @@ class subobject members as needed to create the member name prefix.
        to build the mangling prefix by traversing the base class subobject
        fields. */
     a_member_name_prefix_component prefix;
-    a_field_ptr fp = field->type->variant.class_struct_union.field_list;
     push_member_name_prefix_component(&prefix, field);
-    /* Use the (mangled) name of the first (non-empty class) member. */
-    for (; fp != NULL && fp->is_optimized_empty_class; fp = fp->next) {
-    }  /* for */
-    check_assertion(fp != NULL);
-    create_prefix_and_dump_field_name(fp);
+    /* Use the (mangled) name of the first member. */
+    create_prefix_and_dump_field_name(field->type->
+                                        variant.class_struct_union.field_list);
     pop_member_name_prefix_component(&prefix);
   } else {
     dump_field_name(field);
@@ -7719,19 +7685,6 @@ designated initializer.
 }  /* dump_designator */
 
 
-static a_field_ptr next_c_gen_be_field(a_field_ptr field)
-/*
-Similar to next_initializable_field, but skips optimized empty class fields.
-*/
-{
-  field = next_initializable_field(field);
-  while (field != NULL && field->is_optimized_empty_class) {
-    field = next_initializable_field(field->next);
-  }  /* while */
-  return field;
-}  /* next_c_gen_be_field */
-
-
 static void dump_initializer_part(a_variable_ptr           variable,
                                   a_type_ptr               type,
                                   a_constant_ptr           constant,
@@ -7915,7 +7868,7 @@ block with state information for the processing.
       case tk_union:
         /* Find the first field in the struct or union, skipping those that
            are ignored by initialization. */
-        ipdp->curr_field = next_c_gen_be_field(
+        ipdp->curr_field = next_non_empty_initializable_field(
                                   type->variant.class_struct_union.field_list);
         if (ipdp->curr_field != NULL) {
           if (msvc_is_generated_code_target) {
@@ -7923,16 +7876,19 @@ block with state information for the processing.
             msvc_bit_field_tracker.container_type = NULL;
           }  /* if */
           elem_type = ipdp->curr_field->type;
-          if (ipdp->curr_field !=
-                                 type->variant.class_struct_union.field_list) {
+          if (ipdp->curr_field != next_non_empty_initializable_field(
+                                type->variant.class_struct_union.field_list)) {
             /* We're not starting with the first field.  Make sure prev_field
                points to the preceding field. */
-            prev_field = type->variant.class_struct_union.field_list;
-            while (prev_field->next != ipdp->curr_field) {
+            prev_field = next_non_empty_initializable_field(
+                                 type->variant.class_struct_union.field_list);
+            while (next_non_empty_initializable_field(prev_field->next) != 
+                   ipdp->curr_field) {
               if (msvc_is_generated_code_target) {
                 track_microsoft_bit_field_allocation(prev_field);
               }  /* if */
-              prev_field = prev_field->next;
+              prev_field =
+                         next_non_empty_initializable_field(prev_field->next);
             }  /* while */
           }  /* if */
         } else {
@@ -8042,6 +7998,7 @@ block with state information for the processing.
           do {
             a_field_ptr after_prev = (prev_field != NULL) ? prev_field->next
                                                           : ipdp->curr_field;
+            after_prev = next_non_empty_field(after_prev);
             padding = field_padding(prev_field, after_prev, type);
             if (padding != 0) {
               start_initializer_constants(icbp);
@@ -8050,14 +8007,16 @@ block with state information for the processing.
               }  /* for */
             }  /* if */
             if (after_prev != ipdp->curr_field) {
-              /* Adjust prev_field if next_c_gen_be_field skipped some
+              /* Adjust prev_field if next_non_empty_field skipped some
                  non-initializable fields. */
               if (msvc_is_generated_code_target) {
                 track_microsoft_bit_field_allocation(prev_field);
               }  /* if */
-              prev_field = prev_field->next;
+              prev_field = next_non_empty_field(prev_field->next);
             }  /* if */
-          } while (prev_field != NULL && prev_field->next != ipdp->curr_field);
+          } while (prev_field != NULL &&
+                   (next_non_empty_field(prev_field->next) !=
+                    ipdp->curr_field));
         } else if (annotate && !*gen_assignments &&
                    type->kind == (a_type_kind)tk_array) {
           /* Display element numbers in arrays. */
@@ -8184,7 +8143,8 @@ block with state information for the processing.
             if (msvc_is_generated_code_target) {
               track_microsoft_bit_field_allocation(prev_field);
             }  /* if */
-            ipdp->curr_field = next_c_gen_be_field(ipdp->curr_field->next);
+            ipdp->curr_field =
+                    next_non_empty_initializable_field(ipdp->curr_field->next);
           }  /* if */
         }  /* if */
       }  /* for */

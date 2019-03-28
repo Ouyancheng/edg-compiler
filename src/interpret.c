@@ -4720,7 +4720,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       break;
     case ck_dynamic_init:
       {
-        result = do_constexpr_dynamic_init(ips, con->variant.dynamic_init,
+        result = do_constexpr_dynamic_init(ips, con->variant.dynamic_init.ptr,
                                            &con->source_corresp.decl_position,
                                            value, complete_object);
       }
@@ -5074,9 +5074,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       {
         a_constant_ptr  elem_con = con->variant.init_repeat.constant;
         if (constant_is(elem_con, ck_dynamic_init) &&
-            elem_con->variant.dynamic_init->kind ==
+            elem_con->variant.dynamic_init.ptr->kind ==
                                        (a_dynamic_init_kind)dik_constructor &&
-            elem_con->variant.dynamic_init
+            elem_con->variant.dynamic_init.ptr
                     ->variant.constructor.is_array_copy) {
           /* A ck_init_repeat on top of a special dik_constructor entry that
              represents copying an array through repeated constructor calls.
@@ -5084,7 +5084,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
              array) will be handled by the interpretation of the dynamic
              initializer entry. */
           if (!do_constexpr_dynamic_init(
-                                      ips, elem_con->variant.dynamic_init,
+                                      ips, elem_con->variant.dynamic_init.ptr,
                                       &elem_con->source_corresp.decl_position,
                                       value, complete_object)) {
             do_constexpr_fail(result);
@@ -9225,7 +9225,7 @@ is within the given complete_object.
         /* This is a capture of "this" or "*this" in a field initializer or a
            capture of an enclosing lambda's capture. */
         check_assertion(constant_is(field_con, ck_dynamic_init));
-        sub_dip = field_con->variant.dynamic_init;
+        sub_dip = field_con->variant.dynamic_init.ptr;
         if (sub_dip->kind == (a_dynamic_init_kind)dik_bitwise_copy &&
             sub_dip->variant.bitwise_copy.source == NULL) {
           /* An implicit bitwise copy from a field of the closure associated
@@ -9259,7 +9259,7 @@ is within the given complete_object.
         a_type_ptr          vtp = vp->type, uvtp = skip_typerefs(vtp);
         a_boolean           ref_case = FALSE;
         check_assertion(constant_is(field_con, ck_dynamic_init));
-        sub_dip = field_con->variant.dynamic_init;
+        sub_dip = field_con->variant.dynamic_init.ptr;
         get_stack_bytes(ips, vp, var_storage);
         if (uvtp->kind == (a_type_kind)tk_pointer) {
           if (uvtp->variant.pointer.is_reference ||
@@ -14781,7 +14781,7 @@ diagnostic in *ips.
           }  /* if */
           cp->constant_for_base_class = TRUE;
           cp->constant_for_base_class_from_constexpr_folding = TRUE;
-          add_constant_to_aggregate(cp, con);
+          add_constant_to_aggregate(cp, con, bcp, (a_field_ptr)NULL);
         }  /* for */
         if (!result) break;
         /* Now add the constants for initializable fields. */
@@ -14823,7 +14823,7 @@ diagnostic in *ips.
             do_constexpr_fail(result);
             break;
           }  /* if */
-          add_constant_to_aggregate(cp, con);
+          add_constant_to_aggregate(cp, con, (a_base_class_ptr)NULL, fp);
         }  /* for */
       }
       break;
@@ -14856,9 +14856,11 @@ diagnostic in *ips.
               des_con = alloc_constant((a_constant_repr_kind)ck_designator);
               des_con->variant.designator.is_field_designator = TRUE;
               des_con->variant.designator.variant.field = afp;
-              add_constant_to_aggregate(des_con, con);
+              add_constant_to_aggregate(des_con, con, (a_base_class_ptr)NULL,
+                                        (a_field_ptr)NULL);
             }  /* if */
-            add_constant_to_aggregate(elem_con, con);
+            add_constant_to_aggregate(elem_con, con, (a_base_class_ptr)NULL,
+                                      (a_field_ptr)NULL);
           }  /* if */
         }  /* if */
       }
@@ -14878,7 +14880,8 @@ diagnostic in *ips.
             do_constexpr_fail(result);
             break;
           }  /* if */
-          add_constant_to_aggregate(elem_con, con);
+          add_constant_to_aggregate(elem_con, con, (a_base_class_ptr)NULL,
+                                    (a_field_ptr)NULL);
         }  /* for */
       }
       break;
@@ -14898,7 +14901,8 @@ diagnostic in *ips.
             do_constexpr_fail(result);
             break;
           }  /* if */
-          add_constant_to_aggregate(elem_con, con);
+          add_constant_to_aggregate(elem_con, con, (a_base_class_ptr)NULL,
+                                    (a_field_ptr)NULL);
         }  /* for */
       }
       break;

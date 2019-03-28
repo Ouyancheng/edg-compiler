@@ -3959,9 +3959,7 @@ Do C99 lowering on the indicated stmk_init statement.
   a_dynamic_init_ptr dip = statement->variant.dynamic_init;
 
 #if LOWER_DESIGNATED_INITIALIZERS
-  lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL,
-                                             (an_init_pos_descr_ptr)NULL,
-                                             (an_insert_location*)NULL);
+  lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
   /* This routine is similar to lower_stmk_init. */
   switch (dip->kind) {

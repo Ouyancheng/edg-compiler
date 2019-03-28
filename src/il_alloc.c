@@ -887,12 +887,18 @@ fields to default values.
       break;
 #endif /* DO_IL_LOWERING && ... */
     case ck_dynamic_init:
-      cp->variant.dynamic_init = NULL;
+      cp->variant.dynamic_init.ptr = NULL;
+#if DO_IL_LOWERING
+      cp->variant.dynamic_init.field_or_base.field = NULL;
+#endif /* DO_IL_LOWERING */
       break;
     case ck_aggregate:
       cp->variant.aggregate.first_constant = NULL;
       cp->variant.aggregate.last_constant  = NULL;
       cp->variant.aggregate.has_dynamic_init_component = FALSE;
+#if DO_IL_LOWERING
+      cp->variant.aggregate.field_or_base.field = NULL;
+#endif /* DO_IL_LOWERING */
       break;
     case ck_init_repeat:
       cp->variant.init_repeat.constant = NULL;
@@ -972,7 +978,7 @@ associated variant fields to default values.
 #if DO_IL_LOWERING
   cp->has_been_prelowered = FALSE;
   cp->vptr_has_been_lowered = FALSE;
-  cp->empty_classes_have_been_removed = FALSE;
+  cp->initializes_empty_object = FALSE;
 #endif /* DO_IL_LOWERING */
   cp->constant_for_base_class = FALSE;
   cp->constant_for_base_class_from_constexpr_folding = FALSE;

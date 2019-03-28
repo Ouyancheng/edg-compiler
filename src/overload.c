@@ -23490,7 +23490,7 @@ be suppressed (i.e., SFINAE mode).
         /* The initialization is dynamic, so use a ck_dynamic_init. */
         con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
         con->type = element_type;
-        con->variant.dynamic_init = dip;
+        con->variant.dynamic_init.ptr = dip;
         if (elem_icp->pack_expansion_descr != NULL) {
           con->is_pack_expansion = TRUE;
         }  /* if */
@@ -23506,7 +23506,8 @@ be suppressed (i.e., SFINAE mode).
         }  /* if */
       }  /* if */
       /* Add con to the aggregate constant list. */
-      add_constant_to_aggregate(con, aggr_constant);
+      add_constant_to_aggregate(con, aggr_constant, (a_base_class_ptr)NULL,
+                                (a_field_ptr)NULL);
     }  /* if */
   }  /* for */
   if (arg_match == NULL) {
@@ -25483,7 +25484,7 @@ aggregate constant.
     field_init->variant.expression = source_operand->variant.expression;
     member_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
     member_con->type = field_type;
-    member_con->variant.dynamic_init = field_init;
+    member_con->variant.dynamic_init.ptr = field_init;
   } else if (is_constant_operand(source_operand)) {
     member_con = alloc_constant(source_operand->variant.constant.kind);
     extract_constant_from_operand(source_operand, member_con);

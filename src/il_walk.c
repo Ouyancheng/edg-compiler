@@ -2774,7 +2774,7 @@ it's the initializer for an aggregate.
       traverse_constant(constant->variant.init_repeat.constant, tblock);
       break;
     case ck_dynamic_init:
-      traverse_dynamic_init(constant->variant.dynamic_init, tblock);
+      traverse_dynamic_init(constant->variant.dynamic_init.ptr, tblock);
       break;
     case ck_address:
       if (tblock->process_type != NULL) {
