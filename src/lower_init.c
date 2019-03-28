@@ -13405,6 +13405,19 @@ typedef struct an_init_con_pos {
 } an_init_con_pos;
 
 
+static a_constant_ptr skip_optimized_empty_constants(a_constant_ptr cp)
+/*
+cp is a constant in an aggregate; skip it if it initializes an empty object
+(and will be later removed during lowering).
+*/
+{
+  while (cp != NULL && cp->initializes_empty_object) {
+    cp = cp->next;
+  }  /* while */
+  return cp;
+}  /* skip_optimized_empty_constants */
+
+
 static void set_init_con_pos(a_constant_ptr  con,
                              an_init_con_pos *init_con_pos)
 /*
@@ -13413,10 +13426,8 @@ con to be NULL, to set a null position.  This routine assumes that constants
 for empty objects may still exist in the aggregate and skips those.
 */
 {
-  while (con != NULL && con->initializes_empty_object) {
-    /* Skip any constants for empty classes. */
-    con = con->next;
-  }  /* while */
+  /* Skip any constants for empty classes. */
+  con = skip_optimized_empty_constants(con);
   init_con_pos->ptr = con;
   init_con_pos->repeat_count = 0;
   if (con != NULL && con->kind == (a_constant_repr_kind)ck_init_repeat) {
@@ -15598,8 +15609,9 @@ given by vptr_node.
        offset that corresponds to the __vptr field; then add a new initializer
        at that location. */
     /* Note that optimized empty class constants may still be present in the
-       constant, so use next_initializable_field. */
-    cp = aggr_con->variant.aggregate.first_constant;
+       constant, if so, skip them. */
+    cp = skip_optimized_empty_constants(
+                                   aggr_con->variant.aggregate.first_constant);
     for (field = next_initializable_field(
                             class_type->variant.class_struct_union.field_list);
          field != NULL;
@@ -15640,7 +15652,7 @@ given by vptr_node.
         /* Advance to the next constant in the aggregate. */
         check_assertion(cp != NULL);
         prev_con = cp;
-        cp = cp->next;
+        cp = skip_optimized_empty_constants(cp->next);
       }  /* if */
     }  /* for */
     check_assertion(field != NULL);
