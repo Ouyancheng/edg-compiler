@@ -862,7 +862,9 @@ swallowed); otherwise, it's "="-form or "{...}" form.
 
       if (parenthesized_init && !gpp_mode) {
         /* Something like "auto x( { 3 } );".  This is malformed per
-           [dcl.init]/1.  Don't elide braces unless matching GCC/Clang.
+           N4660 [dcl.init]/1.  Don't elide braces unless matching GCC/Clang.
+           A similar diagnostic may be issued in prep_list_initializer. Care
+           should be taken to avoid double diagnostics.
         */
         expr_pos_diagnostic(es_discretionary_error,
                             ec_braced_init_in_paren_init,
@@ -923,6 +925,12 @@ swallowed); otherwise, it's "="-form or "{...}" form.
         dps->specifiers_type = dps->deduced_auto_type = dps->type =
                                                                  error_type();
         dps->has_deduced_type = FALSE;
+        /* Do not clear dps->auto_type_specifier_seen or
+           dps->decltype_auto_specifier_seen here, as there is a block of code
+           in prep_list_initializer that checks for the braces-inside-
+           parentheses issue that we issued an error for above.  That code
+           needs to know the initializer was scanned in the context of auto
+           type deduction in order to avoid issuing a spurious error. */
       }  /* if */
     } else {
       /* Deduction succeeded. */

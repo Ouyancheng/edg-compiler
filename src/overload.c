@@ -24202,8 +24202,12 @@ will be an lvalue instead of the usual prvalue.
             arg_match_err = TRUE;
           }  /* if */
         } else if (is == NULL ||
-                   (!is->decl_parse_state->auto_type_specifier_seen &&
-                    !is->decl_parse_state->decltype_auto_specifier_seen)) {
+                   !(is->decl_parse_state->has_direct_initializer &&
+                     (is->decl_parse_state->auto_type_specifier_seen ||
+                      is->decl_parse_state->decltype_auto_specifier_seen))) {
+          /* Don't issue a diagnostic if this initializer was scanned in the
+             context of a direct initializer in an auto (or decltype(auto))
+             type deduction, as one has already been issued. */
           expr_pos_diagnostic(sev, ec_braced_init_in_paren_init,
                               start_position);
         }  /* if */
