@@ -777,6 +777,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
   a_boolean             is_full_expr = !dps->is_new_expr_type &&
                                        !dps->is_init_capture &&
                                        dps->sym != NULL;
+  a_boolean             ignore_single_element_braces = FALSE;
   a_decl_parse_state    *saved_decl_parse_state = NULL;
 
   check_assertion(dps->has_deduced_type && dps->auto_type != NULL);
@@ -867,6 +868,18 @@ swallowed); otherwise, it's "="-form or "{...}" form.
                                           icp, /*to_front=*/TRUE,
                                           &dps->prescanned_initializer_cache);
   }  /* if */
+
+  /* Direct-list-initialization with a placeholder type only permits a single
+     braced element, and in that case the braces are ignored (rule introduced
+     by the C++ standardization committee's paper N3922).
+     This only applies to the "auto" case - not "decltype(auto)", however
+     GCC and Clang may allow this.
+  */
+  ignore_single_element_braces =
+    dps->has_direct_initializer && !dps->has_deducible_class_templ_args &&
+    ((!(clang_mode ? clang_version < 30800 :
+                     gpp_mode ? gnu_version < 50000 : FALSE)) ||
+     (microsoft_mode && microsoft_version >= 1900));
   /* Do type deduction. */
   if (C_mode()) {
     /* GNU C has some simplified deduction rules. */
@@ -898,17 +911,18 @@ swallowed); otherwise, it's "="-form or "{...}" form.
       undeduced_type = make_qualified_type(undeduced_type,
                                            (a_type_qualifier_set)TQ_CONST);
     }  /* if */
-    if (icp != NULL && is_braced_init_component(icp) &&
-        dps->has_direct_initializer && !dps->has_deducible_class_templ_args &&
-        ((cpp11_mode && !(clang_mode ? clang_version < 30800 :
-                          gpp_mode   ? gnu_version < 50000 : FALSE)) ||
-         (microsoft_mode && microsoft_version >= 1900))) {
-      /* In C++14 mode, direct-list-initialization with a placeholder type only
-         permits a single braced element, and in that case the braces are
-         ignored (rule introduced by the C++ standardization committee's paper
-         N3922). */
+    if (ignore_single_element_braces &&
+        icp != NULL && is_braced_init_component(icp)) {
       an_init_component_ptr  elem_icp = icp->variant.braced.list;
-      if (elem_icp == NULL || !is_last_elem(elem_icp)) {
+
+      if (parenthesized_init && !gpp_mode) {
+        /* Something like "auto x( { 3 } );".  This is malformed per
+           [dcl.init]/1.  Don't elide braces unless matching GCC/Clang.
+        */
+        expr_pos_diagnostic(es_discretionary_error,
+                            ec_braced_init_in_paren_init,
+                            init_component_pos(icp));
+      } else if (elem_icp == NULL || !is_last_elem(elem_icp)) {
         /* Not a single element: Issue a diagnostic and proceed with the braced
            list. */
         pos_diagnostic(es_discretionary_error,
@@ -964,8 +978,6 @@ swallowed); otherwise, it's "="-form or "{...}" form.
         dps->specifiers_type = dps->deduced_auto_type = dps->type =
                                                                  error_type();
         dps->has_deduced_type = FALSE;
-        dps->auto_type_specifier_seen = FALSE;
-        dps->decltype_auto_specifier_seen = FALSE;
       }  /* if */
     } else {
       /* Deduction succeeded. */

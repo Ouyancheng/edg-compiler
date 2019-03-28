@@ -24190,7 +24190,9 @@ will be an lvalue instead of the usual prvalue.
     if (icp->braced_init_in_parentheses && !dest_type_is_class &&
         !could_be_dependent_class_type(dest_type)) {
       /* A parenthesized initializer list containing a single entity must
-         contain an expression, not a braced-init-list.  See [dcl.init]p13. */
+         contain an expression, not a braced-init-list.  See [dcl.init]p13.
+         A diagnostic will already have been issued for this if the case
+         of auto type deduction; don't issue it again. */
       if (!gpp_mode) {
         an_error_severity sev = strict_ansi_mode ?
                                     strict_ansi_discretionary_severity :
@@ -24199,7 +24201,9 @@ will be an lvalue instead of the usual prvalue.
           if (is_effective_sfinae_error(ec_braced_init_in_paren_init, sev)) {
             arg_match_err = TRUE;
           }  /* if */
-        } else {
+        } else if (is == NULL ||
+                   (!is->decl_parse_state->auto_type_specifier_seen &&
+                    !is->decl_parse_state->decltype_auto_specifier_seen)) {
           expr_pos_diagnostic(sev, ec_braced_init_in_paren_init,
                               start_position);
         }  /* if */

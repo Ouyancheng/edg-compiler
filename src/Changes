@@ -74,7 +74,8 @@ For example:
 
   void f() {
     new auto {1};            // Previously rejected, now accepted
-    new decltype(auto)({2}); // Previously rejected, now accepted
+    new decltype(auto)({2}); // Still rejected, as {2} is not an expression
+                             // Accepted in GCC/Clang compatibility modes
   }
 
 In addition, the behavior of type deduction for single-element braced
