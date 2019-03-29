@@ -27378,6 +27378,32 @@ included) and return an error type.  name should normally be "strong_equality",
 }  /* get_ordering_type */
 
 
+static void check_narrowing_for_spaceship_opnd(an_operand  *opnd,
+                                               a_type      *op_type)
+/*
+The given spaceship operand operand is being implicitly converted to op_type.
+Issue a diagnostic if the given conversion is a narrowing conversion other
+than a conversion from integer to floating-point (which means only conversions
+to integral/enumeration types need to be checked).
+*/
+{
+  if (!identical_types(opnd->type, op_type) &&
+      is_integral_or_enum_type(op_type)) {
+    a_constant_ptr  con_value = NULL;
+    an_error_code   err_code;
+    force_operand_to_constant_if_possible(opnd);
+    if (is_constant_operand(opnd)) {
+      con_value = &opnd->variant.constant;
+    }  /* if */
+    if (is_narrowing_conversion(opnd->type, con_value, op_type,
+                                /*check_enum_target=*/FALSE, &err_code)) {
+      expr_pos_ty2_error(err_code, &opnd->position, opnd->type, op_type);
+      make_error_operand(opnd);
+    }  /* if */
+  }  /* if */
+}  /* check_narrowing_for_spaceship_opnd */
+
+
 static void scan_spaceship_operator(an_operand             *opnd1,
                                     a_rescan_control_block *rcblock,
                                     an_operand             *result)
@@ -27440,9 +27466,16 @@ the resulting expression.
                 is_integral_type(opnd1->type))) {
       do_operand_transformations(opnd1, TOPT_NO_OPTIONS);
       do_operand_transformations(&opnd2, TOPT_NO_OPTIONS);
-      diagnose_comparison_if_different_enum_types(opnd1->type, opnd2.type,
-                                                  &operator_pos, es_error);
+      if (is_bool_type(opnd1->type) != is_bool_type(opnd2.type)) {
+        pos_ty2_error(ec_invalid_spaceship_types, &operator_pos,
+                      opnd1->type, opnd2.type);
+      } else {
+        diagnose_comparison_if_different_enum_types(opnd1->type, opnd2.type,
+                                                    &operator_pos, es_error);
+      }  /* if */
       op_type = determine_arithmetic_conversions(opnd1, &opnd2);
+      check_narrowing_for_spaceship_opnd(opnd1, op_type);
+      check_narrowing_for_spaceship_opnd(&opnd2, op_type);
       change_binary_operand_types(op_type, opnd1, &opnd2,
                                   (an_expr_node_kind)eok_spaceship);
       if (is_integral_or_enum_type(op_type)) {
