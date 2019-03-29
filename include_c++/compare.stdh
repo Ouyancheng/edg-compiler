@@ -18,6 +18,10 @@ compare -- Include file for three-way comparison support
 namespace std {
   typedef __EDG_SIZE_TYPE__ size_t;
 
+/*
+Note: The following values have to match what is produced by the constant-
+      evaluation in the compiler.
+*/
 #define __EDG_EQ 0
 #define __EDG_NE 1
 #define __EDG_LT -1

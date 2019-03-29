@@ -5179,6 +5179,68 @@ integral type, as in "(int)&x - (int)&x".
 } /* do_pdiff */
 
 
+a_boolean compare_address_constants(a_constant_ptr  con1,
+                                    a_constant_ptr  con2,
+                                    int             *p_cmp)
+/*
+If the given address constants are not comparable return FALSE.  Otherwise,
+return TRUE and set *p_cmp to zero if the addresses are equal, to -1 if
+the first constant is less than the second, and to 1 otherwise.
+*/
+{
+  a_boolean  result;
+  char       *base1, *base2;
+  a_boolean  cannot_fold = FALSE;
+
+  base1 = base_object(con1, &cannot_fold);
+  base2 = base_object(con2, &cannot_fold);
+  if (cannot_fold || base1 != base2) {
+    result = FALSE;
+  } else if (constant_is(con1, ck_integer)) {
+    *p_cmp = cmp_integer_constants(con1, con2);
+  } else {
+    check_assertion(constant_is(con1, ck_address));
+    /* Compare the subobject paths: If base classes are involved, the
+       subobject paths have to designate the same base class for the
+       addresses to be comparable. */
+    a_subobject_path_ptr  spp1, spp2;
+    a_boolean             paths_differ = FALSE;
+    spp1 = con1->variant.address.subobject_path;
+    spp2 = con2->variant.address.subobject_path;
+    while (spp1 != NULL && spp2 != NULL) {
+      if (spp1->is_base_class || spp2->is_base_class) {
+        if (paths_differ || spp1->is_base_class != spp2->is_base_class ||
+            !same_base_classes(spp1->variant.base_class,
+                               spp2->variant.base_class)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      } else if (spp1->is_offset || spp2->is_offset) {
+        if (spp1->is_offset != spp2->is_offset ||
+            spp1->variant.ptr_offset != spp2->variant.ptr_offset) {
+          paths_differ = TRUE;
+        }  /* if */
+      } else {
+        if (!same_entities(spp1->variant.field, spp2->variant.field)) {
+          paths_differ = TRUE;
+        }  /* if */
+      }  /* if */
+      spp1 = spp1->next;
+      spp2 = spp2->next;
+    }  /* while */
+    if (con1->variant.address.offset == con2->variant.address.offset) {
+      *p_cmp = 0;
+    } else if (con1->variant.address.offset < con2->variant.address.offset) {
+      *p_cmp = -1;
+    } else {
+      *p_cmp = 1;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* compare_address_constants */
+
+
 static void do_pcompare(a_constant            *constant_1,
 			an_expr_operator_kind op,
 			a_constant            *constant_2,

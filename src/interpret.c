@@ -1613,6 +1613,12 @@ static an_integer_value
 		zero_int;
 static an_integer_value
 		one_int;
+static an_integer_value
+		minus_one_int;
+static an_integer_value
+		unordered_int;
+			/* The value returned by operator <=> when operands
+			   are unordered. */
 static an_internal_float_value
 		zero_flt[(int)fk_last];
 static an_internal_float_value
@@ -3431,7 +3437,6 @@ interpreter storage.
   }  /* if */
   return comparable;
 }  /* addresses_are_comparable */
-
 
 #if DEBUG
 
@@ -12283,6 +12288,139 @@ the value representation of the integer value.
               unexpected_condition();
             }  /* if */
             break;
+          case eok_spaceship:
+            if (opnd1_type->kind == (a_type_kind)tk_integer) {
+              /* Integral operands. */
+              int  cmp;
+              int_kind = opnd1_type->variant.integer.int_kind;
+              is_signed = int_kind_is_signed[int_kind];
+              cmp = cmp_integer_values((an_integer_value *)opnd1_value,
+                                       is_signed,
+                                       (an_integer_value *)opnd2_value,
+                                       is_signed);
+              if (cmp == 0) {
+                *(an_integer_value*)result_storage = zero_int;
+              } else if (cmp == 1) {
+                *(an_integer_value*)result_storage = one_int;
+              } else if (cmp == -1) {
+                *(an_integer_value*)result_storage = minus_one_int;
+              } else {
+                unexpected_condition();
+              }  /* if */
+            } else if (opnd1_type->kind == (a_type_kind)tk_float) {
+              /* Floating-point operands. */
+              int  cmp;
+              cmp = fp_compare(opnd1_type->variant.float_kind,
+                               fp_value(opnd1_value),
+                               fp_value(opnd2_value),
+                               &unord);
+              if (unord) {
+                /* The floating-point values are not comparable. */
+                *(an_integer_value*)result_storage = unordered_int;
+              } else if (cmp == 0) {
+                *(an_integer_value*)result_storage = zero_int;
+              } else if (cmp == 1) {
+                *(an_integer_value*)result_storage = one_int;
+              } else if (cmp == -1) {
+                *(an_integer_value*)result_storage = minus_one_int;
+              } else {
+                unexpected_condition();
+              }  /* if */
+            } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+              /* Pointer operands. */
+              a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
+              a_constexpr_address  *ptr2 = (a_constexpr_address*)opnd2_value;
+              if (!compatible_address_kinds(ptr1, ptr2)) {
+                info_with_pos(ec_constexpr_pointers_not_comparable,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
+              } else if (is_function_address(ptr1) ||
+                         is_function_address(ptr2)) {
+                if (is_function_address(ptr1) && is_function_address(ptr2)) {
+                  if (ptr1->variant.routine == ptr2->variant.routine) {
+                    *(an_integer_value*)result_storage = one_int;
+                  } else {
+                    *(an_integer_value*)result_storage = zero_int;
+                  }  /* if */
+                } else {
+                  info_with_pos(ec_constexpr_pointers_not_comparable,
+                                &expr->position, ips);
+                  do_constexpr_fail(result);
+                }  /* if */
+              } else if (is_runtime_data_address(ptr1) ==
+                                              is_runtime_data_address(ptr2)) {
+                if (!is_runtime_data_address(ptr1)) {
+                  if (ptr1->address == ptr2->address) {
+                    *(an_integer_value*)result_storage = zero_int;
+                  } else if (addresses_are_comparable(ips, ptr1, ptr2)) {
+                    if (ptr1->address < ptr2->address) {
+                      *(an_integer_value*)result_storage = minus_one_int;
+                    } else {
+                      *(an_integer_value*)result_storage = one_int;
+                    }  /* if */
+                  } else {
+                    info_with_pos(ec_constexpr_pointers_not_comparable,
+                                  &expr->position, ips);
+                    do_constexpr_fail(result);
+                  }  /* if */
+                } else {
+                  /* The addresses are represented using a_constant entries. */
+                  int  cmp;
+                  if (compare_address_constants(ptr1->variant.addr_con,
+                                                ptr2->variant.addr_con,
+                                                &cmp)) {
+                    if (cmp == 0) {
+                      *(an_integer_value*)result_storage = zero_int;
+                    } else if (cmp == 1) {
+                      *(an_integer_value*)result_storage = one_int;
+                    } else if (cmp == -1) {
+                      *(an_integer_value*)result_storage = minus_one_int;
+                    } else {
+                      unexpected_condition();
+                    }  /* if */
+                  } else {
+                    info_with_pos(ec_constexpr_pointers_not_comparable,
+                                  &expr->position, ips);
+                    do_constexpr_fail(result);
+                  }  /* if */
+                }  /* if */
+              } else {
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_access_to_runtime_storage,
+                              &expr->position, ips);
+              }  /* if */
+              release_variant_path_if_needed(ptr1);
+              release_variant_path_if_needed(ptr2);
+            } else if (opnd1_type->kind == (a_type_kind)tk_ptr_to_member) {
+              /* For pointer-to-members, <=> behaves like !=. */
+              a_constexpr_ptr_to_mem  *pm1, *pm2;
+              pm1 = (a_constexpr_ptr_to_mem*)opnd1_value;
+              pm2 = (a_constexpr_ptr_to_mem*)opnd2_value;
+              if (pm1->subtract_adjustment != pm2->subtract_adjustment ||
+                  pm1->this_class_adjustment != pm2->this_class_adjustment) {
+                *(an_integer_value *)result_storage = one_int;
+              } else if (pm1->is_ptr_to_mem_function) {
+                if (pm2->is_ptr_to_mem_function &&
+                    pm1->variant.routine == pm2->variant.routine) {
+                  *(an_integer_value *)result_storage = zero_int;
+                } else {
+                  *(an_integer_value *)result_storage = one_int;
+                }  /* if */
+              } else {
+                if (!pm2->is_ptr_to_mem_function &&
+                    pm1->variant.field == pm2->variant.field) {
+                  *(an_integer_value *)result_storage = zero_int;
+                } else {
+                  *(an_integer_value *)result_storage = one_int;
+                }  /* if */
+              }  /* if */
+            } else if (opnd1_type->kind == (a_type_kind)tk_nullptr) {
+              /* Two nullptr values always compare equal. */
+              *(an_integer_value *)result_storage = one_int;
+            } else {
+              unexpected_condition();
+            }  /* if */
+            break;
           case eok_assign:
             { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
               if (cannot_dereference(dst)) {
@@ -14241,6 +14379,10 @@ that are needed for the operation of the interpreter.
     a_boolean    dummy;
     set_integer_value(&zero_int, (a_host_large_integer)0);
     set_integer_value(&one_int, (a_host_large_integer)1);
+    set_integer_value(&minus_one_int, (a_host_large_integer)-1);
+    /* The value for unordered_int has to match the "unordered" constant
+       value in the <compare> implementation. */
+    set_integer_value(&unordered_int, (a_host_large_integer)-127);
     for (fk = (a_float_kind)fk_float; fk < (a_float_kind)fk_last; ++fk) {
       fp_host_large_integer_to_float(fk, (a_host_large_integer)0,
                                      &zero_flt[(int)fk], &dummy);
