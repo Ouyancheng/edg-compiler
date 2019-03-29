@@ -7876,19 +7876,21 @@ block with state information for the processing.
             msvc_bit_field_tracker.container_type = NULL;
           }  /* if */
           elem_type = ipdp->curr_field->type;
-          if (ipdp->curr_field != next_non_empty_initializable_field(
+          /* Find a previous field, if any.  Note that empty classes are
+             skipped, but non-initializable fields (e.g., unnamed bit fields)
+             are returned. */
+          if (ipdp->curr_field != next_non_empty_field(
                                 type->variant.class_struct_union.field_list)) {
             /* We're not starting with the first field.  Make sure prev_field
                points to the preceding field. */
-            prev_field = next_non_empty_initializable_field(
+            prev_field = next_non_empty_field(
                                  type->variant.class_struct_union.field_list);
-            while (next_non_empty_initializable_field(prev_field->next) != 
+            while (next_non_empty_field(prev_field->next) != 
                    ipdp->curr_field) {
               if (msvc_is_generated_code_target) {
                 track_microsoft_bit_field_allocation(prev_field);
               }  /* if */
-              prev_field =
-                         next_non_empty_initializable_field(prev_field->next);
+              prev_field = next_non_empty_field(prev_field->next);
             }  /* while */
           }  /* if */
         } else {
