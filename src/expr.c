@@ -813,13 +813,9 @@ swallowed); otherwise, it's "="-form or "{...}" form.
                                           icp, /*to_front=*/TRUE,
                                           &dps->prescanned_initializer_cache);
   }  /* if */
-
   /* Direct-list-initialization with a placeholder type only permits a single
      braced element, and in that case the braces are ignored (rule introduced
-     by the C++ standardization committee's paper N3922).
-     This only applies to the "auto" case - not "decltype(auto)", however
-     GCC and Clang may allow this.
-  */
+     by the C++ standardization committee's paper N3922). */
   ignore_single_element_braces =
     dps->has_direct_initializer && !dps->has_deducible_class_templ_args &&
     ((!(clang_mode ? clang_version < 30800 :
@@ -859,13 +855,11 @@ swallowed); otherwise, it's "="-form or "{...}" form.
     if (ignore_single_element_braces &&
         icp != NULL && is_braced_init_component(icp)) {
       an_init_component_ptr  elem_icp = icp->variant.braced.list;
-
       if (parenthesized_init && !gpp_mode) {
         /* Something like "auto x( { 3 } );".  This is malformed per
            N4660 [dcl.init]/1.  Don't elide braces unless matching GCC/Clang.
-           A similar diagnostic may be issued in prep_list_initializer. Care
-           should be taken to avoid double diagnostics.
-        */
+           A similar diagnostic may be issued in prep_list_initializer.  Care
+           should be taken to avoid double diagnostics. */
         expr_pos_diagnostic(es_discretionary_error,
                             ec_braced_init_in_paren_init,
                             init_component_pos(icp));

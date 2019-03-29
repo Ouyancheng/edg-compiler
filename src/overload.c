@@ -24191,7 +24191,7 @@ will be an lvalue instead of the usual prvalue.
         !could_be_dependent_class_type(dest_type)) {
       /* A parenthesized initializer list containing a single entity must
          contain an expression, not a braced-init-list.  See [dcl.init]p13.
-         A diagnostic will already have been issued for this if the case
+         A diagnostic will already have been issued for this in the case
          of auto type deduction; don't issue it again. */
       if (!gpp_mode) {
         an_error_severity sev = strict_ansi_mode ?
