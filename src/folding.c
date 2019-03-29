@@ -5199,12 +5199,12 @@ the first constant is less than the second, and to 1 otherwise.
   } else if (constant_is(con1, ck_integer)) {
     *p_cmp = cmp_integer_constants(con1, con2);
   } else {
-    check_assertion(constant_is(con1, ck_address));
     /* Compare the subobject paths: If base classes are involved, the
        subobject paths have to designate the same base class for the
        addresses to be comparable. */
     a_subobject_path_ptr  spp1, spp2;
     a_boolean             paths_differ = FALSE;
+    check_assertion(constant_is(con1, ck_address));
     spp1 = con1->variant.address.subobject_path;
     spp2 = con2->variant.address.subobject_path;
     while (spp1 != NULL && spp2 != NULL) {
