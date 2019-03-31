@@ -10432,7 +10432,6 @@ use of the argument list in case it has been freed.
     if (!is_nonreal) {
       /* Instantiate the type and initializer of the variable. */
       a_boolean	definition_needed = is_use;
-      if (in_constexpr_if_discarded_statement()) definition_needed = FALSE;
       instantiate_template_variable(tip, /*is_new=*/TRUE, definition_needed);
       set_instance_required(sym, definition_needed, SIR_NONE);
     } else {

@@ -1,5 +1,19 @@
 Version 5.1
 
+3/31/19  [EDGcpfe/20521]
+Spurious error on instantiation of variable template in constexpr if
+
+A spurious "must have a constant value" error could be issued if a variable
+template instance was first instantiated in the condition in a discarded
+branch of a constexpr if.  Now fixed.
+
+  template <class T> constexpr bool v = true;
+  int main() {
+    if constexpr (true) {}
+    else if constexpr (v<int>) {}
+  }
+
+
 3/28/19  [EDGcpfe/21069]
 Narrowing conversion not correctly diagnosed
 
