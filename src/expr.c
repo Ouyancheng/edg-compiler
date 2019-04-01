@@ -309,14 +309,55 @@ typedef struct a_new_parse_state {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_new_parse_state;
 
+#if NULL_POINTER_IS_ZERO
+#define clear_new_parse_state_ptrs(nps)
+#else /* !NULL_POINTER_IS_ZERO */
+static void clear_new_parse_state_ptrs(a_new_parse_state *nps);
+#endif /* NULL_POINTER_IS_ZERO */
+
 /*
 Macro to initialize the "new parsing state" pointed to by the argument.
 */
-#define clear_new_parse_state(ps) {                                          \
-  memzero((char*)(ps), sizeof(a_new_parse_state));                           \
-  (ps)->operator_token = (a_token_kind)tok_error;                            \
+#define clear_new_parse_state(nps) {                                         \
+  memzero((char*)(nps), sizeof(a_new_parse_state));                          \
+  clear_new_parse_state_ptrs(nps);                                           \
 }
 
+
+#if !NULL_POINTER_IS_ZERO
+static void clear_new_parse_state_ptrs(a_new_parse_state *nps)
+/*
+Set all pointers in the "new" parse state to NULL.
+*/
+{
+  nps->new_type = NULL;
+  nps->unqual_new_type = NULL;
+  nps->base_new_type = NULL;
+  nps->unqual_base_new_type = NULL;
+  nps->ptr_new_type = NULL;
+  nps->element_type = NULL;
+  nps->cssp = NULL;
+  nps->new_array_dimension = NULL;
+  nps->init_val_node = NULL;
+  nps->operator_new_symbol = NULL;
+  nps->function_symbol = NULL;
+  nps->proj_function_symbol = NULL;
+  nps->ctor_sym = NULL;
+  nps->new_routine = NULL;
+  nps->delete_routine = NULL;
+  nps->arg_list = NULL;
+  nps->arg_expr_list = NULL;
+  nps->alignment_alep = NULL;
+  nps->braced_init_list = NULL;
+  nps->init_raw_args = NULL;
+  nps->arg_match_list = NULL;
+  nps->dip = NULL;
+  nps->dyn_init_to_free_storage = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  nps->cli_array_new_init_args = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+} /* clear_new_parse_state_ptrs */
+#endif /* !NULL_POINTER_IS_ZERO */
 
 static void save_expr_stack(an_expr_stack_entry_ptr *saved_expr_stack)
 /*
@@ -17930,7 +17971,9 @@ delete routine to be called if an exception is thrown between the time
 that the allocation is done and the time the initialization is completed.
 Return a pointer to the routine, or NULL if there is an error.  The delete
 routine will not necessarily be used, e.g., if the "new" is folded
-into a constructor call, but access checking is done for it anyway.
+into a constructor call, but access checking is done for it anyway.  If the
+delete routine is ambiguous, nps->ambiguous will be set to TRUE (an error will
+have been issued).
 */
 {
   a_routine_ptr delete_routine = NULL;
@@ -20522,8 +20565,7 @@ C++/CLI/CX array case.
                                CCO_DEFAULT,
                                ec_incompatible_param);
       if (is_constant_operand(operand) &&
-          operand->variant.constant.kind ==
-                                           (a_constant_repr_kind)ck_integer &&
+          operand->variant.constant.kind == (a_constant_repr_kind)ck_integer &&
           cmpulit_integer_constant(&operand->variant.constant,
                                    (a_host_large_unsigned)0) < 0) {
         expr_pos_error(ec_new_array_size_must_be_nonnegative,
