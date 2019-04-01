@@ -10761,6 +10761,10 @@ and return FALSE.
     if (*p == '(') {
       /* This is the terminator for the delimiter */
       found_end = TRUE;
+    } else if (*p == LE_ESCAPE) {
+      /* This can only happen at the end of a line; do not advance
+         further. */
+      break;
     } else if (olmp != NULL && olmp->line_loc == p) {
       /* This character is the result of an original line modification
          (trigraph or splice replacement). */
@@ -10826,6 +10830,11 @@ and return FALSE.
     /* Left parenthesis not found.  Ignore any pending "invalid character"
        diagnostics, as the raw string appears to be garbage. */
     error_at_line_pos(ec_missing_raw_string_delim_lparen, start_of_curr_token);
+    if (fetch_pp_tokens) {
+      /* Skip over the "R" prefix to avoid cascading messages from macro
+         expansions. */
+      ++start_of_curr_token;
+    }  /* if */
   }  /* if */
   return found_end;
 #undef MAX_DELIM_LENGTH

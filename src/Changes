@@ -1,5 +1,19 @@
 Version 5.1
 
+4/1/19   [EDGcpfe/21074]
+Abort with malformed raw string in macro definition
+
+The front end could abort with an internal error ("assoc_source_line_modif:
+bad address") if a macro definition ends with a malformed raw string
+literal.  This is now fixed.  For example, with --c++17:
+
+  #define MM(...) __VA_ARGS__
+  #define M( X , Y , ... ) X ## Y MM ( R" )
+  int main() {
+    M(f,1);
+  }
+
+
 4/1/19   [EDGcpfe/21014]
 Abort in is_false_constant on Clang-mode enable_if attribute
 
