@@ -4789,7 +4789,7 @@ static void reorder_constants_to_match_fields(a_constant_ptr constant)
 /*
 If the (ck_aggregate) constant initializes a class type whose bases have
 been re-arranged to better share a virtual function table, then this code
-re-arranges the constant to match the order of the lowered base class fields.
+rearranges the constant to match the order of the lowered base class fields.
 */
 {
   a_class_type_supplement_ptr ctsp = skip_typerefs(constant->type)->
@@ -4861,7 +4861,7 @@ processing by setting flags in the constants that they've previously processed.
     if (is_immediate_class_type(con_type)) {
       prelower_class_type(con_type);
 #if IA64_ABI
-      /* Re-order constants, if necessary, to match the IA-64 layout (which
+      /* Reorder constants, if necessary, to match the IA-64 layout (which
          may differ from the canonical layout if the class shares a virtual
          table with one of its base classes). */
       reorder_constants_to_match_fields(constant);
@@ -5056,10 +5056,10 @@ IL prefix is accessed).
            the fields in the lowered type.  At this point the constant is
            in "canonical" format and it needs to be transformed to match
            the lowered type.  Do that in several stages below. */
-        /* Initialize vptrs and re-order constants in aggregate. */
+        /* Initialize vptrs and re-order constants in the aggregate. */
         prelower_aggregate_constant(constant);
 #if LOWER_DESIGNATED_INITIALIZERS
-        /* Re-write any designated initializers in the aggregate constant. */
+        /* Rewrite any designated initializers in the aggregate constant. */
         lower_designated_initializers(constant,
                                       (a_dynamic_init *)NULL,
                                       (a_type_ptr)NULL);

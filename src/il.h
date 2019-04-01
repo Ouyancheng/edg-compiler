@@ -1745,16 +1745,16 @@ Flags used to specify options to next_applicable_field.
 typedef int a_next_field_options_set;
 
 #define NF_INITIALIZABLE 0x1
-			/* When this flag is set, only "initializable"
-			   fields are returned. */
+                        /* When this flag is set, only "initializable"
+                           fields are returned. */
 #define NF_SKIP_PROPERTY_OR_EVENT 0x2
-			/* Do not return any field that is a Microsoft property
+                        /* Do not return any field that is a Microsoft property
                            or event. */
 #define NF_SKIP_FIELDS_ADDED_BY_LOWERING 0x4
-			/* Do not return any field that was added by the
+                        /* Do not return any field that was added by the
                            lowering process. */
 #define NF_SKIP_OPTIMIZED_EMPTY_CLASS 0x8
-			/* Do not return any field that is an optimized empty
+                        /* Do not return any field that is an optimized empty
                            class. */
 
 extern a_field_ptr next_applicable_field(a_field_ptr              field,
@@ -1766,7 +1766,7 @@ extern a_field_ptr next_applicable_field(a_field_ptr              field,
               (a_next_field_options_set)(NF_INITIALIZABLE |                   \
                                          NF_SKIP_PROPERTY_OR_EVENT)))
 
-/* Utility macro to return only non-lowering added initializable fields. */
+/* Utility macro to return only initializable fields not added by lowering. */
 #define next_proper_initializable_field(field)                                \
   (next_applicable_field((field),                                             \
               (a_next_field_options_set)(NF_INITIALIZABLE |                   \

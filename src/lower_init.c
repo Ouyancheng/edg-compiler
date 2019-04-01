@@ -6355,9 +6355,9 @@ last).  Insert statements to implement the initialization at *insert_location
 and update *insert_location.  If there are any (genuine) constants in the
 aggregate, set *keep_constant to TRUE.  options is a bit mask specifying any
 special treatment of this initialization (e.g., whether this initialization
-represents a full expression).  The constant is still in canonical format
+represents a full expression).  The constant is still in canonical format,
 meaning that the constants may not align with fields of the lowered type,
-constants for virtual function table pointers need to be added and there may
+constants for virtual function table pointers need to be added, and there may
 be constants for optimized empty classes.  At the conclusion of this routine
 the constant will match the lowered type (i.e., all of those issues will be
 dealt with).
@@ -15610,7 +15610,7 @@ given by vptr_node.
        offset that corresponds to the __vptr field; then add a new initializer
        at that location. */
     /* Note that optimized empty class constants may still be present in the
-       constant, if so, skip them. */
+       constant; if so, skip them. */
     cp = skip_optimized_empty_constants(
                                    aggr_con->variant.aggregate.first_constant);
     for (field = next_initializable_field(
