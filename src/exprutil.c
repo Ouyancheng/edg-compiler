@@ -5721,7 +5721,7 @@ return FALSE.
   a_boolean    is_constant = FALSE;
   a_type_ptr   return_type;
   static an_expr_node_ptr
-               call_node = NULL, rout_node, src_node, rvalue_node;
+               call_node = NULL, rout_node, src_node, value_node;
   a_diag_list  diag_list;
 
   /* Create an expression tree representing the conversion call and
@@ -5732,7 +5732,7 @@ return FALSE.
     rout_node = alloc_expr_node((an_expr_node_kind)enk_routine);
     src_node = alloc_expr_node((an_expr_node_kind)enk_constant);
     rout_node->next = src_node;
-    rvalue_node = alloc_expr_node((an_expr_node_kind)enk_operation);
+    value_node = alloc_expr_node((an_expr_node_kind)enk_operation);
   }  /* if */
   if (is_constant_operand(source_operand)) {
     src_node->kind = (an_expr_node_kind)enk_constant;
@@ -5752,16 +5752,17 @@ return FALSE.
   if (is_any_reference_type(return_type)) {
     set_node_operator(call_node, (an_expr_operator_kind)eok_dot_member_call,
                       return_type, /*is_lvalue=*/TRUE, rout_node);
-    set_node_operator(rvalue_node, (an_expr_operator_kind)eok_ref_indirect,
-                      result_type, /*is_lvalue=*/FALSE, call_node);
+    set_node_operator(value_node, (an_expr_operator_kind)eok_ref_indirect,
+                      result_type, !is_any_reference_type(result_type),
+                      call_node);
   } else {
     set_node_operator(call_node, (an_expr_operator_kind)eok_dot_member_call,
                       result_type, /*is_lvalue=*/FALSE, rout_node);
-    set_node_operator(rvalue_node, (an_expr_operator_kind)eok_cast,
+    set_node_operator(value_node, (an_expr_operator_kind)eok_cast,
                       result_type, /*is_lvalue=*/FALSE, call_node);
   }  /* if */
   clear_diag_list(&diag_list);
-  is_constant = interpret_expr(rvalue_node, /*is_constant_evaluated=*/TRUE,
+  is_constant = interpret_expr(value_node, /*is_constant_evaluated=*/TRUE,
                                /*force_rvalue=*/FALSE, result_con, &diag_list);
   discard_more_info_list(&diag_list);
 done:
