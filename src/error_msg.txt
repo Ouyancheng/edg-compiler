@@ -3036,6 +3036,7 @@ ec_bad_return;;"\"return\" not allowed here"
 ec_struct_binding_with_multiple_declarators;;"a structured binding cannot be combined with other declarators"
 ec_branch_out_of_constant;;"cannot branch out of a constant-evaluation context"
 ec_struct_binding_template;;"structured binding templates are not permitted"
+ec_braced_init_in_parens;;"a parenthesized initializer must be an expression, not a brace-enclosed list"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -902,7 +902,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
            A similar diagnostic may be issued in prep_list_initializer.  Care
            should be taken to avoid double diagnostics. */
         expr_pos_diagnostic(es_discretionary_error,
-                            ec_braced_init_in_paren_init,
+                            ec_braced_init_in_parens,
                             init_component_pos(icp));
       } else if (elem_icp == NULL || !is_last_elem(elem_icp)) {
         /* Not a single element: Issue a diagnostic and proceed with the braced
