@@ -1736,7 +1736,13 @@ types separated by commas (when single_type_required is FALSE).
       } else {
         /* We are scanning a real declaration, we should be at the end of
            the statement now. */
-        if (is_condition(flags) && !condition_is_for_stmt(flags)) {
+        if (is_condition(flags) && selection_initializers_enabled) {
+          /* A declaration in a condition statement where initializers are
+             allowed can end with a right parenthesis or a semicolon. */
+          if (curr_token != tok_rparen && curr_token != tok_semicolon) {
+            state.may_be_decl = FALSE;
+          }  /* if */
+        } else if (is_condition(flags) && !condition_is_for_stmt(flags)) {
           /* Condition statements (except in for statements) must end
              with a right parenthesis. */
           if (curr_token != tok_rparen) state.may_be_decl = FALSE;

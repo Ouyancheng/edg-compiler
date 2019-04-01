@@ -1,5 +1,17 @@
 Version 5.1
 
+4/1/19   [EDGcpfe/20982]
+Spurious error on initialization in selection statement
+
+Beginning in C++17 (see the Changes entry for EDGcpfe/17414), selection
+statements can have initializers, but a parenthesized initializer had resulted
+in a spurious error.  Now fixed (with --c++17):
+
+  void f() {
+    if (int (n) = 0; n) {}
+  }
+
+
 4/1/19   [EDGcpfe/21074]
 Abort with malformed raw string in macro definition
 
