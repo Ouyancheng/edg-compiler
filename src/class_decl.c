@@ -22970,7 +22970,8 @@ templates from that base template.
           f_types_are_compatible(drp->type, new_tp,
                                  TCF_REDECLARATION |
                                  TCF_IGNORE_NESTING_DEPTH |
-                                 TCF_IGNORE_THIS_CLASS_TYPE)) {
+                                 TCF_IGNORE_THIS_CLASS_TYPE |
+                                 TCF_IGNORE_TOP_LEVEL_NOEXCEPT)) {
         /* Don't inherit constructors templates that match a constructor
            template explicitly declared in the derived class. */
         break;

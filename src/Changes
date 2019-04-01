@@ -1,5 +1,24 @@
 Version 5.1
 
+4/1/19   [EDGcpfe/20791,EDGcpfe/21084]
+Error in inheriting constructor templates in C++17 mode
+
+The change made for [EDGcpfe/17926,EDGcpfe/20176,EDGcpfe/20373,EDGcpfe/20470]
+covered only non-template constructors.  The fix has been extended to include
+inherited constructor templates as well.
+
+  struct B {
+    template<typename T>
+    B(T) noexcept(false);
+  };
+  struct D: B {
+    using B::B;
+    template<typename T>
+    D(T) noexcept(false); // Spurious "invalid redeclaration" error here
+  };
+  D d{1};
+
+
 4/1/19   [EDGcpfe/20982]
 Spurious error on initialization in selection statement
 
