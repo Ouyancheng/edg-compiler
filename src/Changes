@@ -1,5 +1,23 @@
 Version 5.1
 
+4/1/19   [EDGcpfe/21014]
+Abort in is_false_constant on Clang-mode enable_if attribute
+
+Previously, certain (currently unsupported) uses of the Clang enable_if
+attribute caused the front end to abort with an internal error in
+is_false_constant.  For example:
+
+  struct S {
+    template <int N> S(const char (&rs)[N])
+        __attribute((enable_if(__builtin_strlen(rs) == N-1, "Error!")));
+  };
+  S s("xyz");
+
+That is now fixed: Such cases now elicit ordinary errors because the front
+end does not currently fully support the enable_if attribute (see the entry
+for EDGcpfe/17738).
+
+
 3/31/19  [EDGcpfe/20521]
 Spurious error on instantiation of variable template in constexpr if
 

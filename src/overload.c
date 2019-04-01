@@ -5281,7 +5281,7 @@ If applicable, record the folded value in ap.
       discard_more_info_list(&diag_list);
       release_local_constant(&cp);
     }  /* if */
-    if (il_cp != NULL) {
+    if (il_cp != NULL && constant_bool_value_known_at_compile_time(il_cp)) {
       result = TRUE;
       *val = !is_false_constant(il_cp);
     }  /* if */
