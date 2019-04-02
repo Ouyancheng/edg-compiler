@@ -31027,8 +31027,8 @@ is an lvalue.
                                  (a_ref_entry *)NULL);
     if (!is_lvalue_reference_type(container->type)) {
       /* If the variable is an lvalue then the result needs to be an lvalue.
-         Otherwise the result is determined by the initializer expression. */
-      e_opnd.state = (an_operand_state)os_none;
+         Otherwise the result is an xvalue. */
+      conv_rvalue_reference_result_to_xvalue(&e_opnd);
     }
     make_constant_operand(i_con, &i_opnd);
     if (is_function_or_template_symbol(mem_sym)) {
