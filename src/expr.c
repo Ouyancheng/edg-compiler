@@ -600,7 +600,7 @@ TRUE and FALSE is returned.
     /* This is a class template argument deduction case. */
     *type_after_deduction = void_type();
     *still_dependent = FALSE;
-    result = deduce_class_template_args(auto_type, is_direct_init,
+    result = deduce_class_template_args(orig_type, is_direct_init,
                                         parenthesized_init, keep_placeholder,
                                         initializer_alep, source_pos,
                                         deduced_auto_type, still_dependent);

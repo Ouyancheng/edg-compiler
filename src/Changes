@@ -1,5 +1,19 @@
 Version 5.1
 
+4/2/19   [EDGcpfe/20172,EDGcpfe/20979]
+Class template argument deduction and cv-qualifiers
+
+Consider:
+
+  template<typename T> struct S { S(T); };
+  S const si = 42;  // Previously an error.  Now okay.
+
+Previously this elicited an error because the front end did not accept
+cv-qualifiers on top of a placeholder type for class template argument
+deduction (see the entry of 8/8/18 for EDGcpfe/17697,EDGcpfe/18314).
+That is now fixed.
+
+
 4/1/19   [EDGcpfe/20791,EDGcpfe/21084]
 Error in inheriting constructor templates in C++17 mode
 
