@@ -17794,7 +17794,10 @@ can be fully determined.
       if (is_reference_type(btype)) {
         btype = type_pointed_to(btype);
       }  /* if */
-      if (fp->is_mutable) {
+      if (is_reference_type(fp->type)) {
+        /* Reference type fields ignore qualifiers on the container type. */
+        tqs = TQ_NONE;
+      } else if (fp->is_mutable) {
         /* Mutable fields ignore a "const" qualified container type. */
         tqs &= ~TQ_CONST;
       }  /* if */

@@ -1,5 +1,23 @@
 Version 5.1
 
+4/2/19   [EDGcpfe/20945]
+Application of cv-qualifiers to reference types in structured bindings
+
+The front end was previously applying the cv-qualifiers added to reference
+types in a structured binding declaration, when it should not have been.  This
+is now fixed.  For example:
+
+  struct A {
+    int i = 0;
+    int &r = i;
+  };
+
+  void f() {
+    const auto [i,r] = A(); // Previously r would have type "const int&".
+                            // Now it correctly has type "int&"
+  }
+
+
 4/2/19   [EDGcpfe/20172,EDGcpfe/20979]
 Class template argument deduction and cv-qualifiers
 
