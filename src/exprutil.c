@@ -5753,7 +5753,7 @@ return FALSE.
     set_node_operator(call_node, (an_expr_operator_kind)eok_dot_member_call,
                       return_type, /*is_lvalue=*/TRUE, rout_node);
     set_node_operator(value_node, (an_expr_operator_kind)eok_ref_indirect,
-                      result_type, !is_any_reference_type(result_type),
+                      result_type, is_any_reference_type(result_type),
                       call_node);
   } else {
     set_node_operator(call_node, (an_expr_operator_kind)eok_dot_member_call,
