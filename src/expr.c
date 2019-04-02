@@ -321,7 +321,7 @@ Macro to initialize the "new parsing state" pointed to by the argument.
 #define clear_new_parse_state(nps) {                                         \
   memzero((char*)(nps), sizeof(a_new_parse_state));                          \
   clear_new_parse_state_ptrs(nps);                                           \
-}
+}  /* clear_new_parse_state */
 
 
 #if !NULL_POINTER_IS_ZERO
@@ -356,7 +356,7 @@ Set all pointers in the "new" parse state to NULL.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   nps->cli_array_new_init_args = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-} /* clear_new_parse_state_ptrs */
+}  /* clear_new_parse_state_ptrs */
 #endif /* !NULL_POINTER_IS_ZERO */
 
 static void save_expr_stack(an_expr_stack_entry_ptr *saved_expr_stack)
