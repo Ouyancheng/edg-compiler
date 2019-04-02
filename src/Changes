@@ -45,7 +45,7 @@ literal.  This is now fixed.  For example, with --c++17:
   }
 
 
-4/1/19   [EDGcpfe/21014]
+4/1/19   [EDGcpfe/20925,EDGcpfe/21014]
 Abort in is_false_constant on Clang-mode enable_if attribute
 
 Previously, certain (currently unsupported) uses of the Clang enable_if
