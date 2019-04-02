@@ -31028,7 +31028,7 @@ is an lvalue.
     if (!is_lvalue_reference_type(container->type)) {
       /* If the variable is an lvalue then the result needs to be an lvalue.
          Otherwise the result is determined by the initializer expression. */
-      e_opnd.state = os_none;
+      e_opnd.state = (an_operand_state)os_none;
     }
     make_constant_operand(i_con, &i_opnd);
     if (is_function_or_template_symbol(mem_sym)) {
