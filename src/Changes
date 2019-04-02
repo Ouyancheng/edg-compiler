@@ -1,5 +1,34 @@
 Version 5.1
 
+4/2/19   [EDGcpfe/20963]
+Resolution of "get" member in std::tuple-like structured binding declarations
+
+In cases where the "get" member function of a class had ref-qualifiers
+provided, the wrong "get" may have been chosen when used in a structured
+binding declaration.  For example:
+
+  struct wrap {
+    template<int> void get() &;
+    template<int> int  get() &&;
+  };
+
+  namespace std {
+    template<typename T> struct tuple_size;
+    template<int, typename> struct tuple_element;
+
+    template<> struct std::tuple_size<wrap> {
+      static const int value = 1;
+    };
+    template<> struct std::tuple_element<0, wrap> {
+      typedef int type;
+    };
+  }
+
+  auto [a] = wrap();  // Previously chose "void get<0>() &"
+
+This is now fixed.
+
+
 4/2/19   [EDGcpfe/20945]
 Application of cv-qualifiers to reference types in structured bindings
 

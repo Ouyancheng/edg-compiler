@@ -31010,6 +31010,7 @@ is an lvalue.
                        targ_size_t_int_kind);
   clear_locator(&loc, diag_pos);
   (void)find_symbol("get", sizeof("get")-1, &loc);
+  complete_type_is_needed(tp);
   mem_sym = class_qualified_id_lookup(&loc, tp, IDL_NO_OPTIONS);
   if (mem_sym != NULL &&
       (clang_version_is(<80000) || gnu_version_is(<80000) ||
@@ -31024,6 +31025,11 @@ is an lvalue.
     an_operand           e_opnd, i_opnd;
     make_lvalue_variable_operand(container, diag_pos, diag_pos, &e_opnd,
                                  (a_ref_entry *)NULL);
+    if (!is_lvalue_reference_type(container->type)) {
+      /* If the variable is an lvalue then the result needs to be an lvalue.
+         Otherwise the result is determined by the initializer expression. */
+      e_opnd.state = os_none;
+    }
     make_constant_operand(i_con, &i_opnd);
     if (is_function_or_template_symbol(mem_sym)) {
       a_template_arg_ptr    tap;
