@@ -20,11 +20,11 @@ inherited constructor templates as well.
 
 
 4/1/19   [EDGcpfe/20982]
-Spurious error on initialization in selection statement
+Spurious error on initializer statement in selection statement
 
 Beginning in C++17 (see the Changes entry for EDGcpfe/17414), selection
-statements can have initializers, but a parenthesized initializer had resulted
-in a spurious error.  Now fixed (with --c++17):
+statements can have initializer statements, but a parenthesized declarator in
+an init-statement had resulted in a spurious error.  Now fixed (with --c++17):
 
   void f() {
     if (int (n) = 0; n) {}
