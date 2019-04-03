@@ -26700,6 +26700,7 @@ set to TRUE and FALSE is returned.
   }  /* if */
   if (!is_class_template_placeholder_type(placeholder_type)) {
     expect_error();
+    result = FALSE;
     *deduced_placeholder = error_type();
     *still_dependent = FALSE;
     goto done;
