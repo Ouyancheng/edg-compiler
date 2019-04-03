@@ -10060,9 +10060,14 @@ and therefore might be a projection symbol.  If there is an ambiguity return
 }  /* find_default_operator_new_sym */
 
 
-a_boolean is_default_operator_new(a_routine_ptr routine,
-                                  a_type_ptr    new_type,
-                                  a_boolean     *is_aligned_new)
+static a_boolean is_default_operator_new(a_routine_ptr routine,
+                                         a_boolean     *is_aligned_new)
+/*
+Return TRUE if the indicated routine (an operator new function) is a default
+operator new function (including the variant with a std::align_val_t
+parameter).  *is_aligned_new is set to TRUE if the routine has a second
+parameter of type align_val_t and to FALSE otherwise.
+*/
 {
   a_routine_type_supplement_ptr rtsp;
   a_boolean                     is_default = FALSE;
@@ -10092,23 +10097,21 @@ a_boolean is_default_operator_new(a_routine_ptr routine,
 
 
 a_boolean is_default_operator_delete(a_routine_ptr routine,
-                                     a_type_ptr    delete_type,
                                      a_boolean     *is_sized_ver,
                                      a_boolean     *is_aligned_delete)
 /*
 Return TRUE if the indicated routine (an operator delete function) is a
 default operator delete function (including the variant with parameters of
-type std::size_t and/or std::align_val_t) when deleting an object of type
-delete_type.  *is_sized_ver is set to TRUE if the routine has a second
-parameter of type size_t and is set to FALSE otherwise. *is_aligned_delete
-is set to TRUE if the routine is one of the variants that has a parameter
-of type std::align_val_t and to FALSE otherwise.  Note that this routine
-does not report whether the routine is a "usual deallocation function" --
-only that it is a candidate to be one.  In particular, this routine will
-return TRUE for a two-parameter class member operator delete, but the
-presence of a one-parameter class member operator delete would disqualify
-the two-parameter version from being a "usual deallocation function" (see
-[basic.stc.dynamic.deallocation]).
+type std::size_t and/or std::align_val_t).  *is_sized_ver is set to TRUE if
+the routine has a second parameter of type size_t and is set to FALSE
+otherwise.  *is_aligned_delete is set to TRUE if the routine is one of the
+variants that has a parameter of type std::align_val_t and to FALSE otherwise.
+Note that this routine does not report whether the routine is a "usual
+deallocation function" -- only that it is a candidate to be one.  In
+particular, this routine will return TRUE for a two-parameter class member
+operator delete, but the presence of a one-parameter class member operator
+delete would disqualify the two-parameter version from being a "usual
+deallocation function" (see [basic.stc.dynamic.deallocation]).
 */
 {
   a_boolean                      is_default = FALSE;
@@ -10211,7 +10214,7 @@ expression -- which is a pointer).  If there is an ambiguity return
       a_boolean is_aligned_delete;
       /* See if this is a default operator delete. */
       rp = fund_sym->variant.routine.ptr;
-      if (is_default_operator_delete(rp, delete_type, &is_sized_ver,
+      if (is_default_operator_delete(rp, &is_sized_ver,
                                      &is_aligned_delete)) {
         /* Check for ambiguity and record the symbol. */
         if (syms[is_sized_ver][is_aligned_delete] != NULL) {
@@ -10353,7 +10356,7 @@ delete symbol, but it may be an overload symbol instead.
   if (sym != NULL) {
     a_boolean aligned_new = FALSE;
     if (!placement_new &&
-        is_default_operator_new(rp, delete_type, &aligned_new)) {
+        is_default_operator_new(rp, &aligned_new)) {
       /* This is default (sized or sized + aligned) operator new, so find the
          best matching default operator delete. */
       corresp_op_delete_sym = find_default_operator_delete_sym(sym,

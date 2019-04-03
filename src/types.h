@@ -431,6 +431,10 @@ Return TRUE if the given type represents a typedef.
 
 extern a_boolean is_possibly_qualified_typedef(a_type_ptr  tp);
 
+#define type_is_overaligned_for_new(tp)                                      \
+  (overaligned_allocation_enabled &&                                         \
+   (tp)->alignment > targ_default_new_alignment)                             \
+
 /*
 Return the alignment of the given type.  Normally, a skip_typeref must be
 performed to make sure we get correct alignment, but if the alignment was
@@ -444,10 +448,6 @@ extern a_targ_alignment f_alignment_of_type(a_type_ptr  tp);
   ((tp)->alignment_set_explicitly ? (tp)->alignment :                 \
    (tp)->kind != (a_type_kind)tk_typeref ? (tp)->alignment :          \
                                            f_alignment_of_type((tp)))
-
-#define type_is_overaligned_for_new(tp)                                      \
-  (overaligned_allocation_enabled &&                                         \
-   (tp)->alignment > targ_default_new_alignment)                             \
 
 extern a_boolean type_explicitly_aligned(a_type_ptr  tp);
 #else /* !(GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED) */

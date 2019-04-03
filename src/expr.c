@@ -18018,7 +18018,7 @@ have been issued).
     delete_routine = fund_delete_sym->variant.routine.ptr;
     if (nps->placement_new &&
         /* Is two-operand delete: */
-        is_default_operator_delete(delete_routine, nps->base_new_type,
+        is_default_operator_delete(delete_routine,
                                    &is_sized_ver, &is_aligned_delete) &&
         is_sized_ver &&
         /* Is not a "usual deallocation function" (because the routine is a
@@ -18065,7 +18065,8 @@ have been issued).
                                                         overload_delete_sym);
       }  /* if */
       /* Mark the symbol referenced. */
-      if ((gpp_version_is(any_version) || microsoft_mode) && delete_routine->is_deleted) {
+      if ((gpp_version_is(any_version) || microsoft_mode) &&
+          delete_routine->is_deleted) {
         delete_routine->is_deleted = FALSE;
         restore_is_deleted = TRUE;
       }  /* if */
@@ -21586,7 +21587,7 @@ in *rcblock).
                  inline. */
               !delete_routine->is_inline) {
             if (sized_deallocation_enabled &&
-                is_default_operator_delete(delete_routine, base_delete_type,
+                is_default_operator_delete(delete_routine,
                                            &is_sized_ver,
                                            &is_aligned_delete) &&
                 (is_sized_ver || is_aligned_delete)) {
