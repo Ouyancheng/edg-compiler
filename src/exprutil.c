@@ -20296,7 +20296,6 @@ lvalue_adjust:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       node->expr_range = saved_expr_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      node = NULL;
     } else if (con_expr_value->expr != NULL) {
       /* We need to clear the expression pointer in the constant (someone
          decided we don't want to record the expression, possibly because
