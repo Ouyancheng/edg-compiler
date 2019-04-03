@@ -28907,6 +28907,7 @@ in the class designated by tag_sym.
           del_sym = find_corresponding_operator_delete_sym(
                                                      fund_sym, class_type,
                                                      class_type,
+                                                     /*placement_new=*/FALSE,
                                                      /*template_okay=*/TRUE,
                                                      &ambiguous, &ovl_sym);
           if ((del_sym == NULL || !del_sym->is_class_member) && !ambiguous) {

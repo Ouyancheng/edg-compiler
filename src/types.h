@@ -445,6 +445,10 @@ extern a_targ_alignment f_alignment_of_type(a_type_ptr  tp);
    (tp)->kind != (a_type_kind)tk_typeref ? (tp)->alignment :          \
                                            f_alignment_of_type((tp)))
 
+#define type_is_overaligned_for_new(tp)                                      \
+  (overaligned_allocation_enabled &&                                         \
+   (tp)->alignment > targ_default_new_alignment)                             \
+
 extern a_boolean type_explicitly_aligned(a_type_ptr  tp);
 #else /* !(GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED) */
 #define alignment_of_type(tp)  (skip_typerefs(tp)->alignment)

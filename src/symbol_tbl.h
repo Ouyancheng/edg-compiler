@@ -5361,6 +5361,10 @@ extern void make_type_conversion_locator(a_type_ptr         type,
 extern a_symbol_ptr find_default_operator_new_sym(a_symbol_ptr sym,
                                                   a_boolean    *ambiguous);
 
+extern a_boolean is_default_operator_new(a_routine_ptr routine,
+                                         a_type_ptr    new_type,
+                                         a_boolean     *is_aligned_new);
+
 extern a_boolean is_default_operator_delete(a_routine_ptr routine,
                                             a_type_ptr    delete_type,
                                             a_boolean     *is_sized_ver,
@@ -5374,6 +5378,7 @@ extern a_symbol_ptr find_corresponding_operator_delete_sym(
                                                   a_symbol_ptr op_new_sym,
                                                   a_type_ptr   class_type,
                                                   a_type_ptr   delete_type,
+                                                  a_boolean    placement_new,
                                                   a_boolean    template_okay,
                                                   a_boolean    *ambiguous,
                                                   a_symbol_ptr *overload_sym);

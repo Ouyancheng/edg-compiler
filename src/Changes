@@ -1,5 +1,29 @@
 Version 5.1
 
+4/3/19   [ECGcpfe/20981]
+Incorrect resolution of default operator delete
+
+The front end was incorrectly ignoring delete operator candidates when
+determining the corresponding "operator delete" for an "operator new".  For
+example:
+
+  using size_t = decltype(sizeof(0));
+
+  namespace std { enum class align_val_t : size_t {}; }
+
+  struct A
+  {
+    void *operator new(size_t);
+    void operator delete(void*, std::align_val_t) = delete;
+  };
+
+  auto *a1 = new A; // Would previously succeed (no matching delete).
+                    // Now correctly errors out that the matching delete is
+                    //  deleted.
+
+This is now fixed.
+
+
 4/3/19   [EDGcpfe/20649,EDGcpfe/20949]
 C++20: Changes to feature-test macros
 

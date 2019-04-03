@@ -10060,6 +10060,37 @@ and therefore might be a projection symbol.  If there is an ambiguity return
 }  /* find_default_operator_new_sym */
 
 
+a_boolean is_default_operator_new(a_routine_ptr routine,
+                                  a_type_ptr    new_type,
+                                  a_boolean     *is_aligned_new)
+{
+  a_routine_type_supplement_ptr rtsp;
+  a_boolean                     is_default = FALSE;
+
+  *is_aligned_new = FALSE;
+  rtsp = skip_typerefs(routine->type)->variant.routine.extra_info;
+  if (rtsp->has_ellipsis) {
+    /* An operator new declared with ellipsis can't be a default operator
+       new. */
+  } else {
+    a_param_type_ptr ptp = rtsp->param_type_list;
+    check_assertion(ptp != NULL);
+    if (ptp->next == NULL) {
+      /* operator new(std::size_t) is a default operator new. */
+      is_default = TRUE;
+    } else if (ptp->next != NULL && overaligned_allocation_enabled &&
+        identical_types(ptp->next->type, type_of_align_val_t) &&
+        ptp->next->next == NULL) {
+      /* operator new(std::size_t, std::align_val_t) for an overaligned
+         type is a default operator new. */
+      is_default = TRUE;
+      *is_aligned_new = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_default;
+}  /* is_default_operator_new */
+
+
 a_boolean is_default_operator_delete(a_routine_ptr routine,
                                      a_type_ptr    delete_type,
                                      a_boolean     *is_sized_ver,
@@ -10083,12 +10114,9 @@ the two-parameter version from being a "usual deallocation function" (see
   a_boolean                      is_default = FALSE;
   a_routine_type_supplement_ptr  rtsp;
   a_param_type_ptr               ptp;
-  a_boolean                      overaligned_type;
 
   *is_sized_ver = FALSE;
   *is_aligned_delete = FALSE;
-  overaligned_type = (overaligned_allocation_enabled &&
-                      delete_type->alignment > targ_default_new_alignment);
   rtsp = skip_typerefs(routine->type)->variant.routine.extra_info;
   if (rtsp->has_ellipsis) {
     /* An operator delete declared with ellipsis can't be a default operator
@@ -10096,7 +10124,7 @@ the two-parameter version from being a "usual deallocation function" (see
   } else {
     ptp = rtsp->param_type_list;
     check_assertion(ptp != NULL);
-    if (ptp->next != NULL && overaligned_type &&
+    if (ptp->next != NULL && overaligned_allocation_enabled &&
         identical_types(ptp->next->type, type_of_align_val_t) &&
         ptp->next->next == NULL) {
       /* operator delete(void *, std::align_val_t) for an overaligned
@@ -10117,7 +10145,7 @@ the two-parameter version from being a "usual deallocation function" (see
       param_type = skip_typerefs(ptp->type);
       if (is_integral_type(param_type) &&
           param_type->variant.integer.int_kind == targ_size_t_int_kind) {
-        if (ptp->next != NULL && overaligned_type &&
+        if (ptp->next != NULL && overaligned_allocation_enabled &&
             identical_types(ptp->next->type, type_of_align_val_t) &&
             ptp->next->next == NULL) {
           /* operator_delete(void *, std::size_t, std::align_val_t) for an
@@ -10154,6 +10182,7 @@ expression -- which is a pointer).  If there is an ambiguity return
   an_overload_set_traversal_block
                  ostblock;
   a_boolean      ambiguous_alternate = FALSE, is_class_member;
+  a_boolean      overaligned_type;
   a_symbol_ptr   fund_sym, default_sym = NULL, alternate_default_sym = NULL;
   a_routine_ptr  rp;
   a_boolean      is_sized_ver, use_alternate = FALSE;
@@ -10162,6 +10191,7 @@ expression -- which is a pointer).  If there is an ambiguity return
 
   *ambiguous = FALSE;
   is_class_member = sym->is_class_member;
+  overaligned_type = type_is_overaligned_for_new(delete_type);
   for (sym = set_up_overload_set_traversal_simple(sym, &ostblock);
        sym != NULL;
        sym = next_symbol_in_overload_set(&ostblock)) {
@@ -10194,22 +10224,28 @@ expression -- which is a pointer).  If there is an ambiguity return
     }  /* if */
   }  /* for */
   if (!*ambiguous) {
-    if (syms[0][1] != NULL || syms[1][1] != NULL) {
-      /* An aligned delete was seen; ignore any non-aligned delete
-         functions.  (Note that is_default_operator_delete will only have
-         returned TRUE for an aligned version if delete_type has
-         new-extended alignment.) */
-      default_sym = syms[0][1];
-      *ambiguous = ambig[0][1];
-      alternate_default_sym = syms[1][1];
-      ambiguous_alternate = ambig[1][1];
-    } else {
-      /* No aligned delete was seen; use the non-aligned delete
+    int preferred_index = overaligned_type ? 1 : 0;
+    int non_preferred_index = 1 - preferred_index;
+    /* If the type being deleted is overaligned, then the aligned delete
+       versions are preferred.  Otherwise the non-aligned versions are
+       preferred.  If overaligned allocation is not enabled, there are no
+       non-preferred delete routines.*/
+    if (syms[0][preferred_index] != NULL ||
+        syms[1][preferred_index] != NULL ||
+        !overaligned_allocation_enabled) {
+      /* An preferred delete was seen; ignore any non-preferred delete
          functions. */
-      default_sym = syms[0][0];
-      *ambiguous = ambig[0][0];
-      alternate_default_sym = syms[1][0];
-      ambiguous_alternate = ambig[1][0];
+      default_sym = syms[0][preferred_index];
+      *ambiguous = ambig[0][preferred_index];
+      alternate_default_sym = syms[1][preferred_index];
+      ambiguous_alternate = ambig[1][preferred_index];
+    } else {
+      /* No preferred delete was seen; use the non-preferred delete
+         functions. */
+      default_sym = syms[0][non_preferred_index];
+      *ambiguous = ambig[0][non_preferred_index];
+      alternate_default_sym = syms[1][non_preferred_index];
+      ambiguous_alternate = ambig[1][non_preferred_index];
     }  /* if */
   }  /* if */
   if (*ambiguous) {
@@ -10264,6 +10300,7 @@ expression -- which is a pointer).  If there is an ambiguity return
 a_symbol_ptr find_corresponding_operator_delete_sym(a_symbol_ptr op_new_sym,
                                                     a_type_ptr   class_type,
                                                     a_type_ptr   delete_type,
+                                                    a_boolean    placement_new,
                                                     a_boolean    template_okay,
                                                     a_boolean    *ambiguous,
                                                     a_symbol_ptr *overload_sym)
@@ -10275,23 +10312,20 @@ operator delete function (i.e., the operator delete function with identical
 parameter types as the operator new function, excluding the first parameter
 in each).  delete_type is the type of the object to be deleted.  Return NULL if
 no match is found or if there is an ambiguity; in the latter case, return
-*ambiguous set to TRUE.  If template_okay is TRUE, simply return the symbol
-for a matching function template, if appropriate; otherwise, return the symbol
-for the instance.  Also return in *overload_sym the result of looking up the
-delete operator; it may be the same as the symbol that is returned as the
-corresponding operator delete symbol, but it may be an overload symbol
-instead.
+*ambiguous set to TRUE.  If placement_new is TRUE, don't attempt to find a
+matching default operator delete function.  Otherwise, attempt to determine
+from the signature of the operator new whether it's a placement "new" or not.
+If template_okay is TRUE, simply return the symbol for a matching function
+template, if appropriate; otherwise, return the symbol for the instance.  Also
+return in *overload_sym the result of looking up the delete operator; it may
+be the same as the symbol that is returned as the corresponding operator
+delete symbol, but it may be an overload symbol instead.
 */
 {
-  a_symbol_ptr                    sym = NULL;
-  a_symbol_ptr                    corresp_op_delete_sym = NULL, fund_sym;
-  a_routine_ptr                   rp;
-  an_opname_kind                  delete_opname_kind;
-  a_param_type_ptr                op_new_param_type_list, op_new_ptp, ptp;
-  a_boolean                       any_template_seen;
-  a_routine_type_supplement_ptr   rtsp;
-  a_boolean                       op_new_has_ellipsis = FALSE;
-  an_overload_set_traversal_block ostblock;
+  a_symbol_ptr   sym = NULL;
+  a_symbol_ptr   corresp_op_delete_sym = NULL;
+  a_routine_ptr  rp;
+  an_opname_kind delete_opname_kind;
 
   db_enter(4, "find_corresponding_operator_delete_sym");
   check_assertion(op_new_sym->kind == (a_symbol_kind)sk_routine ||
@@ -10317,23 +10351,29 @@ instead.
   }  /* if */
   *overload_sym = sym;
   if (sym != NULL) {
-    rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
-    op_new_has_ellipsis = rtsp->has_ellipsis;
-    op_new_param_type_list = rtsp->param_type_list;
-    if (op_new_param_type_list->next == NULL && !op_new_has_ellipsis &&
-        !(overaligned_allocation_enabled && class_type != NULL &&
-          class_type->alignment > targ_default_new_alignment)) {
-      /* This is default (single-argument) operator new, so find the default
-         operator delete (but not if it's one that has an alignment
-         parameter). */
+    a_boolean aligned_new = FALSE;
+    if (!placement_new &&
+        is_default_operator_new(rp, delete_type, &aligned_new)) {
+      /* This is default (sized or sized + aligned) operator new, so find the
+         best matching default operator delete. */
       corresp_op_delete_sym = find_default_operator_delete_sym(sym,
                                                                delete_type,
                                                                ambiguous);
     } else {
-      /* Placement new or a single-argument new for an overaligned type.
-         We need to examine all the delete operators and look for a type
-         match. */
-      any_template_seen = FALSE;
+      /* Placement new.  We need to examine all the delete operators and look
+         for a type match. */
+      an_overload_set_traversal_block
+                       ostblock;
+      a_routine_type_supplement_ptr
+                       rtsp;
+      a_param_type_ptr op_new_param_type_list, op_new_ptp, ptp;
+      a_symbol_ptr     fund_sym;
+      a_boolean        op_new_has_ellipsis;
+      a_boolean        any_template_seen = FALSE;
+
+      rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
+      op_new_has_ellipsis = rtsp->has_ellipsis;
+      op_new_param_type_list = rtsp->param_type_list;
       /*lint --e{446} sym modified in loop (LINTBUG) */
       for (sym = set_up_overload_set_traversal_simple(sym, &ostblock);
            sym != NULL;

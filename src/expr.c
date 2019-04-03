@@ -17993,6 +17993,7 @@ have been issued).
   delete_sym = find_corresponding_operator_delete_sym(nps->function_symbol,
                                                       class_type,
                                                       nps->base_new_type,
+                                                      nps->placement_new,
                                                       /*template_okay=*/FALSE,
                                                       &ambiguous,
                                                       &overload_delete_sym);
@@ -18064,7 +18065,7 @@ have been issued).
                                                         overload_delete_sym);
       }  /* if */
       /* Mark the symbol referenced. */
-      if ((gpp_mode || microsoft_mode) && delete_routine->is_deleted) {
+      if ((gpp_version_is(any_version) || microsoft_mode) && delete_routine->is_deleted) {
         delete_routine->is_deleted = FALSE;
         restore_is_deleted = TRUE;
       }  /* if */
@@ -19696,8 +19697,7 @@ Otherwise return NULL.
   an_arg_list_elem_ptr align_alep = NULL;
   an_operand           alignment_operand;
 
-  if (overaligned_allocation_enabled &&
-      nps->unqual_new_type->alignment > targ_default_new_alignment) {
+  if (type_is_overaligned_for_new(nps->unqual_new_type)) {
     a_constant_ptr alignment_con = local_constant();
     a_boolean      did_not_fold;
     set_integer_constant(alignment_con,
