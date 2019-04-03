@@ -1,5 +1,16 @@
 Version 5.1
 
+4/3/19   [EDGcpfe/20649,EDGcpfe/20949]
+C++20: Changes to feature-test macros
+
+The changes to feature-test macros described in Committee document P1353R0
+have now been implemented in the front end.  In particular, the macro
+__cpp_explicit_bool has been renamed to __cpp_conditional_explicit (the
+previous name is still supported, for backward compatibility), and the
+macro __cpp_impl_three_way_comparison is defined, with value 201711L, when
+the corresponding feature is enabled.
+
+
 4/3/19   [EDGcpfe/20998]
 Duplicate cross-reference entries for implicit destructor invocation
 
