@@ -1,5 +1,19 @@
 Version 5.1
 
+4/3/19   [EDGcpfe/20998]
+Duplicate cross-reference entries for implicit destructor invocation
+
+Consider:
+
+  struct S {
+    ~S();
+    void f() { S v(*this); }
+  };
+
+Previously, outputting cross-reference information produced duplicate entries
+for the destructor invocation that cleans up variable v.  That is now fixed.
+
+
 4/2/19   [EDGcpfe/20963]
 Resolution of "get" member in std::tuple-like structured binding declarations
 

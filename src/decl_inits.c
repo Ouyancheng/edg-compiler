@@ -5305,7 +5305,7 @@ returned set to TRUE.
       check_closing_paren_after_expr_list();
       /* Although the entity has no constructor, it may have a destructor that
          needs to be recorded in the dynamic init entry (if any). */
-      if (cssp != NULL && init_dip != NULL) {
+      if (cssp != NULL && init_dip != NULL && init_dip->destructor == NULL) {
         a_routine_ptr  dtor = select_destructor(vp_type, vp_type, source_pos);
         record_dtor_in_dynamic_init(
                   dtor, init_dip, !dps->init_state.not_potentially_evaluated);
