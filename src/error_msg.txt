@@ -3037,6 +3037,7 @@ ec_struct_binding_with_multiple_declarators;;"a structured binding cannot be com
 ec_branch_out_of_constant;;"cannot branch out of a constant-evaluation context"
 ec_struct_binding_template;;"structured binding templates are not permitted"
 ec_braced_init_in_parens;;"a parenthesized initializer must be an expression, not a brace-enclosed list"
+ec_cannot_deduce_class_template_arguments;;"cannot deduce class template arguments"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

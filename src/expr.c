@@ -953,7 +953,9 @@ swallowed); otherwise, it's "="-form or "{...}" form.
         dps->deduced_auto_type = unknown_type();
       } else {
         /* Deduction failed. */
-        expr_pos_error(dps->decltype_auto_specifier_seen ?
+        expr_pos_error(dps->has_deducible_class_templ_args ?
+                         ec_cannot_deduce_class_template_arguments :
+                       dps->decltype_auto_specifier_seen ?
                          ec_cannot_deduce_decltype_auto_type :
                          ec_cannot_deduce_auto_type,
                        &dps->auto_pos);
