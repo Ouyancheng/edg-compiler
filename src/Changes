@@ -1,5 +1,25 @@
 Version 5.1
 
+4/4/19   [EDGcpfe/20923]
+Abort in get_expr_rescan_info with class template argument deduction
+
+Consider:
+
+  template<int> struct I {};
+  template<typename T> struct S {
+    S(T t, I<sizeof(t)>);
+  };
+  void g() {
+    S s(0, I<sizeof(int)>());  // Previously aborted.  Now okay.
+  }
+
+The declaration of variable s relies on class template argument deduction.
+However, the front end previously failed to record all the metadata needed to
+complete this deduction.  That in turn triggered an internal error in
+get_expr_rescan_info (exprutil.c, "missing default rescan info").  That is now
+fixed.
+
+
 4/4/19   [EDGcpfe/21070]
 __has_unique_object_representations with empty unions
 
