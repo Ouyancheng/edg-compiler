@@ -10,8 +10,8 @@ Consider:
 
 Here "X(0)" is a use of class template argument deduction in a functional-
 notation cast.  However, the expression-vs-declaration disambiguator previously
-failed to recognize that, triggered a number of errors (the sequence "(X" was
-treated as the start of a C-style case).  That is now fixed.
+failed to recognize that, triggering a number of errors (the sequence "(X" was
+treated as the start of a C-style cast).  That is now fixed.
 
 
 4/3/19   [ECGcpfe/20981]
