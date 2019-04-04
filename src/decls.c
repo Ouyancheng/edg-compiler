@@ -1065,6 +1065,7 @@ and associated routines.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     an_identifier_options_set  gid_options = GID_NO_OPTIONS;
+    a_symbol_ptr               type_sym;
     if (is_expr_context) {
       gid_options |= GID_IS_EXPR_CONTEXT;
     }  /* if */
@@ -1078,7 +1079,28 @@ and associated routines.
       gid_options |= GID_SIMPLIFY_CURR_CLASS_QUALIFIED_NAME;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (type_name_next(gid_options, ids_options)) {
+    if (is_generalized_identifier_start(gid_options)) {
+      type_sym = curr_type_symbol(/*is_new_type_name=*/FALSE, is_prescan,
+                                  /*in_type_check=*/TRUE,
+                                  (ids_options & IDS_IS_SIZEOF) != 0);
+      if (class_template_arg_deduction_enabled && is_expr_context &&
+          type_sym != NULL) {
+        /* Check for the case of a class template name used as a placeholder
+           type followed by a left parenthesis or brace: That is a functional
+           notation cast. */
+        a_type_ptr  type = type_symbol_type(type_sym);
+        if (is_class_template_placeholder_type(type)) {
+          a_token_kind  next_tok = next_token();
+          if (next_tok == tok_lparen ||
+              (list_init_enabled && next_tok == tok_lbrace)) {
+            type_sym = NULL;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    } else {
+      type_sym = NULL;
+    }  /* if */
+    if (type_sym != NULL) {
       /* Identifier that is a type name (a typedef name or, in C++,
          the name of a class, struct, or union).  A type name cannot be
          followed by an opening brace of an initializer list. */

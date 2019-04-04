@@ -1,5 +1,19 @@
 Version 5.1
 
+4/3/19   [EDGcpfe/20159,EDGcpfe/20991]
+Incorrect syntax disambiguation for class template argument deduction
+
+Consider:
+
+  template<typename T> struct X { X(T) {}; };
+  auto x = (X(0));  // Previously an error.  Now accepted in C++17 mode.
+
+Here "X(0)" is a use of class template argument deduction in a functional-
+notation cast.  However, the expression-vs-declaration disambiguator previously
+failed to recognize that, triggered a number of errors (the sequence "(X" was
+treated as the start of a C-style case).  That is now fixed.
+
+
 4/3/19   [ECGcpfe/20981]
 Incorrect resolution of default operator delete
 
