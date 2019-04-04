@@ -1016,19 +1016,6 @@ should not be treated as a type for dependent name purposes.
 }  /* curr_type_symbol */
 
 
-/*
-Macro that is TRUE if the current token is an identifier that represents
-the name of a type (a typedef name or, in C++, the name of a class, struct,
-union, or enum).  Also works if the current token is the "::" at the start of
-a global qualified name.  gid_options is the an_identifier_options_set flags,
-and ids_options is the an_is_decl_start_options_set flags to be passed to
-curr_id_is_type_name.
-*/
-#define type_name_next(gid_options, ids_options)			\
-  (is_generalized_identifier_start(gid_options) &&			\
-   curr_id_is_type_name(gid_options, ids_options))
-
-
 a_boolean is_type_start_full(a_boolean                    is_expr_context,
                              a_boolean                    is_prescan,
                              an_is_decl_start_options_set ids_options)
@@ -1079,6 +1066,8 @@ and associated routines.
       gid_options |= GID_SIMPLIFY_CURR_CLASS_QUALIFIED_NAME;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Check if the current token is a type name, and, if so, set type_sym to
+       the corresponding type symbol. */
     if (is_generalized_identifier_start(gid_options)) {
       type_sym = curr_type_symbol(/*is_new_type_name=*/FALSE, is_prescan,
                                   /*in_type_check=*/TRUE,
