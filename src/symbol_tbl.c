@@ -10236,7 +10236,7 @@ expression -- which is a pointer).  If there is an ambiguity return
     if (syms[0][preferred_index] != NULL ||
         syms[1][preferred_index] != NULL ||
         !overaligned_allocation_enabled) {
-      /* An preferred delete was seen; ignore any non-preferred delete
+      /* A preferred delete was seen; ignore any non-preferred delete
          functions. */
       default_sym = syms[0][preferred_index];
       *ambiguous = ambig[0][preferred_index];
@@ -10357,8 +10357,8 @@ delete symbol, but it may be an overload symbol instead.
     a_boolean aligned_new = FALSE;
     if (!placement_new &&
         is_default_operator_new(rp, &aligned_new)) {
-      /* This is default (sized or sized + aligned) operator new, so find the
-         best matching default operator delete. */
+      /* This is a default (sized or sized + aligned) operator new, so find
+         the best matching default operator delete. */
       corresp_op_delete_sym = find_default_operator_delete_sym(sym,
                                                                delete_type,
                                                                ambiguous);

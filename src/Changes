@@ -35,7 +35,7 @@ failed to recognize that, triggering a number of errors (the sequence "(X" was
 treated as the start of a C-style cast).  That is now fixed.
 
 
-4/3/19   [ECGcpfe/20981]
+4/3/19   [EDGcpfe/20981]
 Incorrect resolution of default operator delete
 
 The front end was incorrectly ignoring delete operator candidates when
@@ -54,7 +54,7 @@ example:
 
   auto *a1 = new A; // Would previously succeed (no matching delete).
                     // Now correctly errors out that the matching delete is
-                    //  deleted.
+                    // deleted.
 
 This is now fixed.
 
