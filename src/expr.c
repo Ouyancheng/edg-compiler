@@ -31675,12 +31675,13 @@ aren't allowed to capture variables from the surrounding function.)
 
 a_boolean check_var_for_lambda_capture(a_variable_ptr  var,
                                        a_boolean       implicit,
+                                       a_boolean       by_ref,
                                        an_error_code   *diag)
 /*
 The given variable is being captured for the current lambda; the capture is
-implicit if implicit is TRUE.  Check that this capture is valid, and
-return TRUE if it is.  If it is not, return FALSE, and set *diag to
-an appropriate error code.
+implicit if implicit is TRUE and is "by reference" if by_ref is TRUE.  Check
+that this capture is valid, and return TRUE if it is.  If it is not, return
+FALSE, and set *diag to an appropriate error code.
 */
 {
   a_boolean  okay = FALSE;
@@ -31700,7 +31701,9 @@ an appropriate error code.
   } else if (variable_auto_decl_underway(var)) {
     /* Can't use a variable declared with auto in its own initializer. */
     *diag = ec_auto_variable_in_own_initializer;
-  } else if (is_variably_modified_type(var->type)) {
+  } else if (is_variably_modified_type(var->type) &&
+             !((clang_mode || gpp_mode) && by_ref && is_vla_type(var->type) &&
+               !is_variably_modified_type(array_element_type(var->type)))) {
     *diag = ec_lambda_capture_involves_variable_length_array;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cppcli_enabled && is_managed_class_type(var->type)) {

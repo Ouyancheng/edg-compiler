@@ -1927,7 +1927,8 @@ capture described by lcp.  Return the field entry.
          above). */  
     } else if (by_reference) {
       /* The variable is being captured by reference.  Create a reference
-         type based on the variable's type. */
+         type based on the variable's type.  (Except for the VLA case, which
+         is captured "by pointer".) */
       a_field_ptr  enclosing_field = lcp->capture_info.source_closure_field;
       if (enclosing_field != NULL) {
         /* If this is a nested lambda, the capture may be indirect through a
@@ -1953,7 +1954,11 @@ capture described by lcp.  Return the field entry.
           }  /* if */
         }  /* if */
       }  /* if */
-      field_type = make_reference_type(field_type);
+      if (is_vla_type(field_type)) {
+        field_type = type_after_array_to_pointer_transformation(field_type);
+      } else {
+        field_type = make_reference_type(field_type);
+      }  /* if */
     } else if (is_ref && is_function_type(field_type)) {
       /* A variable with reference-to-function type is captured with its
          original type. */
@@ -2224,7 +2229,8 @@ TRUE.
     an_error_code err_code = ec_no_error;
     a_boolean     by_ref = lambda->default_is_by_reference;
     if (vp != NULL &&
-        !check_var_for_lambda_capture(vp, /*implicit=*/TRUE, &err_code)) {
+        !check_var_for_lambda_capture(vp, /*implicit=*/TRUE, by_ref,
+                                      &err_code)) {
       /* The variable is not valid.  err_code explains why. */
     } else if (!lambda->has_capture_default) {
       /* No capture default, so implicit captures are not allowed.  However,
@@ -31647,7 +31653,7 @@ caller has already moved past the '[', and this routine leaves the trailing
                 an_error_code  diag = ec_no_error;
                 var = sym->variant.variable.ptr;
                 if (!check_var_for_lambda_capture(var, /*implicit=*/FALSE,
-                                                  &diag)) {
+                                                  by_ref, &diag)) {
                   pos_error(diag, &error_position);
                   var = NULL;
                 }  /* if */

@@ -846,6 +846,7 @@ extern a_scope_depth scope_depth_for_capture(a_variable_ptr var,
 
 extern a_boolean check_var_for_lambda_capture(a_variable_ptr  var,
                                               a_boolean       implicit,
+                                              a_boolean       by_ref,
                                               an_error_code   *diag);
 
 extern a_boolean current_mode_allows_field_selection_folding(void);

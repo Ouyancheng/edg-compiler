@@ -1,5 +1,14 @@
 Version 5.1
 
+4/4/19   [EDGcpfe/20889]
+Capturing of variable-length arrays
+
+In GNU and Clang C++11 modes, the front end now allows by-reference capture
+of certain variable-length arrays (capture is actually "by pointer" in those
+cases).  The element type of the array cannot itself be variably modified,
+however: That matches GCC's constraints, but not Clang's.
+
+
 4/3/19   [EDGcpfe/20159,EDGcpfe/20991]
 Incorrect syntax disambiguation for class template argument deduction
 
