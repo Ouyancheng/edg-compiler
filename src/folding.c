@@ -8320,7 +8320,13 @@ architectures for which these assumptions are not valid.
         }  /* if */
       }  /* for */
       /* Finally, check for tail padding. */
-      if (type->kind != (a_type_kind)tk_union) {
+      if (type->kind == (a_type_kind)tk_union) {
+        if (type->variant.class_struct_union.field_list == NULL) {
+          /* An empty union still has has a non-zero size, which counts as
+             padding. */
+          result = FALSE;
+        }  /* if */
+      } else {
         if (after_base_members != NULL) {
           /* Inform the caller about any tail padding. */
           *after_base_members = end_of_last_subobject;

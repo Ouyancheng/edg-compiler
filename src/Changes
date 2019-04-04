@@ -1,5 +1,17 @@
 Version 5.1
 
+4/4/19   [EDGcpfe/21070]
+__has_unique_object_representations with empty unions
+
+The front end incorrectly specified the result of the
+__has_unique_object_representations type traits helper as true when applied
+to an empty union.  This is now fixed and gives the correct value.  For
+example, with --c++17:
+
+  union U {};
+  static_assert(!__has_unique_object_representations(U)); // Previously failed
+
+
 4/4/19   [EDGcpfe/20889]
 Capturing of variable-length arrays
 
