@@ -1995,8 +1995,6 @@ values needed for the previous call.
   for (; tap != NULL;
          special_variadic_advance_to_next_template_arg(&tpp, &tap)) {
     a_template_arg_ptr	tap_to_update = tap;
-    a_symbol_ptr	param_symbol = tpp->param_symbol;
-    param_symbol->template_param_not_visible = FALSE;
     /* If a start of pack expansion entry is returned, only update the
        symbol if there are associated pack elements. */
     if (tap_to_update != NULL &&
@@ -2007,6 +2005,7 @@ values needed for the previous call.
         /* There is no argument for this parameter.  Set the parameter
            symbol to point to an error value. */
         tap_to_update = NULL;
+        if (tpp == NULL) break;
         set_template_param_symbol_to_error(tpp->param_symbol);
       } else {
         /* The argument is a placeholder but the parameter is not a pack.
@@ -2022,6 +2021,7 @@ values needed for the previous call.
     if (tap_to_update != NULL) {
       /* A template argument exists for this parameter. */
       update_template_param_symbol(tpp->param_symbol, tap_to_update);
+      tpp->param_symbol->template_param_not_visible = FALSE;
     }  /* if */
   }  /* for */
   db_exit();
