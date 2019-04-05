@@ -1,5 +1,28 @@
 Version 5.1
 
+4/5/19   [EDGcpfe/21109]
+Incorrect substitution of explicit template arguments during deduction
+
+Consider:
+
+  template<typename> void f();
+  template<typename T>
+    void g(T p) noexcept(noexcept(void(f<0>(p))));
+  namespace N {
+    template<typename> struct S {};
+    template<int I, typename T> void f(S<T>&);
+  }
+  int main() {
+    g(N::S<int>{});  // Previously failed.  Now okay.
+  }
+
+Previously this code was not accepted by the front end, because when it
+substituted the call "f<0>(p)" to verify the deduction of g<N::S<int>>, it
+matched the explicit template argument list "<0>" against ::f (which expects
+a type argument instead of the given nontype argument) instead of N::f as
+required by the standard.  That is now fixed.
+
+
 4/5/19   [EDGcpfe/21073]
 GNU C++ compatibility: incorrect behavior with --ms_extensions
 

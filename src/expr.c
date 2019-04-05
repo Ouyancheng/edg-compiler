@@ -7726,11 +7726,15 @@ routines.
 }  /* copy_template_arg_list_with_substitution_rebuilding_arg_operands */
 
 
-static void rescan_locator_template_arg_list(a_symbol_locator       *locator,
-                                             a_rescan_control_block *rcblock)
+static void rescan_locator_template_arg_list(
+                                   a_symbol_locator       *locator,
+                                   a_rescan_control_block *rcblock,
+                                   a_boolean              indefinite_function)
 /*
-Do substitution on and rescan the explicit template argument list attached
-to the given locator.
+Do substitution on and rescan the explicit template argument list attached to
+the given locator.  If indefinite_function is TRUE, the symbol in the given
+locator is not necessarily the template to be associated with the template
+arguments (argument-dependent lookup may still find a different template).
 */
 {
   a_template_arg_ptr   rescan_orig_templ_arg_list = locator->template_arg_list;
@@ -7741,8 +7745,14 @@ to the given locator.
   check_assertion(sym != NULL);
   sym = fundamental_symbol_of(sym);
   if (symbol_is(sym, sk_function_template)) {
-    rescan_orig_templ_param_list = sym->variant.template_info->variant.
-                                     function.decl_cache.decl_info->parameters;
+    if (indefinite_function) {
+      /* This is similar to the overloaded function case below. */
+      sym = NULL;
+    } else {
+      rescan_orig_templ_param_list = sym->variant.template_info
+                                        ->variant.function.decl_cache.decl_info
+                                        ->parameters;
+    }  /* if */
   } else if (symbol_is(sym, sk_variable_template)) {
     rescan_orig_templ_param_list = sym->variant.template_info->variant.
                                      variable.decl_cache.decl_info->parameters;
@@ -8075,7 +8085,8 @@ handle_vacuous_destructor_call:
   }  /* if */
   if (!*err && locator->template_arg_list != NULL) {
     /* Do substitution on the explicit template argument list. */
-    rescan_locator_template_arg_list(locator, rcblock);
+    rescan_locator_template_arg_list(locator, rcblock,
+                                     /*indefinite_function=*/FALSE);
   }  /* if */
 end_of_routine:;
 }  /* get_locator_for_rescanned_selection_second_operand */
@@ -32297,10 +32308,6 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       locator.is_template_id = rescan_operand->is_template_id;
       locator.template_arg_list = rescan_operand->template_arg_list;
     }  /* if */
-    if (locator.template_arg_list != NULL) {
-      /* Do substitution on the explicit template argument list. */
-      rescan_locator_template_arg_list(&locator, rcblock);
-    }  /* if */
   } else {
     /* Normal, non-rescan, processing. */
     a_token_sequence_number paren_tok_seq_number;
@@ -32420,17 +32427,19 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       /* Make all calls dependent in certain decltype contexts. */
       force_indefinite_function = TRUE;
       rep = NULL;
-    } else if (symbol_is(sym_ptr, sk_routine) &&
-               !C_mode() && arg_dependent_lookup_enabled &&
+    } else if (name_followed_by_left_paren &&
+               arg_dependent_lookup_enabled && !locator.is_qualified_name &&
+               (symbol_is(sym_ptr, sk_routine) ||
+                symbol_is(sym_ptr, sk_function_template)) &&
 #if BUILTIN_FUNCTIONS_ENABLED
                /* Argument-dependent lookup should never apply to calls of
                   GNU-style built-in functions.  Since such functions may need
                   to be constant-folded, we do not want to use an indefinite
                   routine operand to represent the call. */
-               !(!C_mode() && builtin_functions_enabled &&
-                 is_gnu_builtin_function(sym_ptr->variant.routine.ptr)) &&
+               !(builtin_functions_enabled &&
+                 is_gnu_builtin_function(sym_ptr->variant.routine.ptr))
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-               name_followed_by_left_paren) {
+                                                                       ) {
       /* When argument-dependent lookup is enabled, even if the symbol
          is a simple routine name it might not be the routine that is
          called, so go to overload resolution and handle the reference
@@ -32477,6 +32486,14 @@ if rescan_is_template_id is TRUE, and return the result in *operand
         if (sym_ptr->hidden_by_old_for_init && !locator.is_qualified_name) {
           report_for_init_difference(sym_ptr, &locator.source_position);
         }  /* if */
+      }  /* if */
+      if (rcblock != NULL && locator.template_arg_list != NULL) {
+        /* Do substitution on the explicit template argument list.  Do not
+           do this if we don't know the actual called function template yet,
+           since that also means we do not know the corresponding template
+           parameters. */
+        rescan_locator_template_arg_list(&locator, rcblock,
+                                         force_indefinite_function);
       }  /* if */
       projection_sym_ptr = locator.specific_symbol;
       /* If the symbol is a reference to a parameter pack, record it.
