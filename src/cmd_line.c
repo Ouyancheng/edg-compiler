@@ -2367,9 +2367,11 @@ option values if they were not already set by a command line option.
          processing was disabled. */
       implicit_typename_enabled = !do_dependent_name_processing;
     }  /* if */
-    if (!ms_permissive && !do_dependent_name_processing) {
+    if (!microsoft_mode || (!ms_permissive && !do_dependent_name_processing)) {
       /* Only do the special nonreal base class processing in permissive
-         mode, and if dependent name processing was not enabled. */
+         mode, and if dependent name processing was not enabled.  The
+         microsoft_mode test is used to make sure we do not enable this
+         processing in ms_extensions mode. */
       no_ms_nonreal_base_classes = TRUE;
     }  /* if */
     dependent_lookup_finds_static_functions = TRUE;

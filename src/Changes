@@ -1,5 +1,24 @@
 Version 5.1
 
+4/5/19   [EDGcpfe/21073]
+GNU C++ compatibility: incorrect behavior with --ms_extensions
+
+Microsoft-mode nonreal base classes were incorrectly enabled in other
+modes when --ms_extensions was used.  This could cause incorrect behavior.
+An internal error would occur in find_inclass_sdm_initializer_for_instance
+would occur when compiling the example below.  Now fixed.
+
+  namespace N {
+    template <class T, T v> struct A {
+      static constexpr T value = v;
+    };
+    typedef A<bool, false> FT;
+    template <class> struct B;
+    template <class> struct C : FT { };
+    template <class T, class U> struct C<T U::*> : A<bool, !B<T>::value> { };
+  };
+
+
 4/4/19   [EDGcpfe/20978]
 Out-of-class declarations of inline static data members
 
