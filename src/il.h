@@ -554,6 +554,14 @@ Macro to test a routine entry's special_kind field.
 #define special_kind_is(rp, sfk)                                            \
   ((rp)->special_kind == (a_special_function_kind)(sfk))
 
+
+/*
+Macro to test an operator routine entry's opname_kind field.
+*/
+#define opname_kind_is(rp, onk)                                             \
+  ((rp)->variant.opname_kind == (an_opname_kind)(onk))
+
+
 /*
 Macro that returns TRUE if a routine has been defined.  The value is
 TRUE from the beginning of scanning of the function body (not just

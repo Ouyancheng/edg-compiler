@@ -9587,7 +9587,8 @@ Callback routine called at the end of processing for a declaration containing
 the consteval specifier.  Issue an error if the specifier is not applicable.
 */
 {
-  a_symbol_ptr  sym = dps->sym;
+  a_symbol_ptr   sym = dps->sym;
+  a_routine_ptr  rp = NULL;
 
   if (sym == NULL) {
     /* No declaration is associated with "consteval": Issue an error. */
@@ -9604,7 +9605,7 @@ the consteval specifier.  Issue an error if the specifier is not applicable.
       sym->variant.routine.ptr->is_consteval = FALSE;
     }  /* if */
   } else if (symbol_is(sym, sk_member_function)) {
-    a_routine_ptr  rp = sym->variant.routine.ptr;
+    rp = sym->variant.routine.ptr;
     if (special_kind_is(rp, sfk_destructor)) {
       if (!rout_is_real_template_instance(rp)) {
         pos_error(ec_consteval_destructor, &dps->constexpr_pos);
@@ -9622,7 +9623,7 @@ the consteval specifier.  Issue an error if the specifier is not applicable.
   } else if (symbol_is(sym, sk_function_template)) {
     /* The restriction on constructors applies also to constructor
        templates. */
-    a_routine_ptr  rp = sym->variant.template_info->variant.function.routine;
+    rp = sym->variant.template_info->variant.function.routine;
     if (special_kind_is(rp, sfk_constructor)) {
       a_type_ptr  class_type = parent_class_of(rp);
       if (class_type->variant.class_struct_union.any_virtual_base_classes) {
@@ -9640,8 +9641,20 @@ the consteval specifier.  Issue an error if the specifier is not applicable.
   } else if (symbol_is(sym, sk_routine)) {
     /* consteval is potentially valid for non-member functions: No diagnostic
        is needed here. */
+    rp = sym->variant.routine.ptr;
   } else {
     pos_error(ec_invalid_consteval, &dps->constexpr_pos);
+  }  /* if */
+  if (rp != NULL && rp->is_consteval) {
+    /* No error was issued earlier. */
+    if (special_kind_is(rp, sfk_operator) &&
+        (opname_kind_is(rp, onk_new) ||
+         opname_kind_is(rp, onk_array_new) ||
+         opname_kind_is(rp, onk_delete) ||
+         opname_kind_is(rp, onk_array_delete))) {
+      /* Allocation and deallocation functions cannot be declared consteval. */
+      pos_error(ec_consteval_new_or_delete_operator, &dps->constexpr_pos);
+    }  /* if */
   }  /* if */
 }  /* check_use_of_consteval */
 
