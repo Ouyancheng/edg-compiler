@@ -11124,11 +11124,10 @@ the symbol through dps->sym and its linkage (which is always "none") through
     dps->sym = sym;
     var = sym->variant.static_data_member.variable;
     dps->prev_type = var->type;
-    if (inline_variables_allowed && var->is_inline && !has_initializer) {
-      /* In C++17, an inline static data member outside of a class definition
-         (this includes constexpr members, which are implicitly inline) is
-         considered a redundant declaration -- not a definition.  Such usage
-         is deprecated. */
+    if (inline_variables_allowed && var->is_constexpr && !has_initializer) {
+      /* In C++17, a constexpr static data member declared outside of a
+         class definition is considered a redundant declaration -- not a
+         definition.  Such usage is deprecated. */
       dps->is_definition = FALSE;
       srk_flags = SRK_DECLARATION;
     } else {
