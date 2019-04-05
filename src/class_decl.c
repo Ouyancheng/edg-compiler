@@ -1930,6 +1930,14 @@ capture described by lcp.  Return the field entry.
          type based on the variable's type.  (Except for the VLA case, which
          is captured "by pointer".) */
       a_field_ptr  enclosing_field = lcp->capture_info.source_closure_field;
+      a_boolean    make_pointer = FALSE;
+      if (is_vla_type(field_type)) {
+        /* We allow capturing simple variable-length arrays by reference (see
+           check_var_for_lambda_capture), and implement it by recording a
+           pointer to the array. */
+        field_type = array_element_type(field_type);
+        make_pointer = TRUE;
+      }  /* if */
       if (enclosing_field != NULL) {
         /* If this is a nested lambda, the capture may be indirect through a
            capture from the enclosing lambda, and the type should be determined
@@ -1954,8 +1962,8 @@ capture described by lcp.  Return the field entry.
           }  /* if */
         }  /* if */
       }  /* if */
-      if (is_vla_type(field_type)) {
-        field_type = type_after_array_to_pointer_transformation(field_type);
+      if (make_pointer) {
+        field_type = make_pointer_type(field_type);
       } else {
         field_type = make_reference_type(field_type);
       }  /* if */
