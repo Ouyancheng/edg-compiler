@@ -8716,7 +8716,6 @@ is set to TRUE.
 #endif /* DEBUG */
   *undecidable_because_of_error = FALSE;
   *ambiguous = FALSE;
-  candidates = *candidate_functions;
   /* If there are no functions or there is exactly one function, the
      list is already correct. */
   if (candidates != NULL && candidates->next != NULL) {
