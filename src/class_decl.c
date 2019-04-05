@@ -13317,7 +13317,7 @@ assignment operator needs to be defined as deleted.
     /* The return type must be X& (where X is the parent type).  In C++20 mode
        the operator can be a const or volatile member, but the operator will
        be deleted. */
-    if (return_types_match & (!routine_has_qualifiers || cpp20_mode)) {
+    if (return_types_match && (!routine_has_qualifiers || cpp20_mode)) {
       result = valid_copy_parameter_for_default(params->type, class_type,
                                                 is_deleted);
       if (routine_has_qualifiers) {
