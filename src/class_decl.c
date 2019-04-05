@@ -13117,32 +13117,131 @@ done:;
 }  /* default_assignment_of_const_object_okay */
 
 
+static a_boolean parameter_matches_implicit_default(a_type_ptr parameter,
+                                                    a_type_ptr default_param,
+                                                    a_boolean  *exact_match,
+                                                    a_boolean  *drops_const)
+/*
+Check to see whether the provided parameter matches what would be implicitly
+generated as a parameter (default_param).  *exact_match is TRUE if the provided
+parameter exactly matches the default.  *drops_const is TRUE if the provided
+parameter is a non-const (but otherwise exact) match for the default.  Return
+TRUE if the parameter matches the default parameter's type (but not necessarily
+its qualifiers), FALSE otherwise.
+*/
+{
+  a_boolean result;
+
+  *drops_const = FALSE;
+  result = *exact_match = identical_types(parameter, default_param);
+  if (!result) {
+    a_type_qualifier_set param_tqs;
+    if (is_reference_type(parameter) && is_reference_type(default_param)) {
+      /* For reference types, the qualifiers are on the type pointed to. */
+      parameter = type_pointed_to(parameter);
+      default_param = type_pointed_to(default_param);
+    }
+    param_tqs = get_type_qualifiers(parameter);
+    if (!(param_tqs & ~(TQ_CONST | TQ_VOLATILE))) {
+      /* A parameter with qualifiers ever than "const" or "volatile" is never
+         a match. */
+      result = identical_types_ignoring_qualifiers(parameter, default_param);
+    }  /* if */
+    if (result) {
+      a_type_qualifier_set default_tqs = get_type_qualifiers(default_param);
+      if ((default_tqs & TQ_CONST) &&
+          (param_tqs ^ default_tqs) == TQ_CONST) {
+        *drops_const = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* parameter_matches_implicit_default */
+
+
+static a_boolean valid_copy_parameter_for_default(a_type_ptr parameter,
+                                                  a_type_ptr class_type,
+                                                  a_boolean  *cv_variant)
+/*
+Checks to see if the provided parameter is a valid parameter for a copy
+routine (i.e. copy constructor or assignment operator).  This may take the
+form of
+        X&
+        X const&
+        X&&
+or, in C++20 mode, their "const", "volatile" and "const volatile" variants.
+Set *cv_variant to TRUE if we're in C++20 mode and the parameter is one of
+these variants of what's expected.
+*/
+{
+  a_boolean  result = FALSE;
+  a_boolean  exact_match, drops_const, lvalue_ref;
+  a_type_ptr param_type = NULL;
+
+  *cv_variant = FALSE;
+  lvalue_ref = is_lvalue_reference_type(parameter);
+  if (lvalue_ref) {
+    /* Presumably a copy routine.  Use X const& as the default to check.
+    */
+    param_type =
+      make_reference_type(make_qualified_type(class_type, TQ_CONST));
+  } else if(move_operations_can_be_defaulted() &&
+            is_rvalue_reference_type(parameter)) {
+    /* Presumably a move routine.  Use X&& as the default to check.
+        (A move routine can be defaulted in modes that can implicitly
+        generate move operations, and also when emulating GCC 4.5.x.) */
+    param_type = make_rvalue_reference_type(class_type);
+  }  /* if */
+  if (param_type != NULL &&
+      parameter_matches_implicit_default(parameter, param_type,
+                                         &exact_match, &drops_const)) {
+    if (exact_match ||
+        (drops_const && lvalue_ref)) {
+      /* Allow the parameter to omit "const" for a presumed copy constructor
+          in all modes. */
+      result = TRUE;
+    } else {
+      *cv_variant = TRUE;
+      if (cpp20_mode) {
+        /* C++20 allows the defaulting of a copy routines that don't match the
+            implicit signature so long as it's a special member function.  It
+            will also be deleted, unless the only difference is that it dropped
+            the "const" qualifier. */
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* valid_copy_parameter_for_default */
+
+
 static a_boolean constructor_can_be_defaulted(a_symbol_ptr  sym,
                                               a_boolean     *is_default_ctor,
                                               a_boolean     *has_default_arg,
                                               a_boolean     *is_deleted)
 /*
 sym is a constructor.  Return whether it can be "defaulted".  I.e., if its
-parent class is X, it must have one of the following signatures and not include
-a default argument:
+parent class is X, it must have one of the following signatures (including the
+"const", "volatile" and "const volatile" variants, potentially) and not
+include a default argument:
 	X()
 	X(X&)
-	X(X const&)
 	X(X&&)
 If the signature is the first in the list above, set *is_default_ctor to TRUE;
-otherwise set it to FALSE.  If the signature is one of the latter three and the
+otherwise set it to FALSE.  If the signature is one of the latter two and the
 parameter has an associated default argument set *has_default_arg to TRUE (and
 return FALSE); otherwise, set *has_default_arg to FALSE.  The last signature
 ("move constructor") can only be defaulted in modes that can generate move
 constructors and in some GNU C++ modes.  From C++20, the standard allows
-defaulting copy and move constructors whose type differs from the ones above,
-and which satisfy [class.copy]/p2 and [class.copy]/p3 (N4140), but they are
-defined as deleted.  Set *is_deleted to TRUE if we are in a C++20 mode and if
-the constructor needs to be defined as deleted.
+defaulting copy and move constructors whose type differs from what would be
+implicitly generated, and which satisfy [class.copy.ctor]/p1 and p2 (N4810).
+These defaulted constructors may be defined as deleted if they don't meet the
+criteria set out in [dcl.fct.def.default]/p2 (N4810).  Set *is_deleted to TRUE
+if we are in C++20 mode and the constructor needs to be defined as deleted.
 */
 {
   a_boolean         result = FALSE;
-  a_type_ptr        class_type = sym_parent_class(sym), rout_type, param_type;
+  a_type_ptr        class_type = sym_parent_class(sym), rout_type;
   a_param_type_ptr  params;
 
   *is_default_ctor = FALSE;
@@ -13161,52 +13260,14 @@ the constructor needs to be defined as deleted.
     *is_default_ctor = TRUE;
   } else if (params->next == NULL) {
     /* One parameter: Check the signature. */
-    if (is_lvalue_reference_type(params->type)) {
-      /* Presumably a copy constructor.  The parameter type must be X& or
-         X const& (although the latter requires that bases and members allow
-         for such copying).  Try X& first. */
-      param_type = make_reference_type(class_type);
-      if (identical_types(param_type, params->type)) {
-        result = TRUE;
-      } else {
-        param_type = make_reference_type(
-                                  make_qualified_type(class_type, TQ_CONST));
-        if (identical_types(param_type, params->type)) {
-          result = TRUE;
-        } else if (cpp20_mode) {
-          result = TRUE;
-          *is_deleted = TRUE;
-        }  /* if */
-      }  /* if */
-    } else if (move_operations_can_be_defaulted() &&
-               is_rvalue_reference_type(params->type)) {
-      /* Presumably a move constructor.  The parameter type must be X&&.
-         (A copy constructor can be defaulted in modes that can implicitly
-         generate move operations, and also when emulating GCC 4.5.x.) */
-      param_type = make_rvalue_reference_type(class_type);
-      if (identical_types(param_type, params->type)) {
-        result = TRUE;
-      } else if (cpp20_mode) {
-        result = TRUE;
-        *is_deleted = TRUE;
-      }  /* if */
-    }  /* if */
-    if (result && params->has_default_arg && !cpp20_mode) {
+    result = valid_copy_parameter_for_default(params->type, class_type,
+                                              is_deleted);
+    if (result && params->has_default_arg) {
       /* Don't allow a copy constructor with a default argument to be
          defaulted. */
       result = FALSE;
       *has_default_arg = TRUE;
     }  /* if */
-  } else if (cpp20_mode) {
-    result = TRUE;
-    *is_deleted = TRUE;
-    for (params = params->next; params != NULL; params = params->next) {
-      if (!params->has_default_arg) {
-        result = FALSE;
-        *is_deleted = FALSE;
-        break;
-      }  /* if */
-    }  /* for */
   }  /* if */
   return result;
 }  /* constructor_can_be_defaulted */
@@ -13217,22 +13278,23 @@ static a_boolean assignment_operator_can_be_defaulted(
                                                     a_boolean     *is_deleted)
 /*
 sym is an assignment operator.  Check if it can be "defaulted".  I.e., if its
-parent class is X, it must have one of the following signatures:
+parent class is X, it must have one of the following signatures (including the
+"const", "volatile" and "const volatile" variants, potentially):
 	X& operator=(X&)
-	X& operator=(X const&)
 	X& operator=(X&&)
 The last signature ("move assignment operator") can be defaulted only in modes
 where such operators can be implicitly generated (and in some GNU C++ modes).
 From C++20, the standard allows defaulting assignment operators whose type
-differs from the ones above, and which satisfy [class.copy]/p17 and
-[class.copy]/p19 (N4140), but they are defined as deleted.  Set *is_deleted to
-TRUE if we are in a C++20 mode and if the assignment operator needs to be
-defined as deleted.
+differs from what would be implicitly generated, and which satisfy
+[class.copy.assign]/p1 and p3 (N4810).  These operators may be defined as
+deleted if they don't meet the criteria set out in [dcl.fct.def.default]/p2
+(N4810).  Set *is_deleted to TRUE if we are in C++20 mode and if the
+assignment operator needs to be defined as deleted.
 */
 {
   a_boolean         result = FALSE;
   a_type_ptr        class_type = sym_parent_class(sym);
-  a_type_ptr        rout_type, return_type, param_type;
+  a_type_ptr        rout_type;
   a_param_type_ptr  params;
 
   *is_deleted = FALSE;
@@ -13246,49 +13308,20 @@ defined as deleted.
        should cause an error elsewhere.  See [over.oper]/p8 (N4140). */
     expect_error();
   } else {
-    /* The operator cannot be a const or volatile member, and the return type
-       must be X& (where X is the parent type). */
-    return_type = make_reference_type(class_type);
-    if (rout_type->variant.routine.extra_info->qualifiers != TQ_NONE ||
-        !identical_types(return_type,
-                         rout_type->variant.routine.return_type)) {
-      if (cpp20_mode && identical_types(return_type,
-                                     rout_type->variant.routine.return_type)) {
-        result = TRUE;
+    a_boolean  routine_has_qualifiers, return_types_match;
+    a_type_ptr return_type = make_reference_type(class_type);
+    routine_has_qualifiers =
+      rout_type->variant.routine.extra_info->qualifiers != TQ_NONE;
+    return_types_match =
+      identical_types(return_type, rout_type->variant.routine.return_type);
+    /* The return type must be X& (where X is the parent type).  In C++20 mode
+       the operator can be a const or volatile member, but the operator will
+       be deleted. */
+    if (return_types_match & (!routine_has_qualifiers || cpp20_mode)) {
+      result = valid_copy_parameter_for_default(params->type, class_type,
+                                                is_deleted);
+      if (routine_has_qualifiers) {
         *is_deleted = TRUE;
-      } else {
-        result = FALSE;
-      }  /* if */
-    } else if (is_lvalue_reference_type(params->type)) {
-      /* Presumably an ordinary copy assign operator.  The parameter type must
-         be X& or X const& (although the latter requires that bases and members
-         allow for such an assignment).  Try X& first. */
-      param_type = return_type;
-      if (identical_types(param_type, params->type)) {
-        result = TRUE;
-      } else {
-        param_type = make_reference_type(
-                       make_qualified_type(class_type, TQ_CONST));
-        if (identical_types(param_type, params->type)) {
-          result = TRUE;
-        } else if (cpp20_mode) {
-          result = TRUE;
-          *is_deleted = TRUE;
-        }  /* if */
-      }  /* if */
-    } else if (is_rvalue_reference_type(params->type)) {
-      /* Presumably a move assign operator.  Check that the parameter type is
-         X&&.  (A move assign operator can be defaulted in modes that can
-         implicitly generate move operations, and also when emulating
-         GCC 4.5.x.) */
-      if (move_operations_can_be_defaulted()) {
-        param_type = make_rvalue_reference_type(class_type);
-        if (identical_types(param_type, params->type)) {
-          result = TRUE;
-        } else if (cpp20_mode) {
-          result = TRUE;
-          *is_deleted = TRUE;
-        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -13374,7 +13407,7 @@ IL entry accordingly.  def_pos is the position of the "= default;" or
           rp->is_trivial_default_constructor = TRUE;
         }  /* if */
         if (is_deleted) {
-          func_info->is_deleted = TRUE;
+          rp->is_deleted = TRUE;
         }  /* if */
       } else {
         err_code = has_default_arg ?
