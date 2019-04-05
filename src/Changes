@@ -93,9 +93,18 @@ example, with --c++17:
 Capturing of variable-length arrays
 
 In GNU and Clang C++11 modes, the front end now allows by-reference capture
-of certain variable-length arrays (capture is actually "by pointer" in those
-cases).  The element type of the array cannot itself be variably modified,
-however: That matches GCC's constraints, but not Clang's.
+of certain variable-length arrays.  The element type of the array cannot
+itself be variably modified, however: That matches GCC's constraints, but not
+Clang's.  For example, in GNU C++11 mode:
+
+  void f(int n) {
+    float a1[n];
+    a1[0] = 1.0;
+    auto x = [&]{ return a1[0]; }();     // Now accepted.
+    float a2[n][n];
+    a2[0][0] = 1.0;
+    auto y = [&]{ return a2[0][0]; }();  // Still invalid.
+  }
 
 
 4/3/19   [EDGcpfe/20159,EDGcpfe/20991]
