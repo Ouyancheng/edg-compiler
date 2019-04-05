@@ -32430,16 +32430,17 @@ if rescan_is_template_id is TRUE, and return the result in *operand
     } else if (name_followed_by_left_paren &&
                arg_dependent_lookup_enabled && !locator.is_qualified_name &&
                (symbol_is(sym_ptr, sk_routine) ||
-                symbol_is(sym_ptr, sk_function_template)) &&
+                symbol_is(sym_ptr, sk_function_template))
 #if BUILTIN_FUNCTIONS_ENABLED
                /* Argument-dependent lookup should never apply to calls of
                   GNU-style built-in functions.  Since such functions may need
                   to be constant-folded, we do not want to use an indefinite
                   routine operand to represent the call. */
-               !(builtin_functions_enabled &&
-                 is_gnu_builtin_function(sym_ptr->variant.routine.ptr))
+               && !(builtin_functions_enabled &&
+                    symbol_is(sym_ptr, sk_routine) &&
+                    is_gnu_builtin_function(sym_ptr->variant.routine.ptr))
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-                                                                       ) {
+                                                                          ) {
       /* When argument-dependent lookup is enabled, even if the symbol
          is a simple routine name it might not be the routine that is
          called, so go to overload resolution and handle the reference
