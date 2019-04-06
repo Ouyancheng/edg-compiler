@@ -1,5 +1,24 @@
 Version 5.1
 
+4/6/19   [EDGcpfe/21113]
+Missing "pack ... not expanded" diagnostics
+
+In some cases a "pack was referenced but not expanded" diagnostic was not
+issued.  This could cause invalid code to be accepted and other incorrect
+behavior.  The example below resulted in an internal error (in lower_expr)
+in versions that perform IL lowering.  Now fixed.
+
+  template <class ...T> inline void f() {
+    struct A : T... {
+      A(T... args) : T(args...)... {}
+      T x = T();
+    };
+  };
+  int main() {
+    f<>();
+  }
+
+
 4/5/19   [EDGcpfe/21055]
 Abort on instantiation of variadic template
 

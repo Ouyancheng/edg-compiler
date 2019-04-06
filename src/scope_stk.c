@@ -12504,7 +12504,7 @@ form.
         prp->position = *position;
         prp->token_sequence_number = curr_token_sequence_number;
         /* Insert this in the list of entries on the scope stack. */
-        if (*p_prp != NULL) prp->next = (*p_prp)->next;
+        if (*p_prp != NULL) prp->next = *p_prp;
         *p_prp = prp;
 #if DEBUG
         if (db_flag_is_set("packs")) {
