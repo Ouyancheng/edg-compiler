@@ -13123,11 +13123,11 @@ static a_boolean parameter_matches_implicit_default(a_type_ptr parameter,
                                                     a_boolean  *drops_const)
 /*
 Check to see whether the provided parameter matches what would be implicitly
-generated as a parameter (default_param).  *exact_match is TRUE if the provided
-parameter exactly matches the default.  *drops_const is TRUE if the provided
-parameter is a non-const (but otherwise exact) match for the default.  Return
-TRUE if the parameter matches the default parameter's type (but not necessarily
-its qualifiers), FALSE otherwise.
+generated as a parameter (default_param).  Set *exact_match to TRUE if the
+provided parameter exactly matches the default.  Set *drops_const to TRUE if
+the provided parameter is a non-const (but otherwise exact) match for the
+default.  Return TRUE if the parameter matches the default parameter's type
+(but not necessarily its qualifiers), FALSE otherwise.
 */
 {
   a_boolean result;
@@ -13143,7 +13143,7 @@ its qualifiers), FALSE otherwise.
     }
     param_tqs = get_type_qualifiers(parameter);
     if (!(param_tqs & ~(TQ_CONST | TQ_VOLATILE))) {
-      /* A parameter with qualifiers ever than "const" or "volatile" is never
+      /* A parameter with qualifiers other than "const" or "volatile" is never
          a match. */
       result = identical_types_ignoring_qualifiers(parameter, default_param);
     }  /* if */
@@ -13163,9 +13163,9 @@ static a_boolean valid_copy_parameter_for_default(a_type_ptr parameter,
                                                   a_type_ptr class_type,
                                                   a_boolean  *cv_variant)
 /*
-Checks to see if the provided parameter is a valid parameter for a copy
-routine (i.e. copy constructor or assignment operator).  This may take the
-form of
+Check to see if the provided parameter is a valid parameter for a copy/move
+routine (i.e., copy/move constructor or assignment operator).  This may take
+the form of
         X&
         X const&
         X&&
@@ -13184,12 +13184,12 @@ these variants of what's expected.
     /* Presumably a copy routine.  Use X const& as the default to check.
     */
     param_type =
-      make_reference_type(make_qualified_type(class_type, TQ_CONST));
+               make_reference_type(make_qualified_type(class_type, TQ_CONST));
   } else if(move_operations_can_be_defaulted() &&
             is_rvalue_reference_type(parameter)) {
     /* Presumably a move routine.  Use X&& as the default to check.
-        (A move routine can be defaulted in modes that can implicitly
-        generate move operations, and also when emulating GCC 4.5.x.) */
+       (A move routine can be defaulted in modes that can implicitly
+       generate move operations, and also when emulating GCC 4.5.x.) */
     param_type = make_rvalue_reference_type(class_type);
   }  /* if */
   if (param_type != NULL &&
@@ -13198,15 +13198,15 @@ these variants of what's expected.
     if (exact_match ||
         (drops_const && lvalue_ref)) {
       /* Allow the parameter to omit "const" for a presumed copy constructor
-          in all modes. */
+         in all modes. */
       result = TRUE;
     } else {
       *cv_variant = TRUE;
       if (cpp20_mode) {
-        /* C++20 allows the defaulting of a copy routines that don't match the
-            implicit signature so long as it's a special member function.  It
-            will also be deleted, unless the only difference is that it dropped
-            the "const" qualifier. */
+        /* C++20 allows the defaulting of a copy/move routine that doesn't
+           match the implicit signature.  It will also be deleted, unless the
+           only difference in the parameter is that it dropped the "const"
+           qualifier. */
         result = TRUE;
       }  /* if */
     }  /* if */
@@ -13311,9 +13311,9 @@ assignment operator needs to be defined as deleted.
     a_boolean  routine_has_qualifiers, return_types_match;
     a_type_ptr return_type = make_reference_type(class_type);
     routine_has_qualifiers =
-      rout_type->variant.routine.extra_info->qualifiers != TQ_NONE;
+                 rout_type->variant.routine.extra_info->qualifiers != TQ_NONE;
     return_types_match =
-      identical_types(return_type, rout_type->variant.routine.return_type);
+         identical_types(return_type, rout_type->variant.routine.return_type);
     /* The return type must be X& (where X is the parent type).  In C++20 mode
        the operator can be a const or volatile member, but the operator will
        be deleted. */
