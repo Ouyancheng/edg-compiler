@@ -1,21 +1,11 @@
 Version 5.1
 
 4/5/19   [EDGcpfe/21055]
-Internal error or abort on instantiation of variadic template
+Abort on instantiation of variadic template
 
-When a variadic class template was instantiated with an empty template
-argument list, the template parameter was still considered visible in
-certain conditions.  This could result in a variety of internal errors
-and could also result in an abort in update_template_param_symbols.
-Now fixed.  This example resulted in an internal error (in lower_expr) in
-versions that do IL lowering.
-
-  template <class ...T> struct A { template <class ...U> struct B { }; };
-  typedef int T;
-  template <> template <class ...U> struct A<>::B { int f() { return T(); } };
-  int main() {
-    A<>::B<char>().f();
-  }
+Under some unusual error conditions involving the instantiation of a
+variadic template, an abort could occur (in update_template_param_symbols).
+Now fixed.
 
 
 4/5/19   [EDGcpfe/21109]

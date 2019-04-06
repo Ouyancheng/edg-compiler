@@ -2021,8 +2021,8 @@ values needed for the previous call.
     if (tap_to_update != NULL) {
       /* A template argument exists for this parameter. */
       update_template_param_symbol(tpp->param_symbol, tap_to_update);
-      tpp->param_symbol->template_param_not_visible = FALSE;
     }  /* if */
+    tpp->param_symbol->template_param_not_visible = FALSE;
   }  /* for */
   db_exit();
 }  /* update_template_param_symbols */
