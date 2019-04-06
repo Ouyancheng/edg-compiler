@@ -47,7 +47,7 @@ GNU C++ compatibility: incorrect behavior with --ms_extensions
 Microsoft-mode nonreal base classes were incorrectly enabled in other
 modes when --ms_extensions was used.  This could cause incorrect behavior.
 An internal error would occur in find_inclass_sdm_initializer_for_instance
-occur when compiling the example below.  Now fixed.
+when compiling the example below.  Now fixed.
 
   namespace N {
     template <class T, T v> struct A {
