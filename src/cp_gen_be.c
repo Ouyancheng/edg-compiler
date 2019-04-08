@@ -17423,10 +17423,12 @@ when possible.
        needed if the constant has an explicit cast, as the cast will be put
        out as part of the constant itself.) */
     a_boolean use_func_notation_cast;
-    if (braced_init) {
-      /* The source was a braced-init cast, so use the functional-notation
-         form.  If there are extra cv-qualifiers on the entity type they
-         must have been added by the context. */
+    if (braced_init || dip->suppress_template_arguments_for_cast) {
+      /* The source was a braced-init cast or involved class template
+         argument deduction (the reason for suppressing the template
+         arguments), so use the functional-notation form.  If there are
+         extra cv-qualifiers on the entity type they must have been added
+         by the context. */
       if (!has_name_before_mangling(init_entity_type)) {
         init_entity_type =
                skip_typerefs_not_typedefs_or_type_operators(init_entity_type);
