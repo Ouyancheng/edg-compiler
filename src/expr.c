@@ -19447,7 +19447,8 @@ Deduce the array size and update the new type accordingly.
     if (icp == NULL) {
       /* An empty initializer list.  Treat as if it were "new T[0]{}" */
       nps->variable_size_array = TRUE;
-      nps->new_array_dimension = node_for_integer_constant(0, ik_unsigned_int);
+      nps->new_array_dimension =
+               node_for_integer_constant(0, (an_integer_kind)ik_unsigned_int);
     } else {
       if (icp->next == NULL) {
         num_initializers = 1;
