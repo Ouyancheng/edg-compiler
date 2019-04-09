@@ -654,6 +654,25 @@ address taken, and if not issue an error.
       }  /* if */
       sym_apo = sym_apo->variant.field.anonymous_parent_object;
     }  /* while */
+  } else if (is_simple_function_symbol(sym)) {
+    a_routine_ptr  rp = sym->variant.routine.ptr;
+    /* The address of a consteval function can only be exposed in some
+       limited contexts:
+          - in an unevaluated context
+          - in the definition of another consteval function
+          - in an argument of a consteval call
+       This last context can only be verified after the complete call has
+       been processed (because it might require overload resolution).  Hence,
+       such cases are handled elsewhere. */
+    if (rp->is_consteval &&
+        (expr_stack == NULL || (!expr_stack->in_call_argument &&
+                                !expr_stack->is_default_arg_expression &&
+                                curr_expr_is_potentially_evaluated()))) {
+      if (innermost_function_scope == NULL ||
+          !current_routine_entry()->is_consteval) {
+        pos_error(ec_address_of_consteval_function_leaked, &rep->position);
+      }  /* if */
+    }  /* if */
   }  /* if */
 }  /* f_check_address_taken_ref */
 
@@ -1694,6 +1713,7 @@ as in a decltype.
     new_entry->suppress_diagnostics |= old_entry->suppress_diagnostics;
     new_entry->possible_rescan_context |= old_entry->possible_rescan_context;
     new_entry->in_static_initializer |= old_entry->in_static_initializer;
+    new_entry->in_call_argument |= old_entry->in_call_argument;
   }  /* if */
 }  /* transfer_context_from_enclosing_expr_stack_entry */
 
@@ -1762,6 +1782,7 @@ is pushed regardless of any of the other factors.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   new_entry->prefer_template_constant = FALSE;
   new_entry->fold_prvalue_if_possible = FALSE;
+  new_entry->in_call_argument = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;
@@ -17031,6 +17052,28 @@ Returns TRUE if the type has the nodiscard attribute applied to it.
 }  /* type_has_nodiscard_attribute */
 
 
+void check_for_address_of_consteval_function(void)
+/*
+Check the current expression's ref entries list for one that corresponds to
+taking the address of a consteval function and issue an error if that is the
+case.
+*/
+{
+  if (innermost_function_scope == NULL ||
+      !current_routine_entry()->is_consteval) {
+    a_ref_entry_ptr  rep = curr_expr_ref_entries;
+    for (; rep != NULL; rep = rep->next) {
+      if ((rep->kind & SRK_ADDRESS_TAKEN) &&
+          is_simple_function_symbol(rep->symbol) &&
+          rep->symbol->variant.routine.ptr->is_consteval) {
+        pos_error(ec_address_of_consteval_function_leaked, &rep->position);
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* check_for_address_of_consteval_function */
+
+
 #if !BACK_END_IS_CP_GEN_BE
 /*ARGSUSED*/  /* found_through_adl is only used with the C++-generating
                  back end. */
@@ -17139,6 +17182,12 @@ error cases.
       }  /* if */
       goto done;
     }  /* if */
+  }  /* if */
+  if (curr_expr_is_potentially_evaluated() &&
+      !(rout != NULL && rout->is_consteval)) {
+    /* A call to a non-consteval function.  Make sure we're not passing a
+       pointer to a consteval function to it. */
+    check_for_address_of_consteval_function();
   }  /* if */
   if (rout != NULL) {
     /* We know which routine is being called. */

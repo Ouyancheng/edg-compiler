@@ -2954,6 +2954,7 @@ to TRUE.
   a_boolean            scanning_source = (rcblock == NULL &&
                                           !arg_list_supplied);
   a_boolean            saved_allow_call_with_incomplete_return_type;
+  a_boolean            saved_in_call_argument;
 
   db_enter(4, "scan_call_arguments");
   /* Allowing a call with incomplete return type doesn't propagate to calls
@@ -2961,6 +2962,8 @@ to TRUE.
   saved_allow_call_with_incomplete_return_type =
                            expr_stack->allow_call_with_incomplete_return_type;
   expr_stack->allow_call_with_incomplete_return_type = FALSE;
+  saved_in_call_argument = expr_stack->in_call_argument;
+  expr_stack->in_call_argument = TRUE;
   if (p_arg_list != NULL) *p_arg_list = NULL;
   if (single_operand_returned != NULL) *single_operand_returned = FALSE;
   if (return_raw_arguments) {
@@ -3043,6 +3046,7 @@ to TRUE.
   }  /* if */
   /* Restore the previous state wrt. allowing an incomplete return type for
      the current call. */
+  expr_stack->in_call_argument = saved_in_call_argument;
   expr_stack->allow_call_with_incomplete_return_type = 
                                  saved_allow_call_with_incomplete_return_type;
   db_exit();
@@ -41137,6 +41141,9 @@ function.
   } else {
     /* Scan the expression. */
     scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  }  /* if */
+  if (!for_consteval_function) {
+    check_for_address_of_consteval_function();
   }  /* if */
   if (ptp != NULL) {
     /* Convert to the required type. */

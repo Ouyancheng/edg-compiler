@@ -13325,7 +13325,10 @@ original list is not freed).  Some state information is recorded in *arg_block
 */
 {
   an_arg_list_elem_ptr alep;
+  a_boolean            saved_in_call_argument;
 
+  saved_in_call_argument = expr_stack->in_call_argument;
+  expr_stack->in_call_argument = TRUE;
   for (alep = arg_list; alep != NULL; alep = next_elem(alep)) {
     process_call_argument(alep, arg_block);
   }  /* for */
@@ -13340,6 +13343,7 @@ original list is not freed).  Some state information is recorded in *arg_block
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Do processing for the end of the argument list. */
   process_end_of_call_arguments(arg_block);
+  expr_stack->in_call_argument = saved_in_call_argument;
 }  /* process_call_argument_list */
 
 

@@ -3039,6 +3039,7 @@ ec_struct_binding_template;;"structured binding templates are not permitted"
 ec_braced_init_in_parens;;"a parenthesized initializer must be an expression, not a brace-enclosed list"
 ec_cannot_deduce_class_template_arguments;;"cannot deduce class template arguments"
 ec_consteval_new_or_delete_operator;;"a new or delete operator cannot be declared \"consteval\""
+ec_address_of_consteval_function_leaked;;"the address of a consteval function cannot be used here"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

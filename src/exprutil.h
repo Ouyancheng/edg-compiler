@@ -986,6 +986,10 @@ typedef struct an_expr_stack_entry {
 			   attempt to constant-fold the prvalue (which might
 			   affect whether variables involved are "odr-used"
 			   or not). */
+  a_bit_field
+		in_call_argument:1;
+			/* TRUE when parsing an explicit call argument (not
+			   when parsing a default call call argument). */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor
@@ -2929,6 +2933,8 @@ extern void make_upc_thread_operand(an_operand            *operand,
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
 extern a_boolean type_has_nodiscard_attribute(a_type_ptr type);
+
+extern void check_for_address_of_consteval_function(void);
 
 #if DEBUG
 extern void count_rescan_fs_expr_nodes(unsigned long *p_count);
