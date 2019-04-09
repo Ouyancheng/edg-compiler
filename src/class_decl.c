@@ -6114,14 +6114,15 @@ static void update_virtual_function_number(
                                       a_routine_ptr             rp,
                                       a_virtual_function_number *number_ptr)
 /*
-If the given routine is virtual and has not yet been assigned a virtual
-function number, assign one now.  number_ptr is the address of the field in
-a_class_type_supplement that tracks the highest number assigned thus far.
+If the given routine is virtual (but not consteval) and has not yet been
+assigned a virtual function number, assign one now.  number_ptr is the address
+of the field in a_class_type_supplement that tracks the highest number assigned
+thus far.
 */
 {
-  if (!rp->is_virtual ||
+  if (!rp->is_virtual || rp->is_consteval ||
       rp->virtual_function_number != VIRTUAL_FUNCTION_NUMBER_NONE) {
-    /* The given routine is either nonvirtual or it already has a virtual
+    /* The given routine is nonvirtual, consteval, or it already has a virtual
        function number assigned: Nothing to do. */
   } else {
     if (*number_ptr == VIRTUAL_FUNCTION_NUMBER_NONE) {

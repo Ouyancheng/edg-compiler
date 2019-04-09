@@ -11797,10 +11797,11 @@ typedef struct a_routine {
 #endif /* DECL_MODIFIERS_IN_USE */
   a_virtual_function_number
 		virtual_function_number;
-			/* When is_virtual is TRUE, the number assigned to
-                           this function; it is unique among the virtual
-			   functions of a given class.  When is_virtual is
-			   FALSE, this field is undefined. */
+			/* When is_virtual is TRUE and is_consteval is FALSE,
+			   the number assigned to this function; it is unique
+ 			   among the non-consteval virtual functions of a given
+			   class.  When is_virtual is FALSE or is_consteval is
+			   TRUE, this field is undefined. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_il_entity_list_entry_ptr
 		overridden_functions;
