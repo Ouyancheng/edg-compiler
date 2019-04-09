@@ -987,7 +987,11 @@ do_variable:
             put_string(db_special_function_kinds[rp->special_kind]);
           }  /* if */
         }  /* if */
-        if (rp->is_constexpr) put_string("constexpr");
+        if (rp->is_consteval) {
+          put_string("consteval");
+        } else if (rp->is_constexpr) {
+          put_string("constexpr");
+        }  /* if */
         if (rp->is_inline) put_string("inline");
         if (rp->is_deleted) put_string("=delete");
         if (rp->definition_for_inlining_only) {

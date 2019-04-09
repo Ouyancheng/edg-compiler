@@ -41142,9 +41142,6 @@ function.
     /* Scan the expression. */
     scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   }  /* if */
-  if (!for_consteval_function) {
-    check_for_address_of_consteval_function();
-  }  /* if */
   if (ptp != NULL) {
     /* Convert to the required type. */
     if (is_braced_init_list_operand(&result)) {
@@ -41171,6 +41168,9 @@ function.
     }  /* if */
   } else {
     do_operand_transformations(&result, TOPT_NO_OPTIONS);
+  }  /* if */
+  if (!for_consteval_function) {
+    check_args_for_address_of_consteval_function();
   }  /* if */
   node = make_node_from_operand(&result);
   if (ptp == NULL ||

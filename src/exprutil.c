@@ -654,25 +654,6 @@ address taken, and if not issue an error.
       }  /* if */
       sym_apo = sym_apo->variant.field.anonymous_parent_object;
     }  /* while */
-  } else if (is_simple_function_symbol(sym)) {
-    a_routine_ptr  rp = sym->variant.routine.ptr;
-    /* The address of a consteval function can only be exposed in some
-       limited contexts:
-          - in an unevaluated context
-          - in the definition of another consteval function
-          - in an argument of a consteval call
-       This last context can only be verified after the complete call has
-       been processed (because it might require overload resolution).  Hence,
-       such cases are handled elsewhere. */
-    if (rp->is_consteval &&
-        (expr_stack == NULL || (!expr_stack->in_call_argument &&
-                                !expr_stack->is_default_arg_expression &&
-                                curr_expr_is_potentially_evaluated()))) {
-      if (innermost_function_scope == NULL ||
-          !current_routine_entry()->is_consteval) {
-        pos_error(ec_address_of_consteval_function_leaked, &rep->position);
-      }  /* if */
-    }  /* if */
   }  /* if */
 }  /* f_check_address_taken_ref */
 
@@ -17052,11 +17033,11 @@ Returns TRUE if the type has the nodiscard attribute applied to it.
 }  /* type_has_nodiscard_attribute */
 
 
-void check_for_address_of_consteval_function(void)
+void check_args_for_address_of_consteval_function(void)
 /*
 Check the current expression's ref entries list for one that corresponds to
 taking the address of a consteval function and issue an error if that is the
-case.
+case.  This is called to catch uses in call arguments.
 */
 {
   if (innermost_function_scope == NULL ||
@@ -17071,7 +17052,7 @@ case.
       }  /* if */
     }  /* for */
   }  /* if */
-}  /* check_for_address_of_consteval_function */
+}  /* check_args_for_address_of_consteval_function */
 
 
 #if !BACK_END_IS_CP_GEN_BE
@@ -17187,7 +17168,7 @@ error cases.
       !(rout != NULL && rout->is_consteval)) {
     /* A call to a non-consteval function.  Make sure we're not passing a
        pointer to a consteval function to it. */
-    check_for_address_of_consteval_function();
+    check_args_for_address_of_consteval_function();
   }  /* if */
   if (rout != NULL) {
     /* We know which routine is being called. */
@@ -20888,11 +20869,11 @@ If arg_operand is non-NULL, it points to an operand for the argument.
   a_type_ptr ptr_type;
 
   if (arg_operand != NULL && is_sym_for_member_operand(arg_operand)) {
-    /* Member function, so the pointer is a pointer to member.
-       This is actually an extension -- the ARM doesn't allow
-       a member function reference to decay to a pointer to
-       member implicitly.  No warning is needed here, even in
-       strict mode; the diagnostic is issued later. */
+    /* Member function, so the pointer is a pointer to member.  This is
+       actually an extension -- the C++ standard doesn't allow a member
+       function reference to decay to a pointer to member implicitly.  No
+       warning is needed here, even in strict mode; the diagnostic is issued
+       later. */
     a_symbol_ptr  func_sym = arg_operand->symbol;
     a_symbol_ptr  fund_sym = fundamental_symbol_of(func_sym);
     a_routine_ptr rout;
@@ -20943,6 +20924,33 @@ if necessary).
 }  /* type_of_call */
 
 
+static void check_address_of_consteval_function(a_source_position  *pos)
+/*
+The address of a consteval routine is being taken but such an address can only
+be exposed in some limited contexts:
+  - in an unevaluated context
+  - in the definition of another consteval function
+  - in an argument of a consteval call
+This last context can only be verified after the complete call has been
+processed (because we might not know the enclosing call until after overload
+resolution).  Hence, such cases are handled elsewhere (see the function
+check_args_for_addrress_of_consteval_function).
+
+In cases where none of these limited contexts apply, issue an error at the
+given source position.
+*/
+{
+  if (!expr_stack->in_call_argument &&
+      !expr_stack->is_default_arg_expression &&
+      curr_expr_is_potentially_evaluated()) {
+    if (innermost_function_scope == NULL ||
+        !current_routine_entry()->is_consteval) {
+      pos_error(ec_address_of_consteval_function_leaked, pos);
+    }  /* if */
+  }  /* if */
+}  /* check_address_of_consteval_function */
+
+
 void conv_sym_for_member_operand_to_ptr_to_member(
                                          an_operand        *operand,
                                          a_source_position *ampersand_position)
@@ -20953,7 +20961,7 @@ by an "&" in the source, and *ampersand_position gives its position.
 */
 {
   an_operand   orig_operand;
-  a_symbol_ptr member_sym;
+  a_symbol_ptr member_sym, fund_sym;
   a_boolean    has_required_ampersand = (ampersand_position != NULL &&
                                          /* Watch out for &(A::f). */
                                          operand->is_id_expression);
@@ -20962,6 +20970,11 @@ by an "&" in the source, and *ampersand_position gives its position.
   orig_operand = *operand;
   check_assertion(is_sym_for_member_operand(operand));
   member_sym = operand->symbol;
+  fund_sym = fundamental_symbol_of(member_sym);
+  if (symbol_is(fund_sym, sk_member_function) &&
+      fund_sym->variant.routine.ptr->is_consteval) {
+    check_address_of_consteval_function(&operand->position);
+  }  /* if */
   if (ampersand_position != NULL) {
     /* Change the start position to be used/restored to include the "&"
        operator. */
@@ -21018,9 +21031,13 @@ by an "&" operator and *ampersand_position gives its position.
   rout = routine_from_function_expr(expr);
   if (rout != NULL) {
     rtp = skip_typerefs(rout->type);
-    if (!will_call &&
-        rtp->variant.routine.extra_info->has_enable_if_attribute) {
-      require_true_enable_if_condition(rtp, &operand->position);
+    if (!will_call) {
+      if (rtp->variant.routine.extra_info->has_enable_if_attribute) {
+        require_true_enable_if_condition(rtp, &operand->position);
+      }  /* if */
+      if (rout->is_consteval) {
+        check_address_of_consteval_function(&operand->position);
+      }  /* if */
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED

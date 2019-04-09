@@ -2934,7 +2934,7 @@ extern void make_upc_thread_operand(an_operand            *operand,
 
 extern a_boolean type_has_nodiscard_attribute(a_type_ptr type);
 
-extern void check_for_address_of_consteval_function(void);
+extern void check_args_for_address_of_consteval_function(void);
 
 #if DEBUG
 extern void count_rescan_fs_expr_nodes(unsigned long *p_count);
