@@ -1,5 +1,17 @@
 Version 5.1
 
+4/9/19   [EDGcpfe/20914]
+Array size deduction in "new" expressions
+
+The front end has been enhanced to support array size deduction in "new"
+expressions as described in Committee document P1009R2.  This allows
+symmetric behavior between direct initialization of an array and the
+equivalent "new" declaration.  For example:
+
+  int arr[]{1,2,3};  // Declares an integer array of three elements
+  new int[]{1,2,3};  // Now also declares a 3-element integer array
+
+
 4/6/19   [EDGcpfe/21113]
 Missing "pack ... not expanded" diagnostics
 

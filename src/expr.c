@@ -258,6 +258,9 @@ typedef struct a_new_parse_state {
 			   argument(s). */
   a_bit_field	array_new:1;
 			/* TRUE if using the array version of "new". */
+  a_bit_field	array_size_is_deduced:1;
+			/* TRUE if the array size needs to be deduced from the
+			   initializer. */
   a_bit_field	unknown_dependent_new:1;
 			/* TRUE if, during prototype instantiation, it's not
 			   currently known which "new" operator should be
@@ -19424,6 +19427,58 @@ Scans the new initializer expression (if present).
 }  /* scan_new_initializer */
 
 
+static void deduce_new_array_size(a_new_parse_state *nps)
+/*
+C++20 allows for the deduction of a new array size from the provided braced
+initializer to match direct-initialization behaviour.  For example:
+        int foo[]{1,2,3}
+        new int[]{1,2,3}
+should both produce a 3-element array of integers, initialized to 1, 2 and 3.
+Deduce the array size and update the new type accordingly.
+*/
+{
+  check_assertion(nps->has_braced_initializer);
+  if (!expr_stack->possible_rescan_context) {
+    a_targ_size_t num_initializers = 0;
+    an_init_component_ptr icp;
+    nps->array_size_is_deduced = TRUE;
+    nps->braced_init_list = parse_braced_init_list(/*bundle=*/FALSE);
+    icp = nps->braced_init_list->variant.braced.list;
+    if (icp == NULL) {
+      /* An empty initializer list.  Treat as if it were "new T[0]{}" */
+      nps->variable_size_array = TRUE;
+      nps->new_array_dimension = node_for_integer_constant(0, ik_unsigned_int);
+    } else {
+      if (icp->next == NULL) {
+        num_initializers = 1;
+        /* Check for the case of initializing with a string literal (e.g.,
+           'new T[]{"Hello"}').
+        */
+        if (icp->kind == (an_init_component_kind)ick_expression) {
+          a_type_ptr expr_type = icp->variant.expr.arg_op->operand.type;
+          if (is_string_type(expr_type)) {
+            num_initializers =
+                          expr_type->variant.array.variant.number_of_elements;
+          }  /* if */
+        }  /* if */
+      } else {
+        /* Count the number of initializers and use this to determine the
+           size of the array.  Note that there may be problems with the
+           initializer - these will be diagnosed later. */
+        for (; icp != NULL; icp = icp->next) {
+          ++num_initializers;
+        }  /* for */
+      }  /* if */
+      nps->unqual_new_type->variant.array.is_variable_size_array = FALSE;
+      nps->unqual_new_type->variant.array.variant.number_of_elements =
+                                                             num_initializers;
+      nps->unqual_new_type->size = 0;
+      set_type_size(nps->unqual_new_type);
+    }  /* if */
+  }  /* if */
+}  /* deduce_new_array_size */
+
+
 static void get_base_new_type(a_new_parse_state *nps)
 /*
 Returns the base type for the new statement.
@@ -19469,10 +19524,16 @@ Returns the base type for the new statement.
       /* MSVC treats "new T[]" as "new T[0]". */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_incomplete_type(nps->new_type)) {
-      /* A case like "new int[]" -- an incomplete array type. */
-      expr_pos_error(incomplete_type_err_code(nps->new_type),
-                     &nps->type_position);
-      nps->err = nps->type_err = TRUE;
+      /* A case like "new int[]" -- an incomplete array type.  C++20 allows
+         this, provided we have an initializer that we can use to deduce the
+         array size. */
+      if (cpp20_mode && nps->has_braced_initializer) {
+        deduce_new_array_size(nps);
+      } else {
+        expr_pos_error(incomplete_type_err_code(nps->new_type),
+                       &nps->type_position);
+        nps->err = nps->type_err = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* get_base_new_type */
@@ -20194,9 +20255,10 @@ braced initializer was provided.
      This must be done after it has been determined that initialization
      is required, but before the initialization is actually processed. */
   make_dyn_init_for_deletion_for_throw(nps);
-  if (rcblock != NULL) {
+  if (rcblock != NULL || nps->array_size_is_deduced) {
     /* On a rescan, use the substituted version of the braced-init-list
-       scanned originally. */
+       scanned originally.  If we needed to deduce the array size, we'll have
+       already scanned the initializer. */
     check_assertion(nps->braced_init_list != NULL &&
                     is_braced_init_component(nps->braced_init_list));
     alep = nps->braced_init_list;
