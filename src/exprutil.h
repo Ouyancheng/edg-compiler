@@ -1160,7 +1160,7 @@ typedef struct a_seq_pt_var_entry {
 /*
 Entry representing a failure to fold a call to a consteval function.
 */
-struct a_pending_consteval_failure {
+typedef struct a_pending_consteval_failure {
   a_routine_ptr
 		routine;
 			/* The consteval function targeted by the failed
@@ -1173,7 +1173,7 @@ struct a_pending_consteval_failure {
 		diag_list;
 			/* A description of the cause of the failure.
 			   Undefined if there is no pending failure. */
-};
+} a_pending_consteval_failure;
 
 EXTERN a_pending_consteval_failure
 		pending_consteval_failure;
