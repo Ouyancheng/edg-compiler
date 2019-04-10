@@ -1188,8 +1188,6 @@ extern a_boolean consteval_failure(a_routine_ptr      rp,
                                    a_source_position  *pos,
                                    a_diag_list        *diag_list);
 
-extern void wrap_up_pending_consteval_failure(a_routine_ptr  enclosing_rp);
-
 /*
 Variable that controls whether an attempt should be made to fold all
 initializers to constant expressions or only initializers for variables
