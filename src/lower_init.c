@@ -11228,9 +11228,9 @@ arrays with class elements.
   an_expr_node_ptr            args, delete_args = NULL;
   a_boolean                   zero_storage = FALSE;
   a_boolean                   needs_dynamic_initialization = FALSE;
-  a_boolean                   sized_delete = FALSE;
   a_boolean                   aligned_delete = FALSE;
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
+  a_boolean                   sized_delete = FALSE;
   an_expr_node_ptr            prefix_size_node = NULL;
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
 
@@ -11244,7 +11244,11 @@ arrays with class elements.
     /* The allocated storage must be freed if an exception is thrown before
        the storage is allocated. */
     delete_routine = ndsp->freeing_of_storage_on_exception->destructor;
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
     sized_delete = is_sized_delete(delete_routine, &aligned_delete);
+#else /* !ABI_CHANGES_FOR_PLACEMENT_DELETE */
+    (void)is_sized_delete(delete_routine, &aligned_delete);
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
   } else {
     /* No deletion on throw. */
     delete_routine = NULL;
@@ -11726,7 +11730,6 @@ inserted at *insert_location.
 {
   a_dynamic_init_ptr dyn_init_to_free_storage =
                                          ndsp->freeing_of_storage_on_exception;
-  a_boolean          sized_delete = FALSE;
   a_boolean          aligned_delete = FALSE;
 
   if (dyn_init_to_free_storage != NULL) {
@@ -11736,7 +11739,7 @@ inserted at *insert_location.
     a_routine_ptr delete_routine =
                              ndsp->freeing_of_storage_on_exception->destructor;
     if (delete_routine != NULL) {
-      sized_delete = is_sized_delete(delete_routine, &aligned_delete);
+      (void)is_sized_delete(delete_routine, &aligned_delete);
     }  /* if */
     if (ndsp->placement_new || dyn_init_to_free_storage->is_array_freeing ||
         aligned_delete) {
