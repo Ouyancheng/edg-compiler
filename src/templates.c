@@ -10225,18 +10225,22 @@ provided argument list).
     }  /* if */
     if (tpp == NULL) {
       break;
-    } if (!tpp->is_pack) {
+    }  /* if */
+    if (!tpp->is_pack) {
       if (*tap == NULL) {
-        if (tpp->has_default_arg && !tap_is_pack) {
-          /* No argument is provided by the caller, the template parameter has
-             a default. */
-          a_templ_arg_kind  arg_kind;
-          arg_kind = templ_arg_kind_for_symbol_kind(tpp->param_symbol->kind);
-          *tap = alloc_template_arg(arg_kind);
-          get_template_arg_value_from_default(class_templ, *tap, tpp,
-                                              param_list);
-        } else {
-          not_enough_args = TRUE;
+        if (!tap_is_pack) {
+          if (tpp->has_default_arg) {
+            /* No argument is provided by the caller, the template parameter
+               has a default. */
+            a_templ_arg_kind  arg_kind;
+            arg_kind =
+                      templ_arg_kind_for_symbol_kind(tpp->param_symbol->kind);
+            *tap = alloc_template_arg(arg_kind);
+            get_template_arg_value_from_default(class_templ, *tap, tpp,
+                                                param_list);
+          } else {
+            not_enough_args = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
       tpp = tpp->next;
