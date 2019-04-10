@@ -28,11 +28,13 @@ Array size deduction in "new" expressions
 
 The front end has been enhanced to support array size deduction in "new"
 expressions as described in Committee document P1009R2.  This allows
-symmetric behavior between direct initialization of an array and the
-equivalent "new" declaration.  For example:
+symmetric behavior between direct-initialization of an array variable and the
+equivalent "new" expression.  For example:
 
-  int arr[]{1,2,3};  // Declares an integer array of three elements
-  new int[]{1,2,3};  // Now also declares a 3-element integer array
+  void f() {
+    int arr[]{1,2,3};  // Creates an integer array of three elements
+    new int[]{1,2,3};  // Now also creates a 3-element integer array
+  }
 
 
 4/6/19   [EDGcpfe/21113]

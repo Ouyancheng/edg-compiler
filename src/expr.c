@@ -19438,8 +19438,10 @@ Deduce the array size and update the new type accordingly.
 */
 {
   check_assertion(nps->has_braced_initializer);
+  /* Don't attempt to deduce the array size from the initializer if we will be
+     re-scanning later.  The array size will be deduced during the rescan. */
   if (!expr_stack->possible_rescan_context) {
-    a_targ_size_t num_initializers = 0;
+    a_targ_size_t         num_initializers = 0;
     an_init_component_ptr icp;
     nps->array_size_is_deduced = TRUE;
     nps->braced_init_list = parse_braced_init_list(/*bundle=*/FALSE);
@@ -19451,16 +19453,13 @@ Deduce the array size and update the new type accordingly.
                node_for_integer_constant(0, (an_integer_kind)ik_unsigned_int);
     } else {
       if (icp->next == NULL) {
+        a_constant_ptr literal;
         num_initializers = 1;
         /* Check for the case of initializing with a string literal (e.g.,
            'new T[]{"Hello"}').
         */
-        if (icp->kind == (an_init_component_kind)ick_expression) {
-          a_type_ptr expr_type = icp->variant.expr.arg_op->operand.type;
-          if (is_string_type(expr_type)) {
-            num_initializers =
-                          expr_type->variant.array.variant.number_of_elements;
-          }  /* if */
+        if (is_string_literal_component(icp, &literal)) {
+          num_initializers = literal->variant.string.length;
         }  /* if */
       } else {
         /* Count the number of initializers and use this to determine the
@@ -20258,8 +20257,8 @@ braced initializer was provided.
   make_dyn_init_for_deletion_for_throw(nps);
   if (rcblock != NULL || nps->array_size_is_deduced) {
     /* On a rescan, use the substituted version of the braced-init-list
-       scanned originally.  If we needed to deduce the array size, we'll have
-       already scanned the initializer. */
+       scanned originally.  Similarly, if we deduced the array size, we'll
+       have already scanned the initializer; use that result. */
     check_assertion(nps->braced_init_list != NULL &&
                     is_braced_init_component(nps->braced_init_list));
     alep = nps->braced_init_list;
