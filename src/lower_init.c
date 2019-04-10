@@ -11847,7 +11847,7 @@ as well as any additional code needed to process the deletion.
            necessary. */
         if (delete_args == NULL) {
           /* This is a non-placement deallocation function. */
-          an_expr_node_ptr alignment_arg;
+          an_expr_node_ptr alignment_arg = NULL;
           if (aligned_delete) {
             alignment_arg = alignment_node_from_pointer_type(entity_type);
             alignment_arg = add_cast_if_necessary(alignment_arg,
