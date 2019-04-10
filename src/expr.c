@@ -3433,6 +3433,10 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean           init_list_ctor_case = FALSE;
   a_boolean           saved_allow_call_with_incomplete_return_type;
+  a_boolean           saved_in_call_argument;
+  a_pending_consteval_failure
+                      saved_pending_consteval_failure;
+  a_boolean           restore_pending_consteval_failure;
 
   db_enter(4, "scan_ctor_arguments");
 
@@ -3441,6 +3445,19 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                    is_braced_init_component(init_list_ctor_arg_list) &&
                    init_list_ctor_arg_list->variant.braced.list ==
                                                            supplied_arg_list));
+  /* If needed, start a new entry to record a consteval call failure in an
+     argument. */
+  if (pending_consteval_failure.routine == NULL) {
+    /* Reuse the currently active entry since it doesn't record a failure
+       yet. */
+    restore_pending_consteval_failure = FALSE;
+  } else {
+    restore_pending_consteval_failure = TRUE;
+    saved_pending_consteval_failure = pending_consteval_failure;
+    pending_consteval_failure.routine = NULL;
+  }  /* if */
+  saved_in_call_argument = expr_stack->in_call_argument;
+  expr_stack->in_call_argument = TRUE;
   /* Allowing a call with incomplete return type doesn't propagate to calls
      in the arguments of the current call. */
   saved_allow_call_with_incomplete_return_type =
@@ -3885,9 +3902,21 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 end_of_routine:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (pending_consteval_failure.routine != NULL) {
+    a_diag_list_ptr  diag_list = &pending_consteval_failure.diag_list;
+    if (diag_list->head != NULL) {
+      discard_more_info_list(diag_list);
+    }  /* if */
+  }  /* if */
+  if (restore_pending_consteval_failure) {
+    pending_consteval_failure = saved_pending_consteval_failure;
+  } else {
+    pending_consteval_failure.routine = NULL;
+  }  /* if */
   if (arg_list != NULL && arg_list != supplied_arg_list) {
     free_arg_list(arg_list);
   }  /* if */
+  expr_stack->in_call_argument = saved_in_call_argument;
   /* Restore the previous state wrt. allowing an incomplete return type for
      the current call. */
   expr_stack->allow_call_with_incomplete_return_type = 
@@ -5940,8 +5969,22 @@ are expected to be NULL in that case.
   a_boolean         result_operand_is_call;
   a_boolean         member_of_proto_inst = FALSE;
   a_boolean         saved_uses_this_operand = expr_stack->uses_this_operand;
+  a_pending_consteval_failure
+                    saved_pending_consteval_failure;
+  a_boolean         restore_pending_consteval_failure;
 
   db_enter(4, "scan_function_call");
+  /* If needed, start a new entry to record a consteval call failure in an
+     argument. */
+  if (pending_consteval_failure.routine == NULL) {
+    /* Reuse the currently active entry since it doesn't record a failure
+       yet. */
+    restore_pending_consteval_failure = FALSE;
+  } else {
+    restore_pending_consteval_failure = TRUE;
+    saved_pending_consteval_failure = pending_consteval_failure;
+    pending_consteval_failure.routine = NULL;
+  }  /* if */
   /* While processing this call, ensure that the "uses_this_operand" only
      reflects uses of "this" within the current call. */
   expr_stack->uses_this_operand = FALSE;
@@ -6682,6 +6725,17 @@ are expected to be NULL in that case.
   }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 done:
+  if (pending_consteval_failure.routine != NULL) {
+    a_diag_list_ptr  diag_list = &pending_consteval_failure.diag_list;
+    if (diag_list->head != NULL) {
+      discard_more_info_list(diag_list);
+    }  /* if */
+  }  /* if */
+  if (restore_pending_consteval_failure) {
+    pending_consteval_failure = saved_pending_consteval_failure;
+  } else {
+    pending_consteval_failure.routine = NULL;
+  }  /* if */
   free_arg_list(arg_list);
   db_exit();
 }  /* scan_function_call */
@@ -41232,7 +41286,7 @@ function.
     do_operand_transformations(&result, TOPT_NO_OPTIONS);
   }  /* if */
   if (!for_consteval_function) {
-    check_args_for_address_of_consteval_function();
+    check_args_for_nonconsteval_call();
   }  /* if */
   node = make_node_from_operand(&result);
   if (ptp == NULL ||

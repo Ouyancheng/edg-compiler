@@ -6114,6 +6114,55 @@ details of why folding failed.  Return TRUE if an error was issued.
 }  /* call_did_not_fold_to_constant */
 
 
+a_boolean consteval_failure(a_routine_ptr      rp,
+                            a_constant_ptr     result_con,
+                            a_source_position  *pos,
+                            a_diag_list        *diag_list)
+/*
+rp is a consteval function being called at the given position and folding the
+call failed (for reasons indicated by diag_list): If this is a context where
+constant-evaluation is mandatory, issue a diagnostic, set result_con to an
+error constant, and return TRUE.  Otherwise, return FALSE.  For the case of a
+call that is the argument of another call, we cannot tell at this time whether
+it is valid or not (until we know whether the enclosing call is to a consteval
+function).  In such cases, record a pending diagnostic if appropriate.
+*/
+{
+  a_boolean  result;
+
+  if (!(expr_stack != NULL && expr_stack->is_default_arg_expression &&
+        expr_stack->consteval_call_need_not_fold) &&
+      (innermost_function_scope == NULL ||
+       !current_routine_entry()->is_consteval)) {
+    if (expr_stack->in_call_argument) {
+      /* Record a pending consteval failure, unless there already is one. */
+      if (pending_consteval_failure.routine == NULL) {
+        pending_consteval_failure.routine = rp;
+        pending_consteval_failure.diag_pos = *pos;
+        pending_consteval_failure.diag_list = *diag_list;
+        clear_diag_list(diag_list);
+      } else {
+        discard_more_info_list(diag_list);
+      }  /* if */
+      result = FALSE;
+    } else {
+      /* This is a context where consteval calls must produce a constant value:
+         Issue an error. */
+      a_diagnostic_ptr  dp;
+      dp = pos_sy_start_error(ec_consteval_call_nonconstant, pos,
+                              symbol_for(rp));
+      add_more_info_list(dp, diag_list);
+      end_diagnostic(dp);
+      set_error_constant(result_con);
+      result = TRUE;
+    }  /* if */
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* consteval_failure */
+
+
 static a_boolean expr_fold_constexpr_call(an_expr_node_ptr  call_expr,
                                           a_routine_ptr     rout,
                                           an_operand        *result,
@@ -16124,6 +16173,9 @@ successful folding.
   if (ctor_routine != NULL) {
     if (curr_expr_is_potentially_evaluated()) {
       ctor_routine->called = TRUE;
+      if (!ctor_routine->is_consteval) {
+        check_args_for_nonconsteval_call();
+      }  /* if */
     }  /* if */
     if (ctor_routine->is_consteval) {
       fold_constexpr = TRUE;
@@ -17033,11 +17085,13 @@ Returns TRUE if the type has the nodiscard attribute applied to it.
 }  /* type_has_nodiscard_attribute */
 
 
-void check_args_for_address_of_consteval_function(void)
+void check_args_for_nonconsteval_call(void)
 /*
 Check the current expression's ref entries list for one that corresponds to
 taking the address of a consteval function and issue an error if that is the
-case.  This is called to catch uses in call arguments.
+case.  This is called to catch uses in call arguments.  Also, if there is a
+pending consteval call failure, issue the error now since the enclosing call
+is not to a consteval function.
 */
 {
   if (innermost_function_scope == NULL ||
@@ -17052,7 +17106,15 @@ case.  This is called to catch uses in call arguments.
       }  /* if */
     }  /* for */
   }  /* if */
-}  /* check_args_for_address_of_consteval_function */
+  if (pending_consteval_failure.routine != NULL) {
+    a_diagnostic_ptr  dp;
+    dp = pos_sy_start_error(ec_consteval_call_nonconstant,
+                            &pending_consteval_failure.diag_pos,
+                            symbol_for(pending_consteval_failure.routine));
+    add_more_info_list(dp, &pending_consteval_failure.diag_list);
+    end_diagnostic(dp);
+  }  /* if */
+}  /* check_args_for_nonconsteval_call */
 
 
 #if !BACK_END_IS_CP_GEN_BE
@@ -17168,7 +17230,7 @@ error cases.
       !(rout != NULL && rout->is_consteval)) {
     /* A call to a non-consteval function.  Make sure we're not passing a
        pointer to a consteval function to it. */
-    check_args_for_address_of_consteval_function();
+    check_args_for_nonconsteval_call();
   }  /* if */
   if (rout != NULL) {
     /* We know which routine is being called. */
@@ -22922,6 +22984,7 @@ Do one-time initialization of variables related to expression processing.
 #if C99_IL_EXTENSIONS_SUPPORTED
   register_trans_unit_variable(imaginary_unit);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  register_trans_unit_variable(pending_consteval_failure);
 #if SEQUENCING_DIAGNOSTICS_ENABLED
   sequencing_diagnostics_enabled = is_effective_diagnostic(
                                                 ec_unsequenced_use_of_variable,
@@ -22951,6 +23014,7 @@ re-initialized for each translation unit.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   internal_opnd_array = NULL;
   n_internal_opnds = 0;
+  pending_consteval_failure.routine = NULL;
 }  /* expr_trans_unit_init */
 
 

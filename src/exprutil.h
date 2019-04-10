@@ -1158,6 +1158,39 @@ typedef struct a_seq_pt_var_entry {
 #endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
 
 /*
+Entry representing a failure to fold a call to a consteval function.
+*/
+struct a_pending_consteval_failure {
+  a_routine_ptr
+		routine;
+			/* The consteval function targeted by the failed
+			   call.  NULL if there is no pending failure. */ 
+  a_source_position
+		diag_pos;
+			/* The position at which to diagnose the failure.
+			   Undefined if there is no pending failure. */
+  a_diag_list
+		diag_list;
+			/* A description of the cause of the failure.
+			   Undefined if there is no pending failure. */
+};
+
+EXTERN a_pending_consteval_failure
+		pending_consteval_failure;
+			/* While scanning call arguments, this may hold a
+			   description of a failure to fold a nested consteval
+			   call.  The failure cannot be diagnosed until it is
+			   determined that the enclosing call is not itself to
+			   a consteval function. */
+
+extern a_boolean consteval_failure(a_routine_ptr      rp,
+                                   a_constant_ptr     result_con,
+                                   a_source_position  *pos,
+                                   a_diag_list        *diag_list);
+
+extern void wrap_up_pending_consteval_failure(a_routine_ptr  enclosing_rp);
+
+/*
 Variable that controls whether an attempt should be made to fold all
 initializers to constant expressions or only initializers for variables
 with static duration.  Also indicates a preference for other expressions,
@@ -2934,7 +2967,7 @@ extern void make_upc_thread_operand(an_operand            *operand,
 
 extern a_boolean type_has_nodiscard_attribute(a_type_ptr type);
 
-extern void check_args_for_address_of_consteval_function(void);
+extern void check_args_for_nonconsteval_call(void);
 
 #if DEBUG
 extern void count_rescan_fs_expr_nodes(unsigned long *p_count);

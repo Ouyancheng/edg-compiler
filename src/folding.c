@@ -10555,40 +10555,6 @@ node pointing to the dynamic init "dip".
 }  /* add_temp_init_backing_expression */
 
 
-a_boolean consteval_failure(a_routine_ptr      rp,
-                            a_constant_ptr     result_con,
-                            a_source_position  *pos,
-                            a_diag_list        *diag_list)
-/*
-rp is a consteval function being called at the given position and folding the
-call failed (for reasons indicated by diag_list): If this is a context where
-constant-evaluation is mandatory, issue a diagnostic, set result_con to an
-error constant, and return TRUE.  Otherwise, return FALSE.
-*/
-{
-  a_boolean  result;
-
-  if (!(expr_stack != NULL && expr_stack->is_default_arg_expression &&
-        expr_stack->consteval_call_need_not_fold) &&
-      (innermost_function_scope == NULL ||
-       !current_routine_entry()->is_consteval)) {
-    /* A call to a consteval function that appears outside the definition
-       (or default argument) of another consteval function must produce a
-       constant.  If it didn't, issue an error. */
-    a_diagnostic_ptr  dp;
-    dp = pos_sy_start_error(ec_consteval_call_nonconstant, pos,
-                            symbol_for(rp));
-    add_more_info_list(dp, diag_list);
-    end_diagnostic(dp);
-    set_error_constant(result_con);
-    result = TRUE;
-  } else {
-    result = FALSE;
-  }  /* if */
-  return result;
-}  /* consteval_failure */
-
-
 a_boolean fold_constexpr_ctor(a_dynamic_init_ptr ctor_dip,
                               a_boolean          record_backing_expr,
                               a_boolean          check_constexpr,
