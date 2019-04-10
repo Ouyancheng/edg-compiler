@@ -3720,6 +3720,9 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
          type (e.g., addition of "const" for a reference-to-const parameter
          type). */
       if (elision_done != NULL) *elision_done = TRUE;
+      /* Since this call is elided, we should really process the argument as
+         if it is not an argument of the current call. */
+      expr_stack->in_call_argument = saved_in_call_argument;
       if (is_trivial_construction) {
         /* Call of a trivial default constructor.  No argument list, and the
            reference to the constructor has already been recorded. */
@@ -3842,6 +3845,9 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
            contexts that disallow folding (e.g., in the case of a new
            expression that relies on the constructor call to call the
            allocation function). */
+        /* We're now processing the call instead of the call arguments.  So
+           restore the expression stack accordingly. */
+        expr_stack->in_call_argument = saved_in_call_argument;
         dip = alloc_expr_ctor_dynamic_init(routine,
                                            arg_expr_list,
                                            dest_type,

@@ -16181,7 +16181,8 @@ successful folding.
       fold_constexpr = TRUE;
       check_constexpr = TRUE;
     }  /* if */
-    if (fold_constexpr && ctor_routine->is_constexpr) {
+    if (fold_constexpr &&
+        (ctor_routine->is_constexpr || ctor_routine->is_consteval)) {
       a_constant_ptr folded_con = local_constant();
       check_assertion(pos != NULL);
       if (expr_fold_constexpr_ctor(ctor_routine, dip, pos, check_constexpr,

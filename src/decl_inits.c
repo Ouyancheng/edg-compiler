@@ -7382,7 +7382,8 @@ constructor.
           is->init_dip->kind == (a_dynamic_init_kind)dik_constructor &&
           is->init_dip->variant.constructor.ptr != NULL &&
           !(is->init_dip->variant.constructor.ptr->is_constexpr ||
-            is->init_dip->variant.constructor.ptr->is_declared_constexpr)) {
+            is->init_dip->variant.constructor.ptr->is_declared_constexpr ||
+            is->init_dip->variant.constructor.ptr->is_consteval)) {
         invalid_init = TRUE;
       } else {
         invalid_init = FALSE;
@@ -7396,7 +7397,7 @@ constructor.
          cases, an error is issued. */
       if (is_unspecialized_template_member_function(ctor) ||
           ctor->is_defaulted) {
-        if (!ctor->is_prototype_instantiation && !ctor->is_consteval) {
+        if (!ctor->is_prototype_instantiation) {
           ctor->is_constexpr = FALSE;
         }  /* if */
       } else {
@@ -8820,7 +8821,8 @@ initialized.  These are addressed in the course of the processing.
           if (ctor_rout->is_constexpr && !variant_init) {
             /* If this is a constexpr constructor, each variant must have
                an initializer. */
-            if (ctor_rout->is_declared_constexpr &&
+            if ((ctor_rout->is_declared_constexpr ||
+                 ctor_rout->is_consteval) &&
                 !is_unspecialized_template_member_function(ctor_rout) &&
                 !ctor_rout->is_defaulted) {
               pos2_diagnostic(
@@ -9203,7 +9205,8 @@ initialized.  These are addressed in the course of the processing.
                constexpr constructor.  For compiler-generated constructors
                and for template instances failing this test isn't an error,
                but it makes the function effectively non-constexpr. */
-            if (ctor_rout->is_declared_constexpr &&
+            if ((ctor_rout->is_declared_constexpr ||
+                 ctor_rout->is_consteval) &&
                 !is_unspecialized_template_member_function(ctor_rout) &&
                 !ctor_rout->is_defaulted) {
               if (!bad_call_for_constexpr_ctor_reported) {
@@ -9211,8 +9214,7 @@ initialized.  These are addressed in the course of the processing.
                              symbol_for(rp));
                 bad_call_for_constexpr_ctor_reported = TRUE;
               }  /* if */
-            } else if (!ctor_rout->is_prototype_instantiation &&
-                       !ctor_rout->is_consteval) {
+            } else if (!ctor_rout->is_prototype_instantiation) {
               ctor_rout->is_constexpr = FALSE;
             }  /* if */
           }  /* if */
@@ -9329,7 +9331,7 @@ initialized.  These are addressed in the course of the processing.
              !has_field_init) {
     /* A constexpr constructor for a union must initialize a field
        explicitly. */
-    if (ctor_rout->is_declared_constexpr &&
+    if ((ctor_rout->is_declared_constexpr || ctor_rout->is_consteval) &&
         !is_unspecialized_template_member_function(ctor_rout) &&
         !ctor_rout->is_defaulted) {
       pos_error(ec_union_constexpr_constructor_initializes_no_field,
@@ -9339,7 +9341,7 @@ initialized.  These are addressed in the course of the processing.
       clear_constexpr_flag = TRUE;
     }  /* if */
   }  /* if */
-  if (clear_constexpr_flag && !ctor_rout->is_consteval) {
+  if (clear_constexpr_flag) {
     ctor_rout->is_constexpr = FALSE;
   }  /* if */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
