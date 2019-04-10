@@ -10201,12 +10201,17 @@ argument list.  The heavy lifting is mostly done by a call to
 find_template_class, but this function transforms arg_list to account for
 template parameter packs prior to the call (as such, the given template
 argument list is assumed not to have "is_pack_element" flags set nor to have
-tak_start_of_pack_expansion delimiter entries).
+tak_start_of_pack_expansion delimiter entries).  If an insufficient number of
+template arguments have been provided, return NULL to indicate no matching
+instance has been found (the class template could not be instantiated with the
+provided argument list).
 */
 {
+  a_symbol_ptr          sym = NULL;
   a_template_arg_ptr    *tap = arg_list, sop_entry;
   a_template_param_ptr  tpp;
   a_boolean             in_pack = FALSE;
+  a_boolean             not_enough_args = FALSE;
   a_template_param_ptr	param_list;
   a_template_symbol_supplement_ptr
                         tssp = class_templ->variant.template_info;
@@ -10230,6 +10235,8 @@ tak_start_of_pack_expansion delimiter entries).
           *tap = alloc_template_arg(arg_kind);
           get_template_arg_value_from_default(class_templ, *tap, tpp,
                                               param_list);
+        } else {
+          not_enough_args = TRUE;
         }  /* if */
       }  /* if */
       tpp = tpp->next;
@@ -10253,13 +10260,15 @@ tak_start_of_pack_expansion delimiter entries).
       tap = &(*tap)->next;
     }  /* if */
   }  /* for */
-  return find_template_class(class_templ, arg_list,
-                             /*any_prototype_allowed=*/FALSE,
-                             /*specific_prototype_allowed=*/NULL,
-                             /*instantiate_nonreal=*/FALSE,
-                             /*do_not_create=*/FALSE,
-                             /*in_substitution=*/FALSE);
-
+  if (!not_enough_args) {
+    sym = find_template_class(class_templ, arg_list,
+                              /*any_prototype_allowed=*/FALSE,
+                              /*specific_prototype_allowed=*/NULL,
+                              /*instantiate_nonreal=*/FALSE,
+                              /*do_not_create=*/FALSE,
+                              /*in_substitution=*/FALSE);
+  }
+  return sym;
 }  /* find_class_template_instance */
 
 
