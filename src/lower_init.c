@@ -3470,7 +3470,7 @@ IA-64 ABI; see comments below.
 #endif /* !IA64_ABI */
   } else {
     a_boolean is_two_arg_delete;
-    a_boolean is_aligned_delete;
+    a_boolean aligned_delete;
     /* A special new or delete routine must be used.  The call looks like
          __array_new(num_elems, size_elem, ctor_routine,
                      dtor_routine, new_routine, delete_routine, is_two_arg)
@@ -3490,7 +3490,7 @@ IA-64 ABI; see comments below.
     check_assertion(entity_node == NULL);
     dtor_addr_node = expr_for_pointer_to_destructor(dtor_routine);
     is_two_arg_delete = (delete_routine != NULL &&
-                         is_sized_delete(delete_routine, &is_aligned_delete));
+                         is_sized_delete(delete_routine, &aligned_delete));
 #if !IA64_ABI
     is_two_arg_node = node_for_integer_constant((long)is_two_arg_delete,
                                                 (an_integer_kind)ik_int);
@@ -3508,7 +3508,7 @@ IA-64 ABI; see comments below.
       check_assertion(new_sym != NULL);
       new_routine = new_sym->variant.routine.ptr;
     }  /* if */
-    if (delete_routine == NULL) {
+    if (exceptions_enabled && delete_routine == NULL) {
       a_boolean    ambiguous;
       a_symbol_ptr delete_sym =
                       opname_function_symbol((an_opname_kind)onk_array_delete);
@@ -3809,11 +3809,11 @@ A pointer to the expression created is returned.
 #endif /* IA64_ABI */
   an_expr_node_ptr prefix_size_node;
   an_expr_node_ptr orig_entity_node = entity_node;
-  a_boolean        is_aligned_del = FALSE;
-  a_boolean        is_sized_del = FALSE;
+  a_boolean        aligned_delete = FALSE;
+  a_boolean        sized_delete = FALSE;
 
   if (delete_routine != NULL) {
-    is_sized_del = is_sized_delete(delete_routine, &is_aligned_del);
+    sized_delete = is_sized_delete(delete_routine, &aligned_delete);
   }  /* if */
   /* Build a constant node for the size of the array elements. */
   size_elem_node = size_elem_node_from_pointer_type(entity_type);
@@ -3822,7 +3822,7 @@ A pointer to the expression created is returned.
     /* -1 tells the runtime to use the array size from the "new[]". */
     num_elem_node = num_elem_node_from_count((a_targ_ptrdiff_t)-1);
   }  /* if */
-  if (delete_routine == NULL || is_aligned_del) {
+  if (delete_routine == NULL || aligned_delete) {
     /* The call looks like
          __vec_delete(entity_node, num_elems, size_elem, dtor_addr_node,
                       free_storage, 0)
@@ -3832,9 +3832,9 @@ A pointer to the expression created is returned.
        Use 0 for a deallocation function that takes an alignment, as the
        deallocation function will be called separately below. */
     free_storage_node =
-           node_for_integer_constant(free_storage && !is_aligned_del ? 1L : 0L,
+           node_for_integer_constant(free_storage && !aligned_delete ? 1L : 0L,
                                      (an_integer_kind)ik_int);
-    if (is_aligned_del) {
+    if (aligned_delete) {
       orig_entity_node = make_reusable_copy(entity_node,
                                             /*vars_can_change=*/TRUE);
     }  /* if */
@@ -3862,7 +3862,7 @@ A pointer to the expression created is returned.
        routine, 0 otherwise.
     */
     delete_addr_node = expr_for_pointer_to_delete(delete_routine);
-    is_two_arg_node = node_for_integer_constant(is_sized_del ? 1L : 0L,
+    is_two_arg_node = node_for_integer_constant(sized_delete ? 1L : 0L,
                                                 (an_integer_kind)ik_int);
     arg_expr_list = entity_node;
     entity_node->next = num_elem_node;
@@ -3880,7 +3880,7 @@ A pointer to the expression created is returned.
                                          NULL, arg_expr_list);
   }  /* if */
 #else /* IA64_ABI */
-  if (is_aligned_del) {
+  if (aligned_delete) {
     /* Make a copy of the pointer to the array, so we can use it later for
        calculating the number of elements in the array and the start of the
        complete block (including the array prefix). */
@@ -3932,7 +3932,7 @@ A pointer to the expression created is returned.
   } else {
     delete_addr_node = expr_for_pointer_to_delete(delete_routine);
     check_assertion(num_elem_node == NULL && free_storage);
-    if (is_aligned_del) {
+    if (aligned_delete) {
       /* The call looks like
            __cxa_vec_dtor(entity_node, num_elems, size_elem, dtor_addr_node)
       */
@@ -3956,7 +3956,7 @@ A pointer to the expression created is returned.
                                      void_type(), orig_entity_node);
       orig_entity_node = make_reusable_copy(orig_entity_node,
                                             /*vars_can_change=*/TRUE);
-    } else if (is_sized_del) {
+    } else if (sized_delete) {
       /* The call looks like
            __cxa_vec_delete3(entity_node, size_elem, padding, dtor_addr_node,
                              delete_routine)
@@ -3990,7 +3990,7 @@ A pointer to the expression created is returned.
     }  /* if */
   } /* if */
 #endif /* !IA64_ABI */
-  if (is_aligned_del) {
+  if (aligned_delete) {
     /* The deallocation function must be called explicitly when it takes
        an alignment value. */
     an_expr_node_ptr alignment_node =
@@ -4008,7 +4008,7 @@ A pointer to the expression created is returned.
     storage_node = make_operator_node((an_expr_operator_kind)eok_psubtract,
                                       char_star_type(), storage_node);
     storage_node = add_cast(storage_node, void_star_type());
-    if (is_sized_del) {
+    if (sized_delete) {
       /* The call will be operator delete[](ptr, size, alignment).  We need
          to calculate the size of the block from the value of the cookie. */
       an_expr_node_ptr storage_size_node;
@@ -11228,6 +11228,8 @@ arrays with class elements.
   an_expr_node_ptr            args, delete_args = NULL;
   a_boolean                   zero_storage = FALSE;
   a_boolean                   needs_dynamic_initialization = FALSE;
+  a_boolean                   sized_delete = FALSE;
+  a_boolean                   aligned_delete = FALSE;
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
   an_expr_node_ptr            prefix_size_node = NULL;
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
@@ -11238,6 +11240,15 @@ arrays with class elements.
   ptr_elem_type = make_pointer_type(elem_type);
   set_expr_creation_insert_location(&insert_location);
   set_expr_creation_insert_location(&pre_call_insert_location);
+  if (ndsp->freeing_of_storage_on_exception != NULL) {
+    /* The allocated storage must be freed if an exception is thrown before
+       the storage is allocated. */
+    delete_routine = ndsp->freeing_of_storage_on_exception->destructor;
+    sized_delete = is_sized_delete(delete_routine, &aligned_delete);
+  } else {
+    /* No deletion on throw. */
+    delete_routine = NULL;
+  }  /* if */
 #if !NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
  #error -- NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE wrong
 #endif /* !NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
@@ -11248,10 +11259,11 @@ arrays with class elements.
   args = size_arg_for_new(ndsp, &num_elem_node, &pre_call_insert_location);
   args->next = ndsp->arg;
   /* Build the node for the address of the array (entity_node). */
-  if (!ndsp->placement_new && !ndsp->aligned_version) {
+  if (!ndsp->placement_new && !ndsp->aligned_version && !aligned_delete) {
     /* This is a normal single-argument (not placement and not the aligned
-       version) new, the usual case.  The __vec_new routine should do the
-       allocation of the array. */
+       version) new, and the matching deallocation routine also does not
+       take an alignment, the usual case.  The __vec_new routine should do
+       the allocation of the array. */
     /* Note that new_routine might be non-NULL here, if the allocation
        requires a non-default "operator new[]" i.e., a class-specific one.
        __array_new will be called, and is given a pointer to the allocation
@@ -11260,8 +11272,9 @@ arrays with class elements.
     check_assertion(ndsp->arg == NULL);
     entity_node = NULL;  /* Allocate in __vec_new. */
   } else {
-    /* There are arguments to new, so the allocation must be done before
-       calling the __vec_new routine.  This happens for something like
+    /* There are arguments to new and/or the deallocation routine, so the
+       allocation must be done before calling the __vec_new routine.  This
+       happens for something like
          A *p = new (x, y, z) A[3];
        The "new" call is assigned to a temporary, and entity_node uses
        the temporary, as in
@@ -11282,8 +11295,30 @@ arrays with class elements.
          so the argument expressions are evaluated only once.  But that
          also means temporaries used to pass class objects via copy
          constructor are shared. */
-      /* Note that the copy skips the first argument (the size). */
-      delete_args = copy_arg_list_for_placement_delete(args->next);
+      /* Note that the copy skips the first argument (the size).  If the
+         deallocation function requires a size argument, it will be added
+         below after incrementing the size to allow for the prefix. */
+      if (aligned_delete && !ndsp->aligned_version) {
+        /* There's no alignment argument in the operator new[] call but we
+           need one for the delete, so create one now and link it into the
+           argument list as the first argument. */
+        an_expr_node_ptr alignment_arg;
+        alignment_arg = alignment_node_from_pointer_type(ptr_elem_type);
+        alignment_arg = add_cast_if_necessary(alignment_arg,
+                                              type_of_align_val_t);
+        delete_args = alignment_arg;
+        delete_args->next = copy_arg_list_for_placement_delete(args->next);
+      } else if (!aligned_delete && ndsp->aligned_version) {
+        /* The argument list for the call to operator new[] contains an
+           alignment argument, which must be eliminated from the arguments
+           for the deallocation function. */
+        delete_args = copy_arg_list_for_placement_delete(args->next->next);
+      } else {
+        /* The argument list for the deallocation function will be the
+           same as for the call to operator new[], except skipping the
+           size argument. */
+        delete_args = copy_arg_list_for_placement_delete(args->next);
+      }  /* if */
     }  /* if */
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     size_node = args;
@@ -11317,6 +11352,16 @@ arrays with class elements.
         size_node->next = size_node_next;
       }  /* if */
     }
+    if (dip != NULL && ndsp->freeing_of_storage_on_exception != NULL &&
+        sized_delete) {
+      /* The deallocation function takes a size; add it at the beginning
+         of the argument list. */
+      an_expr_node_ptr size_for_delete;
+      size_for_delete = make_reusable_copy(size_node,
+                                           /*vars_can_change=*/TRUE);
+      size_for_delete->next = delete_args;
+      delete_args = size_for_delete;
+    }  /* if */
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     /* Make the "new" call. */
     new_node = make_call_node(new_routine, size_node);
@@ -11449,16 +11494,8 @@ arrays with class elements.
     ctor_routine = NULL;
     dtor_routine = NULL;
   }  /* if */
-  if (ndsp->freeing_of_storage_on_exception != NULL) {
-    /* The allocated storage must be freed if an exception is thrown before
-       the storage is allocated. */
-    delete_routine = ndsp->freeing_of_storage_on_exception->destructor;
-  } else {
-    /* No deletion on throw. */
-    delete_routine = NULL;
-  }  /* if */
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
-  if (!ndsp->placement_new && !ndsp->aligned_version) {
+  if (!ndsp->placement_new && !ndsp->aligned_version && !aligned_delete) {
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     /* Construct the call of __vec_new or __array_new. */
     vec_new_node = make_vec_new_call(entity_node, ptr_elem_type, num_elem_node,
@@ -11545,7 +11582,7 @@ arrays with class elements.
     insert_expr(var_rvalue_expr(new_temp_var), &insert_location);
   }  /* if */
   vec_new_node = insert_location.variant.expr;
-  if (ndsp->placement_new || ndsp->aligned_version) {
+  if (ndsp->placement_new || ndsp->aligned_version || aligned_delete) {
     /* Placement or aligned new.  Add the "?" operator over the whole
        expression. */
     test_node->next = vec_new_node;
@@ -11689,12 +11726,20 @@ inserted at *insert_location.
 {
   a_dynamic_init_ptr dyn_init_to_free_storage =
                                          ndsp->freeing_of_storage_on_exception;
+  a_boolean          sized_delete = FALSE;
+  a_boolean          aligned_delete = FALSE;
 
   if (dyn_init_to_free_storage != NULL) {
     /* The storage for this "new" is supposed to be freed if an exception
        is thrown before the initialization is completed.  The fact
        that this pointer is non-NULL means exceptions are enabled. */
-    if (ndsp->placement_new || dyn_init_to_free_storage->is_array_freeing) {
+    a_routine_ptr delete_routine =
+                             ndsp->freeing_of_storage_on_exception->destructor;
+    if (delete_routine != NULL) {
+      sized_delete = is_sized_delete(delete_routine, &aligned_delete);
+    }  /* if */
+    if (ndsp->placement_new || dyn_init_to_free_storage->is_array_freeing ||
+        aligned_delete) {
       /* These cases can't be handled by the runtime library; instead they
          are handled later, by inserting an internal "try" block. */
     } else {
@@ -11749,14 +11794,20 @@ as well as any additional code needed to process the deletion.
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
   a_dynamic_init_ptr dyn_init_to_free_storage =
                                          ndsp->freeing_of_storage_on_exception;
-  a_boolean          is_aligned_delete;
+  a_boolean          aligned_delete = FALSE;
+  a_boolean          sized_delete = FALSE;
 
   check_assertion(is_expr_insert_location(insert_location));
   if (dyn_init_to_free_storage != NULL) {
+    if (dyn_init_to_free_storage->destructor != NULL) {
+      sized_delete = is_sized_delete(dyn_init_to_free_storage->destructor,
+                                     &aligned_delete);
+    }  /* if */
     alloc_expr = insert_location->variant.expr;
-    if (ndsp->placement_new || dyn_init_to_free_storage->is_array_freeing) {
+    if (ndsp->placement_new || aligned_delete ||
+        dyn_init_to_free_storage->is_array_freeing) {
       /* Generally speaking, deletion is handled through region table entries
-         but there are two cases that are handled here that use an internal
+         but there are three cases that are handled here that use an internal
          "try" block with a "catch" to do the requisite deletion. */
       if (alloc_expr == NULL && init_expr == NULL) {
         /* If neither allocation nor initialization generated any code,
@@ -11764,6 +11815,7 @@ as well as any additional code needed to process the deletion.
       } else {
         an_expr_node_ptr entity_node = make_address_of_init_entity_node(ipdp, 
                                                       /*using_as_dest=*/FALSE);
+        a_type_ptr       entity_type = entity_node->type;
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
         if (is_array_type(ndsp->type) &&
             new_or_delete_type_requires_array_handling(
@@ -11790,27 +11842,41 @@ as well as any additional code needed to process the deletion.
         /* Put a pointer to the allocated storage on the front of the argument
            list for the delete routine.  Add any placement delete args if
            necessary. */
-        if (is_sized_delete(dyn_init_to_free_storage->destructor,
-                            &is_aligned_delete) &&
-            delete_args == NULL) {
-          /* If a sized deallocation function is used, copy the size argument
-             that was used for the new operation. */
-          check_assertion(size_arg != NULL);
-          entity_node->next = make_reusable_copy(size_arg,
-                                                 /*vars_can_change=*/TRUE);
+        if (delete_args == NULL) {
+          /* This is a non-placement deallocation function. */
+          an_expr_node_ptr alignment_arg;
+          if (aligned_delete) {
+            alignment_arg = alignment_node_from_pointer_type(entity_type);
+            alignment_arg = add_cast_if_necessary(alignment_arg,
+                                                  type_of_align_val_t);
+            if (!sized_delete) {
+              /* The alignment argument directly follows the pointer. */
+              entity_node->next = alignment_arg;
+            }  /* if */
+          }  /* if */
+          if (sized_delete) {
+            /* Copy the size argument that was used for the new operation. */
+            check_assertion(size_arg != NULL);
+            size_arg = make_reusable_copy(size_arg, /*vars_can_change=*/TRUE);
+            if (aligned_delete) {
+              /* The alignment argument follows the size argument. */
+              size_arg->next = alignment_arg;
+            }  /* if */
+            entity_node->next = size_arg;
+          }  /* if */
         } else {
           entity_node->next = delete_args;
         }  /* if */
         /* Make a call of the appropriate delete routine. */
         delete_call = make_call_node(dyn_init_to_free_storage->destructor,
                                      entity_node);
-        if (ndsp->placement_new) {
-          /* Placement delete.  In the placement delete case, code must be
+        if (ndsp->placement_new || aligned_delete) {
+          /* Placement or aligned delete.  In this case, code must be
              generated to delete the entity if a failure occurs anywhere
              during the allocation or initialization process (the runtime
              library does not do any deletion during a throw -- because it
-             doesn't know the arguments that need to be passed to the placement
-             delete routine).  */
+             doesn't know the arguments that need to be passed to the
+             delete routine). */
           try_expr = make_comma_node_if_necessary(alloc_expr, init_expr);
           try_expr = make_internal_try_expr(try_expr, delete_call);
         } else {
@@ -12173,7 +12239,7 @@ delete routine.
 {
   an_expr_node_ptr second_arg_node;
   an_expr_node_ptr third_arg_node;
-  a_boolean        is_aligned_delete;
+  a_boolean        aligned_delete;
 
   delete_type = skip_typerefs(delete_type);
   /* Cast the argument to "void *", which is what the delete routine
@@ -12181,14 +12247,14 @@ delete routine.
   arg_node = add_cast_if_necessary(arg_node, void_star_type());
   /* If the delete routine is sized, pass the size of the entity as the
      second argument. */
-  if (is_sized_delete(delete_routine, &is_aligned_delete)) {
+  if (is_sized_delete(delete_routine, &aligned_delete)) {
     /* Sized form.  Add a second argument of type size_t that indicates the
        (static) size of the object. */
     second_arg_node = node_for_host_large_integer(
                                        (a_host_large_integer)delete_type->size,
                                        targ_size_t_int_kind);
     arg_node->next = second_arg_node;
-    if (is_aligned_delete) {
+    if (aligned_delete) {
       /* Aligned form.  Add a third argument of type size_t that indicates
          the alignment of the argument. */
       third_arg_node = node_for_host_large_integer(
@@ -12196,7 +12262,7 @@ delete routine.
                                   targ_size_t_int_kind);
       second_arg_node->next = third_arg_node;
     }  /* if */
-  } else if (is_aligned_delete) {
+  } else if (aligned_delete) {
     /* Aligned form.  Add a second argument of type size_t that indicates
        the alignment of the argument. */
     second_arg_node = node_for_host_large_integer(
