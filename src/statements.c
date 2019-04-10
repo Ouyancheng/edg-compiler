@@ -3321,15 +3321,20 @@ In strict C mode, the variant using "__asm" is accepted.
   a_statement_ptr    sp;
   a_source_position  asm_pos;
   an_asm_entry_ptr   asm_entry;
+  a_boolean          asm_decl_allowed;
   db_enter(3, "asm_statement");
 
   check_for_unreachable_code();
+  /* Later versions of MSVC don't allow asm declarations in lambda
+     expressions. */
+  asm_decl_allowed = !microsoft_mode || ms_version_is(<1916) ||
+                     scope_stack_top().lambda == NULL;
   asm_pos = pos_curr_token;
   /* Note: process_curr_construct_pragmas is intentionally not called.  Also,
      asm_declaration is called before adding a statement entry, to avoid
      attaching any prefix attributes (which are not valid here). */
   asm_entry =
-      asm_declaration(/*asm_decl_allowed=*/TRUE, /*is_asm_statement=*/TRUE,
+      asm_declaration(asm_decl_allowed, /*is_asm_statement=*/TRUE,
                       &struct_stmt_stack[depth_stmt_stack].prefix_attributes);
   /* Allocate the statement. */
   sp = add_statement_at_stmt_pos((a_statement_kind)stmk_asm, &asm_pos);

@@ -1,5 +1,20 @@
 Version 5.1
 
+4/10/19  [EDGcpfe/21122]
+Disallow asm statements in lambda expressions (Microsoft compatibility)
+
+Newer versions of MSVC reject asm statements in lambda expressions.  The front
+end has been updated to match this behavior.  For example:
+
+  void f()
+  {
+    auto lambda = [&]
+    {
+      __asm { mov eax, 0 } // Previously accepted, now rejected.
+    };
+  }
+
+
 4/9/19   [EDGcpfe/21063]
 Incorrect resolution of tuple case in structured bindings
 
