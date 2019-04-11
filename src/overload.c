@@ -13416,6 +13416,8 @@ specific function being called.
     }  /* if */
   } else {
     /* Actual argument is present (normal case). */
+    a_boolean  saved_in_call_argument = expr_stack->in_call_argument;
+    expr_stack->in_call_argument = TRUE;
     /* Issue any warning about the conversion detected while evaluating the
        alternatives. */
     issue_warning_from_arg_match_summary(arg_match,
@@ -13474,6 +13476,7 @@ retry_narrowing_diagnostic:
       arg = make_node_from_operand_for_expr_list(
                                               operand_of_arg_list_elem(alep));
     }  /* if */
+    expr_stack->in_call_argument = saved_in_call_argument;
   }  /* if */
   return arg;
 }  /* node_for_arg_of_overloaded_function_call */
