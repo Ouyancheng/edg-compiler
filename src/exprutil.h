@@ -988,8 +988,9 @@ typedef struct an_expr_stack_entry {
 			   or not). */
   a_bit_field
 		in_call_argument:1;
-			/* TRUE when parsing an explicit call argument (not
-			   when parsing a default call call argument). */
+			/* TRUE when parsing and processing an explicit call
+			   argument (not when parsing a default call
+			   argument). */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor
