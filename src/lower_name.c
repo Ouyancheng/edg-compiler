@@ -6744,8 +6744,7 @@ is TRUE.
          the mangled name. */
       {
         a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
-        check_assertion(dip != NULL &&
-                        !is_generated_dynamic_init(dip));
+        check_assertion(dip != NULL);
         mangled_dynamic_init(dip, expr->type, expr->is_static_cast, mctl);
       }
       break;
