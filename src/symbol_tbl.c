@@ -12340,10 +12340,14 @@ Return TRUE if sym is for a member of a class template prototype instantiation.
 }  /* is_member_of_prototype_instantiation */
 
 
-a_boolean have_access_to_symbol(a_symbol_ptr symbol)
+a_boolean have_access_to_symbol_full(a_symbol_ptr symbol,
+                                     a_boolean    ignore_func_templ)
 /*
 Return TRUE if the indicated symbol is accessible from the current location
-in the source program.
+in the source program.  If ignore_func_templ is TRUE, function template symbols
+are not checked (i.e., they're considered unconditionally accessible); this is
+used because a later check for a specific instance of the function template
+will be performed (after overload resolution).
 */
 {
   a_symbol_ptr	fund_sym = fundamental_symbol_of(symbol);
@@ -12368,7 +12372,8 @@ in the source program.
   } else if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function) {
     /* For overloaded functions, do not check access now.  The check will
        be done after the specific function is determined. */
-  } else if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
+  } else if (fund_sym->kind == (a_symbol_kind)sk_function_template &&
+             ignore_func_templ) {
     /* Likewise treat templates as sets of overloaded functions. */
   } else if (!strict_ansi_mode && is_injected_template_symbol(fund_sym)) {
     /* Microsoft, g++, clang, and Sun all treat the injected class name
@@ -12377,7 +12382,7 @@ in the source program.
     have_access = have_access_across_derivations(fund_sym, symbol);
   }  /* if */
   return have_access;
-}  /* have_access_to_symbol */
+}  /* have_access_to_symbol_full */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 

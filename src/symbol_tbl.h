@@ -5496,7 +5496,11 @@ extern a_boolean have_member_access_privilege(a_type_ptr class_type);
 
 extern a_boolean have_protected_member_access_privilege(a_type_ptr class_type);
 
-extern a_boolean have_access_to_symbol(a_symbol_ptr symbol);
+extern a_boolean have_access_to_symbol_full(a_symbol_ptr symbol,
+                                            a_boolean    ignore_func_templ);
+
+#define have_access_to_symbol(sym)                                            \
+  (have_access_to_symbol_full(sym, /*ignore_func_templ=*/TRUE))
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean have_hide_by_sig_access_to_symbol(a_symbol_ptr symbol);

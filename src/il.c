@@ -17804,7 +17804,6 @@ for the copy/substitution.
                                                options,
                                                &copy_error,
                                                &local_ctws_state);
-      if (sym != NULL) sym = fundamental_symbol_of(sym);
       if (sym == orig_sym) {
         /* A reference like "X::operator T" will not be substituted by the call
            above because the parent type is not altered.  Check for an unknown
@@ -17913,6 +17912,7 @@ name lookup options.
                                                            source_pos,
                                                            ctws_state,
                                                            options);
+  if (sym != NULL) sym = fundamental_symbol_of(sym);
   if (sym == NULL) {
     /* The substituted parent class has no member of the specified name. */
     err = TRUE;

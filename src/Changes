@@ -1,5 +1,24 @@
 Version 5.1
 
+4/11/19  [EDGcpfe/21125]
+Microsoft compatibility: Using-declarations for private member in indirect base
+
+Consider:
+
+  class B {
+    template<typename T> static int f(T);
+  };
+  struct C: B {};
+  template<typename T> struct D: T {
+    using T::f;
+  };
+  D<C> x;  // Now accepted in Microsoft bugs mode.
+
+Ordinarily, this should be an error because the using-declaration instantiated
+for T = C cannot access the private member B::f.  In Microsoft bugs mode,
+however, this is now accepted.
+
+
 4/10/19  [EDGcpfe/21122]
 Microsoft compatibility: Disallow asm statements in lambda expressions
 
