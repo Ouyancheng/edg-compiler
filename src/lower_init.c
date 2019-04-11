@@ -11289,7 +11289,6 @@ arrays with class elements.
   a_boolean                   needs_dynamic_initialization = FALSE;
   a_boolean                   aligned_delete = FALSE;
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
-  a_boolean                   sized_delete = FALSE;
   an_expr_node_ptr            prefix_size_node = NULL;
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
 
@@ -11303,11 +11302,7 @@ arrays with class elements.
     /* The allocated storage must be freed if an exception is thrown before
        the storage is allocated. */
     delete_routine = ndsp->freeing_of_storage_on_exception->destructor;
-#if ABI_CHANGES_FOR_PLACEMENT_DELETE
-    sized_delete = is_sized_delete(delete_routine, &aligned_delete);
-#else /* !ABI_CHANGES_FOR_PLACEMENT_DELETE */
     (void)is_sized_delete(delete_routine, &aligned_delete);
-#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
   } else {
     /* No deletion on throw. */
     delete_routine = NULL;
@@ -11834,7 +11829,6 @@ as well as any additional code needed to process the deletion.
       } else {
         an_expr_node_ptr entity_node = make_address_of_init_entity_node(ipdp, 
                                                       /*using_as_dest=*/FALSE);
-        a_type_ptr       entity_type = entity_node->type;
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
         if (is_array_type(ndsp->type) &&
             new_or_delete_type_requires_array_handling(
