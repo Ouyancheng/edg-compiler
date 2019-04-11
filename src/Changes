@@ -1,7 +1,7 @@
 Version 5.1
 
 4/10/19  [EDGcpfe/21122]
-Disallow asm statements in lambda expressions (Microsoft compatibility)
+Microsoft compatibility: Disallow asm statements in lambda expressions
 
 Newer versions of MSVC reject asm statements in lambda expressions.  The front
 end has been updated to match this behavior.  For example:
