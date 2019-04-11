@@ -113,7 +113,6 @@ static void turn_off_freeing_of_storage_on_exception(
                              a_new_delete_supplement_ptr ndsp,
                              an_init_pos_descr_ptr       ipdp,
                              an_expr_node_ptr            delete_args,
-                             an_expr_node_ptr            size_arg,
                              a_routine_ptr               new_routine,
                              an_expr_node_ptr            init_expr,
                              an_insert_location          *insert_location);
@@ -11206,6 +11205,66 @@ no temporary is needed; a copy is made.)
 }  /* copy_arg_list_for_placement_delete */
 
 
+static an_expr_node_ptr extra_args_for_operator_delete(
+                                   a_new_delete_supplement_ptr ndsp,
+                                   an_expr_node_ptr            allocation_args,
+                                   a_type_ptr                  result_type)
+/*
+ndsp describes a new-expression.  If a deallocation is to be called in case
+the initialization of the created object exits via an exception, return a
+list of arguments that will follow the pointer to the object in the call;
+otherwise, return NULL.  allocation_args is the list of arguments passed to
+the allocation function, and result_type is the type of the new-expression
+(a pointer type).
+*/
+{
+  an_expr_node_ptr delete_args = NULL;
+
+  if (ndsp->freeing_of_storage_on_exception != NULL) {
+    a_routine_ptr delete_routine =
+                             ndsp->freeing_of_storage_on_exception->destructor;
+    if (delete_routine != NULL) {
+      if (ndsp->placement_new) {
+        /* The extra arguments to the deallocation routine will be the
+           arguments following the size argument in the call to the
+           allocation function. */
+        delete_args =
+                     copy_arg_list_for_placement_delete(allocation_args->next);
+      } else {
+        /* The extra arguments will consist of an optional size and/or an
+           alignment, as required by the selected deallocation function. */
+        a_boolean        sized_delete;
+        a_boolean        aligned_delete;
+        an_expr_node_ptr alignment_arg = NULL;
+        sized_delete = is_sized_delete(delete_routine, &aligned_delete);
+        if (aligned_delete) {
+          if (allocation_args->next != NULL) {
+            /* The call to the allocation routine included an alignment
+               argument.  Make a copy to use with the deallocation
+               routine. */
+            alignment_arg = make_reusable_copy(allocation_args->next,
+                                               /*vars_can_change=*/TRUE);
+          } else {
+            /* Create an alignment argument. */
+            alignment_arg = alignment_node_from_pointer_type(result_type);
+            alignment_arg = add_cast_if_necessary(alignment_arg,
+                                                  type_of_align_val_t);
+          }  /* if */
+        }  /* if */
+        if (sized_delete) {
+          delete_args = make_reusable_copy(allocation_args,
+                                           /*vars_can_change=*/TRUE);
+          delete_args->next = alignment_arg;
+        } else {
+          delete_args = alignment_arg;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return delete_args;
+}  /* extra_args_for_operator_delete */
+
+
 static void lower_array_new(an_expr_node_ptr expr)
 /*
 Do lowering of an array new operation.  expr points to the enk_new_delete
@@ -11291,40 +11350,6 @@ arrays with class elements.
     lower_arg_expr_list(args, new_routine->type, new_routine,
                         (a_param_type_ptr)NULL, /*maintain_sequencing=*/FALSE,
                         (an_insert_location *)NULL);
-#if ABI_CHANGES_FOR_PLACEMENT_DELETE
-    if (dip != NULL && ndsp->freeing_of_storage_on_exception != NULL) {
-      /* This is a placement new for which there is a corresponding placement
-         delete.  Make a copy of the argument list for the new call, to
-         be used in the delete call.  Note that this is done after IL lowering,
-         so the argument expressions are evaluated only once.  But that
-         also means temporaries used to pass class objects via copy
-         constructor are shared. */
-      /* Note that the copy skips the first argument (the size).  If the
-         deallocation function requires a size argument, it will be added
-         below after incrementing the size to allow for the prefix. */
-      if (aligned_delete && !ndsp->aligned_version) {
-        /* There's no alignment argument in the operator new[] call but we
-           need one for the delete, so create one now and link it into the
-           argument list as the first argument. */
-        an_expr_node_ptr alignment_arg;
-        alignment_arg = alignment_node_from_pointer_type(ptr_elem_type);
-        alignment_arg = add_cast_if_necessary(alignment_arg,
-                                              type_of_align_val_t);
-        delete_args = alignment_arg;
-        delete_args->next = copy_arg_list_for_placement_delete(args->next);
-      } else if (!aligned_delete && ndsp->aligned_version) {
-        /* The argument list for the call to operator new[] contains an
-           alignment argument, which must be eliminated from the arguments
-           for the deallocation function. */
-        delete_args = copy_arg_list_for_placement_delete(args->next->next);
-      } else {
-        /* The argument list for the deallocation function will be the
-           same as for the call to operator new[], except skipping the
-           size argument. */
-        delete_args = copy_arg_list_for_placement_delete(args->next);
-      }  /* if */
-    }  /* if */
-#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     size_node = args;
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
     /* Increase the requested size in the operator new[] call to allow
@@ -11356,16 +11381,10 @@ arrays with class elements.
         size_node->next = size_node_next;
       }  /* if */
     }
-    if (dip != NULL && ndsp->freeing_of_storage_on_exception != NULL &&
-        sized_delete) {
-      /* The deallocation function takes a size; add it at the beginning
-         of the argument list. */
-      an_expr_node_ptr size_for_delete;
-      size_for_delete = make_reusable_copy(size_node,
-                                           /*vars_can_change=*/TRUE);
-      size_for_delete->next = delete_args;
-      delete_args = size_for_delete;
-    }  /* if */
+    /* Now that we have the appropriately-adjusted size, we can make the
+       argument list for the deallocation function, if needed. */
+    delete_args = extra_args_for_operator_delete(ndsp, size_node,
+                                                 ptr_elem_type);
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     /* Make the "new" call. */
     new_node = make_call_node(new_routine, size_node);
@@ -11578,7 +11597,7 @@ arrays with class elements.
     /* Now that the entity is initialized, turn off the freeing on
        exception. */
     turn_off_freeing_of_storage_on_exception(ndsp, &ipd, delete_args,
-                                             args, new_routine,
+                                             new_routine,
                                              init_insert_location.variant.expr,
                                              &insert_location);
     /* Insert the value of the temporary as the final value of the
@@ -11760,20 +11779,17 @@ static void turn_off_freeing_of_storage_on_exception(
                              a_new_delete_supplement_ptr ndsp,
                              an_init_pos_descr_ptr       ipdp,
                              an_expr_node_ptr            delete_args,
-                             an_expr_node_ptr            size_arg,
                              a_routine_ptr               new_routine,
                              an_expr_node_ptr            init_expr,
                              an_insert_location          *insert_location)
 /*
 ndsp points to the new/delete supplement for a "new".  We're now at a
-location after the initialization related to the "new" has been done,
-so do the second part of the processing begun by
+location after the initialization related to the "new" has been done, so do
+the second part of the processing begun by
 set_up_freeing_of_storage_on_exception.  ipdp describes the location of the
-allocated storage.  delete_args points to the list of arguments for a placement
-delete call, if one is needed.  size_arg is an expression for the number of
-bytes that were allocated by the new routine (to be used if the deallocation
-routine requires a size).  If new_routine is non-NULL, it is the placement
-new routine that is being called to allocate the memory.
+allocated storage.  delete_args points to the list of arguments for a
+placement delete call, if one is needed.  If new_routine is non-NULL, it is
+the placement new routine that is being called to allocate the memory.
 
 In the case of an initialized array (e.g., "new A[4] {1, 2}"), the caller
 has generated two logical pieces of code: a run-time call to allocate the
@@ -11842,34 +11858,10 @@ as well as any additional code needed to process the deletion.
         /* Cast the argument to "void *", which is what the delete routine
            expects. */
         entity_node = add_cast_if_necessary(entity_node, void_star_type());
-        /* Put a pointer to the allocated storage on the front of the argument
-           list for the delete routine.  Add any placement delete args if
-           necessary. */
-        if (delete_args == NULL) {
-          /* This is a non-placement deallocation function. */
-          an_expr_node_ptr alignment_arg = NULL;
-          if (aligned_delete) {
-            alignment_arg = alignment_node_from_pointer_type(entity_type);
-            alignment_arg = add_cast_if_necessary(alignment_arg,
-                                                  type_of_align_val_t);
-            if (!sized_delete) {
-              /* The alignment argument directly follows the pointer. */
-              entity_node->next = alignment_arg;
-            }  /* if */
-          }  /* if */
-          if (sized_delete) {
-            /* Copy the size argument that was used for the new operation. */
-            check_assertion(size_arg != NULL);
-            size_arg = make_reusable_copy(size_arg, /*vars_can_change=*/TRUE);
-            if (aligned_delete) {
-              /* The alignment argument follows the size argument. */
-              size_arg->next = alignment_arg;
-            }  /* if */
-            entity_node->next = size_arg;
-          }  /* if */
-        } else {
-          entity_node->next = delete_args;
-        }  /* if */
+        /* Put a pointer to the allocated storage on the front of the
+           argument list for the delete routine.  Add any size, alignment,
+           or placement delete args if necessary. */
+        entity_node->next = delete_args;
         /* Make a call of the appropriate delete routine. */
         delete_call = make_call_node(dyn_init_to_free_storage->destructor,
                                      entity_node);
@@ -11989,7 +11981,8 @@ The subtree of the node has not yet been lowered.
   a_variable_ptr              temp_var;
   an_expr_node_ptr            assign_node, test_node, args;
   an_expr_node_ptr            num_elem_node = NULL, *eff_num_elem_node = NULL;
-  an_expr_node_ptr            init_node, call_node, null_node, delete_args;
+  an_expr_node_ptr            init_node, call_node, null_node;
+  an_expr_node_ptr            delete_args = NULL;
   a_constant_ptr              null_constant = local_constant();
   an_insert_location          insert_location, pre_call_insert_location;
 
@@ -11999,6 +11992,7 @@ The subtree of the node has not yet been lowered.
   treat_as_placement_new_if_has_default_args(ndsp);
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
   base_type = new_delete_base_type_from_operation_type(ndsp->type);
+  ptr_new_type = make_pointer_type(ndsp->type);
   if (is_array_type(ndsp->type) &&
       new_or_delete_type_requires_array_handling(base_type,
                                                  /*check_constructor=*/TRUE)) {
@@ -12081,20 +12075,16 @@ The subtree of the node has not yet been lowered.
                 &pre_call_insert_location);
     args = var_rvalue_expr(num_bytes_temp);
     args->next = ndsp->arg;
-    delete_args = NULL;
-    if ((ndsp->placement_new || ndsp->aligned_version) && dip != NULL &&
-        ndsp->freeing_of_storage_on_exception != NULL) {
-      /* This is a placement or aligned new for which there is a corresponding
-         delete.  Make a copy of the argument list for the new call, to
-         be used in the delete call.  Note that this is done after IL lowering,
-         so the argument expressions are evaluated only once.  But that
-         also means temporaries used to pass class objects via copy
-         constructor are shared. */
-      /* Note that the copy skips the first argument (the size). */
+    if (dip != NULL && ndsp->freeing_of_storage_on_exception != NULL) {
+      /* This is a new for which there is a corresponding deallocation
+         function.  Make an argument list for the delete call.  Note that
+         this is done after IL lowering, so the argument expressions are
+         evaluated only once.  But that also means temporaries used to pass
+         class objects via copy constructor are shared. */
       /* This case is also used for an operator new call with default
          arguments (it is treated like a placement new).  See
          initial_processing_on_destructible_initialization. */
-      delete_args = copy_arg_list_for_placement_delete(args->next);
+      delete_args = extra_args_for_operator_delete(ndsp, args, ptr_new_type);
     }  /* if */
     /* Create a call of the "new" routine. */
     call_node = make_call_node(ndsp->routine, args);
@@ -12134,7 +12124,6 @@ The subtree of the node has not yet been lowered.
                            (dip->kind == (a_dynamic_init_kind)dik_constructor);
       }  /* if */
       /* Allocate the temporary. */
-      ptr_new_type = make_pointer_type(ndsp->type);
       temp_var = make_local_temporary(ptr_new_type);
       /* Assign the entity address expression to the temporary. */
       assign_node = make_var_assignment_expr(temp_var,
@@ -12178,7 +12167,6 @@ The subtree of the node has not yet been lowered.
         /* Now that the entity is initialized, turn off the freeing on
            exception. */
         turn_off_freeing_of_storage_on_exception(ndsp, &ipd, delete_args,
-                                             var_rvalue_expr(num_bytes_temp),
                                              (a_routine_ptr)NULL,
                                              init_insert_location.variant.expr,
                                              &insert_location);
