@@ -11809,13 +11809,12 @@ as well as any additional code needed to process the deletion.
   a_dynamic_init_ptr dyn_init_to_free_storage =
                                          ndsp->freeing_of_storage_on_exception;
   a_boolean          aligned_delete = FALSE;
-  a_boolean          sized_delete = FALSE;
 
   check_assertion(is_expr_insert_location(insert_location));
   if (dyn_init_to_free_storage != NULL) {
     if (dyn_init_to_free_storage->destructor != NULL) {
-      sized_delete = is_sized_delete(dyn_init_to_free_storage->destructor,
-                                     &aligned_delete);
+      (void)is_sized_delete(dyn_init_to_free_storage->destructor,
+                            &aligned_delete);
     }  /* if */
     alloc_expr = insert_location->variant.expr;
     if (ndsp->placement_new || aligned_delete ||
