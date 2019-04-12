@@ -1,5 +1,17 @@
 Version 5.1
 
+4/12/19  [EDGcpfe/20993]
+Class template argument deduction not performed in typename-specifier
+
+Class template argument deduction should have been performed for a type
+specified in a typename-specifier, but was not.  Now fixed.
+
+  template <class T> struct A {
+    A(T);
+  };
+  typename ::A y(1);
+
+
 4/11/19  [EDGcpfe/21125]
 Microsoft compatibility: Using-declarations for private member in indirect base
 

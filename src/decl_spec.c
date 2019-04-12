@@ -6842,6 +6842,41 @@ return_point:;
 }  /* enum_specifier */
 
 
+static void process_class_template_placeholder(a_decl_parse_state    *state,
+                                               a_type_ptr            type)
+/*
+Determine whether type is a class template placeholder used for C++17
+class template argument deduction, and if so, update state to record the
+placeholder.  type is known to be a tk_template_param type. *state describes
+the declaration that is being parsed.
+*/
+{
+  a_template_param_type_supplement_ptr  tptsp;
+
+  check_assertion(type_is(type, tk_template_param));
+  tptsp = type->variant.template_param.extra_info;
+  if (tptsp->coordinates.depth == CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH) {
+    state->has_deduced_type = TRUE;
+    state->has_deducible_class_templ_args = TRUE;
+    state->auto_type = type;
+    state->auto_pos = pos_curr_token;
+  }  /* if */
+}  /* process_class_template_placeholder */
+
+
+static void clear_template_deduction_context_flag(a_decl_parse_state  *dps)
+/*
+Helper callback for check_for_rescannable_alias to reset the flag indicating
+whether the declaration described by *dps occurred in a template deduction
+context (where embedded expressions may need to be rescanned).
+*/
+{
+  if (dps->last_declarator) {
+    scope_stack_top().in_template_deduction_context = FALSE;
+  }  /* if */
+}  /* clear_template_deduction_context_flag */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
@@ -6850,6 +6885,7 @@ void typename_specifier(a_type_ptr            *type_ptr,
                         a_symbol_ptr	      *type_sym,
                         a_boolean             within_using_decl,
                         a_boolean             is_decl_specifier,
+			a_decl_parse_state    *dps,
                         a_decl_pos_block_ptr  decl_pos_block)
 /*
 Scan a typename-specifier.  The identifier that follows the typename keyword
@@ -6862,19 +6898,32 @@ within_using_decl is TRUE in a class member using declaration that starts with
 decl_specifiers; in that case, this routine may return NULL in some Microsoft
 modes if the tokens following the keyword "typename" do not actually start a
 type name.  decl_pos_block is a possibly NULL pointer to a block of source
-position information when the context is a declaration.
+position information when the context is a declaration.  dps is the current
+declaration parse state if the typename-specifier is from a decl-specifier,
+or NULL in other contexts such as using-declarations.
 */
 {
-  a_type_ptr	tp = NULL;
+  a_type_ptr			tp = NULL;
+  an_identifier_options_set	options = GID_IS_TYPENAME;
+  a_boolean			class_template_allowed;
 
   *type_sym = NULL;
   check_assertion(curr_token == tok_typename);
+  /* Class template argument deduction requires the decl_parse_state, which
+     is not available in contexts such as using-declarations. */
+  class_template_allowed = class_template_arg_deduction_enabled &&
+                           dps != NULL;
   /* The typename keyword may only be used within a template, including the
      template parameter list. */
   if (!is_template_context() && !cpp11_mode) {
     diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity
                                 : es_remark,
                ec_typename_not_in_template);
+  }  /* if */
+  if (class_template_allowed) {
+    /* When class template argument deduction is being done, a class
+       template name without an argument list is allowed. */
+    options |= GID_TEMPLATE_ARGS_OPTIONAL;
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
@@ -6886,7 +6935,7 @@ position information when the context is a declaration.
   (void)get_token();
   /* The Microsoft compiler allows the typename specifier to be repeated. */
   while (microsoft_bugs && curr_token == tok_typename) (void)get_token();
-  (void)is_generalized_identifier_start(GID_IS_TYPENAME);
+  (void)is_generalized_identifier_start(options);
   if (microsoft_bugs && is_decl_specifier &&
       (curr_token != tok_identifier ||
        !locator_for_curr_id.is_qualified_name ||
@@ -6902,7 +6951,7 @@ position information when the context is a declaration.
     an_identifier_lookup_mode  ilm;
 
     ilm = within_using_decl ? ilm_using_typename : ilm_typename;
-    if (!coalesce_and_lookup_qualified_name(GID_NO_OPTIONS, ilm, &err) ||
+    if (!coalesce_and_lookup_qualified_name(options, ilm, &err) ||
         (!cli_or_cx_enabled &&
          (!locator_for_curr_id.is_qualified_name ||
           err))) {
@@ -6915,14 +6964,32 @@ position information when the context is a declaration.
     } else {
       a_symbol_ptr	sym = locator_for_curr_id.specific_symbol;
       a_symbol_ptr	fund_sym;
+      a_symbol_ptr	orig_fund_sym;
       check_assertion(sym != NULL);
       check_ambiguity_and_verify_access(&locator_for_curr_id);
       fund_sym = fundamental_symbol_of(sym);
+      orig_fund_sym = fund_sym;
+      if (class_template_allowed &&
+          !locator_for_curr_id.is_template_id &&
+          is_class_template_but_not_alias_symbol(fund_sym)) {
+        /* We found a class template and we are doing class template
+           argument deduction.  Create a placeholder type to represent
+           the class template reference.  This is not done for a template-id
+           because a template argument list already exists in that case. */
+        a_type_ptr	placeholder;
+        fund_sym = template_argument_if_template_template_param(fund_sym);
+        placeholder = make_class_template_placeholder(fund_sym,
+                                                      &pos_curr_token);
+        fund_sym = symbol_for(placeholder);
+        process_class_template_placeholder(dps, placeholder);
+      }  /* if */
       if (!is_type_symbol(fund_sym)) {
         /* The symbol is not a type name. */
         sym_error(ec_sym_not_a_type_name, sym);
       } else {
-        mark_referenced(fund_sym, &locator_for_curr_id.source_position);
+        /* For the class template deduction case, we want to mark the
+           original symbol as referenced, not the placeholder. */
+        mark_referenced(orig_fund_sym, &locator_for_curr_id.source_position);
         tp = type_symbol_type(fund_sym);
         *type_sym = sym;
       }  /* if */
@@ -9781,41 +9848,6 @@ an error if appropriate.
 }  /* check_explicit_specifier */
 
 
-static void process_class_template_placeholder(a_decl_parse_state    *state,
-                                               a_type_ptr            type)
-/*
-Determine whether type is a class template placeholder used for C++17
-class template argument deduction, and if so, update state to record the
-placeholder.  type is known to be a tk_template_param type. *state describes
-the declaration that is being parsed.
-*/
-{
-  a_template_param_type_supplement_ptr  tptsp;
-
-  check_assertion(type_is(type, tk_template_param));
-  tptsp = type->variant.template_param.extra_info;
-  if (tptsp->coordinates.depth == CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH) {
-    state->has_deduced_type = TRUE;
-    state->has_deducible_class_templ_args = TRUE;
-    state->auto_type = type;
-    state->auto_pos = pos_curr_token;
-  }  /* if */
-}  /* process_class_template_placeholder */
-
-
-static void clear_template_deduction_context_flag(a_decl_parse_state  *dps)
-/*
-Helper callback for check_for_rescannable_alias to reset the flag indicating
-whether the declaration described by *dps occurred in a template deduction
-context (where embedded expressions may need to be rescanned).
-*/
-{
-  if (dps->last_declarator) {
-    scope_stack_top().in_template_deduction_context = FALSE;
-  }  /* if */
-}  /* clear_template_deduction_context_flag */
-
-
 void check_for_rescannable_alias(a_decl_parse_state  *dps)
 /*
 If we're parsing a member type alias (including a typedef) in a prototype
@@ -11201,7 +11233,8 @@ process_enum_specifier:
         } else {
           a_symbol_ptr	type_sym;
           typename_specifier(type_ptr, &type_sym, /*within_using_decl=*/FALSE,
-                             /*is_decl_specifier=*/TRUE, decl_pos_block);
+                             /*is_decl_specifier=*/TRUE, state,
+                             decl_pos_block);
           if (*type_ptr == NULL) {
             /* In Microsoft mode a NULL type is returned for a nonstandard
                typename specifier in which the typename keyword is followed by
