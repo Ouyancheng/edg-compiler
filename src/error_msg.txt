@@ -3040,6 +3040,8 @@ ec_braced_init_in_parens;;"a parenthesized initializer must be an expression, no
 ec_cannot_deduce_class_template_arguments;;"cannot deduce class template arguments"
 ec_consteval_new_or_delete_operator;;"a new or delete operator cannot be declared \"consteval\""
 ec_address_of_consteval_function_leaked;;"the address of a consteval function cannot be used here"
+ec_alignof_function_type;;"the alignment of a function type (%t) is nonstandard"
+ec_alignof_incomplete_array;;"the alignment of an array of unspecified bound is nonstandard in C"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

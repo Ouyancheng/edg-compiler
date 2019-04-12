@@ -12371,23 +12371,27 @@ end_of_routine:
 static void scan_alignof_operator(a_rescan_control_block *rcblock,
                                   an_operand             *result)
 /*
-Scan the __ALIGNOF__ operator.  This is an extension that is similar
-to sizeof, but returns the alignment requirement rather than the size.
+Scan the alignof operator (including the C11 variant _Alignof, and extensions
+like __alignof__ or __ALIGNOF___.  This is a feature that is similar to sizeof,
+but returns the alignment requirement rather than the size.
 
 Syntax:
-        __ALIGNOF__ ( type-id )
-        __ALIGNOF__ expression
+        __alignof ( type-id )
+        __alignof expression
 
-There are several variants of the keyword spelling in various modes.
-A warning about the use of this nonstandard feature would be inappropriate,
-because the feature is probably used to implement <stdarg.h>, a standard
-feature.
+where __alignof can be replaced by other applicable spelling.  However, the
+second variant (with an expression operand) is not permitted in standard C
+(C11) or C++ (C++11).
 
-The current token is the __ALIGNOF__ keyword (however spelled).
-Scan a type or expression operand, and return an operand for alignof
-applied to that, in *operand.  If rcblock is non-NULL, redo semantic
-analysis on a previously-scanned alignof expression, and return the
-result in *result (or an error indication in *rcblock).
+The current token is tok_alignof (for the standard syntax) or tok_ext_alignof.
+Scan a type or (if appropriate) an expression operand, and return an operand
+for alignof applied to that, in *result.  If rcblock is non-NULL, redo semantic
+analysis on a previously-scanned alignof expression, and return the result in
+*result (or an error indication in *rcblock).
+
+Note that the __ALIGNOF__ and __alignof__ spelling variants (both tokenized as
+tok_ext_alignof) are accepted in all modes since this feature is often used in
+standard headers (e.g., to implement <stdarg.h>).
 */
 {
   a_source_position   operator_position, start_position, type_position;
@@ -12554,6 +12558,20 @@ result in *result (or an error indication in *rcblock).
     type_position = operand.position;
     if (is_expression_operand(&operand)) {
       operand_expr = skip_parens(operand.variant.expression);
+    }  /* if */
+  }  /* if */
+  if (is_std_syntax) {
+    if (is_function_type(alignof_type) && !(gnu_mode && !clang_mode)) {
+      if (expr_diagnostic_should_be_issued(es_discretionary_error,
+                                           ec_alignof_function_type)) {
+        pos_ty_diagnostic(es_discretionary_error, ec_alignof_function_type,
+                          &type_position, alignof_type);
+      }  /* if */
+    } else if (c11_mode && is_incomplete_array_type(alignof_type)) {
+      an_error_severity  sev = strict_ansi_mode ?
+                                            strict_ansi_discretionary_severity
+                                          : es_warning;
+      pos_diagnostic(sev, ec_alignof_incomplete_array, &type_position);
     }  /* if */
   }  /* if */
   alignof_value = compute_alignof_value(alignof_type, is_type, operand_expr,
