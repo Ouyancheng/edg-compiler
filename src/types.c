@@ -397,6 +397,21 @@ Skip any typerefs that don't represent a typedef or a type operator.
 }  /* skip_typerefs_not_typedefs_or_type_operators */
 
 
+a_type_ptr skip_nontemplate_typerefs(a_type_ptr type_ptr)
+/*
+Skip any typerefs that aren't dependent type operators or nonreal template
+aliases.
+*/
+{
+  while (type_ptr->kind == (a_type_kind)tk_typeref &&
+         !(type_ptr->variant.typeref.is_dependent_type_operator ||
+           type_ptr->variant.typeref.is_nonreal)) {
+    type_ptr = type_ptr->variant.typeref.type;
+  }  /* while */
+  return type_ptr;
+}  /* skip_nontemplate_typerefs */
+
+
 a_boolean is_error_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an error type.

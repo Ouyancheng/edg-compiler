@@ -1,5 +1,28 @@
 Version 5.1
 
+4/12/19  [EDGcpfe/20153,EDGcpfe/20797,EDGcpfe/20885]
+Generated copy functions incorrectly marked as deleted
+
+Consider:
+
+  template<typename T> struct I { using Type = T; };
+  struct X {
+    X& operator=(volatile const X&) = delete;
+    template<typename T = X>
+      X& operator=(typename I<const T&>::Type);
+  };
+  struct S { X x; };
+  int main() {
+    S s;
+    s = s;   // Previously an error.  Now fixed.
+  }
+
+This previously triggered an error because the front end erroneously discarded
+the assignment operator template when synthesizing the copy assignment operator
+for S.  This regression (introduced by the changes for EDGcpfe/15716; see the
+entry of 11/23/14) is now fixed.
+
+
 4/12/19  [EDGcpfe/20993]
 Class template argument deduction not performed in typename-specifier
 

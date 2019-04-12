@@ -26048,13 +26048,23 @@ source_is_rvalue.
       goto reject_function;
     }  /* if */
     ptp = rtsp->param_type_list;
+    if (ptp == NULL) {
+      /* This can occur in error cases. */
+      goto reject_function;
+    }  /* if */
+
     /* Attempt to deduce the template arguments based on the argument type.
-       The reference type check is done to prevent errors from instantiations
-       that could result from the deduction process for something that
-       ultimately could not be used as a copy constructor. */
-    if (ptp == NULL /* Error recovery */ ||
-        !is_any_reference_type(ptp->type) ||
-        !deduce_one_parameter(ptp, (a_type_ptr)NULL,
+       First, reduce the likelihood of instantiation errors triggered by the
+       deduction process by discarding cases that could not possibly produce
+       a reference type (and thus ultimately could not be used as a parameter
+       type for a copy constructor or copy assignment operator). */
+    param_type = skip_nontemplate_typerefs(ptp->type);
+    if (!type_is(param_type, tk_typeref) &&
+        !type_is(param_type, tk_template_param) &&
+        !is_any_reference_type(param_type)) {
+      goto reject_function;
+    }  /* if */
+    if (!deduce_one_parameter(ptp, (a_type_ptr)NULL,
                               (an_arg_list_elem **)NULL, arg_type,
                               sym, template_arg_list)) {
       /* Deduction failed. */
