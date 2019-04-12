@@ -12,10 +12,30 @@ specified in a typename-specifier, but was not.  Now fixed.
   typename ::A y(1);
 
 
-4/11/19  [EDGcpfe/21125]
-Microsoft compatibility: Using-declarations for private member in indirect base
+4/11/19  [EDGcpfe/18533,EDGcpfe/21125]
+Using-declarations and access checking during template substitution
 
 Consider:
+
+  struct X {
+    template<typename T> struct N: T {
+      using T::f;
+    };
+  };
+  class C {
+    friend struct X;
+    static int f();
+  };
+  template<typename T> auto g(T) -> decltype(X::N<T>::f());
+  int main() {
+    g(C{});
+  }
+
+This previously failed to compile because no matching function "g" was found
+for the call in main().  That was caused by the name "X::N::f" being access-
+checked as if it had been C::f (i.e., short-circuiting the using-declaration).
+That is now fixed.  A related change has also been made to improve Microsoft
+compatibility in this area:
 
   class B {
     template<typename T> static int f(T);
@@ -27,8 +47,9 @@ Consider:
   D<C> x;  // Now accepted in Microsoft bugs mode.
 
 Ordinarily, this should be an error because the using-declaration instantiated
-for T = C cannot access the private member B::f.  In Microsoft bugs mode,
-however, this is now accepted.
+for T = C cannot access the private member B::f.  In Microsoft compatibility
+mode, however, this is now accepted.  (A similar compatibility behavior was
+previously already supported for the cast where f is a non-template function.)
 
 
 4/10/19  [EDGcpfe/21122]
