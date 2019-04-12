@@ -11336,15 +11336,17 @@ arrays with class elements.
     entity_node = NULL;  /* Allocate in __vec_new. */
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
     if (sized_delete) {
-      /* We need a size argument for the deallocation routine.  Increment
-         the size of the object by the size of the prefix and use the
-         result as the allocation size. */
-      prefix_size_node = get_prefix_size_node(elem_type, new_routine);
+      /* Create a size argument for the deallocation routine. */
       delete_args = make_reusable_copy(args, /*vars_can_change=*/TRUE);
-      delete_args = add_cast_if_necessary(delete_args, prefix_size_node->type);
-      delete_args->next = prefix_size_node;
-      delete_args = make_operator_node((an_expr_operator_kind)eok_add,
-                                       delete_args->type, delete_args);
+      prefix_size_node = get_prefix_size_node(elem_type, new_routine);
+      if (prefix_size_node != NULL) {
+        /* Add in the size of the prefix, if applicable. */
+        delete_args = add_cast_if_necessary(delete_args,
+                                            prefix_size_node->type);
+        delete_args->next = prefix_size_node;
+        delete_args = make_operator_node((an_expr_operator_kind)eok_add,
+                                         delete_args->type, delete_args);
+      }  /* if */
     }  /* if */
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
   } else {
