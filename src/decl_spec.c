@@ -6847,7 +6847,7 @@ static void process_class_template_placeholder(a_decl_parse_state    *state,
 /*
 Determine whether type is a class template placeholder used for C++17
 class template argument deduction, and if so, update state to record the
-placeholder.  type is known to be a tk_template_param type. *state describes
+placeholder.  type is known to be a tk_template_param type.  *state describes
 the declaration that is being parsed.
 */
 {
@@ -6885,7 +6885,7 @@ void typename_specifier(a_type_ptr            *type_ptr,
                         a_symbol_ptr	      *type_sym,
                         a_boolean             within_using_decl,
                         a_boolean             is_decl_specifier,
-			a_decl_parse_state    *dps,
+                        a_decl_parse_state    *dps,
                         a_decl_pos_block_ptr  decl_pos_block)
 /*
 Scan a typename-specifier.  The identifier that follows the typename keyword
