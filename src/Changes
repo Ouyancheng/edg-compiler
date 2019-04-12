@@ -1,6 +1,6 @@
 Version 5.1
 
-4/12/19  [EDGcpfe/20153,EDGcpfe/20797,EDGcpfe/20885]
+4/12/19  [EDGcpfe/20153,EDGcpfe/20797,EDGcpfe/20885,EDGcpfe/21002]
 Generated copy functions incorrectly marked as deleted
 
 Consider:
