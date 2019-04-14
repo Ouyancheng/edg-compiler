@@ -1,5 +1,28 @@
 Version 5.1
 
+4/14/19  [EDGcpfe/20992]
+constexpr lambdas sometimes instantiated too early
+
+In general, constexpr functions must be instantiated earlier than
+non-constexpr functions would be because they may be required to produce
+a constant value at the point where they are called.  In some cases
+constexpr functions were instantiated earlier than was needed.  This was
+a particular issue for lambdas, which can be implicitly constexpr.  In
+the example below this resulted in a spurious failure to deduce the return
+type of A<F>::operator().  Now fixed.
+
+  template<typename F> struct A {
+    F f;
+    decltype(auto) operator()() { return f(*this); }
+  };
+  template<typename F> A<F> g(F f) { return { f }; }
+  int main() {
+    auto l = [](auto& self) -> int { self(); return 0; };
+    auto m = g(l);
+    return m();
+  }
+
+
 4/14/19  [EDGcpfe/20543]
 Incorrect substitution when performing class template argument deduction
 
