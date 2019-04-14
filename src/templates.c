@@ -38354,6 +38354,7 @@ a class template parameter list.
       new_type->variant.template_param.originally_class_template_param =
                                                            from_class_template;
       *new_tptsp = *old_tptsp;
+      new_tptsp->class_type = NULL;
       set_source_corresp(&new_type->source_corresp, new_sym);
       new_sym->variant.type.ptr = new_type;
     } else if (new_sym->kind == (a_symbol_kind)sk_constant) {

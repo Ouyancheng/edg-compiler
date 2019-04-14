@@ -1,5 +1,25 @@
 Version 5.1
 
+4/14/19  [EDGcpfe/20543]
+Incorrect substitution when performing class template argument deduction
+
+In certain cases where a constructor parameter list involved a dependent
+nested type specified elsewhere in the class template (e.g., T::type in
+the example below), class template argument deduction using that constructor
+could produce incorrect results.  Now fixed.
+
+  template <typename T> struct A {
+    using U = typename T::type;
+    A(T, U);
+  };
+  struct B {
+    B(int);
+    typedef B type;
+  };
+  A(double,double) -> A<B>;
+  A a = {1, 2};
+
+
 4/12/19  [EDGcpfe/21128]
 _Alignof/alignof operator 
 
