@@ -1697,7 +1697,7 @@ corresponds to field_sym in an actual instantiation.
       field = field_sym->variant.field.ptr;
       field->initializer =
                          alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-      field->initializer->variant.constant = alloc_error_constant();
+      field->initializer->variant.constant.ptr = alloc_error_constant();
     }  /* if */
   }  /* if */
 }  /* find_inclass_field_initializer_for_instance */

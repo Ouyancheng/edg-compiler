@@ -4802,12 +4802,13 @@ call that has no arguments).
       if (is_generated_dynamic_init(dip)) {
         /* Remove implicit operations. */
         if (dip->kind == (a_dynamic_init_kind)dik_constant ||
-            dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+            dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate ||
+            dip->kind == (a_dynamic_init_kind)dik_lambda) {
           /* Allocate an expression node to hold the constant that needs
              mangling (no substitutions are used for constants, so this should
              be okay). */
           expr = alloc_expr_node((an_expr_node_kind)enk_constant);
-          node_constant(expr) = dip->variant.constant;
+          node_constant(expr) = dip->variant.constant.ptr;
           expr->type = node_constant(expr)->type;
         } else {
           /* Note that expr may be set to NULL here in some cases (e.g.,
@@ -6065,7 +6066,7 @@ NULL (and in some cases both will be NULL).
     case dik_constant:
     case dik_nonconstant_aggregate:
       /* Mangle as a constant or aggregate constant. */
-      *con_list = dip->variant.constant;
+      *con_list = dip->variant.constant.ptr;
       break;
     case dik_expression:
     case dik_constructor:
@@ -6170,7 +6171,7 @@ the dynamic initialization is the result of a static_cast.
       case dik_zero:
         break;
       case dik_constant:
-        mangled_encoding_for_constant(dip->variant.constant,
+        mangled_encoding_for_constant(dip->variant.constant.ptr,
                                       /*old_form=*/FALSE,
                                       /*in_dependent_expr=*/TRUE,
                                       /*suppress_address_of=*/FALSE,

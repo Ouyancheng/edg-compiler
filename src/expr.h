@@ -936,6 +936,13 @@ Macro to get the type from a type operand node.
 #define type_operand_type(node)  ((node)->variant.type_operand.type)
 
 /*
+Macro that is TRUE if the node is a temporary node (enk_temp_init/enk_lambda).
+*/
+#define is_temp_node(node)						\
+	((node)->kind == (an_expr_node_kind)enk_temp_init ||		\
+	 (node)->kind == (an_expr_node_kind)enk_lambda)
+
+/*
 Macro that is TRUE if the node is an error node.
 */
 #define is_error_node(node)						\

@@ -1,5 +1,20 @@
 Version 5.1
 
+4/15/19  [EDGcpfe/20538,EDGcpfe/21108]
+Guaranteed Copy Elision
+
+The front end was always performing copy-elision when required by C++17.  For
+example:
+
+  struct A {
+    A();
+    A(A &key);
+  };
+  auto foo = A{}; // Previously issued a "no suitable copy constructor" error
+
+This is now fixed.
+
+
 4/15/19  [EDGcpfe/19567,EDGcpfe/21044]
 Pointer to function parameters and noexcept specifiers
 

@@ -5637,7 +5637,7 @@ compound literal.
   } else if (dip->kind == (a_dynamic_init_kind)dik_constant ||
              dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
     /* Constant dynamic initializations are handled as constants. */
-    literal_con = dip->variant.constant;
+    literal_con = dip->variant.constant.ptr;
   }  /* if */
   if (literal_con != NULL) {
     if (literal_con->kind == (a_constant_repr_kind)ck_aggregate) {
@@ -8729,7 +8729,7 @@ static void gen_field_initializer(a_field_ptr  field)
         dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
       /* gen_dynamic_init will provide braces for these kinds. */
     } else if (dip->kind == (a_dynamic_init_kind)dik_constant) {
-      a_constant_ptr cp = dip->variant.constant;
+      a_constant_ptr cp = dip->variant.constant.ptr;
       if (cp->kind != (a_constant_repr_kind)ck_aggregate) {
         /* A braced scalar initializer: braces must be supplied here. */
         need_braces = TRUE;
@@ -10640,7 +10640,7 @@ in determining how to generate dynamic initializations).
 */
 {
   a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
-  a_type_ptr         temp_type = expr->variant.init.source_type;
+  a_type_ptr         temp_type = expr->variant.init.source.type;
 
   if (temp_type == NULL) {
     temp_type = expr->type;
@@ -13340,7 +13340,7 @@ static void gen_lambda(an_expr_node_ptr  expr)
 Render code for the given expression node, which represents a lambda.
 */
 {
-  a_lambda_ptr            lambda = expr->variant.lambda.ptr;
+  a_lambda_ptr            lambda = expr->variant.init.source.lambda;
   a_scope_ptr             closure_scope;
   a_routine_ptr           rp = lambda->lambda_routine;
 
@@ -17210,7 +17210,7 @@ on an array, *value_init is returned TRUE, and the function returns FALSE.
 
   *is_value_init = FALSE;
   if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-    a_constant_ptr con = dip->variant.constant;
+    a_constant_ptr con = dip->variant.constant.ptr;
     check_assertion(con->kind == (a_constant_repr_kind)ck_aggregate);
     if (con->variant.aggregate.first_constant != NULL &&
         con->variant.aggregate.first_constant->kind ==
@@ -17417,7 +17417,7 @@ when possible.
   }  /* if */
   if (dip->is_explicit_cast &&
       !(dip->kind == (a_dynamic_init_kind)dik_constant &&
-        dip->variant.constant->explicit_cast_applied)) {
+        dip->variant.constant.ptr->explicit_cast_applied)) {
     /* An explicit cast.  Decide whether to put it out as a functional-notation
        cast "T(x)" or an old-style cast "(T)(x)".  (This processing is not
        needed if the constant has an explicit cast, as the cast will be put
@@ -17578,7 +17578,7 @@ output_functional_notation_cast:
          is an aggregate, we need to use the brace form and not the paren
          form so we don't end up with "T({})". */
       if ((dip->kind == (a_dynamic_init_kind)dik_constant &&
-           dip->variant.constant->kind ==
+           dip->variant.constant.ptr->kind ==
                                          (a_constant_repr_kind)ck_aggregate) ||
           dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
         braced_init = TRUE;
@@ -17705,7 +17705,7 @@ output_functional_notation_cast_arguments:
       break;
     case dik_constant:
       /* Constant (simple or aggregate). */
-      con = dip->variant.constant;
+      con = dip->variant.constant.ptr;
       if (is_reference_type(init_entity_type)) {
         a_type_ptr referred_to_type = type_pointed_to(init_entity_type);
         if (is_array_type(referred_to_type) ||
@@ -17747,7 +17747,7 @@ output_functional_notation_cast_arguments:
       /* Nonconstant aggregate constant, used in cases like
            int a[3] = {1, i+j, 3};
       */
-      con = dip->variant.constant;
+      con = dip->variant.constant.ptr;
       check_assertion_str(con->kind == (a_constant_repr_kind)ck_aggregate,
                          "gen_dynamic_init: bad nonconst aggr");
       if (default_class_array_initialization(dip, &is_value_init) ||
@@ -17890,7 +17890,7 @@ and the output of the type name.
       break;
     case dik_constant:
       /* Constant (simple or aggregate). */
-      con = dip->variant.constant;
+      con = dip->variant.constant.ptr;
       if (is_var_init && paren_form &&
           con->expr != NULL &&
           expr_may_look_like_type(con->expr)) {
@@ -17912,7 +17912,7 @@ and the output of the type name.
       /* Nonconstant aggregate constant, used in cases like
            int a[3] {1, i+j, 3};
       */
-      con = dip->variant.constant;
+      con = dip->variant.constant.ptr;
       check_assertion_str(con->kind == (a_constant_repr_kind)ck_aggregate,
                          "gen_paren_or_brace_dynamic_init: bad nonconst aggr");
       if (default_class_array_initialization(dip, &is_value_init) ||
@@ -18139,7 +18139,8 @@ Output the initializer, if any, for the indicated variable.
                expression.  We therefore temporarily replace *dip by a
                dik_expression entry pointing to the array expression. */
             if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-              con = dip->variant.constant->variant.aggregate.first_constant;
+              con = dip->variant.constant.ptr->
+                                             variant.aggregate.first_constant;
               if (con != NULL && constant_is(con, ck_init_repeat) &&
                   constant_is(con->variant.init_repeat.constant,
                               ck_dynamic_init)) {

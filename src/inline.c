@@ -1526,7 +1526,7 @@ This is useful in cases where iterative inlining can create huge routines.
             goto cannot_inline_ever;
           } else if (dip->kind == (a_dynamic_init_kind)dik_constant) {
             /* Aggregates can't be handled. */
-            if (dip->variant.constant->kind ==
+            if (dip->variant.constant.ptr->kind ==
                                           (a_constant_repr_kind)ck_aggregate) {
               goto cannot_inline_ever;
             }  /* if */
@@ -1534,7 +1534,7 @@ This is useful in cases where iterative inlining can create huge routines.
             /* This uses copy_constant_full because that routine does
                variable remapping if necessary. */
             init_expr = alloc_node_for_constant(
-                       copy_constant_full(dip->variant.constant,
+                       copy_constant_full(dip->variant.constant.ptr,
                                           (a_constant *)NULL,
                                           CE_DOING_INLINING_OF_FUNCTION_CALL));
           } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {

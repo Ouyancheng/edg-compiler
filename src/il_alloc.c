@@ -2313,9 +2313,13 @@ the associated variant fields to default values.
     case dik_none:
     case dik_zero:
       break;
+    case dik_lambda:
     case dik_constant:
     case dik_nonconstant_aggregate:
-      dip->variant.constant = NULL;
+      dip->variant.constant.ptr = NULL;
+      dip->variant.constant.lambda = NULL;
+      dip->variant.constant.non_constant =
+                       kind == (a_dynamic_init_kind)dik_nonconstant_aggregate;
       break;
     case dik_expression:
     case dik_class_result_via_ctor:
@@ -3409,9 +3413,13 @@ fields to default values.
       node->variant.field.ptr = NULL;
       node->variant.field.name_reference = NULL;
       break;
+    case enk_lambda:
+      node->variant.init.dynamic_init = NULL;
+      node->variant.init.source.lambda = NULL;
+      break;
     case enk_temp_init:
       node->variant.init.dynamic_init = NULL;
-      node->variant.init.source_type = NULL;
+      node->variant.init.source.type = NULL;
       break;
     case enk_new_delete:
       /* Allocate the supplement for new/delete. */
@@ -3435,10 +3443,6 @@ fields to default values.
       ndsp->dynamic_init                    = NULL;
       ndsp->freeing_of_storage_on_exception = NULL;
       ndsp->number_of_elements              = NULL;
-      break;
-    case enk_lambda:
-      node->variant.lambda.ptr            = NULL;
-      node->variant.lambda.initialization = NULL;
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case enk_gcnew:

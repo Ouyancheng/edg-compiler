@@ -924,7 +924,7 @@ remove_any_extraneous_braces:
         /* If this dynamic initialization embeds a designator, record it in the
            newly created constant. */
         (*init_con)->uses_designated_initializers =
-                           dip->variant.constant->uses_designated_initializers;
+                      dip->variant.constant.ptr->uses_designated_initializers;
       }  /* if */
       is->has_dynamic_init_component = TRUE;
       if (dip->destructor != NULL) {
@@ -1336,7 +1336,7 @@ given position, unless is->no_diagnostics is TRUE.
                  be called.  Proceed with a dik_constant entry to which the
                  destructor call can be added below. */
               dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-              dip->variant.constant = result;
+              dip->variant.constant.ptr = result;
               if (result->is_partially_initialized) {
                 dip->is_partially_initialized = TRUE;
               }  /* if */
@@ -2489,7 +2489,7 @@ for use in an enk_gcnew node.  (dim_exprs itself must be non-NULL.)
   *result = alloc_dynamic_init((a_dynamic_init_kind)
                    (is->has_dynamic_init_component ? dik_nonconstant_aggregate
                                                    : dik_constant));
-  (*result)->variant.constant = aggr_con;
+  (*result)->variant.constant.ptr = aggr_con;
   (*result)->is_braced_initializer = TRUE;
 }  /* aggr_init_cli_array */
 
@@ -3536,7 +3536,7 @@ issued if no more specific position is available.
                           dip = alloc_dynamic_init((a_dynamic_init_kind)
                                       (dynamic_con ? dik_nonconstant_aggregate
                                                    : dik_constant));
-          dip->variant.constant = orig_con;
+          dip->variant.constant.ptr = orig_con;
           if (orig_con->is_partially_initialized) {
             dip->is_partially_initialized = TRUE;
           }  /* if */
@@ -3748,7 +3748,7 @@ particular situation.
              Proceed with a dik_constant entry to which the destructor call
              can be added below. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-          dip->variant.constant = *init_con;
+          dip->variant.constant.ptr = *init_con;
           if ((*init_con)->is_partially_initialized) {
             dip->is_partially_initialized = TRUE;
           }  /* if */
@@ -3962,7 +3962,7 @@ are TRUE.
     }  /* if */
     if (is->has_dynamic_init_component || is->force_dynamic_init) {
       is->init_dip = alloc_dynamic_init(dik);
-      is->init_dip->variant.constant = is->init_con;
+      is->init_dip->variant.constant.ptr = is->init_con;
       is->init_dip->is_braced_initializer = TRUE;
       is->init_dip->is_partially_initialized = is->partial_initializer;
       record_dtor_in_dynamic_init(dtor_rp, is->init_dip,
@@ -4638,7 +4638,7 @@ position is available.
       } else if (is->init_dip->kind == (a_dynamic_init_kind)dik_constant ||
                  is->init_dip->kind ==
                               (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-        is->init_dip->variant.constant->is_pack_expansion = TRUE;
+        is->init_dip->variant.constant.ptr->is_pack_expansion = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4906,9 +4906,9 @@ substituted.
     dip->is_compound_literal = TRUE;
     if (dip->kind == (a_dynamic_init_kind)dik_constant ||
         dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-      dip->variant.constant->is_compound_literal = TRUE;
+      dip->variant.constant.ptr->is_compound_literal = TRUE;
       if (!is_incomplete_array_type(dps->type)) {
-        dip->variant.constant->type = dps->type;
+        dip->variant.constant.ptr->type = dps->type;
       }  /* if */
     }  /* if */
   } else {
@@ -5479,7 +5479,7 @@ returned set to TRUE.
       }  /* if */
       if (dtor != NULL || !var_has_static_or_thread_storage_duration(vp)) {
         init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-        init_dip->variant.constant = init_con;
+        init_dip->variant.constant.ptr = init_con;
         init_dip->is_braced_initializer = (first_token == tok_lbrace);
         if (dps->init_state.partial_initializer) {
           init_dip->is_partially_initialized = TRUE;
@@ -5707,7 +5707,7 @@ type.
       !var_has_static_or_thread_storage_duration(binding)) {
     /* Local variables are always initialized with a dynamic initializer. */
     is->init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-    is->init_dip->variant.constant = is->init_con;
+    is->init_dip->variant.constant.ptr = is->init_con;
     is->init_con = NULL;
   }  /* if */
   if (is->init_dip != NULL) {
@@ -6158,7 +6158,7 @@ arrays are treated as one-dimensional arrays.
   /* Create a ck_aggregate constant and point *new_dip to it. */
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
   aggr_con->type = array_type;
-  new_dip->variant.constant = aggr_con;
+  new_dip->variant.constant.ptr = aggr_con;
   /* Set it to point to a newly created ck_init_repeat constant. */
   aggr_con->variant.aggregate.first_constant =
     aggr_con->variant.aggregate.last_constant =
@@ -6356,7 +6356,7 @@ FALSE is returned) for non-class objects.
                dynamic init entry. */
             cp = alloc_constant((a_constant_repr_kind)ck_aggregate);
             init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-            init_dip->variant.constant = cp;
+            init_dip->variant.constant.ptr = cp;
           }  /* if */
           if (!make_value_initialized_constant(var_type, cp)) {
             /* The constant couldn't be created, presumably because default
@@ -6413,7 +6413,7 @@ FALSE is returned) for non-class objects.
             /* A local variable with automatic storage duration; use a
                dynamic init entry. */
             init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-            init_dip->variant.constant = cp;
+            init_dip->variant.constant.ptr = cp;
             init_dip->is_partially_initialized = cp->is_partially_initialized;
           }  /* if */
         }  /* if */
@@ -6466,7 +6466,7 @@ FALSE is returned) for non-class objects.
               /* A local variable with automatic storage duration or a variable
                  requiring nontrivial destruction; use a dynamic init entry. */
               init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-              init_dip->variant.constant = cp;
+              init_dip->variant.constant.ptr = cp;
               init_dip->is_partially_initialized =
                                                  cp->is_partially_initialized;
             }  /* if */
@@ -7454,7 +7454,7 @@ given type, and record the initializer in *cip if cip is non-NULL.
       /* Clear the destructor effects. */
       dip->destructor = NULL;
       if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate &&
-          !dip->variant.constant
+          !dip->variant.constant.ptr
               ->variant.aggregate.has_dynamic_init_component) {
         dip->kind = (a_dynamic_init_kind)dik_constant;
       }  /* if */
@@ -7579,7 +7579,8 @@ cases, array_type is NULL).
                         /* A constexpr constructor invocation may have been
                            folded. */
                         (dip->kind == (a_dynamic_init_kind)dik_constant &&
-                         dip->variant.constant->is_result_of_constexpr_call));
+                         dip->variant.constant.ptr->
+                                                is_result_of_constexpr_call));
       }  /* if */
 #endif /* CHECKING */
     }  /* if */
@@ -7979,14 +7980,14 @@ whole array.
   if (dip->kind == (a_dynamic_init_kind)dik_constant &&
       dip->destructor == NULL) {
     /* We get here with folded constexpr constructor calls. */
-    a_constant_ptr  econ = dip->variant.constant, acon;
+    a_constant_ptr  econ = dip->variant.constant.ptr, acon;
     check_assertion(econ->is_result_of_constexpr_call);
     acon = alloc_constant((a_constant_repr_kind)ck_aggregate);
     acon->type = atype;
     add_constant_to_aggregate(
                       add_repeat_con(econ, array_element_count(atype, etype)),
                       acon, (a_base_class_ptr)NULL, (a_field_ptr)NULL);
-    dip->variant.constant = acon;
+    dip->variant.constant.ptr = acon;
     result = dip;
   } else {
     result =
@@ -8322,7 +8323,7 @@ constructor, the scanned type is stored for later use.
           /* Template-based mem-initializers and constexpr constructors can
              make us end up with aggregate-like initialization here. */
           check_assertion_or_expect_error(ctor->is_prototype_instantiation ||
-                                          dip->variant.constant
+                                          dip->variant.constant.ptr
                                              ->is_result_of_constexpr_call);
         } else {
           /* Some error must have occurred. */
@@ -9255,7 +9256,7 @@ initialized.  These are addressed in the course of the processing.
     if (array_type != NULL && dip->is_constructor_init &&
         (dip->kind == (a_dynamic_init_kind)dik_constructor ||
          (dip->kind == (a_dynamic_init_kind)dik_constant &&
-                       dip->variant.constant->is_result_of_constexpr_call))) {
+          dip->variant.constant.ptr->is_result_of_constexpr_call))) {
       /* We have an array whose elements are constructible.  dip is the
          dynamic init entry for the element.  Create a dynamic init entry to
          represent the initialization of the array as a whole. */

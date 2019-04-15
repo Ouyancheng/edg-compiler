@@ -20004,7 +20004,7 @@ information about the member declaration, respectively.
             record_fixup = FALSE;
             field->initializer =
                          alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-            field->initializer->variant.constant = alloc_error_constant();
+            field->initializer->variant.constant.ptr = alloc_error_constant();
             --cssp->num_unparsed_field_initializers;
           } else {
             /* During a real instantiation, the token cache information is

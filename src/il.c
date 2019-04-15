@@ -2433,6 +2433,58 @@ dik_nonconstant_aggregate.
 }  /* db_nonconstant_aggregate */
 
 
+static void db_lambda_initializer(a_dynamic_init_ptr dip,
+                                  int                level)
+/*
+Dump debug information on a dynamic initialization entry of kind dik_lambda.
+*/
+{
+  a_lambda_ptr         lambda;
+  a_lambda_capture_ptr cap;
+  a_constant_ptr       cp, field_con;
+  int                  a;
+
+  check_assertion(dip->kind == (a_dynamic_init_kind)dik_lambda);
+  lambda = dip->variant.constant.lambda;
+  cap = lambda->capture_list;
+  cp = dip->variant.constant.ptr;
+  field_con = cp->variant.aggregate.first_constant;
+  /* Iterate over the captured fields. */
+  for (; cap != NULL && field_con != NULL;
+        cap = cap->next, field_con = field_con->next) {
+    for (a = 0; a < level; a++) fputs(" ", f_debug);
+    if (cap->is_init_capture) {
+      fputs(cap->closure_field->source_corresp.name, f_debug);
+    } else if (cap->captured.variable != NULL &&
+               !cap->captured.variable->is_this_parameter) {
+      fputs(cap->captured.variable->source_corresp.name, f_debug);
+    } else if (cap->captured.variable != NULL) {
+      fputs("this", f_debug);
+    } else {
+      fputs("<no captured variable>", f_debug);
+    }  /* if */
+    fputs(" = ", f_debug);
+    if (cap->is_init_capture) {
+      db_dynamic_initializer(cap->captured.initializer, level + 2);
+    } else if (field_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+      a_dynamic_init_ptr sub_dip = field_con->variant.dynamic_init.ptr;
+      fputs("(dynamic-init) ", f_debug);
+      db_dynamic_initializer(sub_dip, level + 2);
+      if (sub_dip->kind == (a_dynamic_init_kind)dik_bitwise_copy &&
+          sub_dip->variant.bitwise_copy.source == NULL &&
+          cap->captured.variable != NULL) {
+        /* Give more information on the implicit source. */
+        for (a = 0; a < level + 2; a++) fputs(" ", f_debug);
+        fputs("implicit source = ", f_debug);
+        db_variable(cap->captured.variable);
+      }
+    } else {
+      db_constant(field_con);
+    }  /* if */
+  }  /* for */
+}  /* db_lambda_initializer */
+
+
 void db_dynamic_initializer(a_dynamic_init_ptr  dip,
                             int                 level)
 /*
@@ -2450,7 +2502,7 @@ Dump a dynamic initializer entry for debug purposes.
   }  /* if */
   switch (dip->kind) {
     case dik_constant:
-      db_static_initializer(dip->variant.constant);
+      db_static_initializer(dip->variant.constant.ptr);
       if (dip->destructor != NULL) {
         fputs("; ", f_debug);
         db_destructor(dip);
@@ -2467,7 +2519,7 @@ Dump a dynamic initializer entry for debug purposes.
       goto destructor_on_next_line;
     case dik_nonconstant_aggregate:
       fputs("nonconstant aggregate:\n", f_debug);
-      db_nonconstant_aggregate(dip->variant.constant->
+      db_nonconstant_aggregate(dip->variant.constant.ptr->
                                         variant.aggregate.first_constant,
                                level);
 destructor_on_next_line:
@@ -2477,6 +2529,10 @@ destructor_on_next_line:
         (void)fputc('\n', f_debug);
       }  /* if */
       break;
+    case dik_lambda:
+      fputs("lambda:\n", f_debug);
+      db_lambda_initializer(dip, level);
+      goto destructor_on_next_line;
     case dik_constructor:
       db_constructor_initializer(dip, level);
       break;
@@ -5256,7 +5312,7 @@ Return a dynamic init entry for an error constant.
   a_dynamic_init_ptr  dip =
                         alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
 
-  dip->variant.constant = alloc_error_constant();
+  dip->variant.constant.ptr = alloc_error_constant();
   return dip;
 }  /* make_error_constant_dynamic_init */
 
@@ -6850,7 +6906,8 @@ are done.
         break;
       case dik_constant:
       case dik_nonconstant_aggregate:
-        eq = compare_constants(dip1->variant.constant, dip2->variant.constant,
+        eq = compare_constants(dip1->variant.constant.ptr,
+                               dip2->variant.constant.ptr,
                                options);
         break;
       case dik_expression:
@@ -7091,9 +7148,10 @@ are done.
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case enk_lambda:
-        eq = (node1->variant.lambda.ptr == node2->variant.lambda.ptr &&
-              node1->variant.lambda.initialization ==
-                                         node2->variant.lambda.initialization);
+        eq = (node1->variant.init.source.lambda ==
+                                          node2->variant.init.source.lambda &&
+              node1->variant.init.dynamic_init ==
+                                            node2->variant.init.dynamic_init);
         break;
       case enk_throw:
         { a_throw_supplement_ptr tsp1 = node1->variant.throw_info;
@@ -8075,7 +8133,7 @@ at the file scope (it would contain a pointer down into a function scope).
           case dik_zero:
             break;
           case dik_constant:
-            has_nfs_ref = has_non_file_scope_ref(dip->variant.constant);
+            has_nfs_ref = has_non_file_scope_ref(dip->variant.constant.ptr);
             break;
           case dik_expression:
           case dik_class_result_via_ctor:
@@ -13671,8 +13729,9 @@ the partially-initialized flag can be copied into the dynamic init.
 {
   check_assertion(dip != NULL &&
                   (dip->kind==(a_dynamic_init_kind)dik_constant ||
-                   dip->kind==(a_dynamic_init_kind)dik_nonconstant_aggregate));
-  dip->variant.constant = constant;
+                   dip->kind==(a_dynamic_init_kind)dik_nonconstant_aggregate ||
+                   dip->kind==(a_dynamic_init_kind)dik_lambda));
+  dip->variant.constant.ptr = constant;
   dip->is_partially_initialized = constant->is_partially_initialized;
   if (constant->explicit_cast_applied) {
     dip->is_explicit_cast = TRUE;
@@ -13831,10 +13890,11 @@ options for the copy.  cblock is a control block for the copy.
         options_unshared = (options &
                             ~(an_expr_copy_options_set)
                                             CE_COPIED_CONSTANTS_MAY_BE_SHARED);
-        new_dip->variant.constant = i_copy_constant_full(dip->variant.constant,
-                                                         (a_constant *)NULL,
-                                                         options_unshared,
-                                                         cblock);
+        new_dip->variant.constant.ptr =
+                               i_copy_constant_full(dip->variant.constant.ptr,
+                                                    (a_constant *)NULL,
+                                                    options_unshared,
+                                                    cblock);
       }
       break;
     case dik_bitwise_copy:
@@ -14276,7 +14336,7 @@ constant; otherwise, return NULL.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
     if (init->dynamic->kind == (a_dynamic_init_kind)dik_constant) {
       /* The variable is dynamically initialized to a constant. */
-      con_val = init->dynamic->variant.constant;
+      con_val = init->dynamic->variant.constant.ptr;
 #if !STANDALONE_UTILITY_PROGRAM
     } else if (is_template_dependent_context()) {
       /* Check for a dependent initialization that might be constant in an
@@ -15300,7 +15360,7 @@ otherwise NULL.
   a_constant_ptr con = NULL;
 
   if (dip->kind == (a_dynamic_init_kind)dik_constant) {
-    con = dip->variant.constant;
+    con = dip->variant.constant.ptr;
   } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
     an_expr_node_ptr expr = dip->variant.expression;
     if (expr != NULL && is_constant_node(expr)) {
@@ -16648,7 +16708,7 @@ Return TRUE if the given dynamic init entry represents an error.
 
   switch (dip->kind) {
     case dik_constant:
-      err = is_error_constant(dip->variant.constant);
+      err = is_error_constant(dip->variant.constant.ptr);
       break;
     case dik_expression:
       err = is_error_node(dip->variant.expression);
@@ -17583,7 +17643,7 @@ options is a set of name lookup options.
              initialized with a constant (e.g., a cast to an rvalue reference
              can create a temporary initialized with a constant; other cases
              are also possible).  Use the underlying constant. */
-          *alloc_con = copy_template_param_con(dip->variant.constant,
+          *alloc_con = copy_template_param_con(dip->variant.constant.ptr,
                                                template_arg_list,
                                                template_param_list,
                                                guide_type,
@@ -19356,19 +19416,20 @@ be called to start a copy.
       break;
     case enk_lambda:
       /* Make a copy of the lambda and its initialization. */
-      if (!in_file_scope(expr->variant.lambda.ptr) &&
+      if (!in_file_scope(expr->variant.init.source.lambda) &&
           in_file_scope(expr_copy) &&
-          expr->variant.lambda.ptr->capture_list != NULL) {
+          expr->variant.init.source.lambda->capture_list != NULL) {
         /* A local lambda with captures should never have to be copied into
            file-scope memory (it would cause memory region problems with
            the captures), but we may get here in severe error cases. */
         expect_error();
         expr_copy = error_node();
       } else {
-        expr_copy->variant.lambda.ptr = copy_lambda(expr->variant.lambda.ptr);
-        expr_copy->variant.lambda.initialization =
-                       i_copy_dynamic_init(expr->variant.lambda.initialization,
-                                           options, cblock);
+        expr_copy->variant.init.source.lambda =
+                                copy_lambda(expr->variant.init.source.lambda);
+        expr_copy->variant.init.dynamic_init =
+                          i_copy_dynamic_init(expr->variant.init.dynamic_init,
+                                              options, cblock);
       }  /* if */
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -20856,7 +20917,7 @@ be suppressed.
   } else {
     switch (dip->kind) {
       case dik_constant:
-        if (dip->variant.constant->kind == (a_constant_repr_kind)ck_error) {
+        if (dip->variant.constant.ptr->kind==(a_constant_repr_kind)ck_error) {
           /* An error constant could have been anything, including something
              with side effects. */
           has_side_effects = TRUE;
@@ -26241,11 +26302,9 @@ immediately enclosing object lifetime.
       remove_expression_dynamic_initializations(
                                            expr->variant.object_lifetime.expr);
       break;
+    case enk_lambda:
     case enk_temp_init:
       remove_dynamic_initialization(expr->variant.init.dynamic_init);
-      break;
-    case enk_lambda:
-      remove_dynamic_initialization(expr->variant.lambda.initialization);
       break;
     case enk_operation:
       /* This covers casts, and possibly "?" and "," operators if those are
@@ -26304,9 +26363,12 @@ and destruction lists.  Also remove any nested object lifetimes.
     detach_from_object_lifetime_tree(lifetime);
     dip->init_expr_lifetime = NULL;  /* To be neat. */
   }  /* if */
-  if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+  if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate ||
+      (dip->kind == (a_dynamic_init_kind)dik_lambda &&
+       dip->variant.constant.non_constant)) {
     /* Remove any lifetimes on aggregate member initializers. */
-    remove_constant_initializer_dynamic_initializations(dip->variant.constant);
+    remove_constant_initializer_dynamic_initializations(
+                                                   dip->variant.constant.ptr);
   } else if (dip->kind == (a_dynamic_init_kind)dik_expression ||
              dip->kind == (a_dynamic_init_kind)dik_class_result_via_ctor) {
     /* Scan the sub-expression in case there's an initialization of a

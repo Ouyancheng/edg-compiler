@@ -5359,7 +5359,7 @@ object or a prvalue that is a pointer (or C++/CLI handle) to an object.
         { a_dynamic_init_ptr init = node->variant.reused_value_init;
           if (init->kind == (a_dynamic_init_kind)dik_constant) {
             complete_object_type =
-                      pointer_con_complete_object_type(init->variant.constant);
+                 pointer_con_complete_object_type(init->variant.constant.ptr);
           } else if (init->kind == (a_dynamic_init_kind)dik_expression ||
                      init->kind == 
                               (a_dynamic_init_kind)dik_class_result_via_ctor) {

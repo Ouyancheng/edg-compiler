@@ -3966,7 +3966,7 @@ Do C99 lowering on the indicated stmk_init statement.
     case dik_constant:
       /* A case that's valid in C89.  Lower the subtree but leave the
          stmk_init statement. */
-      lower_c99_constant(dip->variant.constant);
+      lower_c99_constant(dip->variant.constant.ptr);
       break;
     case dik_expression:
       /* A case that's valid in C89.  Lower the subtree but leave the

@@ -17268,14 +17268,15 @@ that the type of the initializer is consistent with the type of the variable.
       a_dynamic_init_ptr  dip = var->initializer.dynamic;
       switch (dip->kind) {
         case dik_constant:
-          if (dip->variant.constant->kind == (a_constant_repr_kind)ck_string) {
+          if (dip->variant.constant.ptr->kind ==
+                                            (a_constant_repr_kind)ck_string) {
             /* String literal initializations allow for all kinds of mismatches
                in various modes.  So we don't check those here. */
             break;
           }  /* if */
           /*FALLTHROUGH*/
         case dik_nonconstant_aggregate:
-          init_type = dip->variant.constant->type;
+          init_type = dip->variant.constant.ptr->type;
           break;
         case dik_expression:
           init_type = dip->variant.expression->type;

@@ -2891,9 +2891,9 @@ routines as specified in the control block.
     case dik_constant:
       if (tblock->process_non_dynamic_constants ||
           (tblock->process_template_parameter_constants_and_expressions &&
-           dip->variant.constant->kind ==
+           dip->variant.constant.ptr->kind ==
                                     (a_constant_repr_kind)ck_template_param)) {
-        traverse_constant(dip->variant.constant, tblock);
+        traverse_constant(dip->variant.constant.ptr, tblock);
       }  /* if */
       break;
     case dik_expression:
@@ -2904,11 +2904,20 @@ routines as specified in the control block.
       traverse_expr_list(dip->variant.constructor.args, tblock);
       break;
     case dik_nonconstant_aggregate:
-      traverse_constant(dip->variant.constant, tblock);
+      traverse_constant(dip->variant.constant.ptr, tblock);
       break;
     case dik_bitwise_copy:
       if (dip->variant.bitwise_copy.source != NULL) {
         traverse_expr(dip->variant.bitwise_copy.source, tblock);
+      }  /* if */
+      break;
+    case dik_lambda:
+      if (dip->variant.constant.non_constant ||
+          tblock->process_non_dynamic_constants ||
+          (tblock->process_template_parameter_constants_and_expressions &&
+           dip->variant.constant.ptr->kind ==
+                                    (a_constant_repr_kind)ck_template_param)) {
+        traverse_constant(dip->variant.constant.ptr, tblock);
       }  /* if */
       break;
     default:
@@ -3267,7 +3276,7 @@ as specified in the control block.
       }
       break;
     case enk_lambda:
-      traverse_dynamic_init(expr->variant.lambda.initialization, tblock);
+      traverse_dynamic_init(expr->variant.init.dynamic_init, tblock);
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case enk_gcnew:

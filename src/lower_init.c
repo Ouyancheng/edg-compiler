@@ -1678,10 +1678,13 @@ initialization (when ipdp->array_element_sequence is TRUE).
       /* Set the entity to zero (default initialization). */
       init_val_node = alloc_node_for_lowered_zero_of_proper_type(entity_type);
       break;
+    case dik_lambda:
+      check_assertion(!dip->variant.constant.non_constant);
+      /* FALLTHROUGH */
     case dik_constant:
       /* Assign a constant to the entity to be initialized. */
       /* The constant has already been lowered. */
-      if (dip != NULL) con = dip->variant.constant;
+      if (dip != NULL) con = dip->variant.constant.ptr;
       if (con->kind == (a_constant_repr_kind)ck_string &&
           !con->implicit_cast) {
         /* A character array initialized by a string literal, e.g., in
@@ -4428,7 +4431,7 @@ a parameter in expr (if one exists) with a corresponding parameter.
   } else if (expr->kind == (an_expr_node_kind)enk_lambda) {
     /* Look for parameters that may be in a lambda capture list and
        replace them. */
-    a_lambda_capture_ptr ptr = expr->variant.lambda.ptr->capture_list;
+    a_lambda_capture_ptr ptr = expr->variant.init.source.lambda->capture_list;
     for (; ptr != NULL; ptr = ptr->next) {
       for (orig_ptr = tblock->orig_params, new_ptr = tblock->new_params;
            orig_ptr != NULL && new_ptr != NULL;
@@ -6206,7 +6209,7 @@ contains a dynamic initialization.
              con->variant.dynamic_init.ptr->kind ==
                              (a_dynamic_init_kind)dik_nonconstant_aggregate &&
              has_aggregate_with_dynamic(
-                            con->variant.dynamic_init.ptr->variant.constant)) {
+                       con->variant.dynamic_init.ptr->variant.constant.ptr)) {
     result = TRUE;
   } else {
     result = FALSE;
@@ -7247,7 +7250,8 @@ to be inserted, it is inserted at *insert_location.
       /* The dynamic init entry is pointed to by the variable. */
       cond_var->init_kind = (an_init_kind)initk_dynamic;
       cond_var->initializer.dynamic = init_dip;
-      init_dip->variant.constant = move_local_constant_to_il(&zero_constant);
+      init_dip->variant.constant.ptr =
+                                    move_local_constant_to_il(&zero_constant);
       /* The dynamic init entry is pointed to by an stmk_init statement. */
       stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
       stmk_init_stmt->variant.dynamic_init = init_dip;
@@ -9549,8 +9553,8 @@ un-initialized.
         /* If we're initializing a variably-sized array whose size isn't known
            until run-time, initialization is needed. */
         needs_initializing = TRUE;
-      } else if (dip->variant.constant->
-                               type->variant.array.variant.number_of_elements <
+      } else if (dip->variant.constant.ptr->
+                              type->variant.array.variant.number_of_elements <
                  entity_type->variant.array.variant.number_of_elements) {
         /* The constant doesn't entirely initialize the entity. */
         needs_initializing = TRUE;
@@ -9966,10 +9970,11 @@ C99 mode for the same reason.
         }  /* if */
       }  /* if */
     } else if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-      a_constant_ptr aggr_con = dip->variant.constant;
+      a_constant_ptr aggr_con = dip->variant.constant.ptr;
       check_assertion(aggr_con != NULL);
       if (in_file_scope(aggr_con)) {
-        dip->variant.constant = copy_constant_full(aggr_con, (a_constant*)NULL,
+        dip->variant.constant.ptr = copy_constant_full(aggr_con,
+                                               (a_constant*)NULL,
                                                CE_UNLINK_SOURCE_DESTRUCTIONS |
                                                CE_TRANSFER_DESTR_ENTITY_DESCR);
       }  /* if */
@@ -10029,17 +10034,17 @@ C99 mode for the same reason.
       if (C_mode()) {
         if (c99_mode || gcc_mode || microsoft_mode) {
           /* When lowering C99 code, use the C99 lowering routines. */
-          lower_c99_constant(dip->variant.constant);
+          lower_c99_constant(dip->variant.constant.ptr);
         }  /* if */
       } else {
         /* C++ mode. */
-        lower_constant(dip->variant.constant);
+        lower_constant(dip->variant.constant.ptr);
       }  /* if */
       /* If there is a whole variable of the right kind, this dynamic
          initialization can be rendered as a static initialization. */
       if (do_simple_constant_init_opt && !dip->is_partially_initialized) {
         simple_constant_init = TRUE;
-        simple_constant = dip->variant.constant;
+        simple_constant = dip->variant.constant.ptr;
         break;
       }  /* if */
       if (dip->is_partially_initialized) {
@@ -10303,7 +10308,7 @@ do_assignment:;
                                  var_lvalue_expr(dip->master_entry->variable));
           insert_expr(master_entry_assignment, eff_insert_location);
         }  /* if */
-        lower_dynamic_init_aggregate_constant(dip->variant.constant, ipdp,
+        lower_dynamic_init_aggregate_constant(dip->variant.constant.ptr, ipdp,
                                               /*dtor_case=*/FALSE, source_desc,
                                               others_follow_in_aggr,
                                               eff_insert_location,
@@ -10315,7 +10320,7 @@ do_assignment:;
             /* There is no variable, so we are down inside an aggregate
                initialization.  Pass this constant back to the caller. */
             if (constant_to_keep != NULL) {
-              *constant_to_keep = dip->variant.constant;
+              *constant_to_keep = dip->variant.constant.ptr;
             } else {
               /* It has been determined that there's a constant portion of the
                  initialization that should be kept, but there's no variable
@@ -10348,7 +10353,7 @@ do_assignment:;
               (void)make_local_static_variable_init(temp,
                                                     get_parent_scope_of(temp),
                                                     (an_init_kind)initk_static,
-                                                    dip->variant.constant,
+                                                    dip->variant.constant.ptr,
                                                     (a_dynamic_init_ptr)NULL);
               overwrite_node(master_entry_assignment->
                                               variant.operation.operands->next,
@@ -10360,7 +10365,7 @@ do_assignment:;
                value of the variable.  The nonconstant parts have been put out
                as code and replaced with placeholder constants. */
             simple_constant_init = TRUE;
-            simple_constant = dip->variant.constant;
+            simple_constant = dip->variant.constant.ptr;
             if (variable->promoted_local_static &&
                 constant_must_remain_in_function_scope(simple_constant)) {
               /* The constant must remain in the function scope and can't be
@@ -10452,6 +10457,33 @@ do_assignment:;
       }  /* if */
       add_bitwise_copy(ipdp, source_node, have_complete_object,
                        eff_insert_location);
+      break;
+    case dik_lambda:
+      if (!dip->variant.constant.non_constant) {
+        /* Analogous to dik_constant. */
+        lower_constant(dip->variant.constant.ptr);
+        goto do_assignment;
+      } else {
+        /* Analogous to dik_nonconstant_aggregate. */
+        an_implied_copy_source lambda_source;
+        clear_implied_copy_source(&lambda_source);
+        lambda_source.capture = dip->variant.constant.lambda->capture_list;
+        keep_constant = FALSE;
+        lower_dynamic_init_aggregate_constant(dip->variant.constant.ptr, ipdp,
+                                              /*dtor_case=*/FALSE, &lambda_source,
+                                              others_follow_in_aggr,
+                                              eff_insert_location,
+                                              &keep_constant,
+                                              options);
+        /* Verify that all captured variables were assigned during the
+           initialization. */
+        check_assertion(lambda_source.capture == NULL);
+        if (keep_constant) {
+          /* There is a constant part of the initialization to be kept. */
+          simple_constant_init = TRUE;
+          simple_constant = dip->variant.constant.ptr;
+        }  /* if */
+      }  /* if */
       break;
     default:
       unexpected_condition_str("lower_dynamic_init: bad kind");
@@ -10596,7 +10628,7 @@ do_assignment:;
            by keeping the dynamic init entry. */
         local_keep_dynamic_init = TRUE;
         set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constant);
-        dip->variant.constant = simple_constant;
+        dip->variant.constant.ptr = simple_constant;
       }  /* if */
     } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
       /* Initialization to zero. */
@@ -10933,7 +10965,7 @@ the position to insert the necessary code.
     if (dip->kind == (a_dynamic_init_kind)dik_constant ||
         dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
       check_assertion(dip->is_partially_initialized);
-      array_type = dip->variant.constant->type;
+      array_type = dip->variant.constant.ptr->type;
     } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
       array_type = dip->variant.expression->type;
     } else {
@@ -11162,7 +11194,7 @@ the dynamic init entry that applies to each element and return a pointer to it.
   /* The nonconstant aggregate case has ck_aggregate constant ->
      ck_init_repeat constant -> ck_dynamic_init constant ->
      dynamic init entry. */
-  con = dip->variant.constant;
+  con = dip->variant.constant.ptr;
   con = con->variant.aggregate.first_constant;
 #if CHECKING
   if (con->kind != (a_constant_repr_kind)ck_init_repeat) {
@@ -13007,6 +13039,9 @@ eff_insert_location specifies the insert location for any added statements
     case dik_bitwise_copy:
       non_C_case = TRUE;
       break;
+    case dik_lambda:
+      non_C_case = TRUE;
+      break;
     default:
       unexpected_condition_str("lower_stmk_init: bad dynamic init kind");
   }  /* switch */
@@ -13052,23 +13087,25 @@ eff_insert_location specifies the insert location for any added statements
     /* Normal C case.  Lower the subtree if any. */
     switch (dip->kind) {
       case dik_constant:
-        lower_constant(dip->variant.constant);
-        if (dip->variant.constant->kind == (a_constant_repr_kind)ck_address &&
-            dip->variant.constant->variant.address.kind ==
+        lower_constant(dip->variant.constant.ptr);
+        if (dip->variant.constant.ptr->kind ==
+                                           (a_constant_repr_kind)ck_address &&
+            dip->variant.constant.ptr->variant.address.kind ==
                                           (an_address_base_kind)abk_routine &&
             needs_cast_because_type_has_param_passed_via_cctor(
-                                                dip->variant.constant->type)) {
+                                           dip->variant.constant.ptr->type)) {
           /* Change the type of a routine address constant if needed. */
           check_assertion(var != NULL);
-          dip->variant.constant->type = cast_type_for_param_passed_via_cctor(
-                                                   dip->variant.constant->type,
-                                                   var->type);
-          dip->variant.constant->implicit_cast = TRUE;
+          dip->variant.constant.ptr->type =
+                              cast_type_for_param_passed_via_cctor(
+                                              dip->variant.constant.ptr->type,
+                                              var->type);
+          dip->variant.constant.ptr->implicit_cast = TRUE;
         } else {
           /* See if an implicit cast is necessary for this constant (or any
              sub-aggregate piece thereof). */
           add_cast_for_cv_qualified_cctor_param_if_necessary(
-                                                        dip->variant.constant);
+                                                    dip->variant.constant.ptr);
         }  /* if */
         break;
       case dik_expression:
@@ -14472,7 +14509,7 @@ Note that this is called in C mode as well as C++ mode.
   if (designators_allowed &&
       (dip->kind == (a_dynamic_init_kind)dik_constant ||
        dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate)) {
-    a_constant_ptr cp = dip->variant.constant;
+    a_constant_ptr cp = dip->variant.constant.ptr;
     if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
       /* If the constant is an aggregate, prelower it now. */
       prelower_aggregate_constant(cp);
@@ -16503,7 +16540,7 @@ array if necessary.  The statements created are inserted at
     }  /* if */
     keep_constant = FALSE;
 #endif /* CHECKING */
-    lower_dynamic_init_aggregate_constant(dip->variant.constant, &ipd,
+    lower_dynamic_init_aggregate_constant(dip->variant.constant.ptr, &ipd,
                                           /*dtor_case=*/TRUE,
                                           (an_implied_copy_source *)NULL,
                                           /*others_follow_in_aggr=*/FALSE,
@@ -18959,18 +18996,16 @@ with the value of their corresponding captured variables.
 */
 {
   a_variable_ptr         closure_var;
-  a_lambda_capture_ptr   capture;
   an_init_pos_descr      ipd;
   an_insert_location     insert_location;
-  an_implied_copy_source source_desc;
   a_dynamic_init_ptr     dip;
   a_boolean              is_reusable_temp;
 
   check_assertion(expr->kind == (an_expr_node_kind)enk_lambda &&
-                  identical_types(expr->variant.lambda.ptr->closure_class,
+                  identical_types(expr->variant.init.source.lambda
+                                      ->closure_class,
                                   expr->type));
-  capture = expr->variant.lambda.ptr->capture_list;
-  dip = expr->variant.lambda.initialization;
+  dip = expr->variant.init.dynamic_init;
   /* Create a suitable temporary variable for this initialization. */
   closure_var = make_temporary_for_dynamic_init(expr->type, dip,
                                                 &is_reusable_temp);
@@ -18985,34 +19020,17 @@ with the value of their corresponding captured variables.
   set_expr_insert_location(expr, &insert_location);
   /* Set the variable for the initialization to point to the temporary. */
   set_var_init_pos_descr(closure_var, &ipd);
-  /* Set the source of the implied copy to the first captured local variable
-     in the capture list.  During the initialization,
-     advance_to_next_lambda_capture_if_necessary is called to advance the
-     source of the implied copy to the next local variable in the capture
-     list.  This is not needed if all the captures are init-captures that
-     are folded to constants (so that initializing the closure object amounts
-     to constant aggregate initialization). */
-  clear_implied_copy_source(&source_desc);
-  if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-    source_desc.capture = capture;
-  } else {
-    check_assertion(dip->kind == (a_dynamic_init_kind)dik_constant ||
-                    dip->kind == (a_dynamic_init_kind)dik_none);
-  }  /* if */
   /* The front end has created an aggregate dynamic init to initialize all
      fields of the lambda closure object with values from the corresponding
      local variables. */
   dip->variable = closure_var;
   lower_dynamic_init(dip, &ipd,
-                     &source_desc,
+                     (an_implied_copy_source*)NULL,
                      (a_variable_ptr)NULL,
                      LDIO_NONE,
                      /*others_follow_in_aggr=*/FALSE,
                      &insert_location, (a_boolean *)NULL,
                      (a_constant **)NULL);
-  /* Verify that all captured variables were assigned during the
-     initialization. */
-  check_assertion(source_desc.capture == NULL);
 }  /* lower_lambda */
 
 #if LOWER_IFUNC

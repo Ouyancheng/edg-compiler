@@ -1675,18 +1675,19 @@ do_set_proper_definition_needed_flag:
           case enk_temp_init:
             walk_ptr(eptr->variant.init.dynamic_init,
                      a_dynamic_init_ptr, iek_dynamic_init);
-            walk_ptr(eptr->variant.init.source_type, a_type_ptr, iek_type);
+            walk_ptr(eptr->variant.init.source.type, a_type_ptr, iek_type);
             /* The type of the temporary requires a definition. */
             definition_needed_if_class(eptr->type);
+            break;
+          case enk_lambda:
+            walk_ptr(eptr->variant.init.source.lambda, a_lambda_ptr,
+                     iek_lambda);
+            walk_ptr(eptr->variant.init.dynamic_init,
+                     a_dynamic_init_ptr, iek_dynamic_init);
             break;
           case enk_new_delete:
             walk_ptr(eptr->variant.new_delete, a_new_delete_supplement_ptr,
                      iek_new_delete_supplement);
-            break;
-          case enk_lambda:
-            walk_ptr(eptr->variant.lambda.ptr, a_lambda_ptr, iek_lambda);
-            walk_ptr(eptr->variant.lambda.initialization, a_dynamic_init_ptr,
-                     iek_dynamic_init);
             break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           case enk_gcnew:
@@ -2968,7 +2969,11 @@ do_set_proper_definition_needed_flag:
             break;
           case dik_constant:
           case dik_nonconstant_aggregate:
-            walk_ptr(eptr->variant.constant, a_constant_ptr, iek_constant);
+            walk_ptr(eptr->variant.constant.ptr, a_constant_ptr, iek_constant);
+            break;
+          case dik_lambda:
+            walk_ptr(eptr->variant.constant.ptr, a_constant_ptr, iek_constant);
+            walk_ptr(eptr->variant.constant.lambda, a_lambda_ptr, iek_lambda);
             break;
           case dik_expression:
           case dik_class_result_via_ctor:

@@ -9475,7 +9475,7 @@ local-variable-static-init entry.
           *init_kind = (an_init_kind)initk_dynamic;
           initializer->dynamic = dip =
                          alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-          dip->variant.constant = cp;
+          dip->variant.constant.ptr = cp;
           dip->variable = variable;
           stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
           stmk_init_stmt->variant.dynamic_init = dip;

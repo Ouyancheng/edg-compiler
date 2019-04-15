@@ -4531,7 +4531,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                     } else if (vp->init_kind == (an_init_kind)initk_dynamic) {
                       a_dynamic_init_ptr  dip = vp->initializer.dynamic;
                       if (dip->kind == (a_dynamic_init_kind)dik_constant) {
-                        cp = dip->variant.constant;
+                        cp = dip->variant.constant.ptr;
                       } else {
                         result = do_constexpr_dynamic_init(
                                                      ips, dip, &ips->position,
@@ -4547,7 +4547,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                       } else if (init_kind == (an_init_kind)initk_dynamic) {
                         a_dynamic_init_ptr  dip = initializer->dynamic;
                         if (dip->kind == (a_dynamic_init_kind)dik_constant) {
-                          cp = dip->variant.constant;
+                          cp = dip->variant.constant.ptr;
                         } else {
                           result = do_constexpr_dynamic_init(
                                                      ips, dip, &ips->position,
@@ -5307,6 +5307,14 @@ done:
 }  /* do_array_constructor_copy */
 
 
+/* Defined later in this file. */
+static a_boolean do_constexpr_lambda(an_interpreter_state *ips,
+                                     a_dynamic_init_ptr   dip,
+                                     a_source_position    *pos,
+                                     a_byte               *result_storage,
+                                     a_byte               *complete_object);
+
+
 static a_boolean do_constexpr_dynamic_init(
                                         an_interpreter_state  *ips,
                                         a_dynamic_init_ptr    dip,
@@ -5325,15 +5333,20 @@ Evaluate the given dynamic initialization for the given storage.
     goto done;
   }  /* if */
   switch (dip->kind) {
+    case dik_constant:
     case dik_nonconstant_aggregate:
-      result = copy_val_from_constant(ips, dip->variant.constant,
+      result = copy_val_from_constant(ips, dip->variant.constant.ptr,
                                       result_storage, complete_object);
       mark_subobject_initialized(result_storage, complete_object);
       break;
-    case dik_constant:
-      result = copy_val_from_constant(ips, dip->variant.constant,
-                                      result_storage, complete_object);
-      mark_subobject_initialized(result_storage, complete_object);
+    case dik_lambda:
+      if (constexpr_lambdas_enabled) {
+        result = do_constexpr_lambda(ips, dip, pos,
+                                     result_storage, complete_object);
+      } else {
+        info_with_pos(ec_lambda_not_constant_expr, pos, ips);
+        do_constexpr_fail(result);
+      }  /* if */
       break;
     case dik_expression:
     case dik_class_result_via_ctor:
@@ -9116,7 +9129,8 @@ given complete object).  Otherwise, return FALSE and update *ips accordingly.
 
 
 static a_boolean do_constexpr_lambda(an_interpreter_state *ips,
-                                     an_expr_node_ptr     expr,
+                                     a_dynamic_init_ptr   dip,
+                                     a_source_position    *pos,
                                      a_byte               *result_storage,
                                      a_byte               *complete_object)
 /*
@@ -9128,74 +9142,19 @@ is within the given complete_object.
 {
   a_lambda_ptr          lambda;
   a_lambda_capture_ptr  cap;
-  a_dynamic_init_ptr    dip;
   a_constant_ptr        cp;
   a_constant_ptr        field_con;
   a_boolean             result = TRUE;
 
-  check_assertion(expr->kind == (an_expr_node_kind)enk_lambda);
-  lambda = expr->variant.lambda.ptr;
-  dip = expr->variant.lambda.initialization;
-  if (expr->is_lvalue || expr->is_xvalue) {
-    /* result_storage is set up for the address of the closure, not the closure
-       itself.  Allocate space for the closure now and point result_storage to
-       it.  (This is similar to the handling of enk_temp_init nodes.) */
-    a_constexpr_address  *result_addr;
-    a_boolean            temp_lifetime = dip->has_temporary_lifetime;
-    a_type_ptr           tp = skip_typerefs(expr->type);
-    a_byte               *tmp_bytes;
-    a_byte_count         prefix_size, n_bytes;
-    an_alloc_seq_number  alloc_seq_number;
-    n_bytes = value_bytes_for_type(ips, tp, &result);
-    if (!result) goto done;
-    compute_prefix_size_for_type(tp, n_bytes, prefix_size);
-    if (!temp_lifetime) {
-      /* A lifetime-extended temporary.  Switch to the storage stack
-         state that was saved at the time the stmk_init statement was
-         started. */
-      if (ips->extension_state != NULL) {
-        alloc_bytes(ips->extension_state, n_bytes+prefix_size,
-                    tmp_bytes);
-        alloc_seq_number = ips->extension_state->alloc_seq_number;
-        ips->extension_state = NULL;
-      } else {
-        /* If we're processing the initializer of a static-lifetime variable,
-           there is no extended-lifetime storage.  Instead, the result will
-           eventually be stored in IL, which is persistent across interpreter
-           invocations. */
-        alloc_static_bytes(ips, n_bytes+prefix_size, tmp_bytes);
-        alloc_seq_number = 0;
-      }  /* if */
-    } else {
-      alloc_stack_bytes(ips, n_bytes+prefix_size, tmp_bytes);
-      alloc_seq_number = ips->storage_stack.alloc_seq_number;
-    }  /* if */
-    memzero(tmp_bytes, size_t_arg(prefix_size-sizeof(a_type_ptr)));
-    tmp_bytes += prefix_size;
-    record_complete_object_type(tp, tmp_bytes);
-    mark_complete_class_object_if_needed(tp, tmp_bytes);
-    result_addr = (a_constexpr_address*)result_storage;
-    clear_address(result_addr, tmp_bytes);
-    /* Record the allocation sequence number for this temporary in the
-       address record. */ 
-    result_addr->alloc_seq_number = alloc_seq_number;
-    if (!temp_lifetime) {
-      result_addr->flags |= CA_LIFETIME_EXTENDED;
-    }  /* if */
-    /* Proceed with result_storage and complete_obj pointing to the newly
-       allocated space. */
-    result_storage = tmp_bytes;
-    complete_object = tmp_bytes;
-  }  /* if */
-  if (dip->kind == (a_dynamic_init_kind)dik_none) {
-    /* No initialization is required. */
-  } else if (dip->kind == (a_dynamic_init_kind)dik_constant) {
-    result = do_constexpr_dynamic_init(ips, dip, &expr->position,
-                                       result_storage, complete_object);
+  check_assertion(dip->kind == (a_dynamic_init_kind)dik_lambda);
+  lambda = dip->variant.constant.lambda;
+  if (!dip->variant.constant.non_constant) {
+    /* Simple constant initializer. */
+    result = copy_val_from_constant(ips, dip->variant.constant.ptr,
+                                    result_storage, complete_object);
+    mark_subobject_initialized(result_storage, complete_object);
   } else {
-    check_assertion(dip->kind ==
-                               (a_dynamic_init_kind)dik_nonconstant_aggregate);
-    cp = dip->variant.constant;
+    cp = dip->variant.constant.ptr;
     /* Initialize each field of the closure object from the corresponding
        capture. */
     for (cap = lambda->capture_list,
@@ -9221,7 +9180,7 @@ is within the given complete_object.
           a_type_ptr  tp = skip_typerefs(fp->type);
           init_subobject_to_zero(ips, dst_bytes, tp, complete_object);
         } else {
-          result = do_constexpr_dynamic_init(ips, sub_dip, &expr->position,
+          result = do_constexpr_dynamic_init(ips, sub_dip, pos,
                                              dst_bytes, complete_object);
         }  /* if */
       } else if (cap->captured.variable == NULL ||
@@ -9243,7 +9202,7 @@ is within the given complete_object.
           if (this_bytes == NULL) {
             do_constexpr_fail(result);
             info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
-                          &expr->position, ips);
+                          pos, ips);
             break;
           }  /* if */
           src_bytes = ((a_constexpr_address*)this_bytes)->address+field_offset;
@@ -9254,7 +9213,7 @@ is within the given complete_object.
             mark_complete_class_object_if_needed(src_fp->type, dst_bytes);
           }  /* if */
         } else {
-          result = do_constexpr_dynamic_init(ips, sub_dip, &expr->position,
+          result = do_constexpr_dynamic_init(ips, sub_dip, pos,
                                              dst_bytes, complete_object);
         }  /* if */
       } else {
@@ -9280,12 +9239,12 @@ is within the given complete_object.
         if (is_volatile_qualified_type(vtp)) {
           /* Capturing a volatile variable prevents the lambda from being
              used in a constant expression. */
-          info_with_pos(ec_constexpr_volatile_fetch, &expr->position, ips);
+          info_with_pos(ec_constexpr_volatile_fetch, pos, ips);
           do_constexpr_fail(result);
         } else if (var_storage != NULL) {
           /* We already have the variable's value in interpreter storage. */
           if (!complete_object_is_initialized(var_storage)) {
-            info_with_pos(ec_object_not_initialized, &expr->position, ips);
+            info_with_pos(ec_object_not_initialized, pos, ips);
             do_constexpr_fail(result);
           }  /* if */
         } else {
@@ -9302,16 +9261,16 @@ is within the given complete_object.
             /* The variable does not have a constant value. Report the
                appropriate error. */
             if (vp->is_this_parameter) {
-              info_with_pos(ec_star_this_not_constant_valued, &expr->position,
+              info_with_pos(ec_star_this_not_constant_valued, pos,
                             ips);
             } else if (symbol_for(vp) == NULL) {
               /* This can happen with synthesized variables such as the one
                  generated for __func__. */
               info_with_pos(ec_constexpr_access_to_runtime_storage,
-                            &expr->position, ips);
+                            pos, ips);
             } else {
               info_with_pos_sym(ec_variable_not_constant_valued,
-                                &expr->position, symbol_for(vp), ips);
+                                pos, symbol_for(vp), ips);
             }  /* if */
             do_constexpr_fail(result);
           }  /* if */
@@ -9326,12 +9285,12 @@ is within the given complete_object.
             var_addr = *(a_constexpr_address*)var_storage;
             if (is_runtime_data_address(&var_addr)) {
               info_with_pos(ec_constexpr_access_to_runtime_storage,
-                            &expr->position, ips);
+                            pos, ips);
               do_constexpr_fail(result);
               break;
             } else if (!is_function_address(&var_addr) &&
                        !is_initialized(&var_addr)) {
-              info_with_pos(ec_object_not_initialized, &expr->position, ips);
+              info_with_pos(ec_object_not_initialized, pos, ips);
               do_constexpr_fail(result);
               break;
             }  /* if */
@@ -9346,7 +9305,7 @@ is within the given complete_object.
               do_constexpr_fail(result);
             }  /* if */
           } else if (sub_dip->kind == (a_dynamic_init_kind)dik_constructor) {
-            if (!do_constexpr_ctor(ips, sub_dip, &expr->position, dst_bytes,
+            if (!do_constexpr_ctor(ips, sub_dip, pos, dst_bytes,
                                    complete_object, &var_addr)) {
               do_constexpr_fail(result);
             }  /* if */
@@ -9374,7 +9333,6 @@ is within the given complete_object.
        the captured values. */
     check_assertion(!result || (cap == NULL && field_con == NULL));
   }  /* if */
-done:
   return result;
 }  /* do_constexpr_lambda */
 
@@ -14193,6 +14151,7 @@ the value representation of the integer value.
         }  /* if */
       }
       break;
+    case enk_lambda:
     case enk_temp_init:
       { a_dynamic_init_ptr     dip;
         a_byte                 *tmp_bytes, *tmp_complete_obj;
@@ -14313,15 +14272,6 @@ the value representation of the integer value.
     case enk_builtin_operation:
       result = do_constexpr_builtin_operation(ips, expr, result_storage,
                                               complete_object);
-      break;
-    case enk_lambda:
-      if (constexpr_lambdas_enabled) {
-        result = do_constexpr_lambda(ips, expr, result_storage,
-                                     complete_object);
-      } else {
-        info_with_pos(ec_lambda_not_constant_expr, &expr->position, ips);
-        do_constexpr_fail(result);
-      }  /* if */
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:

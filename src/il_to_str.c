@@ -4991,7 +4991,8 @@ for debug output).
       break;
     case dik_constant:
     case dik_nonconstant_aggregate:
-      form_constant(dip->variant.constant, /*need_parens=*/TRUE, octl);
+    case dik_lambda:
+      form_constant(dip->variant.constant.ptr, /*need_parens=*/TRUE, octl);
       break;
     case dik_class_result_via_ctor:
       octl->output_str("class result via ctor: ", octl);

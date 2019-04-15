@@ -18065,6 +18065,7 @@ error.  conv_context describes the context of the conversion.
 {
   a_boolean                     okay, bitwise_copy_okay;
   a_boolean                     cctor_is_bitwise_copy;
+  a_boolean                     copy_elision_okay;
   a_type_ptr                    class_type, source_type;
   a_candidate_function_ptr      candidate_functions;
   a_boolean                     matched_except_for_missing_selector = FALSE;
@@ -18182,11 +18183,12 @@ error.  conv_context describes the context of the conversion.
                       cctor_is_bitwise_copy &&
                       !any_qualifier_in_set_missing(TQ_CONST, /*lint --e(845)*/
                                                     source_qualifiers);
-  if (bitwise_copy_okay && type_is_same) {
-    /* The source and destination types are the same class type, and a
-       bitwise copy is allowed on that type.  That means there are no
-       copy constructors, and therefore the bitwise copy is the best
-       match. */
+  copy_elision_okay = mandatory_copy_elision && is_a_prvalue(source_operand);
+  if ((copy_elision_okay || bitwise_copy_okay) && type_is_same) {
+    /* The source and destination types are the same class type, and either a
+       bitwise copy is allowed on that type, or copy elision is mandatory.
+       That means there are no copy constructors (or the copy constructors are
+       not to be used), and therefore the bitwise copy is the best match. */
     conversion->class_identity_or_bitwise_copy = TRUE;
     okay = TRUE;
   } else if (alep != NULL && bitwise_copy_okay &&
@@ -20635,11 +20637,11 @@ a_boolean operand_is_temp_init_full(an_operand       *operand,
                                     an_expr_node_ptr *temp_init_node)
 /*
 Return TRUE if the given operand is an expression operand for an enk_temp_init
-(which represents an expression temporary).  Whether the enk_temp_init
-returns the value or address of the temporary is immaterial.  Note that
-there might be parentheses and class rvalue adjustments on top of the
-enk_temp_init node.  If temp_init_node is non-NULL, set *temp_init_node to
-point to the enk_temp_init node if one is found.
+or enk_lambda entry (both of which represent an expression temporary).  Whether
+the node is a glvalue or prvalue is immaterial.  Note that there might be
+parentheses and class rvalue adjustments on top of the enk_temp_init/enk_lambda
+node.  If temp_init_node is non-NULL, set *temp_init_node to point to the
+enk_temp_init/enk_lambda node if one is found.
 */
 {
   a_boolean is_temp_init = FALSE;
@@ -20650,8 +20652,8 @@ point to the enk_temp_init node if one is found.
         node_operator_is(node, eok_class_rvalue_adjust)) {
       node = node->variant.operation.operands;
     }  /* if */
-    if (node->kind == (an_expr_node_kind)enk_temp_init) {
-      /* The operand is an enk_temp_init for the value of a temporary. */
+    if (is_temp_node(node)) {
+      /* The operand represents a temporary */
       is_temp_init = TRUE;
       if (temp_init_node != NULL) *temp_init_node = node;
     }  /* if */
@@ -20666,12 +20668,12 @@ a_boolean is_temp_init_usable_in_optimization(
                                           an_expr_node_ptr   *p_temp_init_node,
                                           a_dynamic_init_ptr *p_dip)
 /*
-Determine whether or not source_operand is an enk_temp_init node that can be
-used in a copy constructor elision optimization.  Return TRUE if so, and
-also set *p_temp_init_node and *p_dip to the underlying expression node
-and dynamic initialization entry.  If suppress_dtor is TRUE, any destruction
-indicated in the initialization is cleared (this is used, for example,
-for a return, because the caller will do the destruction).
+Determine whether or not source_operand is an enk_temp_init/enk_lambda node
+that can be used in a copy constructor elision optimization.  Return TRUE if
+so, and also set *p_temp_init_node and *p_dip to the underlying expression
+node and dynamic initialization entry.  If suppress_dtor is TRUE, any
+destruction indicated in the initialization is cleared (this is used, for
+example, for a return, because the caller will do the destruction).
 */
 {
   a_boolean          is_usable_temp_init = FALSE;
@@ -20681,7 +20683,7 @@ for a return, because the caller will do the destruction).
   *p_temp_init_node = NULL;
   *p_dip = NULL;
   if (operand_is_temp_init_full(source_operand, &temp_init_node)) {
-    /* The operand is an enk_temp_init. */
+    /* The operand is an enk_temp_init/enk_lambda. */
     dip = temp_init_node->variant.init.dynamic_init;
     /* Avoid problems with dynamic inits with kind dik_none, created for
        functional-notation casts with no arguments (e.g., X()) for classes
@@ -21102,7 +21104,7 @@ was done.
   a_boolean     is_copy_initialization =
                                   !(conv_context & CCO_DIRECT_INITIALIZATION);
   a_boolean     orig_is_copy_initialization = is_copy_initialization;
-  a_boolean     check_elided_cctor = TRUE;
+  a_boolean     check_elided_cctor = !mandatory_copy_elision;
 
   orig_operand = *source_operand;
   if (elision_done != NULL) *elision_done = FALSE;
@@ -21560,10 +21562,8 @@ routines).
       overwrite_node(node, new_node);
     }  /* if */
   }  /* if */
-  if (node->kind == (an_expr_node_kind)enk_temp_init) {
+  if (is_temp_node(node)) {
     dip = node->variant.init.dynamic_init;
-  } else if (node->kind == (an_expr_node_kind)enk_lambda) {
-    dip = node->variant.lambda.initialization;
   }  /* if */
   return dip;
 }  /* find_top_temporary */
@@ -24771,7 +24771,7 @@ will be an lvalue instead of the usual prvalue.
        constant; only the top-level initializer.) */
     if (dip != NULL) {
       if (dip->kind == (a_dynamic_init_kind)dik_constant) {
-        constant = dip->variant.constant;
+        constant = dip->variant.constant.ptr;
         if (!is_generated_dynamic_init(dip) &&
             curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
           /* Save the dynamic init as a backing expression for the
@@ -24814,13 +24814,13 @@ will be an lvalue instead of the usual prvalue.
   }  /* if */
   if (dip != NULL && dip->kind == (a_dynamic_init_kind)dik_constant &&
       !(is != NULL && is->force_dynamic_init) &&
-      !is_array_type(dip->variant.constant->type)) {
+      !is_array_type(dip->variant.constant.ptr->type)) {
     /* Initializer processing produced a dynamic initializer that was folded
        to a constant.  Retrieve the constant.  (This is more than just an
        optimization because in some cases it can turn a dynamic initialization
        into a static initialization.)  Don't do this for constants of array
        type since those cannot be assigned. */
-    constant = dip->variant.constant;
+    constant = dip->variant.constant.ptr;
     dip = NULL;
   }  /* if */
   if (generate_il &&
@@ -25554,7 +25554,7 @@ aggregate constant.
     /* Build a dynamic initializer for the aggregate. */
     aggr_init = 
       alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
-    aggr_init->variant.constant = aggr_con;
+    aggr_init->variant.constant.ptr = aggr_con;
     /* Build an expression for the initializer. */
     init_expr = alloc_temp_init_node(dest_type, aggr_init, 
                                      /*is_lvalue=*/FALSE,

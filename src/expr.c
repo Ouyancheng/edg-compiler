@@ -19248,7 +19248,7 @@ placement and initializer from a rescan block for the operator.
         check_assertion(init_dip != NULL);
         if (init_dip->kind == (a_dynamic_init_kind)dik_constant) {
           arg_expr_list =
-                alloc_node_for_allocated_constant(init_dip->variant.constant);
+            alloc_node_for_allocated_constant(init_dip->variant.constant.ptr);
         } else {
           arg_expr_list = arg_list_from_dyn_init(init_dip);
         }  /* if */
@@ -25123,7 +25123,7 @@ indication in *rcblock).  rescan_icp is not freed.
     /* Static case.  Allocate an unnamed static variable and initialize it
        with the compound literal. */
     a_constant_ptr literal_con;
-    literal_con = dip->variant.constant;
+    literal_con = dip->variant.constant.ptr;
     if (is_error_type(literal_con->type)) {
       make_error_operand(result);
     } else if (gnu_mode && !(local_options & EOPT_OPERAND_OF_ADDRESS_OF)) {
@@ -25560,9 +25560,9 @@ deduction purposes).
       dip->is_explicit_cast = TRUE;
       if (dip->kind == (a_dynamic_init_kind)dik_constant ||
           dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-        dip->variant.constant->explicit_cast_applied = TRUE;
+        dip->variant.constant.ptr->explicit_cast_applied = TRUE;
       }  /* if */
-      expr->variant.init.source_type = type_cast_to;
+      expr->variant.init.source.type = type_cast_to;
     }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -34526,10 +34526,9 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
   if (aggr_con == NULL) {
     aggr_dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
   } else {
-    aggr_dip = alloc_expr_dynamic_init(
-                         nonconstant ?
-                              (a_dynamic_init_kind)dik_nonconstant_aggregate :
-                              (a_dynamic_init_kind)dik_constant);
+    aggr_dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_lambda);
+    aggr_dip->variant.constant.lambda = lambda;
+    aggr_dip->variant.constant.non_constant = nonconstant;
     set_dynamic_init_constant(aggr_dip, aggr_con);
   }  /* if */
   /* Add a destruction for the closure object if appropriate (i.e., if any
@@ -34655,9 +34654,9 @@ Scan a C++ lambda expression, e.g., something like
     /* The result is a class rvalue instance of the closure class. */
     expr = alloc_expr_node((an_expr_node_kind)enk_lambda);
     expr->type = lambda->closure_class;
-    expr->variant.lambda.ptr = lambda;
+    expr->variant.init.source.lambda = lambda;
     /* Add initialization code to copy any captured variables. */
-    expr->variant.lambda.initialization = make_initializer_for_lambda(lambda);
+    expr->variant.init.dynamic_init = make_initializer_for_lambda(lambda);
     make_expression_operand(expr, result);
   }  /* if */
   pop_expr_stack();
@@ -44638,7 +44637,7 @@ dynamic initialization after substitution.
     an_expr_node_ptr expr;
     if (dip->kind == (a_dynamic_init_kind)dik_constant) {
       /* For a constant (due to constexpr), use the backing expression. */
-      expr = dip->variant.constant->expr;
+      expr = dip->variant.constant.ptr->expr;
       check_assertion(expr != NULL);
     } else {
       expr = arg_list_from_dyn_init(dip);

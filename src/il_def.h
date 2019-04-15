@@ -3496,10 +3496,11 @@ enum a_dynamic_init_kind_tag {
 			   constant entries (some of which will refer to
 			   nonconstants).  C++/C99/GNU C only; not used
 			   in C89. */
-  dik_bitwise_copy	/* Initial value is established by a bitwise copy --
+  dik_bitwise_copy,	/* Initial value is established by a bitwise copy --
 			   used, for example, for member-wise copy inside a
 			   copy constructor, when the field or base class
 			   to be copied lacks a copy constructor.  C++ only. */
+  dik_lambda		/* Initial value of a lambda object.  C++ only. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_dynamic_init_kind;
@@ -3751,16 +3752,28 @@ typedef struct a_dynamic_init {
 #endif /* BACK_END_IS_CP_GEN_BE */
   union {
     /* When kind == dik_none or dik_zero: no variant fields. */
-    /* When kind == dik_constant or dik_nonconstant_aggregate: */
-    a_constant_ptr
-		constant;
+    /* When kind == dik_constant, dik_nonconstant_aggregate, or dik_lambda: */
+    struct {
+      a_constant_ptr
+		ptr;
 			/* The constant initial value.  Always an unshared
-                           constant.  When kind is
-                           dik_nonconstant_aggregate (used only in C++,
-                           C99, and GNU C) it points to a ck_aggregate
-                           constant entry for which one or more of the
-                           entries on its linked list are ck_dynamic_init
-                           constants. */
+			   constant.  When "is_constant" is FALSE
+			   (dik_nonconstant_aggregate (used only in C++,
+			   C99, and GNU C) or some cases of dik_lambda)  it
+			   points to a ck_aggregate constant entry for which
+			   one or more of the entries on its linked list are
+			   ck_dynamic_init constants. */
+      a_lambda_ptr
+		lambda;
+			/* When kind == dik_lambda, the lambda that the
+			   constant is an initializer for. */
+      a_bit_field
+		non_constant:1;
+			/* TRUE if the constant points to a ck_aggregate
+			   constant entry for which one or more of the entries
+			   on its linked list are ck_dynamic_init constants.
+			*/
+    } constant;
     /* When kind == dik_expression or kind == dik_class_result_via_ctor: */
     an_expr_node_ptr
 		expression;
@@ -12227,8 +12240,9 @@ enum an_expr_node_kind_tag {
   enk_temp_init,	/* Initialization of a temporary within an expression.
 			   Mostly for C++ but used in C for C99 compound
 			   literals. */
+  enk_lambda,		/* C++ lambda expression (very similar to
+			   enk_temp_init). */
   enk_new_delete,	/* C++ "new" or "delete". */
-  enk_lambda,		/* C++ lambda expression. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   enk_gcnew,		/* C++/CLI "gcnew". */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -13763,17 +13777,25 @@ typedef struct an_expr_node {
 			   form of reference to a name that this expression
 			   node refers to. */
     } field;
-    /* When kind == enk_temp_init: */
-    /* C++ only, but used in C for C99 compound literals. */
+    /* When kind == enk_temp_init or enk_lambda: */
+    /* Mostly C++-only, but also used for C99 compound literals. */
     /* The result of this operator is a temporary.  It's an lvalue if
        is_lvalue is TRUE, an rvalue otherwise. */
     struct {
       a_dynamic_init_ptr
 		dynamic_init;
 			/* Dynamic initialization entry that does the
-			   initialization for the temporary. */
-      a_type_ptr
-		source_type;
+			   initialization for the temporary.  For a lambda,
+			   this is the aggregate initialization that copies
+			   the captured variables to the fields of the closure
+			   class.  Also includes the destruction of the closure
+			   object if necessary.  Still present if no
+			   initialization is needed (indicates dik_none in
+			   that case). */
+      union {
+        /* When kind == enk_temp_init: */
+        a_type_ptr
+		type;
 			/* In some cases where the type of a cast as it
 			   appeared in the source is not reflected in the
 			   type of this node, this represents the former.
@@ -13784,26 +13806,18 @@ typedef struct an_expr_node {
 			   dimension for the array type, causing the typedef
 			   representation to be dropped in the node type.
 			   NULL in most cases. */
+        /* When kind == enk_lambda: */
+        a_lambda_ptr
+		lambda;
+			/* Pointer to an entry that describes the associated
+			   lambda. */
+      } source;
     } init;
     /* When kind == enk_new_delete: */
     a_new_delete_supplement_ptr
 		new_delete;
 			/* Pointer to an entry that describes the new or
 			   delete operation (C++ only). */
-    /* When kind == enk_lambda: */
-    struct {
-      a_lambda_ptr
-		ptr;
-			/* Pointer to an entry that describes the lambda. */
-      a_dynamic_init_ptr
-		initialization;
-			/* Aggregate initialization that copies the captured
-			   variables to the fields of the closure class.
-			   Also includes the destruction of the closure
-			   object if necessary.  Still present if no
-			   initialization is needed (indicates dik_none in
-			   that case). */
-    } lambda;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* When kind == enk_gcnew: */
     a_gcnew_supplement_ptr

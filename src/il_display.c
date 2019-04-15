@@ -4427,16 +4427,18 @@ Display the indicated expression node.
       (void)printf("enk_temp_init\n");
       disp_ptr("dynamic_init", (char *)ptr->variant.init.dynamic_init,
                iek_dynamic_init);
+      disp_ptr("source.type", (char *)ptr->variant.init.source.type, iek_type);
+      break;
+    case enk_lambda:
+      (void)printf("enk_lambda\n");
+      disp_ptr("dynamic_init", (char *)ptr->variant.init.dynamic_init,
+               iek_dynamic_init);
+      disp_ptr("source.lambda", (char *)ptr->variant.init.source.lambda,
+               iek_lambda);
       break;
     case enk_new_delete:
       (void)printf("enk_new_delete\n");
       disp_new_delete_supplement(ptr->variant.new_delete);
-      break;
-    case enk_lambda:
-      (void)printf("enk_lambda\n");
-      disp_ptr("ptr", (char *)ptr->variant.lambda.ptr, iek_lambda);
-      disp_ptr("initialization", (char *)ptr->variant.lambda.initialization,
-               iek_dynamic_init);
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case enk_gcnew:
@@ -6647,7 +6649,7 @@ Display the indicated dynamic_init structure.
     case dik_nonconstant_aggregate:
       (void)printf("dik_nonconstant_aggregate\n");
 do_constant:
-      disp_ptr("constant", (char *)ptr->variant.constant, iek_constant);
+      disp_ptr("constant", (char *)ptr->variant.constant.ptr, iek_constant);
       break;
     case dik_bitwise_copy:
       (void)printf("dik_bitwise_copy\n");

@@ -8316,7 +8316,7 @@ change to suppress lowering of compound literals).
     initializer_open_brace(&icb);
   }  /* if */
   check_assertion(dip->kind == (a_dynamic_init_kind)dik_constant);
-  dump_initializer_part((a_variable *)NULL, temp_type, dip->variant.constant,
+  dump_initializer_part((a_variable *)NULL, temp_type, dip->variant.constant.ptr,
                         &gen_assignments, (a_gen_init_pos_descr_ptr)NULL,
                         &icb);
   check_assertion(!gen_assignments);
@@ -8351,7 +8351,7 @@ for the variable.
         /* C++ case -- the initialization is in the middle of a block and
            should not be treated as a constant initialization. */
       } else {
-        init_con = dip->variant.constant;
+        init_con = dip->variant.constant.ptr;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -9248,8 +9248,8 @@ a control block with state information about this initializer.
 #if GNU_VECTOR_TYPES_ALLOWED
   if ((dip->kind == (a_dynamic_init_kind)dik_constant ||
        dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) &&
-      dip->variant.constant->kind == (a_constant_repr_kind)ck_aggregate &&
-      is_vector_type(dip->variant.constant->type)) {
+      dip->variant.constant.ptr->kind == (a_constant_repr_kind)ck_aggregate &&
+      is_vector_type(dip->variant.constant.ptr->type)) {
     is_vector_constant = TRUE;
   }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -9258,12 +9258,12 @@ a control block with state information about this initializer.
   if ((dip->kind == (a_dynamic_init_kind)dik_constant ||
        dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) &&
       !is_vector_constant &&
-      (dip->variant.constant->kind == (a_constant_repr_kind)ck_aggregate ||
-       dip->variant.constant->kind == (a_constant_repr_kind)ck_string)) {
+      (dip->variant.constant.ptr->kind == (a_constant_repr_kind)ck_aggregate ||
+       dip->variant.constant.ptr->kind == (a_constant_repr_kind)ck_string)) {
     /* Aggregate initialization.  Only comes up in C++, for aggregate
        initializations to constants done in the middle of blocks. */
     a_boolean  gen_assignments = TRUE;
-    dump_initializer_part(variable, variable->type, dip->variant.constant,
+    dump_initializer_part(variable, variable->type, dip->variant.constant.ptr,
                           &gen_assignments, (a_gen_init_pos_descr_ptr)NULL,
                           icbp);
   } else {
@@ -9282,9 +9282,9 @@ a control block with state information about this initializer.
              literal, but a leading cast must first be emitted. */
           /* is_vector_constant is always FALSE in some configurations. */
           /* coverity[dead_error_line] */
-          dump_cast(dip->variant.constant->type);
+          dump_cast(dip->variant.constant.ptr->type);
         }  /* if */
-        dump_constant(dip->variant.constant);
+        dump_constant(dip->variant.constant.ptr);
         write_tok_ch(';');
         break;
       case dik_expression:

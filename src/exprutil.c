@@ -4917,7 +4917,7 @@ top_of_routine:
     case dik_nonconstant_aggregate:
       /* This is okay if it's a repeated initialization for an array,
          e.g., a default constructor call for each element. */
-      con = dip->variant.constant;
+      con = dip->variant.constant.ptr;
       check_assertion(con->kind == (a_constant_repr_kind)ck_aggregate);
       con = con->variant.aggregate.first_constant;
       check_assertion(con->next == NULL);
@@ -4937,7 +4937,7 @@ top_of_routine:
       break;
     case dik_constant:
       /* This can happen if the constant was folded. */
-      args = dip->variant.constant->expr;
+      args = dip->variant.constant.ptr->expr;
       break;
     default:
       unexpected_condition_str("unexpected dynamic init kind");
@@ -16185,7 +16185,7 @@ successful folding.
         if (dest_type != NULL) folded_con->type = dest_type;
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
         set_dynamic_init_constant(dip, move_local_constant_to_il(&folded_con));
-        folded_con = dip->variant.constant;
+        folded_con = dip->variant.constant.ptr;
         if (constant_is(folded_con, ck_aggregate) &&
             folded_con->variant.aggregate.first_constant != NULL &&
             !in_file_scope(folded_con) &&
