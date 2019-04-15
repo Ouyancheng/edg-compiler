@@ -33989,6 +33989,7 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
                                    /*lint -esym(550,defer_instantiation)*/
   a_boolean			   use_master_instance;
   a_boolean	                   rout_is_constexpr = FALSE;
+  a_boolean	                   constexpr_in_constant_context = FALSE;
 
   db_enter(5, "update_instantiation_required_flag");
   defer_inline = (options & SIR_DEFER_INLINE) != 0;
@@ -34000,9 +34001,15 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
       /* constexpr routines require special treatment but only in contexts
          where a constant is required.  Note that in other contexts we
          do not want to do the defer_inline processing that is set below,
-         even though rout_is_constexpr is FALSE. */
+         even when rout_is_constexpr is FALSE.  constexpr_in_constant_context
+         indicates that an instantiation is required immediately.
+         We need to create a master instance even if we don't do the
+         instantiation immediately because a subsequent call could do an
+         immediate instantiation and we want the instantiation count to be
+         correct in such cases. */
+      rout_is_constexpr = TRUE;
       if ((options & SIR_CONSTANT_CONTEXT) != 0) {
-        rout_is_constexpr = rp->is_constexpr;
+        constexpr_in_constant_context = TRUE;
       }  /* if */
     } else {
       if (microsoft_bugs || gpp_mode) {
@@ -34135,7 +34142,7 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
       }  /* if */
       tip->instantiation_required = FALSE;
     }  /* if */
-  } else if (!rout_is_constexpr &&
+  } else if (!constexpr_in_constant_context &&
              (curr_class_fixup_header(/*for_instantiation=*/TRUE)->
                                               pending_class_definitions != 0 ||
               defer_instantiations != 0)) {
