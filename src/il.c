@@ -13797,8 +13797,9 @@ this is a dik_expression dynamic init entry.)
 }  /* init_expr_lifetime_of */
 
 
-/* Forward declaration needed because of recursion: */
+/* Forward declarations needed because of recursion: */
 static void unlink_object_lifetime(an_object_lifetime_ptr lifetime);
+static a_lambda_ptr copy_lambda(a_lambda_ptr lambda);
 
 
 static a_dynamic_init_ptr i_copy_dynamic_init(
@@ -13883,6 +13884,7 @@ options for the copy.  cblock is a control block for the copy.
                        i_copy_list_of_expr_trees(dip->variant.constructor.args,
                                                  options, cblock);
       break;
+    case dik_lambda:
     case dik_constant:
     case dik_nonconstant_aggregate:
       { an_expr_copy_options_set options_unshared;
@@ -13895,6 +13897,11 @@ options for the copy.  cblock is a control block for the copy.
                                                     (a_constant *)NULL,
                                                     options_unshared,
                                                     cblock);
+        if (dip->variant.constant.lambda) {
+          new_dip->variant.constant.lambda =
+            copy_lambda(dip->variant.constant.lambda);
+        }  /* if */
+        new_dip->variant.constant.non_constant = dip->variant.constant.non_constant;
       }
       break;
     case dik_bitwise_copy:

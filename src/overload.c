@@ -18184,7 +18184,8 @@ error.  conv_context describes the context of the conversion.
                       cctor_is_bitwise_copy &&
                       !any_qualifier_in_set_missing(TQ_CONST, /*lint --e(845)*/
                                                     source_qualifiers);
-  copy_elision_okay = mandatory_copy_elision && is_a_prvalue(source_operand);
+  copy_elision_okay = mandatory_copy_elision &&
+                      source_operand != NULL && is_a_prvalue(source_operand);
   if ((copy_elision_okay || bitwise_copy_okay) && type_is_same) {
     /* The source and destination types are the same class type, and either a
        bitwise copy is allowed on that type, or copy elision is mandatory.
