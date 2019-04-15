@@ -3757,7 +3757,7 @@ typedef struct a_dynamic_init {
       a_constant_ptr
 		ptr;
 			/* The constant initial value.  Always an unshared
-			   constant.  When "is_constant" is FALSE
+			   constant.  When "non_constant" is TRUE
 			   (dik_nonconstant_aggregate (used only in C++,
 			   C99, and GNU C) or some cases of dik_lambda)  it
 			   points to a ck_aggregate constant entry for which
