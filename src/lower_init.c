@@ -11210,12 +11210,12 @@ static an_expr_node_ptr extra_args_for_operator_delete(
                                    an_expr_node_ptr            allocation_args,
                                    a_type_ptr                  result_type)
 /*
-ndsp describes a new-expression.  If a deallocation is to be called in case
-the initialization of the created object exits via an exception, return a
-list of arguments that will follow the pointer to the object in the call;
-otherwise, return NULL.  allocation_args is the list of arguments passed to
-the allocation function, and result_type is the type of the new-expression
-(a pointer type).
+ndsp describes a new-expression.  If a deallocation function is to be
+called in case the initialization of the created object exits via an
+exception, return a list of arguments that will follow the pointer to the
+object in the call; otherwise, return NULL.  allocation_args is the list of
+arguments passed to the allocation function, and result_type is the type of
+the new-expression (a pointer type).
 */
 {
   an_expr_node_ptr delete_args = NULL;
@@ -11325,8 +11325,8 @@ arrays with class elements.
   if (!ndsp->placement_new && !ndsp->aligned_version && !aligned_delete) {
     /* This is a normal single-argument (not placement and not the aligned
        version) new, and the matching deallocation routine also does not
-       take an alignment, the usual case.  The __vec_new routine should do
-       the allocation of the array. */
+       take an alignment.  The __vec_new routine should do the allocation
+       of the array. */
     /* Note that new_routine might be non-NULL here, if the allocation
        requires a non-default "operator new[]" i.e., a class-specific one.
        __array_new will be called, and is given a pointer to the allocation
@@ -11803,7 +11803,7 @@ location after the initialization related to the "new" has been done, so do
 the second part of the processing begun by
 set_up_freeing_of_storage_on_exception.  ipdp describes the location of the
 allocated storage.  delete_args points to the list of arguments for a
-placement delete call, if one is needed.  If new_routine is non-NULL, it is
+deallocation call, if one is needed.  If new_routine is non-NULL, it is
 the placement new routine that is being called to allocate the memory.
 
 In the case of an initialized array (e.g., "new A[4] {1, 2}"), the caller
