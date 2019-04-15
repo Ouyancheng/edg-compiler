@@ -1,5 +1,21 @@
 Version 5.1
 
+4/15/19  [EDGcpfe/19567,EDGcpfe/21044]
+Pointer to function parameters and noexcept specifiers
+
+Consider, in C++17 mode:
+
+  void f() noexcept(true) {}
+  void g(void(*func)(void) noexcept);  // (1)
+  void g(void(*func)(void));
+  int main() {
+    g(f);  // Previously an ambiguity error.  Now okay.
+  }
+
+Previously, the front end considered the call in main ambiguous.  Now, it
+prefers candidate (1).
+
+
 4/15/19  [EDGcpfe/20965]
 Reference to function parameters and noexcept specifiers
 

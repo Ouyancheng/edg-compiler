@@ -7314,6 +7314,7 @@ apply that would make one better than the other, and return
             a_boolean do_comparison = FALSE;
             a_boolean added1 = FALSE, added2 = FALSE;
             a_type_ptr  tp1 = param_type1, tp2 = param_type2;
+            a_type_ptr  utp1, utp2;
 #if MICROSOFT_EXTENSIONS_ALLOWED
             if (cli_or_cx_enabled && cmp == 0 &&
                 is_handle_type(base_param_type1) &&
@@ -7331,13 +7332,34 @@ apply that would make one better than the other, and return
               }  /* if */
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            if (types_are_both_pointers_or_both_handles(tp1, tp2)) {
+            utp1 = skip_typerefs(tp1);
+            utp2 = skip_typerefs(tp2);
+            if (types_are_both_pointers_or_both_handles(utp1, utp2)) {
               /* Check for adding cv-qualifiers under a pointer or handle.
                  For multi-level pointers, the cv-qualifiers can be added at
                  several levels. */
               added1 = arg_match1->conversion.std.type_qualifiers_added;
               added2 = arg_match2->conversion.std.type_qualifiers_added;
               do_comparison = TRUE;
+              if (exc_spec_in_func_type && !added1 && !added2 &&
+                  !utp1->variant.pointer.is_handle) {
+                /* Check for the pointer-to-function case where exception
+                   specifications differ.  A stricter exception specification
+                   is preferred since it avoids a conversion (which, in terms
+                   of ranking, is considered equivalent to a qualification
+                   adjustment). */
+                utp1 = skip_typerefs(utp1->variant.pointer.type);
+                utp2 = skip_typerefs(utp2->variant.pointer.type);
+                if (type_is(utp1, tk_routine) && type_is(utp2, tk_routine)) {
+                  if (type_has_less_restrictive_exception_spec(utp1, utp2)) {
+                    cmp = -1;
+                  } else if (type_has_less_restrictive_exception_spec(utp2,
+                                                                      utp1)) {
+                    cmp = 1;
+                  }  /* if */
+                  do_comparison = FALSE;
+                }  /* if */
+              }  /* if */
             } else if (both_refs_of_same_kind &&
                        types_are_both_pointers_or_both_handles(
                                                            base_param_type1,
