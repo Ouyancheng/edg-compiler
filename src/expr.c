@@ -12372,8 +12372,8 @@ static void scan_alignof_operator(a_rescan_control_block *rcblock,
                                   an_operand             *result)
 /*
 Scan the alignof operator (including the C11 variant _Alignof, and extensions
-like __alignof__ or __ALIGNOF___.  This is a feature that is similar to sizeof,
-but returns the alignment requirement rather than the size.
+like __alignof__ or __ALIGNOF___).  This is a feature that is similar to
+sizeof, but returns the alignment requirement rather than the size.
 
 Syntax:
         __alignof ( type-id )
