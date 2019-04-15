@@ -10470,7 +10470,8 @@ do_assignment:;
         lambda_source.capture = dip->variant.constant.lambda->capture_list;
         keep_constant = FALSE;
         lower_dynamic_init_aggregate_constant(dip->variant.constant.ptr, ipdp,
-                                              /*dtor_case=*/FALSE, &lambda_source,
+                                              /*dtor_case=*/FALSE,
+                                              &lambda_source,
                                               others_follow_in_aggr,
                                               eff_insert_location,
                                               &keep_constant,
@@ -10680,7 +10681,8 @@ do_assignment:;
     *keep_dynamic_init = local_keep_dynamic_init;
   } else if (local_keep_dynamic_init &&
              (orig_dip_kind == (a_dynamic_init_kind)dik_nonconstant_aggregate||
-              orig_dip_kind == (a_dynamic_init_kind)dik_constant) &&
+              orig_dip_kind == (a_dynamic_init_kind)dik_constant ||
+              orig_dip_kind == (a_dynamic_init_kind)dik_lambda) &&
              variable != NULL) {
     /* The variable doesn't currently have an stmk_init statement, but
        needs one because some portion of the initialization is being kept;
