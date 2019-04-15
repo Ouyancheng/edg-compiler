@@ -10991,33 +10991,25 @@ the null pointer constant returned in *operand_constant.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- operand is not used in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_boolean operand_is_function(an_operand *operand)
 /*
-Return TRUE if the operand is an lvalue for or address of a specific
-function, but not an arbitrary pointer to function.  Likewise for
-a pointer-to-member for a specific function.  This matters only in
-C++/CLI, so return FALSE in other modes.
+Return TRUE if the operand is an lvalue for or address of a specific function,
+but not an arbitrary pointer to function.  Likewise for a pointer-to-member
+for a specific function.
 */
 {
   a_boolean is_function = FALSE;
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cli_or_cx_enabled) {
-    if (routine_from_function_operand(operand) != NULL) {
+  if (routine_from_function_operand(operand) != NULL) {
+    is_function = TRUE;
+  } else if (is_constant_operand(operand)) {
+    a_constant_ptr con = &operand->variant.constant;
+    if (con->kind == (a_constant_repr_kind)ck_ptr_to_member &&
+        con->variant.ptr_to_member.is_function_ptr &&
+        con->variant.ptr_to_member.variant.routine != NULL) {
       is_function = TRUE;
-    } else if (is_constant_operand(operand)) {
-      a_constant_ptr con = &operand->variant.constant;
-      if (con->kind == (a_constant_repr_kind)ck_ptr_to_member &&
-          con->variant.ptr_to_member.is_function_ptr &&
-          con->variant.ptr_to_member.variant.routine != NULL) {
-        is_function = TRUE;
-      }  /* if */
     }  /* if */
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return is_function;
 }  /* operand_is_function */
 

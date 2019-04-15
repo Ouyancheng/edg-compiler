@@ -3179,11 +3179,20 @@ copy-initialization).
      matches; go directly to user-defined conversions (which do their own
      variety of checking of type qualifiers). */
   if (!ref_qualifiers_dropped_related_type) {
-    /* Check for an exact match.  This is case [1] in the ARM. */
-    /* The "_ignoring_qualifiers" version is called here to deal with
-       array types with qualifiers on the element type. */
-    if (types_are_compatible_ignoring_qualifiers(unqual_arg_type,
-                                                 unqual_param_type)) {
+    /* Check for an exact match.  (See [over.ics.scs] in N4810.) */
+    /* We ignore type qualifiers here to deal with array types with qualifiers
+       on the element type. */
+    a_type_compat_flags_set
+                       tcf_flags = TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
+                                   TCF_IGNORE_TYPE_QUALIFIERS;
+    if (param_is_reference) {
+      /* Binding a function to a reference allows dropping a noexcept
+         specifier. */
+      tcf_flags |= TCF_IGNORE_TOP_LEVEL_NOEXCEPT;
+    }  /* if */
+    if (unqual_arg_type == unqual_param_type ||
+        f_types_are_compatible(unqual_arg_type, unqual_param_type,
+                               tcf_flags)) {
       /* There is an exact match, possibly involving trivial conversions. */
       arg_summary->match_level = aml_exact;
       if (!param_is_reference && param_is_class_type) {
@@ -3296,9 +3305,9 @@ copy-initialization).
         goto have_level;
       }  /* if */
     }  /* if */
-    /* Try a match involving standard conversions.  This is case [3] in
-       the ARM.  As a subcase, some standard conversions are considered
-       promotions (case [2] in the ARM). */
+    /* Try a match involving standard conversions.  This covers the cases in
+       [over.ics.scs] in N4810 that aren't "Exact Match" (the latter were
+       handled above). */
     if (impl_conversion_possible(arg_type,
                                  arg_operand_is_constant,
                                  arg_operand_is_simple_string_literal,
