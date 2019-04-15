@@ -7341,8 +7341,9 @@ apply that would make one better than the other, and return
               added1 = arg_match1->conversion.std.type_qualifiers_added;
               added2 = arg_match2->conversion.std.type_qualifiers_added;
               do_comparison = TRUE;
-              if (exc_spec_in_func_type && !added1 && !added2 &&
-                  !utp1->variant.pointer.is_handle) {
+              if (exc_spec_in_func_type && !added1 && !added2
+                  if_microsoft_extensions(
+                                       && !utp1->variant.pointer.is_handle)) {
                 /* Check for the pointer-to-function case where exception
                    specifications differ.  A stricter exception specification
                    is preferred since it avoids a conversion (which, in terms
