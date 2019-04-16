@@ -38397,7 +38397,13 @@ the type of element_operand and sets the variable type to the deduced type.
     if (iterator->declared_with_class_template_placeholder) {
       auto_type = skip_typerefs(iterator->type);
     }  /* if */
-    if (deduce_placeholder_type(
+    if (iterator->is_struct_binding_container &&
+        !is_any_reference_type(iterator->type) &&
+        is_array_type(element_operand->type)) {
+      a_type_qualifier_set  tqs = get_type_qualifiers(iterator->type);
+      a_type_ptr            tp = element_operand->type;
+      iterator->type = make_qualified_type(tp, tqs);
+    } else if (deduce_placeholder_type(
                            iterator->declared_with_decltype_auto,
                            iterator->declared_with_class_template_placeholder,
                            /*is_direct_init=*/FALSE,
@@ -38999,7 +39005,7 @@ FALSE otherwise.
 */
 {
   an_operand          operand1, operand;
-  a_boolean           processed, passed;
+  a_boolean           processed, passed, expr_stack_popped = FALSE;
   an_expr_stack_entry expr_stack_entry;
   a_boolean           use_await = FALSE;
 
@@ -39064,14 +39070,14 @@ FALSE otherwise.
       passed = FALSE;
     } else {
       /* Add the initializer to the iterator variable. */
-      if (rbflp->iterator != NULL) {
-        deduce_auto_type_in_enhanced_for_if_needed(rbflp->iterator, &operand);
+      a_variable_ptr  iter_var = rbflp->iterator;
+      if (iter_var != NULL) {
+        deduce_auto_type_in_enhanced_for_if_needed(iter_var, &operand);
         /* Now that we are sure that we know the iterator variable type, check
            any remaining constraints. */
         if (relaxed_constexpr_enabled && innermost_function_scope != NULL) {
-          a_routine_ptr   rp = innermost_function_scope->variant.routine.ptr;
-          a_variable_ptr  iter_var = rbflp->iterator;
-          a_type_ptr      itp = iter_var->type;
+          a_routine_ptr  rp = innermost_function_scope->variant.routine.ptr;
+          a_type_ptr     itp = iter_var->type;
           if (rp->is_constexpr && !is_literal_type(itp)) {
             if (rp->is_declared_constexpr) {
               pos_ty_error(ec_nonliteral_var_in_constexpr_function,
@@ -39081,14 +39087,40 @@ FALSE otherwise.
             rp->is_constexpr = FALSE;
           }  /* if */
         }  /* if */
-        /* There may be an implicit conversion here, but
-           prep_initializer_operand in set_variable_initializer will handle
-           that. */
-        set_variable_initializer(rbflp->iterator, &operand);
+        /* Record the initializer for the iterator variable.  In most cases,
+           we can just call set_variable_initializer here, but the case of
+           array structured bindings must be handled separately. There may be
+           an implicit conversion here, but prep_initializer_operand in
+           set_variable_initializer will handle that. */
+        if (iter_var->is_struct_binding_container &&
+            !is_any_reference_type(iter_var->type) &&
+            is_array_type(operand.type)) {
+          /* Reconstruct a declaration parse state for the variable and an
+             initializer component for the initializer, and call
+             record_init_for_array_struct_binding with those structures. */
+          a_decl_parse_state     dps;
+          an_init_component_ptr  icp;
+          /* The cal to record_init_for_array_struct_binding pushed its own
+             expression stack.  So pop the currently active expression stack
+             and set a flag to avoid popping it again later on. */
+          pop_expr_stack();
+          expr_stack_popped = TRUE;
+          init_decl_parse_state(&dps);
+          dps.sym = symbol_for(iter_var);
+          dps.type = iter_var->type;
+          dps.declarator_pos = iter_var->source_corresp.decl_position;
+          icp = alloc_arg_list_elem_for_operand(&operand);
+          record_init_for_array_struct_binding(&dps, icp);
+          free_init_component_list(icp);
+          iter_var->init_kind = (an_init_kind)initk_dynamic;
+          iter_var->initializer.dynamic = dps.init_state.init_dip;
+        } else {
+          set_variable_initializer(iter_var, &operand);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
-  pop_expr_stack();
+  if (!expr_stack_popped) pop_expr_stack();
   /* Pop the iterator scope off the scope stack. */
   pop_block_scope(/*is_final_pop=*/FALSE);
 end_of_routine:

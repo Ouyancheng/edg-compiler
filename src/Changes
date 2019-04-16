@@ -1,5 +1,23 @@
 Version 5.1
 
+4/16/19  [EDGcpfe/20951]
+Array structured bindings in range-based-for loops
+
+The front end previously issued a spurious error on array structured binding
+declarations in range-based-for iterator declarations.  For example:
+
+  int arr[3][3] = { {0,1,2}, {3,4,5}, {6,7,8} };
+  int g() {
+    int s = 0;
+    for (auto [ x, y, z ] : arr) {  // Previously an error.  Now okay.
+      s += x+y+z;
+    }
+    return s;
+  }
+
+That is now fixed.
+
+
 4/15/19  [EDGcpfe/20538,EDGcpfe/21108]
 Guaranteed Copy Elision
 
