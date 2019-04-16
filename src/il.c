@@ -13899,7 +13899,7 @@ options for the copy.  cblock is a control block for the copy.
                                                     cblock);
         if (dip->variant.constant.lambda != NULL) {
           new_dip->variant.constant.lambda =
-            copy_lambda(dip->variant.constant.lambda);
+                                    copy_lambda(dip->variant.constant.lambda);
         }  /* if */
       }
       break;
@@ -19434,10 +19434,16 @@ be called to start a copy.
         expr_copy->variant.init.dynamic_init =
                           i_copy_dynamic_init(expr->variant.init.dynamic_init,
                                               options, cblock);
-        /* The lambda is already copied as part of the dynamic initializer
-           copy.  Use that copy here instead of re-copying it. */
-        expr_copy->variant.init.source.lambda =
+        if (expr->variant.init.dynamic_init->kind ==
+                                            (a_dynamic_init_kind)dik_lambda) {
+          /* The lambda is already copied as part of the dynamic initializer
+             copy.  Use that copy here instead of re-copying it. */
+          expr_copy->variant.init.source.lambda =
                 expr_copy->variant.init.dynamic_init->variant.constant.lambda;
+        } else {
+          expr_copy->variant.init.source.lambda =
+                                copy_lambda(expr->variant.init.source.lambda);
+        }  /* if */
       }  /* if */
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED

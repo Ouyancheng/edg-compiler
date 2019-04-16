@@ -18066,7 +18066,6 @@ error.  conv_context describes the context of the conversion.
 {
   a_boolean                     okay, bitwise_copy_okay;
   a_boolean                     cctor_is_bitwise_copy;
-  a_boolean                     copy_elision_okay;
   a_type_ptr                    class_type, source_type;
   a_candidate_function_ptr      candidate_functions;
   a_boolean                     matched_except_for_missing_selector = FALSE;
@@ -18184,13 +18183,11 @@ error.  conv_context describes the context of the conversion.
                       cctor_is_bitwise_copy &&
                       !any_qualifier_in_set_missing(TQ_CONST, /*lint --e(845)*/
                                                     source_qualifiers);
-  copy_elision_okay = mandatory_copy_elision &&
-                      source_operand != NULL && is_a_prvalue(source_operand);
-  if ((copy_elision_okay || bitwise_copy_okay) && type_is_same) {
-    /* The source and destination types are the same class type, and either a
-       bitwise copy is allowed on that type, or copy elision is mandatory.
-       That means there are no copy constructors (or the copy constructors are
-       not to be used), and therefore the bitwise copy is the best match. */
+  if (bitwise_copy_okay && type_is_same) {
+    /* The source and destination types are the same class type, and a
+       bitwise copy is allowed on that type.  That means there are no
+       copy constructors, and therefore the bitwise copy is the best
+       match. */
     conversion->class_identity_or_bitwise_copy = TRUE;
     okay = TRUE;
   } else if (alep != NULL && bitwise_copy_okay &&
@@ -19166,6 +19163,13 @@ that case).
                                      &ambiguous, &ambiguity_list)) {
       /* A user-defined conversion (constructor or conversion function) or
          bitwise copy is available to convert to the destination type. */
+      okay = TRUE;
+    } else if (is_copy_initialization && mandatory_copy_elision &&
+               identical_types_ignoring_qualifiers(dest_type, source_type) &&
+               is_a_prvalue(source_operand)) { // CALEB
+      /* A copy initialization that we expect to be elided. */
+      clear_conv_descr(conversion);
+      conversion->class_identity_or_bitwise_copy = TRUE;
       okay = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cli_or_cx_enabled &&

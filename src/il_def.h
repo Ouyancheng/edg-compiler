@@ -3755,24 +3755,21 @@ typedef struct a_dynamic_init {
     /* When kind == dik_constant, dik_nonconstant_aggregate, or dik_lambda: */
     struct {
       a_constant_ptr
-		ptr;
-			/* The constant initial value.  Always an unshared
-			   constant.  When "non_constant" is TRUE
+		ptr;	/* The constant initial value.  Always an unshared
+			   constant.  When non_constant (see below) is TRUE
 			   (dik_nonconstant_aggregate (used only in C++,
-			   C99, and GNU C) or some cases of dik_lambda)  it
+			   C99, and GNU C) or some cases of dik_lambda) this
 			   points to a ck_aggregate constant entry for which
 			   one or more of the entries on its linked list are
 			   ck_dynamic_init constants. */
       a_lambda_ptr
-		lambda;
-			/* When kind == dik_lambda, the lambda that the
-			   constant is an initializer for. */
+		lambda;	/* When kind == dik_lambda, the lambda that the
+			   constant is an initializer for, NULL otherwise. */
       a_bit_field
 		non_constant:1;
-			/* TRUE if the constant points to a ck_aggregate
-			   constant entry for which one or more of the entries
-			   on its linked list are ck_dynamic_init constants.
-			*/
+			/* TRUE if ptr points to a ck_aggregate constant entry
+			   for which one or more of the entries on its linked
+			   list are ck_dynamic_init constants. */
     } constant;
     /* When kind == dik_expression or kind == dik_class_result_via_ctor: */
     an_expr_node_ptr
@@ -13795,8 +13792,7 @@ typedef struct an_expr_node {
       union {
         /* When kind == enk_temp_init: */
         a_type_ptr
-		type;
-			/* In some cases where the type of a cast as it
+		type;	/* In some cases where the type of a cast as it
 			   appeared in the source is not reflected in the
 			   type of this node, this represents the former.
 			   For example:
@@ -13808,8 +13804,7 @@ typedef struct an_expr_node {
 			   NULL in most cases. */
         /* When kind == enk_lambda: */
         a_lambda_ptr
-		lambda;
-			/* Pointer to an entry that describes the associated
+		lambda;	/* Pointer to an entry that describes the associated
 			   lambda. */
       } source;
     } init;

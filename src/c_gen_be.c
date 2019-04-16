@@ -8316,7 +8316,8 @@ change to suppress lowering of compound literals).
     initializer_open_brace(&icb);
   }  /* if */
   check_assertion(dip->kind == (a_dynamic_init_kind)dik_constant);
-  dump_initializer_part((a_variable *)NULL, temp_type, dip->variant.constant.ptr,
+  dump_initializer_part((a_variable *)NULL, temp_type,
+                        dip->variant.constant.ptr,
                         &gen_assignments, (a_gen_init_pos_descr_ptr)NULL,
                         &icb);
   check_assertion(!gen_assignments);

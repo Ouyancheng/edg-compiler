@@ -22735,6 +22735,17 @@ called only in C++ mode.
                                          &conversion,
                                          &ctor_arg_conversion,
                                          &failed)) {
+          /* If copy elision is mandated (C++17 and later) or in Cfront modes
+             don't force a temporary for a cast of a class prvalue to the same
+             class type, ignoring cv-qualifiers. */
+          a_boolean  force_copy = !(mandatory_copy_elision ||
+                                    any_cfront_mode());
+          if (!force_copy && is_a_prvalue(operand) &&
+              identical_types_ignoring_qualifiers(operand->type,
+                                                  type_cast_to)) {
+            conversion.class_object_adjustment_required = TRUE;
+            conversion.routine = NULL;
+          }  /* if */
           /* A user-defined conversion can be done. */
           conversion.is_explicit_cast = TRUE;
           /* Force the result to an rvalue because the cast is not
@@ -22742,11 +22753,9 @@ called only in C++ mode.
              that returns a reference is used, the result would be a
              glvalue).  Microsoft doesn't do that. */
           if (!microsoft_bugs) conversion.result_is_a_glvalue = FALSE;
-          /* Except in cfront mode, force a temporary for a cast of a class
-             object to the same class type, ignoring cv-qualifiers. */
           user_convert_operand(operand, type_cast_to, &conversion,
                                &ctor_arg_conversion,
-                               /*force_copy_to_temp=*/!any_cfront_mode());
+                               force_copy);
           *processed = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (microsoft_bugs && microsoft_version < 1100 &&

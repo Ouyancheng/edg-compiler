@@ -13335,12 +13335,11 @@ Render the list of lambda captures, including the delimiting brackets.
 }  /* gen_lambda_captures */
 
 
-static void gen_lambda(an_expr_node_ptr  expr)
+static void gen_lambda(a_lambda_ptr lambda)
 /*
-Render code for the given expression node, which represents a lambda.
+Render code for the given lambda.
 */
 {
-  a_lambda_ptr            lambda = expr->variant.init.source.lambda;
   a_scope_ptr             closure_scope;
   a_routine_ptr           rp = lambda->lambda_routine;
 
@@ -14695,7 +14694,7 @@ sizeof_cases:
       gen_builtin_operation(expr);
       break;
     case enk_lambda:
-      gen_lambda(expr);
+      gen_lambda(expr->variant.init.source.lambda);
       break;
     case enk_param_ref:
       /* A reference to a parameter or "this" in a function signature
@@ -17759,6 +17758,9 @@ output_functional_notation_cast_arguments:
         gen_initializer_constant(con, init_entity_type,
                                  /*transparent_case=*/FALSE, suppress_braces);
       }  /* if */
+      break;
+    case dik_lambda:
+      gen_lambda(dip->variant.constant.lambda);
       break;
     case dik_constructor:
       /* Constructor initialization.  When we get to here we know we have
