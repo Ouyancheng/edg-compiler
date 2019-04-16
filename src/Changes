@@ -38,7 +38,7 @@ Consider, in C++17 mode:
 
   void f() noexcept(true) {}
   void g(void(&func)(void));  // (1)
-  void g(...) = delete        // (2)
+  void g(...) = delete;       // (2)
   int main() {
     g(f);  // Previously an error.  Now okay.
   }
