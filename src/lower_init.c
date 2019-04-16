@@ -9647,6 +9647,7 @@ C99 mode for the same reason.
 */
 {
   an_expr_node_ptr   entity_node, source_node;
+  an_expr_node_ptr   master_entry_assignment = NULL;
   a_variable_ptr     variable;
   a_boolean          simple_constant_init = FALSE, keep_constant;
   a_constant_ptr     simple_constant = NULL;
@@ -10277,7 +10278,7 @@ do_assignment:;
       }  /* if */
       break;
     case dik_nonconstant_aggregate:
-      { an_expr_node_ptr master_entry_assignment = NULL;
+      {
         /* Initialization with a nonconstant aggregate constant.  This is
            usually a whole-variable initialization, but can be used in a
            ctor-initializer or lambda capture to iterate over an array
@@ -10314,6 +10315,7 @@ do_assignment:;
                                               eff_insert_location,
                                               &keep_constant,
                                               options);
+do_keep_constant:
         if (keep_constant) {
           /* There is a constant part of the initialization to be kept. */
           if (variable == NULL) {
@@ -10459,6 +10461,7 @@ do_assignment:;
                        eff_insert_location);
       break;
     case dik_lambda:
+      check_assertion(!dip->is_partially_initialized);
       if (!dip->variant.constant.non_constant) {
         /* Analogous to dik_constant. */
         lower_constant(dip->variant.constant.ptr);
@@ -10466,9 +10469,11 @@ do_assignment:;
       } else {
         /* Analogous to dik_nonconstant_aggregate. */
         an_implied_copy_source lambda_source;
+        check_assertion(!(variable == NULL && dip->master_entry != NULL));
         clear_implied_copy_source(&lambda_source);
         lambda_source.capture = dip->variant.constant.lambda->capture_list;
         keep_constant = FALSE;
+        latest_initialization_on_entry = eff_context->latest_initialization;
         lower_dynamic_init_aggregate_constant(dip->variant.constant.ptr, ipdp,
                                               /*dtor_case=*/FALSE,
                                               &lambda_source,
@@ -10479,11 +10484,7 @@ do_assignment:;
         /* Verify that all captured variables were assigned during the
            initialization. */
         check_assertion(lambda_source.capture == NULL);
-        if (keep_constant) {
-          /* There is a constant part of the initialization to be kept. */
-          simple_constant_init = TRUE;
-          simple_constant = dip->variant.constant.ptr;
-        }  /* if */
+        goto do_keep_constant;
       }  /* if */
       break;
     default:
@@ -10495,7 +10496,8 @@ do_assignment:;
     check_assertion(dip->lifetime != NULL);
     if (static_var_init &&
         !dip->destruction_is_for_partially_constructed_aggregate) {
-      if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate &&
+      if ((dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate ||
+           dip->kind == (a_dynamic_init_kind)dik_lambda) &&
           processing_file_scope_init_routine && !C_mode()) {
         /* Now that the static aggregate has been fully constructed, remove
            any destructions for partially constructed aggregates that may
@@ -10526,7 +10528,8 @@ do_assignment:;
       check_assertion_str(dedp != NULL, "lower_dynamic_init: missing dedp");
       dedp->initialization_done = TRUE;
       /* coverity[uninit_use] */
-      if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate &&
+      if ((dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate ||
+           dip->kind == (a_dynamic_init_kind)dik_lambda) &&
           latest_initialization_on_entry !=
                                           eff_context->latest_initialization) {
         /* This is an aggregate for which some partial-aggregate

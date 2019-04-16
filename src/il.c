@@ -13897,11 +13897,10 @@ options for the copy.  cblock is a control block for the copy.
                                                     (a_constant *)NULL,
                                                     options_unshared,
                                                     cblock);
-        if (dip->variant.constant.lambda) {
+        if (dip->variant.constant.lambda != NULL) {
           new_dip->variant.constant.lambda =
             copy_lambda(dip->variant.constant.lambda);
         }  /* if */
-        new_dip->variant.constant.non_constant = dip->variant.constant.non_constant;
       }
       break;
     case dik_bitwise_copy:
@@ -19432,11 +19431,13 @@ be called to start a copy.
         expect_error();
         expr_copy = error_node();
       } else {
-        expr_copy->variant.init.source.lambda =
-                                copy_lambda(expr->variant.init.source.lambda);
         expr_copy->variant.init.dynamic_init =
                           i_copy_dynamic_init(expr->variant.init.dynamic_init,
                                               options, cblock);
+        /* The lambda is already copied as part of the dynamic initializer
+           copy.  Use that copy here instead of re-copying it. */
+        expr_copy->variant.init.source.lambda =
+                expr_copy->variant.init.dynamic_init->variant.constant.lambda;
       }  /* if */
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
