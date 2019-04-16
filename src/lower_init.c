@@ -10486,7 +10486,7 @@ do_keep_constant:
         check_assertion(lambda_source.capture == NULL);
         goto do_keep_constant;
       }  /* if */
-      break;
+      break; /*lint !e527*/ /* Unreachable code due to gotos. */
     default:
       unexpected_condition_str("lower_dynamic_init: bad kind");
   }  /* switch */
