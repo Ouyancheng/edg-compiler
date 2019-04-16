@@ -14414,12 +14414,11 @@ expression (i.e., id-expression or member access).
       default:
         unexpected_condition();
     }  /* switch */
-  } else if (operand->is_id_expression) {
+  } else if (operand->is_id_expression && !operand->is_parenthesized) {
     /* Produce the type of the entity referenced by the id-expression.
        Note that some id-expressions are represented as class member access
        operations, so this case must appear after the class member access
        case. */
-    check_assertion(!operand->is_parenthesized);
 id_case:
     if (expr != NULL) {
       /* An expression consisting of a simple identifier or one equivalent to

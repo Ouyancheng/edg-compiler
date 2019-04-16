@@ -8500,10 +8500,10 @@ known.
                                           (a_boolean)operand->
                                                              is_qualified_name,
                                           operand);
+  restore_operand_details(operand, &orig_operand);
   if (!force_to_rvalue && was_lvalue) {
     change_template_param_constant_operand_to_lvalue(operand);
   }  /* if */
-  restore_operand_details(operand, &orig_operand);
   restore_operand_form_of_name_reference(operand, &orig_operand);
 }  /* conv_indefinite_function_to_unknown_dependent_function */
 
