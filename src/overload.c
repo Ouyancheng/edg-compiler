@@ -19166,7 +19166,7 @@ that case).
       okay = TRUE;
     } else if (is_copy_initialization && mandatory_copy_elision &&
                identical_types_ignoring_qualifiers(dest_type, source_type) &&
-               is_a_prvalue(source_operand)) { // CALEB
+               is_a_prvalue(source_operand)) {
       /* A copy initialization that we expect to be elided. */
       clear_conv_descr(conversion);
       conversion->class_identity_or_bitwise_copy = TRUE;
