@@ -10461,6 +10461,7 @@ do_keep_constant:
                        eff_insert_location);
       break;
     case dik_lambda:
+    { an_implied_copy_source lambda_source;
       check_assertion(!dip->is_partially_initialized);
       if (!dip->variant.constant.non_constant) {
         /* Analogous to dik_constant. */
@@ -10468,7 +10469,6 @@ do_keep_constant:
         goto do_assignment;
       }  /* if */
       /* Analogous to dik_nonconstant_aggregate. */
-      an_implied_copy_source lambda_source;
       check_assertion(!(variable == NULL && dip->master_entry != NULL));
       clear_implied_copy_source(&lambda_source);
       lambda_source.capture = dip->variant.constant.lambda->capture_list;
@@ -10485,7 +10485,7 @@ do_keep_constant:
          initialization. */
       check_assertion(lambda_source.capture == NULL);
       goto do_keep_constant;
-      /* No break due to goto. */
+    } /* No break due to goto. */
     default:
       unexpected_condition_str("lower_dynamic_init: bad kind");
   }  /* switch */
