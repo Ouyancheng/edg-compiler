@@ -1,5 +1,20 @@
 Version 5.1
 
+4/16/19  [EDGcpfe/20452]
+Inline static data members of class templates
+
+The front end had several issues regarding inline static data members of
+class templates, either reporting spurious errors or failing to diagnose
+legitimate ones.  These are now fixed.  For example, with --c++17:
+
+  template<typename T> struct S {
+    static inline int i = 1;
+    static inline int j = 1;
+  };
+  template<typename T> int S<T>::i;  // Error, previously undiagnosed
+  template<> int S<int>::j = 2;      // Previously a spurious error
+
+
 4/16/19  [EDGcpfe/21150]
 Substitution of parenthesized decltype
 
