@@ -2112,6 +2112,7 @@ static a_flag_name
   { "gen_edg_vector_type", &gen_edg_vector_type },
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   { "lazy_field_initializers", &always_delay_field_initializer_processing },
+  { "core_constant_expr_is_noexcept", &core_constant_expr_is_noexcept },
   { NULL, NULL }  /* must be last */
 };
 
@@ -11467,6 +11468,7 @@ variables declared in cmd_line.h.
   exceptions_enabled = DEFAULT_EXCEPTIONS_ENABLED;
   noexcept_enabled = FALSE;
   implicit_noexcept_enabled = FALSE;
+  core_constant_expr_is_noexcept = FALSE;
   exc_spec_in_func_type = FALSE;
   deduction_from_exc_spec_allowed = FALSE;
   delegating_constructors_enabled = FALSE;

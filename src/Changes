@@ -1,5 +1,23 @@
 Version 5.1
 
+4/17/19  [EDGcpfe/21119]
+The noexcept operator and constant expressions
+
+In C++11 and C++14, applying the noexcept operator to a "core constant
+expression" (an expression that the compiler can evaluate) produced a "true"
+value:
+
+  static_assert(noexcept(true ? 0 : throw 0), "");  // Okay in C++11 and C++14.
+                                                    // Fails in C++17.
+
+That rule was accidentally dropped through the changes made by the committee's
+paper P0003R5, but, after review, the committee decided to let the effect of
+P0003R5 in this area stand.  Since other compilers never implemented the
+original rule, the front end now applies the revised rules (causing the
+static_assert above to fail) in all modes.  A global flag is still available
+to enable our previous behavior.
+
+
 4/16/19  [EDGcpfe/20452]
 Inline static data members of class templates
 

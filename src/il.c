@@ -22290,10 +22290,12 @@ C++11 standard [expr.unary.noexcept].
   a_diag_list  diag_list;
 
   clear_diag_list(&diag_list);
-  if (constexpr_enabled && !(clang_mode || microsoft_mode) &&
+  if (constexpr_enabled && core_constant_expr_is_noexcept &&
       is_core_constant_expr(expr, &diag_list)) {
-    /* Core constant-expressions are always "noexcept".  Clang does not
-       appear to implement that yet. */
+    /* In C++11 and C++14, core constant-expressions were always "noexcept".
+       However, it appears no other compilers ever implemented that rule, and
+       C++17 dropped the rule (through paper P0003R5).  We leave the pre-C++17
+       behavior available under a separate flag. */
     result = FALSE;
   } else {
     an_expr_or_stmt_traversal_block tblock;

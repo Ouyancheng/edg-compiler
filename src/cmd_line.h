@@ -528,6 +528,13 @@ EXTERN a_boolean
 			   exception specification is provided. */
 
 EXTERN a_boolean
+		core_constant_expr_is_noexcept;
+			/* TRUE when noexcept(<expr>) should be true for all
+			   core constant expressions.  This was the case in
+			   C++11 and C++14, but few compilers ever implemented
+			   it. */
+
+EXTERN a_boolean
 		ref_qualifiers_enabled;
 			/* TRUE if ref-qualifiers are supported for nonstatic
 			   member function types. */
