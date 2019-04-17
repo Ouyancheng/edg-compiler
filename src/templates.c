@@ -25805,6 +25805,7 @@ supplement for this template should be returned to the caller.
   a_boolean                        is_variable_template;
   a_boolean                        is_initial_decl = FALSE;
   a_variable_ptr                   var = NULL;
+  a_boolean                        redef_error_reported = FALSE;
 
   if ((dps->dso_flags & DSO_CONSTEXPR) != 0 &&
       !is_const_qualified_type(dps->type)) {
@@ -25923,10 +25924,12 @@ supplement for this template should be returned to the caller.
                     &locator->source_position,
                     &var->source_corresp.decl_position);
     err = TRUE;
-  } else if (sym->defined && !var->initializer_in_class) {
+  } else if (sym->defined && (!var->initializer_in_class ||
+                              (var->is_inline && !var->is_constexpr))) {
     /* Prior definition. */
     pos_sy_error(ec_already_defined, &locator->source_position, sym);
     err = TRUE;
+    redef_error_reported = TRUE;
   } else if (dps->is_struct_binding_decl) {
     pos_error(ec_struct_binding_template, &locator->source_position);
     err = TRUE;
@@ -26013,7 +26016,7 @@ supplement for this template should be returned to the caller.
     dps->has_initializer = TRUE;
     split_location = curr_token_sequence_number;
     if (var != NULL && var->initializer_in_class &&
-        !decl_state->is_specialization &&
+        !decl_state->is_specialization && !redef_error_reported &&
         (is_variable_template || (!microsoft_mode && !sun_mode))) {
       /* Microsoft and Sun allow a static data member defined in the class
          to be redefined outside. */
@@ -29722,7 +29725,8 @@ that follows.
             if (severity == es_error) sym = NULL;
           }  /* if */
         }  /* if */
-      } else if (dps->is_definition && sym->defined) {
+      } else if (dps->is_definition && sym->defined &&
+                 !(vp != NULL && vp->is_inline)) {
         /* The entity has already been defined. */
         if (microsoft_bugs && microsoft_version == 1200 && rp != NULL &&
             already_specialized) {

@@ -5033,11 +5033,14 @@ returned set to TRUE.
          not allowed to be initialized.  (3.5.7 Constraints) */
       pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
       var_err = TRUE;
-    } else if (vp->init_kind != (an_init_kind)initk_none) {
+    } else if (vp->init_kind != (an_init_kind)initk_none &&
+               !(dps->first_decl && dps->is_explicit_specialization)) {
       /* Variable already initialized (presumably, it is being declared
          again, and we have the variable from the earlier declaration).
          Sun compilers mostly ignore (but do check for errors) an out-of-class
-         initializer for a member constant of a class template instance. */
+         initializer for a member constant of a class template instance.  An
+         explicit specialization being first declared might be marked as
+         already defined if it is inline, but that is not an error. */
       if (vp->init_kind == (an_init_kind)initk_static &&
           vp->is_constexpr &&
           is_error_constant(vp->initializer.constant)) {
