@@ -10466,27 +10466,26 @@ do_keep_constant:
         /* Analogous to dik_constant. */
         lower_constant(dip->variant.constant.ptr);
         goto do_assignment;
-      } else {
-        /* Analogous to dik_nonconstant_aggregate. */
-        an_implied_copy_source lambda_source;
-        check_assertion(!(variable == NULL && dip->master_entry != NULL));
-        clear_implied_copy_source(&lambda_source);
-        lambda_source.capture = dip->variant.constant.lambda->capture_list;
-        keep_constant = FALSE;
-        latest_initialization_on_entry = eff_context->latest_initialization;
-        lower_dynamic_init_aggregate_constant(dip->variant.constant.ptr, ipdp,
-                                              /*dtor_case=*/FALSE,
-                                              &lambda_source,
-                                              others_follow_in_aggr,
-                                              eff_insert_location,
-                                              &keep_constant,
-                                              options);
-        /* Verify that all captured variables were assigned during the
-           initialization. */
-        check_assertion(lambda_source.capture == NULL);
-        goto do_keep_constant;
       }  /* if */
-      break; /*lint !e527*/ /* Unreachable code due to gotos. */
+      /* Analogous to dik_nonconstant_aggregate. */
+      an_implied_copy_source lambda_source;
+      check_assertion(!(variable == NULL && dip->master_entry != NULL));
+      clear_implied_copy_source(&lambda_source);
+      lambda_source.capture = dip->variant.constant.lambda->capture_list;
+      keep_constant = FALSE;
+      latest_initialization_on_entry = eff_context->latest_initialization;
+      lower_dynamic_init_aggregate_constant(dip->variant.constant.ptr, ipdp,
+                                            /*dtor_case=*/FALSE,
+                                            &lambda_source,
+                                            others_follow_in_aggr,
+                                            eff_insert_location,
+                                            &keep_constant,
+                                            options);
+      /* Verify that all captured variables were assigned during the
+         initialization. */
+      check_assertion(lambda_source.capture == NULL);
+      goto do_keep_constant;
+      /* No break due to goto. */
     default:
       unexpected_condition_str("lower_dynamic_init: bad kind");
   }  /* switch */

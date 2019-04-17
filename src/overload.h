@@ -56,15 +56,18 @@ typedef struct a_conv_descr {
   a_bit_field	class_identity_or_bitwise_copy:1;
 			/* If TRUE, the "conversion" for a class is a bitwise
 			   copy (possibly from a derived class to a base
-			   class) or a mandatory copy elision.  If this is
-			   viewed as a conversion instead of a copy, it looks
-			   like an identity conversion or a derived-to-base
-			   conversion, with possible cv-qualifier adjustment.
-			   However: this flag is set only for cases where
-			   bitwise copy is the appropriate semantics, and is
-			   never used for general type adjustments on class
-			   objects (see class_object_adjustment_required).
-			   routine is always NULL when this flag is set. */
+			   class).  If this is viewed as a conversion instead
+			   of a copy, it looks like an identity conversion
+			   or a derived-to-base conversion, with possible
+			   cv-qualifier adjustment.  However: this flag is
+			   set only for cases where bitwise copy is the
+			   appropriate semantics, and is never used for
+			   general type adjustments on class objects (see
+			   class_object_adjustment_required).  routine is
+			   always NULL when this flag is set. */
+  a_bit_field	should_elide_ctor:1;
+			/* If TRUE, the constructor call for the conversion
+			   can be elided. */
   a_bit_field	result_is_a_glvalue:1;
 			/* If TRUE, the function returns a reference and the
 			   reference should be left as a glvalue rather than

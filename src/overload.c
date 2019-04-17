@@ -281,6 +281,7 @@ Clear a conversion description.
   conv->routine                        = NULL;
   conv->routine_symbol                 = NULL;
   conv->class_identity_or_bitwise_copy = FALSE;
+  conv->should_elide_ctor              = FALSE;
   conv->result_is_a_glvalue            = FALSE;
   conv->unusable                       = FALSE;
   conv->class_object_adjustment_required = FALSE;
@@ -18490,6 +18491,12 @@ error.  conv_context describes the context of the conversion.
     }  /* if */
     if (alep == NULL) free_arg_list(arg_list);
   }  /* if */
+  if (mandatory_copy_elision && type_is_same &&
+      (is_copy_initialization || (conv_context & CCO_DIRECT_INITIALIZATION)) &&
+      source_operand != NULL && is_a_prvalue(source_operand)) {
+    conversion->should_elide_ctor = TRUE;
+    okay = TRUE;
+  }  /* if */
   if (*ambiguous) conversion->unusable = TRUE;
   if (*ambiguous && ambiguity_list != NULL) {
     /* Return the candidate functions list to the caller, for use in
@@ -19163,13 +19170,6 @@ that case).
                                      &ambiguous, &ambiguity_list)) {
       /* A user-defined conversion (constructor or conversion function) or
          bitwise copy is available to convert to the destination type. */
-      okay = TRUE;
-    } else if (is_copy_initialization && mandatory_copy_elision &&
-               identical_types_ignoring_qualifiers(dest_type, source_type) &&
-               is_a_prvalue(source_operand)) {
-      /* A copy initialization that we expect to be elided. */
-      clear_conv_descr(conversion);
-      conversion->class_identity_or_bitwise_copy = TRUE;
       okay = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cli_or_cx_enabled &&
@@ -20037,6 +20037,13 @@ the temporary.
     record_cast_position_in_rescan_info(operand, (an_expr_node_ptr)NULL,
                                         csf_none, &operand->position,
                                         &operand->position, dest_type);
+  } else if (!force_copy_to_temp && conversion->should_elide_ctor &&
+             dest_type != NULL &&
+             identical_types_ignoring_qualifiers(operand->type, dest_type)) {
+    /* Do a simple class object type adjustment without a call of a conversion
+       routine, since we can elide the constructor call. */
+    conversion->class_object_adjustment_required = TRUE;
+    do_class_object_adjustment(operand, dest_type, conversion);
   } else if (conversion_routine == NULL) {
     /* A simple class object type adjustment without a call of a conversion
        routine. */
@@ -20842,13 +20849,19 @@ happen only in C++ mode.
     /* Conversion to or from an unknown template-dependent type in a
        prototype instantiation. */
   } else if (conversion_routine == NULL) {
-    /* There was a previous error. */
+    if (conversion->should_elide_ctor) {
+      elision_applies = TRUE;
+      elision_source_type = source_operand->type;
+      class_bitwise_copy = TRUE;
+    } else {
+      /* There was a previous error. */
 #if CHECKING
-    if (!is_error_operand(source_operand)) {
-      internal_error(
-        "determine_dynamic_init_for_class_init: not bitwise copy, no routine");
-    }  /* if */
+      if (!is_error_operand(source_operand)) {
+        internal_error(
+          "determine_dynamic_init_for_class_init: not bitwise copy, no routine");
+      }  /* if */
 #endif /* CHECKING */
+    }  /* if */
   } else {
     /* There is a conversion routine. */
     if (conversion_routine->special_kind ==
