@@ -20857,8 +20857,8 @@ happen only in C++ mode.
       /* There was a previous error. */
 #if CHECKING
       if (!is_error_operand(source_operand)) {
-        internal_error(
-          "determine_dynamic_init_for_class_init: not bitwise copy, no routine");
+        internal_error("determine_dynamic_init_for_class_init: "
+                       "not bitwise copy, no routine");
       }  /* if */
 #endif /* CHECKING */
     }  /* if */
@@ -21123,7 +21123,7 @@ was done.
   a_boolean     is_copy_initialization =
                                   !(conv_context & CCO_DIRECT_INITIALIZATION);
   a_boolean     orig_is_copy_initialization = is_copy_initialization;
-  a_boolean     check_elided_cctor = !mandatory_copy_elision;
+  a_boolean     check_elided_cctor = TRUE;
 
   orig_operand = *source_operand;
   if (elision_done != NULL) *elision_done = FALSE;
