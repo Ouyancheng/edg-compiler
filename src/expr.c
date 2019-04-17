@@ -39108,7 +39108,7 @@ FALSE otherwise.
              record_init_for_array_struct_binding with those structures. */
           a_decl_parse_state     dps;
           an_init_component_ptr  icp;
-          /* The cal to record_init_for_array_struct_binding pushed its own
+          /* The call to record_init_for_array_struct_binding pushed its own
              expression stack.  So pop the currently active expression stack
              and set a flag to avoid popping it again later on. */
           pop_expr_stack();
