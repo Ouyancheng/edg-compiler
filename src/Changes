@@ -1,5 +1,12 @@
 Version 5.1
 
+4/18/19  [EDGcpfe/21154]
+Use const-qualified temporaries when possible
+
+A change has been made to const-qualify lowered temporary variables in more
+situations.
+
+
 4/17/19  [EDGcpfe/21119]
 The noexcept operator and constant expressions
 
