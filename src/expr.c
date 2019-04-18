@@ -737,6 +737,44 @@ error type.
 }  /* arg_matches_auto_template_param */
 
 
+static a_boolean can_ignore_single_element_braces(a_decl_parse_state    *dps,
+                                                  an_init_component_ptr icp)
+/*
+Direct-list-initialization with a placeholder type only permits a single
+braced element, and in that case the braces are ignored (rule introduced by
+the C++ standardization committee's paper N3922).  For class template auto
+deduction, we ignore single-element braces iff the list contains a
+specialization or a class derived from a specialization of the class template.
+Return TRUE if this is a case where single-element braced initializer lists
+can have their braces ignored.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (dps->has_direct_initializer &&
+      icp != NULL && is_braced_init_component(icp) &&
+      ((!(clang_mode ? clang_version < 30800 :
+                        gpp_mode ? gnu_version < 50000 : FALSE)) ||
+        (microsoft_mode && microsoft_version >= 1900))) {
+    icp = icp->variant.braced.list;
+    if (!dps->has_deducible_class_templ_args) {
+      result = TRUE;
+    } else if (icp != NULL && is_expression_component(icp) &&
+               is_class_template_placeholder_type(dps->type)) {
+      a_template_arg_ptr args;
+      a_type_ptr         operand_type = operand_of_arg_list_elem(icp)->type;
+      a_symbol_ptr       class_tmpl_sym =
+          dps->type->variant.template_param.extra_info->class_template_symbol;
+
+      result = is_or_derived_from_instance_of_class_template(operand_type,
+                                                             class_tmpl_sym,
+                                                             &args);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* can_ignore_single_element_braces */
+
+
 void prescan_initializer_for_auto_type_deduction(
                                          a_decl_parse_state *dps,
                                          a_boolean          parenthesized_init)
@@ -766,7 +804,6 @@ swallowed); otherwise, it's "="-form or "{...}" form.
   a_boolean             is_full_expr = !dps->is_new_expr_type &&
                                        !dps->is_init_capture &&
                                        dps->sym != NULL;
-  a_boolean             ignore_single_element_braces = FALSE;
   a_decl_parse_state    *saved_decl_parse_state = NULL;
 
   check_assertion(dps->has_deduced_type && dps->auto_type != NULL);
@@ -857,14 +894,6 @@ swallowed); otherwise, it's "="-form or "{...}" form.
                                           icp, /*to_front=*/TRUE,
                                           &dps->prescanned_initializer_cache);
   }  /* if */
-  /* Direct-list-initialization with a placeholder type only permits a single
-     braced element, and in that case the braces are ignored (rule introduced
-     by the C++ standardization committee's paper N3922). */
-  ignore_single_element_braces =
-    dps->has_direct_initializer && !dps->has_deducible_class_templ_args &&
-    ((!(clang_mode ? clang_version < 30800 :
-                     gpp_mode ? gnu_version < 50000 : FALSE)) ||
-     (microsoft_mode && microsoft_version >= 1900));
   /* Do type deduction. */
   if (C_mode()) {
     /* GNU C has some simplified deduction rules. */
@@ -896,8 +925,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
       undeduced_type = make_qualified_type(undeduced_type,
                                            (a_type_qualifier_set)TQ_CONST);
     }  /* if */
-    if (ignore_single_element_braces &&
-        icp != NULL && is_braced_init_component(icp)) {
+    if (can_ignore_single_element_braces(dps, icp)) {
       an_init_component_ptr  elem_icp = icp->variant.braced.list;
       if (parenthesized_init && !gpp_mode) {
         /* Something like "auto x( { 3 } );".  This is malformed per

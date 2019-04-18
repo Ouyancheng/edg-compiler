@@ -38174,6 +38174,37 @@ instance, otherwise it is set to NULL.
 }  /* is_instance_of_class_template */
 
 
+a_boolean is_or_derived_from_instance_of_class_template(
+                                           a_type_ptr         instance_type,
+                                           a_symbol_ptr       template_sym,
+                                           a_template_arg_ptr *templ_arg_list)
+/*
+Return TRUE if instance_type is either an instance (explicitly specialized or
+not) of the class template specified by template_sym, or derived from an
+instance of the class template.  When TRUE is returned, *templ_arg_list is set
+to point to the template argument list of the instance, otherwise it is set to
+NULL.
+*/
+{
+  a_boolean        result = FALSE;
+  a_base_class_ptr bcp;
+
+  result = is_instance_of_class_template(instance_type, template_sym,
+                                         templ_arg_list);
+  if (!result) {
+    complete_type_is_needed(instance_type);
+    for (bcp = base_classes_of(instance_type); bcp != NULL; bcp = bcp->next) {
+      if (is_instance_of_class_template(bcp->type, template_sym,
+                                        templ_arg_list)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* is_or_derived_from_specialization_of_class_template */
+
+
 a_template_param_ptr copy_template_param_list(a_template_param_ptr  tpl)
 /*
 Return a copy of the given template parameter list as part of the process of

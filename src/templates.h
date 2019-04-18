@@ -1237,6 +1237,11 @@ extern a_boolean is_instance_of_class_template(
 				a_symbol_ptr		template_sym,
 				a_template_arg_ptr	*templ_arg_list);
 
+extern a_boolean is_or_derived_from_instance_of_class_template(
+                                           a_type_ptr         instance_type,
+                                           a_symbol_ptr       template_sym,
+                                           a_template_arg_ptr *templ_arg_list);
+
 extern a_template_param_ptr copy_template_param_list(
                                                    a_template_param_ptr  tpl);
 

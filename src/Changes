@@ -1,5 +1,26 @@
 Version 5.1
 
+4/18/19  [EDGcpfe/20936]
+Class template argument deduction with single-element initializer list
+
+Committee paper P0702R1 added an exception to CTAD with initializer lists when
+the initializer list contained a single element containing a type that would
+match the class copy constructor.  In this case, the deduced type would not
+be std::initializer_list.  For example:
+
+  template<typename T> struct X {
+    X(std::initializer_list<T>) = delete;
+    X(const X&);
+  };
+
+  void bar(X<int>& x) {
+    X x1{x}; // Previously called deleted ctor, now calls copy ctor
+    X x2(x); // Calls copy ctor
+  }
+
+This is now implemented.
+
+
 4/18/19  [EDGcpfe/20989,EDGcpfe/21153]
 Microsoft compatibility: __is_assignable_no_precondition_check
 
