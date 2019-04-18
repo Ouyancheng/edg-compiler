@@ -684,6 +684,8 @@ modes.
                   "__is_valid_winrt_type");
     enter_keyword((a_token_kind)tok_is_trivially_copy_assignable,
                   "__is_trivially_copy_assignable");
+    enter_keyword((a_token_kind)tok_is_assignable_no_precondition_check,
+                  "__is_assignable_no_precondition_check");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   enter_keyword((a_token_kind)tok_has_nothrow_assign,

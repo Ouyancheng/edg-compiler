@@ -642,6 +642,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_is_assignable */
 #if MICROSOFT_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_is_trivially_copy_assignable */
+   (an_opname_kind)onk_none,      /* tok_is_assignable_no_precondition_check */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_builtin_addressof */
    (an_opname_kind)onk_none,          /* tok_edg_internal_type */

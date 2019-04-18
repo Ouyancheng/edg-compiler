@@ -13537,6 +13537,9 @@ indication in *rcblock).
       case tok_is_trivially_copy_assignable:
                                         bok = bok_is_trivially_copy_assignable;
                                         break;
+      case tok_is_assignable_no_precondition_check:
+                                 bok = bok_is_assignable_no_precondition_check;
+                                        break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_is_final:                bok = bok_is_final; break;
       case tok_has_unique_object_representations:
@@ -30574,6 +30577,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_win_interface:
     case tok_gcnew:
     case tok_is_trivially_copy_assignable:
+    case tok_is_assignable_no_precondition_check:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_dynamic_cast:
     case tok_const_cast:
@@ -35688,6 +35692,13 @@ handle_coroutine_yield:
       scan_is_assignable(bok_is_assignable,
                          (a_rescan_control_block *)NULL, &local_result);
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_is_assignable_no_precondition_check:
+      /* __is_assignable_no_precondition_check construct: */
+      scan_is_assignable(bok_is_assignable_no_precondition_check,
+                         (a_rescan_control_block *)NULL, &local_result);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
     case tok_is_valid_winrt_type:
       /* __is_valid_winrt_type construct: */
@@ -44365,6 +44376,13 @@ alternative callable from outside, see rescan_expr_with_substitution.
         /* __is_assignable/__is_trivially_copy_assignable construct: */
         scan_is_assignable(bok_is_assignable, rcblock, result);
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case tok_is_assignable_no_precondition_check:
+        /* __is_assignable_no_precondition_check construct: */
+        scan_is_assignable(bok_is_assignable_no_precondition_check, rcblock,
+                           result);
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         unexpected_condition();
     }  /* switch */
@@ -46642,8 +46660,8 @@ It determines whether an assignment between two types -- the given destination
 and source types -- is valid (and whether that assignment is known to throw
 an exception or involve a call to a function other than a trivial special
 member function).
-kind is bok_is_nothrow_assignable, bok_is_trivially_assignable, or
-bok_is_assignable.
+kind is bok_is_nothrow_assignable, bok_is_trivially_assignable,
+bok_is_assignable, or bok_is_assignable_no_precondition_check.
 */
 {
   a_boolean               result = FALSE;
@@ -46711,7 +46729,9 @@ bok_is_assignable.
           result = FALSE;
         }  /* if */
       } else {
-        check_assertion(kind == (a_builtin_operation_kind)bok_is_assignable);
+        check_assertion(kind == (a_builtin_operation_kind)bok_is_assignable ||
+                        kind ==
+            (a_builtin_operation_kind)bok_is_assignable_no_precondition_check);
         /* No further checks are needed. */
       }  /* if */
     }  /* if */

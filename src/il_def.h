@@ -1285,6 +1285,7 @@ typedef enum /*a_token_kind*/ {
   tok_is_assignable,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tok_is_trivially_copy_assignable,
+  tok_is_assignable_no_precondition_check,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tok_builtin_addressof,
   tok_edg_internal_type,
@@ -1475,6 +1476,7 @@ EXTERN a_const_char
    "__is_assignable",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__is_trivially_copy_assignable",
+   "__is_assignable_no_precondition_check",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "__builtin_addressof",
    "__edg_type__",
@@ -13022,6 +13024,10 @@ typedef enum a_builtin_operation_kind_tag {
 			/* Clang's __builtin_convertvector operator.  A vector
 			   operand followed by a type operand. */
   bok_is_assignable,    /* Microsoft's __is_assignable.  Two type operands. */
+  bok_is_assignable_no_precondition_check,
+			/* Microsoft's __is_assignable_no_precondition_check.
+			   Two type operands (treated the same as
+			   __is_assignable). */
   bok_is_trivially_copy_assignable,
 			/* Microsoft's __is_trivially_copy_assignable.  Two
 			   type operands. */

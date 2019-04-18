@@ -1,5 +1,12 @@
 Version 5.1
 
+4/18/19  [EDGcpfe/20989,EDGcpfe/21153]
+Microsoft compatibility: __is_assignable_no_precondition_check
+
+The builtin __is_assignable_no_precondition_check has been implemented
+in Microsoft emulation mode.  It acts the same as __is_assignable.
+
+
 4/18/19  [EDGcpfe/21154]
 Use const-qualified temporaries when possible
 

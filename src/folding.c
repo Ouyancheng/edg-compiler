@@ -9097,6 +9097,7 @@ constant is set as well.
       case bok_is_nothrow_assignable:
       case bok_is_trivially_assignable:
       case bok_is_assignable:
+      case bok_is_assignable_no_precondition_check:
         fold_is_assignable(expr, constant, maintain_expression);
         break;
       case bok_builtin_addressof:
