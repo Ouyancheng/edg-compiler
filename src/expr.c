@@ -19132,7 +19132,8 @@ Return a newly created list of expression nodes for each of these dimensions
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 static a_token_kind get_new_operator_token(a_rescan_control_block *rcblock,
                                            a_new_parse_state      *nps)
-/* Get the C++ "new" or C++/CLI "gcnew" operator token.
+/*
+Get the C++ "new" or C++/CLI "gcnew" operator token.
 */
 {
   a_token_kind operator_token;
@@ -19352,8 +19353,10 @@ static void rescan_new_deduce_placeholder_type(
                                               a_rescan_control_block *rcblock,
                                               a_new_parse_state      *nps,
                                               a_decl_parse_state     *dps)
-/* The type involves a placeholder type.  Deduce the type from the
-   initializer expression. */
+/*
+The type involves a placeholder type.  Deduce the type from the initializer
+expression.
+*/
 {
   an_operand           auto_operand;
   an_arg_list_elem_ptr auto_alep = NULL;
@@ -19426,7 +19429,9 @@ static void rescan_new_deduce_placeholder_type(
 
 static void scan_new_type(a_new_parse_state  *nps,
                           a_decl_parse_state *dps)
-/* Scan the new-type-name or ( type-name ) from source. */
+/*
+Scan the new-type-name or ( type-name ) from source.
+*/
 {
   dps->is_new_expr_type = TRUE;
   dps->auto_type_allowed = auto_type_specifier_enabled;
@@ -20080,8 +20085,10 @@ Return the matching operator "new" function symbol, if found.
 
 
 static a_symbol_ptr get_ctor_sym_for_new_type(a_new_parse_state *nps)
-/* Return non-NULL if the type is a class that has a constructor
-   or an array with elements of such a class. */
+/*
+Return non-NULL if the type is a class that has a constructor or an array with
+elements of such a class.
+*/
 {
   a_symbol_ptr                  ctor_sym = NULL;
 
