@@ -38189,17 +38189,19 @@ NULL.
   a_boolean        result = FALSE;
   a_base_class_ptr bcp;
 
-  result = is_instance_of_class_template(instance_type, template_sym,
-                                         templ_arg_list);
-  if (!result) {
-    complete_type_is_needed(instance_type);
-    for (bcp = base_classes_of(instance_type); bcp != NULL; bcp = bcp->next) {
-      if (is_instance_of_class_template(bcp->type, template_sym,
-                                        templ_arg_list)) {
-        result = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
+  if (is_immediate_class_type(instance_type)) {
+    result = is_instance_of_class_template(instance_type, template_sym,
+                                           templ_arg_list);
+    if (!result) {
+      complete_type_is_needed(instance_type);
+      for (bcp = base_classes_of(instance_type); bcp != NULL; bcp = bcp->next) {
+        if (is_instance_of_class_template(bcp->type, template_sym,
+                                          templ_arg_list)) {
+          result = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
   return result;
 }  /* is_or_derived_from_specialization_of_class_template */
