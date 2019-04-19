@@ -1,5 +1,16 @@
 Version 5.1
 
+4/19/19  [EDGcpfe/20803]
+Microsoft compatibility: "if constexpr" enabled in more modes
+
+Recent Microsoft system header files are using the C++17 "if constexpr"
+feature in non-C++17 modes.  Apparently, the use of this feature in such
+cases generates a diagnostic that is automatically downgraded to a warning.
+Rather than try to emulate this behavior, the "if constexpr" feature is
+now enabled when microsoft_version >= 1911 in C++14 mode (which is the
+default for microsoft_version 1911).
+
+
 4/18/19  [EDGcpfe/20936]
 Class template argument deduction with single-element initializer list
 

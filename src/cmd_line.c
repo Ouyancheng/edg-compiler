@@ -2643,6 +2643,10 @@ option values if they were not already set by a command line option.
       }  /* if */
       if (microsoft_version >= 1911) {
         /* Visual Studio 2017 version 15.3. */
+        if (ms_cpp14_mode) {
+          /* Enable "if constexpr" (used in Microsoft system header files). */
+          constexpr_if_enabled = TRUE;
+        }  /* if */
         if (ms_cpp17_mode) {
           /* Microsoft is now (generally) enabling C++17 features only
              when one of /std:c++17 or /std:c++latest is specified. */
