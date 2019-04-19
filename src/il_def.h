@@ -17332,6 +17332,7 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__builtin_convertvector",
   "__is_assignable",
   "__is_trivially_copy_assignable",
+  "__is_assignable_no_precondition_check",
   "__builtin_addressof",
   "__has_unique_object_representations",
   "__is_aggregate",
