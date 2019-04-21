@@ -6984,6 +6984,7 @@ etc.).
            this is a function further below. */
         any_args = begin_potential_pack_expansion_context_full(
                                          &pesep, &pedp, /*is_lookahead=*/TRUE,
+                                         /*allow_empty_list=*/FALSE,
                                          /*ignore_suppression=*/FALSE);
       }  /* if */
       if (curr_token == tok_rparen || !any_args ||
@@ -7332,6 +7333,7 @@ etc.).
            this is a function. */
         any_args = begin_potential_pack_expansion_context_full(
                                          &pesep, &pedp, /*is_lookahead=*/TRUE,
+                                         /*allow_empty_list=*/FALSE,
                                          /*ignore_suppression=*/FALSE);
         if (!is_template_dependent_context() && pedp != NULL) {
           /* This is a real instantiation.  If we found a function declarator

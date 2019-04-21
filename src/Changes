@@ -1,5 +1,22 @@
 Version 5.1
 
+4/21/19  [EDGcpfe/21157]
+Incorrect handling of empty expansion of template parameter pack
+
+If the type of a nontype template parameter is the expansion of another
+template parameter pack (T... X in the example below), the expansion
+could fail when the pack for T was empty.  This could result in spurious
+errors and/or internal errors.  Now fixed.
+
+  int g(...);
+  template <typename ...T> struct A {
+    template <T... X> static decltype(g(X...)) f() { return g(X...); }
+  };
+  int main() {
+    A<>::f<>();
+  }
+
+
 4/19/19  [EDGcpfe/20803]
 Microsoft compatibility: "if constexpr" enabled in more modes
 

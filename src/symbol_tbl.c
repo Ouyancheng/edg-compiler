@@ -1904,6 +1904,7 @@ Allocate a new symbol header, and return a pointer to it.
   ptr->saved_macro_stack = NULL;
   ptr->hash_value        = 0;
   ptr->variant.opname    = (an_opname_kind)onk_none;
+  ptr->is_unnamed        = FALSE;
   ptr->has_intrinsic_name = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ptr->microsoft_identifier_used = FALSE;
@@ -2049,12 +2050,15 @@ be NULL, in which case nothing is done.
 static void set_identifier_for_symbol_header(
 					a_symbol_header_ptr	hdr_ptr,
 					a_const_char		*string,
-					sizeof_t		length)
+					sizeof_t		length,
+					a_boolean		is_unnamed)
 /*
 Make a copy of the specified string, whose length is specified by "length"
 in the primary file scope memory region.  If length is 0, strlen is used to
 determine the length.  Set the symbol header specified by hdr_ptr to use
-the resulting string and length.
+the resulting string and length.  is_unnamed is TRUE if the header is for
+an unnamed entity (in which case the string is a placeholder value such
+as <unnamed>).
 */
 {
   char		*new_string;
@@ -2066,6 +2070,7 @@ the resulting string and length.
   new_string[length] = '\0';
   hdr_ptr->identifier = new_string;
   hdr_ptr->identifier_length = length;
+  hdr_ptr->is_unnamed = is_unnamed;
 #if DEBUG
   symbol_name_string_space += (unsigned long)(length + 1);
 #endif /* DEBUG */
@@ -2778,7 +2783,8 @@ caller may have to set it directly.
   /* Copy the string to memory in the appropriate memory region.  It is
      allocated in the intermediate language memory region because it must
      be passed to the back end. */
-  set_identifier_for_symbol_header(hdr_ptr, identifier, length);
+  set_identifier_for_symbol_header(hdr_ptr, identifier, length,
+                                   /*is_unnamed=*/FALSE);
   hdr_ptr->hash_value = hash_value;
 
   /* There is no symbol. */
@@ -4024,7 +4030,8 @@ already been created.
 {
   if (error_symbol_header == NULL) {
     error_symbol_header = alloc_symbol_header();
-    set_identifier_for_symbol_header(error_symbol_header, "<error>", 7);
+    set_identifier_for_symbol_header(error_symbol_header, "<error>", 7,
+                                   /*is_unnamed=*/FALSE);
   }  /* if */
   return error_symbol_header;
 }  /* get_error_symbol_header */
@@ -7611,7 +7618,8 @@ it into the symbol table.
   if (unnamed_tag_symbol_header == NULL) {
     unnamed_tag_symbol_header = alloc_symbol_header();
     set_identifier_for_symbol_header(unnamed_tag_symbol_header,
-                                     "<unnamed>", 9);
+                                     "<unnamed>", 9,
+                                     /*is_unnamed=*/TRUE);
   }  /* if */
   sym = alloc_symbol(sym_kind, unnamed_tag_symbol_header, pos);
   sym->decl_scope = scope_stack[decl_scope_level].number;
@@ -7653,7 +7661,8 @@ sake of identifying a given field entry as representing an unnamed field.
     /* Set the header. */
     unnamed_field_symbol_header = alloc_symbol_header();
     set_identifier_for_symbol_header(unnamed_field_symbol_header,
-                                     "<unnamed>", 9);
+                                     "<unnamed>", 9,
+                                     /*is_unnamed=*/TRUE);
     sym.header = unnamed_field_symbol_header;
   }  /* if */
   return &sym;
@@ -7672,7 +7681,8 @@ table.
   if (unnamed_namespace_symbol_header == NULL) {
     unnamed_namespace_symbol_header = alloc_symbol_header();
     set_identifier_for_symbol_header(unnamed_namespace_symbol_header,
-                                     "<unnamed>", 9);
+                                     "<unnamed>", 9,
+                                     /*is_unnamed=*/TRUE);
   }  /* if */
   sym = alloc_symbol((a_symbol_kind)sk_namespace,
                      unnamed_namespace_symbol_header, pos);
@@ -7689,7 +7699,8 @@ Return a unique unnamed symbol header.
   a_symbol_header_ptr	sym_hdr;
 
   sym_hdr = alloc_symbol_header();
-  set_identifier_for_symbol_header(sym_hdr, "<unnamed>", 9);
+  set_identifier_for_symbol_header(sym_hdr, "<unnamed>", 9,
+                                   /*is_unnamed=*/TRUE);
   return sym_hdr;
 }  /* make_unnamed_symbol_header */
 
@@ -7720,7 +7731,8 @@ Initialize a locator, *loc, for an unnamed virtual function.
   if (unnamed_virtual_function_symbol_header == NULL) {
     unnamed_virtual_function_symbol_header = alloc_symbol_header();
     set_identifier_for_symbol_header(unnamed_virtual_function_symbol_header,
-                                     "<unnamed>", 9);
+                                     "<unnamed>", 9,
+                                     /*is_unnamed=*/TRUE);
   }  /* if */
   loc->symbol_header = unnamed_virtual_function_symbol_header;
 }  /* make_unnamed_virtual_function_locator */
@@ -7752,7 +7764,8 @@ parent object" for an anonymous union.  Do not enter it in the symbol table.
   if (anonymous_parent_object_symbol_header == NULL) {
     anonymous_parent_object_symbol_header = alloc_symbol_header();
     set_identifier_for_symbol_header(anonymous_parent_object_symbol_header,
-                                     "<unnamed>", 9);
+                                     "<unnamed>", 9,
+                                     /*is_unnamed=*/TRUE);
   }  /* if */
   sym = alloc_symbol(kind, anonymous_parent_object_symbol_header, pos);
   sym->decl_scope = decl_scope;
@@ -10777,7 +10790,8 @@ from other assemblies that haven't been loaded yet).
 
   check_assertion(name_con->kind == (a_constant_repr_kind)ck_string);
   set_identifier_for_symbol_header(sym_hdr, name_con->variant.string.value,
-                                   (sizeof_t)name_con->variant.string.length);
+                                   (sizeof_t)name_con->variant.string.length,
+                                   /*is_unnamed=*/FALSE);
   sym = alloc_symbol((a_symbol_kind)sk_class_or_struct_tag, sym_hdr,
                      &null_source_position);
   sym->decl_scope = FILE_SCOPE_NUMBER;
@@ -17088,6 +17102,7 @@ are handled in symbol_tbl_init.)
   cleared_symbol.is_alias                          = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   cleared_symbol.is_pack_element                   = FALSE;
+  cleared_symbol.is_pack_expansion                 = FALSE;
   cleared_symbol.value_has_been_set                = FALSE;
   dummy_undefined_symbol = NULL;
   size_of_trans_unit_for_scope = 0;

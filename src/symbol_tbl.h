@@ -3555,6 +3555,9 @@ typedef struct a_symbol {
 			   a function parameter pack and also TRUE for
 			   template parameter symbols for template parameters
 			   that were declared as packs. */
+  a_bit_field	is_pack_expansion:1;
+			/* TRUE if this is the dummy symbol created for
+			   an empty template parameter pack expansion. */
   a_bit_field
 		value_has_been_set:1;
 			/* TRUE for a variable or static data member that was
@@ -4151,6 +4154,9 @@ typedef struct a_symbol_header {
 			   identifies the particular operator kind.  For
 			   other kinds of symbols, this is onk_none. */
   } variant;
+  a_bit_field	is_unnamed:1;
+			/* TRUE if this symbol header reflects an unnamed
+			   entity. */
   a_bit_field	has_intrinsic_name:1;
 			/* TRUE if the identifier is used as the name of an
 			   intrinsic construct (e.g., C++20's

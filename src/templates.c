@@ -23251,6 +23251,7 @@ static void scan_a_template_parameter_declaration(
 			a_boolean			*is_unnamed,
 			a_boolean			*template_dependent,
 			a_boolean			*is_pack,
+			a_boolean			*is_pack_element,
 			a_boolean			*uses_auto,
 			a_template_nesting_depth	nesting_depth,
 			a_decl_pos_block_ptr		decl_pos_block)
@@ -23260,18 +23261,19 @@ parameter is unnamed, and is_unnamed is not NULL, return a flag indicating
 whether the nontype parameter is unnamed.  If the parameter type
 depends on a template parameter type, return TRUE in *template_dependent
 (if it is not NULL).  If the type of the parameter is followed by an
-ellipsis, return TRUE in *is_pack.  If the template parameter is
-declared with "auto" or "decltype(auto)", return TRUE in *uses_auto
-(if it is not NULL).  nesting_depth is the nesting depth of the
-current template parameter list, or NO_NESTING_DEPTH when this routine
-is called to to rescan a dependent template parameter type.
+ellipsis, return TRUE in *is_pack.  If this is a declaration of a pack whose
+type is an expansion of another pack, return TRUE in *is_pack_expansion.
+If the template parameter is declared with "auto" or "decltype(auto)",
+return TRUE in *uses_auto (if it is not NULL).  nesting_depth is the nesting
+depth of the current template parameter list, or NO_NESTING_DEPTH when this
+routine is called to to rescan a dependent template parameter type.
 decl_pos_block is used to return additional position information about
 the components of the declaration.
 */
 {
-  a_decl_parse_state			state;
-  a_boolean				is_pack_expansion;
-  a_decl_flag_set			di_flags;
+  a_decl_parse_state	state;
+  a_boolean		is_pack_expansion;
+  a_decl_flag_set	di_flags;
 
   /* Scan the declaration specifiers. */
   init_decl_parse_state(&state);
@@ -23296,6 +23298,7 @@ the components of the declaration.
              DI_IS_TEMPLATE_PARAM_DECL;
   is_pack_expansion = type_uses_enclosing_pack(state.type, nesting_depth);
   if (is_pack_expansion) di_flags |= DI_IS_TEMPLATE_PARAM_PACK_EXPANSION;
+  if (is_pack_element != NULL) *is_pack_element = is_pack_expansion;
   /* Scan the declarator. */
   declarator(di_flags, &state, /*member_parent_type=*/(a_type_ptr)NULL,
              param_locator, (a_func_info_block_ptr)NULL, decl_pos_block);
@@ -23523,13 +23526,9 @@ is TRUE when is_pack_element is TRUE and this is not the first parameter
 of the expansion.
 */
 {
-  /* The is_pack_element in the symbol is set for all packs and pack
-     elements.  In the template parameter entry, the pack field is set
-     for pack declarations and the initial element of a pack expansion
-     (of enclosing packs). */
-  sym->is_pack_element = TRUE;
   if (!is_pack_element || !is_non_initial) tpp->is_pack = TRUE;
   if (is_pack_element) {
+    sym->is_pack_element = TRUE;
     tpp->is_pack_element = TRUE;
   }  /* if */
   decl_state->is_variadic = TRUE;
@@ -23941,6 +23940,7 @@ depends on a template parameter.
   a_pack_expansion_stack_entry_ptr
 			pesep;
   a_boolean		is_pack_element;
+  a_boolean		is_pack_expansion;
   a_boolean		is_non_initial_pack_element;
 
   pesep = param_state->pack_expansion_stack_entry;
@@ -23951,7 +23951,9 @@ depends on a template parameter.
   scan_a_template_parameter_declaration(&param_locator, &param_type_ptr,
                                         &is_unnamed,
                                         &const_type_involves_template_param,
-                                        &is_pack, &uses_auto,
+                                        &is_pack,
+                                        &is_pack_expansion,
+                                        &uses_auto,
                                         decl_state->nesting_depth,
                                         &decl_pos_block);
   sym = make_nontype_template_param_symbol(decl_state, param_state, is_unnamed,
@@ -23971,8 +23973,8 @@ depends on a template parameter.
     template_param_is_variadic(sym, is_pack_element,
                                is_non_initial_pack_element,
                                template_param, decl_state);
-    template_param->is_pack_expansion = pesep != NULL &&
-                                        pesep->instantiation_descr != NULL;
+    template_param->is_pack_expansion = is_pack_expansion;
+    sym->is_pack_expansion = is_pack_expansion;
   }  /* if */
   if (uses_auto) {
     template_param->uses_auto = TRUE;
@@ -24314,20 +24316,27 @@ depends on a another template parameter.
 
 static a_template_param_ptr make_empty_template_param(
 			a_tmpl_decl_state_ptr		decl_state,
-			a_tmpl_param_state_ptr		param_state)
+			a_tmpl_param_state_ptr		param_state,
+			a_symbol_header_ptr		symbol_header)
 /*
 A template parameter declaration that expands an enclosing pack expands
 to an empty pack.  Add a placeholder parameter to record that information.
+symbol_header is the symbol header associated with the original parameter
+declaration.
 */
 {
   a_symbol_ptr		sym;
   a_template_param_ptr	template_param;
+  a_symbol_locator	locator;
 
-  sym = make_nontype_template_param_symbol(decl_state, param_state,
-                                           /*is_unnamed=*/TRUE,
-                                           /*is_pack=*/TRUE,
-                                           (a_symbol_locator*)NULL,
-                                           error_type());
+  clear_locator(&locator, &null_source_position);
+  locator.symbol_header = symbol_header;
+  sym = make_nontype_template_param_symbol(
+                                   decl_state, param_state,
+                                   symbol_header->is_unnamed, /*is_pack=*/TRUE,
+                                   &locator,
+                                   type_of_unknown_templ_param_nontype);
+  sym->is_pack_expansion = TRUE;
   template_param = alloc_template_param(sym);
   template_param->is_empty_pack = TRUE;
   template_param->is_pack_element = TRUE;
@@ -24355,6 +24364,7 @@ to represent the template parameters.
   a_token_sequence_number		first_tsn;
   a_pack_expansion_stack_entry_ptr	pesep;
   a_tmpl_param_state			param_state;
+  a_pack_expansion_descr_ptr		pedp;
 
   db_enter(3, "scan_template_param_list");
   add_stop_token(tok_semicolon);
@@ -24377,12 +24387,17 @@ to represent the template parameters.
        pack, while list_pos is unique. */
     ++param_state.param_number;
     add_stop_token(tok_comma);
-    any_params = begin_potential_pack_expansion_context(&pesep);
+    any_params = begin_potential_pack_expansion_context_full(
+                                                 &pesep, &pedp,
+                                                 /*is_lookahead=*/FALSE,
+                                                 /*allow_empty_list=*/TRUE,
+                                                 /*ignore_suppression=*/FALSE);
     param_state.pack_expansion_stack_entry = pesep;
-    if (!any_params) {
+    if (!any_params && pedp->param_symbol_header != NULL) {
       /* A pack expands to an empty expansion.  Add a placeholder
          parameter. */
-      template_param = make_empty_template_param(decl_state, &param_state);
+      template_param = make_empty_template_param(decl_state, &param_state,
+                                                 pedp->param_symbol_header);
       /* Add the template param to the end of the list. */
       if (template_param_list == NULL) {
         template_param_list = template_param;
@@ -24453,6 +24468,12 @@ to represent the template parameters.
       (void)end_potential_pack_expansion_context(
                                                pesep, /*is_declarator=*/FALSE);
       any_params = advance_to_next_pack_element(pesep);
+      if (pesep != NULL && pesep->instantiation_descr == NULL &&
+          template_param->is_pack_expansion) {
+        /* If this an expansion of a pack, record the symbol header
+           in the pack expansion description. */
+        pedp->param_symbol_header = template_param->param_symbol->header;
+      }  /* if */
     }  /* while */
     remove_stop_token(tok_comma);
     /* Keep looping on a comma. */
@@ -24561,6 +24582,7 @@ the resulting constant is stored in the pointer pointed to by "constant".
       rescan_reusable_cache(&param_ptr->cache.tokens);
       /* Scan the declaration specifiers. */
       scan_a_template_parameter_declaration(&param_locator, &constant_type,
+                                            (a_boolean*)NULL,
                                             (a_boolean*)NULL,
                                             (a_boolean*)NULL,
                                             (a_boolean*)NULL,

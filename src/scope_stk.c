@@ -10240,6 +10240,7 @@ to it.
   pedp->last_token = NO_TOKEN_SEQUENCE_NUMBER;
   pedp->packs_referenced = NULL;
   pedp->ellipsis_position = null_source_position;
+  pedp->param_symbol_header = NULL;
   pedp->ellipsis_seen = FALSE;
   pedp->is_function_declarator = FALSE;
   pedp->uses_only_enclosing_packs = FALSE;
@@ -10282,6 +10283,7 @@ pointer to it.
   pidp->next = NULL;
   pidp->pack_status = NULL;
   pidp->after_first_element = FALSE;
+  pidp->is_empty = FALSE;
   return pidp;
 }  /* alloc_pack_instantiation_descr */
 
@@ -10923,6 +10925,7 @@ static a_pack_instantiation_descr_ptr create_pack_instantiation_descr(
 		a_template_arg_ptr			templ_arg_list,
 		a_boolean				is_rescan,
 		a_boolean				is_deduction,
+		a_boolean				allow_empty_list,
 		a_ctws_state_ptr			ctws_state,
 		a_boolean				*err)
 /*
@@ -10934,7 +10937,9 @@ templ_param_list and templ_arg_list are the template parameters and
 arguments for the instantiation.  is_deduction is TRUE if the pack
 instantiation is being created as part of the deduction of the pack
 argument values.  is_rescan is TRUE if the pack instantiation is
-being created as part of an expression rescan.  ctws_state is a
+being created as part of an expression rescan.  allow_empty_list is TRUE
+if a pack instantiation entry should be created (for non-deduction cases)
+even if there are no elements of the expansion.  ctws_state is a
 substitution state block pointer, and can be NULL.
 
 For non-deduction contexts, if this is a valid non-empty expansion,
@@ -11093,12 +11098,13 @@ lengths) *err is set to TRUE, FALSE otherwise.
       }  /* if */
     }  /* if */
   }  /* for */
-  if (is_deduction || (!any_errors && elements > 0)) {
+  if (is_deduction || (!any_errors && (elements > 0 || allow_empty_list))) {
     /* There were no errors and there are pack elements to be expanded,
-       or this is a deduction context.  Create an instantiation entry to
-       be returned. */
+       this is a deduction context, or an empty list is allowed in this
+       context.  Create an instantiation entry to be returned. */
     result_pidp = alloc_pack_instantiation_descr();
     result_pidp->pack_status = new_pack_list;
+    result_pidp->is_empty = allow_empty_list && elements == 0;
   } else {
     /* There is no expansion to be done.  Free any pack references that may
        have been allocated. */
@@ -11346,6 +11352,7 @@ static a_pack_expansion_stack_entry_ptr push_pack_instantiation(
 		a_template_arg_ptr			templ_arg_list,
 		a_boolean				is_rescan,
 		a_boolean				is_deduction,
+		a_boolean				allow_empty_list,
 		a_ctws_state_ptr			ctws_state,
 		a_boolean				*err)
 /*
@@ -11357,6 +11364,8 @@ this is an invalid expansion or there are no arguments to be expanded,
 return NULL.  is_rescan is TRUE if the pack instantiation is being pushed
 as part of processing a rescan context.   is_deduction is TRUE if the pack
 instantiation is being pushed as part of template argument deduction.
+allow_empty_list is TRUE if a pack instantiation entry should be created
+(for non-deduction cases) even if there are no elements of the expansion.
 ctws_state is a substitution state block pointer, and can be NULL.
 
 If the pack expansion is invalid (e.g., because there are packs of different
@@ -11373,7 +11382,8 @@ lengths) *err is set to TRUE, FALSE otherwise.
      entry will be returned. */
   pidp = create_pack_instantiation_descr(pedp, templ_param_list,
                                          templ_arg_list, is_rescan,
-                                         is_deduction, ctws_state, err);
+                                         is_deduction, allow_empty_list,
+                                         ctws_state, err);
   if (pidp != NULL) {
     pesep = push_pack_expansion_stack();
     pesep->is_rescan = is_rescan;
@@ -11594,6 +11604,7 @@ a_boolean begin_potential_pack_expansion_context_full(
 		a_pack_expansion_stack_entry_ptr	*p_pesep,
 		a_pack_expansion_descr_ptr		*p_pedp,
 		a_boolean				is_lookahead,
+		a_boolean				allow_empty_list,
 		a_boolean				ignore_suppression)
 /*
 This is called at the start of a construct that could be a variadic template
@@ -11651,6 +11662,9 @@ two contexts.  When this is TRUE, it is assumed that another begin...
 call will be done for the same starting position, and that context
 will be responsible for the end... and advance... calls.
 
+allow_empty_list is TRUE if a pack instantiation entry should be created
+(for non-deduction cases) even if there are no elements of the expansion.
+
 If ignore_suppression is TRUE, a new entry will be pushed even if a
 suppression is on the stack.
 */
@@ -11694,9 +11708,12 @@ suppression is on the stack.
     pesep = push_pack_instantiation(pedp, templ_param_list, templ_arg_list,
                                     /*is_rescan=*/FALSE,
                                     /*is_deduction=*/FALSE,
+                                    allow_empty_list,
                                     (a_ctws_state_ptr)NULL, &err);
     increment_variadic_rescans_for_reusable_cache();
-    if (pesep != NULL) {
+    any_args = pesep != NULL;
+    if (pesep != NULL && pesep->instantiation_descr != NULL &&
+        !pesep->instantiation_descr->is_empty) {
       check_assertion(curr_cached_token_handle != NO_CACHED_TOKEN_HANDLE);
       pesep->first_token_handle = curr_cached_token_handle;
       check_assertion(curr_token_sequence_number == pedp->first_token);
@@ -11710,8 +11727,8 @@ suppression is on the stack.
          when this routine is called again. */
       decrement_variadic_rescans_for_reusable_cache();
       if (!is_lookahead) skip_pack_expansion_tokens(pedp);
+      any_args = FALSE;
     }  /* if */
-    any_args = pesep != NULL;
   } else if (is_prototype_instantiation_context()) {
     any_args = TRUE;
     pesep = push_pack_expansion_stack();
@@ -11755,6 +11772,7 @@ default values for certain arguments.  See that routine for more information.
   any_args = begin_potential_pack_expansion_context_full(
                                    p_pesep, (a_pack_expansion_descr_ptr*)NULL,
                                    /*is_lookahead=*/FALSE,
+                                   /*allow_empty_list=*/FALSE,
                                    /*ignore_suppression=*/FALSE);
   return any_args;
 }  /* begin_potential_pack_expansion_context */
@@ -11802,8 +11820,9 @@ set to TRUE, FALSE otherwise.
     templ_arg_list = copy_template_arg_list(templ_arg_list);
     pesep = push_pack_instantiation(pedp, templ_param_list, templ_arg_list,
                                     /*is_rescan=*/TRUE,
-                                    /*is_deduction=*/FALSE, ctws_state,
-                                    err);
+                                    /*is_deduction=*/FALSE,
+                                    /*allow_empty_list=*/FALSE,
+                                    ctws_state, err);
     if (pesep != NULL) {
       pesep->template_arg_list = templ_arg_list;
     } else {
@@ -11845,6 +11864,7 @@ entry and returns a pointer to that entry in *p_pesep.
   }  /* if */
   pesep = push_pack_instantiation(pedp, templ_param_list, *templ_arg_list,
                                   /*is_rescan=*/FALSE, /*is_deduction=*/TRUE,
+                                  /*allow_empty_list=*/FALSE,
                                   (a_ctws_state_ptr)NULL, &err);
   *p_pesep = pesep;
 }  /* begin_pack_deduction_context */
@@ -12486,8 +12506,9 @@ form.
             depth = depth_template_declaration_scope;
           }  /* if */
           check_assertion(depth != NO_SCOPE_DEPTH);
-          if (pack_symbol != NULL &&
-              pack_symbol->decl_scope != scope_stack[depth].number) {
+          if ((pack_symbol != NULL &&
+               pack_symbol->decl_scope != scope_stack[depth].number) ||
+              pack_symbol->is_pack_element) {
             prp->uses_enclosing_pack = TRUE;
           } else {
             if (scope_is(&scope_stack_top(), sck_func_prototype)) {

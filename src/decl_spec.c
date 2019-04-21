@@ -7201,6 +7201,7 @@ constructor).
           /* A constructor could include a pack expansion. */
           any_args = begin_potential_pack_expansion_context_full(
                                          &pesep, &pedp, /*is_lookahead=*/TRUE,
+                                         /*allow_empty_list=*/FALSE,
                                          /*ignore_suppression=*/FALSE);
           if (!any_args || is_decl_start(IDS_REAL_DECLARATOR_ALLOWED)) {
             /* An empty pack expansion, or a pack expansion of a parameter. */

@@ -16245,6 +16245,7 @@ If p_err is non-NULL, set *p_err to TRUE if an error is detected.
     any_args = begin_potential_pack_expansion_context_full(
                                     &pesep, (a_pack_expansion_descr_ptr*)NULL,
                                     /*is_lookahead=*/FALSE,
+                                    /*allow_empty_list=*/FALSE,
                                     /*ignore_suppression=*/TRUE);
     while (any_args) {
       a_boolean  is_secondary_integer_pack_elem = FALSE;
@@ -16569,6 +16570,7 @@ all arguments were explicit.
     any_args = begin_potential_pack_expansion_context_full(
                                     &pesep, (a_pack_expansion_descr_ptr*)NULL,
                                     /*is_lookahead=*/FALSE,
+                                    /*allow_empty_list=*/FALSE,
                                     /*ignore_suppression=*/TRUE);
 next_integer_pack_element:
     /* If we have run out of parameters but there are more arguments, exit

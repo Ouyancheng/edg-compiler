@@ -445,6 +445,11 @@ typedef struct a_pack_expansion_descr {
 			/* If ellipsis_seen is TRUE, this is the position of
 			   the ellipsis token; null_source_position
 			   otherwise. */
+  a_symbol_header_ptr
+		param_symbol_header;
+			/* For a template parameter declaration that is a
+			   pack expansion, this is the symbol header of
+			   the parameter. */
   a_byte_boolean
 		ellipsis_seen;
 			/* TRUE if the ellipsis marking a pack expansion
@@ -488,6 +493,11 @@ typedef struct a_pack_instantiation_descr {
 		after_first_element;
 			/* TRUE if the current element is the 2nd through
 			   Nth element of the instantiation. */
+  a_byte_boolean
+		is_empty;
+			/* TRUE if there were no elements in the pack(s) to
+			   be expanded.  Always FALSE for deduction
+			   contexts. */
 } a_pack_instantiation_descr;
 
 
@@ -2347,6 +2357,7 @@ extern a_boolean begin_potential_pack_expansion_context_full(
 		a_pack_expansion_stack_entry_ptr	*p_pesep,
 		a_pack_expansion_descr_ptr		*p_pedp,
 		a_boolean				is_lookahead,
+		a_boolean				allow_empty_list,
 		a_boolean				ignore_suppression);
 
 extern a_boolean begin_potential_pack_expansion_context(
