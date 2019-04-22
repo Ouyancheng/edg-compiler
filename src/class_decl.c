@@ -14515,13 +14515,17 @@ issued at the given position.
      linkage -- if and when its linkage is promoted to C++, the linkage of
      the member functions will also be changed. */
   def_name_linkage = class_type->source_corresp.name_linkage;
+#if GNU_EXTENSIONS_ALLOWED
   if (class_type->variant.class_struct_union.has_internal_linkage_attribute) {
     /* The member function is in a class with the "internal_linkage"
        attribute. */
     rtn->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
     rtn->storage_class = (a_storage_class)sc_static;
-  } else if (def_name_linkage == (a_name_linkage_kind)nlk_none ||
-             def_name_linkage == (a_name_linkage_kind)nlk_internal) {
+  } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  /* Do not insert code here */
+  if (def_name_linkage == (a_name_linkage_kind)nlk_none ||
+      def_name_linkage == (a_name_linkage_kind)nlk_internal) {
     /* Either this is a local class (nlk_none) or a cfront-compatible
        declaration (nlk_internal). */
     rtn->source_corresp.name_linkage = def_name_linkage;
@@ -17225,12 +17229,16 @@ template declaration and is NULL otherwise.
     var->is_prototype_instantiation = TRUE;
     var->is_nonreal = TRUE;
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
   if (class_type->variant.class_struct_union.has_internal_linkage_attribute) {
     /* A static data member in a class with the "internal_linkage"
        attribute. */
     var->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
     var->storage_class = (a_storage_class)sc_static;
-  } else {
+  } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
     /* Static data members will have the same name linkage as the class of
        which they are members.  (In cfront mode that may mean internal linkage
        -- if and when its linkage is promoted to C++, the linkage of the static

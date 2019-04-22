@@ -6035,7 +6035,7 @@ a class type, routine, or variable) and return entity.
       pos_error(ec_internal_linkage_not_on_prior_declaration, &ap->position);
     } else {
       rp->has_internal_linkage_attribute = TRUE;
-      rp->storage_class = sc_static;
+      rp->storage_class = (a_storage_class)sc_static;
       rp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
     }  /* if */
   } else if (entity_kind == iek_variable) {
@@ -6049,7 +6049,7 @@ a class type, routine, or variable) and return entity.
       pos_error(ec_internal_linkage_not_on_prior_declaration, &ap->position);
     } else {
       vp->has_internal_linkage_attribute = TRUE;
-      vp->storage_class = sc_static;
+      vp->storage_class = (a_storage_class)sc_static;
       vp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
     }  /* if */
   } else {
