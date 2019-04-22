@@ -1,5 +1,23 @@
 Version 5.1
 
+4/22/19  [EDGcpfe/21136]
+Clang compatibility: internal_linkage attribute
+
+The front end now accepts the internal_linkage attribute in clang emulation
+modes when clang_version >= 40000.  See the clang documentation
+(https://clang.llvm.org/docs/AttributeReference.html#internal-linkage) for a
+description of the attribute.  In the example below, f, A::A, A::f, and A::m
+are all local to the file in which they appear (with --clang_version 40000):
+
+  void __attribute((internal_linkage)) f() {}
+  struct __attribute((internal_linkage)) A {
+    A() {}
+    void f() {}
+    static int m;
+  };
+
+
+
 4/21/19  [EDGcpfe/21157]
 Incorrect handling of empty expansion of template parameter pack
 

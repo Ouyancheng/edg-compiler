@@ -2311,6 +2311,9 @@ Display the indicated type entry.
       if (ptr->variant.class_struct_union.is_packed) {
         disp_boolean("is_packed", TRUE);
       }  /* if */
+      if (ptr->variant.class_struct_union.has_internal_linkage_attribute) {
+        disp_boolean("has_internal_linkage_attribute", TRUE);
+      }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       if (ptr->variant.class_struct_union.max_member_alignment != 0) {
         disp_unsigned_long("max_member_alignment",
@@ -2787,6 +2790,9 @@ Display the indicated variable.
   }  /* if */
   if (ptr->is_common) {
     disp_boolean("is_common", TRUE);
+  }  /* if */
+  if (ptr->has_internal_linkage_attribute) {
+    disp_boolean("has_internal_linkage_attribute", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
@@ -3583,6 +3589,9 @@ Display the indicated routine.
   }  /* if */
   if (ptr->implicit_alias) {
     disp_boolean("implicit_alias", TRUE);
+  }  /* if */
+  if (ptr->has_internal_linkage_attribute) {
+    disp_boolean("has_internal_linkage_attribute", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION

@@ -14515,8 +14515,13 @@ issued at the given position.
      linkage -- if and when its linkage is promoted to C++, the linkage of
      the member functions will also be changed. */
   def_name_linkage = class_type->source_corresp.name_linkage;
-  if (def_name_linkage == (a_name_linkage_kind)nlk_none ||
-      def_name_linkage == (a_name_linkage_kind)nlk_internal) {
+  if (class_type->variant.class_struct_union.has_internal_linkage_attribute) {
+    /* The member function is in a class with the "internal_linkage"
+       attribute. */
+    rtn->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+    rtn->storage_class = (a_storage_class)sc_static;
+  } else if (def_name_linkage == (a_name_linkage_kind)nlk_none ||
+             def_name_linkage == (a_name_linkage_kind)nlk_internal) {
     /* Either this is a local class (nlk_none) or a cfront-compatible
        declaration (nlk_internal). */
     rtn->source_corresp.name_linkage = def_name_linkage;
@@ -17220,22 +17225,30 @@ template declaration and is NULL otherwise.
     var->is_prototype_instantiation = TRUE;
     var->is_nonreal = TRUE;
   }  /* if */
-  /* Static data members will have the same name linkage as the class of
-     which they are members.  (In cfront mode that may mean internal linkage
-     -- if and when its linkage is promoted to C++, the linkage of the static
-     data members will also be changed.) */
-  var->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
-  if (class_type->source_corresp.name_linkage ==
-                        (a_name_linkage_kind)nlk_cplusplus_external) {
-    /* Ordinarily a static data member gets sc_extern storage class, which
-       is promoted to sc_unspecified if a definition is seen.  In cfront mode,
-       the storage is sc_static (already set), which is changed to sc_extern
-       or sc_unspecified during a final fixup pass. */
-    var->storage_class = (a_storage_class)(var->is_inline ? sc_unspecified
-                                                          : sc_extern);
-    /* Check whether any types without linkage are used in the declaration. */
-    check_constituent_types_have_linkage(var_sym, &locator->source_position,
-                                         /*is_declaration=*/TRUE);
+  if (class_type->variant.class_struct_union.has_internal_linkage_attribute) {
+    /* A static data member in a class with the "internal_linkage"
+       attribute. */
+    var->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+    var->storage_class = (a_storage_class)sc_static;
+  } else {
+    /* Static data members will have the same name linkage as the class of
+       which they are members.  (In cfront mode that may mean internal linkage
+       -- if and when its linkage is promoted to C++, the linkage of the static
+       data members will also be changed.) */
+    var->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
+    if (class_type->source_corresp.name_linkage ==
+                          (a_name_linkage_kind)nlk_cplusplus_external) {
+      /* Ordinarily a static data member gets sc_extern storage class, which
+         is promoted to sc_unspecified if a definition is seen.  In cfront
+         mode, the storage is sc_static (already set), which is changed to
+         sc_extern or sc_unspecified during a final fixup pass. */
+      var->storage_class = (a_storage_class)(var->is_inline ? sc_unspecified
+                                                            : sc_extern);
+      /* Check whether any types without linkage are used in the
+         declaration.  */
+      check_constituent_types_have_linkage(var_sym, &locator->source_position,
+                                           /*is_declaration=*/TRUE);
+    }  /* if */
   }  /* if */
   var->source_corresp.access = class_state->access;
 #if MICROSOFT_EXTENSIONS_ALLOWED

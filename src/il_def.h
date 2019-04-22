@@ -2612,6 +2612,7 @@ typedef enum an_attribute_kind_tag {
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   ak_init_priority,	/* "init_priority" (gnu). */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+  ak_internal_linkage,  /* "internal_linkage" (clang). */
   ak_malloc,		/* "malloc" (gnu). */
   ak_may_alias,		/* "may_alias" (gnu). */
   ak_mode,		/* "mode" (gnu). */
@@ -9501,6 +9502,11 @@ typedef struct a_type {
       		is_packed:1;
 			/* TRUE if this class type was declared with the GNU C
 			   "packed" attribute. */
+      a_bit_field
+		has_internal_linkage_attribute:1;
+			/* TRUE if this class type was declared with the Clang
+			   "internal_linkage" attribute.  This attribute
+			   affects all members of the class. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       a_bit_field
 		has_operator_ampersand:1;
@@ -10196,6 +10202,9 @@ typedef struct a_variable {
   a_bit_field	is_common:1;
 			/* TRUE if this variable was marked with the GNU
 			   "common" attribute. */
+  a_bit_field	has_internal_linkage_attribute:1;
+			/* TRUE if this variable was marked with the Clang
+			   "internal_linkage" attribute. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   a_bit_field   asm_name_is_valid:1;
@@ -11453,6 +11462,9 @@ typedef struct a_routine {
 			   gnu_extra_info->aliased_routine).
 			   (E.g., a "strlen" declaration may be implicitly
 			   treated as an alias for "__builtin_strlen".) */
+  a_bit_field	has_internal_linkage_attribute:1;
+			/* TRUE if this routine was marked with the Clang
+			   "internal_linkage" attribute. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   a_bit_field	can_be_instantiated:1;

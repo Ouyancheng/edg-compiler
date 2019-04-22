@@ -2031,6 +2031,7 @@ to default values.
 #if GNU_EXTENSIONS_ALLOWED
       pte->variant.class_struct_union.is_transparent = FALSE;
       pte->variant.class_struct_union.is_packed = FALSE;
+      pte->variant.class_struct_union.has_internal_linkage_attribute = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       pte->variant.class_struct_union.has_operator_ampersand = FALSE;
       pte->variant.class_struct_union.virtual_functions_marked_as_required =
@@ -2514,6 +2515,7 @@ Clear the fields of the given variable to default values.
   vp->has_gnu_abi_tag_attribute   = FALSE;
   vp->is_not_common               = FALSE;
   vp->is_common                   = FALSE;
+  vp->has_internal_linkage_attribute = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   vp->asm_name_is_valid           = TRUE;
@@ -2980,6 +2982,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->always_inline               = FALSE;
   rp->gnu_c89_inline              = FALSE;
   rp->implicit_alias              = FALSE;
+  rp->has_internal_linkage_attribute = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   rp->can_be_instantiated         = FALSE;

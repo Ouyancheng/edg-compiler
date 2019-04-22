@@ -273,6 +273,7 @@ static an_attr_descr known_attr_table[] = {
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   { "init_priority", "(ci)", "g+", ak_init_priority },
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+  { "internal_linkage", "", "lx(40000-)", ak_internal_linkage },
   { "malloc", "", "gx", ak_malloc },
   { "may_alias", "", "gx(30300-)", ak_may_alias },
   { "mode", "(n)", "gx", ak_mode },
@@ -550,6 +551,7 @@ static an_attr_application_fn apply_ifunc_attr;
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
 static an_attr_application_fn apply_init_priority_attr;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+static an_attr_application_fn apply_internal_linkage_attr;
 static an_attr_application_fn apply_malloc_attr;
 static an_attr_application_fn apply_may_alias_attr;
 static an_attr_application_fn apply_mode_attr;
@@ -682,6 +684,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   { ak_init_priority, "v:-l", apply_init_priority_attr },
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+  { ak_internal_linkage, "v|c|r", apply_internal_linkage_attr },
   { ak_malloc, "r", apply_malloc_attr },
   { ak_may_alias, "T|c|e", apply_may_alias_attr },
   { ak_mode, "T|e", apply_mode_attr },
@@ -856,6 +859,7 @@ static an_attr_corresp_descr attr_corresp_table[] = {
 A list of attribute namespaces that are known to the front end.
 */
 static a_const_char *valid_attribute_namespaces[] = {
+  "clang",
   "gnu",
 #if INCLUDE_EDG_TEST_ATTRIBUTES
   "edg",
@@ -1422,6 +1426,14 @@ there is an applicable one; otherwise, return NULL.
     /* Starting with version 4.8, GCC maps standard attributes of the form
        [[ gnu::xyz(...) ]] to __attribute((xyz(...))).  This includes
        attribute names with added underscores (see below). */
+    family = (a_byte_attribute_family)af_gnu;
+    ap->is_std_gcc_attribute = TRUE;
+  } else if (clang_mode &&
+             family == (a_byte_attribute_family)af_std &&
+             ap->namespace_name != NULL &&
+             !ms_extensions &&
+             strcmp(ap->namespace_name, "clang") == 0) {
+    /* Clang also maps [[ clang::xyz(...) ]] to __attribute((xyz(...))). */
     family = (a_byte_attribute_family)af_gnu;
     ap->is_std_gcc_attribute = TRUE;
   }  /* if */
@@ -5537,15 +5549,22 @@ attribute to it and return the entity.
 
 /*ARGSUSED*/  /* ap is unused (but required by the callback type). */
 static char* apply_common_attr(an_attribute_ptr  ap,
-                                 char              *entity,
-                                 an_il_entry_kind  entity_kind)
+                               char              *entity,
+                               an_il_entry_kind  entity_kind)
 /*
 Apply the given "common" attribute to the given entity (which must be a
 variable) and return the entity.
 */
 {
+  a_variable_ptr vp = (a_variable_ptr)entity;
+
   check_assertion(entity_kind == iek_variable);
-  ((a_variable_ptr)entity)->is_common = TRUE;
+  if (vp->has_internal_linkage_attribute) {
+    /* Cannot have common and internal_linkage attributes. */
+    pos_error(ec_cannot_be_common_internal_linkage, &ap->position);
+  } else {
+    vp->is_common = TRUE;
+  }  /* if */
   return entity;
 }  /* apply_common_attr */
 
@@ -5991,6 +6010,54 @@ variable) and return entity.
 }  /* apply_init_priority_attr */
 
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+
+static char* apply_internal_linkage_attr(an_attribute_ptr  ap,
+                                         char              *entity,
+                                         an_il_entry_kind  entity_kind)
+/*
+Apply the clang "internal_linkage" attribute to the given entity (which must be
+a class type, routine, or variable) and return entity.
+*/
+{
+  a_decl_parse_state    *dps = (a_decl_parse_state*)ap->assoc_info;
+  a_type_ptr            tp;
+
+  check_assertion((ap->arguments == NULL || ap->arguments->next == NULL));
+  if (entity_kind == iek_type) {
+    tp = (a_type_ptr)entity;
+    check_assertion(is_class_struct_union_type(tp));
+    tp->variant.class_struct_union.has_internal_linkage_attribute = TRUE;
+  } else if (entity_kind == iek_routine) {
+    a_routine_ptr rp = (a_routine_ptr)entity;
+    if (dps != NULL && !dps->first_decl &&
+        !rp->has_internal_linkage_attribute) {
+      /* The attribute must have appeared on the initial declaration. */
+      pos_error(ec_internal_linkage_not_on_prior_declaration, &ap->position);
+    } else {
+      rp->has_internal_linkage_attribute = TRUE;
+      rp->storage_class = sc_static;
+      rp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+    }  /* if */
+  } else if (entity_kind == iek_variable) {
+    a_variable_ptr vp = (a_variable_ptr)entity;
+    if (vp->is_common) {
+      /* Cannot have common and internal_linkage attributes. */
+      pos_error(ec_cannot_be_common_internal_linkage, &ap->position);
+    } else if (dps != NULL && !dps->first_decl &&
+               !vp->has_internal_linkage_attribute) {
+      /* The attribute must have appeared on the initial declaration. */
+      pos_error(ec_internal_linkage_not_on_prior_declaration, &ap->position);
+    } else {
+      vp->has_internal_linkage_attribute = TRUE;
+      vp->storage_class = sc_static;
+      vp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+    }  /* if */
+  } else {
+    unexpected_condition();
+  }  /* if */
+  return entity;
+}  /* apply_internal_linkage_attr */
+
 
 /*ARGSUSED*/  /* ap is unused (but required by the callback type). */
 static char* apply_malloc_attr(an_attribute_ptr  ap,
