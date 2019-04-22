@@ -772,6 +772,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_no_float80)*/
 /*lint -esym(769,ec_no_float128)*/
 /*lint -esym(769,ec_if_constexpr_is_cpp17)*/
+/*lint -esym(769,ec_cannot_be_common_internal_linkage)*/
+/*lint -esym(769,ec_internal_linkage_not_on_prior_declaration)*/
 #endif /* !GNU_EXTENSIONS_ALLOWED */
 /*lint -esym(759,is_wide_string_constant)*/
 /*lint -esym(765,is_wide_string_constant)*/
