@@ -38216,7 +38216,8 @@ NULL.
                                            templ_arg_list);
     if (!result) {
       complete_type_is_needed(instance_type);
-      for (bcp = base_classes_of(instance_type); bcp != NULL; bcp = bcp->next) {
+      for (bcp = base_classes_of(instance_type);
+           bcp != NULL; bcp = bcp->next) {
         if (is_instance_of_class_template(bcp->type, template_sym,
                                           templ_arg_list)) {
           result = TRUE;
