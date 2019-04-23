@@ -1,5 +1,23 @@
 Version 5.1
 
+4/23/19  [EDGcpfe/21034]
+C++-generating back end: default arguments in alias templates
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, if a parameter in an alias template definition
+has a default argument that refers to a previous parameter and an instance
+of the alias template uses that default argument, the name of the instance
+put out by the C++-generating back end included the default argument, even
+though the template parameter is no longer in scope at that point.  This
+is now fixed.  For example, with --c++11:
+
+  struct Q {};
+  template <typename> struct S {
+    template <typename T, typename U = T> using X = int;
+    X<Q> a;  // Previously generated as X<Q, T>
+  };
+
+
 4/23/19  [EDGcpfe/20924]
 Variadic using-declaration fails with empty expansion
 

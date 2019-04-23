@@ -3503,36 +3503,52 @@ that the remaining arguments will be defaulted.
   if (name_has_template_arguments(scp, entry_kind, &tap, &insert_space)) {
     a_template_arg_ptr argp = NULL;
     a_template_arg_ptr prev_argp = NULL;
-    long               min_arguments = num_arguments;
-
-    if (entry_kind == iek_type &&
-        is_immediate_class_type((a_type_ptr)scp)) {
-      a_type_ptr                  type = (a_type_ptr)scp;
-      a_class_type_supplement_ptr ctsp =
-                                   type->variant.class_struct_union.extra_info;
-      if (type->variant.class_struct_union.is_prototype_instantiation) {
-        /* In most cases, we use all template arguments for prototype
-           instantiations to avoid potentially introducing mismatches
-           between declarations and definitions of template members.  In
-           some cases, however, an argument refers to a template parameter
-           that has no name and thus cannot be referenced explicitly; it
-           must have come from a default template argument and we adjust
-           the template argument list accordingly. */
-        min_arguments = arg_before_unnamed_template_param_arg(tap);
-      } else if (ctsp->min_template_arguments >= 0) {
-        /* This template instance has been referred to at some point in the
-           source using default arguments; record the point in the argument
-           list beyond which default arguments can be used. */
-        min_arguments = ctsp->min_template_arguments;
-        if (ctsp->assoc_template->min_template_arguments >= 0 &&
-            ctsp->assoc_template->min_template_arguments > min_arguments) {
-          /* The most recent declaration of the template does not yet have
-             enough default arguments to allow using the minimum number of
-             template arguments with which this instance was named later in
-             the translation unit.  Change the minimum number to reflect
-             the declaration in effect at this point. */
-          min_arguments = ctsp->assoc_template->min_template_arguments;
+    long               min_arguments;
+    if (entry_kind == iek_type) {
+      a_type_ptr     tp = (a_type_ptr)scp;
+      long           min_instance_args = num_arguments;
+      a_template_ptr assoc_template = NULL;
+      if (is_immediate_class_type(tp)) {
+        a_class_type_supplement_ptr ctsp =
+                                     tp->variant.class_struct_union.extra_info;
+        if (tp->variant.class_struct_union.is_prototype_instantiation) {
+          /* In most cases, we use all template arguments for prototype
+             instantiations to avoid potentially introducing mismatches
+             between declarations and definitions of template members.  In
+             some cases, however, an argument refers to a template parameter
+             that has no name and thus cannot be referenced explicitly; it
+             must have come from a default template argument and we adjust
+             the template argument list accordingly.  Note that we leave
+             assoc_template NULL for prototype instantiations because we
+             don't want to override the result and use an unnamed template
+             parameter. */
+          min_instance_args = arg_before_unnamed_template_param_arg(tap);
+        } else if (ctsp->min_template_arguments >= 0) {
+          /* This template instance has been referred to at some point in the
+             source using default arguments; record the point in the argument
+             list beyond which default arguments can be used. */
+          min_instance_args = ctsp->min_template_arguments;
+          assoc_template = ctsp->assoc_template;
         }  /* if */
+      } else if (tp->kind == (a_type_kind)tk_typeref) {
+        a_typeref_type_supplement_ptr ttsp = tp->variant.typeref.extra_info;
+        if (ttsp->min_template_arguments >= 0) {
+          /* Use the minimum number of explicit arguments by which this
+             instance has been referred to. */
+          min_instance_args = ttsp->min_template_arguments;
+          assoc_template = ttsp->assoc_template;
+        }  /* if */
+      }  /* if */
+      min_arguments = min_instance_args;
+      if (assoc_template != NULL &&
+          assoc_template->min_template_arguments >= 0 &&
+          assoc_template->min_template_arguments > min_arguments) {
+        /* The most recent declaration of the template does not yet have
+           enough default arguments to allow using the minimum number of
+           template arguments with which this instance was named later in
+           the translation unit.  Change the minimum number to reflect the
+           declaration in effect at this point. */
+        min_arguments = assoc_template->min_template_arguments;
       }  /* if */
     }  /* if */
     if (msvc_is_generated_code_target && msvc_target_version_number <= 1300) {
