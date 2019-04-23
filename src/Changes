@@ -1,5 +1,17 @@
 Version 5.1
 
+4/23/19  [EDGcpfe/20924]
+Variadic using-declaration fails with empty expansion
+
+If a variadic using-declaration was expanded with an empty pack, a spurious
+error was issued.  Now fixed.
+
+  template<typename ...T> struct A : T... {
+    using T::f ...;
+  };
+  A<>     a;
+
+
 4/22/19  [EDGcpfe/21136]
 Clang compatibility: internal_linkage attribute
 

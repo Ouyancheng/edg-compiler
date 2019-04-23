@@ -24049,6 +24049,7 @@ declaration from a using-declaration.)
                        pesep;
   a_boolean            err = FALSE, bcp_is_dummy = FALSE, no_il_entry = FALSE;
   a_boolean            check_for_packs = FALSE, any_more = TRUE;
+  a_boolean            empty_pack = FALSE;
   a_symbol_locator     locator;
   a_using_decl_ptr     prev_udp = NULL;
   a_source_position    decl_pos, using_pos, end_of_using_pos;
@@ -24076,6 +24077,7 @@ declaration from a using-declaration.)
     (void)get_token();
     if (variadic_using_decls_enabled) {
       any_more = begin_potential_pack_expansion_context(&pesep);
+      empty_pack = !any_more;
       check_for_packs = TRUE;
       add_stop_token(tok_comma);
     }  /* if */
@@ -24101,7 +24103,10 @@ declaration from a using-declaration.)
     /* This is a using declaration.  Bypass "using" and scan the
        identifier. */
     if (!is_decl_qualified_name_start() && curr_token != tok_typename) {
-      syntax_error(ec_exp_identifier);
+      if (!empty_pack || curr_token != tok_semicolon) {
+        /* "using T::X...;" with an empty expansion is valid. */
+        syntax_error(ec_exp_identifier);
+      }  /* if */
       discard_curr_construct_pragmas();
       if (check_for_packs) {
         abandon_potential_pack_expansion_context(pesep);
