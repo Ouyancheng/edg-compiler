@@ -759,7 +759,8 @@ can have their braces ignored.
     icp = icp->variant.braced.list;
     if (!dps->has_deducible_class_templ_args) {
       result = TRUE;
-    } else if (icp != NULL && is_expression_component(icp) &&
+    } else if (icp != NULL && icp->next == NULL &&
+               is_expression_component(icp) &&
                is_class_template_placeholder_type(dps->type)) {
       a_template_arg_ptr args;
       a_type_ptr         operand_type = operand_of_arg_list_elem(icp)->type;
