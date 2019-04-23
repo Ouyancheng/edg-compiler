@@ -9134,7 +9134,7 @@ static a_boolean do_constexpr_lambda(an_interpreter_state *ips,
                                      a_byte               *result_storage,
                                      a_byte               *complete_object)
 /*
-Interpret expr, which must be an enk_lambda node.  Return TRUE if no error
+Interpret dip, which must be a dik_lambda initializer.  Return TRUE if no error
 occurred; otherwise, return FALSE and update *ips accordingly.  The resulting
 closure object is placed at the location indicated by result_storage, which
 is within the given complete_object.
