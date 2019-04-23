@@ -9351,11 +9351,9 @@ Do IL lowering of the indicated type and everything under it.
       case tk_template_param:
         /* These shouldn't really get out of the front end, but they do
            sometimes get onto a based types list, so turn them into something
-           mostly harmless.  (In addition to setting the type to an error
-           type, also clear the parent scope since it might point to a class
-           template prototype instantiation.)  The "auto" and "decltype(auto)"
-           types are an exception since they can reasonably appear in a
-           "declared_type" field. */
+           mostly harmless.  The "auto" and "decltype(auto)" types are an
+           exception since they can reasonably appear in a "declared_type"
+           field. */
         if (is_auto_type(type)) {
           /* Overwrite an "auto" type with a typeref to void. */
           overwrite_type_with_new_type(type, void_type());
