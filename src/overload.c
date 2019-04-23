@@ -4476,7 +4476,8 @@ deduction was successful: some cases are treated as "nondeduced contexts").
     a_constant_ptr  templ_constant;
     templ_constant = dest_type->variant.array.variant.element_count_constant;
     if (!matches_template_array_bound(dim_count, templ_constant,
-                                      template_arg_list, templ_params)) {
+                                      template_arg_list, templ_params,
+                                      MTT_NO_FLAGS)) {
       deduction_okay = FALSE;
     }  /* if */
   }  /* if */

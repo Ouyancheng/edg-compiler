@@ -1,5 +1,36 @@
 Version 5.1
 
+4/23/19  [EDGcpfe/20185,EDGcpfe/20187,EDGcpfe/20232,EDGcpfe/20353,
+          EDGcpfe/20937,EDGcpfe/20960]
+Auto nontype template parameter issues
+
+In some cases, types were not deduced from nontype template parameters
+as should be done when the changes for auto template parameters are enabled.
+This resulted in spurious errors for partial specialization cases such as
+this one:
+
+  double f(int, bool);
+  template <auto& f> struct A;
+  template <class R, class... Args, R (& f)(Args...)> struct A<f> {
+    using type = R;
+  };
+  using R1 = A<f>::type;
+
+In addition, deduction involving deduction from the type of an array bound
+(if not otherwise deduced) did not work in cases such as those in this
+example:
+
+  template <typename T, T SZ> void f(const int (&)[SZ]) { }
+  template <typename T, T SZ> void g(const T (&)[SZ]) { }
+  int main() {
+    int arr[3];
+    f(arr);    // (1) should work, but is rejected
+    g({{}, {}}); // (2) should work, but is rejected
+  }
+
+These issues are now fixed.
+
+
 4/23/19  [EDGcpfe/21034]
 C++-generating back end: default arguments in alias templates
 

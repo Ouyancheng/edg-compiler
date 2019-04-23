@@ -613,6 +613,10 @@ typedef unsigned int an_mtt_flag_set;
 #define	MTT_TEMPL_TEMPL_MATCH 0x80
 			/* TRUE when doing partial ordering as part of
 			   C++17-style template template argument matching. */
+#define MTT_PROVISIONAL_VALUE 0x100
+			/* TRUE when doing deduction based on the type of an
+			   array bound.  The value is only deduced from the
+			   bound if not otherwise deduced. */
 
 
 extern a_boolean matches_template_type_with_qualification_conversion(
@@ -640,7 +644,8 @@ extern
 a_boolean matches_template_array_bound(a_targ_size_t        elements,
                                        a_constant_ptr       templ_constant,
                                        a_template_arg_ptr   *templ_arg_list,
-                                       a_template_param_ptr templ_param_list);
+                                       a_template_param_ptr templ_param_list,
+                                       an_mtt_flag_set      flags);
 
 extern a_type_ptr substitute_template_arguments(
 			a_symbol_ptr		templ_sym,

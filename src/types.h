@@ -1523,6 +1523,11 @@ typedef int a_type_tree_traversal_flag_set;
 			/* When the type being traversed is a class type,
 			   apply the predicate check to its template args,
 			   but only if the type is a nonreal type. */
+#define TTT_TYPE_OF_NONTYPE_ARG 0x2000
+			/* TRUE if the type of nontype template arguments
+			   should be traversed.  This forces the type to
+			   be considered a deduced context. */
+
 
 /* Type of service function called by traverse_type_tree to return TRUE or
    FALSE status regarding a given type in a type tree. */

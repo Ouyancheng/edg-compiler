@@ -13706,6 +13706,21 @@ If type_ptr is a VLA type, lower its dimension expression.
 
 #endif /* DO_IL_LOWERING */
 
+static void add_implicit_ttt_flags(a_type_tree_traversal_flag_set  *ttt_flags)
+/*
+Update *ttt_flags with any values that should be set based on current
+language mode flags.
+*/
+{
+  /* When auto template parameters are enabled, the type of a nontype template
+     parameters is a deduced context. */
+  if (auto_template_params_enabled &&
+      (*ttt_flags & TTT_DEDUCED_CONTEXTS_ONLY)) {
+    *ttt_flags |= TTT_TYPE_OF_NONTYPE_ARG;
+  }  /* if */
+}  /* add_implicit_ttt_flags */
+
+
 static a_boolean ttt_warn_about_use_of_deprecated_type(
                                           a_type_ptr  type_ptr,
                                           a_boolean   *force_end_of_traversal)
@@ -13742,15 +13757,19 @@ Components under typedefs are not considered.  The warning is issued for
 the given position.
 */
 {
-  a_source_position  saved_pos;
+  a_source_position               saved_pos;
+  a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                               TTT_PARAM_TYPES |
+                                               TTT_EXCEPTION_SPECS |
+                                               TTT_TEMPLATE_ARGS |
+                                               TTT_PARENT_CLASSES |
+                                               TTT_DECLTYPE_AND_TYPEOF_EXPRS);
 
   saved_pos = error_position;
   error_position = *pos;
+  add_implicit_ttt_flags(&ttt_flags);
   (void)traverse_type_tree(type, ttt_warn_about_use_of_deprecated_type,
-                           TTT_RETURN_TYPE | TTT_PARAM_TYPES |
-                           TTT_EXCEPTION_SPECS | TTT_TEMPLATE_ARGS |
-                           TTT_PARENT_CLASSES |
-                           TTT_DECLTYPE_AND_TYPEOF_EXPRS);
+                           ttt_flags);
   error_position = saved_pos;
 }  /* warn_about_use_of_deprecated_type */
 
@@ -13799,6 +13818,33 @@ traverse_type_tree returns TRUE.
 }  /* traverse_types_for_expr */
 
 
+static a_boolean traverse_types_for_constant(
+				a_constant_ptr			constant,
+				a_type_predicate_function_ptr	func,
+				a_type_tree_traversal_flag_set	flags)
+/*
+Invoke the traverse_type_tree predicate function func on the types used in
+constant.  Pass the flag set flags to traverse_type_tree.  Return TRUE if
+traverse_type_tree returns TRUE.
+*/
+{
+  a_boolean	status = FALSE;
+
+  if (traverse_type_tree(constant->type, func, flags)) {
+    status = TRUE;
+  } else if (constant->kind == (a_constant_repr_kind)ck_template_param &&
+             constant->variant.template_param.kind ==
+                            (a_template_param_constant_kind)tpck_expression) {
+    /* Only the expression under a tpck_expression is processed. */
+    an_expr_node_ptr expr = constant->variant.template_param.variant.expr;
+    if (expr != NULL) {
+      status = traverse_types_for_expr(expr, func, flags);
+    }  /* if */
+  }  /* if */
+  return status;
+}  /* traverse_types_for_constant */
+
+
 static a_boolean traverse_template_args(
                              a_template_arg_ptr             template_args,
                              a_type_predicate_function_ptr  func,
@@ -13835,13 +13881,13 @@ and the meaning of the return value.
       }  /* if */      
     } else if (!tap->is_array_bound_of_unknown_type &&
                tap->variant.constant != NULL) {
-      /* Nontype template argument.  Check the type of the constant. */
-      if (!(flags & TTT_DEDUCED_CONTEXTS_ONLY)) {
-        tp = tap->variant.constant->type;
-        if (traverse_type_tree(tp, func, flags)) {
-          status = TRUE;
-          break;
-        }  /* if */
+      /* Nontype template argument.  Check the type of the constant.  The
+         type is nondeduced in older C++ dialects, but is deduced with the
+         addition of auto template parameters. */
+      if (!(flags & TTT_DEDUCED_CONTEXTS_ONLY) ||
+          (flags & TTT_TYPE_OF_NONTYPE_ARG)) {
+        status = traverse_types_for_constant(tap->variant.constant,
+                                             func, flags);
       }  /* if */
     }  /* if */
   }  /* for */
@@ -13976,7 +14022,21 @@ its parameters?).
         break;
       case tk_array:
         tp = type_ptr->variant.array.element_type;
-        if (tp != NULL) status = traverse_type_tree(tp, func, flags);
+        if (tp != NULL) {
+          if (traverse_type_tree(tp, func, flags)) {
+            status = TRUE;
+            break;
+          } else if ((flags & TTT_TYPE_OF_NONTYPE_ARG) &&
+                     type_ptr->
+                              variant.array.is_template_dependent_size_array) {
+            if (traverse_types_for_constant(
+                        type_ptr->variant.array.variant.element_count_constant,
+                        func, flags)) {
+              status = TRUE;
+              break;
+            }  /* if */
+          }  /* if */
+        }  /* if */
         break;
       case tk_typeref:
         tp = type_ptr->variant.typeref.type;
@@ -14125,6 +14185,7 @@ union or enum type or is a type tree containing such a type.
                                                TTT_EXCEPTION_SPECS |
                                                TTT_PARENT_CLASSES);
 
+  add_implicit_ttt_flags(&ttt_flags);
   return (traverse_type_tree(type_ptr, ttt_is_local_type, ttt_flags));
 }  /* is_or_contains_local_type */
 
@@ -14144,6 +14205,7 @@ an unnamed namespace, or is a type tree containing such a type.
                                                TTT_EXCEPTION_SPECS |
                                                TTT_PARENT_CLASSES);
 
+  add_implicit_ttt_flags(&ttt_flags);
   result = (traverse_type_tree(type_ptr, ttt_is_unnamed_namespace_type,
                                 ttt_flags));
   return result;
@@ -14169,6 +14231,7 @@ This function considers nonreal class and enum types to have linkage.
   is_local_type = FALSE;
   is_unnamed_type = FALSE;
   treat_class_members_as_named = FALSE;
+  add_implicit_ttt_flags(&ttt_flags);
   result = (traverse_type_tree(type_ptr, ttt_is_type_with_no_name_linkage,
                                ttt_flags));
   return result;
@@ -14194,6 +14257,7 @@ unnamed type, or type defined in an unnamed namespace.
   is_local_type = FALSE;
   is_unnamed_type = FALSE;
   treat_class_members_as_named = FALSE;
+  add_implicit_ttt_flags(&ttt_flags);
   result = (traverse_type_tree(type_ptr, ttt_is_trans_unit_specific_type,
                                ttt_flags));
   return result;
@@ -14233,6 +14297,7 @@ type.
                                                TTT_CLI_GENERIC_PARAMETERS |
                                                TTT_PARENT_CLASSES);
 
+  add_implicit_ttt_flags(&ttt_flags);
   result = traverse_type_tree(type_ptr, ttt_is_or_contains_cli_generic_param,
                               ttt_flags);
   return result;
@@ -14276,6 +14341,7 @@ type).
                                                TTT_CLI_GENERIC_PARAMETERS);
 
   check_assertion(type_ptr->kind == (a_type_kind)tk_routine);
+  add_implicit_ttt_flags(&ttt_flags);
   result = traverse_type_tree(type_ptr, ttt_has_clr_component, ttt_flags);
   return result;
 }  /* function_type_has_clrcall_component */
@@ -14333,6 +14399,7 @@ sets the value of local_type_used_as_template_type_argument when needed.
                                                  TTT_EXCEPTION_SPECS |
                                                  TTT_SKIP_TYPEREFS);
 
+    add_implicit_ttt_flags(&ttt_flags);
     no_linkage = traverse_type_tree(type_ptr, ttt_is_type_with_no_name_linkage,
                                     ttt_flags);
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
@@ -14380,6 +14447,7 @@ or is a type tree containing such a type.
                                                TTT_EXCEPTION_SPECS |
                                                TTT_PARENT_CLASSES |
                                                TTT_DECLTYPE_AND_TYPEOF_EXPRS);
+  add_implicit_ttt_flags(&ttt_flags);
   result = traverse_type_tree(type_ptr, ttt_is_error_type, ttt_flags);
   return result;
 }  /* is_or_contains_error_type */
@@ -14409,6 +14477,7 @@ it is or contains a tk_template_param type entry or a nonreal class.
     deduced_contexts_only = FALSE;
     find_all_dependent_types = TRUE;
     check_for_instantiation_dependence = FALSE;
+    add_implicit_ttt_flags(&ttt_flags);
     result = traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
                                 ttt_flags);
   }  /* if */
@@ -14441,6 +14510,7 @@ returns TRUE for types that contain C++/CLI generic parameters.
     deduced_contexts_only = FALSE;
     find_all_dependent_types = TRUE;
     check_for_instantiation_dependence = FALSE;
+    add_implicit_ttt_flags(&ttt_flags);
     result = traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
                                 ttt_flags);
   }  /* if */
@@ -14478,6 +14548,7 @@ render the type dependent.
     deduced_contexts_only = FALSE;
     find_all_dependent_types = TRUE;
     check_for_instantiation_dependence = TRUE;
+    add_implicit_ttt_flags(&ttt_flags);
     result = traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
                                 ttt_flags);
     type_ptr->is_instantiation_dependent = result;
@@ -14521,6 +14592,7 @@ C++/CLI generic parameters.
     deduced_contexts_only = FALSE;
     find_all_dependent_types = TRUE;
     check_for_instantiation_dependence = FALSE;
+    add_implicit_ttt_flags(&ttt_flags);
     result = traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
                                 ttt_flags);
     if (!cli_or_cx_enabled) {
@@ -14556,6 +14628,7 @@ a template parameter constant.
     deduced_contexts_only = FALSE;
     find_all_dependent_types = FALSE;
     check_for_instantiation_dependence = FALSE;
+    add_implicit_ttt_flags(&ttt_flags);
     result = traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
                                 ttt_flags);
   }  /* if */
@@ -14592,6 +14665,7 @@ parameter can be deduced.
        in some modes a nonstandard deduction rule applies. */
     ttt_flags |= TTT_PARENT_CLASSES;
   }  /* if */
+  add_implicit_ttt_flags(&ttt_flags);
   return (traverse_type_tree(type_ptr,
                              ttt_is_or_contains_deduced_template_param,
                              ttt_flags));
@@ -14663,6 +14737,7 @@ contexts are excluded from the check.
        in some modes a nonstandard deduction rule applies. */
     ttt_flags |= TTT_PARENT_CLASSES;
   }  /* if */
+  add_implicit_ttt_flags(&ttt_flags);
   return (traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
           ttt_flags));
 }  /* is_or_contains_specific_template_param */
@@ -14695,6 +14770,7 @@ excluded from the check.
        in some modes a nonstandard deduction rule applies. */
     ttt_flags |= TTT_PARENT_CLASSES;
   }  /* if */
+  add_implicit_ttt_flags(&ttt_flags);
   return (traverse_type_tree(type_ptr,
           ttt_contains_specific_template_template_param,
           ttt_flags));
@@ -14733,6 +14809,7 @@ contexts are excluded from the check.
        in some modes a nonstandard deduction rule applies. */
     ttt_flags |= TTT_PARENT_CLASSES;
   }  /* if */
+  add_implicit_ttt_flags(&ttt_flags);
   return (traverse_type_tree(tp, ttt_contains_template_param_constant,
                              ttt_flags));
 }  /* type_contains_specific_template_param_constant */
@@ -14755,6 +14832,7 @@ of a class whose definition has begun but has not yet been completed.
   ttt_flags |= TTT_RETURN_TYPE | TTT_THIS_PARAM_TYPE | TTT_EXCEPTION_SPECS;
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   tp = skip_typerefs(tp);
+  add_implicit_ttt_flags(&ttt_flags);
   return (traverse_type_tree(tp, ttt_is_uncompleted_class_type, ttt_flags));
 }  /* is_or_contains_member_of_uncompleted_class */
 
@@ -14808,6 +14886,7 @@ members_only is FALSE, return TRUE if class_type itself appears in tp.
   specific_class_type = class_type;
   func = members_only ? ttt_is_member_of_specific_class_type :
                         ttt_is_or_is_member_of_specific_class_type;
+  add_implicit_ttt_flags(&ttt_flags);
   return (traverse_type_tree(tp, func, ttt_flags));
 }  /* type_involves_specific_class_type */
 
@@ -14829,6 +14908,7 @@ class or enum type contained in type_ptr.
                                                  TTT_PARAM_TYPES |
                                                  TTT_THIS_PARAM_TYPE |
                                                  TTT_PARENT_CLASSES);
+    add_implicit_ttt_flags(&ttt_flags);
     (void)traverse_type_tree(type_ptr, ttt_set_force_external_linkage_flag,
                              ttt_flags);
   }  /* if */
@@ -14984,11 +15064,12 @@ unspecified bound (i.e., declared with [*]).
   a_boolean                       result = FALSE;
 
   if (il_header.vla_used) {
-    a_type_tree_traversal_flag_set  tt_flags = (TTT_RETURN_TYPE |
-                                                TTT_SKIP_TYPEREFS);
+    a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                                 TTT_SKIP_TYPEREFS);
+    add_implicit_ttt_flags(&ttt_flags);
     result = traverse_type_tree(tp,
                                 ttt_is_or_contains_vla_with_unspecified_bound,
-                                tt_flags);
+                                ttt_flags);
   }  /* if */
   return result;
 }  /* is_or_contains_vla_type_with_unspecified_bound */
@@ -15008,8 +15089,9 @@ for VLAs).
   a_boolean                       result = FALSE;
 
   if (il_header.vla_used) {
-    a_type_tree_traversal_flag_set  tt_flags = TTT_RETURN_TYPE;
-    result = traverse_type_tree(tp, ttt_is_variably_modified_type, tt_flags);
+    a_type_tree_traversal_flag_set  ttt_flags = TTT_RETURN_TYPE;
+    add_implicit_ttt_flags(&ttt_flags);
+    result = traverse_type_tree(tp, ttt_is_variably_modified_type, ttt_flags);
   }  /* if */
   return result;
 }  /* is_variably_modified_type */
@@ -15028,9 +15110,10 @@ types or exception specification types.)
   a_boolean                       result = FALSE;
 
   if (il_header.vla_used && !C_mode()) {
-    a_type_tree_traversal_flag_set  tt_flags = TTT_RETURN_TYPE;
+    a_type_tree_traversal_flag_set  ttt_flags = TTT_RETURN_TYPE;
+    add_implicit_ttt_flags(&ttt_flags);
     result = traverse_type_tree(tp, ttt_is_nonlocal_variably_modified_type,
-                                tt_flags);
+                                ttt_flags);
   }  /* if */
   return result;
 }  /* is_nonlocal_variably_modified_type */
@@ -15048,13 +15131,14 @@ effects does not itself create a side effect at the point of reference.
   a_boolean                       result = FALSE;
 
   if (il_header.vla_used && innermost_function_scope != NULL) {
-    a_type_tree_traversal_flag_set  tt_flags = (TTT_RETURN_TYPE |
-                                                TTT_STOP_AT_TYPEDEFS);
+    a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                                 TTT_STOP_AT_TYPEDEFS);
     if (C_mode()) {
       /* C++ modes do not allow VLAs in parameters, but C modes do. */
-      tt_flags |= TTT_PARAM_TYPES;
+      ttt_flags |= TTT_PARAM_TYPES;
     }  /* if */
-    result = traverse_type_tree(tp, ttt_type_has_side_effects, tt_flags);
+    add_implicit_ttt_flags(&ttt_flags);
+    result = traverse_type_tree(tp, ttt_type_has_side_effects, ttt_flags);
   }  /* if */
   return result;
 }  /* type_has_side_effects */
@@ -15128,6 +15212,7 @@ Return the ELF visibility of the given type.
   strictest_ELF_visibility_in_traversal =
                                       (an_ELF_visibility_kind)evk_unspecified;
   check_assertion(!C_mode()); 
+  add_implicit_ttt_flags(&ttt_flags);
   (void)traverse_type_tree(type, ttt_check_ELF_visibility_of_type, ttt_flags);
   return strictest_ELF_visibility_in_traversal;
 }  /* ELF_visibility_of_type */
@@ -15140,13 +15225,14 @@ Lower the dimension expressions of any VLA type component in tp.
 */
 {
   if (il_header.vla_used && innermost_function_scope != NULL) {
-    a_type_tree_traversal_flag_set  tt_flags = (TTT_RETURN_TYPE |
-                                                TTT_STOP_AT_TYPEDEFS);
+    a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                                 TTT_STOP_AT_TYPEDEFS);
     if (C_mode()) {
       /* C++ modes do not allow VLAs in parameters, but C modes do. */
-      tt_flags |= TTT_PARAM_TYPES;
+      ttt_flags |= TTT_PARAM_TYPES;
     }  /* if */
-    (void)traverse_type_tree(tp, ttt_lower_vla_dimensions, tt_flags);
+    add_implicit_ttt_flags(&ttt_flags);
+    (void)traverse_type_tree(tp, ttt_lower_vla_dimensions, ttt_flags);
   }  /* if */
 }  /* lower_vla_dimensions_in_type */ 
 
@@ -15261,9 +15347,11 @@ array bound appears directly (rather than hidden under a typedef).
   a_boolean                       result = FALSE;
 
   if (il_header.vla_used) {
-    a_type_tree_traversal_flag_set  tt_flags = (TTT_RETURN_TYPE |
-                                                TTT_STOP_AT_TYPEDEFS);
-    result = traverse_type_tree(tp, ttt_is_variably_modified_type, tt_flags);
+    a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                                 TTT_STOP_AT_TYPEDEFS);
+    /* Note: add_implicit_ttt_flags is not used here because it
+       can't be used in a standalone utility program. */
+    result = traverse_type_tree(tp, ttt_is_variably_modified_type, ttt_flags);
   }  /* if */
   return result;
 }  /* is_directly_variably_modified_type */

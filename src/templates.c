@@ -2600,6 +2600,8 @@ Otherwise it is zero.
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       }  /* if */
+      /* This flag must be FALSE in the list that is returned. */
+      tap->is_provisional_value = FALSE;
     }  /* for */
   }  /* if */
   return match;
@@ -3504,7 +3506,8 @@ static a_boolean matches_template_arg_list(
 				a_template_arg_ptr	tap,
 				a_template_arg_ptr	templ_tap,
 				a_template_arg_ptr	*templ_arg_list,
-				a_template_param_ptr	templ_param_list);
+				a_template_param_ptr	templ_param_list,
+				an_mtt_flag_set		flags);
 
 static a_boolean matches_partial_specialization(
 				a_symbol_ptr		template_sym,
@@ -3568,7 +3571,7 @@ in ps_arg_list.
   instance_tap = template_arg_list_for_symbol(instance_sym);
   prototype_tap = template_arg_list_for_symbol(prototype_sym);
   if (matches_template_arg_list(instance_tap, prototype_tap, ps_arg_list,
-                                templ_param_list) &&
+                                templ_param_list, MTT_NO_FLAGS) &&
       (total_errors == 0 ||
        !template_arg_list_involves_error_entity(*ps_arg_list))) {
     /* We found a match without errors: Check that substituting the resulting
@@ -11045,7 +11048,8 @@ static
 a_boolean matches_template_constant(a_constant_ptr       constant,
                                     a_constant_ptr       templ_constant,
                                     a_template_arg_ptr   *templ_arg_list,
-                                    a_template_param_ptr templ_param_list)
+                                    a_template_param_ptr templ_param_list,
+                                    an_mtt_flag_set      flags)
 /*
 Called by the matches_template_type routines to determine whether
 a constant matches a constant template parameter from the parameter
@@ -11173,6 +11177,13 @@ list of a template function.  Returns TRUE if a match is found.
               !is_template_dependent_type(constant->type)) {
              match = FALSE;
           }  /* if */
+        } else if (auto_template_params_enabled &&
+                   (flags & MTT_TEMPL_TEMPL_MATCH) == 0) {
+          /* When auto template parameters are allowed, it is also permitted
+             to deduce from the type of a nontype argument. */
+          match = matches_template_type(constant->type, templ_constant->type,
+                                        templ_arg_list, templ_param_list,
+                                        MTT_NO_FLAGS);
         }  /* if */
         if (match) {
           if (tap->variant.constant == NULL) {
@@ -11242,7 +11253,7 @@ list of a template function.  Returns TRUE if a match is found.
             match = !did_not_fold &&
                     matches_template_constant(constant, new_templ_constant,
                                               templ_arg_list,
-                                              templ_param_list);
+                                              templ_param_list, flags);
             /* If a match of a non-template constant fails, don't assume
                a non-deduced match below. */
             release_local_constant(&new_templ_constant);
@@ -11256,12 +11267,12 @@ list of a template function.  Returns TRUE if a match is found.
                template parameter from which it can be deduced). */
             (void)matches_template_constant(constant, tcp,
                                             templ_arg_list,
-                                            templ_param_list);
+                                            templ_param_list, flags);
           }  /* if */
         } else if (tcp->kind != (a_constant_repr_kind)ck_template_param) {
           match = matches_template_constant(constant, tcp,
                                             templ_arg_list,
-                                            templ_param_list);
+                                            templ_param_list, flags);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -11277,7 +11288,8 @@ list of a template function.  Returns TRUE if a match is found.
 a_boolean matches_template_array_bound(a_targ_size_t        elements,
                                        a_constant_ptr       templ_constant,
                                        a_template_arg_ptr   *templ_arg_list,
-                                       a_template_param_ptr templ_param_list)
+                                       a_template_param_ptr templ_param_list,
+                                       an_mtt_flag_set      flags)
 /*
 A nontype template parameter is being deduced from an array bound.
 For example:
@@ -11343,6 +11355,15 @@ of types after all of the function arguments have been processed.
         tap->variant.integer_value = elements;
         match = TRUE;
         tap->is_array_bound_of_unknown_type = TRUE;
+        if (auto_template_params_enabled) {
+          /* When auto nontype template parameters are allowed, the deduction
+             from an array bound is considered to deduce the type size_t. */
+          a_type_ptr	size_t_type = integer_type(targ_size_t_int_kind);
+          (void)matches_template_type(size_t_type,
+                                      templ_constant->type,
+                                      templ_arg_list, templ_param_list,
+                                      flags | MTT_PROVISIONAL_VALUE);
+        }  /* if */
       } else {
         /* A previous array bound has been seen.  Make sure the values
            match. */
@@ -11407,7 +11428,7 @@ in the standard is perhaps accidental.
         make_zero_of_proper_type(bool_type(), cp);
       }  /* if */
       match = matches_template_constant(cp, t_cp, templ_arg_list,
-                                        templ_param_list);
+                                        templ_param_list, flags);
       if (cp_is_local) {
         if (match) {
           /* The constant is now likely used by the deduced template argument
@@ -11466,7 +11487,8 @@ static a_boolean matches_template_arg_list(
 				a_template_arg_ptr	tap,
 				a_template_arg_ptr	templ_tap,
 				a_template_arg_ptr	*templ_arg_list,
-				a_template_param_ptr	templ_param_list)
+				a_template_param_ptr	templ_param_list,
+				an_mtt_flag_set		flags)
 /* This routine has a forward declaration earlier in this file. */
 /*
 Called by matches_template_type_for_class to determine whether a given
@@ -11525,7 +11547,7 @@ partial specialization.
       match = matches_template_constant(tap->variant.constant,
                                         templ_tap->variant.constant,
                                         templ_arg_list,
-                                        templ_param_list);
+                                        templ_param_list, flags);
     } else if (is_template_templ_arg(tap)) {
       /* A template template argument. */
       match = matches_template_template_param(tap->variant.templ.ptr,
@@ -11592,7 +11614,8 @@ static a_boolean matches_template_type_for_class_type
                                    (a_type_ptr           type,
                                     a_type_ptr           templ_type,
                                     a_template_arg_ptr   *templ_arg_list,
-                                    a_template_param_ptr templ_param_list)
+                                    a_template_param_ptr templ_param_list,
+                                    an_mtt_flag_set      flags)
 /*
 Called by matches_template_type to determine whether a given class type
 matches a class type from the parameter list of a template function.
@@ -11640,7 +11663,7 @@ matches a class type from the parameter list of a template function.
          for now. */
       match = TRUE;
     } else if (matches_template_arg_list(tap, templ_tap, templ_arg_list,
-                                         templ_param_list)) {
+                                         templ_param_list, flags)) {
       match = TRUE;
     }  /* if */
   } else if (templ_primary_template != NULL &&
@@ -11660,7 +11683,7 @@ matches a class type from the parameter list of a template function.
            for now. */
         match = TRUE;
       } else if (matches_template_arg_list(tap, templ_tap, templ_arg_list,
-                                           templ_param_list)) {
+                                           templ_param_list, flags)) {
         match = TRUE;
       }  /* if */
     }  /* if */
@@ -12013,7 +12036,7 @@ points to the template parameter list.
                                 /*ignore_packs=*/FALSE);
           /* Now we have the nth template argument, which should correspond to
              the nth template parameter, whose type is templ_type. */
-          if (tap->variant.type == NULL) {
+          if (tap->variant.type == NULL || tap->is_provisional_value) {
             /* No type has been bound to this template argument yet, so just
                use "type".  This counts as a match. */
             if (!nonstandard_default_arg_deduction) {
@@ -12027,13 +12050,16 @@ points to the template parameter list.
             tap->variant.type = type;
             /* If the new type is a pack, copy over the flag. */
             tap->is_pack = type_is_pack(type);
+            tap->is_provisional_value = (flags & MTT_PROVISIONAL_VALUE) != 0;
             match = TRUE;
           } else {
             /* A type was already bound to this template argument.  We have a
                match if and only if the new type is the same as the one
                already there. */
-            if (identical_types(type, tap->variant.type)) {
-              /* Okay. */
+            if ((flags & MTT_PROVISIONAL_VALUE) != 0 ||
+                identical_types(type, tap->variant.type)) {
+              /* The types match, or this is a provisional match that should
+                 be ignored if not the same. */
               match = TRUE;
             } else if (microsoft_bugs && microsoft_version <= 1300 &&
                        f_identical_types(f_skip_typerefs(type),
@@ -12151,7 +12177,8 @@ points to the template parameter list.
         case tk_union:
           match = matches_template_type_for_class_type(type, templ_type,
                                                        templ_arg_list,
-                                                       templ_param_list);
+                                                       templ_param_list,
+                                                       flags);
           if (!match && (flags & MTT_ALLOW_INEXACT_DEDUCTION) != 0) {
             a_base_class_ptr	bcp;
             a_type_ptr		matching_base_class = NULL;
@@ -12168,7 +12195,8 @@ points to the template parameter list.
               match = matches_template_type_for_class_type(bcp->type,
                                                            templ_type,
                                                            &dummy_arg_list,
-                                                           templ_param_list);
+                                                           templ_param_list,
+                                                           flags);
               if (dummy_arg_list != NULL) {
                 free_template_arg_list(dummy_arg_list);
               }  /* if */
@@ -12207,7 +12235,8 @@ points to the template parameter list.
               match = matches_template_type_for_class_type(matching_base_class,
                                                            templ_type,
                                                            templ_arg_list,
-                                                           templ_param_list);
+                                                           templ_param_list,
+                                                           flags);
             }  /* if */
           }  /* if */
           break;
@@ -12234,7 +12263,8 @@ points to the template parameter list.
                fails. */
             match = FALSE;
           } else if (type->variant.array.is_template_dependent_size_array &&
-              templ_type->variant.array.is_template_dependent_size_array) {
+                     templ_type->
+                              variant.array.is_template_dependent_size_array) {
             /* Both the type and the template type are dependent size
                arrays.  This should only occur when comparing two
                types that are actually template types during partial
@@ -12246,7 +12276,7 @@ points to the template parameter list.
             if (cp != NULL && templ_cp != NULL) {
               match = matches_template_constant(cp, templ_cp,
                                                 templ_arg_list,
-                                                templ_param_list);
+                                                templ_param_list, flags);
             }  /* if */
           } else if (
                  templ_type->variant.array.is_template_dependent_size_array) {
@@ -12260,7 +12290,7 @@ points to the template parameter list.
                                 type->variant.array.variant.number_of_elements;
               match = matches_template_array_bound(elements, cp,
                                                    templ_arg_list,
-                                                   templ_param_list);
+                                                   templ_param_list, flags);
             }  /* if */
           } else if (type->variant.array.variant.number_of_elements !=
                       templ_type->variant.array.variant.number_of_elements) {

@@ -6914,6 +6914,10 @@ typedef struct a_template_arg {
 			   known.  In such cases the injected class name
 			   could end up being used as a template template
 			   argument. */
+  a_bit_field	is_provisional_value:1;
+			  /* TRUE if the argument value was deduced from an
+			     array bound and should only be used if it cannot
+			     be deduced elsewhere. */
   union {
     /* When kind == tak_type. */
     a_type_ptr  type;   /* The type supplied as the argument.  This type can
