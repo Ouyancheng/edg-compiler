@@ -610,7 +610,7 @@ typedef unsigned int an_mtt_flag_set;
                              int (*fp)() noexcept(false) = &f;
 			   Note that MTT_ALLOW_INEXACT_DEDUCTION permits the
 			   relaxation in the other direction. */
-#define	MTT_TEMPL_TEMPL_MATCH 0x80
+#define MTT_TEMPL_TEMPL_MATCH 0x80
 			/* TRUE when doing partial ordering as part of
 			   C++17-style template template argument matching. */
 #define MTT_PROVISIONAL_VALUE 0x100
