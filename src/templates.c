@@ -36033,7 +36033,7 @@ a definition (if needed) for extern inline entities.
           a_source_correspondence	*scp;
           scp = &var->source_corresp;
           create_instantiation_flag_variables(scp,
-                                              (an_il_entry_kind)iek_routine,
+                                              (an_il_entry_kind)iek_variable,
                                               instance_required,
                                               do_not_instantiate,
                                               can_be_instantiated);
