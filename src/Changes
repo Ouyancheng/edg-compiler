@@ -1,5 +1,17 @@
 Version 5.1
 
+4/23/19  [EDGcpfe/21160]
+__has_cpp_attribute with g++ and clang attributes
+
+The front end previously always made __has_cpp_attribute return false for
+gnu and clang attributes, even when they were available in the current
+emulation mode.  This is now fixed.  For example, with --g++:
+
+  #if !__has_cpp_attribute(noinline)
+  #error Missing noinline support  // Previously incorrectly triggered
+  #endif
+
+
 4/23/19  [EDGcpfe/20185,EDGcpfe/20187,EDGcpfe/20232,EDGcpfe/20353,
           EDGcpfe/20937,EDGcpfe/20960]
 Auto nontype template parameter issues

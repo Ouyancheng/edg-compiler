@@ -9256,15 +9256,7 @@ standard attributes given preference.
   an_attr_name_map_entry_ptr *p_ep;
   a_boolean                  supported = FALSE;
 
-  if (family != af_internal) {
-    p_ep = lookup_attribute_name(name, family);
-  } else if ((p_ep = lookup_attribute_name(name, af_std)) != NULL) {
-    family = af_std;
-  } else if ((p_ep = lookup_attribute_name(name, af_gnu)) != NULL) {
-    family = af_gnu;
-  } else if ((p_ep = lookup_attribute_name(name, af_ms_declspec)) != NULL) {
-    family = af_ms_declspec;
-  }  /* if */
+  p_ep = lookup_attribute_name(name, family);
   if (p_ep != NULL) {
     check_assertion(*p_ep != NULL);
     if (dummy_attr == NULL) {
@@ -9284,21 +9276,17 @@ standard attributes given preference.
            appear at most once in a group). */
         ++cond;
       }  /* if */
-      if (family == af_gnu) {
+      if (family == af_internal) {
+        supported = (cond_matches_std_attr_mode(cond, dummy_attr) ||
+                     cond_matches_gnu_attr_mode(cond, dummy_attr) ||
+                     cond_matches_ms_declspec_mode(cond, dummy_attr));
+      } else if (family == af_gnu) {
         supported = cond_matches_gnu_attr_mode(cond, dummy_attr);
       } else if (family == af_std) {
         supported = cond_matches_std_attr_mode(cond, dummy_attr);
       } else {
+        check_assertion(family == af_ms_declspec);
         supported = cond_matches_ms_declspec_mode(cond, dummy_attr);
-      }  /* if */
-      if (!supported && family == af_std && gnu_mode &&
-          namespace_name != NULL && strcmp(namespace_name, "gnu") == 0) {
-        /* g++ ignores a "gnu::" namespace on gnu attributes. */
-        dummy_attr->namespace_name = NULL;
-        dummy_attr->family = (a_byte_attribute_family)af_gnu;
-        supported = cond_matches_gnu_attr_mode(cond, dummy_attr);
-        dummy_attr->family = (a_byte_attribute_family)af_std;
-        dummy_attr->namespace_name = namespace_name;
       }  /* if */
     }  /* for */
   }  /* if */
