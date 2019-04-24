@@ -1,5 +1,21 @@
 Version 5.1
 
+4/24/19  [EDGcpfe/21060]
+Abort in function_template_call_argument_deduction with empty pack expansion
+
+Consider:
+
+  template<typename R, typename P> R f(P);
+  template<typename F, typename S, typename... Ts> int f(Ts... x, S y, S z);
+  auto r = f<int>(42);  // Previously aborted.  Now okay.
+
+This case previously aborted in function_template_call_argument_deduction
+with an internal error because that function did not expect the argument
+count of the call to be different from the parameter count of the second
+template after substituting the "<int>" template argument list (in most cases,
+such mismatches are caught earlier).  That is now fixed.
+
+
 4/24/19  [EDGcpfe/21165]
 Unions and nested interpreter invocations
 

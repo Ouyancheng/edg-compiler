@@ -4760,29 +4760,31 @@ deduction failed.
     check_assertion_str(rtsp->has_ellipsis,
                 "function_template_call_argument_deduction: missing ellipsis");
   } else if (ptp != NULL) {
-    /* We ran out of arguments, but we still have parameters.  Since overload
-       resolution usually discards candidates with the wrong parameter count
-       early (by checking a call to arg_count_mismatch), the parameter probably
-       has a default argument expression, a C++/CLI param array, or it is a
-       parameter pack.  An exception can occur with explicit arguments
-       specified on a variadic template.  E.g.:
+    /* We ran out of arguments, but we still have parameters.  The caller
+       usually discards candidates with the wrong parameter count early (by
+       checking a call to arg_count_mismatch), but some cases involving
+       explicit arguments for a variadic template parameter cannot be detected
+       early.  For example:
            template <class ... T> void f(T ... args);
            int main() {
              f<int>();  // An early check for a mismatch in number of
            }            // arguments does not detect this mismatch.
-    */
+       or:
+           template<typename R, typename P> R f(P);
+           template<typename F, typename S, typename... Ts>
+               int f(Ts... x, S y, S z);
+           auto r = f<int>(42);  // Mismatch not detected early.
+       (the latter case is interesting because the parameter pack has an empty
+       expansion, and thus it is not sufficient to check of pack elements).
+       Cases involving default arguments, parameter packs, or C++/CLI parameter
+       arrays can be valid and still get here as well.  */
     if (!(ptp->has_default_arg ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
           ptp->is_cli_param_array ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           ptp->is_parameter_pack)) {
-      if (ptp->is_pack_element) {
-        /* Deduction failed. */
-        goto done;
-      } else {
-        unexpected_condition_str2("function_template_call_argument_deduction:",
-                                  " arguments/parameters count mismatch");
-      }  /* if */
+      /* Deduction failed. */
+      goto done;
     }  /* if */
     if (ptp->is_parameter_pack && ptp->next != NULL) {
       /* A parameter pack can be deduced only if there are no other parameters
