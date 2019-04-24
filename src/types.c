@@ -13713,7 +13713,7 @@ language mode flags.
 */
 {
   /* When auto template parameters are enabled, the type of a nontype template
-     parameters is a deduced context. */
+     parameter is a deduced context. */
   if (auto_template_params_enabled &&
       (*ttt_flags & TTT_DEDUCED_CONTEXTS_ONLY)) {
     *ttt_flags |= TTT_TYPE_OF_NONTYPE_ARG;
