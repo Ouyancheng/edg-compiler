@@ -168,8 +168,8 @@ That rule was accidentally dropped through the changes made by the committee's
 paper P0003R5, but, after review, the committee decided to let the effect of
 P0003R5 in this area stand.  Since other compilers never implemented the
 original rule, the front end now applies the revised rules (causing the
-static_assert above to fail) in all modes.  A global flag is still available
-to enable our previous behavior.
+static_assert above to fail) in all modes.  The previous behavior can be
+restored by setting the global flag core_constant_expr_is_noexcept to TRUE.
 
 
 4/16/19  [EDGcpfe/20452]
