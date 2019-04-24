@@ -1,5 +1,18 @@
 Version 5.1
 
+4/24/19  [EDGcpfe/21165]
+Unions and nested interpreter invocations
+
+When dealing with unions, the interpreter manages "variant path entries" that
+represent union field selections in addressable contexts (glvalues, pointers,
+and references).  Those entries were previously always reclaimed when an
+invocation of the interpreter completed.  However, it is possible for multiple
+interpreter invocations to nest: In such cases, the reclamation of "variant
+path entries" for an inner invocation could erroneously reclaim entries that
+should remain active for the outer invocation.  Such situations could lead to
+aborts or spurious errors.  That is now fixed.
+
+
 4/23/19  [EDGcpfe/21160]
 __has_cpp_attribute with g++ and clang attributes
 

@@ -34053,7 +34053,8 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
   tssp = template_supplement_for_symbol(tip->template_sym);
   if (is_simple_function_symbol(sym)) {
     a_routine_ptr  rp = sym->variant.routine.ptr;
-    if (rp->is_constexpr) {
+    rout_is_constexpr = rp->is_constexpr;
+    if (rp->is_constexpr && ((options & SIR_CONSTANT_CONTEXT) != 0)) {
       /* constexpr routines require special treatment but only in contexts
          where a constant is required.  Note that in other contexts we
          do not want to do the defer_inline processing that is set below,
@@ -34063,10 +34064,7 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
          instantiation immediately because a subsequent call could do an
          immediate instantiation and we want the instantiation count to be
          correct in such cases. */
-      rout_is_constexpr = TRUE;
-      if ((options & SIR_CONSTANT_CONTEXT) != 0) {
-        constexpr_in_constant_context = TRUE;
-      }  /* if */
+      constexpr_in_constant_context = TRUE;
     } else {
       if (microsoft_bugs || gpp_mode) {
         /* Non-constexpr inline functions are not treated differently for

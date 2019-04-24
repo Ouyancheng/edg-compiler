@@ -889,6 +889,12 @@ typedef struct an_interpreter_state {
 } an_interpreter_state;
 
 
+static unsigned long
+		n_active_interpreter_states;
+			/* The number of interpreter states that have been
+			   initialized but not released. */
+
+
 #define cost_exceeded(ips)                                                   \
   (++(ips)->cost > max_cost_constexpr_call)
 
@@ -2181,6 +2187,7 @@ result of calls to std::is_constant_evaluated().
   ips->call_seen = FALSE;
   ips->permit_address_of_local_temporary = FALSE;
   ips->disallow_mutable_field_load = FALSE;
+  n_active_interpreter_states += 1;
 }  /* init_interpreter_state */
 
 
@@ -2189,6 +2196,7 @@ static void release_interpreter_state(an_interpreter_state  *ips)
 Release the storage allocated for the given interpreter state.
 */
 {
+  n_active_interpreter_states -= 1;
   release_constexpr_stack(&ips->storage_stack);
   release_data_map_table(&ips->map);
   ips->map.table = NULL;
@@ -2204,7 +2212,8 @@ Release the storage allocated for the given interpreter state.
   if (ips->static_storage_ready) {
     release_constexpr_stack(&ips->static_storage);
   }  /* if */
-  if (n_free_variant_path_entries != n_variant_path_entries) {
+  if (n_free_variant_path_entries != n_variant_path_entries &&
+      n_active_interpreter_states == 0) {
     reclaim_variant_path_entries();
   }  /* if */
 }  /* release_interpreter_state */
@@ -3509,11 +3518,14 @@ Display the indicated variant path.
   int  n = 0;
   for (; path != NULL; path = path->next) {
     if (path->field != NULL) {
+      fprintf(f_debug, " ->");
       db_name(&path->field->source_corresp);
+    } else {
+      fprintf(f_debug, "(no field)");
     }  /* if */
     n += 1;
   }  /* for */
-  fprintf(f_debug, "(%d entries)", n);
+  fprintf(f_debug, " (%d entries)", n);
 }  /* db_variant_path */
 
 
@@ -14319,6 +14331,7 @@ that are needed for the operation of the interpreter.
 {
   init_constexpr_stack(&persistent_data);
   init_data_map(&persistent_map, 10);
+  n_active_interpreter_states = 0;
   variant_path_entries = NULL;
   n_variant_path_entries = 0;
   free_variant_path_entries = NULL;
@@ -15431,16 +15444,16 @@ indicates the value produced by std::is_constant_evaluated().
     result = FALSE;
     goto done;
   }  /* if */
+  if (is_error_dynamic_init(dip)) {
+    set_error_constant(result_con);
+    goto done;
+  }  /* if */
   if (trans_unit_initialization_needed) {
     initialize_interpreter_data();
     trans_unit_initialization_needed = FALSE;
   }  /* if */
   init_interpreter_state(&ips, is_constant_evaluated);
   ips.position = error_position;
-  if (is_error_dynamic_init(dip)) {
-    set_error_constant(result_con);
-    goto done;
-  }  /* if */
   ctor = dip->variant.constructor.ptr;
   result_type = parent_class_of(ctor);
   n_bytes = value_bytes_for_type(&ips, result_type, &result); 
