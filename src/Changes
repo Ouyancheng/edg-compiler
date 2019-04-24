@@ -1,5 +1,20 @@
 Version 5.1
 
+4/24/19  [EDGcpfe/21017]
+Position information for uses of lambda captures
+
+Consider:
+
+  auto lm = [x]{ if (x) return 1; else return 42; };
+
+The use of the identifier x in the if-statement produce a compiler-generated
+selection statement (selecting the captured value from the associated closure).
+Previously, no position information was recorded in the field selection node
+(because, generally, no position information is recorded for compiler-generated
+node).  Now, the position of the identifier (in the if-statement condition) is
+recorded in that node.
+
+
 4/24/19  [EDGcpfe/21060]
 Abort in function_template_call_argument_deduction with empty pack expansion
 
