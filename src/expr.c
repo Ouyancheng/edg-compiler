@@ -32765,6 +32765,13 @@ variable:
             an_expr_node_ptr sel_expr =
                       make_selection_for_captured_variable(lambda_capture,
                                                            /*is_lvalue=*/TRUE);
+            /* This is a compiler-generated expression and therefore the later
+               call to set_operand_expr_position_if_expr will not record source
+               positions in the underlying expression node.  We record it here
+               because that position information is potentially useful to
+               IL consumers. */
+            set_expr_position(sel_expr, &start_position, &end_position,
+                              &start_position);
             make_glvalue_expression_operand(sel_expr, result);
             if (is_any_reference_type(lambda_capture->closure_field->type)) {
               add_reference_indirection(result);
