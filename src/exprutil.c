@@ -9783,12 +9783,11 @@ prvalue type for that glvalue (i.e., some cv-qualifiers are dropped even
 if the type is not integral).
 */
 {
-  a_type_ptr promoted_type = NULL;
+  a_type_ptr       promoted_type = NULL;
+  an_expr_node_ptr expr = expr_node_from_operand(operand);
 
   /* Check for bit-field accesses, which may require special handling. */
-  if (!(is_expression_operand(operand) &&
-        requires_bit_field_promotion(operand->variant.expression,
-                                     &promoted_type))) {
+  if (!(expr != NULL && requires_bit_field_promotion(expr, &promoted_type))) {
     /* Non-bit-field cases.  Determine the promoted type on the basis of
        the operand type. */
     promoted_type = operand->type;

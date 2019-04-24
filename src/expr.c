@@ -6904,6 +6904,8 @@ give the starting and ending source positions for the field reference
         make_constant_operand(constant, result);
       }  /* if */
       restore_operand_details(result, &orig_operand);
+      /* Preserve the original expression that was folded. */
+      result->variant.constant.expr = orig_operand.variant.expression;
     }  /* if */
     if (release_constant) release_local_constant(&constant);
   }  /* if */

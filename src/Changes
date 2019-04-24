@@ -1,5 +1,21 @@
 Version 5.1
 
+4/24/19  [EDGcpfe/20935]
+Bit field promotions in folded constants
+
+The front end was previously ignoring the original expression when using the
+resulting constants from constant folding.  This led to a failure to properly
+promote bit-field types.  For example:
+
+  struct S { unsigned long long f:4; };
+  void f(S s) {
+    decltype(+s.f) x;   // Correctly gets type of "int"
+    decltype(+S{}.f) y; // Incorrectly received type of "unsigned long long"
+  }
+
+This is now fixed.
+
+
 4/24/19  [EDGcpfe/20063]
 Sub-statements in GNU __extension__
 
