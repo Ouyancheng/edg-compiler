@@ -24942,7 +24942,9 @@ already been consumed.
     sp = compound_statement_full(/*at_function_level=*/FALSE,
                                  /*explicit_return_type=*/FALSE,
                                  /*is_catch_clause=*/FALSE,
-                                 /*is_statement_expr=*/TRUE, &expr_type);
+                                 /*is_statement_expr=*/TRUE,
+                                 saved_expr_stack->marked_as_gnu_extension,
+                                 &expr_type);
     if (sp->kind == (a_statement_kind)stmk_block &&
         sp->variant.block.extra_info->assoc_scope != NULL) {
       sp->variant.block.extra_info->assoc_scope->is_stmt_expr_block = TRUE;

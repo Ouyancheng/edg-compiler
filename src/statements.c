@@ -7610,6 +7610,7 @@ a_statement_ptr compound_statement_full(a_boolean   at_function_level,
                                         a_boolean   explicit_return_type,
                                         a_boolean   is_catch_clause,
                                         a_boolean   is_statement_expr,
+                                        a_boolean   marked_as_gnu_extension,
                                         a_type_ptr  *p_result_type)
 /*
 Scan a compound-statement.  The syntax is
@@ -7787,13 +7788,12 @@ through *p_result_type.
       /* In C++ mode, where declarations can be interspersed with
          executable statements, statement() handles declarations, too. */
       statement(/*is_dependent_statement=*/FALSE,
-                /*marked_as_gnu_extension=*/FALSE);
+                marked_as_gnu_extension);
     } else {
       /* In C mode the declarations are expected to appear first.  Note that
          label statements may look like the start of a declaration, so we
          have to check for ident followed by ":".  In C99 and GNU C modes,
          declarations may be interspersed with statements. */
-      a_boolean          marked_as_gnu_extension = FALSE;
       a_source_position  gnu_extension_pos;
       if (curr_token == tok_extension) {
         /* Record the presence of the __extension__ keyword and ensure that

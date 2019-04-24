@@ -1,5 +1,20 @@
 Version 5.1
 
+4/24/19  [EDGcpfe/20063]
+Sub-statements in GNU __extension__
+
+Sub-statements marked with the GNU __extension__ keyword were not being
+treated as if they were marked with the __extension__ keyword.  For example:
+
+  void f(void *p)
+  {
+    __extension__({ p + 0; }); // Spurious pointer arithmetic warning issued
+    __extension__(p + 0);      // No warning issued
+  }
+
+This is now fixed.
+
+
 4/24/19  [EDGcpfe/21017]
 Position information for uses of lambda captures
 

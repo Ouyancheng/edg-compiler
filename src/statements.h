@@ -502,16 +502,18 @@ extern void set_vla_size_statement(a_vla_dimension_ptr  vdp,
                                    a_source_position    *pos);
 
 extern a_statement_ptr compound_statement_full(
-                                             a_boolean   at_function_level,
-                                             a_boolean   explicit_return_type,
-                                             a_boolean   is_catch_clause,
-                                             a_boolean   is_statement_expr,
-                                             a_type_ptr  *p_result_type);
+                                          a_boolean   at_function_level,
+                                          a_boolean   explicit_return_type,
+                                          a_boolean   is_catch_clause,
+                                          a_boolean   is_statement_expr,
+                                          a_boolean   marked_as_gnu_extension,
+                                          a_type_ptr  *p_result_type);
 
 #define compound_statement(at_function_level, explicit_return_type,          \
                            is_catch_clause, is_statement_expr)               \
   (compound_statement_full(at_function_level, explicit_return_type,          \
                            is_catch_clause, is_statement_expr,               \
+                           /*marked_as_gnu_extension=*/FALSE,                \
                            /*p_result_type=*/(a_type_ptr*)NULL))
 
 extern void start_of_function_try_block(void);
