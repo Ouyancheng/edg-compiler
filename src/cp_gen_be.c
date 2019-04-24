@@ -3503,7 +3503,7 @@ that the remaining arguments will be defaulted.
   if (name_has_template_arguments(scp, entry_kind, &tap, &insert_space)) {
     a_template_arg_ptr argp = NULL;
     a_template_arg_ptr prev_argp = NULL;
-    long               min_arguments;
+    long               min_arguments = num_arguments;
     if (entry_kind == iek_type) {
       a_type_ptr     tp = (a_type_ptr)scp;
       long           min_instance_args = num_arguments;
