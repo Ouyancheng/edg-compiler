@@ -1,5 +1,16 @@
 Version 5.1
 
+4/25/19  [EDGcpfe/21172]
+Incorrect handling of unsigned bit fields in constexpr interpreter
+
+Unsigned bit fields were incorrectly treated as signed in the constexpr
+interpreter, leading to spurious errors.  For example, in C++17 mode:
+
+  struct S { unsigned bf:4; };
+  static_assert([]{ S s{}; s.bf = 15; return s.bf; }() == 15);
+       // Previously failed.  Now okay.
+
+
 4/24/19  [EDGcpfe/20935]
 Bit field promotions in folded constants
 

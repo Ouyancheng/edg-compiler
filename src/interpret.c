@@ -3579,7 +3579,8 @@ Output the contents of the interpreted object of type tp stored at addr.
       { a_host_large_integer  val;
         a_boolean             ovflo;
         conv_integer_value_to_host_large_integer(
-                  (an_integer_value *)addr, /*is_signed=*/TRUE, &val, &ovflo);
+                  (an_integer_value *)addr, is_signed_integral_type(tp), &val,
+                  &ovflo);
         (void)fprintf(f_debug, "%ld%s\n", (long)val,
                       ovflo ? " (overflow!)" : "");
       }
@@ -13800,7 +13801,8 @@ the value representation of the integer value.
                      length and signedness of the field are encoded in
                      result_addr.length. */
                   result_addr.flags |= CA_BIT_FIELD;
-                  result_addr.length = field->bit_size*2 + field->is_bit_field;
+                  result_addr.length = field->bit_size*2 +
+                                       field->bit_field_is_signed;
                 }  /* if */
                 if (field->is_mutable) {
                   result_addr.flags &= ~CA_CONST_STORAGE;
@@ -13906,7 +13908,7 @@ the value representation of the integer value.
                        result_addr.length. */
                     result_addr.flags |= CA_BIT_FIELD;
                     result_addr.length = field->bit_size*2 +
-                                         field->is_bit_field;
+                                         field->bit_field_is_signed;
                   }  /* if */
                 }  /* if */
                 if (field->is_mutable) {
