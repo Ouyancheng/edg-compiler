@@ -38,11 +38,11 @@ Consider:
 
   auto lm = [x]{ if (x) return 1; else return 42; };
 
-The use of the identifier x in the if-statement produce a compiler-generated
+The use of the identifier x in the if-statement produces a compiler-generated
 selection statement (selecting the captured value from the associated closure).
 Previously, no position information was recorded in the field selection node
 (because, generally, no position information is recorded for compiler-generated
-node).  Now, the position of the identifier (in the if-statement condition) is
+nodes).  Now, the position of the identifier (in the if-statement condition) is
 recorded in that node.
 
 
