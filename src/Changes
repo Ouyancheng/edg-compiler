@@ -17,10 +17,10 @@ This is now fixed.
 
 
 4/24/19  [EDGcpfe/20063]
-Sub-statements in GNU __extension__
+GNU __extension__ and statement expressions
 
-Sub-statements marked with the GNU __extension__ keyword were not being
-treated as if they were marked with the __extension__ keyword.  For example:
+The front end failed to apply the GNU __extension__ keyword appearing on a
+statement expression to expressions nested within it.  For example:
 
   void f(void *p)
   {

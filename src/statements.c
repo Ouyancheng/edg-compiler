@@ -7634,7 +7634,8 @@ pushed, but otherwise this is handled like an ordinary block (except that
 branching into it is disallowed).  If is_statement_expr is TRUE, this
 compound statement is the statement in a GNU statement expression (of the
 form "({ ... })") and the result type of that compound statement is returned
-through *p_result_type.
+through *p_result_type.  If marked_as_gnu_extension is TRUE, this statement
+is being parsed within the context of the __extension__ keyword.
 */
 {
   a_statement_ptr            block;
