@@ -32597,6 +32597,8 @@ if rescan_is_template_id is TRUE, and return the result in *operand
                                     ref_entry(sym_ptr, &start_position),
                                     &locator.source_position,
                                     result);
+      result->is_template_id = locator.is_template_id;
+      result->template_arg_list = locator.template_arg_list;
     }  /* if */
   } else {
     /* The symbol is defined. */
