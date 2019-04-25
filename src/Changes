@@ -1,5 +1,23 @@
 Version 5.1
 
+4/25/19  [EDGcpfe/21118]
+Explicit specialization of member variable template considered definition
+
+An explicit specialization of a member variable template was considered
+a definition in some cases when it should not be resulting in spurious
+errors.  Now fixed.
+
+  struct A {
+    template <class T> static T v;
+  };
+  template <class T> T A::v = 1;
+  template <> int A::v<int>;
+  template <> int A::v<int> = 2;
+  int main() {
+    return A::v<int> != 2;
+  }
+
+
 4/25/19  [EDGcpfe/21172]
 Incorrect handling of unsigned bit fields in constexpr interpreter
 

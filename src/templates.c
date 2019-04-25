@@ -29694,7 +29694,9 @@ that follows.
         vp->type = composite_type(vp->type, dps->type);
         /* The Microsoft compiler treats a static data member specialization
            declaration as a definition. */
-        dps->is_definition = (symbol_is(sym, sk_variable) || microsoft_bugs ||
+        dps->is_definition = ((symbol_is(sym, sk_variable) &&
+                               !sym->is_class_member) ||
+                              microsoft_bugs ||
                               curr_token == tok_assign ||
                               has_parenthesized_initializer ||
                               (list_init_enabled && curr_token == tok_lbrace));
@@ -29932,7 +29934,6 @@ that follows.
               }  /* if */
             }  /* if */
           }  /* if */
-          check_use_of_placeholder_type(dps);
 #if GNU_EXTENSIONS_ALLOWED
           if (gpp_mode && has_parenthesized_initializer &&
               curr_token == tok_attribute) {
@@ -29954,6 +29955,7 @@ that follows.
           sym->decl_position = saved_sym_pos;
         }
 #endif /* DECL_MODIFIERS_IN_USE */
+	check_use_of_placeholder_type(dps);
       } else {
         /* A specialization of a routine. */
         rp->has_deducible_return_type = dps->has_deducible_return_type;
