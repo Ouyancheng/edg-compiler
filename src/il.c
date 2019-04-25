@@ -22170,11 +22170,18 @@ expression-traversal routines.  Set tblock->result to TRUE if so.
         }  /* if */
         if (rout != NULL) {
           if (!is_non_throwing_routine(rout)) {
+            might_throw = TRUE;
             if (rout->is_declared_constexpr && gpp_version_is(<90000)) {
-              /* GCC versions prior to 9.x appear to assume that constexpr
-                 functions cannot throw. */
-            } else {
-              might_throw = TRUE;
+              /* GCC versions prior to 9.x appear to check calls for being
+                 core constant expressions (but not non-call components of
+                 an expression; e.g., "true ? 0 : throw 0" is considered
+                 potentially throwing). */
+              a_diag_list  diag_list;
+              clear_diag_list(&diag_list);
+              if (is_core_constant_expr(node, &diag_list)) {
+                might_throw = FALSE;
+              }  /* if */
+              discard_more_info_list(&diag_list);
             }  /* if */
           }  /* if */
         } else {
