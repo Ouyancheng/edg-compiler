@@ -280,7 +280,7 @@ A change has been made to const-qualify lowered temporary variables in more
 situations.
 
 
-4/17/19  [EDGcpfe/21119]
+4/17/19  [EDGcpfe/18111,EDGcpfe/21119]
 The noexcept operator and constant expressions
 
 In C++11 and C++14, applying the noexcept operator to a "core constant
