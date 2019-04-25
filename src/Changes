@@ -4,8 +4,9 @@ Version 5.1
 Bit field promotions in folded constants
 
 The front end was previously ignoring the original expression when using the
-resulting constants from constant folding.  This led to a failure to properly
-promote bit-field types.  For example:
+resulting constants from performing constant folding on class/struct/union
+fields.  This led to a failure to properly promote bit field types.  For
+example:
 
   struct S { unsigned long long f:4; };
   void f(S s) {
