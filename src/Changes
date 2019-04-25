@@ -1,5 +1,26 @@
 Version 5.1
 
+4/25/19  [EDGcpfe/20787]
+Assertion failure in final_overrider
+
+In some scenarios the front end would attempt to suppress the virtual function
+mechanism while still in a template prototype instantiation context.  This
+could lead to an abort in final_overrider.  For example (with -tused):
+
+  struct Base2 { virtual void coupled(); };
+  template <class T> struct Base : public Base2 {};
+  template <class T> struct Derived : public Base<T>
+  {
+    using Base2::coupled;
+    Derived(int) {
+      coupled();  // Previously would abort
+    }
+  };
+  Derived<int> foo(0);
+
+This is now fixed.
+
+
 4/25/19  [EDGcpfe/21118]
 Explicit specialization of member variable template considered definition
 

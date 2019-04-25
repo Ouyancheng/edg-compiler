@@ -10434,7 +10434,7 @@ or handle to a class ("->" or "->*" case, selector_is_object_pointer TRUE).
                           operand_complete_object_type(bound_function_selector,
                                                        /*call_case=*/TRUE);
     }  /* if */
-    if (complete_object_type != NULL) {
+    if (complete_object_type != NULL && !is_template_dependent_context()) {
       /* We know the type of the complete object: we may be able to
          determine the specific function to call and suppress the
          virtual function mechanism. */
