@@ -22169,7 +22169,14 @@ expression-traversal routines.  Set tblock->result to TRUE if so.
           }  /* if */
         }  /* if */
         if (rout != NULL) {
-          if (!is_non_throwing_routine(rout)) might_throw = TRUE;
+          if (!is_non_throwing_routine(rout)) {
+            if (rout->is_declared_constexpr && gpp_version_is(<90000)) {
+              /* GCC versions prior to 9.x appear to assume that constexpr
+                 functions cannot throw. */
+            } else {
+              might_throw = TRUE;
+            }  /* if */
+          }  /* if */
         } else {
           a_type_ptr ptr_type = op1->type;
           a_type_ptr func_type = NULL;

@@ -296,9 +296,17 @@ P0003R5 in this area stand.  Since other compilers never implemented the
 original rule, the front end now applies the revised rules (causing the
 static_assert above to fail) by default.  The previous behavior can be
 restored by setting the global flag core_constant_expr_is_noexcept to TRUE.
-The previous behavior is also still enabled in Microsoft mode and in GNU mode
-with gnu_version < 90000.
+The previous behavior is also still enabled in Microsoft mode.  Furthermore,
+the behavior in GNU C++ mode has been tweaked to more closely match the
+slightly nonstandard behavior of GCC.  E.g., in GNU C++ modes the above
+example fails, but the following succeeds:
 
+  constexpr int const* f(int const *p) { return p; }
+  constexpr int i = 42;
+  static_assert(noexcept(*f(&i)), "");  // Okay in all GNU C++ modes that
+                                        // support noexcept.  Fails in
+                                        // default modes.
+ 
 
 4/16/19  [EDGcpfe/20452]
 Inline static data members of class templates

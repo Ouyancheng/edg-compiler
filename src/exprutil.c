@@ -17464,13 +17464,15 @@ whether the call was folded or not.
            (rout->is_constexpr ||
             (rout->is_virtual && constexpr_virtual_enabled &&
              !virtual_suppressed))) &&
-          !(clang_mode && expr_stack->in_noexcept_operand_expression) &&
+          (!expr_stack->in_noexcept_operand_expression ||
+           core_constant_expr_is_noexcept) &&
           expr_fold_constexpr_call(function_call_node, rout, result,
                                    &diag_list)) {
         /* The call is to a constexpr function (or a function otherwise known
            to the front end) and it has been folded to a constant result.
-           (Clang appears to determine the noexcept operator without folding
-           constexpr calls therein; that is nonstandard behavior, however.) */
+           (Note that calls are usually not folded in the operand of noexcept
+           operands because a call is potentially-throwing, unless the flag
+           core_constant_expr_is_noexcept is TRUE.) */
         call_folded_to_constant = TRUE;
 #if BUILTIN_FUNCTIONS_ENABLED
       } else if (rout != NULL) {
