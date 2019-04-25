@@ -205,6 +205,11 @@ static a_boolean
 			/* TRUE if the expression being generated appears
 			   in a generated instance of a function template. */
 
+static a_boolean
+		in_gnu_extension;
+			/* TRUE if the expression being generated has been
+			   marked with the GNU __extension__ keyword. */
+
 /*
 Entry used to record an adjustment needed at the end of a name context,
 i.e., restoring the previous values of the qualification_needed and/or
@@ -6567,7 +6572,8 @@ al_tag_name attributes (if any).
     save_source_sequence_scan_state(&saved_state);
     activate_delayed_type_definition_sse(type);
 #if GNU_EXTENSIONS_ALLOWED
-    if (type->source_corresp.marked_as_gnu_extension &&
+    if (!in_gnu_extension &&
+        type->source_corresp.marked_as_gnu_extension &&
         type->autonomous_primary_tag_decl) {
       /* If the type was not defined autonomously, the "__extension__" keyword
          is rendered elsewhere. */
@@ -8823,7 +8829,8 @@ declaration following this one is such a continuation.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-    if (field->source_corresp.marked_as_gnu_extension) {
+    if (!in_gnu_extension &&
+        field->source_corresp.marked_as_gnu_extension) {
       write_tok_str("__extension__ ");
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -9950,7 +9957,8 @@ this one is such a continuation.
        mode for the member. */
     gen_member_access_specifier_for_decl_of(&type->source_corresp);
 #if GNU_EXTENSIONS_ALLOWED
-    if (marked_as_gnu_extension && !suppress_specifiers) {
+    if (!in_gnu_extension && marked_as_gnu_extension &&
+        !suppress_specifiers) {
       write_tok_str("__extension__ ");
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -13681,6 +13689,7 @@ gen_expr that might end up generating this expr as a temporary.
   an_expr_operator_kind op;
   a_dynamic_init_ptr    dip;
   a_boolean             is_pack_expansion;
+  a_boolean             saved_in_gnu_extension = in_gnu_extension;
 
   check_assertion_str(expr != NULL, "gen_expr: NULL expression");
   if (expr->is_pack_expansion) {
@@ -13713,7 +13722,8 @@ gen_expr that might end up generating this expr as a temporary.
   }  /* if */
 #endif /* CHECKING && !STANDALONE_UTILITY_PROGRAM */
 #if GNU_EXTENSIONS_ALLOWED
-  if (expr->marked_as_gnu_extension) {
+  if (!in_gnu_extension && expr->marked_as_gnu_extension) {
+    in_gnu_extension = TRUE;
     write_tok_str("__extension__ "); 
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -14800,6 +14810,7 @@ sizeof_cases:
     /* A variadic template pack expansion. */
     write_tok_str("...");
   }  /* if */
+  in_gnu_extension = saved_in_gnu_extension;
 }  /* gen_expr */
 
 
@@ -18379,7 +18390,7 @@ this one is such a continuation.
   if (!suppress_specifiers) {
     gen_member_access_specifier_for_decl_of(&var->source_corresp);
 #if GNU_EXTENSIONS_ALLOWED
-    if (marked_as_gnu_extension) {
+    if (!in_gnu_extension && marked_as_gnu_extension) {
       write_tok_str("__extension__ ");
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -19723,7 +19734,7 @@ handle_as_definition:
        mode for the member. */
     gen_member_access_specifier_for_decl_of(&rout->source_corresp);
 #if GNU_EXTENSIONS_ALLOWED
-    if (marked_as_gnu_extension) {
+    if (!in_gnu_extension && marked_as_gnu_extension) {
       write_tok_str("__extension__ ");
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
