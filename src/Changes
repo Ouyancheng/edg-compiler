@@ -46,7 +46,7 @@ nodes).  Now, the position of the identifier (in the if-statement condition) is
 recorded in that node.
 
 
-4/24/19  [EDGcpfe/21060]
+4/24/19  [EDGcpfe/19433,EDGcpfe/21060]
 Abort in function_template_call_argument_deduction with empty pack expansion
 
 Consider:
