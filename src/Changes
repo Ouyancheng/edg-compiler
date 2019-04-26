@@ -3,9 +3,10 @@ Version 5.1
 4/25/19  [EDGcpfe/20863]
 Capturing "this" in a NSDMI within a local class
 
-A regression was introduced by EDGcpfe/20049 that made it so that the "this"
-member of a local class was not able to be captured by a lambda expression in
-a non-static data member initializer.  For example:
+The change EDGcpfe/20049 (not part of a release, but widely distributed as a
+patch for 5.0) caused a regression that made it so that the "this" member of a
+local class was not able to be captured by a lambda expression in a non-static
+data member initializer.  For example:
 
   void f() {
     struct Z {
