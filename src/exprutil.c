@@ -17465,14 +17465,16 @@ whether the call was folded or not.
             (rout->is_virtual && constexpr_virtual_enabled &&
              !virtual_suppressed))) &&
           (!expr_stack->in_noexcept_operand_expression ||
-           core_constant_expr_is_noexcept) &&
+           core_constant_expr_is_noexcept || microsoft_mode) &&
           expr_fold_constexpr_call(function_call_node, rout, result,
                                    &diag_list)) {
         /* The call is to a constexpr function (or a function otherwise known
            to the front end) and it has been folded to a constant result.
-           (Note that calls are usually not folded in the operand of noexcept
+           Note that calls are usually not folded in the operand of noexcept
            operands because a call is potentially-throwing, unless the flag
-           core_constant_expr_is_noexcept is TRUE.) */
+           core_constant_expr_is_noexcept is TRUE or we are in Microsoft mode
+           (MSVC appears to treat "constant expressions" as noexcept, but not
+           the more general "core constant expressions"). */
         call_folded_to_constant = TRUE;
 #if BUILTIN_FUNCTIONS_ENABLED
       } else if (rout != NULL) {

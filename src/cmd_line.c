@@ -2750,9 +2750,6 @@ option values if they were not already set by a command line option.
       }  /* if */
       unrestricted_unions_enabled = FALSE;
     }  /* if */
-    /* Current MSVC++ implementations (checked with 1920) appear to implement
-       the pre-C++17 rule that core constant expressions are "noexcept". */
-    core_constant_expr_is_noexcept = TRUE;
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
      looking up names in elaborated type specifiers.  This flag causes

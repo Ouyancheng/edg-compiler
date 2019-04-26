@@ -313,10 +313,11 @@ P0003R5 in this area stand.  Since other compilers never implemented the
 original rule, the front end now applies the revised rules (causing the
 static_assert above to fail) by default.  The previous behavior can be
 restored by setting the global flag core_constant_expr_is_noexcept to TRUE.
-The previous behavior is also still enabled in Microsoft mode.  Furthermore,
-the behavior in GNU C++ mode has been tweaked to more closely match the
-slightly nonstandard behavior of GCC.  E.g., in GNU C++ modes the above
-example fails, but the following succeeds:
+The previous behavior is also still enabled in Microsoft mode (which is a
+slightly different from both the original C++11/C++14 standard and from the
+revised standard rules).  Furthermore, the behavior in GNU C++ mode has been
+tweaked to more closely match the slightly nonstandard behavior of GCC.  E.g.,
+in GNU C++ modes the above example fails, but the following succeeds:
 
   constexpr int const* f(int const *p) { return p; }
   constexpr int i = 42;
