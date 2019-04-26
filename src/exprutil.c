@@ -6973,6 +6973,35 @@ Its type must be set already.
 }  /* set_glvalue_operand_state */
 
 
+static void copy_constant_for_operand(a_constant_ptr  src_constant,
+                                      a_constant_ptr  dst_constant)
+/*
+Copy src_constant to dst_constant using copy_constant, where dst_constant is
+meant to be a constant held in an_operand (either it is a pointer to a constant
+variant of an_operand, or it will be copied to such a variant).  In addition to
+calling copy_constant, this also turns an indirect local expression reference
+into a direct reference if needed (an indirect reference would not work until
+the operand is transferred to the IL tree).
+*/
+{
+  copy_constant(src_constant, dst_constant);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  if (constant_is(dst_constant, ck_template_param) &&
+      tpck_is(dst_constant, tpck_expression) &&
+      dst_constant->variant.template_param.local_expr_ref) {
+    /* This constant has an associated local expression node reference.  Since
+       finding it depends on having the original constant as a referrer, we
+       have to reference the expression directly in the destination constant
+       for now, and a new local reference will be created when the constant is
+       transferred to the IL. */
+    dst_constant->variant.template_param.variant.expr =
+                                 expr_node_from_tpck_expression(src_constant);
+    dst_constant->variant.template_param.local_expr_ref = FALSE;
+  }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+}  /* copy_constant_for_operand */
+
+
 void make_constant_operand(a_constant *constant,
 			   an_operand *operand)
 /*
@@ -6986,21 +7015,8 @@ current token will be used as the operand position.
     make_error_operand(operand);
   } else {
     clear_operand((an_operand_kind)ok_constant, operand);
-    copy_constant(constant, &operand->variant.constant);
+    copy_constant_for_operand(constant, &operand->variant.constant);
     operand->type = constant->type;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-    if (is_template_param_expression_constant_operand(operand) &&
-        constant->variant.template_param.local_expr_ref) {
-      /* This constant has an associated local expression node reference.
-         Since finding it depends on having the original constant as a
-         referrer, we have to reference the expression directly in the
-         constant in the operand and then create a new reference when the
-         operand constant is copied. */
-      operand->variant.constant.variant.template_param.variant.expr =
-                                      expr_node_from_tpck_expression(constant);
-      operand->variant.constant.variant.template_param.local_expr_ref = FALSE;
-    }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
   /* A string literal is an lvalue; other constants are prvalues. */
   if (constant->kind == (a_constant_repr_kind)ck_string) {
@@ -7024,7 +7040,7 @@ The position of the current token will be used as the operand position.
 
   check_assertion(sym->kind == (a_symbol_kind)sk_constant);
   con_ptr = sym->variant.constant;
-  copy_constant(con_ptr, &constant);
+  copy_constant_for_operand(con_ptr, &constant);
   break_instance_source_corresp(&constant.source_corresp);
   /* Detach any associated expression on template argument values accessed
      as the values of template parameters. */

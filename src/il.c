@@ -1774,12 +1774,13 @@ Dump the contents of the indicated constant, for debug purposes.
     octl.debug_output = TRUE;
 
     /* If this is a template parameter, output its coordinates. */
-    if (cp->kind == (a_constant_repr_kind)ck_template_param) {
-      if (cp->variant.template_param.kind ==
-                                 (a_template_param_constant_kind)tpck_param) {
+    if (constant_is(cp, ck_template_param)) {
+      if (tpck_is(cp, tpck_param)) {
         fprintf(f_debug, "template-param#(%lu,%lu) ",
        (unsigned long)cp->variant.template_param.variant.coordinates.depth,
        (unsigned long)cp->variant.template_param.variant.coordinates.position);
+      } else if (tpck_is(cp, tpck_expression)) {
+        fprintf(f_debug, "tpck_expression ");
       }  /* if */
     }  /* if */
 
@@ -5126,7 +5127,14 @@ fix them.
         }  /* if */
         if (*expr != NULL && !in_file_scope(*expr)) {
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-          a_scope_ptr sp = get_innermost_function_scope();
+          a_routine_ptr  rp = cp->source_corresp.enclosing_routine;
+          a_scope_ptr    sp = NULL;
+          if (rp != NULL) {
+            sp = scope_for_routine_or_null(rp);
+          }  /* if */
+          if (sp == NULL) {
+            sp = get_innermost_function_scope();
+          }  /* if */
           if (sp != NULL) {
             make_local_expr_node_ref(
                  *expr,

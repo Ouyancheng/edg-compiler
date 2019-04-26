@@ -1,5 +1,24 @@
 Version 5.1
 
+4/26/19  [EDGcpfe/20884]
+Abort in C++-generating back end on dependent template argument
+
+Consider:
+
+  template<int> struct S;
+  template<int I> using A = S<I>;
+  template<typename T> int f() {
+    constexpr int N = T::N;
+    return A<N>(0);  // Previously triggered an internal error.  Now okay.
+  }
+
+The template argument N in A<N> is represented as a ck_template_param constant
+entry allocated in file scope, and that constant must refer to the function-
+scope variable N.  This referral from a file-scope entry to a function-scope
+entry was previously lost, causing the C++-generating back end to abort because
+it could not access the template argument expression.  That is now fixed.
+
+
 4/26/19  [EDGcpfe/20167]
 Copy elision with the comma operator
 
