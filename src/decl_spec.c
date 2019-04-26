@@ -6906,13 +6906,19 @@ or NULL in other contexts such as using-declarations.
   a_type_ptr			tp = NULL;
   an_identifier_options_set	options = GID_IS_TYPENAME;
   a_boolean			class_template_allowed;
+  a_decl_parse_state		local_dps;
 
   *type_sym = NULL;
   check_assertion(curr_token == tok_typename);
-  /* Class template argument deduction requires the decl_parse_state, which
-     is not available in contexts such as using-declarations. */
+  /* Class template argument deduction is not done in using-declarations. */
   class_template_allowed = class_template_arg_deduction_enabled &&
-                           dps != NULL;
+                           !within_using_decl;
+  /* If no decl_parse_state was provided, create a local one that can be
+     used for class template argument deduction. */
+  if (class_template_allowed && dps == NULL) {
+    init_decl_parse_state(&local_dps);
+    dps = &local_dps;
+  }  /* if */
   /* The typename keyword may only be used within a template, including the
      template parameter list. */
   if (!is_template_context() && !cpp11_mode) {
