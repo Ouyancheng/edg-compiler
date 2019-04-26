@@ -20309,11 +20309,13 @@ lvalue_adjust:
       }  /* switch */
     }  /* if */
   } else if (node->kind == (an_expr_node_kind)enk_temp_init) {
-    /* If the given node is a generated temporary initialized with an rvalue
-       expression of the right type, just get back that expression. */
+    /* If the given node is a generated temporary initialized with the result
+       of a comma operation or an rvalue expression of the right type, just
+       get back that expression. */
     a_dynamic_init_ptr  dip = node->variant.init.dynamic_init;
     if (dip->kind == (a_dynamic_init_kind)dik_expression &&
-        !dip->is_result_for_class_rvalue_question_mark) {
+        !(dip->is_result_for_class_rvalue_question_mark ||
+          dip->is_result_for_comma_operator)) {
       an_expr_node_ptr  dip_expr = dip->variant.expression;
       if (!dip_expr->is_lvalue && !dip_expr->is_xvalue &&
           is_generated_dynamic_init(dip) &&

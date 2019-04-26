@@ -3695,6 +3695,9 @@ typedef struct a_dynamic_init {
 			   node has the result_is_not_used flag set to TRUE).
 			   Note that this case is eliminated by IL lowering
 			   and therefore will never be seen in lowered code. */
+  a_bit_field	is_result_for_comma_operator:1;
+			/* If TRUE, this entity is the temporary that is the
+			   result of a "," operator. */
   a_bit_field	is_reused_value:1;
 			/* TRUE if this initialization's value is reused
 			   elsewhere in the current expression via an

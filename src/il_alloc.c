@@ -2379,6 +2379,7 @@ Initialize a dynamic_init entry of the kind specified.
   dip->is_partially_initialized = FALSE;
   dip->is_result_for_class_rvalue_question_mark = FALSE;
   dip->is_optimized_class_rvalue_question_mark = FALSE;
+  dip->is_result_for_comma_operator = FALSE;
   dip->is_reused_value = FALSE;
 #if DO_IL_LOWERING
   dip->is_vla_deallocation = FALSE;

@@ -15386,13 +15386,14 @@ value produced by std::is_constant_evaluated().
         /* Record a backing expression.  If it is already an expression, we can
            just point straight to that expression in most cases.  An exception
            occurs if dip represents the result of a class rvalue question mark
-           operator, because the expression tree may then point back to dip
-           (which therefore cannot be dropped).  For other cases, create an
-           enk_initializer node to represent the initialization as an
-           expression. */
+           or a comma operator, because the expression tree may then point
+           back to dip (which therefore cannot be dropped).  For other cases,
+           create an enk_initializer node to represent the initialization as
+           an expression. */
         if ((dip->kind == (a_dynamic_init_kind)dik_expression ||
              dip->kind == (a_dynamic_init_kind)dik_class_result_via_ctor) &&
-            !dip->is_result_for_class_rvalue_question_mark &&
+            !(dip->is_result_for_class_rvalue_question_mark ||
+              dip->is_result_for_comma_operator) &&
             (curr_il_region_number == file_scope_region_number) ==
                                      in_file_scope(dip->variant.expression)) {
           result_con->expr = dip->variant.expression;

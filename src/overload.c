@@ -20681,6 +20681,47 @@ enk_temp_init/enk_lambda node if one is found.
 }  /* operand_is_temp_init_full */
 
 
+static a_boolean is_temp_init_dip_usable_in_optimization(
+                                             a_dynamic_init_ptr dip,
+                                             a_boolean          suppress_dtor)
+/*
+Return TRUE if the dynamic initializer contained in dip is usable for
+optimization, FALSE otherwise.  If suppress_dtor is TRUE, any destruction
+indicated in the initialization is cleared (this is used, for example, for a
+return, because the caller will do the destruction).
+*/
+{
+  a_boolean is_usable_temp_init = FALSE;
+
+  /* Avoid problems with dynamic inits with kind dik_none, created for
+     functional-notation casts with no arguments (e.g., X()) for classes
+     with no constructors.  Microsoft compilers also appear not to perform
+     return value optimizations when the temporaries come through a
+     conditional operator. */
+  if (dip->kind != (a_dynamic_init_kind)dik_none &&
+      !(microsoft_mode && ms_permissive && !mandatory_copy_elision &&
+        dip->is_result_for_class_rvalue_question_mark)) {
+    is_usable_temp_init = TRUE;
+    /* Take the dynamic init off whatever destruction list it is on, if any,
+       because it will be given to the caller, who will put it on a
+       list at that level. */
+    remove_from_destruction_list(dip);
+    dip->static_temp = FALSE;
+    dip->has_temporary_lifetime = FALSE;
+    if (suppress_dtor && dip->destructor != NULL) {
+      /* We don't want destruction indicated here (because someone else
+         will take care of the destruction), so clear the destructor pointer.
+         Note that in these cases the destructor field was filled in
+         but the destructor routine has not been marked as referenced,
+         because we're in a cctor elision initializer expression
+         (see alloc_dtor_dynamic_init and fix_up_dynamic_init_dtors). */
+      dip->destructor = NULL;
+    }  /* if */
+  }  /* if */
+  return is_usable_temp_init;
+}  /* is_temp_init_dip_usable_in_optimization */
+
+
 a_boolean is_temp_init_usable_in_optimization(
                                           an_operand         *source_operand,
                                           a_boolean          suppress_dtor,
@@ -20704,33 +20745,41 @@ example, for a return, because the caller will do the destruction).
   if (operand_is_temp_init_full(source_operand, &temp_init_node)) {
     /* The operand is an enk_temp_init/enk_lambda. */
     dip = temp_init_node->variant.init.dynamic_init;
-    /* Avoid problems with dynamic inits with kind dik_none, created for
-       functional-notation casts with no arguments (e.g., X()) for classes
-       with no constructors.  Microsoft compilers also appear not to perform
-       return value optimizations when the temporaries come through a
-       conditional operator. */
-    if (dip->kind != (a_dynamic_init_kind)dik_none &&
-        !(microsoft_mode && ms_permissive && !mandatory_copy_elision &&
-          dip->is_result_for_class_rvalue_question_mark)) {
+    if (is_temp_init_dip_usable_in_optimization(dip, suppress_dtor)) {
       is_usable_temp_init = TRUE;
-      /* Take the dynamic init off whatever destruction list it is on, if any,
-         because it will be given to the caller, who will put it on a
-         list at that level. */
-      remove_from_destruction_list(dip);
-      dip->static_temp = FALSE;
-      dip->has_temporary_lifetime = FALSE;
-      if (suppress_dtor && dip->destructor != NULL) {
-        /* We don't want destruction indicated here (because someone else
-           will take care of the destruction), so clear the destructor pointer.
-           Note that in these cases the destructor field was filled in
-           but the destructor routine has not been marked as referenced,
-           because we're in a cctor elision initializer expression
-           (see alloc_dtor_dynamic_init and fix_up_dynamic_init_dtors). */
-        dip->destructor = NULL;
-      }  /* if */
-      *p_temp_init_node = temp_init_node;
-      *p_dip = dip;
     }  /* if */
+  } else if (is_expression_operand(source_operand)) {
+    an_expr_node_ptr orig_expr = source_operand->variant.expression;
+    an_expr_node_ptr node = skip_parens(orig_expr);
+    /* This could be a comma operation where the final result is a temp init
+       node.  If so, create a wrapping temp init node and use that. */
+    if (is_operation_node(node) && node_operator_is(node, eok_comma)) {
+      an_expr_node_ptr final_node = node->variant.operation.operands->next;
+      if (is_temp_node(final_node) &&
+          is_temp_init_dip_usable_in_optimization(
+                                        final_node->variant.init.dynamic_init,
+                                        /*suppress_dtor=*/TRUE)) {
+        is_usable_temp_init = TRUE;
+        temp_init_node =
+                    create_expr_temporary(source_operand->type,
+                                          /*is_lvalue=*/FALSE,
+                                          /*is_explicit_cast=*/FALSE,
+                                          /*suppress_abstract_test=*/TRUE,
+                                          (a_dynamic_init_kind)dik_expression,
+                                          &source_operand->position,
+                                          &dip);
+        dip->is_result_for_comma_operator = TRUE;
+        dip->variant.expression = orig_expr;
+        /* This should always be TRUE, but we need to ensure that the
+           appropriate tweaks are made to the dip as well. */
+        check_assertion(
+                 is_temp_init_dip_usable_in_optimization(dip, suppress_dtor));
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (is_usable_temp_init) {
+    *p_temp_init_node = temp_init_node;
+    *p_dip = dip;
   }  /* if */
   return is_usable_temp_init;
 }  /* is_temp_init_usable_in_optimization */
@@ -20885,8 +20934,12 @@ happen only in C++ mode.
         /* Look at the top of the expression that is the input to the copy
            constructor, to see if it is something that creates a temporary.
            If it is, the temporary and the copy constructor call can be
-           optimized away. */
-        if (is_temp_init_usable_in_optimization(source_operand,
+           optimized away.  Alternatively, if it's a constant, the constructor
+           call can also be optimized away. */
+        class_bitwise_copy = conversion->should_elide_ctor &&
+                             is_constant_operand(source_operand);
+        if (class_bitwise_copy ||
+            is_temp_init_usable_in_optimization(source_operand,
                                                 !fill_in_dtor,
                                                 &temp_init_node,
                                                 &dip)) {
