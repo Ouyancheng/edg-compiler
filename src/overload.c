@@ -11261,23 +11261,15 @@ implicit "this" is available, e.g., during overload resolution.
          captured values. */
       a_type_ptr    closure_class = parent_class_of(curr_rout);
       a_routine_ptr encl_rout= closure_class->source_corresp.enclosing_routine;
-      while (encl_rout != NULL && encl_rout->is_lambda_body) {
-        /* We can reach out past intermediate lambdas. */
+      while (encl_rout != NULL && encl_rout->is_lambda_body &&
+             !closure_class->source_corresp.is_class_member) {
+        /* We can reach out past intermediate lambdas, but we don't want to
+           reach out past an enclosing class if the intermediate lambda happens
+           to contain one. */
         closure_class = parent_class_of(encl_rout);
         encl_rout = closure_class->source_corresp.enclosing_routine;
-      }  /* if */
-      if (encl_rout != NULL) {
-        /* There is a routine that encloses the lambda.  See if it is a
-           nonstatic member function. */
-        if (routine_type_is_nonstatic_member_function(encl_rout->type)) {
-          /* It is, so it has a "this".  We delay until later checking whether
-             the "this" is or can be captured. */
-          a_scope_ptr scope = scope_for_routine(encl_rout);
-          local_this_var = scope->variant.routine.this_param_variable;
-          check_assertion(local_this_var != NULL);
-          this_exists = TRUE;
-        }  /* if */
-      } else if (scope_stack_top().in_field_initializer) {
+      }  /* while */
+      if (scope_stack_top().in_field_initializer) {
         /* The lambda occurred in a field initializer, which is a context that
            permits references to "this" (but there is no associated variable
            yet). */
@@ -11286,6 +11278,17 @@ implicit "this" is available, e.g., during overload resolution.
         local_this_type = parent_class_of(closure_class);
         local_this_type = add_right_pointer_type_to_this(local_this_type,
                                                          local_this_type);
+      } else if (encl_rout != NULL) {
+        /* There is a routine that encloses the lambda.  See if it is a
+            nonstatic member function. */
+        if (routine_type_is_nonstatic_member_function(encl_rout->type)) {
+          /* It is, so it has a "this".  We delay until later checking whether
+              the "this" is or can be captured. */
+          a_scope_ptr scope = scope_for_routine(encl_rout);
+          local_this_var = scope->variant.routine.this_param_variable;
+          check_assertion(local_this_var != NULL);
+          this_exists = TRUE;
+        }  /* if */
       }  /* if */
     } else if (!is_lambda_body) {
       /* Normal case, not inside a lambda (but inside a function body). */

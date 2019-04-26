@@ -1,5 +1,22 @@
 Version 5.1
 
+4/25/19  [EDGcpfe/20863]
+Capturing "this" in a NSDMI within a local class
+
+A regression was introduced by EDGcpfe/20049 that made it so that the "this"
+member of a local class was not able to be captured by a lambda expression in
+a non-static data member initializer.  For example:
+
+  void f() {
+    struct Z {
+      int i;
+      int b = ([&] { return i; }()); // Spurious error on the implicit "this"
+    } z;
+  }
+
+This is now fixed.
+
+
 4/25/19  [EDGcpfe/20787]
 Assertion failure in final_overrider
 
