@@ -3044,7 +3044,6 @@ ec_alignof_function_type;;"the alignment of a function type (%t) is nonstandard"
 ec_alignof_incomplete_array;;"the alignment of an array of unspecified bound is nonstandard in C"
 ec_cannot_be_common_internal_linkage;;"a variable cannot have both \"common\" and \"internal_linkage\" attributes"
 ec_internal_linkage_not_on_prior_declaration;;"the \"internal_linkage\" attribute did not appear on a prior declaration"
-ec_closure_type_not_allowed;;"a lambda closure type is not permitted in this context"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
