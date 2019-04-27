@@ -11446,13 +11446,27 @@ process_enum_specifier:
            and the type from the decltype is stored in the locator. */
         if (curr_token == tok_decltype_construct) {
           a_source_position  decltype_pos = pos_curr_token;
-          *type_ptr = locator_for_curr_id.variant.decltype_type;
-          if (!is_error_type(*type_ptr) &&
+          a_type_ptr         tp = locator_for_curr_id.variant.decltype_type;
+          *type_ptr = tp;
+          if (!is_error_type(tp) &&
               (basic_type != bt_none || sign != sign_none ||
                size != size_none)) {
             /* We've already seen specifiers that cannot be combined with
                decltype: Ignore them and issue an error. */
             pos_error(ec_bad_combination_of_type_specifiers, &decltype_pos);
+            *type_ptr = error_type();
+            sign = sign_none;
+            size = size_none;
+          } else if (state->is_param_decl &&
+                     tp->kind == (a_type_kind)tk_typeref &&
+                     tp->variant.typeref.extra_info->expr != NULL &&
+                     tp->variant.typeref.extra_info->expr->kind ==
+                                               (an_expr_node_kind)enk_lambda) {
+            /* Lambdas in unevaluated contexts are permitted in C++20, but
+               not where they would affect the signature of a function. */
+            check_assertion(lambda_allowed_in_uneval_context);
+            pos_error(ec_lambda_not_allowed_here,
+                      &tp->variant.typeref.extra_info->expr->position);
             *type_ptr = error_type();
             sign = sign_none;
             size = size_none;
