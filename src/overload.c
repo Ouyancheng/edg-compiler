@@ -20685,10 +20685,10 @@ static a_boolean is_temp_init_dip_usable_in_optimization(
                                              a_dynamic_init_ptr dip,
                                              a_boolean          suppress_dtor)
 /*
-Return TRUE if the dynamic initializer contained in dip is usable for
-optimization, FALSE otherwise.  If suppress_dtor is TRUE, any destruction
-indicated in the initialization is cleared (this is used, for example, for a
-return, because the caller will do the destruction).
+Return TRUE if the dynamic initializer contained in dip can be used in copy
+constructor elision optimization, FALSE otherwise.  If suppress_dtor is TRUE,
+any destruction indicated in the initialization is cleared (this is used, for
+example, for areturn, because the caller will do the destruction).
 */
 {
   a_boolean is_usable_temp_init = FALSE;
@@ -20772,8 +20772,9 @@ example, for a return, because the caller will do the destruction).
         dip->variant.expression = orig_expr;
         /* This should always be TRUE, but we need to ensure that the
            appropriate tweaks are made to the dip as well. */
-        check_assertion(
-                 is_temp_init_dip_usable_in_optimization(dip, suppress_dtor));
+        if (!is_temp_init_dip_usable_in_optimization(dip, suppress_dtor)) {
+          unexpected_condition();
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
