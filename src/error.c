@@ -1076,7 +1076,7 @@ level.
       case sk_variable:
         {
           a_variable_ptr	vp = variable_for_symbol(sym);
-          decl_info = tssp->cache.decl_info;
+          decl_info = tssp->variant.variable.decl_cache.decl_info;
           tap = vp->template_info->template_arg_list;
         }
         break;
