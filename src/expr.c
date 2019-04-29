@@ -42881,6 +42881,10 @@ expression context.  Return either *is_constant TRUE and a constant value in
       (void)check_integral_or_enum_operand(&result);
     }  /* if */
   }  /* if */
+  if (is_expression_operand(&result) && !expr_stack->possible_rescan_context &&
+      operand_is_instantiation_dependent(&result)) {
+    make_template_param_expr_constant_operand(&result);
+  }  /* if */
   /* Return a constant or expression depending on what was scanned. */
   *is_constant = TRUE;
   switch (result.kind) {

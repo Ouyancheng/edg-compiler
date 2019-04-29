@@ -1,5 +1,21 @@
 Version 5.1
 
+4/29/19  [EDGcpfe/20639]
+Dependent constant bounds in GNU C++ mode
+
+Consider:
+
+  template<int N> constexpr int f() { return N; }
+  template<int N> void g() {
+    static float x[f<N>()];
+  }
+
+Previously, this elicited an error in GNU C++ mode, because the front end
+considered the possibility of variable-length arrays (VLAs, permitted in GNU
+C++ mode) and treated "f<N>()" as a run-time expression.  That is now fixed.
+
+
+
 4/29/19  [EDGcpfe/20782]
 Microsoft compatibility: internal error on new template template matching
 
