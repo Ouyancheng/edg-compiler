@@ -11580,20 +11580,18 @@ that *p_pedp is set even when FALSE is returned.
 {
   a_pack_expansion_descr_ptr	pedp;
   a_boolean			result = FALSE;
-  a_boolean			in_generic_lambda_definition;
-  a_boolean			in_prototype_inst;
 
   pedp = get_pack_expansion_for_curr_context();
   *p_pedp = pedp;
-  in_generic_lambda_definition = in_generic_lambda_in_real_instantiation();
-  in_prototype_inst = is_prototype_instantiation_context();
   if (pedp != NULL) {
-    if (is_real_instantiation_context() ||
-        !in_prototype_inst || in_generic_lambda_definition) {
-      if (pedp->uses_only_enclosing_packs ||
-          !in_prototype_inst || in_generic_lambda_definition) {
-        result = TRUE;
-      }  /* if */
+    if (!is_prototype_instantiation_context()) {
+      result = TRUE;
+    } else if (pedp->uses_only_enclosing_packs &&
+               is_real_instantiation_context()) {
+      result = TRUE;
+    } else if (pedp->uses_any_enclosing_packs &&
+               in_generic_lambda_in_real_instantiation()) {
+      result = TRUE;
     }  /* if */
   }  /* if */
   return result;

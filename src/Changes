@@ -1,5 +1,24 @@
 Version 5.1
 
+4/29/19  [EDGcpfe/20867]
+Parameter pack expansion failure in generic lambda instantiation
+
+In some scenarios where a generic lambda was being used from within a template,
+parameter packs would not be correctly expanded.  For example:
+
+  template<typename Ts>
+  struct S {
+    S() {
+      [&](auto... x) { f(x...); }; // Spurious "too many arguments to f" error
+    }
+    void f();
+  };
+
+  S<int> s;
+
+This is now fixed.
+
+
 4/29/19  [EDGcpfe/20639]
 Dependent constant bounds in GNU C++ mode
 
