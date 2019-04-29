@@ -20688,7 +20688,7 @@ static a_boolean is_temp_init_dip_usable_in_optimization(
 Return TRUE if the dynamic initializer contained in dip can be used in copy
 constructor elision optimization, FALSE otherwise.  If suppress_dtor is TRUE,
 any destruction indicated in the initialization is cleared (this is used, for
-example, for areturn, because the caller will do the destruction).
+example, for a return, because the caller will do the destruction).
 */
 {
   a_boolean is_usable_temp_init = FALSE;
