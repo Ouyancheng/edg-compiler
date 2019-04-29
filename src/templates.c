@@ -1899,6 +1899,13 @@ value specified by tap.
 
 
 /* Forward declarations. */
+static void create_prototype_type(
+	a_tmpl_decl_state_ptr			decl_state,
+	a_symbol_ptr				sym,
+	a_template_symbol_supplement_ptr	tssp,
+	a_symbol_ptr				partial_spec_nonreal_sym,
+	a_boolean				is_partial_specialization);
+
 static a_boolean template_arg_is_dependent(a_template_arg_ptr tap);
 
 static a_boolean potentially_equiv_template_param_lists(
@@ -2084,6 +2091,7 @@ compatibility checking.
   a_template_decl_info_ptr		tdip;
   a_symbol_ptr				sym;
   a_template_symbol_supplement_ptr	tssp;
+  a_tmpl_decl_state			decl_state;
 
   sym = alloc_symbol((a_symbol_kind)sk_class_template,
                      make_symbol_header_for_invented_template(),
@@ -2096,6 +2104,11 @@ compatibility checking.
   tdip->parameters = templ_param_list;
   tssp->variant.class_template.type_kind = (a_type_kind)tk_class;
   tssp->variant.class_template.invented_template = TRUE;
+  init_templ_decl_state(&decl_state);
+  decl_state.il_template_entry = alloc_template();
+  decl_state.decl_info = tdip;
+  create_prototype_type(&decl_state, sym, tssp, (a_symbol_ptr)NULL,
+                        /*is_partial_specialization=*/FALSE);
   return sym;
 }  /* make_invented_class_template */
 

@@ -1,5 +1,25 @@
 Version 5.1
 
+4/29/19  [EDGcpfe/20782]
+Microsoft compatibility: internal error on new template template matching
+
+In Microsoft modes where the C++17-style template template argument matching
+is done (e.g., with --ms_c++17 --microsoft_version=1912), an internal
+error could occur (in get_template_arg_value_from_default).  Now fixed.
+
+  template <typename T, typename U> struct A {
+    typedef int ax;
+  };
+  template <template< typename P1, typename P2> class B,
+            typename T1, typename T2, typename U> struct A<B<T1, T2>, U> {
+    typedef A<T1, U> a1;
+    typedef typename a1::ax ax1;
+  };
+  template< class TA, class TB, bool force_mutable = false > class C {};
+  typedef A<C<int, int, 1>, void > a;
+  typedef typename a::ax ax;
+
+
 4/26/19  [EDGcpfe/20884]
 Abort in C++-generating back end on dependent template argument
 
