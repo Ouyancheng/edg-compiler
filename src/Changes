@@ -1,5 +1,13 @@
 Version 5.1
 
+4/30/19  [EDGcpfe/21173]
+Microsoft compatibility: hexadecimal floating-point literals
+
+Hexadecimal floating-point literals are now accepted in default Microsoft C++
+emulation modes when microsoft_version >= 1913.  See also the Changes entry
+for EDGcpfe/18705.
+
+
 4/29/19  [EDGcpfe/20867]
 Parameter pack expansion failure in generic lambda instantiation
 

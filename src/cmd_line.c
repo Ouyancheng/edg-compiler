@@ -2699,6 +2699,7 @@ option values if they were not already set by a command line option.
       }  /* if */
       if (microsoft_version >= 1913) {
         /* Visual Studio 2017 version 15.6. */
+        hex_floating_point_constants_allowed = TRUE;
         if (ms_cpp17_mode) {
           mandatory_copy_elision = TRUE;
           class_template_arg_deduction_enabled = TRUE;
