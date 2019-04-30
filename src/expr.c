@@ -34837,25 +34837,20 @@ issue an error; otherwise, return TRUE.
     a_template_arg_ptr      templ_arg_list = NULL, tap;
     a_constant_ptr          char_con, next_char_con;
     a_memory_region_number  region_to_switch_back_to;
-    a_constant_ptr          spelling_con;
     a_boolean               is_string_literal_operator_template;
     /* The template argument list corresponds to a pack expansion. */
     if (symbol_is(ud_lit_op_sym_for_curr_token, sk_overloaded_function)) {
-      /* The initial lookup was ambiguous, so the token spelling was left in
-         const_with_curr_tok_spelling, to leave const_for_curr_token unchanged
-         in case the lookup needs to be repeated in order to add the ambiguous
-         symbols to the diagnostic. */
-      spelling_con = &const_with_curr_tok_spelling;
+      /* The initial lookup was ambiguous, so const_for_curr_token was left
+         unchanged in case the lookup needed to be repeated in order to add
+         the ambiguous symbols to the diagnostic. */
       is_string_literal_operator_template =
                     (const_for_curr_token.type->kind == (a_type_kind)tk_array);
     } else {
-      /* The original lookup found a single literal operator template, so
-         const_for_curr_token now contains the spelling of the token. */
+      /* The original lookup found a single literal operator template. */
       a_template_symbol_supplement_ptr tssp;
       check_assertion(symbol_is(ud_lit_op_sym_for_curr_token,
                                 sk_function_template));
       tssp = ud_lit_op_sym_for_curr_token->variant.template_info;
-      spelling_con = &const_for_curr_token;
       is_string_literal_operator_template =
                         symbol_is(tssp->variant.function.decl_cache.decl_info->
                                                       parameters->param_symbol,
@@ -34865,7 +34860,8 @@ issue an error; otherwise, return TRUE.
     if (is_string_literal_operator_template) {
       /* The template parameter list is <typename T, T ...>. */
       templ_arg_list = alloc_template_arg((a_templ_arg_kind)tak_type);
-      templ_arg_list->variant.type = array_element_type(spelling_con->type);
+      templ_arg_list->variant.type =
+                        array_element_type(const_with_curr_tok_spelling.type);
       tap = alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
       templ_arg_list->next = tap;
     } else {
@@ -34874,11 +34870,11 @@ issue an error; otherwise, return TRUE.
             alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
       tap = templ_arg_list;
     }  /* if */
-    /* Turn spelling_con into a ck_aggregate constant with a constant for
-       every character. */
-    check_assertion(constant_is(spelling_con, ck_string));
-    explode_string_initializer(spelling_con);
-    char_con = spelling_con->variant.aggregate.first_constant;
+    /* Turn the token spelling into a ck_aggregate constant with a constant
+       for every character. */
+    check_assertion(constant_is(&const_with_curr_tok_spelling, ck_string));
+    explode_string_initializer(&const_with_curr_tok_spelling);
+    char_con = const_with_curr_tok_spelling.variant.aggregate.first_constant;
     check_assertion(char_con != NULL);
     next_char_con = char_con->next;
     /* Be careful not to include the terminating null character. */
