@@ -34842,11 +34842,15 @@ issue an error; otherwise, return TRUE.
     if (symbol_is(ud_lit_op_sym_for_curr_token, sk_overloaded_function)) {
       /* The initial lookup was ambiguous, so const_for_curr_token was left
          unchanged in case the lookup needed to be repeated in order to add
-         the ambiguous symbols to the diagnostic. */
+         the ambiguous symbols to the diagnostic.  If that is a string
+         literal, this is the version with the non-standard
+         <typename T, T ...> (instead of <char ...>) parameter list. */
       is_string_literal_operator_template =
                     (const_for_curr_token.type->kind == (a_type_kind)tk_array);
     } else {
-      /* The original lookup found a single literal operator template. */
+      /* The original lookup found a single literal operator template, so
+         we can look at its parameter list to tell which version of the
+         operator template has been selected. */
       a_template_symbol_supplement_ptr tssp;
       check_assertion(symbol_is(ud_lit_op_sym_for_curr_token,
                                 sk_function_template));
