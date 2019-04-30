@@ -20362,6 +20362,39 @@ is_transparent.  conv_context describes the context of the conversion.
         wrap_in_template_constant_if_needed) {
       make_template_param_expr_constant_operand(source_operand);
     }  /* if */
+    if ((conv_context & CCO_NONTYPE_TEMPLATE_ARG) &&
+        is_constant_operand(source_operand)) {
+      a_constant_ptr  cp = &source_operand->variant.constant;
+      if (constant_is(cp, ck_template_param) && tpck_is(cp, tpck_expression)) {
+        an_expr_node_ptr  expr = expr_node_from_tpck_expression(cp);
+        if (is_operation_node(expr) &&
+            expr->variant.operation.compiler_generated &&
+            is_cast_operation_node(expr) &&
+            !is_template_dependent_type(expr->type)) {
+          /* If we are implicitly converting a template argument to a
+             template parameter's type, that conversion is significant when
+             performing substitutions.  However, the normal rescan processing
+             will skip this node through skip_implicit_operations_for_rescan.
+             By setting the do_not_rescan flag, we ensure
+             is_template_param_cast_constant will recognize this case and
+             copy_template_param_con will consequently adjust the substitution
+             accordingly.  For example:
+               struct V { static const int value = 0; };
+               template<typename T> struct X { using type = T; };
+               template<int I, typename U> static inline X<U> g(X<U>*);
+               struct Y: X<int> {
+                 template<int I> using A = decltype(g<I>((Y*)(nullptr)));
+                 template<typename T> typename A<T::value>::type& f(T);
+               };
+               auto r = Y{}.f(V{});
+             Here, substituting A<T::value> results in g<I> becoming
+             g<(int)T::value> where the cast to "int" is implicit.  Later,
+             when T is substituted with V, that cast must be preserved.
+          */
+          cp->variant.template_param.do_not_rescan = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
 }  /* prep_conversion_operand */
 

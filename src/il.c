@@ -18780,17 +18780,27 @@ lookup options.
 
   switch_to_file_scope_region(&region_to_switch_back_to);
   if (is_template_param_cast_constant(con, &base_con, &explicit_cast)) {
-    /* Handle some eok_cast/eok_ref_cast nodes specially, because they don't
-       have associated rescan info. */
-   con_copy = copy_template_param_cast_constant(
+    an_expr_node_ptr  expr = expr_node_from_tpck_expression(con);
+    if (expr->extra.rescan_info != NULL) {
+      /* Rescan information is available after all.  Since the expression
+         is a cast to the parameter type, we can retrieve the parameter type
+         an proceed with substitution. */
+      if (template_param_type == NULL) {
+        template_param_type = expr->type;
+      }  /* if */
+    } else {
+      /* Handle some eok_cast/eok_ref_cast nodes specially, because they don't
+         have associated rescan info. */
+      con_copy = copy_template_param_cast_constant(
                                        con, base_con, explicit_cast,
                                        template_arg_list, template_param_list,
                                        source_pos, options, copy_error,
                                        ctws_state, constant);
-  } else if (template_param_type != NULL &&
-             constant_is(con, ck_template_param) &&
-             con->variant.template_param.kind ==
-                             (a_template_param_constant_kind)tpck_expression) {
+      goto done_copying;
+    }  /* if */
+  }  /* if */
+  if (template_param_type != NULL &&
+      constant_is(con, ck_template_param) && tpck_is(con, tpck_expression)) {
     /* We know the template parameter type, so we can tell whether the
        argument is being used as an lvalue or an rvalue.  We also have an
        expression for the argument, which may have been scanned without
@@ -18873,6 +18883,7 @@ lookup options.
                                        ctws_state,
                                        constant);
   }  /* if */
+done_copying:
   if (con_copy == NULL && !*copy_error) {
     con_copy = alloc_shareable_constant(constant);
   }  /* if */
