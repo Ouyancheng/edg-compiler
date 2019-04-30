@@ -3065,6 +3065,11 @@ if setting the positions in the underlying expression.
         !expr->variant.operation.compiler_generated ||
         expr->variant.operation.call_uses_operator_syntax) {
       /* Set the position on the expression. */
+      if (operator_pos == NULL && expr->position.seq != 0) {
+        /* If no operator position is provided, but one was already recorded
+           in the node, preserve the recorded position. */
+        operator_pos = &expr->position;
+      }  /* if */
       set_expr_position(expr, &operand->position, &operand->end_position,
                         operator_pos);
     }  /* if */

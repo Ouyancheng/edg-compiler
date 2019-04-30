@@ -20522,10 +20522,12 @@ xvalue if is_xvalue is TRUE or an lvalue otherwise.
       chain_end->kind != (an_expr_node_kind)enk_lambda) {
     a_dynamic_init_ptr  dip = alloc_expr_dynamic_init(
                                      (a_dynamic_init_kind)dik_expression);
+    an_expr_node_ptr    orig_node = node;
     dip->variant.expression = node;
     node = alloc_temp_init_node(node->type, dip, /*is_lvalue=*/TRUE,
                                 /*is_explicit_cast=*/FALSE);
     node->is_lvalue = FALSE;
+    node->position = orig_node->position;
     chain_end = node;
   }  /* if */
   for (chain = node; chain != chain_end;) {

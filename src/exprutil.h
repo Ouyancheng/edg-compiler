@@ -2062,7 +2062,7 @@ operator in the expression.
   /* Use a variable in case operator_pos expands to NULL. */                  \
   /* ("*(NULL)" elicits compiler errors.) */                                  \
   a_source_position  *pos_var = (operator_pos);                               \
-  if (pos_var != NULL && is_operation_node(expr)) {                           \
+  if (pos_var != NULL && pos_var->seq != 0) {                                 \
     (expr)->position = *pos_var;                                              \
   } else {                                                                    \
     (expr)->position = *(start_pos);                                          \
