@@ -2418,6 +2418,14 @@ this is a helper function.
         if (!constexpr_lambdas_enabled) {
           pos_error(ec_constexpr_lambdas_not_enabled, &pos_curr_token);
         } else if (func_info->lambda != NULL) {
+          if (func_info->lambda->constexpr_specified ||
+              func_info->lambda->consteval_specified) {
+            a_boolean  duplicate = func_info->lambda->consteval_specified ==
+                                                 (curr_token == tok_consteval);
+            pos_error(duplicate ? ec_dupl_decl_specifier :
+                                  ec_constexpr_and_consteval_specifiers,
+                      &pos_curr_token);
+          }  /* if */
           if (curr_token == tok_constexpr) {
             func_info->lambda->constexpr_specified = TRUE;
           } else {
