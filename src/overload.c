@@ -5560,7 +5560,8 @@ in a new-expression).
            the types of the template parameters), which may be different for
            each template considered. */
         an_expr_stack_entry_ptr  saved_expr_stack;
-        if (!(gpp_mode && !clang_mode)) {
+        if (!(gpp_mode && !clang_mode) ||
+            routine->source_corresp.is_class_member) {
           /* Filter out candidates that cannot match the number of
              arguments we have early, avoiding a partial substitution
              process that could trigger hard errors.  GCC doesn't appear to
