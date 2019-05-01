@@ -18784,7 +18784,7 @@ lookup options.
     if (expr->extra.rescan_info != NULL) {
       /* Rescan information is available after all.  Since the expression
          is a cast to the parameter type, we can retrieve the parameter type
-         an proceed with substitution. */
+         and proceed with substitution. */
       if (template_param_type == NULL) {
         template_param_type = expr->type;
       }  /* if */
