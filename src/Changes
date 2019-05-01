@@ -1,5 +1,34 @@
 Version 5.1
 
+5/1/19   [EDGcpfe/21174]
+Template substitution of member declarations containing member calls
+
+Consider:
+
+  template<bool b> struct B { static constexpr bool value = b; };
+  struct S {
+    template<typename T> static bool test();  // (1)
+    template<typename T> static auto test(int) -> B<test<T>()>;  // (2)
+    template<typename> static B<false> test(...);  // (3)
+  };
+  auto r = S::test<int>(0);
+
+Overload resolution for the call S::test<int>(0) substitutes the call
+"test<T>()" for candidate (2).  In the context of (2), looking up "test" only
+finds declaration (1), and therefore (2) is considered a viable candidate and
+a better one than (3).  However, when candidate (2) is instantiated, the lookup
+of "test" in "test<T>()" previously performed the lookup in the complete class,
+which resulted in an ambiguity between candidates (1) and (3).  The standard
+actually deems such cases (where a lookup yields different results at the point
+of the member declaration and in the completed class) ill-formed, but does not
+require a diagnostic for them.  However, it appears that common practice is for
+the substitution to perform the substituted lookups in the completed class
+context.  In this example, that means that substitution of (2) triggers the
+aforementioned ambiguity, and hence candidate (2) is simply discarded for the
+call "S::test<int>(0)".  Candidate (3) is then the unambiguously selected
+function for that call.
+
+
 5/1/19   [EDGcpfe/20499]
 Abort when attempting CTAD with no viable deduction guides
 
