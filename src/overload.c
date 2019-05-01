@@ -26839,7 +26839,7 @@ set to TRUE and FALSE is returned.
 */
 {
   a_boolean     result = TRUE;
-  a_symbol_ptr  ct_sym, guide_set, selected_sym;
+  a_symbol_ptr  ct_sym, guide_set, selected_sym = NULL;
   a_template_symbol_supplement_ptr
                 ct_tssp;
   an_arg_list_elem_ptr
@@ -26902,7 +26902,10 @@ set to TRUE and FALSE is returned.
     update_implicit_deduction_guides(ct_sym);
   }  /* if */
   guide_set = ct_tssp->variant.class_template.deduction_guides;
-  selected_sym = select_overloaded_function(
+  if (guide_set == NULL) {
+    pos_sy_error(ec_no_class_template_guide, source_pos, ct_sym);
+  } else {
+    selected_sym = select_overloaded_function(
                                         guide_set,
                                         /*is_template_id=*/FALSE,
                                         (a_template_arg_ptr)NULL,
@@ -26923,6 +26926,7 @@ set to TRUE and FALSE is returned.
                                         (a_boolean *)NULL,
                                         (a_symbol_ptr *)NULL,
                                         &arg_match_list);
+  }  /* if */
   if (selected_sym != NULL) {
     /* A guide was unambiguously determined. */
     a_routine_ptr  guide = selected_sym->variant.routine.ptr;

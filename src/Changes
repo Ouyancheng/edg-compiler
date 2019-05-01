@@ -1,5 +1,19 @@
 Version 5.1
 
+5/1/19   [EDGcpfe/20499]
+Abort when attempting CTAD with no viable deduction guides
+
+The front end was asserting in select_overloaded_function in cases where it
+was attempting to perform class template argument deduction where no viable
+deduction guides existed.  Most commonly this would be during error recovery
+where the error type prevented default constructors from being generated.  For
+example:
+
+  template <class T<int>>
+  struct A {}; // Error, T is not a template
+  A a = {};    // Previously would abort, now issues an error
+
+
 4/30/19  [EDGcpfe/21173]
 Microsoft compatibility: hexadecimal floating-point literals
 
