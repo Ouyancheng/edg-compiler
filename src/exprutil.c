@@ -6139,7 +6139,7 @@ function).  In such cases, record a pending diagnostic if appropriate.
         expr_stack->consteval_call_need_not_fold) &&
       (innermost_function_scope == NULL ||
        !current_routine_entry()->is_consteval)) {
-    if (expr_stack->in_call_argument) {
+    if (expr_stack != NULL && expr_stack->in_call_argument) {
       /* Record a pending consteval failure, unless there already is one. */
       if (pending_consteval_failure.routine == NULL) {
         pending_consteval_failure.routine = rp;
@@ -6153,11 +6153,17 @@ function).  In such cases, record a pending diagnostic if appropriate.
     } else {
       /* This is a context where consteval calls must produce a constant value:
          Issue an error. */
-      a_diagnostic_ptr  dp;
-      dp = pos_sy_start_error(ec_consteval_call_nonconstant, pos,
-                              symbol_for(rp));
-      add_more_info_list(dp, diag_list);
-      end_diagnostic(dp);
+      if (rp->is_deleted) {
+        /* An error should have been issued already.  An additional one is
+           not really helpful. */
+        expect_error();
+      } else {
+        a_diagnostic_ptr  dp;
+        dp = pos_sy_start_error(ec_consteval_call_nonconstant, pos,
+                                symbol_for(rp));
+        add_more_info_list(dp, diag_list);
+        end_diagnostic(dp);
+      }  /* if */
       set_error_constant(result_con);
       result = TRUE;
     }  /* if */
@@ -17114,18 +17120,30 @@ is not to a consteval function.
       if ((rep->kind & SRK_ADDRESS_TAKEN) &&
           is_simple_function_symbol(rep->symbol) &&
           rep->symbol->variant.routine.ptr->is_consteval) {
-        pos_error(ec_address_of_consteval_function_leaked, &rep->position);
+        if (rep->symbol->variant.routine.ptr->is_deleted) {
+          /* An error should have been issued already.  An additional one is
+             not really helpful. */
+          expect_error();
+        } else {
+          pos_error(ec_address_of_consteval_function_leaked, &rep->position);
+        }  /* if */
         break;
       }  /* if */
     }  /* for */
   }  /* if */
   if (pending_consteval_failure.routine != NULL) {
-    a_diagnostic_ptr  dp;
-    dp = pos_sy_start_error(ec_consteval_call_nonconstant,
-                            &pending_consteval_failure.diag_pos,
-                            symbol_for(pending_consteval_failure.routine));
-    add_more_info_list(dp, &pending_consteval_failure.diag_list);
-    end_diagnostic(dp);
+    if (pending_consteval_failure.routine->is_deleted) {
+      /* An error should have been issued already.  An additional one is not
+         really helpful. */
+      expect_error();
+    } else {
+      a_diagnostic_ptr  dp;
+      dp = pos_sy_start_error(ec_consteval_call_nonconstant,
+                              &pending_consteval_failure.diag_pos,
+                              symbol_for(pending_consteval_failure.routine));
+      add_more_info_list(dp, &pending_consteval_failure.diag_list);
+      end_diagnostic(dp);
+    }  /* if */
   }  /* if */
 }  /* check_args_for_nonconsteval_call */
 
@@ -21005,10 +21023,11 @@ if necessary).
 }  /* type_of_call */
 
 
-static void check_address_of_consteval_function(a_source_position  *pos)
+static void check_address_of_consteval_function(a_routine_ptr      rp,
+                                                a_source_position  *pos)
 /*
-The address of a consteval routine is being taken but such an address can only
-be exposed in some limited contexts:
+The address of a given consteval routine is being taken but such an address
+can only be exposed in some limited contexts:
   - in an unevaluated context
   - in the definition of another consteval function
   - in an argument of a consteval call
@@ -21026,7 +21045,13 @@ given source position.
       curr_expr_is_potentially_evaluated()) {
     if (innermost_function_scope == NULL ||
         !current_routine_entry()->is_consteval) {
-      pos_error(ec_address_of_consteval_function_leaked, pos);
+      if (rp->is_deleted) {
+        /* An error should have been issued already.  An additional one is not
+           really helpful. */
+        expect_error();
+      } else {
+        pos_error(ec_address_of_consteval_function_leaked, pos);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* check_address_of_consteval_function */
@@ -21052,9 +21077,11 @@ by an "&" in the source, and *ampersand_position gives its position.
   check_assertion(is_sym_for_member_operand(operand));
   member_sym = operand->symbol;
   fund_sym = fundamental_symbol_of(member_sym);
-  if (symbol_is(fund_sym, sk_member_function) &&
-      fund_sym->variant.routine.ptr->is_consteval) {
-    check_address_of_consteval_function(&operand->position);
+  if (symbol_is(fund_sym, sk_member_function)) {
+    a_routine_ptr  rp = fund_sym->variant.routine.ptr;
+    if (rp->is_consteval) {
+      check_address_of_consteval_function(rp, &operand->position);
+    }  /* if */
   }  /* if */
   if (ampersand_position != NULL) {
     /* Change the start position to be used/restored to include the "&"
@@ -21117,7 +21144,7 @@ by an "&" operator and *ampersand_position gives its position.
         require_true_enable_if_condition(rtp, &operand->position);
       }  /* if */
       if (rout->is_consteval) {
-        check_address_of_consteval_function(&operand->position);
+        check_address_of_consteval_function(rout, &operand->position);
       }  /* if */
     }  /* if */
   }  /* if */
