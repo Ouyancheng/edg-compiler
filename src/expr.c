@@ -737,8 +737,10 @@ error type.
 }  /* arg_matches_auto_template_param */
 
 
-static a_boolean can_ignore_single_element_braces(a_decl_parse_state    *dps,
-                                                  an_init_component_ptr icp)
+static a_boolean can_ignore_single_element_braces(
+                                     a_decl_parse_state    *dps,
+                                     an_init_component_ptr icp,
+                                     a_boolean             parenthesized_init)
 /*
 Direct-list-initialization with a placeholder type only permits a single
 braced element, and in that case the braces are ignored (rule introduced by
@@ -759,7 +761,8 @@ can have their braces ignored.
     icp = icp->variant.braced.list;
     if (!dps->has_deducible_class_templ_args) {
       result = TRUE;
-    } else if (icp != NULL && icp->next == NULL &&
+    } else if (!parenthesized_init &&
+               icp != NULL && icp->next == NULL &&
                is_expression_component(icp) &&
                is_class_template_placeholder_type(dps->type)) {
       a_template_arg_ptr args;
@@ -926,7 +929,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
       undeduced_type = make_qualified_type(undeduced_type,
                                            (a_type_qualifier_set)TQ_CONST);
     }  /* if */
-    if (can_ignore_single_element_braces(dps, icp)) {
+    if (can_ignore_single_element_braces(dps, icp, parenthesized_init)) {
       an_init_component_ptr  elem_icp = icp->variant.braced.list;
       if (parenthesized_init && !gpp_mode) {
         /* Something like "auto x( { 3 } );".  This is malformed per
@@ -25741,6 +25744,7 @@ freed by this routine.
     dps.auto_pos = type_position;
     dps.declarator_pos = pos_curr_token;
     dps.init_state.direct_init = TRUE;
+    dps.has_direct_initializer = TRUE;
     saved_initializer_cache = expr_stack->initializer_cache;
     if (rcblock != NULL) {
       /* Rescan the operand list early and place it in the expression stack's
