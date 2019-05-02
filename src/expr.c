@@ -32599,12 +32599,35 @@ if rescan_is_template_id is TRUE, and return the result in *operand
 #endif /* GNU_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */
-    if (microsoft_mode && sym_ptr != NULL && is_constructor_symbol(sym_ptr) &&
-        name_followed_by_left_paren) {
-      /* In Microsoft mode, treat the name of a constructor as the name
-         of the class, so that something like "C::C()" is seen as a
-         functional-notation type conversion. */
-      sym_ptr = symbol_for(sym_parent_class(sym_ptr));
+    if (sym_ptr != NULL && name_followed_by_left_paren) {
+      a_boolean is_constructor = is_constructor_symbol(sym_ptr);
+      if ((gpp_version_is(>= 40500) || clang_version_is(>= 50000)) &&
+          locator_for_curr_id.is_class_member &&
+          is_injected_class_symbol(sym_ptr)) {
+        /* This identifier appears to specify a constructor. */
+        a_type_ptr   tp = type_symbol_type(sym_ptr);
+        a_symbol_ptr sym = symbol_supplement_for_class(tp)->constructor;
+        if (sym != NULL) {
+          a_type_ptr parent_type = qualifier_class_type(locator_for_curr_id);
+          parent_type = skip_typerefs(parent_type);
+          if (same_entities(parent_type, tp)) {
+            is_constructor = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (is_constructor) {
+        if (microsoft_mode) {
+          /* In Microsoft mode, treat the name of a constructor as the name
+             of the class, so that something like "C::C()" is seen as a
+             functional-notation type conversion. */
+          sym_ptr = symbol_for(sym_parent_class(sym_ptr));
+        } else if (locator_for_curr_id.is_qualified_name) {
+          /* This is a qualified constructor call, e.g., C::C(). */
+          pos_error(ec_fully_qualified_constructor_call, &start_position);
+          sym_ptr = NULL;
+          set_to_error_locator(locator);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   if (locator.is_semivisible_nested_type) {

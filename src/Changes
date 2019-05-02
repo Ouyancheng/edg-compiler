@@ -1,5 +1,18 @@
 Version 5.1
 
+5/1/19   [EDGcpfe/19913]
+GNU compatibility: Failure to properly diagnose directly calling a constructor
+
+The front end was failing to issue an error when directly calling a constructor
+in GNU compatibility modes.  Furthermore, the error being issued when directly
+calling a constructor was non-obvious (it complained about taking the address
+of the constructor).  A new error has been added that makes the error clear,
+and is now correctly issued in all modes.
+
+  struct S { S(){} };
+  S s = S::S(); // Previously failed to issue an error
+
+
 5/1/19   [EDGcpfe/21174]
 Template substitution of member declarations containing member calls
 
