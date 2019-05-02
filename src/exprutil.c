@@ -21026,7 +21026,7 @@ if necessary).
 static void check_address_of_consteval_function(a_routine_ptr      rp,
                                                 a_source_position  *pos)
 /*
-The address of a given consteval routine is being taken but such an address
+The address of the given consteval routine is being taken but such an address
 can only be exposed in some limited contexts:
   - in an unevaluated context
   - in the definition of another consteval function
