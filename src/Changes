@@ -31,14 +31,14 @@ substitution in the expression test<T>() in the return type of candidate (2).
 In the context of (2), looking up "test" only finds declaration (1),
 so the call test<int>() is unambiguous and well-formed, making candidate (2)
 viable, and overload resolution selects candidate (2) over candidate (3).
-However, during the instantiation of candidate (2), the front end previously
-performed the lookup of 'test' in 'test<int>()' in the complete class, which
-resulted in an ambiguity between candidates (1) and (3).  The standard actually
-deems such cases (where a lookup yields different results at the point of the
-member declaration and in the completed class) ill-formed, but does not
-require a diagnostic for them.  However, it appears that common practice is for
-the substitution to perform the substituted lookups in the completed class
-context.  In this example, that means that substitution of (2) triggers the
+However, during the instantiation of candidate (2), the front end performs the
+lookup of 'test' in 'test<int>()' in the complete class, which resulted in an
+ambiguity between candidates (1) and (3).  The standard actually deems such
+cases (where a lookup yields different results at the point of the member
+declaration and in the completed class) ill-formed, but does not require a
+diagnostic for them.  However, it appears that common practice is for the
+substitution to perform the substituted lookups in the completed class context.
+In this example, that means that substitution of (2) triggers the
 aforementioned ambiguity, and hence candidate (2) is simply discarded (SFINAE)
 for the call "S::test<int>(0)".  Candidate (3) is then the unambiguously
 selected function for that call.
