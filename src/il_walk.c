@@ -3557,6 +3557,7 @@ as specified in the control block.
       }  /* if */
       break;
 #if COROUTINES_ALLOWED
+    case stmk_coroutine:
     case stmk_coroutine_return:
       if (statement->expr != NULL) {
         traverse_expr(statement->expr, tblock);
