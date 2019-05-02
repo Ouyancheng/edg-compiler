@@ -4218,6 +4218,13 @@ static a_feature_support feature_support_list[] = {
     &conditional_explicit_enabled,
     "__cpp_conditional_explicit",
     "201806L" },
+#if COROUTINES_ALLOWED
+  { "",
+    0,
+    &coroutines_enabled,
+    "__cpp_coroutines",
+    "201806L" },
+#endif /* COROUTINES_ALLOWED */
   { "",
     0,
     &class_template_arg_deduction_enabled,
