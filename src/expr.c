@@ -29269,7 +29269,8 @@ that case.
       }  /* if */
       tqs = get_type_qualifiers(operand_2.type);
       do_operand_transformations(&operand_2, options);
-      if (tqs != TQ_NONE && is_immediate_class_type(operand_2.type)) {
+      if (!C_mode() && tqs != TQ_NONE &&
+          is_immediate_class_type(operand_2.type)) {
         /* do_operand_transformations created a copy of the original lvalue
            to produce an rvalue.  The copy is unqualified, but we want to
            preserve the qualifiers in this case. */
@@ -29282,9 +29283,10 @@ that case.
         expr_stack->constant_expr_ruled_out = FALSE;
       }  /* if */
       expr_stack->evaluated = expr3_evaluated;
-      tqs = get_type_qualifiers(operand_2.type);
+      tqs = get_type_qualifiers(operand_3.type);
       do_operand_transformations(&operand_3, options);
-      if (tqs != TQ_NONE && is_immediate_class_type(operand_3.type)) {
+      if (!C_mode() && tqs != TQ_NONE &&
+          is_immediate_class_type(operand_3.type)) {
         /* do_operand_transformations created a copy of the original lvalue
            to produce an rvalue.  The copy is unqualified, but we want to
            preserve the qualifiers in this case. */
@@ -29307,8 +29309,13 @@ that case.
       /* See if the types are the same in C++ mode after the
          transformations. */
       if (!C_mode()) {
-        types_are_the_same = same_types_for_question_operator(&operand_2,
-                                                              &operand_3);
+        /* Above we may have added back type qualifiers, so we need to handle
+           that case as well, since the types may no longer be the same. */
+        types_are_the_same =
+                   same_types_for_question_operator(&operand_2, &operand_3) ||
+                   (is_immediate_class_type(skip_typerefs(operand_2.type)) &&
+                    identical_types_ignoring_qualifiers(operand_2.type,
+                                                        operand_3.type));
       }  /* if */
     }  /* if */
     result_type = operand_2.type;  /* Assume. */
