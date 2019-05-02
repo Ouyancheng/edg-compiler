@@ -3569,6 +3569,9 @@ default mode (e.g., exception handling).
         constexpr_virtual_enabled = TRUE;
         constexpr_try_enabled = TRUE;
         consteval_enabled = TRUE;
+#if COROUTINES_ALLOWED
+        coroutines_enabled = TRUE;
+#endif /* COROUTINES_ALLOWED */
         explicit_copy_this_capture_enabled = TRUE;
         lambda_template_param_list_enabled = TRUE;
         lambda_allowed_in_uneval_context = TRUE;
