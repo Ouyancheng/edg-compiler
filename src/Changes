@@ -1,5 +1,22 @@
 Version 5.1
 
+5/2/19   [EDGcpfe/21186]
+GNU compatibility: Suppress __weak__ attribute with __always_inline__
+
+When a routine is marked for a COMDAT section the C-generating back end
+(when GCC or Clang is being used as the back end compiler) adds the __weak__
+attribute to the generated C declaration.  For later versions of GCC, that
+can cause the generated code to fail to compile when the routine is also marked
+with the __always_inline__ attribute (because the linker could conceivably
+choose a different routine than the one that is inlined in the translation
+unit).  In such cases, the __weak__ attribute is now suppressed.  For example:
+
+  inline __attribute__ ((__always_inline__)) int f() { return 0; }
+  int main() {
+    return f();
+  }
+
+
 5/1/19   [EDGcpfe/19913]
 GNU compatibility: Failure to properly diagnose directly calling a constructor
 

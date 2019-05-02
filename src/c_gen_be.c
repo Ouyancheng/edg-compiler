@@ -10735,12 +10735,17 @@ declare_routine:
                                                (a_storage_class)sc_unspecified,
                           "dump_routine_decl: rout without defn in comdat");
       if (gcc_or_clang_is_generated_code_target
-#if GNU_EXTENSIONS_ALLOWED && !LOWER_IFUNC
+#if GNU_EXTENSIONS_ALLOWED
+          && !rout->always_inline /* gcc gives an error on weak functions with
+                                     the always_inline attribute (because they
+                                     can change at link time). */
+#if !LOWER_IFUNC
           && !rout->is_ifunc    /* gcc doesn't allow ifunc to be weak, so
                                    suppress the weak attribute (though this
                                    may result in multiple-definition errors
                                    in some cases). */
-#endif /* GNU_EXTENSIONS_ALLOWED && !LOWER_IFUNC */
+#endif /* !LOWER_IFUNC */
+#endif /* GNU_EXTENSIONS_ALLOWED */
                             ) {
         /* GCC does not support COMDAT, but it does support weak, which
            provides a sufficient approximation. */
