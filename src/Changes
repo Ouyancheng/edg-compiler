@@ -47,8 +47,8 @@ selected function for that call.
 5/1/19   [EDGcpfe/20499]
 Abort when attempting CTAD with no viable deduction guides
 
-The front end was asserting in select_overloaded_function in cases where it
-was attempting to perform class template argument deduction where no viable
+The front end failed an assertion in select_overloaded_function in cases where
+it was attempting to perform class template argument deduction where no viable
 deduction guides existed.  Most commonly this would be during error recovery
 where the error type prevented default constructors from being generated.  For
 example:
