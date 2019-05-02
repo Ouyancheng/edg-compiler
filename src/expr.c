@@ -29311,9 +29311,10 @@ that case.
       if (!C_mode()) {
         /* Above we may have added back type qualifiers, so we need to handle
            that case as well, since the types may no longer be the same. */
+        a_type_ptr op2_type = skip_typerefs(operand_2.type);
         types_are_the_same =
                    same_types_for_question_operator(&operand_2, &operand_3) ||
-                   (is_immediate_class_type(skip_typerefs(operand_2.type)) &&
+                   (is_immediate_class_type(op2_type) &&
                     identical_types_ignoring_qualifiers(operand_2.type,
                                                         operand_3.type));
       }  /* if */
