@@ -747,8 +747,9 @@ braced element, and in that case the braces are ignored (rule introduced by
 the C++ standardization committee's paper N3922).  For class template auto
 deduction, we ignore single-element braces iff the list contains a
 specialization or a class derived from a specialization of the class template.
-Return TRUE if this is a case where single-element braced initializer lists
-can have their braces ignored.
+parenthesized_init is TRUE if the initializer is parenthesized, FALSE
+otherwise.  Return TRUE if this is a case where single-element braced
+initializer lists can have their braces ignored.
 */
 {
   a_boolean result = FALSE;
