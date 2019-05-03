@@ -8805,45 +8805,54 @@ associated symbol, or NULL if it is not found.
 #if COROUTINES_ALLOWED
 
 static
-a_symbol_ptr look_up_class_template_in_std_experimental(a_const_char  *ctname)
+a_symbol_ptr look_up_coroutine_class_template(a_const_char *ctname)
 /*
-Look up a class template of the given name in namespace std::experimental and
-return its associated symbol, or NULL if it is not found.
+Look up the coroutine class template of the given name in the namespace pointed
+to by namespace_for_coroutine_types.  If this is NULL, look up the class
+template in namespace std or std::experimental and store the associated
+namespace in namespace_for_coroutine_types to ensure all future lookups for
+coroutine types occur in the same namespace.  Return the symbol associated with
+the coroutine class template, or NULL if it is not found.
 */
 {
-  a_namespace_ptr  std_nsp;
-  a_namespace_ptr  experimental_nsp;
-  a_symbol_ptr     ns_sym, result_sym = NULL;
+  a_symbol_ptr result_sym = NULL;
 
-  if (symbol_for_namespace_std != NULL) {
-    std_nsp = symbol_for_namespace_std->variant.namespace_info.ptr;
-    if (std_nsp != NULL) {
-      ns_sym = look_up_name_string_in_namespace("experimental", std_nsp,
-                                                IDL_NO_OPTIONS);
-      if (ns_sym != NULL && symbol_is(ns_sym, sk_namespace)) {
-        experimental_nsp = ns_sym->variant.namespace_info.ptr;
+  if (namespace_for_coroutine_types == NULL &&
+      symbol_for_namespace_std != NULL) {
+    a_namespace_ptr ns = symbol_for_namespace_std->variant.namespace_info.ptr;
+    if (ns != NULL) {
+      a_symbol_ptr sym = look_up_name_string_in_namespace(ctname, ns,
+                                                          IDL_NO_OPTIONS);
+      if (sym != NULL && symbol_is(sym, sk_class_template)) {
+        namespace_for_coroutine_types = ns;
       } else {
-        experimental_nsp = NULL;
-      }  /* if */
-      if (experimental_nsp != NULL) {
-        result_sym = look_up_name_string_in_namespace(
-                                    ctname, experimental_nsp, IDL_NO_OPTIONS);
-        if (result_sym != NULL && !symbol_is(result_sym, sk_class_template)) {
-          result_sym = NULL;
+        sym = look_up_name_string_in_namespace("experimental", ns,
+                                               IDL_NO_OPTIONS);
+        if (sym != NULL && symbol_is(sym, sk_namespace)) {
+          ns = sym->variant.namespace_info.ptr;
+          sym = look_up_name_string_in_namespace(ctname, ns, IDL_NO_OPTIONS);
+          if (sym != NULL && symbol_is(sym, sk_class_template)) {
+            namespace_for_coroutine_types = ns;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
+  if (namespace_for_coroutine_types != NULL) {
+    result_sym =
+        look_up_name_string_in_namespace(ctname, namespace_for_coroutine_types,
+                                         IDL_NO_OPTIONS);
+  }  /* if */
   return result_sym;
-}  /* look_up_class_template_in_std_experimental */
+}  /* look_up_coroutine_class_template */
 
 
-a_type_ptr instantiate_std_experimental_class_template_with_one_type(
+a_type_ptr instantiate_coroutine_class_template_with_one_type(
                                                         a_const_char  *ctname,
                                                         a_type_ptr    type)
 /*
-Return the type corresponding to
-	std::experimental::xyz<T>
+Return the coroutine type corresponding to
+	std[::experimental]::xyz<T>
 where xyz is a class template described by ctname, and T is the given type.
 Return an error type if there is no such class template or if its instantiation
 is unsuccessful.
@@ -8852,7 +8861,7 @@ is unsuccessful.
   a_symbol_ptr  class_template;
   a_type_ptr    result;
 
-  class_template = look_up_class_template_in_std_experimental(ctname);
+  class_template = look_up_coroutine_class_template(ctname);
   if (class_template != NULL) {
     a_template_arg_ptr  tap = alloc_template_arg((a_templ_arg_kind)tak_type);
     a_symbol_ptr        instance;
@@ -8867,7 +8876,7 @@ is unsuccessful.
     result = error_type();
   }  /* if */
   return result;
-}  /* instantiate_std_experimental_class_template_with_one_type */
+}  /* instantiate_coroutine_class_template_with_one_type */
 
 
 void init_coroutine_descr(a_routine_ptr          rp,
@@ -8879,7 +8888,7 @@ function body has been scanned (because in some cases the coroutine type isn't
 known until then).
 
 Specifically, record in cdp->traits the traits type instance
-	std::experimental::coroutine_traits<R, P1, P2, ...>
+	std[::experimental]::coroutine_traits<R, P1, P2, ...>
 and in cdp->promise record a new variable of type traits::promise_type.
 (R is the return type of rp and P1, P2, ... are the parameter types of rp; for
 a nonstatic member function, P1 is the type of this.)
@@ -8895,14 +8904,14 @@ member.
   a_param_type_ptr       ptp;
 
   check_assertion(rp->is_coroutine && cdp != NULL);
-  /* First look up std::experimental::coroutine_traits. */
-  traits_sym = look_up_class_template_in_std_experimental("coroutine_traits");
+  /* First look up std[::experimental]::coroutine_traits. */
+  traits_sym = look_up_coroutine_class_template("coroutine_traits");
   if (cdp->error_descr) {
     expect_error();
     traits = NULL;
   } else if (traits_sym == NULL) {
     pos_st_error(ec_special_class_template_not_found, &cdp->position,
-                 "std::experimental::coroutine_traits");
+                 "std::coroutine_traits");
     traits = NULL;
   } else {
     /* Now instantiate coroutine_traits<R, P1, P2, ...> where R is the return
@@ -8946,7 +8955,7 @@ member.
   cdp->promise = make_variable(promise_type, (a_storage_class)sc_auto,
                                NO_SCOPE_DEPTH);
   /* Create a placeholder variable for the coroutine "handle". */
-  handle_type = instantiate_std_experimental_class_template_with_one_type(
+  handle_type = instantiate_coroutine_class_template_with_one_type(
                                             "coroutine_handle", promise_type);
   cdp->handle = make_variable(handle_type, (a_storage_class)sc_auto,
                               NO_SCOPE_DEPTH);
@@ -17290,6 +17299,9 @@ given translation unit.
 #if IA64_ABI
   symbol_for_namespace_abi = NULL;
 #endif /* IA64_ABI */
+#if COROUTINES_ALLOWED
+  namespace_for_coroutine_types = NULL;
+#endif /* COROUTINES_ALLOWED */
   symbol_for_std_initializer_list = NULL;
   builtin_va_list_type = NULL;
   type_underlying_va_list = NULL;

@@ -1057,7 +1057,7 @@ coroutine cannot have an ellipsis parameter).
         rp->type->variant.routine.return_type = return_type;
       }  /* if */
     }  /* if */
-    return_type = instantiate_std_experimental_class_template_with_one_type(
+    return_type = instantiate_coroutine_class_template_with_one_type(
                                                         ct_name, return_type);
     complete_type_is_needed(return_type);
     if (!rp->is_lambda_body) {

@@ -4825,6 +4825,13 @@ extern void enter_symbol_for_namespace_abi(a_symbol_locator  *locator);
 extern a_symbol_ptr look_up_name_string_in_std(a_const_char  *name);
 
 #if COROUTINES_ALLOWED
+EXTERN a_namespace_ptr
+		namespace_for_coroutine_types;
+			/* Namespace containing the various class templates
+			   used with coroutines, such as "coroutine_traits".
+			   NULL if not yet determined, otherwise points to
+			   either the std or std::experimental namespace. */
+
 extern void init_coroutine_descr(a_routine_ptr          rp,
                                  a_coroutine_descr_ptr  cdp);
 
@@ -4832,7 +4839,7 @@ extern void init_coroutine_descr(a_routine_ptr          rp,
   if ((cdp)->traits == NULL) init_coroutine_descr(rp, cdp);
 
 
-extern a_type_ptr instantiate_std_experimental_class_template_with_one_type(
+extern a_type_ptr instantiate_coroutine_class_template_with_one_type(
                                                         a_const_char  *ctname,
                                                         a_type_ptr    type);
 #endif /* COROUTINES_ALLOWED */
