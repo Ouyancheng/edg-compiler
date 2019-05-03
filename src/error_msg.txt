@@ -3051,6 +3051,9 @@ ec_bad_param_type_for_defaulted_comparison;;"bad type %t for parameter of defaul
 ec_return_type_of_default_comparison_must_be_bool;;"return type of defaulted comparison operator must be \"bool\""
 ec_nonconst_defaulted_member_comparison;;"a defaulted member comparison operator must be \"const\""
 ec_duplicate_defaulted_spaceship;;"more than one defaulted spaceship operator defined in this class"
+ec_no_return_value_and_return_void;;"promise type %t cannot have both \"return_void\" and \"return_value\" set."
+ec_return_value_at;;"\"return_value\" declared %p"
+ec_return_void_at;;"\"return_void\" declared %p"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

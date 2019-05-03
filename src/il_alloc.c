@@ -3946,6 +3946,7 @@ a pointer to it.
   cdp->fixups = NULL;
   cdp->error_descr = FALSE;
   cdp->eventual_value = FALSE;
+  cdp->has_return_void = FALSE;
   cdp->has_yield = FALSE;
   cdp->has_potentially_evaluated_await = FALSE;
   cdp->has_coroutine_return = FALSE;

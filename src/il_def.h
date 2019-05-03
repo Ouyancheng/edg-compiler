@@ -14796,7 +14796,10 @@ typedef struct a_coroutine_descr {
 			   to produce more errors and should be inhibited. */
   a_bit_field	eventual_value:1;
 			/* TRUE if the promise type has a member function
-			   set_result. */
+			   return_value or return_void. */
+  a_bit_field	has_return_void:1;
+			/* TRUE if the promise type has a member function
+			   return_void . */
   a_bit_field	has_yield:1;
 			/* TRUE if the coroutine includes a co_yield
 			   expression . */

@@ -8961,15 +8961,27 @@ member.
                               NO_SCOPE_DEPTH);
   /* Record whether this is an "eventual value" coroutine. */
   if (!is_error_type(promise_type)) {
-    a_symbol_ptr  rv_sym;
+    a_symbol_ptr  rv_sym, rvoid_sym;
     rv_sym = look_up_name_string_in_class("return_value", promise_type,
                                           IDL_NO_OPTIONS);
-    if (rv_sym == NULL) {
-      rv_sym = look_up_name_string_in_class("return_void", promise_type,
-                                            IDL_NO_OPTIONS);
+    rvoid_sym = look_up_name_string_in_class("return_void", promise_type,
+                                             IDL_NO_OPTIONS);
+    if (rv_sym != NULL && rvoid_sym != NULL) {
+      a_diagnostic_ptr dp;
+      dp = pos_ty_start_error(ec_no_return_value_and_return_void,
+                              &cdp->position, promise_type);
+      add_diag_info_with_pos_insert(dp, ec_return_value_at,
+                                    &rv_sym->decl_position);
+      add_diag_info_with_pos_insert(dp, ec_return_void_at,
+                                    &rvoid_sym->decl_position);
+      end_diagnostic(dp);
+      rv_sym = NULL;
+    } else if (rv_sym == NULL) {
+      rv_sym = rvoid_sym;
     }  /* if */
     if (rv_sym != NULL && is_member_function_symbol(rv_sym)) {
       cdp->eventual_value = TRUE;
+      cdp->has_return_void = rvoid_sym != NULL;
     }  /* if */
   }  /* if */
 }  /* init_coroutine_descr */
