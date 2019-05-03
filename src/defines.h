@@ -326,7 +326,7 @@ Flags to be set for any version that uses the C++ generating back end.
 
 #else /* !defined(__sun) */
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__CYGWIN__)
 
 /* Options for Windows-NT version. */
 
