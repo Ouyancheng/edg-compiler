@@ -1,5 +1,12 @@
 Version 5.1
 
+5/3/19   [EDGcpfe/20664]
+GNU compatibility: Builtins for GCC 9.1.0
+
+The front end has been updated to incorporate builtins from release 9.1.0
+of GCC.
+
+
 5/2/19   [EDGcpfe/21186]
 GNU compatibility: Suppress __weak__ attribute with __always_inline__
 
