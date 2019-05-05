@@ -6962,6 +6962,7 @@ The IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR macro should be
 TARG_IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR.
 
 
+-------------------------------------------------------------------------------
 Version 5.0, August 10, 2018
 
 8/8/18   [EDGcpfe/17697,EDGcpfe/18314]

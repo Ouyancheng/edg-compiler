@@ -13408,8 +13408,10 @@ to an alias template, the substituted type is returned in *new_type
 {
   a_template_arg_ptr			new_list;
   a_symbol_ptr				new_sym = NULL;
+  a_symbol_ptr				orig_template_sym;
   a_template_arg_ptr			tap;
   a_template_param_ptr			tpp = NULL;
+  a_template_symbol_supplement_ptr	orig_tssp;
   a_template_symbol_supplement_ptr	tssp;
   a_boolean				is_nonreal_template;
   a_boolean				orig_is_prototype;
@@ -13417,6 +13419,8 @@ to an alias template, the substituted type is returned in *new_type
   a_template_param_ptr			ttp_param_list = NULL;
 
   if (new_type != NULL) *new_type = NULL;  
+  orig_template_sym = template_sym;
+  orig_tssp = template_sym->variant.template_info;
   template_sym = primary_template_of(template_sym);
   tssp = template_sym->variant.template_info;
   /* If the template symbol refers to a template template parameter, get
@@ -13440,14 +13444,17 @@ to an alias template, the substituted type is returned in *new_type
   orig_is_prototype = (options & CTWS_DEDUCTION_GUIDE) == 0 &&
                       orig_type->
                         variant.class_struct_union.is_prototype_instantiation;
-  if (orig_is_prototype && ctws_state->ignore_enclosing_expansions) {
+  if (orig_is_prototype && orig_tssp->primary_template_sym == NULL &&
+      ctws_state->ignore_enclosing_expansions) {
     /* The ignore_enclosing_expansions flag is set when we are doing
        special substitution of something like a noexcept argument.  That
        process involves doing substitution of enclosing classes, which are
        typically rescanned from tokens.  For such special substitution,
        when we hit a prototype instantiation, create a special template
        argument list that includes pack expansion descriptors for the
-       prototype argument list elements that are packs. */
+       prototype argument list elements that are packs.  This is not done
+       for partial specializations where the template argument list is
+       not synthesized. */
     tap = create_prototype_arg_list(template_sym, templ_param_list,
                                     /*add_pack_descr=*/TRUE);
   }  /* if */
