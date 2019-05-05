@@ -13408,7 +13408,6 @@ to an alias template, the substituted type is returned in *new_type
 {
   a_template_arg_ptr			new_list;
   a_symbol_ptr				new_sym = NULL;
-  a_symbol_ptr				orig_template_sym;
   a_template_arg_ptr			tap;
   a_template_param_ptr			tpp = NULL;
   a_template_symbol_supplement_ptr	orig_tssp;
@@ -13419,7 +13418,6 @@ to an alias template, the substituted type is returned in *new_type
   a_template_param_ptr			ttp_param_list = NULL;
 
   if (new_type != NULL) *new_type = NULL;  
-  orig_template_sym = template_sym;
   orig_tssp = template_sym->variant.template_info;
   template_sym = primary_template_of(template_sym);
   tssp = template_sym->variant.template_info;
