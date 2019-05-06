@@ -972,6 +972,98 @@ constructor.
 
 #if COROUTINES_ALLOWED
 
+static void deduce_coroutine_return_type(a_routine_ptr rp)
+/*
+Deduce a coroutine return type.  This is done in two phases.  First we deduce a
+return type T based on the coroutine result operands.  Once that is done, we
+replace the return type by one of the following:
+          std[::experimental]::async_stream<T>
+          std[::experimental]::task<T>
+          std[::experimental]::generator<T>
+depending on the presence of "co_yield" and/or "co_await".
+*/
+{
+  a_coroutine_descr_ptr  cdp;
+  a_coroutine_fixup_ptr  cfp, fixups;
+  a_const_char           *ct_name;
+  a_type_ptr             return_type, utp;
+  a_boolean              is_decltype_auto_return = FALSE;
+
+  check_assertion(rp->is_coroutine);
+  check_assertion(rp->type->kind == (a_type_kind)tk_routine);
+  cdp = get_coroutine_descr(rp, &null_source_position);
+  fixups = cdp->fixups;
+  return_type = rp->type->variant.routine.return_type;
+  utp = skip_typerefs(return_type);
+  if (is_auto_type(utp) &&
+      utp->variant.template_param.extra_info->coordinates.position
+                                                 == DECLTYPE_AUTO_POS_NUMBER) {
+    is_decltype_auto_return = TRUE;
+  }  /* if */
+  /* First determine T.  This will trigger errors if the coroutine result types
+     are inconsistent. */
+  for (cfp = fixups; cfp != NULL; cfp = cfp->next) {
+    an_arg_list_elem_ptr  alep;
+    if (cfp->entity.kind == (a_byte_il_entry_kind)iek_expr_node &&
+        ((an_expr_node_ptr)cfp->entity.ptr)->kind ==
+                                                (an_expr_node_kind)enk_await) {
+      /* Ordinary co_await expressions do not affect the deduced return
+         type. */
+      continue;
+    }  /* if */
+    alep = (an_arg_list_elem_ptr)cfp->operand;
+    if (alep == NULL) {
+      if (cdp->has_potentially_evaluated_await) {
+        deduce_return_type_from_void_operand(
+                               rp, /*keep_placeholder=*/FALSE, &cfp->position);
+        return_type = skip_typerefs(rp->type)->variant.routine.return_type;
+      }  /* if */
+    } else if (is_expression_component(alep)) {
+      check_and_adjust_deduced_return_type_if_needed(
+                             rp, operand_of_arg_list_elem(alep), &return_type);
+    } else if (is_braced_init_component(alep)) {
+      /* A braced initializer list cannot be used for return type deduction. */
+      pos_error(rp->is_lambda_body ? ec_braced_list_for_implicit_lambda_type
+                                   : ec_braced_list_for_implicit_return_type,
+                &cfp->position);
+      return_type = error_type();
+      rp->has_deduced_return_type = TRUE;
+      rp->type->variant.routine.return_type = return_type;
+    } else {
+      unexpected_condition();
+    }  /* if */
+  }  /* for */
+  /* Now replace the deduced return type by the appropriate class template
+     instance. */
+  if (cdp->has_yield && cdp->has_potentially_evaluated_await) {
+    ct_name = "async_stream";
+  } else if (cdp->has_potentially_evaluated_await) {
+    ct_name = "task";
+  } else {
+    ct_name = "generator";
+    if (!cdp->has_yield && !cdp->has_potentially_evaluated_await) {
+      /* A coroutine with only a co_return construct cannot have its return
+         type deduced.  (Proceed with generator<error-type> for recovery.) */
+      pos_error(ec_cannot_deduce_coroutine_return_type, &cdp->position);
+      return_type = error_type();
+      rp->has_deduced_return_type = TRUE;
+      rp->type->variant.routine.return_type = return_type;
+    }  /* if */
+  }  /* if */
+  return_type = instantiate_coroutine_class_template_with_one_type(
+                                                         ct_name, return_type);
+  complete_type_is_needed(return_type);
+  if (!rp->is_lambda_body) {
+    /* Record a placeholder type. */
+    return_type = add_placeholder_typeref(return_type,
+                                          is_decltype_auto_return);
+  }  /* if */
+  rp->type->variant.routine.return_type = return_type;
+  set_routine_calling_method_flag(rp->type,
+                                  &rp->source_corresp.decl_position);
+}  /* deduce_coroutine_return_type */
+
+
 static void wrap_up_coroutine(a_routine_ptr  rp)
 /*
 Handle any fixups for the given coroutine function, and, if needed, deduce its
@@ -986,88 +1078,7 @@ coroutine cannot have an ellipsis parameter).
   cdp = get_coroutine_descr(rp, &null_source_position);
   fixups = cdp->fixups;
   if (rp->has_deducible_return_type && !rp->is_prototype_instantiation) {
-    /* Deduce a coroutine return type.  This is done in two phases.  First we
-       deduce a return type T based on the coroutine result operands.  Once
-       that is done, we replace the return type by one of the following:
-           std::experimental::async_stream<T>
-           std::experimental::task<T>
-           std::experimental::generator<T>
-       depending on the presence of "co_yield" and/or "co_await".
-    */
-    a_const_char  *ct_name;
-    a_type_ptr    return_type, utp;
-    a_boolean     is_decltype_auto_return = FALSE;
-    check_assertion(rp->type->kind == (a_type_kind)tk_routine);
-    return_type = rp->type->variant.routine.return_type;
-    utp = skip_typerefs(return_type);
-    if (is_auto_type(utp) &&
-        utp->variant.template_param.extra_info->coordinates.position
-                                                == DECLTYPE_AUTO_POS_NUMBER) {
-      is_decltype_auto_return = TRUE;
-    }  /* if */
-    /* First determine T.  This will trigger errors if the coroutine result
-       types are inconsistent. */
-    for (cfp = fixups; cfp != NULL; cfp = cfp->next) {
-      an_arg_list_elem_ptr  alep;
-      if (cfp->entity.kind == (a_byte_il_entry_kind)iek_expr_node &&
-          ((an_expr_node_ptr)cfp->entity.ptr)->kind == 
-                                               (an_expr_node_kind)enk_await) {
-        /* Ordinary co_await expressions do not affect the deduced return
-           type. */
-        continue;
-      }  /* if */
-      alep = (an_arg_list_elem_ptr)cfp->operand;
-      if (alep == NULL) {
-        if (cdp->has_potentially_evaluated_await) {
-          deduce_return_type_from_void_operand(
-                              rp, /*keep_placeholder=*/FALSE, &cfp->position);
-          return_type = skip_typerefs(rp->type)->variant.routine.return_type;
-        }  /* if */
-      } else if (is_expression_component(alep)) {
-        check_and_adjust_deduced_return_type_if_needed(
-                            rp, operand_of_arg_list_elem(alep), &return_type);
-      } else if (is_braced_init_component(alep)) {
-        /* A braced initializer list cannot be used for return type
-           deduction. */
-        pos_error(rp->is_lambda_body ?
-                                     ec_braced_list_for_implicit_lambda_type
-                                   : ec_braced_list_for_implicit_return_type,
-                  &cfp->position);
-        return_type = error_type();
-        rp->has_deduced_return_type = TRUE;
-        rp->type->variant.routine.return_type = return_type;
-      } else {
-        unexpected_condition();
-      }  /* if */
-    }  /* for */
-    /* Now replace the deduced return type by the appropriate class template
-       instance. */
-    if (cdp->has_yield && cdp->has_potentially_evaluated_await) {
-      ct_name = "async_stream";
-    } else if (cdp->has_potentially_evaluated_await) {
-      ct_name = "task";
-    } else {
-      ct_name = "generator";
-      if (!cdp->has_yield && !cdp->has_potentially_evaluated_await) {
-        /* A coroutine with only a co_return construct cannot have its return
-           type deduced.  (Proceed with generator<error-type> for recovery.) */
-        pos_error(ec_cannot_deduce_coroutine_return_type, &cdp->position);
-        return_type = error_type();
-        rp->has_deduced_return_type = TRUE;
-        rp->type->variant.routine.return_type = return_type;
-      }  /* if */
-    }  /* if */
-    return_type = instantiate_coroutine_class_template_with_one_type(
-                                                        ct_name, return_type);
-    complete_type_is_needed(return_type);
-    if (!rp->is_lambda_body) {
-      /* Record a placeholder type. */
-      return_type = add_placeholder_typeref(return_type,
-                                            is_decltype_auto_return);
-    }  /* if */
-    rp->type->variant.routine.return_type = return_type;
-    set_routine_calling_method_flag(rp->type,
-                                    &rp->source_corresp.decl_position);
+    deduce_coroutine_return_type(rp);
   }  /* if */
   /* Now that the type of the coroutine is established, we can determine the
      promise type, which in turn allows us to complete the expressions needed
@@ -1083,7 +1094,7 @@ coroutine cannot have an ellipsis parameter).
            has no "eventual value"). */
         if (cdp->eventual_value || alep != NULL) {
           sp->expr = wrap_up_coroutine_result_expression(
-                                                    alep, /*is_yield=*/FALSE);
+                                                 alep, /*is_yield=*/FALSE, sp);
         }  /* if */
       } else {
         unexpected_condition();
@@ -1114,6 +1125,18 @@ coroutine cannot have an ellipsis parameter).
   if (skip_typerefs(rp->type)->variant.routine.extra_info->has_ellipsis) {
     pos_error(ec_coroutine_with_ellipsis_parameter,
               &rp->source_corresp.decl_position);
+  }  /* if */
+  if (!cdp->has_coroutine_return && !cdp->has_return_void &&
+      !(microsoft_mode && !cdp->eventual_value)) {
+    /* We're missing an explicit return statement and don't have a return_void
+       to implicitly call.  In microsoft_mode we may be using a different
+       avenue for the return, so don't issue a diagnostic in that case. */
+    a_symbol_ptr function_name_symbol = symbol_for(rp);
+    pos_syty_diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity :
+                                           es_warning,
+                        ec_implict_co_return_with_no_return_void,
+                        &function_name_symbol->decl_position,
+                        function_name_symbol, cdp->promise->type);
   }  /* if */
 }  /* wrap_up_coroutine */
 

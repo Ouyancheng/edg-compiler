@@ -3054,6 +3054,7 @@ ec_duplicate_defaulted_spaceship;;"more than one defaulted spaceship operator de
 ec_no_return_value_and_return_void;;"promise type %t cannot have both \"return_void\" and \"return_value\" set."
 ec_return_value_at;;"\"return_value\" declared %p"
 ec_return_void_at;;"\"return_void\" declared %p"
+ec_implict_co_return_with_no_return_void;;"missing co_return statement while %t has no \"return_void\" at end of %n"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

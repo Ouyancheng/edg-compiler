@@ -42092,10 +42092,12 @@ has been seen).
 
 an_expr_node_ptr wrap_up_coroutine_result_expression(
                                               an_arg_list_elem_ptr  alep,
-                                              a_boolean             is_yield)
+                                              a_boolean             is_yield,
+                                              a_statement_ptr       sp)
 /*
 alep points to a representation of a "yield" (if is_yield is TRUE) or "return"
-(if is_yield is FALSE) operand in a coroutine.  For a co_yield expressions,
+(if is_yield is FALSE) operand in a coroutine.  sp is used to refine the source
+position for the operand when is_yield is FALSE. For a co_yield expressions,
 create and return an expression
     _Pr.yield_value(_V)
 where _V is the expression or braced initializer just scanned, and _Pr is the
@@ -42118,6 +42120,7 @@ This routine frees *alep.
 
   cdp = get_coroutine_descr(curr_routine, &null_source_position);
   check_assertion(curr_routine->is_coroutine);
+  check_assertion(is_yield ? alep != NULL : sp != NULL);
   init_coroutine_descr_if_needed(curr_routine, cdp);
   if (cdp->error_descr) {
     expect_error();
@@ -42130,11 +42133,9 @@ This routine frees *alep.
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/FALSE);
   }  /* if */
-  /* Use the position of the given operand if one is given, and that of the
-     current token otherwise. */
-  pos = alep == NULL ? pos_curr_token : *init_component_pos(alep);
+  pos = is_yield ? *init_component_pos(alep) : sp->position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  end_pos = alep == NULL ? end_pos_curr_token : *init_component_end_pos(alep);
+  end_pos = is_yield ? *init_component_end_pos(alep) : sp->end_position;
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
   end_pos = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -42603,7 +42604,8 @@ rcblock parameter for this function).
                      &operator_position);
     }  /* if */
   } else {
-    node = wrap_up_coroutine_result_expression(yield_opnd, /*is_yield=*/TRUE);
+    node = wrap_up_coroutine_result_expression(yield_opnd, /*is_yield=*/TRUE,
+                                               (a_statement_ptr)NULL);
     make_expression_operand(node, result);
     if (is_error_operand(result)) {
       /* Don't take actions that are likely to trigger unhelpful additional
@@ -42638,7 +42640,8 @@ the operand of the co_yield expression.
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  yield_call = wrap_up_coroutine_result_expression(alep, /*is_yield=*/TRUE);
+  yield_call = wrap_up_coroutine_result_expression(alep, /*is_yield=*/TRUE,
+                                                   (a_statement_ptr)NULL);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
   if (!is_void_type(yield_call->type)) {

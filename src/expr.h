@@ -526,7 +526,8 @@ extern void determine_suspend_call_for_await(
 
 extern an_expr_node_ptr wrap_up_coroutine_result_expression(
                                               an_arg_list_elem_ptr  alep,
-                                              a_boolean             is_yield);
+                                              a_boolean             is_yield,
+                                              a_statement_ptr       sp);
 
 extern void wrap_up_yield_expression(a_coroutine_fixup_ptr  cfp);
 

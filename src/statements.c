@@ -6292,9 +6292,12 @@ in which such a return is undefined.
       rout->special_kind == (a_special_function_kind)sfk_destructor) {
     /* Constructors and destructors have no return value. */
 #if COROUTINES_ALLOWED
-  } else if (cdp != NULL && (cdp->has_yield || cdp->has_coroutine_return)) {
+  } else if (cdp != NULL) {
     /* In coroutines, an actual (implicit) return statement cleans up the
-       coroutine activation and does not relate to the return type. */
+       coroutine activation and does not relate to the return type. It is only
+       well-behaved if "promise_type::return_void" exists.  The promise type
+       may not yet be known, so defer checking here to the coroutine wrap-up
+       (wrap_up_coroutine). */
 #endif /* COROUTINES_ALLOWED */
   } else {
     /* Get the routine return type. */
@@ -7893,10 +7896,30 @@ is being parsed within the context of the __extension__ keyword.
       /* The statement is not allocated earlier because we don't want it to
          affect the reachability information.  The source position on the
          statement is null to indicate that it is compiler generated. */
-      sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return,
-                                     &null_source_position);
-      /* Insert an implied return value if there is one. */
-      sp->expr = return_expr;
+#if COROUTINES_ALLOWED
+      if (current_routine_entry()->is_coroutine) {
+        a_coroutine_descr_ptr cdp =
+                                 get_coroutine_descr(current_routine_entry(),
+                                                     (a_source_position*)NULL);
+        if (cdp->has_return_void) {
+          a_coroutine_fixup_ptr cfp = add_coroutine_fixup(cdp);
+          sp = add_statement_at_stmt_pos(
+                                       (a_statement_kind)stmk_coroutine_return,
+                                       &null_source_position);
+          cfp->entity.kind = (a_byte_il_entry_kind)iek_statement;
+          cfp->entity.ptr = (char*)sp;
+          cfp->position = null_source_position;
+          cfp->operand = NULL;
+        }  /* if */
+      } else
+#endif /* COROUTINES_ALLOWED */
+      /* Do not add code here. */
+      {
+        sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return,
+                                       &null_source_position);
+        /* Insert an implied return value if there is one. */
+        sp->expr = return_expr;
+      }  /* if */
     } else if (implicit_rethrow) {
       /* Generate a rethrow.  The source position is null to indicate that
          the statement is compiler generated. */

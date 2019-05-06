@@ -8963,9 +8963,9 @@ member.
   if (!is_error_type(promise_type)) {
     a_symbol_ptr  rv_sym, rvoid_sym;
     rv_sym = look_up_name_string_in_class("return_value", promise_type,
-                                          IDL_NO_OPTIONS);
+                                          IDL_DO_NOT_ADD_TO_NONREAL_CLASS);
     rvoid_sym = look_up_name_string_in_class("return_void", promise_type,
-                                             IDL_NO_OPTIONS);
+                                             IDL_DO_NOT_ADD_TO_NONREAL_CLASS);
     if (rv_sym != NULL && rvoid_sym != NULL) {
       a_diagnostic_ptr dp;
       dp = pos_ty_start_error(ec_no_return_value_and_return_void,

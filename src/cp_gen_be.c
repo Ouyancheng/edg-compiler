@@ -17139,8 +17139,8 @@ one that yields the value) of a statement expression.
       break;
 #if COROUTINES_ALLOWED
     case stmk_coroutine_return:
-      /* "return" statement in a coroutine: generate "return <expr>;" or
-         "return ;". */
+      /* "co_return" statement in a coroutine: generate "co_return <expr>;" or
+         "co_return ;". */
       { an_expr_node_ptr  expr = statement->expr;
         write_tok_str("co_return ");
         if (expr != NULL) {
@@ -17150,13 +17150,12 @@ one that yields the value) of a statement expression.
           }  /* if */
           check_assertion(is_operation_node(expr));
           if (node_operator_is(expr, eok_comma)) {
-            /* expr is of the form <expr>, _Pr.set_result().  Render the first
-               operand of the comma operator (only). */
+            /* expr is of the form <expr>, _Pr.return_value(...).  Render the
+               first operand of the comma operator (only). */
             expr = expr->variant.operation.operands;
           } else {
             check_assertion(node_operator_is(expr, eok_dot_member_call));
-            /* expr is of the form _Pr.set_result(...).  Render the operand of
-               that call (only). */
+            /* expr is of the form _Pr.return_void() or _Pr.return_value(...). */
             expr = expr->variant.operation.operands;
             /* The first operand is the routine entry for "set_result", the
                second operand is the promise variable ("_Pr" above).  Move to
@@ -17164,10 +17163,12 @@ one that yields the value) of a statement expression.
                the return statement). */
             expr = expr->next->next;
           }  /* if */
-          /* Process any tags declared within the expression (e.g., in
-             casts). */
-          skip_embedded_declarations();
-          gen_expression(expr);
+          if (expr != NULL) {
+            /* Process any tags declared within the expression (e.g., in
+               casts). */
+            skip_embedded_declarations();
+            gen_expression(expr);
+          }  /* if */
         }  /* if */
         write_tok_ch(';');
       }
