@@ -6030,6 +6030,7 @@ a class type, routine, or variable) and return entity.
   } else if (entity_kind == iek_routine) {
     a_routine_ptr rp = (a_routine_ptr)entity;
     if (dps != NULL && !dps->first_decl &&
+        (dps->dso_flags & DSO_FRIEND) == 0 &&
         !rp->has_internal_linkage_attribute) {
       /* The attribute must have appeared on the initial declaration. */
       pos_error(ec_internal_linkage_not_on_prior_declaration, &ap->position);
