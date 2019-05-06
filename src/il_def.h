@@ -8091,12 +8091,12 @@ typedef struct a_class_type_supplement {
 			   or variable (closure classes nested in such closure
 			   classes do not necessarily have this flag set to
 			   TRUE). */
+#endif /* NEED_NAME_MANGLING */
   a_bit_field	defined_in_field_initializer:1;
 			/* TRUE if the class is a closure class defined
 			   directly in the initializer for a field (closure
 			   classes nested in such closure classes do not
 			   necessarily have this flag set to TRUE). */
-#endif /* NEED_NAME_MANGLING */
   a_bit_field	named_in_inline_template_directive:1;
 			/* TRUE if the class was named in a GNU
 			   "inline template" directive, which is used to

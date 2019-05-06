@@ -11262,6 +11262,8 @@ implicit "this" is available, e.g., during overload resolution.
          captured values. */
       a_type_ptr    closure_class = parent_class_of(curr_rout);
       a_routine_ptr encl_rout= closure_class->source_corresp.enclosing_routine;
+      a_class_type_supplement_ptr
+                    ctsp;
       while (encl_rout != NULL && encl_rout->is_lambda_body &&
              !closure_class->source_corresp.is_class_member) {
         /* We can reach out past intermediate lambdas, but we don't want to
@@ -11270,9 +11272,8 @@ implicit "this" is available, e.g., during overload resolution.
         closure_class = parent_class_of(encl_rout);
         encl_rout = closure_class->source_corresp.enclosing_routine;
       }  /* while */
-      if (scope_stack_top().decl_scope_level != NO_SCOPE_DEPTH &&
-          scope_stack[scope_stack_top().decl_scope_level].
-                                                      in_field_initializer) {
+      ctsp = class_type_supp(closure_class);
+      if (ctsp->defined_in_field_initializer) {
         /* The lambda occurred in a field initializer, which is a context that
            permits references to "this" (but there is no associated variable
            yet). */

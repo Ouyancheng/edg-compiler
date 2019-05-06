@@ -2377,10 +2377,10 @@ the fields implied by the lambda's capture list).
   ctsp->is_lambda_closure_class = TRUE;
   if (scope_stack_top().in_field_initializer) {
 #if NEED_NAME_MANGLING
-    ctsp->defined_in_field_initializer = TRUE;
     ctsp->lambda_parent.field = curr_initializer_field();
     cssp->discriminator = get_discriminator_for_field_initializer();
 #endif /* NEED_NAME_MANGLING */
+    ctsp->defined_in_field_initializer = TRUE;
     cssp->lambda_subject_to_trans_unit_corresp = TRUE;
   } else {
     /* Check if we are in the initializer for a static data member or
