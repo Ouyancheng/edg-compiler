@@ -11270,7 +11270,9 @@ implicit "this" is available, e.g., during overload resolution.
         closure_class = parent_class_of(encl_rout);
         encl_rout = closure_class->source_corresp.enclosing_routine;
       }  /* while */
-      if (scope_stack_top().in_field_initializer) {
+      if (scope_stack_top().decl_scope_level != NO_SCOPE_DEPTH &&
+          scope_stack[scope_stack_top().decl_scope_level].
+                                                      in_field_initializer) {
         /* The lambda occurred in a field initializer, which is a context that
            permits references to "this" (but there is no associated variable
            yet). */
