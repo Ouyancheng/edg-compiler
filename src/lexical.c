@@ -17890,6 +17890,7 @@ is the one actually associated with this reference.
   a_memory_region_number        region_to_switch_back_to;
   a_symbol_locator		orig_locator;
   a_boolean			any_errors = FALSE;
+  a_boolean			bad_arg_list = FALSE;
 
   db_enter(3, "coalesce_template_function_reference");
   /* Save source position for error reporting. */
@@ -17939,14 +17940,20 @@ is the one actually associated with this reference.
          of the token that stopped the flush so that it can be processed
          later. */
       unget_token();
+      if (template_sym == NULL) bad_arg_list = TRUE;
     }  /* if */
     /* Upon return, the locator should refer to the symbol that was passed
        in, but should also include the template argument list. */
     curr_token = tok_identifier;
     locator_for_curr_id = orig_locator;
   }  /* if */
-  locator_for_curr_id.is_template_id = TRUE;
-  locator_for_curr_id.template_arg_list = arg_list;
+  if (!bad_arg_list && adl_for_non_visible_templates) {
+    /* To improve error recovery when ADL is used for non-visible templates,
+       forget about the template argument list so that we don't potentially
+       use the identifier as a type. */
+    locator_for_curr_id.is_template_id = TRUE;
+    locator_for_curr_id.template_arg_list = arg_list;
+  }  /* if */
   /* Set source position for error reporting. */
   error_position = start_position;
   *err = any_errors;
