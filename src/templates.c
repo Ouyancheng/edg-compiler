@@ -13000,6 +13000,7 @@ encountered.
   a_host_large_integer
                         bound_val, val;
   a_template_arg_ptr    *p_arg;
+  a_template_arg_ptr	orig_arg = *p_args;
   an_integer_kind       ikind;
 
   if (bound_type->kind == (a_type_kind)tk_template_param) {
@@ -13039,6 +13040,9 @@ encountered.
       cp = (*p_arg)->variant.constant;
     } else {
       *p_arg = alloc_template_arg((a_templ_arg_kind)tak_nontype);
+      /* Copy the entry so that any flags get copied. */
+      **p_arg = *orig_arg;
+      (*p_arg)->next = NULL;
       cp = NULL;
     }  /* if */
     if (cp == NULL) {

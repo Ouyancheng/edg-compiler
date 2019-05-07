@@ -1,5 +1,26 @@
 Version 5.1
 
+5/7/19   [EDGcpfe/19803,EDGcpfe/21178]
+GNU C++ compatibility: abort using __integer_pack
+
+An abort could occur when doing substitution on a g++ __integer_pack.  The
+abort would occur in update_template_param_symbols.  Now fixed.
+
+  template <class T> struct A;
+  template <class T, T... _Idx> struct IS {};
+  template <class T, T N> using make_IS = IS<T, __integer_pack(N)...>;
+  template <int N> using D = make_IS<int, N>;
+  template <class... Ts> class C {};
+  template <class... Ts> struct A<C<Ts...>> {
+    static constexpr int v = 2;
+  };
+  template <class C, class U = D<A<C>::v>> auto f(C) -> decltype(U());
+  int main() {
+    C<int,int> c;
+    f(c);
+  };
+
+
 5/6/19   [EDGcpfe/21195]
 Spurious error capturing "this" in a lambda during template argument deduction
 
