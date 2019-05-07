@@ -3537,7 +3537,6 @@ is set to TRUE.
                           root_sssep = &struct_stmt_stack[0];
 
   func_scope = scope_for_routine(rp);
-  check_assertion(func_scope != NULL);
   body_stmt = func_scope->assoc_block;
   if (body_stmt == NULL) {
     /* The top-level block is still being parsed and has therefore not been

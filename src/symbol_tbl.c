@@ -8879,6 +8879,114 @@ is unsuccessful.
 }  /* instantiate_coroutine_class_template_with_one_type */
 
 
+static void initialize_coroutine_promise_variable(a_variable_ptr promise)
+/*
+Generate the initializer for a coroutine promise variable in promise.  The
+initializer for a promise variable is either the constructor that takes all the
+function parameters of coroutine (including the implicit "this" for non-static
+member functions), or the default constructor.
+*/
+{
+  an_arg_list_elem_ptr alep = NULL, *next_alep = &alep;
+  a_variable_ptr       rout_param_var;
+  an_expr_node_ptr     var_expr;
+  an_operand           arg_operand;
+  a_scope_ptr          sp = get_innermost_function_scope();
+  a_symbol_ptr         ctor_sym = NULL, dtor_sym = NULL;
+  a_source_position    *pos = &promise->source_corresp.decl_position;
+  a_dynamic_init_ptr   dip = NULL;
+  an_expr_stack_entry  *saved_expr_stack;
+  an_expr_stack_entry  expr_stack_entry;
+  a_boolean            saved_suppress_diagnostics;
+
+  check_assertion(sp != NULL);
+  ctor_sym = symbol_supplement_for_class(promise->type)->constructor;
+  dtor_sym = symbol_supplement_for_class(promise->type)->destructor;
+  saved_expr_stack = expr_stack;
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  if (ctor_sym != NULL) {
+    saved_suppress_diagnostics = expr_stack->suppress_diagnostics;
+    expr_stack->suppress_diagnostics = TRUE;
+    if (sp->variant.routine.this_param_variable != NULL) {
+      var_expr = var_rvalue_expr(sp->variant.routine.this_param_variable);
+      make_expression_operand(var_expr, &arg_operand);
+      alep = alloc_arg_list_elem_for_operand(&arg_operand);
+      next_alep = &alep->next;
+    }
+    for (rout_param_var = sp->variant.routine.parameters;
+         rout_param_var != NULL; rout_param_var = rout_param_var->next) {
+      var_expr = var_rvalue_expr(rout_param_var);
+      make_expression_operand(var_expr, &arg_operand);
+      *next_alep = alloc_arg_list_elem_for_operand(&arg_operand);
+      next_alep = &(*next_alep)->next;
+    }  /* for */
+    scan_ctor_arguments(ctor_sym, pos,
+                        /*object_class_type=*/NULL,
+                        /*dest_type=*/NULL,
+                        /*fill_in_dtor=*/TRUE,
+                        /*elision_allowed=*/FALSE,
+                        /*is_custom_ms_attr_arg_list=*/FALSE,
+                        CCO_INITIALIZING_VARIABLE,
+                        (a_rescan_control_block*)NULL,
+                        /*arg_list_supplied=*/TRUE,
+                        alep,
+                        /*init_list_ctor_arg_list=*/NULL,
+                        /*trivial_ctor=*/NULL,
+                        /*elision_done=*/NULL,
+                        /*unboxing_conv=*/NULL,
+                        /*string_ctor_skip=*/NULL,
+                        /*simple_result=*/NULL,
+                        &dip,
+                        (an_expr_node_ptr*)NULL,
+                        /*closing_paren_position=*/NULL);
+    expr_stack->suppress_diagnostics = saved_suppress_diagnostics;
+    if (expr_stack->any_suppressed_error) {
+      dip = NULL;
+    }  /* if */
+  }  /* if */
+  if (dip == NULL) {
+    a_boolean     def_ctor_err;
+    a_routine_ptr ctor_routine;
+    /* We failed to find a matching constructor for all arguments, try the
+       default constructor. */
+    ctor_routine = expr_select_default_constructor(promise->type,
+                                                   pos,
+                                                   &def_ctor_err);
+    if (!def_ctor_err && ctor_routine != NULL) {
+      /* A non-trivial constructor. */
+      dip = alloc_expr_ctor_dynamic_init(ctor_routine,
+                                         (an_expr_node_ptr)NULL,
+                                         /*dest_type=*/NULL,
+                                         /*static_temp=*/FALSE,
+                                         /*add_default_args=*/TRUE,
+                                         /*implied_source=*/FALSE,
+                                         /*value_init=*/FALSE,
+                                         /*sequenced_args=*/FALSE,
+                                         /*fold_constexpr=*/TRUE,
+                                         /*check_constexpr=*/FALSE,
+                                         pos);
+    } else {
+      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
+    }  /* if */
+    if (dtor_sym != NULL) {
+      dip->destructor = dtor_sym->variant.routine.ptr;
+    }  /* if */
+  }
+  dip->variable = promise;
+  promise->init_kind = (an_init_kind)initk_dynamic;
+  promise->initializer.dynamic = dip;
+  /* If needed, record the dynamic init entry on the destructions list of the
+     appropriate object-lifetime entry. */
+  record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                     /*block_lifetime=*/TRUE);
+  free_arg_list(alep);
+  pop_expr_stack();
+  expr_stack = saved_expr_stack;
+}  /* initialize_coroutine_promise_variable */
+
+
 void init_coroutine_descr(a_routine_ptr          rp,
                           a_coroutine_descr_ptr  cdp)
 /*
@@ -8954,11 +9062,16 @@ member.
   cdp->traits = (traits == NULL) ? error_type() : traits;
   cdp->promise = make_variable(promise_type, (a_storage_class)sc_auto,
                                NO_SCOPE_DEPTH);
+  cdp->promise->source_corresp.decl_position = rp->source_corresp.decl_position;
+  if (!is_error_type(promise_type) && !is_template_param_type(promise_type)) {
+    initialize_coroutine_promise_variable(cdp->promise);
+  }  /* if */
   /* Create a placeholder variable for the coroutine "handle". */
   handle_type = instantiate_coroutine_class_template_with_one_type(
                                             "coroutine_handle", promise_type);
   cdp->handle = make_variable(handle_type, (a_storage_class)sc_auto,
                               NO_SCOPE_DEPTH);
+  cdp->handle->source_corresp.decl_position = rp->source_corresp.decl_position;
   /* Record whether this is an "eventual value" coroutine. */
   if (!is_error_type(promise_type)) {
     a_symbol_ptr  rv_sym, rvoid_sym;
