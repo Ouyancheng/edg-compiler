@@ -17947,7 +17947,7 @@ is the one actually associated with this reference.
     curr_token = tok_identifier;
     locator_for_curr_id = orig_locator;
   }  /* if */
-  if (!bad_arg_list && adl_for_non_visible_templates) {
+  if (!bad_arg_list || !adl_for_non_visible_templates) {
     /* To improve error recovery when ADL is used for non-visible templates,
        forget about the template argument list so that we don't potentially
        use the identifier as a type. */
