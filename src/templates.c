@@ -13000,7 +13000,7 @@ encountered.
   a_host_large_integer
                         bound_val, val;
   a_template_arg_ptr    *p_arg;
-  a_template_arg_ptr	orig_arg = *p_args;
+  a_template_arg_ptr    orig_arg = *p_args;
   an_integer_kind       ikind;
 
   if (bound_type->kind == (a_type_kind)tk_template_param) {
