@@ -14780,6 +14780,22 @@ typedef struct a_coroutine_descr {
 		promise;
 			/* A placeholder variable representing the promise
 			   for the coroutine invocation. */
+  an_expr_node_ptr
+		initial_suspend_call;
+			/* An expression containing the call to
+			   promise.initial_suspend(). */
+  an_expr_node_ptr
+		final_suspend_call;
+			/* An expression containing the call to
+			   promise.final_suspend(). */
+  an_expr_node_ptr
+		unhandled_exception_call;
+			/* An expression containing the call to
+			   promise.unhandled_exception(). */
+  an_expr_node_ptr
+		get_return_object_call;
+			/* An expression containing the call to
+			   promise.get_return_object(). */
   struct a_coroutine_fixup
 		*fixups;
 			/* An opaque pointer to a front-end-only list of

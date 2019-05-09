@@ -3943,6 +3943,10 @@ a pointer to it.
   cdp->traits = NULL;
   cdp->handle = NULL;
   cdp->promise = NULL;
+  cdp->initial_suspend_call = NULL;
+  cdp->final_suspend_call = NULL;
+  cdp->unhandled_exception_call = NULL;
+  cdp->get_return_object_call = NULL;
   cdp->fixups = NULL;
   cdp->error_descr = FALSE;
   cdp->eventual_value = FALSE;

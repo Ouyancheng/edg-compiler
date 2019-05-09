@@ -3562,6 +3562,7 @@ is set to TRUE.
     cdp = alloc_coroutine_descr();
     cdp->position = *pos;
     csp->variant.coroutine.descr = cdp;
+    csp->parent = body_stmt;
     csp->next = body_stmt->variant.block.statements;
     body_stmt->variant.block.statements = csp;
     if (csp->next == NULL) {

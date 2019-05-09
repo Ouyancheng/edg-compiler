@@ -524,6 +524,12 @@ extern void determine_suspend_call_for_await(
                                       a_token_sequence_number  tok_seq_number,
                                       a_coroutine_descr_ptr    cdp);
 
+void add_await_to_operand(an_operand_ptr          operand,
+                          a_source_position       *pos,
+                          a_token_sequence_number tok_seq_number,
+                          a_boolean               for_yield,
+                          an_operand_ptr          result);
+
 extern an_expr_node_ptr wrap_up_coroutine_result_expression(
                                               an_arg_list_elem_ptr  alep,
                                               a_boolean             is_yield,

@@ -8879,7 +8879,8 @@ is unsuccessful.
 }  /* instantiate_coroutine_class_template_with_one_type */
 
 
-static void initialize_coroutine_promise_variable(a_variable_ptr promise)
+static void initialize_coroutine_promise_variable(a_variable_ptr promise,
+                                                  a_routine_ptr  coroutine)
 /*
 Generate the initializer for a coroutine promise variable in promise.  The
 initializer for a promise variable is either the constructor that takes all the
@@ -8891,21 +8892,18 @@ member functions), or the default constructor.
   a_variable_ptr       rout_param_var;
   an_expr_node_ptr     var_expr;
   an_operand           arg_operand;
-  a_scope_ptr          sp = get_innermost_function_scope();
+  a_scope_ptr          sp = scope_for_routine(coroutine);
   a_symbol_ptr         ctor_sym = NULL, dtor_sym = NULL;
   a_source_position    *pos = &promise->source_corresp.decl_position;
   a_dynamic_init_ptr   dip = NULL;
-  an_expr_stack_entry  *saved_expr_stack;
-  an_expr_stack_entry  expr_stack_entry;
+  an_expr_stack_entry  expr_stack_entry, *saved_expr_stack = expr_stack;
   a_boolean            saved_suppress_diagnostics;
 
-  check_assertion(sp != NULL);
-  ctor_sym = symbol_supplement_for_class(promise->type)->constructor;
-  dtor_sym = symbol_supplement_for_class(promise->type)->destructor;
-  saved_expr_stack = expr_stack;
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
+  ctor_sym = symbol_supplement_for_class(promise->type)->constructor;
+  dtor_sym = symbol_supplement_for_class(promise->type)->destructor;
   if (ctor_sym != NULL) {
     saved_suppress_diagnostics = expr_stack->suppress_diagnostics;
     expr_stack->suppress_diagnostics = TRUE;
@@ -8977,14 +8975,86 @@ member functions), or the default constructor.
   dip->variable = promise;
   promise->init_kind = (an_init_kind)initk_dynamic;
   promise->initializer.dynamic = dip;
-  /* If needed, record the dynamic init entry on the destructions list of the
-     appropriate object-lifetime entry. */
-  record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
-                                     /*block_lifetime=*/TRUE);
   free_arg_list(alep);
   pop_expr_stack();
   expr_stack = saved_expr_stack;
 }  /* initialize_coroutine_promise_variable */
+
+
+static void make_coroutine_promise_call_operand(an_operand        *result,
+                                                a_const_char      *func_name,
+                                                a_variable_ptr    promise_var,
+                                                a_boolean         add_await)
+/*
+Create a call to the named function in promise_type, returning the resulting
+operand in result.  Use pos as the position for any diagnostics and set err to
+TRUE if an error was issued, leaving it unchanged otherwise.  If add_await is
+TRUE, treat it as if the call was preceded by "co_await".
+*/
+{
+  an_operand          promise_operand;
+  a_source_position   *pos = &promise_var->source_corresp.decl_position;
+  an_expr_stack_entry expr_stack_entry, *saved_expr_stack = expr_stack;
+
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  make_lvalue_variable_operand(promise_var, pos, pos, &promise_operand,
+                               (a_ref_entry *)NULL);
+  call_named_member_function(&promise_operand, func_name,
+                             (a_template_arg_ptr)NULL,
+                             (an_arg_list_elem_ptr)NULL,
+                             &promise_operand, result);
+  if (add_await && !is_error_operand(result)) {
+    add_await_to_operand(result, pos, NO_TOKEN_SEQUENCE_NUMBER,
+                         /*for_yield=*/FALSE, result);
+  }
+  pop_expr_stack();
+  expr_stack = saved_expr_stack;
+}  /* make_coroutine_promise_call_operand */
+
+
+static void prepare_coroutine_calls(a_coroutine_descr_ptr cr_desc,
+                                    a_routine_ptr         coroutine)
+/*
+Prepare the calls that may be required for the set-up/tear-down phases of the
+coroutine as described in N4775.
+*/
+{
+  a_variable_ptr      promise_var = cr_desc->promise;
+  an_operand          operand;
+  a_dynamic_init_ptr  dip;
+  an_expr_stack_entry expr_stack_entry, *saved_expr_stack = expr_stack;
+
+  initialize_coroutine_promise_variable(promise_var, coroutine);
+  /* Resolve the needed calls that use the promise variable. */
+  make_coroutine_promise_call_operand(&operand, "initial_suspend",
+                                      promise_var, /*add_await=*/TRUE);
+  cr_desc->initial_suspend_call = expr_node_from_operand(&operand);
+  make_coroutine_promise_call_operand(&operand, "final_suspend",
+                                      promise_var, /*add_await=*/TRUE);
+  cr_desc->final_suspend_call = expr_node_from_operand(&operand);
+  make_coroutine_promise_call_operand(&operand, "unhandled_exception",
+                                      promise_var, /*add_await=*/FALSE);
+  cr_desc->unhandled_exception_call = expr_node_from_operand(&operand);
+  /* Resolve the call to p.get_return_object and convert it to the return type
+     of the coroutine. */
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry, 
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  make_coroutine_promise_call_operand(&operand, "get_return_object",
+                                      promise_var, /*add_await=*/FALSE);
+  prep_elision_initializer_operand(&operand, coroutine->type->
+                                                   variant.routine.return_type,
+                                   /*fill_in_dtor=*/TRUE,
+                                   CCO_INITIALIZING_RETURN_VALUE,
+                                   ec_bad_return_value_type,
+                                   /*elision_done=*/NULL,
+                                   &dip);
+  cr_desc->get_return_object_call = expr_node_from_operand(&operand);
+  pop_expr_stack();
+  expr_stack = saved_expr_stack;
+}  /* prepare_coroutine_calls */
 
 
 void init_coroutine_descr(a_routine_ptr          rp,
@@ -9062,10 +9132,7 @@ member.
   cdp->traits = (traits == NULL) ? error_type() : traits;
   cdp->promise = make_variable(promise_type, (a_storage_class)sc_auto,
                                NO_SCOPE_DEPTH);
-  cdp->promise->source_corresp.decl_position = rp->source_corresp.decl_position;
-  if (!is_error_type(promise_type) && !is_template_param_type(promise_type)) {
-    initialize_coroutine_promise_variable(cdp->promise);
-  }  /* if */
+  cdp->promise->source_corresp.decl_position=rp->source_corresp.decl_position;
   /* Create a placeholder variable for the coroutine "handle". */
   handle_type = instantiate_coroutine_class_template_with_one_type(
                                             "coroutine_handle", promise_type);
@@ -9096,6 +9163,13 @@ member.
       cdp->eventual_value = TRUE;
       cdp->has_return_void = rvoid_sym != NULL;
     }  /* if */
+  }  /* if */
+  if (!is_error_type(promise_type) && !is_template_param_type(promise_type)
+      && !ms_version_is(<=1900)) {
+    /* We have a real promise type, so we can prepare the various calls that
+       a coroutine requires.  Early implementations of coroutines in MSVC
+       did not require these calls - don't attempt to resolve them. */
+    prepare_coroutine_calls(cdp, rp);
   }  /* if */
 }  /* init_coroutine_descr */
 

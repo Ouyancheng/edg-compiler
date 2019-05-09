@@ -38765,11 +38765,11 @@ variable.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if COROUTINES_ALLOWED
 
-static void add_await_to_operand(an_operand              *operand,
-                                 a_source_position       *pos,
-                                 a_token_sequence_number tok_seq_number,
-                                 a_boolean               for_yield,
-                                 an_operand              *result)
+void add_await_to_operand(an_operand_ptr          operand,
+                          a_source_position       *pos,
+                          a_token_sequence_number tok_seq_number,
+                          a_boolean               for_yield,
+                          an_operand_ptr          result)
 /*
 If *operand represents an expression "X", produce an operand in *result
 representing "co_await X".  Use pos as the position for diagnostics, and
@@ -38829,7 +38829,7 @@ to implement a co_yield expression.
      temporary lvalue is initialized from that prvalue and the temporary is
      used in the calls. */
   /* Prepare an argument operand for the call to await_resume. */
-  if (is_a_prvalue(operand)) {
+  if (is_a_prvalue(operand) && !is_void_type(operand->type)) {
     temp_init_from_operand(operand, /*result_is_lvalue*/TRUE);
   }  /* if */
   clone_operand(operand, &resume_operand, /*vars_can_change=*/TRUE,
@@ -38844,7 +38844,7 @@ to implement a co_yield expression.
                                  (a_nondependent_call_depth)0,
                                  (a_source_position *)NULL,
                                  &resume_operand, &processed);
-  if (is_a_prvalue(&resume_operand)) {
+  if (is_a_prvalue(&resume_operand) && !is_void_type(operand->type)) {
     temp_init_from_operand(&resume_operand, /*result_is_lvalue*/TRUE);
   }  /* if */
   utp = skip_typerefs(resume_operand.type);
@@ -38912,7 +38912,6 @@ to implement a co_yield expression.
       determine_suspend_call_for_await(
                      node, alloc_arg_list_elem_for_operand(&suspend_operand),
                      use_member_calls, tok_seq_number, cdp);
-
     }  /* if */
   }  /* if */
 done:;
