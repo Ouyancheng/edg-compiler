@@ -2736,15 +2736,20 @@ all dimensions.
            been created to describe the number of elements in the array. */
         num_elem_node = make_reusable_copy(ipdp->num_elem_node,
                                            /*vars_can_change=*/TRUE);
-        if (ipdp->partial_initialization_starting_element > 0) {
-          /* If we're partially initializing the array, we need to compute
-             at run-time the effective number of elements being accessed
-             (by subtracting the number already initialized).  Note that
-             we're purposely skipping the case where
-             partial_initialization_starting_element is zero (since there's
-             no need to subtract zero in this case). */
-          a_constant_ptr starting_elem_constant = local_constant();
-          set_integer_constant_with_overflow_check(
+      } else {
+        num_elem_node = num_elem_node_from_count(array_element_count);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (num_elem_node != NULL &&
+      ipdp->partial_initialization_starting_element > 0) {
+    /* If we're partially initializing the array, we need to compute at
+       run-time the effective number of elements being accessed (by subtracting
+       the number already initialized).  Note that we're purposely skipping the
+       case where partial_initialization_starting_element is zero (since
+       there's no need to subtract zero in this case). */
+    a_constant_ptr starting_elem_constant = local_constant();
+    set_integer_constant_with_overflow_check(
                                  starting_elem_constant,
                                  ipdp->partial_initialization_starting_element,
 #if IA64_ABI
@@ -2754,18 +2759,10 @@ all dimensions.
 #endif /* IA64_ABI */
                                  (a_type_ptr)NULL,
                                  /*preserve_needed_flag=*/FALSE);
-          num_elem_node->next = alloc_node_for_constant(
-                                                       starting_elem_constant);
-          num_elem_node = make_operator_node(
-                                           (an_expr_operator_kind)eok_subtract,
-                                           num_elem_node->type,
-                                           num_elem_node);
-          release_local_constant(&starting_elem_constant);
-        }  /* if */
-      } else {
-        num_elem_node = num_elem_node_from_count(array_element_count);
-      }  /* if */
-    }  /* if */
+    num_elem_node->next = alloc_node_for_constant(starting_elem_constant);
+    num_elem_node = make_operator_node((an_expr_operator_kind)eok_subtract,
+                                       num_elem_node->type, num_elem_node);
+    release_local_constant(&starting_elem_constant);
   }  /* if */
   return num_elem_node;
 }  /* num_elem_node_if_array */
@@ -6580,9 +6577,16 @@ dealt with).
              to complete a partial-initialization of a variably-sized array.
              Make a note of the starting element that needs initialization
              (which could be zero, in cases like "new A[n] {}"). */
+          if (is_vla_type(aggr_type)) {
+            /* For VLA types (e.g., "A a[n] = {A()};"), determine the number
+               of elements in the array from the VLA type (which is assumed
+               to have been lowered already, if needed). */
+            ipd.num_elem_node = vla_dimension_expr_for_type(aggr_type);
+          }  /* if */
           check_assertion(ipd.num_elem_node != NULL);
           ipd.partial_initialization_starting_element = ipmp->curr_elem;
-          if (is_array_type(array_element_type(aggr_type))) {
+          if (!is_variably_modified_type(aggr_type) &&
+              is_array_type(array_element_type(aggr_type))) {
             /* For the multi-dimensional array case, ensure that the
                starting element takes into account all of the elements
                that have already been initialized. */
@@ -6663,6 +6667,12 @@ dealt with).
                to complete a partial-initialization of a variably-sized array.
                Make a note of the starting element that needs initialization
                (which could be zero, in cases like "new A[n] {}"). */
+            if (is_vla_type(aggr_type)) {
+              /* For VLA types (e.g., "A a[n] = {A()};"), determine the number
+                 of elements in the array from the VLA type (which is assumed
+                 to have been lowered already, if needed). */
+              ipd.num_elem_node = vla_dimension_expr_for_type(aggr_type);
+            }  /* if */
             check_assertion(ipd.num_elem_node != NULL);
             ipd.partial_initialization_starting_element = ipmp->curr_elem;
             if (is_array_type(array_element_type(aggr_type))) {
@@ -6750,6 +6760,8 @@ dealt with).
       } else {
         /* For an init-repeat constant, advance the right number of
            elements in the array. */
+        check_assertion(!(con_ptr->variant.init_repeat.count == 0 &&
+                          con_ptr->next != NULL));
         ipmp->curr_elem += con_ptr->variant.init_repeat.count;
       }  /* if */
     } else {
@@ -8713,18 +8725,28 @@ variably-sized array.  If array_element_count is non-zero, it gives the
 number of elements in an array sequence (and again, entity_type is
 the array element type).  If neither of those provides information,
 the entity can still be an array; the array attributes are fetched
-from entity_type itself.  Insert the code for the call at *insert_location.
+from entity_type itself.  For VLAs, determine the number of elements
+from the run-time dimension expression.  Insert the code for the call at
+*insert_location.
 */
 {
   a_type_ptr element_type, orig_element_type = entity_type;
+  a_boolean  is_vla = is_vla_type(entity_type);
 
   check_assertion(!entity_node->is_lvalue &&
                   is_pointer_type(entity_node->type) &&
-                  (num_elem_node == NULL || array_element_count == 0));
+                  (num_elem_node == NULL || 
+                   array_element_count == 0 ||
+                   is_vla));
   if (array_element_count == 0) array_element_count = 1;
   if (is_array_type(entity_type)) {
     orig_element_type = underlying_array_element_type(entity_type);
-    if (is_incomplete_array_type(entity_type)) {
+    if (is_vla) {
+      /* For VLAs, determine the number of elements to zero from the
+         run-time dimension of the array. */
+      check_assertion(num_elem_node == NULL);
+      num_elem_node = vla_dimension_expr_for_type(entity_type);
+    } else if (is_incomplete_array_type(entity_type)) {
       /* For variably-sized arrays, make sure we have a run-time count of
          the number of elements in the array. */
       check_assertion(num_elem_node != NULL);
@@ -9542,14 +9564,14 @@ un-initialized.
                   (dip->kind == (a_dynamic_init_kind)dik_constant ||
                    dip->kind ==
                               (a_dynamic_init_kind)dik_nonconstant_aggregate));
-  if (ipdp->indirect_through_variable) {
+  if (ipdp->indirect_through_variable || is_vla_type(entity_type)) {
     /* We're partially initializing an aggregate through a pointer,
        which could indicate a ctor-initializer or braced-initializer list for
        a new expression.  Partially initialized variables (with either static
        or automatic storage duration) are assumed to be zeroed by the back end
        (so no explicit zeroing is performed here). */
     if (is_array_type(entity_type)) {
-      if (is_incomplete_array_type(entity_type)) {
+      if (is_incomplete_array_type(entity_type) || is_vla_type(entity_type)) {
         /* If we're initializing a variably-sized array whose size isn't known
            until run-time, initialization is needed. */
         needs_initializing = TRUE;
@@ -10656,7 +10678,9 @@ do_keep_constant:
            (variable->decl_modifiers & DM_DLLIMPORT) == 0 &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
            !local_static_that_requires_dynamic_init) ||
-          (dip->is_partially_initialized && !entity_is_wholly_initialized)) {
+          (dip->is_partially_initialized &&
+           !is_vla_type(variable->type) &&
+           !entity_is_wholly_initialized)) {
         variable->init_kind = (an_init_kind)initk_zero;
 #if IA64_ABI
         /* Check for the need to generate code to zero pointers to data
@@ -14383,6 +14407,10 @@ aggr_con->is_partially_initialized to reflect the new value.
     check_assertion(is_array_type(aggr_type));
     is_partially_initialized = (aggr_con->variant.string.length < 
            skip_typerefs(aggr_type)->variant.array.variant.number_of_elements);
+  } else if (is_vla_type(aggr_type)) {
+    /* We can't know at compilation time whether an aggregate fully initializes
+       the array (since the array bound isn't specified until run time). */
+    is_partially_initialized = TRUE;
   } else {
     check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
     temp_con = aggr_con->variant.aggregate.first_constant;

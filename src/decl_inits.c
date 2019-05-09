@@ -39,7 +39,9 @@ decl_inits.c -- Scanning of initializers in declarations.
 
 
 #define array_element_count(array_type, elem_type)                      \
-  ((array_type)->size == 0 ? 1 : (array_type)->size / (elem_type)->size)
+  ((array_type)->variant.array.is_variable_size_array ? 0 :             \
+   (array_type)->size == 0 ? 1 :                                        \
+   /* else */                (array_type)->size / (elem_type)->size)
 
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
@@ -1757,6 +1759,59 @@ set *result to the a_constant entry representing the initializer.
 }  /* try_whole_array_init */
 
 
+static void update_gnu_vla_initializer_size(a_constant_ptr  array_con)
+/*
+GCC appears to treat initializers for VLAs of trivial elements as fixed-length
+initializers.  I.e., something like "int x[n] = { 1, 2 };" will write the "1"
+and "2" even when n is just 1.  We represent that by having the initializer
+constant have a fixed-length array type reflecting the length of the constant. 
+If array_con has a VLA type, this function replaces that type by an appropriate
+fixed-length array type.
+*/
+{
+  a_type_ptr  atp = skip_typerefs(array_con->type);
+
+  if (atp->variant.array.is_vla) {
+    a_targ_size_t   elem_count = 0;
+    a_constant_ptr  elem = array_con->variant.aggregate.first_constant;
+    a_boolean       update_elem_type = FALSE;
+    a_type_ptr      new_type = alloc_type((a_type_kind)tk_array),
+                    elem_type = atp->variant.array.element_type;
+    if (is_vla_type(elem_type)) {
+      /* A VLA of VLAs.  Make sure the dimensions are fixed at every
+         level. */
+      update_elem_type = TRUE;
+      elem_type = NULL;
+    }  /* if */
+    for (; elem != NULL; elem = elem->next) {
+      if (!constant_is(elem, ck_designator)) {
+        elem_count += 1;
+        if (update_elem_type &&
+            (elem_type == NULL ||
+             skip_typerefs(elem->type)
+               ->variant.array.variant.number_of_elements >
+                 skip_typerefs(elem_type)
+                   ->variant.array.variant.number_of_elements)) {
+          elem_type = elem->type;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    copy_type(atp, new_type);
+    new_type->variant.array.element_type = elem_type;
+    new_type->variant.array.is_variable_size_array = FALSE;
+    new_type->variant.array.is_vla = FALSE;
+    new_type->variant.array.has_assoc_vla_dimension = FALSE;
+    new_type->variant.array.variant.number_of_elements = elem_count;
+    if (elem_count == 0) {
+      new_type->variant.array.bound_is_zero = TRUE;
+    }  /* if */
+    new_type->size = 0;
+    set_type_size(new_type);
+    array_con->type = new_type;
+  }  /* if */
+}  /* update_gnu_vla_initializer_size */
+
+
 static void aggr_init_array_remainder_if_needed(a_constant_ptr     array_con,
                                                 a_targ_size_t      count,
                                                 a_type_ptr         etype,
@@ -1774,13 +1829,20 @@ needed).  *is describes the initialization as a whole, and diag_pos indicates
 the position at which diagnostics should be issued.
 */
 {
-  a_boolean  partial_init_flag = TRUE;
+  a_boolean  partial_init_flag = TRUE, nontrivial = FALSE;
 
   etype = skip_typerefs(etype);
   if (etype->kind == (a_type_kind)tk_array) {
     /* The element is a sub-array.  Create a single potentially-repeated
        initializer for all array levels. */
-    count *= num_array_elements(etype);
+    if (!etype->variant.array.is_vla) {
+      count *= num_array_elements(etype);
+    } else {
+      /* is->variable_size_array should be TRUE, and therefore we should
+         generate a special "zero-count" ck_init_repeat entry below to indicate
+         the fact that the real count must be computed at run time. */
+      check_assertion(is->variable_size_array);
+    }  /* if */
     etype = underlying_array_element_type(etype);
     etype = skip_typerefs(etype);
   }  /* if */
@@ -1804,6 +1866,7 @@ the position at which diagnostics should be issued.
       /* Initialization must be represented in the IL since it is not
          trivial. */
       a_constant_ptr  remainder_con;
+      nontrivial = TRUE;
       partial_init_flag = FALSE;
       /* Create the element value to use for initialization.  It will be
          placed under a ck_init_repeat entry unless no IL is generated. */
@@ -1841,6 +1904,9 @@ the position at which diagnostics should be issued.
                                   (a_base_class_ptr)NULL, (a_field_ptr)NULL);
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (!is->check_validity_only && !nontrivial && gnu_mode) {
+    update_gnu_vla_initializer_size(array_con);
   }  /* if */
   if (partial_init_flag) {
     /* The missing initializations are not explicit in the initializer.  Set
@@ -2246,7 +2312,8 @@ initialization).  *is describes the initialization as a whole.
     }  /* while */
     if (!is->init_error &&
         ((!no_bound && icount < ecount) ||
-         (is->variable_size_array && !is->non_top_level_aggregate &&
+         (is->variable_size_array && 
+          (!is->non_top_level_aggregate || is_vla_type(atype)) &&
           !is_template_dependent_type(etype)))) {
       /* Not all array elements are explicitly initialized: Append an entry
          to initialize the remaining elements.  As special case occurs for
@@ -2254,8 +2321,9 @@ initialization).  *is describes the initialization as a whole.
          elements is not known, but lowering (or a back end) needs to know
          which default constructor to call: We arbitrarily pass a count of 1
          for that case (a count of zero would cause default initialization to
-         be bypassed).  If T is template-dependent, we cannot do that reliably
-         (and such cases do not go through lowering or a back end). */
+         be bypassed).  We also use that mechanism for VLA types.  If T is
+         template-dependent, we cannot do that reliably (and such cases do not
+         go through lowering or a back end). */
       a_targ_size_t  rcount = 1;
       if (!no_bound) rcount = ecount - icount;
       aggr_init_array_remainder_if_needed(*init_con, rcount, etype, is,
@@ -5005,7 +5073,11 @@ returned set to TRUE.
   dps->init_state.static_lifetime_init = static_lifetime;
   if (!var_err) {
     vp_type = vp->type;
-    if (vla_enabled && is_vla_type(vp->type) &&
+    if (vla_enabled && is_vla_type(vp->type)) {
+      /* A VLA initialization (often invalid). */
+      dps->init_state.variable_size_array = TRUE;
+    }  /* if */
+    if (dps->init_state.variable_size_array &&
         !(gpp_mode && !clang_mode && gnu_version >= 40900)) {
       /* VLAs cannot be initialized, except in some GNU C++ modes.  (This must
          be the first error case tested because we set vp_type to NULL to
@@ -6486,6 +6558,12 @@ FALSE is returned) for non-class objects.
             /* Build the repeat construct. */
             repeat_nonconstant_init(orig_init_dip, var_type, tp, init_dip,
                                     array_element_count(var_type, tp));
+            if (var_type->variant.array.is_variable_size_array) {
+              /* We don't know a priori how many elements need initialization:
+                 Mark the initializer as "partial" (the repeat count is
+                 zero). */
+              init_dip->is_partially_initialized = TRUE;
+            }  /* if */
             if (exceptions_enabled && dtor != NULL) {
               /* Set up the representation to deal with the possibility of
                  an exception being thrown before the entire construction of

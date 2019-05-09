@@ -296,11 +296,13 @@ Lower all VLA types that were recorded by record_vla_type_for_lowering.
       a_type_ptr  type_ref = alloc_type((a_type_kind)tk_typeref);
       type_ref->variant.typeref.type = 
                                     underlying_array_element_type(entry->type);
+      type_ref->variant.typeref.is_lowered_variably_modified_type = TRUE;
       *entry->type = *type_ref;
     } else if (entry->type->kind == (a_type_kind)tk_typeref) {
       /* A VLA typedef is now marked as no longer variably modified. */
       check_assertion(typeref_is_typedef(entry->type));
       entry->type->variant.typeref.has_variably_modified_type = FALSE;
+      entry->type->variant.typeref.is_lowered_variably_modified_type = TRUE;
     }  /* if */
   }  /* for */
   free_list_of_type_list_entries(vla_types);
@@ -1082,6 +1084,58 @@ lower_vla_dimensions).
 }  /* create_element_count_variable_for_vla */
 
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+
+an_expr_node_ptr vla_dimension_expr_for_type(a_type_ptr type)
+/*
+Returns an expression for the number of elements in the specified VLA type.
+Note that this routine assumes that, if needed, the VLA dimension variable(s)
+have already been created.
+*/
+{
+  an_expr_node_ptr result = NULL;
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+  an_expr_node_ptr vla_inits = NULL;
+  a_boolean        new_var;
+  result = var_rvalue_expr(vla_dimension_variable(type, &vla_inits, &new_var));
+  check_assertion(vla_inits == NULL);
+#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
+  a_vla_dimension_ptr  dim;
+  an_expr_node_ptr     dim_expr;
+  check_assertion(is_array_type(type));
+  /* A VLA type could have non-VLA components (e.g., X[2][n]), so loop for
+     each array to create an expression for the entire type. */
+  do {
+    type = skip_typerefs(type);
+    if (type->variant.array.is_vla) {
+      dim = find_vla_dimension(type);
+      if (dim->dimension_variable != NULL) {
+        /* The dimension expression's value has already been stored in a
+           variable.  Reuse that. */
+        dim_expr = var_rvalue_expr(dim->dimension_variable);
+      } else {
+        dim_expr = make_reusable_copy(dim->dimension_expr,
+                                      /*vars_can_change=*/TRUE);
+      }  /* if */
+    } else {
+      check_assertion(!type->variant.array.is_variable_size_array &&
+                      !type->variant.array.is_template_dependent_size_array);
+      dim_expr = node_for_host_large_integer(
+          (a_host_large_integer)type->variant.array.variant.number_of_elements,
+          ik_int);
+    }  /* if */
+    if (result == NULL) {
+      result = dim_expr;
+    } else {
+      result->next = dim_expr;
+      result = make_operator_node((an_expr_operator_kind)eok_multiply,
+                                  dim_expr->type, result);
+    }  /* if */
+    type = array_element_type(type);
+  } while (is_array_type(type));
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+  return result;
+}  /* vla_dimension_expr_for_type */
+
 
 void lower_runtime_sizeof(an_expr_node_ptr expr)
 /*

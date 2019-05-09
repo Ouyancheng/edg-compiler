@@ -1,5 +1,42 @@
 Version 5.1
 
+5/9/19   [EDGcpfe/17793,EDGcpfe/18028,EDGcpfe/18143]
+GNU C++ compatibility: Variable-length array initialization
+
+A number of changes have been made to the handling of initialized VLA objects
+(available in g++ emulation mode when gnu_version >= 40900).  Previously
+configurations where LOWER_VARIABLE_LENGTH_ARRAYS is TRUE had failed an
+assertion check in all C-generating back end configurations.  That is now
+fixed.  Additionally, a change has been made to mark VLA initializers as
+partially-initialized, thereby enabling default initialization of all elements
+of the VLA at run-time.
+
+The type of an aggregate being used to initialize a VLA object has also been
+modified to reflect the number of elements in the aggregate, and no longer
+matches the type of the VLA object.  E.g., for "int x[n] = { 1, 2 };",
+the aggregate type will be "array [2] of int" (whereas it had been
+"array [i] of int").  That is necessary because GCC appears to use all
+initializers in the array, even if the array is too small for them at
+run time.  For example (with --gnu_version 40900):
+
+  extern "C" int printf(char const*, ...);
+  struct X {
+    X() { printf("X()\n"); }
+    X(int i) { printf("X(%d)\n", i); }
+  };
+  void f(int i) {
+    printf("i=%d\n",i);
+    X x[i] = { 1, 2 };
+  }
+  int main() {
+    f(0);   // calls X(1), X(2)
+    f(1);   // calls X(1), X(2)
+    f(2);   // calls X(1), X(2)
+    f(3);   // calls X(1), X(2), X()
+    return 0;
+  }
+
+
 5/7/19   [EDGcpfe/19803,EDGcpfe/21178]
 GNU C++ compatibility: abort using __integer_pack
 

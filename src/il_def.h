@@ -4658,7 +4658,8 @@ typedef struct a_constant {
                         /* The repeat count (greater than zero).  A count of
 			   zero is used for new and delete of an array, and
 			   means "use the number of elements recorded along
-			   with the storage allocation". */
+			   with the storage allocation".  A similar case occurs
+			   when initializing a variable-length array. */
       a_byte_boolean
 		multidimensional_aggr_tail_not_repeated;
 			/* This flag is used to indicate that the repeated
@@ -9620,6 +9621,12 @@ typedef struct a_type {
 		has_variably_modified_type:1;
 			/* The type referred to is a variably modified type,
 			   i.e., is or contains a VLA type. */
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+      a_bit_field
+		is_lowered_variably_modified_type:1;
+			/* The type referred to is a lowered variably modified
+			   type. */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 #if BACK_END_IS_CP_GEN_BE
       a_bit_field
 		surrounding_name_linkage_state:NUM_BITS_FOR_NAME_LINKAGE;

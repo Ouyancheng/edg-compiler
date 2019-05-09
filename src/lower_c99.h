@@ -101,6 +101,8 @@ extern void create_element_count_variable_for_vla(a_statement_ptr  stmt);
 
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 
+extern an_expr_node_ptr vla_dimension_expr_for_type(a_type_ptr type);
+
 #if LOWER_COMPLEX
 
 extern void lower_c99_nonreal_float_types(void);

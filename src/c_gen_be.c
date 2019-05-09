@@ -6187,15 +6187,25 @@ process_assignment:
           /* Block assignment, generated only by IL lowering of C++ code. */
           { a_type_ptr operand_1_type = skip_typerefs(operand_1->type);
             a_type_ptr operand_2_type = skip_typerefs(operand_2->type);
+            a_boolean is_vla = is_vla_type(operand_1->type);
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+            if (operand_1->type->kind == (a_type_kind)tk_typeref &&
+                operand_1->type->
+                           variant.typeref.is_lowered_variably_modified_type) {
+              /* This is a lowered VLA type. */
+              is_vla = TRUE;
+            }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
             /* Typically, the source and destination types are the same size,
                but when assigning to a variably-sized array the size of the
                destination is unknown (and checked at run-time).  This is
                also used to partially-initialize an array, in which case
                the source must be smaller than the destination. */
-            check_assertion((operand_1_type->size >= operand_2_type->size ||
-                             is_incomplete_array_type(operand_1_type)) &&
-                            operand_2_type->size != 0);
-            if (!is_aggregate_or_union_type(operand_1_type)) {
+            check_assertion(is_vla ||
+                            ((operand_1_type->size >= operand_2_type->size ||
+                              is_incomplete_array_type(operand_1_type)) &&
+                             operand_2_type->size != 0));
+            if (!is_aggregate_or_union_type(operand_1_type) && !is_vla) {
               /* The copy can be done by an assignment.  (This case is here
                  for completeness; the front end doesn't actually generate any
                  of these.) */
