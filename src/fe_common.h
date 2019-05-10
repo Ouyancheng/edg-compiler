@@ -27,6 +27,7 @@ incorporated:
     error.h
     extasm.h
     float_pt.h
+    floating.h
     host_envir.h
     il.h
     il_def.h
@@ -87,6 +88,7 @@ incorporated:
 
 /* Manipulation of internal floating point quantities. */
 #include "float_pt.h"
+#include "floating.h"
 
 /* Production of a string-form representation of IL entities. */
 #include "il_to_str.h"

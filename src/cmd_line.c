@@ -6867,6 +6867,31 @@ file.
 #else /* !defined(FREE_MEMORY_REGIONS_EARLY) */
   comment_undefined_macro_name(FREE_MEMORY_REGIONS_EARLY);
 #endif /* defined(FREE_MEMORY_REGIONS_EARLY) */
+#if defined(FP_HAS_LONG_DOUBLE)
+  define_numeric_valued_macro(FP_HAS_LONG_DOUBLE);
+#else /* !defined(FP_HAS_LONG_DOUBLE) */
+  comment_undefined_macro_name(FP_HAS_LONG_DOUBLE);
+#endif /* defined(FP_HAS_LONG_DOUBLE) */
+#if defined(FP_LONG_DOUBLE_IS_80BIT_EXTENDED)
+  define_numeric_valued_macro(FP_LONG_DOUBLE_IS_80BIT_EXTENDED);
+#else /* !defined(FP_LONG_DOUBLE_IS_80BIT_EXTENDED) */
+  comment_undefined_macro_name(FP_LONG_DOUBLE_IS_80BIT_EXTENDED);
+#endif /* defined(FP_LONG_DOUBLE_IS_80BIT_EXTENDED) */
+#if defined(FP_LONG_DOUBLE_IS_BINARY128)
+  define_numeric_valued_macro(FP_LONG_DOUBLE_IS_BINARY128);
+#else /* !defined(FP_LONG_DOUBLE_IS_BINARY128) */
+  comment_undefined_macro_name(FP_LONG_DOUBLE_IS_BINARY128);
+#endif /* defined(FP_LONG_DOUBLE_IS_BINARY128) */
+#if defined(FP_LONG_DOUBLE_IS_BINARY64)
+  define_numeric_valued_macro(FP_LONG_DOUBLE_IS_BINARY64);
+#else /* !defined(FP_LONG_DOUBLE_IS_BINARY64) */
+  comment_undefined_macro_name(FP_LONG_DOUBLE_IS_BINARY64);
+#endif /* defined(FP_LONG_DOUBLE_IS_BINARY64) */
+#if defined(FP_USE_EMULATION)
+  define_numeric_valued_macro(FP_USE_EMULATION);
+#else /* !defined(FP_USE_EMULATION) */
+  comment_undefined_macro_name(FP_USE_EMULATION);
+#endif /* defined(FP_USE_EMULATION) */
 #if defined(FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS)
   define_numeric_valued_macro(
                       FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS);
@@ -9000,6 +9025,11 @@ file.
 #else /* !defined(USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE) */
   comment_undefined_macro_name(USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE);
 #endif /* defined(USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE) */
+#if defined(USE_HOST_FP_CONVERSION_ROUTINES)
+  define_numeric_valued_macro(USE_HOST_FP_CONVERSION_ROUTINES);
+#else /* !defined(USE_HOST_FP_CONVERSION_ROUTINES) */
+  comment_undefined_macro_name(USE_HOST_FP_CONVERSION_ROUTINES);
+#endif /* defined(USE_HOST_FP_CONVERSION_ROUTINES) */
 #if defined(USE_INIT_SECTION_IN_GENERATED_C)
   define_numeric_valued_macro(USE_INIT_SECTION_IN_GENERATED_C);
 #else /* !defined(USE_INIT_SECTION_IN_GENERATED_C) */

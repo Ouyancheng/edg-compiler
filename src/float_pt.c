@@ -19,6 +19,10 @@ for a production version.
 /* Header files common to all files. */
 #include "fe_common.h"
 
+#if !USE_HOST_FP_CONVERSION_ROUTINES
+#include "floating.h"
+#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
+
 #ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
    processing. */
@@ -196,7 +200,7 @@ C99 macro isfinite are not available.
 
 #endif /* ifdef NEED_HOST_FP_VALUE_IS_FINITE */
 
-#if USE_DOUBLE_FOR_HOST_FP_VALUE
+#if USE_DOUBLE_FOR_HOST_FP_VALUE || USE_HOST_FP_CONVERSION_ROUTINES
 #ifdef SUNOS_STRTOD_BUG
 
 static void init_strtod(void)
@@ -234,7 +238,7 @@ value for any error.
   return temp;
 }  /* strtod_interface */
 
-#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE || USE_HOST_FP_CONVERSION_ROUTINES */
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH
 
 #if DEBUG
@@ -246,6 +250,8 @@ Display a long double, for debugging purposes.
   fprintf(f_debug, "%.40Le\n", d);
 }  /* db_long_double */
 #endif /* DEBUG */
+
+#if USE_HOST_FP_CONVERSION_ROUTINES
 
 static long double str_to_long_double(a_const_char * str)
 /*
@@ -293,8 +299,9 @@ radix point (set in host_envir_early_init).
   return temp;
 }  /* str_to_long_double */
 
+#endif /* USE_HOST_FP_CONVERSION_ROUTINES */
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH */
-#if USE_FLOAT128_FOR_HOST_FP_VALUE
+#if USE_FLOAT128_FOR_HOST_FP_VALUE && USE_HOST_FP_CONVERSION_ROUTINES
 
 static __float128 str_to_float128(a_const_char * str)
 /*
@@ -339,7 +346,7 @@ result by using str_to_long_double (when APPROXIMATE_QUADMATH is TRUE).
   return result;
 }  /* str_to_float128 */
 
-#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE && USE_HOST_FP_CONVERSION_ROUTINES */
 
 #if DEBUG
 
@@ -433,6 +440,7 @@ If the conversion can be done, return the result in "result".
     }  /* if */
     /* Make sure str_flt_max is something that sscanf will parse. */
     check_assertion(isdigit((unsigned char)str_flt_max[0]));
+#if USE_HOST_FP_CONVERSION_ROUTINES
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
     host_fp_flt_max = str_to_long_double(str_flt_max);
 #else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
@@ -440,6 +448,25 @@ If the conversion can be done, return the result in "result".
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
     check_assertion_str2(errno == 0, "conv_host_fp_to_float:",
                          "error on conversion of FLT_MAX");
+#else /* !USE_HOST_FP_CONVERSION_ROUTINES */
+    { an_fp_return_type ret;
+      size_t            len = strlen(str_flt_max);
+      check_assertion(len > 0);
+      if (str_flt_max[len-1] == 'F') {
+        /* Remove a trailing 'F', if any. */
+        str_flt_max[len-1] = '\0';
+        len--;
+      }  /* if */
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+      ret = read_long_double((unsigned char *)&host_fp_flt_max, str_flt_max,
+                             len);
+#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+      ret = read_double((unsigned char *)&host_fp_flt_max, str_flt_max, len);
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+      check_assertion_str2(ret == fp_ret_valid, "conv_host_fp_to_float:",
+                           "error on conversion of FLT_MAX");
+    }
+#endif /* USE_HOST_FP_CONVERSION_ROUTINES */
     float_flt_max = (float)host_fp_flt_max;
     init_done = TRUE;
   }  /* if */
@@ -603,9 +630,29 @@ underflow.  If the conversion can be done, return the result in "result".
     }  /* if */
     /* Make sure str_dbl_max is something that sscanf will parse. */
     check_assertion(isdigit((unsigned char)str_dbl_max[0]));
+#if USE_HOST_FP_CONVERSION_ROUTINES
     host_fp_dbl_max = str_to_long_double(str_dbl_max);
     check_assertion_str2(errno == 0, "conv_host_fp_to_double:",
                          "error on conversion of DBL_MAX");
+#else /* !USE_HOST_FP_CONVERSION_ROUTINES */
+    { an_fp_return_type ret;
+      size_t            len = strlen(str_dbl_max);
+      check_assertion(len > 0);
+      if (str_dbl_max[len-1] == 'L') {
+        /* Remove a trailing 'L', if any. */
+        str_dbl_max[len-1] = '\0';
+        len--;
+      }  /* if */
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+      ret = read_long_double((unsigned char *)&host_fp_dbl_max, str_dbl_max,
+                             len);
+#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+      ret = read_double((unsigned char *)&host_fp_dbl_max, str_dbl_max, len);
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+      check_assertion_str2(ret == fp_ret_valid, "conv_host_fp_to_double:",
+                           "error on conversion of DBL_MAX");
+    }
+#endif /* USE_HOST_FP_CONVERSION_ROUTINES */
     double_dbl_max = (double)host_fp_dbl_max;
     init_done = TRUE;
   }  /* if */
@@ -2115,6 +2162,7 @@ fp_hash are used, this routine should zero the entire float_value
 before setting it if there are unused bits.
 */
 {
+#if USE_HOST_FP_CONVERSION_ROUTINES
   /* This is a simplistic version, which should probably be replaced by
      something "real" for a given implementation. */
   a_host_fp_value	temp;
@@ -2146,9 +2194,90 @@ before setting it if there are unused bits.
   }  /* if */
   *err = (errno != 0);
   store_host_fp_value(temp, kind, float_value, err);
+#else /* !USE_HOST_FP_CONVERSION_ROUTINES */
+  { an_fp_return_type       res;
+    an_internal_float_value float_value_temp;
+    /* Convert the string to the appropriate binary floating-point format and
+       store the result (if there was no underflow or overflow on the
+       conversion). */
+    /* Clear &float_value_temp: Don't use assignment because on some platforms
+       the non-significant bytes wouldn't be cleared. */
+    memzero((char *)&float_value_temp, sizeof(an_internal_float_value));
+    if (kind == (a_float_kind)fk_float) {
+      res = read_float((unsigned char *)&float_value_temp, str, strlen(str));
+#if DEBUG
+      if (db_flag_is_set("fp")) {
+        fprintf(f_debug, "read_float: res=%d\n", (int)res);
+        fprintf(f_debug, "  %s\n  ", str);
+        db_binary_float((unsigned char *)&float_value_temp);
+      }  /* if */
+#endif /* DEBUG */
+    } else if (kind == (a_float_kind)fk_double) {
+      res = read_double((unsigned char *)&float_value_temp, str, strlen(str));
+#if DEBUG
+      if (db_flag_is_set("fp")) {
+        fprintf(f_debug, "read_double: res=%d\n", (int)res);
+        fprintf(f_debug, "  %s\n  ", str);
+        db_binary_double((unsigned char *)&float_value_temp);
+      }  /* if */
+#endif /* DEBUG */
+#if FLOAT80_ENABLING_POSSIBLE
+    } else if (kind == (a_float_kind)fk_float80) {
+      res = read_float80((unsigned char *)&float_value_temp, str, strlen(str));
+#if DEBUG
+      if (db_flag_is_set("fp")) {
+        fprintf(f_debug, "read_float80: res=%d\n", (int)res);
+        fprintf(f_debug, "  %s\n  ", str);
+        db_binary_float80((unsigned char *)&float_value_temp);
+      }  /* if */
+#endif /* DEBUG */
+#endif /* FLOAT80_ENABLING_POSSIBLE */
+#if FLOAT128_ENABLING_POSSIBLE
+    } else if (kind == (a_float_kind)fk_float128) {
+      res = read_float128((unsigned char *)&float_value_temp, str,
+                          strlen(str));
+#if DEBUG
+      if (db_flag_is_set("fp")) {
+        fprintf(f_debug, "read_float128: res=%d\n", (int)res);
+        fprintf(f_debug, "  %s\n  ", str);
+        db_binary_float128((unsigned char *)&float_value_temp);
+      }  /* if */
+#endif /* DEBUG */
+#endif /* FLOAT128_ENABLING_POSSIBLE */
+    } else {
+      check_assertion(kind == (a_float_kind)fk_long_double);
+      res = read_long_double((unsigned char *)&float_value_temp, str,
+                             strlen(str));
+#if DEBUG
+      if (db_flag_is_set("fp")) {
+        fprintf(f_debug, "read_long_double: res=%d\n", (int)res);
+        fprintf(f_debug, "  %s\n  ", str);
+        db_binary_long_double((unsigned char *)&float_value_temp);
+      }  /* if */
+#endif /* DEBUG */
+    }  /* if */
+    check_assertion(!fp_is_error(res));
+    if (gnu_mode) {
+      /* For compatibility, ignore any errors in GNU mode. */
+      *err = FALSE;
+    } else if (microsoft_mode && res == (an_fp_return_type)fp_ret_underflow) {
+      /* Ignore underflow condition in Microsoft emulation mode. */
+      *err = FALSE;
+    } else {
+      *err = fp_is_unusual(res);
+    }  /* if */
+    /* Only do the assignment if there was no error. */
+    if (!*err) {
+      *float_value = float_value_temp;
+    }  /* if */
+  }
+#endif /* USE_HOST_FP_CONVERSION_ROUTINES */
 }  /* fp_string_to_float */
 
 
+#if !USE_HOST_FP_CONVERSION_ROUTINES
+/*ARGSUSED*/  /* kind, float_value, str, temp not used in that case. */
+#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
 static a_boolean handle_fp_to_string_special_cases(
                                          a_float_kind            kind,
                                          an_internal_float_value *float_value,
@@ -2173,13 +2302,16 @@ space) will be unmodified if the routine returns FALSE.
 */
 {
   a_boolean             result = TRUE;
+#if USE_HOST_FP_CONVERSION_ROUTINES
 #if TARG_HAS_IEEE_FLOATING_POINT
   a_host_fp_value	zero = 0.0;
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
+#endif /* USE_HOST_FP_CONVERSION_ROUTINES */
 
   if (pos_infinity != NULL) *pos_infinity = FALSE;
   if (neg_infinity != NULL) *neg_infinity = FALSE;
   if (not_a_number != NULL) *not_a_number = FALSE;
+#if USE_HOST_FP_CONVERSION_ROUTINES
   *temp = fetch_host_fp_value(kind, float_value);
 #if TARG_HAS_IEEE_FLOATING_POINT
   if (is_NaN(*temp)) {
@@ -2203,6 +2335,7 @@ space) will be unmodified if the routine returns FALSE.
     (void)strcpy(str, "-0.0");
   } else
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
+#endif /* USE_HOST_FP_CONVERSION_ROUTINES */
   /* Do not insert code here. */
   {
     /* Not a special case. */
@@ -2236,6 +2369,7 @@ be NULL if the corresponding return value is not needed.
                                          &temp)) {
     /* The call to handle_fp_to_string_special_cases has loaded float_value
        into temp. */
+#if USE_HOST_FP_CONVERSION_ROUTINES
 #if USE_FLOAT128_FOR_HOST_FP_VALUE && USE_QUADMATH_LIBRARY
     if (kind == (a_float_kind)fk_float) {
       (void)quadmath_snprintf(str, sizeof(str), "%.10Qg", temp);
@@ -2299,6 +2433,79 @@ be NULL if the corresponding return value is not needed.
       *p++ = '0';
       *p++ = '\0';
     }  /* if */
+#else /* !USE_HOST_FP_CONVERSION_ROUTINES */
+    /* Use software-based routines for doing the binary to string
+       conversion. */
+    an_fp_return_type       res;
+    if (kind == (a_float_kind)fk_float) {
+      res = write_float(str, sizeof(str), (unsigned char *)float_value);
+#if DEBUG
+      if (db_flag_is_set("fp")) {
+        fprintf(f_debug, "write_float: res=%d\n  ", (int)res);
+        db_binary_float((unsigned char *)float_value);
+        fprintf(f_debug, "  %s\n", str);
+      }  /* if */
+#endif /* DEBUG */
+    } else if (kind == (a_float_kind)fk_double) {
+      res = write_double(str, sizeof(str), (unsigned char *)float_value);
+#if DEBUG
+      if (db_flag_is_set("fp")) {
+        fprintf(f_debug, "write_double: res=%d\n  ", (int)res);
+        db_binary_double((unsigned char *)float_value);
+        fprintf(f_debug, "  %s\n", str);
+      }  /* if */
+#endif /* DEBUG */
+#if FLOAT80_ENABLING_POSSIBLE
+    } else if (kind == (a_float_kind)fk_float80) {
+      res = write_float80(str, sizeof(str), (unsigned char *)float_value);
+#if DEBUG
+      if (db_flag_is_set("fp")) {
+        fprintf(f_debug, "write_float80: res=%d\n  ", (int)res);
+        db_binary_float80((unsigned char *)float_value);
+        fprintf(f_debug, "  %s\n", str);
+      }  /* if */
+#endif /* DEBUG */
+#endif /* FLOAT80_ENABLING_POSSIBLE */
+#if FLOAT128_ENABLING_POSSIBLE
+    } else if (kind == (a_float_kind)fk_float128) {
+      res = write_float128(str, sizeof(str), (unsigned char *)float_value);
+#if DEBUG
+      if (db_flag_is_set("fp")) {
+        fprintf(f_debug, "write_float128: res=%d\n  ", (int)res);
+        db_binary_float128((unsigned char *)float_value);
+        fprintf(f_debug, "  %s\n", str);
+      }  /* if */
+#endif /* DEBUG */
+#endif /* FLOAT128_ENABLING_POSSIBLE */
+    } else {
+      check_assertion(kind == (a_float_kind)fk_long_double);
+      res = write_long_double(str, sizeof(str), (unsigned char *)float_value);
+#if DEBUG
+      if (db_flag_is_set("fp")) {
+        fprintf(f_debug, "write_long_double: res=%d\n  ", (int)res);
+        db_binary_long_double((unsigned char *)float_value);
+        fprintf(f_debug, "  %s\n", str);
+      }  /* if */
+#endif /* DEBUG */
+    }  /* if */
+    switch (res) {
+      case fp_ret_nan:
+        (void)strcpy(str, "NaN");
+        if (not_a_number != NULL) *not_a_number = TRUE;
+        break;
+      case fp_ret_pos_infinity:
+        (void)strcpy(str, "+Infinity");
+        if (pos_infinity != NULL) *pos_infinity = TRUE;
+        break;
+      case fp_ret_neg_infinity:
+        (void)strcpy(str, "-Infinity");
+        if (neg_infinity != NULL) *neg_infinity = TRUE;
+        break;
+      default:
+        check_assertion(res != fp_ret_too_small);
+        break;
+    }  /* switch */
+#endif /* USE_HOST_FP_CONVERSION_ROUTINES */
   }  /* if */
   return str;
 }  /* fp_to_string */

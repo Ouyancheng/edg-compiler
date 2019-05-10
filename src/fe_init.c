@@ -79,6 +79,10 @@ called (and init_flags_and_types has parsed the information in il_header).
   target_init();
   il_to_str_init();
   error_init();
+  float_pt_init();
+#if !USE_HOST_FP_CONVERSION_ROUTINES
+  floating_init();
+#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
 }  /* standalone_utility_late_init */
 
 #else /* !STANDALONE_UTILITY_PROGRAM */
@@ -160,6 +164,11 @@ been included by the inclusion of fe_common.h.
 #endif /* MINIMAL_INLINING */
 #include "lower_c99.h"
 #endif /* DO_IL_LOWERING */
+
+#if !USE_HOST_FP_CONVERSION_ROUTINES
+/* Internal floating point conversion routines. */
+#include "floating.h"
+#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
 
 static void last(void)
 /*
@@ -1673,6 +1682,9 @@ source file's compilation.
      int_kind_is_signed is properly initialized. */
   const_ints_init();
   float_pt_init();
+#if !USE_HOST_FP_CONVERSION_ROUTINES
+  floating_init();
+#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
 #if DO_IL_LOWERING
   /* IL lowering is initialized even when IL lowering is suppressed.  This
      is done because some of the variables that are initialized in

@@ -1,5 +1,39 @@
 Version 5.1
 
+5/10/19  [EDGcpfe/21236]
+Floating-point conversion routines
+
+Historically, conversion between the binary representation of floating-point
+numbers and their decimal string representation has been performed by
+routines provided by the host (e.g., sscanf, sprintf, strtod, or in some
+configurations, strtoflt128).  Using host routines for conversion has
+two limitations: it limits the floating-point types that can be supported
+on the target to a subset of the floating-point types that are provided by
+the host compiler, and the implementation is not very portable from one
+host to another.
+
+Routines have now been added to do the binary to decimal floating-point
+conversion completely in software, using integer arithmetic, to avoid any
+dependence on the underlying hardware's floating-point capabilities.
+This new capability can be selected by setting the value of the configuration
+macro USE_HOST_FP_CONVERSION_ROUTINES to FALSE (it is TRUE by default).
+These routines support four types of floating-point types (and are configurable
+to support more): binary32 (typically float), binary64 (typically double and
+sometimes long double), binary128, (__float128 and sometimes long double),
+and 80-bit extended (__float80 and sometimes long double).
+
+When setting USE_HOST_FP_CONVERSION_ROUTINES to FALSE, is important to set
+the appropriate FP_LONG_DOUBLE_IS_* macro to select the proper floating-
+point type for the "long double" type.
+
+Setting USE_HOST_FP_CONVERSION_ROUTINES to FALSE will cause the front end to be
+slower when converting floating-point numbers (as the conversion is done
+totally in software without the aid of floating-point hardware).
+
+Three new files were added to support this capability: float_type.h,
+floating.c, and floating.h.
+
+
 5/10/19  [EDGcpfe/21232]
 Spurious error on specialization of variable template declared with auto
 

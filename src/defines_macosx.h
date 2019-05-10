@@ -61,10 +61,12 @@ FALSE in this header file.
 #define TARG_SIZEOF_LONG_DOUBLE 8
 #define TARG_ALIGNOF_LONG_DOUBLE 4
 #define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
+#define FP_LONG_DOUBLE_IS_BINARY64 1
 #else /* ifndef __ppc__ */
 #define TARG_SIZEOF_LONG_DOUBLE 16
 #define TARG_ALIGNOF_LONG_DOUBLE 16
 #define TARG_LITTLE_ENDIAN 1
+#define FP_LONG_DOUBLE_IS_80BIT_EXTENDED 1
 #ifdef __x86_64__
 #define TARG_JMP_BUF_NUM_ELEMENTS 37
 #else /* ifndef __x86_64__ */
