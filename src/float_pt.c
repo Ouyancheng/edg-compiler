@@ -200,7 +200,7 @@ C99 macro isfinite are not available.
 
 #endif /* ifdef NEED_HOST_FP_VALUE_IS_FINITE */
 
-#if USE_DOUBLE_FOR_HOST_FP_VALUE || USE_HOST_FP_CONVERSION_ROUTINES
+#if USE_DOUBLE_FOR_HOST_FP_VALUE && USE_HOST_FP_CONVERSION_ROUTINES
 #ifdef SUNOS_STRTOD_BUG
 
 static void init_strtod(void)
@@ -238,7 +238,7 @@ value for any error.
   return temp;
 }  /* strtod_interface */
 
-#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE || USE_HOST_FP_CONVERSION_ROUTINES */
+#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE && USE_HOST_FP_CONVERSION_ROUTINES */
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH
 
 #if DEBUG
