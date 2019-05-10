@@ -1,5 +1,18 @@
 Version 5.1
 
+5/10/19  [EDGcpfe/21232]
+Spurious error on specialization of variable template declared with auto
+
+A spurious error was issued if a variable template was defined using an
+auto type and then later explicitly specialized (with or without the use
+of auto).  Now fixed.
+
+  template <typename> auto v = 0;
+  // Both explicit specializations resulted in errors
+  template <> auto v<int> = 1;
+  template <> int v<char> = 2;
+
+
 5/9/19   [EDGcpfe/17793,EDGcpfe/18028,EDGcpfe/18143]
 GNU C++ compatibility: Variable-length array initialization
 

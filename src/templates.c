@@ -7124,7 +7124,9 @@ expression context) rather than a declaration.
       check_for_missing_initializer(var_sym, var_ptr->type);
     }  /* if */
   }  /* if */
-  check_use_of_placeholder_type(&dps);
+  /* When is_use is FALSE we don't process the initializer, so don't
+     check placeholder use at that time. */
+  if (is_use) check_use_of_placeholder_type(&dps);
   run_end_of_parse_actions(&dps, /*more_declarators=*/FALSE);
   /* Make sure the type from the declaration is a valid variable
      declaration. */
