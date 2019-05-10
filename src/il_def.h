@@ -14796,6 +14796,17 @@ typedef struct a_coroutine_descr {
 		get_return_object_call;
 			/* An expression containing the call to
 			   promise.get_return_object(). */
+  an_expr_node_ptr
+		alloc_failure_gro_call;
+			/* An expression containing the call to
+			   promise.get_return_object_on_allocation_failure().
+			*/
+  a_routine_ptr	new_routine;
+			/* A pointer to the "new" routine that should be used
+			   for allocating the coroutine state. */
+  a_routine_ptr	delete_routine;
+			/* A pointer to the "delete" routine that should be
+			   used for deallocating the coroutine state. */
   struct a_coroutine_fixup
 		*fixups;
 			/* An opaque pointer to a front-end-only list of

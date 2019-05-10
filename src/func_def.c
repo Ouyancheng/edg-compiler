@@ -1134,7 +1134,7 @@ coroutine cannot have an ellipsis parameter).
     a_symbol_ptr function_name_symbol = symbol_for(rp);
     pos_syty_diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity :
                                            es_warning,
-                        ec_implict_co_return_with_no_return_void,
+                        ec_implicit_co_return_with_no_return_void,
                         &function_name_symbol->decl_position,
                         function_name_symbol, cdp->promise->type);
   }  /* if */

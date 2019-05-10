@@ -1857,6 +1857,25 @@ new fields are set properly.
 }  /* check_operator_function_params */
 
 
+a_boolean is_new_nothrow_param(a_param_type_ptr param)
+/*
+Check to see if the provided parameter matches the expected type of a "nothrow"
+parameter for operator new.
+*/
+{
+  a_type_ptr tp = param->type;
+  a_boolean  match = FALSE;
+
+  if (is_lvalue_reference_type(tp)) {
+    tp = type_pointed_to(tp);
+    if (is_std_nothrow_type(tp) && get_type_qualifiers(tp) == TQ_CONST) {
+      match = TRUE;
+    }  /* if */
+  }  /* if */
+  return match;
+}  /* is_new_nothrow_param */
+
+
 a_boolean is_single_param_operator_new_or_delete(
                                              a_symbol_locator *locator,
                                              a_type_ptr       type,
@@ -1883,12 +1902,8 @@ operator new or delete whose second parameter has type std::nothrow_t const&.
       } else if (include_nothrow && ptp->next->next == NULL) {
         /* Check whether the second parameter has type
            std::nothrow_t const&. */
-        a_type_ptr  tp = ptp->next->type;
-        if (is_lvalue_reference_type(tp)) {
-          tp = type_pointed_to(tp);
-          if (is_std_nothrow_type(tp) && get_type_qualifiers(tp) == TQ_CONST) {
-            match = TRUE;
-          }  /* if */
+        if (is_new_nothrow_param(ptp->next)) {
+          match = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */

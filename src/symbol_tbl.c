@@ -8879,6 +8879,36 @@ is unsuccessful.
 }  /* instantiate_coroutine_class_template_with_one_type */
 
 
+static void get_coroutine_parameter_variables(a_routine_ptr coroutine,
+                                              an_arg_list_elem_ptr *alep)
+/*
+Create an argument list containing the parameters (including the implicit
+"this" parameter if appropriate) of the given coroutine, returning them
+in alep.  The caller is responsible for freeing the created argument list.
+*/
+{
+  an_arg_list_elem_ptr *next_alep = alep;
+  a_variable_ptr       rout_param_var;
+  an_expr_node_ptr     var_expr;
+  an_operand           arg_operand;
+  a_scope_ptr          sp = scope_for_routine(coroutine);
+
+  if (sp->variant.routine.this_param_variable != NULL) {
+    var_expr = var_rvalue_expr(sp->variant.routine.this_param_variable);
+    make_expression_operand(var_expr, &arg_operand);
+    *alep = alloc_arg_list_elem_for_operand(&arg_operand);
+    next_alep = &(*alep)->next;
+  }
+  for (rout_param_var = sp->variant.routine.parameters;
+        rout_param_var != NULL; rout_param_var = rout_param_var->next) {
+    var_expr = var_rvalue_expr(rout_param_var);
+    make_expression_operand(var_expr, &arg_operand);
+    *next_alep = alloc_arg_list_elem_for_operand(&arg_operand);
+    next_alep = &(*next_alep)->next;
+  }  /* for */
+}  /* get_coroutine_parameter_variables */
+
+
 static void initialize_coroutine_promise_variable(a_variable_ptr promise,
                                                   a_routine_ptr  coroutine)
 /*
@@ -8888,11 +8918,7 @@ function parameters of coroutine (including the implicit "this" for non-static
 member functions), or the default constructor.
 */
 {
-  an_arg_list_elem_ptr alep = NULL, *next_alep = &alep;
-  a_variable_ptr       rout_param_var;
-  an_expr_node_ptr     var_expr;
-  an_operand           arg_operand;
-  a_scope_ptr          sp = scope_for_routine(coroutine);
+  an_arg_list_elem_ptr alep = NULL;
   a_symbol_ptr         ctor_sym = NULL, dtor_sym = NULL;
   a_source_position    *pos = &promise->source_corresp.decl_position;
   a_dynamic_init_ptr   dip = NULL;
@@ -8907,19 +8933,7 @@ member functions), or the default constructor.
   if (ctor_sym != NULL) {
     saved_suppress_diagnostics = expr_stack->suppress_diagnostics;
     expr_stack->suppress_diagnostics = TRUE;
-    if (sp->variant.routine.this_param_variable != NULL) {
-      var_expr = var_rvalue_expr(sp->variant.routine.this_param_variable);
-      make_expression_operand(var_expr, &arg_operand);
-      alep = alloc_arg_list_elem_for_operand(&arg_operand);
-      next_alep = &alep->next;
-    }
-    for (rout_param_var = sp->variant.routine.parameters;
-         rout_param_var != NULL; rout_param_var = rout_param_var->next) {
-      var_expr = var_rvalue_expr(rout_param_var);
-      make_expression_operand(var_expr, &arg_operand);
-      *next_alep = alloc_arg_list_elem_for_operand(&arg_operand);
-      next_alep = &(*next_alep)->next;
-    }  /* for */
+    get_coroutine_parameter_variables(coroutine, &alep);
     scan_ctor_arguments(ctor_sym, pos,
                         /*object_class_type=*/NULL,
                         /*dest_type=*/NULL,
@@ -9014,6 +9028,212 @@ TRUE, treat it as if the call was preceded by "co_await".
 }  /* make_coroutine_promise_call_operand */
 
 
+static a_symbol_ptr select_coroutine_new(a_symbol_ptr       new_sym,
+                                         a_routine_ptr      coroutine,
+                                         a_source_position* pos,
+                                         a_boolean          use_nothrow_new)
+/*
+Select the appropriate "new" operator for the coroutine.  new_sym is the
+(possibly overloaded) symbol for operator "new" in the scope of the promise
+type.  If new_sym is non-NULL, attempt to find an overload that takes all the
+parameters of the provided coroutine as arguments.  If none is found, use the
+operator "new" that only takes a size_t.  If new_sym is NULL, use the global
+operator "new" that takes a size_t (or the nothrow_t variant if use_nothrow_new
+is TRUE).  pos is the position at which this call is ostensibly taking place
+and is where diagnostics will be issued.  Return the selected operator "new"
+or NULL if no appropriate symbol could be found.
+*/
+{
+  an_expr_node_ptr     size_t_expr;
+  an_operand           size_t_operand;
+  an_arg_list_elem_ptr size_t_arg;
+
+  size_t_expr = node_for_host_large_integer(0, targ_size_t_int_kind);
+  make_expression_operand(size_t_expr, &size_t_operand);
+  size_t_arg = alloc_arg_list_elem_for_operand(&size_t_operand);
+  if (new_sym != NULL) {
+    an_arg_list_elem_ptr alep;
+    get_coroutine_parameter_variables(coroutine, &alep);
+    size_t_arg->next = alep;
+    if (!overloaded_function_match_possible(new_sym,
+                                            oc_new_expression,
+                                            /*is_template_id=*/FALSE,
+                                            /*template_arg_list=*/NULL,
+                                            size_t_arg,
+                                            /*have_selector=*/FALSE,
+                                            /*bound_function_selector=*/NULL)) {
+      /* Free the arguments after size_t and try to resolve that one. */
+      free_arg_list(alep);
+      size_t_arg->next = NULL;
+    }  /* if */
+    an_arg_match_summary_ptr arg_match_list;
+    new_sym = select_overloaded_function(new_sym,
+                                         /*is_template_id=*/FALSE,
+                                         /*template_arg_list=*/NULL,
+                                         /*have_selector=*/FALSE,
+                                         /*bound_function_selector=*/NULL,
+                                         size_t_arg,
+                                         /*init_list_ctor_arg_list=*/NULL,
+                                         CCO_DEFAULT,
+                                         /*do_arg_dep_lookup=*/FALSE,
+                                         /*use_pure_arg_dep_lookup=*/FALSE,
+                                         /*use_std_for_arg_dep_lookup=*/FALSE,
+                                         oc_new_expression,
+                                         pos,
+                                         NO_TOKEN_SEQUENCE_NUMBER,
+                                         /*single_function=*/NULL,
+                                         /*init_list_ctor_case=*/NULL,
+                                         /*unknown_dependent_function=*/NULL,
+                                         /*found_through_adl=*/NULL,
+                                         /*surrogate_function_conv_sym=*/NULL,
+                                         &arg_match_list);
+  } else {
+    /* Using global operator new. */
+    new_sym = opname_function_symbol((an_opname_kind)onk_new);
+    check_assertion(new_sym->kind == (a_symbol_kind)sk_overloaded_function);
+    for (new_sym = new_sym->variant.overloaded_function.symbols;
+         new_sym != NULL; new_sym = new_sym->next) {
+      a_type_ptr       rout_type = func_sym_routine(new_sym)->type;
+      a_param_type_ptr params = rout_type->variant.routine.extra_info
+                                                             ->param_type_list;
+      if (params == NULL) continue;
+      if (use_nothrow_new) {
+        if (params->next != NULL && params->next->next == NULL &&
+            is_new_nothrow_param(params->next)) {
+          break;
+        }  /* if */
+      } else {
+        if (params->next == NULL) break;
+      }  /* if */
+    }  /* for */
+    if (new_sym == NULL) {
+      pos_error(ec_no_nothrow_global_new_for_coroutine, pos);
+    }  /* if */
+  }  /* if */
+  if (new_sym != NULL) {
+    record_symbol_reference(SRK_REFERENCE, new_sym, pos,
+                            /*update_il_entry=*/FALSE);
+  }  /* if */
+  free_arg_list(size_t_arg);
+  return new_sym;
+}  /* select_coroutine_new */
+
+
+static a_symbol_ptr select_coroutine_delete(a_symbol_ptr      del_sym,
+                                            a_source_position *pos)
+/*
+Select the deallocation function for the coroutine.  del_sym is the (possibly
+overloaded) symbol for operator "delete" within the scope of the promise type.
+If del_sym is NULL, use the global operator "delete".  Of these symbols,
+select the usual deallocation function that takes both a pointer parameter and
+a size parameter.  If this is not found, select the usual deallocation function
+that takes just a pointer parameter.  pos is the position at which this call is
+ostensibly taking place and is where diagnostics will be issued.  Return the
+selected operator "delete" or NULL if no appropriate symbol could be found.
+*/
+{
+  a_boolean is_sized_ver, is_aligned_ver;
+
+  if (del_sym == NULL) {
+    del_sym = opname_function_symbol((an_opname_kind)onk_delete);
+  }  /* if */
+  if (del_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    a_symbol_ptr single_arg_delete = NULL;
+    for (del_sym = del_sym->variant.overloaded_function.symbols;
+         del_sym != NULL; del_sym = del_sym->next) {
+      if (is_default_operator_delete(func_sym_routine(del_sym),
+                                     &is_sized_ver, &is_aligned_ver) &&
+          !is_aligned_ver) {
+        /* If this is the version with a size_t argument, we have the symbol
+           we want.  Otherwise, this is the single-arg version - save it and
+           continue looking. */
+        if (is_sized_ver) break;
+        single_arg_delete = del_sym;
+      }  /* if */
+    }  /* for */
+    if (del_sym == NULL) {
+      del_sym = single_arg_delete;
+    }  /* if */
+  } else if (is_function_or_template_symbol(del_sym)) {
+    if (!is_default_operator_delete(func_sym_routine(del_sym),
+                                    &is_sized_ver, &is_aligned_ver) ||
+        is_aligned_ver) {
+      /* Either this isn't a usual deallocation function or it's the aligned
+         version.  Neither case is acceptable. */
+      del_sym = NULL;
+    }  /* if */
+  } else {
+    /* Not a function symbol. */
+    del_sym = NULL;
+  }  /* if */
+  if (del_sym == NULL) {
+    pos_error(ec_no_viable_delete_for_coroutine, pos);
+  }  /* if */
+  if (del_sym != NULL) {
+    record_symbol_reference(SRK_REFERENCE, del_sym, pos,
+                            /*update_il_entry=*/FALSE);
+  }  /* if */
+  return del_sym;
+}  /* select_coroutine_delete */
+
+
+static void select_coroutine_new_delete(a_coroutine_descr_ptr cr_desc,
+                                        a_routine_ptr         coroutine)
+/*
+A coroutine implementation may require run-time allocation of storage.  Resolve
+the appropriate calls to the allocation/deallocation routines.  As part of
+this, determine whether "get_return_object_on_allocation_failure" is defined
+and if so, resolve and record the appropriate call.
+*/
+{
+  a_variable_ptr       promise_var = cr_desc->promise;
+  a_type_ptr           promise_type = promise_var->type;
+  a_source_position    *pos = &cr_desc->promise->source_corresp.decl_position;
+  a_symbol_ptr         new_sym, del_sym, alloc_fail_sym;
+  an_expr_stack_entry  expr_stack_entry, *saved_expr_stack = expr_stack;
+
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  new_sym = opname_member_function_symbol((an_opname_kind)onk_new,
+                                          promise_type);
+  del_sym = opname_member_function_symbol((an_opname_kind)onk_delete,
+                                          promise_type);
+  alloc_fail_sym =
+        look_up_name_string_in_class("get_return_object_on_allocation_failure",
+                                     promise_type,
+                                     IDL_DO_NOT_ADD_TO_NONREAL_CLASS);
+  new_sym = select_coroutine_new(new_sym, coroutine, pos,
+                                 /*use_nothrow_new=*/alloc_fail_sym != NULL);
+  if (new_sym != NULL) {
+    cr_desc->new_routine = func_sym_routine(new_sym);
+  }  /* if */
+  del_sym = select_coroutine_delete(del_sym, pos);
+  if (del_sym != NULL) {
+    cr_desc->delete_routine = func_sym_routine(del_sym);
+  }  /* if */
+  if (alloc_fail_sym != NULL) {
+    an_operand         operand;
+    a_dynamic_init_ptr dip;
+
+    make_coroutine_promise_call_operand(
+                                     &operand,
+                                     "get_return_object_on_allocation_failure",
+                                     promise_var, /*add_await=*/FALSE);
+    prep_elision_initializer_operand(&operand, coroutine->type->
+                                                   variant.routine.return_type,
+                                     /*fill_in_dtor=*/FALSE,
+                                     CCO_INITIALIZING_RETURN_VALUE,
+                                     ec_bad_return_value_type,
+                                     /*elision_done=*/NULL,
+                                     &dip);
+    cr_desc->alloc_failure_gro_call = expr_node_from_operand(&operand);
+  }  /* if */
+  pop_expr_stack();
+  expr_stack = saved_expr_stack;
+}  /* select_coroutine_new_delete */
+
+
 static void prepare_coroutine_calls(a_coroutine_descr_ptr cr_desc,
                                     a_routine_ptr         coroutine)
 /*
@@ -9046,13 +9266,14 @@ coroutine as described in N4775.
                                       promise_var, /*add_await=*/FALSE);
   prep_elision_initializer_operand(&operand, coroutine->type->
                                                    variant.routine.return_type,
-                                   /*fill_in_dtor=*/TRUE,
+                                   /*fill_in_dtor=*/FALSE,
                                    CCO_INITIALIZING_RETURN_VALUE,
                                    ec_bad_return_value_type,
                                    /*elision_done=*/NULL,
                                    &dip);
   cr_desc->get_return_object_call = expr_node_from_operand(&operand);
   pop_expr_stack();
+  select_coroutine_new_delete(cr_desc, coroutine);
   expr_stack = saved_expr_stack;
 }  /* prepare_coroutine_calls */
 

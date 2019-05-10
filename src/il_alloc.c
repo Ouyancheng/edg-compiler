@@ -3947,6 +3947,9 @@ a pointer to it.
   cdp->final_suspend_call = NULL;
   cdp->unhandled_exception_call = NULL;
   cdp->get_return_object_call = NULL;
+  cdp->alloc_failure_gro_call = NULL;
+  cdp->new_routine = NULL;
+  cdp->delete_routine = NULL;
   cdp->fixups = NULL;
   cdp->error_descr = FALSE;
   cdp->eventual_value = FALSE;

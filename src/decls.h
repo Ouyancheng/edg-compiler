@@ -1455,6 +1455,8 @@ extern a_type_ptr type_keyword(void);
 
 extern void adjust_parameter_type(a_type_ptr           *type_ptr);
 
+extern a_boolean is_new_nothrow_param(a_param_type_ptr param);
+
 extern a_boolean is_single_param_operator_new_or_delete(
                                              a_symbol_locator *locator,
                                              a_type_ptr       type,
