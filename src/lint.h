@@ -1427,6 +1427,23 @@ extern int fileno(FILE *);
 /*lint -esym(755,gnu_routine_supp)*/
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
 
+#if !USE_HOST_FP_CONVERSION_ROUTINES
+/*lint -esym(714,write_float_n)*/
+/*lint -esym(759,write_float_n)*/
+/*lint -esym(765,write_float_n)*/
+/*lint -esym(714,write_double_n)*/
+/*lint -esym(759,write_double_n)*/
+/*lint -esym(765,write_double_n)*/
+/*lint -esym(714,write_long_double_n)*/
+/*lint -esym(759,write_long_double_n)*/
+/*lint -esym(765,write_long_double_n)*/
+/*lint -esym(714,db_dump_float)*/
+/*lint -esym(714,db_dump_double)*/
+/*lint -esym(714,db_dump_long_double)*/
+/*lint -esym(755,MAKE_FP_MIN_SUBNORMAL)*/
+/*lint -esym(755,MAKE_FP_MIN)*/
+#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
+
 /*lint -esym(714,load_matching_builtin_function_by_name)*/
 /*lint -esym(759,load_matching_builtin_function_by_name)*/
 /*lint -esym(765,load_matching_builtin_function_by_name)*/

@@ -35,7 +35,9 @@ for a production version.
 /* For FLT_MAX: */
 #include <float.h>
 #endif /* __ANSIC__ || defined(__cplusplus) */
+#if USE_HOST_FP_CONVERSION_ROUTINES
 #include <errno.h>
+#endif /* USE_HOST_FP_CONVERSION_ROUTINES */
 
 #if USE_QUADMATH_LIBRARY
 #include <quadmath.h>

@@ -64,10 +64,10 @@ externally.
 #define STATIC static
 #endif /* FP_UNIT_TESTING */
 
-static char *lc_inf = "infinity";
-static char *uc_inf = "INFINITY";
-static char *lc_nan = "nan";
-static char *uc_nan = "NAN";
+static a_const_char *lc_inf = "infinity";
+static a_const_char *uc_inf = "INFINITY";
+static a_const_char *lc_nan = "nan";
+static a_const_char *uc_nan = "NAN";
 
 
 static int match(a_const_char *str,
@@ -1841,12 +1841,10 @@ Assumes that *right <= *left.
     tmp = 0;
     for (i = 0; i < ACCUM_BYTES + 2; ++i) {
       tmp += sub[i];
+      accum[i] -= (unsigned char)tmp;
       if (tmp <= accum[i]) {
-        accum[i] -= (unsigned char)tmp;
         tmp = 0;
       } else {
-        accum[i] -= (unsigned char)tmp;
-        accum[i] += (unsigned char)(BYTE_MAX + 1);
         tmp = 1;
       }  /* if */
     }  /* for */
@@ -2577,9 +2575,9 @@ multiplier into account in rounding, and then remove it.
 }  /* dec2bin */
 
 
-static an_fp_return_type n_strcpy(char  *tgt,
-                                  char  *src,
-                                  size_t size)
+static an_fp_return_type n_strcpy(char         *tgt,
+                                  a_const_char *src,
+                                  size_t       size)
 /*
 Copy no more than size characters from src to tgt.
 Returns: fp_ret_valid if successful, fp_ret_too_small if size is too small.
