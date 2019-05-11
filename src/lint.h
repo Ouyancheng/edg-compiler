@@ -1442,6 +1442,12 @@ extern int fileno(FILE *);
 /*lint -esym(714,db_dump_long_double)*/
 /*lint -esym(755,MAKE_FP_MIN_SUBNORMAL)*/
 /*lint -esym(755,MAKE_FP_MIN)*/
+#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+/*lint -esym(757,write_long_double)*/
+/*lint -esym(757,write_long_double_n)*/
+/*lint -esym(757,read_long_double)*/
+/*lint -esym(757,db_binary_long_double)*/
+#endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 #endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
 
 /*lint -esym(714,load_matching_builtin_function_by_name)*/
