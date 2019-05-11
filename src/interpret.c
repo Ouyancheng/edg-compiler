@@ -8935,14 +8935,18 @@ location expects a value of type tp).  Otherwise, return FALSE.
       /* Obtain the UUID string associated with the addr_con entry (via the
          type carrying that UUID), and decode it into a sequence of integer
          values. */
-      a_type_ptr    uuid_tp = addr_con->variant.address.variant.type;
-      a_const_char  *uuid_str = uuid_string_of_type(uuid_tp);
-      if (uuid_str == NULL) {
+      a_type_ptr  uuid_tp = addr_con->variant.address.variant.type;
+      if (uuid_tp == NULL) {
         result = FALSE;
       } else {
-        load_uuid_string_into_class_object(uuid_str, tp,
-                                           result_storage, complete_object);
-        result = TRUE;
+        a_const_char  *uuid_str = uuid_string_of_type(uuid_tp);
+        if (uuid_str == NULL) {
+          result = FALSE;
+        } else {
+          load_uuid_string_into_class_object(uuid_str, tp,
+                                             result_storage, complete_object);
+          result = TRUE;
+        }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
