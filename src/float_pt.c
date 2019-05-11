@@ -2304,16 +2304,13 @@ space) will be unmodified if the routine returns FALSE.
 */
 {
   a_boolean             result = TRUE;
-#if USE_HOST_FP_CONVERSION_ROUTINES
 #if TARG_HAS_IEEE_FLOATING_POINT
   a_host_fp_value	zero = 0.0;
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
-#endif /* USE_HOST_FP_CONVERSION_ROUTINES */
 
   if (pos_infinity != NULL) *pos_infinity = FALSE;
   if (neg_infinity != NULL) *neg_infinity = FALSE;
   if (not_a_number != NULL) *not_a_number = FALSE;
-#if USE_HOST_FP_CONVERSION_ROUTINES
   *temp = fetch_host_fp_value(kind, float_value);
 #if TARG_HAS_IEEE_FLOATING_POINT
   if (is_NaN(*temp)) {
@@ -2337,7 +2334,6 @@ space) will be unmodified if the routine returns FALSE.
     (void)strcpy(str, "-0.0");
   } else
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
-#endif /* USE_HOST_FP_CONVERSION_ROUTINES */
   /* Do not insert code here. */
   {
     /* Not a special case. */
