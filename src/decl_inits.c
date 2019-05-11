@@ -1781,7 +1781,19 @@ fixed-length array type.
       /* A VLA of VLAs.  Make sure the dimensions are fixed at every
          level. */
       update_elem_type = TRUE;
-      elem_type = NULL;
+      if (elem != NULL) {
+        /* The element type will be derived from the initializer below. */
+        elem_type = NULL;
+      } else {
+        /* Use a zero-length array.  Use this function recursively to obtain
+           such a type. */
+        array_con->type = elem_type;
+        update_gnu_vla_initializer_size(array_con);
+        elem_type = array_con->type;
+        /* Set the type to NULL so we don't accidentally pick up an invalid
+           type.  It will be update to new_type below. */
+        array_con->type = NULL;
+      }  /* if */
     }  /* if */
     for (; elem != NULL; elem = elem->next) {
       if (!constant_is(elem, ck_designator)) {
