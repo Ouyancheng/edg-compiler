@@ -198,7 +198,7 @@ make sure the configuration macros for FP_LONG_DOUBLE_IS_* are set
 properly (see floating.h).
 */
 #ifndef USE_HOST_FP_CONVERSION_ROUTINES
-#define USE_HOST_FP_CONVERSION_ROUTINES TRUE
+#define USE_HOST_FP_CONVERSION_ROUTINES FALSE /* FIXME: temporary */
 #endif /* ifndef USE_HOST_FP_CONVERSION_ROUTINES */
 
 /*
