@@ -8689,29 +8689,6 @@ pointed to by ips->constants.
 }  /* make_interpreter_copy_of_constant */
 
 
-static a_boolean get_value_from_address_constant(
-                                               an_interpreter_state  *ips,
-                                               a_constant_ptr        addr_con,
-                                               a_byte                *value)
-/*
-If addr_con is the address of a constant, copy it into the interpreter
-storage at value and return TRUE.  Otherwise, return FALSE.
-*/
-{
-  a_constant_ptr val_con = local_constant();
-  a_boolean      result;
-
-  if (constant_value_at_address(addr_con, val_con)) {
-    /* Copy the constant value. */
-    result = copy_val_from_constant(ips, val_con, value, value);
-  } else {
-    result = FALSE;
-  }  /* if */
-  release_local_constant(&val_con);
-  return result;
-}  /* get_value_from_address_constant */
-
-
 /*ARGSUSED*/  /* complete_object is not currently used. */
 static a_boolean do_constexpr_offsetof(an_interpreter_state  *ips,
                                        an_expr_node_ptr      expr,
@@ -8837,6 +8814,139 @@ storage within the given complete object).  Otherwise, return FALSE and update
 }  /* do_constexpr_builtin_operation */
 
 
+static void load_uuid_string_into_class_object(a_const_char  *uuid_str,
+                                               a_type_ptr    dest_tp,
+                                               a_byte        *result_storage,
+                                               a_byte        *complete_object)
+/*
+A UUID type has the form:
+
+  struct _GUID {
+    unsigned char Data1;
+    int Data2;
+    int Data3;
+    char Data4[8];
+  };
+
+and the given string has the form "HHHHHHHH-HHHH-HHHH-HHHH-HHHHHHHHHHHH" where
+the Hs are hexadecimal digits.  Normally, result_storage/complete_object
+designates an object of that type, and this function sets the first three
+data members to the integer value of the first three sequences of digits,
+respectively.  The remaining eight bytes are then set to the values indicated
+by the remaining pairs of digits (over two sequences).  I.e., a total of 11
+values are transferred.
+
+However, MSVC appears to allow quite a bit of variance in the destination type 
+(e.g., fields can be dropped and types can be changed).  We approximate that
+behavior by transferring the values as long as we find a sequence of integral
+fields.  E.g., if the type were:
+
+  struct _FakeGUID {
+    unsigned char bytes[10];
+  };
+
+then we load the 10 bytes with the first ten values that would normally be
+transferred (retaining only the least significant bytes) and discard the
+last (eleventh) value.
+*/
+{
+  a_field_ptr           fp = dest_tp->variant.class_struct_union.field_list;
+  a_type_ptr            ftp;
+  int                   i = 0, k, n, n_digits;
+  an_integer_value      *int_storage;
+  a_byte_count          offset;
+  a_boolean             load_bytes = FALSE;
+  a_host_large_integer  host_val;
+
+  for (; fp != NULL; fp = fp->next) {
+    fp = next_alloc_field(fp);
+    get_mapped_byte_count(&persistent_map, fp, offset);
+    int_storage = (an_integer_value*)(result_storage+offset);
+    /* Only load values into integers or arrays of integers. */
+    ftp = skip_typerefs(fp->type);
+    if (type_is(ftp, tk_array)) {
+      n = num_array_elements(ftp);
+      ftp = underlying_array_element_type(ftp);
+      ftp = skip_typerefs(ftp);
+    } else {
+      n = 1;
+    }  /* if */
+    if (!is_integral_type(ftp)) break;
+    /* If this is an array, loop through every element. */
+    for (k = 0; k<n && i<11; ++k, ++i) {
+      host_val = 0;
+      n_digits = 0;
+      /* Accumulate a value from a hexadecimal digit string.  Stop after two
+         digits if we're loading bytes. */
+      while (isxdigit(*uuid_str)) {
+        host_val = host_val*16 + hexvalue(*uuid_str);
+        ++uuid_str;
+        ++n_digits;
+        if (n_digits == 2 && load_bytes) break;
+      }  /* if */
+      set_integer_value(int_storage, host_val);
+      mark_subobject_initialized((a_byte*)int_storage, complete_object);
+      if (i == 2) {
+        /* After loading three integer values, load pairs of digits only. */
+        load_bytes = TRUE;
+      }  /* if */
+      while (!isxdigit(*uuid_str)) {
+        if (*uuid_str == '\0') goto done;
+        ++uuid_str;
+      }  /* while */
+      ++int_storage;
+    }  /* for */
+  }  /* for */
+done:;
+}  /* load_uuid_string_into_class_object */
+
+
+static a_boolean get_value_from_address_constant(
+                                       an_interpreter_state  *ips,
+                                       a_constant_ptr        addr_con,
+                                       a_type_ptr            tp,
+                                       a_byte                *result_storage,
+                                       a_byte                *complete_object)
+/*
+If addr_con is the address of a constant, copy the constant value into the
+interpreter storage designated by result_storage and complete_object (that
+location expects a value of type tp).  Otherwise, return FALSE.
+*/
+{
+  a_boolean  result;
+
+  if (!constant_is(addr_con, ck_address)) {
+    result = FALSE;
+  } else {
+    a_constant_ptr  val_con = local_constant();
+    if (constant_value_at_address(addr_con, val_con)) {
+      /* Copy the constant value. */
+      result = copy_val_from_constant(ips, val_con,
+                                      result_storage, complete_object);
+    } else if (addr_con->variant.address.kind ==
+                                           (an_address_base_kind)abk_uuidof &&
+               is_immediate_class_type(tp)) {
+      /* Obtain the UUID string associated with the addr_con entry (via the
+         type carrying that UUID), and decode it into a sequence of integer
+         values. */
+      a_type_ptr    uuid_tp = addr_con->variant.address.variant.type;
+      a_const_char  *uuid_str = uuid_string_of_type(uuid_tp);
+      if (uuid_str == NULL) {
+        result = FALSE;
+      } else {
+        load_uuid_string_into_class_object(uuid_str, tp,
+                                           result_storage, complete_object);
+        result = TRUE;
+      }  /* if */
+    } else {
+      result = FALSE;
+    }  /* if */
+    release_local_constant(&val_con);
+  }  /* if */
+  return result;
+}  /* get_value_from_address_constant */
+
+
 static a_boolean do_glvalue_to_prvalue(an_interpreter_state  *ips,
                                        an_expr_node_ptr      expr,
                                        a_type_ptr            tp,
@@ -8860,7 +8970,7 @@ conversion to an rvalue is forced externally.
     info_one_past_end_of_array(cap, expr, ips);
   } else if (is_runtime_data_address(cap)) {
     if (!get_value_from_address_constant(
-                                ips, cap->variant.addr_con, result_storage)) {
+           ips, cap->variant.addr_con, tp, result_storage, complete_object)) {
       /* Not a compile-time constant value. */
       do_constexpr_fail(result);
       info_with_pos(ec_constexpr_access_to_runtime_storage,
