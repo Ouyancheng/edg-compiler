@@ -207,17 +207,6 @@ Flags to be set for any version that uses the C++ generating back end.
 #define SUN_TEST_VERSION 1
 #endif /* ifndef SUN_TEST_VERSION */
 
-#if SUN_TEST_VERSION
-/* Settings needed to make CodeCenter happy (it doesn't understand long
-   double). */
-#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
-#define TARG_SIZEOF_LONG_DOUBLE 8
-#define ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE 1
-#ifndef UNICODE_SOURCE_SUPPORTED
-#define UNICODE_SOURCE_SUPPORTED 1
-#endif /* ifndef UNICODE_SOURCE_SUPPORTED */
-#endif /* SUN_TEST_VERSION */
-
 #include "defines_solaris.h"
 
 #ifndef DEFAULT_EDG_BASE
