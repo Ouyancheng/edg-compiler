@@ -5188,7 +5188,7 @@ return TRUE and set *p_cmp to zero if the addresses are equal, to -1 if
 the first constant is less than the second, and to 1 otherwise.
 */
 {
-  a_boolean  result;
+  a_boolean  result = TRUE;
   char       *base1, *base2;
   a_boolean  cannot_fold = FALSE;
 
