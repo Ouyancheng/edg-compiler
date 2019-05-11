@@ -1791,7 +1791,7 @@ fixed-length array type.
         update_gnu_vla_initializer_size(array_con);
         elem_type = array_con->type;
         /* Set the type to NULL so we don't accidentally pick up an invalid
-           type.  It will be update to new_type below. */
+           type.  It will be updated to new_type below. */
         array_con->type = NULL;
       }  /* if */
     }  /* if */
