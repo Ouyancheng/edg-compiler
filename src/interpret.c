@@ -8813,6 +8813,7 @@ storage within the given complete object).  Otherwise, return FALSE and update
   return result;
 }  /* do_constexpr_builtin_operation */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void load_uuid_string_into_class_object(a_const_char  *uuid_str,
                                                a_type_ptr    dest_tp,
@@ -8900,6 +8901,7 @@ last (eleventh) value.
 done:;
 }  /* load_uuid_string_into_class_object */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean get_value_from_address_constant(
                                        an_interpreter_state  *ips,
@@ -8923,6 +8925,7 @@ location expects a value of type tp).  Otherwise, return FALSE.
       /* Copy the constant value. */
       result = copy_val_from_constant(ips, val_con,
                                       result_storage, complete_object);
+#if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (addr_con->variant.address.kind ==
                                            (an_address_base_kind)abk_uuidof &&
                is_immediate_class_type(tp)) {
@@ -8938,6 +8941,7 @@ location expects a value of type tp).  Otherwise, return FALSE.
                                            result_storage, complete_object);
         result = TRUE;
       }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       result = FALSE;
     }  /* if */
