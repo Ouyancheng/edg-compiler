@@ -1841,10 +1841,11 @@ Assumes that *right <= *left.
     tmp = 0;
     for (i = 0; i < ACCUM_BYTES + 2; ++i) {
       tmp += sub[i];
-      accum[i] -= (unsigned char)tmp;
       if (tmp <= accum[i]) {
+        accum[i] -= (unsigned char)tmp;
         tmp = 0;
       } else {
+        accum[i] -= (unsigned char)tmp;
         tmp = 1;
       }  /* if */
     }  /* for */
