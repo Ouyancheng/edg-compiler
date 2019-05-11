@@ -8859,14 +8859,14 @@ last (eleventh) value.
   a_boolean             load_bytes = FALSE;
   a_host_large_integer  host_val;
 
-  for (; fp != NULL; fp = fp->next) {
-    fp = next_alloc_field(fp);
+  fp = next_alloc_field(fp);
+  for (; fp != NULL; fp = next_alloc_field(fp->next)) {
     get_mapped_byte_count(&persistent_map, fp, offset);
     int_storage = (an_integer_value*)(result_storage+offset);
     /* Only load values into integers or arrays of integers. */
     ftp = skip_typerefs(fp->type);
     if (type_is(ftp, tk_array)) {
-      n = num_array_elements(ftp);
+      n = (int)num_array_elements(ftp);
       ftp = underlying_array_element_type(ftp);
       ftp = skip_typerefs(ftp);
     } else {
