@@ -8903,6 +8903,9 @@ done:;
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* tp is not used in some configurations. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_boolean get_value_from_address_constant(
                                        an_interpreter_state  *ips,
                                        a_constant_ptr        addr_con,
