@@ -10398,17 +10398,17 @@ typedef struct a_variable {
 			/* This flag is TRUE when is_inline is TRUE, and when
 			   it is also the case that this inline variable's
 			   definition should not be emitted by the back end
-			   because INSTANTIATE_EXTERN_INLINE is TRUE (i.e.,
+			   because INSTANTIATE_INLINE_VARIABLES is TRUE (i.e.,
 			   when inline variables are instantiated using a
 			   mechanism similar to the template instantiation
 			   mechanism). */
-#if INSTANTIATE_EXTERN_INLINE
+#if INSTANTIATE_INLINE_VARIABLES
   a_bit_field	inline_instance_required:1;
 			/* TRUE for an inline variable if the variable was
 			   referenced in a way that requires a definition of
 			   the inline variable somewhere in the complete
 			   program. */
-#endif /* INSTANTIATE_EXTERN_INLINE */
+#endif /* INSTANTIATE_INLINE_VARIABLES */
   a_bit_field	superseded_external:1;
 			/* TRUE (in SVR4 C mode only) if the current variable
 			   was created to represent a block extern declaration

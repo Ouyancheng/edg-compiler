@@ -17979,7 +17979,7 @@ non-inline; otherwise, mark it as inline.
                        &error_position, &sym->decl_position, sym);
   } else {
     var->is_inline = TRUE;
-    if (instantiate_extern_inline && !var->is_prototype_instantiation) {
+    if (instantiate_inline_variables && !var->is_prototype_instantiation) {
       add_to_inline_variable_list(var);
     }  /* if */
   }  /* if */

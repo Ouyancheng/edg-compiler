@@ -4310,6 +4310,21 @@ all references to them use the same copy.
  #error -- extern inline functions cannot be instantiated when they are lowered
 #endif /* !(LOWER_EXTERN_INLINE && INSTANTIATE_EXTERN_INLINE) */
 
+/*
+Flag that is TRUE if the automatic instantiation mechanism should be used to
+handle the instantiation of inline variables.  Like INSTANTIATE_EXTERN_INLINE,
+setting this does not provide an advantage with the IA-64 ABI.  This flag is
+separate from INSTANTIATE_EXTERN_INLINE so that it can be enabled for use
+when LOWER_EXTERN_INLINE is being used rather than INSTANTIATE_EXTERN_INLINE.
+*/
+#ifndef INSTANTIATE_INLINE_VARIABLES
+#if IA64_ABI || LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS
+#define INSTANTIATE_INLINE_VARIABLES FALSE
+#else /* !(IA64_ABI || LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS) */
+#define INSTANTIATE_INLINE_VARIABLES TRUE
+#endif /* IA64_ABI || LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS */
+#endif /* ifndef INSTANTIATE_INLINE_VARIABLES */
+
 #if MINIMAL_INLINING
 /*
 This switch controls an aspect of the minimal inlining built in to IL

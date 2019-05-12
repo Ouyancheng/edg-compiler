@@ -2595,9 +2595,9 @@ Clear the fields of the given variable to default values.
   vp->is_inline                   = FALSE;
   vp->on_inline_variable_list     = FALSE;
   vp->suppress_inline_definition  = FALSE;
-#if INSTANTIATE_EXTERN_INLINE
+#if INSTANTIATE_INLINE_VARIABLES
   vp->inline_instance_required    = FALSE;
-#endif /* INSTANTIATE_EXTERN_INLINE */
+#endif /* INSTANTIATE_INLINE_VARIABLES */
   vp->superseded_external         = FALSE;
   vp->has_variably_modified_type  = FALSE;
   vp->is_vla                      = FALSE;

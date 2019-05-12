@@ -595,9 +595,9 @@ already been copied over.
            (if DO_IL_LOWERING is TRUE) may allocate variables that are added to
            the IL. */
         update_auto_instantiation_flags();
-        /* Do the similar processing for inline functions, when instantiating
-           inline functions similarly to templates. */
-        update_inline_function_flags();
+        /* Do the similar processing for inline functions and/or variables,
+           when instantiating those inline entities similarly to templates. */
+        update_inline_entity_flags();
       }  /* if */
       /* Do any special processing needed to wrapup the automatic instantiation
          process at the end of the compilation. */

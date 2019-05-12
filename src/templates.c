@@ -34441,8 +34441,11 @@ Does nothing if called in C mode.
         }  /* if */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
       }  /* if */
-    } else if (symbol_is(sym, sk_variable) ||
-               symbol_is(sym, sk_static_data_member)) {
+    }  /* if */
+#endif /* INSTANTIATE_EXTERN_INLINE */
+#if INSTANTIATE_INLINE_VARIABLES
+    if (symbol_is(sym, sk_variable) ||
+        symbol_is(sym, sk_static_data_member)) {
       if (value || (options & SIR_CLEAR_VALUE) != 0) {
         /* If value is FALSE, only reset the flag if the SIR_CLEAR_VALUE
            option was specified. */
@@ -34450,7 +34453,7 @@ Does nothing if called in C mode.
         variable->inline_instance_required = value;
       }  /* if */
     }  /* if */
-#endif /* INSTANTIATE_EXTERN_INLINE */
+#endif /* INSTANTIATE_INLINE_VARIABLES */
   }  /* if */
 }  /* set_instance_required */
 
@@ -35455,44 +35458,6 @@ file.
   return result;
 }  /* inline_function_in_request_file */
 
-
-static char* get_mangled_inline_variable_name(a_variable_ptr	var)
-/*
-If var is a variable that should have a mangled name, get the mangled
-name.  Otherwise, simply return the variable name.
-*/
-{
-  char	*result;
-
-  if (variable_name_mangling_needed(var)) {
-    result = (char*)get_mangled_variable_name(var);
-  } else {
-    result = (char*)var->source_corresp.name;
-    check_assertion(result != NULL);
-  }  /* if */
-  return result;
-}  /* get_mangled_inline_variable_name */
-
-
-static a_boolean inline_variable_in_request_file(a_variable_ptr	var)
-/*
-Return TRUE if var is named in the template instantiation request
-file.
-*/
-{
-  a_const_char			*name;
-  an_instance_lookup_entry_ptr	ilp;
-  a_boolean			result = FALSE;
-
-  name = get_mangled_inline_variable_name(var);
-  ilp = find_instance(name, /*add=*/FALSE);
-  if (ilp != NULL && ilp->in_request_file) {
-    /* The variable was named in the instantiation request file. */
-    result = TRUE;
-  }  /* if */
-  return result;
-}  /* inline_variable_in_request_file */
-
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 static a_boolean inline_function_should_be_emitted(
@@ -35633,6 +35598,47 @@ the body should be emitted by the back end.
 #endif /* IA64_ABI && DO_IL_LOWERING */
 }  /* set_body_needed_flag_for_inline_function */
 
+#endif /* INSTANTIATE_EXTERN_INLINE */
+
+#if INSTANTIATE_INLINE_VARIABLES 
+
+static char* get_mangled_inline_variable_name(a_variable_ptr	var)
+/*
+If var is a variable that should have a mangled name, get the mangled
+name.  Otherwise, simply return the variable name.
+*/
+{
+  char	*result;
+
+  if (variable_name_mangling_needed(var)) {
+    result = (char*)get_mangled_variable_name(var);
+  } else {
+    result = (char*)var->source_corresp.name;
+    check_assertion(result != NULL);
+  }  /* if */
+  return result;
+}  /* get_mangled_inline_variable_name */
+
+
+static a_boolean inline_variable_in_request_file(a_variable_ptr	var)
+/*
+Return TRUE if var is named in the template instantiation request
+file.
+*/
+{
+  a_const_char			*name;
+  an_instance_lookup_entry_ptr	ilp;
+  a_boolean			result = FALSE;
+
+  name = get_mangled_inline_variable_name(var);
+  ilp = find_instance(name, /*add=*/FALSE);
+  if (ilp != NULL && ilp->in_request_file) {
+    /* The variable was named in the instantiation request file. */
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* inline_variable_in_request_file */
+
 
 static a_boolean inline_variable_should_be_emitted(
 					a_variable_ptr	var)
@@ -35717,7 +35723,7 @@ the body should be emitted by the back end.
   }  /* if */
 }  /* set_definition_needed_flag_for_inline_variable */
 
-#endif /* INSTANTIATE_EXTERN_INLINE */
+#endif /* INSTANTIATE_INLINE_VARIABLES */
 
 static void inline_entity_wrapup(void)
 /*
@@ -35729,7 +35735,6 @@ are instantiated using a mechanism like the template instantiation mechanism.
 #if INSTANTIATE_EXTERN_INLINE
   if (instantiate_extern_inline) {
     a_routine_list_entry_ptr	rlep;
-    a_variable_list_entry_ptr	vlep;
     for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
       a_routine_ptr  rp = rlep->routine;
       if (rp->storage_class != (a_storage_class)sc_static ||
@@ -35747,6 +35752,11 @@ are instantiated using a mechanism like the template instantiation mechanism.
         }  /* if */
       }  /* if */
     }  /* for */
+  }  /* if */
+#endif /* INSTANTIATE_EXTERN_INLINE */
+#if INSTANTIATE_INLINE_VARIABLES
+  if (instantiate_inline_variables) {
+    a_variable_list_entry_ptr	vlep;
     for (vlep = inline_variable_list; vlep != NULL; vlep = vlep->next) {
       a_variable_ptr	vp = vlep->variable;
       if ((vp->is_inline &&
@@ -35755,20 +35765,19 @@ are instantiated using a mechanism like the template instantiation mechanism.
         set_definition_needed_flag_for_inline_variable(vp);
       }  /* if */
     }  /* for */
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-    if (any_instantiations_required() && use_template_info_file &&
-        generate_template_files()) {
-      /* Make sure the template information file has been created. */
-      if (f_template_info == NULL) open_template_info_file();
-    }  /* if */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
-#endif /* INSTANTIATE_EXTERN_INLINE */
+#endif /* INSTANTIATE_INLINE_VARIABLES */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  if (any_instantiations_required() && use_template_info_file &&
+      generate_template_files()) {
+    /* Make sure the template information file has been created. */
+    if (f_template_info == NULL) open_template_info_file();
+  }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 }  /* inline_entity_wrapup */
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 #if INSTANTIATE_EXTERN_INLINE
-
 #if IA64_ABI && DO_IL_LOWERING
 
 static void write_thunk_entry_points_to_template_info_file(
@@ -36017,6 +36026,8 @@ a definition (if needed) for extern inline entities.
   }  /* if */
 }  /* create_instantiation_flags_for_inline_function */
 
+#endif /* INSTANTIATE_EXTERN_INLINE */
+#if INSTANTIATE_INLINE_VARIABLES
 
 static void create_instantiation_flags_for_inline_variable(
 							a_variable_ptr	var)
@@ -36081,7 +36092,8 @@ a definition (if needed) for extern inline entities.
   }  /* if */
 }  /* create_instantiation_flags_for_inline_variable */
 
-#if ONE_INSTANTIATION_PER_OBJECT
+#endif /*INSTANTIATE_INLINE_VARIABLES */
+#if ONE_INSTANTIATION_PER_OBJECT && INSTANTIATE_EXTERN_INLINE
 
 static void write_instantiation_file_name_for_inline_function(
 						a_routine_ptr	rout_ptr)
@@ -36118,6 +36130,8 @@ write an instantiation file name entry to the template information file.
   }  /* if */
 }  /* write_instantiation_file_name_for_inline_function */
 
+#endif /* ONE_INSTANTIATION_PER_OBJECT && INSTANTIATE_EXTERN_INLINE */
+#if ONE_INSTANTIATION_PER_OBJECT && INSTANTIATE_INLINE_VARIABLES
 
 static void write_instantiation_file_name_for_inline_variable(
 						a_variable_ptr	var)
@@ -36147,10 +36161,9 @@ write an instantiation file name entry to the template information file.
   }  /* if */
 }  /* write_instantiation_file_name_for_inline_variable */
 
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
-#endif /* INSTANTIATE_EXTERN_INLINE */
+#endif /* ONE_INSTANTIATION_PER_OBJECT && INSTANTIATE_INLINE_VARIABLES */
 
-void update_inline_function_flags(void)
+void update_inline_entity_flags(void)
 /*
 Create the automatic instantiation flags for inline functions and variables
 defined in this translation unit.  This routine is used when extern inline
@@ -36161,8 +36174,6 @@ mechanism.
 #if INSTANTIATE_EXTERN_INLINE
   if (instantiate_extern_inline) {
     a_routine_list_entry_ptr	rlep;
-    a_variable_list_entry_ptr	vlep;
-
     /* Process the routines on the inline_function_list. */
     for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
       if (rlep->routine->storage_class != (a_storage_class)sc_static) {
@@ -36177,7 +36188,11 @@ mechanism.
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
       }  /* if */
     }  /* for */
-
+  }  /* if */
+#endif /* INSTANTIATE_EXTERN_INLINE */
+#if INSTANTIATE_INLINE_VARIABLES
+  if (instantiate_inline_variables) {
+    a_variable_list_entry_ptr	vlep;
     /* Process the variables on the inline_variable_list. */
     for (vlep = inline_variable_list; vlep != NULL; vlep = vlep->next) {
       a_variable_ptr	vp = vlep->variable;
@@ -36194,8 +36209,8 @@ mechanism.
       }  /* if */
     }  /* for */
   }  /* if */
-#endif /* INSTANTIATE_EXTERN_INLINE */
-}  /* update_inline_function_flags */
+#endif /* INSTANTIATE_INLINE_VARIABLES */
+}  /* update_inline_entity_flags */
 
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
@@ -37587,7 +37602,7 @@ must not already be on that list.
 {
   a_variable_list_entry_ptr	vlep;
 
-  check_assertion(instantiate_extern_inline && var->is_inline &&
+  check_assertion(instantiate_inline_variables && var->is_inline &&
                   !var->on_inline_variable_list);
   vlep = alloc_list_entry_for_variable();
   vlep->variable = var;

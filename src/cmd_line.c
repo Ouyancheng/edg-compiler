@@ -3083,6 +3083,7 @@ process.
   arg_dependent_lookup_enabled = FALSE;
   instantiate_before_pch_creation = FALSE;
   instantiate_extern_inline = FALSE;
+  instantiate_inline_variables = FALSE;
   do_dependent_name_processing = FALSE;
   nonstandard_instantiation_lookup_enabled = FALSE;
   export_template_allowed = FALSE;
@@ -7195,6 +7196,11 @@ file.
 #else /* !defined(INSTANTIATE_EXTERN_INLINE) */
   comment_undefined_macro_name(INSTANTIATE_EXTERN_INLINE);
 #endif /* defined(INSTANTIATE_EXTERN_INLINE) */
+#if defined(INSTANTIATE_INLINE_VARIABLES)
+  define_numeric_valued_macro(INSTANTIATE_INLINE_VARIABLES);
+#else /* !defined(INSTANTIATE_INLINE_VARIABLES) */
+  comment_undefined_macro_name(INSTANTIATE_INLINE_VARIABLES);
+#endif /* defined(INSTANTIATE_INLINE_VARIABLES) */
 #if defined(INSTANTIATE_TEMPLATES_EVERYWHERE_USED)
   define_numeric_valued_macro(INSTANTIATE_TEMPLATES_EVERYWHERE_USED);
 #else /* !defined(INSTANTIATE_TEMPLATES_EVERYWHERE_USED) */

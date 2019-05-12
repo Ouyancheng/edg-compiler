@@ -1,5 +1,18 @@
 Version 5.1
 
+5/12/19  [EDGcpfe/21237]
+Instantiating inline variables with prelinker with LOWER_EXTERN_INLINE
+
+Formerly, in configurations that do not have COMDAT support, the handling
+of both inline functions and inline variables was controlled by
+INSTANTIATE_EXTERN_INLINE.  This meant that the prelinker could not be used
+to instantiate inline variables when LOWER_EXTERN_INLINE was TRUE.
+A new configuration flag named INSTANTIATE_INLINE_VARIABLES has been added
+to allow this to be controlled separately.  By default it is FALSE if
+the IA-64 ABI is being used or if LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS
+is TRUE, and FALSE otherwise.  See also EDGcpfe/20083.
+
+
 5/10/19  [EDGcpfe/15513,EDGcpfe/20180]
 Microsoft compatibility: __uuidof and constexpr
 

@@ -988,8 +988,12 @@ EXTERN a_boolean
 EXTERN a_boolean
 		instantiate_extern_inline;
 			/* TRUE if the instantiation mechanism should be used
-			   to control the definition of extern inline
-			   functions and variables. */
+			   to control the definition of inline functions. */
+
+EXTERN a_boolean
+		instantiate_inline_variables;
+			/* TRUE if the instantiation mechanism should be used
+			   to control the definition of inline variables. */
 
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 

@@ -1041,7 +1041,7 @@ extern void templates_cleanup(void);
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 extern void wrapup_auto_instantiation_information(void);
 extern void update_auto_instantiation_flags(void);
-extern void update_inline_function_flags(void);
+extern void update_inline_entity_flags(void);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 extern void update_instantiation_flags_for_class(

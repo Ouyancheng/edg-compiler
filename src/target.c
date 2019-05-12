@@ -885,6 +885,7 @@ header has been read and the target has been determined).
   va_list_in_std_namespace = DEFAULT_VA_LIST_IN_STD_NAMESPACE;
   va_list_using_using_decl_in_std_namespace = FALSE;
   instantiate_extern_inline = INSTANTIATE_EXTERN_INLINE;
+  instantiate_inline_variables = INSTANTIATE_INLINE_VARIABLES;
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   sun_is_generated_code_target = SUN_IS_GENERATED_CODE_TARGET;
   clang_is_generated_code_target = CLANG_IS_GENERATED_CODE_TARGET;
