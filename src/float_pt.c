@@ -2215,9 +2215,9 @@ before setting it if there are unused bits.
       }  /* if */
 #endif /* DEBUG */
     } else if (kind == (a_float_kind)fk_double
-#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#if !FP_HAS_LONG_DOUBLE
                || kind == (a_float_kind)fk_long_double
-#endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* !FP_HAS_LONG_DOUBLE */
 						      ) {
       res = read_double((unsigned char *)&float_value_temp, str, strlen(str));
 #if DEBUG
@@ -2251,7 +2251,7 @@ before setting it if there are unused bits.
 #endif /* DEBUG */
 #endif /* FLOAT128_ENABLING_POSSIBLE */
     } else {
-#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#if FP_HAS_LONG_DOUBLE
       check_assertion(kind == (a_float_kind)fk_long_double);
       res = read_long_double((unsigned char *)&float_value_temp, str,
                              strlen(str));
@@ -2262,9 +2262,9 @@ before setting it if there are unused bits.
         db_binary_long_double((unsigned char *)&float_value_temp);
       }  /* if */
 #endif /* DEBUG */
-#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#else /* !FP_HAS_LONG_DOUBLE */
       unexpected_condition();
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* FP_HAS_LONG_DOUBLE */
     }  /* if */
     check_assertion(!fp_is_error(res));
     if (gnu_mode) {
@@ -2453,9 +2453,9 @@ be NULL if the corresponding return value is not needed.
       }  /* if */
 #endif /* DEBUG */
     } else if (kind == (a_float_kind)fk_double
-#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#if !FP_HAS_LONG_DOUBLE
                || kind == (a_float_kind)fk_long_double
-#endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* !FP_HAS_LONG_DOUBLE */
 						      ) {
       res = write_double(str, sizeof(str), (unsigned char *)float_value);
 #if DEBUG
@@ -2488,7 +2488,7 @@ be NULL if the corresponding return value is not needed.
 #endif /* DEBUG */
 #endif /* FLOAT128_ENABLING_POSSIBLE */
     } else {
-#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#if FP_HAS_LONG_DOUBLE
       check_assertion(kind == (a_float_kind)fk_long_double);
       res = write_long_double(str, sizeof(str), (unsigned char *)float_value);
 #if DEBUG
@@ -2498,9 +2498,9 @@ be NULL if the corresponding return value is not needed.
         fprintf(f_debug, "  %s\n", str);
       }  /* if */
 #endif /* DEBUG */
-#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#else /* !FP_HAS_LONG_DOUBLE */
       unexpected_condition();
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* FP_HAS_LONG_DOUBLE */
     }  /* if */
     switch (res) {
       case fp_ret_nan:
