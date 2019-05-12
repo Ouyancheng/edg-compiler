@@ -35601,6 +35601,7 @@ the body should be emitted by the back end.
 #endif /* INSTANTIATE_EXTERN_INLINE */
 
 #if INSTANTIATE_INLINE_VARIABLES 
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
 
 static char* get_mangled_inline_variable_name(a_variable_ptr	var)
 /*
@@ -35639,6 +35640,7 @@ file.
   return result;
 }  /* inline_variable_in_request_file */
 
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 static a_boolean inline_variable_should_be_emitted(
 					a_variable_ptr	var)
