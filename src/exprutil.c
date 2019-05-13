@@ -5764,7 +5764,7 @@ return FALSE.
                       call_node);
   } else {
     set_node_operator(call_node, (an_expr_operator_kind)eok_dot_member_call,
-                      result_type, /*is_lvalue=*/FALSE, rout_node);
+                      return_type, /*is_lvalue=*/FALSE, rout_node);
     set_node_operator(value_node, (an_expr_operator_kind)eok_cast,
                       result_type, /*is_lvalue=*/FALSE, call_node);
   }  /* if */
