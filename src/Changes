@@ -106,10 +106,10 @@ run time.  For example (with --gnu_version 40900):
     X x[i] = { 1, 2 };
   }
   int main() {
-    f(0);   // calls X(1), X(2)
-    f(1);   // calls X(1), X(2)
-    f(2);   // calls X(1), X(2)
-    f(3);   // calls X(1), X(2), X()
+    f(0);   // calls X(1), X(2), initializes x[0], x[1]
+    f(1);   // calls X(1), X(2), initializes x[0], x[1]
+    f(2);   // calls X(1), X(2), initializes x[0], x[1]
+    f(3);   // calls X(1), X(2), X(), initializes x[0], x[1], x[2]
     return 0;
   }
 
