@@ -128,9 +128,7 @@ FPT_LONG_DOUBLE_PRECISION macros (see float_type.h for an explanation).
     !defined(FPT_LONG_DOUBLE_VALUE_BITS) && \
     !defined(FPT_LONG_DOUBLE_HAS_HIDDEN) && \
     !defined(FPT_LONG_DOUBLE_PRECISION)
-/* FIXME: Temporary to avoid lint issues: */
-/* #error Type "long double" is configured but un-specified. */
-#define FP_LONG_DOUBLE_IS_80BIT_EXTENDED 1
+#error Type "long double" is configured but un-specified.
 #endif /* !defined(FP_LONG_DOUBLE_IS_BINARY128) && ... */
 
 #ifndef FP_LONG_DOUBLE_IS_BINARY64
