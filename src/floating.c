@@ -1017,7 +1017,7 @@ bigint's internal representation.
 
   check_assertion(0 <= mult &&
 		  (sizeof(mult) <= sizeof(a_bigint_word) ||
-                   (unsigned)mult <= BIGINT_WORD_MAX)); /*lint !e506*/
+                   (unsigned)mult <= BIGINT_WORD_MAX)); /*lint !e506 !e685*/
   if (mult == 0) {
     tnum = 0;
   } else if (mult == 1) {
