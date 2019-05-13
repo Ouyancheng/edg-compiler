@@ -15741,6 +15741,7 @@ Initialize static variables that need to be reset for every compilation.
 {
   memzero((char*)free_map_tables, sizeof(free_map_tables));
   memzero((char*)free_live_set_tables, sizeof(free_live_set_tables));
+  useful_constants_initialized = FALSE;
 }  /* interpret_init */
 
 
@@ -15757,7 +15758,6 @@ One-time initialization for interpret.c static variables.
   register_trans_unit_variable(free_variant_path_entries);
   register_trans_unit_variable(n_variant_path_entries);
   register_trans_unit_variable(n_free_variant_path_entries);
-  useful_constants_initialized = FALSE;
   free_stack_blocks = NULL;
   free_variant_path_entries = NULL;
 #if DEBUG && TRACK_INTERPRETER_ALLOCATIONS
