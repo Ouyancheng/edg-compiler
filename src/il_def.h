@@ -4653,9 +4653,9 @@ typedef struct a_constant {
       a_constant_ptr
                 constant;
                         /* The constant to be repeated. */
-      a_targ_size_t
-                count;
-                        /* The repeat count (greater than zero).  A count of
+	targ_size_t
+		count;
+			/* The repeat count (greater than zero).  A count of
 			   zero is used for new and delete of an array, and
 			   means "use the number of elements recorded along
 			   with the storage allocation".  A similar case occurs
