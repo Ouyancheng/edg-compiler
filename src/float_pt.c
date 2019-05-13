@@ -451,8 +451,7 @@ If the conversion can be done, return the result in "result".
     check_assertion_str2(errno == 0, "conv_host_fp_to_float:",
                          "error on conversion of FLT_MAX");
 #else /* !USE_HOST_FP_CONVERSION_ROUTINES */
-    { an_fp_return_type ret;
-      size_t            len = strlen(str_flt_max);
+    { size_t            len = strlen(str_flt_max);
       check_assertion(len > 0);
       if (str_flt_max[len-1] == 'F') {
         /* Remove a trailing 'F', if any. */
@@ -460,13 +459,11 @@ If the conversion can be done, return the result in "result".
         len--;
       }  /* if */
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
-      ret = read_long_double((unsigned char *)&host_fp_flt_max, str_flt_max,
+      (void)read_long_double((unsigned char *)&host_fp_flt_max, str_flt_max,
                              len);
 #else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-      ret = read_double((unsigned char *)&host_fp_flt_max, str_flt_max, len);
+      (void)read_double((unsigned char *)&host_fp_flt_max, str_flt_max, len);
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-      check_assertion_str2(ret == fp_ret_valid, "conv_host_fp_to_float:",
-                           "error on conversion of FLT_MAX");
     }
 #endif /* USE_HOST_FP_CONVERSION_ROUTINES */
     float_flt_max = (float)host_fp_flt_max;
