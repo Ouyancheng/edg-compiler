@@ -92,7 +92,7 @@ The type of an aggregate being used to initialize a VLA object has also been
 modified to reflect the number of elements in the aggregate, and no longer
 matches the type of the VLA object.  E.g., for "int x[n] = { 1, 2 };",
 the aggregate type will be "array [2] of int" (whereas it had been
-"array [i] of int").  That is necessary because GCC appears to use all
+"array [n] of int").  That is necessary because GCC appears to use all
 initializers in the array, even if the array is too small for them at
 run time.  For example (with --gnu_version 40900):
 

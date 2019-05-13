@@ -1762,11 +1762,11 @@ set *result to the a_constant entry representing the initializer.
 static void update_gnu_vla_initializer_size(a_constant_ptr  array_con)
 /*
 GCC appears to treat initializers for VLAs of trivial elements as fixed-length
-initializers.  I.e., something like "int x[n] = { 1, 2 };" will write the "1"
-and "2" even when n is just 1.  We represent that by having the initializer
-constant have a fixed-length array type reflecting the length of the constant. 
-If array_con has a VLA type, this function replaces that type by an appropriate
-fixed-length array type.
+initializers.  I.e., something like "int x[n] = { 1, 2 };" will initialize
+x[0] and x[1] in all cases (even when n < 2).  We represent that by having the
+initializer constant have a fixed-length array type reflecting the length of
+the constant.  If array_con has a VLA type, this function replaces that type by
+an appropriate fixed-length array type.
 */
 {
   a_type_ptr  atp = skip_typerefs(array_con->type);
