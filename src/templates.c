@@ -6027,6 +6027,11 @@ user later during real instantiations.
         (void)get_token();
       }  /* if */
     }  /* if */
+    if (!dps->has_direct_initializer && curr_token == tok_assign &&
+        var_ptr->initializer_in_class) {
+      /* Advance past the "=". */
+      (void)get_token();
+    }  /* if */
     if (var_ptr->initializer_in_class &&
         !is_valid_static_member_constant_type(
                                  var_ptr->type, var_ptr, is_constant_member,
@@ -7082,6 +7087,11 @@ expression context) rather than a declaration.
                                     &dps, var_ptr->type, &pos_curr_token);
       scan_and_discard_init_component(&dps);
     } else {
+      if (!dps.has_direct_initializer && curr_token == tok_assign &&
+          proto_var->initializer_in_class) {
+        /* Advance past the "=". */
+        (void)get_token();
+      }  /* if */
       if (!is_var_templ_instance ||
           !proto_var->initializer_in_class || var_ptr->is_constexpr) {
         initializer(&dps, &template_sym->decl_position, idl_external,

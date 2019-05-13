@@ -16948,6 +16948,7 @@ prototype instantiation context.
         (is_floating_type(type) ||
          (gnu_version < 30300 && is_pointer_type(type)))))) ||
        (var->is_constexpr && is_literal_type(type)) ||
+       var->is_inline ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
         var->is_initonly ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -17288,8 +17289,12 @@ template declaration and is NULL otherwise.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     init_pos = pos_curr_token;
     if (curr_token == tok_assign) {
-      /* Advance past the "=". */
-      (void)get_token();
+      /* Advance past the "=", except for member templates: For those, we want
+         to cache this token so we can find it when the initializer is
+         instantiated. */
+      if (!decl_info->is_member_template) {
+        (void)get_token();
+      }  /* if */
     } else {
       /* Direct "braced" initialization. */
       var->has_direct_braced_initializer = TRUE;
