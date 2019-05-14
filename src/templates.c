@@ -7069,6 +7069,11 @@ expression context) rather than a declaration.
     }  /* if */
     dps.sym = var_sym;
     dps.type = var_ptr->type;
+    if (!dps.has_direct_initializer && curr_token == tok_assign &&
+        proto_var->initializer_in_class) {
+      /* Advance past the "=". */
+      (void)get_token();
+    }  /* if */
     if (dps.has_deduced_type) {
       prescan_initializer_for_auto_type_deduction(
                                          &dps, has_parenthesized_initializer);
@@ -7087,11 +7092,6 @@ expression context) rather than a declaration.
                                     &dps, var_ptr->type, &pos_curr_token);
       scan_and_discard_init_component(&dps);
     } else {
-      if (!dps.has_direct_initializer && curr_token == tok_assign &&
-          proto_var->initializer_in_class) {
-        /* Advance past the "=". */
-        (void)get_token();
-      }  /* if */
       if (!is_var_templ_instance ||
           !proto_var->initializer_in_class || var_ptr->is_constexpr) {
         initializer(&dps, &template_sym->decl_position, idl_external,
