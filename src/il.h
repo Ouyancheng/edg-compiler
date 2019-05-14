@@ -3190,8 +3190,6 @@ literal-operator-id (operator ""suffix).
 #define ud_suffix_from_literal_operator_id(name) \
   ((name) + LENGTH_CANONICAL_LITERAL_OPERATOR_INTRO)
 
-#if COROUTINES_ALLOWED
-
 /*
 Structure used to keep track of IL entries that need fixing at the end of a
 coroutine function definition.  These are entries representing co_return
@@ -3227,7 +3225,6 @@ typedef struct a_coroutine_fixup {
 extern a_coroutine_fixup_ptr add_coroutine_fixup(a_coroutine_descr_ptr  cdp);
 
 extern void release_coroutine_fixups(a_coroutine_descr_ptr  cdp);
-#endif /* COROUTINES_ALLOWED */
 
 /*
 Utility that returns TRUE if the two ck_string constants have the same value.

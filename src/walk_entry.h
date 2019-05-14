@@ -1872,7 +1872,6 @@ do_set_proper_definition_needed_flag:
                       an_expr_node_ptr, iek_expr_node);
             break;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-#if COROUTINES_ALLOWED
           case enk_await:
           case enk_yield:
             walk_ptr(eptr->variant.await_info.operand, an_expr_node_ptr,
@@ -1880,7 +1879,6 @@ do_set_proper_definition_needed_flag:
             walk_list(eptr->variant.await_info.resume_ready_suspend,
                       an_expr_node_ptr, iek_expr_node);
             break;
-#endif /* COROUTINES_ALLOWED */
           case enk_fold:
             walk_list(eptr->variant.fold.operands, an_expr_node_ptr,
                       iek_expr_node);
@@ -2110,9 +2108,7 @@ do_set_proper_definition_needed_flag:
           case stmk_upc_barrier:
           case stmk_upc_fence:
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#if COROUTINES_ALLOWED
           case stmk_coroutine_return:
-#endif /* COROUTINES_ALLOWED */
             /* No additional pointers. */
             break;
           case stmk_if:
@@ -2145,12 +2141,10 @@ do_set_proper_definition_needed_flag:
             walk_ptr(eptr->variant.return_dynamic_init, a_dynamic_init_ptr,
                      iek_dynamic_init);
             break;
-#if COROUTINES_ALLOWED
           case stmk_coroutine:
             walk_ptr(eptr->variant.coroutine.descr, a_coroutine_descr_ptr,
                      iek_coroutine_descr);
             break;
-#endif /* COROUTINES_ALLOWED */
           case stmk_block:
             /* Do extra_info before statements to get declarations out
                before the statements that use them. */
@@ -3873,7 +3867,6 @@ after_entry_from_class:
       }
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if COROUTINES_ALLOWED
     case iek_coroutine_descr:
       {
 #define eptr ((a_coroutine_descr_ptr)entry_ptr)
@@ -3884,7 +3877,6 @@ after_entry_from_class:
 #undef eptr
       }
       break;
-#endif /* COROUTINES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case iek_event_interface:
       {

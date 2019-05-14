@@ -424,12 +424,10 @@ extern void deduce_return_type_from_void_operand(
                                           a_boolean          keep_placeholder,
                                           a_source_position  *diag_pos);
 
-#if COROUTINES_ALLOWED
 extern void check_and_adjust_deduced_return_type_if_needed(
                                                  a_routine_ptr   curr_routine,
                                                  an_operand_ptr  return_op,
                                                  a_type_ptr      *return_type);
-#endif /* COROUTINES_ALLOWED */
 
 extern a_boolean arg_matches_auto_template_param(
 				a_type_ptr		param_type,
@@ -515,8 +513,6 @@ extern an_expr_node_ptr scan_return_expression(
                                           a_dynamic_init_ptr    *dip,
                                           an_arg_list_elem_ptr  *alep);
 
-#if COROUTINES_ALLOWED
-
 extern void determine_suspend_call_for_await(
                                       an_expr_node_ptr         node,
                                       an_arg_list_elem_ptr     suspend_arg,
@@ -536,8 +532,6 @@ extern an_expr_node_ptr wrap_up_coroutine_result_expression(
                                               a_statement_ptr       sp);
 
 extern void wrap_up_yield_expression(a_coroutine_fixup_ptr  cfp);
-
-#endif /* COROUTINES_ALLOWED */
 
 extern void scan_pp_expression(a_constant *constant);
 

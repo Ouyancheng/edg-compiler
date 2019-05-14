@@ -2096,10 +2096,8 @@ static a_flag_name
   { "relaxed_constexpr", &relaxed_constexpr_enabled },
   { "constexpr_implies_const", &constexpr_implies_const },
   { "mangle_had_been_implicitly_const", &mangle_had_been_implicitly_const },
-#if COROUTINES_ALLOWED
   { "coroutines", &coroutines_enabled },
   { "coroutine_keywords", &coroutine_keywords_enabled },
-#endif /* COROUTINES_ALLOWED */
   { "suppress_deferral_on_partial_spec_members",
     &suppress_deferral_on_partial_spec_members },
   { "no_very_expensive_checking", &no_very_expensive_checking },
@@ -2587,9 +2585,7 @@ option values if they were not already set by a command line option.
       mixed_string_concat_enabled = TRUE;
       std_override_modifiers_enabled = TRUE;
       selection_from_prvalue_is_xvalue = TRUE;
-#if COROUTINES_ALLOWED
       coroutines_enabled = TRUE;
-#endif /* COROUTINES_ALLOWED */
       if (!option_kind_used[(int)optk_utf8_char_literals]) {
         utf8_char_literals_enabled = TRUE;
       }  /* if */
@@ -3569,9 +3565,7 @@ default mode (e.g., exception handling).
         constexpr_virtual_enabled = TRUE;
         constexpr_try_enabled = TRUE;
         consteval_enabled = TRUE;
-#if COROUTINES_ALLOWED
         coroutines_enabled = TRUE;
-#endif /* COROUTINES_ALLOWED */
         explicit_copy_this_capture_enabled = TRUE;
         lambda_template_param_list_enabled = TRUE;
         lambda_allowed_in_uneval_context = TRUE;
@@ -5794,11 +5788,6 @@ file.
 #else /* !defined(CLANG_TARGET_VERSION_NUMBER) */
   comment_undefined_macro_name(CLANG_TARGET_VERSION_NUMBER);
 #endif /* defined(CLANG_TARGET_VERSION_NUMBER) */
-#if defined(COROUTINES_ALLOWED)
-  define_numeric_valued_macro(COROUTINES_ALLOWED);
-#else /* !defined(COROUTINES_ALLOWED) */
-  comment_undefined_macro_name(COROUTINES_ALLOWED);
-#endif /* defined(COROUTINES_ALLOWED) */
 #if defined(DEBUG)
   define_numeric_valued_macro(DEBUG);
 #else /* !defined(DEBUG) */
@@ -12017,10 +12006,8 @@ variables declared in cmd_line.h.
   struct_bindings_enabled = FALSE;
   selection_initializers_enabled = FALSE;
   mangle_had_been_implicitly_const = FALSE;
-#if COROUTINES_ALLOWED
   coroutines_enabled = FALSE;
   coroutine_keywords_enabled = FALSE;
-#endif /* COROUTINES_ALLOWED */
 #if BUILTIN_FUNCTIONS_ENABLED
   builtin_functions_enabled = FALSE;
   preload_builtin_functions = FALSE;

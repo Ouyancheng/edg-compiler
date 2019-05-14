@@ -552,13 +552,11 @@ extern void restore_struct_stmt_stack(a_struct_stmt_stack_state *saved_state);
 
 extern a_boolean inside_statement_expression(void);
 
-#if COROUTINES_ALLOWED
 extern a_boolean in_catch_clause(void);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean inside_finally_clause(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* COROUTINES_ALLOWED */
 
 extern a_boolean in_switch_statement(void);
 

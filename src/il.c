@@ -2171,7 +2171,6 @@ sizeof_cases:
       }  /* while */
       break;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-#if COROUTINES_ALLOWED
     case enk_await:
     case enk_yield:
       fputs(node->kind == (an_expr_node_kind)enk_await ? "await:\n"
@@ -2181,7 +2180,6 @@ sizeof_cases:
       fprintf(f_debug, "<operand> =\n");
       db_expr_node(node->variant.await_info.operand, level + 2);
       break;
-#endif /* COROUTINES_ALLOWED */
     case enk_fold:
       fprintf(f_debug, "fold-expression, %s, ",
               node->variant.fold.left_associative ? "left-assoc, "
@@ -2623,10 +2621,8 @@ Dump a statement kind, for debug purposes.
     case stmk_goto:             s = "goto";              break;
     case stmk_label:            s = "label";             break;
     case stmk_return:           s = "return";            break;
-#if COROUTINES_ALLOWED
     case stmk_coroutine:        s = "coroutine";         break;
     case stmk_coroutine_return: s = "coroutine return";  break;
-#endif /* COROUTINES_ALLOWED */
     case stmk_block:            s = "block";             break;
     case stmk_end_test_while:   s = "end-test-while";    break;
     case stmk_for:              s = "for";               break;
@@ -15377,12 +15373,10 @@ tk_unknown is returned.
     case eok_lvalue:
       result = expr_kind;
       break;
-#if COROUTINES_ALLOWED
     case eok_await:
     case eok_yield:
       result = expr_kind;
       break;
-#endif /* COROUTINES_ALLOWED */
     case eok_error:
       result = (a_type_kind)tk_error;
       break;
@@ -21737,12 +21731,10 @@ doing nothing should be suppressed.
       has_side_effects = TRUE;
       break;
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-#if COROUTINES_ALLOWED
     case enk_await:
     case enk_yield:
       has_side_effects = TRUE;
       break;
-#endif /* COROUTINES_ALLOWED */
     case enk_braced_init_list:
     case enk_param_ref:
     case enk_fold:
@@ -27439,10 +27431,8 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_va_start_single_operand: */	LVRV_OPND1_IS_GLVALUE |
 					LVRV_VA_LIST_OPERATION,
   /* eok_lvalue: */			LVRV_OPND1_IS_PRVALUE,
-#if COROUTINES_ALLOWED
   /* eok_await: */			LVRV_NO_REQUIREMENTS,
   /* eok_yield: */			LVRV_NO_REQUIREMENTS,
-#endif /* COROUTINES_ALLOWED */
   /* eok_error: */			LVRV_NO_REQUIREMENTS,
   /* eok_last: */			LVRV_DISTINGUISHED_VALUE_FOR_LAST
 };  /* lvalue_rvalue_test */
@@ -27988,7 +27978,6 @@ instantiation, a nonreal instantiation, or a template-dependent type.
 }  /* entity_is_nonreal */
 
 #if !STANDALONE_UTILITY_PROGRAM
-#if COROUTINES_ALLOWED
 #if DEBUG
 static unsigned long
 		num_coroutine_fixups_allocated;
@@ -28048,7 +28037,6 @@ Return the list of fixups pointed to by cdp to the available entries list.
   }  /* if */
 }  /* release_coroutine_fixups */
 
-#endif /* COROUTINES_ALLOWED */
 #if DEBUG
 
 unsigned long db_show_il_c_fe_space_used(unsigned long grand_total)
@@ -28064,12 +28052,10 @@ Display memory use for entities in front end memory in this file (il.c).
                      avail_copy_remap_entries,
                      num_copy_remap_entries_allocated,
                      a_copy_remap_entry);
-#if COROUTINES_ALLOWED
   db_space_used_lost("coroutine fixups",
                      avail_coroutine_fixups,
                      num_coroutine_fixups_allocated,
                      a_coroutine_fixup);
-#endif /* COROUTINES_ALLOWED */
   return grand_total;
 }  /* db_show_il_c_fe_space_used */
 
@@ -28940,14 +28926,10 @@ in il_init.)
       pch_saved_var_array_elem(num_used_shareable_constant_buckets),
       pch_saved_var_array_elem(num_based_type_fixups_allocated),
       pch_saved_var_array_elem(num_copy_remap_entries_allocated),
-#if COROUTINES_ALLOWED
       pch_saved_var_array_elem(num_coroutine_fixups_allocated),
-#endif /* COROUTINES_ALLOWED */
 #endif /* DEBUG */
       pch_saved_var_array_elem(avail_copy_remap_entries),
-#if COROUTINES_ALLOWED
       pch_saved_var_array_elem(avail_coroutine_fixups),
-#endif /* COROUTINES_ALLOWED */
 #if MODULE_ID_NEEDED
       pch_saved_var_array_elem(module_id_scp),
       pch_saved_var_array_elem(module_id_kind),
@@ -29153,9 +29135,7 @@ of the front end.
   num_get_based_type_calls               = 0;
   num_based_type_fixups_allocated        = 0;
   num_copy_remap_entries_allocated       = 0;
-#if COROUTINES_ALLOWED
   num_coroutine_fixups_allocated         = 0;
-#endif /* COROUTINES_ALLOWED */
 #endif /* DEBUG */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   default_inheritance_kind = (an_inheritance_kind)ihk_virtual;
@@ -29165,9 +29145,7 @@ of the front end.
 #endif /* UPC_EXTENSIONS_ALLOWED */
   curr_seq_number_lookup_entry = NULL;
   avail_copy_remap_entries = NULL;
-#if COROUTINES_ALLOWED
   avail_coroutine_fixups = NULL;
-#endif /* COROUTINES_ALLOWED */
   il_alloc_init();
 }  /* il_init */
 

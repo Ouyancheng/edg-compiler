@@ -710,10 +710,8 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_POSTFIX,		/* eok_va_copy */
   PREC_POSTFIX,		/* eok_va_start_single_operand */
   PREC_LOWEST,		/* eok_lvalue */
-#if COROUTINES_ALLOWED
   PREC_PREFIX,		/* eok_await */
   PREC_PREFIX,		/* eok_yield */
-#endif /* COROUTINES_ALLOWED */
   PREC_LOWEST,		/* eok_error */
   PREC_LOWEST		/* eok_last */
 };  /* generated_precedence */
@@ -14130,14 +14128,12 @@ gen_expr that might end up generating this expr as a temporary.
           write_tok_str(")");
           goto done_with_operation;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if COROUTINES_ALLOWED
         case eok_await:
           opstr = "co_await ";
           break;
         case eok_yield:
           opstr = "co_yield ";
           break;
-#endif /* COROUTINES_ALLOWED */
         case eok_noexcept:
           write_tok_str("noexcept(");
           gen_expression(operand_1);
@@ -14852,7 +14848,6 @@ sizeof_cases:
                         (a_type_ptr)NULL, /*skip_num=*/0);
       break;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-#if COROUTINES_ALLOWED
     case enk_yield:
       /* yield expression: generate "co_yield <expr>". */
       write_tok_str("co_yield ");
@@ -14891,7 +14886,6 @@ sizeof_cases:
       write_tok_str(msvc_is_generated_code_target ? "__await " : "co_await ");
       gen_expression(expr->variant.await_info.operand);
       break;
-#endif /* COROUTINES_ALLOWED */
     case enk_fold:
       gen_fold_expression(expr);
       break;
@@ -15114,13 +15108,9 @@ Generate code for the indicated range-based-for statement.
                             statement->variant.range_based_for_loop.extra_info;
   a_variable_ptr      ref_var;
 
-#if COROUTINES_ALLOWED
   if (rbflp->use_await) {
     write_tok_str("for await (");
-  } else
-#endif /* COROUTINES_ALLOWED */
-  /* Do not insert code here. */
-  {
+  } else {
     write_tok_str("for (");
   }  /* if */
   /* Generate the iteration variable. */
@@ -17137,7 +17127,6 @@ one that yields the value) of a statement expression.
         }  /* if */
       }
       break;
-#if COROUTINES_ALLOWED
     case stmk_coroutine_return:
       /* "co_return" statement in a coroutine: generate "co_return <expr>;" or
          "co_return ;". */
@@ -17178,7 +17167,6 @@ one that yields the value) of a statement expression.
       /* stmk_coroutine entries are always compiler-generated: Nothing to
          do. */
       break;
-#endif /* COROUTINES_ALLOWED */
     case stmk_block:
       /* Block: generate "{ ... }". */
       gen_block_statement(statement, is_stmt_expression);

@@ -4338,11 +4338,9 @@ EXTERN sizeof_t	size_scope_stack;
 EXTERN a_symbol_header_ptr
 		safe_cast_symbol_header;
 
-#if COROUTINES_ALLOWED
 /* Header for the contextual keyword "yield" used in some Microsoft modes. */
 EXTERN a_symbol_header_ptr
 		yield_symbol_header;
-#endif /* COROUTINES_ALLOWED */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -4824,7 +4822,6 @@ extern void enter_symbol_for_namespace_abi(a_symbol_locator  *locator);
 
 extern a_symbol_ptr look_up_name_string_in_std(a_const_char  *name);
 
-#if COROUTINES_ALLOWED
 EXTERN a_namespace_ptr
 		namespace_for_coroutine_types;
 			/* Namespace containing the various class templates
@@ -4842,7 +4839,6 @@ extern void init_coroutine_descr(a_routine_ptr          rp,
 extern a_type_ptr instantiate_coroutine_class_template_with_one_type(
                                                         a_const_char  *ctname,
                                                         a_type_ptr    type);
-#endif /* COROUTINES_ALLOWED */
 
 EXTERN a_symbol_ptr
 		symbol_for_std_initializer_list;
@@ -6978,12 +6974,10 @@ extern a_symbol_ptr look_up_name_string_in_class(
 
 extern a_symbol_ptr look_up_class_template_in_std(a_const_char  *ctname);
 
-#if MICROSOFT_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED
 extern a_symbol_ptr look_up_name_string_in_namespace(
                                         a_const_char             *symbol_name,
                                         a_namespace_ptr          ns_ptr,
                                         an_id_lookup_options_set options);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED */
 
 #endif /* ifndef SYMBOL_TBL_H */
 

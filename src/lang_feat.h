@@ -427,15 +427,6 @@ by default in C++11 mode.
 #endif /* DEFAULT_EXPORT_TEMPLATE_ALLOWED */
 
 /*
-Flag that is TRUE if support for coroutines (with "co_yield" and "co_await"
-operations) should be part of the front end.  This is currently incompatible
-with IL lowering.
-*/
-#ifndef COROUTINES_ALLOWED
-#define COROUTINES_ALLOWED FALSE
-#endif /* COROUTINES_ALLOWED */
-
-/*
 Flag that is TRUE if a set of Sun C++ compatibility features should be
 allowed.
 */

@@ -586,9 +586,6 @@ with a C back end.
  #error -- IL lowering cannot be done when C++/CLI enabling is allowed.
 #endif /* ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING */
 #endif /* CPPCLI_ENABLING_POSSIBLE && DO_IL_LOWERING */
-#if COROUTINES_ALLOWED && DO_IL_LOWERING
- #error -- IL lowering cannot be done (currently) when coroutines are allowed
-#endif /* COROUTINES_ALLOWED && DO_IL_LOWERING */
 
 /*
 If the IL is written to a file, this flag selects the file format.

@@ -2085,18 +2085,6 @@ Allow C++/CLI and C++/CX to be enabled if Microsoft extensions are allowed.
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES && !defined(...) */
 
 /*
-In configurations that enable Microsoft extensions and disable IL lowering,
-enable support for coroutine extensions.
-*/
-#ifndef COROUTINES_ALLOWED
-#if defined(DO_IL_LOWERING) && !DO_IL_LOWERING
-#if defined(MICROSOFT_EXTENSIONS_ALLOWED) && MICROSOFT_EXTENSIONS_ALLOWED
-#define COROUTINES_ALLOWED 1
-#endif /* defined(MICROSOFT_EXTENSIONS_ALLOWED) && ... */
-#endif /* defined(DO_IL_LOWERING) && !DO_IL_LOWERING */
-#endif /* COROUTINES_ALLOWED */
-
-/*
 Enable GNU function multiversioning on systems where GNU extensions are
 enabled.
 */

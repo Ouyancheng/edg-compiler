@@ -8007,9 +8007,6 @@ Don't put its symbol into the symbol table yet.
 
 #endif /* IA64_ABI */
 
-#if !(MICROSOFT_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED)
-static
-#endif /* !(MICROSOFT_EXTENSIONS_ALLOWED || COROUTINES_ALLOWED) */
 a_symbol_ptr look_up_name_string_in_namespace(
                                         a_const_char             *symbol_name,
                                         a_namespace_ptr          ns_ptr,
@@ -8802,10 +8799,8 @@ associated symbol, or NULL if it is not found.
   return result_sym;
 }  /* look_up_class_template_in_std */
 
-#if COROUTINES_ALLOWED
 
-static
-a_symbol_ptr look_up_coroutine_class_template(a_const_char *ctname)
+static a_symbol_ptr look_up_coroutine_class_template(a_const_char *ctname)
 /*
 Look up the coroutine class template of the given name in the namespace pointed
 to by namespace_for_coroutine_types.  If this is NULL, look up the class
@@ -9395,7 +9390,6 @@ member.
   }  /* if */
 }  /* init_coroutine_descr */
 
-#endif /* COROUTINES_ALLOWED */
 #if defined(GUARD_MACRO_FOR_VA_LIST) || defined(GUARD_MACRO2_FOR_VA_LIST)
 
 static a_boolean define_guard_macro(a_const_char *macro_name)
@@ -17720,9 +17714,7 @@ given translation unit.
 #if IA64_ABI
   symbol_for_namespace_abi = NULL;
 #endif /* IA64_ABI */
-#if COROUTINES_ALLOWED
   namespace_for_coroutine_types = NULL;
-#endif /* COROUTINES_ALLOWED */
   symbol_for_std_initializer_list = NULL;
   builtin_va_list_type = NULL;
   type_underlying_va_list = NULL;

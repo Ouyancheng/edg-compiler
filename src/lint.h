@@ -1354,33 +1354,6 @@ extern int fileno(FILE *);
 /*lint -esym(765,temp_for_local_constant)*/
 /*lint -esym(714,temp_for_local_constant)*/
 /*lint -esym(755,concat)*/
-#if !COROUTINES_ALLOWED
-/*lint -esym(769,tok_coroutine_yield)*/
-/*lint -esym(769,tok_coroutine_return)*/
-/*lint -esym(769,tok_coroutine_await)*/
-/*lint -esym(769,ec_special_member_coroutine)*/
-/*lint -esym(769,ec_main_coroutine)*/
-/*lint -esym(769,ec_yield_in_catch)*/
-/*lint -esym(769,ec_yield_in_constexpr_function)*/
-/*lint -esym(769,ec_await_no_matching_overload)*/
-/*lint -esym(769,ec_await_undefined_identifier)*/
-/*lint -esym(769,ec_await_no_eventual_value)*/
-/*lint -esym(769,ec_special_class_template_not_found)*/
-/*lint -esym(769,ec_not_a_type_member)*/
-/*lint -esym(769,ec_await_not_allowed_outside_function_scope)*/
-/*lint -esym(769,ec_await_not_allowed_in_catch_clause)*/
-/*lint -esym(769,ec_coroutine_with_ellipsis_parameter)*/
-/*lint -esym(769,ec_coroutine_with_deduced_return_type)*/
-/*lint -esym(769,ec_await_in_unevaluated_operand)*/
-/*lint -esym(769,ec_invalid_yield_value_type)*/
-/*lint -esym(769,ec_nonvoid_yield_value_type)*/
-/*lint -esym(769,ec_return_in_coroutine)*/
-/*lint -esym(769,ec_invalid_co_return)*/
-/*lint -esym(769,ec_yield_outside_of_function)*/
-/*lint -esym(769,ec_cannot_deduce_coroutine_return_type)*/
-/*lint -esym(759,arg_list_is_dependent)*/
-/*lint -esym(765,arg_list_is_dependent)*/
-#endif /* !COROUTINES_ALLOWED */
 /* This should be conditional on !CPPCLI_ENABLING_POSSIBLE, but we don't
    include *.cpp files when running lint, so make it unconditional. */
 /*lint -esym(769,ec_ms_metadata_init_failed)*/

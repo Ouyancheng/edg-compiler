@@ -29,9 +29,7 @@ expr.c -- Expression scanning routines.
 #include "disambig.h"
 #include "decl_spec.h"
 #include "declarator.h"
-#if COROUTINES_ALLOWED
 #include "func_def.h"
-#endif /* COROUTINES_ALLOWED */
 #include "interpret.h"
 #include "layout.h"
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -96,10 +94,8 @@ static a_boolean process_runtime_checked_safe_cast(
                                             a_source_position  *start_position,
                                             a_cast_source_form source_form);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if COROUTINES_ALLOWED
 static void scan_yield_expression(an_operand  *result);
 static void scan_await_expression(an_operand  *result);
-#endif /* COROUTINES_ALLOWED */
 
 /* Interface to scan_expr_full for the simple case where a bound function
    cannot be returned. */
@@ -35392,7 +35388,6 @@ repeat_switch:
             goto handle_safe_cast;
           }  /* if */
         }  /* if */
-#if COROUTINES_ALLOWED
         if (coroutines_enabled && coroutine_keywords_enabled &&
             curr_token == tok_identifier &&
             locator_for_curr_id.symbol_header == yield_symbol_header &&
@@ -35402,7 +35397,6 @@ repeat_switch:
              treated like the co_yield keyword. */
           goto handle_coroutine_yield;
         }  /* if */
-#endif /* COROUTINES_ALLOWED */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 handle_identifier:
@@ -35720,7 +35714,6 @@ handle_identifier:
                                  &local_result);
       break;
 
-#if COROUTINES_ALLOWED
     case tok_coroutine_yield:
 handle_coroutine_yield:
       scan_yield_expression(&local_result);
@@ -35729,7 +35722,6 @@ handle_coroutine_yield:
     case tok_coroutine_await:
       scan_await_expression(&local_result);
       break;
-#endif /* COROUTINES_ALLOWED */
 
 #if UPC_EXTENSIONS_ALLOWED
     case tok_upc_localsizeof:
@@ -38767,7 +38759,6 @@ variable.
 }  /* iterator_type */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if COROUTINES_ALLOWED
 
 void add_await_to_operand(an_operand_ptr          operand,
                           a_source_position       *pos,
@@ -38973,11 +38964,7 @@ operation.  This routine frees *suspend_arg.
   pop_expr_stack();
 }  /* determine_suspend_call_for_await */
 
-#endif /* COROUTINES_ALLOWED */
 
-#if !COROUTINES_ALLOWED
-/*ARGSUSED*/ /* use_await is not used in some configurations. */
-#endif /* !COROUTINES_ALLOWED */
 static a_boolean generate_enhanced_for_ne_and_incr_expressions(
                                        a_variable_ptr          begin_var,
                                        a_variable_ptr          end_var,
@@ -39147,12 +39134,10 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
                                  prvalue_type(operand1.type), &operand);
     }  /* if */
   }  /* if */
-#if COROUTINES_ALLOWED
   if (use_await) {
     add_await_to_operand(&operand, expr_position, tok_seq_number,
                          /*for_yield=*/FALSE, &operand);
   }  /* if */
-#endif /* COROUTINES_ALLOWED */
   if (passed) {
     if (is_error_operand(&operand)) {
       passed = FALSE;
@@ -39192,11 +39177,9 @@ FALSE otherwise.
 
   check_assertion(rbflp->begin_end_scope == scope_stack_top().il_scope);
   /* Generate the "__begin != __end" and "++__begin" expressions. */
-#if COROUTINES_ALLOWED
   if (rbflp->use_await) {
     use_await = TRUE;
   }  /* if */
-#endif /* COROUTINES_ALLOWED */
   passed = generate_enhanced_for_ne_and_incr_expressions(
                                                 rbflp->begin,
                                                 rbflp->end,
@@ -39422,9 +39405,6 @@ end_of_routine:;
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !COROUTINES_ALLOWED
-/*ARGSUSED*/ /* use_await is not used in some configurations. */
-#endif /* !COROUTINES_ALLOWED */
 static a_boolean make_enhanced_for_initializer_for_call_to_member_function(
                                         a_variable_ptr          selector_var,
                                         a_const_char            *function_name,
@@ -39470,13 +39450,11 @@ initializer of *loop_var.
                                                tok_seq_number,
                                                (an_operand *)NULL,
                                                &member_call_operand)) {
-#if COROUTINES_ALLOWED
     if (use_await) {
       add_await_to_operand(&member_call_operand, &member_call_operand.position,
                            tok_seq_number, /*for_yield=*/FALSE,
                            &member_call_operand);
     }  /* if */
-#endif /* COROUTINES_ALLOWED */
     /* Make the variable and initialize it from the expression just made. */
     *loop_var = alloc_temporary_variable(
                                make_unqualified_type(member_call_operand.type),
@@ -41043,11 +41021,9 @@ issued and FALSE is returned.
   a_boolean         passed = TRUE, add_await = FALSE;
 
   /* Make "__range.begin()". */
-#if COROUTINES_ALLOWED
   if (rbflp->use_await) {
     add_await = TRUE;
   }  /* if */
-#endif /* COROUTINES_ALLOWED */
   if (!make_enhanced_for_initializer_for_call_to_member_function(
                                                          rbflp->range,
                                                          "begin",
@@ -41076,9 +41052,6 @@ issued and FALSE is returned.
 }  /* check_range_based_for_member_case */
 
 
-#if !COROUTINES_ALLOWED
-/*ARGSUSED*/ /* use_await is not used in some configurations. */
-#endif /* !COROUTINES_ALLOWED */
 static a_boolean create_range_based_for_variable_for_function_call(
                                         a_variable_ptr          range_var,
                                         a_const_char            *function_name,
@@ -41128,12 +41101,10 @@ initializer of *variable.
                             arg_list, expr_position, tok_seq_number,
                             oc_range_based_for_bounds,
                             &result, &func_call_node);
-#if COROUTINES_ALLOWED
     if (use_await) {
       add_await_to_operand(&result, &result.position, tok_seq_number,
                            /*for_yield=*/FALSE, &result);
     }  /* if */
-#endif /* COROUTINES_ALLOWED */
     if (func_call_node != NULL) {
       /* Make the variable and initialize it with the result of the call
          just made. */
@@ -41171,11 +41142,9 @@ is template dependent.
   a_boolean       passed = TRUE, add_await = FALSE;
 
   /* Find a suitable "begin" function. */
-#if COROUTINES_ALLOWED
   if (rbflp->use_await) {
     add_await = TRUE;
   }  /* if */
-#endif /* COROUTINES_ALLOWED */
   if (!create_range_based_for_variable_for_function_call(rbflp->range,
                                                          "begin",
                                                          expr_position,
@@ -41916,9 +41885,6 @@ are left unaffected).
 }  /* deduce_return_type_from_void_operand */
 
 
-#if !COROUTINES_ALLOWED
-static
-#endif /* !COROUTINES_ALLOWED */
 void check_and_adjust_deduced_return_type_if_needed(
                                                  a_routine_ptr   curr_routine,
                                                  an_operand_ptr  return_op,
@@ -41944,13 +41910,11 @@ type with the type of return_op.
   check_assertion(curr_routine->has_deducible_return_type);
   rout_type = skip_typerefs(curr_routine->type);
   check_assertion(rout_type->kind == (a_type_kind)tk_routine);
-#if COROUTINES_ALLOWED
   if (curr_routine->is_coroutine) {
     /* Don't record a placeholder for coroutines here, because the deduced
        return type will later be replaced. */
     keep_placeholder = FALSE;
   }  /* if */
-#endif /* COROUTINES_ALLOWED */
   if (first_deduction) {
     /* This is the first time we deduce the return type.  Record the original
        in case we must perform the deduction again for another return statement
@@ -42054,7 +42018,6 @@ class (nullptr_t is fine too).
 }  /* check_vccorlib_ctor_return_expr */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if COROUTINES_ALLOWED
 
 
 static void bundle_coroutine_result(an_arg_list_elem_ptr  alep)
@@ -42184,12 +42147,7 @@ done:
   return result;
 }  /* wrap_up_coroutine_result_expression */
 
-#endif /* COROUTINES_ALLOWED */
 
-
-#if !COROUTINES_ALLOWED
-/*ARGSUSED*/  /* alep is not used in some configurations. */
-#endif /* !COROUTINES_ALLOWED */
 an_expr_node_ptr scan_return_expression(a_type_ptr            required_type,
                                         an_error_code         err_code,
                                         a_dynamic_init_ptr    *dip,
@@ -42248,7 +42206,6 @@ wrap_up_coroutine_result_expression.)
       expression = wrap_up_full_expression(expression);
       free_init_component_list(icp);
       goto done;
-#if COROUTINES_ALLOWED
     } else if (curr_routine->is_coroutine) {
       /* Bypass the usual processing on return expressions, and handle this
          as a coroutine return instead. */
@@ -42256,7 +42213,6 @@ wrap_up_coroutine_result_expression.)
       *alep = icp;
       bundle_coroutine_result(*alep);
       goto done;
-#endif /* COROUTINES_ALLOWED */
     }  /* if */
     if (curr_routine->has_deducible_return_type &&
         !curr_routine->is_prototype_instantiation) {
@@ -42324,7 +42280,6 @@ wrap_up_coroutine_result_expression.)
         expr_stack->in_cctor_elision_initializer = TRUE;
     }  /* if */
     scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
-#if COROUTINES_ALLOWED
     if (curr_routine->is_coroutine) {
       /* Bypass the usual processing on return expressions, and handle this
          as a coroutine return instead. */
@@ -42333,7 +42288,6 @@ wrap_up_coroutine_result_expression.)
       expression = NULL;
       goto done;
     }  /* if */
-#endif /* COROUTINES_ALLOWED */
     if (deduced_return_type) {
       /* Set the return type from the expression type. */
 handle_deduced_return_type:
@@ -42488,7 +42442,6 @@ done:
   return expression;
 }  /* scan_return_expression */
 
-#if COROUTINES_ALLOWED
 
 static an_arg_list_elem_ptr scan_yield_operand(void)
 /*
@@ -42682,7 +42635,6 @@ rcblock parameter for this function).
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
 }  /* scan_await_expression */
 
-#endif /* COROUTINES_ALLOWED */
 
 void scan_pp_expression(a_constant *constant)
 /*

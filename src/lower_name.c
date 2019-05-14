@@ -143,9 +143,7 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_LEFT_BINARY_FOLD "fL"
 #define MANGLING_STRING_FOR_RIGHT_UNARY_FOLD "fr"
 #define MANGLING_STRING_FOR_RIGHT_BINARY_FOLD "fR"
-#if COROUTINES_ALLOWED
 #define MANGLING_STRING_FOR_OPERATOR_AWAIT "aw"
-#endif /* COROUTINES_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #define MANGLING_STRING_FOR_OPERATOR_GNU_MIN "v23min"
 #define MANGLING_STRING_FOR_OPERATOR_GNU_MAX "v23max"
@@ -387,9 +385,7 @@ Z = template parameter (demangle_type_name)
 #define MANGLING_STRING_FOR_LEFT_BINARY_FOLD "fL"
 #define MANGLING_STRING_FOR_RIGHT_UNARY_FOLD "fr"
 #define MANGLING_STRING_FOR_RIGHT_BINARY_FOLD "fR"
-#if COROUTINES_ALLOWED
 #define MANGLING_STRING_FOR_OPERATOR_AWAIT "aw"
-#endif /* COROUTINES_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #define MANGLING_STRING_FOR_OPERATOR_GNU_MIN "mn"
 #define MANGLING_STRING_FOR_OPERATOR_GNU_MAX "mx"
@@ -6755,7 +6751,6 @@ is TRUE.
                                (a_constant_ptr)NULL,
                                (a_type_ptr)NULL, mctl);
       break;
-#if COROUTINES_ALLOWED
     case enk_await:
       /* Mangling for "co_await <operand>". */
 #if !IA64_ABI
@@ -6773,7 +6768,6 @@ is TRUE.
       add_to_mangled_name('O', mctl);
 #endif /* IA64_ABI */
       break;
-#endif /* COROUTINES_ALLOWED */
     case enk_fold:
       /* Mangling for fold-expressions. */
       { a_boolean       unary, left_assoc;
@@ -10468,11 +10462,9 @@ binary versions of operators are mangled differently.
     case onk_question:          /* "?" */
       name = MANGLING_STRING_FOR_OPERATOR_QUESTION;
       break;
-#if COROUTINES_ALLOWED
     case onk_await:             /* "co_await" */
       name = MANGLING_STRING_FOR_OPERATOR_AWAIT;
       break;
-#endif /* COROUTINES_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
     case onk_gnu_min:           /* "<?" */
       name = MANGLING_STRING_FOR_OPERATOR_GNU_MIN;

@@ -3405,7 +3405,6 @@ as specified in the control block.
       traverse_expr_list(expr->variant.builtin_choose_expr.operands, tblock);
       break;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-#if COROUTINES_ALLOWED
     case enk_await:
     case enk_yield:
       if (expr->variant.await_info.operand != NULL) {
@@ -3414,7 +3413,6 @@ as specified in the control block.
       traverse_expr_list(expr->variant.await_info.resume_ready_suspend,
                          tblock);
       break;
-#endif /* COROUTINES_ALLOWED */
     case enk_fold:
       traverse_expr_list(expr->variant.fold.operands, tblock);
       break;
@@ -3556,14 +3554,13 @@ as specified in the control block.
         traverse_expr(statement->expr, tblock);
       }  /* if */
       break;
-#if COROUTINES_ALLOWED
     case stmk_coroutine:
+      break;
     case stmk_coroutine_return:
       if (statement->expr != NULL) {
         traverse_expr(statement->expr, tblock);
       }  /* if */
       break;
-#endif /* COROUTINES_ALLOWED */
     case stmk_block:
       traverse_statement_list(statement->variant.block.statements, tblock);
       if (innermost_function_scope != NULL &&

@@ -3733,11 +3733,9 @@ Display the indicated routine.
   if (ptr->contains_generic_lambda) {
     disp_boolean("contains_generic_lambda", TRUE);
   }  /* if */
-#if COROUTINES_ALLOWED
   if (ptr->is_coroutine) {
     disp_boolean("is_coroutine", TRUE);
   }  /* if */
-#endif /* COROUTINES_ALLOWED */
   if (ptr->is_top_level_in_mem_region) {
     disp_boolean("is_top_level_in_mem_region", TRUE);
   }  /* if */
@@ -4671,7 +4669,6 @@ cleanup_state_common:
                    (a_boolean)ptr->variant.builtin_choose_expr.choose_first);
       break;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-#if COROUTINES_ALLOWED
     case enk_await:
     case enk_yield:
       (void)printf(ptr->kind == (an_expr_node_kind)enk_await ? "enk_await\n"
@@ -4682,7 +4679,6 @@ cleanup_state_common:
                (char *)ptr->variant.await_info.resume_ready_suspend,
                iek_expr_node);
       break;
-#endif /* COROUTINES_ALLOWED */
     case enk_fold:
       disp_name("fold.operator_token");
       (void)printf("%s\n", token_names[ptr->variant.fold.operator_token]);
@@ -4834,7 +4830,6 @@ or try-except statement supplement.
 }  /* disp_microsoft_try_supplement */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if COROUTINES_ALLOWED
 
 static void disp_coroutine_descr(a_coroutine_descr_ptr  cdp)
 /*
@@ -4858,7 +4853,6 @@ Display the indicated coroutine description.
   }  /* if */
 }  /* disp_coroutine_descr */
 
-#endif /* COROUTINES_ALLOWED */
 
 static void disp_block(a_block_ptr ptr)
 /*
@@ -4911,11 +4905,9 @@ Display a range-based-for statement.
            iek_expr_node);
   disp_ptr("incr_call_expr", (char *)extra_info->incr_call_expr,
            iek_expr_node);
-#if COROUTINES_ALLOWED
   if (extra_info->use_await) {
     disp_boolean("use_await", TRUE);
   }  /* if */
-#endif /* COROUTINES_ALLOWED */
 }  /* disp_range_based_for_statement */
 
 
@@ -5072,7 +5064,6 @@ Display the indicated statement.
                  (char *)ptr->variant.return_dynamic_init, iek_dynamic_init);
       }  /* if */
       break;
-#if COROUTINES_ALLOWED
     case stmk_coroutine_return:
       (void)printf("stmk_coroutine_return\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
@@ -5083,7 +5074,6 @@ Display the indicated statement.
         disp_coroutine_descr(ptr->variant.coroutine.descr);
       }  /* if */
       break;
-#endif /* COROUTINES_ALLOWED */
     case stmk_if:
       (void)printf("stmk_if\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);

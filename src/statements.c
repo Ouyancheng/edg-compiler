@@ -34,10 +34,7 @@ statements.c -- Scanning of statements.
 #include "pragma.h"
 #include "statements.h"
 #include "macro.h"
-
-#if COROUTINES_ALLOWED
 #include "func_def.h"
-#endif /* COROUTINES_ALLOWED */
 
 static a_struct_stmt_stack_entry_ptr
 		struct_stmt_stack_container;
@@ -1754,10 +1751,7 @@ the current statement sequence.
   if (kind == (a_statement_kind)stmk_label) {
     set_reachable(curr_reachability);
   } else if (kind == (a_statement_kind)stmk_return
-#if COROUTINES_ALLOWED
-             || kind == (a_statement_kind)stmk_coroutine_return
-#endif /* COROUTINES_ALLOWED */
-                                                               ) {
+             || kind == (a_statement_kind)stmk_coroutine_return) {
     a_routine_ptr  rp = current_routine_entry();
     a_type_ptr     rtp = skip_typerefs(rp->type);
     if (rtp->variant.routine.extra_info->does_not_return &&
@@ -1787,9 +1781,7 @@ the current statement sequence.
 #if GNU_EXTENSIONS_ALLOWED
       kind == (a_statement_kind)stmk_assigned_goto ||
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if COROUTINES_ALLOWED
       kind == (a_statement_kind)stmk_coroutine_return ||
-#endif /* COROUTINES_ALLOWED */
       kind == (a_statement_kind)stmk_return) {
     set_unreachable(curr_reachability);
   }  /* if */
@@ -5166,12 +5158,10 @@ The affinity can be an expression or the keyword "continue".
   check_assertion_str(processing_upc_forall || curr_token == tok_for,
                       "for_statement: expected for");
   (void)get_token();
-#if COROUTINES_ALLOWED
   if (is_range_based_for && curr_token == tok_coroutine_await) {
     rbflp->use_await = TRUE;
     (void)get_token();
   }  /* if */
-#endif /* COROUTINES_ALLOWED */
   /* Check for and skip the opening parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
@@ -6023,9 +6013,6 @@ represented by *sssep.
 }  /* has_nested_finally_clause */
 
 
-#if !COROUTINES_ALLOWED
-static
-#endif /* !COROUTINES_ALLOWED */
 a_boolean inside_finally_clause()
 /*
 Return TRUE if the top structured statement is nested in a C++/CLI finally
@@ -6266,10 +6253,8 @@ in which such a return is undefined.
   a_type_ptr        rout_type, tp;
   a_boolean         issue_no_value_returned_diag = FALSE;
   an_error_severity no_returned_value_severity = es_none;
-#if COROUTINES_ALLOWED
   a_coroutine_descr_ptr
                     cdp = NULL;
-#endif /* COROUTINES_ALLOWED */
 
   *return_expr = NULL;
   /* Disable return value optimization in a function that contains a void
@@ -6278,11 +6263,9 @@ in which such a return is undefined.
     ssep->return_value_optimization_possible = FALSE;
     ssep->il_scope->variant.routine.return_value_variable = NULL;
   }
-#if COROUTINES_ALLOWED
   if (rout->is_coroutine) {
     cdp = get_coroutine_descr(rout, (a_source_position*)NULL);
   }  /* if */
-#endif /* COROUTINES_ALLOWED */
   rout_type = skip_typerefs(rout->type);
   check_assertion(rout_type->kind == (a_type_kind)tk_routine);
   if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
@@ -6291,14 +6274,12 @@ in which such a return is undefined.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       rout->special_kind == (a_special_function_kind)sfk_destructor) {
     /* Constructors and destructors have no return value. */
-#if COROUTINES_ALLOWED
   } else if (cdp != NULL) {
     /* In coroutines, an actual (implicit) return statement cleans up the
        coroutine activation and does not relate to the return type. It is only
        well-behaved if "promise_type::return_void" exists.  The promise type
        may not yet be known, so defer checking here to the coroutine wrap-up
        (wrap_up_coroutine). */
-#endif /* COROUTINES_ALLOWED */
   } else {
     /* Get the routine return type. */
     if (rout->has_deducible_return_type && !rout->has_deduced_return_type) {
@@ -6468,7 +6449,6 @@ The syntax is:
   rout = current_routine_entry();
   rout_type = skip_typerefs(rout->type);
   return_type = rout_type->variant.routine.return_type;
-#if COROUTINES_ALLOWED
   if (rout->is_coroutine) {
     if (curr_token == tok_return && !microsoft_mode) {
       pos_error(ec_return_in_coroutine, &pos_curr_token);
@@ -6481,7 +6461,6 @@ The syntax is:
       (void)get_coroutine_descr(rout, &pos_curr_token);
     }  /* if */
   }  /* if */
-#endif /* COROUTINES_ALLOWED */
   /* Skip the return or co_return token. */
   (void)get_token();
   add_stop_token(tok_semicolon);
@@ -6509,16 +6488,12 @@ The syntax is:
     /* See if the optional expression is present. */
     if (!expr_present) {
       /* The expression is missing. */
-#if COROUTINES_ALLOWED
       if (rout->is_coroutine) {
         /* A co-routine statement.  It may eventually be transformed into a
            "return_void()" call.  Set alep to NULL to indicate that no
            arguments should be passed in such a call. */
         alep = NULL;
-      } else
-#endif /* COROUTINES_ALLOWED */
-      /* Do not insert code here. */
-      {
+      } else {
         check_void_return_okay(/*is_implicit_return=*/FALSE, &return_expr);
       }  /* if */
     } else {
@@ -6643,11 +6618,9 @@ The syntax is:
   } else {
     /* Allocate the return statement. */
     a_statement_kind  kind = (a_statement_kind)stmk_return;
-#if COROUTINES_ALLOWED
     if (rout->is_coroutine) {
       kind = (a_statement_kind)stmk_coroutine_return;
     }  /* if */
-#endif /* COROUTINES_ALLOWED */
     sp = add_statement_at_stmt_pos(kind, &return_pos);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     update_source_sequence_list((char*)sp, iek_statement, src_seq_entry);
@@ -6691,7 +6664,6 @@ The syntax is:
                                                                          TRUE;
         }  /* if */
       }  /* if */
-#if COROUTINES_ALLOWED
     } else if (rout->is_coroutine) {
       a_coroutine_descr_ptr  cdp = get_coroutine_descr(
                                               rout, (a_source_position*)NULL);
@@ -6701,7 +6673,6 @@ The syntax is:
       cfp->position = return_pos;
       cfp->operand = (void*)alep;
       cdp->has_coroutine_return = TRUE;
-#endif /* COROUTINES_ALLOWED */
     }  /* if */
     if (sp->kind == (a_statement_kind)stmk_return) {
       scope_stack[depth_innermost_function_scope].has_at_least_one_return =
@@ -6723,7 +6694,6 @@ done:
   db_exit();
 }  /* return_statement */
 
-#if COROUTINES_ALLOWED
 
 a_boolean in_catch_clause(void)
 /*
@@ -6742,7 +6712,6 @@ Return TRUE if we are currently inside a catch clause.
   return result;
 }  /* in_catch_clause */
 
-#endif /* COROUTINES_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 
 static a_boolean conflicting_switch_case_ranges(a_switch_case_entry_ptr  scep1,
@@ -7353,9 +7322,7 @@ rescan_statement:
       break_statement();
       break;
     case tok_return:
-#if COROUTINES_ALLOWED
     case tok_coroutine_return:
-#endif /* COROUTINES_ALLOWED */
       /* Return or co-return statement. */
       return_statement();
       if (current_rp != NULL && current_rp->is_constexpr &&
@@ -7896,7 +7863,6 @@ is being parsed within the context of the __extension__ keyword.
       /* The statement is not allocated earlier because we don't want it to
          affect the reachability information.  The source position on the
          statement is null to indicate that it is compiler generated. */
-#if COROUTINES_ALLOWED
       if (current_routine_entry()->is_coroutine) {
         a_coroutine_descr_ptr cdp =
                                  get_coroutine_descr(current_routine_entry(),
@@ -7911,10 +7877,7 @@ is being parsed within the context of the __extension__ keyword.
           cfp->position = null_source_position;
           cfp->operand = NULL;
         }  /* if */
-      } else
-#endif /* COROUTINES_ALLOWED */
-      /* Do not add code here. */
-      {
+      } else {
         sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return,
                                        &null_source_position);
         /* Insert an implied return value if there is one. */

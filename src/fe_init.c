@@ -1320,7 +1320,6 @@ Install the keywords in the symbol table.
          and later modes. */
       enter_keyword((a_token_kind)tok_alignof, "alignof");
     }  /* if */
-#if COROUTINES_ALLOWED
     if (coroutines_enabled) {
       enter_keyword((a_token_kind)tok_coroutine_yield, "co_yield");
       enter_keyword((a_token_kind)tok_coroutine_return, "co_return");
@@ -1342,7 +1341,6 @@ Install the keywords in the symbol table.
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
-#endif /* COROUTINES_ALLOWED */
   }  /* if */
   if (ms_extensions && microsoft_version >= 1300) {
     /* The __wchar_t keyword is entered even when wchar_t_is_keyword is FALSE.

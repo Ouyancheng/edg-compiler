@@ -970,7 +970,6 @@ constructor.
   }  /* if */
 }  /* set_routine_constexpr_info */
 
-#if COROUTINES_ALLOWED
 
 static void deduce_coroutine_return_type(a_routine_ptr rp)
 /*
@@ -1279,7 +1278,6 @@ coroutine cannot have an ellipsis parameter).
   }  /* if */
 }  /* wrap_up_coroutine */
 
-#endif /* COROUTINES_ALLOWED */
 
 void scan_function_body(a_routine_ptr     rout_ptr,
                         a_func_info_block *func_info,
@@ -1800,11 +1798,9 @@ of lambda expressions.
   if (flags & SFB_PRAGMA_PACK_IS_LOCAL) {
     restore_pack_alignment_state(&saved_pack_alignment_state);
   }  /* if */
-#if COROUTINES_ALLOWED
   if (rout_ptr->is_coroutine) {
     wrap_up_coroutine(rout_ptr);
   }  /* if */
-#endif /* COROUTINES_ALLOWED */
   if (rout_ptr->has_deducible_return_type) {
     /* We're completing the body of a function with a deducible return type.
        Ensure that a type is established at this point. */
@@ -3657,7 +3653,6 @@ in case it's useful.
 #endif /* DO_IL_LOWERING && ABI_COMPATIBILITY_VERSION < 238 */
 }  /* generate_required_virtual_destructor_bodies */
 
-#if COROUTINES_ALLOWED
 
 a_coroutine_descr_ptr get_coroutine_descr(a_routine_ptr      rp,
                                           a_source_position  *pos)
@@ -3728,7 +3723,6 @@ is set to TRUE.
   return cdp;
 }  /* get_coroutine_descr */
 
-#endif /* COROUTINES_ALLOWED */
 
 /******************************************************************************
 *                                                             \  ___  /       *

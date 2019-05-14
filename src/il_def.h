@@ -692,9 +692,7 @@ typedef enum /*an_il_entry_kind*/ {
   iek_gnu_routine_supplement,
                         /* a_gnu_routine_supplement */
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
-#if COROUTINES_ALLOWED
   iek_coroutine_descr,	/* a_coroutine_descr */
-#endif /* COROUTINES_ALLOWED */
   iek_variable_template_info,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   iek_event_interface,  /* an_event_interface */
@@ -862,9 +860,7 @@ EXTERN a_const_char *il_entry_kind_names[(int)iek_last + 1]
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
 /* iek_gnu_routine_supplement */        "gnu-routine-supplement",
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
-#if COROUTINES_ALLOWED
 /* iek_coroutine_descr */		"coroutine-descr",
-#endif /* COROUTINES_ALLOWED */
 /* iek_variable_template_info */        "variable-template-info",
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* iek_event_interface */               "event-interface",
@@ -11804,14 +11800,12 @@ typedef struct a_routine {
   a_bit_field	contains_generic_lambda:1;
 			/* TRUE if the routine contains a generic lambda
 			   (directly or in another lambda or local class). */
-#if COROUTINES_ALLOWED
   a_bit_field	is_coroutine:1;
 			/* TRUE if the definition of this function is
 			   resumable (i.e., it is a coroutine).   Additional
 			   information is recorded in the first statement of
 			   the function's top-level compound statement (a
 			   stmk_coroutine entry). */
-#endif /* COROUTINES_ALLOWED */
   a_bit_field	is_top_level_in_mem_region:1;
 			/* TRUE if this is the top-level function in a
 			   memory region.  The memory region can be
@@ -12362,10 +12356,8 @@ enum an_expr_node_kind_tag {
 			/* Used to represent the GNU __builtin_choose_expr
 			   construct. */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-#if COROUTINES_ALLOWED
   enk_yield,		/* A "co_yield" expression. */
   enk_await,		/* A "co_await" expression. */
-#endif /* COROUTINES_ALLOWED */
   enk_fold,		/* The generic representation of a C++17 fold
 			   expression.  (Concrete instantiations are
 			   represented using a chain of enk_operation
@@ -12923,14 +12915,12 @@ enum an_expr_operator_kind_tag {
 			   but really something with unknown lvalueness) is
 			   to be used as if it were an lvalue.  The eok_lvalue
 			   node itself is marked as an lvalue. */
-#if COROUTINES_ALLOWED
   eok_await,		/* The coroutine "co_await" operator applied to a
 			   dependent operand.  (In non-dependent contexts,
 			   an "enk_await" node is created instead.) */
   eok_yield,		/* The coroutine "co_yield" operator applied to a
 			   dependent operand.  (In non-dependent contexts,
 			   an "enk_yield" node is created instead.) */
-#endif /* COROUTINES_ALLOWED */
   /* Special operators: */
   eok_error,            /* This is a special operator used in the cases when
                            the operator cannot be determined.  This operator
@@ -14100,7 +14090,6 @@ typedef struct an_expr_node {
 			   operand should be evaluated. */
     } builtin_choose_expr;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-#if COROUTINES_ALLOWED
     /* When kind == enk_await or enk_yield: */
     struct {
       an_expr_node_ptr
@@ -14115,7 +14104,6 @@ typedef struct an_expr_node {
 			   await_suspend needed to implement the "co_await"
 			   operation. */
     } await_info;
-#endif /* COROUTINES_ALLOWED */
     /* When kind == enk_fold: */
     struct {
       an_expr_node_ptr
@@ -14162,11 +14150,9 @@ enum a_statement_kind_tag {
   stmk_goto,		/* Goto. */
   stmk_label,		/* Code label. */
   stmk_return,		/* Return (not for a coroutine). */
-#if COROUTINES_ALLOWED
   stmk_coroutine,	/* Coroutine information. */
   stmk_coroutine_return,
 			/* Return (for a coroutine). */
-#endif /* COROUTINES_ALLOWED */
   stmk_block,		/* A list of statements, possibly one with its
 			   own declarations and scope. */
   stmk_end_test_while,	/* Loop, test at bottom. */
@@ -14371,11 +14357,9 @@ typedef struct a_range_based_for_loop {
   an_expr_node_ptr
                 incr_call_expr;
                         /* Expression for the "++__begin" increment. */
-#if COROUTINES_ALLOWED
   a_bit_field	use_await:1;
 			/* TRUE in the case of a "for await (...)"
 			   statement. */
-#endif /* COROUTINES_ALLOWED */
 } a_range_based_for_loop;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -14760,8 +14744,6 @@ typedef struct a_microsoft_try_supplement {
 } a_microsoft_try_supplement;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if COROUTINES_ALLOWED
-
 /*
 Description of a coroutine definition (pointed to by an stmk_coroutine
 statement).
@@ -14846,8 +14828,6 @@ typedef struct a_coroutine_descr {
 			/* TRUE if the coroutine includes a co_return
 			   statement. */
 } a_coroutine_descr;
-
-#endif /* COROUTINES_ALLOWED */
 
 /*
 Description of a C++17 "if constexpr" statement.
@@ -14968,10 +14948,8 @@ typedef struct a_statement {
 			   as declarations, comments, etc. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   union {
-    /* When kind == stmk_expr or stmk_empty, no variant fields. */
-#if COROUTINES_ALLOWED
-    /* Likewise for stmk_yield and stmk_coroutine_return. */
-#endif /* COROUTINES_ALLOWED */
+    /* When kind == stmk_expr, stmk_coroutine_return or stmk_empty, no variant
+       fields. */
 #if GNU_EXTENSIONS_ALLOWED
     /* Likewise for stmk_assigned_goto in C/C++ IL. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -15103,7 +15081,6 @@ typedef struct a_statement {
 			   dynamic initialization entry that initializes the
 			   return value.  NULL otherwise.  When this is
 			   non-NULL, expr is NULL. */
-#if COROUTINES_ALLOWED
     /* When kind == stmk_coroutine: */
     struct {
       a_coroutine_descr_ptr
@@ -15111,7 +15088,6 @@ typedef struct a_statement {
 			/* A pointer to an entry describing various key
 			   entities and operations in the coroutine. */
     } coroutine;
-#endif /* COROUTINES_ALLOWED */
     /* When kind == stmk_block: */
     struct {
       a_statement_ptr
@@ -17330,9 +17306,7 @@ EXTERN a_const_char *db_operator_names[(int)eok_last+1]
    "cli[]", 
    "va_start", "va_arg", "va_end", "va_copy", "va_start (single op)",
    "lvalue",
-#if COROUTINES_ALLOWED
    "co_await", "co_yield",
-#endif /* COROUTINES_ALLOWED */
    "error", "last"
 }
 #endif /* VAR_INITIALIZERS */
@@ -17561,9 +17535,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   sizeof(a_gnu_routine_supplement),
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
-#if COROUTINES_ALLOWED
   sizeof(a_coroutine_descr),
-#endif /* COROUTINES_ALLOWED */
   sizeof(a_variable_template_info),
 #if MICROSOFT_EXTENSIONS_ALLOWED
   sizeof(an_event_interface),
