@@ -3612,6 +3612,24 @@ that the remaining arguments will be defaulted.
           num_arguments = 0;
         }  /* if */
       }  /* if */
+    } else if (entry_kind == iek_routine) {
+      /* Only put out function template arguments if they were explicitly
+         specified anywhere in the translation unit. */
+      begin_template_arg_list_traversal_simple(tap, &argp);
+      for (; argp != NULL && argp->explicitly_specified;
+           advance_to_next_template_arg_simple(&argp)) {
+        prev_argp = argp;
+      }  /* for */
+      if (argp != NULL) {
+        /* We exited the loop early, with argp designating the first
+           argument that was never explicitly specified and, if non-NULL,
+           prev_argp designating the last explicitly-specified argument. */
+        if (prev_argp != NULL) {
+          prev_argp->next = NULL;
+        } else {
+          num_arguments = 0;
+        }  /* if */
+      }  /* if */
     }  /* if */
     if (insert_space) write_space();
     /* Put out the template argument list, e.g., "<int, float>". */

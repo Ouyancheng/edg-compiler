@@ -1,5 +1,37 @@
 Version 5.1
 
+5/14/19  [EDGcpfe/21229]
+C++-generating back end: template arguments for function template instances
+
+In configurations in which DEFAULT_RECORD_FORM_OF_NAME_REFERENCE is FALSE
+or NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, the
+C++-generating back end put out the complete template argument list when
+generating the name of an instance of a function template.  In most cases
+this did not cause problems, but in cases like the one in the example
+below, the resulting code was incorrect and could not be compiled.  This
+has now been addressed by putting out only as many template arguments as
+the maximum number specified at any point in the translation unit. For
+example, in a configuration in which
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, with
+--c++11,
+
+  template<typename...> struct A { };
+  template<typename, typename... Ts, typename... Us>
+  void f(A<Ts...> &, A<Us...>) { }
+  void g() {
+    A<int> ai;
+    A<char> ac;
+    f<int>(ai, ac);
+  }
+
+the generated code contained an explicit specialization whose name was
+given as "f<int, int, char>", which could not be compiled because of the
+ambiguity of determining which template arguments matched Ts and which
+matched Us.  The name of the explicit specialization is now put out as
+"f<int>", since only one explicit argument was ever used in referencing
+that instance of the template.
+
+
 5/14/19  [EDGcpfe/21206]
 GNU compatibility: __builtin_expect_with_probability
 
