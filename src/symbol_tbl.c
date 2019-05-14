@@ -8898,7 +8898,7 @@ in alep.  The caller is responsible for freeing the created argument list.
     make_expression_operand(var_expr, &arg_operand);
     *alep = alloc_arg_list_elem_for_operand(&arg_operand);
     next_alep = &(*alep)->next;
-  }
+  }  /* if */
   for (rout_param_var = sp->variant.routine.parameters;
         rout_param_var != NULL; rout_param_var = rout_param_var->next) {
     var_expr = var_rvalue_expr(rout_param_var);
@@ -9061,7 +9061,7 @@ or NULL if no appropriate symbol could be found.
                                             /*template_arg_list=*/NULL,
                                             size_t_arg,
                                             /*have_selector=*/FALSE,
-                                            /*bound_function_selector=*/NULL)) {
+                                            /*bound_function_selector*/NULL)) {
       /* Free the arguments after size_t and try to resolve that one. */
       free_arg_list(alep);
       size_t_arg->next = NULL;
@@ -9246,6 +9246,10 @@ coroutine as described in N4775.
   a_dynamic_init_ptr  dip;
   an_expr_stack_entry expr_stack_entry, *saved_expr_stack = expr_stack;
 
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  expr_stack->in_coroutine_desc_init = TRUE;
   initialize_coroutine_promise_variable(promise_var, coroutine);
   /* Resolve the needed calls that use the promise variable. */
   make_coroutine_promise_call_operand(&operand, "initial_suspend",
@@ -9259,9 +9263,6 @@ coroutine as described in N4775.
   cr_desc->unhandled_exception_call = expr_node_from_operand(&operand);
   /* Resolve the call to p.get_return_object and convert it to the return type
      of the coroutine. */
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry, 
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
   make_coroutine_promise_call_operand(&operand, "get_return_object",
                                       promise_var, /*add_await=*/FALSE);
   prep_elision_initializer_operand(&operand, coroutine->type->
@@ -9272,8 +9273,8 @@ coroutine as described in N4775.
                                    /*elision_done=*/NULL,
                                    &dip);
   cr_desc->get_return_object_call = expr_node_from_operand(&operand);
-  pop_expr_stack();
   select_coroutine_new_delete(cr_desc, coroutine);
+  pop_expr_stack();
   expr_stack = saved_expr_stack;
 }  /* prepare_coroutine_calls */
 

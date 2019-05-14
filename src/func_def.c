@@ -1064,6 +1064,123 @@ depending on the presence of "co_yield" and/or "co_await".
 }  /* deduce_coroutine_return_type */
 
 
+static void create_coroutine_parameter_copy(a_variable_ptr    param_var,
+                                            a_variable_ptr    copy_var,
+                                            a_source_position *pos)
+/*
+Overwrite the provided copy_var with a variable that is direct-initialized with
+the provided param_var.  Use pos as the position of this generated variable.
+*/
+{
+  an_expr_stack_entry expr_stack_entry, *saved_expr_stack = expr_stack;
+  a_type_ptr          copy_type = param_var->type;
+  a_decl_parse_state  dps;
+
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  init_decl_parse_state(&dps);
+  { /* Create the copy variable and a matching symbol. */
+    a_symbol_locator loc;
+    a_symbol_ptr     copy_sym;
+
+    clear_locator(&loc, pos);
+    copy_sym = make_symbol((a_symbol_kind)sk_variable, &loc);
+    clear_variable(copy_var);
+    copy_var->storage_class = (a_storage_class)sc_auto;
+    copy_var->type = copy_type;
+    copy_var->source_corresp.decl_position = *pos;
+    /* Use the same name as the original parameter to allow the C++ generating
+       back end to produce valid code without needing to perform hijinks to
+       get back to the original parameter name. */
+    copy_var->source_corresp.name = param_var->source_corresp.name;
+    copy_var->is_this_parameter = param_var->is_this_parameter;
+    copy_var->is_parameter = param_var->is_parameter;
+    copy_var->source_corresp.assoc_info = (char*)copy_sym;
+    copy_var->next = param_var->next;
+    copy_sym->variant.variable.ptr = copy_var;
+    dps.sym = copy_sym;
+  }
+  { /* Create the initializer operand for the copy variable. */
+    an_arg_list_elem_ptr var;
+    an_expr_node_ptr     expr;
+    an_operand           var_operand;
+
+    expr = var_rvalue_expr(param_var);
+    if (is_any_reference_type(copy_type)) {
+      expr = add_ref_indirection_to_node(expr);
+    }  /* if */
+    if (is_lvalue_reference_type(copy_type)) {
+      expr->is_lvalue = TRUE;
+    } else {
+      expr->is_xvalue = TRUE;
+    }  /* if */
+    make_glvalue_expression_operand(expr, &var_operand);
+    var = alloc_arg_list_elem_for_operand(&var_operand);
+    add_init_component_to_initializer_cache(var, /*to_front=*/TRUE,
+                                            &dps.prescanned_initializer_cache);
+  }
+  { /* Create the initializer for the copy variable.  Note that this frees
+       the init component allocated above. */
+    a_boolean incomplete_type_err = FALSE;
+    initializer(&dps, pos, idl_none, /*parenthesized_initializer=*/TRUE,
+                &incomplete_type_err, /*decl_pos_block=*/NULL);
+  }
+  pop_expr_stack();
+  expr_stack = saved_expr_stack;
+}  /* create_coroutine_parameter_copy */
+
+
+static void copy_coroutine_parameters(a_routine_ptr         coroutine,
+                                      a_coroutine_descr_ptr cr_desc)
+/*
+A coroutine requires that copies be made of all parameters to the coroutine,
+and that all uses of these parameters be updated to use the copies.  Duplicate
+the parameter variables and overwrite the original variables with these copies
+(this will cause all references to the parameter variables to now refer to the
+copies).  Update the scope entry for the routine to refer to the duplicates,
+as this should not reference the copies.  Record the parameter copies in the
+coroutine descriptor block.  Note that this should not be done until after the
+coroutine body has finished processing, as this could otherwise cause later
+parameter references to refer to the parameter duplicates instead of the
+created copies.
+*/
+{
+  a_source_position      *pos = &coroutine->source_corresp.decl_position;
+  a_scope_ptr            sp = scope_for_routine(coroutine);
+  a_variable_ptr         rout_param_var, relocated_var;
+  a_variable_ptr         *orig_param = &sp->variant.routine.parameters;
+  an_object_lifetime_ptr saved_curr_object_lifetime = curr_object_lifetime;
+  an_expr_stack_entry    expr_stack_entry, *saved_expr_stack = expr_stack;
+
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  expr_stack->in_coroutine_desc_init = TRUE;
+  curr_object_lifetime = expr_stack->lifetime = sp->lifetime;
+  cr_desc->this_param_copy = rout_param_var =
+                                       sp->variant.routine.this_param_variable;
+  cr_desc->parameter_copies = sp->variant.routine.parameters;
+  if (rout_param_var != NULL) {
+    relocated_var = alloc_variable(rout_param_var->storage_class);
+    *relocated_var = *rout_param_var;
+    create_coroutine_parameter_copy(relocated_var, rout_param_var, pos);
+    sp->variant.routine.this_param_variable = relocated_var;
+  }  /* if */
+  for (rout_param_var = sp->variant.routine.parameters;
+       rout_param_var != NULL; rout_param_var = rout_param_var->next) {
+    relocated_var = alloc_variable(rout_param_var->storage_class);
+    *relocated_var = *rout_param_var;
+    create_coroutine_parameter_copy(relocated_var, rout_param_var, pos);
+    *orig_param = relocated_var;
+    orig_param = &(*orig_param)->next;
+  }  /* for */
+  pop_expr_stack();
+  expr_stack = saved_expr_stack;
+  curr_object_lifetime = saved_curr_object_lifetime;
+}  /* copy_coroutine_parameters */
+
+
 static void wrap_up_coroutine(a_routine_ptr  rp)
 /*
 Handle any fixups for the given coroutine function, and, if needed, deduce its
@@ -1084,6 +1201,7 @@ coroutine cannot have an ellipsis parameter).
      promise type, which in turn allows us to complete the expressions needed
      to implement the coroutine operations. */
   init_coroutine_descr_if_needed(rp, cdp);
+  copy_coroutine_parameters(rp, cdp);
   for (cfp = fixups; cfp != NULL; cfp = cfp->next) {
     an_arg_list_elem_ptr  alep = (an_arg_list_elem_ptr)cfp->operand;
     if (cfp->entity.kind == (a_byte_il_entry_kind)iek_statement) {

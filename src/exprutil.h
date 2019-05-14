@@ -991,6 +991,12 @@ typedef struct an_expr_stack_entry {
 			/* TRUE when parsing and processing an explicit call
 			   argument (not when parsing a default argument in a
 			   function declaration). */
+#if COROUTINES_ALLOWED
+  a_bit_field
+		in_coroutine_desc_init:1;
+			/* TRUE if we're in the process of building the
+			   coroutine descriptor. */
+#endif /* COROUTINES_ALLOWED */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor
@@ -1360,6 +1366,17 @@ a rescan.
   (expr_stack != NULL && \
    expr_stack->initializer_cache != NULL && \
    anything_cached(expr_stack->initializer_cache))
+
+/*
+Macro that returns TRUE if the expressions being processed are being done so in
+the context of preparing a coroutine's descriptor block.
+*/
+#if COROUTINES_ALLOWED
+#define initializing_coroutine_descriptor() \
+  (expr_stack != NULL && expr_stack->in_coroutine_desc_init)
+#else /* !COROUTINES_ALLOWED */
+#define initializing_coroutine_descriptor() FALSE
+#endif /* COROUTINES_ALLOWED */
 
 /*
 TRUE if the current mode allows binding an rvalue reference to an lvalue

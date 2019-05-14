@@ -1682,6 +1682,9 @@ as in a decltype.
 #if GNU_EXTENSIONS_ALLOWED
   new_entry->marked_as_gnu_extension |= old_entry->marked_as_gnu_extension;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if COROUTINES_ALLOWED
+  new_entry->in_coroutine_desc_init |= old_entry->in_coroutine_desc_init;
+#endif /* COROUTINES_ALLOWED */
   if (direct) {
     new_entry->evaluated = old_entry->evaluated;
     new_entry->potentially_evaluated = old_entry->potentially_evaluated;
@@ -1764,6 +1767,9 @@ is pushed regardless of any of the other factors.
   new_entry->prefer_template_constant = FALSE;
   new_entry->fold_prvalue_if_possible = FALSE;
   new_entry->in_call_argument = FALSE;
+#if COROUTINES_ALLOWED
+  new_entry->in_coroutine_desc_init = FALSE;
+#endif /* COROUTINES_ALLOWED */
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;

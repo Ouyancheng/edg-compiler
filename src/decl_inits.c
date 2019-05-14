@@ -317,6 +317,8 @@ recorded in the stmk_init statement.
   a_statement_ptr          init_stmt;
   a_boolean                static_lifetime = FALSE;
   a_boolean                at_file_scope;
+  a_boolean                in_coroutine_desc_init =
+                                           initializing_coroutine_descriptor();
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
 
   db_enter(4, "gen_dynamic_initialization");
@@ -333,7 +335,8 @@ recorded in the stmk_init statement.
                     ((a_symbol_ptr)vp->source_corresp.assoc_info)->is_error);
     /* We are in executable code (i.e., inside a function or block rather
        than at file scope). */
-    if (dip->kind != (a_dynamic_init_kind)dik_none) {
+    if (dip->kind != (a_dynamic_init_kind)dik_none &&
+        !in_coroutine_desc_init) {
       /* The initialization is not just a destruction. */
       /* If the block in which the dynamic initialization is executed is
          unreachable and if no other unreachability warnings have been
@@ -343,9 +346,10 @@ recorded in the stmk_init statement.
     /* If this dynamic init appears after some executable code
        in its block, set a flag to that effect in the dynamic
        init entry (it identifies the initialization as a C++ case). */
-    check_assertion_str(depth_stmt_stack >= 0,
+    check_assertion_str(depth_stmt_stack >= 0 || in_coroutine_desc_init,
                         "gen_dynamic_initialization: bad stmt stack depth");
     if (ssep->kind == (a_scope_kind)sck_condition ||
+        in_coroutine_desc_init ||
         struct_stmt_stack[depth_stmt_stack].any_exec_statement_seen) {
       dip->follows_an_exec_statement = TRUE;
     }  /* if */
@@ -395,10 +399,14 @@ recorded in the stmk_init statement.
   /* The dynamic init entry should point at the variable. */
   dip->variable = vp;
   /* If needed, record the dynamic init entry on the destructions list of the
-     appropriate object-lifetime entry. */
-  record_end_of_lifetime_destruction(dip, static_lifetime,
-                                     /*block_lifetime=*/TRUE);
-  if (!at_file_scope && ssep->kind != (a_scope_kind)sck_condition) {
+     appropriate object-lifetime entry.  If we're initializing a coroutine
+     descriptor block, this will be done elsewhere. */
+  if (!in_coroutine_desc_init) {
+    record_end_of_lifetime_destruction(dip, static_lifetime,
+                                       /*block_lifetime=*/TRUE);
+  }  /* if */
+  if (!at_file_scope && !in_coroutine_desc_init &&
+      ssep->kind != (a_scope_kind)sck_condition) {
     /* Build the initialization statement and add it to the statement block.
        This must be done after record_end_of_lifetime_destruction is called.
        If the statement is associated with an initializer appearing in the

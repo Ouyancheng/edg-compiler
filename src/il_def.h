@@ -14780,6 +14780,15 @@ typedef struct a_coroutine_descr {
 		promise;
 			/* A placeholder variable representing the promise
 			   for the coroutine invocation. */
+  a_variable_ptr
+		this_param_copy;
+			/* A copy of the implicit "this" parameter of the
+			   coroutine, if present.  NULL otherwise.  See
+			   a_symbol::variant::routine::this_param_variable. */
+  a_variable_ptr
+		parameter_copies;
+			/* A copy of the coroutine's parameters.  See
+			   a_symbol::variant::routine::parameters. */
   an_expr_node_ptr
 		initial_suspend_call;
 			/* An expression containing the call to

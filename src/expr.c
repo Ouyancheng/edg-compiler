@@ -2988,7 +2988,8 @@ to TRUE.
   a_boolean            arg_list_allocated_locally = FALSE;
   an_arg_check_block   arg_block;
   a_boolean            scanning_source = (rcblock == NULL &&
-                                          !arg_list_supplied);
+                                          !arg_list_supplied &&
+                                          !initializing_coroutine_descriptor());
   a_boolean            saved_allow_call_with_incomplete_return_type;
   a_boolean            saved_in_call_argument;
 
@@ -3215,7 +3216,10 @@ does some special error-recovery processing to handle additional
 unexpected expressions more gracefully.
 */
 {
-  if (cached_initializer_present()) {
+  if (initializing_coroutine_descriptor()) {
+    /* We're currently generating expressions related to initializing a
+       coroutine descriptor block - no closing paren is expected. */
+  } else if (cached_initializer_present()) {
     /* There's a cached expression, so the closing paren is not "next". */
     an_init_component_ptr icp = expr_stack->initializer_cache->first_init;
     expr_pos_error(ec_exp_rparen, init_component_pos(icp));

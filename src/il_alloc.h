@@ -144,6 +144,8 @@ extern a_local_static_variable_init_ptr alloc_local_static_variable_init(void);
 
 extern a_vla_dimension_ptr alloc_vla_dimension(void);
 
+extern void clear_variable(a_variable_ptr vp);
+
 extern a_variable_template_info_ptr alloc_variable_template_info(void);
 
 extern a_variable_ptr alloc_variable(a_storage_class  storage_class);

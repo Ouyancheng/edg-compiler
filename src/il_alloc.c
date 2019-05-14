@@ -2484,7 +2484,7 @@ pointer to it.
 }  /* alloc_vla_dimension */
 
 
-static void clear_variable(a_variable_ptr vp)
+void clear_variable(a_variable_ptr vp)
 /*
 Clear the fields of the given variable to default values.
 */
@@ -3943,6 +3943,8 @@ a pointer to it.
   cdp->traits = NULL;
   cdp->handle = NULL;
   cdp->promise = NULL;
+  cdp->this_param_copy = NULL;
+  cdp->parameter_copies = NULL;
   cdp->initial_suspend_call = NULL;
   cdp->final_suspend_call = NULL;
   cdp->unhandled_exception_call = NULL;
