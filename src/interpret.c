@@ -7466,7 +7466,7 @@ to FALSE and the reason for the failure is recorded in *ips.
            ignored.) */
         if (args == NULL || args->next == NULL ||
             (callee->variant.builtin_function_kind ==
-                                                  bfk_expect_with_probability ?
+                         (a_builtin_function_kind)bfk_expect_with_probability ?
               args->next->next == NULL || args->next->next->next != NULL :
               args->next->next != NULL)) {
           unexpected_condition();
