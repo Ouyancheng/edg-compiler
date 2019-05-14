@@ -217,6 +217,9 @@ enum a_builtin_user_function_kind_tag {
   bufk_choose_expr,               /* __builtin_choose_expr */
   bufk_launder,                   /* __builtin_launder */
   bufk_is_constant_evaluated,     /* __builtin_is_constant_evaluated */
+  bufk_u8memchr,                  /* __builtin_u8memchr */
+  bufk_u8memcmp,                  /* __builtin_u8memcmp */
+  bufk_u8strlen,                  /* __builtin_u8strlen */
   bufk_last                       /* final entry */
 };
 
@@ -366,6 +369,14 @@ EXTERN a_builtin_user_descr builtin_user_table[]
   { "__builtin_cpu_init", "Lx(-59999)", "int (void)", bfk_cpu_init },
   { "__builtin_cpu_is", "Lx(-59999)", "int (const char*)", bfk_cpu_is },
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING */
+
+  /* Builtins used by Microsoft for char_traits<char8_t> intrinsics. */
+  { "__builtin_u8memchr", "m+(1922-)",
+    "char8_t* (const char8_t*,int,__edg_size_type__)", bufk_u8memchr },
+  { "__builtin_u8memcmp", "m+(1922-)",
+    "int (const char8_t*,const char8_t*,__edg_size_type__)", bufk_u8memcmp },
+  { "__builtin_u8strlen", "m+(1922-)",
+    "__edg_size_type__ (const char8_t*)", bufk_u8strlen },
 
   { NULL, NULL, 0, bfk_none }   /* end of table marker */
 }

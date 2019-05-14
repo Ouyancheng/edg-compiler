@@ -1,5 +1,15 @@
 Version 5.1
 
+5/14/19  [EDGcpfe/21179]
+Microsoft compatibility: Builtins for char8_t
+
+Three new builtins, __builtin_u8memchr, __builtin_u8memcmp, and
+__builtin_u8strlen have been added in Microsoft emulation mode when
+microsoft_version >= 1922.  Additionally, the char8_t type (see the Changes
+entry for EDGcpfe/20530) has been enabled by default when microsoft_version
+>= 1922 and ms_cpp20_mode is TRUE.
+
+
 5/13/19  [EDGcpfe/19757,EDGcpfe/21050]
 Spurious error on initialized for static data member template
 

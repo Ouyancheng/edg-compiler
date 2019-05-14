@@ -7294,6 +7294,7 @@ to FALSE and the reason for the failure is recorded in *ips.
       break;
     case bfk_strlen:
     case bfk_wcslen:
+    case bufk_u8strlen:
       {
         interpreted = TRUE;
         if (args == NULL || args->next != NULL) {
@@ -7314,6 +7315,7 @@ to FALSE and the reason for the failure is recorded in *ips.
     case bfk_memchr:
     case bfk_wmemchr:
     case bfk_char_memchr:
+    case bufk_u8memchr:
       has_count = TRUE;
       /*FALLTHROUGH*/
     case bfk_strchr:
@@ -7365,6 +7367,7 @@ to FALSE and the reason for the failure is recorded in *ips.
       break;
     case bfk_memcmp:
     case bfk_wmemcmp:
+    case bufk_u8memcmp:
       is_memcmp = TRUE;
       /*FALLTHROUGH*/
     case bfk_strncmp:
