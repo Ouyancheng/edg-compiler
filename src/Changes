@@ -1,5 +1,22 @@
 Version 5.1
 
+5/14/19  [EDGcpfe/21023]
+Spurious error on constant-evaluation involving init-capture
+
+In some situations, constant-evaluating a lambda with init-captures resulted
+in a spurious error about the init-capture not having been initialized.  For
+example:
+
+  template<typename T> constexpr auto f(T t) {
+    return [c = t]() { return c; };
+  }
+  template<int N> auto x = f(N);
+  constexpr int r = x<42>();  // Previously an error because "c" above was
+                              // considered uninitialized.  Now okay.
+
+That is now fixed.
+
+
 5/14/19  [EDGcpfe/21233]
 Internal error after decltype applied to a dependent structured binding
 

@@ -9317,8 +9317,12 @@ is within the given complete_object.
           a_type_ptr  tp = skip_typerefs(fp->type);
           init_subobject_to_zero(ips, dst_bytes, tp, complete_object);
         } else {
-          result = do_constexpr_dynamic_init(ips, sub_dip, pos,
-                                             dst_bytes, complete_object);
+          if (do_constexpr_dynamic_init(ips, sub_dip, pos,
+                                         dst_bytes, complete_object)) {
+            mark_subobject_initialized(dst_bytes, complete_object);
+          } else {
+            result = FALSE;
+          }  /* if */
         }  /* if */
       } else if (cap->captured.variable == NULL ||
                  (cap->capture_info.source_closure_field != NULL &&
@@ -9345,13 +9349,18 @@ is within the given complete_object.
           src_bytes = ((a_constexpr_address*)this_bytes)->address+field_offset;
           if (!constexpr_copy_object(ips, src_fp->type, src_bytes, dst_bytes,
                                      complete_object)) {
-            do_constexpr_fail(result);
+            result = FALSE;
           } else {
             mark_complete_class_object_if_needed(src_fp->type, dst_bytes);
           }  /* if */
         } else {
-          result = do_constexpr_dynamic_init(ips, sub_dip, pos,
-                                             dst_bytes, complete_object);
+          if (do_constexpr_dynamic_init(ips, sub_dip, pos,
+                                        dst_bytes, complete_object)) {
+            mark_subobject_initialized(dst_bytes, complete_object);
+            mark_complete_class_object_if_needed(fp->type, dst_bytes);
+          } else {
+            result = FALSE;
+          }  /* if */
         }  /* if */
       } else {
         /* An ordinary simple capture. */
