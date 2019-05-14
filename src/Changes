@@ -1,5 +1,25 @@
 Version 5.1
 
+5/14/19  [EDGcpfe/21233]
+Internal error after decltype applied to a dependent structured binding
+
+In some situations, applying the decltype operator to a structured binding with
+a dependent initializer could lead to an internal error because the decltype
+construct silently produced an error type.  For example:
+
+  struct S { int member; };
+  S f(int i) { return S{i}; }
+  template<typename T> bool v = T{};
+  template <typename T> int g(T p) {
+    auto [b] = f(p);            // Previously triggered an internal error
+    return v<decltype(b)>;      // in name mangling.
+  }
+  int r = g(42);
+
+In this example, decltype(b) silently produced an error type, causing name
+mangling to later fail an assertion check.  That is now fixed.
+
+
 5/14/19  [EDGcpfe/21179]
 Microsoft compatibility: Builtins for char8_t
 

@@ -17932,7 +17932,10 @@ reference was applied on top of the type we're looking for.
   if (is_reference_type(container_type)) {
     container_type = type_pointed_to(container_type);
   }  /* if */
-  if (vp->init_kind != (an_init_kind)initk_binding) {
+  if (vp->type == type_of_unknown_templ_param_nontype) {
+    /* A dependent binding.  Its type is not known. */
+    result = vp->type;
+  } else if (vp->init_kind != (an_init_kind)initk_binding) {
     /* A tuple-based binding (non-tuple based bindings use an initk_binding
        initializer).  Recover the type through the appropriate
        template substitutions. */
