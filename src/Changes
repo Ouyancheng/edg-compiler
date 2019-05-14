@@ -10,7 +10,7 @@ example:
   template<typename T> constexpr auto f(T t) {
     return [c = t]() { return c; };
   }
-  template<int N> auto x = f(N);
+  template<int N> constexpr auto x = f(N);
   constexpr int r = x<42>();  // Previously an error because "c" above was
                               // considered uninitialized.  Now okay.
 
