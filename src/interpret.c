@@ -7458,11 +7458,17 @@ to FALSE and the reason for the failure is recorded in *ips.
       }
       break;
     case bfk_expect:
+    case bfk_expect_with_probability:
       {
         interpreted = TRUE;
         /* Evaluate the first argument instead of the call.  (The second
-           argument is ignored.) */
-        if (args == NULL || args->next == NULL || args->next->next != NULL) {
+           argument -- and third for __builtin_expect_with_probability -- are
+           ignored.) */
+        if (args == NULL || args->next == NULL ||
+            (callee->variant.builtin_function_kind ==
+                                                  bfk_expect_with_probability ?
+              args->next->next == NULL || args->next->next->next != NULL :
+              args->next->next != NULL)) {
           unexpected_condition();
         } else if (!do_constexpr_expression(ips, args, result_storage,
                                             result_storage)) {

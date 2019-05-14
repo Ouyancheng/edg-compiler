@@ -1,5 +1,13 @@
 Version 5.1
 
+5/14/19  [EDGcpfe/21206]
+GNU compatibility: __builtin_expect_with_probability
+
+The GNU builtin function, __builtin_expect_with_probability, can now be
+invoked in a constexpr context.  Only the first argument is evaluated
+(just like __builtin_expect); see the Changes entry for EDGcpfe/19838.
+
+
 5/14/19  [EDGcpfe/21023]
 Spurious error on constant-evaluation involving init-capture
 
