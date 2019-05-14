@@ -545,7 +545,7 @@ overflow, or underflow).
 External conversion functions.
 */
 
-extern void floating_init(void);
+extern void floating_one_time_init(void);
 extern an_fp_return_type write_float(char          *tgt,
                                      int           size,
                                      unsigned char *val);

@@ -81,7 +81,7 @@ called (and init_flags_and_types has parsed the information in il_header).
   error_init();
   float_pt_init();
 #if !USE_HOST_FP_CONVERSION_ROUTINES
-  floating_init();
+  floating_one_time_init();
 #endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
 }  /* standalone_utility_late_init */
 
@@ -1599,6 +1599,9 @@ after the command-line processing has been done.
   ms_attrib_one_time_init();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sys_predef_one_time_init();
+#if !USE_HOST_FP_CONVERSION_ROUTINES
+  floating_one_time_init();
+#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
 #if CHECKING
   /* Verify that the type used to store a function pointer index is
      large enough. */
@@ -1682,9 +1685,6 @@ source file's compilation.
      int_kind_is_signed is properly initialized. */
   const_ints_init();
   float_pt_init();
-#if !USE_HOST_FP_CONVERSION_ROUTINES
-  floating_init();
-#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
 #if DO_IL_LOWERING
   /* IL lowering is initialized even when IL lowering is suppressed.  This
      is done because some of the variables that are initialized in

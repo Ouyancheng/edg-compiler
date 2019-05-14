@@ -2752,7 +2752,7 @@ to indicate the desired floating-point routines.
 #undef FPT_FLOAT128
 #endif /* FLOAT128_ENABLING_POSSIBLE */
 
-void floating_init(void)
+void floating_one_time_init(void)
 /*
 Do one-time initialization of variables related to floating-point.
 */
@@ -2775,7 +2775,7 @@ Do one-time initialization of variables related to floating-point.
   initialize_tens_float128();
 #endif /* FLOAT128_ENABLING_POSSIBLE */
   floating_init_called = TRUE;
-}  /* floating_init */
+}  /* floating_one_time_init */
 
 #endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
 
