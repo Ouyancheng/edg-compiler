@@ -1193,18 +1193,34 @@ coroutine cannot have an ellipsis parameter).
 
   check_assertion(rp->is_coroutine);
   cdp = get_coroutine_descr(rp, &null_source_position);
-  fixups = cdp->fixups;
   if (rp->has_deducible_return_type && !rp->is_prototype_instantiation) {
-    deduce_coroutine_return_type(rp);
+    if (ms_version_is(<1920)) {
+      deduce_coroutine_return_type(rp);
+    } else {
+      rp->type->variant.routine.return_type = error_type();
+      rp->has_deduced_return_type = TRUE;
+      cdp->error_descr = TRUE;
+      pos_error(ec_coroutine_with_deduced_return_type,
+                &rp->source_corresp.decl_position);
+    }  /* if */
   }  /* if */
   /* Now that the type of the coroutine is established, we can determine the
      promise type, which in turn allows us to complete the expressions needed
      to implement the coroutine operations. */
   init_coroutine_descr_if_needed(rp, cdp);
-  copy_coroutine_parameters(rp, cdp);
+  if (!cdp->error_descr) {
+    copy_coroutine_parameters(rp, cdp);
+  }  /* if */
+  /* The coroutine descriptor init may have added more fixups - don't copy the
+     pointer until after it has run. */
+  fixups = cdp->fixups;
   for (cfp = fixups; cfp != NULL; cfp = cfp->next) {
     an_arg_list_elem_ptr  alep = (an_arg_list_elem_ptr)cfp->operand;
-    if (cfp->entity.kind == (a_byte_il_entry_kind)iek_statement) {
+    if (cdp->error_descr) {
+      /* We encountered some significant issues with the coroutine.  Don't
+         attempt to fixup these entries. */
+      free_arg_list(alep);
+    } else if (cfp->entity.kind == (a_byte_il_entry_kind)iek_statement) {
       a_statement_ptr  sp = (a_statement_ptr)cfp->entity.ptr;
       if (sp->kind == (a_statement_kind)stmk_coroutine_return) {
         /* Call return_void or return_value with the coroutine-return
@@ -1230,6 +1246,7 @@ coroutine cannot have an ellipsis parameter).
             pos_ty_error(ec_await_no_eventual_value, &cfp->position,
                          cdp->promise->type);
           }  /* if */
+          free_arg_list(alep);
         } else {
           /* Resolve the suspend_call. */
           determine_suspend_call_for_await((an_expr_node_ptr)cfp->entity.ptr,
@@ -1244,7 +1261,11 @@ coroutine cannot have an ellipsis parameter).
     pos_error(ec_coroutine_with_ellipsis_parameter,
               &rp->source_corresp.decl_position);
   }  /* if */
+  if (rp->is_constexpr) {
+    pos_error(ec_no_constexpr_coroutine, &rp->source_corresp.decl_position);
+  }  /* if */
   if (!cdp->has_coroutine_return && !cdp->has_return_void &&
+      !is_error_type(cdp->promise->type) &&
       !(microsoft_mode && !cdp->eventual_value)) {
     /* We're missing an explicit return statement and don't have a return_void
        to implicitly call.  In microsoft_mode we may be using a different

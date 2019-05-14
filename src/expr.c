@@ -2987,9 +2987,9 @@ to TRUE.
   an_arg_list_elem_ptr arg_list;
   a_boolean            arg_list_allocated_locally = FALSE;
   an_arg_check_block   arg_block;
-  a_boolean            scanning_source = (rcblock == NULL &&
-                                          !arg_list_supplied &&
-                                          !initializing_coroutine_descriptor());
+  a_boolean            scanning_source =(rcblock == NULL &&
+                                         !arg_list_supplied &&
+                                         !initializing_coroutine_descriptor());
   a_boolean            saved_allow_call_with_incomplete_return_type;
   a_boolean            saved_in_call_argument;
 
@@ -42159,6 +42159,7 @@ This routine frees *alep.
       an_operand *operand = operand_of_arg_list_elem(alep);
       if (is_void_type(operand->type)) {
         void_expr = make_node_from_operand(operand);
+        free_arg_list(alep);
         alep = NULL;
       }  /* if */
     }  /* if */
@@ -42540,9 +42541,7 @@ rcblock parameter for this function).
   }  /* if */
   rout = current_routine_entry();
   operator_position = pos_curr_token;
-  if (rout->is_constexpr) {
-    pos_error(ec_yield_in_constexpr_function, &operator_position);
-  } else if (in_catch_clause()) {
+  if (in_catch_clause()) {
     pos_error(ec_yield_in_catch, &operator_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cli_or_cx_enabled && inside_finally_clause()) {
@@ -42599,13 +42598,6 @@ rcblock parameter for this function).
       an_operand_ptr  opnd = operand_of_arg_list_elem(yield_opnd);
       detach_ref_entries_from_curr_expr(opnd);
     }  /* if */
-    if (!microsoft_mode) {
-      /* As of this writing the committee is inclined to disallow deduced
-         return types for coroutines.  (See document P0057R1.) */
-      pos_diagnostic(es_discretionary_error,
-                     ec_coroutine_with_deduced_return_type,
-                     &operator_position);
-    }  /* if */
   } else {
     node = wrap_up_coroutine_result_expression(yield_opnd, /*is_yield=*/TRUE,
                                                (a_statement_ptr)NULL);
@@ -42616,7 +42608,7 @@ rcblock parameter for this function).
     } else if (!is_void_type(result->type)) {
       add_await_to_operand(result, &operator_position, operator_tok_seq_number,
                            /*for_yield=*/TRUE, result);
-    } else if (!microsoft_mode) {
+    } else if (!ms_version_is(<1920)) {
       pos_error(ec_invalid_yield_value_type, &operator_position);
     }  /* if */
   }  /* if */

@@ -17150,12 +17150,13 @@ one that yields the value) of a statement expression.
           }  /* if */
           check_assertion(is_operation_node(expr));
           if (node_operator_is(expr, eok_comma)) {
-            /* expr is of the form <expr>, _Pr.return_value(...).  Render the
+            /* expr is of the form <expr>, _Pr.return_void(...).  Render the
                first operand of the comma operator (only). */
             expr = expr->variant.operation.operands;
           } else {
             check_assertion(node_operator_is(expr, eok_dot_member_call));
-            /* expr is of the form _Pr.return_void() or _Pr.return_value(...). */
+            /* expr is of the form _Pr.return_void() or
+               _Pr.return_value(...). */
             expr = expr->variant.operation.operands;
             /* The first operand is the routine entry for "set_result", the
                second operand is the promise variable ("_Pr" above).  Move to
