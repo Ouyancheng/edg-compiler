@@ -19946,8 +19946,9 @@ In C++, however, the declaration list is optional (3.4):
       /* A translation unit cannot be empty.  Note that this can happen not
          only for an empty file, but also for a file containing only
          preprocessing directives.  pcc allows an empty source file.
-         In ANSI mode, it's allowed as an extension. */
-      if (strict_ansi_mode) {
+         In ANSI mode, it's allowed as an extension.  Suppress this if
+         a PCH is being used as there must have been tokens in the PCH. */
+      if (strict_ansi_mode && !using_a_pch_file) {
         diagnostic(strict_ansi_error_severity, ec_empty_translation_unit);
       }  /* if */
     }  /* if */
