@@ -8369,7 +8369,7 @@ enum a_template_param_type_kind_tag {
 			   a tk_template_param class, e.g., for T::X in the
 			   following:
 			     template <class T> class A {
-			       T::X x;
+			       typename T::X x;
 			     };
 			   (where, during prototype instantiation, X is
 			   assumed to be a member of T and a type). */
