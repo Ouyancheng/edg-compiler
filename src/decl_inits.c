@@ -2741,6 +2741,7 @@ members up to end_field, but not including end_field, should be initialized.
           /* Add a designator to indicate the field to initialize. */
           a_constant_ptr
                 des_con = alloc_constant((a_constant_repr_kind)ck_designator);
+          des_con->implicit_aggr_element = TRUE;
           des_con->variant.designator.is_field_designator = TRUE;
           des_con->variant.designator.variant.field = next_field;
           add_constant_to_aggregate(des_con, aggr_con, (a_base_class_ptr)NULL,

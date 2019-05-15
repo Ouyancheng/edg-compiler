@@ -6253,6 +6253,12 @@ field designator.
         a_constant_ptr eff_sub_con = sub_con;
         a_boolean      local_suppress_braces = FALSE;
         a_boolean      need_close_paren = FALSE;
+        /* Stop on default initialization of trailing elements. */
+        if (sub_con->implicit_aggr_element ||
+            (sub_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
+             is_default_dynamic_init(sub_con->variant.dynamic_init.ptr))) {
+          break;
+        }  /* if */
         if (sub_con->kind == (a_constant_repr_kind)ck_designator) {
           if (!transparent_case) {
             /* Put out the introduction for a designated initializer. */
@@ -6319,12 +6325,6 @@ field designator.
         sub_con = sub_con->next;
         /* Stop after the last constant. */
         if (sub_con == NULL) break;
-        /* Stop on default initialization of trailing elements. */
-        if (sub_con->implicit_aggr_element ||
-            (sub_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
-             is_default_dynamic_init(sub_con->variant.dynamic_init.ptr))) {
-          break;
-        }  /* if */
         if (sub_con->kind == (a_constant_repr_kind)ck_init_repeat) {
           /* A ck_init_repeat constant is used to do default initialization
              (via constructor) on all remaining elements of an array. */

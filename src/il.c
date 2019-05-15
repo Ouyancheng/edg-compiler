@@ -2206,6 +2206,10 @@ sizeof_cases:
         db_expr_node(operand, level + 2);
       }  /* for */
       break;
+    case enk_initializer:
+      fputs("initializer\n", f_debug);
+      db_dynamic_initializer(node->variant.initializer.dyn_init, level+2);
+      break;
     case enk_error:
       fputs("error node\n", f_debug);
       break;
