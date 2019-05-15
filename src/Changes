@@ -101,7 +101,7 @@ entry for EDGcpfe/20530) has been enabled by default when microsoft_version
 
 
 5/13/19  [EDGcpfe/19757,EDGcpfe/21050]
-Spurious error on initialized for static data member template
+Spurious error on initializer for static data member template
 
 The front end previously issued a spurious error on initializers for static
 data member templates that are introduced by an assignment token ("=") followed
