@@ -7927,7 +7927,8 @@ argument because it references a non-external entity, e.g., a local variable.
   if (constant->kind == (a_constant_repr_kind)ck_address) {
     /* An address constant.  See if the object referenced is external. */
     /* Get a pointer to the source correspondence for the entity. */
-    switch (constant->variant.address.kind) {
+    an_address_base_kind  abk = constant->variant.address.kind;
+    switch (abk) {
       case abk_routine:
         scp = &constant->variant.address.variant.routine->source_corresp;
         if (microsoft_mode) {
@@ -7973,7 +7974,9 @@ argument because it references a non-external entity, e.g., a local variable.
                   "nontype_templ_arg_constant_involves_invalid_linkage:",
                   "bad address kind");
     }  /* switch */
-    if (scp == NULL) {
+    if (invalid) {
+      /* We already have our answer. */
+    } else if (scp == NULL) {
       /* Nothing referenced. */
     } else if (scp->is_class_member) {
       /* The entity is a class member.  If the class is a local class,
@@ -7987,10 +7990,28 @@ argument because it references a non-external entity, e.g., a local variable.
         set_force_external_linkage_flag(class_type);
       }  /* if */
     } else {
-      /* Not a class member. */
-      invalid = (scp->name_linkage == (a_name_linkage_kind)nlk_none ||
-                 (!local_types_as_template_args_enabled &&
-                  scp->name_linkage == (a_name_linkage_kind)nlk_internal));
+      /* Not a class member.  Entities with no linkage or with internal
+         linkage are sometimes invalid. */
+      if (scp->name_linkage == (a_name_linkage_kind)nlk_none) {
+        /* This case is often invalid, but C++17 generalized nontype template
+           arguments do permit any user variable with static storage
+           duration. */
+        invalid = TRUE;
+        if (generalized_nontype_arguments &&
+            (abk == (an_address_base_kind)abk_routine ||
+             (abk == (an_address_base_kind)abk_variable &&
+              constant->variant.address.variant.variable
+                      ->source_corresp.decl_position.seq != 0))) {
+          invalid = FALSE;
+        }  /* if */
+      } else if (scp->name_linkage == (a_name_linkage_kind)nlk_internal) {
+        /* C++11 enabled types with internal linkage as type template arguments
+           and using entities with internal linkage as nontype template
+           arguments falls under that same feature. */
+        if (!local_types_as_template_args_enabled) {
+          invalid = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   return invalid;
