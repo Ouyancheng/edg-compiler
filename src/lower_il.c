@@ -16187,6 +16187,13 @@ cast.  See lower_expr for typical invocation.
       }
       break;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+    case enk_await:
+    case enk_yield:
+      lower_expr(expr->variant.await_info.operand);
+      lower_expr(expr->variant.await_info.resume_ready_suspend->next);
+      lower_expr(expr->variant.await_info.resume_ready_suspend);
+      lower_expr(expr->variant.await_info.resume_ready_suspend->next->next);
+      break;
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
@@ -19019,6 +19026,49 @@ under it.  Used in both C++ and C mode.
 }  /* lower_asm_statement */
 
 
+static void lower_coroutine(a_statement_ptr statement)
+/*
+Lower the coroutine associated with statement.  statement is a stmk_coroutine
+that contains the coroutine descriptor block that references all the implicit
+variables and other references needed for the coroutine.
+*/
+{
+  a_coroutine_descr_ptr cr_desc;
+
+  /* This should be the very first statement of the function block, and there
+     should be at least one other statement in the block (a coroutine requires
+     that there exist a co_await, co_yield, or co_return statement). */
+  check_assertion(statement->kind == (a_statement_kind)stmk_coroutine);
+  cr_desc = statement->variant.coroutine.descr;
+  if (cr_desc->promise != NULL) {
+    lower_variable(cr_desc->promise);
+  }  /* if */
+  if (cr_desc->handle != NULL) {
+    lower_variable(cr_desc->handle);
+  }  /* if */
+  if (cr_desc->this_param_copy != NULL) {
+    lower_variable(cr_desc->this_param_copy);
+  }  /* if */
+  for (a_variable_ptr param_copy = cr_desc->parameter_copies;
+       param_copy != NULL; param_copy = param_copy->next) {
+    lower_variable(param_copy);
+  }  /* for */
+  if (cr_desc->new_routine != NULL) {
+    lower_routine(cr_desc->new_routine);
+  }  /* if */
+  if (cr_desc->delete_routine != NULL) {
+    lower_routine(cr_desc->delete_routine);
+  }  /* if */
+  /* These are generated but not added as statements, so lower them here. */
+  if (cr_desc->get_return_object_call != NULL) {
+    lower_expr(cr_desc->get_return_object_call);
+  }  /* if */
+  if (cr_desc->alloc_failure_gro_call != NULL) {
+    lower_expr(cr_desc->alloc_failure_gro_call);
+  }  /* if */
+}  /* lower_coroutine */
+
+
 void lower_statement(a_statement_ptr statement)
 /*
 Do IL lowering of the indicated statement and everything under it.
@@ -19234,6 +19284,13 @@ Do IL lowering of the indicated statement and everything under it.
         }  /* if */
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+      case stmk_coroutine:
+        lower_coroutine(statement);
+        break;
+      case stmk_coroutine_return:
+        check_assertion(statement->expr != NULL);
+        lower_expr(statement->expr);
+        break;
       default:
         unexpected_condition_str("lower_statement: bad kind");
     }  /* switch */
