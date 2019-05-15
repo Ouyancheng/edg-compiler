@@ -3936,6 +3936,7 @@ a pointer to it.
   cdp->promise = NULL;
   cdp->this_param_copy = NULL;
   cdp->parameter_copies = NULL;
+  cdp->final_suspend_label = NULL;
   cdp->initial_suspend_call = NULL;
   cdp->final_suspend_call = NULL;
   cdp->unhandled_exception_call = NULL;

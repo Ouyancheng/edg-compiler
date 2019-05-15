@@ -14771,6 +14771,10 @@ typedef struct a_coroutine_descr {
 		parameter_copies;
 			/* A copy of the coroutine's parameters.  See
 			   a_symbol::variant::routine::parameters. */
+  a_label_ptr
+		final_suspend_label;
+			/* A label to use for the generated final_suspend
+			   label. */
   an_expr_node_ptr
 		initial_suspend_call;
 			/* An expression containing the call to

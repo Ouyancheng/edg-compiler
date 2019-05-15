@@ -1180,6 +1180,210 @@ created copies.
 }  /* copy_coroutine_parameters */
 
 
+static void transfer_coroutine_lifetime(an_object_lifetime_ptr lifetime)
+/*
+Given the new lifetime object for a coroutine that is having its body wrapped
+in a try block, transfer the appropriate bits from the old lifetime and fixup
+the relationships appropriately.
+*/
+{
+  an_object_lifetime_ptr new_lifetime = lifetime->child_lifetime;
+  an_object_lifetime_ptr orig_child_lifetime = new_lifetime->next;
+
+  check_assertion(lifetime->next == NULL);
+  check_assertion(lifetime->destructions == NULL);
+  check_assertion(lifetime->parent_destruction_sublist == NULL);
+  new_lifetime->next = NULL;
+  new_lifetime->child_lifetime = orig_child_lifetime;
+  orig_child_lifetime->parent_lifetime = new_lifetime;
+}  /* transfer_coroutine_lifetime */
+
+
+static a_statement_ptr wrap_coroutine_body_in_try_block(
+                                               a_routine_ptr         coroutine,
+                                               a_statement_ptr       func_body,
+                                               a_coroutine_descr_ptr cr_desc)
+/*
+Given a function body for a given coroutine, wrap that function body in a
+try/catch block.  Return the statement for the try/catch.
+*/
+{
+  a_statement_ptr try_catch_stmt;
+  a_handler_ptr   handler;
+  a_scope_ptr     sp = scope_for_routine(coroutine);
+
+  (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
+                   /*assoc_type=*/NULL, /*assoc_routine=*/NULL);
+  transfer_coroutine_lifetime(sp->lifetime);
+  /* Move the function body into the block of the try. */
+  try_catch_stmt = alloc_statement((a_statement_kind)stmk_block);
+  try_catch_stmt->variant.block.statements = func_body;
+  func_body->parent = try_catch_stmt;
+  func_body = try_catch_stmt;
+  try_catch_stmt = alloc_statement((a_statement_kind)stmk_try_block);
+  try_catch_stmt->variant.try_block->statement = func_body;
+  func_body->parent = try_catch_stmt;
+  /* Create the handler for the try. */
+  try_catch_stmt->variant.try_block->handlers = handler = alloc_handler();
+  set_block_scope_handler(handler);
+  handler->statement = alloc_statement((a_statement_kind)stmk_block);
+  handler->statement->parent = try_catch_stmt;
+  handler->statement->variant.block.extra_info->assoc_scope =
+                                                    scope_stack_top().il_scope;
+  if (cr_desc->unhandled_exception_call != NULL) {
+    handler->statement->variant.block.statements =
+                                  alloc_statement((a_statement_kind)stmk_expr);
+    handler->statement->variant.block.statements->expr =
+                                             cr_desc->unhandled_exception_call;
+    handler->statement->variant.block.statements->parent = handler->statement;
+  }  /* if */
+  try_catch_stmt->variant.try_block->lifetime = curr_object_lifetime;
+  pop_scope();
+  return try_catch_stmt;
+}  /* wrap_coroutine_body_in_try_block */
+
+
+static a_statement_ptr add_coroutine_decl_statement(a_statement_ptr stmt,
+                                                    a_variable_ptr  var)
+/*
+Add a statement declaring and initializing var to stmt and return that
+statement.  If var is NULL, do nothing and return stmt.
+*/
+{
+  if (var != NULL) {
+    check_assertion(var->init_kind == (an_init_kind)initk_dynamic);
+    stmt->next = alloc_statement((a_statement_kind)stmk_decl);
+    stmt->next->parent = stmt->parent;
+    stmt = stmt->next;
+    stmt->variant.decl.entities = alloc_il_entity_list_entry();
+    stmt->variant.decl.entities->entity.kind = (an_il_entry_kind)iek_variable;
+    stmt->variant.decl.entities->entity.ptr = (char*)var;
+    /* Allocate the initializer statement for the variable. */
+    stmt->next = alloc_statement((a_statement_kind)stmk_init);
+    stmt->next->parent = stmt->parent;
+    stmt = stmt->next;
+    stmt->variant.dynamic_init = var->initializer.dynamic;
+    /* Record the destruction at the appropriate place. */
+    record_end_of_lifetime_destruction(var->initializer.dynamic,
+                                       /*static_lifetime=*/FALSE,
+                                       /*block_lifetime=*/TRUE);
+  }  /* if */
+  return stmt;
+}  /* add_coroutine_decl_statement */
+
+
+static
+a_statement_ptr add_coroutine_variable_decls(a_statement_ptr       stmt,
+                                             a_coroutine_descr_ptr cr_desc)
+/*
+Append the coroutine variable decls (if any) to stmt, and ensure their
+destructions (if needed) are recorded.  Return the last statement added, or
+stmt if there's nothing to add.
+*/
+{
+  stmt = add_coroutine_decl_statement(stmt, cr_desc->this_param_copy);
+  for (a_variable_ptr param = cr_desc->parameter_copies;
+       param != NULL; param = param->next) {
+    stmt = add_coroutine_decl_statement(stmt, param);
+  }  /* for */
+  stmt = add_coroutine_decl_statement(stmt, cr_desc->promise);
+  return stmt;
+}  /* add_coroutine_variable_decls */
+
+
+static a_statement_ptr add_coroutine_expr_statement(a_statement_ptr  stmt,
+                                                    an_expr_node_ptr expr)
+/*
+Add a statement for expr to stmt and return that statement.  If expr is NULL,
+do nothing and return stmt.
+*/
+{
+  if (expr != NULL) {
+    stmt->next = alloc_statement((a_statement_kind)stmk_expr);
+    stmt->next->parent = stmt->parent;
+    stmt = stmt->next;
+    stmt->expr = expr;
+  }  /* if */
+  return stmt;
+}  /* add_coroutine_expr_statement */
+
+
+static a_statement_ptr add_coroutine_label(a_statement_ptr stmt,
+                                           a_label_ptr     label)
+/*
+Add a label statement for label to stmt and return that stmt.  If label is
+NULL, do nothing and return stmt.
+*/
+{
+  if (label != NULL) {
+    stmt->next = alloc_statement((a_statement_kind)stmk_label);
+    stmt->next->parent = stmt->parent;
+    stmt = stmt->next;
+    stmt->variant.label.ptr = label;
+    label->exec_stmt = stmt;
+  }  /* if */
+  return stmt;
+}  /* add_coroutine_label */
+
+
+static void generate_coroutine_body(a_routine_ptr coroutine)
+/*
+Given a coroutine where P is the promise type and F is the function body, the
+coroutine behaves as if its body were:
+  {
+    <parameter copies>
+    P p(<constructor args>);
+    co_await p.initial_suspend();
+    try { F } catch(...) { p.unhandled_exception(); }
+  final_suspend:
+    co_await p.final_suspend();
+  }
+The coroutine descriptor block contains expressions for the various calls and
+the needed variables, but hasn't constructed any of the statements.  Generate
+the necessary statements for the coroutine and insert the variable destructors
+in the correct place.
+*/
+{
+  a_scope_ptr            sp = scope_for_routine(coroutine);
+  a_statement_ptr        stmt = sp->assoc_block;
+  a_statement_ptr        func_body;
+  an_object_lifetime_ptr func_lifetime;
+  a_coroutine_descr_ptr  cr_desc;
+
+  check_assertion(stmt != NULL);
+  if (stmt->kind == (a_statement_kind)stmk_try_block) {
+    stmt = stmt->variant.try_block->statement;
+  }  /* if */
+  check_assertion(stmt->kind == (a_statement_kind)stmk_block);
+  stmt = stmt->variant.block.statements;
+  /* stmt should now be pointing to the first statement of the function, which
+     should be the generated stmk_coroutine that contains the coroutine
+     descriptor.  It should be followed by at least one statement that
+     represents the actual function body. */
+  check_assertion(stmt != NULL && stmt->next != NULL &&
+                  stmt->kind == (a_statement_kind)stmk_coroutine);
+  func_body = stmt->next;
+  cr_desc = stmt->variant.coroutine.descr;
+  /* Create the statement for the function body try block first, as we need to
+     transfer the function body's lifetime into that block. */
+  func_body = wrap_coroutine_body_in_try_block(coroutine, func_body, cr_desc);
+  func_lifetime = sp->lifetime->child_lifetime;
+  /* Now that we have the function body wrapped and saved off, generate the
+     variable decls and initial statements as if they preceded the function
+     try/catch block. */
+  sp->lifetime->child_lifetime = NULL;
+  stmt = add_coroutine_variable_decls(stmt, cr_desc);
+  stmt = add_coroutine_expr_statement(stmt, cr_desc->initial_suspend_call);
+  /* Add back in the function body. */
+  stmt = stmt->next = func_body;
+  func_lifetime->next = sp->lifetime->child_lifetime;
+  sp->lifetime->child_lifetime = func_lifetime;
+  /* Finally, add the final_suspend label and call to p.final_suspend() */
+  stmt = add_coroutine_label(stmt, cr_desc->final_suspend_label);
+  stmt = add_coroutine_expr_statement(stmt, cr_desc->final_suspend_call);
+}  /* generate_coroutine_body */
+
+
 static void wrap_up_coroutine(a_routine_ptr  rp)
 /*
 Handle any fixups for the given coroutine function, and, if needed, deduce its
@@ -1209,6 +1413,7 @@ coroutine cannot have an ellipsis parameter).
   init_coroutine_descr_if_needed(rp, cdp);
   if (!cdp->error_descr) {
     copy_coroutine_parameters(rp, cdp);
+    generate_coroutine_body(rp);
   }  /* if */
   /* The coroutine descriptor init may have added more fixups - don't copy the
      pointer until after it has run. */
