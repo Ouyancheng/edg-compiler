@@ -26199,7 +26199,13 @@ source_is_rvalue.
       /* This can occur in error cases. */
       goto reject_function;
     }  /* if */
-
+    if (ptp->next != NULL &&
+        !ptp->next->has_default_arg &&
+        !ptp->next->is_parameter_pack) {
+      /* Additional arguments that don't have defaults and cannot "disappear"
+         (through an empty pack expansion). */
+      goto reject_function;
+    }  /* if */
     /* Attempt to deduce the template arguments based on the argument type.
        First, reduce the likelihood of instantiation errors triggered by the
        deduction process by discarding cases that could not possibly produce
