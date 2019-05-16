@@ -164,10 +164,9 @@ Historically, conversion between the binary representation of floating-point
 numbers and their decimal string representation has been performed by
 routines provided by the host (e.g., sscanf, sprintf, strtod, or in some
 configurations, strtoflt128).  Using host routines for conversion has
-two limitations: it limits the floating-point types that can be supported
-on the target to a subset of the floating-point types that are provided by
-the host compiler, and the implementation is not very portable from one
-host to another.
+two limitations: it limits the floating point types that can be supported on
+the target to those that are provided by the host compiler, and the
+implementation is not very portable from one host to another.
 
 Routines have now been added to do the binary to decimal floating-point
 conversion completely in software, using integer arithmetic, to avoid any
