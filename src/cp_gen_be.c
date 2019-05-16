@@ -11536,10 +11536,9 @@ Generate code for a new or delete operation.
 */
 {
   a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;
-  a_type_ptr                  type = ndsp->type, unqual_type, temp_type;
+  a_type_ptr                  type = ndsp->type, unqual_type;
   a_routine_ptr               routine = ndsp->routine;
-  a_boolean                   need_type_parens = FALSE,
-                              qualifiers_seen = FALSE, saved_suppress_parens;
+  a_boolean                   need_type_parens = FALSE, saved_suppress_parens;
 
   unqual_type = skip_typerefs(type);
   /* See if a global specifier "::" is needed on the new or delete. */
@@ -11610,8 +11609,9 @@ Generate code for a new or delete operation.
          is a tk_array or tk_routine type, parentheses are needed.  Parentheses
          are also needed if X is a cv-qualified tk_pointer or tk_ptr_to_member
          type (with no other intervening tk_typeref entries). */
+      a_type_ptr  temp_type = type;
+      a_boolean   qualifiers_seen = FALSE;
       /* First, peel off tk_array layers. */
-      temp_type = type;
       while (type_is(temp_type, tk_array)) {
         temp_type = temp_type->variant.array.element_type;
       }  /* while */
