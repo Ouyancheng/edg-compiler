@@ -3403,6 +3403,20 @@ also used as a factor in determining whether name mangling is needed.
 
 
 /*
+Flag that is TRUE if coroutines should be accepted.  Note that lowering is
+currently incomplete for coroutines and the back-end must be able to handle
+these constructs.  The C++-generating back end can, but the C-generating back
+end cannot.
+*/
+#ifndef COROUTINE_ENABLING_POSSIBLE
+#if DO_IL_LOWERING
+#define COROUTINE_ENABLING_POSSIBLE FALSE
+#else /* !DO_IL_LOWERING */
+#define COROUTINE_ENABLING_POSSIBLE TRUE
+#endif /* DO_IL_LOWERING */
+#endif /* COROUTINE_ENABLING_POSSIBLE */
+
+/*
 Determine whether the module id routines are needed.  They are needed
 if IL lowering or name mangling are used, when the C generating back end
 is not generating ANSI C, when the automatic template instantiation

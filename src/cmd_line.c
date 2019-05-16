@@ -2585,7 +2585,7 @@ option values if they were not already set by a command line option.
       mixed_string_concat_enabled = TRUE;
       std_override_modifiers_enabled = TRUE;
       selection_from_prvalue_is_xvalue = TRUE;
-      coroutines_enabled = TRUE;
+      coroutines_enabled |= COROUTINE_ENABLING_POSSIBLE;
       if (!option_kind_used[(int)optk_utf8_char_literals]) {
         utf8_char_literals_enabled = TRUE;
       }  /* if */
@@ -3565,7 +3565,7 @@ default mode (e.g., exception handling).
         constexpr_virtual_enabled = TRUE;
         constexpr_try_enabled = TRUE;
         consteval_enabled = TRUE;
-        coroutines_enabled = TRUE;
+        coroutines_enabled |= COROUTINE_ENABLING_POSSIBLE;
         explicit_copy_this_capture_enabled = TRUE;
         lambda_template_param_list_enabled = TRUE;
         lambda_allowed_in_uneval_context = TRUE;
@@ -5788,6 +5788,11 @@ file.
 #else /* !defined(CLANG_TARGET_VERSION_NUMBER) */
   comment_undefined_macro_name(CLANG_TARGET_VERSION_NUMBER);
 #endif /* defined(CLANG_TARGET_VERSION_NUMBER) */
+#if defined(COROUTINE_ENABLING_POSSIBLE)
+  define_numeric_valued_macro(COROUTINE_ENABLING_POSSIBLE);
+#else /* !defined(COROUTINE_ENABLING_POSSIBLE) */
+  comment_undefined_macro_name(COROUTINE_ENABLING_POSSIBLE);
+#endif /* defined(COROUTINE_ENABLING_POSSIBLE) */
 #if defined(DEBUG)
   define_numeric_valued_macro(DEBUG);
 #else /* !defined(DEBUG) */
