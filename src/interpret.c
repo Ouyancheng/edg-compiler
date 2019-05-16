@@ -878,6 +878,10 @@ typedef struct an_interpreter_state {
 			   temporary object (used for local static
 			   initializer_list objects). */
   a_bit_field
+		static_lifetime_init:1;
+			/* TRUE when interpreting the initializer for a static
+			   lifetime variable. */
+  a_bit_field
 		disallow_mutable_field_load:1;
 			/* TRUE if extract_value_from_constant should not
 			   permit access to a mutable field. */
@@ -2186,6 +2190,7 @@ result of calls to std::is_constant_evaluated().
   ips->input_error = FALSE;
   ips->call_seen = FALSE;
   ips->permit_address_of_local_temporary = FALSE;
+  ips->static_lifetime_init = FALSE;
   ips->disallow_mutable_field_load = FALSE;
   n_active_interpreter_states += 1;
 }  /* init_interpreter_state */
@@ -14951,8 +14956,7 @@ diagnostic in *ips.
               con->variant.address.kind = (an_address_base_kind)abk_temporary;
               if (!((cap->flags & CA_LIFETIME_EXTENDED) ||
                     cap->alloc_seq_number == 0) ||
-                  (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
-                   !permit_local_temp)) {
+                  (!ips->static_lifetime_init && !permit_local_temp)) {
                 /* The address of a temporary results in a dangling pointer. */
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_expiring_temporary,
@@ -15032,7 +15036,7 @@ diagnostic in *ips.
         if (!result) break;
         /* Now add the constants for initializable fields. */
         is_static_init_list = class_type_supp(type)->is_initializer_list &&
-                              (innermost_function_scope == NULL ||
+                              (ips->static_lifetime_init ||
                                ips->permit_address_of_local_temporary) &&
                               !scope_stack_top().in_field_initializer;
         fp = next_alloc_field(fp);
@@ -15066,7 +15070,7 @@ diagnostic in *ips.
           cp = alloc_constant((a_constant_repr_kind)ck_error);
           if (!copy_interpreter_object_to_constant(
                          ips, object+offset, complete_object, fp->type, cp)) {
-            do_constexpr_fail(result);
+            result = FALSE;
             break;
           }  /* if */
           add_constant_to_aggregate(cp, con, (a_base_class_ptr)NULL, fp);
@@ -15475,7 +15479,11 @@ value produced by std::is_constant_evaluated().
           constexpr int * const x[2] = { 0, x[0] };
        That requires the variable to be associated with its interpreter
        representation. */
-    result_storage = do_constexpr_alloc_variable(&ips, dip->variable, &result);
+    a_variable_ptr  vp = dip->variable;
+    result_storage = do_constexpr_alloc_variable(&ips, vp, &result);
+    if (var_has_static_storage_duration(vp)) {
+      ips.static_lifetime_init = TRUE;
+    }  /* if */
   } else {
     a_byte_count  n_bytes;
     n_bytes = value_bytes_for_type(&ips, result_type, &result); 
@@ -15639,7 +15647,7 @@ indicates the value produced by std::is_constant_evaluated().
       map_stack_bytes(&ips, result_storage, (a_byte*)this_con);
       if (!copy_interpreter_object_to_constant(
              &ips, result_storage, result_storage, result_type, result_con)) {
-        do_constexpr_fail(result);
+        result = FALSE;
       }  /* if */
       unmap_stack_bytes(&ips, result_storage);
       release_local_constant(&this_con);
