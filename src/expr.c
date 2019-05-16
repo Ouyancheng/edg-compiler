@@ -8523,7 +8523,7 @@ make_proxy_type_if_needed:
         complete_class_type_is_needed(class_struct_union_type);
         if (class_struct_union_type->incomplete &&
             class_type_supp(class_struct_union_type)->assoc_scope == NULL &&
-            is_template_dependent_context() &&
+            is_template_dependent_context() && rcblock == NULL &&
             (gpp_mode || clang_mode || microsoft_mode)) {
           class_struct_union_type = type_of_unknown_templ_param_nontype;
           goto make_proxy_type_if_needed;
