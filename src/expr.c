@@ -32897,11 +32897,45 @@ variable:
             {
               /* Make a variable operand that is an lvalue. */
               a_type_ptr  saved_var_type = NULL;
-              if (add_const && !is_const_qualified_type(var_ptr->type) &&
-                  !is_any_reference_type(var_ptr->type)) {
-                /* Temporarily treat the variable as a const variable. */
-                saved_var_type = var_ptr->type;
-                var_ptr->type = make_qualified_type(var_ptr->type, TQ_CONST);
+              if (add_const) {
+                /* Temporarily treat the variable as a const variable.  This
+                   makes the following example from N4810 ([expr.prim.id]/2)
+                   work:
+                     void f3() {
+                       float x, &r = x;
+                       [=] { // x and r are not captured (appearance in a
+                             // decltype operand is not an odr-use)
+                         decltype(x) y1;
+                               // y1 has type float
+                         decltype((x)) y2 = y1;
+                               // y2 has type float const& because this lambda
+                               // is not mutable and x is an lvalue
+                         decltype(r) r1 = y1;
+                               // r1 has type float& (transformation not
+                               // considered)
+                         decltype((r)) r2 = y2;
+                               // r2 has type float const&
+                       };
+                     }
+                  */
+                if (is_any_reference_type(var_ptr->type)) {
+                  if (!gpp_mode && !microsoft_mode) {
+                    a_type_ptr  under_ref = type_pointed_to(var_ptr->type);
+                    if (!is_const_qualified_type(under_ref)) {
+                      saved_var_type = var_ptr->type;
+                      var_ptr->type = make_reference_type_of_same_kind(
+                                              make_qualified_type(under_ref,
+                                                                  TQ_CONST),
+                                              saved_var_type);
+                    }  /* if */
+                  }  /* if */
+                } else {
+                  if (!is_const_qualified_type(var_ptr->type)) {
+                    saved_var_type = var_ptr->type;
+                    var_ptr->type = make_qualified_type(var_ptr->type,
+                                                        TQ_CONST);
+                  }  /* if */
+                }  /* if */
               }  /* if */
               make_lvalue_variable_operand(var_ptr,
                                            &start_position,
