@@ -32919,7 +32919,7 @@ variable:
                      }
                   */
                 if (is_any_reference_type(var_ptr->type)) {
-                  if (!gpp_mode && !microsoft_mode) {
+                  if (!(gpp_mode && !clang_mode) && !microsoft_mode) {
                     a_type_ptr  under_ref = type_pointed_to(var_ptr->type);
                     if (!is_const_qualified_type(under_ref)) {
                       saved_var_type = var_ptr->type;
