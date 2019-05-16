@@ -13,10 +13,10 @@ the build process must be suitably modified to include the SoftFloat headers
 and library.
 
 The front end was tested with Release 3e of the Berkley SoftFloat distribution.
-See http://www.jhauser.us/arithmetic/SoftFloat-3/doc/SoftFloat.html) for
-documentation and licensing information.  Performing floating-point operations
-in software is slower than performing them in hardware.  See the SoftFloat
-documentation for details.
+See http://www.jhauser.us/arithmetic/SoftFloat.html for documentation and
+licensing information.  Performing floating-point operations in software is
+slower than performing them in hardware.  See the SoftFloat documentation for
+details.
 
 In configurations where USE_SOFTFLOAT is TRUE, USE_HOST_FP_CONVERSION_ROUTINES
 must be set to FALSE (see the Changes entry for EDGcpfe/21236).  This provides
