@@ -75,7 +75,7 @@ static int match(a_const_char *str,
                  a_const_char *lc_tgt,
                  a_const_char *uc_tgt)
 /*
-Checks whether an input string [str, end) matches the first three characters
+Check whether an input string [str, end) matches the first three characters
 of the target string or the entire target string; lc_tgt is a lowercase
 version of the target string and uc_tgt is uppercase.  Any combination of
 cases is a match.  Returns the length of the successful match, or 0 if the
@@ -95,7 +95,7 @@ static void parse_nan(an_fp_decimal_input *dec,
                       a_const_char        *str,
                       a_const_char        *end)
 /*
-Parses an input string [str, end) that has been tentatively identified as a
+Parse an input string [str, end) that has been tentatively identified as a
 nan.
 */
 {
@@ -117,7 +117,7 @@ static void parse_infinity(an_fp_decimal_input *dec,
                            a_const_char        *str,
                            a_const_char        *end)
 /*
-Parses an input string [str, end) that has been tentatively identified as an
+Parse an input string [str, end) that has been tentatively identified as an
 infinity.
 */
 {
@@ -135,7 +135,7 @@ STATIC void split_string(an_fp_decimal_input *dec,
                          a_const_char        *str,
                          a_const_char        *end)
 /*
-Splits an input string [str, end) into parts.
+Split an input string [str, end) into parts.
 */
 {
   int       precision = 0;
@@ -144,7 +144,6 @@ Splits an input string [str, end) into parts.
   dec->first_frac = dec->last_frac = str;
   dec->is_negative = FALSE;
   dec->type = fpt_number;
-
   /* Skip leading whitespace, handle '+' and '-', skip leading zeros. */
   while (*str && isspace((unsigned char)*str)) {
     ++str;
@@ -155,7 +154,6 @@ Splits an input string [str, end) into parts.
   } else if (*str == '+') {
     ++str;
   }  /* if */
-
   if (*str == 'n' || *str == 'N') {
     parse_nan(dec, str, end);
     goto end_of_routine;
@@ -163,12 +161,10 @@ Splits an input string [str, end) into parts.
     parse_infinity(dec, str, end);
     goto end_of_routine;
   }  /* if */
-
   while (*str == '0') {
     seen_digit = TRUE;
     ++str;
   }  /* while */
-
   /* Set dec->first_int to point to first non-zero digit to left of
      decimal point, and dec->last_int to next non-digit character.  This
      range can be empty. */
@@ -185,7 +181,6 @@ Splits an input string [str, end) into parts.
     ++str;
   }
   dec->exponent = (int)(str - dec->first_int);
-
   /* Set dec->first_frac to point to first digit of decimal fraction,
      and dec->last_frac to next non-digit character.  This range can be
      empty.  If there were no non-zero digits to the left of the decimal
@@ -230,7 +225,6 @@ Splits an input string [str, end) into parts.
   if (precision == 0) {
     dec->type = fpt_zero;
   }  /* if */
-
   /* Scan exponent if present. */
   if (!seen_digit) {
     dec->type = fpt_invalid;
@@ -270,7 +264,6 @@ Splits an input string [str, end) into parts.
       str = str_end;
     }  /* if */
   }  /* if */
-
   /* Truncate excessively long strings of digits. */
   if (dec->type == fpt_number && precision == 0) {
     dec->type = fpt_zero;
@@ -295,7 +288,7 @@ STATIC void fp_frac_set_from_uint(unsigned char *frac,
                                   int           width,
                                   an_fp_uint    val)
 /*
-Copies the value in val into width bits in the byte array pointed to by frac,
+Copy the value in val into width bits in the byte array pointed to by frac,
 right justified.  Note: sets all bits in the topmost byte, even if the
 fraction occupies fewer bits.
 */
@@ -317,7 +310,7 @@ STATIC void fp_frac_copy(unsigned char *left,
                          unsigned char *right,
                          int           width)
 /*
-Copies low bytes holding width bits from byte array pointed to by
+Copy low bytes holding width bits from byte array pointed to by
 left to byte array pointed to by right.
 */
 {
@@ -329,7 +322,7 @@ STATIC a_boolean fp_frac_lt(unsigned char *left,
                             unsigned char *right,
                             int           width)
 /*
-Returns TRUE if value in low bytes holding width bits in byte arrays pointed
+Return TRUE if value in low bytes holding width bits in byte arrays pointed
 to by left is less than value in right, otherwise FALSE.  Note: bits beyond
 width in the topmost byte must be 0.
 */
@@ -352,7 +345,7 @@ width in the topmost byte must be 0.
 STATIC void fp_frac_set_to_min(unsigned char *frac,
                                int           width)
 /*
-Sets the byte array pointed to by frac to represent the minimum normalized
+Set the byte array pointed to by frac to represent the minimum normalized
 fraction for a floating-point value of width bits.  That is, the topmost
 bit is set to 1 and all other bits are set to 0.  Note: sets all bits in
 the topmost byte, even if the fraction occupies fewer bits.
@@ -371,7 +364,7 @@ the topmost byte, even if the fraction occupies fewer bits.
 STATIC void fp_frac_set_to_max(unsigned char *frac,
                                int           width)
 /*
-Sets the byte array pointed to by frac to represent the maximum normalized
+Set the byte array pointed to by frac to represent the maximum normalized
 fraction for a floating-point value of width bits.  That is, all the bits
 are set to 1.
 */
@@ -389,7 +382,7 @@ are set to 1.
 STATIC a_boolean fp_frac_eq_min_frac(unsigned char *frac,
                                      int           width)
 /*
-Returns TRUE if frac holds minimum fraction value for width bits, i.e., all
+Return TRUE if frac holds minimum fraction value for width bits, i.e., all
 bits 0 except bit at (width - 1).  Note: bits beyond width in the topmost
 byte must be 0.
 */
@@ -417,7 +410,7 @@ end_of_routine:
 STATIC int fp_frac_low_zero_bits(unsigned char *frac,
                                  int           width)
 /*
-Returns the number of low-order zero bits in the width bits at the low
+Return the number of low-order zero bits in the width bits at the low
 end of frac.
 */
 {
@@ -428,7 +421,6 @@ end of frac.
   for (i = 0; i < BYTE_COUNT(width) && (the_byte = frac[i]) == 0; ++i) {
     zbits += BYTE_SIZE;
   }  /* for */
-
   if (the_byte != 0) {
 #if 8 < BYTE_SIZE
 #if 16 < BYTE_SIZE
@@ -467,7 +459,7 @@ end of frac.
 STATIC int fp_frac_high_zero_bits(unsigned char *frac,
                                   int           width)
 /*
-Returns the number of high-order zero bits in the width bits at the low
+Return the number of high-order zero bits in the width bits at the low
 end of frac.
 */
 {
@@ -485,7 +477,6 @@ end of frac.
   } else {
     zbits = BYTE_SIZE;
   }  /* if */
-
   the_byte = *(pos - 1) & MASK_BITS(zbits);
   while (pos != frac && *--pos == 0) {
     zbits += BYTE_SIZE;
@@ -535,7 +526,7 @@ end_of_routine:
 static a_boolean has_one_bits_below(unsigned char *frac,
                                     int           bit_pos)
 /*
-Returns FALSE if there are no 1 bits below bit_pos in the byte array pointed to
+Return FALSE if there are no 1 bits below bit_pos in the byte array pointed to
 by frac, otherwise TRUE.
 */
 {
@@ -559,7 +550,7 @@ static int fp_frac_cmp_tail_to_half(unsigned char *frac,
                                     int           width,
                                     int           low_bit_pos)
 /*
-Returns -1 if tail < .5, 0 if tail == .5, 1 if tail > .5.
+Return -1 if tail < .5, 0 if tail == .5, 1 if tail > .5.
 */
 {
   int res = 0;
@@ -580,7 +571,7 @@ STATIC a_boolean fp_frac_should_round(unsigned char *frac,
                                       int           width,
                                       int           low_bit_pos)
 /*
-Returns TRUE if discarding the bits below low_bit_pos in the byte array pointed
+Return TRUE if discarding the bits below low_bit_pos in the byte array pointed
 to by frac would require rounding, otherwise FALSE.  Applies round to even.
 */
 {
@@ -607,7 +598,7 @@ STATIC void do_shift_right(unsigned char *frac,
                            int           shift,
                            a_boolean     should_round)
 /*
-Shifts the width-bit value pointed to by frac right by shift bits, rounding
+Shift the width-bit value pointed to by frac right by shift bits, rounding
 if should_round is TRUE.  Pads with zeros.
 */
 {
@@ -653,7 +644,7 @@ static void fp_frac_shift_right_raw(unsigned char *frac,
                                     int           width,
                                     int           shift)
 /*
-Shifts the width-bit value pointed to by frac right by shift bits, ignoring
+Shift the width-bit value pointed to by frac right by shift bits, ignoring
 low bits. Pads with zeros.
 */
 {
@@ -666,7 +657,7 @@ STATIC void fp_frac_shift_right(unsigned char *frac,
                                 int           width,
                                 int           shift)
 /*
-Shifts the width-bit value pointed to by frac right by shift bits, rounding
+Shift the width-bit value pointed to by frac right by shift bits, rounding
 as needed.  Pads with zeros.
 */
 {
@@ -679,7 +670,7 @@ as needed.  Pads with zeros.
 static void fp_frac_shift_right_with_high_bit(unsigned char *frac,
                                               int           width)
 /*
-Shifts the width-bit value pointed to by frac right by 1 bit, ignoring low bit.
+Shift the width-bit value pointed to by frac right by 1 bit, ignoring low bit.
 Pads with 1.
 */
 {
@@ -703,7 +694,7 @@ STATIC void fp_frac_shift_left(unsigned char *frac,
                                int           width,
                                int           shift)
 /*
-Shifts the width-bit value pointed to by frac left by shift bits.  Fills with
+Shift the width-bit value pointed to by frac left by shift bits.  Fills with
 zeros.
 */
 {
@@ -741,7 +732,7 @@ STATIC a_boolean fp_frac_add_int(unsigned char *frac,
                                  int           width,
                                  int           val)
 /*
-Adds the value val to the width-bit value pointed to by frac.  Returns TRUE if
+Add the value val to the width-bit value pointed to by frac.  Returns TRUE if
 the result overflowed, otherwise FALSE.
 */
 {
@@ -767,7 +758,7 @@ static a_boolean fp_frac_add_one_at_pos(unsigned char *frac,
                                         int           width,
                                         int           pos)
 /*
-Add (1 << pos) to the width_bit value pointed to by frac.  Returns TRUE if
+Add (1 << pos) to the width_bit value pointed to by frac.  Return TRUE if
 the result overflowed, otherwise FALSE.
 */
 {
@@ -793,7 +784,7 @@ STATIC int fp_frac_sub_int(unsigned char *frac,
                            int           width,
                            int           val)
 /*
-Subtracts the value val (assumed to be small) from the width-bit
+Subtract the value val (assumed to be small) from the width-bit
 value pointed to by frac.  If the result underflowed the result is
 not correct.  Returns the magnitude of the underflow if
 the result underflowed, otherwise 0.
@@ -827,7 +818,7 @@ static void fp_frac_sub(unsigned char *left,
                         unsigned char *right,
                         int           width)
 /*
-Computes *left -= *right.  Assumes that *right <= *left.
+Compute *left -= *right.  Assumes that *right <= *left.
 */
 {
   int i;
@@ -852,7 +843,7 @@ static void fp_frac_div_int(unsigned char *frac,
                             int           width,
                             int           val)
 /*
-Divides the width-bit value pointed to by frac by the non-negative value val.
+Divide the width-bit value pointed to by frac by the non-negative value val.
 */
 {
   int i;
@@ -873,7 +864,7 @@ STATIC void fp_frac_mult_int(unsigned char *frac,
                              int           width,
                              int           val)
 /*
-Multiplies the width-bit value pointed to by frac by the non-negative value
+Multiply the width-bit value pointed to by frac by the non-negative value
 val.  Does not handle overflow sensibly.
 */
 {
@@ -901,7 +892,7 @@ static a_bigint *bigint_head;
 
 STATIC void delete_bigint(a_bigint *ptr)
 /*
-Puts a_bigint object pointed to by ptr back into free list.
+Put a_bigint object pointed to by ptr back onto the free list.
 */
 {
   check_assertion(ptr != 0);
@@ -913,7 +904,7 @@ Puts a_bigint object pointed to by ptr back into free list.
 
 STATIC a_bigint *new_bigint(void)
 /*
-Returns a pointer to a currently unused bigint object, whose value is set to 0.
+Return a pointer to a currently unused bigint object, whose value is set to 0.
 */
 {
   a_bigint *res = 0;
@@ -976,7 +967,7 @@ STATIC void bigint_from_fp_int(a_bigint      *tgt,
                                unsigned char *val,
                                int           width)
 /*
-Sets *tgt to width-bit value pointed to by val.  Typically used to copy
+Set *tgt to width-bit value pointed to by val.  Typically used to copy
 mantissa of a binary floating-point value into a bigint object.
 */
 {
@@ -1006,7 +997,7 @@ mantissa of a binary floating-point value into a bigint object.
 STATIC void bigint_mult_int(a_bigint *tgt,
                             int      mult)
 /*
-Computes *tgt *= mult.  Requires: value of mult must fit in one word of
+Compute *tgt *= mult.  Requires: value of mult must fit in one word of
 bigint's internal representation.
 */
 {
@@ -1041,7 +1032,7 @@ bigint's internal representation.
 STATIC void bigint_add_int(a_bigint      *tgt,
                            a_bigint_word add)
 /*
-Computes *tgt += add.
+Compute *tgt += add.
 */
 {
   int           i;
@@ -1066,7 +1057,7 @@ Computes *tgt += add.
 STATIC void bigint_from_dec_mant(a_bigint            *tgt,
                                  an_fp_decimal_input *dec)
 /*
-Sets *tgt to the value of the mantissa of *dec.
+Set *tgt to the value of the mantissa of *dec.
 */
 {
   a_bigint_word   dec_fraction = 0;
@@ -1112,7 +1103,7 @@ Sets *tgt to the value of the mantissa of *dec.
 STATIC int bigint_cmp(a_bigint *left,
                       a_bigint *right)
 /*
-Returns <0, 0, >0 according to whether
+Return <0, 0, >0 according to whether
 *left < *right, *left == *right, *left > *right.
 */
 {
@@ -1134,7 +1125,7 @@ Returns <0, 0, >0 according to whether
 
 STATIC a_boolean bigint_is_zero(a_bigint *val)
 /*
-Returns TRUE if *val is zero, otherwise FALSE.
+Return TRUE if *val is zero, otherwise FALSE.
 */
 {
   return (a_boolean)(val->num_words == 0);
@@ -1145,7 +1136,7 @@ static void small_shift_left(a_bigint *tgt,
                              int      shift,
                              int      pos)
 /*
-Shifts bits starting at tgt->words[pos] left by shift bits.
+Shift bits starting at tgt->words[pos] left by shift bits.
 Requires: shift is non-negative and less than word size.
 */
 {
@@ -1172,7 +1163,7 @@ Requires: shift is non-negative and less than word size.
 STATIC void bigint_shift_left(a_bigint *tgt,
                               int      shift)
 /*
-Shifts *tgt left by shift bits.  Requires: shift is non-negative.
+Shift *tgt left by shift bits.  Requires: shift is non-negative.
 */
 {
   if (shift != 0 && tgt->num_words != 0) {
@@ -1218,7 +1209,7 @@ Requires: shift is non-negative and less than word size.
 STATIC void bigint_shift_right(a_bigint *tgt,
                                int      shift)
 /*
-Shifts *tgt right by shift bits.  Requires: shift is non-negative.
+Shift *tgt right by shift bits.  Requires: shift is non-negative.
 */
 {
   if (shift != 0 && tgt->num_words != 0) {
@@ -1244,7 +1235,7 @@ static int do_bigint_mult(a_bigint_word *twords,
                           int           rnum,
                           int           tsize)
 /*
-Computes *twords = *lwords * *rwords.
+Compute *twords = *lwords * *rwords.
 lnum is the number of significant words in lwords; rnum is the number of
 significant words in rwords; tsize is the size of the array that twords points
 to.  Returns the number of significant words in *twords.
@@ -1294,7 +1285,7 @@ to.  Returns the number of significant words in *twords.
 static a_bigint *bigint_mult(a_bigint *left,
                              a_bigint *right)
 /*
-Returns *left * *right.
+Return *left * *right.
 */
 {
   a_bigint *res = new_bigint();
@@ -1332,7 +1323,7 @@ static a_bigint large_fives_static;
 
 static a_bigint *bigint_5_2_n(int n)
 /*
-Returns 5^2^(n+2).  Caches up to FIVE_TWO_CACHE_SIZE previously computed
+Return 5^2^(n+2).  Caches up to FIVE_TWO_CACHE_SIZE previously computed
 values.  The value returned is a pointer to a statically allocated object
 and the caller must be careful that its value doesn't change (i.e., if
 this routine is called subsequently).
@@ -1385,7 +1376,7 @@ static int pow5s[] =
 static a_bigint *bigint_do_mult_pow5(a_bigint *val,
                                      int      pow5)
 /*
-Returns a pointer to an a_bigint object that holds val*5^pow5.
+Return a pointer to an a_bigint object that holds val*5^pow5.
 Caller should delete the returned object.
 */
 {
@@ -1412,7 +1403,7 @@ Caller should delete the returned object.
 STATIC void bigint_mult_pow5(a_bigint *tgt,
                              int      pow5)
 /*
-Computes *tgt *= 5^pow5 without using fives cache.
+Compute *tgt *= 5^pow5 without using fives cache.
 */
 {
   if (pow5 != 0) {
@@ -1426,7 +1417,7 @@ Computes *tgt *= 5^pow5 without using fives cache.
 STATIC void bigint_add(a_bigint *tgt,
                        a_bigint *val)
 /*
-Computes *tgt += *val.
+Compute *tgt += *val.
 */
 {
   unsigned int  i;
@@ -1459,7 +1450,7 @@ Computes *tgt += *val.
 STATIC void bigint_sub(a_bigint *tgt,
                        a_bigint *sub)
 /*
-Computes *tgt -= *sub.
+Compute *tgt -= *sub.
 Requires: *sub <= *tgt.
 */
 {
@@ -1508,7 +1499,7 @@ STATIC int bigint_abs_diff(a_bigint *tgt,
                            a_bigint *left,
                            a_bigint *right)
 /*
-Computes *tgt = abs(*left - *right).
+Compute *tgt = abs(*left - *right).
 Returns <0, 0, >0 according to whether
 *left < *right, *left == *right, *left > *right.
 */
@@ -1531,7 +1522,7 @@ Returns <0, 0, >0 according to whether
 STATIC int bigint_divmod(a_bigint *tgt,
                          a_bigint *divisor)
 /*
-Computes *tgt / *divisor, returning quotient and putting remainder in *tgt.
+Compute *tgt / *divisor, returning quotient and putting remainder in *tgt.
 Assumes that quotient will be a small non-negative integer value.
 */
 {
@@ -1590,7 +1581,7 @@ end_of_routine:
 STATIC a_boolean fp_frac_eq_zero(unsigned char *frac,
                                  int           width)
 /*
-Returns TRUE if frac holds zeros in all width bits.
+Return TRUE if frac holds zeros in all width bits.
 */
 {
   return (a_boolean)(fp_frac_high_zero_bits(frac, width) == width);
@@ -1926,7 +1917,7 @@ static int fp_emul_get_quotient_digit(unsigned char *u,
                                       int           j,
                                       int           n)
 /*
-Divides *accum by *v, leaving the remainder in *accum and returning the
+Divide *accum by *v, leaving the remainder in *accum and returning the
 integral quotient.
 
 Part of implementation of Knuth's Algorithm D, from "The Art of Computer
@@ -1948,7 +1939,6 @@ rpt:
       goto rpt;
     }  /* if */
   }  /* if */
-
   /* D4: Multiply and subtract. */
   /* D5: Test remainder. */
   fp_frac_copy(intermediate, v, n * BYTE_SIZE);
@@ -1966,7 +1956,7 @@ rpt:
 STATIC void fp_emul_div(an_fp_binary *num,
                         an_fp_binary *den)
 /*
-Computes *num /= *den.
+Compute *num /= *den.
 
 Uses Knuth's Algorithm D, from "The Art of Computer Programming", Volume 2,
 Seminumerical Algorithms (3rd edition).
@@ -1996,14 +1986,12 @@ Seminumerical Algorithms (3rd edition).
                        BYTE_SIZE - den->precision % BYTE_SIZE);
     v = shifted_den;
   }  /* if */
-
   /* D1: Normalize. */
   d = b / (v[n - 1] + 1);
   if (1 < d) {
     fp_frac_mult_int(u, m + n - 1, d);
     fp_frac_mult_int(v, n, d);
   }  /* if */
-
   /* D2: Initialize. */
   for (j = m; 0 <= j; --j) {
     result[j] = (unsigned char)fp_emul_get_quotient_digit(u, v, j, n);
@@ -2015,12 +2003,10 @@ Seminumerical Algorithms (3rd edition).
        bit set but there is a remainder.  */
     ++result[0];
   }  /* if */
-
   /* D8: Un-normalize. */
   if (1 < d) {
     fp_frac_div_int(v, n, d);
   }  /* if */
-
   num->exponent -= den->exponent;
   num->exponent += BYTE_SIZE;
   copy_accum_and_normalize(num, result, rwidth);
@@ -2092,7 +2078,7 @@ and use 1 as past-the-end index.
 STATIC void bigint_div_ceil(a_bigint     *tgt,
                             unsigned int divisor)
 /*
-Computes *tgt /= divisor, rounded up.
+Compute *tgt /= divisor, rounded up.
 */
 {
   int           i;
@@ -2121,7 +2107,7 @@ STATIC void bin2dec(an_fp_decimal *dec,
                     int           ndigits,
                     int           scale)
 /*
-Converts broken-down binary floating-point value in bin to broken-down decimal
+Convert broken-down binary floating-point value in bin to broken-down decimal
 floating-point value in dec.  When ndigits is FP_SHORTEST, generates shortest
 (but no less than 2 digits for Java) digit sequence that will distinguish the
 value from its two neighbors.  Otherwise, generates up to ndigits digits, using
@@ -2138,7 +2124,6 @@ being converted is not a zero, an infinity, or a NaN.
   int      dig_pos = 0;
   int      adjust_upper_delta = 0;
   int      r2 = 0, r5 = 0, s2 = 0, s5 = 0;
-
   a_bigint *residual = new_bigint();
   a_bigint *divisor = new_bigint();
   a_bigint *delta = new_bigint();
@@ -2147,7 +2132,6 @@ being converted is not a zero, an infinity, or a NaN.
   a_bigint *tmp = 0;
 
   check_assertion(!fp_frac_eq_zero(bin->frac, bin->precision));
-
   /* Initialize factors for residual and divisor so that residual/divisor ==
      bin. */
   bin_exp = bin->exponent - bin->precision;
@@ -2173,7 +2157,6 @@ being converted is not a zero, an infinity, or a NaN.
     s2 += result_scale;
     s5 += result_scale;         /* divisor = divisor * 10^result_scale */
   }  /* if */
-
   /* Remove common factors of 2 from residual and divisor. */
   if (r2 == s2) {
     /* Nothing to do. */
@@ -2184,7 +2167,6 @@ being converted is not a zero, an infinity, or a NaN.
     r2 -= s2;
     s2 = 0;
   }  /* if */
-
   /* Upper delta is equal to delta except when fraction is exactly .1 binary.
      Then the gap between fraction and the next higher value is twice
      as large as the gap between fraction and the next lower value, so we have
@@ -2192,12 +2174,10 @@ being converted is not a zero, an infinity, or a NaN.
   if (fp_frac_eq_min_frac(bin->frac, bin->precision)) {
     adjust_upper_delta = 1;
   }  /* if */
-
   /* Calculate delta = 1/2 ULP.  */
   bigint_from_uint(delta, (an_fp_uint)1);
   bigint_mult_pow5(delta, r5);
   bigint_shift_left(delta, r2);
-
   /* Calculate residual = the floating-point value, scaled to match the value
      that we're about to compute for divisor.  Since we've already done the
      powers of ten for delta, we compute this as bin->fraction * delta * 2. */
@@ -2206,12 +2186,10 @@ being converted is not a zero, an infinity, or a NaN.
   bigint_shift_left(tmp, 1 + adjust_upper_delta);
   delete_bigint(residual);
   residual = tmp;
-
   /* Calculate divisor. */
   bigint_from_uint(divisor, (an_fp_uint)1);
   bigint_mult_pow5(divisor, s5);
   bigint_shift_left(divisor, s2 + 1 + adjust_upper_delta);
-
   /* While residual < divisor/10, adjust residual and lower_limit. */
   bigint_from_bigint(temp0, divisor);
   bigint_div_ceil(temp0, 10);
@@ -2220,18 +2198,15 @@ being converted is not a zero, an infinity, or a NaN.
     bigint_mult_int(residual, 10);
     bigint_mult_int(delta, 10);
   }  /* while */
-
   /* While divisor <= residual, adjust divisor. */
   while (bigint_cmp(divisor, residual) <= 0) {
     ++result_scale;
     bigint_mult_int(divisor, 10);
   }  /* while */
-
   /* Adjust delta for subnormal values. */
   if (scale != 0) {
     bigint_shift_left(delta, scale);
   }  /* if */
-
   /* Generate digits: residual *= 10, digit = residual/divisor,
      residual %= divisor. */
   while (!conv_finished) {
@@ -2240,7 +2215,6 @@ being converted is not a zero, an infinity, or a NaN.
     digit = bigint_divmod(residual, divisor);
     check_assertion(dig_pos < MAX_DIGITS && digit >= 0 && digit <= 9);
     dec->digits[dig_pos++] = '0' + (char)digit;
-
     /* Check for termination. */
     if (ndigits == FP_SHORTEST) {
       /* Check for shortest string that correctly rounds to binary value. */
@@ -2294,23 +2268,19 @@ being converted is not a zero, an infinity, or a NaN.
       }  /* if */
     }  /* if */
   }  /* while */
-
   if (dig_pos == 0) {
     dig_pos = 1;
     ++result_scale;
   }  /* if */
-
   /* Suppress trailing zeros. */
   while (1 < dig_pos && dec->digits[dig_pos - 1] == '0') {
     --dig_pos;
   }  /* while */
-
   /* Fill in remaining values. */
   dec->is_negative = bin->is_negative;
   dec->exponent = result_scale;
   dec->digits[dig_pos] = '\0';
   dec->ndigits = dig_pos;
-
   delete_bigint(temp1);
   delete_bigint(temp0);
   delete_bigint(delta);
@@ -2344,7 +2314,6 @@ removed here.
        the value by half as much as the ULP if we hadn't underflowed, so
        we need to adjust by twice the calculated number of ULPs. */
     adjust = 2 * underflow + adjust % 2;
-
     /* Also, epsilon for the new fraction is half of what it was for the
        old fraction, so we need to adjust epsilon and the remaining error. */
     bigint_shift_right(eps, 1);
@@ -2352,7 +2321,6 @@ removed here.
       bigint_sub(err, eps);
       ++adjust;
     }  /* if */
-
     fp_frac_set_to_max(bin->frac, bin->precision);
     /* The new fraction has been reduced by one ULP,
        so we reduce by adjust-1. */
@@ -2445,7 +2413,6 @@ removed here.
   } else {
     tail_to_half = 0;
   }  /* if */
-
   if (0 < tail_to_half ||
       (tail_to_half == 0 &&
        (!bigint_is_zero(err) ||
@@ -2457,7 +2424,6 @@ removed here.
       ++overflow;
     }  /* if */
   }  /* if */
-
   while (overflow-- != 0) {
     /* overflow will never be greater than 2 and only rarely equal to 2,
        so we can just shift once or twice as needed. */
@@ -2472,7 +2438,7 @@ STATIC void dec2bin(an_fp_binary        *bin,
                     an_fp_decimal_input *dec,
                     int                 scale)
 /*
-Adjusts floating-point value in bin to best approximation of decimal value
+Adjust floating-point value in bin to best approximation of decimal value
 in dec.  Assumes that bin is close to the correct value (fast_dec2bin_double
 supposedly produces value within 6.01 ULPs).  Subnormal binary values have
 been multiplied by 2^scale; thus, the decimal value must also be multiplied
@@ -2498,14 +2464,12 @@ multiplier into account in rounding, and then remove it.
     d2 += exp;
     d5 += exp;
   }  /* if */
-
   exp = bin->exponent - bin->precision;
   if (exp < 0) {
     d2 += -exp;
   } else if (0 < exp) {
     b2 += exp;
   }  /* if */
-
   /* Remove common factors of 2. */
   if (b2 <= d2) {
     d2 -= b2;
@@ -2514,31 +2478,25 @@ multiplier into account in rounding, and then remove it.
     b2 -= d2;
     d2 = 0;
   }  /* if */
-
   /* Multiply binary and decimal by 2 so that eps represents half an ULP. */
   ++b2;
   ++d2;
-
   /* Set large integer values. */
   bigint_from_uint(eps, (an_fp_uint)1);
   bigint_mult_pow5(eps, b5);
   bigint_shift_left(eps, b2 - 1); /* eps = 1 * 5^b5*2^(b2-1) */
-
   bigint_from_fp_int(binary, bin->frac, bin->precision);
   bigint_shift_left(binary, 1);
   tmp = bigint_mult(binary, eps); /* binary = bin->fraction * 5^b5*2^b2 */
   delete_bigint(binary);
   binary = tmp;
   tmp = 0;
-
   bigint_from_dec_mant(decimal, dec);
   bigint_mult_pow5(decimal, d5);
   bigint_shift_left(decimal, d2); /* decimal = dec->[fraction] * 5^d5*2^d2 */
-
   /* Compare abs(decimal - binary) to eps to decide what to do next. */
   decimal_to_binary = bigint_abs_diff(err, decimal, binary);
   error_to_eps = bigint_cmp(err, eps);
-
   if (error_to_eps < 0 && scale == 0) {
     /* Error is less than half an ULP.  Check for special
        case: fraction is a power of 2 and decimal < binary. */
@@ -2567,7 +2525,6 @@ multiplier into account in rounding, and then remove it.
       bin->exponent -= scale;
     }  /* if */
   }  /* if */
-
   /* Clean up. */
   delete_bigint(err);
   delete_bigint(eps);
@@ -2608,7 +2565,7 @@ STATIC an_fp_return_type format(char          *tgt,
                                 size_t        size,
                                 an_fp_decimal *dec)
 /*
-Formats contents of dec (ignoring sign, which has already been done) into tgt,
+Format contents of dec (ignoring sign, which has already been done) into tgt,
 which is an array of at least size chars.  Emulates Java's default
 floating-point format, to make cross-checking easier.
 Returns fp_ret_valid if successful, fp_ret_too_small if the output
@@ -2685,7 +2642,7 @@ static an_fp_return_type convert_and_format(char         *tgt,
                                             size_t       size,
                                             an_fp_binary *bin)
 /*
-Converts simple values represented in broken-down form by *bin into
+Convert simple values represented in broken-down form by *bin into
 decimal representation and formats the result in *tgt (whose size is
 specified by "size").  Returns fp_ret_valid, fp_ret_nan, fp_ret_neg_infinity,
 or fp_ret_pos_infinity if successful, fp_ret_too_small if size is too small,

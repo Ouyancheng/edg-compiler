@@ -186,7 +186,7 @@ Miscellaneous macros for dealing with bits/bytes of a floating-point type.
 */
 #define FPT_DIGITS          FLOG10_2times(FPT_PRECISION - 1)
 #define FPT_EXP_BITS        (FPT_VALUE_BITS - FPT_PRECISION - 1 + \
-                                            /*lint --e(835)*/FPT_HAS_HIDDEN - 1)
+                                           /*lint --e(835)*/FPT_HAS_HIDDEN - 1)
 #define FPT_MAX_EXP         (1 << FPT_EXP_BITS)
 #define FPT_MIN_EXP         (3 - FPT_MAX_EXP)
 #define FPT_MIN_10_EXP      CLOG10_2times(FPT_MIN_EXP - 1)
@@ -326,7 +326,7 @@ header.
 static void SET_FRACTION(unsigned char *tgt,
                          unsigned char *frac)
 /*
-Sets the fraction in tgt to the contents of the byte array frac, with the
+Set the fraction in tgt to the contents of the byte array frac, with the
 high bit removed if appropriate.
 */
 {
@@ -348,7 +348,7 @@ high bit removed if appropriate.
 static void SET_BIASED_EXPONENT(unsigned char *tgt,
                                 int           biased_exponent)
 /*
-Sets the biased exponent in *tgt to the value of biased_exponent.
+Set the biased exponent in *tgt to the value of biased_exponent.
 */
 {
   int i;
@@ -372,7 +372,7 @@ Sets the biased exponent in *tgt to the value of biased_exponent.
 static a_boolean GET_FRACTION(unsigned char *frac,
                               unsigned char *val)
 /*
-Copies the fraction part of val into the byte array pointed to by frac, with
+Copy the fraction part of val into the byte array pointed to by frac, with
 the hidden bit added if appropriate.
 Returns FALSE for a normal fraction, TRUE if all the fraction bits except
 the topmost are 0.
@@ -406,11 +406,12 @@ the topmost are 0.
 
 static int GET_BIASED_EXPONENT(unsigned char *val)
 /*
-Returns the biased exponent of val.
+Return the biased exponent of val.
 */
 {
   int i = EXP_LAST_BYTE;
   int biased_exponent = val[BYTE_INDEX(i)] & EXP_LAST_MASK;
+
 #if EXP_LAST_BYTE != EXP_FIRST_BYTE
   --i;
   for ( ; i > EXP_FIRST_BYTE; --i) { /*lint !e681*/
@@ -431,7 +432,7 @@ Returns the biased exponent of val.
 STATIC void SPLIT_FN(an_fp_binary  *bin,
                      unsigned char *val)
 /*
-Splits floating-point value val into broken-down form in bin.
+Split floating-point value val into broken-down form in bin.
 */
 {
   int       biased_exponent;
@@ -444,7 +445,6 @@ Splits floating-point value val into broken-down form in bin.
   saw_nz = GET_FRACTION(bin->frac, val);
   biased_exponent = GET_BIASED_EXPONENT(val);
   bin->is_negative = GET_SIGN_BIT(val);
-
 #if !FPT_HAS_HIDDEN
   if ((bin->frac[HIGH_FRAC_BYTE] & HIGH_FRAC_BIT) == 0) {
     high_bit_is_zero = 1;
@@ -480,7 +480,6 @@ Splits floating-point value val into broken-down form in bin.
       bin->type = fpt_number;
     }  /* if */
   }
-
   bin->exponent = biased_exponent - EXPONENT_BIAS + 1;
   bin->precision = FPT_PRECISION;
 }  /* SPLIT_FN */
@@ -489,7 +488,7 @@ Splits floating-point value val into broken-down form in bin.
 STATIC void MAKE_FN(unsigned char *tgt,
                     an_fp_binary  *bin)
 /*
-Converts broken-down floating-point value in *bin to FPT_TYPE and stores the
+Convert broken-down floating-point value in *bin to FPT_TYPE and stores the
 result in *tgt.  Also detects underflow and overflow and sets bin->type
 accordingly.
 */
@@ -510,7 +509,6 @@ accordingly.
       biased_exponent = 0;
     }  /* if */
   }  /* if */
-
   if (bin->type != fpt_number) {
     memset(fraction, 0, FRACTION_BYTES);
     switch (bin->type) {
@@ -535,7 +533,6 @@ accordingly.
         unexpected_condition_str("invalid floating-point value");
     }  /* switch */
   }  /* if */
-
   SET_FRACTION(tgt, fraction);
   SET_BIASED_EXPONENT(tgt, biased_exponent);
   if (bin->is_negative == FALSE) {
@@ -548,7 +545,7 @@ accordingly.
 
 static void MAKE_MIN(an_fp_binary *bin)
 /*
-Sets *bin to the minimum normal value.
+Set *bin to the minimum normal value.
 */
 {
   bin->type = fpt_number;
@@ -563,7 +560,7 @@ Sets *bin to the minimum normal value.
 
 STATIC void MAKE_FP_BIN_ZERO(an_fp_binary *bin)
 /*
-Sets *bin to represent 0.0.
+Set *bin to represent 0.0.
 */
 {
   bin->type = fpt_zero;
@@ -576,7 +573,7 @@ Sets *bin to represent 0.0.
 
 STATIC void MAKE_FP_MIN_SUBNORMAL(unsigned char *tgt)
 /*
-Sets *tgt to the minimum subnormal value.
+Set *tgt to the minimum subnormal value.
 */
 {
   memset(tgt, 0, BYTE_COUNT(FPT_VALUE_BITS));
@@ -586,7 +583,7 @@ Sets *tgt to the minimum subnormal value.
 
 STATIC void MAKE_FP_MIN(unsigned char *tgt)
 /*
-Sets *tgt to the minimum normal value.
+Set *tgt to the minimum normal value.
 */
 {
   an_fp_binary bin;
@@ -596,7 +593,11 @@ Sets *tgt to the minimum normal value.
 
 #endif /* !FP_USE_EMULATION || FP_UNIT_TESTING */
 
-static void MAKE_MIN_SUBNORMAL(an_fp_binary *bin) {
+static void MAKE_MIN_SUBNORMAL(an_fp_binary *bin)
+/*
+Set *bin to the minimum subnormal value.
+*/
+{
   bin->type = fpt_number;
   bin->is_negative = FALSE;
   bin->exponent = FPT_MIN_EXP - FPT_PRECISION + 1;
@@ -743,17 +744,14 @@ Initialize SMALL_TENS and BIG_TENS arrays.
 #else /* !FP_USE_EMULATION */
   SMALL_TENS[0] = 1.0;
 #endif /* FP_USE_EMULATION */
-
   for (i = 1; i < N_SMALL_TENS; ++i) {
     fp_emul_copy(&SMALL_TENS[i], &SMALL_TENS[i - 1]);
     fp_emul_mult_int(&SMALL_TENS[i], 10);
   }  /* for */
-
   fp_emul_copy(&BIG_TENS[0], &SMALL_TENS[1 << EXP_SHIFT]);
   for (i = 1; i < N_BIG_TENS; ++i) {
     fp_emul_copy(&BIG_TENS[i], &BIG_TENS[i - 1]);
     fp_emul_mult(&BIG_TENS[i], &BIG_TENS[i]);
-
     /* Clean up.  Calculated value may have stray low bits. */
     DEC.exponent = 2 * DEC.exponent - 1;
 #if FP_USE_EMULATION
@@ -814,23 +812,18 @@ for the type.  The value of scale is stored in *pscale.
 
   check_assertion(MAX_APPROX_DIG <= N_SMALL_TENS);
   check_assertion(EXP_MASK <= N_SMALL_TENS);
-
   /* Adjust significant digits to match input. */
   if (dec->precision < sig_dig) {
     sig_dig = dec->precision;
   }  /* if */
-
   /* Adjust exponent to put decimal point at right of significant digits. */
   exp -= sig_dig;
-
   /* Use non-negative exponent. */
   if (exp < 0) {
     exp_is_negative = 1;
     exp = -exp;
   }  /* if */
-
   *pscale = 0;
-
   /* Figure out what to do. */
   if (FPT_MAX_10_EXP + 1 < dec->exponent) {
     dec->type = fpt_overflow;
@@ -853,7 +846,6 @@ for the type.  The value of scale is stored in *pscale.
     /* Case c. */
     dec->type = fpt_approx;
   }  /* if */
-
   /* Set up case c. */
   if (dec->type == fpt_approx) {
     /* Adjust exponents. */
@@ -861,7 +853,6 @@ for the type.  The value of scale is stored in *pscale.
     exp -= first_exp;
   }  /* if */
   check_assertion(first_exp <= MAX_FAST_EXP);
-
   /* If we don't have a special value, compute floating-point value. */
   if (dec->type == fpt_number || dec->type == fpt_approx) {
     /* Compute the fraction from the decimal digits. */
@@ -901,13 +892,11 @@ for the type.  The value of scale is stored in *pscale.
       fp_emul_mult(bin, &SMALL_TENS[digits]);
       fp_emul_add_int(bin, fraction);
     }  /* if */
-
     if (fp_emul_is_zero(bin)) {
       dec->type = fpt_underflow;
     } else if (exp_is_negative) {
       /* Divide the fraction by the two multipliers. */
       fp_emul_div(bin, &SMALL_TENS[first_exp]);
-
       if (exp < N_SMALL_TENS) {
         fp_emul_div(bin, &SMALL_TENS[exp]);
       } else {
@@ -982,6 +971,7 @@ for the type.  The value of scale is stored in *pscale.
   }  /* if */
 }  /* FAST_DEC2BIN */
 
+
 #if FP_USE_EMULATION
 /*ARGSUSED*/ /* val is not used in this case. */
 #endif /* FP_USE_EMULATION */
@@ -990,7 +980,7 @@ static a_boolean FAST_BIN2DEC(an_fp_decimal             *dec,
                               FPT_TYPE                  *val,
                               int                       ndigits)
 /*
-Tries to convert binary floating-point value to decimal value
+Try to convert binary floating-point value to decimal value
 in *dec using small integer optimization. *bin and *val represent
 the binary value in broken-down and native format, respectively.
 ndigits is the maximum number of digits to generate.
@@ -1002,7 +992,7 @@ Returns TRUE if the conversion was done, FALSE if it was not.
   an_fp_floating_point_type ds;
   int                       k;
   int                       dig_pos;
-  a_boolean res;
+  a_boolean                 res;
 
   if (bin->exponent <= 0 ||
       bin->exponent < bin->precision -
@@ -1010,22 +1000,19 @@ Returns TRUE if the conversion was done, FALSE if it was not.
     /* Not an integer.  Can't use fast conversion. */
     res = FALSE;
     goto end_of_routine;
-  }
-
+  }  /* if */
   k = LOG10_2times(bin->exponent);
   if (N_SMALL_TENS <= k) {
     /* Exponent too large.  Can't use fast conversion. */
     res = FALSE;
     goto end_of_routine;
   }  /* if */
-
 #if FP_USE_EMULATION
   fp_emul_copy(&d, bin);
 #else /* !FP_USE_EMULATION */
   d = *val;
 #endif  /* FP_USE_EMULATION */
   fp_emul_abs(&d);
-
   while (0 < k && fp_emul_lt(&d, &SMALL_TENS[k])) {
     /* k too large; adjust. */
     --k;
@@ -1047,11 +1034,9 @@ Returns TRUE if the conversion was done, FALSE if it was not.
         if (d < digit * ds) --digit;
         d -= digit * ds;
       */
-
     fp_emul_copy(&tmp, &d);
     fp_emul_div(&tmp, &ds);
     digit = fp_emul_to_int(&tmp);
-
     fp_emul_copy(&tmp, &ds);
     fp_emul_mult_int(&tmp, digit);
     if (fp_emul_lt(&d, &tmp)) {
@@ -1059,11 +1044,9 @@ Returns TRUE if the conversion was done, FALSE if it was not.
       fp_emul_sub(&tmp, &ds);
     }  /* if */
     fp_emul_sub(&d, &tmp);
-
     check_assertion(dig_pos < MAX_DIGITS && 0 <= digit && digit < 10);
     dec->digits[dig_pos] = '0' + (char)digit;
   }  /* for */
-
   if (ndigits < dig_pos) {
     /* Reached digit limit before running out of digits; round if needed. */
     --dig_pos;
@@ -1079,12 +1062,10 @@ Returns TRUE if the conversion was done, FALSE if it was not.
       }  /* if */
     }  /* if */
   }  /* if */
-
   /* Suppress trailing zeros. */
   while (1 < dig_pos && dec->digits[dig_pos - 1] == '0') {
     --dig_pos;
   }  /* while */
-
   /* Fill in remaining values. */
   dec->is_negative = bin->is_negative;
   dec->exponent = k + 1;
@@ -1102,7 +1083,7 @@ static an_fp_return_type WRITE_FP_INTERNAL(char          *tgt,
                                            unsigned char *val,
                                            int           ndigits)
 /*
-Converts floating-point value in *val to decimal representation in
+Convert floating-point value in *val to decimal representation in
 array of size chars pointed to by tgt.  If ndigits == FP_SHORTEST, produces the
 shortest string that correctly rounds to val; otherwise produces a string with
 at most ndigits digits.  Returns fp_ret_valid if the conversion succeeded,
@@ -1157,7 +1138,7 @@ an_fp_return_type WRITE_FN(char          *tgt,
                            int           size,
                            unsigned char *val)
 /*
-Converts the floating-point value pointed to by val (a binary representation)
+Convert the floating-point value pointed to by val (a binary representation)
 to decimal representation in array of size chars pointed to by tgt, producing
 the shortest string that correctly converts back to val.
 
@@ -1179,7 +1160,7 @@ an_fp_return_type WRITE_N_FN(char          *tgt,
                              unsigned char *val,
                              int           ndigits)
 /*
-Converts the floating-point value pointed to by val (a binary representation)
+Convert the floating-point value pointed to by val (a binary representation)
 to decimal representation in array of size chars pointed to by tgt, producing
 a string with no more than ndigits digits after the decimal point.  When the
 decimal representation of the binary value requires fewer than ndigits, only
@@ -1209,7 +1190,7 @@ if the result is negative infinity.
 static void CONVERT_FN(unsigned char       *val,
                        an_fp_decimal_input *dec)
 /*
-Converts the validated decimal value in *dec to a binary value in *val.
+Convert the validated decimal value in *dec to a binary value in *val.
 */
 {
   an_fp_binary bin;
@@ -1268,7 +1249,7 @@ an_fp_return_type READ_FN(unsigned char *val,
                           a_const_char  *str,
                           int           len)
 /*
-Converts the decimal value represented by text of length len at str into
+Convert the decimal value represented by text of length len at str into
 floating-point, storing the result (as a binary floating-point value) in *val
 (which must be large enough to store the anticipated result).  This routine
 converts the decimal value to its nearest binary floating-point representation
@@ -1294,7 +1275,6 @@ zero).
       CONVERT_FN(val, &dec);
     }  /* if */
   }  /* if */
-
   if (dec.type == fpt_invalid) {
     res = fp_ret_invalid;
   } else if (dec.type == fpt_approx || dec.type == fpt_number) {
