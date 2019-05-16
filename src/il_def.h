@@ -14831,6 +14831,9 @@ typedef struct a_coroutine_descr {
   a_bit_field	has_coroutine_return:1;
 			/* TRUE if the coroutine includes a co_return
 			   statement. */
+  a_bit_field	body_generated:1;
+			/* TRUE if the coroutine body has been generated for
+			   the coroutine, FALSE otherwise. */
 } a_coroutine_descr;
 
 /*

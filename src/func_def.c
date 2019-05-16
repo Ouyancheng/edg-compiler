@@ -1381,6 +1381,7 @@ in the correct place.
   /* Finally, add the final_suspend label and call to p.final_suspend() */
   stmt = add_coroutine_label(stmt, cr_desc->final_suspend_label);
   stmt = add_coroutine_expr_statement(stmt, cr_desc->final_suspend_call);
+  cr_desc->body_generated = TRUE;
 }  /* generate_coroutine_body */
 
 
@@ -1411,7 +1412,8 @@ coroutine cannot have an ellipsis parameter).
      promise type, which in turn allows us to complete the expressions needed
      to implement the coroutine operations. */
   init_coroutine_descr_if_needed(rp, cdp);
-  if (!cdp->error_descr) {
+  if (!cdp->error_descr && !is_error_type(cdp->promise->type) &&
+      !is_template_param_type(cdp->promise->type) && !ms_version_is(<1920)) {
     copy_coroutine_parameters(rp, cdp);
     generate_coroutine_body(rp);
   }  /* if */

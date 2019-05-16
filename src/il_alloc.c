@@ -3951,6 +3951,7 @@ a pointer to it.
   cdp->has_yield = FALSE;
   cdp->has_potentially_evaluated_await = FALSE;
   cdp->has_coroutine_return = FALSE;
+  cdp->body_generated = FALSE;
 #if DEBUG
   num_coroutine_descriptions_allocated++;
 #endif /* DEBUG */

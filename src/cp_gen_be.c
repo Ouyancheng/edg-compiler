@@ -16487,6 +16487,27 @@ and tokens.)
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void gen_coroutine_statement(a_statement_ptr statement)
+/*
+Generate code for a coroutine.  A coroutine has been modified to have the
+implied statements added - skip over these and just generate the original
+function body before the implicit statements were added.
+*/
+{
+  /* Look for the try/catch block that was generated - there should be exactly
+     one of these in the generated code. */
+  for (; statement != NULL; statement = statement->next) {
+    if (statement->kind == (a_statement_kind)stmk_try_block) {
+      statement = statement->variant.try_block->statement
+                                                    ->variant.block.statements;
+      break;
+    }  /* if */
+  }  /* for */
+  check_assertion(statement != NULL);
+  gen_statement_list(statement, /*is_stmt_expression=*/FALSE);
+}  /* gen_coroutine_statement */
+
+
 static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       is_stmt_expression)
 /*
@@ -16506,8 +16527,15 @@ is TRUE, the list is the body of a GNU statement expression.
     (void)process_preprocessing_directives();
     if (statement == NULL) break;
     /* Generate the statement. */
-    gen_statement_full(statement, /*is_stmt_expression=*/FALSE,
-                       is_stmt_expression && statement->next == NULL);
+    if (statement->kind == (a_statement_kind)stmk_coroutine &&
+        statement->variant.coroutine.descr->body_generated) {
+      check_assertion(is_stmt_expression == FALSE);
+      gen_coroutine_statement(statement);
+      break;
+    } else {
+      gen_statement_full(statement, /*is_stmt_expression=*/FALSE,
+                         is_stmt_expression && statement->next == NULL);
+    }  /* if */
   }  /* for */
 }  /* gen_statement_list */
 
@@ -17165,7 +17193,9 @@ one that yields the value) of a statement expression.
       break;
     case stmk_coroutine:
       /* stmk_coroutine entries are always compiler-generated: Nothing to
-         do. */
+         do.  If the coroutine body has been generated, we should not get
+         here. */
+      check_assertion(!statement->variant.coroutine.descr->body_generated);
       break;
     case stmk_block:
       /* Block: generate "{ ... }". */
