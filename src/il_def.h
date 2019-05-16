@@ -13182,6 +13182,10 @@ typedef struct a_new_delete_supplement {
 			   placeholder type (e.g., "auto") and could not be
 			   resolved at that time because the initializer is
 			   dependent. */
+  a_bit_field	parenthesized_type_id:1;
+			/* TRUE for a new-expression with a parenthesized
+			   type-id (as opposed to a non-parenthesized
+			   new-type-id). */
   a_type_ptr	type;
 			/* The type of the object being allocated for new;
 			   the type pointed to by the object pointer for

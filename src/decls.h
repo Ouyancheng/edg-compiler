@@ -1427,7 +1427,7 @@ extern
 a_type_ptr scan_template_type_argument(a_boolean *is_injected_class_name);
 
 extern void new_type_name(a_decl_parse_state  *state,
-                          a_boolean           is_parenthesized);
+                          a_boolean           *p_is_parenthesized);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
 extern a_type_ptr simple_type_specifier_sequence(void);

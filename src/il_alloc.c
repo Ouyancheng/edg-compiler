@@ -3445,6 +3445,7 @@ fields to default values.
       ndsp->has_new_initializer             = FALSE;
       ndsp->new_initializer_is_brace_enclosed = FALSE;
       ndsp->deducible_type                  = FALSE;
+      ndsp->parenthesized_type_id           = FALSE;
       ndsp->type                            = NULL;
       ndsp->routine                         = NULL;
       ndsp->arg                             = NULL;

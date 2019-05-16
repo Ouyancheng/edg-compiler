@@ -4088,6 +4088,9 @@ Display the indicated new/delete supplement to an expression node.
   disp_boolean("new_initializer_is_brace_enclosed",
                (a_boolean)ndsp->new_initializer_is_brace_enclosed);
   disp_boolean("deducible_type", (a_boolean)ndsp->deducible_type);
+  if (ndsp->parenthesized_type_id) {
+    disp_boolean("parenthesized_type_id", TRUE);
+  }  /* if */
   disp_ptr("type", (char *)ndsp->type, iek_type);
   disp_ptr("routine", (char *)ndsp->routine, iek_routine);
   disp_ptr("arg", (char *)ndsp->arg, iek_expr_node);

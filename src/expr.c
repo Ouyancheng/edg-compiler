@@ -282,7 +282,7 @@ typedef struct a_new_parse_state {
 			   initializer cache. */
   a_bit_field	empty_initializer:1;
 			/* TRUE if the initializer expression is empty. */
-  a_bit_field	trapped_left_paren:1;
+  a_bit_field	parenthesized_type_id:1;
 			/* TRUE if the type in the "new" expression is
 			   parenthesized. */
   a_bit_field	templ_init_scanned:1;
@@ -19260,6 +19260,7 @@ placement and initializer from a rescan block for the operator.
     nps->placement_new = rescan_ndsp->placement_new;
     nps->has_new_initializer = rescan_ndsp->has_new_initializer;
     nps->deducible_new_type = rescan_ndsp->deducible_type;
+    nps->parenthesized_type_id = rescan_ndsp->parenthesized_type_id;
   }  /* if */
   if (nps->placement_new) {
     /* Pick up the placement new argument list. */
@@ -19352,7 +19353,7 @@ in parentheses.
     if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
                          DFS_SINGLE_TYPE_REQUIRED)) {
       /* This is the type name. */
-      nps->trapped_left_paren = TRUE;
+      nps->parenthesized_type_id = TRUE;
     } else {
       /* This is the placement expression list. */
       nps->placement_new = TRUE;
@@ -19476,13 +19477,18 @@ static void scan_new_type(a_new_parse_state  *nps,
 Scan the new-type-name or ( type-name ) from source.
 */
 {
+  a_boolean  parenthesized_type_id = nps->parenthesized_type_id;
+
   dps->is_new_expr_type = TRUE;
   dps->auto_type_allowed = auto_type_specifier_enabled;
   dps->trailing_return_type_allowed = trailing_return_types_enabled;
   dps->declarator_pos = pos_curr_token;
   nps->type_position = pos_curr_token;
 
-  new_type_name(dps, nps->trapped_left_paren);
+  new_type_name(dps, &parenthesized_type_id);
+  if (parenthesized_type_id) {
+    nps->parenthesized_type_id = TRUE;
+  }  /* if */
   nps->new_type = dps->type;
   nps->deducible_new_type = (dps->has_deduced_type &&
                              !dps->has_trailing_return_type) ||
@@ -21005,6 +21011,7 @@ Create the resulting operand for "new".
   ndsp->has_new_initializer = nps->has_new_initializer;
   ndsp->new_initializer_is_brace_enclosed = nps->has_braced_initializer;
   ndsp->deducible_type = nps->deducible_new_type;
+  ndsp->parenthesized_type_id = nps->parenthesized_type_id;
   ndsp->type = nps->new_type;
   ndsp->routine = nps->new_routine;
   ndsp->arg = nps->arg_expr_list;

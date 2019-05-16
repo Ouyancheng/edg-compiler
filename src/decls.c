@@ -12660,7 +12660,7 @@ that indicates whether the type was specified as the injected class name.
 
 
 void new_type_name(a_decl_parse_state  *state,
-                   a_boolean           is_parenthesized)
+                   a_boolean           *p_is_parenthesized)
 /*
 Scan a C++ new-type-name or a parenthesized type-name that may appear in a
 "new" expression, and return a pointer to the type through state->type.
@@ -12680,10 +12680,11 @@ The syntax is:
               noptr-new-declarator [ constant-expression ]
 
 This syntax allows only a restricted form of types, but other types can be
-specified by enclosing a type-name in parentheses.  If is_parenthesized is
+specified by enclosing a type-name in parentheses.  If *p_is_parenthesized is
 TRUE, the caller has already trapped the left parenthesis for such a
 construct.  The parenthesis is also checked from within this routine if
-is_parenthesized comes in FALSE.
+*p_is_parenthesized comes in FALSE and *p_is_parenthesized is set to TRUE in
+that case.
 */
 {
   a_type_ptr                  complete_type, new_type_ptr;
@@ -12697,11 +12698,11 @@ is_parenthesized comes in FALSE.
 
   db_enter(3, "new_type_name");
   /* Check for the parenthesized form. */
-  if (!is_parenthesized && curr_token == tok_lparen) {
-    is_parenthesized = TRUE;
+  if (!*p_is_parenthesized && curr_token == tok_lparen) {
+    *p_is_parenthesized = TRUE;
     (void)get_token();
   }  /* if */
-  if (is_parenthesized) add_stop_token(tok_rparen);
+  if (*p_is_parenthesized) add_stop_token(tok_rparen);
   set_err_pos_to_curr_token();
   clear_decl_pos_block(&decl_pos_block);
   copy_source_position(pos_curr_token, state->start_pos);
@@ -12718,19 +12719,19 @@ is_parenthesized comes in FALSE.
   if (state->type != NULL) {
     (skip_typerefs(state->type))->source_corresp.referenced = TRUE;
   }  /* if */
-  if (gpp_mode && gnu_version < 30400 && is_parenthesized &&
+  if (gpp_mode && gnu_version < 30400 && *p_is_parenthesized &&
       curr_token == tok_rparen && next_token() == tok_lbracket) {
     /* GNU compilers accept new-expressions like "new (int)[n]" where the
        "[n]" is part of the type specifier.  (It also accepts forms like
        "new (int[n])[3]", which are handled in the call to declarator
        below.) */
     rparen_in_new_declarator = TRUE;
-    is_parenthesized = FALSE;
+    *p_is_parenthesized = FALSE;
     (void)get_token();
     remove_stop_token(tok_rparen);
   }  /* if */
   /* Note -- the check for dangling_type_specifier is not relevant here. */
-  if (is_parenthesized) {
+  if (*p_is_parenthesized) {
     /* In the parenthesized form, the full declarator syntax is allowed. */
     if (is_abstract_declarator_start()) {
       declarator(DI_ABSTRACT_DECLARATOR_ALLOWED |

@@ -11539,7 +11539,7 @@ Generate code for a new or delete operation.
   a_type_ptr                  type = ndsp->type, unqual_type, temp_type;
   a_routine_ptr               routine = ndsp->routine;
   a_boolean                   need_type_parens = FALSE,
-                              qualifiers_seen = FALSE;
+                              qualifiers_seen = FALSE, saved_suppress_parens;
 
   unqual_type = skip_typerefs(type);
   /* See if a global specifier "::" is needed on the new or delete. */
@@ -11582,47 +11582,73 @@ Generate code for a new or delete operation.
               [ expression(opt) ] attribute-specifier-seq(opt)
               noptr-new-declarator [ constant-expression ]
                                               attribute-specifier-seq(opt)
-       If we first remove a sequence of tk_array layers and then a sequence of
-       tk_pointer/tk_ptr_to_member layers (each sequence is optional), we
-       recover the type X potentially indicated by type-specifier-seq.  If that
-       type cannot be expressed as a type-specifier-seq, additional parentheses
-       are required so that a normal type-id instead of a new-type-id can be
-       rendered.  Thus, if X is a tk_array or tk_routine type, parentheses are
-       needed.  Parentheses are also needed if X is a cv-qualified tk_pointer
-       or tk_ptr_to_member type (with no other intervening tk_typeref
-       entries). */
-    /* First, peel off tk_array layers. */
-    temp_type = type;
-    while (type_is(temp_type, tk_array)) {
-      temp_type = temp_type->variant.array.element_type;
-    }  /* while */
-    /* Then peel off tk_pointer/tk_ptr_to_member layers. */
-    for (;;) {
-      if (type_is(temp_type, tk_pointer)) {
-        temp_type = temp_type->variant.pointer.type;
-      } else if (type_is(temp_type, tk_ptr_to_member)) {
-        temp_type = temp_type->variant.ptr_to_member.type;
-      } else {
-        break;
+       The front end records whether parentheses appeared, but that is not
+       helpful if we are generating a substituted new-expression. */
+#if !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    need_type_parens = ndsp->parenthesized_type_id;
+#else /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+    /* The type is potentially one resulting from template parameter
+       substitution, in which case whether the source was originally
+       parenthesized may not be relevant.  For example, "new T" with T a
+       pointer to function type "int (*)()" must be rendered as
+       "new (int(*)())".  Unfortunately, that also means that there is no way
+       to render the substitution of "new T[n]" for such a T. */
+    if (type_is(type, tk_array) &&
+        type->variant.array.is_template_dependent_size_array) {
+      /* A type-dependent bound may or may not be a run-time bound.  Use the
+         source form in that case (substituted constructs are usually not
+         template-dependent). */
+      need_type_parens = ndsp->parenthesized_type_id;
+    } else {
+      /* Determine if we can use the new-type-id by analyzing the structure of
+         the type.  If we first remove a sequence of tk_array layers and then a
+         sequence of tk_pointer/tk_ptr_to_member layers (each sequence is
+         optional), we recover the type X potentially indicated by
+         type-specifier-seq.  If that type cannot be expressed as a
+         type-specifier-seq, additional parentheses are required so that a
+         normal type-id instead of a new-type-id can be rendered.  Thus, if X
+         is a tk_array or tk_routine type, parentheses are needed.  Parentheses
+         are also needed if X is a cv-qualified tk_pointer or tk_ptr_to_member
+         type (with no other intervening tk_typeref entries). */
+      /* First, peel off tk_array layers. */
+      temp_type = type;
+      while (type_is(temp_type, tk_array)) {
+        temp_type = temp_type->variant.array.element_type;
+      }  /* while */
+      /* Then peel off tk_pointer/tk_ptr_to_member layers. */
+      for (;;) {
+        if (type_is(temp_type, tk_pointer)) {
+          temp_type = temp_type->variant.pointer.type;
+        } else if (type_is(temp_type, tk_ptr_to_member)) {
+          temp_type = temp_type->variant.ptr_to_member.type;
+        } else {
+          break;
+        }  /* if */
+      }  /* for */
+      while (type_is(temp_type, tk_typeref)) {
+        if (temp_type->variant.typeref.qualifiers != TQ_NONE) {
+          qualifiers_seen = TRUE;
+          temp_type = temp_type->variant.typeref.type;
+        } else {
+          break;
+        }  /* if */
+      }  /* while */
+      if (type_is(temp_type, tk_routine) ||
+          type_is(temp_type, tk_array) ||
+          (qualifiers_seen &&
+           (type_is(temp_type, tk_pointer) ||
+            type_is(temp_type, tk_ptr_to_member)))) {
+        /* Not a type that can be expressed using a new-type-id. */
+        need_type_parens = TRUE;
       }  /* if */
-    }  /* for */
-    while (type_is(temp_type, tk_typeref)) {
-      if (temp_type->variant.typeref.qualifiers != TQ_NONE) {
-        qualifiers_seen = TRUE;
-        temp_type = type->variant.typeref.type;
-      } else {
-        break;
-      }  /* if */
-    }  /* while */
-    if (type_is(temp_type, tk_routine) ||
-        type_is(temp_type, tk_array) ||
-        (qualifiers_seen &&
-         (type_is(temp_type, tk_pointer) ||
-          type_is(temp_type, tk_ptr_to_member)))) {
-      /* Not a type that can be expressed using a new-type-id. */
-      need_type_parens = TRUE;
     }  /* if */
-    if (need_type_parens) write_tok_ch('(');
+#endif /* !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+    if (need_type_parens) {
+      write_tok_ch('(');
+    } else {
+      saved_suppress_parens = octl.suppress_ptr_to_data_member_parens;
+      octl.suppress_ptr_to_data_member_parens = TRUE;
+    }  /* if */
     /* The type is easy to put out except when it is a variable-length array
        type. */
     if (!is_incomplete_type(unqual_type)) {
@@ -11667,7 +11693,12 @@ Generate code for a new or delete operation.
       form_type_second_part_simple(elem_type, /*under_lhs_declarator=*/FALSE,
                                    &octl);
     }  /* if */
-    if (need_type_parens) write_tok_ch(')');
+    if (need_type_parens) {
+      write_tok_ch(')');
+    } else {
+      octl.suppress_ptr_to_data_member_parens = saved_suppress_parens;
+      octl.suppress_ptr_to_data_member_parens = TRUE;
+    }  /* if */
     if (ndsp->has_new_initializer &&
         /* In some Microsoft modes, value initialization gets suppressed
            even though there was an initializer on the "new". */
