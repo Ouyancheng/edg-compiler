@@ -26202,7 +26202,7 @@ source_is_rvalue.
     if (ptp->next != NULL &&
         !ptp->next->has_default_arg &&
         !ptp->next->is_parameter_pack) {
-      /* Additional arguments that don't have defaults and cannot "disappear"
+      /* Additional parameters that don't have defaults and cannot "disappear"
          (through an empty pack expansion). */
       goto reject_function;
     }  /* if */
