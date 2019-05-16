@@ -2166,6 +2166,70 @@ Float types:
 			   targ_alignof_float128. */
 #endif /* !defined(TARG_ALIGNOF_FLOAT128) */
 
+/*
+Historically, the front end has relied on the floating-point capability of
+the host to do floating-point arithmetic.  That doesn't work well if, e.g.,
+the target supports 128-bit floating-point and the host does not.  In cases
+like this, the Berkley SoftFloat library
+(http://www.jhauser.us/arithmetic/SoftFloat-3/doc/SoftFloat.html) can be
+used to perform 128-bit floating-point operations in software.  When
+USE_SOFTFLOAT is TRUE, the SoftFloat library (release 3e or later) is used
+for floating-point operations.  The SoftFloat package must be obtained
+and compiled separately and provisions made in the build process to make the
+SoftFloat include files and library available to the front end.
+
+Note that the SoftFloat floating-point to integer conversion routines can
+handle at most 64-bit integers, so if the host integer is larger than that,
+unnecessary truncation may occur.
+*/
+#ifndef USE_SOFTFLOAT
+#define USE_SOFTFLOAT FALSE
+#endif /* ifndef USE_SOFTFLOAT */
+
+/*
+This macro controls whether the front end uses the floating-point conversion
+routines provided by the host compiler's standard library (e.g., strtod and
+sprintf) or whether the front end's internal routines should be used.  The
+internal routines provide correctly-rounded decimal-to-binary and
+binary-to-decimal conversions.  Using the internal routines is typically
+slower as the conversion process is performed in software with integer
+arithmetic (but see FP_USE_EMULATION in floating.h).  Setting
+USE_HOST_FP_CONVERSION_ROUTINES to TRUE uses the host library routines; a
+setting of FALSE uses the internal routines.  When setting this macro to FALSE,
+make sure the configuration macros for FP_LONG_DOUBLE_IS_* are set
+properly (see floating.h).
+*/
+#ifndef USE_HOST_FP_CONVERSION_ROUTINES
+#if USE_SOFTFLOAT
+#define USE_HOST_FP_CONVERSION_ROUTINES FALSE
+#else /* !USE_SOFTFLOAT */
+#define USE_HOST_FP_CONVERSION_ROUTINES TRUE
+#endif /* USE_SOFTFLOAT */
+#endif /* ifndef USE_HOST_FP_CONVERSION_ROUTINES */
+
+#if USE_SOFTFLOAT && USE_HOST_FP_CONVERSION_ROUTINES
+ #error -- must use internal floating-point conversion routines with SoftFloat
+#endif /* USE_SOFTFLOAT && USE_HOST_FP_CONVERSION_ROUTINES */
+
+#if USE_SOFTFLOAT
+#include "softfloat.h"
+
+/*
+Use SoftFloat's float128_t type as the host's floating-point internal
+representation (it is available on all platforms and is at least as big as
+the largest target floating-point representation currently supported).
+*/
+typedef float128_t a_host_fp_value;
+
+#undef USE_DOUBLE_FOR_HOST_FP_VALUE
+#define USE_DOUBLE_FOR_HOST_FP_VALUE 0
+#undef USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
+#undef USE_FLOAT128_FOR_HOST_FP_VALUE
+#define USE_FLOAT128_FOR_HOST_FP_VALUE 0
+
+#else /* !USE_SOFTFLOAT */
+/* Host floating-point routines are being used. */
 
 /*
 Configure the type used to perform host floating point computations.  To
@@ -2248,6 +2312,16 @@ typedef double a_host_fp_value;
 
 
 #undef HOST_FP_TYPE_SELECTED
+#endif /* USE_SOFTFLOAT */
+
+/*
+An internal macro used to signify that the size of a_host_fp_value is 128 bits.
+*/
+#if USE_FLOAT128_FOR_HOST_FP_VALUE || USE_SOFTFLOAT
+#define HOST_FP_VALUE_IS_128BIT TRUE
+#else /* !(USE_FLOAT128_FOR_HOST_FP_VALUE || USE_SOFTFLOAT) */
+#define HOST_FP_VALUE_IS_128BIT FALSE
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE || USE_SOFTFLOAT */
 
 /*
 TRUE if the front end can use the GNU QuadMath library to support operations
@@ -2274,6 +2348,7 @@ is __float128).
  #error -- USE_QUADMATH_LIBRARY and APPROXIMATE_QUADMATH cannot both be TRUE
 #endif /* USE_QUADMATH_LIBRARY && APPROXIMATE_QUADMATH */
 #endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
+
 
 /*
 TRUE if the target supports IEEE floating point, i.e., it has NaNs
@@ -2315,9 +2390,9 @@ float80_enabled and float128_enabled to TRUE.
 #define FLOAT128_ENABLING_POSSIBLE FALSE
 #endif /* ifndef FLOAT128_ENABLING_POSSIBLE */
 
-#if FLOAT128_ENABLING_POSSIBLE && !USE_FLOAT128_FOR_HOST_FP_VALUE
- #error -- __float128 support requires __float128 host floating-point type
-#endif /* FLOAT128_ENABLING_POSSIBLE && !USE_FLOAT128_FOR_HOST_FP_VALUE */
+#if FLOAT128_ENABLING_POSSIBLE && !HOST_FP_VALUE_IS_128BIT
+ #error -- __float128 support requires 128-bit host floating-point type
+#endif /* FLOAT128_ENABLING_POSSIBLE && !HOST_FP_VALUE_IS_128BIT */
 
 
 /*

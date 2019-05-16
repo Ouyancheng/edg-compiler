@@ -53,6 +53,12 @@ EXTERN_C double strtod(char *, char **);
 #if TARG_HAS_IEEE_FLOATING_POINT
 /* Define is_NaN and is_finite.  They must work on an argument of type
    a_host_fp_value (typically double or long double). */
+#if USE_SOFTFLOAT
+/* SoftFloat does not provide routines to detect NaN or infinities. */
+#define is_NaN(x) (do_softfloat_is_nan(x))
+#define is_finite(x) (host_fp_value_is_finite(x))
+#define NEED_HOST_FP_VALUE_IS_FINITE 1
+#else /* !USE_SOFTFLOAT */
 #if EDG_WIN32
 /* Windows, all versions. */
 
@@ -133,6 +139,7 @@ EXTERN_C int finite(double x);
 #endif /* ifdef isfinite */
 #endif /* ifdef __sun */
 #endif /* EDG_WIN32 */
+#endif /* USE_SOFTFLOAT */
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
 
 #ifdef _lint
@@ -165,6 +172,214 @@ static a_boolean
 			/* TRUE if the long double floating point type does
 			   not make use of an implicit mantissa bit. */
 
+static a_host_fp_value
+		fp_zero;
+			/* The value 0.0 in internal representation. */
+#if USE_SOFTFLOAT
+static float32_t
+		f32_zero;
+			/* The value 0.0F. */
+static float64_t
+		f64_zero;
+			/* The value 0.0. */
+
+/*
+Utility macros to perform low-level operations on a_host_fp_value operands.
+These SoftFloat versions assume that all floating-point operations are
+performed with 128-bit floating point values (i.e., that a_host_fp_value
+is float128_t).  They could be re-written to assume, e.g. 64-bit floating
+point values, but since SoftFloat provides 128-bit, we use that.
+*/
+#define do_fp_add(op1, op2, result)      f128M_add(&(op1), &(op2), &(result))
+#define do_fp_subtract(op1, op2, result) f128M_sub(&(op1), &(op2), &(result))
+#define do_fp_multiply(op1, op2, result) f128M_mul(&(op1), &(op2), &(result))
+#define do_fp_divide(op1, op2, result)   f128M_div(&(op1), &(op2), &(result))
+#define do_fp_negate(op1, result)        do_softfloat_negate(&(op1), &(result))
+#define do_fp_eq_zero(op)                (f128M_eq(&(op), &fp_zero))
+#define do_fp_lt_zero(op)                (f128M_lt(&(op), &fp_zero))
+
+static void do_softfloat_negate(a_host_fp_value *op1,
+                                a_host_fp_value *result)
+/*
+SoftFloat doesn't have a unary negate routine, so create one.  Note that
+subtracting from zero doesn't work for our purposes (e.g., to represent -0.0
+the lexical routines scan 0.0 and then call this routine, that would result in
+0.0-0.0 which yields a positive 0.0, not the desired -0.0).
+*/
+{
+  an_internal_float_value *fp = (an_internal_float_value*)result;
+  a_byte                  *sign_byte;
+
+  *result = *op1;
+  if (host_little_endian) {
+    sign_byte = &fp->bytes[data_size_of_host_fp_value-1];
+  } else {
+    sign_byte = &fp->bytes[0];
+  }  /* if */
+  *sign_byte = (~(*sign_byte & 0x80) & 0x80) | (*sign_byte & 0x7F);
+}  /* do_softfloat_negate */
+
+
+static a_boolean do_softfloat_is_nan(a_host_fp_value value)
+/*
+SoftFloat doesn't have a routine to detect NaN values, so use this routine.
+Note that this routine doesn't differentiate between signaling and quiet NaNs.
+Note also that this works only for 128-bit floating-point values.
+*/
+{
+  a_boolean     result = FALSE;
+  unsigned char *p = (unsigned char *)&value;
+  unsigned int  exponent, i;
+
+  if (host_little_endian) {
+    exponent = (p[15] << CHAR_BIT) | p[14];
+  } else {
+    exponent = (p[0] << CHAR_BIT) | p[1];
+  }  /* if */
+  if ((exponent & 0x7fff) == 0x7fff) {
+    /* All ones in the exponent field means a NaN or infinity.  Any non-zero
+       byte in the fraction indicates a NaN. */
+    for (i = 2; i < 14; i++) {
+      if (p[i] != 0) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* do_softfloat_is_nan */
+
+#if USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE
+
+static void do_softfloat_hex_constant_string(
+                                          a_float_kind            kind,
+                                          an_internal_float_value *float_value,
+                                          char                    *str,
+                                          sizeof_t                size)
+/*
+Generate a hexadecimal floating-point representation of float_value and place
+it in str.  kind represents the kind of floating-point value (which must
+be an 80-bit or 128-bit floating type).  size is the size of str.
+Note that float and double are handled by the caller (though sprintf) as they
+are supported on all platforms.
+*/
+{
+  char        *buf = str;
+  uint32_t    exponent, exponent_bias = 16383;
+  a_byte      *p;
+  int         i, offset, bytes, trailing_zeros = 0, left;
+  a_boolean   leading_zeros = TRUE, implied_hidden_bit;
+
+  /* This routine only handles 80 and 128-bit float (everything else should
+     be handled by the caller). */
+  /* Check worst case rather than byte by byte. */
+  check_assertion(size >= (1 + 2 + 2 + 28 + 1 + 6 + 1));
+  if (kind == (a_float_kind)fk_float80 ||
+      (kind == (a_float_kind)fk_long_double &&
+       targ_ldbl_mant_dig == 64)) {
+      /* 80 bits. */
+    bytes = 10;
+    implied_hidden_bit = FALSE;
+  } else if (kind == (a_float_kind)fk_float128 ||
+             (kind == (a_float_kind)fk_long_double &&
+              targ_ldbl_mant_dig == 113)) {
+      /* 128 bits. */
+    bytes = 16;
+    implied_hidden_bit = TRUE;
+  } else {
+    unexpected_condition();
+  }  /* if */
+  if (host_little_endian) {
+    exponent = (float_value->bytes[bytes-1] << CHAR_BIT) |
+                float_value->bytes[bytes-2];
+    p = &float_value->bytes[bytes-3];
+    offset = -1;
+  } else {
+    exponent = (float_value->bytes[0] << CHAR_BIT) | float_value->bytes[1];
+    p = &float_value->bytes[2];
+    offset = 1;
+  }  /* if */
+  if (exponent & 0x8000) {
+    *buf++ = '-';
+  }  /* if */
+  *buf++ = '0';
+  *buf++ = 'x';
+  exponent = exponent & 0x7fff;
+  /* Only concerned with mantissa bytes now. */
+  bytes -= 2;
+  /* Count the number of trailing zero nibbles (we suppress these later). */
+  for (i = 0; i < bytes; i++) {
+    if ((*p & 0xf0) == 0) {
+      trailing_zeros++;
+    } else {
+      trailing_zeros = 0;
+    }  /* if */
+    if ((*p & 0x0f) == 0) {
+      trailing_zeros++;
+    } else {
+      trailing_zeros = 0;
+    }  /* if */
+    p += offset;
+  }  /* for */
+  /* Restore pointer. */
+  p -= (bytes * offset);
+  left = bytes*2;
+  if (exponent == 0 && left == trailing_zeros) {
+    /* Handle zero as a special case. */
+    *buf++ = '0';
+    *buf++ = 'p';
+    *buf++ = '0';
+    *buf++ = '\0';
+  } else {
+    if (implied_hidden_bit) {
+      /* The value of the implied hidden bit is determined by the exponent. */
+      if (exponent == 0) {
+        *buf++ = '0';
+      } else {
+        *buf++ = '1';
+      }  /* if */
+    } else {
+      *buf++ = '0';
+      exponent_bias--;
+    }  /* if */
+    *buf++ = '.';
+    /* Use 16382 as the exponent for denormalized values. */
+    if (exponent == 0) exponent_bias--;
+    for (i = 0; i < bytes; i++) {
+      static const char hex_to_ascii[17] = "0123456789abcdef";
+#define write_nibble(n)                                                      \
+  {                                                                          \
+    if (i == 0 || (n) != 0 || !leading_zeros) {                              \
+      *buf++ = hex_to_ascii[(n)];                                            \
+      leading_zeros = FALSE;                                                 \
+    }  /* if */                                                              \
+    if (--left <= trailing_zeros) break;                                     \
+  }
+      write_nibble((*p & 0xf0) >> 4);
+      write_nibble(*p & 0x0f);
+#undef write_nibble
+      p += offset;
+    }  /* for */
+    *buf++ = 'p';
+    (void)sprintf(buf, "%d", (int)exponent - exponent_bias);
+  }  /* if */
+}  /* do_softfloat_hex_constant_string */
+
+#endif /* USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE */
+
+#else /* !USE_SOFTFLOAT */
+/*
+Use the host-provided floating-point support to perform basic functions.
+*/
+#define do_fp_add(op1, op2, result)          ((result) = (op1) + (op2))
+#define do_fp_subtract(op1, op2, result)     ((result) = (op1) - (op2))
+#define do_fp_multiply(op1, op2, result)     ((result) = (op1) * (op2))
+#define do_fp_divide(op1, op2, result)       ((result) = (op1) / (op2))
+#define do_fp_negate(op1, result)            ((result) = -(op1))
+#define do_fp_eq_zero(op)                    ((op) == 0.0)
+#define do_fp_lt_zero(op)                    ((op) < 0.0)
+#endif /* USE_SOFTFLOAT */
+
 #ifdef NEED_HOST_FP_VALUE_IS_FINITE
 
 static a_boolean host_fp_value_is_finite(a_host_fp_value  value)
@@ -181,7 +396,7 @@ C99 macro isfinite are not available.
   /* As written, this routine supports only the size of exponent that
      comes up commonly in long doubles and __float128. */
   check_assertion_str(LDBL_MAX_EXP == 16384 || /*lint !e506*/
-                      USE_FLOAT128_FOR_HOST_FP_VALUE,
+                      HOST_FP_VALUE_IS_128BIT,
                       "host_fp_value_is_finite: unsupported exponent size");
   if (host_little_endian) {
     /* Some long doubles don't use all of the allocated space.  This routine
@@ -337,7 +552,7 @@ result by using str_to_long_double (when APPROXIMATE_QUADMATH is TRUE).
     err = nonzero;
   } else {
     /* Check for overflow. */
-    err = !is_finite(result);
+    err = !is_finite(*(a_host_fp_value*)&result);
   }  /* if */
   /* Set errno to indicate an error. */
   errno = err ? ERANGE : 0;
@@ -376,6 +591,29 @@ float.    Set "err" if the conversion would result in overflow or underflow.
 If the conversion can be done, return the result in "result".
 */
 {
+#if USE_SOFTFLOAT
+  /* Convert 128-bit floating-point number to 32-bit and set *err on
+     overflow or underflow. */
+  float32_t f32_temp;
+  softfloat_exceptionFlags = 0;
+  f32_temp = f128M_to_f32(&temp);
+  if ((softfloat_exceptionFlags & softfloat_flag_overflow) != 0) {
+    if (gnu_mode && is_finite(temp)) {
+      /* GNU C and C++ silently uses infinity for values that are too
+         large. */
+    } else {
+      /* An overflow. */
+      *err = TRUE;
+    }  /* if */
+  } else if (((softfloat_exceptionFlags & softfloat_flag_underflow) != 0) &&
+             f32_eq(f32_temp, f32_zero)) {
+    /* An underflow to zero. */
+    *err = TRUE;
+  }  /* if */
+  if (!*err) {
+    *result = *((float*)&f32_temp);
+  }  /* if */
+#else /* !USE_SOFTFLOAT */
   /* Ideally, we'd like to check that the conversion will not overflow before
      performing the conversion (to avoid floating-point exceptions).  If we
      have FLT_MAX (which we can stringize) and a routine to convert a string
@@ -548,6 +786,7 @@ If the conversion can be done, return the result in "result".
     }  /* if */
   }  /* if */
 #undef CAN_DO_FLT_MAX_TEST
+#endif /* USE_SOFTFLOAT */
 }  /* conv_host_fp_to_float */
 
 #if !USE_DOUBLE_FOR_HOST_FP_VALUE
@@ -561,6 +800,29 @@ this case) to double.  Set "err" if the conversion would result in overflow or
 underflow.  If the conversion can be done, return the result in "result".
 */
 {
+#if USE_SOFTFLOAT
+  /* Convert 128-bit floating-point number to 64-bit and set *err on
+     overflow or underflow. */
+  float64_t f64_temp;
+  softfloat_exceptionFlags = 0;
+  f64_temp = f128M_to_f64(&temp);
+  if ((softfloat_exceptionFlags & softfloat_flag_overflow) != 0) {
+    if (gnu_mode && is_finite(temp)) {
+      /* GNU C and C++ silently uses infinity for values that are too
+         large. */
+    } else {
+      /* An overflow. */
+      *err = TRUE;
+    }  /* if */
+  } else if (((softfloat_exceptionFlags & softfloat_flag_underflow) != 0) &&
+             f64_eq(f64_temp, f64_zero)) {
+    /* An underflow to zero. */
+    *err = TRUE;
+  }  /* if */
+  if (!*err) {
+    *result = *((double*)&f64_temp);
+  }  /* if */
+#else /* !USE_SOFTFLOAT */
   /* Ideally, we'd like to check that the conversion will not overflow before
      performing the conversion (to avoid floating-point exceptions).  If we
      have DBL_MAX (which we can stringize) and a routine to convert a string
@@ -723,26 +985,56 @@ underflow.  If the conversion can be done, return the result in "result".
     }  /* if */
   }  /* if */
 #undef CAN_DO_DBL_MAX_TEST
+#endif /* USE_SOFTFLOAT */
 }  /* conv_host_fp_to_double */
 
 #endif /* !USE_DOUBLE_FOR_HOST_FP_VALUE */
-#if USE_FLOAT128_FOR_HOST_FP_VALUE
+#if HOST_FP_VALUE_IS_128BIT
 
 static void conv_host_fp_to_long_double(a_host_fp_value  val,
                                         a_boolean        *err,
                                         long double      *result)
 /*
-Convert val from a_host_fp_value (__float128 in this case) to long double.
-Set "err" if the conversion would result in overflow or underflow.  If the
-conversion can be done, return the result in "result".
+Convert val from a_host_fp_value (__float128 or float128_t in this case) to
+long double.  Set "err" if the conversion would result in overflow or
+underflow.  If the conversion can be done, return the result in "result".
 */
 {
   long double      ldbl_val;
+#if !USE_SOFTFLOAT
   a_host_fp_value  round_trip_val;
+#endif /* !USE_SOFTFLOAT */
 
   /* Zero all bits (the assignment that follows does not always set every
      bit in the destination). */
   memzero((char *)&ldbl_val, sizeof(ldbl_val));
+#if USE_SOFTFLOAT
+  /* "long double" can have various formats; handle the 64-, 80-, and 128-bit
+     cases here. */
+  softfloat_exceptionFlags = 0;
+  if (targ_ldbl_mant_dig == 53) {
+    /* long double is 64 bits */
+    float64_t dummy = f128M_to_f64(&val);
+    ldbl_val = *(long double *)&dummy;
+  } else if (targ_ldbl_mant_dig == 64) {
+    /* long double is 80 bits. */
+    f128M_to_extF80M(&val, (extFloat80_t*)&ldbl_val);
+  } else if (targ_ldbl_mant_dig == 113) {
+    /* long double is 128 bits. */
+    (void)memcpy((char *)&ldbl_val, (char *)&val, sizeof(ldbl_val));
+  } else {
+    unexpected_condition();
+  }  /* if */
+  /* Use the same overflow condition as below. */
+  if (is_finite(val) &&
+      (softfloat_exceptionFlags & softfloat_flag_overflow) != 0 &&
+      !gnu_mode) {
+    /* An overflow. */
+    *err = TRUE;
+  } else {
+    *result = ldbl_val;
+  }  /* if */
+#else /* !USE_SOFTFLOAT */
   ldbl_val = (long double)val;
   round_trip_val = ldbl_val;
   if (is_finite(val) && !is_finite(round_trip_val) && !gnu_mode) {
@@ -750,9 +1042,10 @@ conversion can be done, return the result in "result".
   } else {
     *result = ldbl_val;
   }  /* if */
+#endif /* USE_SOFTFLOAT */
 }  /* conv_host_fp_to_long_double */
 
-#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
+#endif /* HOST_FP_VALUE_IS_128BIT */
 
 static void store_host_fp_value(a_host_fp_value         temp,
 	                        a_float_kind            kind,
@@ -789,7 +1082,7 @@ before setting it if there are unused bits.
                      sizeof(double));
       }  /* if */
 #endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
-#if USE_FLOAT128_FOR_HOST_FP_VALUE
+#if HOST_FP_VALUE_IS_128BIT
     } else if (kind == (a_float_kind)fk_long_double) {
       /* Convert from an internal __float128 to a long double. */
       long double  long_double_temp;
@@ -798,7 +1091,7 @@ before setting it if there are unused bits.
         (void)memcpy((char *)float_value, (char *)&long_double_temp,
                      sizeof(long double));
       }  /* if */
-#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
+#endif /* HOST_FP_VALUE_IS_128BIT */
     } else {
       /* Store a host floating value into a float_value of the same kind
          (either double or long double). */
@@ -832,7 +1125,11 @@ Fetch the value from float_value (of kind kind) and return it.
     /* Use memcpy to copy the value since float_value might not be correctly
        aligned. */
     (void)memcpy((char *)&float_temp, (char *)float_value, sizeof(float));
+#if USE_SOFTFLOAT
+    f32_to_f128M(*(float32_t *)&float_temp, &temp);
+#else /* !USE_SOFTFLOAT */
     temp = float_temp;
+#endif /* USE_SOFTFLOAT */
 #if !USE_DOUBLE_FOR_HOST_FP_VALUE
   } else if (kind == (a_float_kind)fk_double) {
     double	double_temp;
@@ -840,18 +1137,38 @@ Fetch the value from float_value (of kind kind) and return it.
     /* Use memcpy to copy the value since float_value might not be correctly
        aligned. */
     (void)memcpy((char *)&double_temp, (char *)float_value, sizeof(double));
+#if USE_SOFTFLOAT
+    f64_to_f128M(*(float64_t *)&double_temp, &temp);
+#else /* !USE_SOFTFLOAT */
     temp = double_temp;
+#endif /* USE_SOFTFLOAT */
 #endif /* !USE_DOUBLE_FOR_HOST_FP_VALUE */
-#if USE_FLOAT128_FOR_HOST_FP_VALUE
+#if HOST_FP_VALUE_IS_128BIT
   } else if (kind == (a_float_kind)fk_long_double) {
     long double	long_double_temp;
-    /* Convert from long double to a_host_fp_value (i.e., __float128). */
+    /* Convert from long double to a_host_fp_value (e.g., __float128). */
     /* Use memcpy to copy the value since float_value might not be correctly
        aligned. */
     (void)memcpy((char *)&long_double_temp, (char *)float_value,
                  sizeof(long double));
+#if USE_SOFTFLOAT
+    if (targ_ldbl_mant_dig == 53) {
+      /* long double is 64 bits */
+      f64_to_f128M(*(float64_t *)&long_double_temp, &temp);
+    } else if (targ_ldbl_mant_dig == 64) {
+      /* long double is 80 bits. */
+      extF80M_to_f128M((extFloat80_t *)&long_double_temp, &temp);
+    } else if (targ_ldbl_mant_dig == 113) {
+      /* long double is 128 bits. */
+      (void)memcpy((char *)&temp, (char *)&long_double_temp,
+                   sizeof(long double));
+    } else {
+      unexpected_condition();
+    }  /* if */
+#else /* !USE_SOFTFLOAT */
     temp = long_double_temp;
-#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
+#endif /* USE_SOFTFLOAT */
+#endif /* HOST_FP_VALUE_IS_128BIT */
   } else {
     /* float_value can be double, long double, or __float128. */
     /* Use memcpy to copy the value since float_value might not be correctly
@@ -878,7 +1195,6 @@ a float kind).
 */
 {
   a_boolean  err = FALSE, fp_mode_dependent = FALSE;
-  float nan_value;
   union {
     float f;
     uint32_t u32;
@@ -890,9 +1206,8 @@ a float kind).
   } else {
     u.u32 = 0x7fc00000;
   }  /* if */
-  nan_value = u.f;
   memzero((char *)value, sizeof(an_internal_float_value));
-  (void)memcpy((char *)value, (char *)&nan_value, sizeof(float));
+  (void)memcpy((char *)value, (char *)&u.f, sizeof(float));
   if (kind != (a_float_kind)fk_float) {
     /* Convert the NaN to the right type. */
     fp_change_kind(value, (a_float_kind)fk_float, value, kind,
@@ -956,16 +1271,14 @@ return TRUE otherwise.
 */
 {
   a_boolean  err = FALSE, fp_mode_dependent = FALSE;
-  float infinity;
 
   union {
     float f;
     uint32_t u32;
   } u;
   u.u32 = 0x7f800000;
-  infinity = u.f;
   memzero((char *)value, sizeof(an_internal_float_value));
-  (void)memcpy((char *)value, (char *)&infinity, sizeof(float));
+  (void)memcpy((char *)value, (char *)&u.f, sizeof(float));
   if (kind != (a_float_kind)fk_float) {
     /* Convert the infinity to the right type. */
     fp_change_kind(value, (a_float_kind)fk_float, value, kind,
@@ -2309,9 +2622,6 @@ space) will be unmodified if the routine returns FALSE.
 */
 {
   a_boolean             result = TRUE;
-#if TARG_HAS_IEEE_FLOATING_POINT
-  a_host_fp_value	zero = 0.0;
-#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 
   if (pos_infinity != NULL) *pos_infinity = FALSE;
   if (neg_infinity != NULL) *neg_infinity = FALSE;
@@ -2324,15 +2634,15 @@ space) will be unmodified if the routine returns FALSE.
     if (not_a_number != NULL) *not_a_number = TRUE;
   } else if (!is_finite(*temp)) {
     /* infinity. */
-    if (*temp < 0.0) {
+    if (do_fp_lt_zero(*temp)) {
       (void)strcpy(str, "-Infinity");
       if (neg_infinity != NULL) *neg_infinity = TRUE;
     } else {
       (void)strcpy(str, "+Infinity");
       if (pos_infinity != NULL) *pos_infinity = TRUE;
     }  /* if */
-  } else if (*temp == 0.0 &&
-             memcmp((char *)temp, (char *)&zero,
+  } else if (do_fp_eq_zero(*temp) &&
+             memcmp((char *)temp, (char *)&fp_zero,
                     size_t_arg(data_size_of_host_fp_value)) != 0) {
     /* Special handling to ensure that -0.0 comes out with the leading "-";
        some sprintfs do not process that correctly. */
@@ -2395,7 +2705,7 @@ be NULL if the corresponding return value is not needed.
 #endif /* BACK_END_IS_CP_GEN_BE */
       (void)quadmath_snprintf(str, sizeof(str), "%.*Qg", ldbl_digits, temp);
     }  /* if */
-#else /* !(USE_FLOAT_128_FOR_HOST_FP_VALUE && USE_QUADMATH_LIBRARY) */
+#else /* !(USE_FLOAT128_FOR_HOST_FP_VALUE && USE_QUADMATH_LIBRARY) */
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH
     /* Make sure we have a long double value (temp can be a __float128). */
     long double  fpval = (long double)temp;
@@ -2426,7 +2736,7 @@ be NULL if the corresponding return value is not needed.
       (void)sprintf(str, "%.19g", temp);
     }  /* if */
 #endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
-#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE && USE_QUADMATH_LIBRARY */
     /* Add trailing ".0" if no decimal point was put out (meaning the
        value is a whole number). */
     if (strchr(str, '.') == NULL &&
@@ -2551,7 +2861,9 @@ corresponding return value is not needed.
       float  float_temp;
       (void)memcpy((char *)&float_temp, (char *)float_value, sizeof(float));
       (void)sprintf(str, "%a", float_temp);
-    } else if (kind == (a_float_kind)fk_double) {
+    } else if (kind == (a_float_kind)fk_double ||
+               (kind == (a_float_kind)fk_long_double &&
+                targ_ldbl_mant_dig == 53)) {
       double  double_temp;
       (void)memcpy((char *)&double_temp, (char *)float_value, sizeof(double));
       (void)sprintf(str, "%la", double_temp);
@@ -2565,6 +2877,9 @@ corresponding return value is not needed.
     } else {
       (void)memcpy((char *)&temp, (char *)float_value,
                    sizeof(a_host_fp_value));
+#if USE_SOFTFLOAT
+      do_softfloat_hex_constant_string(kind, float_value, str, sizeof(str));
+#else /* !USE_SOFTFLOAT */
 #if USE_DOUBLE_FOR_HOST_FP_VALUE
       (void)sprintf(str, "%la", temp);
 #endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
@@ -2578,6 +2893,7 @@ corresponding return value is not needed.
       (void)sprintf(str, "%La", (long double)temp);
 #endif /* USE_QUADMATH_LIBRARY */
 #endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
+#endif /* USE_SOFTFLOAT */
     }  /* if */
   }  /* if */
   return str;
@@ -2645,8 +2961,15 @@ Convert a host large integer (int_value) to a floating-point value of
 kind "kind" in *float_value. Return *err TRUE if there is some error.
 */
 {
+  a_host_fp_value fp_value;
+
   *err = FALSE;
-  store_host_fp_value((a_host_fp_value)int_value, kind, float_value, err);
+#if USE_SOFTFLOAT
+  i64_to_f128M((int64_t)int_value, &fp_value);
+#else /* !USE_SOFTFLOAT */
+  fp_value = (a_host_fp_value)int_value;
+#endif /* USE_SOFTFLOAT */
+  store_host_fp_value(fp_value, kind, float_value, err);
 }  /* fp_host_large_integer_to_float */
 
 
@@ -2660,32 +2983,34 @@ Convert unsigned_value to a floating-point value of kind "kind" in
 *float_value.  Return *err TRUE if there is some error.
 */
 {
+  a_host_fp_value	fp_value;
+
   *err = FALSE;
+#if USE_SOFTFLOAT
+  ui64_to_f128M((uint64_t)unsigned_value, &fp_value);
+#else /* !USE_SOFTFLOAT */
+  fp_value = (a_host_fp_value)unsigned_value;
 #if __MSC__
-  {
-    a_host_fp_value	fp_value;
-    /* The Microsoft compiler (as of Visual C++ 6.0) cannot convert an
-       unsigned __int64 to double.  The conversion is done as a signed
-       conversion instead.  If the value is larger than the largest
-       unsigned, it is reduced to a value that can be represented as
-       a signed and adjusted back after the conversion. */
-    if (unsigned_value > MAX_HOST_LARGE_INTEGER) {
-      a_host_large_integer	signed_value;
-      unsigned_value = unsigned_value - MAX_HOST_LARGE_INTEGER;
-      unsigned_value = unsigned_value - 1;
-      signed_value = (a_host_large_integer)unsigned_value;
-      fp_value = (a_host_fp_value)signed_value;
-      fp_value = fp_value + MAX_HOST_LARGE_INTEGER;
-      fp_value = fp_value + 1;
-    } else {
-      /* The value in known to be representable as a host large integer. */
-      fp_value = (a_host_fp_value)(a_host_large_integer)unsigned_value;
-    }  /* if */
-    store_host_fp_value(fp_value, kind, float_value, err);
-  }
-#else /* !__MSC__ */
-  store_host_fp_value((a_host_fp_value)unsigned_value, kind, float_value, err);
+  /* The Microsoft compiler (as of Visual C++ 6.0) cannot convert an
+     unsigned __int64 to double.  The conversion is done as a signed
+     conversion instead.  If the value is larger than the largest
+     unsigned, it is reduced to a value that can be represented as
+     a signed and adjusted back after the conversion. */
+  if (unsigned_value > MAX_HOST_LARGE_INTEGER) {
+    a_host_large_integer	signed_value;
+    unsigned_value = unsigned_value - MAX_HOST_LARGE_INTEGER;
+    unsigned_value = unsigned_value - 1;
+    signed_value = (a_host_large_integer)unsigned_value;
+    fp_value = (a_host_fp_value)signed_value;
+    fp_value = fp_value + MAX_HOST_LARGE_INTEGER;
+    fp_value = fp_value + 1;
+  } else {
+    /* The value in known to be representable as a host large integer. */
+    fp_value = (a_host_fp_value)(a_host_large_integer)unsigned_value;
+  }  /* if */
 #endif /* __MSC__ */
+#endif /* USE_SOFTFLOAT */
+  store_host_fp_value(fp_value, kind, float_value, err);
 }  /* fp_host_large_unsigned_to_float */
 
 
@@ -2706,6 +3031,16 @@ mode, *depends_on_fp_mode is returned TRUE (*int_value is set anyway).
   *err = FALSE;
   *depends_on_fp_mode = FALSE;
   temp = fetch_host_fp_value(kind, float_value);
+#if USE_SOFTFLOAT
+  /* SoftFloat can only convert to 32-bit or 64-bit integer values.  Convert to
+     a 64-bit integer here.  That could result in unnecessary truncation if the
+     host integer is larger than that. */
+  softfloat_exceptionFlags = 0;
+  *int_value = f128M_to_i64_r_minMag(&temp, /*exact=*/FALSE);
+  if ((softfloat_exceptionFlags & softfloat_flag_invalid) != 0) {
+    *err = TRUE;
+  }  /* if */
+#else /* !USE_SOFTFLOAT */
 #if TARG_HAS_IEEE_FLOATING_POINT
   if (!is_finite(temp)) {
     /* A NaN or infinity. */
@@ -2721,6 +3056,7 @@ mode, *depends_on_fp_mode is returned TRUE (*int_value is set anyway).
   /* Note that we produce a result even in the event of an error.  This
      value may be used in some modes. */
   *int_value = (a_host_large_integer)temp;
+#endif /* USE_SOFTFLOAT */
 }  /* fp_to_host_large_integer */
 
 
@@ -2745,7 +3081,7 @@ the appropriate largest or smallest value for the destination type.
 
   get_integer_attributes(result_constant, &ikind, &is_signed, &bit_size);
   temp = fetch_host_fp_value(kind, float_value);
-  if (temp < (a_host_fp_value)0) {
+  if (do_fp_lt_zero(temp)) {
     *result = min_integer_value_of_kind[ikind];
   } else {
     *result = max_integer_value_of_kind[ikind];
@@ -2772,6 +3108,16 @@ floating-point mode, *depends_on_fp_mode is returned TRUE
   *err = FALSE;
   *depends_on_fp_mode = FALSE;
   temp = fetch_host_fp_value(kind, float_value);
+#if USE_SOFTFLOAT
+  /* SoftFloat can only convert to 32-bit or 64-bit integer values.  Convert to
+     a 64-bit integer here.  That could result in unnecessary truncation if the
+     host integer is larger than that. */
+  softfloat_exceptionFlags = 0;
+  *unsigned_value = f128M_to_ui64_r_minMag(&temp, /*exact=*/FALSE);
+  if ((softfloat_exceptionFlags & softfloat_flag_invalid) != 0) {
+    *err = TRUE;
+  }  /* if */
+#else /* !USE_SOFTFLOAT */
   if (temp > (a_host_fp_value)MAX_HOST_LARGE_UNSIGNED ||
       temp < (a_host_fp_value)0) {
     /* Floating value is too big or too small. */
@@ -2780,7 +3126,17 @@ floating-point mode, *depends_on_fp_mode is returned TRUE
   /* Note that we produce a result even in the event of an error.  This
      value may be used in some modes. */
   *unsigned_value = (a_host_large_unsigned)temp;
+#endif /* USE_SOFTFLOAT */
 }  /* fp_to_host_large_unsigned */
+
+
+static a_boolean fp_value_is_zero(a_host_fp_value val)
+/*
+Returns TRUE if the specified floating-point value is zero.
+*/
+{
+  return do_fp_eq_zero(val);
+}  /* fp_value_is_zero */
 
 
 a_boolean fp_is_zero_constant(a_float_kind            kind,
@@ -2790,7 +3146,7 @@ Return TRUE if the constant (a float constant) is a floating zero of
 any precision.
 */
 {
-  return (fetch_host_fp_value(kind, float_value) == 0.0);
+  return fp_value_is_zero(fetch_host_fp_value(kind, float_value));
 }  /* fp_is_zero_constant */
 
 
@@ -2813,7 +3169,7 @@ to TRUE.  If the result depends on the floating-point mode,
   *depends_on_fp_mode = FALSE;
   temp1 = fetch_host_fp_value(kind, value_1);
   temp2 = fetch_host_fp_value(kind, value_2);
-  tempr = temp1 + temp2;
+  do_fp_add(temp1, temp2, tempr);
   store_host_fp_value(tempr, kind, result, err);
 #if TARG_HAS_IEEE_FLOATING_POINT
   if (!is_finite(temp1) || !is_finite(temp2)) *depends_on_fp_mode = TRUE;
@@ -2840,7 +3196,7 @@ to TRUE.  If the result depends on the floating-point mode,
   *depends_on_fp_mode = FALSE;
   temp1 = fetch_host_fp_value(kind, value_1);
   temp2 = fetch_host_fp_value(kind, value_2);
-  tempr = temp1 - temp2;
+  do_fp_subtract(temp1, temp2, tempr);
   store_host_fp_value(tempr, kind, result, err);
 #if TARG_HAS_IEEE_FLOATING_POINT
   if (!is_finite(temp1) || !is_finite(temp2)) *depends_on_fp_mode = TRUE;
@@ -2867,7 +3223,7 @@ of IEEE floating-point requirements.
   *err = FALSE;
   *depends_on_fp_mode = FALSE;
   temp1 = fetch_host_fp_value(kind, value_1);
-  tempr = -temp1;
+  do_fp_negate(temp1, tempr);
   store_host_fp_value(tempr, kind, result, err);
 #if TARG_HAS_IEEE_FLOATING_POINT
   if (!is_finite(temp1)) *depends_on_fp_mode = TRUE;
@@ -2894,7 +3250,7 @@ to TRUE.  If the result depends on the floating-point mode,
   *depends_on_fp_mode = FALSE;
   temp1 = fetch_host_fp_value(kind, value_1);
   temp2 = fetch_host_fp_value(kind, value_2);
-  tempr = temp1 * temp2;
+  do_fp_multiply(temp1, temp2, tempr);
   store_host_fp_value(tempr, kind, result, err);
 #if TARG_HAS_IEEE_FLOATING_POINT
   if (!is_finite(temp1) || !is_finite(temp2)) *depends_on_fp_mode = TRUE;
@@ -2922,7 +3278,7 @@ to TRUE.  If the result depends on the floating-point mode,
   temp1 = fetch_host_fp_value(kind, value_1);
   temp2 = fetch_host_fp_value(kind, value_2);
 #if !TARG_HAS_IEEE_FLOATING_POINT
-  if (temp2 == 0.0) {
+  if (fp_value_is_zero(temp2)) {
     /* Division by zero.  This is also checked by the caller for a specific
        error message. */
     *err = TRUE;
@@ -2932,11 +3288,11 @@ to TRUE.  If the result depends on the floating-point mode,
   {
     /* The following divide can produce NaN/infinities, but should not
        produce any host errors. */
-    tempr = temp1 / temp2;
+    do_fp_divide(temp1, temp2, tempr);
     store_host_fp_value(tempr, kind, result, err);
 #if TARG_HAS_IEEE_FLOATING_POINT
     if (!is_finite(temp1) || !is_finite(temp2) ||
-        temp2 == 0.0) *depends_on_fp_mode = TRUE;
+        fp_value_is_zero(temp2)) *depends_on_fp_mode = TRUE;
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
   }  /* if */
 }  /* fp_divide */
@@ -2957,6 +3313,7 @@ values:
 {
   int    cmp;
   a_host_fp_value temp1, temp2;
+  a_boolean       test;
 
   temp1 = fetch_host_fp_value(kind, value_1);
   temp2 = fetch_host_fp_value(kind, value_2);
@@ -2967,12 +3324,30 @@ values:
     cmp = 0;
   } else
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
-  if (temp1 > temp2) {
-    cmp = 1;
-  } else if (temp1 < temp2) {
-    cmp = -1;
-  } else {
-    cmp = 0;
+  /* Do not insert code here. */
+  {
+#if USE_SOFTFLOAT
+    test = !f128M_le(&temp1, &temp2);
+#else /* !USE_SOFTFLOAT */
+    test = (temp1 > temp2);
+#endif /* USE_SOFTFLOAT */
+    if (test) {
+      /* temp1 > temp2 */
+      cmp = 1;
+    } else {
+#if USE_SOFTFLOAT
+      test = f128M_lt(&temp1, &temp2);
+#else /* !USE_SOFTFLOAT */
+      test = (temp1 < temp2);
+#endif /* USE_SOFTFLOAT */
+      if (test) {
+        /* temp1 < temp2 */
+        cmp = -1;
+      } else {
+        /* temp1 == temp2 */
+        cmp = 0;
+      }  /* if */
+    }  /* if */
   }  /* if */
   return cmp;
 }  /* fp_compare */
@@ -3285,8 +3660,9 @@ return FALSE.  Returns FALSE for -0.0 (use fp_signbit to test for this case).
   if (is_NaN(temp)) {
   } else
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
-  if (temp < (a_host_fp_value)0) {
-    result = TRUE;
+  /* Do not insert code here. */
+  {
+    result = do_fp_lt_zero(temp);
   }  /* if */
   return result;
 }  /* fp_is_negative */
@@ -3367,6 +3743,19 @@ Initialize static variables related to float_pt.c.
   if (targ_ldbl_mant_dig == 64) {
     long_double_has_no_implicit_bit = TRUE;
   } /* if */
+#if USE_SOFTFLOAT
+  /* Initialize SoftFloat global variables to default values.  See the
+     SoftFloat documentation for available settings. */
+  softfloat_roundingMode = softfloat_round_near_even;
+  softfloat_detectTininess = softfloat_tininess_afterRounding;
+  extF80_roundingPrecision = 80;
+  softfloat_exceptionFlags = 0;
+  f32_zero = ui32_to_f32((uint32_t)0);
+  f64_zero = ui32_to_f64((uint32_t)0);
+  ui32_to_f128M((uint32_t)0, &fp_zero);
+#else /* !USE_SOFTFLOAT */
+  fp_zero = 0.0;
+#endif /* USE_SOFTFLOAT */
   /* Make sure that an_fp_value_part is 32 bits. */
   check_assertion_str(sizeof(an_fp_value_part) == 4,
          "float_pt_init: bad size for an_fp_value_part");  /*lint !e774*/

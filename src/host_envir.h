@@ -185,23 +185,6 @@ optimization settings.
 #endif /* EXPLICITLY_UNROLL_CRITICAL_LOOPS  */
 
 /*
-This macro controls whether the front end uses the floating-point conversion
-routines provided by the host compiler's standard library (e.g., strtod and
-sprintf) or whether the front end's internal routines should be used.  The
-internal routines provide correctly-rounded decimal-to-binary and
-binary-to-decimal conversions.  Using the internal routines is typically
-slower as the conversion process is performed in software with integer
-arithmetic (but see FP_USE_EMULATION in floating.h).  Setting
-USE_HOST_FP_CONVERSION_ROUTINES to TRUE uses the host library routines; a
-setting of FALSE uses the internal routines.  When setting this macro to FALSE,
-make sure the configuration macros for FP_LONG_DOUBLE_IS_* are set
-properly (see floating.h).
-*/
-#ifndef USE_HOST_FP_CONVERSION_ROUTINES
-#define USE_HOST_FP_CONVERSION_ROUTINES TRUE
-#endif /* ifndef USE_HOST_FP_CONVERSION_ROUTINES */
-
-/*
 The number of include files that may be opened at any given time.
 After include nesting gets this deep, the same file will be re-opened
 for all other include files.  The primary source file is not included

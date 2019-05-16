@@ -7083,6 +7083,11 @@ file.
 #else /* !defined(HOST_IL_ENTRY_PREFIX_ALIGNMENT) */
   comment_undefined_macro_name(HOST_IL_ENTRY_PREFIX_ALIGNMENT);
 #endif /* defined(HOST_IL_ENTRY_PREFIX_ALIGNMENT) */
+#if defined(HOST_FP_VALUE_IS_128BIT)
+  define_numeric_valued_macro(HOST_FP_VALUE_IS_128BIT);
+#else /* !defined(HOST_FP_VALUE_IS_128BIT) */
+  comment_undefined_macro_name(HOST_FP_VALUE_IS_128BIT);
+#endif /* defined(HOST_FP_VALUE_IS_128BIT) */
 #if defined(HOST_TARGET_ENDIAN_MISMATCH_OKAY)
   define_numeric_valued_macro(HOST_TARGET_ENDIAN_MISMATCH_OKAY);
 #else /* !defined(HOST_TARGET_ENDIAN_MISMATCH_OKAY) */
@@ -9084,6 +9089,11 @@ file.
 #else /* !defined(USE_QUADMATH_LIBRARY) */
   comment_undefined_macro_name(USE_QUADMATH_LIBRARY);
 #endif /* defined(USE_QUADMATH_LIBRARY) */
+#if defined(USE_SOFTFLOAT)
+  define_numeric_valued_macro(USE_SOFTFLOAT);
+#else /* !defined(USE_SOFTFLOAT) */
+  comment_undefined_macro_name(USE_SOFTFLOAT);
+#endif /* defined(USE_SOFTFLOAT) */
 #if defined(USE_TEMPLATE_INFO_FILE)
   define_numeric_valued_macro(USE_TEMPLATE_INFO_FILE);
 #else /* !defined(USE_TEMPLATE_INFO_FILE) */
