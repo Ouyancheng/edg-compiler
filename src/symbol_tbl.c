@@ -9024,7 +9024,8 @@ TRUE, treat it as if the call was preceded by "co_await".
                              &promise_operand, result);
   if (add_await && !is_error_operand(result)) {
     add_await_to_operand(result, pos, NO_TOKEN_SEQUENCE_NUMBER,
-                         /*for_yield=*/FALSE, result);
+                         /*for_yield=*/FALSE, /*generated_suspend_point=*/TRUE,
+                         result);
   }
   pop_expr_stack();
   expr_stack = saved_expr_stack;
