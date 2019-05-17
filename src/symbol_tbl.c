@@ -8842,20 +8842,25 @@ the coroutine class template, or NULL if it is not found.
 }  /* look_up_coroutine_class_template */
 
 
-a_type_ptr instantiate_coroutine_class_template_with_one_type(
-                                                        a_const_char  *ctname,
-                                                        a_type_ptr    type)
+static a_type_ptr instantiate_coroutine_class_template_with_one_type(
+                                                         a_const_char  *ctname,
+                                                         a_type_ptr    type,
+                                                         an_error_code *err)
 /*
 Return the coroutine type corresponding to
 	std[::experimental]::xyz<T>
 where xyz is a class template described by ctname, and T is the given type.
 Return an error type if there is no such class template or if its instantiation
-is unsuccessful.
+is unsuccessful.  If err is non-NULL, set it to an appropriate error code
+describing the failure, or ec_no_error if there is no failure.
 */
 {
   a_symbol_ptr  class_template;
   a_type_ptr    result;
 
+  if (err != NULL) {
+    *err = ec_no_error;
+  }  /* if */
   class_template = look_up_coroutine_class_template(ctname);
   if (class_template != NULL) {
     a_template_arg_ptr  tap = alloc_template_arg((a_templ_arg_kind)tak_type);
@@ -8868,6 +8873,9 @@ is unsuccessful.
       result = type_symbol_type(instance);
     }  /* if */
   } else {
+    if (err != NULL) {
+      *err = ec_special_class_template_not_found;
+    }  /* if */
     result = error_type();
   }  /* if */
   return result;
@@ -9085,9 +9093,10 @@ or NULL if no appropriate symbol could be found.
   } else {
     /* Using global operator new. */
     new_sym = opname_function_symbol((an_opname_kind)onk_new);
-    check_assertion(new_sym->kind == (a_symbol_kind)sk_overloaded_function);
-    for (new_sym = new_sym->variant.overloaded_function.symbols;
-         new_sym != NULL; new_sym = new_sym->next) {
+    if (new_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      new_sym = new_sym->variant.overloaded_function.symbols;
+    }  /* if */
+    for (; new_sym != NULL; new_sym = new_sym->next) {
       a_type_ptr       rout_type = func_sym_routine(new_sym)->type;
       a_param_type_ptr params = rout_type->variant.routine.extra_info
                                                              ->param_type_list;
@@ -9351,12 +9360,19 @@ a nonstatic member function, P1 is the type of this.)
   cdp->promise = make_variable(promise_type, (a_storage_class)sc_auto,
                                NO_SCOPE_DEPTH);
   cdp->promise->source_corresp.decl_position=rp->source_corresp.decl_position;
-  /* Create a placeholder variable for the coroutine "handle". */
-  handle_type = instantiate_coroutine_class_template_with_one_type(
-                                            "coroutine_handle", promise_type);
-  cdp->handle = make_variable(handle_type, (a_storage_class)sc_auto,
-                              NO_SCOPE_DEPTH);
-  cdp->handle->source_corresp.decl_position = rp->source_corresp.decl_position;
+  { an_error_code err_code;
+    /* Create a placeholder variable for the coroutine "handle". */
+    handle_type = instantiate_coroutine_class_template_with_one_type(
+                                                              "coroutine_handle",
+                                                              promise_type,
+                                                              &err_code);
+    if (err_code != ec_no_error) {
+      pos_st_error(err_code, &cdp->position, "std::coroutine_handle");
+    }  /* if */
+    cdp->handle = make_variable(handle_type, (a_storage_class)sc_auto,
+                                NO_SCOPE_DEPTH);
+    cdp->handle->source_corresp.decl_position = rp->source_corresp.decl_position;
+  }
   if (is_error_type(promise_type) || is_error_type(handle_type)) {
     expect_error();
     cdp->error_descr = TRUE;

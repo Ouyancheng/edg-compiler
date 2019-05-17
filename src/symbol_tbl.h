@@ -4828,10 +4828,6 @@ EXTERN a_namespace_ptr
 extern void init_coroutine_descr(a_routine_ptr          rp,
                                  a_coroutine_descr_ptr  cdp);
 
-extern a_type_ptr instantiate_coroutine_class_template_with_one_type(
-                                                        a_const_char  *ctname,
-                                                        a_type_ptr    type);
-
 EXTERN a_symbol_ptr
 		symbol_for_std_initializer_list;
 			/* Symbol for "std::initializer_list", a class
