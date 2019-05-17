@@ -11697,7 +11697,6 @@ Generate code for a new or delete operation.
       write_tok_ch(')');
     } else {
       octl.suppress_ptr_to_data_member_parens = saved_suppress_parens;
-      octl.suppress_ptr_to_data_member_parens = TRUE;
     }  /* if */
     if (ndsp->has_new_initializer &&
         /* In some Microsoft modes, value initialization gets suppressed
