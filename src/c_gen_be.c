@@ -6944,6 +6944,12 @@ sizeof_cases:
       }
       break;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+    case enk_yield:
+    case enk_await:
+      write_tok_str(expr->kind == (an_expr_node_kind)enk_yield ? "co_yield" :
+                                                                 "co_await");
+      dump_expression(expr->variant.await_info.operand);
+      break;
     case enk_field:
       /* enk_field entries are supposed to be handled before this. */
       unexpected_condition_str("dump_expr: enk_field");
@@ -9789,7 +9795,24 @@ Generate C for a statement.
       write_tok_str("upc_fence;");
       break;
 #endif /* UPC_EXTENSIONS_ALLOWED */
+    case stmk_coroutine:
+      /* The body should already be generated, so there's not much to do with
+         this statement. */
+      check_assertion(statement->variant.coroutine.descr->body_generated);
+      break;
     case stmk_coroutine_return:
+      /* A stmk_coroutine_return has an expression that takes one of the
+         following forms:
+           p.return_value(<expr>)
+           <expr>, p.return_void()
+           p.return_voide()
+         and is always followed by a goto final_suspend statement (which will
+         be dumped next).
+      */
+      check_assertion(statement->expr != NULL && statement->next != NULL &&
+                      statement->next->kind == (a_statement_kind)stmk_goto);
+      dump_expression(statement->expr);
+      break;
     default:
       unexpected_condition_str("dump_statement: bad statement kind");
   }  /* switch */

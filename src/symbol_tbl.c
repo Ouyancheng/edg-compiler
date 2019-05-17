@@ -9251,6 +9251,7 @@ and if so, resolve and record the appropriate call.
                                      /*elision_done=*/NULL,
                                      &dip);
     cr_desc->alloc_failure_gro_call = expr_node_from_operand(&operand);
+    set_possibly_null_expr_result_not_used(cr_desc->alloc_failure_gro_call);
   }  /* if */
   cr_desc->final_suspend_label = make_coroutine_final_suspend_label();
   pop_expr_stack();
@@ -9279,9 +9280,11 @@ coroutine as described in N4775.
   make_coroutine_promise_call_operand(&operand, "initial_suspend",
                                       promise_var, /*add_await=*/TRUE);
   cr_desc->initial_suspend_call = expr_node_from_operand(&operand);
+  set_possibly_null_expr_result_not_used(cr_desc->initial_suspend_call);
   make_coroutine_promise_call_operand(&operand, "final_suspend",
                                       promise_var, /*add_await=*/TRUE);
   cr_desc->final_suspend_call = expr_node_from_operand(&operand);
+  set_possibly_null_expr_result_not_used(cr_desc->final_suspend_call);
   if (cr_desc->final_suspend_call != NULL &&
       expr_might_throw(cr_desc->final_suspend_call)) {
     a_symbol_locator loc;
@@ -9294,6 +9297,7 @@ coroutine as described in N4775.
   make_coroutine_promise_call_operand(&operand, "unhandled_exception",
                                       promise_var, /*add_await=*/FALSE);
   cr_desc->unhandled_exception_call = expr_node_from_operand(&operand);
+  set_possibly_null_expr_result_not_used(cr_desc->unhandled_exception_call);
   /* Resolve the call to p.get_return_object and convert it to the return type
      of the coroutine. */
   make_coroutine_promise_call_operand(&operand, "get_return_object",
@@ -9306,6 +9310,7 @@ coroutine as described in N4775.
                                    /*elision_done=*/NULL,
                                    &dip);
   cr_desc->get_return_object_call = expr_node_from_operand(&operand);
+  set_possibly_null_expr_result_not_used(cr_desc->get_return_object_call);
   select_coroutine_new_delete(cr_desc, coroutine);
   pop_expr_stack();
   expr_stack = saved_expr_stack;
