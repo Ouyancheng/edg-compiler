@@ -479,7 +479,7 @@ Split floating-point value val into broken-down form in bin.
     } else {
       bin->type = fpt_number;
     }  /* if */
-  }
+  }  /* if */
   bin->exponent = biased_exponent - EXPONENT_BIAS + 1;
   bin->precision = FPT_PRECISION;
 }  /* SPLIT_FN */
