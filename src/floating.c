@@ -179,7 +179,7 @@ Split an input string [str, end) into parts.
   while (isdigit((unsigned char)*str)) {
     /* Skip digits beyond precision. */
     ++str;
-  }
+  }  /* while */
   dec->exponent = (int)(str - dec->first_int);
   /* Set dec->first_frac to point to first digit of decimal fraction,
      and dec->last_frac to next non-digit character.  This range can be
@@ -244,7 +244,6 @@ Split an input string [str, end) into parts.
       dec->type = fpt_invalid;
     } else {
       tmp = strtol(str, &str_end, 10);
-
       if (str_end == str) {
         /* No valid digits found in exponent. */
         dec->type = fpt_invalid;
@@ -1323,7 +1322,7 @@ static a_bigint large_fives_static;
 
 static a_bigint *bigint_5_2_n(int n)
 /*
-Return 5^2^(n+2).  Caches up to FIVE_TWO_CACHE_SIZE previously computed
+Return 5^2^(n+2).  Caches up to FIVE_TWO_CACHE_SIZE previously-computed
 values.  The value returned is a pointer to a statically allocated object
 and the caller must be careful that its value doesn't change (i.e., if
 this routine is called subsequently).
@@ -1975,7 +1974,6 @@ Seminumerical Algorithms (3rd edition).
   int           n = dbytes;
 
   fp_frac_copy(u + n + 1, num->frac, num->precision);
-
   if (den->precision % BYTE_SIZE != 0) {
     for (j = 0; j < n; ++j) {
       shifted_den[j] = den->frac[j];
@@ -2144,7 +2142,6 @@ being converted is not a zero, an infinity, or a NaN.
     /* residual = residual * 2^bin_exp */
     r2 += bin_exp;
   }  /* if */
-
   /* Normalize, so that 0.1 <= residual/divisor < 1.0 and residual/divisor ==
      bin / 10^result_scale.  */
   result_scale = LOG10_2times(bin->exponent);
