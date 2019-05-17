@@ -41987,6 +41987,7 @@ the following expressions for the various forms of co_return statements:
     _Pr.return_void()     for "co_return ;"
     _V, _Pr.return_void() for "co_return <expr> ;" where <expr> has type void
     _Pr.return_value(_V)  otherwise
+and add a "goto final_suspend" statement following the "co_return".
 This routine frees alep.
 */
 {
@@ -42050,7 +42051,11 @@ This routine frees alep.
     result = make_comma_node(void_expr, result);
   }  /* if */
   if (!is_yield) {
+    a_statement_ptr sp;
     result = wrap_up_full_expression(result);
+    sp = add_statement_at_stmt_pos((a_statement_kind)stmk_goto,
+                                   &null_source_position);
+    sp->variant.label.ptr = cdp->final_suspend_label;
     pop_expr_stack();
     restore_expr_stack(saved_expr_stack);
   }  /* if */

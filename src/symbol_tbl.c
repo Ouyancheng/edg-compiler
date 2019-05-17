@@ -9181,6 +9181,24 @@ selected operator "delete" or NULL if no appropriate symbol could be found.
 }  /* select_coroutine_delete */
 
 
+static a_label_ptr make_coroutine_final_suspend_label()
+/*
+Create the label that will be used as the final suspend label.  Later, when the
+coroutine is being wrapped up, a statement for the label will be generated.
+*/
+{
+  a_label_ptr            label;
+  a_memory_region_number region_to_switch_back_to;
+
+  switch_to_scope_region(depth_innermost_function_scope,
+                         &region_to_switch_back_to);
+  label = alloc_label();
+  switch_back_to_original_region(region_to_switch_back_to);
+  add_to_labels_list(label);
+  return label;
+}  /* make_coroutine_final_suspend_label */
+
+
 static void select_coroutine_new_delete(a_coroutine_descr_ptr cr_desc,
                                         a_routine_ptr         coroutine)
 /*
@@ -9233,6 +9251,7 @@ and if so, resolve and record the appropriate call.
                                      &dip);
     cr_desc->alloc_failure_gro_call = expr_node_from_operand(&operand);
   }  /* if */
+  cr_desc->final_suspend_label = make_coroutine_final_suspend_label();
   pop_expr_stack();
   expr_stack = saved_expr_stack;
 }  /* select_coroutine_new_delete */
@@ -9363,15 +9382,15 @@ a nonstatic member function, P1 is the type of this.)
   { an_error_code err_code;
     /* Create a placeholder variable for the coroutine "handle". */
     handle_type = instantiate_coroutine_class_template_with_one_type(
-                                                              "coroutine_handle",
-                                                              promise_type,
-                                                              &err_code);
+                                                            "coroutine_handle",
+                                                            promise_type,
+                                                            &err_code);
     if (err_code != ec_no_error) {
       pos_st_error(err_code, &cdp->position, "std::coroutine_handle");
     }  /* if */
     cdp->handle = make_variable(handle_type, (a_storage_class)sc_auto,
                                 NO_SCOPE_DEPTH);
-    cdp->handle->source_corresp.decl_position = rp->source_corresp.decl_position;
+    cdp->handle->source_corresp.decl_position=rp->source_corresp.decl_position;
   }
   if (is_error_type(promise_type) || is_error_type(handle_type)) {
     expect_error();

@@ -16535,6 +16535,13 @@ is TRUE, the list is the body of a GNU statement expression.
     } else {
       gen_statement_full(statement, /*is_stmt_expression=*/FALSE,
                          is_stmt_expression && statement->next == NULL);
+      if (statement->kind == (a_statement_kind)stmk_coroutine_return) {
+        /* Skip past the generated "goto final_suspend" statement, as it's
+           implied by the co_return statement. */
+        check_assertion(statement->next != NULL &&
+                        statement->next->kind == (a_statement_kind)stmk_goto);
+        statement = statement->next;
+      }  /* if */
     }  /* if */
   }  /* for */
 }  /* gen_statement_list */
@@ -17175,10 +17182,10 @@ one that yields the value) of a statement expression.
             /* expr is of the form _Pr.return_void() or
                _Pr.return_value(...). */
             expr = expr->variant.operation.operands;
-            /* The first operand is the routine entry for "set_result", the
-               second operand is the promise variable ("_Pr" above).  Move to
-               the third operand (which corresponds to the actual operand of
-               the return statement). */
+            /* The first operand is the routine entry for "return_void" or
+               "return_value", the second operand is the promise variable
+               ("_Pr" above).  Move to the third operand (which corresponds to
+               the actual operand of the return statement). */
             expr = expr->next->next;
           }  /* if */
           if (expr != NULL) {
