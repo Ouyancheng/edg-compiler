@@ -513,13 +513,11 @@ extern an_expr_node_ptr scan_return_expression(
                                           a_dynamic_init_ptr    *dip,
                                           an_arg_list_elem_ptr  *alep);
 
-extern void determine_suspend_call_for_await(
-                                      an_expr_node_ptr         node,
-                                      an_arg_list_elem_ptr     suspend_arg,
-                                      a_boolean                use_member_call,
-                                      a_token_sequence_number  tok_seq_number,
-                                      a_coroutine_descr_ptr    cdp);
+extern a_symbol_ptr look_up_named_member_function(a_type_ptr       type,
+                                                  a_const_char     *name,
+                                                  a_symbol_locator *locator);
 
+extern
 void add_await_to_operand(an_operand_ptr          operand,
                           a_source_position       *pos,
                           a_token_sequence_number tok_seq_number,

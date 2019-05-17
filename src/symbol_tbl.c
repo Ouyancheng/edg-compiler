@@ -9282,6 +9282,15 @@ coroutine as described in N4775.
   make_coroutine_promise_call_operand(&operand, "final_suspend",
                                       promise_var, /*add_await=*/TRUE);
   cr_desc->final_suspend_call = expr_node_from_operand(&operand);
+  if (cr_desc->final_suspend_call != NULL &&
+      expr_might_throw(cr_desc->final_suspend_call)) {
+    a_symbol_locator loc;
+    a_symbol_ptr     sym = look_up_named_member_function(promise_var->type,
+                                                         "final_suspend",
+                                                         &loc);
+    check_assertion(sym != NULL);
+    pos_sy_error(ec_final_suspend_cannot_throw, &sym->decl_position, sym);
+  }  /* if */
   make_coroutine_promise_call_operand(&operand, "unhandled_exception",
                                       promise_var, /*add_await=*/FALSE);
   cr_desc->unhandled_exception_call = expr_node_from_operand(&operand);

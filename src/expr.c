@@ -38332,9 +38332,9 @@ operation implementing the allocation of the array and its initialization.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_symbol_ptr look_up_named_member_function(a_type_ptr       type,
-                                                  a_const_char     *name,
-                                                  a_symbol_locator *locator)
+a_symbol_ptr look_up_named_member_function(a_type_ptr       type,
+                                           a_const_char     *name,
+                                           a_symbol_locator *locator)
 /*
 This is a helper function used when parsing an enhanced-for (i.e., a
 range-based-for or a for-each) that looks up a function name (name) within a
@@ -38791,6 +38791,10 @@ is called to implement the generated suspend points implied by the coroutine.
     pos_error(ec_await_not_allowed_in_catch_clause, pos);
     make_error_operand(result);
     goto done;
+  } else if (expr_stack->in_static_initializer) {
+    pos_error(ec_await_not_allowed_in_static_initializer, pos);
+    make_error_operand(result);
+    goto done;
   }  /* if */
   curr_routine = current_routine_entry();
   if (is_template_dependent_context() && operand_is_dependent(operand)) {
@@ -38836,7 +38840,8 @@ is called to implement the generated suspend points implied by the coroutine.
     free_arg_list(alep);
     if (is_error_operand(&resume_operand)) {
       expect_error();
-      goto make_error_operands;
+      make_error_operand(result);
+      goto done;
     }  /* if */
   } else {
     clone_operand(operand, &resume_operand, /*vars_can_change=*/TRUE,
@@ -38886,10 +38891,8 @@ is called to implement the generated suspend points implied by the coroutine.
   } else {
     pos_stty_error(ec_await_operand_not_a_class, pos,
                    for_yield ? "co_yield" : "co_await", utp);
-make_error_operands:
-    make_error_operand(&ready_call);
-    make_error_operand(&resume_call);
-    make_error_operand(&suspend_call);
+    make_error_operand(result);
+    goto done;
   }  /* if */
   node->type = resume_call.type;
   node->variant.await_info.operand = make_node_from_operand(operand);
@@ -38900,11 +38903,6 @@ make_error_operands:
   node->variant.await_info.resume_ready_suspend->next->next =
                                         make_node_from_operand(&suspend_call);
   make_expression_operand(node, result);
-  if (is_error_operand(result)) {
-    /* Nothing more to do. */
-  } else if (!expr_stack->potentially_evaluated) {
-    pos_error(ec_await_in_unevaluated_operand, pos);
-  }  /* if */
 done:;
 }  /* add_await_to_operand */
 
