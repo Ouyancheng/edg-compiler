@@ -526,12 +526,10 @@ void add_await_to_operand(an_operand_ptr          operand,
                           a_boolean               for_yield,
                           an_operand_ptr          result);
 
-extern an_expr_node_ptr wrap_up_coroutine_result_expression(
+extern an_expr_node_ptr make_coroutine_result_expression(
                                               an_arg_list_elem_ptr  alep,
                                               a_boolean             is_yield,
                                               a_statement_ptr       sp);
-
-extern void wrap_up_yield_expression(a_coroutine_fixup_ptr  cfp);
 
 extern void scan_pp_expression(a_constant *constant);
 

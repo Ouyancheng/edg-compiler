@@ -9547,7 +9547,6 @@ static an_error_code default_none_applies_code[(int)oc_last] = {
   ec_no_matching_function,                   /* oc_synthesized_member_call */
   ec_no_matching_constructor,                /* oc_ctad */
   ec_tuple_get_no_matching_overload,         /* oc_tuple_like_binding */
-  ec_await_no_matching_overload              /* oc_await */
 };
 
 /*
@@ -9569,7 +9568,6 @@ static an_error_code default_ambiguous_code[(int)oc_last] = {
   ec_ambiguous_overloaded_function,          /* oc_synthesized_member_call */
   ec_ambiguous_constructor,                  /* oc_ctad */
   ec_ambiguous_overloaded_function,          /* oc_tuple_like_binding */
-  ec_ambiguous_overloaded_function           /* oc_await */
 };
 
 /*
@@ -9591,7 +9589,6 @@ static an_error_code default_undefined_code[(int)oc_last] = {
   ec_undefined_identifier,                   /* oc_synthesized_member_call */
   ec_undefined_identifier,                   /* oc_ctad */
   ec_struct_binding_undefined_identifier,    /* oc_tuple_like_binding */
-  ec_await_undefined_identifier              /* oc_await */
 };
 
 #if !BACK_END_IS_CP_GEN_BE

@@ -16527,9 +16527,9 @@ is TRUE, the list is the body of a GNU statement expression.
     (void)process_preprocessing_directives();
     if (statement == NULL) break;
     /* Generate the statement. */
-    if (statement->kind == (a_statement_kind)stmk_coroutine &&
-        statement->variant.coroutine.descr->body_generated) {
-      check_assertion(is_stmt_expression == FALSE);
+    if (statement->kind == (a_statement_kind)stmk_coroutine) {
+      check_assertion(is_stmt_expression == FALSE &&
+                      statement->variant.coroutine.descr->body_generated);
       gen_coroutine_statement(statement);
       break;
     } else {
@@ -17193,9 +17193,8 @@ one that yields the value) of a statement expression.
       break;
     case stmk_coroutine:
       /* stmk_coroutine entries are always compiler-generated: Nothing to
-         do.  If the coroutine body has been generated, we should not get
-         here. */
-      check_assertion(!statement->variant.coroutine.descr->body_generated);
+         do.  This should have been handled before we got here. */
+      unexpected_condition_str("gen_statement_full: saw stmk_coroutine");
       break;
     case stmk_block:
       /* Block: generate "{ ... }". */

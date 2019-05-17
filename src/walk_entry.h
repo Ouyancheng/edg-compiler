@@ -3873,7 +3873,6 @@ after_entry_from_class:
         remap_ptr(eptr->traits, a_type_ptr, iek_type);
         walk_ptr(eptr->handle, a_variable_ptr, iek_variable);
         walk_ptr(eptr->promise, a_variable_ptr, iek_variable);
-        conditionally_clear_fe_pointer(eptr->fixups);
 #undef eptr
       }
       break;

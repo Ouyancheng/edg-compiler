@@ -2097,7 +2097,6 @@ static a_flag_name
   { "constexpr_implies_const", &constexpr_implies_const },
   { "mangle_had_been_implicitly_const", &mangle_had_been_implicitly_const },
   { "coroutines", &coroutines_enabled },
-  { "coroutine_keywords", &coroutine_keywords_enabled },
   { "suppress_deferral_on_partial_spec_members",
     &suppress_deferral_on_partial_spec_members },
   { "no_very_expensive_checking", &no_very_expensive_checking },
@@ -12012,7 +12011,6 @@ variables declared in cmd_line.h.
   selection_initializers_enabled = FALSE;
   mangle_had_been_implicitly_const = FALSE;
   coroutines_enabled = FALSE;
-  coroutine_keywords_enabled = FALSE;
 #if BUILTIN_FUNCTIONS_ENABLED
   builtin_functions_enabled = FALSE;
   preload_builtin_functions = FALSE;

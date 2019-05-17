@@ -9183,7 +9183,7 @@ and if so, resolve and record the appropriate call.
 {
   a_variable_ptr       promise_var = cr_desc->promise;
   a_type_ptr           promise_type = promise_var->type;
-  a_source_position    *pos = &cr_desc->promise->source_corresp.decl_position;
+  a_source_position    *pos = &cr_desc->position;
   a_symbol_ptr         new_sym, del_sym, alloc_fail_sym;
   an_expr_stack_entry  expr_stack_entry, *saved_expr_stack = expr_stack;
 
@@ -9278,18 +9278,13 @@ void init_coroutine_descr(a_routine_ptr          rp,
                           a_coroutine_descr_ptr  cdp)
 /*
 Initialize some basic fields of the given coroutine description (associated
-with the given coroutine).  This function is called after the coroutine
-function body has been scanned (because in some cases the coroutine type isn't
-known until then).
+with the given coroutine).
 
 Specifically, record in cdp->traits the traits type instance
 	std[::experimental]::coroutine_traits<R, P1, P2, ...>
 and in cdp->promise record a new variable of type traits::promise_type.
 (R is the return type of rp and P1, P2, ... are the parameter types of rp; for
 a nonstatic member function, P1 is the type of this.)
-
-Also record in cdp->eventual_value whether the promise type has a set_result
-member.
 */
 {
   a_symbol_ptr           traits_sym = NULL, traits_inst_sym, promise_sym;
@@ -9301,13 +9296,18 @@ member.
   check_assertion(rp->is_coroutine && cdp != NULL);
   /* First look up std[::experimental]::coroutine_traits. */
   traits_sym = look_up_coroutine_class_template("coroutine_traits");
+  if (rp->has_deducible_return_type) {
+    rp->type->variant.routine.return_type = error_type();
+    rp->has_deduced_return_type = TRUE;
+    cdp->error_descr = TRUE;
+    pos_error(ec_coroutine_with_deduced_return_type, &cdp->position);
+  }  /* if */
   if (cdp->error_descr) {
     expect_error();
-    traits = NULL;
   } else if (traits_sym == NULL) {
     pos_st_error(ec_special_class_template_not_found, &cdp->position,
                  "std::coroutine_traits");
-    traits = NULL;
+    cdp->error_descr = TRUE;
   } else {
     /* Now instantiate coroutine_traits<R, P1, P2, ...> where R is the return
        type of rp, and P1, P2, ... its parameters types. */
@@ -9344,6 +9344,7 @@ member.
       promise_type = type_symbol_type(promise_sym);
     }  /* if */
   } else {
+    expect_error();
     promise_type = error_type();
   }  /* if */
   cdp->traits = (traits == NULL) ? error_type() : traits;
@@ -9356,7 +9357,11 @@ member.
   cdp->handle = make_variable(handle_type, (a_storage_class)sc_auto,
                               NO_SCOPE_DEPTH);
   cdp->handle->source_corresp.decl_position = rp->source_corresp.decl_position;
-  /* Record whether this is an "eventual value" coroutine. */
+  if (is_error_type(promise_type) || is_error_type(handle_type)) {
+    expect_error();
+    cdp->error_descr = TRUE;
+  }  /* if */
+  /* Determine what type of return this coroutine uses. */
   if (!is_error_type(promise_type)) {
     a_symbol_ptr  rv_sym, rvoid_sym;
     rv_sym = look_up_name_string_in_class("return_value", promise_type,
@@ -9377,15 +9382,12 @@ member.
       rv_sym = rvoid_sym;
     }  /* if */
     if (rv_sym != NULL && is_member_function_symbol(rv_sym)) {
-      cdp->eventual_value = TRUE;
       cdp->has_return_void = rvoid_sym != NULL;
     }  /* if */
   }  /* if */
-  if (!is_error_type(promise_type) && !is_template_param_type(promise_type)
-      && !ms_version_is(<=1900)) {
+  if (!cdp->error_descr && !is_template_param_type(promise_type)) {
     /* We have a real promise type, so we can prepare the various calls that
-       a coroutine requires.  Early implementations of coroutines in MSVC
-       did not require these calls - don't attempt to resolve them. */
+       a coroutine requires. */
     prepare_coroutine_calls(cdp, rp);
   }  /* if */
 }  /* init_coroutine_descr */

@@ -6253,8 +6253,6 @@ in which such a return is undefined.
   a_type_ptr        rout_type, tp;
   a_boolean         issue_no_value_returned_diag = FALSE;
   an_error_severity no_returned_value_severity = es_none;
-  a_coroutine_descr_ptr
-                    cdp = NULL;
 
   *return_expr = NULL;
   /* Disable return value optimization in a function that contains a void
@@ -6263,9 +6261,6 @@ in which such a return is undefined.
     ssep->return_value_optimization_possible = FALSE;
     ssep->il_scope->variant.routine.return_value_variable = NULL;
   }
-  if (rout->is_coroutine) {
-    cdp = get_coroutine_descr(rout, (a_source_position*)NULL);
-  }  /* if */
   rout_type = skip_typerefs(rout->type);
   check_assertion(rout_type->kind == (a_type_kind)tk_routine);
   if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
@@ -6274,12 +6269,19 @@ in which such a return is undefined.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       rout->special_kind == (a_special_function_kind)sfk_destructor) {
     /* Constructors and destructors have no return value. */
-  } else if (cdp != NULL) {
-    /* In coroutines, an actual (implicit) return statement cleans up the
-       coroutine activation and does not relate to the return type. It is only
-       well-behaved if "promise_type::return_void" exists.  The promise type
-       may not yet be known, so defer checking here to the coroutine wrap-up
-       (wrap_up_coroutine). */
+  } else if (rout->is_coroutine) {
+    a_coroutine_descr_ptr cdp = get_coroutine_descr(rout);
+    check_assertion(is_implicit_return);
+    if (!cdp->error_descr && !cdp->has_return_void) {
+      /* We're missing an explicit co_return statement and don't have a
+         return_void to implicitly call. */
+      a_symbol_ptr function_name_symbol = symbol_for(rout);
+      pos_syty_diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity :
+                                             es_warning,
+                          ec_implicit_co_return_with_no_return_void,
+                          &function_name_symbol->decl_position,
+                          function_name_symbol, cdp->promise->type);
+    }  /* if */
   } else {
     /* Get the routine return type. */
     if (rout->has_deducible_return_type && !rout->has_deduced_return_type) {
@@ -6450,7 +6452,7 @@ The syntax is:
   rout_type = skip_typerefs(rout->type);
   return_type = rout_type->variant.routine.return_type;
   if (rout->is_coroutine) {
-    if (curr_token == tok_return && !microsoft_mode) {
+    if (curr_token == tok_return) {
       pos_error(ec_return_in_coroutine, &pos_curr_token);
     }  /* if */
   } else if (curr_token == tok_coroutine_return) {
@@ -6458,7 +6460,7 @@ The syntax is:
       pos_error(ec_invalid_co_return, &pos_curr_token);
     } else {
       /* Ensure this function is marked as a coroutine. */
-      (void)get_coroutine_descr(rout, &pos_curr_token);
+      (void)get_coroutine_descr(rout);
     }  /* if */
   }  /* if */
   /* Skip the return or co_return token. */
@@ -6665,14 +6667,8 @@ The syntax is:
         }  /* if */
       }  /* if */
     } else if (rout->is_coroutine) {
-      a_coroutine_descr_ptr  cdp = get_coroutine_descr(
-                                              rout, (a_source_position*)NULL);
-      a_coroutine_fixup_ptr  cfp = add_coroutine_fixup(cdp);
-      cfp->entity.kind = (a_byte_il_entry_kind)iek_statement;
-      cfp->entity.ptr = (char*)sp;
-      cfp->position = return_pos;
-      cfp->operand = (void*)alep;
-      cdp->has_coroutine_return = TRUE;
+      sp->expr = make_coroutine_result_expression(alep, /*is_yield=*/FALSE,
+                                                  sp);
     }  /* if */
     if (sp->kind == (a_statement_kind)stmk_return) {
       scope_stack[depth_innermost_function_scope].has_at_least_one_return =
@@ -7845,6 +7841,7 @@ is being parsed within the context of the __extension__ keyword.
          with the current function (i.e., the current function should also
          have type void), and add a return with no expression. */
       an_expr_node_ptr return_expr;
+      a_routine_ptr    rp = current_routine_entry();
 #if VLA_DEALLOCATIONS_IN_IL
       if (vla_enabled && vla_deallocations_in_il) {
         /* Put out a vla-dealloc statement for each declaration of a VLA
@@ -7863,19 +7860,15 @@ is being parsed within the context of the __extension__ keyword.
       /* The statement is not allocated earlier because we don't want it to
          affect the reachability information.  The source position on the
          statement is null to indicate that it is compiler generated. */
-      if (current_routine_entry()->is_coroutine) {
-        a_coroutine_descr_ptr cdp =
-                                 get_coroutine_descr(current_routine_entry(),
-                                                     (a_source_position*)NULL);
+      if (rp->is_coroutine) {
+        a_coroutine_descr_ptr cdp = get_coroutine_descr(rp);
         if (cdp->has_return_void) {
-          a_coroutine_fixup_ptr cfp = add_coroutine_fixup(cdp);
           sp = add_statement_at_stmt_pos(
                                        (a_statement_kind)stmk_coroutine_return,
                                        &null_source_position);
-          cfp->entity.kind = (a_byte_il_entry_kind)iek_statement;
-          cfp->entity.ptr = (char*)sp;
-          cfp->position = null_source_position;
-          cfp->operand = NULL;
+          sp->expr = make_coroutine_result_expression(/*alep=*/NULL,
+                                                      /*is_yield=*/FALSE,
+                                                      sp);
         }  /* if */
       } else {
         sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return,

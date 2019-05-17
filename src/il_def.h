@@ -14099,10 +14099,9 @@ typedef struct an_expr_node {
 			   of a "co_yield" operation.) */
       an_expr_node_ptr
 		resume_ready_suspend;
-			/* A list of two or three expressions representing the
-			   calls to await_resume, await_ready, and (sometimes)
-			   await_suspend needed to implement the "co_await"
-			   operation. */
+			/* A list of three expressions representing the calls
+			   to await_resume, await_ready, and await_suspend
+			   needed to implement the "co_await" operation. */
     } await_info;
     /* When kind == enk_fold: */
     struct {
@@ -14802,12 +14801,6 @@ typedef struct a_coroutine_descr {
   a_routine_ptr	delete_routine;
 			/* A pointer to the "delete" routine that should be
 			   used for deallocating the coroutine state. */
-  struct a_coroutine_fixup
-		*fixups;
-			/* An opaque pointer to a front-end-only list of
-			   fixup entries (used to update IL entries for
-			   coroutine entries when the complete coroutine
-			   function body has been seen). */
   a_source_position
 		position;
 			/* The position of the construct (co_yield or co_await)
@@ -14816,21 +14809,9 @@ typedef struct a_coroutine_descr {
 			/* TRUE if an error occurred in the processing of the
  			   coroutine, such that additional processing is likely
 			   to produce more errors and should be inhibited. */
-  a_bit_field	eventual_value:1;
-			/* TRUE if the promise type has a member function
-			   return_value or return_void. */
   a_bit_field	has_return_void:1;
 			/* TRUE if the promise type has a member function
-			   return_void . */
-  a_bit_field	has_yield:1;
-			/* TRUE if the coroutine includes a co_yield
-			   expression . */
-  a_bit_field	has_potentially_evaluated_await:1;
-			/* TRUE if the coroutine includes a potentially-
-			   evaluated await expression. */
-  a_bit_field	has_coroutine_return:1;
-			/* TRUE if the coroutine includes a co_return
-			   statement. */
+			   return_void. */
   a_bit_field	body_generated:1;
 			/* TRUE if the coroutine body has been generated for
 			   the coroutine, FALSE otherwise. */

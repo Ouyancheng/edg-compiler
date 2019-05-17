@@ -1298,15 +1298,6 @@ EXTERN a_boolean
 			/* TRUE if coroutines should be accepted. */
 
 EXTERN a_boolean
-		coroutine_keywords_enabled;
-			/* TRUE if in Microsoft mode the coroutine keyword
-			   "await" and the contextual keyword "yield" should
-			   be recognized when coroutine support is enabled.
-			   When FALSE, the standard keywords co_yield,
-			   co_await, and co_return remain available, as do the
-			   nonstandard keywords __await and __yield_value. */
-
-EXTERN a_boolean
 		lambdas_enabled;
 			/* TRUE if C++11 lambdas should be accepted in C++. */
 

@@ -3191,42 +3191,6 @@ literal-operator-id (operator ""suffix).
   ((name) + LENGTH_CANONICAL_LITERAL_OPERATOR_INTRO)
 
 /*
-Structure used to keep track of IL entries that need fixing at the end of a
-coroutine function definition.  These are entries representing co_return
-statements, co_yield expressions, and co_await expressions.
-*/
-typedef struct a_coroutine_fixup *a_coroutine_fixup_ptr;
-typedef struct a_coroutine_fixup {
-  a_coroutine_fixup_ptr
-		next;
-			/* Next fixup entry. */
-  a_tagged_pointer
-		entity;
-			/* The IL entry that needs fixing up. */
-  void		*operand;
-			/* An opaque pointer to a representation of the
-			   operand associated with this fixup (i.e., the
-			   operand for a co_return, co_yield, or co_await). */
-  a_source_position
-		position;
-			/* The position to use for diagnostics. */
-  a_token_sequence_number
-		tok_seq_number;
-			/* The token sequence number of the "co_await" or
-			   "co_yield" keyword.  (NO_TOKEN_SEQUENCE_NUMBER if
-			   this entry is for co_return statement.) */
-  a_bit_field	await_uses_member_calls:1;
-			/* TRUE if this is a fixup for an await expression
-			   that is transformed using calls to class member
-			   functions (as opposed to namespace-scope functions
-			   found through argument-dependent lookup). */
-} a_coroutine_fixup;
-
-extern a_coroutine_fixup_ptr add_coroutine_fixup(a_coroutine_descr_ptr  cdp);
-
-extern void release_coroutine_fixups(a_coroutine_descr_ptr  cdp);
-
-/*
 Utility that returns TRUE if the two ck_string constants have the same value.
 */
 #define string_constants_are_the_same(con1, con2)                             \

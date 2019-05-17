@@ -3944,13 +3944,8 @@ a pointer to it.
   cdp->alloc_failure_gro_call = NULL;
   cdp->new_routine = NULL;
   cdp->delete_routine = NULL;
-  cdp->fixups = NULL;
   cdp->error_descr = FALSE;
-  cdp->eventual_value = FALSE;
   cdp->has_return_void = FALSE;
-  cdp->has_yield = FALSE;
-  cdp->has_potentially_evaluated_await = FALSE;
-  cdp->has_coroutine_return = FALSE;
   cdp->body_generated = FALSE;
 #if DEBUG
   num_coroutine_descriptions_allocated++;

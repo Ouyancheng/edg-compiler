@@ -173,7 +173,6 @@ typedef enum an_overload_context {
   oc_synthesized_member_call,  /* See call_named_member_function. */
   oc_ctad,                     /* See deduce_class_template_args. */
   oc_tuple_like_binding,       /* "get<N>" for tuple-like binding. */
-  oc_await,                    /* See add_await_operand. */
   oc_last
 } an_overload_context;
 

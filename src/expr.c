@@ -35388,15 +35388,6 @@ repeat_switch:
             goto handle_safe_cast;
           }  /* if */
         }  /* if */
-        if (coroutines_enabled && coroutine_keywords_enabled &&
-            curr_token == tok_identifier &&
-            locator_for_curr_id.symbol_header == yield_symbol_header &&
-            next_token() != tok_lparen &&
-            check_context_sensitive_keyword(tok_coroutine_yield, "yield")) {
-          /* In Microsoft mode, "yield" not followed by a left parenthesis is
-             treated like the co_yield keyword. */
-          goto handle_coroutine_yield;
-        }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 handle_identifier:
@@ -35715,7 +35706,6 @@ handle_identifier:
       break;
 
     case tok_coroutine_yield:
-handle_coroutine_yield:
       scan_yield_expression(&local_result);
       break;
 
@@ -38774,11 +38764,12 @@ to implement a co_yield expression.
 */
 {
   an_operand        ready_operand, ready_call;
-  an_operand        suspend_operand;
+  an_operand        handle_operand, suspend_operand, suspend_call;
   an_operand        resume_operand, resume_call;
+  an_arg_list_elem_ptr
+                    handle_arg;
   a_type_ptr        utp;
-  a_symbol_locator  loc;
-  a_boolean         temp_init_used, use_member_calls, processed;
+  a_boolean         temp_init_used, processed;
   an_expr_node_ptr  node;
   a_routine_ptr     curr_routine;
   a_coroutine_descr_ptr
@@ -38808,7 +38799,7 @@ to implement a co_yield expression.
                              operand, result, pos, tok_seq_number);
     goto done;
   }  /* if */
-  cdp = get_coroutine_descr(curr_routine, pos);
+  cdp = get_coroutine_descr(curr_routine);
   if (cdp->error_descr) {
     expect_error();
     make_error_operand(result);
@@ -38849,13 +38840,9 @@ to implement a co_yield expression.
                 &temp_init_used, /*treat_as_potential_prvalue=*/TRUE);
   clone_operand(&resume_operand, &suspend_operand, /*vars_can_change=*/TRUE,
                 &temp_init_used, /*treat_as_potential_prvalue=*/TRUE);
-  if (is_immediate_class_type(utp) &&
-      (look_up_named_member_function(utp, "await_ready", &loc) != NULL ||
-       look_up_named_member_function(utp, "await_suspend", &loc) != NULL ||
-       look_up_named_member_function(utp, "await_resume", &loc) != NULL)) {
+  if (is_immediate_class_type(utp)) {
     /* Call the await_ready, await_suspend, and await_resume member
        functions. */
-    use_member_calls = TRUE;
     call_named_member_function(&ready_operand, "await_ready",
                                (a_template_arg_ptr)NULL,
                                (an_arg_list_elem_ptr)NULL,
@@ -38864,105 +38851,38 @@ to implement a co_yield expression.
                                (a_template_arg_ptr)NULL,
                                (an_arg_list_elem_ptr)NULL,
                                &resume_operand, &resume_call);
+    /* First get an operand representing the coroutine handle. */
+    make_lvalue_variable_operand(cdp->handle, pos, pos, &handle_operand,
+                                 (a_ref_entry *)NULL);
+    handle_arg = alloc_arg_list_elem_for_operand(&handle_operand);
+    /* Now create the await_suspend call. */
+    call_named_member_function(&suspend_operand, "await_suspend",
+                               (a_template_arg_ptr)NULL, handle_arg,
+                               &suspend_operand, &suspend_call);
+    free_arg_list(handle_arg);
   } else {
-    /* Call await_ready, await_suspend, and await_resume functions found by
-       argument-dependent lookup. */
-    an_arg_list_elem_ptr  alep;
-    use_member_calls = FALSE;
-    alep = alloc_arg_list_elem_for_operand(&ready_operand);
-    call_adl_named_function("await_ready", (a_template_arg_ptr)NULL,
-                            alep, pos, tok_seq_number, oc_await,
-                            &ready_call, (an_expr_node_ptr*)NULL);
-    free_arg_list(alep);
-    alep = alloc_arg_list_elem_for_operand(&resume_operand);
-    call_adl_named_function("await_resume", (a_template_arg_ptr)NULL,
-                            alep, pos, tok_seq_number, oc_await,
-                            &resume_call, (an_expr_node_ptr*)NULL);
-    free_arg_list(alep);
-  }  /* if */
+    make_error_operand(&ready_call);
+    make_error_operand(&resume_call);
+    make_error_operand(&suspend_call);
+    pos_stty_error(ec_await_operand_not_a_class, pos,
+                   for_yield ? "co_yield" : "co_await", utp);
+  }
   node->type = resume_call.type;
   node->variant.await_info.operand = make_node_from_operand(operand);
   node->variant.await_info.resume_ready_suspend =
                                           make_node_from_operand(&ready_call);
   node->variant.await_info.resume_ready_suspend->next =
                                          make_node_from_operand(&resume_call);
+  node->variant.await_info.resume_ready_suspend->next->next =
+                                        make_node_from_operand(&suspend_call);
   make_expression_operand(node, result);
   if (is_error_operand(result)) {
     /* Nothing more to do. */
   } else if (!expr_stack->potentially_evaluated) {
     pos_error(ec_await_in_unevaluated_operand, pos);
-  } else {
-    if (curr_routine->has_deducible_return_type &&
-        !curr_routine->has_deduced_return_type) {
-      a_coroutine_fixup_ptr  cfp = add_coroutine_fixup(cdp);
-      cfp->entity.kind = (a_byte_il_entry_kind)iek_expr_node;
-      cfp->entity.ptr = (char*)node;
-      cfp->operand = (void*)alloc_arg_list_elem_for_operand(&suspend_operand);
-      cfp->position = *pos;
-      cfp->tok_seq_number = tok_seq_number;
-      cfp->await_uses_member_calls = use_member_calls;
-      cdp->has_potentially_evaluated_await = TRUE;
-    } else {
-      init_coroutine_descr_if_needed(curr_routine, cdp);
-      determine_suspend_call_for_await(
-                     node, alloc_arg_list_elem_for_operand(&suspend_operand),
-                     use_member_calls, tok_seq_number, cdp);
-    }  /* if */
   }  /* if */
 done:;
 }  /* add_await_to_operand */
-
-
-void determine_suspend_call_for_await(an_expr_node_ptr         node,
-                                      an_arg_list_elem_ptr     suspend_arg,
-                                      a_boolean                use_member_call,
-                                      a_token_sequence_number  tok_seq_number,
-                                      a_coroutine_descr_ptr    cdp)
-/*
-The given node represents a "co_await" operation whose "await_suspend" call has
-not been determined yet.  Determine it now (and record its representation).
-suspend_arg is the first operand (or the selector operand, if use_member_call
-is TRUE) of the call.  tok_seq_number is the token sequence number of the
-await keyword.  cdp points to the coroutine description entry for this await
-operation.  This routine frees *suspend_arg.
-*/
-{
-  an_expr_stack_entry   expr_stack_entry;
-  an_operand            handle_opnd, suspend_call;
-  an_arg_list_elem_ptr  handle_arg;
-  a_source_position     *pos, *end_pos;
-
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  pos = init_component_pos(suspend_arg);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  end_pos = init_component_end_pos(suspend_arg);
-#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-  end_pos = &null_source_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* First get an operand representing the coroutine handle. */
-  make_lvalue_variable_operand(cdp->handle, pos, end_pos, &handle_opnd,
-                               (a_ref_entry *)NULL);
-  handle_arg = alloc_arg_list_elem_for_operand(&handle_opnd);
-  /* Now create the await_suspend call. */
-  if (use_member_call) {
-    an_operand  *selector = operand_of_arg_list_elem(suspend_arg);
-    call_named_member_function(selector, "await_suspend",
-                               (a_template_arg_ptr)NULL, handle_arg, selector,
-                               &suspend_call);
-    free_arg_list(handle_arg);
-  } else {
-    append_elem(suspend_arg, handle_arg);
-    call_adl_named_function("await_suspend", (a_template_arg_ptr)NULL,
-                            suspend_arg, pos, tok_seq_number, oc_await,
-                            &suspend_call, (an_expr_node_ptr*)NULL);
-  }  /* if */
-  node->variant.await_info.resume_ready_suspend->next->next =
-                                        make_node_from_operand(&suspend_call);
-  free_arg_list(suspend_arg);
-  pop_expr_stack();
-}  /* determine_suspend_call_for_await */
 
 
 static a_boolean generate_enhanced_for_ne_and_incr_expressions(
@@ -41910,11 +41830,7 @@ type with the type of return_op.
   check_assertion(curr_routine->has_deducible_return_type);
   rout_type = skip_typerefs(curr_routine->type);
   check_assertion(rout_type->kind == (a_type_kind)tk_routine);
-  if (curr_routine->is_coroutine) {
-    /* Don't record a placeholder for coroutines here, because the deduced
-       return type will later be replaced. */
-    keep_placeholder = FALSE;
-  }  /* if */
+  check_assertion(!curr_routine->is_coroutine);
   if (first_deduction) {
     /* This is the first time we deduce the return type.  Record the original
        in case we must perform the deduction again for another return statement
@@ -42022,9 +41938,8 @@ class (nullptr_t is fine too).
 
 static void bundle_coroutine_result(an_arg_list_elem_ptr  alep)
 /*
-alep represents a just-scanned operand of a yield or coroutine return.  It will
-eventually be used as the operand of a call (after the complete coroutine body
-has been seen).  
+alep represents a just-scanned operand of a coroutine return.  It will
+eventually be used as the operand of a call.
 */
 {
   an_object_lifetime_ptr lifetime = expr_stack->lifetime;
@@ -42056,15 +41971,15 @@ has been seen).
 }  /* bundle_coroutine_result */
 
 
-an_expr_node_ptr wrap_up_coroutine_result_expression(
+an_expr_node_ptr make_coroutine_result_expression(
                                               an_arg_list_elem_ptr  alep,
                                               a_boolean             is_yield,
                                               a_statement_ptr       sp)
 /*
-alep points to a representation of a "yield" (if is_yield is TRUE) or "return"
-(if is_yield is FALSE) operand in a coroutine.  sp is used to refine the source
-position for the operand when is_yield is FALSE. For a co_yield expressions,
-create and return an expression
+alep points to a representation of a "co_yield" (if is_yield is TRUE) or
+"co_return" (if is_yield is FALSE) operand in a coroutine.  sp is used to
+refine the source position for the operand when is_yield is FALSE. For a
+co_yield expression, create and return an expression
     _Pr.yield_value(_V)
 where _V is the expression or braced initializer just scanned, and _Pr is the
 variable recorded for the current routine's promise.  Similarly, create one of
@@ -42072,7 +41987,7 @@ the following expressions for the various forms of co_return statements:
     _Pr.return_void()     for "co_return ;"
     _V, _Pr.return_void() for "co_return <expr> ;" where <expr> has type void
     _Pr.return_value(_V)  otherwise
-This routine frees *alep.
+This routine frees alep.
 */
 {
   an_expr_node_ptr      result, void_expr = NULL;
@@ -42084,10 +41999,9 @@ This routine frees *alep.
   an_expr_stack_entry   *saved_expr_stack;
   an_expr_stack_entry   expr_stack_entry;
 
-  cdp = get_coroutine_descr(curr_routine, &null_source_position);
+  cdp = get_coroutine_descr(curr_routine);
   check_assertion(curr_routine->is_coroutine);
   check_assertion(is_yield ? alep != NULL : sp != NULL);
-  init_coroutine_descr_if_needed(curr_routine, cdp);
   if (cdp->error_descr) {
     expect_error();
     result = error_node();
@@ -42137,15 +42051,13 @@ This routine frees *alep.
   }  /* if */
   if (!is_yield) {
     result = wrap_up_full_expression(result);
-  }  /* if */
-  if (!is_yield) {
     pop_expr_stack();
     restore_expr_stack(saved_expr_stack);
   }  /* if */
 done:
   free_arg_list(alep);
   return result;
-}  /* wrap_up_coroutine_result_expression */
+}  /* make_coroutine_result_expression */
 
 
 an_expr_node_ptr scan_return_expression(a_type_ptr            required_type,
@@ -42163,7 +42075,7 @@ required_type will be void if the expression should have void type
 
 If this turns out to be a coroutine return, return NULL and set *alep to the
 operand of the statement.  (*alep will eventually be deallocated by
-wrap_up_coroutine_result_expression.)
+make_coroutine_result_expression.)
 */
 {
   a_routine_ptr       curr_routine = current_routine_entry();
@@ -42450,7 +42362,7 @@ Scan the operand (if any) of a yield expression in a coroutine:
 	co_yield { ... }
 and return a component representing the underlying call on the promise
 associated with the coroutine.  (The component will eventually be deallocated
-by wrap_up_coroutine_result_expression.)
+by make_coroutine_result_expression.)
 */
 {
   an_arg_list_elem_ptr  alep;
@@ -42471,9 +42383,7 @@ Scan a coroutine "yield" expression of the form
 	co_yield <expr>
 	co_yield { ... }
 
-and return its representation in *result (or an error indication in *rcblock
-if applicable).  In Microsoft modes, some alternatives are available for the
-"co_yield" keyword.)
+and return its representation in *result.
 
 A yield expression cannot appear in a rescan context (hence the lack of an
 rcblock parameter for this function).
@@ -42483,7 +42393,6 @@ rcblock parameter for this function).
   a_source_position        operator_position;
   a_token_sequence_number  operator_tok_seq_number;
   a_routine_ptr            rout;
-  a_coroutine_descr_ptr    cdp;
   an_expr_node_ptr         node;
 
   if (innermost_function_scope == NULL) {
@@ -42523,86 +42432,22 @@ rcblock parameter for this function).
                              &operator_position, operator_tok_seq_number);
     goto done;
   }  /* if */
-  /* Note the presence of a yield expression. */
-  cdp = get_coroutine_descr(rout, &operator_position);
-  check_assertion(rout->is_coroutine);
-  cdp->has_yield = TRUE;
-  if (rout->has_deducible_return_type) {
-    a_coroutine_fixup_ptr  cfp;
-    /* Create a placeholder enk_yield node.  It will be completed later on.
-       However, the promise associated with a deduced return type coroutine
-       must have a yielding function that returns no value: We can therefore
-       proceed with a void type for this expression. */
-    node = alloc_expr_node((an_expr_node_kind)enk_yield);
-    node->type = void_type();
-    make_expression_operand(node, result);
-    /* Record a fixup to revisit the expression when we've seen the completed
-       coroutine body. */
-    cfp = add_coroutine_fixup(cdp);
-    cfp->entity.kind = (a_byte_il_entry_kind)iek_expr_node;
-    cfp->entity.ptr = (char*)node;
-    cfp->position = operator_position;
-    cfp->tok_seq_number = operator_tok_seq_number;
-    cfp->operand = (void*)yield_opnd;
-    if (is_expression_component(yield_opnd)) {
-      /* Detach the ref entries list.  Otherwise, it will be freed twice: once
-         when the current expression stack is popped, and once more when the
-         expression stack created during wrap-up is popped. */
-      an_operand_ptr  opnd = operand_of_arg_list_elem(yield_opnd);
-      detach_ref_entries_from_curr_expr(opnd);
-    }  /* if */
+  node = make_coroutine_result_expression(yield_opnd, /*is_yield=*/TRUE,
+                                          (a_statement_ptr)NULL);
+  make_expression_operand(node, result);
+  if (is_error_operand(result)) {
+    /* Don't take actions that are likely to trigger unhelpful additional
+       diagnostics. */
   } else {
-    node = wrap_up_coroutine_result_expression(yield_opnd, /*is_yield=*/TRUE,
-                                               (a_statement_ptr)NULL);
-    make_expression_operand(node, result);
-    if (is_error_operand(result)) {
-      /* Don't take actions that are likely to trigger unhelpful additional
-         diagnostics. */
-    } else if (!is_void_type(result->type)) {
-      add_await_to_operand(result, &operator_position, operator_tok_seq_number,
-                           /*for_yield=*/TRUE, result);
-    } else if (!ms_version_is(<1920)) {
-      pos_error(ec_invalid_yield_value_type, &operator_position);
-    }  /* if */
+    add_await_to_operand(result, &operator_position, operator_tok_seq_number,
+                         /*for_yield=*/TRUE, result);
   }  /* if */
+  check_assertion(rout->is_coroutine);
 done:
   set_operand_position(result, &operator_position,
                        &curr_construct_end_position, &operator_position);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
 }  /* scan_yield_expression */
-
-
-void wrap_up_yield_expression(a_coroutine_fixup_ptr  cfp)
-/*
-The given node was created when the return type of a coroutine had not yet been
-determined.  Complete it now that that that type is known.  *alep represents
-the operand of the co_yield expression.
-*/
-{
-  an_arg_list_elem_ptr  alep = (an_arg_list_elem_ptr)cfp->operand;
-  an_expr_node_ptr      node = (an_expr_node_ptr)cfp->entity.ptr, yield_call;
-  an_expr_stack_entry   *saved_expr_stack;
-  an_expr_stack_entry   expr_stack_entry;
-
-  save_expr_stack(&saved_expr_stack);
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  yield_call = wrap_up_coroutine_result_expression(alep, /*is_yield=*/TRUE,
-                                                   (a_statement_ptr)NULL);
-  pop_expr_stack();
-  restore_expr_stack(saved_expr_stack);
-  if (!is_void_type(yield_call->type)) {
-    /* The call to yield_value in a coroutine whose return type is deduced is
-       assumed to produce a void result. */
-    pos_ty_error(ec_nonvoid_yield_value_type, &cfp->position,
-                 yield_call->type);
-    *node = *error_node();
-  } else {
-    node->variant.await_info.operand = yield_call;
-    node->type = yield_call->type;
-  }  /* if */
-}  /* wrap_up_yield_expression */
 
 
 static void scan_await_expression(an_operand  *result)

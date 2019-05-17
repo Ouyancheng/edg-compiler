@@ -82,8 +82,7 @@ extern void generate_required_virtual_destructor_bodies(a_scope_ptr  scope);
 extern void require_definitions_of_virtual_functions_in_class(
 							a_type_ptr class_type);
 
-extern a_coroutine_descr_ptr get_coroutine_descr(a_routine_ptr      rp,
-                                                 a_source_position  *pos);
+extern a_coroutine_descr_ptr get_coroutine_descr(a_routine_ptr rp);
 
 #endif /* FUNC_DEF_H */
 

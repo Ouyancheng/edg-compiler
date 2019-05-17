@@ -4839,17 +4839,11 @@ Display the indicated coroutine description.
   disp_ptr("traits", (char*)cdp->traits, iek_type);
   disp_ptr("handle", (char*)cdp->handle, iek_variable);
   disp_ptr("promise", (char*)cdp->promise, iek_variable);
-  if (cdp->eventual_value) {
-    disp_boolean("eventual_value", TRUE);
+  if (cdp->has_return_void) {
+    disp_boolean("has_return_void", TRUE);
   }  /* if */
-  if (cdp->has_yield) {
-    disp_boolean("has_yield", TRUE);
-  }  /* if */
-  if (cdp->has_potentially_evaluated_await) {
-    disp_boolean("has_potentially_evaluated_await", TRUE);
-  }  /* if */
-  if (cdp->has_coroutine_return) {
-    disp_boolean("has_coroutine_return", TRUE);
+  if (cdp->body_generated) {
+    disp_boolean("body_generated", TRUE);
   }  /* if */
 }  /* disp_coroutine_descr */
 

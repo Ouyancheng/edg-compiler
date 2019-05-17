@@ -4337,10 +4337,6 @@ EXTERN sizeof_t	size_scope_stack;
 /* Header for the contextual keyword "safe_cast" used in C++/CLI. */
 EXTERN a_symbol_header_ptr
 		safe_cast_symbol_header;
-
-/* Header for the contextual keyword "yield" used in some Microsoft modes. */
-EXTERN a_symbol_header_ptr
-		yield_symbol_header;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -4831,10 +4827,6 @@ EXTERN a_namespace_ptr
 
 extern void init_coroutine_descr(a_routine_ptr          rp,
                                  a_coroutine_descr_ptr  cdp);
-
-#define init_coroutine_descr_if_needed(rp, cdp)                              \
-  if ((cdp)->traits == NULL) init_coroutine_descr(rp, cdp);
-
 
 extern a_type_ptr instantiate_coroutine_class_template_with_one_type(
                                                         a_const_char  *ctname,
