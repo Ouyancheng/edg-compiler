@@ -3873,6 +3873,16 @@ after_entry_from_class:
         remap_ptr(eptr->traits, a_type_ptr, iek_type);
         walk_ptr(eptr->handle, a_variable_ptr, iek_variable);
         walk_ptr(eptr->promise, a_variable_ptr, iek_variable);
+        walk_ptr(eptr->this_param_copy, a_variable_ptr, iek_variable);
+        walk_list(eptr->parameter_copies, a_variable_ptr, iek_variable);
+        remap_ptr(eptr->final_suspend_label, a_label_ptr, iek_label);
+        walk_ptr(eptr->initial_suspend_call, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(eptr->final_suspend_call, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(eptr->unhandled_exception_call, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(eptr->get_return_object_call, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(eptr->alloc_failure_gro_call, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(eptr->new_routine, a_routine_ptr, iek_routine);
+        walk_ptr(eptr->delete_routine, a_routine_ptr, iek_routine);
 #undef eptr
       }
       break;
