@@ -14302,7 +14302,7 @@ such initializers are instantiated on demand).
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-static void fold_dynamic_var_init_if_possible(a_dynamic_init_ptr  dip,
+static void fold_dynamic_var_init_if_possible(a_dynamic_init_ptr  *p_dip,
                                               a_type_ptr          dest_type)
 /*
 If the given dynamic initialization entry can be folded to a constant, replace
@@ -14312,17 +14312,24 @@ This function has no effect if dip already is a dik_constant entry.  dest_type
 is the type being initialized.
 */
 {
+  a_dynamic_init_ptr  dip = *p_dip;
+
   if (constexpr_enabled && dip->kind != (a_dynamic_init_kind)dik_constant &&
       !is_template_dependent_type(dest_type)) {
-    a_constant_ptr      folded_value = local_constant();
-    a_diag_list         diag_list;
-    a_variable_ptr      var = dip->variable;
-    an_init_kind        init_kind;
+    a_constant_ptr          folded_value = local_constant();
+    a_diag_list             diag_list;
+    a_variable_ptr          var = dip->variable;
+    an_init_kind            init_kind;
+    a_memory_region_number  region_to_switch_back_to = NULL_region_number;
     if (var != NULL) {
       /* Temporarily set the variable as uninitialized to avoid runaway
          recursion. */
       init_kind = var->init_kind;
       var->init_kind = (an_init_kind)initk_none;
+    }  /* if */
+    if (in_file_scope(dip) &&
+        curr_il_region_number != file_scope_region_number) {
+      switch_to_file_scope_region(&region_to_switch_back_to);
     }  /* if */
     clear_diag_list(&diag_list);
     /* Interpret the dynamic initialization into a constant if possible.
@@ -14338,13 +14345,17 @@ is the type being initialized.
           folded_value->variant.address.kind == 
                                        (an_address_base_kind)abk_temporary) &&
         is_static_init_constant(folded_value)) {
-      dip->kind = (a_dynamic_init_kind)dik_constant;
-      set_dynamic_init_constant(dip, move_local_constant_to_il(&folded_value));
+      *p_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+      set_dynamic_init_constant(*p_dip,
+                                move_local_constant_to_il(&folded_value));
     }  /* if */
     discard_more_info_list(&diag_list);
     if (folded_value != NULL) {
       /* If folded_value was not moved to the IL above, release it now. */
       release_local_constant(&folded_value);
+    }  /* if */
+    if (region_to_switch_back_to != NULL_region_number) {
+      switch_back_to_original_region(region_to_switch_back_to);
     }  /* if */
     if (var != NULL) {
       var->init_kind = init_kind;
@@ -14371,7 +14382,7 @@ constant; otherwise, return NULL.
     con_val = init->constant;
   } else if (init_kind == (an_init_kind)initk_dynamic) {
 #if !STANDALONE_UTILITY_PROGRAM
-    fold_dynamic_var_init_if_possible(init->dynamic, var->type);
+    fold_dynamic_var_init_if_possible(&init->dynamic, var->type);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
     if (init->dynamic->kind == (a_dynamic_init_kind)dik_constant) {
       /* The variable is dynamically initialized to a constant. */
