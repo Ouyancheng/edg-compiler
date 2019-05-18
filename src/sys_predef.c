@@ -527,6 +527,7 @@ resulting type.  See also scan_top_level_generated_code (which is similar).
   /* Insert the builtin function type into the token stream. */
   insert_string_into_token_stream(type_string, /*insert_after=*/FALSE,
                                   /*p_expand_macros=*/FALSE,
+                                  /*suspend_caching=*/FALSE,
                                   *err_source_pos);
   /* Scan the type. */
   type_name(&result);

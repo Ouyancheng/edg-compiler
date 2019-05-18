@@ -1,5 +1,24 @@
 Version 5.1
 
+5/18/19  [EDGcpfe/21218,EDGcpfe/21255]
+Internal error processing fold expression
+
+An internal error could occur (in copy_tokens_from_cache) when a fold
+expression occurred in a default template argument.  Now fixed.
+
+  template <bool B> struct A { };
+  template <char v> struct B {
+    static constexpr char value = v;
+  };
+  template <char... Ts> struct C {
+    constexpr inline C() noexcept { };
+    template <char c, typename = A<((Ts == c) || ... || false)>>
+    constexpr inline C(B<c>) noexcept { }
+  };
+  C<'a','b'> c{};
+  C<'c'> c2{B<'c'>{}};
+
+
 5/16/19  [EDGcpfe/21259]
 Use Berkley SoftFloat library for floating-point arithmetic
 

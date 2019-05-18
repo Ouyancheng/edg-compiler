@@ -1843,6 +1843,10 @@ typedef struct a_lexical_state_stack_entry {
 		caching_tokens;
 			/* The saved value of caching_tokens when the state
 			   stack was pushed. */
+  a_byte_boolean
+		suspend_caching_tokens;
+			/* TRUE if, when we are caching tokens, we should
+			   temporarily suspend that caching. */
 } a_lexical_state_stack_entry;
 
 EXTERN a_lexical_state_stack_entry_ptr
@@ -2760,6 +2764,7 @@ extern void insert_string_into_token_stream(
                                         a_const_char      *string,
                                         a_boolean         insert_after,
                                         a_boolean         p_expand_macros,
+                                        a_boolean         suppress_caching,
                                         a_source_position position_for_tokens);
 
 extern void cache_tokens_from_string(a_const_char       *string,

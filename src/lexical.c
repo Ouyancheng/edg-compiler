@@ -14135,6 +14135,7 @@ return_from_token_scan:
   curr_token_is_temporarily_inert_macro = is_temporarily_inert_macro;
   curr_token = ctoken;
   if (curr_lexical_state_stack_entry->cache_tokens &&
+      !curr_lexical_state_stack_entry->suspend_caching_tokens &&
       !scanning_microsoft_asm) {
     /* A copy of each new token fetched should be saved in a token cache.
        The token sequence number check is used to prevent a token from
@@ -14495,6 +14496,7 @@ to it.
   lssep->error_position = null_source_position;
   clear_token_cache(&lssep->cache, /*is_reusable=*/FALSE);
   lssep->caching_tokens = FALSE;
+  lssep->suspend_caching_tokens = FALSE;
   return lssep;
 }  /* alloc_lexical_state_stack_entry */
 
@@ -21842,6 +21844,7 @@ that tokens should be fetched from the insertion string.
 void insert_string_into_token_stream(a_const_char	*string,
 				     a_boolean		insert_after,
 				     a_boolean		p_expand_macros,
+				     a_boolean		suspend_caching,
 				     a_source_position	position_for_tokens)
 /*
 Scan "string" as a sequence of tokens.  Build a token cache and insert it
@@ -21850,6 +21853,8 @@ if the tokens should be inserted after the current token; FALSE if they
 should be inserted before the current token.  p_expand_macros is TRUE
 if macros should be expanded while processing the tokens.  position_for_tokens
 is used as the beginning and end source position for each token in the string.
+If suspend_caching is TRUE, background caching of tokens is disabled while
+the tokens from the string are processed.
 */
 {
   a_boolean		save_treat_newline_as_token;
@@ -21861,6 +21866,7 @@ is used as the beginning and end source position for each token in the string.
   a_const_char		*save_after_end_of_curr_source_line;
   a_boolean		save_caching_tokens;
   a_boolean		save_expand_macros;
+  a_boolean		save_suspend_caching_tokens;
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
      must be registered by calling register_pointer_variable so that they
@@ -21899,6 +21905,9 @@ is used as the beginning and end source position for each token in the string.
   save_after_end_of_curr_source_line = after_end_of_curr_source_line;
   save_caching_tokens = caching_tokens;
   save_expand_macros = expand_macros;
+  save_suspend_caching_tokens =
+                      curr_lexical_state_stack_entry->suspend_caching_tokens;
+  curr_lexical_state_stack_entry->suspend_caching_tokens = suspend_caching;
 
   /* Reset the information used by get_token to fetch the tokens from
      the string in the text buffer. */
@@ -21965,6 +21974,8 @@ is used as the beginning and end source position for each token in the string.
   rescan_cached_tokens(&cache);
   /* Drop any local pointer registrations. */
   registered_pointers = save_registered_pointers;
+  curr_lexical_state_stack_entry->suspend_caching_tokens =
+                                                  save_suspend_caching_tokens;
 }  /* insert_string_into_token_stream */
 
 
@@ -22866,6 +22877,7 @@ C++/CLI delegate class types.)
   insert_string_into_token_stream(class_def_buffer->buffer,
                                   /*insert_after=*/FALSE,
                                   /*p_expand_macros=*/FALSE,
+                                  /*suspend_caching=*/FALSE,
                                   position_for_tokens);
   /* Generics are processed differently than other types.  They are cached
      for instantiation purposes, then an initial scan is done to do the

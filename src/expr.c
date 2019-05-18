@@ -47330,6 +47330,7 @@ This is used to implement the expansion of fold expressions
   insert_string_into_token_stream(token_names[op_token],
                                   /*insert_after=*/FALSE,
                                   /*p_expand_macros=*/FALSE,
+                                  /*suspend_caching=*/TRUE,
                                   *diag_pos);
   switch (op_token) {
     case tok_period_star:

@@ -20071,6 +20071,7 @@ templates (e.g., __make_integer_seq).
   /* Insert the generated code into the token stream. */
   insert_string_into_token_stream(buffer, /*insert_after=*/FALSE,
                                   /*p_expand_macros=*/FALSE,
+                                  /*suspend_caching=*/FALSE,
                                   insert_position);
   while (curr_token != tok_end_of_source) {
     declaration(/*function_definition_allowed=*/TRUE,
