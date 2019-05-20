@@ -11100,13 +11100,7 @@ strict ANSI mode.  Return FALSE if there is an error.
   a_std_conv_descr std_conv;
 
   if (!C_mode() &&
-      (opkind == (an_opname_kind)onk_eq ||
-       opkind == (an_opname_kind)onk_ne ||
-       opkind == (an_opname_kind)onk_lt ||
-       opkind == (an_opname_kind)onk_le ||
-       opkind == (an_opname_kind)onk_gt ||
-       opkind == (an_opname_kind)onk_ge ||
-       opkind == (an_opname_kind)onk_spaceship ||
+      (opname_is_comparison(opkind) ||
        opkind == (an_opname_kind)onk_question)) {
     /* For equality operators, relational operators, and the ?: operator, the
        compatibility rules were revised through the resolution of Core issue

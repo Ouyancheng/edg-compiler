@@ -561,6 +561,18 @@ Macro to test an operator routine entry's opname_kind field.
 #define opname_kind_is(rp, onk)                                             \
   ((rp)->variant.opname_kind == (an_opname_kind)(onk))
 
+/*
+Macro to test for comparison operators.
+*/
+#define opname_is_comparison(opkind)                                        \
+  ((opkind) == (an_opname_kind)onk_eq ||                                    \
+   (opkind) == (an_opname_kind)onk_ne ||                                    \
+   (opkind) == (an_opname_kind)onk_lt ||                                    \
+   (opkind) == (an_opname_kind)onk_le ||                                    \
+   (opkind) == (an_opname_kind)onk_gt ||                                    \
+   (opkind) == (an_opname_kind)onk_ge ||                                    \
+   (opkind) == (an_opname_kind)onk_spaceship)
+
 
 /*
 Macro that returns TRUE if a routine has been defined.  The value is

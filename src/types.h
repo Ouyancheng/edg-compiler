@@ -135,6 +135,8 @@ extern a_boolean is_qualified_function_type(a_type_ptr	tp);
 extern a_boolean rvalue_ref_can_be_bound_to_function_lvalue(void);
 extern a_boolean is_reference_that_can_bind_to_rvalue(a_type_ptr type);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+extern a_boolean may_be_lvalue_ref_to_const_type(a_type_ptr  tp,
+                                                 a_type_ptr  *p_utp);
 extern a_boolean types_are_references_of_the_same_kind(a_type_ptr tp1, 
                                                        a_type_ptr tp2);
 extern a_boolean is_ptr_or_ref_type(a_type_ptr tp);

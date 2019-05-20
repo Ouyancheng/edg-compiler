@@ -1134,6 +1134,49 @@ xvalues), e.g., an lvalue reference to non-volatile const.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+a_boolean may_be_lvalue_ref_to_const_type(a_type_ptr  tp,
+                                          a_type_ptr  *p_utp)
+/*
+Return TRUE if the given type may be a "lvalue reference to const X" for some
+type X.  If p_utp is non-NULL, set *p_utp to point to the representation of
+the type underlying the "const" qualifier or, in template-dependent cases, the
+template-dependent type.  Otherwise, return FALSE;
+*/
+{
+  a_boolean   result = FALSE;
+  a_type_ptr  rtp = skip_typerefs(tp);
+
+  if (is_reference_ptr(rtp)) {
+    a_type_ptr  utp = rtp->variant.pointer.type;
+    for (;;) {
+      if (type_is(utp, tk_typeref)) {
+        if (utp->variant.typeref.qualifiers & TQ_CONST) {
+          utp = utp->variant.typeref.type;
+          result = TRUE;
+          break;
+        } else if (utp->variant.typeref.is_dependent_type_operator ||
+                   utp->variant.typeref.is_nonreal) {
+          result = TRUE;
+          break;
+        }  /* if */
+        utp = utp->variant.typeref.type;
+      } else if (type_is(utp, tk_array)) {
+        /* Check the array element type. */
+        utp = utp->variant.array.element_type;
+      } else if (type_is(utp, tk_template_param)) {
+        result = TRUE;
+      } else {
+        break;
+      }  /* if */
+    }  /* for */
+    if (result && p_utp != NULL) {
+      *p_utp = utp;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* may_be_lvalue_ref_to_const_type */
+
+
 a_boolean types_are_references_of_the_same_kind(a_type_ptr  tp1, 
                                                 a_type_ptr  tp2)
 /*

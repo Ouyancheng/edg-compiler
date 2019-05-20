@@ -1231,6 +1231,8 @@ typedef struct a_class_def_state {
   a_bit_field	any_defaulted_special_members:1;
 			/* TRUE if a defaulted special member declaration has
 			   been seen. */
+  a_bit_field	defaulted_spaceship:1;
+			/* TRUE if a defaulted operator<=> has been seen. */
   an_access_specifier
 		access;
 			/* The current access. */
@@ -1318,6 +1320,7 @@ class being defined.
   cdsp->needs_assignment_symbol = FALSE;
   cdsp->has_inheriting_constructors = FALSE;
   cdsp->any_defaulted_special_members = FALSE;
+  cdsp->defaulted_spaceship = FALSE;
   cdsp->access = (an_access_specifier)as_public;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cdsp->assembly_access = (an_access_specifier)as_public;
@@ -13329,6 +13332,61 @@ assignment operator needs to be defined as deleted.
   return result;
 }  /* assignment_operator_can_be_defaulted */
 
+static void check_defaulted_comparison(a_decl_parse_state  *dps,
+                                       a_func_info_block   *func_info,
+                                       a_source_position   *def_pos)
+/*
+*dps and *func_info describe a defaulted comparison operator declaration.
+Check that the scope and parameter types are appropriate or issue a diagnostic
+otherwise (and take precautions for error recovery in that case).
+*/
+{
+  a_boolean      err = FALSE;
+  a_routine_ptr  rp = dps->sym->variant.routine.ptr;
+
+  if (!scope_is(&scope_stack_top(), sck_class_struct_union)) {
+    pos_error(ec_bad_scope_for_defaulted_comparison, def_pos);
+    err = TRUE;
+  } else {
+    a_type_ptr        rtp = skip_typerefs(rp->type);
+    a_type_ptr        class_type = scope_stack_top().assoc_type;
+    a_param_type_ptr  ptp = function_type_params(rtp);
+    for (; ptp != NULL; ptp = ptp->next) {
+      a_type_ptr  utp;
+      if (!may_be_lvalue_ref_to_const_type(ptp->type, &utp) ||
+          !(identical_types(class_type, utp) ||
+            could_be_dependent_class_type(utp))) {
+        pos_ty_error(ec_bad_param_type_for_defaulted_comparison, def_pos,
+                     ptp->type);
+        err = TRUE;
+        break;
+      }  /* if */
+    }  /* while */
+    if (opname_kind_is(rp, onk_spaceship)) {
+      a_class_def_state  *cdsp = scope_stack_top().class_def_state;
+      cdsp->defaulted_spaceship = TRUE;
+    } else if (!is_bool_type(rtp->variant.routine.return_type)) {
+      /* Defaulted comparison operators other than operator<=> must have a
+         "bool" return type. */
+      pos_error(ec_return_type_of_default_comparison_must_be_bool, def_pos);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (err) {
+    /* Discard the definition (and make the routine non-inline). */
+    func_info->is_definition = FALSE;
+    func_info->is_inline = FALSE;
+    dps->sym->defined = FALSE;
+    rp->defined = FALSE;
+    rp->defined_in_friend_decl = FALSE;
+    rp->is_inline = FALSE;
+    rp->storage_class = (a_storage_class)sc_extern;
+  } else {
+    /* Assume the function will be constexpr. */
+    rp->is_constexpr = TRUE;
+  }  /* if */
+}  /* check_defaulted_comparison */
+
 
 void check_defaulted_or_deleted_function(a_decl_parse_state  *dps,
                                          a_func_info_block   *func_info,
@@ -13389,12 +13447,15 @@ IL entry accordingly.  def_pos is the position of the "= default;" or
   } else if (func_info->is_defaulted) {
     /* Verify that sym represents a special member function for which a
        definition can be generated. */
-    if ((dps->dso_flags & DSO_FRIEND) != 0) {
-      /* A special member cannot be defined in a friend declaration. */
-      err_code = ec_function_defaulted_in_friend_decl;
-    } else if (sym->kind == (a_symbol_kind)sk_function_template) {
+    if (sym->kind == (a_symbol_kind)sk_function_template) {
       /* Templates (and member templates) cannot be defaulted. */
       err_code = ec_function_template_cannot_be_defaulted;
+    } else if (special_kind_is(rp, sfk_operator) &&
+               opname_is_comparison(rp->variant.opname_kind)) {
+      check_defaulted_comparison(dps, func_info, def_pos);
+    } else if ((dps->dso_flags & DSO_FRIEND) != 0) {
+      /* A special member cannot be defined in a friend declaration. */
+      err_code = ec_function_defaulted_in_friend_decl;
     } else if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
       a_boolean  is_default_ctor, has_default_arg, is_deleted;
       if (constructor_can_be_defaulted(sym, &is_default_ctor,
