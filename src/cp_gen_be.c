@@ -3534,7 +3534,7 @@ that the remaining arguments will be defaulted.
                no default argument.  If that is the case, we can't put out
                T<>, but just T by itself will work. */
             a_template_parameter_ptr tpp;
-            a_boolean has_dft = FALSE;
+            a_boolean                has_dft = FALSE;
             tpp = tp->variant.class_struct_union.extra_info->
                                      assoc_template->template_decl->param_list;
             switch (tpp->kind) {
