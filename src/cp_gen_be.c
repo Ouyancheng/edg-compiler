@@ -3528,6 +3528,34 @@ that the remaining arguments will be defaulted.
              don't want to override the result and use an unnamed template
              parameter. */
           min_instance_args = arg_before_unnamed_template_param_arg(tap);
+          if (min_instance_args == 0) {
+            /* Check for the special case where the type is the
+               injected-class-name and the first template parameter has
+               no default argument.  If that is the case, we can't put out
+               T<>, but just T by itself will work. */
+            a_template_parameter_ptr tpp;
+            a_boolean has_dft = FALSE;
+            tpp = tp->variant.class_struct_union.extra_info->
+                                     assoc_template->template_decl->param_list;
+            switch (tpp->kind) {
+              case tpk_type:
+                has_dft = tpp->variant.type.default_arg_type != NULL;
+                break;
+              case tpk_nontype:
+                has_dft = tpp->variant.nontype.default_arg_constant != NULL;
+                break;
+              case tpk_template:
+                has_dft = tpp->variant.templ.default_arg_template != NULL;
+                break;
+              default:
+                unexpected_condition();
+                break;
+            }  /* switch */
+            if (!has_dft) {
+              /* We cannot put out a template argument list. */
+              goto end_of_routine;
+            }  /* if */
+          }  /* if */
         } else if (ctsp->min_template_arguments >= 0) {
           /* This template instance has been referred to at some point in the
              source using default arguments; record the point in the argument
@@ -3665,6 +3693,8 @@ that the remaining arguments will be defaulted.
     }  /* if */
     write_tok_str("<>");
   }  /* if */
+end_of_routine:
+  ;
 }  /* gen_template_arguments */
 
 
