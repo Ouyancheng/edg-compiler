@@ -417,7 +417,7 @@ that was scanned.
   a_type_ptr	tp = NULL;
 
   db_enter(3, "delayed_scan_of_template_default_type_arg");
-  tp = scan_template_type_argument((a_boolean*)NULL);
+  tp = scan_template_type_argument((a_boolean*)NULL, /*is_default_arg=*/TRUE);
   check_for_valid_end_of_template_def_arg();
   db_exit();
   return tp;

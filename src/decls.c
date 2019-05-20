@@ -229,6 +229,7 @@ be restored).
     dps->retrieve_initializer_from_cache = FALSE;
     dps->last_declarator = FALSE;
     dps->type_is_injected_class_name = FALSE;
+    dps->is_implicit_type_context = FALSE;
     dps->prefix_attributes = NULL;
     dps->specifier_attributes = NULL;
     dps->tag_attributes = NULL;
@@ -923,6 +924,7 @@ assembler code.
 a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name,
                               a_boolean in_prescan,
                               a_boolean in_type_check,
+                              a_boolean is_implicit_type_context,
                               a_boolean is_sizeof_context)
 /*
 If the current token is an identifier or, in C++, the "::" at the start of a
@@ -933,7 +935,9 @@ is not done.  in_prescan is TRUE when we are called from the prescanning
 routines used for disambiguation.  This flag suppresses errors that
 might result from class template names that are missing argument lists.
 in_type_check is used when this routine is called directly or indirectly
-from places such as is_type_start.  is_sizeof_context is TRUE if this
+from places such as is_type_start.  is_implicit_type_context is TRUE if
+this is a context where a dependent qualified name is considered to be
+a typename based on the C++20 rules.  is_sizeof_context is TRUE if this
 is called indirectly from scan_sizeof_operator and the name being scanned
 should not be treated as a type for dependent name purposes.
 */
@@ -953,6 +957,11 @@ should not be treated as a type for dependent name purposes.
     /* When class template argument deduction is being done, a class
        template name without an argument list is allowed. */
     options |= GID_TEMPLATE_ARGS_OPTIONAL;
+  }  /* if */
+  if (is_implicit_type_context && relaxed_typename_enabled) {
+    /* A C++20 context where a dependent qualified name is considered to
+       name a type. */
+    options |= GID_IMPLICIT_TYPENAME_CONTEXT;
   }  /* if */
   if (is_generalized_identifier_start(options)) {
     if (locator_for_curr_id.is_operator_name ||
@@ -1071,6 +1080,7 @@ and associated routines.
     if (is_generalized_identifier_start(gid_options)) {
       type_sym = curr_type_symbol(/*is_new_type_name=*/FALSE, is_prescan,
                                   /*in_type_check=*/TRUE,
+                                  /*is_implicit_type_context=*/FALSE,
                                   (ids_options & IDS_IS_SIZEOF) != 0);
       if (class_template_arg_deduction_enabled && is_expr_context &&
           type_sym != NULL) {
@@ -12476,6 +12486,11 @@ common cases.
   set_err_pos_to_curr_token();
   dps->is_type_name = TRUE;
   dps->trailing_return_type_allowed = trailing_return_types_enabled;
+  if (!dps->is_template_type_argument) {
+    /* The caller will have already set this flag if it should be set in
+       this context. */
+    dps->is_implicit_type_context = TRUE;
+  }  /* if */
   copy_source_position(pos_curr_token, dps->start_pos);
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED | DSI_NO_REAL_DECLARATOR;
   if (dps->is_trailing_return_type) {
@@ -12635,11 +12650,14 @@ will itself be evaluated.
 }  /* scan_type_for_sizeof */
 
 
-a_type_ptr scan_template_type_argument(a_boolean *is_injected_class_name)
+a_type_ptr scan_template_type_argument(a_boolean *is_injected_class_name,
+                                       a_boolean is_default_arg)
 /*
 Scan a template type argument.  The heavy lifting for this routine is done by
 type_name_full.  If non-NULL, *is_injected_class_name is set to a value
 that indicates whether the type was specified as the injected class name.
+is_default_arg is TRUE if this is the default argument for a type template
+parameter.
 */
 {
   a_decl_parse_state  dps;
@@ -12647,6 +12665,7 @@ that indicates whether the type was specified as the injected class name.
   init_decl_parse_state(&dps);
   dps.is_template_type_argument = TRUE;
   dps.disallow_variably_modified_type = TRUE;
+  dps.is_implicit_type_context = is_default_arg;
   type_name_full(&dps);
   check_type_definition_in_type_name(&dps);
   if (is_injected_class_name != NULL) {
@@ -12946,7 +12965,11 @@ selection operation associated with this operator function reference.
   }  /* if */
   /* Bypass the "operator" keyword. */
   (void)get_token();
-  if (is_type_start(/*is_expr_context=*/FALSE) ||
+  /* An identifier is considered to be an operator name.  We don't use
+     is_generalized_identifier_start here because the lookup of conversion
+     types is special and we don't want to kick that off prematurely. */
+  if ((curr_token == tok_colon_colon || curr_token == tok_identifier) ||
+      is_type_start(/*is_expr_context=*/FALSE) ||
       (gpp_mode && curr_token == tok_attribute)) {
     /* It is the start of a type name. */
     a_boolean           ptr_to_member_scanned;
@@ -12957,6 +12980,7 @@ selection operation associated with this operator function reference.
     copy_source_position(pos_curr_token, type_pos);
     init_decl_parse_state(&state);
     state.is_conversion_type_id = TRUE;
+    state.is_implicit_type_context = TRUE;
     clear_decl_pos_block(&decl_pos_block);
     input_flags = DSI_TYPE_SPECIFIER_ALLOWED |
                   DSI_NO_REAL_DECLARATOR |
@@ -19902,6 +19926,12 @@ parse state with fields described by the corresponding given parameters.
   dps.marked_as_gnu_extension = marked_as_gnu_extension;
   if (param_id_list != NULL) {
     dps.variant.param_id_list = param_id_list;
+  }  /* if */
+  if (is_top_level_declaration &&
+      depth_innermost_namespace_scope == depth_scope_stack) {
+    /* decl-specifiers of namespace scope declarations are an implicit
+       type context in C++20. */
+    dps.is_implicit_type_context = TRUE;
   }  /* if */
   scan_nonmember_declaration(&dps, linkage_spec_range_ptr);
   db_exit();

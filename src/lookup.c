@@ -808,10 +808,12 @@ base results in the creations of a class template symbol.
       (options & IDL_MUST_BE_CLASS_OR_NAMESPACE ||		\
        options & IDL_MUST_BE_TAG ||				\
        options & IDL_MUST_BE_CLASS ||				\
-       options & IDL_TYPENAME_LOOKUP) ||				\
-      (use_implicit_typename() && (options & IDL_TENTATIVE_TYPE_LOOKUP) && \
-       !(locator)->is_destructor_name && !(locator)->is_conversion_name &&   \
-       !(locator)->is_operator_name) \
+       options & IDL_IMPLICIT_TYPENAME_CONTEXT ||			\
+       options & IDL_TYPENAME_LOOKUP ||				\
+       (use_implicit_typename() && (options & IDL_TENTATIVE_TYPE_LOOKUP))) && \
+       !(locator)->is_destructor_name &&			\
+       !(locator)->is_conversion_name &&			\
+       !(locator)->is_operator_name				\
         ? sk_type						\
         :							\
           sk_constant))
@@ -1932,9 +1934,6 @@ typedef struct a_lookup_state {
   a_boolean	suppress_decl_seq_check;
 			/* TRUE if the IDL_SUPPRESS_DECL_SEQ_CHECK option was
 			   specified for this lookup. */
-  a_boolean	skip_template_decl_scopes;
-			/* TRUE if the IDL_SKIP_TEMPLATE_DECL_SCOPES option
-			   was specified for this lookup. */
   a_boolean	terminate_lookup;
 			/* TRUE if a condition occurred that should cause
 			   the lookup to terminate even is a symbol was
@@ -2059,7 +2058,6 @@ value.
   cleared_lookup_state.hidden_name_lookup            = FALSE;
   cleared_lookup_state.do_not_create_proj_sym        = FALSE;
   cleared_lookup_state.suppress_decl_seq_check       = FALSE;
-  cleared_lookup_state.skip_template_decl_scopes     = FALSE;
   cleared_lookup_state.terminate_lookup              = FALSE;
   cleared_lookup_state.skip_curr_scope               = FALSE;
   cleared_lookup_state.skip_class_scopes             = FALSE;
@@ -3264,10 +3262,6 @@ that do normal id lookup processing.
     /* Record the depth of the scope in which the symbol is being sought. */
     lookup_state->last_scope_used = curr_depth;
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
-    /* If IDL_SKIP_TEMPLATE_DECL_SCOPES is used, skip any template declaration
-       scopes on the stack. */
-    if (kind == (a_scope_kind)sck_template_declaration &&
-        lookup_state->skip_template_decl_scopes) continue;
     /* Skip scopes that are marked to be ignored for normal lookup. */
     if (ssep->ignore_during_normal_lookup) continue;
     /* The "skip_curr_scope" flag is used to skip the initial lookup scope
@@ -3839,8 +3833,6 @@ C and C++.
                                                lookup_state.hidden_name_lookup;
     lookup_state.do_not_create_proj_sym =
                                    (options & IDL_DO_NOT_CREATE_PROJ_SYM) != 0;
-    lookup_state.skip_template_decl_scopes =
-                                (options & IDL_SKIP_TEMPLATE_DECL_SCOPES) != 0;
     lookup_state.skip_curr_scope = (options & IDL_SKIP_CURR_SCOPE) != 0;
     lookup_state.skip_class_scopes = (options & IDL_SKIP_CLASS_SCOPES) != 0;
     if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&

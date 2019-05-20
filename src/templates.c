@@ -16726,6 +16726,8 @@ to an entry used to record detailed source position information.
   if (is_member_decl) {
     /* This is a declaration inside a class definition. */
     dsi_flags |= DSI_IS_MEMBER_DECLARATION;
+  } else {
+    state->is_implicit_type_context = TRUE;
   }  /* if */
   decl_specifiers(dsi_flags, state, decl_pos_block);
   if (is_error_type(state->specifiers_type) && !is_declarator_start()) {
@@ -23345,6 +23347,7 @@ the components of the declaration.
   state.pack_ellipsis_allowed = variadic_templates_enabled;
   state.auto_type_allowed = auto_template_params_enabled;
   state.is_nontype_template_param = TRUE;
+  state.is_implicit_type_context = TRUE;
   decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_TEMPLATE_PARAMETER),
                   &state, decl_pos_block);
   if (state.dso_flags & DSO_DEFINES_SOMETHING) {
@@ -23645,7 +23648,8 @@ Scan the default argument of the type template parameter specified by tpp.
 {
   a_type_ptr		default_arg_type;
 
-  default_arg_type = scan_template_type_argument((a_boolean*)NULL);
+  default_arg_type = scan_template_type_argument((a_boolean*)NULL,
+                                                 /*is_default_arg=*/TRUE);
   /* If the default argument type is dependent, update the flag in the
      template parameter.  Note that it could already have been set
      for other cases that force the re-evaluation of the default

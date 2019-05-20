@@ -591,6 +591,12 @@ EXTERN a_boolean
 			   a namespace. */
 
 EXTERN a_boolean
+		relaxed_typename_enabled;
+			/* TRUE if the C++20 behavior of implicitly treating
+			   dependent qualified names as types in certain
+			   contexts is enabled. */
+
+EXTERN a_boolean
 		struct_bindings_enabled;
 			/* TRUE if structured bindings (a C++17 feature) are
 			   accepted. */

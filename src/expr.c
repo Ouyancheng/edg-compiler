@@ -12058,6 +12058,7 @@ previously-scanned sizeof expression, and return the result in *result
           next_token() != tok_lparen &&
           curr_type_symbol(/*is_new_type_name=*/FALSE, /*in_prescan=*/FALSE,
                            /*in_type_check=*/FALSE,
+                           /*is_implicit_type_context=*/FALSE,
                            /*is_sizeof_context=*/TRUE)) {
         /* Something like
              typedef int I;
@@ -19484,6 +19485,7 @@ Scan the new-type-name or ( type-name ) from source.
   dps->trailing_return_type_allowed = trailing_return_types_enabled;
   dps->declarator_pos = pos_curr_token;
   nps->type_position = pos_curr_token;
+  dps->is_implicit_type_context = TRUE;
 
   new_type_name(dps, &parenthesized_type_id);
   if (parenthesized_type_id) {

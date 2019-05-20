@@ -194,6 +194,10 @@ typedef int an_identifier_options_set;
 			/* TRUE when scanning a base class specifier. */
 #define GID_IS_CPPCLI_CONSTRAINT 0x2000000
 			/* TRUE when scanning C++/CLI generic constraint. */
+#define GID_IMPLICIT_TYPENAME_CONTEXT 0x4000000
+			/* TRUE if this is a context in which a
+			   dependent qualified name is implicitly
+			   treated as a type (a C++20 feature). */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
 			 GID_DISALLOW_OPERATOR_NAME)

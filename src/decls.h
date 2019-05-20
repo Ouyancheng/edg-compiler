@@ -38,6 +38,7 @@ typedef enum /*an_id_linkage_kind*/ {
 a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name,
                               a_boolean in_prescan,
                               a_boolean in_type_check,
+                              a_boolean is_implicit_type_context,
                               a_boolean is_sizeof_context);
 
 /*
@@ -52,6 +53,7 @@ If ids_options includes IDS_IS_SIZEOF, this is a sizeof context.
      /*in_prescan=*/							\
          /*lint -e(835)*/((gid_options) & GID_TEMPLATE_ARGS_OPTIONAL) != 0,\
      /*in_type_check=*/TRUE, /*is_sizeoof_context=*/			\
+     /*is_implicit_type_context=*/FALSE,				\
          /*lint -e(835)*/((ids_options) & IDS_IS_SIZEOF) != 0) != NULL)
 
 /*
@@ -1040,6 +1042,10 @@ typedef struct a_decl_parse_state {
   a_bit_field	type_is_injected_class_name:1;
 			/* TRUE if the type was specified using the
 			   injected class name. */
+  a_bit_field	is_implicit_type_context:1;
+			/* TRUE if this is a context in which a dependent
+			   qualified name is considered to be a type (a
+			   C++20 feature). */
   an_init_state
 		init_state;
 			/* Information about the initializer (if any)
@@ -1424,7 +1430,8 @@ extern a_type_ptr scan_type_for_cast(a_boolean  const_expr_context,
 extern a_type_ptr scan_type_for_sizeof(a_boolean  evaluated_context);
 
 extern
-a_type_ptr scan_template_type_argument(a_boolean *is_injected_class_name);
+a_type_ptr scan_template_type_argument(a_boolean *is_injected_class_name,
+                                       a_boolean is_default_arg);
 
 extern void new_type_name(a_decl_parse_state  *state,
                           a_boolean           *p_is_parenthesized);

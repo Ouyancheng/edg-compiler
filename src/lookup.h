@@ -43,12 +43,9 @@ represented as a bit set:
 				   scope declaration lookup in SVR4 C
 				   compatibility mode. */
 #define IDL_SKIP_CURR_SCOPE	0x8
-				/* Causes normal_id_lookup to skip over the
-				   innermost scope entry (after any template
-				   declaration scopes have been skipped if
-				   IDL_SKIP_TEMPLATE_DECL_SCOPES is used).
-				   (This is used to look up the identifiers
-				   used in constructor initializer lists;
+				/* Causes normal lookup to skip the innermost
+				   scope entry.  This is used to look up the
+				   identifiers in constructor initializers;
 				   names of parameters of the constructor must
 				   not be visible during this lookup.  It is
 				   also used during hidden-name processing to
@@ -135,9 +132,10 @@ represented as a bit set:
 				   the C++11 [[hiding]] attribute.  This
 				   suppresses the creation of projection
 				   symbols. */
-#define IDL_SKIP_TEMPLATE_DECL_SCOPES 0x40000
-				/* Skip any template declaration scopes before
-				   doing other processing. */
+#define IDL_IMPLICIT_TYPENAME_CONTEXT 0x40000
+				/* TRUE if this is a context in which a
+				   dependent qualified name is implicitly
+				   treated as a type (a C++20 feature). */
 #define IDL_DIRECT_NAMESPACE_MEMBERS_ONLY 0x80000
 				/* For namespace-qualified and file scope
 				   lookups, indicates that only members of the

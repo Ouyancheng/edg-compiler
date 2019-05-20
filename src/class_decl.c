@@ -25791,6 +25791,7 @@ sensitive keywords.
       if (curr_type_symbol(/*is_new_type_name=*/FALSE,
                            /*in_prescan=*/TRUE,
                            /*in_type_check=*/FALSE,
+                           /*is_implicit_type_context=*/FALSE,
                            /*is_sizeof_context=*/FALSE) == NULL) {
         /* The current identifier is not a type.  So it should be a
            declarator-id and the potential context-sensitive keyword should be
@@ -27961,6 +27962,7 @@ that is provided if this is a member template declaration.
                                  (a_scope_kind)sck_template_instantiation);
   dps->is_template_rescan = is_member_template_rescan;
   dps->is_lambda = type_is_lambda_closure(class_type);
+  dps->is_implicit_type_context = TRUE;
   if (!dps->is_lambda) {
     /* Normal case: Scan attributes and declaration specifiers. */
     /* First, scan prefix attributes. */

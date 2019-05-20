@@ -1,5 +1,15 @@
 Version 5.1
 
+5/20/19  [EDGcpfe/20270]
+C++20: Relaxed typename rules
+
+C++20 allows the typename keyword to be omitted when it is possible to know
+that a name must be a type based on context (see P0634R3).  This is now
+implemented in C++20 mode.
+
+  template <class T> T::R f();  // T::R now know to be a type
+
+
 5/18/19  [EDGcpfe/21218,EDGcpfe/21255]
 Internal error processing fold expression
 

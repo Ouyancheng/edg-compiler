@@ -16304,7 +16304,8 @@ If p_err is non-NULL, set *p_err to TRUE if an error is detected.
       if (is_type_templ_arg(arg_ptr)) {
         a_boolean	is_injected_class_name;
         arg_ptr->variant.type = scan_template_type_argument(
-                                                      &is_injected_class_name);
+                                                     &is_injected_class_name,
+                                                     /*is_default_arg=*/FALSE);
         if (!is_nonreal) {
           /* The "real" case will be for function template explicit arguments.
              If the type was specified using the injected class name, record
@@ -16645,7 +16646,9 @@ next_integer_pack_element:
           integer_pack_elems = NULL;
           argument_type = error_type();
         } else {
-          argument_type = scan_template_type_argument((a_boolean*)NULL);
+          argument_type = scan_template_type_argument(
+                                                     (a_boolean*)NULL,
+                                                     /*is_default_arg=*/FALSE);
         }  /* if */
         /* In standard C++98/C++03, template type arguments must have linkage,
            and therefore cannot be based on local or unnamed classes/enums.  In
@@ -17152,7 +17155,8 @@ Its value is unchanged if no errors are detected.
     arity++;
     add_stop_token(tok_comma);
     start_pos = pos_curr_token;
-    argument_type = scan_template_type_argument((a_boolean*)NULL);
+    argument_type = scan_template_type_argument((a_boolean*)NULL,
+                                                /*is_default_arg=*/FALSE);
     /* Make sure that the argument is a type that can be used as a generic
        argument.  Constraint checking will be done later after we have
        identified the arity of this reference. */
@@ -20975,6 +20979,11 @@ See also coalesce_and_lookup_generalized_identifier.
            friend lookup flag into the lookup routines. */
         if ((options & GID_IS_FRIEND_DECL) != 0) {
           idl_options |= IDL_FRIEND_LOOKUP;
+        }  /* if */
+        /* If this is a C++20 implicit type context, pass the corresponding
+           flag to the lookup routines. */
+        if ((options & GID_IMPLICIT_TYPENAME_CONTEXT) != 0) {
+          idl_options |= IDL_IMPLICIT_TYPENAME_CONTEXT;
         }  /* if */
         if (qualifier_type != NULL &&
             ((idl_options & IDL_IS_DECLARATOR) != 0)) {
