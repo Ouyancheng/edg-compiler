@@ -13351,6 +13351,11 @@ otherwise (and take precautions for error recovery in that case).
     a_type_ptr        rtp = skip_typerefs(rp->type);
     a_type_ptr        class_type = scope_stack_top().assoc_type;
     a_param_type_ptr  ptp = function_type_params(rtp);
+    if (rtp->variant.routine.extra_info->this_class != NULL &&
+        rtp->variant.routine.extra_info->qualifiers != TQ_CONST) {
+      pos_error(ec_nonconst_defaulted_member_comparison, def_pos);
+      err = TRUE;
+    }  /* if */
     for (; ptp != NULL; ptp = ptp->next) {
       a_type_ptr  utp;
       if (!may_be_lvalue_ref_to_const_type(ptp->type, &utp) ||
@@ -13364,6 +13369,9 @@ otherwise (and take precautions for error recovery in that case).
     }  /* while */
     if (opname_kind_is(rp, onk_spaceship)) {
       a_class_def_state  *cdsp = scope_stack_top().class_def_state;
+      if (cdsp->defaulted_spaceship) {
+        pos_error(ec_duplicate_defaulted_spaceship, def_pos);
+      }  /* if */
       cdsp->defaulted_spaceship = TRUE;
     } else if (!is_bool_type(rtp->variant.routine.return_type)) {
       /* Defaulted comparison operators other than operator<=> must have a
@@ -13382,6 +13390,7 @@ otherwise (and take precautions for error recovery in that case).
     rp->is_inline = FALSE;
     rp->storage_class = (a_storage_class)sc_extern;
   } else {
+    rp->is_defaulted = TRUE;
     /* Assume the function will be constexpr. */
     rp->is_constexpr = TRUE;
   }  /* if */
@@ -23394,6 +23403,79 @@ any needed inherited constructors.
 }  /* generate_inheriting_constructors */
 
 
+static void check_implicit_equal_operator(a_class_def_state_ptr  cdsp)
+/*
+The caller has determined that a defaulted spaceship operator is declared for
+the current class definition.  If no corresponding equality operator has been
+declared, declare one that matches the spaceship operator.
+*/
+{
+  a_routine_ptr       rp, erp, srp = NULL;
+  a_type_ptr          rtp, class_type = cdsp->class_type;
+  a_class_type_supplement_ptr
+                      ctsp = class_type_supp(class_type);
+  a_routine_list_entry_ptr
+                      rlep;
+  a_source_position   *pos = &class_type->source_corresp.decl_position;
+  a_member_decl_info  decl_info;
+  a_func_info_block   func_info;
+  a_symbol_locator    loc;
+
+
+  check_assertion(scope_is(&scope_stack_top(), sck_class_struct_union));
+  /* Look among the member functions for an equality operator.  Along the way,
+     also find the spaceship operator. */
+  for (rp = ctsp->assoc_scope->routines; rp != NULL; rp = rp->next) {
+    if (special_kind_is(rp, sfk_operator)) {
+      if (opname_kind_is(rp, onk_eq)) {
+        /* There is an equality member operator.  Nothing more to do. */
+        goto done;
+      } else if (opname_kind_is(rp, onk_spaceship) && rp->is_defaulted) {
+        srp = rp;
+      }  /* for */
+    }  /* if */
+  }  /* for */
+  for (rlep = ctsp->friend_routines; rlep != NULL; rlep = rlep->next) {
+    rp = rlep->routine;
+    if (special_kind_is(rp, sfk_operator)) {
+      if (opname_kind_is(rp, onk_eq)) {
+        /* There is an equality member operator.  Nothing more to do. */
+        goto done;
+      } else if (opname_kind_is(rp, onk_spaceship) && rp->is_defaulted) {
+        srp = rp;
+      }  /* for */
+    }  /* if */
+  }  /* for */ 
+  /* This function shouldn't be called if a defaulted spaceship operator was
+     not declared in the class definition. */
+  check_assertion(srp != NULL);
+  /* If we got this far, this function does not declare an operator==:
+     Implicitly declare a defaulted one. */
+  // FIXME: Check template cases.
+  initialize_member_decl_info(&decl_info, pos);
+  clear_func_info(&func_info);
+  /* All special functions are inline definitions */
+  // FIXME func_info.is_inline = TRUE;
+  if (exceptions_enabled) func_info.throw_position = *pos;
+  make_opname_locator((an_opname_kind)onk_eq, &loc, pos);
+  rtp = copy_routine_type_with_param_types(skip_typerefs(srp->type),
+                                           /*copy_default_args=*/FALSE);
+  rtp->variant.routine.return_type = bool_type();
+  decl_info.decl_state.type = rtp;
+  if (routine_type_is_nonstatic_member_function(srp->type)) {
+    decl_member_function(&loc, &func_info, cdsp, &decl_info,
+                         /*compiler_generated=*/TRUE);
+  } else {
+    decl_friend_function(&loc, cdsp, &func_info, &decl_info);
+  }  /* if */
+  erp = decl_info.decl_state.sym->variant.routine.ptr;
+  erp->compiler_generated = TRUE;
+  erp->is_constexpr = TRUE;
+  done_with_func_info(func_info);
+done:;
+}  /* check_implicit_equal_operator */
+
+
 static void check_base_class_destructors(a_class_def_state_ptr  class_state)
 /*
 Issue a remark in some situations where class_type is a class derived from a
@@ -30221,6 +30303,9 @@ wrap_up_class_definition.
       check_special_member_functions(class_type, class_state);
       if (class_state->has_inheriting_constructors) {
         generate_inheriting_constructors(class_state);
+      }  /* if */
+      if (class_state->defaulted_spaceship) {
+        check_implicit_equal_operator(class_state);
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
