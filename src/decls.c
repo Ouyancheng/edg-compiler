@@ -1065,6 +1065,9 @@ and associated routines.
     if (is_expr_context) {
       gid_options |= GID_IS_EXPR_CONTEXT;
     }  /* if */
+    if ((ids_options & IDS_IMPLICIT_TYPENAME_CONTEXT) != 0) {
+      gid_options |= GID_IMPLICIT_TYPENAME_CONTEXT;
+    }  /* if */
     if (is_prescan) {
       gid_options |= GID_TEMPLATE_ARGS_OPTIONAL;
     }  /* if */
@@ -1080,7 +1083,8 @@ and associated routines.
     if (is_generalized_identifier_start(gid_options)) {
       type_sym = curr_type_symbol(/*is_new_type_name=*/FALSE, is_prescan,
                                   /*in_type_check=*/TRUE,
-                                  /*is_implicit_type_context=*/FALSE,
+                                  (ids_options &
+                                           IDS_IMPLICIT_TYPENAME_CONTEXT) != 0,
                                   (ids_options & IDS_IS_SIZEOF) != 0);
       if (class_template_arg_deduction_enabled && is_expr_context &&
           type_sym != NULL) {
@@ -12965,11 +12969,8 @@ selection operation associated with this operator function reference.
   }  /* if */
   /* Bypass the "operator" keyword. */
   (void)get_token();
-  /* An identifier is considered to be an operator name.  We don't use
-     is_generalized_identifier_start here because the lookup of conversion
-     types is special and we don't want to kick that off prematurely. */
-  if ((curr_token == tok_colon_colon || curr_token == tok_identifier) ||
-      is_type_start(/*is_expr_context=*/FALSE) ||
+  if (is_type_start_full(/*is_expr_context=*/FALSE, /*is_prescan=*/FALSE,
+                         IDS_IMPLICIT_TYPENAME_CONTEXT) ||
       (gpp_mode && curr_token == tok_attribute)) {
     /* It is the start of a type name. */
     a_boolean           ptr_to_member_scanned;

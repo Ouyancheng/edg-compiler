@@ -5,7 +5,9 @@ C++20: Relaxed typename rules
 
 C++20 allows the typename keyword to be omitted when it is possible to know
 that a name must be a type based on context (see P0634R3).  This is now
-implemented in C++20 mode.
+implemented in C++20 mode.  This change includes a change expected to be
+made as the resolution of core issue 2413, which adds conversion-type-id
+to the contexts where a name is known to be a type.
 
   template <class T> T::R f();  // T::R now know to be a type
 

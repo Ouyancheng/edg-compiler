@@ -75,6 +75,11 @@ typedef int an_is_decl_start_options_set;
 #define IDS_IS_SIZEOF		0x8
 			/* TRUE if this is the parenthesized operand of a
 			   sizeof operator. */
+#define IDS_IMPLICIT_TYPENAME_CONTEXT \
+				0x10
+			/* TRUE if this is a context where a dependent
+			   qualified name is known to be a type (a C++20
+			   feature). */
 
 /* Test whether or not the current token is the start of a type. */
 extern
