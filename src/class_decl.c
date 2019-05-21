@@ -23451,11 +23451,12 @@ declared, declare one that matches the spaceship operator.
   check_assertion(srp != NULL);
   /* If we got this far, this function does not declare an operator==:
      Implicitly declare a defaulted one. */
-  // FIXME: Check template cases.
   initialize_member_decl_info(&decl_info, pos);
   clear_func_info(&func_info);
   /* All special functions are inline definitions */
-  // FIXME func_info.is_inline = TRUE;
+#if 0
+  func_info.is_inline = TRUE;
+#endif /*FIXME: Re-enable code when definition synthesis is implemented. */
   if (exceptions_enabled) func_info.throw_position = *pos;
   make_opname_locator((an_opname_kind)onk_eq, &loc, pos);
   rtp = copy_routine_type_with_param_types(skip_typerefs(srp->type),
@@ -23466,7 +23467,7 @@ declared, declare one that matches the spaceship operator.
     decl_member_function(&loc, &func_info, cdsp, &decl_info,
                          /*compiler_generated=*/TRUE);
   } else {
-    decl_friend_function(&loc, cdsp, &func_info, &decl_info);
+    (void)decl_friend_function(&loc, cdsp, &func_info, &decl_info);
   }  /* if */
   erp = decl_info.decl_state.sym->variant.routine.ptr;
   erp->compiler_generated = TRUE;
