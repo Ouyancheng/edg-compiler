@@ -6946,8 +6946,7 @@ sizeof_cases:
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
     case enk_yield:
     case enk_await:
-      write_tok_str(expr->kind == (an_expr_node_kind)enk_yield ? "co_yield" :
-                                                                 "co_await");
+      write_tok_str("co_await");
       dump_expression(expr->variant.await_info.operand);
       break;
     case enk_field:
@@ -9805,12 +9804,11 @@ Generate C for a statement.
          following forms:
            p.return_value(<expr>)
            <expr>, p.return_void()
-           p.return_voide()
+           p.return_void()
          and is always followed by a goto final_suspend statement (which will
-         be dumped next).
+         be dumped next).  This may *not* be statement->next, however,
+         depending on how the IL has been lowered up until this point.
       */
-      check_assertion(statement->expr != NULL && statement->next != NULL &&
-                      statement->next->kind == (a_statement_kind)stmk_goto);
       dump_expression(statement->expr);
       break;
     default:

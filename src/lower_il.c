@@ -19034,6 +19034,7 @@ variables and other references needed for the coroutine.
 */
 {
   a_coroutine_descr_ptr cr_desc;
+  a_variable_ptr        param_copy;
 
   /* This should be the very first statement of the function block, and there
      should be at least one other statement in the block (a coroutine requires
@@ -19049,22 +19050,16 @@ variables and other references needed for the coroutine.
   if (cr_desc->this_param_copy != NULL) {
     lower_variable(cr_desc->this_param_copy);
   }  /* if */
-  for (a_variable_ptr param_copy = cr_desc->parameter_copies;
+  for (param_copy = cr_desc->parameter_copies;
        param_copy != NULL; param_copy = param_copy->next) {
     lower_variable(param_copy);
   }  /* for */
-  if (cr_desc->new_routine != NULL) {
-    lower_routine(cr_desc->new_routine);
-  }  /* if */
-  if (cr_desc->delete_routine != NULL) {
-    lower_routine(cr_desc->delete_routine);
-  }  /* if */
   /* These are generated but not added as statements, so lower them here. */
   if (cr_desc->get_return_object_call != NULL) {
-    lower_expr(cr_desc->get_return_object_call);
+    lower_full_expr(cr_desc->get_return_object_call, /*statement=*/NULL);
   }  /* if */
   if (cr_desc->alloc_failure_gro_call != NULL) {
-    lower_expr(cr_desc->alloc_failure_gro_call);
+    lower_full_expr(cr_desc->alloc_failure_gro_call, /*statement=*/NULL);
   }  /* if */
 }  /* lower_coroutine */
 
@@ -19289,7 +19284,7 @@ Do IL lowering of the indicated statement and everything under it.
         break;
       case stmk_coroutine_return:
         check_assertion(statement->expr != NULL);
-        lower_expr(statement->expr);
+        lower_full_expr(statement->expr, /*expr_statement=*/NULL);
         break;
       default:
         unexpected_condition_str("lower_statement: bad kind");

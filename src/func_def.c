@@ -1189,9 +1189,10 @@ destructions (if needed) are recorded.  Return the last statement added, or
 stmt if there's nothing to add.
 */
 {
+  a_variable_ptr param = cr_desc->parameter_copies;
+
   stmt = add_coroutine_decl_statement(stmt, cr_desc->this_param_copy);
-  for (a_variable_ptr param = cr_desc->parameter_copies;
-       param != NULL; param = param->next) {
+  for (; param != NULL; param = param->next) {
     stmt = add_coroutine_decl_statement(stmt, param);
   }  /* for */
   stmt = add_coroutine_decl_statement(stmt, cr_desc->promise);
