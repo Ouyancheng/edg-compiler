@@ -11613,66 +11613,74 @@ Generate code for a new or delete operation.
                                               attribute-specifier-seq(opt)
        The front end records whether parentheses appeared, but that is not
        helpful if we are generating a substituted new-expression. */
-#if !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    need_type_parens = ndsp->parenthesized_type_id;
-#else /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-    /* The type is potentially one resulting from template parameter
-       substitution, in which case whether the source was originally
-       parenthesized may not be relevant.  For example, "new T" with T a
-       pointer to function type "int (*)()" must be rendered as
-       "new (int(*)())".  Unfortunately, that also means that there is no way
-       to render the substitution of "new T[n]" for such a T. */
-    if (type_is(type, tk_array) &&
-        type->variant.array.is_template_dependent_size_array) {
-      /* A type-dependent bound may or may not be a run-time bound.  Use the
-         source form in that case (substituted constructs are usually not
-         template-dependent). */
-      need_type_parens = ndsp->parenthesized_type_id;
+    if (ndsp->parenthesized_type_id) {
+      /* If parentheses were present, it is safe to render them here. */
+      need_type_parens = TRUE;
     } else {
-      /* Determine if we can use the new-type-id by analyzing the structure of
-         the type.  If we first remove a sequence of tk_array layers and then a
-         sequence of tk_pointer/tk_ptr_to_member layers (each sequence is
-         optional), we recover the type X potentially indicated by
-         type-specifier-seq.  If that type cannot be expressed as a
-         type-specifier-seq, additional parentheses are required so that a
-         normal type-id instead of a new-type-id can be rendered.  Thus, if X
-         is a tk_array or tk_routine type, parentheses are needed.  Parentheses
-         are also needed if X is a cv-qualified tk_pointer or tk_ptr_to_member
-         type (with no other intervening tk_typeref entries). */
-      a_type_ptr  temp_type = type;
-      a_boolean   qualifiers_seen = FALSE;
-      /* First, peel off tk_array layers. */
-      while (type_is(temp_type, tk_array)) {
-        temp_type = temp_type->variant.array.element_type;
-      }  /* while */
-      /* Then peel off tk_pointer/tk_ptr_to_member layers. */
-      for (;;) {
-        if (type_is(temp_type, tk_pointer)) {
-          temp_type = temp_type->variant.pointer.type;
-        } else if (type_is(temp_type, tk_ptr_to_member)) {
-          temp_type = temp_type->variant.ptr_to_member.type;
-        } else {
-          break;
+      /* The type is potentially one resulting from template parameter
+         substitution, in which case the source originally being not
+         parenthesized may not be relevant.  For example, "new T" with T a
+         pointer to function type "int (*)()" must be rendered as
+         "new (int(*)())".  Unfortunately, that also means that there is no
+         way to render the substitution of "new T[n]" for such a T.  Problems
+         can also occur outside of template instantiations.  For example, in
+         some Microsoft modes, the expression "new F __cdecl *" with F a
+         typedef for a function type is accepted, but the IL cannot
+         represent that type as written and instead has to represent its
+         semantic equivalent "void (__cdecl*)(int)", which must be
+         parenthesized. */
+      if (type_is(type, tk_array) &&
+          type->variant.array.is_template_dependent_size_array) {
+        /* A type-dependent bound may or may not be a run-time bound.  Use the
+           source form in that case (substituted constructs are usually not
+           template-dependent). */
+        need_type_parens = ndsp->parenthesized_type_id;
+      } else {
+        /* Determine if we can use the new-type-id by analyzing the structure
+           of the type.  If we first remove a sequence of tk_array layers and
+           then a sequence of tk_pointer/tk_ptr_to_member layers (each sequence
+           is optional), we recover the type X potentially indicated by
+           type-specifier-seq.  If that type cannot be expressed as a
+           type-specifier-seq, additional parentheses are required so that a
+           normal type-id instead of a new-type-id can be rendered.  Thus, if X
+           is a tk_array or tk_routine type, parentheses are needed.
+           Parentheses are also needed if X is a cv-qualified tk_pointer or
+           tk_ptr_to_member type (with no other intervening tk_typeref
+           entries). */
+        a_type_ptr  temp_type = type;
+        a_boolean   qualifiers_seen = FALSE;
+        /* First, peel off tk_array layers. */
+        while (type_is(temp_type, tk_array)) {
+          temp_type = temp_type->variant.array.element_type;
+        }  /* while */
+        /* Then peel off tk_pointer/tk_ptr_to_member layers. */
+        for (;;) {
+          if (type_is(temp_type, tk_pointer)) {
+            temp_type = temp_type->variant.pointer.type;
+          } else if (type_is(temp_type, tk_ptr_to_member)) {
+            temp_type = temp_type->variant.ptr_to_member.type;
+          } else {
+            break;
+          }  /* if */
+        }  /* for */
+        while (type_is(temp_type, tk_typeref)) {
+          if (temp_type->variant.typeref.qualifiers != TQ_NONE) {
+            qualifiers_seen = TRUE;
+            temp_type = temp_type->variant.typeref.type;
+          } else {
+            break;
+          }  /* if */
+        }  /* while */
+        if (type_is(temp_type, tk_routine) ||
+            type_is(temp_type, tk_array) ||
+            (qualifiers_seen &&
+             (type_is(temp_type, tk_pointer) ||
+              type_is(temp_type, tk_ptr_to_member)))) {
+          /* Not a type that can be expressed using a new-type-id. */
+          need_type_parens = TRUE;
         }  /* if */
-      }  /* for */
-      while (type_is(temp_type, tk_typeref)) {
-        if (temp_type->variant.typeref.qualifiers != TQ_NONE) {
-          qualifiers_seen = TRUE;
-          temp_type = temp_type->variant.typeref.type;
-        } else {
-          break;
-        }  /* if */
-      }  /* while */
-      if (type_is(temp_type, tk_routine) ||
-          type_is(temp_type, tk_array) ||
-          (qualifiers_seen &&
-           (type_is(temp_type, tk_pointer) ||
-            type_is(temp_type, tk_ptr_to_member)))) {
-        /* Not a type that can be expressed using a new-type-id. */
-        need_type_parens = TRUE;
       }  /* if */
     }  /* if */
-#endif /* !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     if (need_type_parens) {
       write_tok_ch('(');
     } else {
