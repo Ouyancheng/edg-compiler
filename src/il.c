@@ -14308,8 +14308,8 @@ static void fold_dynamic_var_init_if_possible(a_dynamic_init_ptr  *p_dip,
 If the given dynamic initialization entry can be folded to a constant, replace
 it by a corresponding dik_constant entry.  If the resulting constant is the
 address of a local variable or of a temporary, do not perform the folding.
-This function has no effect if dip already is a dik_constant entry.  dest_type 
-is the type being initialized.
+This function has no effect if *p_dip already is a dik_constant entry.
+dest_type is the type being initialized.
 */
 {
   a_dynamic_init_ptr  dip = *p_dip;
