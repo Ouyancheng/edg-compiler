@@ -6576,7 +6576,6 @@ retry2:
   }  /* if */
 }  /* try_overloaded_function_match */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
 a_boolean overloaded_function_match_possible(
                                a_symbol_ptr         overloaded_function_symbol,
@@ -6622,7 +6621,6 @@ are viable functions, FALSE if not.  Issues no errors.
   return possible;
 }  /* overloaded_function_match_possible */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean conversion_function_converts_from_class(a_routine_ptr rout)

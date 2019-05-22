@@ -743,7 +743,6 @@ extern a_symbol_ptr select_overloaded_function(
                         a_symbol_ptr             *surrogate_function_conv_sym,
                         an_arg_match_summary_ptr *arg_match_list);
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 a_boolean overloaded_function_match_possible(
                                a_symbol_ptr         overloaded_function_symbol,
                                an_overload_context  ovl_context,
@@ -752,7 +751,6 @@ a_boolean overloaded_function_match_possible(
                                an_arg_list_elem_ptr arg_list,
                                a_boolean            have_selector,
                                an_operand           *bound_function_selector);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void temp_init_from_operand(an_operand *operand,
                                    a_boolean  result_is_lvalue);
