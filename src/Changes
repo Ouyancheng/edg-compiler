@@ -1,5 +1,34 @@
 Version 5.1
 
+5/22/19  [EDGcpfe/20917,EDGcpfe/20948]
+C++20: Coroutines
+
+The previous implementation of coroutines that was enabled when the
+COROUTINES_ALLOWED flag was set has been replaced with a C++20 compliant
+implementation.  The COROUTINES_ALLOWED flag has been removed.  Lowering of
+coroutines is not fully supported as of yet, so the new flag
+COROUTINE_ENABLING_POSSIBLE has been added to indicate whether coroutine
+support should be enabled in modes that accept coroutines.  This flag defaults
+to FALSE in configurations that set the DO_IL_LOWERING flag, and to TRUE
+otherwise.
+
+The most notable change between the previous implementation and the current one
+is that return type deduction for coroutines is no longer possible.  Otherwise
+the expected call sequence and required member functions have been changed to
+match what is required by C++20.  While the C++20 standard requires that name
+lookup of the appropriate classes occurs in the std namespace, the
+implementation will look in both the std and the std::experimental namespaces,
+for compatibility with previous implementations; no other compatibility with
+older implementations is implied.
+
+  #include <coroutine>
+  std::task<int> coro() {
+    co_await std::suspend_always();
+    co_yield 1;
+    co_return 2;
+  }
+
+
 5/20/19  [EDGcpfe/20270]
 C++20: Relaxed typename rules
 

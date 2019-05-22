@@ -996,11 +996,13 @@ the provided param_var.  Use pos as the position of this generated variable.
     clear_variable(copy_var);
     copy_var->storage_class = (a_storage_class)sc_auto;
     copy_var->type = ctype;
-    copy_var->source_corresp.decl_position = *pos;
     /* Use the same name as the original parameter to allow the C++ generating
        back end to produce valid code without needing to perform hijinks to
        get back to the original parameter name. */
     copy_var->source_corresp.name = param_var->source_corresp.name;
+    copy_var->source_corresp.enclosing_routine =
+                                   param_var->source_corresp.enclosing_routine;
+    copy_var->source_corresp.referenced = param_var->source_corresp.referenced;
     copy_var->is_this_parameter = param_var->is_this_parameter;
     copy_var->is_parameter = param_var->is_parameter;
     copy_var->source_corresp.assoc_info = (char*)copy_sym;
@@ -1089,14 +1091,27 @@ created copies.
 
 
 static a_statement_ptr add_coroutine_decl_statement(a_statement_ptr stmt,
-                                                    a_variable_ptr  var)
+                                                    a_variable_ptr  var,
+                                                    a_scope_ptr     decl_scope)
 /*
 Add a statement declaring and initializing var to stmt and return that
-statement.  If var is NULL, do nothing and return stmt.
+statement.  If var is NULL, do nothing and return stmt.  decl_scope is the
+scope that will contain the variable declaration.
 */
 {
+  a_scope_stack_entry_ptr ssep = &scope_stack_top();
+
   if (var != NULL) {
     check_assertion(var->init_kind == (an_init_kind)initk_dynamic);
+    /* Add the variable to the scope's nonstatic variable list. */
+    if (decl_scope->nonstatic_variables == NULL) {
+      decl_scope->nonstatic_variables = var;
+    } else {
+      ssep->last_nonstatic_variable->next = var;
+    }  /* if */
+    ssep->last_nonstatic_variable = var;
+    set_parent_scope(&var->source_corresp, iek_variable, decl_scope);
+    /* Allocate the declaration statement. */
     stmt->next = alloc_statement((a_statement_kind)stmk_decl);
     stmt->next->parent = stmt->parent;
     stmt = stmt->next;
@@ -1120,20 +1135,23 @@ statement.  If var is NULL, do nothing and return stmt.
 
 static
 a_statement_ptr add_coroutine_variable_decls(a_statement_ptr       stmt,
-                                             a_coroutine_descr_ptr cr_desc)
+                                             a_coroutine_descr_ptr cr_desc,
+                                             a_scope_ptr           decl_scope)
 /*
 Append the coroutine variable decls (if any) to stmt, and ensure their
 destructions (if needed) are recorded.  Return the last statement added, or
-stmt if there's nothing to add.
+stmt if there's nothing to add.  decl_scope is the scope that will contain the
+variable declarations.
 */
 {
   a_variable_ptr param = cr_desc->parameter_copies;
 
-  stmt = add_coroutine_decl_statement(stmt, cr_desc->this_param_copy);
+  stmt = add_coroutine_decl_statement(stmt, cr_desc->this_param_copy,
+                                      decl_scope);
   for (; param != NULL; param = param->next) {
-    stmt = add_coroutine_decl_statement(stmt, param);
+    stmt = add_coroutine_decl_statement(stmt, param, decl_scope);
   }  /* for */
-  stmt = add_coroutine_decl_statement(stmt, cr_desc->promise);
+  stmt = add_coroutine_decl_statement(stmt, cr_desc->promise, decl_scope);
   return stmt;
 }  /* add_coroutine_variable_decls */
 
@@ -1221,7 +1239,7 @@ in the correct place.
      try/catch block. */
   sp->lifetime->child_lifetime = NULL;
   copy_coroutine_parameters(coroutine, cr_desc);
-  stmt = add_coroutine_variable_decls(stmt, cr_desc);
+  stmt = add_coroutine_variable_decls(stmt, cr_desc, sp);
   stmt = add_coroutine_expr_statement(stmt, cr_desc->initial_suspend_call);
   /* Add back in the function body. */
   stmt = stmt->next = func_body;

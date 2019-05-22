@@ -1,3 +1,14 @@
+Version 5.1
+
+5/22/19  [EDGcpfe/20917,EDGcpfe/20948]
+C++20: Coroutines
+
+A stub implementation for the C++20 coroutines header has been provided in
+coroutine.stdh.  There is not yet any library support for coroutines, as
+coroutines are not yet able to be lowered.  This header will, however, allow
+for compilation of code that uses coroutines.
+
+-------------------------------------------------------------------------------
 Version 5.0, August 10, 2018
 
 9/25/17  [EDGcpfe/10590,EDGcpfe/16574,EDGcpfe/17582]
