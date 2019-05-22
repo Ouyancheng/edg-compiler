@@ -4763,6 +4763,83 @@ statement.  Its form is
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void transfer_coroutine_lifetime(an_object_lifetime_ptr lifetime)
+/*
+Given the new lifetime object for a coroutine that is having its body wrapped
+in a try block, transfer the appropriate bits from the old lifetime and fixup
+the relationships appropriately.
+*/
+{
+  an_object_lifetime_ptr new_lifetime = lifetime->child_lifetime;
+  an_object_lifetime_ptr orig_child_lifetime = new_lifetime->next;
+  an_object_lifetime_ptr olp;
+  a_dynamic_init_ptr     dip;
+
+  check_assertion(lifetime->next == NULL);
+  check_assertion(lifetime->parent_destruction_sublist == NULL);
+  new_lifetime->next = NULL;
+  new_lifetime->child_lifetime = orig_child_lifetime;
+  for (olp = orig_child_lifetime; olp != NULL; olp = olp->next) {
+    olp->parent_lifetime = new_lifetime;
+  }  /* for */
+  for (dip = lifetime->destructions; dip != NULL; dip = dip->next) {
+    dip->lifetime = new_lifetime;
+  }  /* for */
+  new_lifetime->destructions = lifetime->destructions;
+  lifetime->destructions = NULL;
+  new_lifetime->parent_destruction_sublist = NULL;
+}  /* transfer_coroutine_lifetime */
+
+
+a_statement_ptr wrap_coroutine_body_in_try_block(
+                                               a_routine_ptr         coroutine,
+                                               a_statement_ptr       func_body,
+                                               a_coroutine_descr_ptr cr_desc)
+/*
+Given a function body for a given coroutine, wrap that function body in a
+try/catch block.  Return the statement for the try/catch.
+*/
+{
+  a_statement_ptr try_catch_stmt;
+  a_handler_ptr   handler;
+  a_scope_ptr     sp = scope_for_routine(coroutine);
+
+  /* Move the function body into the block of the try. */
+  try_catch_stmt = alloc_statement((a_statement_kind)stmk_block);
+  try_catch_stmt->variant.block.statements = func_body;
+  func_body->parent = try_catch_stmt;
+  func_body = try_catch_stmt;
+  try_catch_stmt = alloc_statement((a_statement_kind)stmk_try_block);
+  try_catch_stmt->variant.try_block->statement = func_body;
+  func_body->parent = try_catch_stmt;
+  /* Prepare try block scope */
+  //push_stmt_stack(ssk_try_block, try_catch_stmt, (an_object_lifetime_ptr)NULL);
+  push_object_lifetime(iek_try_supplement,
+                       (char*)try_catch_stmt->variant.try_block,
+                       (an_object_lifetime_kind)olk_try_block);
+  transfer_coroutine_lifetime(sp->lifetime);
+  /* Create the handler for the try. */
+  (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
+                   /*assoc_type=*/NULL, /*assoc_routine=*/NULL);
+  try_catch_stmt->variant.try_block->handlers = handler = alloc_handler();
+  set_block_scope_handler(handler);
+  handler->statement = alloc_statement((a_statement_kind)stmk_block);
+  handler->statement->parent = try_catch_stmt;
+  handler->statement->variant.block.extra_info->assoc_scope =
+                                                    scope_stack_top().il_scope;
+  if (cr_desc->unhandled_exception_call != NULL) {
+    handler->statement->variant.block.statements =
+                                  alloc_statement((a_statement_kind)stmk_expr);
+    handler->statement->variant.block.statements->expr =
+                                             cr_desc->unhandled_exception_call;
+    handler->statement->variant.block.statements->parent = handler->statement;
+  }  /* if */
+  pop_scope();
+  pop_object_lifetime();
+  return try_catch_stmt;
+}  /* wrap_coroutine_body_in_try_block */
+
+
 static void empty_statement(void)
 /*
 Do processing appropriate to an empty statement -- typically, just a
@@ -6276,8 +6353,9 @@ in which such a return is undefined.
       /* We're missing an explicit co_return statement and don't have a
          return_void to implicitly call. */
       a_symbol_ptr function_name_symbol = symbol_for(rout);
-      pos_syty_diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity :
-                                             es_warning,
+      pos_syty_diagnostic(strict_ansi_mode ?
+                                           strict_ansi_discretionary_severity :
+                                           es_warning,
                           ec_implicit_co_return_with_no_return_void,
                           &function_name_symbol->decl_position,
                           function_name_symbol, cdp->promise->type);
