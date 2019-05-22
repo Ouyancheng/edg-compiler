@@ -8007,6 +8007,9 @@ Don't put its symbol into the symbol table yet.
 
 #endif /* IA64_ABI */
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+static
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_symbol_ptr look_up_name_string_in_namespace(
                                         a_const_char             *symbol_name,
                                         a_namespace_ptr          ns_ptr,
@@ -9050,33 +9053,34 @@ or NULL if no appropriate symbol could be found.
 {
   an_expr_node_ptr     size_t_expr;
   an_operand           size_t_operand;
-  an_arg_list_elem_ptr size_t_arg;
+  an_arg_list_elem_ptr size_t_arg_alep;
 
-  size_t_expr = node_for_host_large_integer(0, targ_size_t_int_kind);
+  size_t_expr = node_for_host_large_integer((a_host_large_integer)0,
+                                            targ_size_t_int_kind);
   make_expression_operand(size_t_expr, &size_t_operand);
-  size_t_arg = alloc_arg_list_elem_for_operand(&size_t_operand);
+  size_t_arg_alep = alloc_arg_list_elem_for_operand(&size_t_operand);
   if (new_sym != NULL) {
-    an_arg_list_elem_ptr alep;
+    an_arg_list_elem_ptr     alep;
+    an_arg_match_summary_ptr arg_match_list;
     get_coroutine_parameter_variables(coroutine, &alep);
-    size_t_arg->next = alep;
+    size_t_arg_alep->next = alep;
     if (!overloaded_function_match_possible(new_sym,
                                             oc_new_expression,
                                             /*is_template_id=*/FALSE,
                                             /*template_arg_list=*/NULL,
-                                            size_t_arg,
+                                            size_t_arg_alep,
                                             /*have_selector=*/FALSE,
                                             /*bound_function_selector*/NULL)) {
       /* Free the arguments after size_t and try to resolve that one. */
       free_arg_list(alep);
-      size_t_arg->next = NULL;
+      size_t_arg_alep->next = NULL;
     }  /* if */
-    an_arg_match_summary_ptr arg_match_list;
     new_sym = select_overloaded_function(new_sym,
                                          /*is_template_id=*/FALSE,
                                          /*template_arg_list=*/NULL,
                                          /*have_selector=*/FALSE,
                                          /*bound_function_selector=*/NULL,
-                                         size_t_arg,
+                                         size_t_arg_alep,
                                          /*init_list_ctor_arg_list=*/NULL,
                                          CCO_DEFAULT,
                                          /*do_arg_dep_lookup=*/FALSE,
@@ -9119,7 +9123,7 @@ or NULL if no appropriate symbol could be found.
     record_symbol_reference(SRK_REFERENCE, new_sym, pos,
                             /*update_il_entry=*/FALSE);
   }  /* if */
-  free_arg_list(size_t_arg);
+  free_arg_list(size_t_arg_alep);
   return new_sym;
 }  /* select_coroutine_new */
 

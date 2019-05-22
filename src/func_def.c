@@ -980,7 +980,7 @@ the provided param_var.  Use pos as the position of this generated variable.
 */
 {
   an_expr_stack_entry expr_stack_entry, *saved_expr_stack = expr_stack;
-  a_type_ptr          copy_type = param_var->type;
+  a_type_ptr          ctype = param_var->type;
   a_decl_parse_state  dps;
 
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
@@ -995,7 +995,7 @@ the provided param_var.  Use pos as the position of this generated variable.
     copy_sym = make_symbol((a_symbol_kind)sk_variable, &loc);
     clear_variable(copy_var);
     copy_var->storage_class = (a_storage_class)sc_auto;
-    copy_var->type = copy_type;
+    copy_var->type = ctype;
     copy_var->source_corresp.decl_position = *pos;
     /* Use the same name as the original parameter to allow the C++ generating
        back end to produce valid code without needing to perform hijinks to
@@ -1014,10 +1014,10 @@ the provided param_var.  Use pos as the position of this generated variable.
     an_operand           var_operand;
 
     expr = var_rvalue_expr(param_var);
-    if (is_any_reference_type(copy_type)) {
+    if (is_any_reference_type(ctype)) {
       expr = add_ref_indirection_to_node(expr);
     }  /* if */
-    if (is_lvalue_reference_type(copy_type)) {
+    if (is_lvalue_reference_type(ctype)) {
       expr->is_lvalue = TRUE;
     } else {
       expr->is_xvalue = TRUE;
@@ -1101,7 +1101,8 @@ statement.  If var is NULL, do nothing and return stmt.
     stmt->next->parent = stmt->parent;
     stmt = stmt->next;
     stmt->variant.decl.entities = alloc_il_entity_list_entry();
-    stmt->variant.decl.entities->entity.kind = (an_il_entry_kind)iek_variable;
+    stmt->variant.decl.entities->entity.kind =
+                                            (a_byte_il_entry_kind)iek_variable;
     stmt->variant.decl.entities->entity.ptr = (char*)var;
     /* Allocate the initializer statement for the variable. */
     stmt->next = alloc_statement((a_statement_kind)stmk_init);

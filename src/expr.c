@@ -41830,7 +41830,7 @@ are left unaffected).
 }  /* deduce_return_type_from_void_operand */
 
 
-void check_and_adjust_deduced_return_type_if_needed(
+static void check_and_adjust_deduced_return_type_if_needed(
                                                  a_routine_ptr   curr_routine,
                                                  an_operand_ptr  return_op,
                                                  a_type_ptr      *return_type)
@@ -42076,11 +42076,11 @@ This routine frees alep.
     result = make_comma_node(void_expr, result);
   }  /* if */
   if (!is_yield) {
-    a_statement_ptr sp;
+    a_statement_ptr stmt;
     result = wrap_up_full_expression(result);
-    sp = add_statement_at_stmt_pos((a_statement_kind)stmk_goto,
-                                   &null_source_position);
-    sp->variant.label.ptr = cdp->final_suspend_label;
+    stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_goto,
+                                     &null_source_position);
+    stmt->variant.label.ptr = cdp->final_suspend_label;
     pop_expr_stack();
     restore_expr_stack(saved_expr_stack);
   }  /* if */

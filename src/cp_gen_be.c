@@ -16522,6 +16522,7 @@ is TRUE, the list is the body of a GNU statement expression.
   /* An extra half iteration is done: the first part of the loop is executed
      both before the first statement and after the last, or once even if
      there are no statements. */
+  /*lint --e{850} statement modified in loop */
   for (;; statement = statement->next) {
     /* Generate any preprocessing directives (even if no statements follow). */
     (void)process_preprocessing_directives();

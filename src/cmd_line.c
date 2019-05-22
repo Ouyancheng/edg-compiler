@@ -2584,7 +2584,11 @@ option values if they were not already set by a command line option.
       mixed_string_concat_enabled = TRUE;
       std_override_modifiers_enabled = TRUE;
       selection_from_prvalue_is_xvalue = TRUE;
-      coroutines_enabled |= COROUTINE_ENABLING_POSSIBLE;
+      if (!coroutines_enabled) {
+        /* This may have been enabled already via --set_flag; we don't want to
+           override that. */
+        coroutines_enabled = COROUTINE_ENABLING_POSSIBLE;
+      }  /* if */
       if (!option_kind_used[(int)optk_utf8_char_literals]) {
         utf8_char_literals_enabled = TRUE;
       }  /* if */
@@ -3564,7 +3568,11 @@ default mode (e.g., exception handling).
         constexpr_virtual_enabled = TRUE;
         constexpr_try_enabled = TRUE;
         consteval_enabled = TRUE;
-        coroutines_enabled |= COROUTINE_ENABLING_POSSIBLE;
+        if (!coroutines_enabled) {
+          /* This may have been enabled already via --set_flag; we don't want
+             to override that. */
+          coroutines_enabled = COROUTINE_ENABLING_POSSIBLE;
+        }  /* if */
         explicit_copy_this_capture_enabled = TRUE;
         lambda_template_param_list_enabled = TRUE;
         lambda_allowed_in_uneval_context = TRUE;

@@ -4813,7 +4813,6 @@ try/catch block.  Return the statement for the try/catch.
   try_catch_stmt->variant.try_block->statement = func_body;
   func_body->parent = try_catch_stmt;
   /* Prepare try block scope */
-  //push_stmt_stack(ssk_try_block, try_catch_stmt, (an_object_lifetime_ptr)NULL);
   push_object_lifetime(iek_try_supplement,
                        (char*)try_catch_stmt->variant.try_block,
                        (an_object_lifetime_kind)olk_try_block);
@@ -4835,7 +4834,7 @@ try/catch block.  Return the statement for the try/catch.
     handler->statement->variant.block.statements->parent = handler->statement;
   }  /* if */
   pop_scope();
-  pop_object_lifetime();
+  (void)pop_object_lifetime();
   return try_catch_stmt;
 }  /* wrap_coroutine_body_in_try_block */
 

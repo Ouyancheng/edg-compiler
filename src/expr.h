@@ -424,11 +424,6 @@ extern void deduce_return_type_from_void_operand(
                                           a_boolean          keep_placeholder,
                                           a_source_position  *diag_pos);
 
-extern void check_and_adjust_deduced_return_type_if_needed(
-                                                 a_routine_ptr   curr_routine,
-                                                 an_operand_ptr  return_op,
-                                                 a_type_ptr      *return_type);
-
 extern a_boolean arg_matches_auto_template_param(
 				a_type_ptr		param_type,
 				a_constant_ptr		constant,
