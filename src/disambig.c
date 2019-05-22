@@ -182,10 +182,10 @@ Perform any operations that must be done to clean up after disambiguation.
 Macro that is TRUE if the current token (which must be an identifier or
 the "::" at the start of a qualified name) is a type name.
 */
-#define prescan_curr_id_is_type_name()					\
+#define prescan_curr_id_is_type_name(flags)				\
   (curr_type_symbol(/*is_new_type_name=*/FALSE, /*in_prescan=*/TRUE,	\
                     /*in_type_check=*/FALSE,				\
-                    /*is_implicit_type_context=*/FALSE,			\
+                    ((flags) & DFS_IMPLICIT_TYPENAME_CONTEXT) != 0,	\
                     /*is_sizeof_context=*/FALSE) != NULL)
 
 /*
@@ -777,7 +777,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
                                          is_ctor_dtor_or_finalizer();
         if (!type_specifier_seen &&
             !is_ctor_dtor_or_finalizer_name &&
-            (prescan_curr_id_is_type_name() ||
+            (prescan_curr_id_is_type_name(flags) ||
              (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template))) {
           /* A class template will probably result in a "missing template
              argument list" error later.  Consider it as a type name for now
@@ -1033,6 +1033,9 @@ part of a function declarator is found, may_be_decl is set to FALSE.
                                            DFS_REAL_DECLARATOR_ALLOWED |
                                            DFS_SINGLE_TYPE_REQUIRED;
         if (record_auto_params) param_flags |= DFS_RECORD_AUTO_PARAMS;
+        if (relaxed_typename_enabled) {
+          param_flags |= DFS_IMPLICIT_TYPENAME_CONTEXT;
+        }  /* if */
         prescan_declaration(state, param_flags, /*is_top_level=*/FALSE);
         if (record_auto_params) {
           a_decl_parse_state_ptr   dps = state->decl_parse_state;
@@ -1454,7 +1457,11 @@ Assuming that we are in the midst of a declaration, we scan ahead to find
 evidence to the contrary. 
 */
 {
-  a_boolean	record_auto_params = (flags & DFS_RECORD_AUTO_PARAMS) != 0;
+  a_boolean			record_auto_params =
+                                         (flags & DFS_RECORD_AUTO_PARAMS) != 0;
+  an_identifier_options_set	gid_flags = GID_TEMPLATE_ARGS_OPTIONAL |
+                                            GID_IS_EXPR_CONTEXT;
+
 
   db_enter(3, "prescan_declaration");
   /* Do not pass DFS_RECORD_AUTO_PARAMS through to all disambiguation routines,
@@ -1464,9 +1471,11 @@ evidence to the contrary.
     /* Skip over a leading GNU __extension__ keyword. */
     (void)get_token();
   }  /* if */
+  if ((flags & DFS_IMPLICIT_TYPENAME_CONTEXT) != 0) {
+    gid_flags |= GID_IMPLICIT_TYPENAME_CONTEXT;
+  }  /* if */
   /* Coalesce the identifier if this is a tok_identifier. */
-  (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
-                                        GID_IS_EXPR_CONTEXT |
+  (void)is_generalized_identifier_start(gid_flags |
                                         gid_flags_for_template(
                                                        flags, GID_NO_OPTIONS));
   for (;;) {

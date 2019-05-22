@@ -21313,6 +21313,7 @@ scanned is, in fact, an identifier).
           ilm == ilm_class ||
           ilm == ilm_using_typename ||
           ilm == ilm_qualified_ctor_initializer_name ||
+          (options & GID_IMPLICIT_TYPENAME_CONTEXT) != 0 ||
           (ilm == ilm_tentative_type && use_implicit_typename())) {
         a_template_arg_ptr	arg_list;
         arg_list = locator_for_curr_id.template_arg_list;

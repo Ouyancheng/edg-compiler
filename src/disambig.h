@@ -59,6 +59,10 @@ typedef uint16_t a_disambig_flag_set;
 #define DFS_IS_SIZEOF			0x400
 			/* TRUE if this is the parenthesized operand of a
 			   sizeof operator. */
+#define DFS_IMPLICIT_TYPENAME_CONTEXT	0x800
+			/* TRUE if this is a context (e.g., in C++20) where
+			   certain dependent qualified names are considered
+			   to be types. */
 
 extern a_boolean is_decl_not_expr(a_disambig_flag_set flags);
 
