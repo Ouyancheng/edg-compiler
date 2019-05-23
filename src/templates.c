@@ -36095,7 +36095,7 @@ a definition (if needed) for extern inline entities.
       }  /* if */
     }  /* if */
 #if DEBUG
-    if (db_trace("instantiation", var, iek_routine)) {
+    if (db_trace("instantiation", var, iek_variable)) {
       fprintf(f_debug, "create_inst_flags_for_inline_variable:\n");
       db_entity_info((char*)var, iek_variable);
       fprintf(f_debug, "\n");
