@@ -20772,6 +20772,7 @@ Initialize for the C++/C-generating back end.
   in_friend_declaration = FALSE;
   in_ctor_default_argument = FALSE;
   in_generated_instance = FALSE;
+  in_gnu_extension = FALSE;
   curr_name_context = NULL;
   avail_hidden_name_fixups = NULL;
   avail_name_contexts = NULL;
