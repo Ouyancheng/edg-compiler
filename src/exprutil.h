@@ -1554,7 +1554,12 @@ extern a_boolean is_parenthesized_component(an_init_component_ptr  icp);
 
 extern a_boolean is_pack_expansion_component(an_init_component_ptr  icp);
 
+#if DEBUG
 extern void db_init_component(an_init_component_ptr icp);
+#endif /* DEBUG */
+
+extern
+an_arg_list_elem_ptr reverse_init_component_list(an_arg_list_elem_ptr  list);
 
 extern
 void conv_braced_init_component_to_error_expression(an_arg_list_elem_ptr alep);

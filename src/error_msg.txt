@@ -3061,6 +3061,7 @@ ec_no_constexpr_coroutine;;"a constexpr function cannot be a coroutine"
 ec_await_operand_not_a_class;;"the operand to this %s expression resolves to non-class %t"
 ec_await_not_allowed_in_static_initializer;;"a co_await expression is not allowed in a static initializer"
 ec_final_suspend_cannot_throw;;"the co_await expression calling %n must be non-throwing"
+ec_excessive_comparison_rewrites;;"too many recursive comparison rewrite operations"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

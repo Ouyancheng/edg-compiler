@@ -428,26 +428,6 @@ typedef struct a_candidate_function {
 			   symbol for the conversion function that will
 			   yield a pointer to the surrogate function to be
 			   called. */
-  a_byte_boolean
-		uses_microsoft_explicit_anachronism;
-			/* If TRUE, this function is an explicit constructor
-			   that should not have been seen but was considered
-			   viable because of a Microsoft bug. */
-  a_byte_boolean
-		init_list_ctor_case;
-			/* If TRUE, this candidate was matched by using a
-			   braced-init-list as a single argument instead of
-			   using the elements of the list as the arguments,
-			   when matching an initializer-list constructor in
-			   a special way (see [over.match.list] in the C++11
-			   standard). */
-  a_byte_boolean
-		is_user_conversion;
-			/* TRUE if this function is a user-defined conversion
-			   being examined to resolve an implicit conversion.
-			   The field "conversion" is meaningful in that case.
-			   This will have the same setting in all candidate
-			   function entries being considered as a set. */
   a_conv_descr	conversion;
 			/* If is_user_conversion is TRUE. description of the
 			   conversion being done, including the user-defined
@@ -472,21 +452,49 @@ typedef struct a_candidate_function {
 			/* If non-NULL, points to the next candidate function
 			   that's in the set of best matches for the argument
 			   currently being examined. */
-  a_byte_boolean
-		in_best_match_set;
+  an_opname_kind
+		opname_kind;
+			/* If this represents a built-in operator, the operator
+			   kind. */
+  a_bit_field	supplemental_comparison_candidate:1;
+			/* If TRUE, this is an `operator<=>` or `operator==`
+			   candidate added to implement the C++20 rules
+			   for a relational or equality operator (see N4810
+			   [over.match.oper]/3, bullet (3.4)). */
+  a_bit_field	supplemental_reversed_candidate:1;
+			/* If TRUE, this is an `operator<=>` or `operator==`
+			   candidate added to implement the C++20 rules
+			   for a comparison operator, where the order of the
+			   operands are reversed (see N4810 (see N4810
+			   [over.match.oper]/3, bullet (3.4)). */
+  a_bit_field	uses_microsoft_explicit_anachronism:1;
+			/* If TRUE, this function is an explicit constructor
+			   that should not have been seen but was considered
+			   viable because of a Microsoft bug. */
+  a_bit_field	init_list_ctor_case:1;
+			/* If TRUE, this candidate was matched by using a
+			   braced-init-list as a single argument instead of
+			   using the elements of the list as the arguments,
+			   when matching an initializer-list constructor in
+			   a special way (see [over.match.list] in the C++11
+			   standard). */
+  a_bit_field	is_user_conversion:1;
+			/* TRUE if this function is a user-defined conversion
+			   being examined to resolve an implicit conversion.
+			   The field "conversion" is meaningful in that case.
+			   This will have the same setting in all candidate
+			   function entries being considered as a set. */
+  a_bit_field	in_best_match_set:1;
 			/* TRUE if the function is in the set of best-matching
 			   functions. */
-  a_byte_boolean
-		in_best_match_set_for_some_argument;
+  a_bit_field	in_best_match_set_for_some_argument:1;
 			/* TRUE if the function is in the set of best-matching
 			   functions for some argument. */
-  a_byte_boolean
-		in_best_match_set_for_curr_argument;
+  a_bit_field	in_best_match_set_for_curr_argument:1;
 			/* TRUE if the function is in the set of best-matching
 			   functions for the current argument. */
 #if BACK_END_IS_CP_GEN_BE
-  a_byte_boolean
-		found_through_adl;
+  a_bit_field	found_through_adl:1;
 			/* TRUE if the function was found through argument-
 			   dependent lookup */
 #endif /* BACK_END_IS_CP_GEN_BE */

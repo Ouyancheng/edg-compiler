@@ -1257,6 +1257,24 @@ end_of_routine:;
 
 #endif /* DEBUG */
 
+an_arg_list_elem_ptr reverse_init_component_list(an_arg_list_elem_ptr  list)
+/*
+Reverse the given list of initializer components, and return a pointer to the
+new start of the list.  list can be NULL.
+*/
+{
+  an_arg_list_elem_ptr  new_list = NULL, next;
+
+  while (list) {
+    next = list->next;
+    list->next = new_list;
+    new_list = list;
+    list = next;
+  }
+  return new_list;
+}  /* reverse_init_component_list */
+
+
 void conv_braced_init_component_to_error_expression(an_arg_list_elem_ptr alep)
 /*
 Convert a braced-init-list component to an error expression component.
@@ -22790,7 +22808,7 @@ That's convenient for operands of potentially-overloaded operators, because
 the search for conversions to the right operand types is handled
 by check_for_operator_overloading.  In modern C++ modes, this routine
 implements "contextually converted to bool" (C++11 [conv]p4) except for
-user-defined conversions.
+user-defined conversions (see also process_boolean_controlling_expression).
 */
 {
   a_boolean             okay = FALSE;

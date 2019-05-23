@@ -24797,6 +24797,20 @@ scanned, return the selector in *bound_function_selector.
   }  /* if */
 }  /* scan_cast_expression */
 
+
+static void make_zero_operand(an_operand  *opnd,
+                              a_type_ptr  tp)
+/*
+Set *opnd to an operand representing a zero value of the given type.
+*/
+{
+  a_constant_ptr  zero = local_constant();
+
+  make_zero_of_proper_type(tp, zero);
+  make_constant_operand(zero, opnd);
+  release_local_constant(&zero);
+}  /* make_zero_operand */
+
 #if C99_IL_EXTENSIONS_SUPPORTED && GNU_EXTENSIONS_ALLOWED
 
 static void scan_complex_projection(a_rescan_control_block *rcblock,
@@ -24867,10 +24881,7 @@ in *rcblock).
     if (real_part) {
       copy_operand(&operand, result);
     } else {
-      a_constant_ptr  zero = local_constant();
-      make_zero_of_proper_type(operand.type, zero);
-      make_constant_operand(zero, result);
-      release_local_constant(&zero);
+      make_zero_operand(result, operand.type);
     }  /* if */
     expr_pos_warning(ec_real_and_imag_applied_to_real_value, &start_position);
   } else if (is_complex_type(operand.type)) {
@@ -27108,6 +27119,232 @@ different enum types (or, in C, have different affiliated enum types).
 }  /* diagnose_comparison_if_different_enum_types */
 
 
+static void process_rel_operator(an_operand               *opnd1,
+                                 an_operand               *opnd2,
+                                 a_token_kind             operator_token,
+                                 a_source_position        *operator_pos,
+                                 a_token_sequence_number  operator_tsn,
+                                 an_operand               *result)
+/*
+Perform semantic analysis of a relational operator determine by operator_token
+(tok_lt, tok_le, tok_ge, or tok_gt) with the given operands and construct the
+representation of the result in *result.  operator_pos and operator_tsn
+describe the location of the operator.
+*/
+{
+  a_type_ptr             operation_type;
+  a_type_ptr             result_type;
+  an_expr_operator_kind  op;
+  a_boolean              opnd1_is_pointer;
+  a_boolean              opnd1_is_nullptr;
+  a_boolean              processed = FALSE;
+  a_boolean              funny_unsigned_comparison = FALSE, second_is_constant;
+
+  if (C_dialect == C_dialect_cplusplus &&
+      (is_overloadable_type_first_operand(opnd1) ||
+       is_overloadable_type_operand(opnd2))) {
+    /* Look for C++ operator overloading cases. */
+    check_for_operator_overloading(opname_kind_for_token[(int)operator_token],
+                                   /*unary_operator=*/FALSE,
+                                   /*must_be_member_function=*/FALSE,
+                                   /*try_conversions=*/TRUE,
+                                   /*has_predef_meaning=*/FALSE,
+                                   opnd1, opnd2,
+                                   operator_pos,
+                                   operator_tsn,
+                                   (a_nondependent_call_depth)0,
+                                   (a_source_position *)NULL,
+                                   result, &processed);
+  }  /* if */
+  if (!processed && curr_expr_kind_is(ek_template_arg)) {
+    /* Check for non-integral operations in a template argument expression. */
+    check_for_bad_template_arg_operation(opnd1, opnd2,
+                                         operator_pos, result,
+                                         &processed);
+  }  /* if */
+  if (!processed) {
+    /* Non-operator-function cases. */
+    /* The first operand must be an arithmetic or enum type or a pointer. */
+    do_operand_transformations(opnd1, TOPT_NO_OPTIONS);
+    opnd1_is_pointer = FALSE;
+    opnd1_is_nullptr = FALSE;
+    if (is_arithmetic_or_enum_type(opnd1->type)) {
+      /* Okay. */
+#if GNU_VECTOR_TYPES_ALLOWED
+    } else if (gnu_mode && is_vector_type(opnd1->type)) {
+      /* Vector types are arithmetic types in some sense. */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+    } else if (is_nullptr_type(opnd1->type)) {
+      opnd1_is_nullptr = TRUE;
+    } else if (check_pointer_operand(opnd1,
+                                     expr_not_arithmetic_or_pointer_code())) {
+      opnd1_is_pointer = TRUE;
+    }  /* if */
+    do_operand_transformations(opnd2, TOPT_NO_OPTIONS);
+    /* Check the operand types for compatibility. */
+    operation_type = opnd1->type;  /* Assume. */
+    if (is_error_operand(opnd1) || is_error_operand(opnd2)) {
+      /* One or both of the operands has an error. */
+      operation_type = error_type();
+    } else if (is_scoped_enum_type(opnd1->type) ||
+               is_scoped_enum_type(opnd2->type)) {
+      /* Scoped enumeration operands of the same type can be compared.  No
+         promotion is involved. */
+      check_binary_scoped_enum_operation(opnd1, opnd2,
+                                         &operation_type);
+#if C99_IL_EXTENSIONS_SUPPORTED
+    } else if (is_nonreal_floating_type(opnd1->type)) {
+      /* Complex and imaginary operands are unordered. */
+      expr_pos_error(ec_complex_type_not_allowed, &opnd1->position);
+      operation_type = error_type();
+    } else if (is_nonreal_floating_type(opnd2->type)) {
+      expr_pos_error(ec_complex_type_not_allowed, &opnd2->position);
+      operation_type = error_type();
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    } else {
+      if (opnd1_is_pointer || is_pointer_type(opnd2->type)) {
+        /* At least one of the operands is a pointer.  See if the operands are
+           compatible.  In C, operands must be both pointers to objects or both
+           pointers to incomplete types; pointers to functions are not allowed;
+           and null pointer constants and "void *" pointers have no special
+           meaning (ANSI C 3.3.8).  In C++, pointers to functions are allowed,
+           and null pointer constants and "void *" pointers are specially
+           handled (ARM 5.9).  We extend the C mode to be the same as the
+           C++ mode, but issue warnings in strict ANSI mode. */
+        (void)check_compatibility_of_pointer_operands(
+                           opnd1, opnd2, operator_pos,
+                           opname_kind_for_token[(int)operator_token],
+                           /*pointer_normalization_standard_in_C=*/FALSE,
+                           /*pointers_to_functions_standard_in_C=*/FALSE,
+                           /*pointers_to_incomplete_standard_in_C=*/TRUE,
+                           /*mixed_object_and_incomplete_standard_in_C=*/FALSE,
+                           &operation_type);
+#if UPC_EXTENSIONS_ALLOWED
+        if (upc_mode && is_shared_void_star_type(operation_type)) {
+          /* Cannot do lt/gt/le/ge comparisons involving shared void* pointers,
+             since they have no absolute ordering. */
+          expr_pos_error(ec_upc_shared_void_comparison, operator_pos);
+          make_error_operand(result);
+          operand_will_not_be_used_because_of_error(opnd1);
+          operand_will_not_be_used_because_of_error(opnd2);
+        }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
+      } else if (opnd1_is_nullptr || is_nullptr_type(opnd2->type)) {
+        /* At least one of the operands has a nullptr type. */
+        if (is_ptr_to_member_type(opnd2->type)) {
+          /* Pointer to member types cannot be compared using relational
+             operators.  (The case where opnd1 has a pointer to member
+             type was already caught above.) */
+          expr_pos_error(expr_not_arithmetic_or_pointer_code(),
+                         &opnd2->position);
+          operation_type = error_type();
+        } else {
+          (void)check_compatibility_of_nullptr_operands(opnd1, opnd2,
+                                                        operator_pos,
+                                                        &operation_type);
+        }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+      } else if (gnu_mode &&
+                 determine_vector_operation_type(operator_token, opnd1,
+                                                 opnd2,
+                                                 operator_pos,
+                                                 &operation_type, &op)) {
+        /* A GNU vector operation; the appropriate result type is set below. */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+      } else {
+        /* Both operands should be arithmetic or enum (we have ruled out all
+           the pointer cases above).  We already know that opnd1 is
+           arithmetic or enum. */
+        if (check_arithmetic_or_enum_operand(opnd2)) {
+          /* Check for comparisons of unsigned integers with zero or negative
+             constants.  More below. */
+          funny_unsigned_comparison = is_comparison_of_unsigned_with_constant(
+                                                          opnd1,
+                                                          opnd2,
+                                                          &second_is_constant);
+        }  /* if */
+        operation_type = determine_arithmetic_conversions(opnd1,
+                                                          opnd2);
+        if (is_integral_or_enum_type(operation_type)) {
+          a_type_ptr type_1 = skip_typerefs(opnd1->type);
+          a_type_ptr type_2 = skip_typerefs(opnd2->type);
+          if (!int_kind_is_signed[(int)(skip_typerefs(operation_type)->
+                                                  variant.integer.int_kind)]) {
+            /* Issue a remark if a signed operand is converted to an unsigned
+               type, which can produce surprising results with negative
+               values.  (Note that a sign change for a constant is detected
+               separately, hence the exclusion of constant operands below.) */
+            if ((type_1->kind == (a_type_kind)tk_integer &&
+                 int_kind_is_signed[(int)type_1->variant.integer.int_kind] &&
+                 !is_constant_operand(opnd1)) ||
+                (type_2->kind == (a_type_kind)tk_integer &&
+                 int_kind_is_signed[(int)type_2->variant.integer.int_kind] &&
+                 !is_constant_operand(opnd2))) {
+              expr_pos_diagnostic(es_remark, ec_signed_unsigned_comparison,
+                                  operator_pos);
+            }  /* if */
+          }  /* if */
+          diagnose_comparison_if_different_enum_types(
+                              type_1, type_2, operator_pos, es_remark);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    /* Determine the result type. */
+#if GNU_VECTOR_TYPES_ALLOWED
+    if (is_vector_type(operation_type)) {
+      /* The result of a vector comparison is a vector of signed integer with
+         the same number of elements as the operands. */
+      result_type = make_integer_vector_result_type(operation_type);
+    } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+    /* Do not insert code here. */
+    {
+      result_type = boolean_result_type();
+    }  /* if */
+    op = which_binary_operator(operator_token, operation_type);
+    /* Convert the operands to a common type. */
+    change_binary_operand_types(operation_type, opnd1, opnd2, op);
+    if (funny_unsigned_comparison) {
+      /* Check for pointless comparisons of unsigned integers against 0,
+         and give a warning.  The pointless cases are
+           u >= 0    (always true)
+           u <  0    (always false)
+           0 >  u    (always false)
+           0 <= u    (always true)
+         There are also similar cases with negative constants.
+         The expression is not simplified.  Note that we check the nonconstant
+         operand type before any type promotions and the constant value after
+         any type change. */
+      int constant_sign;
+      if (get_sign_for_constant_in_unsigned_operation(opnd1, opnd2,
+                                                      second_is_constant,
+                                                      &constant_sign)) {
+        if (constant_sign == 0) {
+          /* Comparison of an unsigned value with zero.  Some cases make
+             sense. */
+          if (second_is_constant ?
+                      (operator_token == tok_ge || operator_token == tok_lt) :
+                      (operator_token == tok_gt || operator_token == tok_le)) {
+            expr_pos_warning(ec_unsigned_compare_with_zero,
+                             operator_pos);
+          }  /* if */
+        } else if (constant_sign < 0) {
+          /* Comparison of an unsigned value with a negative constant.
+             No cases make sense. */
+          expr_pos_warning(ec_unsigned_compare_with_negative,
+                           operator_pos);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    do_binary_operation(op, opnd1, opnd2, result_type, result,
+                        operator_pos, operator_tsn);
+  }  /* if */
+
+  set_operand_position(result, &opnd1->position, &opnd2->end_position,
+                       operator_pos);
+}  /* process_rel_operator */
+
+
 static void scan_rel_operator(an_operand             *operand_1,
                               a_rescan_control_block *rcblock,
                               an_operand             *result)
@@ -27126,13 +27363,6 @@ that case.
   a_source_position     operator_position;
   a_token_sequence_number
                         operator_tok_seq_number;
-  a_type_ptr            operation_type;
-  a_type_ptr            result_type;
-  an_expr_operator_kind op;
-  a_boolean             operand_1_is_pointer;
-  a_boolean             operand_1_is_nullptr;
-  a_boolean             processed = FALSE;
-  a_boolean             funny_unsigned_comparison = FALSE, second_is_constant;
 
   db_enter(4, "scan_rel_operator");
 
@@ -27153,209 +27383,8 @@ that case.
     (void)get_token();
     scan_expr(&operand_2, PREC_RELATIONAL, EOPT_NO_OPTIONS);
   }  /* if */
-
-  if (C_dialect == C_dialect_cplusplus &&
-      (is_overloadable_type_first_operand(operand_1) ||
-       is_overloadable_type_operand(&operand_2))) {
-    /* Look for C++ operator overloading cases. */
-    check_for_operator_overloading(opname_kind_for_token[(int)operator_token],
-                                   /*unary_operator=*/FALSE,
-                                   /*must_be_member_function=*/FALSE,
-                                   /*try_conversions=*/TRUE,
-                                   /*has_predef_meaning=*/FALSE,
-                                   operand_1, &operand_2,
-                                   &operator_position,
-                                   operator_tok_seq_number,
-                                   (a_nondependent_call_depth)0,
-                                   (a_source_position *)NULL,
-                                   result, &processed);
-  }  /* if */
-  if (!processed && curr_expr_kind_is(ek_template_arg)) {
-    /* Check for non-integral operations in a template argument expression. */
-    check_for_bad_template_arg_operation(operand_1, &operand_2,
-                                         &operator_position, result,
-                                         &processed);
-  }  /* if */
-  if (!processed) {
-    /* Non-operator-function cases. */
-    /* The first operand must be an arithmetic or enum type or a pointer. */
-    do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
-    operand_1_is_pointer = FALSE;
-    operand_1_is_nullptr = FALSE;
-    if (is_arithmetic_or_enum_type(operand_1->type)) {
-      /* Okay. */
-#if GNU_VECTOR_TYPES_ALLOWED
-    } else if (gnu_mode && is_vector_type(operand_1->type)) {
-      /* Vector types are arithmetic types in some sense. */
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-    } else if (is_nullptr_type(operand_1->type)) {
-      operand_1_is_nullptr = TRUE;
-    } else if (check_pointer_operand(operand_1,
-                                     expr_not_arithmetic_or_pointer_code())) {
-      operand_1_is_pointer = TRUE;
-    }  /* if */
-    do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
-    /* Check the operand types for compatibility. */
-    operation_type = operand_1->type;  /* Assume. */
-    if (is_error_operand(operand_1) || is_error_operand(&operand_2)) {
-      /* One or both of the operands has an error. */
-      operation_type = error_type();
-    } else if (is_scoped_enum_type(operand_1->type) ||
-               is_scoped_enum_type(operand_2.type)) {
-      /* Scoped enumeration operands of the same type can be compared.  No
-         promotion is involved. */
-      check_binary_scoped_enum_operation(operand_1, &operand_2,
-                                         &operation_type);
-#if C99_IL_EXTENSIONS_SUPPORTED
-    } else if (is_nonreal_floating_type(operand_1->type)) {
-      /* Complex and imaginary operands are unordered. */
-      expr_pos_error(ec_complex_type_not_allowed, &operand_1->position);
-      operation_type = error_type();
-    } else if (is_nonreal_floating_type(operand_2.type)) {
-      expr_pos_error(ec_complex_type_not_allowed, &operand_2.position);
-      operation_type = error_type();
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-    } else {
-      if (operand_1_is_pointer || is_pointer_type(operand_2.type)) {
-        /* At least one of the operands is a pointer.  See if the operands are
-           compatible.  In C, operands must be both pointers to objects or both
-           pointers to incomplete types; pointers to functions are not allowed;
-           and null pointer constants and "void *" pointers have no special
-           meaning (ANSI C 3.3.8).  In C++, pointers to functions are allowed,
-           and null pointer constants and "void *" pointers are specially
-           handled (ARM 5.9).  We extend the C mode to be the same as the
-           C++ mode, but issue warnings in strict ANSI mode. */
-        (void)check_compatibility_of_pointer_operands(
-                           operand_1, &operand_2, &operator_position,
-                           opname_kind_for_token[(int)operator_token],
-                           /*pointer_normalization_standard_in_C=*/FALSE,
-                           /*pointers_to_functions_standard_in_C=*/FALSE,
-                           /*pointers_to_incomplete_standard_in_C=*/TRUE,
-                           /*mixed_object_and_incomplete_standard_in_C=*/FALSE,
-                           &operation_type);
-#if UPC_EXTENSIONS_ALLOWED
-        if (upc_mode && is_shared_void_star_type(operation_type)) {
-          /* Cannot do lt/gt/le/ge comparisons involving shared void* pointers,
-             since they have no absolute ordering. */
-          expr_pos_error(ec_upc_shared_void_comparison, &operator_position);
-          make_error_operand(result);
-          operand_will_not_be_used_because_of_error(operand_1);
-          operand_will_not_be_used_because_of_error(&operand_2);
-        }  /* if */
-#endif /* UPC_EXTENSIONS_ALLOWED */
-      } else if (operand_1_is_nullptr || is_nullptr_type(operand_2.type)) {
-        /* At least one of the operands has a nullptr type. */
-        if (is_ptr_to_member_type(operand_2.type)) {
-          /* Pointer to member types cannot be compared using relational
-             operators.  (The case where operand_1 has a pointer to member
-             type was already caught above.) */
-          expr_pos_error(expr_not_arithmetic_or_pointer_code(),
-                         &operand_2.position);
-          operation_type = error_type();
-        } else {
-          (void)check_compatibility_of_nullptr_operands(operand_1, &operand_2,
-                                                        &operator_position,
-                                                        &operation_type);
-        }  /* if */
-#if GNU_VECTOR_TYPES_ALLOWED
-      } else if (gnu_mode &&
-                 determine_vector_operation_type(operator_token, operand_1,
-                                                 &operand_2,
-                                                 &operator_position,
-                                                 &operation_type, &op)) {
-        /* A GNU vector operation; the appropriate result type is set below. */
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-      } else {
-        /* Both operands should be arithmetic or enum (we have ruled out all
-           the pointer cases above).  We already know that operand_1 is
-           arithmetic or enum. */
-        if (check_arithmetic_or_enum_operand(&operand_2)) {
-          /* Check for comparisons of unsigned integers with zero or negative
-             constants.  More below. */
-          funny_unsigned_comparison = is_comparison_of_unsigned_with_constant(
-                                                          operand_1,
-                                                          &operand_2,
-                                                          &second_is_constant);
-        }  /* if */
-        operation_type = determine_arithmetic_conversions(operand_1,
-                                                          &operand_2);
-        if (is_integral_or_enum_type(operation_type)) {
-          a_type_ptr type_1 = skip_typerefs(operand_1->type);
-          a_type_ptr type_2 = skip_typerefs(operand_2.type);
-          if (!int_kind_is_signed[(int)(skip_typerefs(operation_type)->
-                                                  variant.integer.int_kind)]) {
-            /* Issue a remark if a signed operand is converted to an unsigned
-               type, which can produce surprising results with negative
-               values.  (Note that a sign change for a constant is detected
-               separately, hence the exclusion of constant operands below.) */
-            if ((type_1->kind == (a_type_kind)tk_integer &&
-                 int_kind_is_signed[(int)type_1->variant.integer.int_kind] &&
-                 !is_constant_operand(operand_1)) ||
-                (type_2->kind == (a_type_kind)tk_integer &&
-                 int_kind_is_signed[(int)type_2->variant.integer.int_kind] &&
-                 !is_constant_operand(&operand_2))) {
-              expr_pos_diagnostic(es_remark, ec_signed_unsigned_comparison,
-                                  &operator_position);
-            }  /* if */
-          }  /* if */
-          diagnose_comparison_if_different_enum_types(
-                              type_1, type_2, &operator_position, es_remark);
-        }  /* if */
-      }  /* if */
-    }  /* if */
-    /* Determine the result type. */
-#if GNU_VECTOR_TYPES_ALLOWED
-    if (is_vector_type(operation_type)) {
-      /* The result of a vector comparison is a vector of signed integer with
-         the same number of elements as the operands. */
-      result_type = make_integer_vector_result_type(operation_type);
-    } else
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-    /* Do not insert code here. */
-    {
-      result_type = boolean_result_type();
-    }  /* if */
-    op = which_binary_operator(operator_token, operation_type);
-    /* Convert the operands to a common type. */
-    change_binary_operand_types(operation_type, operand_1, &operand_2, op);
-    if (funny_unsigned_comparison) {
-      /* Check for pointless comparisons of unsigned integers against 0,
-         and give a warning.  The pointless cases are
-           u >= 0    (always true)
-           u <  0    (always false)
-           0 >  u    (always false)
-           0 <= u    (always true)
-         There are also similar cases with negative constants.
-         The expression is not simplified.  Note that we check the nonconstant
-         operand type before any type promotions and the constant value after
-         any type change. */
-      int constant_sign;
-      if (get_sign_for_constant_in_unsigned_operation(operand_1, &operand_2,
-                                                      second_is_constant,
-                                                      &constant_sign)) {
-        if (constant_sign == 0) {
-          /* Comparison of an unsigned value with zero.  Some cases make
-             sense. */
-          if (second_is_constant ?
-                      (operator_token == tok_ge || operator_token == tok_lt) :
-                      (operator_token == tok_gt || operator_token == tok_le)) {
-            expr_pos_warning(ec_unsigned_compare_with_zero,
-                             &operator_position);
-          }  /* if */
-        } else if (constant_sign < 0) {
-          /* Comparison of an unsigned value with a negative constant.
-             No cases make sense. */
-          expr_pos_warning(ec_unsigned_compare_with_negative,
-                           &operator_position);
-        }  /* if */
-      }  /* if */
-    }  /* if */
-    do_binary_operation(op, operand_1, &operand_2, result_type, result,
-                        &operator_position, operator_tok_seq_number);
-  }  /* if */
-
-  set_operand_position(result, &operand_1->position, &operand_2.end_position,
-                       &operator_position);
+  process_rel_operator(operand_1, &operand_2, operator_token,
+                       &operator_position, operator_tok_seq_number, result);
   db_exit();
 }  /* scan_rel_operator */
 
@@ -27693,6 +27722,132 @@ to integral/enumeration types need to be checked).
 }  /* check_narrowing_for_spaceship_opnd */
 
 
+static void process_spaceship_operator(an_operand               *opnd1,
+                                       an_operand               *opnd2,
+                                       a_source_position        *operator_pos,
+                                       a_token_sequence_number  operator_tsn,
+                                       an_operand               *result)
+/*
+Perform semantic analysis of a spaceship operator with the given operands and
+construct the representation of the result in *result.  operator_pos and
+operator_tsn describe the location of the operator.
+*/
+{
+  a_boolean  processed = FALSE;
+
+  if (is_overloadable_type_operand(opnd1) ||
+      is_overloadable_type_operand(opnd2)) {
+    /* Look for C++ operator overloading cases. */
+    check_for_operator_overloading((an_opname_kind)onk_spaceship,
+                                   /*unary_operator=*/FALSE,
+                                   /*must_be_member_function=*/FALSE,
+                                   /*try_conversions=*/TRUE,
+                                   /*has_predef_meaning=*/FALSE,
+                                   opnd1, opnd2, operator_pos,
+                                   operator_tsn, (a_nondependent_call_depth)0,
+                                   (a_source_position*)NULL,
+                                   result, &processed);
+  }  /* if */
+  if (!processed) {
+    /* Non-operator-function cases. */
+    a_boolean   normal_case = FALSE;
+    a_type_ptr  op_type, result_type = NULL;
+    if (is_error_operand(opnd1) || is_error_operand(opnd2)) {
+      make_error_operand(result);
+      operand_will_not_be_used_because_of_error(opnd1);
+      operand_will_not_be_used_because_of_error(opnd2);
+    } else if ((is_arithmetic_or_unscoped_enum_type(opnd1->type) &&
+                is_arithmetic_or_unscoped_enum_type(opnd2->type)) ||
+               (is_scoped_enum_type(opnd1->type) &&
+                is_integral_type(opnd2->type)) ||
+               (is_scoped_enum_type(opnd2->type) &&
+                is_integral_type(opnd1->type))) {
+      do_operand_transformations(opnd1, TOPT_NO_OPTIONS);
+      do_operand_transformations(opnd2, TOPT_NO_OPTIONS);
+      if (is_bool_type(opnd1->type) != is_bool_type(opnd2->type)) {
+        pos_ty2_error(ec_invalid_spaceship_types, operator_pos,
+                      opnd1->type, opnd2->type);
+      } else {
+        diagnose_comparison_if_different_enum_types(opnd1->type, opnd2->type,
+                                                    operator_pos, es_error);
+      }  /* if */
+      op_type = determine_arithmetic_conversions(opnd1, opnd2);
+      check_narrowing_for_spaceship_opnd(opnd1, op_type);
+      check_narrowing_for_spaceship_opnd(opnd2, op_type);
+      change_binary_operand_types(op_type, opnd1, opnd2,
+                                  (an_expr_node_kind)eok_spaceship);
+      if (is_integral_or_enum_type(op_type)) {
+        result_type = get_ordering_type("strong_ordering", operator_pos);
+      } else if (is_real_floating_type(op_type)) {
+        result_type = get_ordering_type("partial_ordering", operator_pos);
+      } else {
+        expr_pos_ty2_error(ec_invalid_spaceship_types, operator_pos,
+                           opnd1->type, opnd2->type);
+      }  /* if */
+      normal_case = TRUE;
+    } else if (is_scoped_enum_type(opnd1->type) &&
+               identical_types(opnd1->type, opnd2->type)) {
+      result_type = get_ordering_type("strong_ordering", operator_pos);
+      normal_case = TRUE;
+    } else if (is_pointer_type(opnd1->type) || is_pointer_type(opnd2->type)) {
+      /* At least one of the operands is a pointer.  See if the operands are
+         compatible. */
+      if (check_compatibility_of_pointer_operands(
+                         opnd1, opnd2, operator_pos,
+                         (an_opname_kind)onk_spaceship,
+                         /*pointer_normalization_standard_in_C=*/FALSE,
+                         /*pointers_to_functions_standard_in_C=*/FALSE,
+                         /*pointers_to_incomplete_standard_in_C=*/FALSE,
+                         /*mixed_object_and_incomplete_standard_in_C=*/FALSE,
+                         &op_type)) {
+        change_binary_operand_types(op_type, opnd1, opnd2,
+                                    (an_expr_operator_kind)eok_spaceship);
+      }  /* if */
+      if (is_pointer_to_function_type(op_type)) {
+        result_type = get_ordering_type("strong_equality", operator_pos);
+      } else {
+        result_type = get_ordering_type("strong_ordering", operator_pos);
+      }  /* if */
+      normal_case = TRUE;
+    } else if (is_ptr_to_member_type(opnd1->type) ||
+               is_ptr_to_member_type(opnd2->type)) {
+      /* At least one operand is a pointer to member.  See if the operands
+         are compatible. */
+      if (check_ptr_to_member_operands_for_compatibility(
+                              opnd1, opnd2, operator_pos, &op_type)) {
+        change_binary_operand_types(op_type, opnd1, opnd2,
+                                    (an_expr_operator_kind)eok_spaceship);
+      }  /* if */
+      result_type = get_ordering_type("strong_equality", operator_pos);
+      normal_case = TRUE;
+    } else if (is_nullptr_type(opnd1->type) ||
+               is_nullptr_type(opnd2->type)) {
+      /* At least one of the operands has a nullptr type. */
+      if (check_compatibility_of_nullptr_operands(opnd1, opnd2, operator_pos,
+                                                  &op_type)) {
+        change_binary_operand_types(op_type, opnd1, opnd2,
+                                    (an_expr_operator_kind)eok_spaceship);
+      }  /* if */
+      result_type = get_ordering_type("strong_equality", operator_pos);
+      normal_case = TRUE;
+    } else {
+      error_in_operand(expr_not_arithmetic_code(), result);
+    }  /* if */
+    if (normal_case) {
+      an_expr_node_ptr  result_node, op1_node, op2_node;
+      op1_node = make_node_from_operand(opnd1);
+      op2_node = make_node_from_operand(opnd2);
+      op1_node->next = op2_node;
+      result_node = make_operator_node((an_expr_operator_kind)eok_spaceship,
+                                       result_type, op1_node);
+      make_expression_operand(result_node, result);
+    }  /* if */
+  }  /* if */
+  set_operand_position(result, &opnd1->position, &opnd2->end_position,
+                       operator_pos);
+}  /* process_spaceship_operator */
+
+
 static void scan_spaceship_operator(an_operand             *opnd1,
                                     a_rescan_control_block *rcblock,
                                     an_operand             *result)
@@ -27709,7 +27864,6 @@ the resulting expression.
   a_source_position  operator_pos;
   a_token_sequence_number
                      operator_tok_seq_number;
-  a_boolean          processed = FALSE;
 
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
@@ -27725,118 +27879,87 @@ the resulting expression.
     (void)get_token();
     scan_expr(&opnd2, PREC_EQ_NE, EOPT_NO_OPTIONS);
   }  /* if */
-  if (is_overloadable_type_operand(opnd1) ||
-      is_overloadable_type_operand(&opnd2)) {
-    /* Look for C++ operator overloading cases. */
-    check_for_operator_overloading((an_opname_kind)onk_spaceship,
-                                   /*unary_operator=*/FALSE,
-                                   /*must_be_member_function=*/FALSE,
-                                   /*try_conversions=*/TRUE,
-                                   /*has_predef_meaning=*/FALSE,
-                                   opnd1, &opnd2, &operator_pos,
-                                   operator_tok_seq_number,
-                                   (a_nondependent_call_depth)0,
-                                   (a_source_position*)NULL,
-                                   result, &processed);
-  }  /* if */
-  if (!processed) {
-    /* Non-operator-function cases. */
-    a_boolean   normal_case = FALSE;
-    a_type_ptr  op_type, result_type = NULL;
-    if (is_error_operand(opnd1) || is_error_operand(&opnd2)) {
-      make_error_operand(result);
-      operand_will_not_be_used_because_of_error(opnd1);
-      operand_will_not_be_used_because_of_error(&opnd2);
-    } else if ((is_arithmetic_or_unscoped_enum_type(opnd1->type) &&
-                is_arithmetic_or_unscoped_enum_type(opnd2.type)) ||
-               (is_scoped_enum_type(opnd1->type) &&
-                is_integral_type(opnd2.type)) ||
-               (is_scoped_enum_type(opnd2.type) &&
-                is_integral_type(opnd1->type))) {
-      do_operand_transformations(opnd1, TOPT_NO_OPTIONS);
-      do_operand_transformations(&opnd2, TOPT_NO_OPTIONS);
-      if (is_bool_type(opnd1->type) != is_bool_type(opnd2.type)) {
-        pos_ty2_error(ec_invalid_spaceship_types, &operator_pos,
-                      opnd1->type, opnd2.type);
-      } else {
-        diagnose_comparison_if_different_enum_types(opnd1->type, opnd2.type,
-                                                    &operator_pos, es_error);
-      }  /* if */
-      op_type = determine_arithmetic_conversions(opnd1, &opnd2);
-      check_narrowing_for_spaceship_opnd(opnd1, op_type);
-      check_narrowing_for_spaceship_opnd(&opnd2, op_type);
-      change_binary_operand_types(op_type, opnd1, &opnd2,
-                                  (an_expr_node_kind)eok_spaceship);
-      if (is_integral_or_enum_type(op_type)) {
-        result_type = get_ordering_type("strong_ordering", &operator_pos);
-      } else if (is_real_floating_type(op_type)) {
-        result_type = get_ordering_type("partial_ordering", &operator_pos);
-      } else {
-        expr_pos_ty2_error(ec_invalid_spaceship_types, &operator_pos,
-                           opnd1->type, opnd2.type);
-      }  /* if */
-      normal_case = TRUE;
-    } else if (is_scoped_enum_type(opnd1->type) &&
-               identical_types(opnd1->type, opnd2.type)) {
-      result_type = get_ordering_type("strong_ordering", &operator_pos);
-      normal_case = TRUE;
-    } else if (is_pointer_type(opnd1->type) || is_pointer_type(opnd2.type)) {
-      /* At least one of the operands is a pointer.  See if the operands are
-         compatible. */
-      if (check_compatibility_of_pointer_operands(
-                         opnd1, &opnd2, &operator_pos,
-                         (an_opname_kind)onk_spaceship,
-                         /*pointer_normalization_standard_in_C=*/FALSE,
-                         /*pointers_to_functions_standard_in_C=*/FALSE,
-                         /*pointers_to_incomplete_standard_in_C=*/FALSE,
-                         /*mixed_object_and_incomplete_standard_in_C=*/FALSE,
-                         &op_type)) {
-        change_binary_operand_types(op_type, opnd1, &opnd2,
-                                    (an_expr_operator_kind)eok_spaceship);
-      }  /* if */
-      if (is_pointer_to_function_type(op_type)) {
-        result_type = get_ordering_type("strong_equality", &operator_pos);
-      } else {
-        result_type = get_ordering_type("strong_ordering", &operator_pos);
-      }  /* if */
-      normal_case = TRUE;
-    } else if (is_ptr_to_member_type(opnd1->type) ||
-               is_ptr_to_member_type(opnd2.type)) {
-      /* At least one operand is a pointer to member.  See if the operands
-         are compatible. */
-      if (check_ptr_to_member_operands_for_compatibility(
-                              opnd1, &opnd2, &operator_pos, &op_type)) {
-        change_binary_operand_types(op_type, opnd1, &opnd2,
-                                    (an_expr_operator_kind)eok_spaceship);
-      }  /* if */
-      result_type = get_ordering_type("strong_equality", &operator_pos);
-      normal_case = TRUE;
-    } else if (is_nullptr_type(opnd1->type) ||
-               is_nullptr_type(opnd2.type)) {
-      /* At least one of the operands has a nullptr type. */
-      if (check_compatibility_of_nullptr_operands(opnd1, &opnd2, &operator_pos,
-                                                  &op_type)) {
-        change_binary_operand_types(op_type, opnd1, &opnd2,
-                                    (an_expr_operator_kind)eok_spaceship);
-      }  /* if */
-      result_type = get_ordering_type("strong_equality", &operator_pos);
-      normal_case = TRUE;
-    } else {
-      error_in_operand(expr_not_arithmetic_code(), result);
-    }  /* if */
-    if (normal_case) {
-      an_expr_node_ptr  result_node, op1_node, op2_node;
-      op1_node = make_node_from_operand(opnd1);
-      op2_node = make_node_from_operand(&opnd2);
-      op1_node->next = op2_node;
-      result_node = make_operator_node((an_expr_operator_kind)eok_spaceship,
-                                       result_type, op1_node);
-      make_expression_operand(result_node, result);
-    }  /* if */
-  }  /* if */
-  set_operand_position(result, &opnd1->position, &opnd2.end_position,
-                       &operator_pos);
+  process_spaceship_operator(opnd1, &opnd2, &operator_pos,
+                             operator_tok_seq_number, result);
 }  /* scan_spaceship_operator */
+
+
+void complete_comparison_rewrite(an_opname_kind           opname,
+                                 a_token_sequence_number  tsn,
+                                 an_operand_ptr           result,
+                                 a_boolean                reversed)
+/*
+A comparison operator (<, <=, >=, >, ==, !=, or <=>) described by opname and
+tsn is being rewritten in terms of a <=> or == operation represented by
+*result.  E.g., "x < y" might have to be rewritten as "operator<=>(x, y) < 0".
+Apply the second operator ("<" in this example) to result.  If reversed is
+true, the operands in the operation represented by *result are reversed.
+For example, "x <=> y" might be rewritten as "0 <=> operator<=>(y, x)".
+*/
+{
+  static unsigned long  n_active_rewrites = 0;
+
+  n_active_rewrites += 1;
+  if (expr_stack->template_deduction_context) {
+    /* The additional operator will be rescanned.  Nothing to do at this
+       time. */
+  } else if (n_active_rewrites > 100) {
+    /* Catch excessive rewrite chains.  Unbounded rewrite chains can occur with
+       code like the following:
+           struct S {
+             friend S operator<=>(S const&, int);
+           } s;
+           bool r = (s > 8);
+    */
+    expr_pos_error(ec_excessive_comparison_rewrites, &result->position);
+    make_error_operand(result);
+  } else if (opname == (an_opname_kind)onk_eq ||
+             opname == (an_opname_kind)onk_ne) {
+    /* Contextually convert *result to bool. */
+    process_boolean_controlling_expression(result);
+    if (opname == (an_opname_kind)onk_ne) {
+      /* Invert the result. */
+      an_operand  opnd = *result;
+      do_unary_operation((an_expr_operator_kind)eok_not, result, bool_type(),
+                         &opnd, &opnd.position, tsn);
+      restore_operand_details(&opnd, result);
+    }  /* if */
+  } else {
+    /* A relational or spaceship operator. */
+    an_operand         zero_literal, other_opnd = *result;
+    an_operand         *opnd1, *opnd2;
+    a_source_position  *pos = &other_opnd.position;
+    make_zero_operand(&zero_literal, integer_type((an_integer_kind)ik_int));
+    if (reversed) {
+      opnd1 = &zero_literal;
+      opnd2 = &other_opnd;
+    } else {
+      opnd1 = &other_opnd;
+      opnd2 = &zero_literal;
+    }  /* if */
+    if (opname == (an_opname_kind)onk_spaceship) {
+      /* The spaceship operator is only rewritten in the reversed case.  I.e.,
+         "x <=> y" may end up being treated as "0 <=> (y <=> x)" (except for
+         the order of side-effects), but changing it to "(x <=> y) <=> 0" would
+         be redundant. */
+      check_assertion(reversed);
+      process_spaceship_operator(opnd1, opnd2, pos, tsn, result);
+    } else {
+      a_token_kind  op_token;
+      switch (opname) {
+        case onk_lt: op_token = (a_token_kind)tok_lt; break;
+        case onk_gt: op_token = (a_token_kind)tok_gt; break;
+        case onk_le: op_token = (a_token_kind)tok_le; break;
+        case onk_ge: op_token = (a_token_kind)tok_ge; break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+      process_rel_operator(opnd1, opnd2, op_token, pos, tsn, result);
+    }  /* if */
+    restore_operand_details(&other_opnd, result);
+  }  /* if */
+  n_active_rewrites -= 1;
+}  /* complete_comparison_rewrite */
 
 #if GNU_EXTENSIONS_ALLOWED
 
@@ -35582,8 +35705,7 @@ handle_identifier:
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case tok_null:
-      { a_constant_ptr  null_constant = local_constant();
-        an_integer_kind ikind;
+      { an_integer_kind ikind;
         a_targ_size_t   ptr_size;
         /* Pick an integer that is the same size as a "void *" pointer,
            if possible. */
@@ -35591,10 +35713,8 @@ handle_identifier:
         ikind = int_kind_for_bit_size((unsigned int)(ptr_size * targ_char_bit),
                                       /*is_signed=*/TRUE);
         if (ikind == (an_integer_kind)ik_none) ikind = (an_integer_kind)ik_int;
-        make_zero_of_proper_type(integer_type(ikind), null_constant);
-        null_constant->null_keyword = TRUE;
-        make_constant_operand(null_constant, &local_result);
-        release_local_constant(&null_constant);
+        make_zero_operand(&local_result, integer_type(ikind));
+        local_result.variant.constant.null_keyword = TRUE;
       }
       (void)get_token();
       break;
@@ -35603,9 +35723,7 @@ handle_identifier:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_native_nullptr:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      {
-        a_constant_ptr nullptr_constant = local_constant();
-        a_type_ptr     tp;
+      { a_type_ptr  tp;
         /* The C++/CLI nullptr keyword has the managed nullptr type; otherwise
            (including the C++/CLI __nullptr keyword and the C++/CX nullptr
            keyword), the type is std::nullptr_t. */
@@ -35614,14 +35732,13 @@ handle_identifier:
         } else {
           tp = standard_nullptr_type();
         }  /* if */
-        make_zero_of_proper_type(tp, nullptr_constant);
-        nullptr_constant->nullptr_keyword = (curr_token == tok_nullptr);
+        make_zero_operand(&local_result, tp);
+        local_result.variant.constant.nullptr_keyword =
+                                                  (curr_token == tok_nullptr);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        nullptr_constant->native_nullptr_keyword =
-                                            (curr_token == tok_native_nullptr);
+        local_result.variant.constant.native_nullptr_keyword =
+                                           (curr_token == tok_native_nullptr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        make_constant_operand(nullptr_constant, &local_result);
-        release_local_constant(&nullptr_constant);
       }
       (void)get_token();
       break;
@@ -36557,11 +36674,8 @@ end_expr:
          the operand type, not, e.g., class types. */
       if (is_scalar_type(result->type) ||
           is_template_param_type(result->type)) {
-        a_constant_ptr constant = local_constant();
-        make_zero_of_proper_type(result->type, constant);
-        make_constant_operand(constant, result);
+        make_zero_operand(result, result->type);
         copy_operand_position(&local_result, result);
-        release_local_constant(&constant);
       } else {
         error_in_operand(ec_expr_not_constant, result);
       }  /* if */
@@ -47064,25 +47178,6 @@ attribute.
 }  /* scan_custom_ms_attribute_arg_list */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-static an_arg_list_elem_ptr reverse_init_component_list(
-                                                   an_arg_list_elem_ptr  list)
-/*
-Reverse the given list of initializer components, and return a pointer to the
-new start of the list.  list can be NULL.
-*/
-{
-  an_arg_list_elem_ptr  new_list = NULL, next;
-
-  while (list) {
-    next = list->next;
-    list->next = new_list;
-    new_list = list;
-    list = next;
-  }
-  return new_list;
-}  /* reverse_init_component_list */
-
 
 static a_boolean is_valid_fold_operator(a_token_kind  op_token)
 /*

@@ -1616,14 +1616,16 @@ are used in resolving calls to overloaded functions.
   cfp->template_arg_list = NULL;
   cfp->operand_type_pattern = NULL;
   cfp->surrogate_function_conv_sym = NULL;
-  cfp->uses_microsoft_explicit_anachronism = FALSE;
-  cfp->init_list_ctor_case = FALSE;
-  cfp->is_user_conversion = FALSE;
   clear_conv_descr(&cfp->conversion);
   cfp->specific_type = NULL;
   cfp->arg_matches = NULL;
   cfp->current_arg_match = NULL;
   cfp->next_in_arg_best_match_set = NULL;
+  cfp->opname_kind = (an_opname_kind)onk_none;
+  cfp->supplemental_comparison_candidate = FALSE;
+  cfp->supplemental_reversed_candidate = FALSE;
+  cfp->init_list_ctor_case = FALSE;
+  cfp->is_user_conversion = FALSE;
   cfp->in_best_match_set = FALSE;
   cfp->in_best_match_set_for_some_argument = FALSE;
   cfp->in_best_match_set_for_curr_argument = FALSE;
@@ -1784,14 +1786,16 @@ have match the function's formal parameters.
 
 
 static void add_builtin_operator_to_candidate_functions_list(
+                                an_opname_kind           opname_kind,
                                 a_const_char             *operand_type_pattern,
                                 a_type_ptr               specific_type,
                                 an_arg_match_summary_ptr arg_matches,
                                 a_candidate_function_ptr *candidate_functions)
 /*
-Add the built-in operator identified by operand_type_pattern and specific_type
-to the candidate_functions list.  arg_matches gives information about how well
-the operands we have match the operator's required operand types.
+Add the built-in operator identified by opname_kind, operand_type_pattern, and
+specific_type to the candidate_functions list.  arg_matches gives information
+about how well the operands we have match the operator's required operand
+types.
 */
 {
   a_candidate_function_ptr candidate;
@@ -1800,6 +1804,7 @@ the operands we have match the operator's required operand types.
   candidate->operand_type_pattern = operand_type_pattern;
   candidate->specific_type = specific_type;
   candidate->arg_matches = arg_matches;
+  candidate->opname_kind = opname_kind;
   candidate->next = *candidate_functions;
   *candidate_functions = candidate;
 #if DEBUG
@@ -8260,6 +8265,16 @@ other.  Return
              (cmp = compare_function_templates_for_ovl_res(cfp1, cfp2)) != 0) {
     /* cfp1 and cfp2 are function templates and one is more specialized than
        the other. */
+  } else if (cfp1->supplemental_comparison_candidate !=
+                                    cfp2->supplemental_comparison_candidate) {
+    /* For comparison operators, rewrites in terms of a different operator are
+       a worse match than directly matching the named operator. */
+    cmp = cfp1->supplemental_comparison_candidate ? -1 : 1;
+  } else if (cfp1->supplemental_reversed_candidate !=
+                                      cfp2->supplemental_reversed_candidate) {
+    /* For comparison operators, rewrites in terms of reversed operands are a
+       worse match than rewrites that don't reorder operands. */
+    cmp = cfp1->supplemental_reversed_candidate ? -1 : 1;
   } else if ((cmp = compare_deduction_guides_if_applicable(cfp1, cfp2)) != 0) {
     /* Deduction guides have a few tie-breaking rules associated with them. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -16037,7 +16052,8 @@ the target type to be used).
   if (okay) {
     /* The built-in operator can be used.  Add it to the list of
        candidate functions. */
-    add_builtin_operator_to_candidate_functions_list(operand_type_pattern,
+    add_builtin_operator_to_candidate_functions_list(kind,
+                                                     operand_type_pattern,
                                                      specific_type,
                                                      arg_match_list,
                                                      candidate_functions);
@@ -17012,7 +17028,7 @@ operand when initializer lists are enabled.
   a_boolean                operand_1_is_class;
   a_type_ptr               eff_operand_1_type;
   an_operand               function_operand;
-  a_candidate_function_ptr candidate_functions;
+  a_candidate_function_ptr candidate_functions, saved_candidate_functions;
   an_arg_match_summary_ptr arg_match;
   a_symbol_ptr             inaccessible_match = NULL;
   a_boolean                matched_except_for_missing_selector = FALSE;
@@ -17036,6 +17052,9 @@ operand when initializer lists are enabled.
   an_opname_kind           corresp_simple_operator = (an_opname_kind)onk_none;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean                folded_to_constant = FALSE;
+  a_boolean                find_supplemental_candidates = FALSE,
+                           find_reversed_candidates = FALSE;
+  an_opname_kind           orig_kind = kind;
 
   db_enter(4, "check_for_operator_overloading");
 #if DEBUG
@@ -17059,7 +17078,8 @@ operand when initializer lists are enabled.
                                    operator_position_2);
     *processed = TRUE;
   } else if (!curr_expr_kind_is_const() || constexpr_enabled) {
-    /* Check for operator overloading (but not in constant expressions). */
+    /* Check for operator overloading (but not in pre-C++11 constant
+       expressions). */
     eff_operand_1_type = operand_1->type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cli_or_cx_enabled) {
@@ -17244,6 +17264,8 @@ operand when initializer lists are enabled.
             goto select_best_function;
           }  /* if */
         }  /* if */
+find_more_operator_candidates:
+        saved_candidate_functions = candidate_functions;
         /* Find any member function for the operator. */
         if (operand_1_is_class) {
           /* Instantiate the type if it is a template class.  This ensures that
@@ -17502,6 +17524,58 @@ operand when initializer lists are enabled.
                                                arg_list,
                                                &candidate_functions);
         }  /* if */
+        if (spaceship_enabled) {
+          /* For comparison operators, consider additional candidates: 
+               (1) For relational operators, consider operator<=> candidates.
+                   For !=, consider operator== candidates.
+               (2) For relational and <=> operators, also consider candidate
+                   operator<=> that match reversed operands.
+                   For == and != operators, also consider operator== that
+                   match reversed operands.
+             (See N4810 [over.match.oper]/3, bullet (3.4).) */
+          if (find_reversed_candidates) {
+            /* We just handled case (2) above.  Mark any resulting candidates
+               accordingly, and "unreverse" the operands.  Also, "unreverse"
+               that argument match entries for the corresponding candidate
+               functions and reset "kind" to the original operator kind. */
+            a_candidate_function_ptr  cfp = candidate_functions;
+            for (; cfp != saved_candidate_functions; cfp = cfp->next) {
+              an_arg_match_summary_ptr  amsp = cfp->arg_matches;
+              cfp->arg_matches = amsp->next;
+              cfp->arg_matches->next = amsp;
+              amsp->next = NULL;
+              cfp->supplemental_comparison_candidate = TRUE;
+              cfp->supplemental_reversed_candidate = TRUE;
+            }  /* for */
+            arg_list = reverse_init_component_list(arg_list);
+            kind = orig_kind;
+          } else if (find_supplemental_candidates ||
+                     kind == (an_opname_kind)onk_eq ||
+                     kind == (an_opname_kind)onk_spaceship) {
+            /* We either handled (1) above, or it didn't apply but we're
+               dealing with a <=> or == operator.  Now handle (2). */
+            if (find_supplemental_candidates) {
+              /* Mark any candidates found for case (1) as such. */
+              a_candidate_function_ptr  cfp = candidate_functions;
+              for (; cfp != saved_candidate_functions; cfp = cfp->next) {
+                cfp->supplemental_comparison_candidate = TRUE;
+              }  /* for */
+            }  /* if */
+            arg_list = reverse_init_component_list(arg_list);
+            find_reversed_candidates = TRUE;
+            goto find_more_operator_candidates;
+          } else if (opname_is_comparison(kind)) {
+            /* Handle case (1) above.  (Note that == and <=> don't get here
+               because they were handled in the previous "else if" branch.) */
+            if (kind == (an_opname_kind)onk_ne) {
+              kind = (an_opname_kind)onk_eq;
+            } else {
+              kind = (an_opname_kind)onk_spaceship;
+            }  /* if */
+            find_supplemental_candidates = TRUE;
+            goto find_more_operator_candidates;
+          }  /* if */
+        }  /* if */
 select_best_function:
         /* The candidate_functions list now contains all the viable
            functions.  Find the best. */
@@ -17713,6 +17787,20 @@ no_applicable_operator_function:
           /* Exactly one function applies and is best. */
           a_symbol_ptr overloaded_function_symbol;
           proj_function_symbol = candidate_functions->function_symbol;
+          if (candidate_functions->supplemental_comparison_candidate) {
+            if (proj_function_symbol != NULL) {
+              a_routine_ptr  rp = fundamental_symbol_of(proj_function_symbol)
+                                       ->variant.routine.ptr;
+              check_assertion(special_kind_is(rp, sfk_operator));
+              kind = rp->variant.opname_kind;
+            } else {
+              kind = candidate_functions->opname_kind;
+              check_assertion(kind != (an_opname_kind)onk_none);
+            }  /* if */
+            if (candidate_functions->supplemental_reversed_candidate) {
+              arg_list = reverse_init_component_list(arg_list);
+            }  /* if */
+          }  /* if */
 #if BACK_END_IS_CP_GEN_BE
           found_through_adl = candidate_functions->found_through_adl;
 #endif /* BACK_END_IS_CP_GEN_BE */
@@ -17906,7 +17994,7 @@ no_applicable_operator_function:
                 conv_to_error_operand(result);
               }  /* if */
             } else {
-              an_expr_node_ptr func_call_node;
+              an_expr_node_ptr  call_node;
               /* Not the builtin bitwise operator=. */
               /* Build an expression-form argument list.  Convert the arguments
                  on the argument list to the right types.  Note that for the
@@ -17957,32 +18045,51 @@ no_applicable_operator_function:
                                      /*uses_operator_syntax=*/TRUE,
                                      operator_position, result,
                                      &folded_to_constant,
-                                     &func_call_node);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-              if ((!is_expression_operand(result) ||
-                   result->variant.expression != func_call_node) &&
-                  func_call_node != NULL) {
-                /* The top-level node is not the actual call node (e.g., it
-                   could be an enk_temp_init node created to hold the returned
-                   value).  The caller will record the source position range
-                   in the top node, but it can be useful to have that range
-                   also available in the call node itself. */
-                a_source_position  *start_pos, *end_pos;
-                if (unary_operator) {
-                  start_pos = operator_position;
-                  end_pos = &operand_1->end_position;
-                } else {
-                  start_pos = &operand_1->position;
-                  if (operator_position_2 != NULL) {
-                    end_pos = operator_position_2;
-                  } else {
-                    end_pos = &operand_2->end_position;
-                  }  /* if */
+                                     &call_node);
+              if (call_node != NULL) {
+                if (candidate_functions->supplemental_reversed_candidate) {
+                  /* Reverse the argument evaluation order since the operands
+                     are reversed. */
+                  a_boolean  l_to_r;
+                  l_to_r = call_node->variant.operation.eval_left_to_right;
+                  call_node->variant.operation.eval_left_to_right =
+                              call_node->variant.operation.eval_right_to_left;
+                  call_node->variant.operation.eval_right_to_left = l_to_r;
                 }  /* if */
-                func_call_node->expr_range.start = *start_pos;
-                func_call_node->expr_range.end = *end_pos;
-              }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+                if (!is_expression_operand(result) ||
+                    result->variant.expression != call_node) {
+                  /* The top-level node is not the actual call node (e.g., it
+                     could be an enk_temp_init node created to hold the
+                     returned value).  The caller will record the source
+                     position range in the top node, but it can be useful to
+                     have that range also available in the call node itself. */
+                  a_source_position  *start_pos, *end_pos;
+                  if (unary_operator) {
+                    start_pos = operator_position;
+                    end_pos = &operand_1->end_position;
+                  } else {
+                    start_pos = &operand_1->position;
+                    if (operator_position_2 != NULL) {
+                      end_pos = operator_position_2;
+                    } else {
+                      end_pos = &operand_2->end_position;
+                    }  /* if */
+                  }  /* if */
+                  call_node->expr_range.start = *start_pos;
+                  call_node->expr_range.end = *end_pos;
+                }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+              }  /* if */
+              if (candidate_functions->supplemental_comparison_candidate) {
+                /* A candidate was selected that represents a rewrite of a
+                   comparison operator.  Another operation has to be applied
+                   to the result. */
+                a_boolean  reversed =
+                         candidate_functions->supplemental_reversed_candidate;
+                complete_comparison_rewrite(orig_kind, operator_tok_seq_number,
+                                            result, reversed);
+              }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
@@ -26240,8 +26347,7 @@ source_is_rvalue.
       goto reject_function;
     }  /* if */
   } else {
-    check_assertion(routine->special_kind ==
-                                        (a_special_function_kind)sfk_operator);
+    check_assertion(special_kind_is(routine, sfk_operator));
     /* Make sure the operator function is callable with one argument.
        Standard copy assignment operators always have one parameter, but
        we check just in case some dialects allow default arguments.

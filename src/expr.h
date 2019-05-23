@@ -355,6 +355,11 @@ an_expr_node_ptr make_lvalue_cast_node(an_expr_node_ptr source_expr,
                                        a_type_ptr       type_cast_to,
                                        a_boolean        compiler_generated);
 
+extern void complete_comparison_rewrite(an_opname_kind           opname,
+                                        a_token_sequence_number  tsn,
+                                        an_operand_ptr           result,
+                                        a_boolean                reversed);
+
 extern void check_closing_paren_after_expr_list(void);
 
 extern
