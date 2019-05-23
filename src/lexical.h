@@ -2839,9 +2839,9 @@ Only create name references for locators for which they are needed,
 except that name references are always created in deduction contexts
 because they are needed for name mangling.
 */
-#define name_reference_needed_for_locator(locator)			\
-  (((locator)->is_qualified_name || (locator)->is_template_id ||	\
-    (locator)->is_decltype_qualified || (locator)->is_destructor_name ||\
+#define name_reference_needed_for_locator(locator)                        \
+  (((locator)->is_qualified_name || (locator)->is_template_id ||          \
+    (locator)->is_decltype_qualified || (locator)->is_destructor_name ||  \
     is_template_deduction_context()))
 
 /*
@@ -2851,7 +2851,7 @@ and all entities declared in functions.
 */
 #define qualifiable_name_reference(loc, scp)                                  \
   ((C_mode() || !in_file_scope(scp) ||                                        \
-    !name_reference_needed_for_locator((loc)))                              \
+    !name_reference_needed_for_locator((loc)))                                \
                                      ? (a_name_reference_ptr)NULL             \
                                      : make_name_reference((loc), (scp)))
 
