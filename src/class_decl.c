@@ -17478,9 +17478,18 @@ template declaration and is NULL otherwise.
       (void)get_token();
     }  /* if */
     if (!decl_info->is_member_template) {
+      a_static_data_member_supplement_ptr sdmsp;
       /* Retrieve the initializer tokens from the prototype instantiation. */
       find_inclass_sdm_initializer_for_instance(
                                  sym, class_state->corresp_prototype_tag_sym);
+      sdmsp = sdm_supp(sym);
+      if (sdmsp != NULL && sdmsp->token_cache != NULL &&
+          (a_token_kind)sdmsp->token_cache->first_token->token == tok_lbrace) {
+        /* The initializer was direct "braced" initialization. */
+        var->has_direct_braced_initializer = TRUE;
+        decl_state->has_direct_initializer = TRUE;
+        decl_state->init_state.direct_init = TRUE;
+      }  /* if */
     }  /* if */
     /* Skip over the cache terminator. */
     (void)get_token();

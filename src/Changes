@@ -1,5 +1,24 @@
 Version 5.1
 
+5/23/19  [EDGcpfe/21188]
+Missing has_direct_braced_initializer flag for static data members of class
+templates
+
+An instantiation of a class template containing a static data member with a
+direct braced initializer in modes where the initializer is instantiated on
+demand was not setting the has_direct_braced_initializer flag for the variable
+unless the initializer was instantiated.  For example:
+
+  template<class T> class A
+  {
+    static const int foo{1}; // has_direct_braced_initializer == TRUE in the
+                             // prototype instantiation of A<T>::foo
+  };
+  A<int> a; // has_direct_braced_initializer == FALSE for A<int>::foo
+
+This is now fixed.
+
+
 5/22/19  [EDGcpfe/21244]
 C++-generating back end: name qualification of enumerators in generated
 template instances
