@@ -18302,7 +18302,8 @@ if one is present.
   if (var_ptr != NULL) {
     if (state->decltype_auto_specifier_seen) {
       var_ptr->declared_with_decltype_auto = TRUE;
-    } else if (state->auto_type_specifier_seen) {
+    } else if (state->auto_type_specifier_seen &&
+               !state->has_trailing_return_type) {
       var_ptr->declared_with_auto_type_specifier = TRUE;
     } else if (state->has_deducible_class_templ_args) {
       var_ptr->declared_with_class_template_placeholder = TRUE;

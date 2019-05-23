@@ -1,5 +1,22 @@
 Version 5.1
 
+5/23/19  [EDGcpfe/21281]
+Auto type specifier flag on function pointer with trailing return type
+
+Function pointer variables declared with trailing return types were incorrectly
+having their declared_with_auto_type_specifier flag set.  This caused problems
+when using that variable.  For example:
+
+  int f(void);
+  auto (*g)(void) -> int;
+  int h() {
+    g = f;      // Spurious "auto variable in its own initializer" error
+    return g(); // Spurious "auto variable in its own initializer" error
+  }
+
+This is now fixed.
+
+
 5/23/19  [EDGcpfe/21188]
 Missing has_direct_braced_initializer flag for static data members of class
 templates
