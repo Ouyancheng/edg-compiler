@@ -1,5 +1,40 @@
 Version 5.1
 
+5/22/19  [EDGcpfe/21244]
+C++-generating back end: name qualification of enumerators in generated
+template instances
+
+In configurations in which DEFAULT_RECORD_FORM_OF_NAME_REFERENCE and one or
+both of CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS and
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS are TRUE, needed
+qualification could be omitted on the name of an enumerator appearing in a
+generated template instance if that enumerator name is the result of
+substituting a template argument for a template parameter.  For example,
+given
+
+  namespace N {
+    enum E { e };
+  } 
+  template <N::E V> struct S {
+    bool f() {
+      return (0 != V);
+    }
+  };
+  typedef S<N::e> Se;
+  void f() {
+    Se se;
+    se.f();
+  }
+
+the generated code contained an explicit specialization for the function
+S<N::e>::f() in which the return statement was put out as
+
+  return (0 != e)
+
+i.e., the use of the enumerator "e" was missing the necessary qualifier
+"N::".  This is now fixed.
+
+
 5/22/19  [EDGcpfe/20917,EDGcpfe/20948]
 C++20: Coroutines
 
