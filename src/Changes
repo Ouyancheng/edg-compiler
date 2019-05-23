@@ -1,5 +1,14 @@
 Version 5.1
 
+5/23/19  [EDGcpfe/21152]
+Rename __type_info to __EDG_type_info
+
+The name of the type created by lowering to handle tik_user types had been
+__type_info, but that name is used by the LLVM libc++ library (by
+include/any) and causes a conflict.  The name used by the front end has
+been renamed __EDG_type_info to avoid this conflict.
+
+
 5/23/19  [EDGcpfe/21281]
 Auto type specifier flag on function pointer with trailing return type
 

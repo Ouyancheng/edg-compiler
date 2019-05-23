@@ -350,8 +350,10 @@ this routine essentially implements make_typeinfo_type for tik_user.
                               make_lowered_class_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(typeinfo_types[(int)tik_user]);
     /* The name cannot be "type_info" because that's the name of the
-       real user-visible type, so we call this one "__type_info". */
-    set_name_for_typeinfo_type(typeinfo_types[(int)tik_user], "__type_info");
+       real user-visible type, so we call this one (arbitrarily)
+       "__EDG_type_info". */
+    set_name_for_typeinfo_type(typeinfo_types[(int)tik_user],
+                               "__EDG_type_info");
     last_field = NULL;
     /* Make a field for the virtual function table pointer. */
     make_lowered_field("__vptr", pointer_to_vtbl_type(),
