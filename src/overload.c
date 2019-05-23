@@ -1624,6 +1624,7 @@ are used in resolving calls to overloaded functions.
   cfp->opname_kind = (an_opname_kind)onk_none;
   cfp->supplemental_comparison_candidate = FALSE;
   cfp->supplemental_reversed_candidate = FALSE;
+  cfp->uses_microsoft_explicit_anachronism = FALSE;
   cfp->init_list_ctor_case = FALSE;
   cfp->is_user_conversion = FALSE;
   cfp->in_best_match_set = FALSE;

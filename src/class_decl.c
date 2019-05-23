@@ -23423,7 +23423,6 @@ declared, declare one that matches the spaceship operator.
   a_func_info_block   func_info;
   a_symbol_locator    loc;
 
-
   check_assertion(scope_is(&scope_stack_top(), sck_class_struct_union));
   /* Look among the member functions for an equality operator.  Along the way,
      also find the spaceship operator. */
@@ -23466,8 +23465,11 @@ declared, declare one that matches the spaceship operator.
   rtp->variant.routine.return_type = bool_type();
   decl_info.decl_state.type = rtp;
   if (routine_type_is_nonstatic_member_function(srp->type)) {
+    an_access_specifier  saved_access = cdsp->access;
+    cdsp->access = srp->source_corresp.access;
     decl_member_function(&loc, &func_info, cdsp, &decl_info,
                          /*compiler_generated=*/TRUE);
+    cdsp->access = saved_access;
   } else {
     (void)decl_friend_function(&loc, cdsp, &func_info, &decl_info);
   }  /* if */
