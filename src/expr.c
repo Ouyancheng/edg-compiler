@@ -42136,7 +42136,7 @@ This routine frees alep.
   an_operand            selector_operand, call_operand;
   a_source_position     pos, end_pos;
   a_const_char          *mem_fun_name;
-  an_expr_stack_entry   *saved_expr_stack;
+  an_expr_stack_entry   *saved_expr_stack = NULL;
   an_expr_stack_entry   expr_stack_entry;
 
   cdp = get_coroutine_descr(curr_routine);
