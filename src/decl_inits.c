@@ -4450,7 +4450,9 @@ initializer, already copied and substituted.
             if (list != NULL && is_last_elem(list) &&
                 is_expression_component(list)) {
               a_type_ptr  etp = operand_of_arg_list_elem(list)->type;
-              special_singleton = are_reference_related(dtype, etp);
+              special_singleton = (is_prototype_instantiation_context() &&
+                                   is_or_contains_template_param(etp)) ||
+                                  are_reference_related(dtype, etp);
             }  /* if */
           }  /* if */
           if (special_singleton) {
