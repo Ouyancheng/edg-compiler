@@ -42660,7 +42660,6 @@ rcblock parameter for this function).
   an_arg_list_elem_ptr     yield_opnd = NULL;
   a_source_position        operator_position;
   a_token_sequence_number  operator_tok_seq_number;
-  a_routine_ptr            rout;
   an_expr_node_ptr         node;
 
   if (innermost_function_scope == NULL) {
@@ -42669,7 +42668,6 @@ rcblock parameter for this function).
     flush_tokens();
     goto done;
   }  /* if */
-  rout = current_routine_entry();
   operator_position = pos_curr_token;
   if (in_catch_clause()) {
     pos_error(ec_yield_in_catch, &operator_position);
@@ -42711,7 +42709,7 @@ rcblock parameter for this function).
                          /*for_yield=*/TRUE, /*generated_suspend_point=*/FALSE,
                          result);
   }  /* if */
-  check_assertion(rout->is_coroutine);
+  check_assertion(current_routine_entry()->is_coroutine);
 done:
   set_operand_position(result, &operator_position,
                        &curr_construct_end_position, &operator_position);
