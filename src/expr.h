@@ -360,6 +360,8 @@ extern void complete_comparison_rewrite(an_opname_kind           opname,
                                         an_operand_ptr           result,
                                         a_boolean                reversed);
 
+extern a_boolean generated_eq_is_deleted(a_type_ptr  class_tp);
+
 extern void check_closing_paren_after_expr_list(void);
 
 extern

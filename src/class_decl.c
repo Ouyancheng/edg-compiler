@@ -13390,6 +13390,7 @@ otherwise (and take precautions for error recovery in that case).
     rp->is_inline = FALSE;
     rp->storage_class = (a_storage_class)sc_extern;
   } else {
+    scope_stack_top().class_def_state->any_defaulted_special_members = TRUE;
     rp->is_defaulted = TRUE;
     /* Assume the function will be constexpr. */
     rp->is_constexpr = TRUE;
@@ -20905,7 +20906,9 @@ Mark any defaulted members of the given class type as deleted if *gsfd
 indicates that they should be suppressed.
 */
 {
-  a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
+  a_class_type_supplement_ptr
+                 ctsp = class_type_supp(class_type); 
+  a_routine_ptr  rp = ctsp->assoc_scope->routines;
 
   for (; rp != NULL; rp = rp->next) {
     if (rp->is_defaulted) {
@@ -20937,29 +20940,35 @@ indicates that they should be suppressed.
             complete_defaulted_exc_spec_if_explicit(rp);
           }  /* if */
         }  /* if */
-      } else if (special_kind_is(rp, sfk_operator) &&
-                 rp->variant.opname_kind == (an_opname_kind)onk_assign) {
-        a_type_qualifier_set  qualifiers;
-        a_boolean             ref_param, is_base_class_match;
-        if (is_assignment_operator_for_copy(
+      } else if (special_kind_is(rp, sfk_operator)) {
+        if (opname_kind_is(rp, onk_assign)) {
+          a_type_qualifier_set  qualifiers;
+          a_boolean             ref_param, is_base_class_match;
+          if (is_assignment_operator_for_copy(
                              symbol_for(rp), /*move_assign_okay=*/FALSE,
                              &ref_param, &qualifiers, &is_base_class_match)) {
-          if (gsfd->suppress_copy_assign) {
-            rp->is_deleted = TRUE;
-            rp->defined = TRUE;
+            if (gsfd->suppress_copy_assign) {
+              rp->is_deleted = TRUE;
+              rp->defined = TRUE;
+            }  /* if */
+          } else if (routine_is_move_assignment_operator(rp)) {
+            if (gsfd->suppress_move_assign) {
+              rp->is_deleted = TRUE;
+              rp->defined = TRUE;
+            } else {
+              /* gsfd->suppress_move_assign will not be TRUE if the move
+                 assignment operator should be suppressed only because of an
+                 inconsistent exception specification.  That is true also for
+                 other special members, but it must be established early for
+                 move members because marking them as deleted takes them out
+                 of the overload set. */
+              complete_defaulted_exc_spec_if_explicit(rp);
+            }  /* if */
           }  /* if */
-        } else if (routine_is_move_assignment_operator(rp)) {
-          if (gsfd->suppress_move_assign) {
+        } else if (opname_kind_is(rp, onk_eq)) {
+          if (generated_eq_is_deleted(class_type)) {
             rp->is_deleted = TRUE;
             rp->defined = TRUE;
-          } else {
-            /* gsfd->suppress_move_assign will not be TRUE if the move
-               assignment operator should be suppressed only because of an
-               inconsistent exception specification.  That is true also for
-               other special members, but it must be established early for
-               move members because marking them as deleted takes them out
-               of the overload set. */
-            complete_defaulted_exc_spec_if_explicit(rp);
           }  /* if */
         }  /* if */
       } else if (special_kind_is(rp, sfk_destructor)) {
@@ -20970,6 +20979,21 @@ indicates that they should be suppressed.
       }  /* if */
     }  /* if */
   }  /* for */
+  if (spaceship_enabled) {
+    a_routine_list_entry_ptr
+                      rlep;
+    for (rlep = ctsp->friend_routines; rlep != NULL; rlep = rlep->next) {
+      rp = rlep->routine;
+      if (rp->is_defaulted && special_kind_is(rp, sfk_operator)) {
+        if (opname_kind_is(rp, onk_eq)) {
+          if (generated_eq_is_deleted(class_type)) {
+            rp->is_deleted = TRUE;
+            rp->defined = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
 }  /* mark_suppressed_defaulted_members_as_deleted */
 
 
@@ -23483,6 +23507,9 @@ declared, declare one that matches the spaceship operator.
   erp = decl_info.decl_state.sym->variant.routine.ptr;
   erp->compiler_generated = TRUE;
   erp->is_constexpr = TRUE;
+  if (generated_eq_is_deleted(class_type)) {
+    erp->is_deleted = TRUE;
+  }  /* if */
   done_with_func_info(func_info);
 done:;
 }  /* check_implicit_equal_operator */

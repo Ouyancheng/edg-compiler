@@ -27559,6 +27559,88 @@ operator_position describe the location of the operator in the token stream.
 }  /* process_eq_opnds */
 
 
+static void process_eq_operator(an_operand               *opnd1,
+                                an_operand               *opnd2,
+                                a_token_kind             op_token,
+                                a_source_position        *operator_pos,
+                                a_token_sequence_number  operator_tsn,
+                                an_operand               *result)
+/*
+Perform semantic analysis of a == or != operator with the given operands and
+construct the representation of the result in *result.  operator_pos and
+operator_tsn describe the location of the operator.
+*/
+{
+  a_boolean             processed = FALSE;
+  a_boolean             saved_allow_array_decay =
+                                expr_stack->allow_array_decay_in_constant_expr;
+
+  if (gcc_mode && curr_expr_kind_is(ek_init_constant)) {
+    /* gcc and clang permit operations like x==x, where x is an automatic
+       array, to appear in constant expressions. */
+    expr_stack->allow_array_decay_in_constant_expr = TRUE;
+  }  /* if */
+  if (C_dialect == C_dialect_cplusplus &&
+      /* Note -- not is_overloadable_type_first_operand on purpose.  C++/CLI
+         does not allow a handle as first operand to be treated as if it
+         were a class operand, since what we really want is to compare
+         handles for equality. */
+      (is_overloadable_type_operand(opnd1) ||
+       is_overloadable_type_operand(opnd2))) {
+    /* Look for C++ operator overloading cases. */
+    a_boolean has_predef_meaning = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cli_or_cx_enabled &&
+        (is_handle_type(opnd1->type) ||
+         is_handle_type(opnd2->type))) {
+      has_predef_meaning = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    check_for_operator_overloading(opname_kind_for_token[(int)op_token],
+                                   /*unary_operator=*/FALSE,
+                                   /*must_be_member_function=*/FALSE,
+                                   /*try_conversions=*/TRUE,
+                                   has_predef_meaning,
+                                   opnd1, opnd2,
+                                   operator_pos,
+                                   operator_tsn,
+                                   (a_nondependent_call_depth)0,
+                                   (a_source_position *)NULL,
+                                   result, &processed);
+  }  /* if */
+  if (!processed && curr_expr_kind_is(ek_template_arg)) {
+    /* Check for non-integral operations in a template argument expression. */
+    check_for_bad_template_arg_operation(opnd1, opnd2, operator_pos, result,
+                                         &processed);
+  }  /* if */
+  if (!processed) {
+    /* Non-operator-function cases. */
+    /* The first operand must be an arithmetic or enum type or a pointer. */
+    do_operand_transformations(opnd1, TOPT_NO_OPTIONS);
+    if (is_arithmetic_or_enum_type(opnd1->type)) {
+      /* Okay. */
+#if GNU_VECTOR_TYPES_ALLOWED
+    } else if (gnu_mode && is_vector_type(opnd1->type)) {
+      /* Vector types are arithmetic types in some sense. */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cli_or_cx_enabled && is_handle_type(opnd1->type)) {
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (is_nullptr_type(opnd1->type)) {
+    } else if (is_ptr_to_member_type(opnd1->type)) {
+    } else if (check_pointer_operand(opnd1,
+                                     expr_not_arithmetic_or_pointer_code())) {
+    }  /* if */
+    do_operand_transformations(opnd2, TOPT_NO_OPTIONS);
+    process_eq_opnds(opnd1, opnd2, op_token, operator_tsn, operator_pos,
+                     result);
+  }  /* if */
+  set_operand_position(result, &opnd1->position, &opnd2->end_position,
+                       operator_pos);
+  expr_stack->allow_array_decay_in_constant_expr = saved_allow_array_decay;
+}  /* process_eq_operator */
+
+
 static void scan_eq_operator(an_operand             *operand_1,
                              a_rescan_control_block *rcblock,
                              an_operand             *result)
@@ -27577,9 +27659,6 @@ that case.
   a_source_position     operator_position;
   a_token_sequence_number
                         operator_tok_seq_number;
-  a_boolean             processed = FALSE;
-  a_boolean             saved_allow_array_decay =
-                                expr_stack->allow_array_decay_in_constant_expr;
 
   db_enter(4, "scan_eq_operator");
 
@@ -27605,67 +27684,8 @@ that case.
     (void)get_token();
     scan_expr(&operand_2, PREC_EQ_NE, EOPT_NO_OPTIONS);
   }  /* if */
-
-  if (C_dialect == C_dialect_cplusplus &&
-      /* Note -- not is_overloadable_type_first_operand on purpose.  C++/CLI
-         does not allow a handle as first operand to be treated as if it
-         were a class operand, since what we really want is to compare
-         handles for equality. */
-      (is_overloadable_type_operand(operand_1) ||
-       is_overloadable_type_operand(&operand_2))) {
-    /* Look for C++ operator overloading cases. */
-    a_boolean has_predef_meaning = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cli_or_cx_enabled &&
-        (is_handle_type(operand_1->type) ||
-         is_handle_type(operand_2.type))) {
-      has_predef_meaning = TRUE;
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    check_for_operator_overloading(opname_kind_for_token[(int)operator_token],
-                                   /*unary_operator=*/FALSE,
-                                   /*must_be_member_function=*/FALSE,
-                                   /*try_conversions=*/TRUE,
-                                   has_predef_meaning,
-                                   operand_1, &operand_2,
-                                   &operator_position,
-                                   operator_tok_seq_number,
-                                   (a_nondependent_call_depth)0,
-                                   (a_source_position *)NULL,
-                                   result, &processed);
-  }  /* if */
-  if (!processed && curr_expr_kind_is(ek_template_arg)) {
-    /* Check for non-integral operations in a template argument expression. */
-    check_for_bad_template_arg_operation(operand_1, &operand_2,
-                                         &operator_position, result,
-                                         &processed);
-  }  /* if */
-  if (!processed) {
-    /* Non-operator-function cases. */
-    /* The first operand must be an arithmetic or enum type or a pointer. */
-    do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
-    if (is_arithmetic_or_enum_type(operand_1->type)) {
-      /* Okay. */
-#if GNU_VECTOR_TYPES_ALLOWED
-    } else if (gnu_mode && is_vector_type(operand_1->type)) {
-      /* Vector types are arithmetic types in some sense. */
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cli_or_cx_enabled && is_handle_type(operand_1->type)) {
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else if (is_nullptr_type(operand_1->type)) {
-    } else if (is_ptr_to_member_type(operand_1->type)) {
-    } else if (check_pointer_operand(operand_1,
-                                     expr_not_arithmetic_or_pointer_code())) {
-    }  /* if */
-    do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
-    process_eq_opnds(operand_1, &operand_2, operator_token,
-                     operator_tok_seq_number, &operator_position, result);
-  }  /* if */
-
-  set_operand_position(result, &operand_1->position, &operand_2.end_position,
-                       &operator_position);
-  expr_stack->allow_array_decay_in_constant_expr = saved_allow_array_decay;
+  process_eq_operator(operand_1, &operand_2, operator_token,
+                      &operator_position, operator_tok_seq_number, result);
   db_exit();
 }  /* scan_eq_operator */
 
@@ -27960,6 +27980,110 @@ For example, "x <=> y" might be rewritten as "0 <=> operator<=>(y, x)".
   }  /* if */
   n_active_rewrites -= 1;
 }  /* complete_comparison_rewrite */
+
+
+static void make_glvalue_from_null_ptr_constant(a_constant_ptr  null_ptr,
+                                                an_operand      *opnd)
+/*
+Make a "dummy" glvalue operand in *opnd from the given null pointer constant
+by adding an "indirection" operator on top of it.  Use the constant directly
+(i.e., do not allocate a copy).
+*/
+{
+  an_expr_node_ptr  node = alloc_node_for_allocated_constant(null_ptr);
+
+  node = add_indirection_to_node(node);
+  make_glvalue_expression_operand(node, opnd);
+}  /* make_glvalue_from_null_ptr_constant */
+
+
+a_boolean generated_eq_is_deleted(a_type_ptr  class_tp)
+/*
+Return TRUE if a generated operator== for the given class type should be
+deleted.  This is the case if the class type has direct bases or fields that
+cannot be compared using the "==" operator (which is the case in particular
+for reference members and anonymous unions) or whose comparison result is not
+contextually convertible to bool.
+*/
+{
+  a_boolean            result = FALSE;
+  a_type_ptr           ptr_class_tp;
+  a_base_class_ptr     bcp;
+  a_symbol_ptr         class_sym = symbol_for(class_tp), member_sym;
+  a_field_ptr          fp;
+  a_constant_ptr       zero_ptr;
+  an_operand           opnd1, opnd2, cmp_opnd;
+  an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
+
+  if (class_symbol_supp(class_sym)->any_ref_member ||
+      class_type_supp(class_tp)->has_anonymous_union_member) {
+    result = TRUE;
+    goto done;
+  }  /* if */
+  check_assertion(curr_il_region_number == file_scope_region_number);
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  expr_stack->suppress_diagnostics = TRUE;
+  expr_stack->suppress_constexpr_call_folding = TRUE;
+  zero_ptr = local_constant();
+  check_assertion(is_immediate_class_type(class_tp));
+  for (bcp = base_classes_of(class_tp); bcp != NULL; bcp = bcp->next) {
+    if (!bcp->direct) continue;
+    ptr_class_tp = make_qualified_type(bcp->type,
+                                       (a_type_qualifier_set)TQ_CONST);
+    ptr_class_tp = make_pointer_type(ptr_class_tp);
+    make_zero_of_proper_type(ptr_class_tp, zero_ptr);
+    make_glvalue_from_null_ptr_constant(zero_ptr, &opnd1);
+    make_glvalue_from_null_ptr_constant(zero_ptr, &opnd2);
+    process_eq_operator(&opnd1, &opnd2, tok_eq, &pos_curr_token,
+                        curr_token_sequence_number, &cmp_opnd);
+    /* Contextually convert *result to bool. */
+    process_boolean_controlling_expression(&cmp_opnd);
+    reclaim_fs_nodes_of_operand(&cmp_opnd);
+    if (expr_stack->any_suppressed_error) {
+      result = TRUE;
+      goto done_with_subobjects;
+    }  /* if */
+  }  /* for */
+  /* For fields, use the symbol list to avoid generated members. */
+  member_sym = class_symbol_supp(symbol_for(class_tp))->symbols;
+  for (; member_sym != NULL; member_sym = member_sym->next_in_scope) {
+    a_type_ptr  ftp;
+    if (!symbol_is(member_sym, sk_field)) continue;
+    fp = member_sym->variant.field.ptr;
+    if (field_is_nontrivial_property_or_event(fp)) continue;
+    ftp = fp->type;
+    if (is_array_type(ftp)) {
+      ftp = underlying_array_element_type(ftp);
+    }  /* if */
+    if (!is_class_struct_union_type(ftp) && !is_enum_type(ftp)) {
+      /* Not a member type for which comparison can fail. */
+      continue;
+    }  /* if */
+    ptr_class_tp = make_qualified_type(ftp, (a_type_qualifier_set)TQ_CONST);
+    ptr_class_tp = make_pointer_type(ptr_class_tp);
+    make_zero_of_proper_type(ptr_class_tp, zero_ptr);
+    make_glvalue_from_null_ptr_constant(zero_ptr, &opnd1);
+    make_glvalue_from_null_ptr_constant(zero_ptr, &opnd2);
+    process_eq_operator(&opnd1, &opnd2, tok_eq, &pos_curr_token,
+                        curr_token_sequence_number, &cmp_opnd);
+    /* Contextually convert *result to bool. */
+    process_boolean_controlling_expression(&cmp_opnd);
+    reclaim_fs_nodes_of_operand(&cmp_opnd);
+    if (expr_stack->any_suppressed_error) {
+      result = TRUE;
+      goto done_with_subobjects;
+    }  /* if */
+  }  /* for */
+done_with_subobjects:
+  release_local_constant(&zero_ptr);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+done:
+  return result;
+}  /* generated_eq_is_deleted */
 
 #if GNU_EXTENSIONS_ALLOWED
 
