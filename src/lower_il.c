@@ -10108,7 +10108,9 @@ not include the function scope memory region, if any.
            the alternate entry points on the "next" pointer. */
         for (;;) {
           a_routine_ptr arout_next = arout->next;
-          lower_routine(arout);
+          if (!ignore_routine_in_back_end(routine)) {
+            lower_routine(arout);
+          }  /* if */
           arout = arout_next;
           if (arout == NULL) break;
         }  /* for */
