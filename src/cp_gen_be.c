@@ -17200,8 +17200,7 @@ one that yields the value) of a statement expression.
       }
       break;
     case stmk_coroutine:
-      /* stmk_coroutine entries are always compiler-generated: Nothing to
-         do.  This should have been handled before we got here. */
+      /* This should have been handled before we got here. */
       unexpected_condition_str("gen_statement_full: saw stmk_coroutine");
       break;
     case stmk_block:

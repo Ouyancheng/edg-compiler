@@ -9807,8 +9807,7 @@ Generate C for a statement.
            p.return_void()
          and is always followed by a goto final_suspend statement (which will
          be dumped next).  This may *not* be statement->next, however,
-         depending on how the IL has been lowered up until this point.
-      */
+         depending on how the IL has been lowered up until this point. */
       dump_expression(statement->expr);
       break;
     default:

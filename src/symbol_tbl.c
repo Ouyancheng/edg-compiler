@@ -8885,7 +8885,7 @@ describing the failure, or ec_no_error if there is no failure.
 }  /* instantiate_coroutine_class_template_with_one_type */
 
 
-static void get_coroutine_parameter_variables(a_routine_ptr coroutine,
+static void get_coroutine_parameter_variables(a_routine_ptr        coroutine,
                                               an_arg_list_elem_ptr *alep)
 /*
 Create an argument list containing the parameters (including the implicit
@@ -8906,7 +8906,7 @@ in alep.  The caller is responsible for freeing the created argument list.
     next_alep = &(*alep)->next;
   }  /* if */
   for (rout_param_var = sp->variant.routine.parameters;
-        rout_param_var != NULL; rout_param_var = rout_param_var->next) {
+       rout_param_var != NULL; rout_param_var = rout_param_var->next) {
     var_expr = var_rvalue_expr(rout_param_var);
     make_expression_operand(var_expr, &arg_operand);
     *next_alep = alloc_arg_list_elem_for_operand(&arg_operand);
@@ -9006,10 +9006,9 @@ static void make_coroutine_promise_call_operand(an_operand        *result,
                                                 a_variable_ptr    promise_var,
                                                 a_boolean         add_await)
 /*
-Create a call to the named function in promise_type, returning the resulting
-operand in result.  Use pos as the position for any diagnostics and set err to
-TRUE if an error was issued, leaving it unchanged otherwise.  If add_await is
-TRUE, treat it as if the call was preceded by "co_await".
+Create a call to promise_var's given member function, returning the resulting
+operand in result.  If add_await is TRUE, treat it as if the call was preceded
+by "co_await".
 */
 {
   an_operand          promise_operand;

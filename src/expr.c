@@ -39059,6 +39059,7 @@ is called to implement the generated suspend points implied by the coroutine.
      points, or there is no "await_transform" declaration in p.  It is then
      further transformed by a matching user-defined "operator co_await" if
      there is one.
+
      The operation is then implemented using three calls to functions
      await_ready, await_suspend, and await_resume that are member functions of
      the class type produced by the above transformations.  If <expr> produces
@@ -42241,7 +42242,7 @@ an_expr_node_ptr make_coroutine_result_expression(
 /*
 alep points to a representation of a "co_yield" (if is_yield is TRUE) or
 "co_return" (if is_yield is FALSE) operand in a coroutine.  sp is used to
-refine the source position for the operand when is_yield is FALSE. For a
+refine the source position for the operand when is_yield is FALSE.  For a
 co_yield expression, create and return an expression
     _Pr.yield_value(_V)
 where _V is the expression or braced initializer just scanned, and _Pr is the
