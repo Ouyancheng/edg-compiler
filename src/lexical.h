@@ -2835,24 +2835,12 @@ extern void db_name_qualifier(a_name_qualifier_ptr	nqp);
 extern void db_name_reference(a_name_reference_ptr	nrp);
 
 /*
-Only create name references for locators for which they are needed,
-except that name references are always created in deduction contexts
-because they are needed for name mangling.
-*/
-#define name_reference_needed_for_locator(locator)                        \
-  (((locator)->is_qualified_name || (locator)->is_template_id ||          \
-    (locator)->is_decltype_qualified || (locator)->is_destructor_name ||  \
-    is_template_deduction_context()))
-
-/*
 Convenience macro to avoid calling make_name_reference for entities that are
 known not to have a qualified name.  This includes all entities in C mode,
 and all entities declared in functions.
 */
 #define qualifiable_name_reference(loc, scp)                                  \
-  ((C_mode() || !in_file_scope(scp) ||                                        \
-    !name_reference_needed_for_locator((loc)))                                \
-                                     ? (a_name_reference_ptr)NULL             \
+  ((C_mode() || !in_file_scope(scp)) ? (a_name_reference_ptr)NULL             \
                                      : make_name_reference((loc), (scp)))
 
 #if DEBUG

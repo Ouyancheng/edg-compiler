@@ -17544,9 +17544,7 @@ template declaration and is NULL otherwise.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (record_name_references_in_context()) {
     name_ref = qualifiable_name_reference(locator, &var->source_corresp);
-    if (name_ref != NULL && var->initializer_in_class) {
-      name_ref->used_in_primary_declarator = TRUE;
-    }  /* if */
+    if (var->initializer_in_class) name_ref->used_in_primary_declarator = TRUE;
   }  /* if */
   if (!source_sequence_entries_disallowed) {
     if (declared_type == NULL) declared_type = member_type;
