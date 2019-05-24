@@ -1554,6 +1554,9 @@ extern a_boolean is_parenthesized_component(an_init_component_ptr  icp);
 
 extern a_boolean is_pack_expansion_component(an_init_component_ptr  icp);
 
+extern
+a_boolean any_pack_expansion_components_in_list(an_init_component_ptr icp);
+
 #if DEBUG
 extern void db_init_component(an_init_component_ptr icp);
 #endif /* DEBUG */

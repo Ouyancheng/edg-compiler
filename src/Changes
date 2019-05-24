@@ -1,5 +1,31 @@
 Version 5.1
 
+5/24/19  [EDGcpfe/21187]
+Spurious failure instantiating partially explicit template function
+
+In some uses where a template function used a pack expansion inside a decltype
+construct and the template arguments were partially specified, a spurious error
+might be encountered.  For example:
+
+  template <int... Ints> struct is { };
+  struct A {
+    A(int, int);
+  };
+  template <class T, int... I>
+  decltype(T{ I... }) func(T, is<I...>);
+
+  void f() {
+    A f{1, 2};
+    func<>          (f, is<1, 2>{});
+    func<A>         (f, is<1, 2>{}); // Spurious "no matching function" error
+    func<A, 1>      (f, is<1, 2>{}); // Spurious "no matching function" error
+    func<A, 1, 2>   (f, is<1, 2>{});
+    func<A, 1, 2, 3>(f, is<1, 2>{}); // Valid "no matching function" error
+  }
+
+This is now fixed.
+
+
 5/24/19  [EDGcpfe/21110]
 Assertion failure in lower_routine
 

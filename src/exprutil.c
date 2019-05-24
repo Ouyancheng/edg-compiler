@@ -1203,6 +1203,23 @@ Otherwise, return FALSE.
   return result;
 }  /* is_pack_expansion_component */
 
+
+a_boolean any_pack_expansion_components_in_list(an_init_component_ptr icp)
+/*
+If any of the given initialization components in this list are a pack
+expansion, return TRUE.  Otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+  for (; icp != NULL; icp = icp->next) {
+    if (is_pack_expansion_component(icp)) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* any_pack_expansion_components_in_list */
+
 #if DEBUG
 
 void db_init_component(an_init_component_ptr icp)
@@ -5305,6 +5322,16 @@ list, not an argument list, so it may include designators.
                                                  /*is_declarator=*/FALSE);
       any_more = advance_to_next_pack_element(pesep);
     }  /* while */
+    /* Preserve the pack if requested. */
+    if (rcblock->options & CTWS_PRESERVE_DEDUCED_PACKS &&
+        is_pack_expansion_component(icp)) {
+      if (copy_list_icp == NULL) {
+        copy_list_icp = icp;
+      } else {
+        append_elem(end_copy_list_icp, icp);
+      }  /* if */
+      end_copy_list_icp = icp;
+    }  /* if */
   }  /* for */
   return copy_list_icp;
 }  /* rescan_init_component_list */
