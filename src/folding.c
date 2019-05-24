@@ -9171,6 +9171,8 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_clzl:
       case bfk_ctz:
       case bfk_ctzl:
+      case bfk_expect:
+      case bfk_expect_with_probability:
       case bfk_popcount:
       case bfk_popcountl:
       case bfk_parity:
