@@ -2029,6 +2029,9 @@ typedef struct a_lookup_state {
 			/* Flag that is TRUE if the decl_seq field should be
 			   compared with the corresponding value for each
 			   candidate symbol. */
+   a_boolean	found_template_param;
+			  /* TRUE if the lookup result is a template
+			     parameter. */
 } a_lookup_state;
 
 
@@ -2084,6 +2087,7 @@ value.
   cleared_lookup_state.decl_seq                      = 0;
   cleared_lookup_state.using_dir_decl_seq            = NO_DECL_SEQUENCE_NUMBER;
   cleared_lookup_state.check_decl_seq                = 0;
+  cleared_lookup_state.found_template_param          = FALSE;
 }  /* init_cleared_lookup_state */
 
 /*
@@ -2588,6 +2592,7 @@ that do normal id lookup processing.
   a_boolean	skip_scope = FALSE;
   a_symbol_ptr	sym = NULL;
   a_boolean	saved_check_decl_seq;
+  a_boolean	found_template_param = FALSE;
 
   saved_check_decl_seq = lookup_state->check_decl_seq;
   if (cfront_2_1_mode &&
@@ -2664,6 +2669,7 @@ that do normal id lookup processing.
               process_single_symbol = TRUE;
               /* Suppress the decl_seq check for template parameters. */
               lookup_state->check_decl_seq = FALSE;
+              found_template_param = TRUE;
               break;
             }  /* if */
           }  /* for */
@@ -2814,6 +2820,7 @@ that do normal id lookup processing.
     }  /* if */
   }  /* if */
   lookup_state->check_decl_seq = saved_check_decl_seq;
+  lookup_state->found_template_param = found_template_param;
   return sym;
 }  /* inactive_scope_lookup */
 
@@ -4156,6 +4163,7 @@ C and C++.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     locator->specific_symbol = sym;
+    locator->is_template_param = lookup_state.found_template_param;
   }  /* if */
   if (sym != NULL) {
     /* If the symbol is a projection symbol, reduce it to the fundamental

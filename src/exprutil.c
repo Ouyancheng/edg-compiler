@@ -5573,7 +5573,8 @@ to the indicated operand.
 {
   if (!C_mode() && !is_error_operand(operand) &&
       !expr_stack->template_deduction_context &&
-      record_name_references_in_context()) {
+      record_name_references_in_context() &&
+      name_reference_needed_for_locator(locator)) {
     make_name_reference_from_locator(locator, &operand->name_reference);
     operand->name_reference_set = TRUE;
   }  /* if */

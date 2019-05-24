@@ -18399,6 +18399,9 @@ Display a name qualifier, for debugging purposes.
     db_name((a_source_correspondence*)&nqp->
                                      qualifier.namespace_ptr->source_corresp);
   }  /* if */
+  if (nqp->name != NULL) {
+    fprintf(f_debug, " (named as %s)", nqp->name);
+  }  /* if */
   fprintf(f_debug, "::");
 }  /* db_name_qualifier */
 
@@ -18615,6 +18618,13 @@ describes the name specified by "locator".
       ++nrp->num_template_arguments;
     }  /* for */
   }  /* for */
+#if DEBUG
+  if (db_flag_is_set("name_refs") && locator->symbol_header != NULL) {
+    db_name_reference(nrp);
+    fprintf(f_debug, "  locator name=%s\n",
+            locator->symbol_header->identifier);
+  }  /* if */
+#endif /* DEBUG */
 }  /* make_name_reference_from_locator */
 
 

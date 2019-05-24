@@ -267,6 +267,9 @@ typedef struct a_symbol_locator {
 			/* TRUE if the identifier is a Microsoft property
 			   or event accessor function. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_bit_field	is_template_param;
+			  /* TRUE if normal_id_lookup found a template
+			     parameter name. */
   a_symbol_ptr	specific_symbol;
 			/* If is_qualified_name is TRUE, this points to the
 			   specific symbol for the qualified name.  Otherwise,
