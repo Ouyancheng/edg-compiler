@@ -1,6 +1,6 @@
 Version 5.1
 
-5/27/19  [EDGcpfe/21059]
+5/27/19  [EDGcpfe/21059,EDGcpfe/21151]
 Abort with class template argument deduction and multiple translation units
 
 When a secondary translation unit contained code where class template argument
@@ -8,9 +8,8 @@ deduction was being perfored with implicit deduction guides, the front end
 would fail an internal assertion check in 'find_routine_correspondence'.  For
 example, if the following code was in a secondary translation unit:
 
-  template<class T> class B
+  template<class T> struct B
   {
-  public:
     B(T v1,T v2);
   };
   void foo() {
