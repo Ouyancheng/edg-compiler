@@ -3229,7 +3229,7 @@ is in fact valid.
       match = FALSE;
       process_bad_trans_unit_corresp(iek_variable, var, corresp_var);
     }  /* if */
-    if (match && !trans_unit_test_mode &&
+    if (match && !trans_unit_test_mode && !var->is_inline &&
         var->storage_class == (a_storage_class)sc_unspecified &&
         corresp_var->storage_class == (a_storage_class)sc_unspecified &&
         /* Instantiations of template static data members may appear in more
