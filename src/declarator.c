@@ -3818,7 +3818,9 @@ an error if a default argument expression is encountered.
              It's not actually possible to know whether a constructor is a
              (valid or invalid) copy constructor without looking past the
              first parameter.  That's part of what makes this check a little
-             complicated. */
+             complicated.  In modes where copy elision is expected, cases 3
+             and 4 are permitted since copy elision can be performed on the
+             initializer. */
           /* Note that this check doesn't apply to C++/CLI value classes read
              from metadata.  There is no danger of unbounded recursion since
              C++/CLI value types are always bit-copied rather than copied
@@ -3885,10 +3887,12 @@ an error if a default argument expression is encountered.
             }  /* if */
             if (may_be_copy_constructor) {
               tp = skip_typerefs(ptp->type);
-              if (identical_types(parent_type, tp)) {
+              if (!mandatory_copy_elision &&
+                  identical_types(parent_type, tp)) {
                 /* Type of this parameter is identical to the type of the
-                   parent class (see cases 3 and 4 above).  Since this is a
-                   copy constructor, an error is in order. */
+                   parent class (see cases 3 and 4 above).  If copy elision is
+                   expected, this is permissible.  If not, since this is a copy
+                   constructor, an error is in order. */
                 pos_ty_error(ec_bad_constructor_param, &param_type_pos,
                              parent_type);
                 ptp->type = error_type();
