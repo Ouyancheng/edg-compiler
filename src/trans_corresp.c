@@ -3920,7 +3920,7 @@ is in fact valid.
   a_boolean     match;
   a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
   a_type_ptr    corresp_type;
-  a_boolean     both_defined;
+  a_boolean     both_defined, both_visible;
   a_source_correspondence_ptr
                 scp, corresp_scp;
   a_trans_unit_corresp_ptr
@@ -3949,6 +3949,8 @@ is in fact valid.
   corresp_scp = &corresp_type->source_corresp;
   both_defined = type_has_definition(type) &&
                  type_has_definition(corresp_type);
+  both_visible = !symbol_for(type)->is_invisible &&
+                 !symbol_for(corresp_type)->is_invisible;
   if (type == corresp_type) {
     match = TRUE;
     if (tcp != NULL && is_immediate_enum_type(type)) {
@@ -3977,8 +3979,11 @@ is in fact valid.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Check some other general type properties. */
-  if (match && type != corresp_type &&
+  /* Check some other general type properties.  Symbols such as
+     std::align_val_t can be pre-defined but invisible, and overwritten by
+     actual declarations later.  Don't issue errors when one has been
+     overwritten but the other hasn't. */
+  if (match && both_visible && type != corresp_type &&
       ((type->kind != corresp_type->kind &&
         /* "class" and "struct" are interchangeable if not both entries are
            definitions. */

@@ -1,5 +1,23 @@
 Version 5.1
 
+5/27/19  [EDGcpfe/20997]
+Spurious "incompatible declaration" error with multiple translation units
+
+When a symbol such as "std::align_val_t" is predeclared and later defined in
+one translation unit but not another, this could lead to spurious "incompatible
+declaration" errors arising from differences between the predeclared type and
+the type as seen in source.  For example, given the following definition of
+"std::align_val_t":
+
+  namespace std {
+    typedef decltype(sizeof(0)) size_t;
+    enum class align_val_t : size_t { };
+  }
+
+If one TU had this definition but the other did not, an "incompatible
+declaration" error could be issued.  This is now fixed.
+
+
 5/27/19  [EDGcpfe/20966]
 Spurious "function has different meaning" error with multiple translation units
 
