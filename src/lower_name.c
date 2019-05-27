@@ -2289,7 +2289,7 @@ on the function or member function type "type".
   an_exception_specification_ptr  esp = type->variant.routine.extra_info
                                             ->exception_specification;
 
-  if (esp == NULL) {
+  if (esp == NULL || esp->indeterminate) {
     /* Nothing to mangle. */
   } else if (esp->is_noexcept &&
              esp->variant.noexcept_arg != NULL &&

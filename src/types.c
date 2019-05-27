@@ -8445,7 +8445,7 @@ catch a B.
 {
   a_boolean  is_less_restrictive = FALSE;
 
-  if (esp2 == NULL || esp2->throw_any) {
+  if (esp2 == NULL || esp2->throw_any || esp2->indeterminate) {
     /* The function associated with type2 can throw any exception; type1
        cannot be less restrictive than that. */
     /* is_less_restrictive = FALSE; */

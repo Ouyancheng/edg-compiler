@@ -1029,6 +1029,8 @@ do_variable:
                                                       exception_specification;
           if (esp == NULL || esp->throw_any) {
             if (exceptions_enabled) put_string("throws any");
+          } else if (esp->indeterminate) {
+            put_string("<indeterminate exn spec>");
           } else if (esp->is_noexcept) {
             put_string("noexcept");
           } else if (esp->variant.exception_specification_type_list == NULL) {

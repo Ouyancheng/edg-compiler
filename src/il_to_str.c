@@ -2642,7 +2642,7 @@ if any, recorded in the given routine type in the way described by octl.
   an_exception_specification_ptr  esp;
 
   esp = type->variant.routine.extra_info->exception_specification;
-  if (esp == NULL || esp->throw_any) {
+  if (esp == NULL || esp->throw_any || esp->indeterminate) {
     /* Nothing to output. */
   } else if (esp->is_noexcept) {
     octl->output_str(" noexcept", octl);

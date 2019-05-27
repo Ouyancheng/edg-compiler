@@ -4963,6 +4963,7 @@ statement if necessary.
   routine_type = skip_typerefs(routine_type);
   /* See if the routine has a throw specification. */
   tsp = routine_type->variant.routine.extra_info->exception_specification;
+  check_assertion(tsp == NULL || !tsp->indeterminate);
   if (tsp != NULL && !tsp->throw_any) {
     /* The routine has an exception specification that the runtime library
        needs to know about.  (A null pointer means the function can throw

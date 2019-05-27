@@ -1,5 +1,24 @@
 Version 5.1
 
+5/27/19  [EDGcpfe/20966]
+Spurious "function has different meaning" error with multiple translation units
+
+In C++17 mode, the exception specification makes up part of the type of the
+function.  When attempting to compare two of the same special functions (e.g.,
+a constructor) between translation units where one TU had the exception
+specification of the function determined, while the other had it still
+indeterminate, this could cause a spurious error.  For example, given this
+header:
+
+  struct A {
+    A();
+  };
+  struct B : A {}; // Possible spurious "different meaning of B::B()" error
+
+If two files include the header but only one creates an instance of "B", a
+spurious error would be generated.  This is now fixed.
+
+
 5/27/19  [EDGcpfe/21059,EDGcpfe/21151]
 Abort with class template argument deduction and multiple translation units
 

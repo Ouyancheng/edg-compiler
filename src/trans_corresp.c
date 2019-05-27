@@ -2980,6 +2980,70 @@ if either one has an indeterminate exception specification.
 }  /* compatible_exception_spec */
 
 
+static a_boolean routines_are_compatible(a_routine_ptr rp1,
+                                         a_routine_ptr rp2)
+/*
+Return TRUE if the given routines are compatible with each other.
+*/
+{
+  a_boolean                   result = FALSE;
+  a_source_correspondence_ptr scp1 = &rp1->source_corresp;
+  a_source_correspondence_ptr scp2 = &rp2->source_corresp;
+
+  /* These could all be combined into a single if statement, but for
+     readability and debugability they are kept separate. */
+  if (!f_types_are_compatible(rp1->type, rp2->type,
+                              TCF_SEEK_CORRESP |
+                              TCF_REDECLARATION |
+                              TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING)) {
+    /* result = FALSE; */
+  } else if (!is_generated_new_or_delete_operator(rp1) &&
+             !is_generated_new_or_delete_operator(rp2) &&
+             (!compatible_exception_spec(rp1, rp2) ||
+              rp1->compiler_generated != rp2->compiler_generated)) {
+    /* result = FALSE; */
+  } else if (rp1->is_virtual != rp2->is_virtual ||
+             rp1->pure_virtual != rp2->pure_virtual) {
+    /* result = FALSE; */
+  } else if (!C_mode() && rp1->is_inline != rp2->is_inline &&
+             !inline_flag_can_differ(rp1, rp2)) {
+    /* In C mode (C99 & GNU C), the inline flag does not need to match.
+       In C++ mode, they usually should match, but some special situations
+       do not require a match. */
+    /* result = FALSE; */
+  } else if (rp1->template_arg_list != NULL &&
+             rp1->is_specialized != rp2->is_specialized) {
+    /* If both routines are template specialization, the explicit
+       template specialization bit should be the same. */
+    /* result = FALSE; */
+  } else if (rp1->is_explicit_constructor != rp2->is_explicit_constructor) {
+    /* result = FALSE; */
+#if DECL_MODIFIERS_IN_USE
+  } else if (incompatible_routine_decl_modifiers(rp1, rp2)) {
+    /* result = FALSE; */
+#endif /* DECL_MODIFIERS_IN_USE */
+  } else if (rp1->defined && rp2->defined &&
+             (rp1->fp_contract != rp2->fp_contract ||
+              rp1->fenv_access != rp2->fenv_access ||
+              rp1->cx_limited_range != rp2->cx_limited_range
+#if FIXED_POINT_ALLOWED
+              || rp1->fx_full_precision != rp2->fx_full_precision
+              || rp1->fx_fract_overflow != rp2->fx_fract_overflow
+              || rp1->fx_accum_overflow != rp2->fx_accum_overflow
+#endif /* FIXED_POINT_ALLOWED */
+             )) {
+    /* result = FALSE; */
+  } else if (scp1->access != scp2->access ||
+             (scp1->name_linkage != scp2->name_linkage &&
+              !routine_name_linkage_can_differ(rp1, rp2))) {
+    /* result = FALSE; */
+  } else {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* routines_are_compatible */
+
+
 static a_boolean verify_routine_correspondence(a_routine_ptr  routine)
 /*
 Check that the recorded translation unit correspondence for the given routine
@@ -2991,8 +3055,6 @@ is in fact valid.
   if (trans_unit_corresp_of(routine) != NULL) {
     a_routine_ptr  corresp_routine =
                                 (a_routine_ptr)canonical_il_entry_of(routine);
-    a_source_correspondence_ptr
-                   scp, corresp_scp;
     a_type_ptr     type, corresp_type;
     if (routine == corresp_routine) {
       /* This is the canonical entry.  If applicable, verify the entry in
@@ -3007,50 +3069,10 @@ is in fact valid.
         goto done;
       }  /* if */
     }  /* if */
-    scp = &routine->source_corresp,
-    corresp_scp = &corresp_routine->source_corresp;
     match = verify_name_correspondence(routine);
     type = skip_typerefs(routine->type);
     corresp_type = skip_typerefs(corresp_routine->type);
-    if (match &&
-        (!f_types_are_compatible(type, corresp_type,
-                                 TCF_SEEK_CORRESP |
-                                 TCF_REDECLARATION |
-                                 TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) ||
-         (!is_generated_new_or_delete_operator(routine) &&
-          !is_generated_new_or_delete_operator(corresp_routine) &&
-          (!compatible_exception_spec(routine, corresp_routine) ||
-           routine->compiler_generated !=
-                                       corresp_routine->compiler_generated)) ||
-         routine->is_virtual != corresp_routine->is_virtual ||
-         routine->pure_virtual != corresp_routine->pure_virtual ||
-         /* In C mode (C99 & GNU C), the inline flag does not need to match.
-            In C++ mode, they usually should match, but some special situations
-            do not require a match. */
-         (!C_mode() && routine->is_inline != corresp_routine->is_inline &&
-          !inline_flag_can_differ(routine, corresp_routine)) ||
-         /* If both routines are template specialization, the explicit
-            template specialization bit should be the same. */
-         (routine->template_arg_list != NULL && 
-          routine->is_specialized != corresp_routine->is_specialized) ||
-         routine->is_explicit_constructor !=
-                                    corresp_routine->is_explicit_constructor ||
-#if DECL_MODIFIERS_IN_USE
-         incompatible_routine_decl_modifiers(routine, corresp_routine) ||
-#endif /* DECL_MODIFIERS_IN_USE */
-         (routine->defined && corresp_routine->defined &&
-          (routine->fp_contract != corresp_routine->fp_contract ||
-           routine->fenv_access != corresp_routine->fenv_access ||
-           routine->cx_limited_range != corresp_routine->cx_limited_range
-#if FIXED_POINT_ALLOWED
-           || routine->fx_full_precision != corresp_routine->fx_full_precision
-           || routine->fx_fract_overflow != corresp_routine->fx_fract_overflow
-           || routine->fx_accum_overflow != corresp_routine->fx_accum_overflow
-#endif /* FIXED_POINT_ALLOWED */
-                                                                         )) ||
-         scp->access != corresp_scp->access ||
-         (scp->name_linkage != corresp_scp->name_linkage &&
-          !routine_name_linkage_can_differ(routine, corresp_routine)))) {
+    if (match && !routines_are_compatible(routine, corresp_routine)) {
       match = FALSE;
       process_bad_trans_unit_corresp(iek_routine, routine, corresp_routine);
     }  /* if */

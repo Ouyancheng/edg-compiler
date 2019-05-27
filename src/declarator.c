@@ -1807,6 +1807,7 @@ actually declares a function, member function, or function template).
     }  /* if */
   } while (loop_token(tok_comma));
   if (esp != NULL) {
+    check_assertion(!esp->indeterminate);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (ms_extensions && microsoft_version >= 1300 && esp != NULL) {
       /* Some versions of Microsoft C++ treat any non-empty exception
@@ -2642,7 +2643,7 @@ this is a helper function.
   }  /* if */
   esp = scan_exception_specification(state, func_info,
                                      !disallow_exception_spec, top_level);
-
+  check_assertion(esp == NULL || !esp->indeterminate);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cli_or_cx_enabled && esp != NULL && parent_type != NULL &&
       is_managed_class_type(parent_type)) {
