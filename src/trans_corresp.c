@@ -1722,9 +1722,11 @@ except for the Microsoft/Sun extension of an in-class specialization.)
 {
   while (routine != NULL && (
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-         /* Skip covariant routines generated during lowering. */
+         /* Skip covariant routines generated during lowering and generated
+            class template deduction guides. */
          (routine->compiler_generated &&
-          routine->overridden_function_for_wrapper != NULL) ||
+          (special_kind_is(routine, sfk_deduction_guide) ||
+           routine->overridden_function_for_wrapper != NULL)) ||
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if MICROSOFT_EXTENSIONS_ALLOWED
          /* Interface slots are generated for derived classes, and can
