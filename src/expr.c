@@ -28125,7 +28125,7 @@ done:
 /*
 A type representing comparison categories (N4810 [cmp.categories]).
 */
-typedef enum a_comparison_category_set_tag {
+enum a_comparison_category_set_tag {
   cctk_none = 0x0,
   cctk_strong_ordering = 0x1,
   cctk_weak_ordering = 0x2,
@@ -28133,7 +28133,7 @@ typedef enum a_comparison_category_set_tag {
   cctk_strong_equality = 0x8,
   cctk_weak_equality = 0x10,
   cctk_other = 0x20
-} a_comparison_category_set_tag;
+};
 
 typedef int a_comparison_category_set;
   
@@ -28177,7 +28177,7 @@ actual return type and mark the routine as deleted if appropriate.
   an_operand           opnd1, opnd2, cmp_opnd;
   an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
   a_comparison_category_set
-                       cctk = cctk_none;
+                       cctk = (a_comparison_category_set)cctk_none;
 
   if (class_symbol_supp(class_sym)->any_ref_member ||
       class_type_supp(class_tp)->has_anonymous_union_member) {
@@ -28251,15 +28251,16 @@ set_return_type:
   if (cctk & (a_comparison_category_set)cctk_other) {
     return_tp = void_type();
     srp->is_deleted = TRUE;
-  } else if ((cctk & cctk_weak_equality) ||
-             ((cctk & cctk_strong_equality) &&
-              (cctk & (cctk_partial_ordering | cctk_weak_ordering)))) {
+  } else if ((cctk & (a_comparison_category_set)cctk_weak_equality) ||
+             ((cctk & (a_comparison_category_set)cctk_strong_equality) &&
+              (cctk & ((a_comparison_category_set)cctk_partial_ordering |
+                       (a_comparison_category_set)cctk_weak_ordering)))) {
     return_tp = weak_equality_type();
-  } else if (cctk & cctk_strong_equality) {
+  } else if (cctk & (a_comparison_category_set)cctk_strong_equality) {
     return_tp = strong_equality_type();
-  } else if (cctk & cctk_partial_ordering) {
+  } else if (cctk & (a_comparison_category_set)cctk_partial_ordering) {
     return_tp = partial_ordering_type();
-  } else if (cctk & cctk_weak_ordering) {
+  } else if (cctk & (a_comparison_category_set)cctk_weak_ordering) {
     return_tp = weak_ordering_type();
   } else {
     return_tp = strong_ordering_type();
