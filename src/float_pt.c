@@ -2516,7 +2516,8 @@ before setting it if there are unused bits.
        the non-significant bytes wouldn't be cleared. */
     memzero((char *)&float_value_temp, sizeof(an_internal_float_value));
     if (kind == (a_float_kind)fk_float) {
-      res = read_float((unsigned char *)&float_value_temp, str, strlen(str));
+      res = read_float((unsigned char *)&float_value_temp, str,
+                       (int)strlen(str));
 #if DEBUG
       if (db_flag_is_set("fp")) {
         fprintf(f_debug, "read_float: res=%d\n", (int)res);
@@ -2529,7 +2530,8 @@ before setting it if there are unused bits.
                || kind == (a_float_kind)fk_long_double
 #endif /* !FP_HAS_LONG_DOUBLE */
 						      ) {
-      res = read_double((unsigned char *)&float_value_temp, str, strlen(str));
+      res = read_double((unsigned char *)&float_value_temp, str,
+                        (int)strlen(str));
 #if DEBUG
       if (db_flag_is_set("fp")) {
         fprintf(f_debug, "read_double: res=%d\n", (int)res);
@@ -2539,7 +2541,8 @@ before setting it if there are unused bits.
 #endif /* DEBUG */
 #if FLOAT80_ENABLING_POSSIBLE
     } else if (kind == (a_float_kind)fk_float80) {
-      res = read_float80((unsigned char *)&float_value_temp, str, strlen(str));
+      res = read_float80((unsigned char *)&float_value_temp, str,
+                         (int)strlen(str));
 #if DEBUG
       if (db_flag_is_set("fp")) {
         fprintf(f_debug, "read_float80: res=%d\n", (int)res);
@@ -2551,7 +2554,7 @@ before setting it if there are unused bits.
 #if FLOAT128_ENABLING_POSSIBLE
     } else if (kind == (a_float_kind)fk_float128) {
       res = read_float128((unsigned char *)&float_value_temp, str,
-                          strlen(str));
+                          (int)strlen(str));
 #if DEBUG
       if (db_flag_is_set("fp")) {
         fprintf(f_debug, "read_float128: res=%d\n", (int)res);
@@ -2564,7 +2567,7 @@ before setting it if there are unused bits.
 #if FP_HAS_LONG_DOUBLE
       check_assertion(kind == (a_float_kind)fk_long_double);
       res = read_long_double((unsigned char *)&float_value_temp, str,
-                             strlen(str));
+                             (int)strlen(str));
 #if DEBUG
       if (db_flag_is_set("fp")) {
         fprintf(f_debug, "read_long_double: res=%d\n", (int)res);
@@ -3036,7 +3039,8 @@ mode, *depends_on_fp_mode is returned TRUE (*int_value is set anyway).
      a 64-bit integer here.  That could result in unnecessary truncation if the
      host integer is larger than that. */
   softfloat_exceptionFlags = 0;
-  *int_value = f128M_to_i64_r_minMag(&temp, /*exact=*/FALSE);
+  *int_value = (a_host_large_integer)f128M_to_i64_r_minMag(&temp,
+                                                           /*exact=*/FALSE);
   if ((softfloat_exceptionFlags & softfloat_flag_invalid) != 0) {
     *err = TRUE;
   }  /* if */
@@ -3113,7 +3117,8 @@ floating-point mode, *depends_on_fp_mode is returned TRUE
      a 64-bit integer here.  That could result in unnecessary truncation if the
      host integer is larger than that. */
   softfloat_exceptionFlags = 0;
-  *unsigned_value = f128M_to_ui64_r_minMag(&temp, /*exact=*/FALSE);
+  *unsigned_value = (a_host_large_unsigned)f128M_to_ui64_r_minMag(&temp,
+                                                              /*exact=*/FALSE);
   if ((softfloat_exceptionFlags & softfloat_flag_invalid) != 0) {
     *err = TRUE;
   }  /* if */
