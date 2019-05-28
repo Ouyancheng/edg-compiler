@@ -1,5 +1,30 @@
 Version 5.1
 
+5/28/19  [EDGcpfe/21194]
+Incorrect value category when using non-member "get" with structured bindings
+
+The front end was not properly applying the appropriate value category for
+a tuple-like structured binding when using a non-member "get" function.  For
+example:
+
+  struct A {};
+  namespace std
+  {
+    template <typename> struct tuple_size;
+    template <> struct tuple_size<A> { static constexpr int value = 1; };
+    template <int, typename> struct tuple_element;
+    template <> struct tuple_element<0, A> { typedef int type; };
+  }
+  template <int> int get (A &&);
+  void f(A a)
+  {
+    auto  [a0] = a; // Incorrectly failed to find a suitable "get" function
+    auto& [a1] = a; // Correctly fails to find a suitable "get" function
+  }
+
+This is now fixed.
+
+
 5/28/19  [EDGcpfe/21283]
 Microsoft compatibility: __builtin_offsetof
 

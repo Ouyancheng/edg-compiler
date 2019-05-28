@@ -31692,6 +31692,7 @@ is an lvalue.
   a_constant_ptr       i_con = local_constant();
   a_symbol_ptr         mem_sym;
   a_symbol_locator     loc;
+  an_operand           e_opnd;
   an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
 
   save_expr_stack(&saved_expr_stack);
@@ -31700,6 +31701,13 @@ is an lvalue.
                   /*suppress_object_lifetime=*/FALSE);
   set_integer_constant(i_con, (a_host_large_integer)elem_idx,
                        targ_size_t_int_kind);
+  make_lvalue_variable_operand(container, diag_pos, diag_pos, &e_opnd,
+                               (a_ref_entry *)NULL);
+  if (!is_lvalue_reference_type(container->type)) {
+    /* If the variable is an lvalue then the result needs to be an lvalue.
+       Otherwise the result is an xvalue. */
+    conv_rvalue_reference_result_to_xvalue(&e_opnd);
+  }  /* if */
   clear_locator(&loc, diag_pos);
   (void)find_symbol("get", sizeof("get")-1, &loc);
   complete_type_is_needed(tp);
@@ -31714,14 +31722,7 @@ is an lvalue.
        the cases that do not call a member function, we create the expression
        from tokens. */
     a_boolean            err = FALSE;
-    an_operand           e_opnd, i_opnd;
-    make_lvalue_variable_operand(container, diag_pos, diag_pos, &e_opnd,
-                                 (a_ref_entry *)NULL);
-    if (!is_lvalue_reference_type(container->type)) {
-      /* If the variable is an lvalue then the result needs to be an lvalue.
-         Otherwise the result is an xvalue. */
-      conv_rvalue_reference_result_to_xvalue(&e_opnd);
-    }
+    an_operand           i_opnd;
     make_constant_operand(i_con, &i_opnd);
     if (is_function_or_template_symbol(mem_sym)) {
       a_template_arg_ptr    tap;
@@ -31787,11 +31788,8 @@ is an lvalue.
     tap = alloc_template_arg((a_templ_arg_kind)tak_nontype);
     tap->arg_operand = tap_opnd;
     make_constant_operand(i_con, &tap_opnd->operand);
-    arg = alloc_init_component((an_init_component_kind)ick_expression);
+    arg = alloc_arg_list_elem_for_operand(&e_opnd);
     *p_icp = alloc_init_component((an_init_component_kind)ick_expression);
-    make_lvalue_variable_operand(container, diag_pos, diag_pos,
-                                 operand_of_arg_list_elem(arg),
-                                 (a_ref_entry *)NULL);
     call_adl_named_function("get", tap, arg, diag_pos, tsn,
                             oc_tuple_like_binding,
                             operand_of_arg_list_elem(*p_icp),
