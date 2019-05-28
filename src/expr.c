@@ -28143,19 +28143,22 @@ Set in *p_cctk a flag corresponding to the comparison category type represented
 by tp.
 */
 {
-  if (identical_types(tp, strong_ordering_type())) {
-    *p_cctk |= cctk_strong_ordering;
-  } else if (identical_types(tp, strong_equality_type())) {
-    *p_cctk |= cctk_strong_equality;
-  } else if (identical_types(tp, partial_ordering_type())) {
-    *p_cctk |= cctk_partial_ordering;
-  } else if (identical_types(tp, weak_ordering_type())) {
-    *p_cctk |= cctk_weak_ordering;
-  } else if (identical_types(tp, weak_equality_type())) {
-    *p_cctk |= cctk_weak_equality;
+  int  result = (int)*p_cctk;
+
+  if (f_identical_types(tp, strong_ordering_type(), ITF_NO_FLAGS)) {
+    result |= (int)cctk_strong_ordering;
+  } else if (f_identical_types(tp, strong_equality_type(), ITF_NO_FLAGS)) {
+    result |= (int)cctk_strong_equality;
+  } else if (f_identical_types(tp, partial_ordering_type(), ITF_NO_FLAGS)) {
+    result |= (int)cctk_partial_ordering;
+  } else if (f_identical_types(tp, weak_ordering_type(), ITF_NO_FLAGS)) {
+    result |= cctk_weak_ordering;
+  } else if (f_identical_types(tp, weak_equality_type(), ITF_NO_FLAGS)) {
+    result |= (int)cctk_weak_equality;
   } else {
-    *p_cctk |= cctk_other;
+    result |= (int)cctk_other;
   }  /* if */
+  *p_cctk = (a_common_comparison_tag_set)result;
 }  /* update_common_comparison_tag */
 
 
