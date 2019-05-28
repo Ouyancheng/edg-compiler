@@ -315,9 +315,15 @@ format; otherwise use the underlying host floating-point type.
 A typedef would normally be used here, but this type will change for each
 inclusion of this header file and is therefore #undef'ed at the end of this
 header.
+
+For the FP_USE_EMULATION case, FPT_TYPE is essentially unused, but the type
+will appear as the type of an unused argument, so define it to void to avoid
+problems on hosts where these types do not exist.
 */
 #if FP_USE_EMULATION
 #define an_fp_floating_point_type an_fp_binary
+#undef FPT_TYPE
+#define FPT_TYPE void
 #else /* !FP_USE_EMULATION */
 #define an_fp_floating_point_type FPT_TYPE
 #endif /* FP_USE_EMULATION */
