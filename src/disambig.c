@@ -2059,17 +2059,15 @@ indicate that the lambda is a C++14 generic lambda.
 */
 {
   a_disambig_state		state;
-  a_boolean			scope_pushed = FALSE;
+  a_template_decl_info_ptr	tdip;
 
-  if (!is_template_dependent_context()) {
-    /* If we are not already in a template-dependent context, push a
-       template declaration scope so that any packs in the lambda
-       declarator will be handled properly. */
-    a_template_decl_info_ptr	tdip;
-    tdip = alloc_template_decl_info();
-    push_template_declaration_scope(tdip, /*is_template_param_rescan=*/FALSE);
-    scope_pushed = TRUE;
-  }  /* if */
+  /* Push a template declaration scope so that any packs in the lambda
+     declarator will be handled properly.  Note that we need to push a scope
+     even if we're already in a template-dependent context so that any symbols
+     that may have suppressed errors associated with them can be treated as
+     newly discovered upon the actual scanning of the parameters. */
+  tdip = alloc_template_decl_info();
+  push_template_declaration_scope(tdip, /*is_template_param_rescan=*/FALSE);
   /* Initialize the disambiguation state block. */
   init_disambig_state(&state, /*check_if_is_decl=*/FALSE,
                       /*suppress_packs=*/FALSE,
@@ -2095,7 +2093,7 @@ indicate that the lambda is a C++14 generic lambda.
   }  /* if */
   check_assertion_or_expect_error(state.may_be_decl);
   wrapup_disambig_state(&state);
-  if (scope_pushed) pop_scope();
+  pop_scope();
 }  /* prescan_lambda_parameter_clause */
 
 /******************************************************************************
