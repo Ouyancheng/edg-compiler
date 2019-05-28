@@ -28122,6 +28122,82 @@ done:
 }  /* generated_eq_is_deleted */
 
 
+a_boolean generated_ne_is_deleted(a_type_ptr  class_tp)
+/*
+Return TRUE if a generated operator!= for the given class type should be
+deleted.  This is the case if an "x == x" for lvalues of the given class type
+does not find a usable best candidate, or if that overload does not produce a
+"bool" result.
+*/
+{
+  a_boolean             result = FALSE;
+  a_type_ptr            ptr_class_tp;
+  a_constant_ptr        zero_ptr;
+  an_operand            opnd1, opnd2;
+  an_expr_stack_entry   expr_stack_entry, *saved_expr_stack;
+  a_candidate_function_ptr
+                        candidates;
+  an_arg_list_elem_ptr  arg_list = NULL;
+  a_boolean             dependent_call = FALSE, defer_resolution = FALSE,
+                        undecidable = FALSE, ambiguous = FALSE;
+  a_symbol_ptr          inaccessible_match = NULL;
+
+  check_assertion(curr_il_region_number == file_scope_region_number);
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  expr_stack->suppress_diagnostics = TRUE;
+  expr_stack->suppress_constexpr_call_folding = TRUE;
+  zero_ptr = local_constant();
+  check_assertion(is_immediate_class_type(class_tp));
+  ptr_class_tp = make_qualified_type(class_tp,
+                                     (a_type_qualifier_set)TQ_CONST);
+  ptr_class_tp = make_pointer_type(ptr_class_tp);
+  make_zero_of_proper_type(ptr_class_tp, zero_ptr);
+  make_glvalue_from_null_ptr_constant(zero_ptr, &opnd1);
+  make_glvalue_from_null_ptr_constant(zero_ptr, &opnd2);
+  candidates = select_overloaded_operator((an_opname_kind)onk_eq,
+                                          /*unary_operator=*/FALSE,
+                                          /*must_be_member_function=*/FALSE,
+                                          /*try_conversions=*/FALSE,
+                                          /*selector_is_handle=*/FALSE,
+                                          &opnd1, &opnd2, &error_position,
+                                          curr_token_sequence_number,
+                                          (a_nondependent_call_depth)0,
+                                          &dependent_call, &defer_resolution,
+                                          &undecidable, &ambiguous,
+                                          &arg_list, &inaccessible_match);
+  check_assertion(arg_list != NULL && !dependent_call &&
+                  !defer_resolution);
+  free_arg_list(arg_list);
+  if (undecidable || ambiguous || candidates == NULL) {
+    /* No unambiguous, accessible, best match. */
+    result = TRUE;
+  } else {
+    a_symbol_ptr   sym = candidates->function_symbol;
+    check_assertion(sym != NULL);
+    if (!have_access_to_symbol_full(sym, /*ignore_func_templ=*/FALSE)) {
+      result = TRUE;
+    } else {
+      a_routine_ptr  rp;
+      sym = fundamental_symbol_of(candidates->function_symbol);
+      rp = func_sym_routine(sym);
+      if (rp->is_deleted) {
+        result = TRUE;
+      } else {
+        a_type_ptr  rtp = skip_typerefs(rp->type);
+        if (!is_bool_type(rtp->variant.routine.return_type)) {
+          result = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  release_local_constant(&zero_ptr);
+  return result;
+}  /* generated_ne_is_deleted */
+
+
 /*
 A type representing comparison categories (N4810 [cmp.categories]).
 */
@@ -28267,6 +28343,76 @@ set_return_type:
   }  /* if */
   set_deduced_return_type(return_tp, &srp->source_corresp.decl_position, srp);
 }  /* determine_defaulted_spaceship_return_type */
+
+
+a_boolean generated_rel_op_is_deleted(a_type_ptr  class_tp)
+/*
+Return TRUE if a generated relational operator for the given class type should
+be deleted.  This is the case if an "x <=> x" for lvalues of the given class
+type does not find usable best candidate.
+*/
+{
+  a_boolean             result = FALSE;
+  a_type_ptr            ptr_class_tp;
+  a_constant_ptr        zero_ptr;
+  an_operand            opnd1, opnd2;
+  an_expr_stack_entry   expr_stack_entry, *saved_expr_stack;
+  a_candidate_function_ptr
+                        candidates;
+  an_arg_list_elem_ptr  arg_list = NULL;
+  a_boolean             dependent_call = FALSE, defer_resolution = FALSE,
+                        undecidable = FALSE, ambiguous = FALSE;
+  a_symbol_ptr          inaccessible_match = NULL;
+
+  check_assertion(curr_il_region_number == file_scope_region_number);
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  expr_stack->suppress_diagnostics = TRUE;
+  expr_stack->suppress_constexpr_call_folding = TRUE;
+  zero_ptr = local_constant();
+  check_assertion(is_immediate_class_type(class_tp));
+  ptr_class_tp = make_qualified_type(class_tp,
+                                     (a_type_qualifier_set)TQ_CONST);
+  ptr_class_tp = make_pointer_type(ptr_class_tp);
+  make_zero_of_proper_type(ptr_class_tp, zero_ptr);
+  make_glvalue_from_null_ptr_constant(zero_ptr, &opnd1);
+  make_glvalue_from_null_ptr_constant(zero_ptr, &opnd2);
+  candidates = select_overloaded_operator((an_opname_kind)onk_spaceship,
+                                          /*unary_operator=*/FALSE,
+                                          /*must_be_member_function=*/FALSE,
+                                          /*try_conversions=*/FALSE,
+                                          /*selector_is_handle=*/FALSE,
+                                          &opnd1, &opnd2, &error_position,
+                                          curr_token_sequence_number,
+                                          (a_nondependent_call_depth)0,
+                                          &dependent_call, &defer_resolution,
+                                          &undecidable, &ambiguous,
+                                          &arg_list, &inaccessible_match);
+  check_assertion(arg_list != NULL && !dependent_call &&
+                  !defer_resolution);
+  free_arg_list(arg_list);
+  if (undecidable || ambiguous || candidates == NULL) {
+    /* No unambiguous, accessible, best match. */
+    result = TRUE;
+  } else {
+    a_symbol_ptr   sym = candidates->function_symbol;
+    check_assertion(sym != NULL);
+    if (!have_access_to_symbol_full(sym, /*ignore_func_templ=*/FALSE)) {
+      result = TRUE;
+    } else {
+      a_routine_ptr  rp;
+      sym = fundamental_symbol_of(candidates->function_symbol);
+      rp = func_sym_routine(sym);
+      if (rp->is_deleted) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  release_local_constant(&zero_ptr);
+  return result;
+}  /* generated_rel_op_is_deleted */
 
 #if GNU_EXTENSIONS_ALLOWED
 

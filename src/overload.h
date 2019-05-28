@@ -906,6 +906,24 @@ extern void make_generic_operation_operand(
                                a_token_sequence_number operator_tok_seq_number,
                                a_source_position       *operator_position_2);
 
+extern a_candidate_function_ptr select_overloaded_operator(
+                           an_opname_kind             kind,
+                           a_boolean                  unary_operator,
+                           a_boolean                  must_be_member_function,
+                           a_boolean                  try_conversions,
+                           a_boolean                  selector_is_handle,
+                           an_operand                 *operand_1,
+                           an_operand                 *operand_2,
+                           a_source_position          *operator_position,
+                           a_token_sequence_number    operator_tok_seq_number,
+                           a_nondependent_call_depth  call_depth,
+                           a_boolean                  *p_dependent_call,
+                           a_boolean                  *p_defer_resolution,
+                           a_boolean                  *p_undecidable,
+                           a_boolean                  *p_ambiguous,
+                           an_arg_list_elem_ptr       *p_arg_list,
+                           a_symbol_ptr               *p_inaccessible_match);
+
 extern void check_for_operator_overloading(
                              an_opname_kind            kind,
                              a_boolean                 unary_operator,

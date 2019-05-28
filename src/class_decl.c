@@ -20982,6 +20982,19 @@ indicates that they should be suppressed.
             rp->is_deleted = TRUE;
             rp->defined = TRUE;
           }  /* if */
+        } else if (opname_kind_is(rp, onk_ne)) {
+          if (generated_ne_is_deleted(class_type)) {
+            rp->is_deleted = TRUE;
+            rp->defined = TRUE;
+          }  /* if */
+        } else if (opname_kind_is(rp, onk_lt) ||
+                   opname_kind_is(rp, onk_le) ||
+                   opname_kind_is(rp, onk_ge) ||
+                   opname_kind_is(rp, onk_gt)) {
+          if (generated_rel_op_is_deleted(class_type)) {
+            rp->is_deleted = TRUE;
+            rp->defined = TRUE;
+          }  /* if */
         }  /* if */
       } else if (special_kind_is(rp, sfk_destructor)) {
         if (gsfd->suppress_dtor) {

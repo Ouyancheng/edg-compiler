@@ -16973,6 +16973,557 @@ a user-defined conversion.  This is used for a Sun-mode quirk.
 }  /* some_candidate_matches_without_user_defined_convs */
 
 
+static a_boolean drop_candidate_if_not_returning_bool(
+                                             a_candidate_function_ptr  *p_cfp)
+/*
+*p_cfp is a candidate associated with a function or function template (p_cfp
+is the address of the pointer to that candidate on the candidates list).  If
+the candidate does not have a "bool" return type, remove if from the candidates
+list and return TRUE.  Otherwise, return FALSE.
+*/
+{
+  a_boolean                 result = FALSE;
+  a_candidate_function_ptr  cfp = *p_cfp;
+  a_symbol_ptr              sym = fundamental_symbol_of(cfp->function_symbol);
+  a_routine_ptr             rp = func_sym_routine(sym);
+  a_type_ptr                rtp = skip_typerefs(rp->type);
+
+  if (!is_bool_type(rtp->variant.routine.return_type)) {
+    /* Discard this candidate. */
+    result = TRUE;
+    *p_cfp = cfp->next;
+    cfp->next = NULL;
+    free_candidate_function_list(cfp);
+  }  /* if */
+  return result;
+}  /* drop_candidate_if_not_returning_bool */
+
+
+a_candidate_function_ptr select_overloaded_operator(
+                           an_opname_kind             kind,
+                           a_boolean                  unary_operator,
+                           a_boolean                  must_be_member_function,
+                           a_boolean                  try_user_conversions,
+                           a_boolean                  selector_is_handle,
+                           an_operand                 *operand_1,
+                           an_operand                 *operand_2,
+                           a_source_position          *operator_position,
+                           a_token_sequence_number    operator_tok_seq_number,
+                           a_nondependent_call_depth  call_depth,
+                           a_boolean                  *p_dependent_call,
+                           a_boolean                  *p_defer_resolution,
+                           a_boolean                  *p_undecidable,
+                           a_boolean                  *p_ambiguous,
+                           an_arg_list_elem_ptr       *p_arg_list,
+                           a_symbol_ptr               *p_inaccessible_match)
+/*
+Perform overload resolution for an operator described by kind/unary operator
+(with associated position *operator_position and token sequence number given
+by operator_tok_seq_number) invoked with the given operands (operand_1, and,
+for binary operators, operand_2).  Note that this routine is called for
+operator "?", with unary_operator FALSE; the two operands are the second and
+third operands of the "?" ("?" cannot be overloaded, but conversion functions
+could still apply).  If must_be_member_function is TRUE, this operator is one
+where the operator function must be a member function (=, [], (), ->).
+try_user_conversions is TRUE if we should look for conversion functions that
+can convert the operands to built-in types that are acceptable for the built-in
+version of the operator.  call_depth is usually zero, but if non-zero is a
+disambiguator for operator_tok_seq_number.  selector_is_handle for C++/CLI
+cases where the first operand is a handle.
+
+If overload resolution is successful, return a pointer to the selected
+candidate (which might represent a built-in operator).  If the call is
+dependent, set *p_dependent_call to TRUE.  If overload resolution should be
+deferred, set *p_defer_resolution to TRUE.  If the invocation is undecidable
+because of errors, set *p_undecidable to TRUE.  If the invocation is ambiguous,
+set *p_ambiguous to TRUE.  This function may create a list of an_arg_list_elem
+(representing the arguments to be passed to a selected candidate): If so, that
+list will be pointed to by *p_arg_list and the caller is responsible for
+freeing the list.  In C++/CLI mode, *p_inaccesible_match may be set to a symbol
+that would have been chosen except that it was inaccessible because of
+hide-by-sig lookup.
+*/
+{
+  a_candidate_function_ptr  candidate_functions, saved_candidate_functions;
+  an_arg_list_elem_ptr      arg_list = NULL, arg_list2;
+  a_boolean                 dependent_call = FALSE;
+  a_boolean                 find_supplemental_candidates = FALSE,
+                            find_reversed_candidates = FALSE;
+  a_boolean                 operand_1_is_class;
+  a_type_ptr                eff_operand_1_type = operand_1->type;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (selector_is_handle) {
+    eff_operand_1_type = type_pointed_to(eff_operand_1_type);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  operand_1_is_class = is_class_struct_union_type(eff_operand_1_type);
+  if (operand_1_is_class ||
+      (operator_overloading_on_enums_enabled &&
+       is_enum_type(eff_operand_1_type)) ||
+      (!unary_operator &&
+       (is_class_struct_union_type(operand_2->type) ||
+        (operator_overloading_on_enums_enabled &&
+         is_enum_type(operand_2->type)) ||
+        is_error_operand(operand_2)))
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* In C++/CLI, if one of the arguments is a string literal, then
+         operator overloading applies since it may eventually become a
+         System::String^ */
+      /* In C++/CLI, static conversion functions can convert to or from
+         handles. */
+      || (cli_or_cx_enabled &&
+          (is_literal_convertible_to_cli_string(operand_1,
+                                                /*allow_complex=*/FALSE) ||
+           (!unary_operator &&
+            is_literal_convertible_to_cli_string(operand_2,
+                                                 /*allow_complex=*/FALSE)) ||
+           (try_user_conversions &&
+            (is_handle_type(operand_1->type) ||
+             (!unary_operator &&
+              is_handle_type(operand_2->type))))))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+     ) {
+    /* Operator overloading may apply.  That is, the operation may be a
+       call of an overloaded operator function or the operands may be
+       convertible to built-in types appropriate for the built-in
+       operator. */
+    an_opname_kind  orig_kind = kind;
+    a_symbol_ptr    nonmember_functions_symbol = NULL,
+                    member_functions_symbol;
+    a_boolean       saved_selector_is_object_pointer =
+                                        operand_1->selector_is_object_pointer;
+    a_boolean       matched_except_for_missing_selector = FALSE,
+                    matched_except_for_selector = FALSE;
+    /* Change the operands into argument list element form. */
+    arg_list = alloc_arg_list_elem_for_operand(operand_1);
+    if (unary_operator) {
+      arg_list2 = NULL;
+    } else {
+      if (is_braced_init_list_operand(operand_2)) {
+        /* Use the arg list pointed to by operand_2 instead of allocating
+           a new one. */
+        arg_list2 = operand_2->variant.braced_init_list;
+      } else {
+        arg_list2 = alloc_arg_list_elem_for_operand(operand_2);
+      }  /* if */
+      append_elem(arg_list, arg_list2);
+    }  /* if */
+    /* candidate_functions will contain the list of viable functions. */
+    candidate_functions = NULL;
+    if (is_prototype_instantiation_context()) {
+      /* In a prototype instantiation.  If the operands are dependent,
+         the code above should have spotted that and generated a generic
+         expression operator.  Note that nonreal instantiations are
+         excluded. */
+      check_assertion_str(!is_template_dependent_type(eff_operand_1_type)&&
+                          (unary_operator ||
+                           !is_template_dependent_type(operand_2->type)),
+                          "check_for_operator_overloading: dep operand");
+    } else if (do_dependent_name_processing &&
+               is_nonspecialized_instantiation_context()) {
+      /* In a real (not prototype) instantiation, and doing dependent
+         name processing.  Look up this call to see whether it was a
+         dependent call in the prototype instantiation.  If it was a
+         nondependent call, it was recorded, along with (usually) the
+         symbol chosen by overload resolution. */
+      a_nondependent_call_info_ptr  ndcall_info = NULL;
+      a_symbol_ptr                  function_symbol, proj_function_symbol;
+      if (operator_tok_seq_number != 0) {
+        ndcall_info = get_nondependent_call_info(operator_tok_seq_number,
+                                                 call_depth);
+      }  /* if */
+      dependent_call = (ndcall_info == NULL);
+      proj_function_symbol = function_symbol = NULL;
+      if (!dependent_call) proj_function_symbol = ndcall_info->symbol;
+      if (proj_function_symbol != NULL) {
+        /* We know the function selected for this nondependent call
+           during the prototype instantiation.  Use that without going
+           through overload resolution. */
+        a_boolean  have_selector;
+        function_symbol = fundamental_symbol_of(proj_function_symbol);
+        if (function_symbol->is_class_member) {
+          member_functions_symbol = proj_function_symbol;
+          have_selector = routine_type_is_nonstatic_member_function(
+                                     routine_symbol_type(function_symbol));
+          if (have_selector) {
+            operand_1->selector_is_object_pointer = selector_is_handle;
+          }  /* if */
+        } else {
+          nonmember_functions_symbol = proj_function_symbol;
+          have_selector = FALSE;
+        }  /* if */
+        try_overloaded_function_match(
+                                     proj_function_symbol,
+                                     /*is_template_id=*/FALSE,
+                                     (a_template_arg_ptr)NULL,
+                                     have_selector ? arg_list2 : arg_list,
+                                     (an_arg_list_elem *)NULL,
+                                     have_selector,
+                                     have_selector ? operand_1 :
+                                                     (an_operand *)NULL,
+                                     /*ctor_conversion_case=*/FALSE,
+                                     /*effects_copy_initialization=*/FALSE,
+                                     /*allow_udc_on_arguments=*/TRUE,
+                                     /*arg_dep_lookup_done=*/FALSE,
+                                     /*from_arg_dep_lookup=*/FALSE,
+                                     /*dependent_call=*/FALSE,
+                                     /*ignore_templates=*/FALSE,
+                                     /*known_to_be_visible=*/TRUE,
+                                     /*is_overloaded_operator=*/TRUE,
+                                     CCO_DEFAULT, oc_default,
+                                     &candidate_functions,
+                                     p_inaccessible_match,
+                                     &matched_except_for_missing_selector,
+                                     &matched_except_for_selector);
+        operand_1->selector_is_object_pointer =
+                                          saved_selector_is_object_pointer;
+        goto select_best_function;
+      }  /* if */
+    }  /* if */
+find_more_operator_candidates:
+    saved_candidate_functions = candidate_functions;
+    /* Find any member function for the operator. */
+    if (operand_1_is_class) {
+      /* Instantiate the type if it is a template class.  This ensures that
+         member operator functions that could apply are declared. */
+      if (microsoft_mode &&
+          ms_does_not_complete_class_for_candidate_decl()) {
+        /* Microsoft compilers appear not to do this in some
+           circumstances. */
+      } else {
+        instantiate_template_class(eff_operand_1_type);
+      }  /* if */
+      member_functions_symbol = opname_member_function_symbol(
+                                  kind,
+                                        skip_typerefs(eff_operand_1_type));
+      if (member_functions_symbol != NULL) {
+        /* There are member functions for this class type.  See how well
+           they match up. */
+#if CHECKING
+        if (!member_functions_symbol->is_class_member) {
+          internal_error(
+                        "check_for_operator_overloading: func not member");
+        }  /* if */
+#endif /* CHECKING */
+        /* Use the first operand as the selector expression, and
+           the second operand as the first actual argument . */
+        operand_1->selector_is_object_pointer = selector_is_handle;
+        try_overloaded_function_match(
+                                     member_functions_symbol,
+                                     /*is_template_id=*/FALSE,
+                                     (a_template_arg_ptr)NULL,
+                                     arg_list2,
+                                     (an_arg_list_elem *)NULL,
+                                     /*have_selector=*/TRUE,
+                                     operand_1,
+                                     /*ctor_conversion_case=*/FALSE,
+                                     /*effects_copy_initialization=*/FALSE,
+                                     /*allow_udc_on_arguments=*/TRUE,
+                                     /*arg_dep_lookup_done=*/FALSE,
+                                     /*from_arg_dep_lookup=*/FALSE,
+                                     dependent_call,
+                                     /*ignore_templates=*/FALSE,
+                                     /*known_to_be_visible=*/TRUE,
+                                     /*is_overloaded_operator=*/TRUE,
+                                     CCO_DEFAULT, oc_default,
+                                     &candidate_functions,
+                                     p_inaccessible_match,
+                                     &matched_except_for_missing_selector,
+                                     &matched_except_for_selector);
+        operand_1->selector_is_object_pointer =
+                                          saved_selector_is_object_pointer;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (cli_or_cx_enabled) {
+          /* Try to match a C++/CLI static operator function to the
+             operands we have. */
+          try_overloaded_function_match(
+                                     member_functions_symbol,
+                                     /*is_template_id=*/FALSE,
+                                     (a_template_arg_ptr)NULL,
+                                     arg_list,
+                                     (an_arg_list_elem *)NULL,
+                                     /*have_selector=*/FALSE,
+                                     (an_operand *)NULL,
+                                     /*ctor_conversion_case=*/FALSE,
+                                     /*effects_copy_initialization=*/FALSE,
+                                     /*allow_udc_on_arguments=*/TRUE,
+                                     /*arg_dep_lookup_done=*/FALSE,
+                                     /*from_arg_dep_lookup=*/FALSE,
+                                     dependent_call,
+                                     /*ignore_templates=*/FALSE,
+                                     /*known_to_be_visible=*/TRUE,
+                                     /*is_overloaded_operator=*/TRUE,
+                                     CCO_DEFAULT, oc_default,
+                                     &candidate_functions,
+                                     p_inaccessible_match,
+                                     &matched_except_for_missing_selector,
+                                     &matched_except_for_selector);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      }  /* if */
+    }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* If the second operand has a C++/CLI managed class type (or a handle
+       to such a class), also look in that class for static operator
+       functions. */
+    if (cli_or_cx_enabled && !unary_operator) {
+      a_type_ptr eff_operand_2_type = operand_2->type;
+      if (is_handle_type(eff_operand_2_type)) {
+        eff_operand_2_type = type_pointed_to(eff_operand_2_type);
+      }  /* if */
+      if (is_managed_class_type(eff_operand_2_type)) {
+        /* Instantiate the type if it is a template class.  This ensures
+           that member operator functions that could apply are declared. */
+        instantiate_template_class(eff_operand_2_type);
+        member_functions_symbol = opname_member_function_symbol(kind,
+                                        skip_typerefs(eff_operand_2_type));
+        if (member_functions_symbol != NULL) {
+          /* There are member functions for this class type.  Try to match
+             a C++/CLI static operator function to the operands we have. */
+          try_overloaded_function_match(
+                                     member_functions_symbol,
+                                     /*is_template_id=*/FALSE,
+                                     (a_template_arg_ptr)NULL,
+                                     arg_list,
+                                     (an_arg_list_elem *)NULL,
+                                     /*have_selector=*/FALSE,
+                                     (an_operand *)NULL,
+                                     /*ctor_conversion_case=*/FALSE,
+                                     /*effects_copy_initialization=*/FALSE,
+                                     /*allow_udc_on_arguments=*/TRUE,
+                                     /*arg_dep_lookup_done=*/FALSE,
+                                     /*from_arg_dep_lookup=*/FALSE,
+                                     dependent_call,
+                                     /*ignore_templates=*/FALSE,
+                                     /*known_to_be_visible=*/TRUE,
+                                     /*is_overloaded_operator=*/TRUE,
+                                     CCO_DEFAULT, oc_default,
+                                     &candidate_functions,
+                                     p_inaccessible_match,
+                                     &matched_except_for_missing_selector,
+                                     &matched_except_for_selector);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Find any non-member function for the operator. */
+    if (!must_be_member_function) {
+      a_symbol_ptr             normal_sym, proj_normal_sym;
+      a_symbol_locator         locator;
+      a_type_list_entry_ptr    type_list = NULL;
+      a_symbol_list_entry_ptr  symbol_list, slep;
+      an_id_lookup_options_set idl_options;
+      a_boolean                arg_dep_lookup_done = FALSE;
+      /* If the second operand has a template class type, try to
+         instantiate it to expose any friend functions it declares. */
+      if (!unary_operator && is_class_struct_union_type(operand_2->type)) {
+        instantiate_template_class(operand_2->type);
+      }  /* if */
+      /* Do the normal id lookup on the operator name, e.g., for "+"
+         look up "operator +".  Ignore member functions, which were
+         covered above. */
+      make_opname_locator(kind, &locator, operator_position);
+      idl_options = IDL_SKIP_CLASS_SCOPES;
+      if (gpp_mode && gnu_version >= 30400 && dependent_call) {
+        /* g++ 3.4 has a bug in dependent name lookup that allows
+           entities declared after the point of lookup to be found.
+           Emulate that. */
+        idl_options |= IDL_SUPPRESS_DECL_SEQ_CHECK;
+      }  /* if */
+      normal_sym = normal_id_lookup(&locator, idl_options);
+      proj_normal_sym = locator.specific_symbol;
+      if (normal_sym != NULL &&
+          !is_function_or_template_symbol(normal_sym)) {
+        /* Ignore error symbols and like. */
+        normal_sym = NULL;
+      }  /* if */
+      if (normal_sym == NULL) proj_normal_sym = NULL;
+      if (normal_sym != NULL &&
+          is_symbol_for_which_arg_dependent_lookup_should_be_suppressed(
+                                                             normal_sym)) {
+        /* In certain cases, e.g., block externs, suppress the argument-
+           dependent lookup. */
+      } else {
+        /* Build a list of the argument types, to be used to do
+           argument-dependent lookup below. */
+        arg_dep_lookup_done = TRUE;
+        add_operand_to_arg_dependent_lookup_list(operand_1, &type_list);
+        if (!unary_operator) {
+          add_operand_to_arg_dependent_lookup_list(operand_2, &type_list);
+        }  /* if */
+      }  /* if */
+      /* Do argument-dependent lookup, producing a list of symbols to
+         be considered as candidate functions. */
+      symbol_list = argument_dependent_lookup(proj_normal_sym, &locator,
+                                              &type_list,
+                                          /*include_std_namespace=*/FALSE);
+      for (slep = symbol_list; slep != NULL; slep = slep->next) {
+        nonmember_functions_symbol = slep->symbol;
+        if (is_template_dependent_context() &&
+            is_symbol_for_which_overload_resolution_should_be_deferred(
+                                             nonmember_functions_symbol)) {
+          /* A symbol for which we cannot do overload resolution at
+             this time, e.g., a block extern symbol. */
+          *p_defer_resolution = TRUE;
+          break;
+        } else if (is_template_dependent_context() &&
+                   (clang_mode || microsoft_mode) &&
+                   !stricter_template_checking &&
+                   expr_stack->uses_this_operand) {
+            /* In a template-dependent context Clang appears to defer
+               resolution of a call of the form "f(<expr-list>)" where
+               <expr-list> is non-dependent but <expr-list> uses "this"
+               (explicitly or implicitly).  We extend this behavior to
+               Microsoft mode since it results in behavior closer to that
+               of the Microsoft compiler when parsing function template
+               definitions (which the Microsoft compiler doesn't do). */
+          *p_defer_resolution = TRUE;
+          break;
+        } else {
+          try_overloaded_function_match(
+                                     nonmember_functions_symbol,
+                                     /*is_template_id=*/FALSE,
+                                     (a_template_arg_ptr)NULL,
+                                     arg_list,
+                                     (an_arg_list_elem *)NULL,
+                                     /*have_selector=*/FALSE,
+                                     (an_operand *)NULL,
+                                     /*ctor_conversion_case=*/FALSE,
+                                     /*effects_copy_initialization=*/FALSE,
+                                     /*allow_udc_on_arguments=*/TRUE,
+                                     arg_dep_lookup_done,
+                                     /*from_arg_dep_lookup=*/
+                                             (slep != symbol_list ||
+                                              nonmember_functions_symbol !=
+                                              normal_sym),
+                                     dependent_call,
+                                     /*ignore_templates=*/FALSE,
+                                     /*known_to_be_visible=*/FALSE,
+                                     /*is_overloaded_operator=*/TRUE,
+                                     CCO_DEFAULT, oc_default,
+                                     &candidate_functions,
+                                     p_inaccessible_match,
+                                     &matched_except_for_missing_selector,
+                                     &matched_except_for_selector);
+        }  /* if */
+      }  /* for */
+      free_list_of_symbol_list_entries(symbol_list);
+    }  /* if */
+    /* See if the built-in meaning of the operator can apply if we
+       convert the class operand(s) to a built-in type through use of
+       a conversion function. */
+    if (sun_mode &&
+        some_candidate_matches_without_user_defined_convs(
+                                                    candidate_functions)) {
+      /* The Sun compiler up to 5.8 seems to not try built-in operator
+         matches if it has a user-written candidate that doesn't require
+         a user-defined conversion to match.  5.9 seems to have eliminated
+         that, but we don't yet have a sun_version option... */
+      try_user_conversions = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cli_or_cx_enabled &&
+               !unary_operator && kind == (an_opname_kind)onk_plus &&
+               (is_literal_convertible_to_cli_string(operand_1,
+                                              /*allow_complex=*/FALSE) ||
+                is_literal_convertible_to_cli_string(operand_2,
+                                              /*allow_complex=*/FALSE))) {
+      /* When the "+" operator is applied to a string literal,
+         don't try the built-in "+".  See ECMA-372 15.6.3. */
+      try_user_conversions = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
+    if (try_user_conversions) {
+      /* See if we can find user-defined conversions to built-in types
+         that will make the built-in operator feasible.  The argument
+         matches are compared to the best match so far from the above
+         searches. */
+      try_conversions_for_builtin_operator(kind, unary_operator,
+                                           arg_list,
+                                           &candidate_functions);
+    }  /* if */
+    if (spaceship_enabled) {
+      /* For comparison operators, consider additional candidates: 
+           (1) For relational operators, consider operator<=> candidates.
+               For !=, consider operator== candidates.
+           (2) For relational and <=> operators, also consider candidate
+               operator<=> that match reversed operands.
+               For == and != operators, also consider operator== that
+               match reversed operands.
+         (See N4810 [over.match.oper]/3, bullet (3.4).)  Discard supplemental
+         candidates if they are equality or relational operators that do not
+         return "bool". */
+      if (find_reversed_candidates) {
+        /* We just handled case (2) above.  Mark any resulting candidates
+           accordingly, and "unreverse" the operands.  Also, "unreverse"
+           that argument match entries for the corresponding candidate
+           functions and reset "kind" to the original operator kind. */
+        a_candidate_function_ptr  *p_cfp = &candidate_functions;
+        while (*p_cfp != saved_candidate_functions) {
+          a_candidate_function_ptr  cfp = *p_cfp;
+          if (kind != (an_opname_kind)onk_spaceship &&
+              cfp->function_symbol != NULL &&
+              drop_candidate_if_not_returning_bool(p_cfp)) {
+            /* The candidate was discarded. */
+          } else {
+            an_arg_match_summary_ptr  amsp = cfp->arg_matches;
+            cfp->arg_matches = amsp->next;
+            cfp->arg_matches->next = amsp;
+            amsp->next = NULL;
+            cfp->supplemental_comparison_candidate = TRUE;
+            cfp->supplemental_reversed_candidate = TRUE;
+            p_cfp = &cfp->next;
+          }  /* if */
+        }  /* while */
+        arg_list = reverse_init_component_list(arg_list);
+        kind = orig_kind;
+      } else if (find_supplemental_candidates ||
+                 kind == (an_opname_kind)onk_eq ||
+                 kind == (an_opname_kind)onk_spaceship) {
+        /* We either handled (1) above, or it didn't apply but we're
+           dealing with a <=> or == operator.  Now handle (2). */
+        if (find_supplemental_candidates) {
+          /* Mark any candidates found for case (1) as such. */
+          a_candidate_function_ptr  *p_cfp = &candidate_functions;
+          while (*p_cfp != saved_candidate_functions) {
+            a_candidate_function_ptr  cfp = *p_cfp;
+            if (kind != (an_opname_kind)onk_spaceship &&
+                cfp->function_symbol != NULL &&
+                drop_candidate_if_not_returning_bool(p_cfp)) {
+              /* The candidate was discarded. */
+            } else {
+              cfp->supplemental_comparison_candidate = TRUE;
+              p_cfp = &cfp->next;
+            }  /* if */
+          }  /* while */
+        }  /* if */
+        arg_list = reverse_init_component_list(arg_list);
+        find_reversed_candidates = TRUE;
+        goto find_more_operator_candidates;
+      } else if (opname_is_comparison(kind)) {
+        /* Handle case (1) above.  (Note that == and <=> don't get here
+           because they were handled in the previous "else if" branch.) */
+        if (kind == (an_opname_kind)onk_ne) {
+          kind = (an_opname_kind)onk_eq;
+        } else {
+          kind = (an_opname_kind)onk_spaceship;
+        }  /* if */
+        find_supplemental_candidates = TRUE;
+        goto find_more_operator_candidates;
+      }  /* if */
+    }  /* if */
+select_best_function:
+    /* The candidate_functions list now contains all the viable
+       functions.  Find the best. */
+    select_best_candidate_functions(&candidate_functions, operator_position,
+                                    p_undecidable, p_ambiguous);
+  }  /* if */
+  *p_arg_list = arg_list;
+  *p_dependent_call = dependent_call;
+  return candidate_functions;
+}  /* select_overloaded_operator */
+
+
 void check_for_operator_overloading(
                              an_opname_kind            kind,
                              a_boolean                 unary_operator,
@@ -17021,20 +17572,15 @@ apply, but we can't tell).  operand_2 is allowed to be a braced-init-list
 operand when initializer lists are enabled.
 */
 {
-  an_arg_list_elem_ptr     arg_list, arg_list2, arg_list_elem;
+  an_arg_list_elem_ptr     arg_list, arg_list_elem;
   an_expr_node_ptr         arg_expr_list, end_arg_expr_list;
-  a_symbol_ptr             nonmember_functions_symbol = NULL;
-  a_symbol_ptr             member_functions_symbol;
   a_symbol_ptr             function_symbol, proj_function_symbol;
-  a_boolean                operand_1_is_class;
   a_type_ptr               eff_operand_1_type;
   an_operand               function_operand;
-  a_candidate_function_ptr candidate_functions, saved_candidate_functions;
+  a_candidate_function_ptr candidate_functions;
   an_arg_match_summary_ptr arg_match;
   a_symbol_ptr             inaccessible_match = NULL;
-  a_boolean                matched_except_for_missing_selector = FALSE;
-  a_boolean                matched_except_for_selector = FALSE;
-  a_boolean                member_is_best_match, have_selector;
+  a_boolean                member_is_best_match;
   a_boolean                nonstatic_member_is_best_match;
   an_expr_node_ptr         arg;
   a_param_type_ptr         param;
@@ -17046,15 +17592,11 @@ operand when initializer lists are enabled.
   a_boolean                defer_overload_resolution = FALSE;
   a_boolean                found_through_adl = FALSE;
   a_boolean                selector_is_object_pointer = FALSE;
-  a_boolean                saved_selector_is_object_pointer =
-                                         operand_1->selector_is_object_pointer;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                potential_operator_synthesis_case = FALSE;
   an_opname_kind           corresp_simple_operator = (an_opname_kind)onk_none;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean                folded_to_constant = FALSE;
-  a_boolean                find_supplemental_candidates = FALSE,
-                           find_reversed_candidates = FALSE;
   an_opname_kind           orig_kind = kind;
 
   db_enter(4, "check_for_operator_overloading");
@@ -17148,442 +17690,23 @@ operand when initializer lists are enabled.
     } else {
       /* At least one operand must have a class type or enum type.
          An error operand for the second operand counts as a class operand. */
-      operand_1_is_class = is_class_struct_union_type(eff_operand_1_type);
-      if (operand_1_is_class ||
-          (operator_overloading_on_enums_enabled &&
-           is_enum_type(eff_operand_1_type)) ||
-          (!unary_operator &&
-           (is_class_struct_union_type(operand_2->type) ||
-            (operator_overloading_on_enums_enabled &&
-             is_enum_type(operand_2->type)) ||
-            is_error_operand(operand_2)))
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          /* In C++/CLI, if one of the arguments is a string literal, then
-             operator overloading applies since it may eventually become a
-             System::String^ */
-          /* In C++/CLI, static conversion functions can convert to or from
-             handles. */
-          ||
-          (cli_or_cx_enabled &&
-           (is_literal_convertible_to_cli_string(operand_1,
-                                                 /*allow_complex=*/FALSE) ||
-            (!unary_operator &&
-             is_literal_convertible_to_cli_string(operand_2,
-                                                 /*allow_complex=*/FALSE)) ||
-            (try_conversions &&
-             (is_handle_type(operand_1->type) ||
-              (!unary_operator &&
-               is_handle_type(operand_2->type))))))
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-         ) {
-        /* Operator overloading may apply.  That is, the operation may be a
-           call of an overloaded operator function or the operands may be
-           convertible to built-in types appropriate for the built-in
-           operator. */
-        /* Change the operands into argument list element form. */
-        arg_list = alloc_arg_list_elem_for_operand(operand_1);
-        if (unary_operator) {
-          arg_list2 = NULL;
-        } else {
-          if (is_braced_init_list_operand(operand_2)) {
-            /* Use the arg list pointed to by operand_2 instead of allocating
-               a new one. */
-            arg_list2 = operand_2->variant.braced_init_list;
-          } else {
-            arg_list2 = alloc_arg_list_elem_for_operand(operand_2);
-          }  /* if */
-          append_elem(arg_list, arg_list2);
-        }  /* if */
-        /* candidate_functions will contain the list of viable functions. */
-        candidate_functions = NULL;
-        if (is_prototype_instantiation_context()) {
-          /* In a prototype instantiation.  If the operands are dependent,
-             the code above should have spotted that and generated a generic
-             expression operator.  Note that nonreal instantiations are
-             excluded. */
-          check_assertion_str(!is_template_dependent_type(eff_operand_1_type)&&
-                              (unary_operator ||
-                               !is_template_dependent_type(operand_2->type)),
-                              "check_for_operator_overloading: dep operand");
-        } else if (do_dependent_name_processing &&
-                   is_nonspecialized_instantiation_context()) {
-          /* In a real (not prototype) instantiation, and doing dependent
-             name processing.  Look up this call to see whether it was a
-             dependent call in the prototype instantiation.  If it was a
-             nondependent call, it was recorded, along with (usually) the
-             symbol chosen by overload resolution. */
-          a_nondependent_call_info_ptr ndcall_info = NULL;
-          if (operator_tok_seq_number != 0) {
-            ndcall_info = get_nondependent_call_info(operator_tok_seq_number,
-                                                     call_depth);
-          }  /* if */
-          dependent_call = (ndcall_info == NULL);
-          proj_function_symbol = function_symbol = NULL;
-          if (!dependent_call) proj_function_symbol = ndcall_info->symbol;
-          if (proj_function_symbol != NULL) {
-            /* We know the function selected for this nondependent call
-               during the prototype instantiation.  Use that without going
-               through overload resolution. */
-            function_symbol = fundamental_symbol_of(proj_function_symbol);
-            if (function_symbol->is_class_member) {
-              member_functions_symbol = proj_function_symbol;
-              have_selector = routine_type_is_nonstatic_member_function(
-                                         routine_symbol_type(function_symbol));
-              if (have_selector) {
-                operand_1->selector_is_object_pointer =
-                                                    selector_is_object_pointer;
-              }  /* if */
-            } else {
-              nonmember_functions_symbol = proj_function_symbol;
-              have_selector = FALSE;
-            }  /* if */
-            try_overloaded_function_match(
-                                         proj_function_symbol,
-                                         /*is_template_id=*/FALSE,
-                                         (a_template_arg_ptr)NULL,
-                                         have_selector ? arg_list2 : arg_list,
-                                         (an_arg_list_elem *)NULL,
-                                         have_selector,
-                                         have_selector ? operand_1 :
-                                                         (an_operand *)NULL,
-                                         /*ctor_conversion_case=*/FALSE,
-                                         /*effects_copy_initialization=*/FALSE,
-                                         /*allow_udc_on_arguments=*/TRUE,
-                                         /*arg_dep_lookup_done=*/FALSE,
-                                         /*from_arg_dep_lookup=*/FALSE,
-                                         /*dependent_call=*/FALSE,
-                                         /*ignore_templates=*/FALSE,
-                                         /*known_to_be_visible=*/TRUE,
-                                         /*is_overloaded_operator=*/TRUE,
-                                         CCO_DEFAULT, oc_default,
-                                         &candidate_functions,
-                                         &inaccessible_match,
-                                         &matched_except_for_missing_selector,
-                                         &matched_except_for_selector);
-            operand_1->selector_is_object_pointer =
-                                              saved_selector_is_object_pointer;
-            goto select_best_function;
-          }  /* if */
-        }  /* if */
-find_more_operator_candidates:
-        saved_candidate_functions = candidate_functions;
-        /* Find any member function for the operator. */
-        if (operand_1_is_class) {
-          /* Instantiate the type if it is a template class.  This ensures that
-             member operator functions that could apply are declared. */
-          if (microsoft_mode &&
-              ms_does_not_complete_class_for_candidate_decl()) {
-            /* Microsoft compilers appear not to do this in some
-               circumstances. */
-          } else {
-            instantiate_template_class(eff_operand_1_type);
-          }  /* if */
-          member_functions_symbol = opname_member_function_symbol(kind,
-                                            skip_typerefs(eff_operand_1_type));
-          if (member_functions_symbol != NULL) {
-            /* There are member functions for this class type.  See how well
-               they match up. */
-#if CHECKING
-            if (!member_functions_symbol->is_class_member) {
-              internal_error(
-                            "check_for_operator_overloading: func not member");
-            }  /* if */
-#endif /* CHECKING */
-            /* Use the first operand as the selector expression, and
-               the second operand as the first actual argument . */
-            operand_1->selector_is_object_pointer = selector_is_object_pointer;
-            try_overloaded_function_match(
-                                         member_functions_symbol,
-                                         /*is_template_id=*/FALSE,
-                                         (a_template_arg_ptr)NULL,
-                                         arg_list2,
-                                         (an_arg_list_elem *)NULL,
-                                         /*have_selector=*/TRUE,
-                                         operand_1,
-                                         /*ctor_conversion_case=*/FALSE,
-                                         /*effects_copy_initialization=*/FALSE,
-                                         /*allow_udc_on_arguments=*/TRUE,
-                                         /*arg_dep_lookup_done=*/FALSE,
-                                         /*from_arg_dep_lookup=*/FALSE,
-                                         dependent_call,
-                                         /*ignore_templates=*/FALSE,
-                                         /*known_to_be_visible=*/TRUE,
-                                         /*is_overloaded_operator=*/TRUE,
-                                         CCO_DEFAULT, oc_default,
-                                         &candidate_functions,
-                                         &inaccessible_match,
-                                         &matched_except_for_missing_selector,
-                                         &matched_except_for_selector);
-            operand_1->selector_is_object_pointer =
-                                              saved_selector_is_object_pointer;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            if (cli_or_cx_enabled) {
-              /* Try to match a C++/CLI static operator function to the
-                 operands we have. */
-              try_overloaded_function_match(
-                                         member_functions_symbol,
-                                         /*is_template_id=*/FALSE,
-                                         (a_template_arg_ptr)NULL,
-                                         arg_list,
-                                         (an_arg_list_elem *)NULL,
-                                         /*have_selector=*/FALSE,
-                                         (an_operand *)NULL,
-                                         /*ctor_conversion_case=*/FALSE,
-                                         /*effects_copy_initialization=*/FALSE,
-                                         /*allow_udc_on_arguments=*/TRUE,
-                                         /*arg_dep_lookup_done=*/FALSE,
-                                         /*from_arg_dep_lookup=*/FALSE,
-                                         dependent_call,
-                                         /*ignore_templates=*/FALSE,
-                                         /*known_to_be_visible=*/TRUE,
-                                         /*is_overloaded_operator=*/TRUE,
-                                         CCO_DEFAULT, oc_default,
-                                         &candidate_functions,
-                                         &inaccessible_match,
-                                         &matched_except_for_missing_selector,
-                                         &matched_except_for_selector);
-            }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          }  /* if */
-        }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        /* If the second operand has a C++/CLI managed class type (or a handle
-           to such a class), also look in that class for static operator
-           functions. */
-        if (cli_or_cx_enabled && !unary_operator) {
-          a_type_ptr eff_operand_2_type = operand_2->type;
-          if (is_handle_type(eff_operand_2_type)) {
-            eff_operand_2_type = type_pointed_to(eff_operand_2_type);
-          }  /* if */
-          if (is_managed_class_type(eff_operand_2_type)) {
-            /* Instantiate the type if it is a template class.  This ensures
-               that member operator functions that could apply are declared. */
-            instantiate_template_class(eff_operand_2_type);
-            member_functions_symbol = opname_member_function_symbol(kind,
-                                            skip_typerefs(eff_operand_2_type));
-            if (member_functions_symbol != NULL) {
-              /* There are member functions for this class type.  Try to match
-                 a C++/CLI static operator function to the operands we have. */
-              try_overloaded_function_match(
-                                         member_functions_symbol,
-                                         /*is_template_id=*/FALSE,
-                                         (a_template_arg_ptr)NULL,
-                                         arg_list,
-                                         (an_arg_list_elem *)NULL,
-                                         /*have_selector=*/FALSE,
-                                         (an_operand *)NULL,
-                                         /*ctor_conversion_case=*/FALSE,
-                                         /*effects_copy_initialization=*/FALSE,
-                                         /*allow_udc_on_arguments=*/TRUE,
-                                         /*arg_dep_lookup_done=*/FALSE,
-                                         /*from_arg_dep_lookup=*/FALSE,
-                                         dependent_call,
-                                         /*ignore_templates=*/FALSE,
-                                         /*known_to_be_visible=*/TRUE,
-                                         /*is_overloaded_operator=*/TRUE,
-                                         CCO_DEFAULT, oc_default,
-                                         &candidate_functions,
-                                         &inaccessible_match,
-                                         &matched_except_for_missing_selector,
-                                         &matched_except_for_selector);
-            }  /* if */
-          }  /* if */
-        }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        /* Find any non-member function for the operator. */
-        if (!must_be_member_function) {
-          a_symbol_ptr             normal_sym, proj_normal_sym;
-          a_symbol_locator         locator;
-          a_type_list_entry_ptr    type_list = NULL;
-          a_symbol_list_entry_ptr  symbol_list, slep;
-          an_id_lookup_options_set idl_options;
-          a_boolean                arg_dep_lookup_done = FALSE;
-          /* If the second operand has a template class type, try to
-             instantiate it to expose any friend functions it declares. */
-          if (!unary_operator && is_class_struct_union_type(operand_2->type)) {
-            instantiate_template_class(operand_2->type);
-          }  /* if */
-          /* Do the normal id lookup on the operator name, e.g., for "+"
-             look up "operator +".  Ignore member functions, which were
-             covered above. */
-          make_opname_locator(kind, &locator, operator_position);
-          idl_options = IDL_SKIP_CLASS_SCOPES;
-          if (gpp_mode && gnu_version >= 30400 && dependent_call) {
-            /* g++ 3.4 has a bug in dependent name lookup that allows
-               entities declared after the point of lookup to be found.
-               Emulate that. */
-            idl_options |= IDL_SUPPRESS_DECL_SEQ_CHECK;
-          }  /* if */
-          normal_sym = normal_id_lookup(&locator, idl_options);
-          proj_normal_sym = locator.specific_symbol;
-          if (normal_sym != NULL &&
-              !is_function_or_template_symbol(normal_sym)) {
-            /* Ignore error symbols and like. */
-            normal_sym = NULL;
-          }  /* if */
-          if (normal_sym == NULL) proj_normal_sym = NULL;
-          if (normal_sym != NULL &&
-              is_symbol_for_which_arg_dependent_lookup_should_be_suppressed(
-                                                                 normal_sym)) {
-            /* In certain cases, e.g., block externs, suppress the argument-
-               dependent lookup. */
-          } else {
-            /* Build a list of the argument types, to be used to do
-               argument-dependent lookup below. */
-            arg_dep_lookup_done = TRUE;
-            add_operand_to_arg_dependent_lookup_list(operand_1, &type_list);
-            if (!unary_operator) {
-              add_operand_to_arg_dependent_lookup_list(operand_2, &type_list);
-            }  /* if */
-          }  /* if */
-          /* Do argument-dependent lookup, producing a list of symbols to
-             be considered as candidate functions. */
-          symbol_list = argument_dependent_lookup(proj_normal_sym, &locator,
-                                                  &type_list,
-                                              /*include_std_namespace=*/FALSE);
-          for (slep = symbol_list; slep != NULL; slep = slep->next) {
-            nonmember_functions_symbol = slep->symbol;
-            if (is_template_dependent_context() &&
-                is_symbol_for_which_overload_resolution_should_be_deferred(
-                                                 nonmember_functions_symbol)) {
-              /* A symbol for which we cannot do overload resolution at
-                 this time, e.g., a block extern symbol. */
-              defer_overload_resolution = TRUE;
-              break;
-            } else if (is_template_dependent_context() &&
-                       (clang_mode || microsoft_mode) &&
-                       !stricter_template_checking &&
-                       expr_stack->uses_this_operand) {
-                /* In a template-dependent context Clang appears to defer
-                   resolution of a call of the form "f(<expr-list>)" where
-                   <expr-list> is non-dependent but <expr-list> uses "this"
-                   (explicitly or implicitly).  We extend this behavior to
-                   Microsoft mode since it results in behavior closer to that
-                   of the Microsoft compiler when parsing function template
-                   definitions (which the Microsoft compiler doesn't do). */
-              defer_overload_resolution = TRUE;
-              break;
-            } else {
-              try_overloaded_function_match(
-                                         nonmember_functions_symbol,
-                                         /*is_template_id=*/FALSE,
-                                         (a_template_arg_ptr)NULL,
-                                         arg_list,
-                                         (an_arg_list_elem *)NULL,
-                                         /*have_selector=*/FALSE,
-                                         (an_operand *)NULL,
-                                         /*ctor_conversion_case=*/FALSE,
-                                         /*effects_copy_initialization=*/FALSE,
-                                         /*allow_udc_on_arguments=*/TRUE,
-                                         arg_dep_lookup_done,
-                                         /*from_arg_dep_lookup=*/
-                                                 (slep != symbol_list ||
-                                                  nonmember_functions_symbol !=
-                                                  normal_sym),
-                                         dependent_call,
-                                         /*ignore_templates=*/FALSE,
-                                         /*known_to_be_visible=*/FALSE,
-                                         /*is_overloaded_operator=*/TRUE,
-                                         CCO_DEFAULT, oc_default,
-                                         &candidate_functions,
-                                         &inaccessible_match,
-                                         &matched_except_for_missing_selector,
-                                         &matched_except_for_selector);
-            }  /* if */
-          }  /* for */
-          free_list_of_symbol_list_entries(symbol_list);
-        }  /* if */
-        /* See if the built-in meaning of the operator can apply if we
-           convert the class operand(s) to a built-in type through use of
-           a conversion function. */
-        if (sun_mode &&
-            some_candidate_matches_without_user_defined_convs(
-                                                        candidate_functions)) {
-          /* The Sun compiler up to 5.8 seems to not try built-in operator
-             matches if it has a user-written candidate that doesn't require
-             a user-defined conversion to match.  5.9 seems to have eliminated
-             that, but we don't yet have a sun_version option... */
-          try_conversions = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (cli_or_cx_enabled &&
-                   !unary_operator && kind == (an_opname_kind)onk_plus &&
-                   (is_literal_convertible_to_cli_string(operand_1,
-                                                  /*allow_complex=*/FALSE) ||
-                    is_literal_convertible_to_cli_string(operand_2,
-                                                  /*allow_complex=*/FALSE))) {
-          /* When the "+" operator is applied to a string literal,
-             don't try the built-in "+".  See ECMA-372 15.6.3. */
-          try_conversions = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        }  /* if */
-        if (try_conversions) {
-          /* See if we can find user-defined conversions to built-in types
-             that will make the built-in operator feasible.  The argument
-             matches are compared to the best match so far from the above
-             searches. */
-          try_conversions_for_builtin_operator(kind, unary_operator,
-                                               arg_list,
-                                               &candidate_functions);
-        }  /* if */
-        if (spaceship_enabled) {
-          /* For comparison operators, consider additional candidates: 
-               (1) For relational operators, consider operator<=> candidates.
-                   For !=, consider operator== candidates.
-               (2) For relational and <=> operators, also consider candidate
-                   operator<=> that match reversed operands.
-                   For == and != operators, also consider operator== that
-                   match reversed operands.
-             (See N4810 [over.match.oper]/3, bullet (3.4).) */
-          if (find_reversed_candidates) {
-            /* We just handled case (2) above.  Mark any resulting candidates
-               accordingly, and "unreverse" the operands.  Also, "unreverse"
-               that argument match entries for the corresponding candidate
-               functions and reset "kind" to the original operator kind. */
-            a_candidate_function_ptr  cfp = candidate_functions;
-            for (; cfp != saved_candidate_functions; cfp = cfp->next) {
-              an_arg_match_summary_ptr  amsp = cfp->arg_matches;
-              cfp->arg_matches = amsp->next;
-              cfp->arg_matches->next = amsp;
-              amsp->next = NULL;
-              cfp->supplemental_comparison_candidate = TRUE;
-              cfp->supplemental_reversed_candidate = TRUE;
-            }  /* for */
-            arg_list = reverse_init_component_list(arg_list);
-            kind = orig_kind;
-          } else if (find_supplemental_candidates ||
-                     kind == (an_opname_kind)onk_eq ||
-                     kind == (an_opname_kind)onk_spaceship) {
-            /* We either handled (1) above, or it didn't apply but we're
-               dealing with a <=> or == operator.  Now handle (2). */
-            if (find_supplemental_candidates) {
-              /* Mark any candidates found for case (1) as such. */
-              a_candidate_function_ptr  cfp = candidate_functions;
-              for (; cfp != saved_candidate_functions; cfp = cfp->next) {
-                cfp->supplemental_comparison_candidate = TRUE;
-              }  /* for */
-            }  /* if */
-            arg_list = reverse_init_component_list(arg_list);
-            find_reversed_candidates = TRUE;
-            goto find_more_operator_candidates;
-          } else if (opname_is_comparison(kind)) {
-            /* Handle case (1) above.  (Note that == and <=> don't get here
-               because they were handled in the previous "else if" branch.) */
-            if (kind == (an_opname_kind)onk_ne) {
-              kind = (an_opname_kind)onk_eq;
-            } else {
-              kind = (an_opname_kind)onk_spaceship;
-            }  /* if */
-            find_supplemental_candidates = TRUE;
-            goto find_more_operator_candidates;
-          }  /* if */
-        }  /* if */
-select_best_function:
-        /* The candidate_functions list now contains all the viable
-           functions.  Find the best. */
-        select_best_candidate_functions(&candidate_functions,
-                                        operator_position,
-                                        &undecidable_because_of_error,
-                                        &ambiguous);
+      candidate_functions = select_overloaded_operator(
+                                                kind, unary_operator,
+                                                must_be_member_function,
+                                                try_conversions,
+                                                selector_is_object_pointer,
+                                                operand_1, operand_2,
+                                                operator_position,
+                                                operator_tok_seq_number,
+                                                call_depth,
+                                                &dependent_call,
+                                                &defer_overload_resolution,
+                                                &undecidable_because_of_error,
+                                                &ambiguous,
+                                                &arg_list,
+                                                &inaccessible_match);
+      if (arg_list != NULL) {
+        /* Overload resolution processing occurred. */
         function_symbol = NULL;
         arg_expr_list = NULL;
         arg_list_not_used = FALSE;
@@ -17790,8 +17913,8 @@ no_applicable_operator_function:
           proj_function_symbol = candidate_functions->function_symbol;
           if (candidate_functions->supplemental_comparison_candidate) {
             if (proj_function_symbol != NULL) {
-              a_routine_ptr  rp = fundamental_symbol_of(proj_function_symbol)
-                                       ->variant.routine.ptr;
+              a_symbol_ptr   sym = fundamental_symbol_of(proj_function_symbol);
+              a_routine_ptr  rp = func_sym_routine(sym);
               check_assertion(special_kind_is(rp, sfk_operator));
               kind = rp->variant.opname_kind;
             } else {
@@ -17842,7 +17965,7 @@ no_applicable_operator_function:
                                                   arg_match->next);
             }  /* if */
           } else {
-            a_boolean  bitwise_assignment = FALSE;
+            a_boolean  bitwise_assignment = FALSE, have_selector;
             a_type_ptr routine_type;
             /* An operator function was selected. */
 #if DEBUG
@@ -18106,7 +18229,8 @@ no_applicable_operator_function:
             is_braced_init_list_operand(operand_2)) {
           /* The second item on the list was borrowed from operand_2 and
              should not be freed at this level. */
-          check_assertion(arg_list2 == operand_2->variant.braced_init_list);
+          check_assertion(arg_list->next ==
+                                         operand_2->variant.braced_init_list);
           split_tail_elems(arg_list);
         }  /* if */
         free_arg_list(arg_list);

@@ -362,8 +362,12 @@ extern void complete_comparison_rewrite(an_opname_kind           opname,
 
 extern a_boolean generated_eq_is_deleted(a_type_ptr  class_tp);
 
+extern a_boolean generated_ne_is_deleted(a_type_ptr  class_tp);
+
 extern void determine_defaulted_spaceship_return_type(a_routine_ptr  srp,
                                                       a_type_ptr     class_tp);
+
+extern a_boolean generated_rel_op_is_deleted(a_type_ptr  class_tp);
 
 extern void check_closing_paren_after_expr_list(void);
 
