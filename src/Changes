@@ -80,7 +80,7 @@ This is now fixed.
 Spurious errors on inline variables with multiple translation units
 
 In configurations allowing compilation of multiple translation units, spurious
-"already defined" errors were being issued for C++17 inline variables. For
+"already defined" errors were being issued for C++17 inline variables.  For
 example, when compiling two files with this code:
 
   inline int foo = 1; // Spurious "already defined" error

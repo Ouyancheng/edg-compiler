@@ -3253,11 +3253,12 @@ is in fact valid.
       match = FALSE;
       process_bad_trans_unit_corresp(iek_variable, var, corresp_var);
     }  /* if */
-    if (match && !trans_unit_test_mode && !var->is_inline &&
+    if (match && !trans_unit_test_mode &&
         var->storage_class == (a_storage_class)sc_unspecified &&
         corresp_var->storage_class == (a_storage_class)sc_unspecified &&
-        /* Instantiations of template static data members may appear in more
-           than one translation unit. */
+        /* Inline variables and instantiations of template static data members
+           may appear in more than one translation unit. */
+        !var->is_inline &&
         (!var->is_template_variable || var->is_specialized) &&
 #if GNU_EXTENSIONS_ALLOWED
         !(var->is_weak || corresp_var->is_weak) &&
