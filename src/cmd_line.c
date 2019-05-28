@@ -4559,11 +4559,10 @@ This function is also called in clang mode.
     if (clang_version >= 30700) {
       nullability_qualifiers_enabled = TRUE;
     }  /* if */
-    if (clang_version >= 30900) {
-#if FLOAT128_ENABLING_POSSIBLE
-      /* Clang 3.9 added support for __float128, but not __float80. */
-      float128_enabled = TRUE;
-#endif /* FLOAT128_ENABLING_POSSIBLE */
+    /* Clang 3.9 added support for __float128, but not __float80. */
+    float80_enabled = FALSE;
+    if (clang_version < 30900) {
+      float128_enabled = FALSE;
     }  /* if */
   } else {
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
@@ -4571,14 +4570,10 @@ This function is also called in clang mode.
        variables; clang provides wrappers for all. */
     all_thread_locals_have_wrappers = FALSE;
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
-    if (gnu_version >= 30400) {
+    if (gnu_version < 30400) {
       /* GCC has supported __float80 and __float128 since GCC 3.4. */
-#if FLOAT80_ENABLING_POSSIBLE
-      float80_enabled = TRUE;
-#endif /* FLOAT80_ENABLING_POSSIBLE */
-#if FLOAT128_ENABLING_POSSIBLE
-      float128_enabled = TRUE;
-#endif /* FLOAT128_ENABLING_POSSIBLE */
+      float80_enabled = FALSE;
+      float128_enabled = FALSE;
     }  /* if */
   }  /* if */
 }  /* check_and_set_gnu_mode_options */
@@ -11842,8 +11837,8 @@ variables declared in cmd_line.h.
 #if INT128_EXTENSIONS_ALLOWED
   int128_extensions_enabled = FALSE;
 #endif /* INT128_EXTENSIONS_ALLOWED */
-  float80_enabled = FALSE;
-  float128_enabled = FALSE;
+  float80_enabled = FLOAT80_ENABLING_POSSIBLE;
+  float128_enabled = FLOAT128_ENABLING_POSSIBLE;
   hex_floating_point_constants_allowed = FALSE;
   binary_literals_allowed = FALSE;
 #if EXPORT_ENABLING_POSSIBLE
