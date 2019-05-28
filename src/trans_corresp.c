@@ -3256,8 +3256,9 @@ is in fact valid.
     if (match && !trans_unit_test_mode &&
         var->storage_class == (a_storage_class)sc_unspecified &&
         corresp_var->storage_class == (a_storage_class)sc_unspecified &&
-        /* Inline variables and instantiations of template static data members
-           may appear in more than one translation unit. */
+        /* Inline variables and instantiations of variable templates and
+           template static data members may appear in more than one translation
+           unit. */
         !var->is_inline &&
         (!var->is_template_variable || var->is_specialized) &&
 #if GNU_EXTENSIONS_ALLOWED
