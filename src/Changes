@@ -61,7 +61,7 @@ spurious error would be generated.  This is now fixed.
 Abort with class template argument deduction and multiple translation units
 
 When a secondary translation unit contained code where class template argument
-deduction was being perfored with implicit deduction guides, the front end
+deduction was being performed with implicit deduction guides, the front end
 would fail an internal assertion check in 'find_routine_correspondence'.  For
 example, if the following code was in a secondary translation unit:
 
