@@ -28125,7 +28125,7 @@ done:
 /*
 A type representing comparison categories (N4810 [cmp.categories]).
 */
-typedef enum a_common_comparison_tag_set {
+typedef enum a_comparison_category_set_tag {
   cctk_none = 0x0,
   cctk_strong_ordering = 0x1,
   cctk_weak_ordering = 0x2,
@@ -28133,32 +28133,31 @@ typedef enum a_common_comparison_tag_set {
   cctk_strong_equality = 0x8,
   cctk_weak_equality = 0x10,
   cctk_other = 0x20
-} a_common_comparison_tag_set;
+} a_comparison_category_set_tag;
+
+typedef int a_comparison_category_set;
   
   
 static void update_common_comparison_tag(a_type_ptr                   tp,
-                                         a_common_comparison_tag_set  *p_cctk)
+                                         a_comparison_category_set  *p_cctk)
 /*
 Set in *p_cctk a flag corresponding to the comparison category type represented
 by tp.
 */
 {
-  int  result = (int)*p_cctk;
-
   if (f_identical_types(tp, strong_ordering_type(), ITF_NO_FLAGS)) {
-    result |= (int)cctk_strong_ordering;
+    *p_cctk |= (a_comparison_category_set)cctk_strong_ordering;
   } else if (f_identical_types(tp, strong_equality_type(), ITF_NO_FLAGS)) {
-    result |= (int)cctk_strong_equality;
+    *p_cctk |= (a_comparison_category_set)cctk_strong_equality;
   } else if (f_identical_types(tp, partial_ordering_type(), ITF_NO_FLAGS)) {
-    result |= (int)cctk_partial_ordering;
+    *p_cctk |= (a_comparison_category_set)cctk_partial_ordering;
   } else if (f_identical_types(tp, weak_ordering_type(), ITF_NO_FLAGS)) {
-    result |= cctk_weak_ordering;
+    *p_cctk |= (a_comparison_category_set)cctk_weak_ordering;
   } else if (f_identical_types(tp, weak_equality_type(), ITF_NO_FLAGS)) {
-    result |= (int)cctk_weak_equality;
+    *p_cctk |= (a_comparison_category_set)cctk_weak_equality;
   } else {
-    result |= (int)cctk_other;
+    *p_cctk |= (a_comparison_category_set)cctk_other;
   }  /* if */
-  *p_cctk = (a_common_comparison_tag_set)result;
 }  /* update_common_comparison_tag */
 
 
@@ -28177,12 +28176,12 @@ actual return type and mark the routine as deleted if appropriate.
   a_constant_ptr       zero_ptr;
   an_operand           opnd1, opnd2, cmp_opnd;
   an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
-  a_common_comparison_tag_set
+  a_comparison_category_set
                        cctk = cctk_none;
 
   if (class_symbol_supp(class_sym)->any_ref_member ||
       class_type_supp(class_tp)->has_anonymous_union_member) {
-    cctk |= cctk_other;
+    cctk |= (a_comparison_category_set)cctk_other;
     goto set_return_type;
   }  /* if */
   check_assertion(curr_il_region_number == file_scope_region_number);
@@ -28206,8 +28205,9 @@ actual return type and mark the routine as deleted if appropriate.
                                curr_token_sequence_number, &cmp_opnd);
     update_common_comparison_tag(cmp_opnd.type, &cctk);
     reclaim_fs_nodes_of_operand(&cmp_opnd);
-    if (expr_stack->any_suppressed_error || (cctk & cctk_other)) {
-      cctk |= cctk_other;
+    if (expr_stack->any_suppressed_error ||
+        (cctk & (a_comparison_category_set)cctk_other)) {
+      cctk |= (a_comparison_category_set)cctk_other;
       goto done_with_subobjects;
     }  /* if */
   }  /* for */
@@ -28236,8 +28236,9 @@ actual return type and mark the routine as deleted if appropriate.
     update_common_comparison_tag(cmp_opnd.type, &cctk);
     /* Contextually convert *result to bool. */
     reclaim_fs_nodes_of_operand(&cmp_opnd);
-    if (expr_stack->any_suppressed_error || (cctk & cctk_other)) {
-      cctk |= cctk_other;
+    if (expr_stack->any_suppressed_error ||
+        (cctk & (a_comparison_category_set)cctk_other)) {
+      cctk |= (a_comparison_category_set)cctk_other;
       goto done_with_subobjects;
     }  /* if */
   }  /* for */
@@ -28247,7 +28248,7 @@ done_with_subobjects:
   restore_expr_stack(saved_expr_stack);
 set_return_type:
   /* See N4810 [class.spaceship]/3 for the following logic tree. */
-  if (cctk & cctk_other) {
+  if (cctk & (a_comparison_category_set)cctk_other) {
     return_tp = void_type();
     srp->is_deleted = TRUE;
   } else if ((cctk & cctk_weak_equality) ||
