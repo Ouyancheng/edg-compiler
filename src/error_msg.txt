@@ -3062,6 +3062,7 @@ ec_await_operand_not_a_class;;"the operand to this %s expression resolves to non
 ec_await_not_allowed_in_static_initializer;;"a co_await expression is not allowed in a static initializer"
 ec_final_suspend_cannot_throw;;"the co_await expression calling %n must be non-throwing"
 ec_excessive_comparison_rewrites;;"too many recursive comparison rewrite operations"
+ec_invalid_placeholder_for_defaulted_spaceship_return;;"a deducible return type for a default operator<=> must be \"auto\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

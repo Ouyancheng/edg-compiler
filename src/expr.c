@@ -553,6 +553,68 @@ parameters match the corresponding ones for push_expr_stack_for_initializer.
 }  /* pop_expr_stack_for_initializer */
 
 
+static void set_deduced_return_type(a_type_ptr        return_type,
+                                    a_source_position *err_pos,
+                                    a_routine_ptr     rout)
+/*
+We're currently defining the give function with a deduced return type (a C++11
+lambda body or a C++14 function with an auto/decltype(auto) return type), and
+we've encountered a return statement that implies the given return_type (the
+type is void for a return without an expression).  Set the function return
+type, issuing an error if this return type conflicts with a previously-
+established type.  This function is also called to set the deduced return type
+of a defaulted spaceship operator with an "auto" return type (in that case, the
+return type is not produced from a return statement).
+*/
+{
+  a_type_ptr  rout_type, curr_return_type;
+
+  rout_type = skip_typerefs(rout->type);
+  check_assertion(rout_type->kind == (a_type_kind)tk_routine);
+  curr_return_type = rout_type->variant.routine.return_type;
+  if (!rout->has_deduced_return_type) {
+    /* The return type has not been established yet, so set it. */
+    if (check_return_type(return_type, (a_decl_parse_state*)NULL, err_pos)) {
+      /* Type is okay. */
+      rout_type->variant.routine.return_type = return_type;
+      set_routine_calling_method_flag(rout_type, err_pos);
+    } else {
+      return_type = error_type();
+    }  /* if */
+    scope_stack[depth_innermost_function_scope].orig_return_type =
+                                                             curr_return_type;
+    rout->has_deduced_return_type = TRUE;
+  } else if (!identical_types(return_type, curr_return_type)) {
+    /* Multiple returns with different types.  That might be a problem. */
+    if (is_error_type(return_type) || is_error_type(curr_return_type)) {
+      /* At least one of the types is an error type, so consider them
+         compatible, and the return type is an error type. */
+      return_type = error_type();
+    } else if (is_template_dependent_context() &&
+               (is_template_dependent_type(return_type) ||
+                is_template_dependent_type(curr_return_type))) {
+      /* At least one of the types is template-dependent, so assume they are
+         compatible.  The return type becomes the non-dependent type if we
+         have one, otherwise an unknown dependent type. */
+      if (!is_template_dependent_type(curr_return_type)) {
+        return_type = curr_return_type;
+      } else if (!is_template_dependent_type(return_type)) {
+        /* Leave return_type alone. */
+      } else {
+        return_type = type_of_unknown_templ_param_nontype;
+      }  /* if */
+    } else {
+      /* Two returns have different types. */
+      expr_pos_ty2_error(ec_deduced_return_type_conflict, err_pos, return_type,
+                         curr_return_type);
+      return_type = error_type();
+    }  /* if */
+  }  /* if */
+  /* Put the return type back in case it was changed above. */
+  rout_type->variant.routine.return_type = return_type;
+}  /* set_deduced_return_type */
+
+
 static a_type_ptr decltype_from_operand(an_operand *operand,
                                         a_boolean  *no_parens_matters);
 
@@ -27690,32 +27752,6 @@ that case.
 }  /* scan_eq_operator */
 
 
-static a_type_ptr get_ordering_type(a_const_char       *name,
-                                    a_source_position  *diag_pos)
-/*
-Look up the given name in namespace std.  If it is an (unqualified) enumeration
-type, return it.  Otherwise issue an error (suggesting <compare> was not
-included) and return an error type.  name should normally be "strong_equality",
-"strong_ordering", or "partial_ordering".
-*/
-{
-  a_symbol_ptr  sym = look_up_name_string_in_std(name);
-  a_type_ptr    result;
-
-  if (sym == NULL || is_enum_symbol(sym)) {
-    expr_pos_st_error(ec_bad_ordering_type, diag_pos, name);
-    result = error_type();
-  } else {
-    result = type_symbol_type(sym);
-    if (is_qualified_type(result)) {
-      result = error_type();
-      expr_pos_st_error(ec_bad_ordering_type, diag_pos, name);
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* get_ordering_type */
-
-
 static void check_narrowing_for_spaceship_opnd(an_operand  *opnd,
                                                a_type      *op_type)
 /*
@@ -27797,9 +27833,9 @@ operator_tsn describe the location of the operator.
       change_binary_operand_types(op_type, opnd1, opnd2,
                                   (an_expr_node_kind)eok_spaceship);
       if (is_integral_or_enum_type(op_type)) {
-        result_type = get_ordering_type("strong_ordering", operator_pos);
+        result_type = strong_ordering_type();
       } else if (is_real_floating_type(op_type)) {
-        result_type = get_ordering_type("partial_ordering", operator_pos);
+        result_type = strong_ordering_type();
       } else {
         expr_pos_ty2_error(ec_invalid_spaceship_types, operator_pos,
                            opnd1->type, opnd2->type);
@@ -27807,7 +27843,7 @@ operator_tsn describe the location of the operator.
       normal_case = TRUE;
     } else if (is_scoped_enum_type(opnd1->type) &&
                identical_types(opnd1->type, opnd2->type)) {
-      result_type = get_ordering_type("strong_ordering", operator_pos);
+      result_type = strong_ordering_type();
       normal_case = TRUE;
     } else if (is_pointer_type(opnd1->type) || is_pointer_type(opnd2->type)) {
       /* At least one of the operands is a pointer.  See if the operands are
@@ -27824,9 +27860,9 @@ operator_tsn describe the location of the operator.
                                     (an_expr_operator_kind)eok_spaceship);
       }  /* if */
       if (is_pointer_to_function_type(op_type)) {
-        result_type = get_ordering_type("strong_equality", operator_pos);
+        result_type = strong_equality_type();
       } else {
-        result_type = get_ordering_type("strong_ordering", operator_pos);
+        result_type = strong_ordering_type();
       }  /* if */
       normal_case = TRUE;
     } else if (is_ptr_to_member_type(opnd1->type) ||
@@ -27838,7 +27874,7 @@ operator_tsn describe the location of the operator.
         change_binary_operand_types(op_type, opnd1, opnd2,
                                     (an_expr_operator_kind)eok_spaceship);
       }  /* if */
-      result_type = get_ordering_type("strong_equality", operator_pos);
+      result_type = strong_equality_type();
       normal_case = TRUE;
     } else if (is_nullptr_type(opnd1->type) ||
                is_nullptr_type(opnd2->type)) {
@@ -27848,7 +27884,7 @@ operator_tsn describe the location of the operator.
         change_binary_operand_types(op_type, opnd1, opnd2,
                                     (an_expr_operator_kind)eok_spaceship);
       }  /* if */
-      result_type = get_ordering_type("strong_equality", operator_pos);
+      result_type = strong_equality_type();
       normal_case = TRUE;
     } else {
       error_in_operand(expr_not_arithmetic_code(), result);
@@ -27965,7 +28001,7 @@ For example, "x <=> y" might be rewritten as "0 <=> operator<=>(y, x)".
       check_assertion(reversed);
       process_spaceship_operator(opnd1, opnd2, pos, tsn, result);
     } else {
-      a_token_kind  op_token;
+      a_token_kind  op_token = tok_last;
       switch (opname) {
         case onk_lt: op_token = (a_token_kind)tok_lt; break;
         case onk_gt: op_token = (a_token_kind)tok_gt; break;
@@ -28084,6 +28120,148 @@ done_with_subobjects:
 done:
   return result;
 }  /* generated_eq_is_deleted */
+
+
+/*
+A type representing comparison categories (N4810 [cmp.categories]).
+*/
+typedef enum a_common_comparison_tag_set {
+  cctk_none = 0x0,
+  cctk_strong_ordering = 0x1,
+  cctk_weak_ordering = 0x2,
+  cctk_partial_ordering = 0x4,
+  cctk_strong_equality = 0x8,
+  cctk_weak_equality = 0x10,
+  cctk_other = 0x20
+} a_common_comparison_tag_set;
+  
+  
+static void update_common_comparison_tag(a_type_ptr                   tp,
+                                         a_common_comparison_tag_set  *p_cctk)
+/*
+Set in *p_cctk a flag corresponding to the comparison category type represented
+by tp.
+*/
+{
+  if (identical_types(tp, strong_ordering_type())) {
+    *p_cctk |= cctk_strong_ordering;
+  } else if (identical_types(tp, strong_equality_type())) {
+    *p_cctk |= cctk_strong_equality;
+  } else if (identical_types(tp, partial_ordering_type())) {
+    *p_cctk |= cctk_partial_ordering;
+  } else if (identical_types(tp, weak_ordering_type())) {
+    *p_cctk |= cctk_weak_ordering;
+  } else if (identical_types(tp, weak_equality_type())) {
+    *p_cctk |= cctk_weak_equality;
+  } else {
+    *p_cctk |= cctk_other;
+  }  /* if */
+}  /* update_common_comparison_tag */
+
+
+void determine_defaulted_spaceship_return_type(a_routine_ptr  srp,
+                                               a_type_ptr     class_tp)
+/*
+srp represents a defaulted operator<=> with a deducible return type for the
+given class type (whose declared data members are all known).  Determine the
+actual return type and mark the routine as deleted if appropriate.
+*/
+{
+  a_type_ptr           return_tp, ptr_class_tp;
+  a_base_class_ptr     bcp;
+  a_symbol_ptr         class_sym = symbol_for(class_tp), member_sym;
+  a_field_ptr          fp;
+  a_constant_ptr       zero_ptr;
+  an_operand           opnd1, opnd2, cmp_opnd;
+  an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
+  a_common_comparison_tag_set
+                       cctk = cctk_none;
+
+  if (class_symbol_supp(class_sym)->any_ref_member ||
+      class_type_supp(class_tp)->has_anonymous_union_member) {
+    cctk |= cctk_other;
+    goto set_return_type;
+  }  /* if */
+  check_assertion(curr_il_region_number == file_scope_region_number);
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  expr_stack->suppress_diagnostics = TRUE;
+  expr_stack->suppress_constexpr_call_folding = TRUE;
+  zero_ptr = local_constant();
+  check_assertion(is_immediate_class_type(class_tp));
+  for (bcp = base_classes_of(class_tp); bcp != NULL; bcp = bcp->next) {
+    if (!bcp->direct) continue;
+    ptr_class_tp = make_qualified_type(bcp->type,
+                                       (a_type_qualifier_set)TQ_CONST);
+    ptr_class_tp = make_pointer_type(ptr_class_tp);
+    make_zero_of_proper_type(ptr_class_tp, zero_ptr);
+    make_glvalue_from_null_ptr_constant(zero_ptr, &opnd1);
+    make_glvalue_from_null_ptr_constant(zero_ptr, &opnd2);
+    process_spaceship_operator(&opnd1, &opnd2, &pos_curr_token,
+                               curr_token_sequence_number, &cmp_opnd);
+    update_common_comparison_tag(cmp_opnd.type, &cctk);
+    reclaim_fs_nodes_of_operand(&cmp_opnd);
+    if (expr_stack->any_suppressed_error || (cctk & cctk_other)) {
+      cctk |= cctk_other;
+      goto done_with_subobjects;
+    }  /* if */
+  }  /* for */
+  /* For fields, use the symbol list to avoid generated members. */
+  member_sym = class_symbol_supp(symbol_for(class_tp))->symbols;
+  for (; member_sym != NULL; member_sym = member_sym->next_in_scope) {
+    a_type_ptr  ftp;
+    if (!symbol_is(member_sym, sk_field)) continue;
+    fp = member_sym->variant.field.ptr;
+    if (field_is_nontrivial_property_or_event(fp)) continue;
+    ftp = fp->type;
+    if (is_array_type(ftp)) {
+      ftp = underlying_array_element_type(ftp);
+    }  /* if */
+    if (!is_class_struct_union_type(ftp) && !is_enum_type(ftp)) {
+      /* Not a member type for which comparison can fail. */
+      continue;
+    }  /* if */
+    ptr_class_tp = make_qualified_type(ftp, (a_type_qualifier_set)TQ_CONST);
+    ptr_class_tp = make_pointer_type(ptr_class_tp);
+    make_zero_of_proper_type(ptr_class_tp, zero_ptr);
+    make_glvalue_from_null_ptr_constant(zero_ptr, &opnd1);
+    make_glvalue_from_null_ptr_constant(zero_ptr, &opnd2);
+    process_spaceship_operator(&opnd1, &opnd2, &pos_curr_token,
+                               curr_token_sequence_number, &cmp_opnd);
+    update_common_comparison_tag(cmp_opnd.type, &cctk);
+    /* Contextually convert *result to bool. */
+    reclaim_fs_nodes_of_operand(&cmp_opnd);
+    if (expr_stack->any_suppressed_error || (cctk & cctk_other)) {
+      cctk |= cctk_other;
+      goto done_with_subobjects;
+    }  /* if */
+  }  /* for */
+done_with_subobjects:
+  release_local_constant(&zero_ptr);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+set_return_type:
+  /* See N4810 [class.spaceship]/3 for the following logic tree. */
+  if (cctk & cctk_other) {
+    return_tp = void_type();
+    srp->is_deleted = TRUE;
+  } else if ((cctk & cctk_weak_equality) ||
+             ((cctk & cctk_strong_equality) &&
+              (cctk & (cctk_partial_ordering | cctk_weak_ordering)))) {
+    return_tp = weak_equality_type();
+  } else if (cctk & cctk_strong_equality) {
+    return_tp = strong_equality_type();
+  } else if (cctk & cctk_partial_ordering) {
+    return_tp = partial_ordering_type();
+  } else if (cctk & cctk_weak_ordering) {
+    return_tp = weak_ordering_type();
+  } else {
+    return_tp = strong_ordering_type();
+  }  /* if */
+  set_deduced_return_type(return_tp, &srp->source_corresp.decl_position, srp);
+}  /* determine_defaulted_spaceship_return_type */
 
 #if GNU_EXTENSIONS_ALLOWED
 
@@ -41963,66 +42141,6 @@ a warning if the value returned is the address of a local variable.
 }  /* check_for_return_of_address_of_local_variable */
 
 
-static void set_deduced_return_type(a_type_ptr        return_type,
-                                    a_source_position *err_pos)
-/*
-We're currently in a function with a deduced return type (a C++11 lambda body
-or a C++14 function with an auto/decltype(auto) return type), and we've
-encountered a return statement that implies the given return_type (the type
-is void for a return without an expression).  Set the function return type,
-issuing an error if this return type conflicts with a previously-established
-type.
-*/
-{
-  a_routine_ptr  rout = current_routine_entry();
-  a_type_ptr     rout_type, curr_return_type;
-
-  rout_type = skip_typerefs(rout->type);
-  check_assertion(rout_type->kind == (a_type_kind)tk_routine);
-  curr_return_type = rout_type->variant.routine.return_type;
-  if (!rout->has_deduced_return_type) {
-    /* The return type has not been established yet, so set it. */
-    if (check_return_type(return_type, (a_decl_parse_state*)NULL, err_pos)) {
-      /* Type is okay. */
-      rout_type->variant.routine.return_type = return_type;
-      set_routine_calling_method_flag(rout_type, err_pos);
-    } else {
-      return_type = error_type();
-    }  /* if */
-    scope_stack[depth_innermost_function_scope].orig_return_type =
-                                                             curr_return_type;
-    rout->has_deduced_return_type = TRUE;
-  } else if (!identical_types(return_type, curr_return_type)) {
-    /* Multiple returns with different types.  That might be a problem. */
-    if (is_error_type(return_type) || is_error_type(curr_return_type)) {
-      /* At least one of the types is an error type, so consider them
-         compatible, and the return type is an error type. */
-      return_type = error_type();
-    } else if (is_template_dependent_context() &&
-               (is_template_dependent_type(return_type) ||
-                is_template_dependent_type(curr_return_type))) {
-      /* At least one of the types is template-dependent, so assume they are
-         compatible.  The return type becomes the non-dependent type if we
-         have one, otherwise an unknown dependent type. */
-      if (!is_template_dependent_type(curr_return_type)) {
-        return_type = curr_return_type;
-      } else if (!is_template_dependent_type(return_type)) {
-        /* Leave return_type alone. */
-      } else {
-        return_type = type_of_unknown_templ_param_nontype;
-      }  /* if */
-    } else {
-      /* Two returns have different types. */
-      expr_pos_ty2_error(ec_deduced_return_type_conflict, err_pos, return_type,
-                         curr_return_type);
-      return_type = error_type();
-    }  /* if */
-  }  /* if */
-  /* Put the return type back in case it was changed above. */
-  rout_type->variant.routine.return_type = return_type;
-}  /* set_deduced_return_type */
-
-
 void deduce_return_type_from_void_operand(a_routine_ptr      rp,
                                           a_boolean          keep_placeholder,
                                           a_source_position  *diag_pos)
@@ -42064,7 +42182,8 @@ are left unaffected).
       deduced_return_type = add_placeholder_typeref(deduced_return_type,
                                                     is_decltype_auto_case);
     }  /* if */
-    set_deduced_return_type(deduced_return_type, diag_pos);
+    set_deduced_return_type(deduced_return_type, diag_pos,
+                            current_routine_entry());
   }  /* if */
 }  /* deduce_return_type_from_void_operand */
 
@@ -42147,7 +42266,8 @@ type with the type of return_op.
                                      /*initializer_alep=*/NULL,
                                      &return_op->position, &deduced_type,
                                      &deduced_auto_type, &still_dependent)) {
-    set_deduced_return_type(deduced_type, &return_op->position);
+    set_deduced_return_type(deduced_type, &return_op->position,
+                            current_routine_entry());
     *return_type = rout_type->variant.routine.return_type;
   } else if (still_dependent) {
     /* The type is still dependent, so leave the return type as it is. */

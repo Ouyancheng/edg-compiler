@@ -1107,6 +1107,16 @@ extern a_type_ptr managed_nullptr_type(void);
 
 extern a_type_ptr standard_nullptr_type(void);
 
+extern a_type_ptr strong_ordering_type(void);
+
+extern a_type_ptr weak_ordering_type(void);
+
+extern a_type_ptr partial_ordering_type(void);
+
+extern a_type_ptr strong_equality_type(void);
+
+extern a_type_ptr weak_equality_type(void);
+
 extern void update_ptr_to_member_type(a_type_ptr  ptr_mem_type,
                                       a_type_ptr  member_type);
 

@@ -13368,9 +13368,19 @@ otherwise (and take precautions for error recovery in that case).
       }  /* if */
     }  /* while */
     if (opname_kind_is(rp, onk_spaceship)) {
-      a_class_def_state  *cdsp = scope_stack_top().class_def_state;
+      a_type_ptr  auto_tp = skip_typerefs(rtp->variant.routine.return_type);
+      a_class_def_state 
+                  *cdsp = scope_stack_top().class_def_state;
+      if (!is_auto_type(auto_tp) ||
+          auto_tp->variant.template_param.extra_info->coordinates.position
+                                              != PLAIN_AUTO_TYPE_POS_NUMBER) {
+        pos_error(ec_invalid_placeholder_for_defaulted_spaceship_return,
+                  def_pos);
+        err = TRUE;
+      }  /* if */
       if (cdsp->defaulted_spaceship) {
         pos_error(ec_duplicate_defaulted_spaceship, def_pos);
+        err = TRUE;
       }  /* if */
       cdsp->defaulted_spaceship = TRUE;
     } else if (!is_bool_type(rtp->variant.routine.return_type)) {
@@ -23438,10 +23448,12 @@ any needed inherited constructors.
 }  /* generate_inheriting_constructors */
 
 
-static void check_implicit_equal_operator(a_class_def_state_ptr  cdsp)
+static void check_implicit_comparison_operators(a_class_def_state_ptr  cdsp)
 /*
 The caller has determined that a defaulted spaceship operator is declared for
-the current class definition.  If no corresponding equality operator has been
+the current class definition, which is about to be completed.  If that operator
+has an "auto" return type, determine the return type and make the operator
+"deleted" is applicable.  If no corresponding equality operator has been
 declared, declare one that matches the spaceship operator.
 */
 {
@@ -23483,6 +23495,16 @@ declared, declare one that matches the spaceship operator.
   /* This function shouldn't be called if a defaulted spaceship operator was
      not declared in the class definition. */
   check_assertion(srp != NULL);
+  if (srp->has_deducible_return_type && !srp->has_deduced_return_type) {
+    a_type_ptr  tp = skip_typerefs(srp->type),
+                auto_tp = skip_typerefs(tp->variant.routine.return_type);
+    if (!is_auto_type(auto_tp) ||
+        auto_tp->variant.template_param.extra_info->coordinates.position
+                                              != PLAIN_AUTO_TYPE_POS_NUMBER) {
+    } else {
+      determine_defaulted_spaceship_return_type(srp, class_type);
+    }  /* if */
+  }  /* if */
   /* If we got this far, this function does not declare an operator==:
      Implicitly declare a defaulted one. */
   initialize_member_decl_info(&decl_info, pos);
@@ -23514,7 +23536,7 @@ declared, declare one that matches the spaceship operator.
   }  /* if */
   done_with_func_info(func_info);
 done:;
-}  /* check_implicit_equal_operator */
+}  /* check_implicit_comparison_operators */
 
 
 static void check_base_class_destructors(a_class_def_state_ptr  class_state)
@@ -30346,7 +30368,7 @@ wrap_up_class_definition.
         generate_inheriting_constructors(class_state);
       }  /* if */
       if (class_state->defaulted_spaceship) {
-        check_implicit_equal_operator(class_state);
+        check_implicit_comparison_operators(class_state);
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED

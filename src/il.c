@@ -10793,6 +10793,107 @@ Make or find a type entry for a void type, and return a pointer to it.
   return il_void_type;
 }  /* void_type */
 
+
+static a_type_ptr
+		il_strong_ordering_type,
+		il_weak_ordering_type,
+		il_partial_ordering_type,
+		il_strong_equality_type,
+		il_weak_equality_type;
+			/* Pointers to the standard comparison category types.
+			   (See N4810 [cmp.categories].) */
+
+
+static a_type_ptr get_ordering_type(a_const_char       *name)
+/*
+Look up the given name in namespace std.  If it is an (unqualified) enumeration
+type, return it.  Otherwise issue an error (suggesting <compare> was not
+included) and return an error type.  name should normally be one of:
+"strong_ordering", "weak_ordering", "partial_ordering", "strong_equality", or
+"weak_equality".
+*/
+{
+  a_symbol_ptr  sym = look_up_name_string_in_std(name);
+  a_type_ptr    result;
+
+  if (sym == NULL || is_enum_symbol(sym)) {
+    expr_pos_st_error(ec_bad_ordering_type, &error_position, name);
+    result = error_type();
+  } else {
+    result = type_symbol_type(sym);
+    if (is_qualified_type(result)) {
+      result = error_type();
+      expr_pos_st_error(ec_bad_ordering_type, &error_position, name);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* get_ordering_type */
+
+
+a_type_ptr strong_ordering_type(void)
+/*
+Return a type entry for std::strong_ordering (issue an error if on the first
+call to this routine std::strong_ordering is not appropriately declared).
+*/
+{
+  if (il_strong_ordering_type == NULL) {
+    il_strong_ordering_type = get_ordering_type("strong_ordering");
+  }  /* if */
+  return il_strong_ordering_type;
+}  /* strong_ordering_type */
+
+
+a_type_ptr weak_ordering_type(void)
+/*
+Return a type entry for std::weak_ordering (issue an error if on the first
+call to this routine std::weak_ordering is not appropriately declared).
+*/
+{
+  if (il_weak_ordering_type == NULL) {
+    il_weak_ordering_type = get_ordering_type("weak_ordering");
+  }  /* if */
+  return il_weak_ordering_type;
+}  /* weak_ordering_type */
+
+
+a_type_ptr partial_ordering_type(void)
+/*
+Return a type entry for std::partial_ordering (issue an error if on the first
+call to this routine std::partial_ordering is not appropriately declared).
+*/
+{
+  if (il_partial_ordering_type == NULL) {
+    il_partial_ordering_type = get_ordering_type("partial_ordering");
+  }  /* if */
+  return il_partial_ordering_type;
+}  /* partial_ordering_type */
+
+
+a_type_ptr strong_equality_type(void)
+/*
+Return a type entry for std::strong_equality (issue an error if on the first
+call to this routine std::strong_equality is not appropriately declared).
+*/
+{
+  if (il_strong_equality_type == NULL) {
+    il_strong_equality_type = get_ordering_type("strong_equality");
+  }  /* if */
+  return il_strong_equality_type;
+}  /* strong_equality_type */
+
+
+a_type_ptr weak_equality_type(void)
+/*
+Return a type entry for std::weak_equality (issue an error if on the first
+call to this routine std::weak_equality is not appropriately declared).
+*/
+{
+  if (il_weak_equality_type == NULL) {
+    il_weak_equality_type = get_ordering_type("weak_equality");
+  }  /* if */
+  return il_weak_equality_type;
+}  /* weak_equality_type */
+
 #if DEBUG
 
 void db_based_types(a_type_ptr  tp)
@@ -10810,7 +10911,6 @@ Print the "based types" associated with the given type to the debug output.
 }  /* db_based_types */
 
 #endif /* DEBUG */
-
 
 void do_based_type_fixup(void)
 /*
@@ -28817,6 +28917,11 @@ in il_init.)
       pch_saved_var_array_elem(il_bool_type),
       pch_saved_var_array_elem(il_standard_nullptr_type),
       pch_saved_var_array_elem(il_managed_nullptr_type),
+      pch_saved_var_array_elem(il_strong_ordering_type),
+      pch_saved_var_array_elem(il_weak_ordering_type),
+      pch_saved_var_array_elem(il_partial_ordering_type),
+      pch_saved_var_array_elem(il_strong_equality_type),
+      pch_saved_var_array_elem(il_weak_equality_type),
       pch_array_saved_var_array_elem(int_types),
       pch_array_saved_var_array_elem(signed_int_types),
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -28905,6 +29010,11 @@ in il_init.)
   register_trans_unit_variable(il_bool_type);
   register_trans_unit_variable(il_standard_nullptr_type);
   register_trans_unit_variable(il_managed_nullptr_type);
+  register_trans_unit_variable(il_strong_ordering_type),
+  register_trans_unit_variable(il_weak_ordering_type),
+  register_trans_unit_variable(il_partial_ordering_type),
+  register_trans_unit_variable(il_strong_equality_type),
+  register_trans_unit_variable(il_weak_equality_type),
   register_trans_unit_variable(shareable_constants_table);
   register_trans_unit_variable(seq_cache);
   register_trans_unit_variable(effective_primary_source_file);
@@ -29022,6 +29132,11 @@ need initialization for every (primary and secondary) translation unit.
   il_error_type = il_unknown_type = il_void_type = NULL;
   il_standard_nullptr_type = NULL;
   il_managed_nullptr_type = NULL;
+  il_strong_ordering_type = NULL;
+  il_weak_ordering_type = NULL;
+  il_partial_ordering_type = NULL;
+  il_strong_equality_type = NULL;
+  il_weak_equality_type = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   idisposable_dispose_routine = NULL;
   object_finalize_routine = NULL;
