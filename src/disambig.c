@@ -1045,6 +1045,7 @@ part of a function declarator is found, may_be_decl is set to FALSE.
             apdp->param_num = param_num;
           }  /* if */
         } else if (terminate_disambiguation(state)) {
+          abandon_potential_pack_expansion_context(pesep);
           goto done;
         }  /* if */
       }  /* if */
