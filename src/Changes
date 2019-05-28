@@ -1,5 +1,12 @@
 Version 5.1
 
+5/28/19  [EDGcpfe/21283]
+Microsoft compatibility: __builtin_offsetof
+
+The __builtin_offsetof builtin function is now accepted in Microsoft emulation
+modes when microsoft_version >= 1910.
+
+
 5/27/19  [EDGcpfe/21115]
 Defaulted parameters having the parent class type in copy constructors
 

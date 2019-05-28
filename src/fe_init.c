@@ -1063,6 +1063,10 @@ Install the keywords in the symbol table.
   } else if (gpp_mode) {
     enter_keyword((a_token_kind)tok_null, "__null");
   }  /* if */
+  if (gnu_version_is(>= 40000) || ms_version_is(>= 1910) || clang_mode) {
+    /* Enable __builtin_offsetof in various emulation modes. */
+    enter_keyword((a_token_kind)tok_builtin_offsetof, "__builtin_offsetof");
+  }  /* if */
   if (gnu_mode) {
     enter_keyword((a_token_kind)tok_extension, "__extension__");
     enter_gnu_keyword((a_token_kind)tok_typeof, "typeof");
@@ -1076,9 +1080,6 @@ Install the keywords in the symbol table.
        of both gcc and g++ use another new construct: __builtin_offsetof. */
     if (gpp_mode && gnu_version >= 30400) {
       enter_gnu_keyword((a_token_kind)tok_intaddr, "__offsetof");
-    }  /* if */
-    if (gnu_version >= 40000) {
-      enter_keyword((a_token_kind)tok_builtin_offsetof, "__builtin_offsetof");
     }  /* if */
     enter_gnu_keyword((a_token_kind)tok_builtin_types_compatible,
                       "__builtin_types_compatible_p");
