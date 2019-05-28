@@ -1,11 +1,14 @@
 Version 5.1
 
 5/27/19  [EDGcpfe/21115]
-Default parameters of the same class type in copy constructors
+Defaulted parameters having the parent class type in copy constructors
 
-In C++17 mode where copy elision is expected to occur, the front end was still
-rejecting copy constructors that had defaulted parameters that are the same
-type as the class being constructed.  For example:
+A copy constructor that has defaulted parameters that are the same type as the
+class being constructed would result in unbound recursion, and as such, were
+not permitted.  In modes with guaranteed copy elision (i.e., C++17), however,
+the copy constructor may be elided, making such parameters potentially valid.
+The front end now accepts copy constructors with defaulted arguments that have
+the parent class type in these modes.  For example:
 
   struct B {
     B();
