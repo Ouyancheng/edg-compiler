@@ -3820,7 +3820,8 @@ an error if a default argument expression is encountered.
              first parameter.  That's part of what makes this check a little
              complicated.  In modes with guaranteed copy elision, cases 3 and 4
              are not diagnosed here since copy elision may be performed on the
-             default argument. */
+             default argument.  An error will be reported later if the copy
+             cannot be elided. */
           /* Note that this check doesn't apply to C++/CLI value classes read
              from metadata.  There is no danger of unbounded recursion since
              C++/CLI value types are always bit-copied rather than copied
