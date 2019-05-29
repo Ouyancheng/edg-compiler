@@ -38092,6 +38092,7 @@ parse) and get_continued_elem (for resuming a suspended parse).
   a_boolean                        any_more;
   a_boolean                        designator_seen = FALSE;
   a_boolean                        non_designator_seen = FALSE;
+  a_boolean                        mixed_err_given = FALSE;
 
   if (p_continuation != NULL) {
     continuation = *p_continuation;
@@ -38181,8 +38182,11 @@ parse) and get_continued_elem (for resuming a suspended parse).
     } else {
       non_designator_seen = TRUE;
     }  /* if */
-    if (cpp20_designators_restriction && designator_seen &&
+    if (!mixed_err_given && cpp20_designators_restriction && designator_seen &&
         non_designator_seen) {
+      /* Issue the mixed initializer error only once - there's no need to issue
+         it for every subsequent initializer. */
+      mixed_err_given = TRUE;
       pos_error(ec_no_mixed_init_in_cpp_mode, &pos_curr_token);
     }  /* if */
     /* An element of the list might be a pack expansion in some modes

@@ -4865,6 +4865,10 @@ before this routine is called.
     implicit_noexcept_enabled = exceptions_enabled && noexcept_enabled &&
                                 gnu_version >= 40800;
   }  /* if */
+  if (clang_mode && !option_kind_used[(int)optk_designators]) {
+    /* Clang does not (yet) apply this restriction in C++20 mode. */
+    cpp20_designators_restriction = FALSE;
+  }  /* if */
   if (!cpp11_mode) {
     /* Some C++11 extensions are enabled by default in some non-C++11 GNU C++
        and clang C++ modes.  A warning is issued on the first use (if any). */

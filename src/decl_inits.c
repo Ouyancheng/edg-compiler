@@ -3285,7 +3285,9 @@ initialization. */
       pos_error(ec_designator_for_non_POD, init_component_pos(icp));
     }  /* if */
   }  /* if */
-  if (*field != NULL && cpp20_designators_restriction) {
+  if (*field != NULL &&
+      (cpp20_designators_restriction || gpp_version_is(any_version))) {
+    /* GCC restricts "non-trivial" designated initializers in all modes. */
     if (class_type->kind != (a_type_kind)tk_union) {
       /* resolved_field is set so we can check for duplicate designators.
          For an anonymous union member, we set the field to the invented
