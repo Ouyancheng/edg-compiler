@@ -13406,6 +13406,7 @@ the value representation of the integer value.
                    left operand.  Return the left operand (as an lvalue). */
                 and_integer_values(int_value_at(dst),
                                    (an_integer_value*)opnd2_value);
+                trim_bit_field_if_needed(dst, tp);
                 if (expr->is_lvalue || expr->is_xvalue) {
                   /* The assignment produces an lvalue-like result. */
                   *(a_constexpr_address*)result_storage = *dst;
@@ -13456,6 +13457,7 @@ the value representation of the integer value.
                    left operand.  Return the left operand (as an lvalue). */
                 or_integer_values(int_value_at(dst),
                                   (an_integer_value*)opnd2_value);
+                trim_bit_field_if_needed(dst, tp);
                 if (expr->is_lvalue || expr->is_xvalue) {
                   /* The assignment produces an lvalue-like result. */
                   *(a_constexpr_address*)result_storage = *dst;
@@ -13506,6 +13508,7 @@ the value representation of the integer value.
                    left operand.  Return the left operand (as an lvalue). */
                 xor_integer_values(int_value_at(dst),
                                    (an_integer_value*)opnd2_value);
+                trim_bit_field_if_needed(dst, tp);
                 if (expr->is_lvalue || expr->is_xvalue) {
                   /* The assignment produces an lvalue-like result. */
                   *(a_constexpr_address*)result_storage = *dst;
