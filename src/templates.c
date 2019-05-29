@@ -28984,12 +28984,15 @@ FALSE.
         sym_error(ec_ambiguous_overloaded_function, orig_sym);
         new_sym = NULL;
       } else {
-        new_sym = matching_template_function(sym, type, loc->template_arg_list,
-                                             (a_boolean)loc->is_template_id,
-                                             /*is_decl_context=*/TRUE,
-                                             dps->is_explicit_instantiation,
-                                             in_class_specialization,
-                                             is_new_template_instance);
+        new_sym = matching_template_function(
+                                          sym, type, loc->template_arg_list,
+                                          (a_boolean)loc->is_template_id,
+                                          /*is_decl_context=*/TRUE,
+                                          (dps->is_explicit_instantiation ||
+                                           (microsoft_mode &&
+                                            dps->is_explicit_specialization)),
+                                          in_class_specialization,
+                                          is_new_template_instance);
       }  /* if */
     }  /* for */
   }  /* if */
