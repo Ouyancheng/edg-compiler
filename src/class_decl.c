@@ -13371,9 +13371,10 @@ otherwise (and take precautions for error recovery in that case).
       a_type_ptr  auto_tp = skip_typerefs(rtp->variant.routine.return_type);
       a_class_def_state 
                   *cdsp = scope_stack_top().class_def_state;
-      if (!is_auto_type(auto_tp) ||
-          auto_tp->variant.template_param.extra_info->coordinates.position
-                                              != PLAIN_AUTO_TYPE_POS_NUMBER) {
+      if (rp->has_deducible_return_type &&
+         (!is_auto_type(auto_tp) ||
+           auto_tp->variant.template_param.extra_info->coordinates.position
+                                             != PLAIN_AUTO_TYPE_POS_NUMBER)) {
         pos_error(ec_invalid_placeholder_for_defaulted_spaceship_return,
                   def_pos);
         err = TRUE;
@@ -13382,7 +13383,9 @@ otherwise (and take precautions for error recovery in that case).
         pos_error(ec_duplicate_defaulted_spaceship, def_pos);
         err = TRUE;
       }  /* if */
-      cdsp->defaulted_spaceship = TRUE;
+      if (!err) {
+        cdsp->defaulted_spaceship = TRUE;
+      }  /* if */
     } else if (!is_bool_type(rtp->variant.routine.return_type)) {
       /* Defaulted comparison operators other than operator<=> must have a
          "bool" return type. */
