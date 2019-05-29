@@ -1,5 +1,25 @@
 Version 5.1
 
+5/29/19  [EDGcpfe/20012,EDGcpfe/20421]
+C++20: Access Checking on Specializations
+
+C++20 allows partial specializations and full specializations to make use of
+inaccessible members in the declaration of the specialization (see P0692R1).
+This is now supported in C++20 mode.  This is also enabled in Microsoft
+mode and g++ mode for gnu_version >= 60000 (g++ 9.1 actually rejects this
+usage, but we believe that to be a g++ bug).
+
+  template <class T> struct A;
+  template <class T> void f(T);
+  class B {
+    template <class U> struct C {};
+  };
+  template <class T> struct A<B::C<T>>;  // now allowed
+  template <> void f(B::C<int>) {  // now allowed
+    B::C<int> bc;  // still an error
+  }
+
+
 5/29/19  [EDGcpfe/21201]
 Spurious error on defaulted exception specification of template member
 

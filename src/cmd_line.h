@@ -597,6 +597,12 @@ EXTERN a_boolean
 			   contexts is enabled. */
 
 EXTERN a_boolean
+		relaxed_specialization_access_checking;
+			/* TRUE if the C++20 rules that allow partial and
+			   full specializations to access certain otherwise
+			   inaccessible entities is enabled. */
+
+EXTERN a_boolean
 		struct_bindings_enabled;
 			/* TRUE if structured bindings (a C++17 feature) are
 			   accepted. */

@@ -22232,7 +22232,9 @@ declaration of a partial specialization declared outside of its class.
     locator = locator_for_curr_id;
     next_tok = next_token();
   }  /* if */
-  if (locator_for_curr_id.is_qualified_name && any_deferred_access_checks()) {
+  if ((locator_for_curr_id.is_qualified_name ||
+                                    relaxed_specialization_access_checking) &&
+      any_deferred_access_checks()) {
     /* When declaring a class member outside of its class definition
        using a qualified name, any access errors that may have been
        detected when scanning the qualified name should be suppressed.
@@ -29302,6 +29304,11 @@ that follows.
   if (deduced_return_types_enabled) {
     dps->auto_type_allowed = TRUE;
   }  /* if */
+  /* In C++20, specializations are allowed to use otherwise inaccessible
+     names. */
+  if (relaxed_specialization_access_checking) {
+    begin_deferral_of_access_checks();
+  }  /* if */
   /* The pragmas were extracted before the "template <>" was scanned.
      Reactivate them now. */
   reactivate_curr_construct_pragmas(decl_state->pragmas_bound_to_template);
@@ -30313,6 +30320,10 @@ done:
     }  /* if */
   }  /* if */
   run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
+  if (relaxed_specialization_access_checking) {
+    discard_deferred_access_checks();
+    end_deferral_of_access_checks();
+  }  /* if */
   db_exit();
 }  /* full_specialization */
 

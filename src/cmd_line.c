@@ -2756,6 +2756,8 @@ option values if they were not already set by a command line option.
       }  /* if */
       unrestricted_unions_enabled = FALSE;
     }  /* if */
+    /* Microsoft allows specializations to use inaccessible members. */
+    relaxed_specialization_access_checking = TRUE;
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
      looking up names in elaborated type specifiers.  This flag causes
@@ -3580,6 +3582,7 @@ default mode (e.g., exception handling).
         spaceship_enabled = TRUE;
         adl_for_non_visible_templates = TRUE;
         relaxed_typename_enabled = TRUE;
+        relaxed_specialization_access_checking = TRUE;
         rvalue_allowed_with_const_qual_memptr = TRUE;
         va_opt_enabled = TRUE;
         nested_inline_namespace_definitions_enabled = TRUE;
@@ -5001,6 +5004,10 @@ before this routine is called.
     operator_bool_increment_allowed = TRUE;
     if (gnu_version >= 90000) {
       nested_inline_namespace_definitions_enabled = TRUE;
+    }  /* if */
+    if (gnu_version >= 60000) {
+      /* g++ allows specializations to use inaccessible members. */
+      relaxed_specialization_access_checking = TRUE;
     }  /* if */
   }  /* if */
 }  /* check_and_set_gpp_mode_options */
@@ -11537,6 +11544,7 @@ variables declared in cmd_line.h.
   constexpr_try_enabled = FALSE;
   adl_for_non_visible_templates = FALSE;
   relaxed_typename_enabled = FALSE;
+  relaxed_specialization_access_checking = FALSE;
   user_defined_literals_enabled = FALSE;
   macro_preempts_udl_suffix = FALSE;
   raw_string_literals_enabled = FALSE;
