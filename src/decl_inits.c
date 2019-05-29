@@ -5601,7 +5601,9 @@ returned set to TRUE.
           is_consteval_init = TRUE;
         }  /* if */
       }  /* if */
-      if (!vp->source_corresp.is_local_to_function || vp->is_constexpr ||
+      if (!vp->source_corresp.is_local_to_function ||
+          var_has_static_or_thread_storage_duration(vp) ||
+          vp->is_constexpr ||
           (is_const_qualified_type(vp->type) &&
            is_integral_or_enum_type(vp->type)) ||
           is_any_reference_type(vp->type)) {
