@@ -1,5 +1,25 @@
 Version 5.1
 
+5/29/19  [EDGcpfe/21201]
+Spurious error on defaulted exception specification of template member
+
+Consider:
+
+  struct X { X(X const&) noexcept(false); };
+  template<typename T> struct Y {
+    T x;
+    Y(Y const&) noexcept(false) = default;
+  };
+  Y<X> f(Y<X> const &p) {
+    return p;  // Previously a spurious error.
+  }
+
+Previously, this resulted in a spurious error because the front end
+erroneously marked the copy constructor of Y<X> as "deleted".  This was a
+consequence of failing to "instantiate" the "noexcept(false)" exception
+specification.  That is now fixed.
+
+
 5/28/19  [EDGcpfe/21194]
 Incorrect value category when using non-member "get" with structured bindings
 

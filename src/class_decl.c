@@ -4032,7 +4032,8 @@ static void update_cached_defaulted_noexcept_arg(
 rp is a defaulted special member whose declared exception specification is
 described by esp.  If esp has a cached operand and we are in the surrounding
 class scope (i.e., we're not dealing with a late template instantiation),
-force the early scanning of that operand.
+force the early scanning of that operand.  If rp is a template entity,
+instantiate the exception specification.
 */
 {
   if (esp->arg_cached &&
@@ -4072,6 +4073,9 @@ force the early scanning of that operand.
         }  /* if */
       }  /* if */
     }  /* for */
+  }  /* if */
+  if (esp->arg_cached && rp->is_template_function && !rp->is_specialized) {
+    instantiate_exception_spec_if_needed(symbol_for(rp));
   }  /* if */
 }  /* update_cached_defaulted_noexcept_arg */
 
