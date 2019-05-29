@@ -22592,7 +22592,8 @@ members.
             a_type_ptr  utp = param_tp->variant.pointer.type;
             if ((get_type_qualifiers(utp) & TQ_CONST) &&
                 (gsfd->copy_ctor_qualifiers & TQ_CONST) == 0) {
-              if (cpp20_mode) {
+              if (cpp20_mode || ms_version_is(>=1900) ||
+                  (gpp_version_is(>=90000) && cpp11_mode)) {
                 rp->is_deleted = TRUE;
               } else {
                 pos_error(ec_defaulted_copy_ctor_cannot_have_const_parameter,
