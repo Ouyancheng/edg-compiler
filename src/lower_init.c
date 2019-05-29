@@ -12671,6 +12671,7 @@ Do IL lowering of an enk_temp_init expression node.
   a_variable_ptr     temp_var;
   a_boolean          keep_dynamic_init = FALSE, *eff_keep_dynamic_init = NULL;
 
+  check_assertion(expr->kind == (an_expr_node_kind)enk_temp_init);
   dip = expr->variant.init.dynamic_init;
   if (dip->kind == (a_dynamic_init_kind)dik_expression &&
       !result_is_lvalue &&

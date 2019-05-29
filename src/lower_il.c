@@ -15668,7 +15668,9 @@ cast.  See lower_expr for typical invocation.
         temp_init_node = rvalue_expr_for_lvalue(temp_init_node);
         overwrite_node(expr, temp_init_node);
         expr->type = type;
-        lower_temp_init(expr);
+        /* rvalue_expr_for_lvalue is not guaranteed to return an enk_temp_init
+           node when given an enk_temp_init node, so call lower_expr again. */
+        lower_expr(expr);
       } else if (op == (an_expr_operator_kind)eok_question) {
         /* Lower a question operator and everything under it. */
         lower_question_operator(expr, assume_expr_is_non_null);
