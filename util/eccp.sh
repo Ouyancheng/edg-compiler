@@ -1293,6 +1293,7 @@ process_option()
     -u | --unsigned_chars | \
     -v | --version | \
     -w | --no_warnings | \
+    -W | --promote_warnings | \
     -x | --exceptions | \
          --no_exceptions | \
     -A | --strict | \

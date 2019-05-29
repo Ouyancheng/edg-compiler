@@ -2524,6 +2524,7 @@ number is added into the output.
   a_boolean			column_needed;
   a_boolean			local_display_error_number;
   an_error_code			severity_code;
+  an_error_severity		effective_severity;
   a_source_info_for_pos_ptr	sifpp = &dp->diag_header_source_info;
   a_source_position		*pos = &dp->diag_header_pos;
 
@@ -2598,7 +2599,12 @@ number is added into the output.
   }  /* if */
   /* Determine the appropriate severity string, and also count this
      diagnostic against the total for the severity. */
-  switch (dp->severity) {
+  effective_severity = dp->severity;
+  if ((int)effective_severity < (int)es_error &&
+      (int)effective_severity >= (int)error_promotion_threshold) {
+    effective_severity = es_discretionary_error;
+  }  /* if */
+  switch (effective_severity) {
     case es_more_info:
       severity_code = capitalize_severity ? ec_More_Info : ec_more_info;
       break;
@@ -6486,6 +6492,7 @@ line processing is done.
   write_diagnostic_buffer = NULL;
   catastrophe_has_occurred = FALSE;
   error_threshold = es_warning;
+  error_promotion_threshold = es_error;
   error_limit = 100;
   context_limit = DEFAULT_CONTEXT_LIMIT;
   strict_ansi_error_severity = es_warning;

@@ -96,6 +96,11 @@ EXTERN an_error_severity
 		error_threshold;
 			/* Messages at or above this severity level should
 			   be displayed; those below are suppressed. */
+EXTERN an_error_severity
+		error_promotion_threshold;
+			/* Messages at or above this severity level will be
+			   promoted to discretionary errors, unless they are
+			   already more severe than that. */
 EXTERN unsigned long
 		error_limit;
 			/* Compilation is abandoned when this many errors

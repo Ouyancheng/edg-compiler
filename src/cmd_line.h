@@ -69,6 +69,7 @@ typedef enum /*an_option_kind*/ {
   optk_display_compilation_time,
   optk_display_compiler_version,
   optk_suppress_warnings,
+  optk_promote_warnings,
   optk_enable_remarks,
   optk_C_mode,
   optk_C_dialect_cplusplus,

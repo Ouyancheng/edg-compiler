@@ -1,5 +1,16 @@
 Version 5.1
 
+5/29/19  [EDGcpfe/21307]
+Add --promote_warnings command line option
+
+A --promote_warnings (-W) option has been added to enable promotion of warnings
+to discretionary error severity.  For example (with --promote_warnings):
+
+  void f(int x) { // Remark: parameter not referenced (severity unchanged)
+    int y = 0;    // Error: variable not referenced (severity promoted)
+  }
+
+
 5/29/19  [EDGcpfe/20012,EDGcpfe/20421]
 C++20: Access Checking on Specializations
 

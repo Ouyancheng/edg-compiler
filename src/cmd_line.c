@@ -339,6 +339,9 @@ Initialize the option information table.
   add_option_description(optk_suppress_warnings, "no_warnings", 'w',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_none);
+  add_option_description(optk_promote_warnings, "promote_warnings", 'W',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
   add_option_description(optk_enable_remarks, "remarks", 'r',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_none);
@@ -9507,6 +9510,11 @@ Process the arguments on the command line that invoked the compiler.
         /* Suppress warnings. */
         check_assertion(opt_value == TRUE);
         error_threshold = es_discretionary_error;
+        break;
+      case optk_promote_warnings:
+        /* Promote warnings to errors. */
+        check_assertion(opt_value == TRUE);
+        error_promotion_threshold = es_warning;
         break;
       case optk_enable_remarks:
         /* Enable remarks. */
