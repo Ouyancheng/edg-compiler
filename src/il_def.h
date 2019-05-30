@@ -4423,6 +4423,12 @@ typedef struct a_constant {
                            trailing null, if any.
                            Be careful: string literals may have more than
                            one null, or none at all -- use the length. */
+      a_targ_size_t
+                num_dest_elems;
+                        /* Number of elements in the destination array.  Used
+                           when the constant is part of the initializer for a
+                           destination type whose size may differ.  Value is
+                           zero when this is not used. */
       a_const_char
 		*value;
                         /* The bytes of the string, in target machine

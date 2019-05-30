@@ -4752,14 +4752,17 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       {
         a_type_ptr     tp = skip_typerefs(con->type);
         a_type_ptr     etp;
-        a_targ_size_t  n_elems, k, char_size;
+        a_targ_size_t  n_elems, n_con_elems, k, char_size;
         a_byte_count   elem_size;
         a_const_char   *char_ptr;
         a_call_frame_ptr
                        curr_call_frame;
         etp = skip_typerefs(tp->variant.array.element_type);
         char_size = etp->size;
-        n_elems = tp->variant.array.variant.number_of_elements;
+        n_elems = con->variant.string.num_dest_elems == 0 ?
+                                 tp->variant.array.variant.number_of_elements :
+                                 con->variant.string.num_dest_elems;
+        n_con_elems = con->variant.string.length / char_size;
         elem_size = value_bytes_for_type(ips, etp, &result);
         char_ptr = con->variant.string.value;
         /* Map the interpreter storage for the string back to the constant
@@ -4789,10 +4792,16 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           }  /* if */
         }  /* if */
         for (k = 0; k<n_elems; k += 1) {
-          unsigned long char_val = extract_character_from_string(
+          if (k >= n_con_elems) {
+            /* Not all elements are covered.  Zero the remainder. */
+            set_integer_value((an_integer_value*)value,
+                              (a_host_large_integer)0);
+          } else {
+            unsigned long char_val = extract_character_from_string(
                                            char_ptr, (unsigned int)char_size);
-          set_integer_value((an_integer_value*)value,
-                            (a_host_large_integer)char_val);
+            set_integer_value((an_integer_value*)value,
+                              (a_host_large_integer)char_val);
+          }
           mark_subobject_initialized(value, complete_object);
           value += elem_size;
           char_ptr += char_size;
