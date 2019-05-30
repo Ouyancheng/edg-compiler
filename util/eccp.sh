@@ -895,6 +895,7 @@ check_abbreviation()
 --preprocess
 --preserve_lvalues_with_same_type_casts
 --preusing
+--promote_warnings
 --purify
 --quantify
 --remarks
