@@ -12,7 +12,6 @@ interpreter, leading to spurious errors.  For example, in C++17 mode:
 
 Furthermore, the operators &=, |=, and ^= could produce results that were not
 limited to the width of a bit field to which they were applied.  E.g.:
-mode:
 
   constexpr int f() {
     struct { int i:4; } s{0};
