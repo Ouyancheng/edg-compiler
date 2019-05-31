@@ -875,6 +875,10 @@ a_boolean compute_is_assignable(a_builtin_operation_kind kind,
                                 a_type_ptr               dst_type,
                                 a_type_ptr               src_type);
 
+extern
+a_boolean compute_reference_binds_to_temporary(a_type_ptr  ref_type,
+                                               a_type_ptr  init_type);
+
 /*
 Macro that is TRUE if the node is an operation node.
 */

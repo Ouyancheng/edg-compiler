@@ -13355,79 +13355,6 @@ indication in *rcblock).
 }  /* scan_call_like_builtin_operation */
 
 
-static void scan_is_base_of(a_rescan_control_block *rcblock,
-                            an_operand             *result)
-/*
-Scan a constant-expression of the form
-      __is_base_of( <typeB> , <typeD> )
-The result is a boolean of value true if typeD is derived from typeB (where
-a class type is always considered to be derived from itself).  This construct
-is meant to help implement ISO/IEC TR 19768.  If rcblock is non-NULL,
-redo semantic analysis on a previously-scanned __is_base_of
-expression, and return the result in *result (or an error indication
-in *rcblock).
-*/
-{
-  a_type_ptr  result_type;
-
-  if (!type_traits_helpers_enabled) {
-    /* __is_base_of is not accepted in some modes. */
-    if (expr_error_should_be_issued()) {
-      check_assertion(rcblock == NULL);
-      pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
-                   builtin_operation_names[(int)bok_is_base_of]);
-    }  /* if */
-    result_type = boolean_result_type();
-  } else {
-    result_type = bool_type();
-  }  /* if */
-  scan_call_like_builtin_operation(rcblock, bok_is_base_of, result_type,
-                                   iek_type, iek_type, /*arg2_repeats=*/FALSE,
-                                   result);
-  if (!type_traits_helpers_enabled) {
-    /* Turn the operand into an error operand to avoid any surprises later
-       on. */
-    conv_to_error_operand(result);
-  }  /* if */
-}  /* scan_is_base_of */
-
-
-static void scan_is_convertible_to(a_rescan_control_block *rcblock,
-                                   an_operand             *result)
-/*
-Scan a constant-expression of the form
-      __is_convertible_to( <typeA> , <typeB> )
-The result is a boolean of value true if typeA is "implicitly convertible to"
-typeB.  This construct is meant to help implement ISO/IEC TR 19768.
-If rcblock is non-NULL, redo semantic analysis on a previously-scanned
-__is_convertible_to expression, and return the result in *result (or
-an error indication in *rcblock).
-*/
-{
-  a_type_ptr  result_type;
-
-  if (!type_traits_helpers_enabled) {
-    /* __is_convertible_to is not accepted in some modes. */
-    if (expr_error_should_be_issued()) {
-      check_assertion(rcblock == NULL);
-      pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
-                   builtin_operation_names[(int)bok_is_convertible_to]);
-    }  /* if */
-    result_type = boolean_result_type();
-  } else {
-    result_type = bool_type();
-  }  /* if */
-  scan_call_like_builtin_operation(rcblock, bok_is_convertible_to, result_type,
-                                   iek_type, iek_type, /*arg2_repeats=*/FALSE,
-                                   result);
-  if (!type_traits_helpers_enabled) {
-    /* Turn the operand into an error operand to avoid any surprises later
-       on. */
-    conv_to_error_operand(result);
-  }  /* if */
-}  /* scan_is_convertible_to */
-
-
 static void scan_is_constructible(a_builtin_operation_kind_tag kind,
                                   a_rescan_control_block       *rcblock,
                                   an_operand                   *result)
@@ -13597,6 +13524,65 @@ return the result in *result (or an error indication in *rcblock).
     conv_to_error_operand(result);
   }  /* if */
 }  /* scan_is_assignable */
+
+
+static void scan_binary_type_trait_helper(a_rescan_control_block *rcblock,
+                                          an_operand             *result)
+/*
+Scan a constant-expression of the form
+      
+      __trait_keyword( <typeA> , <typeB> )
+
+The result is a boolean of value true if the predicate corresponding to the
+__trait_keyword (e.g., "__is_convertible_to") applies to the operand types
+(<typeA> and <typeB>).  If rcblock is non-NULL, redo semantic analysis on a
+previously-scanned construct of this kind.  Either way, return the result in
+*result (or an error indication in *rcblock).
+*/
+{
+  a_type_ptr                    result_type;
+  a_builtin_operation_kind_tag  bok = bok_last;
+
+  if (rcblock != NULL) {
+    an_expr_node_ptr expr = rcblock->expr;
+    check_assertion(expr != NULL &&
+                    expr->kind == (an_expr_node_kind)enk_builtin_operation);
+    bok = (a_builtin_operation_kind_tag)expr->variant.builtin_operation.kind;
+  } else {
+    switch (curr_token) {
+    case tok_is_base_of:
+        bok = bok_is_base_of;
+        break;
+    case tok_is_convertible_to:
+        bok = bok_is_convertible_to;
+        break;
+      case tok_reference_binds_to_temporary:
+        bok = bok_reference_binds_to_temporary;
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* if */
+  if (!type_traits_helpers_enabled) {
+    /* __is_convertible_to is not accepted in some modes. */
+    if (expr_error_should_be_issued()) {
+      check_assertion(rcblock == NULL);
+      pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
+                   builtin_operation_names[(int)bok]);
+    }  /* if */
+    result_type = boolean_result_type();
+  } else {
+    result_type = bool_type();
+  }  /* if */
+  scan_call_like_builtin_operation(rcblock, bok, result_type,
+                                   iek_type, iek_type, /*arg2_repeats=*/FALSE,
+                                   result);
+  if (!type_traits_helpers_enabled) {
+    /* Turn the operand into an error operand to avoid any surprises later
+       on. */
+    conv_to_error_operand(result);
+  }  /* if */
+}  /* scan_binary_type_trait_helper */
 
 
 static void scan_unary_type_trait_helper(a_rescan_control_block *rcblock,
@@ -36352,14 +36338,6 @@ handle_identifier:
       scan_unary_type_trait_helper((a_rescan_control_block *)NULL,
                                     &local_result);
       break;
-    case tok_is_base_of:
-      /* __is_base_of construct: */
-      scan_is_base_of((a_rescan_control_block *)NULL, &local_result);
-      break;
-    case tok_is_convertible_to:
-      /* __is_convertible_to construct: */
-      scan_is_convertible_to((a_rescan_control_block *)NULL, &local_result);
-      break;
     case tok_is_constructible:
       /* __is_constructible construct: */
       scan_is_constructible(bok_is_constructible,
@@ -36418,6 +36396,13 @@ handle_identifier:
                          (a_rescan_control_block *)NULL, &local_result);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_is_base_of:
+    case tok_is_convertible_to:
+    case tok_reference_binds_to_temporary:
+      /* __is_assignable_no_precondition_check construct: */
+      scan_binary_type_trait_helper((a_rescan_control_block *)NULL,
+                                    &local_result);
+      break;
 
     case tok_is_valid_winrt_type:
       /* __is_valid_winrt_type construct: */
@@ -44510,6 +44495,9 @@ set accordingly.
       case bok_is_nothrow_constructible:
         operator_token = tok_is_nothrow_constructible;
         break;
+      case bok_reference_binds_to_temporary:
+        operator_token = tok_reference_binds_to_temporary;
+        break;
 #if GNU_VECTOR_TYPES_ALLOWED
       case bok_builtin_shuffle:
         operator_token = tok_builtin_shuffle;
@@ -44813,14 +44801,6 @@ alternative callable from outside, see rescan_expr_with_substitution.
            to represent all these cases. */
         scan_unary_type_trait_helper(rcblock, result);
         break;
-      case tok_is_base_of:
-        /* __is_base_of construct: */
-        scan_is_base_of(rcblock, result);
-        break;
-      case tok_is_convertible_to:
-        /* __is_convertible_to construct: */
-        scan_is_convertible_to(rcblock, result);
-        break;
       case tok_is_constructible:
         /* __is_constructible construct: */
         scan_is_constructible(bok_is_constructible, rcblock, result);
@@ -44856,6 +44836,11 @@ alternative callable from outside, see rescan_expr_with_substitution.
       case tok_is_trivially_assignable:
         /* __is_trivially_assignable construct: */
         scan_is_assignable(bok_is_trivially_assignable, rcblock, result);
+        break;
+      case tok_is_base_of:
+      case tok_is_convertible_to:
+      case tok_reference_binds_to_temporary:
+        scan_binary_type_trait_helper(rcblock, result);
         break;
 #if C99_IL_EXTENSIONS_SUPPORTED && GNU_EXTENSIONS_ALLOWED
       case tok_gnu_real:
@@ -47250,6 +47235,75 @@ have_result:
 
   return result;
 }  /* compute_is_assignable */
+
+
+a_boolean compute_reference_binds_to_temporary(a_type_ptr  ref_type,
+                                               a_type_ptr  init_type)
+/*
+Return TRUE if
+
+	R& r = declval<T>();
+
+(where R& is corresponds to ref_type and T to init_type) is valid and causes r
+to be bound to a temporary.  Otherwise, return FALSE.
+*/
+{
+  a_boolean               result = FALSE;
+
+  if (is_any_reference_type(ref_type)) {
+    an_expr_stack_entry     expr_stack_entry;
+    an_expr_stack_entry_ptr saved_expr_stack;
+    an_arg_list_elem_ptr    init_arg;
+    an_operand              *init_opnd;
+    a_boolean               saved_defer_access_checks;
+    a_memory_region_number  region_to_switch_back_to;
+    /* Even though this is not an expression scan, make sure the expr_stack
+       has something on it.  If there is already something on the stack,
+       save it, clear the stack, and restore it later. */
+    save_expr_stack(&saved_expr_stack);
+    push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/TRUE);
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    /* Make an expression of the initializer type. */
+    init_arg = make_declval_arg(init_type);
+    if (init_arg == NULL) {
+      /* The value creation expression is ill-formed: Return a "false"
+         result. */
+      result = FALSE;
+      goto have_result;
+    }  /* if */
+    init_opnd = operand_of_arg_list_elem(init_arg);
+    /* Check the validity of the reference binding. */
+    expr_stack->suppress_diagnostics = TRUE;
+    expr_stack->suppress_constexpr_call_folding = TRUE;
+    saved_defer_access_checks = scope_stack_top().defer_access_checks;
+    scope_stack_top().defer_access_checks = FALSE;
+    prep_reference_initializer_operand(init_opnd, ref_type,
+                                       (a_conv_descr*)NULL,
+                                       /*leave_as_object=*/TRUE,
+                                       CCO_TYPE_TRAITS_CHECK,
+                                       ec_no_error);
+    if (!expr_stack->any_suppressed_error) {
+      /* Check whether init_opnd represents a temporary. */
+      if (is_expression_operand(init_opnd)) {
+        an_expr_node_ptr    node = init_opnd->variant.expression;
+        if (find_top_temporary(node, /* create_class_temp=*/FALSE) != NULL) {
+          result = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    scope_stack_top().defer_access_checks = saved_defer_access_checks;
+    reclaim_fs_nodes_of_operand(init_opnd);
+have_result:
+    switch_back_to_original_region(region_to_switch_back_to);
+    free_init_component_list(init_arg);
+    pop_expr_stack();
+    restore_expr_stack(saved_expr_stack);
+  }  /* if */
+
+  return result;
+}  /* compute_reference_binds_to_temporary */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 

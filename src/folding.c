@@ -7436,7 +7436,6 @@ types is dependent, store a ck_template_param constant in *constant.  The
 constant will be of the tpck_expression variant and will point to the given
 expression.  If maintain_expression is TRUE, the backing expression for
 the returned constant will be set as well.
-
 */
 {
   an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
@@ -7559,6 +7558,46 @@ result_known:
   }  /* if */
   constant->type = expr->type;
 }  /* fold_is_convertible_to */
+
+
+static void fold_reference_binds_to_temporary(
+                                       an_expr_node_ptr   expr,
+                                       a_constant_ptr     constant,
+                                       a_boolean          maintain_expression)
+/*
+expr is an enk_builtin_operation node for a __reference_binds_to_temporary
+operation.  If the operand types are nondependent, store a boolean constant in
+*constant.  The boolean constant will have value "true" if the first operand
+is a reference type and binding a value of the second type to that reference
+is valid and causes the reference to be bound to a temporary.  If either of
+the operand types is dependent, store a ck_template_param constant in
+*constant.  The constant will be of the tpck_expression variant and will point
+to the given expression.  If maintain_expression is TRUE, the backing
+expression for the returned constant will be set as well.
+*/
+{
+  an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
+                    arg2 = arg1->next;
+  a_type_ptr        type1, type2;
+
+  /* eok_parens shouldn't appear here, since the construct is generated. */
+  check_assertion(arg1 != NULL && arg2 != NULL && arg2->next == NULL &&
+                  arg1->kind == (an_expr_node_kind)enk_type_operand &&
+                  arg2->kind == (an_expr_node_kind)enk_type_operand);
+  type1 = arg1->variant.type_operand.type;
+  type2 = arg2->variant.type_operand.type;
+  if (is_template_dependent_type(type1) ||
+      is_template_dependent_type(type2)) {
+    make_template_param_expr_constant(expr, constant);
+  } else {
+    a_boolean  result = compute_reference_binds_to_temporary(type1, type2);
+    clear_constant(constant, (a_constant_repr_kind)ck_integer);
+    set_integer_value(&constant->variant.integer_value,
+                      (a_host_large_integer)result);
+    if (maintain_expression) constant->expr = expr;
+  }  /* if */
+  constant->type = expr->type;
+}  /* fold_reference_binds_to_temporary */
 
 
 static void fold_is_constructible(an_expr_node_ptr   expr,
@@ -9083,6 +9122,9 @@ constant is set as well.
         break;
       case bok_is_convertible_to:
         fold_is_convertible_to(expr, constant, maintain_expression);
+        break;
+      case bok_reference_binds_to_temporary:
+        fold_reference_binds_to_temporary(expr, constant, maintain_expression);
         break;
       case bok_is_constructible:
       case bok_is_nothrow_constructible:

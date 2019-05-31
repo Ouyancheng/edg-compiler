@@ -763,6 +763,10 @@ a_boolean overloaded_function_match_possible(
 extern void temp_init_from_operand(an_operand *operand,
                                    a_boolean  result_is_lvalue);
 
+extern 
+a_dynamic_init_ptr find_top_temporary(an_expr_node_ptr node,
+                                      a_boolean        create_class_temp);
+
 extern
 void overloaded_function_catch_up(a_symbol_ptr      function_symbol,
                                   a_symbol_ptr      overloaded_function_symbol,

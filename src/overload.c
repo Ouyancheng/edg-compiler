@@ -21587,8 +21587,8 @@ the temporary if result_is_lvalue is FALSE.  Used only in C++ mode.
          here because set_up_for_constructor_call does it below. */
       /* Binding the operand to the reference of the copy constructor could
          lead to unbounded recursion.  Mark it with a special flag so
-         prep_reference_initializer will know not to attempt creating another
-         temporary on top of it. */
+         prep_reference_initializer_operand will know not to attempt creating
+         another temporary on top of it. */
       cctor_routine = expr_select_copy_constructor(
                                 unqual_temp_type,
                                 get_type_qualifiers(operand->type),
@@ -21824,7 +21824,6 @@ must be considered.  Only used in C++.  This is copy-initialization.
 }  /* convert_operand_into_temp */
 
 
-static
 a_dynamic_init_ptr find_top_temporary(an_expr_node_ptr node,
                                       a_boolean        create_class_temp)
 /*
