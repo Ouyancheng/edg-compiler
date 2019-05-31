@@ -1,5 +1,25 @@
 Version 5.1
 
+5/31/19  [EDGcpfe/21135]
+Result of noexcept operator and pointer-to-member calls
+
+Consider:
+
+  struct S {
+    void f() noexcept {}
+    void g() {}
+  } s;
+  static_assert(!noexcept((s.*(true ? &S::f : &S::g))()));
+
+The front end previously rejected this code because it could identify the
+function being called after folding the conditional operator, and that function
+(S::f) is noexcept.  However, the standard requires that only the type
+information of the pointer-to-member expression (i.e., the conditional operator
+expression) should be used in determining whether the expression is potentially
+throwing, and the front end now reflects that (i.e., the case above is now
+accepted).
+
+
 5/31/19  [EDGcpfe/20602]
 Trivial copyability and deleted copy-assignment operator
 

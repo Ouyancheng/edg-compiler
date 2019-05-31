@@ -9268,7 +9268,7 @@ static void prepare_coroutine_calls(a_coroutine_descr_ptr cr_desc,
                                     a_routine_ptr         coroutine)
 /*
 Prepare the calls that may be required for the set-up/tear-down phases of the
-coroutine as described in N4775.
+coroutine as described in N4810 (or N4775+P0912R5).
 */
 {
   a_variable_ptr      promise_var = cr_desc->promise;
@@ -9292,6 +9292,8 @@ coroutine as described in N4775.
   set_possibly_null_expr_result_not_used(cr_desc->final_suspend_call);
   if (cr_desc->final_suspend_call != NULL &&
       expr_might_throw(cr_desc->final_suspend_call)) {
+    /* Calling final_suspend() on the promise cannot throw (see N4810
+       [dcl.fct.def.coroutine]/15). */
     a_symbol_locator loc;
     a_symbol_ptr     sym = look_up_named_member_function(promise_var->type,
                                                          "final_suspend",
