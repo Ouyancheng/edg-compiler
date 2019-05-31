@@ -17136,12 +17136,25 @@ one that yields the value) of a statement expression.
             /* Nothing more needed for a simple return. */
           } else if (statement->expr != NULL) {
             /* Return with an expression. */
+            a_boolean        need_parens = FALSE;
+            an_expr_node_ptr ret_expr = statement->expr;
+            if (return_type->kind == (a_type_kind)tk_typeref &&
+                return_type->variant.typeref.is_deduced_decltype_auto &&
+                is_operation_node(ret_expr) &&
+                node_operator_is(ret_expr, eok_reference_to)) {
+              /* A reference type for decltype(auto) and an
+                 eok_reference_to node at the top of the return expression
+                 means that the type cannot have been deduced from an
+                 unparenthesized id-expression or member access expression;
+                 add parentheses to ensure that the generated code has the
+                 same semantics. */
+              need_parens = TRUE;
+            }  /* if */
             write_space();
             /* Process any tags declared within the expression
                (e.g., in casts). */
             skip_embedded_declarations();
-            gen_initializer_expr(statement->expr, return_type,
-                                 /*need_parens=*/FALSE,
+            gen_initializer_expr(ret_expr, return_type, need_parens,
                                  /*mbr_fcn_default_arg_expr=*/FALSE);
           } else {
             /* The return value is passed via a copy constructor call.  We

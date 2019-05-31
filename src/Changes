@@ -1,5 +1,28 @@
 Version 5.1
 
+5/30/19  [EDGcpfe/21314]
+C++-generating back end: decltype(auto) return types and expressions
+
+The C++-generating back end previously failed to preserve parentheses
+around the name of a variable used as the return expression in a function
+whose return type is decltype(auto).  A parenthesized variable name
+results in a reference return type, while an unparenthesized variable name
+causes the return type to be the type of the variable.  For example, with
+--c++14:
+
+  int xxx;
+  constexpr decltype(auto) foo() {
+    return (xxx);  // Previously generated without parentheses
+  };
+  constexpr decltype(auto) yyy = foo();
+  static_assert(&yyy == &xxx, "");
+
+Because of the omitted parentheses in the generated code, the return type
+was deduced as "int" rather than as "int &", as it was in the original
+source, and the generated code failed the static assertion.  This is now
+fixed.
+
+
 5/30/19  [EDGcpfe/21164]
 Clang compatibility: __reference_binds_to_temporary
 
