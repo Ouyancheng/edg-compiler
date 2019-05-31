@@ -1,5 +1,17 @@
 Version 5.1
 
+5/31/19  [EDGpcfe/21258]
+GNU/Clang compatibility: Mutability of compound literals
+
+In GNU and Clang modes, the front end sometimes treats compound literals as
+rvalues.  Those rvalues may later be turned back into lvalues by associating
+them with a generated static variable.  Now that variable is declared with a
+"const" type to communicate the immutability of the compound literal (the
+expression denoting the compound literal is not necessarily "const", however).
+Note that the C-standard "compound literal" feature produces an lvalue that is
+mutable if its type is not "const".
+
+
 5/30/19  [EDGcpfe/21314]
 C++-generating back end: decltype(auto) return types and expressions
 

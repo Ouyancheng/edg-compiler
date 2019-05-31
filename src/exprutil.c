@@ -20765,6 +20765,11 @@ The source positions in the operand are set to the current token position.
   a_variable_ptr temp_var = alloc_temporary_variable(constant->type,
                                                      /*force_static=*/TRUE);
   temp_var->is_compound_literal = TRUE;
+  /* The operand is an lvalue for the temporary. */
+  make_lvalue_variable_operand(temp_var,
+                               &pos_curr_token,
+                               end_position_or_null(&end_pos_curr_token),
+                               operand, (a_ref_entry_ptr)NULL);
   temp_var->init_kind = (an_init_kind)initk_static;
   if (!in_file_scope(constant)) {
     /* Copy the constant to the file scope memory region.  This copies
@@ -20773,13 +20778,15 @@ The source positions in the operand are set to the current token position.
     switch_to_file_scope_region(&region_to_switch_back_to);
     constant = copy_unshared_constant(constant);
     switch_back_to_original_region(region_to_switch_back_to);
+    if (gnu_mode || clang_mode) {
+      /* GCC and Clang treat local-scope compound literals as prvalues, which
+         are therefore immutable "in principle".  Model this by making the
+         variable "const" but keeping the original type for the operand. */
+      a_type_ptr  tp = temp_var->type;
+      temp_var->type = make_qualified_type(tp, (a_type_qualifier_set)TQ_CONST);
+    }  /* if */
   }  /* if */
   temp_var->initializer.constant = constant;
-  /* The operand is an lvalue for the temporary. */
-  make_lvalue_variable_operand(temp_var,
-                               &pos_curr_token,
-                               end_position_or_null(&end_pos_curr_token),
-                               operand, (a_ref_entry_ptr)NULL);
 }  /* make_lvalue_operand_from_compound_constant */
 
 
