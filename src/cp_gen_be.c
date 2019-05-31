@@ -17142,9 +17142,9 @@ one that yields the value) of a statement expression.
                 return_type->variant.typeref.is_deduced_decltype_auto &&
                 is_operation_node(ret_expr) &&
                 node_operator_is(ret_expr, eok_reference_to)) {
-              /* A reference type for decltype(auto) and an
+              /* A reference type for a decltype(auto) return type and an
                  eok_reference_to node at the top of the return expression
-                 means that the type cannot have been deduced from an
+                 mean that the type cannot have been deduced from an
                  unparenthesized id-expression or member access expression;
                  add parentheses to ensure that the generated code has the
                  same semantics. */
