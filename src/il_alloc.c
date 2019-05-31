@@ -834,7 +834,6 @@ fields to default values.
 #endif /* FIXED_POINT_ALLOWED */
     case ck_string:
       cp->variant.string.length = 0;
-      cp->variant.string.num_dest_elems = 0;
       cp->variant.string.value = NULL;
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
       cp->variant.string.sequence_number = 0;

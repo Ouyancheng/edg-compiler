@@ -4759,9 +4759,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                        curr_call_frame;
         etp = skip_typerefs(tp->variant.array.element_type);
         char_size = etp->size;
-        n_elems = con->variant.string.num_dest_elems == 0 ?
-                                 tp->variant.array.variant.number_of_elements :
-                                 con->variant.string.num_dest_elems;
+        n_elems = tp->variant.array.variant.number_of_elements;
         n_con_elems = con->variant.string.length / char_size;
         elem_size = value_bytes_for_type(ips, etp, &result);
         char_ptr = con->variant.string.value;
@@ -4801,10 +4799,10 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                                            char_ptr, (unsigned int)char_size);
             set_integer_value((an_integer_value*)value,
                               (a_host_large_integer)char_val);
-          }
+            char_ptr += char_size;
+          }  /* if */
           mark_subobject_initialized(value, complete_object);
           value += elem_size;
-          char_ptr += char_size;
         }  /* for */
       }
       break;

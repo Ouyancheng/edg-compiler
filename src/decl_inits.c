@@ -102,16 +102,20 @@ bound based on that constant.
 
 a_boolean check_string_constant_initializer_full(a_type_ptr      *dst_type,
                                                  a_constant_ptr  string_con,
+                                                 a_boolean       *partial_init,
                                                  a_boolean       *excess)
 /*
 *dst_type is an array of narrow or wide characters (or an array whose element
 type is template dependent).  Return TRUE if and only if a variable or field of
-that type can be initialized with the given string literal.  If excess is non-
-NULL, an overlong string literal is not treated as an error but causes *excess
-to be set to TRUE.  If the string literal is not too long (which includes the
-standard C behavior of trimming the terminating null character if needed),
-*excess is set to FALSE.  If necessary, the string literal is truncated to fit
-*dst_type or *dst_type may be modified (e.g., to set the length of the string).
+that type can be initialized with the given string literal.  If partial_init is
+non_NULL, set *partial_init to TRUE if the given literal only partially
+initializes the type, and FALSE otherwise.  If excess is non-NULL, an overlong
+string literal is not treated as an error but causes *excess to be set to TRUE.
+If the string literal is not too long (which includes the standard C behavior
+of trimming the terminating null character if needed), *excess is set to FALSE.
+If necessary, the type of the string literal is set to the same size as
+*dst_type, the string literal is truncated to fit *dst_type, or *dst_type may
+be modified (e.g., to set the length of the string).
 */
 {
   a_type_ptr     array_type;
@@ -122,6 +126,7 @@ standard C behavior of trimming the terminating null character if needed),
   a_boolean      is_template_dependent = is_template_dependent_type(*dst_type);
   a_boolean      err = FALSE;
 
+  if (partial_init != NULL) *partial_init = FALSE;
   if (excess != NULL) *excess = FALSE;
   check_assertion(string_con->kind == (a_constant_repr_kind)ck_string);
   /* The object to be initialized is an array (possibly incomplete) of
@@ -177,7 +182,11 @@ standard C behavior of trimming the terminating null character if needed),
       /* The object being initialized is an array that has a definite
          size.  See if the string will fit in the array. */
       array_length = array_type->variant.array.variant.number_of_elements;
-      if (num_elems > array_length) {
+      /* Preserve the destination size. */
+      string_con->type = string_literal_type(char_kind, array_length);
+      if (num_elems < array_length) {
+        if (partial_init != NULL) *partial_init = TRUE;
+      } else if (num_elems > array_length) {
         /* The string is longer than the array.  Check to see if the
            string will fit if we drop the final null.  See 3.5.7.  In C++
            the truncation of the final null is not supported (ARM 8.4.2). */
@@ -195,7 +204,6 @@ standard C behavior of trimming the terminating null character if needed),
           err = TRUE;
         }  /* if */
         /* Truncate the string literal to fit the destination type. */
-        string_con->type = string_literal_type(char_kind, array_length);
         string_con->variant.string.length = array_length*char_size;
       }  /* if */
     }  /* if */
@@ -1690,9 +1698,10 @@ size.
     if (icp != NULL && is_string_literal_component(icp, &string_constant)) {
       a_type_ptr  orig_string_type = string_constant->type;
       a_boolean   excess = FALSE, *p_excess = gcc_mode ? &excess : NULL;
+      a_boolean   partial_init = FALSE;
       success = TRUE;
       if (check_string_constant_initializer_full(p_array_type, string_constant,
-                                                 p_excess)) {
+                                                 &partial_init, p_excess)) {
         if (!is->check_validity_only) {
           *result = alloc_unshared_constant(string_constant);
           (*result)->source_corresp.decl_position = *init_component_pos(icp);
@@ -1702,16 +1711,7 @@ size.
           }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         }  /* if */
-        if (!has_unknown_specified_bound(*p_array_type) &&
-            num_array_elements(*p_array_type) >
-                                  num_array_elements(string_constant->type)) {
-          is->partial_initializer = TRUE;
-          if (!is->check_validity_only) {
-            /* Preserve the original size of the array being initialized. */
-            (*result)->variant.string.num_dest_elems =
-                                             num_array_elements(*p_array_type);
-          }  /* if */
-        }  /* if */
+        is->partial_initializer = partial_init;
         if (strict_ansi_mode && !list_init_enabled && !is->no_diagnostics &&
             is_parenthesized_component(icp)) {
           /* Strictly speaking, the standard doesn't allow parenthesized string
