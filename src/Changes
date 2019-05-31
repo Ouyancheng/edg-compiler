@@ -1,5 +1,20 @@
 Version 5.1
 
+12/20/18 [EDGcpfe/20602]
+Trivial copyability and deleted copy-assignment operator
+
+The front end previously issued a spurious error for:
+
+  struct S { int const ic; };
+  static_assert(__is_trivially_copyable(S), "Unexpected");
+
+because the generated copy-assignment operator is deleted.  Deleted special
+members, however, should not a priori affect the trivial copyability of class
+types.  That is a consequence of a change introduced by the resolution of the
+standardization committee's Core issue 1734.  The front end now implements
+that resolution except in Microsoft mode.
+
+
 5/31/19  [EDGpcfe/21258]
 GNU/Clang compatibility: Mutability of compound literals
 
@@ -3723,21 +3738,6 @@ Consider:
 Previously, all calls through pointer-to-member-function types were treated
 as potentially throwing an exception, which caused the example above to trigger
 a spurious error.  That is now fixed.
-
-
-12/20/18 [EDGcpfe/20602]
-Trivial copyability and deleted copy-assignment operator
-
-The front end previously issued a spurious error for:
-
-  struct S { int const ic; };
-  static_assert(__is_trivially_copyable(S), "Unexpected");
-
-because the generated copy-assignment operator is deleted.  Deleted special
-members, however, should not a priori affect the trivial copyability of class
-types.  That is a consequence of a change introduced by the resolution of the
-standardization committee's Core issue 1734.  The front end now implements
-that resolution except in Clang and Microsoft modes.
 
 
 12/20/18 [EDGcpfe/20155,EDGcpfe/20594]
