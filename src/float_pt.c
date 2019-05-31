@@ -2891,7 +2891,7 @@ corresponding return value is not needed.
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 #if USE_FLOAT128_FOR_HOST_FP_VALUE
 #if USE_QUADMATH_LIBRARY
-      (void)quadmath_snprintf(str, "%Qa", temp);
+      (void)quadmath_snprintf(str, sizeof(str), "%Qa", temp);
 #else /* !USE_QUADMATH_LIBRARY */
       (void)sprintf(str, "%La", (long double)temp);
 #endif /* USE_QUADMATH_LIBRARY */
