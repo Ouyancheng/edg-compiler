@@ -209,6 +209,13 @@ floating-point value.
 #endif /* FP_LONG_DOUBLE_IS_BINARY128 */
 #endif /* ifndef FPT_LONG_DOUBLE_VALUE_BITS */
 
+#if defined(TARG_SIZEOF_LONG_DOUBLE)
+#if TARG_SIZEOF_LONG_DOUBLE * CHAR_BIT < FPT_LONG_DOUBLE_VALUE_BITS
+#error long double type is mis-configured.
+#endif /* TARG_SIZEOF_LONG_DOUBLE * CHAR_BIT < FPT_LONG_DOUBLE_VALUE_BITS */
+#endif /* FP_HAS_LONG_DOUBLE */
+#endif /* defined(TARG_SIZEOF_LONG_DOUBLE) */
+
 #if FLOAT80_ENABLING_POSSIBLE
 #define FPT_FLOAT80_VALUE_BITS 80  /* IEEE 754-2008 80-bit extended. */
 #endif /* FLOAT80_ENABLING_POSSIBLE */
@@ -216,14 +223,6 @@ floating-point value.
 #if FLOAT128_ENABLING_POSSIBLE
 #define FPT_FLOAT128_VALUE_BITS 128  /* IEEE 754-2008 "binary128" format. */
 #endif /* FLOAT128_ENABLING_POSSIBLE */
-
-
-#if defined(TARG_SIZEOF_LONG_DOUBLE)
-#if TARG_SIZEOF_LONG_DOUBLE * CHAR_BIT < FPT_LONG_DOUBLE_VALUE_BITS
-#error long double type is mis-configured.
-#endif /* TARG_SIZEOF_LONG_DOUBLE * CHAR_BIT < FPT_LONG_DOUBLE_VALUE_BITS */
-#endif /* FP_HAS_LONG_DOUBLE */
-#endif /* defined(TARG_SIZEOF_LONG_DOUBLE) */
 
 /*
 FPT_*_PRECISION is the number of bits in the fraction of the floating-point
@@ -284,6 +283,13 @@ otherwise FALSE.
 #endif /* FP_LONG_DOUBLE_IS_BINARY128 */
 #endif /* ifndef FPT_LONG_DOUBLE_HAS_HIDDEN */
 
+#if !defined(FPT_LONG_DOUBLE_VALUE_BITS) || \
+    !defined(FPT_LONG_DOUBLE_HAS_HIDDEN) || \
+    !defined(FPT_LONG_DOUBLE_PRECISION)
+#error long double floating-point configured incorrectly.
+#endif /* !defined(FPT_LONG_DOUBLE_VALUE_BITS) || ... */
+#endif /* FP_HAS_LONG_DOUBLE */
+
 #if FLOAT80_ENABLING_POSSIBLE
 #define FPT_FLOAT80_HAS_HIDDEN FALSE
 #endif /* FLOAT80_ENABLING_POSSIBLE */
@@ -291,13 +297,6 @@ otherwise FALSE.
 #if FLOAT128_ENABLING_POSSIBLE
 #define FPT_FLOAT128_HAS_HIDDEN TRUE
 #endif /* FLOAT128_ENABLING_POSSIBLE */
-
-#if !defined(FPT_LONG_DOUBLE_VALUE_BITS) || \
-    !defined(FPT_LONG_DOUBLE_HAS_HIDDEN) || \
-    !defined(FPT_LONG_DOUBLE_PRECISION)
-#error long double floating-point configured incorrectly.
-#endif /* !defined(FPT_LONG_DOUBLE_VALUE_BITS) || ... */
-#endif /* FP_HAS_LONG_DOUBLE */
 
 /*
 The following definitions capture the characteristics of the largest
