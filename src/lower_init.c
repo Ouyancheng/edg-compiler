@@ -1666,10 +1666,10 @@ aggregate initializer.
   char_ptr = con->variant.string.value;
   /* Create the constants for the aggregate. */
   for (k = 0; k < n_con_elems; k += 1) {
+    unsigned long char_val = extract_character_from_string(
+                                            char_ptr, (unsigned int)char_size);
     *curr_constant = alloc_constant((a_constant_repr_kind)ck_integer);
     (*curr_constant)->type = etp;
-    unsigned long char_val = extract_character_from_string(
-                                    char_ptr, (unsigned int)char_size);
     set_integer_value(&(*curr_constant)->variant.integer_value,
                       (a_host_large_integer)char_val);
     char_ptr += char_size;
