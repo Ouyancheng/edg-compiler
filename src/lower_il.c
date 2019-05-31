@@ -4286,6 +4286,8 @@ constant is being assigned, e.g.,
      a different memory region and will not at this time be turned into
      a ck_aggregate constant. */
   if (constant->kind == (a_constant_repr_kind)ck_aggregate ||
+      (constant->kind == (a_constant_repr_kind)ck_string &&
+       constant->is_partially_initialized) ||
       (constant->kind == (a_constant_repr_kind)ck_ptr_to_member &&
        constant->variant.ptr_to_member.is_function_ptr)) {
     /* This is a troublesome pointer-to-member constant or other

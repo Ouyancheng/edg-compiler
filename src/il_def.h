@@ -4335,9 +4335,9 @@ typedef struct a_constant {
 			   of an enumeration or a non-standard class member
 			   constant). */
   a_bit_field	partial_aggr_value:1;
-			/* TRUE for a ck_aggregate constant whose list of
-			   constants does not cover all the elements of the
-			   destination type. */
+			/* TRUE for a ck_aggregate or ck_string constant whose
+			   list of constants or string length does not cover
+			   all the elements of the destination type. */
   a_bit_field	is_partially_initialized:1;
 			/* Similar to partial_aggr_value but also TRUE if a
 			   direct or indirect subaggregate constant has

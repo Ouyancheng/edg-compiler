@@ -28,14 +28,13 @@ extern void update_array_var_type_from_initializer_constant(
                                                          a_variable_ptr  var);
 
 extern a_boolean check_string_constant_initializer_full(
-                                                 a_type_ptr      *dst_type,
-                                                 a_constant_ptr  string_con,
-                                                 a_boolean       *partial_init,
-                                                 a_boolean       *excess);
+                                                   a_type_ptr      *dst_type,
+                                                   a_constant_ptr  string_con,
+                                                   a_boolean       *excess);
 
 #define check_string_constant_initializer(dst_type, string_con)              \
   (check_string_constant_initializer_full(dst_type, string_con,              \
-                                          (a_boolean*)NULL, (a_boolean*)NULL))
+                                          (a_boolean*)NULL))
 
 extern void repeat_nonconstant_init(a_dynamic_init_ptr  ctor_dip,
                                     a_type_ptr          array_type,

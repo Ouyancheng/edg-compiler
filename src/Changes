@@ -44,7 +44,7 @@ is valid and causes r to be bound to a temporary.  For example:
 Uninitialized constants in string aggregate initializers
 
 When the constexpr interpreter encountered a string literal initializing an
-array, it generates an aggregate initializer for the array from the string
+array, it generated an aggregate initializer for the array from the string
 literal.  However, if the length of the literal (including null terminator) was
 less than the size of the array, the remaining constants in the aggregate
 initializer contained uninitialized memory instead of zeroes as expected.  For

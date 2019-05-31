@@ -1642,49 +1642,6 @@ type of the constant that is returned may be a lowered version of desired_type
 }  /* alloc_node_for_lowered_zero_of_proper_type */
 
 
-static void convert_string_to_aggregate(a_constant_ptr con)
-/*
-Given a ck_string constant with an array type, convert it into the equivalent
-aggregate initializer.
-*/
-{
-  a_type_ptr     tp = skip_typerefs(con->type);
-  a_type_ptr     etp;
-  a_targ_size_t  n_con_elems, n_elems, k, char_size;
-  a_const_char   *char_ptr;
-  a_constant_ptr first_constant = NULL, last_constant = NULL;
-  a_constant_ptr *curr_constant = &first_constant;
-
-  check_assertion(con->kind == (a_constant_repr_kind)ck_string &&
-                  is_array_type(tp));
-  etp = skip_typerefs(tp->variant.array.element_type);
-  check_assertion(is_integral_type(etp));
-  char_size = etp->size;
-  n_elems = tp->variant.array.variant.number_of_elements;
-  n_con_elems = con->variant.string.length / char_size;
-  check_assertion(n_con_elems <= n_elems);
-  char_ptr = con->variant.string.value;
-  /* Create the constants for the aggregate. */
-  for (k = 0; k < n_con_elems; k += 1) {
-    unsigned long char_val = extract_character_from_string(
-                                            char_ptr, (unsigned int)char_size);
-    *curr_constant = alloc_constant((a_constant_repr_kind)ck_integer);
-    (*curr_constant)->type = etp;
-    set_integer_value(&(*curr_constant)->variant.integer_value,
-                      (a_host_large_integer)char_val);
-    char_ptr += char_size;
-    last_constant = *curr_constant;
-    curr_constant = &(*curr_constant)->next;
-  }  /* for */
-  /* Convert the constant into an aggregate. */
-  set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
-  con->variant.aggregate.first_constant = first_constant;
-  con->variant.aggregate.last_constant = last_constant;
-  con->partial_aggr_value = con->is_partially_initialized =
-                                                         n_con_elems < n_elems;
-}  /* convert_string_to_aggregate */
-
-
 static void add_init_assignment(a_dynamic_init_ptr     dip,
                                 a_constant_ptr         con,
                                 an_expr_node_ptr       entity_node,
@@ -1729,15 +1686,9 @@ initialization (when ipdp->array_element_sequence is TRUE).
       /* The constant has already been lowered. */
       if (dip != NULL) {
         con = dip->variant.constant.ptr;
-        if (dip->is_partially_initialized &&
-            con->kind == (a_constant_repr_kind)ck_string) {
-          /* A string literal that doesn't fully initialize the destination
-             array.  Convert it to a ck_aggregate. */
-          convert_string_to_aggregate(con);
-        }  /* if */
       }  /* if */
       if (con->kind == (a_constant_repr_kind)ck_string &&
-          !con->implicit_cast) {
+          !con->implicit_cast && !con->is_partially_initialized) {
         /* A character array initialized by a string literal, e.g., in
            a ctor-initializer.  Create an lvalue string constant. */
         init_val_node = alloc_node_for_constant(con);
@@ -1756,7 +1707,8 @@ initialization (when ipdp->array_element_sequence is TRUE).
         }  /* if */
         array_assignment = TRUE;
       } else {
-        /* Normal case, not a string literal. */
+        /* Normal case.  Either not a string literal or a string literal that
+           only partially initializes the destination. */
         init_val_node = make_node_for_il_constant(con);
         if (init_val_node->is_lvalue) {
           /* We're assigning from one array to another; use eok_bassign. */
