@@ -1,6 +1,6 @@
 Version 5.1
 
-12/20/18 [EDGcpfe/20602]
+5/31/19  [EDGcpfe/20602]
 Trivial copyability and deleted copy-assignment operator
 
 The front end previously issued a spurious error for:
