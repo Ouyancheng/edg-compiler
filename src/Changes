@@ -1,5 +1,15 @@
 Version 5.1
 
+5/31/19  [EDGcpfe/21329]
+Floating-point constants incorrectly rounded to infinity
+
+In configurations where USE_FLOAT128_FOR_HOST_FP_VALUE is TRUE, some
+floating-point constants were incorrectly treated as infinite.  For example
+(with --gcc):
+
+  __float128 x = 1.189731495357231765085759326628007e+4932Q;
+
+
 5/31/19  [EDGcpfe/21072]
 Assertion failure in IL display program
 

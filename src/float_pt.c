@@ -116,6 +116,12 @@ EXTERN_C int finite(double x);
 #define is_NaN(x) (isnan((x)))
 #endif /* __linux__ */
 #endif /* ifdef isnan */
+#if USE_FLOAT128_FOR_HOST_FP_VALUE
+/* <math.h> doesn't have a __float128 version, so use our own. */
+/* See definition of host_fp_value_is_finite below. */
+#define is_finite(x) (host_fp_value_is_finite(x))
+#define NEED_HOST_FP_VALUE_IS_FINITE 1
+#else /* !USE_FLOAT128_FOR_HOST_FP_VALUE */
 /* C99 has the "isfinite" macro.  Linux headers do, too.  Cygwin has it, but
    it is unreliable.  The HP PA headers have isfinite, but it does not accept
    a long double argument. */
@@ -137,6 +143,7 @@ EXTERN_C int finite(double x);
 #define NEED_HOST_FP_VALUE_IS_FINITE 1
 #endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
 #endif /* ifdef isfinite */
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
 #endif /* ifdef __sun */
 #endif /* EDG_WIN32 */
 #endif /* USE_SOFTFLOAT */
