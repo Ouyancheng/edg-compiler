@@ -1,5 +1,49 @@
 Version 5.1
 
+5/31/19  [EDGcpfe/21072]
+Assertion failure in IL display program
+
+In cases where a template-dependent type involves an expression that refers
+to a block-scope entity, the edgcpdisp IL display program could abort with
+a failed assertion ("scope for routine is NULL", in scope_for_routine).
+This is now fixed.  For example, attempting to display the IL produced for
+the following example resulted in the failed assertion:
+
+  template <typename...> struct b;
+  template <typename> struct d;
+  template <class bk, typename bl, typename... bm>
+  struct d<bl (bk::*)(bm...)> {
+    typedef bk bn;
+    typedef b<> bo;
+  };
+  template <typename> struct e;
+  template <typename... bm> struct e<b<bm...>> {
+    static int bx() { int c[sizeof...(bm)]; }
+  };
+  class f {
+    void bz();
+    void ca();
+  };
+  class g {
+  public:
+    void cc();
+  };
+  class h {
+  public:
+    template <typename ce, typename cf>
+    static inline void cg(const typename d<ce>::bn *, ce,
+                          const typename d<cf>::bn *, cf);
+  };
+  template <typename ce, typename cf>
+  void h::cg(const typename d<ce>::bn *, ce, const typename d<cf>::bn *, cf) {
+    e<typename d<ce>::bo>::bx;
+  }
+  void f::bz() {
+    g a;
+    h::cg(&a, &g::cc, this, &f::ca);
+  }
+
+
 5/31/19  [EDGcpfe/21135]
 Result of noexcept operator and pointer-to-member calls
 

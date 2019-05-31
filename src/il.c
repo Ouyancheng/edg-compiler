@@ -26,6 +26,9 @@ il.c -- Construction of intermediate language trees.
 #include "exprutil.h"
 #include "folding.h"
 #include "il_walk.h"
+#if STANDALONE_IL_DISPLAY
+#include "il_read.h"
+#endif /* STANDALONE_IL_DISPLAY */
 #if !STANDALONE_UTILITY_PROGRAM
 #include "func_def.h"
 #include "interpret.h"
@@ -9443,6 +9446,17 @@ in cases where the memory region is not available).
 
   check_assertion(rout != NULL &&
                   rout->function_def_number != NULL_function_def_number);
+#if STANDALONE_IL_DISPLAY
+  /* The IL display utility processes the file scope memory region first,
+     followed by all the function scope memory regions.  If there is a
+     local expression node reference in a file-scope entry, however, the
+     relevant function scope memory region must be loaded on the fly to
+     satisfy that request. */
+  if (il_header.function_def_table[rout->function_def_number].memory_region !=
+                                                         rout->memory_region) {
+    read_memory_region(rout->memory_region);
+  }  /* if */
+#endif /* STANDALONE_IL_DISPLAY */
   scope = scope_for_function_def(rout->function_def_number);
   return scope;
 }  /* scope_for_routine_or_null */
