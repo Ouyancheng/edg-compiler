@@ -20971,8 +20971,7 @@ See also coalesce_and_lookup_generalized_identifier.
                           locator_for_curr_id.is_vacuous_destructor_reference;
       return_value = TRUE;
       *err |= is_error_locator(locator_for_curr_id);
-      check_assertion(qualifier_is_type ? qualifier_type != NULL :
-                                          qualifier_namespace != NULL);
+      check_assertion(!qualifier_is_type || qualifier_type != NULL);
       /* Perform error checks as specified in "options". */
       if (*err) {
         /* Don't try to lookup the identifier if an error occurred earlier. */
