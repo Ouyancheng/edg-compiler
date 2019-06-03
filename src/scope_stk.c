@@ -5229,7 +5229,8 @@ the template that is being rescanned and can be NULL.
       tdip = tssp->cache.decl_info;
     }  /* if */
   } else {
-    if (template_sym->kind != (a_symbol_kind)sk_class_template &&
+    if (template_sym != NULL &&
+        template_sym->kind != (a_symbol_kind)sk_class_template &&
         template_sym->kind != (a_symbol_kind)sk_function_template) {
       /* Don't include the template information when pushing the context
          for an entity that is not itself a template as we are not
