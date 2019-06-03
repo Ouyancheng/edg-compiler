@@ -5,9 +5,8 @@ Missing using-declaration in generated C++ code
 
 In code where multiple functions were imported into a namespace via a comma-
 delimited using-declaration list, latter using-declarations may have
-incorrectly been marked as being next in the member of the overload set for the
-previous function and/or have no "representative" using-declaration.  In C++
-generating back-ends, this may result in these using-declarations not being
+incorrectly been marked as having no "representative" using-declaration.  In
+C++ generating back-ends, this may result in these using-declarations not being
 included.  For example:
 
   int f00();

@@ -15379,7 +15379,6 @@ none).
        symbols, indicate that this is the representative using declaration. */
     if (overload_sym == NULL) {
       udp->is_representative = TRUE;
-      *prev_udp = NULL;
     }  /* if */
     /* Update cross-reference and source-sequence info, if required. */
     record_using_decl(fund_sym, &decl_pos, udp, *prev_udp);
