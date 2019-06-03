@@ -1,6 +1,6 @@
 Version 5.1
 
-6/1/19   [EDGcpfe/21047]
+6/3/19   [EDGcpfe/21047]
 Missing using-declaration in generated C++ code
 
 In code where multiple functions were imported into a namespace via a comma-
