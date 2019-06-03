@@ -12595,7 +12595,7 @@ class list is returned.
     prp = pidp == NULL ? NULL : pidp->pack_status;
     /* Look for an existing expansion of this symbol or type at this
        location. */
-    for (prp = pidp->pack_status; prp != NULL; prp = prp->next) {
+    for (; prp != NULL; prp = prp->next) {
       if (prp->token_sequence_number == curr_token_sequence_number) {
         result = prp->curr_argument.template_arg->variant.type;
         break;
