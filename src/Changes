@@ -1,5 +1,30 @@
 Version 5.1
 
+6/1/19   [EDGcpfe/21047]
+Missing using-declaration in generated C++ code
+
+In code where multiple functions were imported into a namespace via a comma-
+delimited using-declaration list, latter using-declarations may have
+incorrectly been marked as being next in the member of the overload set for the
+previous function and/or have no "representative" using-declaration.  In C++
+generating back-ends, this may result in these using-declarations not being
+included.  For example:
+
+  int f00();
+  namespace N01 {
+    int f01();
+  }
+  namespace N02 {
+    int f02();
+  }
+  namespace N {
+    using ::f00, N01::f01, N02::f02; // Previously would have no representative
+                                     // using-declaration for N02::f02
+  }
+
+This is now fixed.
+
+
 5/31/19  [EDGcpfe/21329]
 Floating-point constants incorrectly rounded to infinity
 

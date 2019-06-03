@@ -15375,6 +15375,12 @@ none).
     } else {
       udp->qualifier.namespace_ptr = nsp;
     }  /* if */
+    /* If this is not an overloaded symbol, or the first of the overloaded
+       symbols, indicate that this is the representative using declaration. */
+    if (overload_sym == NULL) {
+      udp->is_representative = TRUE;
+      *prev_udp = NULL;
+    }  /* if */
     /* Update cross-reference and source-sequence info, if required. */
     record_using_decl(fund_sym, &decl_pos, udp, *prev_udp);
     /* Set *prev_udp for a possible subsequent call to this function. */
@@ -15690,17 +15696,12 @@ current scope.
                declaration if it duplicates a built-in declaration, i.e.
                seq == 0). */
           } else {
-            a_using_decl_ptr  rep_udp = NULL;
             a_boolean         suppress_redecl_error = FALSE;
             /* Create the new sk_namespace_projection symbol(s). */
             if (!is_tag_symbol(fund_sym)) {
               /* Check if we missed a tag symbol; it should be imported too. */
               import_any_hidden_tags(other_decl, nsp, &prev_udp,
                                      &suppress_redecl_error);
-              if (prev_udp != NULL) {
-                rep_udp = prev_udp;
-                rep_udp->is_representative = TRUE;
-              }  /* if */
             }  /* if */
             /* If we're importing a typedef that redeclares an existing type
                to the same name, inhibit the declaration error. */
@@ -15735,10 +15736,6 @@ current scope.
                                                  other_decl, nsp, class_type,
                                                  &prev_udp, is_list,
                                                  suppress_redecl_error);
-              if (rep_udp == NULL && prev_udp != NULL) {
-                rep_udp = prev_udp;
-                rep_udp->is_representative = TRUE;
-              }  /* if */
             }  /* for */
           }  /* if */
         }  /* if */
