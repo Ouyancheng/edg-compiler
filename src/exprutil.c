@@ -6609,8 +6609,8 @@ void expr_pos_ty2_error(an_error_code     error_code,
                         a_type_ptr        tp1,
                         a_type_ptr        tp2)
 /*
-Report the indicated error at the indicated position with the given string
-substitution.  Suppress the error if we're in a context where diagnostics
+Report the indicated error at the indicated position with the given type
+substitutions.  Suppress the error if we're in a context where diagnostics
 should be suppressed, e.g., a template deduction context.
 */
 {

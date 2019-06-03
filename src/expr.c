@@ -557,7 +557,7 @@ static void set_deduced_return_type(a_type_ptr        return_type,
                                     a_source_position *err_pos,
                                     a_routine_ptr     rout)
 /*
-We're currently defining the give function with a deduced return type (a C++11
+We're currently defining the given function with a deduced return type (a C++11
 lambda body or a C++14 function with an auto/decltype(auto) return type), and
 we've encountered a return statement that implies the given return_type (the
 type is void for a return without an expression).  Set the function return
@@ -27174,7 +27174,7 @@ static void process_rel_operator(an_operand               *opnd1,
                                  a_token_sequence_number  operator_tsn,
                                  an_operand               *result)
 /*
-Perform semantic analysis of a relational operator determine by operator_token
+Perform semantic analysis of a relational operator determined by operator_token
 (tok_lt, tok_le, tok_ge, or tok_gt) with the given operands and construct the
 representation of the result in *result.  operator_pos and operator_tsn
 describe the location of the operator.

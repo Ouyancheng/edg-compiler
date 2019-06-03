@@ -16978,7 +16978,7 @@ static a_boolean drop_candidate_if_not_returning_bool(
 /*
 *p_cfp is a candidate associated with a function or function template (p_cfp
 is the address of the pointer to that candidate on the candidates list).  If
-the candidate does not have a "bool" return type, remove if from the candidates
+the candidate does not have a "bool" return type, remove it from the candidates
 list and return TRUE.  Otherwise, return FALSE.
 */
 {

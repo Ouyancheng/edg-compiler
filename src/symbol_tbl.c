@@ -8753,7 +8753,7 @@ namespace abi was encountered in the source.
 
 a_symbol_ptr look_up_name_string_in_std(a_const_char  *name)
 /*
-Look up name in namespace std and return the symbol found if any.
+Look up name in namespace std and return the symbol found, if any.
 */
 {
   a_namespace_ptr  std_nsp;

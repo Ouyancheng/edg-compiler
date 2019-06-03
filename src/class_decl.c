@@ -13342,7 +13342,8 @@ static void check_defaulted_comparison(a_decl_parse_state  *dps,
 /*
 *dps and *func_info describe a defaulted comparison operator declaration.
 Check that the scope and parameter types are appropriate or issue a diagnostic
-otherwise (and take precautions for error recovery in that case).
+otherwise (and take precautions for error recovery in that case).  def_pos is
+the position of the "= default" construct.
 */
 {
   a_boolean      err = FALSE;
@@ -23474,7 +23475,7 @@ static void check_implicit_comparison_operators(a_class_def_state_ptr  cdsp)
 The caller has determined that a defaulted spaceship operator is declared for
 the current class definition, which is about to be completed.  If that operator
 has an "auto" return type, determine the return type and make the operator
-"deleted" is applicable.  If no corresponding equality operator has been
+"deleted" if applicable.  If no corresponding equality operator has been
 declared, declare one that matches the spaceship operator.
 */
 {
