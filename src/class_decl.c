@@ -32566,6 +32566,11 @@ generated for several calling conventions).
   conv_type->variant.routine.extra_info->qualifiers = TQ_CONST;
   decl_info.decl_state.type = conv_type;
   decl_info.decl_state.declared_type = conv_type;
+  if (call_op->is_declared_constexpr) {
+    decl_info.decl_state.dso_flags |= DSO_CONSTEXPR;
+  } else if (call_op->is_consteval) {
+    decl_info.decl_state.dso_flags |= DSO_CONSTEVAL;
+  }  /* if */
   clear_func_info(&local_func_info);
   local_func_info.is_inline = TRUE;
   decl_generated_lambda_member(lambda, cdsp, &decl_info, &member_loc,
@@ -32578,6 +32583,11 @@ generated for several calling conventions).
   initialize_member_decl_info(&decl_info, pos);
   decl_info.decl_state.type = call_type;
   decl_info.decl_state.declared_type = call_type;
+  if (call_op->is_declared_constexpr) {
+    decl_info.decl_state.dso_flags |= DSO_CONSTEXPR;
+  } else if (call_op->is_consteval) {
+    decl_info.decl_state.dso_flags |= DSO_CONSTEVAL;
+  }  /* if */
   local_func_info = *func_info;
   local_func_info.is_inline = FALSE;
   local_func_info.is_definition = FALSE;
