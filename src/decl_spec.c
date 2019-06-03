@@ -5915,7 +5915,8 @@ is updated to reflect relevant positions of this definition.
                           diag_range, explicit_base_kind,
                           min_max_set, min_value, max_value);
 #if GNU_EXTENSIONS_ALLOWED
-  if (gnu_mode && explicit_base_kind == (an_integer_kind)ik_none) {
+  if (gnu_mode && !is_scoped_enum &&
+      explicit_base_kind == (an_integer_kind)ik_none) {
     an_integer_kind  int_kind = enum_type->variant.integer.int_kind;
     if (gcc_mode) {
       /* Unlike standard C, GNU C bases an underlying type on the enumerator
@@ -5929,9 +5930,10 @@ is updated to reflect relevant positions of this definition.
       /* Apply this type to every enumerator constant. */
       change_enum_constants_type(constant_list, enum_con_type);
     }  /* if */
-    if (min_max_set && unsigned_int_kind_of[int_kind] != int_kind &&
-        in_range_for_integer_kind(
-                       min_value, max_value, unsigned_int_kind_of[int_kind])) {
+    if (constant_list == NULL ||
+        (min_max_set && unsigned_int_kind_of[int_kind] != int_kind &&
+         in_range_for_integer_kind(
+                      min_value, max_value, unsigned_int_kind_of[int_kind]))) {
       /* GNU C prefers an unsigned underlying type if none of the
          enumerator constants were negative.  Note that this does not affect
          the type of the enumerator constants themselves.  GNU C++ also

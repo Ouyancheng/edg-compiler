@@ -1,5 +1,31 @@
 Version 5.1
 
+6/3/19   [EDGcpfe/15936,EDGcpfe/18827,EDGcpfe/18884,EDGcpfe/19887,
+          EDGcpfe/21308]
+Underlying types of enumerations in GNU compatibility mode
+
+GCC treats the underlying type of a non-scoped enumeration as unsigned int when
+this can contain all the values of the enumeration, but does not do this for
+scoped enumerations.  The front-end was correctly emulating this behaviour for
+non-scoped enumerations, except for when the enumeration was empty.  It was
+also incorrectly applying this behaviour to scoped enumerations.  For example:
+
+  template<typename,typename> struct same;
+  template<typename T> struct same<T, T>{};
+  enum A {};
+  enum B { b };
+  enum class C {};
+  enum class D { d };
+  void f() {
+    same<__underlying_type(A), unsigned int>(); // Failure to match GCC
+    same<__underlying_type(B), unsigned int>(); // Matched GCC
+    same<__underlying_type(C), int>(); // Matched GCC
+    same<__underlying_type(D), int>(); // Failure to match GCC
+  }
+
+This is now fixed.
+
+
 6/3/19   [EDGcpfe/21047]
 Missing using-declaration in generated C++ code
 
