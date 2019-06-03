@@ -13550,10 +13550,10 @@ previously-scanned construct of this kind.  Either way, return the result in
     bok = (a_builtin_operation_kind_tag)expr->variant.builtin_operation.kind;
   } else {
     switch (curr_token) {
-    case tok_is_base_of:
+      case tok_is_base_of:
         bok = bok_is_base_of;
         break;
-    case tok_is_convertible_to:
+      case tok_is_convertible_to:
         bok = bok_is_convertible_to;
         break;
       case tok_reference_binds_to_temporary:
@@ -13564,7 +13564,7 @@ previously-scanned construct of this kind.  Either way, return the result in
     }  /* switch */
   }  /* if */
   if (!type_traits_helpers_enabled) {
-    /* __is_convertible_to is not accepted in some modes. */
+    /* Type traits helpers are not accepted in some modes. */
     if (expr_error_should_be_issued()) {
       check_assertion(rcblock == NULL);
       pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
@@ -36399,7 +36399,7 @@ handle_identifier:
     case tok_is_base_of:
     case tok_is_convertible_to:
     case tok_reference_binds_to_temporary:
-      /* __is_assignable_no_precondition_check construct: */
+      /* Various binary type traits helper constructs: */
       scan_binary_type_trait_helper((a_rescan_control_block *)NULL,
                                     &local_result);
       break;
