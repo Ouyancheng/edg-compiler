@@ -1,5 +1,16 @@
 Version 5.1
 
+6/3/19   [EDGcpfe/21337]
+"Storage class not first" remark with constexpr declarations
+
+The stylistic remark (warning in strict mode) that highlighted when a storage
+class specifier was not the first specifier in a declaration has been modified
+to not be issued when the preceding specifier is "constexpr".  For example:
+
+  constexpr static bool var1 = true; // No longer issues storage class remark
+  const static bool var2 = true; // Still issues storage class remark
+
+
 6/3/19   [EDGcpfe/21184]
 __is_trivially_copyable for classes with const members
 

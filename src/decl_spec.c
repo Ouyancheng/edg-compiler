@@ -9156,7 +9156,7 @@ which is processed after any other specifiers have also been consumed.
     if (C_dialect != C_dialect_pcc && !*err) {
       if (!first_specifier) {
         /* Issue a diagnostic if the storage class is not the first
-           specifier (except for "inline", "friend", or
+           specifier (except for "inline", "friend", "constexpr" or
            "thread_local/_Thread_local"). */
         pos_diagnostic(strict_ansi_mode ? es_warning : es_remark,
                        ec_storage_class_not_first, &pos_first_token);
@@ -10171,7 +10171,8 @@ storage_class_specifier:
         process_storage_class_specifier(
                             curr_token, input_flags, state, decl_pos_block, 
                             !(decl_specifiers_seen &
-                              ~(DS_INLINE | DS_FRIEND | DS_THREAD_LOCAL)),
+                              ~(DS_INLINE | DS_FRIEND | DS_THREAD_LOCAL |
+                                DS_CONSTEXPR)),
                             &decl_specifiers_seen, &err);
         goto no_get_token;
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
