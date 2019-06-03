@@ -23429,7 +23429,7 @@ are handled in lexical_init.)
       case ',': case '~': case ':': case ';': case '?': case '-':
       case '+': case '*': case '/': case '&': case '%': case '<':
       case '>': case '=': case '|': case '^': case '$': case '"':
-      case ' ': case '#':
+      case ' ': case '#': case LE_ESCAPE:
         char_ends_id[c-CHAR_MIN] = TRUE;
         char_ends_number[c-CHAR_MIN] = TRUE;
         break;
