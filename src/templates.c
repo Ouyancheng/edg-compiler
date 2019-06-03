@@ -10164,10 +10164,10 @@ use the current global value of the template template parameter.
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
-  check_assertion(!is_alias_template || sym != NULL);
-  if ((sym == NULL && !do_not_create) ||
-      (is_alias_template &&
-       sym->variant.type.ptr->variant.typeref.type == NULL)) {
+  if (!do_not_create &&
+      (sym == NULL ||
+       (is_alias_template &&
+        sym->variant.type.ptr->variant.typeref.type == NULL))) {
     /* There is no instantiation for this set of template arguments.  Create
        an instantiation now.  For alias templates, we also call the
        instantiation routine if the type is already in the process of being
