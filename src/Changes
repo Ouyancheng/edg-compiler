@@ -89,16 +89,17 @@ standardization committee's Core issue 1734.  The front end now implements
 that resolution except in Microsoft mode.
 
 
-5/31/19  [EDGpcfe/21258]
+5/31/19  [EDGpcfe/21158]
 GNU/Clang compatibility: Mutability of compound literals
 
 In GNU and Clang modes, the front end sometimes treats compound literals as
 rvalues.  Those rvalues may later be turned back into lvalues by associating
-them with a generated static variable.  Now that variable is declared with a
-"const" type to communicate the immutability of the compound literal (the
-expression denoting the compound literal is not necessarily "const", however).
-Note that the C-standard "compound literal" feature produces an lvalue that is
-mutable if its type is not "const".
+them with a generated static variable.  That variable was previously declared
+with the type specified for the compound literal, but now it is always declared
+with a "const" type to communicate the immutability of the compound literal
+(the expression denoting the compound literal is not necessarily "const",
+however).  Note that the standard (in C) "compound literal" feature produces
+an lvalue that is mutable if its type is not "const".
 
 
 5/30/19  [EDGcpfe/21314]
