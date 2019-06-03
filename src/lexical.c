@@ -20971,6 +20971,7 @@ See also coalesce_and_lookup_generalized_identifier.
                           locator_for_curr_id.is_vacuous_destructor_reference;
       return_value = TRUE;
       *err |= is_error_locator(locator_for_curr_id);
+      /*  For Coverity. */
       check_assertion(!qualifier_is_type || qualifier_type != NULL);
       /* Perform error checks as specified in "options". */
       if (*err) {
@@ -21037,8 +21038,7 @@ See also coalesce_and_lookup_generalized_identifier.
           }  /* if */
         } else {
           if (!qualifier_is_super &&
-              ((qualifier_is_type && (qualifier_type == NULL ||
-                                      is_error_type(qualifier_type))) ||
+              ((qualifier_is_type && is_error_type(qualifier_type)) ||
                (!qualifier_is_type && qualifier_namespace == NULL))) {
 	    okay = FALSE;
           } else if (!qualifier_is_super &&
@@ -21095,8 +21095,6 @@ See also coalesce_and_lookup_generalized_identifier.
             } else {
               /* Look up the id in the class scope. */
               a_boolean	qualifier_is_enum_type;
-              /*  For Coverity. */
-              check_assertion(!qualifier_is_type || qualifier_type != NULL);
               qualifier_is_enum_type = enum_qualifiers_enabled &&
                                        qualifier_is_type &&
                                        is_enum_type(qualifier_type);
