@@ -1986,6 +1986,13 @@ Return TRUE if the given type is trivially copyable.
         } else {
           is_list = FALSE;
         }  /* if */
+        if (sym == NULL && cssp->construction_by_bitwise_copy_allowed) {
+          /* In some modes the generation of default constructors is
+             suppressed.  For the purposes of this check, treat classes that
+             have no constructors where construction by bitwise copy is allowed
+             as if they have a trivial copy constructor. */
+          has_trivial_copy_function = TRUE;
+        }  /* if */
         for (; sym != NULL; sym = is_list ? sym->next : NULL) {
           a_routine_ptr	    rp;
           a_param_type_ptr  ptp;

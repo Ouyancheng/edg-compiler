@@ -1,5 +1,38 @@
 Version 5.1
 
+6/3/19   [EDGcpfe/21184]
+__is_trivially_copyable for classes with const members
+
+In some modes (e.g., GCC versions earlier than 4.9.0) the generation of
+constructors for certain POD classes (e.g., ones with const members) is
+suppressed.  For these classes, __is_trivially_copyable was returning "false",
+even though it was possible to trivially copy the class.  For example:
+
+  struct S { const int x; };
+  // Previously the below assert would fire
+  static_assert(__is_trivially_copyable(S), "S not copyable");
+
+This is now fixed.
+
+
+6/3/19   [EDGcpfe/21184]
+GNU compatibility: Default constructors for classes with const members
+
+GCC versions earlier than 4.9.0 did not implement the requirement that
+constructors for classes with uninitialized const members be defined as
+deleted (see EDGcpfe/14040).  GCC versions 4.9.0 and newer do fulfil this
+requirement.  Clang always fulfilled this requirement.  For example:
+
+  struct A {
+    constexpr int f() const { return x+1; }
+    int const x;
+  };
+  int x[A().f()]; // Previously accepted in GCC/Clang compatibility modes
+                  // Now an error with gpp_version >= 40900 or any clang mode
+
+GNU compatibility mode has been updated to reflect these changes.
+
+
 6/3/19   [EDGcpfe/15936,EDGcpfe/18827,EDGcpfe/18884,EDGcpfe/19887,
           EDGcpfe/21308]
 Underlying types of enumerations in GNU compatibility mode
