@@ -31523,7 +31523,7 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
     decl_state.il_template_entry = NULL;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (decl_state.is_generic) {
+  if (decl_state.is_generic && decl_state.decl_info != NULL) {
     /* Create the constraint types based on the C++/CLI constraints. */
     create_generic_constraint_types(decl_state.decl_info);
   }  /* if */
