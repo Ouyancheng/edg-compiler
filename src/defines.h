@@ -446,7 +446,7 @@ command-line when compiling system headers.
 #define TARG_ALIGNOF_INT_win64 4
 #define TARG_ALIGNOF_INT128_win64 16
 #define TARG_ALIGNOF_LONG_win64 4
-#define TARG_ALIGNOF_LONG_DOUBLE_win64 4
+#define TARG_ALIGNOF_LONG_DOUBLE_win64 8
 #define TARG_ALIGNOF_LONG_LONG_win64 8
 #define TARG_ALIGNOF_NEAR_POINTER_win64 2
 #define TARG_ALIGNOF_POINTER_win64 8
@@ -526,9 +526,9 @@ command-line when compiling system headers.
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND_win64 ((a_float_kind)fk_long_double)
 #define TARG_JMP_BUF_ELEMENT_INT_KIND_win64 ((an_integer_kind)ik_int)
 #define TARG_JMP_BUF_NUM_ELEMENTS_win64 39
-#define TARG_LDBL_MANT_DIG_win64 64
-#define TARG_LDBL_MAX_EXP_win64 16384
-#define TARG_LDBL_MIN_EXP_win64 (-16381)
+#define TARG_LDBL_MANT_DIG_win64 53
+#define TARG_LDBL_MAX_EXP_win64 1024
+#define TARG_LDBL_MIN_EXP_win64 (-1021)
 #define TARG_LIBGCC_CMP_RETURN_MODE_win64 ((a_type_mode_kind)tmk_SI)
 #define TARG_LIBGCC_SHIFT_COUNT_MODE_win64 ((a_type_mode_kind)tmk_SI)
 #define TARG_LITTLE_ENDIAN_win64 1
@@ -561,7 +561,7 @@ command-line when compiling system headers.
 #define TARG_SIZEOF_INT128_win64 16
 #define TARG_SIZEOF_LARGEST_FIXED_POINT_win64 8
 #define TARG_SIZEOF_LONG_win64 4
-#define TARG_SIZEOF_LONG_DOUBLE_win64 12
+#define TARG_SIZEOF_LONG_DOUBLE_win64 8
 #define TARG_SIZEOF_LONG_LONG_win64 8
 #define TARG_SIZEOF_NEAR_POINTER_win64 2
 #define TARG_SIZEOF_POINTER_win64 8
@@ -1085,7 +1085,7 @@ command-line when compiling system headers.
 #define TARG_ALIGNOF_INT_win64 4
 #define TARG_ALIGNOF_INT128_win64 16
 #define TARG_ALIGNOF_LONG_win64 4
-#define TARG_ALIGNOF_LONG_DOUBLE_win64 4
+#define TARG_ALIGNOF_LONG_DOUBLE_win64 8
 #define TARG_ALIGNOF_LONG_LONG_win64 8
 #define TARG_ALIGNOF_NEAR_POINTER_win64 2
 #define TARG_ALIGNOF_POINTER_win64 8
@@ -1165,9 +1165,9 @@ command-line when compiling system headers.
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND_win64 ((a_float_kind)fk_long_double)
 #define TARG_JMP_BUF_ELEMENT_INT_KIND_win64 ((an_integer_kind)ik_int)
 #define TARG_JMP_BUF_NUM_ELEMENTS_win64 39
-#define TARG_LDBL_MANT_DIG_win64 64
-#define TARG_LDBL_MAX_EXP_win64 16384
-#define TARG_LDBL_MIN_EXP_win64 (-16381)
+#define TARG_LDBL_MANT_DIG_win64 53
+#define TARG_LDBL_MAX_EXP_win64 1024
+#define TARG_LDBL_MIN_EXP_win64 (-1021)
 #define TARG_LIBGCC_CMP_RETURN_MODE_win64 ((a_type_mode_kind)tmk_SI)
 #define TARG_LIBGCC_SHIFT_COUNT_MODE_win64 ((a_type_mode_kind)tmk_SI)
 #define TARG_LITTLE_ENDIAN_win64 1
@@ -1200,7 +1200,7 @@ command-line when compiling system headers.
 #define TARG_SIZEOF_INT128_win64 16
 #define TARG_SIZEOF_LARGEST_FIXED_POINT_win64 8
 #define TARG_SIZEOF_LONG_win64 4
-#define TARG_SIZEOF_LONG_DOUBLE_win64 12
+#define TARG_SIZEOF_LONG_DOUBLE_win64 8
 #define TARG_SIZEOF_LONG_LONG_win64 8
 #define TARG_SIZEOF_NEAR_POINTER_win64 2
 #define TARG_SIZEOF_POINTER_win64 8
