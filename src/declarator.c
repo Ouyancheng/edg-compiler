@@ -1632,12 +1632,14 @@ actually declares a function, member function, or function template).
     /* No explicit throw specification, meaning anything may be thrown. */
     goto done;
   }  /* if */
-  if (!exceptions_enabled || !exception_spec_allowed ||
+  if (!exception_spec_allowed ||
+      (!exceptions_enabled && !exc_spec_in_func_type) ||
       (microsoft_bugs && microsoft_version <= 1200 && !is_noexcept)) {
-    /* If exception-handling support is not enabled, or if this is a context
-       in which an exception specification is not allowed, or if (in some
-       Microsoft-compatibility modes) exception specifications are recognized
-       but ignored, set a flag to control the diagnostics that are put out. */
+    /* If this is a context in which an exception specification is not allowed,
+       exception-handling support is not enabled and is not required to be part
+       of the function type, or if (in some Microsoft-compatibility modes)
+       exception specifications are recognized but ignored, set a flag to
+       control the diagnostics that are put out. */
     ignoring_exception_spec = TRUE;
   }  /* if */
   if (!ignoring_exception_spec ||

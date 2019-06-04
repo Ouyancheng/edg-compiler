@@ -1,5 +1,21 @@
 Version 5.1
 
+6/4/19   [EDGcpfe/19495]
+Exception specifications as part of function types when exceptions disabled
+
+In C++17, exceptions make up part of the function type.  The front end was
+disabling this when --no_exceptions was specified, which could lead to errors
+when overloading with function types that differed only by their exception
+specification.  For example:
+
+  template<typename> struct A;
+  template<typename T> struct A<T (*)()> {};
+  // Caused "already defined" error with --no_exceptions
+  template<typename T> struct A<T (*)() noexcept> {};
+
+This is now fixed.
+
+
 6/3/19   [EDGcpfe/21337]
 "Storage class not first" remark with constexpr declarations
 
