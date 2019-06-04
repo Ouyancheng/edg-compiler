@@ -3063,6 +3063,7 @@ ec_await_not_allowed_in_static_initializer;;"a co_await expression is not allowe
 ec_final_suspend_cannot_throw;;"the co_await expression calling %n must be non-throwing"
 ec_excessive_comparison_rewrites;;"too many recursive comparison rewrite operations"
 ec_invalid_placeholder_for_defaulted_spaceship_return;;"a deducible return type for a default operator<=> must be \"auto\""
+ec_constexpr_implied_source_nonconstant;;"implicit copy of non-constant source"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

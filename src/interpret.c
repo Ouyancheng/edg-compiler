@@ -9478,7 +9478,9 @@ is within the given complete_object.
                                          dst_bytes, complete_object)) {
               do_constexpr_fail(result);
             }  /* if */
-          } else if (sub_dip->kind == (a_dynamic_init_kind)dik_none) {
+          } else if (sub_dip->kind == (a_dynamic_init_kind)dik_none ||
+                     (sub_dip->kind == (a_dynamic_init_kind)dik_constant &&
+                      is_error_constant(sub_dip->variant.constant.ptr))) {
             /* This can happen in error cases. */
             expect_error();
             ips->input_error = TRUE;
@@ -15580,13 +15582,15 @@ done:
 
 a_boolean interpret_constexpr_ctor(a_dynamic_init_ptr  dip,
                                    a_boolean           is_constant_evaluated,
+                                   a_source_position   *pos,
                                    a_constant_ptr      result_con,
                                    a_diag_list_ptr     diag_list)
 /*
 Attempt to interpret the constructor call represented by dip.  Return TRUE if
 successful, and produce the resulting value in result_con.  Otherwise, return
 FALSE, and record diagnostic info in *diag_list.  is_constant_evaluated
-indicates the value produced by std::is_constant_evaluated().
+indicates the value produced by std::is_constant_evaluated().  pos is the
+position associated with the call.
 */
 {
   a_boolean             result = TRUE;
@@ -15613,7 +15617,13 @@ indicates the value produced by std::is_constant_evaluated().
     trans_unit_initialization_needed = FALSE;
   }  /* if */
   init_interpreter_state(&ips, is_constant_evaluated);
-  ips.position = error_position;
+  ips.position = *pos;
+  if (dip->variant.constructor.is_copy_constructor_with_implied_source) {
+    /* An implied source is never constant. */
+    more_info_diagnostic(ec_constexpr_implied_source_nonconstant, pos,
+                         &ips.diag_list);
+    do_constexpr_fail(result);
+  }  /* if */
   ctor = dip->variant.constructor.ptr;
   result_type = parent_class_of(ctor);
   n_bytes = value_bytes_for_type(&ips, result_type, &result); 
@@ -15635,8 +15645,8 @@ indicates the value produced by std::is_constant_evaluated().
       ips.permit_address_of_local_temporary = TRUE;
     }  /* if */
     alloc_complete_object(&ips, n_bytes, result_type, result_storage);
-    if (!do_constexpr_ctor(&ips, dip, &error_position, result_storage,
-                           result_storage, /*implied_src=*/NULL)) {
+    if (!do_constexpr_ctor(&ips, dip, pos, result_storage, result_storage,
+                           /*implied_src=*/NULL)) {
       if (ips.input_error) {
         /* Interpretation failed due to an error node in the IL.  Continue
            with an error constant, but treat interpretation as successful. */

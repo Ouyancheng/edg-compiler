@@ -10624,7 +10624,7 @@ std::is_constant_evaluated() during this folding.
   check_assertion(ctor_dip != NULL &&
                   ctor_dip->kind == (a_dynamic_init_kind)dik_constructor);
   clear_diag_list(&diag_list);
-  folded = interpret_constexpr_ctor(ctor_dip, is_constant_evaluated,
+  folded = interpret_constexpr_ctor(ctor_dip, is_constant_evaluated, pos,
                                     result_con, &diag_list);
   if (folded) {
     if (record_backing_expr) {

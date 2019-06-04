@@ -46,6 +46,7 @@ a_boolean interpret_dynamic_init(a_dynamic_init_ptr  dip,
 
 a_boolean interpret_constexpr_ctor(a_dynamic_init_ptr  dip,
                                    a_boolean           is_constant_evaluated,
+                                   a_source_position   *pos,
                                    a_constant_ptr      result_con,
                                    a_diag_list_ptr     diag_list);
 
