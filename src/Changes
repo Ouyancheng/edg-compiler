@@ -48,11 +48,11 @@ GNU compatibility mode has been updated to reflect these changes.
           EDGcpfe/21308]
 Underlying types of enumerations in GNU compatibility mode
 
-GCC treats the underlying type of a non-scoped enumeration as unsigned int when
-this can contain all the values of the enumeration, but does not do this for
-scoped enumerations.  The front-end was correctly emulating this behaviour for
-non-scoped enumerations, except for when the enumeration was empty.  It was
-also incorrectly applying this behaviour to scoped enumerations.  For example:
+GCC treats the underlying type of an unscoped enumeration as unsigned int when
+this can contain all the values of the enumeration.  The front-end was
+correctly emulating this behavior for unscoped enumerations, except for when
+the enumeration was empty.  It was also incorrectly applying this behavior to
+scoped enumerations.  For example:
 
   template<typename,typename> struct same;
   template<typename T> struct same<T, T>{};
