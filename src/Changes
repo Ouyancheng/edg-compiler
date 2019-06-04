@@ -71,13 +71,13 @@ This is now fixed.
 
 
 6/3/19   [EDGcpfe/21047]
-Missing using-declaration in generated C++ code
+C++-generating back end: Missing using-declaration in generated C++ code
 
-In code where multiple functions were imported into a namespace via a comma-
-delimited using-declaration list, latter using-declarations may have
-incorrectly been marked as having no "representative" using-declaration.  In
-C++ generating back-ends, this may result in these using-declarations not being
-included.  For example:
+In code where multiple entities were imported into a namespace via a comma-
+delimited using-declaration list, later using-declarations may have incorrectly
+been marked as having no "representative" using-declaration.  In C++-generating
+back-ends, this may result in these using-declarations being omitted from the
+generated code.  For example:
 
   int f00();
   namespace N01 {
@@ -87,7 +87,7 @@ included.  For example:
     int f02();
   }
   namespace N {
-    using ::f00, N01::f01, N02::f02; // Previously would have no representative
+    using ::f00, N01::f01, N02::f02; // Generated code previously had no
                                      // using-declaration for N02::f02
   }
 
