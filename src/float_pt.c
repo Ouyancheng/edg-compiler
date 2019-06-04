@@ -2471,10 +2471,10 @@ Convert the floating-point number in the null-terminated string str to
 internal form in *float_value.  The number is known to be syntactically
 correct, but may not be representable (it may be too large or too small);
 if there's an error, return *err = TRUE.  The precision of the value
-is indicated by kind (float, double, long double); full precision will
-be kept, but the value is checked to see that it will fit in the indicated
-type.  The string need not have a decimal point or exponent (it can
-look like an integer).  It may have a leading "-" sign.
+is indicated by kind (float, double, long double).  The value is checked
+to see that it will fit in the indicated type.  The string need not have a
+decimal point or exponent (it can look like an integer).  It may have a
+leading "-" sign.
 
 Note that if the default versions of fp_same_representation and
 fp_hash are used, this routine should zero the entire float_value
@@ -2518,7 +2518,9 @@ before setting it if there are unused bits.
     an_internal_float_value float_value_temp;
     /* Convert the string to the appropriate binary floating-point format and
        store the result (if there was no underflow or overflow on the
-       conversion). */
+       conversion).  Separate routines are used for each floating-point type
+       (rather than using the largest floating-point type and then calling
+       store_host_fp_value to see if the value fits in the specified type). */
     /* Clear &float_value_temp: Don't use assignment because on some platforms
        the non-significant bytes wouldn't be cleared. */
     memzero((char *)&float_value_temp, sizeof(an_internal_float_value));

@@ -2418,10 +2418,10 @@ Type used to represent float quantities internally:
 address or the value of the item.)
 */
 typedef struct an_internal_float_value {
-  /* The type here must match the code in float_pt.c.  The default
-     declaration assumes that target floating constants are represented in
-     a host double or long double, which are the types supported by the
-     default version of float_pt.c. */
+  /* The type here must match the code in float_pt.c.  Enough storage is
+     allocated for the largest floating-point type, though the floating-point
+     value may take less than that (e.g., a value with "float" type will use
+     only 32 bits of the storage). */
   a_byte bytes[sizeof(a_host_fp_value)];
   /*lint -esym(768,an_internal_float_value::bytes)*/
 } an_internal_float_value;
