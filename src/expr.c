@@ -38920,7 +38920,7 @@ successful within the class scope; returns FALSE otherwise.
   a_boolean        passed = FALSE;
   a_symbol_locator locator;
   
-  if (look_up_named_member_function(type, "begin", &locator) != NULL ||
+  if (look_up_named_member_function(type, "begin", &locator) != NULL &&
       look_up_named_member_function(type, "end", &locator) != NULL) {
     passed = TRUE;
   }  /* if */
