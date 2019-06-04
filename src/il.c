@@ -5583,9 +5583,12 @@ nonstatic member function indicated by routine.
   /* Get the parent from the symbol rather than the routine in order
      to get pointers-to-members of anonymous unions right (it doesn't
      really matter for routines, but just in case). */
-  member_sym = ((a_symbol_ptr)routine->source_corresp.assoc_info);
+  member_sym = symbol_for(routine);
   check_assertion(member_sym != NULL && member_sym->is_class_member);
   member_class = sym_parent_class(member_sym);
+  if (routine->is_template_function) {
+    instantiate_exception_spec_if_needed(member_sym);
+  }  /* if */
   con->type = ptr_to_member_type(routine->type, member_class);
 }  /* set_ptr_to_member_function_constant */
 
