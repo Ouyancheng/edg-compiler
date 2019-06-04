@@ -26017,7 +26017,7 @@ freed by this routine.
     } else if (err || dip == NULL) {
       /* Error of some sort. */
       make_error_operand(result);
-    } else if (constexpr_enabled &&
+    } else if (constexpr_enabled && dip->destructor == NULL &&
                (folded_con = constant_value_of_dynamic_init(dip)) != NULL &&
                folded_con->is_result_of_constexpr_call) {
       /* The construction was folded to a constant result. */
