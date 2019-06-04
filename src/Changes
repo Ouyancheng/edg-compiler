@@ -39,7 +39,7 @@ requirement.  Clang always fulfilled this requirement.  For example:
     int const x;
   };
   int x[A().f()]; // Previously accepted in GCC/Clang compatibility modes
-                  // Now an error with gpp_version >= 40900 or any clang mode
+                  // Now an error with gnu_version >= 40900 or any clang mode
 
 GNU compatibility mode has been updated to reflect these changes.
 
