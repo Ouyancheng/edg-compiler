@@ -8037,9 +8037,8 @@ position.
        literal types.  Since destructors don't have a return type, this
        implies they cannot be constexpr. */
     if (special_kind_is(rp, sfk_destructor)) {
-      /* Destructors cannot be constexpr: This should have been caught
-         earlier. */
-      unexpected_condition();
+      /* Destructors cannot be constexpr: This is diagnosed elsewhere. */
+      expect_error();
     } else if (!special_kind_is(rp, sfk_constructor) &&
                !could_be_literal_type(rtp->variant.routine.return_type)) {
       okay = FALSE;
