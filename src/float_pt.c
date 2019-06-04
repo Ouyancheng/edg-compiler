@@ -2534,11 +2534,11 @@ before setting it if there are unused bits.
         db_binary_float((unsigned char *)&float_value_temp);
       }  /* if */
 #endif /* DEBUG */
-    } else if (kind == (a_float_kind)fk_double
-#if !FP_HAS_LONG_DOUBLE
-               || kind == (a_float_kind)fk_long_double
-#endif /* !FP_HAS_LONG_DOUBLE */
-						      ) {
+    } else if (kind == (a_float_kind)fk_double ||
+               (kind == (a_float_kind)fk_long_double &&
+                (!FP_HAS_LONG_DOUBLE || targ_ldbl_mant_dig == 53))) {
+      /* Either "double" or "long double", where "double" and "long double"
+         are configured as binary64. */
       res = read_double((unsigned char *)&float_value_temp, str,
                         (int)strlen(str));
 #if DEBUG
@@ -2771,11 +2771,11 @@ be NULL if the corresponding return value is not needed.
         fprintf(f_debug, "  %s\n", str);
       }  /* if */
 #endif /* DEBUG */
-    } else if (kind == (a_float_kind)fk_double
-#if !FP_HAS_LONG_DOUBLE
-               || kind == (a_float_kind)fk_long_double
-#endif /* !FP_HAS_LONG_DOUBLE */
-						      ) {
+    } else if (kind == (a_float_kind)fk_double ||
+               (kind == (a_float_kind)fk_long_double &&
+                (!FP_HAS_LONG_DOUBLE || targ_ldbl_mant_dig == 53))) {
+      /* Either "double" or "long double", where "double" and "long double"
+         are configured as binary64. */
       res = write_double(str, sizeof(str), (unsigned char *)float_value);
 #if DEBUG
       if (db_flag_is_set("fp")) {
