@@ -1,5 +1,42 @@
 Version 5.1
 
+6/5/19   [EDGcpfe/21335]
+C++-generating back end, clang compatibility: qualified typedef name in a
+trivial destructor invocation
+
+The clang compiler has a bug that causes it to reject the invocation of a
+trivial destructor in which the type is given as a typedef named by a
+qualified-id.  In configurations in which
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is set to TRUE,
+the C++-generating back end could produce such destructor calls in
+generated explicit specializations.  For example, given
+
+  struct S { };
+  namespace N {
+  typedef S X;
+  }
+  template<typename T> T& f() {
+    static T t;
+    return t;
+  }
+  template<typename T> void g() {
+    f<T>().T::~T();
+  }
+  void h() {
+    g<N::X>();
+  }
+
+the generated code contained the following explicit specialization:
+
+  template<> void g< S> () {
+    f<S> ().N::X::~X();
+  }
+
+The use of the name N::X in the destructor call triggered the clang bug.
+This has now been addressed by using the underlying type of the typedef in
+the generated code when clang_is_generated_code_target is TRUE.
+
+
 6/4/19   [EDGcpfe/21339]
 C++-generating back end, clang compatibility: matching explicit
 specializations of function templates

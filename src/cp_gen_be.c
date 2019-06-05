@@ -14462,7 +14462,18 @@ gen_expr that might end up generating this expr as a temporary.
               prev_type = type;
               if (type_is_typedef(type) &&
                   (is_typedef_invisible_in_cp_gen_be(type) ||
-                   !type->typedef_definition_has_been_put_out)) {
+                   !type->typedef_definition_has_been_put_out ||
+                   (clang_is_generated_code_target &&
+                    !scope_is_in_name_context_stack(
+                                        type->source_corresp.parent_scope)))) {
+                /* The type is unusable: it's either invisible
+                   (inaccessible, etc.) or it hasn't been declared yet
+                   (which can occur with generated template instances).  In
+                   addition, clang has a bug such that a typedef named
+                   using a qualified-id cannot be used to invoke a trivial
+                   destructor, i.e., it rejects "x.N::T:~T(), where T is a
+                   typedef (it does accept the case where T is a class
+                   name). */
                 type = type->variant.typeref.type;
               }  /* if */
             } while (type != prev_type);
