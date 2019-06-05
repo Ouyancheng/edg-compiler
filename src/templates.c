@@ -35768,6 +35768,10 @@ are instantiated using a mechanism like the template instantiation mechanism.
     a_routine_list_entry_ptr	rlep;
     for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
       a_routine_ptr  rp = rlep->routine;
+      if (rp->is_consteval) {
+        /* consteval routines should never be emitted. */
+        continue;
+      }  /* if */
       if (rp->storage_class != (a_storage_class)sc_static ||
           any_exported_templates()) {
         a_symbol_ptr             sym = symbol_for(rp);
