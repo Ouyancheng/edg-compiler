@@ -15698,7 +15698,7 @@ current scope.
               import_any_hidden_tags(other_decl, nsp, &prev_udp,
                                      &suppress_redecl_error);
               if (prev_udp != NULL && orig_prev_udp != prev_udp) {
-                /* Only mark this one as representative if it's a newly created
+                /* Only mark this one as representative if it's a newly-created
                    using decl. */
                 rep_udp = prev_udp;
                 rep_udp->is_representative = TRUE;
