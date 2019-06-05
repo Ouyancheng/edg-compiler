@@ -4285,10 +4285,10 @@ constant is being assigned, e.g.,
   /* Note that the variable is allocated even if the constant is in
      a different memory region and will not at this time be turned into
      a ck_aggregate constant. */
-  if (constant->kind == (a_constant_repr_kind)ck_aggregate ||
-      (constant->kind == (a_constant_repr_kind)ck_string &&
+  if (constant_is(constant, ck_aggregate) ||
+      (constant_is(constant, ck_string) &&
        constant->is_partially_initialized) ||
-      (constant->kind == (a_constant_repr_kind)ck_ptr_to_member &&
+      (constant_is(constant, ck_ptr_to_member) &&
        constant->variant.ptr_to_member.is_function_ptr)) {
     /* This is a troublesome pointer-to-member constant or other
        troublesome aggregate. */
@@ -4296,7 +4296,8 @@ constant is being assigned, e.g.,
     /* See if the variable has been allocated already.  If so, a pointer to
        the variable will have been stored in the constant; otherwise one
        will be created. */
-    assoc_var = assoc_var_for_constant(constant, /*const_okay=*/TRUE);
+    assoc_var = assoc_var_for_constant(
+                           constant, constant_is(constant, ck_ptr_to_member));
   }  /* if */
   *temp_var = assoc_var;
   return troublesome;
