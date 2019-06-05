@@ -210,6 +210,16 @@ static a_boolean
 			/* TRUE if the expression being generated has been
 			   marked with the GNU __extension__ keyword. */
 
+static a_boolean
+		is_generated_explicit_specialization;
+			/* TRUE in configurations with
+			   TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+			   set to TRUE if the current declaration (class,
+			   function, or variable) is a generated template
+			   instance being put out as am explicit
+			   specialization.  Always FALSE in other
+			   configurations and for other declarations. */
+
 /*
 Entry used to record an adjustment needed at the end of a name context,
 i.e., restoring the previous values of the qualification_needed and/or
@@ -3320,6 +3330,7 @@ a name.  Never generate a qualified name.
   }  /* if */
 }  /* gen_bare_name */
 
+
 static a_boolean name_has_template_arguments(
                                         a_source_correspondence *scp,
                                         an_il_entry_kind        entry_kind,
@@ -3368,9 +3379,14 @@ argument list and to FALSE otherwise.
   } else if (entry_kind == iek_routine) {
     /* Check for template arguments on a routine, but put them out only if
        explicit template arguments (e.g., f<int>) were used with the name
-       at some point in the program. */
+       at some point in the program or on an generated explicit
+       specialization in clang code; the latter case works around a clang
+       bug that can result in spurious errors if the template arguments are
+       omitted in an explicit specialization declaration. */
     a_routine_ptr rout = (a_routine_ptr)scp;
-    if (rout->expl_template_arg_list_used) {
+    if (rout->expl_template_arg_list_used ||
+        (clang_is_generated_code_target &&
+         is_generated_explicit_specialization)) {
       tap = rout->template_arg_list;
       result = TRUE;
       if (insert_space != NULL &&
@@ -3638,9 +3654,16 @@ that the remaining arguments will be defaulted.
           num_arguments = 0;
         }  /* if */
       }  /* if */
-    } else if (entry_kind == iek_routine) {
+    } else if (entry_kind == iek_routine &&
+               !(clang_is_generated_code_target &&
+                 is_generated_explicit_specialization)) {
       /* Only put out function template arguments if they were explicitly
-         specified anywhere in the translation unit. */
+         specified anywhere in the translation unit.  Clang has a bug that
+         sometimes requires putting out explicit template arguments for an
+         explicit specialization declaration rather than relying on
+         template argument deduction from the function parameters, so we
+         always put out template arguments for generated explicit
+         specialization declarations when clang is the target. */
       begin_template_arg_list_traversal_simple(tap, &argp);
       for (; argp != NULL && argp->explicitly_specified;
            advance_to_next_template_arg_simple(&argp)) {
@@ -9879,9 +9902,11 @@ this one is such a continuation.
   an_attribute_ptr             attributes = NULL;
   a_boolean                    saved_suppress_nontype_expr =
                                              octl.suppress_expr_in_nontype_arg;
-  a_boolean                    is_generated_explicit_specialization = FALSE;
+  a_boolean                    saved_generated_expl_spec =
+                                          is_generated_explicit_specialization;
 
   *another_decl_in_comma_list = FALSE;
+  is_generated_explicit_specialization = FALSE;
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
     if (ss_entry_kind(sec_decl) == iek_template) {
@@ -10243,6 +10268,7 @@ this one is such a continuation.
     }  /* if */
   }  /* if */
   octl.suppress_expr_in_nontype_arg = saved_suppress_nontype_expr;
+  is_generated_explicit_specialization = saved_generated_expl_spec;
 }  /* gen_type_decl */
 
 
@@ -18424,8 +18450,10 @@ this one is such a continuation.
   a_gen_decl_options_set       gd_options = GDO_NO_OPTIONS;
   a_boolean                    saved_suppress_nontype_expr =
                                              octl.suppress_expr_in_nontype_arg;
-  a_boolean                    is_generated_explicit_specialization = FALSE;
-                            
+  a_boolean                    saved_generated_expl_spec =
+                                          is_generated_explicit_specialization;
+
+  is_generated_explicit_specialization = FALSE;
   name_ref = get_current_name_ref();
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
@@ -18906,6 +18934,7 @@ this one is such a continuation.
 end_of_routine:;
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   octl.suppress_expr_in_nontype_arg = saved_suppress_nontype_expr;
+  is_generated_explicit_specialization = saved_generated_expl_spec;
 }  /* gen_variable_decl */
 
 
@@ -19579,8 +19608,10 @@ TRUE if the declaration following this one is such a continuation.
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENC_LISTS */
   a_boolean                     saved_suppress_nontype_expr =
                                              octl.suppress_expr_in_nontype_arg;
-  a_boolean                     is_generated_explicit_specialization = FALSE;
+  a_boolean                     saved_generated_expl_spec =
+                                          is_generated_explicit_specialization;
 
+  is_generated_explicit_specialization = FALSE;
   name_ref = get_current_name_ref();
   *another_decl_in_comma_list = FALSE;
   /* Note that compiler-generated routines don't appear on the source sequence
@@ -20441,6 +20472,7 @@ end_of_routine:
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   in_generated_instance = saved_in_generated_instance;
   octl.suppress_expr_in_nontype_arg = saved_suppress_nontype_expr;
+  is_generated_explicit_specialization = saved_generated_expl_spec;
 }  /* gen_routine_decl */
 
 
@@ -20858,6 +20890,7 @@ Initialize for the C++/C-generating back end.
   curr_pack_alignment = 0;
   need_pragma_pack_restore = FALSE;
   vars_for_decltype = NULL;
+  is_generated_explicit_specialization = FALSE;
 }  /* init_cp_gen_be */
 
 

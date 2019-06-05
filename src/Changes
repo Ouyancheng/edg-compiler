@@ -1,5 +1,39 @@
 Version 5.1
 
+6/4/19   [EDGcpfe/21339]
+C++-generating back end, clang compatibility: matching explicit
+specializations of function templates
+
+The clang compiler sometimes fails to match an explicit specialization of a
+function template with its primary template if the explicit specialization
+relies on template argument deduction rather than explicit template
+arguments.  In C++-generating back end configurations with
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE, a
+generated explicit specialization was put out without an explicit template
+argument list if none of the references to that template instance in the
+original source uses explicit template arguments.  The generated C++ code
+could thus could trigger the clang bug.  For example, given the input
+source
+
+  template<typename T> void f(const T&) { }
+  template<typename T> void f(T&&) { }
+  void g(const int& r) {
+    f(r);
+  }
+
+the generated code contained the following explicit specialization:
+
+  template<> void f<> (const int &) { }
+
+Compiling the generated code, clang complains that the reference to f is
+ambiguous.  This is now fixed; when clang_is_generated_code_target is TRUE,
+the explicit specialization is generated as
+
+  template<> void f<int> (const int &) { }
+
+which clang accepts without error.
+
+
 6/4/19   [EDGcpfe/20020]
 Relaxed range-based-for loop customization point finding rules
 
