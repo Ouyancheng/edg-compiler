@@ -6301,8 +6301,7 @@ the description of the remaining parameters.
     a_boolean need_backing_expr =
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
     if (fold_constexpr_ctor(ctor_dip, need_backing_expr, check_constexpr,
-                            /*is_constant_evaluated=*/FALSE, pos,
-                            result_con)) {
+                            ctor->is_consteval, pos, result_con)) {
       folded = TRUE;
     }  /* if */
   }  /* if */

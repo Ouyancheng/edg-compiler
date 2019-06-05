@@ -9451,7 +9451,7 @@ initialized.  These are addressed in the course of the processing.
       clear_constexpr_flag = TRUE;
     }  /* if */
   }  /* if */
-  if (clear_constexpr_flag) {
+  if (clear_constexpr_flag && !ctor_rout->is_consteval) {
     ctor_rout->is_constexpr = FALSE;
   }  /* if */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR

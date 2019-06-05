@@ -3414,6 +3414,54 @@ indication in *rcblock).
 }  /* scan_parenthesized_initializer_expression */
 
 
+static void begin_pending_consteval_failure_bracket(
+                                    a_boolean                    *do_restore,
+                                    a_pending_consteval_failure  *saved_entry)
+/*
+We about to start processing call arguments (for a function or constructor
+call).  While parsing those call arguments, we might encounter a call to a
+consteval function that doesn't fold.  In such cases, we might record the
+"pending consteval failure" entry: Initialize that entry and save the prior
+state if needed (in that case *do_restore is set to TRUE).
+*/
+{
+  if (pending_consteval_failure.routine == NULL) {
+    /* Reuse the currently active entry since it doesn't record a failure
+       yet. */
+    *do_restore = FALSE;
+  } else {
+    *do_restore = TRUE;
+    *saved_entry = pending_consteval_failure;
+    pending_consteval_failure.routine = NULL;
+  }  /* if */
+}  /* begin_pending_consteval_failure_bracket */
+
+
+static void end_pending_consteval_failure_bracket(
+                                    a_routine_ptr                routine,
+                                    a_boolean                    do_restore,
+                                    a_pending_consteval_failure  *saved_entry)
+/*
+We're done processing a call (to a function or constructor).  If a pending
+consteval failure was recorded during the processing of the arguments of this
+call and it is not a call to a consteval function, issue an error.
+*/
+{
+  if (pending_consteval_failure.routine != NULL) {
+    a_diag_list_ptr  diag_list = &pending_consteval_failure.diag_list;
+    if (routine == NULL || !routine->is_consteval) {
+      check_args_for_nonconsteval_call();
+      if (diag_list->head != NULL) {
+        discard_more_info_list(diag_list);
+      }  /* if */
+      pending_consteval_failure.routine = NULL;
+    }  /* if */
+  }  /* if */
+  if (pending_consteval_failure.routine == NULL && do_restore) {
+    pending_consteval_failure = *saved_entry;
+  }  /* if */
+}  /* end_pending_consteval_failure_bracket */
+
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- simple_result is unused in that case. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3542,15 +3590,8 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                                                            supplied_arg_list));
   /* If needed, start a new entry to record a consteval call failure in an
      argument. */
-  if (pending_consteval_failure.routine == NULL) {
-    /* Reuse the currently active entry since it doesn't record a failure
-       yet. */
-    restore_pending_consteval_failure = FALSE;
-  } else {
-    restore_pending_consteval_failure = TRUE;
-    saved_pending_consteval_failure = pending_consteval_failure;
-    pending_consteval_failure.routine = NULL;
-  }  /* if */
+  begin_pending_consteval_failure_bracket(&restore_pending_consteval_failure,
+                                          &saved_pending_consteval_failure);
   saved_in_call_argument = expr_stack->in_call_argument;
   expr_stack->in_call_argument = TRUE;
   /* Allowing a call with incomplete return type doesn't propagate to calls
@@ -4003,17 +4044,9 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 end_of_routine:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (pending_consteval_failure.routine != NULL) {
-    a_diag_list_ptr  diag_list = &pending_consteval_failure.diag_list;
-    if (diag_list->head != NULL) {
-      discard_more_info_list(diag_list);
-    }  /* if */
-  }  /* if */
-  if (restore_pending_consteval_failure) {
-    pending_consteval_failure = saved_pending_consteval_failure;
-  } else {
-    pending_consteval_failure.routine = NULL;
-  }  /* if */
+  end_pending_consteval_failure_bracket(routine,
+                                        restore_pending_consteval_failure,
+                                        &saved_pending_consteval_failure);
   if (arg_list != NULL && arg_list != supplied_arg_list) {
     free_arg_list(arg_list);
   }  /* if */
@@ -6077,15 +6110,8 @@ are expected to be NULL in that case.
   db_enter(4, "scan_function_call");
   /* If needed, start a new entry to record a consteval call failure in an
      argument. */
-  if (pending_consteval_failure.routine == NULL) {
-    /* Reuse the currently active entry since it doesn't record a failure
-       yet. */
-    restore_pending_consteval_failure = FALSE;
-  } else {
-    restore_pending_consteval_failure = TRUE;
-    saved_pending_consteval_failure = pending_consteval_failure;
-    pending_consteval_failure.routine = NULL;
-  }  /* if */
+  begin_pending_consteval_failure_bracket(&restore_pending_consteval_failure,
+                                          &saved_pending_consteval_failure);
   /* While processing this call, ensure that the "uses_this_operand" only
      reflects uses of "this" within the current call. */
   expr_stack->uses_this_operand = FALSE;
@@ -6862,17 +6888,9 @@ are expected to be NULL in that case.
   }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 done:
-  if (pending_consteval_failure.routine != NULL) {
-    a_diag_list_ptr  diag_list = &pending_consteval_failure.diag_list;
-    if (diag_list->head != NULL) {
-      discard_more_info_list(diag_list);
-    }  /* if */
-  }  /* if */
-  if (restore_pending_consteval_failure) {
-    pending_consteval_failure = saved_pending_consteval_failure;
-  } else {
-    pending_consteval_failure.routine = NULL;
-  }  /* if */
+  end_pending_consteval_failure_bracket(routine,
+                                        restore_pending_consteval_failure,
+                                        &saved_pending_consteval_failure);
   free_arg_list(arg_list);
   db_exit();
 }  /* scan_function_call */
