@@ -38912,10 +38912,10 @@ otherwise, NULL is returned.
 }  /* look_up_named_member_function */
 
 
-static a_boolean has_range_based_for_begin_or_end_member(a_type_ptr type)
+static a_boolean has_range_based_member_requirements(a_type_ptr type)
 /*
-Returns TRUE if lookups for the "begin" or "end" member functions are
-successful within the class scope; returns FALSE otherwise.
+Returns TRUE if lookups for the "begin" and "end" member functions within the
+class scope meet the requirements for range-based-for; returns FALSE otherwise.
 */
 {
   a_boolean        passed = FALSE;
@@ -38926,7 +38926,7 @@ successful within the class scope; returns FALSE otherwise.
     passed = TRUE;
   }  /* if */
   return passed;
-}  /* has_range_based_for_begin_or_end_member */
+}  /* has_range_based_member_requirements */
 
 
 static a_boolean make_enhanced_for_user_defined_function_call(
@@ -41745,7 +41745,7 @@ and can have the following forms (see [stmt.ranged] for specifics):
     /* begin-expr is __range, end-expr is __range + bound. */
     passed = check_range_based_for_array_case(expr_position, rbflp);
   } else if (is_class_struct_union_type(expr_type) &&
-             has_range_based_for_begin_or_end_member(expr_type)) {
+             has_range_based_member_requirements(expr_type)) {
     /* begin-expr is __range.begin(), end-expr is __range.end(). */
     passed = check_range_based_for_member_case(rbflp, expr_position,
                                                tok_seq_number);
