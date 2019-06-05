@@ -27816,14 +27816,16 @@ operator_tsn describe the location of the operator.
       make_error_operand(result);
       operand_will_not_be_used_because_of_error(opnd1);
       operand_will_not_be_used_because_of_error(opnd2);
-    } else if ((is_arithmetic_or_unscoped_enum_type(opnd1->type) &&
-                is_arithmetic_or_unscoped_enum_type(opnd2->type)) ||
-               (is_scoped_enum_type(opnd1->type) &&
-                is_integral_type(opnd2->type)) ||
-               (is_scoped_enum_type(opnd2->type) &&
-                is_integral_type(opnd1->type))) {
-      do_operand_transformations(opnd1, TOPT_NO_OPTIONS);
-      do_operand_transformations(opnd2, TOPT_NO_OPTIONS);
+      goto done_with_builtin_spaceship;
+    }  /* if */
+    do_operand_transformations(opnd1, TOPT_NO_OPTIONS);
+    do_operand_transformations(opnd2, TOPT_NO_OPTIONS);
+    if ((is_arithmetic_or_unscoped_enum_type(opnd1->type) &&
+         is_arithmetic_or_unscoped_enum_type(opnd2->type)) ||
+        (is_scoped_enum_type(opnd1->type) &&
+         is_integral_type(opnd2->type)) ||
+        (is_scoped_enum_type(opnd2->type) &&
+         is_integral_type(opnd1->type))) {
       if (is_bool_type(opnd1->type) != is_bool_type(opnd2->type)) {
         pos_ty2_error(ec_invalid_spaceship_types, operator_pos,
                       opnd1->type, opnd2->type);
@@ -27902,6 +27904,7 @@ operator_tsn describe the location of the operator.
                                        result_type, op1_node);
       make_expression_operand(result_node, result);
     }  /* if */
+done_with_builtin_spaceship:;
   }  /* if */
   set_operand_position(result, &opnd1->position, &opnd2->end_position,
                        operator_pos);
