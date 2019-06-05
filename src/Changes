@@ -255,7 +255,7 @@ the following example resulted in the failed assertion:
   }
 
 
-5/31/19  [EDGcpfe/21135]
+5/31/19  [EDGcpfe/21071,EDGcpfe/21135]
 Result of noexcept operator and pointer-to-member calls
 
 Consider:
