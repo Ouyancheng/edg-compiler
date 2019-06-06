@@ -1,5 +1,13 @@
 Version 5.1
 
+6/6/19   [EDGcpfe/21347]
+Microsoft compatibility: Selecting C++ standard mode
+
+In Microsoft compatibility mode the front end was overriding an explicitly
+specified C++ standard mode (e.g., --c++20) if the microsoft version being
+emulated was 19.03 or newer.  This has now been fixed.
+
+
 6/6/19   [EDGcpfe/20911,EDGcpfe/20912]
 Allowing lambda capture of structured bindings
 
