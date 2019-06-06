@@ -32563,6 +32563,9 @@ FALSE, and set *diag to an appropriate error code.
     /* Lambdas inside default argument expressions can't refer to local
        variables at all. */
     *diag = ec_ref_to_nested_function_var;
+  } else if (!cpp20_mode && var->is_struct_binding) {
+    /* C++17 disallows capturing structured bindings. */
+    *diag = ec_lambda_capture_structured_binding;
   } else {
     okay = TRUE;
   }  /* if */

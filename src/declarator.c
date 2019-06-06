@@ -6720,17 +6720,28 @@ and record it in *dps.  Also update positions in decl_pos_block.
       pos_error(ec_invalid_struct_binding_specifier, &dps->specifiers_pos);
     }  /* if */
   }  /* if */
-  /* Check some constraints early. */
+  /* Check some constraints early.  In C++20 mode, structured bindings can have
+     the static or thread_local storage classes. */
   if (dps->dso_flags & DSO_INLINE) {
     pos_error(ec_struct_binding_inline, &dps->inline_pos);
   } else if (dps->dso_flags & (DSO_CONSTEXPR | DSO_CONSTEVAL)) {
     pos_error(ec_struct_binding_constexpr, &dps->constexpr_pos);
-  } else if (dps->declared_storage_class != (a_storage_class)sc_unspecified &&
-             dps->declared_storage_class != (a_storage_class)sc_static) {
-    pos_error(ec_struct_binding_storage_class, &dps->storage_class_pos);
+  } else if ((dps->declared_storage_class != (a_storage_class)sc_unspecified &&
+              (!cpp20_mode ||
+               dps->declared_storage_class != (a_storage_class)sc_static)) ||
+             (!cpp20_mode && dps->dso_flags & DSO_THREAD_LOCAL)) {
+    if (!cpp20_mode) {
+      pos_error(ec_struct_binding_storage_class, &dps->storage_class_pos);
+    } else {
+      pos_error(ec_struct_binding_restricted_storage_class,
+                &dps->storage_class_pos);
+    }  /* if */
     dps->storage_class = (a_storage_class)sc_unspecified;
   }  /* if */
   dps->dso_flags &= ~(DSO_INLINE | DSO_CONSTEXPR | DSO_CONSTEVAL);
+  if (!cpp20_mode) {
+    dps->dso_flags &= ~DSO_THREAD_LOCAL;
+  }  /* if */
   if (dps->type->kind == (a_type_kind)tk_pointer &&
       !dps->type->variant.pointer.is_reference) {
     pos_error(ec_invalid_struct_binding_syntax, &dps->declarator_start_pos);
