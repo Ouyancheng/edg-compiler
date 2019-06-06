@@ -3805,8 +3805,10 @@ state.
         cssp->may_need_fixups = FALSE;
         cssp->variant_member_with_nontrivial_default_ctor = FALSE;
         cssp->variant_member_with_nontrivial_copy_ctor = FALSE;
+        cssp->variant_member_with_nontrivial_move_ctor = FALSE;
         cssp->variant_member_with_nontrivial_dtor = FALSE;
         cssp->variant_member_with_nontrivial_copy_assign = FALSE;
+        cssp->variant_member_with_nontrivial_move_assign = FALSE;
         cssp->known_to_be_a_literal_type = FALSE;
         cssp->known_not_to_be_a_literal_type = FALSE;
         cssp->has_constexpr_nonstatic_member_function = FALSE;

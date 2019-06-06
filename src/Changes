@@ -1,5 +1,28 @@
 Version 5.1
 
+6/6/19   [EDGcpfe/20897,EDGcpfe/21341]
+Implicit move constructor of class with variant members spuriously deleted
+
+Consider:
+
+  struct M {
+    M(M const &);
+    M(M&&) = default;  // Trivial move constructor.
+  };
+  struct S {
+    S();
+    union {
+      int i;
+      M m;
+    };
+  } s;
+  S r = static_cast<S&&>(s);  // Previously an error.  Now okay.
+
+Previously, the front end marked the move constructor generated for struct S
+as "deleted" because the copy constructor of M is nontrivial.  As a result,
+the attempt to move-initialize r from s failed.  That is now fixed.
+
+
 6/6/19   [EDGcpfe/20918]
 Exception specification in explicitly defaulted functions
 

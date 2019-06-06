@@ -1369,12 +1369,18 @@ typedef struct a_class_symbol_supplement {
   a_bit_field	variant_member_with_nontrivial_copy_ctor:1;
 			/* TRUE if this class has a variant member with a
 			   nontrivial copy constructor. */
+  a_bit_field	variant_member_with_nontrivial_move_ctor:1;
+			/* TRUE if this class has a variant member with a
+			   nontrivial move constructor. */
   a_bit_field	variant_member_with_nontrivial_dtor:1;
 			/* TRUE if this class has a variant member with a
 			   nontrivial destructor. */
   a_bit_field	variant_member_with_nontrivial_copy_assign:1;
 			/* TRUE if this class has a variant member with a
 			   nontrivial copy assignment operator. */
+  a_bit_field	variant_member_with_nontrivial_move_assign:1;
+			/* TRUE if this class has a variant member with a
+			   nontrivial move assignment operator. */
   a_bit_field	known_to_be_a_literal_type:1;
 			/* TRUE if this class is known to be a literal type. */
   a_bit_field	known_not_to_be_a_literal_type:1;

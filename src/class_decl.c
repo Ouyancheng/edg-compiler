@@ -17866,11 +17866,17 @@ for the union type (class_type).
         if (cssp->makes_copy_construction_nontrivial) {
           parent_cssp->variant_member_with_nontrivial_copy_ctor = TRUE;
         }  /* if */
+        if (cssp->makes_move_construction_nontrivial) {
+          parent_cssp->variant_member_with_nontrivial_move_ctor = TRUE;
+        }  /* if */
         if (has_nontrivial_destructor(cssp)) {
           parent_cssp->variant_member_with_nontrivial_dtor = TRUE;
         }  /* if */
         if (cssp->makes_copy_assignment_nontrivial) {
           parent_cssp->variant_member_with_nontrivial_copy_assign = TRUE;
+        }  /* if */
+        if (cssp->makes_move_assignment_nontrivial) {
+          parent_cssp->variant_member_with_nontrivial_move_assign = TRUE;
         }  /* if */
       }  /* if */
     } else {
@@ -18537,11 +18543,17 @@ nonstandard anonymous unions is_nonstd is TRUE.
     if (cssp->variant_member_with_nontrivial_copy_ctor) {
       parent_cssp->variant_member_with_nontrivial_copy_ctor = TRUE;
     }  /* if */
+    if (cssp->variant_member_with_nontrivial_move_ctor) {
+      parent_cssp->variant_member_with_nontrivial_move_ctor = TRUE;
+    }  /* if */
     if (cssp->variant_member_with_nontrivial_dtor) {
       parent_cssp->variant_member_with_nontrivial_dtor = TRUE;
     }  /* if */
     if (cssp->variant_member_with_nontrivial_copy_assign) {
       parent_cssp->variant_member_with_nontrivial_copy_assign = TRUE;
+    }  /* if */
+    if (cssp->variant_member_with_nontrivial_move_assign) {
+      parent_cssp->variant_member_with_nontrivial_move_assign = TRUE;
     }  /* if */
     if (assoc_object_type->kind == (a_type_kind)tk_union &&
         class_type->kind != (a_type_kind)tk_union) {
@@ -22711,6 +22723,8 @@ The routine body is not generated until it is known to be needed.
     }  /* if */
     if (cssp->variant_member_with_nontrivial_copy_ctor) {
       gsfd.suppress_copy_ctor = TRUE;
+    }  /* if */
+    if (cssp->variant_member_with_nontrivial_move_ctor) {
       gsfd.suppress_move_ctor = TRUE;
     }  /* if */
     if (cssp->variant_member_with_nontrivial_dtor) {
@@ -22718,6 +22732,8 @@ The routine body is not generated until it is known to be needed.
     }  /* if */
     if (cssp->variant_member_with_nontrivial_copy_assign) {
       gsfd.suppress_copy_assign = TRUE;
+    }  /* if */
+    if (cssp->variant_member_with_nontrivial_move_assign) {
       gsfd.suppress_move_assign = TRUE;
     }  /* if */
   }  /* if */
