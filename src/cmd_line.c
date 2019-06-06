@@ -2558,12 +2558,7 @@ option values if they were not already set by a command line option.
            all C++11 features and handle exceptions explicitly. */
         implicit_microsoft_cpp11_mode = TRUE;
       }  /* if */
-      if (exceptions_enabled) {
-        noexcept_enabled = TRUE;
-        if (!option_kind_used[(int)optk_implicit_noexcept]) {
-          implicit_noexcept_enabled = TRUE;
-        }  /* if */
-      }  /* if */
+      noexcept_enabled = TRUE;
       constexpr_enabled = TRUE;
       unrestricted_unions_enabled = TRUE;
       inheriting_constructors_enabled = TRUE;
