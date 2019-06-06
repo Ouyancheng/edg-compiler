@@ -7177,8 +7177,8 @@ it is followed by a colon.)
       /* Don't allow labels in C++14 constexpr functions (also disqualifies
          a lambda from being considered constexpr). */
       if (relaxed_constexpr_enabled) {
-        if (innermost_function_scope->variant.routine.ptr->
-                                                       is_declared_constexpr) {
+        a_routine_ptr  rp = innermost_function_scope->variant.routine.ptr;
+        if (rp->is_declared_constexpr || rp->is_consteval) {
           pos_error(ec_label_in_constexpr_function,
                     &label->source_corresp.decl_position);
           /* Avoid additional diagnostics by marking the label as
@@ -7602,7 +7602,7 @@ expr_statement:
   }  /* switch */
   if (current_rp != NULL && current_rp->is_constexpr &&
       !can_appear_in_constexpr_body) {
-    if (current_rp->is_declared_constexpr) {
+    if (current_rp->is_declared_constexpr || current_rp->is_consteval) {
       /* Report an error if the statement is not one that is allowed in a
          constexpr function or constexpr constructor. */
       pos_error(special_kind_is(current_rp, sfk_constructor) ?

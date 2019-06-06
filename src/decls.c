@@ -2343,7 +2343,7 @@ the function non-constexpr in that case).
   /* Variables in C++14-style constexpr function declarations must have
      automatic storage duration, a literal type, and be initialized. */
   if (var_has_static_or_thread_storage_duration(vp)) {
-    if (rp->is_declared_constexpr) {
+    if (rp->is_declared_constexpr || rp->is_consteval) {
       pos_error(ec_nonautomatic_var_in_constexpr_function, pos);
     }  /* if */
     rp->is_constexpr = FALSE;
@@ -2351,7 +2351,7 @@ the function non-constexpr in that case).
     a_type_ptr     vtp = skip_typerefs(vp->type);
     if (!is_literal_type(vtp)) {
       if ((!rp->is_template_function || rp->is_specialized) &&
-          rp->is_declared_constexpr) {
+          (rp->is_declared_constexpr || rp->is_consteval)) {
         pos_ty_error(ec_nonliteral_var_in_constexpr_function, pos, vp->type);
         vp->type = error_type();
       }  /* if */
@@ -2360,7 +2360,7 @@ the function non-constexpr in that case).
                !((gpp_mode || clang_mode) && is_immediate_class_type(vtp) &&
                  vtp->variant.class_struct_union.is_empty_class)) {
       if ((!rp->is_template_function || rp->is_specialized) &&
-          rp->is_declared_constexpr) {
+          (rp->is_declared_constexpr || rp->is_consteval)) {
         pos_error(ec_uninitialized_var_in_constexpr_function, pos);
       }  /* if */
       rp->is_constexpr = FALSE;
@@ -8042,13 +8042,15 @@ position.
     } else if (!special_kind_is(rp, sfk_constructor) &&
                !could_be_literal_type(rtp->variant.routine.return_type)) {
       okay = FALSE;
-      if (rp->is_declared_constexpr && !rout_is_real_template_instance(rp)) {
+      if ((rp->is_declared_constexpr || rp->is_consteval) &&
+          !rout_is_real_template_instance(rp)) {
         pos_ty_error(ec_nonliteral_return_type_in_constexpr_function, diag_pos,
                      rtp->variant.routine.return_type);
       }  /* if */
     } else {
       a_param_type_ptr  ptp = rtp->variant.routine.extra_info->param_type_list;
-      a_boolean         diagnose = rp->is_declared_constexpr &&
+      a_boolean         diagnose = (rp->is_declared_constexpr ||
+                                    rp->is_consteval) &&
                                    !rout_is_real_template_instance(rp);
       if (diagnose && rp->is_inheriting_ctor) {
         /* An inheriting constructor not generated from a base constructor
