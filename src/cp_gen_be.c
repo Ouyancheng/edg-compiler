@@ -14471,7 +14471,7 @@ gen_expr that might end up generating this expr as a temporary.
                    (which can occur with generated template instances).  In
                    addition, clang has a bug such that a typedef named
                    using a qualified-id cannot be used to invoke a trivial
-                   destructor, i.e., it rejects "x.N::T:~T(), where T is a
+                   destructor, i.e., it rejects "x.N::T:~T()", where T is a
                    typedef (it does accept the case where T is a class
                    name). */
                 type = type->variant.typeref.type;
