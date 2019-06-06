@@ -165,6 +165,21 @@ static a_boolean lint_is_NaN(long double x) /*lint !e528*/
 {return x == 0.0; }
 #endif /* ifdef _lint */
 
+/*
+Macro that returns TRUE if the floating-point kind is binary 64 (i.e.,
+64-bit floating-point).  That's always the case for "double", but may also
+be the case for "long double" in some configurations (but that must be
+determined at run time because the sizes of these types can be be part of
+a target configuration).
+*/
+#define kind_is_binary64(kind)                                                \
+  ((kind) == (a_float_kind)fk_double ||                                       \
+   ((kind) == (a_float_kind)fk_long_double && long_double_is_double))
+
+static a_boolean
+                long_double_is_double;
+                        /* TRUE in configurations where the "long double" and
+                           "double" types have the same representation. */
 
 static sizeof_t
 		data_size_of_host_fp_value;
@@ -1016,14 +1031,11 @@ underflow.  If the conversion can be done, return the result in "result".
      bit in the destination). */
   memzero((char *)&ldbl_val, sizeof(ldbl_val));
 #if USE_SOFTFLOAT
-  /* "long double" can have various formats; handle the 64-, 80-, and 128-bit
-     cases here. */
+  /* "long double" can have various formats; handle the 80-, and 128-bit
+     cases here (this should not be called for the 64-bit case). */
   softfloat_exceptionFlags = 0;
-  if (targ_ldbl_mant_dig == 53) {
-    /* long double is 64 bits */
-    float64_t dummy = f128M_to_f64(&val);
-    ldbl_val = *(long double *)&dummy;
-  } else if (targ_ldbl_mant_dig == 64) {
+  check_assertion(targ_ldbl_mant_dig != 53);
+  if (targ_ldbl_mant_dig == 64) {
     /* long double is 80 bits. */
     f128M_to_extF80M(&val, (extFloat80_t*)&ldbl_val);
   } else if (targ_ldbl_mant_dig == 113) {
@@ -1080,7 +1092,7 @@ before setting it if there are unused bits.
         (void)memcpy((char *)float_value, (char *)&float_temp, sizeof(float));
       }  /* if */
 #if !USE_DOUBLE_FOR_HOST_FP_VALUE
-    } else if (kind == (a_float_kind)fk_double) {
+    } else if (kind_is_binary64(kind)) {
       /* Convert from an internal long double or __float128 to a double. */
       double	double_temp;
       conv_host_fp_to_double(temp, err, &double_temp);
@@ -1138,7 +1150,7 @@ Fetch the value from float_value (of kind kind) and return it.
     temp = float_temp;
 #endif /* USE_SOFTFLOAT */
 #if !USE_DOUBLE_FOR_HOST_FP_VALUE
-  } else if (kind == (a_float_kind)fk_double) {
+  } else if (kind_is_binary64(kind)) {
     double	double_temp;
     /* Convert from double to a_host_fp_value. */
     /* Use memcpy to copy the value since float_value might not be correctly
@@ -1159,10 +1171,8 @@ Fetch the value from float_value (of kind kind) and return it.
     (void)memcpy((char *)&long_double_temp, (char *)float_value,
                  sizeof(long double));
 #if USE_SOFTFLOAT
-    if (targ_ldbl_mant_dig == 53) {
-      /* long double is 64 bits */
-      f64_to_f128M(*(float64_t *)&long_double_temp, &temp);
-    } else if (targ_ldbl_mant_dig == 64) {
+    check_assertion(targ_ldbl_mant_dig != 53);
+    if (targ_ldbl_mant_dig == 64) {
       /* long double is 80 bits. */
       extF80M_to_f128M((extFloat80_t *)&long_double_temp, &temp);
     } else if (targ_ldbl_mant_dig == 113) {
@@ -1350,9 +1360,7 @@ Otherwise, return FALSE.
     /* A single-precision floating-point value. */
     memcpy((char*)&fp_part, fp_bytes, sizeof(fp_part));
     *biased_exp = (long)((fp_part & 0x7f800000) >> 23);
-  } else if (kind == (a_float_kind)fk_double ||
-             (kind == (a_float_kind)fk_long_double &&
-              targ_ldbl_mant_dig == 53)) {
+  } else if (kind_is_binary64(kind)) {
     /* A 64-bit floating-point representation (with 53 mantissa bits).
        On little-endian systems, the most significant part is the second
        (i.e., last) word. */
@@ -1510,10 +1518,10 @@ point targets, the maximum value is positive infinity.
 {
   a_boolean  result;
 
-#if USE_DOUBLE_FOR_HOST_FP_VALUE
-  /* When long double is mapped onto double, store this value as a double. */
-  if (kind == (a_float_kind)fk_long_double) kind = (a_float_kind)fk_double;
-#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
+  if (long_double_is_double && kind == (a_float_kind)fk_long_double) {
+    /* When long double is mapped onto double, store this value as a double. */
+    kind = (a_float_kind)fk_double;
+  }  /* if */
 #if TARG_HAS_IEEE_FLOATING_POINT
   {
     /* With IEEE floating point, the generated value should be positive
@@ -1857,10 +1865,10 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
   int	mant_dig = 0;
   int	bits;
 
-#if USE_DOUBLE_FOR_HOST_FP_VALUE
-  /* When long double is mapped onto double, store this value as a double. */
-  if (kind == (a_float_kind)fk_long_double) kind = (a_float_kind)fk_double;
-#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
+  if (long_double_is_double && kind == (a_float_kind)fk_long_double) {
+    /* When long double is mapped onto double, store this value as a double. */
+    kind = (a_float_kind)fk_double;
+  }  /* if */
   switch (kind) {
     case fk_float:
       min_exp = targ_flt_min_exp;
@@ -1975,10 +1983,10 @@ adjusted to make the implicit bit explicit.
 
   /* Clear the mantissa value. */
   init_mantissa(mp);
-#if USE_DOUBLE_FOR_HOST_FP_VALUE
-  /* When long double is mapped onto double, load this value as a double. */
-  if (kind == (a_float_kind)fk_long_double) kind = (a_float_kind)fk_double;
-#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
+  if (long_double_is_double && kind == (a_float_kind)fk_long_double) {
+    /* When long double is mapped onto double, load this value as a double. */
+    kind = (a_float_kind)fk_double;
+  }  /* if */
   fp_ptr = &fp_temp[0];
   if (host_little_endian) {
     /* On little endian systems, we start storing with the last 32-bit value
@@ -1995,9 +2003,7 @@ adjusted to make the implicit bit explicit.
     *exponent = (long)((val & 0x7f800000) >> 23) - 127;
     *is_negative = (val & 0x80000000) != 0;
     if ((val & 0x7fffffff) != 0) is_zero = FALSE;
-  } else if (kind == (a_float_kind)fk_double ||
-             (kind == (a_float_kind)fk_long_double &&
-              targ_ldbl_mant_dig == 53)) {
+  } else if (kind_is_binary64(kind)) {
     /* A double value or a long double that is being represented by a
        double value. */
     /* The code below extracts the value from fp_temp.  Copy the source to
@@ -2144,9 +2150,7 @@ the long double kind will have already been mapped to double by the caller.
     val = (mp->parts[0] >> 9) | ((exponent + 127) << 23);
     if (is_negative) val |= 0x80000000;
     memcpy((char*)float_value, (char*)&val, sizeof(val));
-  } else if (kind == (a_float_kind)fk_double ||
-             (kind == (a_float_kind)fk_long_double &&
-              targ_ldbl_mant_dig == 53)) {
+  } else if (kind_is_binary64(kind)) {
     /* A double value or a long double that is being represented by a
        double value. */
     /* On little endian systems, the most significant part of the
@@ -2350,10 +2354,10 @@ because the exponent was out of range).
   int		mant_dig = 0;
 
   *err = FALSE;
-#if USE_DOUBLE_FOR_HOST_FP_VALUE
-  /* When long double is mapped onto double, store this value as a double. */
-  if (kind == (a_float_kind)fk_long_double) kind = (a_float_kind)fk_double;
-#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
+  if (long_double_is_double && kind == (a_float_kind)fk_long_double) {
+    /* When long double is mapped onto double, use double. */
+    kind = (a_float_kind)fk_double;
+  }  /* if */
   switch (kind) {
     case fk_float:
       mant_dig = targ_flt_mant_dig;
@@ -2534,9 +2538,7 @@ before setting it if there are unused bits.
         db_binary_float((unsigned char *)&float_value_temp);
       }  /* if */
 #endif /* DEBUG */
-    } else if (kind == (a_float_kind)fk_double ||
-               (kind == (a_float_kind)fk_long_double &&
-                (!FP_HAS_LONG_DOUBLE || targ_ldbl_mant_dig == 53))) {
+    } else if (kind_is_binary64(kind)) {
       /* Either "double" or "long double", where "double" and "long double"
          are configured as binary64. */
       res = read_double((unsigned char *)&float_value_temp, str,
@@ -2771,9 +2773,7 @@ be NULL if the corresponding return value is not needed.
         fprintf(f_debug, "  %s\n", str);
       }  /* if */
 #endif /* DEBUG */
-    } else if (kind == (a_float_kind)fk_double ||
-               (kind == (a_float_kind)fk_long_double &&
-                (!FP_HAS_LONG_DOUBLE || targ_ldbl_mant_dig == 53))) {
+    } else if (kind_is_binary64(kind)) {
       /* Either "double" or "long double", where "double" and "long double"
          are configured as binary64. */
       res = write_double(str, sizeof(str), (unsigned char *)float_value);
@@ -2873,9 +2873,7 @@ corresponding return value is not needed.
       float  float_temp;
       (void)memcpy((char *)&float_temp, (char *)float_value, sizeof(float));
       (void)sprintf(str, "%a", float_temp);
-    } else if (kind == (a_float_kind)fk_double ||
-               (kind == (a_float_kind)fk_long_double &&
-                targ_ldbl_mant_dig == 53)) {
+    } else if (kind_is_binary64(kind)) {
       double  double_temp;
       (void)memcpy((char *)&double_temp, (char *)float_value, sizeof(double));
       (void)sprintf(str, "%la", double_temp);
@@ -3601,17 +3599,15 @@ Returns TRUE if the sign bit of the floating-point value represented by
   an_fp_value_part	fp_temp[4];
   a_boolean		is_negative = FALSE;
 
-#if USE_DOUBLE_FOR_HOST_FP_VALUE
-  /* When long double is mapped onto double, load this value as a double. */
-  if (kind == (a_float_kind)fk_long_double) kind = (a_float_kind)fk_double;
-#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
+  if (long_double_is_double && kind == (a_float_kind)fk_long_double) {
+    /* When long double is mapped onto double, use double. */
+    kind = (a_float_kind)fk_double;
+  }  /* if */
   fp_ptr = &fp_temp[0];
   if (kind == (a_float_kind)fk_float) {
     memcpy((char*)&val, (char*)value, sizeof(val));
     is_negative = (val & 0x80000000) != 0;
-  } else if (kind == (a_float_kind)fk_double ||
-             (kind == (a_float_kind)fk_long_double &&
-              targ_ldbl_mant_dig == 53)) {
+  } else if (kind_is_binary64(kind)) {
     /* A double value or a long double that is being represented by a
        double value. */
     /* The code below extracts the value from fp_temp.  Copy the source to
@@ -3773,6 +3769,7 @@ Initialize static variables related to float_pt.c.
   /* Make sure that an_fp_value_part is 32 bits. */
   check_assertion_str(sizeof(an_fp_value_part) == 4,
          "float_pt_init: bad size for an_fp_value_part");  /*lint !e774*/
+  long_double_is_double = (targ_ldbl_mant_dig == 53);
 }  /* float_pt_init */
 
 /******************************************************************************
