@@ -8893,8 +8893,6 @@ otherwise.
          the individual variables as thread local as well. */
       an_il_entity_list_entry_ptr binding_vars = vp->variant.bindings;
       for (; binding_vars != NULL; binding_vars = binding_vars->next) {
-        check_assertion(binding_vars->entity.kind ==
-                                               (an_il_entry_kind)iek_variable);
         a_variable_ptr binding_var = (a_variable_ptr)binding_vars->entity.ptr;
         binding_var->is_thread_local = TRUE;
       }  /* for */
