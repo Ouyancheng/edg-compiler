@@ -17539,7 +17539,7 @@ whether the call was folded or not.
 #if BUILTIN_FUNCTIONS_ENABLED
            is_gnu_builtin_function(rout) ||
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-           (rout->is_constexpr ||
+           (rout->is_constexpr || rout->is_consteval ||
             (rout->is_virtual && constexpr_virtual_enabled &&
              !virtual_suppressed))) &&
           (!expr_stack->in_noexcept_operand_expression ||
