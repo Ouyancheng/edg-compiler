@@ -1,5 +1,30 @@
 Version 5.1
 
+6/6/19   [EDGcpfe/20918]
+Exception specification in explicitly defaulted functions
+
+Committee paper P1286R2 changed how a mismatch between a routine's explicitly
+specified exception specification and its generated default behaves.  The new
+behavior is to use the explicitly specified exception specification but
+otherwise generate the routine as usual - even if this means an exception may
+still be thrown (std::terminate will be called).  This change has been made to
+apply retroactively to older C++ modes (e.g., C++11), however in GCC, Clang or
+MSVC compatibility modes the original pre-C++20 behaviour has been preserved.
+For example:
+
+  struct T {
+    T();
+    T(T &&) noexcept(false);
+  };
+  struct U {
+    T t;
+    U();
+    U(U &&) noexcept = default; // Previously implicitly deleted, now kept
+  };
+  U u1;
+  U u2 = static_cast<U&&>(u1); // Previously an error, now accepted
+
+
 6/6/19   [EDGcpfe/21347]
 Microsoft compatibility: Selecting C++ standard mode
 

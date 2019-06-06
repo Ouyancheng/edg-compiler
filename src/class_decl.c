@@ -4085,6 +4085,49 @@ static void form_exception_specification_for_generated_function(
                                                          a_symbol_ptr   bctor);
 
 
+static void check_defaulted_exc_spec(a_routine_ptr                  rp,
+                                     an_exception_specification_ptr declared,
+                                     an_exception_specification_ptr defaulted)
+/*
+Check the default exception specification for conflicts with the declared
+exception specification, possibly updating the given routine to be deleted.
+Prior to the resolution of Core issue 1778, a mismatch between the two
+exception specifications is an error.  After the resolution of Core issue 1778,
+a mismatch causes the function to be implicitly deleted.  P1286R2, however,
+changes this again to be well-formed and not deleted (if an exception is
+thrown, std::terminate will be called).
+*/
+{
+  if (exception_spec_is_less_restrictive(declared, defaulted) ||
+      exception_spec_is_less_restrictive(defaulted, declared)) {
+    /* There exists an exception specification mismatch. */
+    a_boolean delete_routine = FALSE;
+    if ((microsoft_mode || gpp_version_is(any_version)) &&
+        rp->is_template_function && !rp->is_specialized) {
+      /* MSVC and GCC define the routine as deleted if it's a template instance
+         having the mismatch. */
+      delete_routine = TRUE;
+    } else if (microsoft_mode || gpp_mode || clang_mode) {
+      if (cpp20_mode) {
+        /* Follow P1286R2 in C++20 mode.  No action required. */
+      } else if (ms_version_is(>= 1910) || gpp_version_is(>= 40900)) {
+        /* Newer GCC and MSVC versions follow Core issue 1778 in C++11 mode. */
+        delete_routine = TRUE;
+      } else {
+        /* Clang and older versions of GCC and MSVC issue an error on a
+           mismatch. */
+        pos_error(ec_invalid_explicit_exception_specification,
+                  &rp->source_corresp.decl_position);
+      }  /* if */
+    }  /* if */
+    if (delete_routine) {
+      rp->is_deleted = TRUE;
+      rp->defined = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* check_defaulted_exc_spec */
+
+
 void complete_defaulted_exc_spec(a_routine_ptr  rp)
 /*
 The given routine entry is a defaulted special member.  If needed, establish
@@ -4117,27 +4160,8 @@ and issue an error if it does not.
     form_exception_specification_for_generated_function(
                                                   rp, (a_symbol_ptr)NULL);
     if (declared_exception_spec != NULL) {
-      /* If an exception specification was specified at all, it must be
-         equivalent to the generated one.  The resolution of Core issue
-         1778 changed the non-equivalent cases to cause the defaulted
-         member to be deleted instead of ill-formed.  MSVC and GCC already
-         behaved that way for template instances.  Clang and newer GCC and
-         MSVC versions follow Core issue 1778 in C++11 mode too. */
-      if (exception_spec_is_less_restrictive(
-                declared_exception_spec, rtsp->exception_specification) ||
-          exception_spec_is_less_restrictive(
-                rtsp->exception_specification, declared_exception_spec)) {
-        if (cpp14_mode ||
-            ms_version_is(>= 1910) || gpp_version_is(>= 40900) ||
-            ((microsoft_mode || (gpp_mode && !clang_mode)) &&
-             rp->is_template_function && !rp->is_specialized)) {
-          rp->is_deleted = TRUE;
-          rp->defined = TRUE;
-        } else {
-          pos_error(ec_invalid_explicit_exception_specification,
-                    &rp->source_corresp.decl_position);
-        }  /* if */
-      }  /* if */
+      check_defaulted_exc_spec(rp, declared_exception_spec,
+                               rtsp->exception_specification);
       /* Record the declared form. */
       rtsp->exception_specification = declared_exception_spec;
     }  /* if */
