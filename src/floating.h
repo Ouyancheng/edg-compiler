@@ -94,16 +94,6 @@ typedef FP_BIGINT_INTEGER_SIGNED_TYPE a_bigint_int;
 typedef FP_BIGINT_INTEGER_UNSIGNED_TYPE an_fp_uint;
 
 /*
-By default, all floating-point configurations have at least a "float" and
-"double" type.  Additional types can be configured as needed.  This macro
-controls whether or not a "long double" type is used.
-*/
-
-#ifndef FP_HAS_LONG_DOUBLE
-#define FP_HAS_LONG_DOUBLE TRUE
-#endif /* ifndef FP_HAS_LONG_DOUBLE */
-
-/*
 Most targets have IEEE 754-2008 binary32 (float) and binary64 (double) support,
 but there is wide variation in long double floating-point formats among target
 processors.  The long double type can be configured by using one of these
