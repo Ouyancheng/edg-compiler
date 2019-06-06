@@ -28,7 +28,7 @@ generated explicit specializations.  For example, given
 
 the generated code contained the following explicit specialization:
 
-  template<> void g<S> () {
+  template<> void g<S>() {
     f<S>().N::X::~X();
   }
 
