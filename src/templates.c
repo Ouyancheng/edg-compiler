@@ -30102,6 +30102,7 @@ that follows.
           } else {
             rp->is_declared_constexpr = FALSE;
             rp->is_constexpr = FALSE;
+            rp->is_consteval = FALSE;
           }  /* if */
         } else if (rp->is_declared_constexpr !=
                                     ((dps->dso_flags & DSO_CONSTEXPR) != 0) ||
