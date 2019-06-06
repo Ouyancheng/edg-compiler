@@ -3418,7 +3418,7 @@ static void begin_pending_consteval_failure_bracket(
                                     a_boolean                    *do_restore,
                                     a_pending_consteval_failure  *saved_entry)
 /*
-We about to start processing call arguments (for a function or constructor
+We are about to start processing call arguments (for a function or constructor
 call).  While parsing those call arguments, we might encounter a call to a
 consteval function that doesn't fold.  In such cases, we might record the
 "pending consteval failure" entry: Initialize that entry and save the prior
@@ -3442,9 +3442,13 @@ static void end_pending_consteval_failure_bracket(
                                     a_boolean                    do_restore,
                                     a_pending_consteval_failure  *saved_entry)
 /*
-We're done processing a call (to a function or constructor).  If a pending
-consteval failure was recorded during the processing of the arguments of this
-call and it is not a call to a consteval function, issue an error.
+We're done processing a call to a function or constructor described by routine.
+If a pending consteval failure was recorded during the processing of the
+arguments of this call and it is not a call to a consteval function, issue an
+error.  Either way, restore the "pending consteval failure" state that was in
+effect when the corresponding call to begin_pending_consteval_failure_bracket
+was made.  do_restore and *saved_entry are the values that were returned from
+that corresponding call.
 */
 {
   if (pending_consteval_failure.routine != NULL) {
@@ -3461,6 +3465,7 @@ call and it is not a call to a consteval function, issue an error.
     pending_consteval_failure = *saved_entry;
   }  /* if */
 }  /* end_pending_consteval_failure_bracket */
+
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- simple_result is unused in that case. */
