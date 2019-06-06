@@ -2231,7 +2231,8 @@ option values if they were not already set by a command line option.
     universal_character_names_allowed = TRUE;
   } else {
     /* Microsoft C++ mode. */
-    a_boolean ms_cpp14_mode = microsoft_version >= 1903;
+    a_boolean ms_cpp14_mode = !cpp_mode_specified() &&
+                              microsoft_version >= 1903;
     a_boolean ms_cpp17_mode = FALSE;
     a_boolean ms_cpp20_mode = FALSE;
     a_boolean ms_cpplatest_mode = FALSE;
