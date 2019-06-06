@@ -39189,9 +39189,11 @@ and not a copy or re-evaluation thereof.
 {
   an_expr_node_ptr  expr = var_rvalue_expr(expr_ref_var);
 
+  expr->position = error_position;
   /* No indirection if the expression was saved as a handle. */
   if (is_any_reference_type(expr->type)) {
     expr = add_ref_indirection_to_node(expr);
+    expr->position = error_position;
   }  /* if */
   make_lvalue_or_rvalue_expression_operand(expr, operand);
 }  /* make_enhanced_for_expression_operand */
