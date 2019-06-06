@@ -28,8 +28,8 @@ generated explicit specializations.  For example, given
 
 the generated code contained the following explicit specialization:
 
-  template<> void g< S> () {
-    f<S> ().N::X::~X();
+  template<> void g<S> () {
+    f<S>().N::X::~X();
   }
 
 The use of the name N::X in the destructor call triggered the clang bug.
