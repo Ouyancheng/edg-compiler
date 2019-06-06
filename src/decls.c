@@ -17677,12 +17677,19 @@ early so that cases like "auto [x] = x;" are diagnosed.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean       saved_sses_disallowed = source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_boolean       switched_region = FALSE;
   an_il_entity_list_entry_ptr
                   *p_end_bindings;
+  a_memory_region_number
+                  region_to_switch_back_to;
 
   check_assertion(symbol_is(dps->sym, sk_variable));
   container = dps->sym->variant.variable.ptr;
   p_end_bindings = &container->variant.bindings;
+  if (in_file_scope(container)) {
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    switched_region = TRUE;
+  }  /* if */
   /* Rescan the bracketed list of binding names and declare a variable
      for each binding (initializing each one as appropriate). */
   rescan_cached_tokens(dps->variant.struct_bindings_cache);
@@ -17715,10 +17722,10 @@ early so that cases like "auto [x] = x;" are diagnosed.
     binding_dps.deduced_auto_type = NULL;
     binding_dps.declared_storage_class = (a_storage_class)sc_unspecified;
     if (!is_local_scope_kind(scope_stack[decl_scope_level].kind)) {
-      /* A binding shouldn't have external name linkage. */
-      linkage = idl_internal;
       binding_dps.storage_class = (a_storage_class)sc_static;
     }  /* if */
+    /* A binding shouldn't have external name linkage. */
+    linkage = idl_internal;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -17752,6 +17759,9 @@ early so that cases like "auto [x] = x;" are diagnosed.
   flush_past_token_cache_terminator();
   free_token_cache(dps->variant.struct_bindings_cache);
   dps->variant.struct_bindings_cache = NULL;
+  if (switched_region) {
+    switch_back_to_original_region(region_to_switch_back_to);
+  }  /* if */
 }  /* declare_struct_bindings */
 
 

@@ -15437,7 +15437,8 @@ cast.  See lower_expr for typical invocation.
            copy. */
         an_expr_node_ptr expr_copy;
 #if EXPENSIVE_CHECKING
-        check_assertion(!node_has_side_effects(var->initializer.bound_expr,
+        check_assertion(is_effective_thread_local(var) ||
+                        !node_has_side_effects(var->initializer.bound_expr,
                                                (a_boolean *)NULL));
 #endif /* EXPENSIVE_CHECKING */
         expr_copy = copy_expr_tree(var->initializer.bound_expr,

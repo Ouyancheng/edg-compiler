@@ -1,5 +1,41 @@
 Version 5.1
 
+6/6/19   [EDGcpfe/20911,EDGcpfe/20912]
+Allowing lambda capture of structured bindings
+
+Committee papers P1091R3 and P1381R1 relaxed the rules around lambda capture of
+structured bindings to allow capture-by-value (P1091R3) and
+capture-by-reference (P1381R1).  This has now been implemented.  For example:
+
+  void f() {
+    int arr[] = {1, 2, 3};
+    auto [a, b, c] = arr;
+    auto& [ra, rb, rc] = arr;
+    int r1 = [=] {
+      return a + b + c; // Previously an error, now returns 1 + 2 + 3
+    }();
+    int r2 = [&] {
+      ra = 10; // Previously an error, now sets arr[0] to 10
+      b = 20; // Previously an error, now sets b to 20 (arr[1] unchanged)
+      return ra + rb + rc; // Previously an error, now returns 10 + 2 + 3
+    }();
+  }
+
+
+6/6/19   [EDGcpfe/20912]
+Allowing static and thread_local storage specifiers on structured bindings
+
+Committee paper P1091R3 relaxed the rules around structured bindings to allow
+the static and thread_local storage classes to be applied to structured
+binding declarations.  This has now been implemented.  For example:
+
+  void f() {
+    int arr[] = {1, 2, 3};
+    static auto [sa, sb, sc] = arr; // Previously an error, now accepted
+    thread_local auto [ta, tb, tc] = arr; // Previously an error, now accepted
+  }
+
+
 6/6/19   [EDGcpfe/21343]
 Incorrect floating-point results in some configurations
 
