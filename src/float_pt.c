@@ -174,7 +174,8 @@ a target configuration).
 */
 #define kind_is_binary64(kind)                                                \
   ((kind) == (a_float_kind)fk_double ||                                       \
-   ((kind) == (a_float_kind)fk_long_double && long_double_is_double))
+   ((kind) == (a_float_kind)fk_long_double &&                                 \
+    (long_double_is_double || !FP_HAS_LONG_DOUBLE /*lint !e506*/)))
 
 static a_boolean
                 long_double_is_double;
