@@ -199,6 +199,19 @@ static a_host_fp_value
 		fp_zero;
 			/* The value 0.0 in internal representation. */
 #if USE_SOFTFLOAT
+
+/* A union to map the float32_t SoftFloat type to "float". */
+typedef union softfloat32_t {
+  float32_t     soft;
+  float         hard;
+} softfloat32_t;
+
+/* A union to map the float64_t SoftFloat type to "double". */
+typedef union softfloat64_t {
+  float64_t     soft;
+  double        hard;
+} softfloat64_t;
+
 static float32_t
 		f32_zero;
 			/* The value 0.0F. */
@@ -617,9 +630,9 @@ If the conversion can be done, return the result in "result".
 #if USE_SOFTFLOAT
   /* Convert 128-bit floating-point number to 32-bit and set *err on
      overflow or underflow. */
-  float32_t f32_temp;
+  softfloat32_t f32_temp;
   softfloat_exceptionFlags = 0;
-  f32_temp = f128M_to_f32(&temp);
+  f32_temp.soft = f128M_to_f32(&temp);
   if ((softfloat_exceptionFlags & softfloat_flag_overflow) != 0) {
     if (gnu_mode && is_finite(temp)) {
       /* GNU C and C++ silently uses infinity for values that are too
@@ -629,12 +642,12 @@ If the conversion can be done, return the result in "result".
       *err = TRUE;
     }  /* if */
   } else if (((softfloat_exceptionFlags & softfloat_flag_underflow) != 0) &&
-             f32_eq(f32_temp, f32_zero)) {
+             f32_eq(f32_temp.soft, f32_zero)) {
     /* An underflow to zero. */
     *err = TRUE;
   }  /* if */
   if (!*err) {
-    *result = *((float*)&f32_temp);
+    *result = f32_temp.hard;
   }  /* if */
 #else /* !USE_SOFTFLOAT */
   /* Ideally, we'd like to check that the conversion will not overflow before
@@ -826,9 +839,9 @@ underflow.  If the conversion can be done, return the result in "result".
 #if USE_SOFTFLOAT
   /* Convert 128-bit floating-point number to 64-bit and set *err on
      overflow or underflow. */
-  float64_t f64_temp;
+  softfloat64_t f64_temp;
   softfloat_exceptionFlags = 0;
-  f64_temp = f128M_to_f64(&temp);
+  f64_temp.soft = f128M_to_f64(&temp);
   if ((softfloat_exceptionFlags & softfloat_flag_overflow) != 0) {
     if (gnu_mode && is_finite(temp)) {
       /* GNU C and C++ silently uses infinity for values that are too
@@ -838,12 +851,12 @@ underflow.  If the conversion can be done, return the result in "result".
       *err = TRUE;
     }  /* if */
   } else if (((softfloat_exceptionFlags & softfloat_flag_underflow) != 0) &&
-             f64_eq(f64_temp, f64_zero)) {
+             f64_eq(f64_temp.soft, f64_zero)) {
     /* An underflow to zero. */
     *err = TRUE;
   }  /* if */
   if (!*err) {
-    *result = *((double*)&f64_temp);
+    *result = f64_temp.hard;
   }  /* if */
 #else /* !USE_SOFTFLOAT */
   /* Ideally, we'd like to check that the conversion will not overflow before
@@ -1140,27 +1153,28 @@ Fetch the value from float_value (of kind kind) and return it.
      bits in some cases). */
   memzero((char *)&temp, sizeof(temp));
   if (kind == (a_float_kind)fk_float) {
-    float	float_temp;
+    softfloat32_t	float_temp;
     /* Convert from float to a_host_fp_value. */
     /* Use memcpy to copy the value since float_value might not be correctly
        aligned. */
-    (void)memcpy((char *)&float_temp, (char *)float_value, sizeof(float));
+    (void)memcpy((char *)&float_temp.hard, (char *)float_value, sizeof(float));
 #if USE_SOFTFLOAT
-    f32_to_f128M(*(float32_t *)&float_temp, &temp);
+    f32_to_f128M(float_temp.soft, &temp);
 #else /* !USE_SOFTFLOAT */
-    temp = float_temp;
+    temp = float_temp.hard;
 #endif /* USE_SOFTFLOAT */
 #if !USE_DOUBLE_FOR_HOST_FP_VALUE
   } else if (kind_is_binary64(kind)) {
-    double	double_temp;
+    softfloat64_t	double_temp;
     /* Convert from double to a_host_fp_value. */
     /* Use memcpy to copy the value since float_value might not be correctly
        aligned. */
-    (void)memcpy((char *)&double_temp, (char *)float_value, sizeof(double));
+    (void)memcpy((char *)&double_temp.hard, (char *)float_value,
+                 sizeof(double));
 #if USE_SOFTFLOAT
-    f64_to_f128M(*(float64_t *)&double_temp, &temp);
+    f64_to_f128M(double_temp.soft, &temp);
 #else /* !USE_SOFTFLOAT */
-    temp = double_temp;
+    temp = double_temp.hard;
 #endif /* USE_SOFTFLOAT */
 #endif /* !USE_DOUBLE_FOR_HOST_FP_VALUE */
 #if HOST_FP_VALUE_IS_128BIT
