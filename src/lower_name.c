@@ -454,7 +454,7 @@ that requires a mangled name.
 */
 #define struct_binding_container_needs_mangling(vp)                           \
   ((vp)->is_struct_binding_container &&                                       \
-   (vp)->storage_class == (a_storage_class)sc_unspecified)
+   (vp)->storage_class != (a_storage_class)sc_auto)
 
 #if IA64_ABI
 
