@@ -2327,11 +2327,13 @@ controls whether or not a "long double" type is used.
 /*
 An internal macro used to signify that the size of a_host_fp_value is 128 bits.
 */
+#ifndef HOST_FP_VALUE_IS_128BIT
 #if USE_FLOAT128_FOR_HOST_FP_VALUE || USE_SOFTFLOAT
 #define HOST_FP_VALUE_IS_128BIT TRUE
 #else /* !(USE_FLOAT128_FOR_HOST_FP_VALUE || USE_SOFTFLOAT) */
 #define HOST_FP_VALUE_IS_128BIT FALSE
 #endif /* USE_FLOAT128_FOR_HOST_FP_VALUE || USE_SOFTFLOAT */
+#endif /* defined(HOST_FP_VALUE_IS_128BIT) */
 
 /*
 TRUE if the front end can use the GNU QuadMath library to support operations
