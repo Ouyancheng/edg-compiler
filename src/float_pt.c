@@ -1153,28 +1153,33 @@ Fetch the value from float_value (of kind kind) and return it.
      bits in some cases). */
   memzero((char *)&temp, sizeof(temp));
   if (kind == (a_float_kind)fk_float) {
-    softfloat32_t	float_temp;
+    float	float_temp;
     /* Convert from float to a_host_fp_value. */
     /* Use memcpy to copy the value since float_value might not be correctly
        aligned. */
-    (void)memcpy((char *)&float_temp.hard, (char *)float_value, sizeof(float));
+    (void)memcpy((char *)&float_temp, (char *)float_value, sizeof(float));
 #if USE_SOFTFLOAT
-    f32_to_f128M(float_temp.soft, &temp);
+    { softfloat32_t soft_temp;
+      soft_temp.hard = float_temp;
+      f32_to_f128M(soft_temp.soft, &temp);
+    }
 #else /* !USE_SOFTFLOAT */
-    temp = float_temp.hard;
+    temp = float_temp;
 #endif /* USE_SOFTFLOAT */
 #if !USE_DOUBLE_FOR_HOST_FP_VALUE
   } else if (kind_is_binary64(kind)) {
-    softfloat64_t	double_temp;
+    double	double_temp;
     /* Convert from double to a_host_fp_value. */
     /* Use memcpy to copy the value since float_value might not be correctly
        aligned. */
-    (void)memcpy((char *)&double_temp.hard, (char *)float_value,
-                 sizeof(double));
+    (void)memcpy((char *)&double_temp, (char *)float_value, sizeof(double));
 #if USE_SOFTFLOAT
-    f64_to_f128M(double_temp.soft, &temp);
+    { softfloat64_t soft_temp;
+      soft_temp.hard = double_temp;
+      f64_to_f128M(soft_temp.soft, &temp);
+    }
 #else /* !USE_SOFTFLOAT */
-    temp = double_temp.hard;
+    temp = double_temp;
 #endif /* USE_SOFTFLOAT */
 #endif /* !USE_DOUBLE_FOR_HOST_FP_VALUE */
 #if HOST_FP_VALUE_IS_128BIT
