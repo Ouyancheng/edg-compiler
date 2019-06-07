@@ -1,5 +1,18 @@
 Version 5.1
 
+6/7/19   [EDGcpfe/21219]
+Spurious error on C++17 explicit specialization with exception specification
+
+Consider:
+
+  template<typename> struct X { static constexpr bool value = true; };
+  template<typename T> void f(T&, T&) noexcept(X<T>::value);
+  template<> void f(int& a1, int& a2) noexcept(X<int>::value) {}
+
+Previously this triggered a spurious error in C++17 mode (except for GCC and
+Clang modes).  That is now fixed.
+
+
 6/7/19   [EDGcpfe/21137,EDGcpfe/21235]
 Incorrect instantiation of template class' special member function's exception
 specification
