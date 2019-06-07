@@ -223,7 +223,7 @@ static float64_t
 Utility macros to perform low-level operations on a_host_fp_value operands.
 These SoftFloat versions assume that all floating-point operations are
 performed with 128-bit floating point values (i.e., that a_host_fp_value
-is float128_t).  They could be re-written to assume, e.g. 64-bit floating
+is float128_t).  They could be rewritten to assume, e.g. 64-bit floating
 point values, but since SoftFloat provides 128-bit, we use that.
 */
 #define do_fp_add(op1, op2, result)      f128M_add(&(op1), &(op2), &(result))
@@ -635,8 +635,7 @@ If the conversion can be done, return the result in "result".
   f32_temp.soft = f128M_to_f32(&temp);
   if ((softfloat_exceptionFlags & softfloat_flag_overflow) != 0) {
     if (gnu_mode && is_finite(temp)) {
-      /* GNU C and C++ silently uses infinity for values that are too
-         large. */
+      /* GNU C and C++ silently use infinity for values that are too large. */
     } else {
       /* An overflow. */
       *err = TRUE;
@@ -762,7 +761,7 @@ If the conversion can be done, return the result in "result".
          on conversion to float it rounds to the maximum float, so it's
          okay. */
     } else if (gnu_mode) {
-      /* GNU C and C++ silently uses infinity for values that are too large. */
+      /* GNU C and C++ silently use infinity for values that are too large. */
     } else {
       /* Overflow. */
       *err = TRUE;
@@ -3024,7 +3023,7 @@ Convert unsigned_value to a floating-point value of kind "kind" in
   /* The Microsoft compiler (as of Visual C++ 6.0) cannot convert an
      unsigned __int64 to double.  The conversion is done as a signed
      conversion instead.  If the value is larger than the largest
-     unsigned, it is reduced to a value that can be represented as
+     signed, it is reduced to a value that can be represented as
      a signed and adjusted back after the conversion. */
   if (unsigned_value > MAX_HOST_LARGE_INTEGER) {
     a_host_large_integer	signed_value;
