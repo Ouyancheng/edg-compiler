@@ -11467,13 +11467,6 @@ in the standard is perhaps accidental.
           release_local_constant(&cp);
         }  /* if */
       }  /* if */
-    }  /* if */
-    if (((flags & MTT_ALLOW_STRICTER_NOEXCEPT) == 0 &&
-         type_has_less_restrictive_exception_spec(type, templ_type)) ||
-        ((flags & MTT_ALLOW_INEXACT_DEDUCTION) == 0 &&
-         type_has_less_restrictive_exception_spec(templ_type, type))) {
-      /* A less restrictive exception specification is not allowed in this
-         case.  Use the match value determined above. */
     } else {
       match = TRUE;
     }  /* if */
