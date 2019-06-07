@@ -26,9 +26,9 @@ the attempt to move-initialize r from s failed.  That is now fixed.
 6/6/19   [EDGcpfe/20918]
 Exception specifications in explicitly-defaulted functions
 
-Committee paper P1286R2 changed how a mismatch between a routine's explicitly
+Committee paper P1286R2 changed how a mismatch between a routine's explicitly-
 specified exception specification and its generated default behaves.  The new
-behavior is to use the explicitly specified exception specification but
+behavior is to use the explicitly-specified exception specification but
 otherwise generate the routine as usual - even if this means an exception may
 be thrown in spite of a noexcept(true) specification (std::terminate will be
 called).  This change has been made to apply retroactively to older C++ modes
