@@ -169,7 +169,7 @@ static a_boolean lint_is_NaN(long double x) /*lint !e528*/
 Macro that returns TRUE if the floating-point kind is binary 64 (i.e.,
 64-bit floating-point).  That's always the case for "double", but may also
 be the case for "long double" in some configurations (but that must be
-determined at run time because the sizes of these types can be be part of
+determined at run time because the sizes of these types can be part of
 a target configuration).
 */
 #define kind_is_binary64(kind)                                                \
@@ -3770,7 +3770,11 @@ Initialize static variables related to float_pt.c.
   /* Make sure that an_fp_value_part is 32 bits. */
   check_assertion_str(sizeof(an_fp_value_part) == 4,
          "float_pt_init: bad size for an_fp_value_part");  /*lint !e774*/
+#if FP_HAS_LONG_DOUBLE
   long_double_is_double = (targ_ldbl_mant_dig == 53);
+#else /* !FP_HAS_LONG_DOUBLE */
+  long_double_is_double = TRUE;
+#endif /* FP_HAS_LONG_DOUBLE */
 }  /* float_pt_init */
 
 /******************************************************************************
