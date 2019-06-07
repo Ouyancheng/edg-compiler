@@ -4095,7 +4095,7 @@ Prior to the resolution of Core issue 1778, a mismatch between the two
 exception specifications is an error.  After the resolution of Core issue 1778,
 a mismatch causes the function to be implicitly deleted.  P1286R2, however,
 changes this again to be well-formed and not deleted (if an exception is
-thrown, std::terminate will be called).
+thrown with noexcept(true), std::terminate will be called).
 */
 {
   if (exception_spec_is_less_restrictive(declared, defaulted) ||
@@ -4108,13 +4108,15 @@ thrown, std::terminate will be called).
          having the mismatch. */
       delete_routine = TRUE;
     } else if (microsoft_mode || gpp_mode || clang_mode) {
-      if (cpp20_mode) {
-        /* Follow P1286R2 in C++20 mode.  No action required. */
-      } else if (ms_version_is(>= 1910) || gpp_version_is(>= 40900)) {
+      if (cpp20_mode || clang_version_is(>=80100)) {
+        /* Follow P1286R2 in C++20 mode.  No action required.  Newer versions
+           of Clang have implemented this in C++11 mode. */
+      } else if (cpp14_mode || ms_version_is(>= 1910) ||
+                 gpp_version_is(>= 40900)) {
         /* Newer GCC and MSVC versions follow Core issue 1778 in C++11 mode. */
         delete_routine = TRUE;
       } else {
-        /* Clang and older versions of GCC and MSVC issue an error on a
+        /* Older versions of Clang, GCC and MSVC issue an error on a
            mismatch. */
         pos_error(ec_invalid_explicit_exception_specification,
                   &rp->source_corresp.decl_position);

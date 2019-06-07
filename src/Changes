@@ -24,16 +24,16 @@ the attempt to move-initialize r from s failed.  That is now fixed.
 
 
 6/6/19   [EDGcpfe/20918]
-Exception specification in explicitly defaulted functions
+Exception specifications in explicitly-defaulted functions
 
 Committee paper P1286R2 changed how a mismatch between a routine's explicitly
 specified exception specification and its generated default behaves.  The new
 behavior is to use the explicitly specified exception specification but
 otherwise generate the routine as usual - even if this means an exception may
-still be thrown (std::terminate will be called).  This change has been made to
-apply retroactively to older C++ modes (e.g., C++11), however in GCC, Clang or
-MSVC compatibility modes the original pre-C++20 behaviour has been preserved.
-For example:
+be thrown in spite of a noexcept(true) specification (std::terminate will be
+called).  This change has been made to apply retroactively to older C++ modes
+(e.g., C++11), however in GCC, Clang or MSVC compatibility modes the original
+behavior has been preserved outside of C++20 mode.  For example:
 
   struct T {
     T();
