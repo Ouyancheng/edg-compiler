@@ -1,5 +1,22 @@
 Version 5.1
 
+6/7/19   [EDGcpfe/21137,EDGcpfe/21235]
+Incorrect instantiation of template class' special member function's exception
+specification
+
+In some cases the special member functions of a class may have had their
+exception specifications incorrectly instantiated.  For example:
+
+  template <class T>
+  struct A
+  {
+    A& operator=(A&&) noexcept(false) = default;
+  };
+  A<int> a; // A::operator= incorrectly had noexcept(true)
+
+This is now fixed.
+
+
 6/6/19   [EDGcpfe/20897,EDGcpfe/21341]
 Implicit move constructor of class with variant members spuriously deleted
 

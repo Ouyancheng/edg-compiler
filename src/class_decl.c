@@ -4060,13 +4060,15 @@ instantiate the exception specification.
                                       rfp->func_info.prototype_scope_symbols);
           }  /* if */
           /* Scan the exception specification argument. */
-          esp->arg_cached = FALSE;
-          esp->variant.token_cache = NULL;
           if (cache != NULL) {
+            esp->arg_cached = FALSE;
+            esp->variant.token_cache = NULL;
             delayed_scan_of_exception_spec(rp, cache);
             free_token_cache(cache);
-            rfp->process_exception_spec = FALSE;
+          } else {
+            instantiate_exception_spec_if_needed(rsym);
           }  /* if */
+          rfp->process_exception_spec = FALSE;
           /* Pop the reactivated function prototype scope off the stack. */
           pop_scope();
           break;
