@@ -4852,7 +4852,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           /* The clang compiler has a bug such that it requires a "template"
              keyword following a namespace qualifier when the name is a
              template-id that is a member of an unknown specialization, e.g.,
-             "this->N::template X<T>::f()". */
+             "(*this).N::template X<T>::f()". */
           write_tok_str("template ");
         }  /* if */
       }  /* if */
