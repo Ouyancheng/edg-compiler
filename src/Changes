@@ -1,5 +1,31 @@
 Version 5.1
 
+6/7/19   [EDGcpfe/21238]
+C++-generating back end: template keyword following namespace qualifier
+
+The clang compiler has a bug that causes it sometimes to issue a spurious
+error when a dependent template-id is referenced via a namespace-qualified
+name unless the template-id is preceded by the "template" keyword, even
+though the "template" keyword is not needed in that location.  In
+configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end previously put out
+such names without the "template" keyword, but now adds the keyword when
+clang_is_generated_code_target is TRUE.  For example, with --clang:
+
+  namespace N {
+  template <typename D, int I> struct A;
+  template <typename D, int I> struct B {
+    int f();
+  };
+  }
+
+  template <typename> class C {
+    template <int I> int f() {
+      return (*this).N::template B<C, I>::f(); // Previously omitted "template"
+    }
+  };
+
+
 6/7/19   [EDGcpfe/21219]
 Spurious error on C++17 explicit specialization with exception specification
 
