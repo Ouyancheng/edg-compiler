@@ -18951,7 +18951,8 @@ this one is such a continuation.
       unqual_var_type->has_been_declared = TRUE;
     }  /* if */
     write_tok_ch(';');
-  } else if (is_immediate_class_type(var_type) &&
+  } else if ((is_immediate_class_type(var_type) ||
+              is_immediate_enum_type(var_type)) &&
              !has_name_before_mangling(var_type)) {
     register_var_for_decltype(var);
   }  /* if */

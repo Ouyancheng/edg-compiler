@@ -1,5 +1,21 @@
 Version 5.1
 
+6/8/19   [EDGcpfe/21274]
+C++-generating back end: referring to unnamed enumerations via decltype
+
+The C++-generating back end previously used an undeclared temporary name
+(of the form __T12345678) to refer to an unnamed enumeration type when the
+original source code denotes the type using a decltype-specifier naming a
+variable of the enumeration type.  This is now fixed.  For example, with
+--c++11:
+
+  template<typename> struct S { };
+  enum { e } ue;
+  int main() {
+    S<decltype(ue)> s;  // Previously generated as S<__T12345678>
+  }
+
+
 6/7/19   [EDGcpfe/21238]
 C++-generating back end: template keyword following namespace qualifier
 
