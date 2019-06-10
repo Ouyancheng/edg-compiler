@@ -12497,9 +12497,11 @@ common cases.
   set_err_pos_to_curr_token();
   dps->is_type_name = TRUE;
   dps->trailing_return_type_allowed = trailing_return_types_enabled;
-  if (!dps->is_template_type_argument) {
-    /* The caller will have already set this flag if it should be set in
-       this context. */
+  if (!dps->is_template_type_argument &&
+      !dps->not_possible_implicit_type_context) {
+    /* The caller will have already set the flag if needed for template
+       type arguments.  Don't set the flag it the caller explicitly
+       requests it not to be set. */
     dps->is_implicit_type_context = TRUE;
   }  /* if */
   copy_source_position(pos_curr_token, dps->start_pos);
@@ -12606,6 +12608,7 @@ if the type-name includes a class or enum definition.
 
 
 a_type_ptr scan_type_for_cast(a_boolean  const_expr_context,
+                              a_boolean  is_new_style,
                               a_boolean  *explicit_cv_qualifiers,
                               a_boolean  *type_definition)
 /*
@@ -12616,13 +12619,15 @@ cv-qualifiers.  If type_definition is non-NULL, return in *type_definition
 whether the scanned type specifiers included a class or enum definition;
 otherwise, issue a diagnostic on such a definition if appropriate.
 const_expr_context is TRUE if the cast appears in a context that requires a
-constant-expression.
+constant-expression.  is_new_style is TRUE for a C++ keyword-style cast
+(e.g., static_cast) and FALSE for a C-style cast.
 */
 {
   a_decl_parse_state  dps;
 
   init_decl_parse_state(&dps);
   dps.disallow_variably_modified_type = const_expr_context;
+  dps.not_possible_implicit_type_context = !is_new_style;
   type_name_full(&dps);
   if (type_definition != NULL) {
     /* Return whether a type was defined in the type specifiers. */

@@ -1047,6 +1047,11 @@ typedef struct a_decl_parse_state {
   a_bit_field	type_is_injected_class_name:1;
 			/* TRUE if the type was specified using the
 			   injected class name. */
+  a_bit_field	not_possible_implicit_type_context:1;
+			/* TRUE if this context can never by a context
+			   in which is_implicit_type_context is set.  This
+			   is used to make sure a lower level routine does not
+			   set is_implicit_type_context. */
   a_bit_field	is_implicit_type_context:1;
 			/* TRUE if this is a context in which a dependent
 			   qualified name is considered to be a type (a
@@ -1429,6 +1434,7 @@ extern void check_type_definition_in_type_name(a_decl_parse_state  *dps);
 extern void type_name(a_type_ptr  *type);
 
 extern a_type_ptr scan_type_for_cast(a_boolean  const_expr_context,
+                                     a_boolean  is_new_style,
                                      a_boolean  *explicit_cv_qualifiers,
                                      a_boolean  *type_definition);
 

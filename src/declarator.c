@@ -3089,6 +3089,8 @@ an error if a default argument expression is encountered.
                                                 trailing_return_types_enabled;
         param_state.pack_ellipsis_allowed = is_variadic_template_context();
         param_state.is_implicit_type_context =
+                             (!is_top_level_declarator &&
+                              state->is_implicit_type_context) ||
                               parent_type != NULL || is_friend_decl ||
                               (locator != NULL && locator->is_qualified_name);
         copy_source_position(pos_curr_token, param_type_pos);

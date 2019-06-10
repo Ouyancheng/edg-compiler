@@ -17417,6 +17417,7 @@ indication in *rcblock).
        in the type-id. */
     *type_position = pos_curr_token;
     *cast_type = scan_type_for_cast(curr_expr_kind_is_const(),
+                                    /*is_new_style=*/TRUE,
                                     &explicit_cv_qualifiers, (a_boolean*)NULL);
   }  /* if */
   /* New-style casts are outside the "Embedded C++" subset. */
@@ -25403,6 +25404,7 @@ just an expression in parentheses.  Return the scanned expression in
       /* Get the type to cast to. */
       type_position = pos_curr_token;
       type_cast_to = scan_type_for_cast(curr_expr_kind_is_const(),
+                                        /*is_new_style=*/FALSE,
                                         &explicit_cv_qualifiers,
                                         &type_defined);
       /* The next token should be the closing rparen. */
