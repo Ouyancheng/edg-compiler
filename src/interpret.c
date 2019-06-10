@@ -4998,7 +4998,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             fp = tp->variant.class_struct_union.field_list;
             fp = next_alloc_field(fp);
           }  /* if */
-          if (fp == NULL || elem_con->next != NULL) {
+          if (fp == NULL || elem_con == NULL || elem_con->next != NULL) {
             /* Unions should have only one actual initializer constant
                (possibly following a designator).  This can happen with
                severe errors, however. */
