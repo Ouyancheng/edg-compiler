@@ -247,6 +247,85 @@ static a_hidden_name_fixup_ptr
 			   freed and are available for reuse. */
 
 /*
+Definitions for a linked list of variables that are defined with unnamed
+class or enumeration types.  This is used so that an appropriate
+decltype-specifier for the type can be synthesized if that type is used as
+a qualifier in a qualified name or as a template argument.  For example,
+
+    struct { static int f() { return 0; } } x;
+    int i = decltype(x)::f();
+
+Unless the form of the name reference was recorded, the IL for the call of
+f() gives no indication of the decltype-specifier used in the source, so
+this list allows the unnamed qualifier class to be generated in a
+compilable form rather than as an undeclared temporary name.
+
+This is a singly-linked list, but it is only searched for unnamed class and
+enumeration qualifiers and template arguments; those should be exceedingly
+rare, so performance should not be an issue.
+*/
+
+typedef struct a_var_for_decltype *a_var_for_decltype_ptr;
+typedef struct a_var_for_decltype {
+  a_var_for_decltype_ptr
+		next;	/* The next entry in the list, or NULL if none. */
+  a_variable_ptr
+		var;	/* Designates a variable that is declared with an
+			   unnamed class or enumeration type and thus might
+			   be used in a decltype-specifier to refer to that
+			   type. */
+} a_var_for_decltype;
+
+/*
+A list of variables that can be used in decltype-specifiers to refer to
+unnamed class or enumeration types.
+*/
+static a_var_for_decltype_ptr
+		vars_for_decltype;
+
+/*
+A list of available (used and freed) variable for decltype entries.
+*/
+static a_var_for_decltype_ptr
+		avail_vars_for_decltype;
+
+
+static void register_var_for_decltype(a_variable_ptr var)
+/*
+Create a new entry with var in the vars_for_decltype list.
+*/
+{
+  a_var_for_decltype_ptr new_entry;
+
+  if (avail_vars_for_decltype != NULL) {
+    new_entry = avail_vars_for_decltype;
+    avail_vars_for_decltype = new_entry->next;
+  } else {
+    new_entry = alloc_general_of_type(a_var_for_decltype);
+  }  /* if */
+  new_entry->next = vars_for_decltype;
+  new_entry->var = var;
+  vars_for_decltype = new_entry;
+}  /* register_var_for_decltype */
+
+
+static void free_vars_for_decltype(a_var_for_decltype_ptr new_top)
+/*
+Move entries from the vars_for_decltype list to the list of available
+entries until new_top is at the front of the list.  If new_top is NULL, all
+entries will be freed.
+*/
+{
+  while (vars_for_decltype != new_top) {
+    a_var_for_decltype_ptr freed = vars_for_decltype;
+    vars_for_decltype = freed->next;
+    freed->next = avail_vars_for_decltype;
+    avail_vars_for_decltype = freed;
+  }  /* while */
+}  /* free_vars_for_decltype */
+
+
+/*
 Entry used in a stack to indicate the name contexts we are currently
 inside of.  This is used to avoid adding class qualifiers to names when
 they are not necessary.
@@ -280,6 +359,12 @@ typedef struct a_name_context {
   a_hidden_name_fixup_ptr
 		fixups;	/* Hidden-name fixups to be done at the end of the
 			   name context. */
+  a_var_for_decltype_ptr
+		last_var_for_decltype;
+			/* The last variable for decltype entry associated
+			   with this context.  Popping this context from
+			   the context stack restores the list of variables
+			   for decltype to this entry. */
   a_byte_boolean
 		invisible_to_cfront;
 			/* TRUE if this context is not visible to cfront
@@ -946,6 +1031,7 @@ hidden name entries that apply to the base class list should be processed.
   ncp->assembly_access = (an_access_specifier)as_public;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ncp->fixups = NULL;
+  ncp->last_var_for_decltype = vars_for_decltype;
   ncp->invisible_to_cfront = FALSE;
   ncp->field_selection_context = FALSE;
   ncp->has_dependent_base = FALSE;
@@ -1046,6 +1132,7 @@ field_selection_context is TRUE.
   ncp->fixups = NULL;
   ncp->saved_in_class_scope_with_dependent_base =
                                             in_class_scope_with_dependent_base;
+  ncp->last_var_for_decltype = vars_for_decltype;
   /* Indicate that this context represents a field selection operation and
      should be popped once the immediately-following name is generated. */
   ncp->field_selection_context = TRUE;
@@ -1085,6 +1172,7 @@ Pop the top entry off the name context stack.
   }  /* for */
   in_class_scope_with_dependent_base =
                    curr_name_context->saved_in_class_scope_with_dependent_base;
+  free_vars_for_decltype(curr_name_context-> last_var_for_decltype);
   /* Pop the stack. */
   curr_name_context = curr_name_context->next;
   /* Free the entry by putting it on the available list. */
@@ -3783,57 +3871,6 @@ currently active selector class.
   }  /* if */
   return result;
 }  /* is_direct_base_or_member_of_selector */
-
-
-/*
-Definitions for a linked list of variables that are defined with unnamed
-class types.  This is used so that an appropriate decltype-specifier for
-the type can be synthesized if that type is used as a qualifier in a
-qualified name or as a template argument.  For example,
-
-    struct { static int f() { return 0; } } x;
-    int i = decltype(x)::f();
-
-Unless the form of the name reference was recorded, the IL for the call of
-f() gives no indication of the decltype-specifier used in the source, so
-this list allows the unnamed qualifier class to be generated in a
-compilable form rather than as an undeclared temporary name.
-
-This is a singly-linked list, but it is only searched for unnamed class
-qualifiers and template arguments; those should be exceedingly rare, so
-performance should not be an issue.
-*/
-
-typedef struct a_var_for_decltype *a_var_for_decltype_ptr;
-typedef struct a_var_for_decltype {
-  a_var_for_decltype_ptr
-		next;	/* The next entry in the list, or NULL if none. */
-  a_variable_ptr
-		var;	/* Designates a variable that is declared with an
-			   unnamed class type and thus might be used in a
-			   decltype-specifier to refer to that type. */
-} a_var_for_decltype;
-
-/*
-A list of variables that can be used in decltype-specifiers to refer to
-unnamed class types.
-*/
-static a_var_for_decltype_ptr
-		vars_for_decltype;
-
-
-static void register_var_for_decltype(a_variable_ptr var)
-/*
-Create a new entry with var in the vars_for_decltype list.
-*/
-{
-  a_var_for_decltype_ptr new_entry;
-
-  new_entry = alloc_general_of_type(a_var_for_decltype);
-  new_entry->next = vars_for_decltype;
-  new_entry->var = var;
-  vars_for_decltype = new_entry;
-}  /* register_var_for_decltype */
 
 
 static a_boolean synthesize_decltype_specifier(a_type_ptr type)
@@ -18951,8 +18988,8 @@ this one is such a continuation.
       unqual_var_type->has_been_declared = TRUE;
     }  /* if */
     write_tok_ch(';');
-  } else if ((is_immediate_class_type(var_type) ||
-              is_immediate_enum_type(var_type)) &&
+  } else if (!C_mode() && (is_immediate_class_type(var_type) ||
+                           is_immediate_enum_type(var_type)) &&
              !has_name_before_mangling(var_type)) {
     register_var_for_decltype(var);
   }  /* if */
@@ -20916,6 +20953,7 @@ Initialize for the C++/C-generating back end.
   curr_pack_alignment = 0;
   need_pragma_pack_restore = FALSE;
   vars_for_decltype = NULL;
+  avail_vars_for_decltype = NULL;
   is_generated_explicit_specialization = FALSE;
 }  /* init_cp_gen_be */
 
