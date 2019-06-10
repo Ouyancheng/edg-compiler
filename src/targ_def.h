@@ -2321,7 +2321,7 @@ controls whether or not a "long double" type is used.
 */
 
 #ifndef FP_HAS_LONG_DOUBLE
-#define FP_HAS_LONG_DOUBLE TRUE
+#define FP_HAS_LONG_DOUBLE !USE_DOUBLE_FOR_HOST_FP_VALUE
 #endif /* ifndef FP_HAS_LONG_DOUBLE */
 
 /*
