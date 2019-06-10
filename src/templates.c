@@ -11206,10 +11206,12 @@ list of a template function.  Returns TRUE if a match is found.
         } else if (auto_template_params_enabled &&
                    (flags & MTT_TEMPL_TEMPL_MATCH) == 0) {
           /* When auto template parameters are allowed, it is also permitted
-             to deduce from the type of a nontype argument. */
-          match = matches_template_type(constant->type, templ_constant->type,
-                                        templ_arg_list, templ_param_list,
-                                        MTT_NO_FLAGS);
+             to deduce from the type of a nontype argument.  This is only
+             done to potentially deduce a type, it does not fail deduction
+             if there is not a match. */
+          (void)matches_template_type(constant->type, templ_constant->type,
+                                      templ_arg_list, templ_param_list,
+                                      MTT_NO_FLAGS);
         }  /* if */
         if (match) {
           if (tap->variant.constant == NULL) {
