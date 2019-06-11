@@ -1889,7 +1889,7 @@ extern void set_expr_result_not_used(an_expr_node_ptr node);
 /*
 Macro to set a possibly NULL expression as not used.
 */
-#define set_possibly_null_expr_result_not_used(node)                           \
+#define set_possibly_null_expr_result_not_used(node)                          \
   if ((node) != NULL) set_expr_result_not_used(node)
 
 extern void set_node_operator(an_expr_node_ptr      node,
