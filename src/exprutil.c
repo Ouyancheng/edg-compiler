@@ -1685,7 +1685,7 @@ values on the expression stack.
 }  /* expr_copy_default_arg_expr_list */
 
 
-void transfer_context_from_enclosing_expr_stack_entry(
+static void transfer_context_from_enclosing_expr_stack_entry(
                                                 a_boolean           direct,
                                                 an_expr_stack_entry *old_entry,
                                                 an_expr_stack_entry *new_entry)
