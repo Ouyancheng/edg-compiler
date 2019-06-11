@@ -1699,6 +1699,10 @@ extern a_boolean is_wide_string_constant(a_constant_ptr constant);
 extern void make_zero_of_proper_type(a_type_ptr desired_type,
                                      a_constant *zero_constant);
 
+extern an_expr_node_ptr make_zero_expr(a_type_ptr  tp);
+
+extern an_expr_node_ptr make_one_expr(a_type_ptr  tp);
+
 extern a_boolean make_value_initialized_constant(a_type_ptr type,
                                                  a_constant *con);
 

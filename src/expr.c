@@ -28425,8 +28425,43 @@ type does not find usable best candidate.
     }  /* if */
   }  /* if */
   release_local_constant(&zero_ptr);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
   return result;
 }  /* generated_rel_op_is_deleted */
+
+
+an_expr_node_ptr make_eq_comparison(an_expr_node_ptr  arg1,
+                                    an_expr_node_ptr  arg2)
+/*
+The given expression nodes are lvalues x and y.  Return a node representing
+x == y contextually converted to bool.  This routine is used to synthesize
+operator== and operator!=, and assumes the expression is evaluated.
+*/
+{
+  an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
+  an_operand           opnd1, opnd2, result;
+  an_expr_node_ptr     result_expr;
+
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  expr_stack_entry.evaluated = TRUE;
+  expr_stack_entry.potentially_evaluated = TRUE;
+  make_glvalue_expression_operand(arg1, &opnd1);
+  make_glvalue_expression_operand(arg2, &opnd2);
+  process_eq_operator(&opnd1, &opnd2, (a_token_kind)tok_eq, &error_position,
+                      curr_token_sequence_number, &result);
+  if (!is_error_operand(&result)) {
+    process_boolean_controlling_expression(&result);
+  }  /* if */
+  result_expr = make_node_from_operand(&result);
+  result_expr = wrap_up_full_expression(result_expr);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  return result_expr;
+}  /* make_eq_comparison */
 
 #if GNU_EXTENSIONS_ALLOWED
 

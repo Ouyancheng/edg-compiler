@@ -8765,6 +8765,56 @@ for making NULL pointer constants.
 }  /* make_zero_of_proper_type */
 
 
+an_expr_node_ptr make_zero_expr(a_type_ptr  tp)
+/*
+Return a node representing a "zero" constant of the given type.
+*/
+{
+  a_constant_ptr    zero = local_constant();
+  an_expr_node_ptr  result;
+
+  make_zero_of_proper_type(tp, zero);
+  result = alloc_node_for_constant(zero);
+  release_local_constant(&zero);
+  return result;
+}  /* make_zero_expr */
+
+
+static void make_one_of_proper_type(a_type_ptr desired_type,
+                                    a_constant *one_constant)
+/*
+Make a "one" constant of type desired_type (a scalar type) and put it in
+*one_constant.  No IL allocation is done.  This routine is also handy for
+making "true" values.
+*/
+{
+  a_boolean did_not_fold;
+
+  /* Make an integer one and convert it to the desired type. */
+  set_integer_constant(one_constant, (a_host_large_integer)1,
+                       (an_integer_kind)ik_int);
+  type_change_constant(one_constant, desired_type,
+                       /*is_implicit_cast=*/TRUE,
+                       /*maintain_expression=*/FALSE,
+                       &did_not_fold, &error_position);
+}  /* make_one_of_proper_type */
+
+
+an_expr_node_ptr make_one_expr(a_type_ptr  tp)
+/*
+Return a node representing a "one" constant of the given type.
+*/
+{
+  a_constant_ptr    one = local_constant();
+  an_expr_node_ptr  result;
+
+  make_one_of_proper_type(tp, one);
+  result = alloc_node_for_constant(one);
+  release_local_constant(&one);
+  return result;
+}  /* make_one_expr */
+
+
 a_boolean make_value_initialized_constant(a_type_ptr type,
                                           a_constant *con)
 /*

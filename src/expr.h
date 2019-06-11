@@ -369,6 +369,9 @@ extern void determine_defaulted_spaceship_return_type(a_routine_ptr  srp,
 
 extern a_boolean generated_rel_op_is_deleted(a_type_ptr  class_tp);
 
+extern an_expr_node_ptr make_eq_comparison(an_expr_node_ptr  arg1,
+                                           an_expr_node_ptr  arg2);
+
 extern void check_closing_paren_after_expr_list(void);
 
 extern

@@ -3043,6 +3043,43 @@ necessary for use as the argument and the "this" parameter of the call.
 }  /* make_assignment_call */
 
 
+static an_expr_node_ptr conv_array_expr_to_underlying_ptr(
+                                                       an_expr_node_ptr  expr)
+/*
+expr is an expression for an lvalue or rvalue array.  Do the array-to-pointer
+decay on it, and return a pointer to the decayed expression.  For a multi-
+dimensional array, return a pointer to the first non-array element.
+*/
+{
+  for (;;) {
+    expr = conv_array_expr_to_pointer(expr);
+    if (!(is_pointer_type(expr->type) &&
+          is_array_type(type_pointed_to(expr->type)))) {
+      break;
+    }  /* if */
+    expr = add_indirection_to_node(expr);
+  }  /* for */
+  return expr;
+}  /* conv_array_expr_to_underlying_ptr */
+
+
+static an_expr_node_ptr add_subscript_to_ptr_expr(an_expr_node_ptr  ptr_expr,
+                                                  a_variable_ptr    idx_vp)
+/*
+Return an expression "ptr[idx]" with ptr and idx the described by ptr_expr and
+idx_vp, respectively.
+*/
+{
+  an_expr_node_ptr  result_expr;
+
+  ptr_expr->next = var_rvalue_expr(idx_vp);
+  result_expr = make_operator_node((an_expr_operator_kind)eok_subscript,
+                                   type_pointed_to(ptr_expr->type), ptr_expr);
+  result_expr->is_lvalue = TRUE;
+  return result_expr;
+}  /* add_subscript_to_ptr_expr */
+
+
 static an_expr_node_ptr lvalue_for_source_param(a_variable_ptr source_var)
 /*
 source_var is the variable for the source parameter of an operator=
@@ -3270,39 +3307,13 @@ operator routine or do bitwise assignment.
                                         (a_statement_kind)stmk_end_test_while);
               sp->parent = top_block;
               sp->expr = compare_node;
-              /* Convert the source and destination expressions from
-                 array lvalue to pointer-to-array-element.  Loop if the
-                 array is multidimensional. */
-              for (;;) {
-                source_expr = conv_array_expr_to_pointer(source_expr);
-                if (!(is_pointer_type(source_expr->type) &&
-                      is_array_type(type_pointed_to(source_expr->type)))) {
-                  break;
-                }  /* if */
-                source_expr = add_indirection_to_node(source_expr);
-              }  /* for */
-              for (;;) {
-                dest_expr = conv_array_expr_to_pointer(dest_expr);
-                if (!(is_pointer_type(dest_expr->type) &&
-                      is_array_type(type_pointed_to(dest_expr->type)))) {
-                  break;
-                }  /* if */
-                dest_expr = add_indirection_to_node(dest_expr);
-              }  /* for */
-              /* Add the subscript to the source_expr. */
-              source_expr->next = var_rvalue_expr(temp_var);
-              source_expr =
-                      make_operator_node((an_expr_operator_kind)eok_subscript,
-                                         type_pointed_to(source_expr->type),
-                                         source_expr);
-              source_expr->is_lvalue = TRUE;
-              /* Add the subscript to the dest_expr. */
-              dest_expr->next = var_rvalue_expr(temp_var);
-              dest_expr =
-                      make_operator_node((an_expr_operator_kind)eok_subscript,
-                                         type_pointed_to(dest_expr->type),
-                                         dest_expr);
-              dest_expr->is_lvalue = TRUE;
+              /* Convert the two operands to pointers to the underlying
+                 non-array elements and apply a subscript to those pointer
+                 values. */
+              source_expr = conv_array_expr_to_underlying_ptr(source_expr);
+              source_expr = add_subscript_to_ptr_expr(source_expr, temp_var);
+              dest_expr = conv_array_expr_to_underlying_ptr(dest_expr);
+              dest_expr = add_subscript_to_ptr_expr(dest_expr, temp_var);
               /* Now that we have element lvalues, we can find the right
                  assignment operator. */
             }  /* if */
@@ -3430,6 +3441,120 @@ member or a base class with a nonpublic operator=() is handled elsewhere.
 }  /* check_default_assignment_operator */
 
 
+/*
+Structure that maintains some information about the context in which a
+generated function definition is created.
+*/
+typedef struct a_generated_func_def_context {
+  a_boolean
+		trans_unit_pushed;
+			/* A flag indicating whether a translation unit was
+			   pushed prior to creating the definition scope for a
+			   generated function. */
+  a_scope_depth
+		saved_innermost_scope_that_affects_access,
+		saved_depth_template_declaration_scope;
+			/* Some scope stack depth that must be temporarily
+			   adjusted while creating the function definition. */
+} a_generated_func_def_context ;
+
+
+static a_scope_ptr begin_definition_of_generated_function(
+                                     a_routine_ptr                 rout_ptr,
+                                     a_type_ptr                    rtp,
+                                     a_type_ptr                    class_type,
+                                     a_generated_func_def_context  *context)
+/*
+rout_ptr represent a generated function (e.g., a special member function) of
+type rtp (no typerefs) associated with the give class type.  Start the
+definition scope for the function and record some information about the
+original context in *context to be able to restore that context later on using
+end_definition_of_generated_function.  Return an IL entry for the definition
+scope.
+*/
+{
+  a_symbol_ptr  rout_sym = symbol_for(rout_ptr);
+  a_scope_ptr   scope;
+  a_routine_type_supplement_ptr
+                rtsp;
+
+  check_assertion(class_type_supp(class_type)->assoc_scope != NULL);
+  /* Switch translation units if necessary. */
+  context->trans_unit_pushed = push_translation_unit_if_needed(rout_sym);
+  /* Reset the innermost scope that affects access control so that any existing
+     context on the scope stack does not affect the generation of the function.
+     Similarly, reset the depth of the current template declaration scope. */
+  context->saved_innermost_scope_that_affects_access =
+                         depth_of_innermost_scope_that_affects_access_control;
+  depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
+  context->saved_depth_template_declaration_scope =
+                                             depth_template_declaration_scope;
+  depth_template_declaration_scope = NO_SCOPE_DEPTH;
+    /* Push a class symbol reactivation scope, to make class member names
+       visible for processing the function definition. */
+  push_class_and_template_reactivation_scope_full(
+                                           class_type,
+                                           /*reactivate_template_params=*/TRUE,
+                                           /*is_specialized=*/FALSE,
+                                           /*extend_namespace=*/TRUE,
+                                           /*force_new_context=*/TRUE,
+                                           PS_NO_OPTIONS);
+  /* Push the scope for the new function itself. */
+  scope = push_scope((a_scope_kind)sck_function, NO_SCOPE_NUMBER,
+                     (a_type_ptr)NULL, rout_ptr);
+  /* If this is an "extern inline" function, change its storage class. */
+  if (rout_ptr->storage_class == (a_storage_class)sc_extern) {
+    rout_ptr->storage_class = (a_storage_class)sc_unspecified;
+  }  /* if */
+  rtsp = rtp->variant.routine.extra_info;
+  rtsp->assoc_routine = rout_ptr;
+  if (rtsp->this_class != NULL) {
+    scope->variant.routine.this_param_variable =
+                             make_implicit_this_param_variable(rout_ptr->type);
+  }  /* if */
+  return scope;
+}  /* begin_definition_of_generated_function */
+
+
+static void end_definition_of_generated_function(
+                                     a_routine_ptr                 rout_ptr,
+                                     a_scope_ptr                   scope,
+                                     a_generated_func_def_context  *context)
+/*
+rout_ptr represent a generated function (e.g., a special member function) for
+which begin_definition_of_generated_function returned scope and *context.
+Complete the definition and restore the original context.
+*/
+{
+  /* End of statement block is unreachable because of the return statement. */
+  check_assertion(scope->assoc_block->kind == (a_statement_kind)stmk_block);
+  scope->assoc_block->variant.block.extra_info->end_of_block_reachable = FALSE;
+  if (rout_ptr->is_constexpr &&
+      check_constexpr_routine_def_type(
+                         rout_ptr, &rout_ptr->source_corresp.decl_position)) {
+    /* A generated special member satisfies the rules for the body of a
+       constexpr constructor or function. */
+    set_routine_constexpr_info(scope, /*constexpr_ruled_out=*/FALSE);
+  }  /* if */
+  /* Terminate the function scope. */
+  pop_scope();
+  /* Terminate the class reactivation scope. */
+  pop_class_reactivation_scope();
+  depth_template_declaration_scope =
+                              context->saved_depth_template_declaration_scope;
+  depth_of_innermost_scope_that_affects_access_control =
+                           context->saved_innermost_scope_that_affects_access;
+  /* Mark the symbol for this routine "defined". */
+  symbol_for(rout_ptr)->defined = TRUE;
+  /* Notify the correspondence routines that a definition of this function
+     is now present.  Note that this is done for both template classes
+     and normal classes. */
+  establish_function_instantiation_corresp(rout_ptr);
+  /* If the translation unit stack was pushed above, pop it now. */
+  if (context->trans_unit_pushed) pop_translation_unit_stack();
+}  /* end_definition_of_generated_function */
+
+
 static void define_special_member_function(a_routine_ptr  rout_ptr)
 /*
 Define a compiler generated routine for a member function (constructor or
@@ -3437,9 +3562,7 @@ destructor).  This entails creating a new memory region, a scope, and an
 empty statement block.
 */
 {
-  a_scope_ptr                    scope;
-  a_type_ptr                     class_type;
-  a_routine_type_supplement_ptr  rtsp;
+  a_type_ptr  class_type;
 
   db_enter(4, "define_special_member_function");
   class_type = parent_class_of(rout_ptr);
@@ -3447,50 +3570,18 @@ empty statement block.
     /* Don't bother generating the definition for a member of an unreal
        instantiation of a template class. */
   } else {
-    a_symbol_ptr   rout_sym = symbol_for(rout_ptr);
-    a_boolean      trans_unit_pushed;
-    a_scope_depth  saved_innermost_scope_that_affects_access,
-                   saved_depth_template_declaration_scope;
-    check_assertion(class_type_supp(class_type)->assoc_scope != NULL);
-    /* Switch translation units if necessary. */
-    trans_unit_pushed = push_translation_unit_if_needed(rout_sym);
-    /* Reset the innermost scope that affects access control so that any
-       existing context on the scope stack does not affect the generation
-       of the function.  Similarly, reset the depth of the current template
-       declaration scope. */
-    saved_innermost_scope_that_affects_access =
-                         depth_of_innermost_scope_that_affects_access_control;
-    depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
-    saved_depth_template_declaration_scope = depth_template_declaration_scope;
-    depth_template_declaration_scope = NO_SCOPE_DEPTH;
-    /* Push a class symbol reactivation scope, to make class member names
-       visible for processing the function definition. */
-    push_class_and_template_reactivation_scope_full(
-                                           class_type,
-                                           /*reactivate_template_params=*/TRUE,
-                                           /*is_specialized=*/FALSE,
-                                           /*extend_namespace=*/TRUE,
-                                           /*force_new_context=*/TRUE,
-                                           PS_NO_OPTIONS);
-    /* Push the scope for the new function itself. */
-    scope = push_scope((a_scope_kind)sck_function, NO_SCOPE_NUMBER,
-                       (a_type_ptr)NULL, rout_ptr);
-    /* If this is an "extern inline" function, change its storage class. */
-    if (rout_ptr->storage_class == (a_storage_class)sc_extern) {
-      rout_ptr->storage_class = (a_storage_class)sc_unspecified;
-    }  /* if */
+    a_scope_ptr  scope;
+    a_generated_func_def_context
+                 context;
+    a_type_ptr   rtp = skip_typerefs(rout_ptr->type);
+    scope = begin_definition_of_generated_function(rout_ptr, rtp, class_type,
+                                                   &context);
     if (has_indeterminate_exception_spec(rout_ptr)) {
       /* A default constructor whose exception specification hasn't been
          determined yet because it depended on field initializers.  In GNU C++
          mode, all special member functions have their exception specification
          delayed this way. */
       resolve_indeterminate_exception_specification(rout_ptr);
-    }  /* if */
-    rtsp = skip_typerefs(rout_ptr->type)->variant.routine.extra_info;
-    rtsp->assoc_routine = rout_ptr;
-    if (rtsp->this_class != NULL) {
-      scope->variant.routine.this_param_variable =
-                            make_implicit_this_param_variable(rout_ptr->type);
     }  /* if */
     /* Enter the constructor and destructor initializers, to record possible
        implicit initializers. */
@@ -3508,36 +3599,266 @@ empty statement block.
       check_default_assignment_operator(class_type);
       make_default_assignment_body(scope);
     }  /* if */
-    /* End of statement block is unreachable because of the return
-       statement. */
-    check_assertion(scope->assoc_block->kind == (a_statement_kind)stmk_block);
-    scope->assoc_block->
-                   variant.block.extra_info->end_of_block_reachable = FALSE;
-    if (rout_ptr->is_constexpr &&
-        check_constexpr_routine_def_type(
-                         rout_ptr, &rout_ptr->source_corresp.decl_position)) {
-      /* A generated special member satisfies the rules for the body of a
-         constexpr constructor or function. */
-      set_routine_constexpr_info(scope, /*constexpr_ruled_out=*/FALSE);
-    }  /* if */
-    /* Terminate the function scope. */
-    pop_scope();
-    /* Terminate the class reactivation scope. */
-    pop_class_reactivation_scope();
-    depth_template_declaration_scope = saved_depth_template_declaration_scope;
-    depth_of_innermost_scope_that_affects_access_control =
-                                    saved_innermost_scope_that_affects_access;
-    /* Mark the symbol for this routine "defined". */
-    rout_sym->defined = TRUE;
-    /* Notify the correspondence routines that a definition of this function
-       is now present.  Note that this is done for both template classes
-       and normal classes. */
-    establish_function_instantiation_corresp(rout_ptr);
-    /* If the translation unit stack was pushed above, pop it now. */
-    if (trans_unit_pushed) pop_translation_unit_stack();
+    end_definition_of_generated_function(rout_ptr, scope, &context);
   }  /* if */
   db_exit();
 }  /* define_special_member_function */
+
+
+static a_statement_ptr make_return_false_stmt_if_false_expr(
+                                                       an_expr_node_ptr  cond)
+/*
+Return a statement of the form:
+
+	if (!cond) return false;
+
+where cond is the given expression.
+*/
+{
+  a_statement_ptr  if_stmt, return_stmt;
+
+  return_stmt = alloc_statement((a_statement_kind)stmk_return);
+  return_stmt->position = error_position;
+  return_stmt->expr = make_zero_expr(boolean_result_type());
+  if_stmt = alloc_statement((a_statement_kind)stmk_if);
+  if_stmt->position = error_position;
+  if_stmt->expr = make_operator_node((an_expr_operator_kind)eok_not,
+                                     boolean_result_type(), cond);
+  if_stmt->variant.if_stmt.then_statement = return_stmt;
+  return if_stmt;
+}  /* make_return_false_stmt_if_false_expr */
+
+
+static void make_comparison_args(an_expr_node_ptr  *arg1,
+                                 an_expr_node_ptr  *arg2)
+/*
+We are currently in the scope of a defaulted comparison operator.  Return in
+*arg1 and *arg2 expressions denoting pointers to the two objects being
+compared.
+*/
+{
+  a_variable_ptr  vp = innermost_function_scope->variant.routine.parameters;
+
+  if (vp->next == NULL) {
+    *arg1 = this_param_value_expr();
+  } else {
+    *arg1 = add_address_of_to_node(lvalue_for_source_param(vp));
+    vp = vp->next;
+  }  /* if */
+  *arg2 = add_address_of_to_node(lvalue_for_source_param(vp));
+}  /* make_comparison_args */
+
+
+static void make_default_eq_body(a_scope_ptr  scope,
+                                 a_type_ptr   class_type)
+/*
+Create the body for a defaulted operator== for the given class type.  The
+definition of the operator has been started and its associated scope is also
+given.
+*/
+{
+  a_statement_ptr    sp, top_block;
+  a_statement        head_of_statement_list;
+  a_base_class_ptr   bcp;
+  a_symbol_ptr       sym;
+  a_source_position  saved_error_position = error_position;
+
+  error_position = class_type->source_corresp.decl_position;
+  /* Create the top-level block statement for the function. */
+  top_block = alloc_statement((a_statement_kind)stmk_block);
+  scope->assoc_block = top_block;
+  /* "head_of_statement_list" is a local statement variable whose only
+      interesting property is its "next" field, from which a linked list of
+      allocated statement entries will be hung.  That list will eventually be
+      transferred to the block statement that is created. */
+  head_of_statement_list.next = NULL;
+  sp = &head_of_statement_list;
+  /* Perform "memberwise comparisons.  Start with the direct base classes in
+     declaration order (if any) and then the nonstatic data members in
+     declaration order (if any). */
+  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+    an_expr_node_ptr  arg1, arg2;
+    /* We are only interested in direct base classes. */
+    if (bcp->direct) continue;
+    if (bcp->is_virtual && virtual_base_class_is_indirect(bcp, class_type)) {
+      /* If bcp is also an indirect virtual base class, it will be handled by
+         the assignment function of some other base class. */
+      continue;
+    }  /* if */
+    make_comparison_args(&arg1, &arg2);
+    arg1 = add_indirection_to_node(base_class_selection_expr(arg1, bcp));
+    arg2 = add_indirection_to_node(base_class_selection_expr(arg2, bcp));
+    sp->next = make_return_false_stmt_if_false_expr(
+                                              make_eq_comparison(arg1, arg2));
+    sp = sp->next;
+    sp->parent = top_block;
+  }  /* for */
+  /* For the data members, use the symbol list rather than the field list to
+     be sure we adhere to declaration order and to be sure only user-defined
+     members are compared. */
+  sym = class_type_supp(symbol_for(class_type))->symbols;
+  for (; sym != NULL; sym = sym->next_in_scope) {
+    a_field_ptr       fp;
+    a_type_ptr        ftp, array_type;
+    an_expr_node_ptr  arg1, arg2;
+    a_statement_ptr   cmp_stmt;
+    if (!symbol_is(sym, sk_field)) continue;
+    fp = sym->variant.field.ptr;
+    if (field_is_nontrivial_property_or_event(fp)) {
+      /* Generated comparisons are currently not supported for nontrivial
+         property/event fields. */
+      pos_error(ec_defaulted_comparison_for_property, &error_position);
+      continue;
+    }  /* if */
+    ftp = skip_typerefs(fp->type);
+    /* If this is an array, we need the underlying element type. */
+    if (is_array_type(ftp)) {
+      array_type = ftp;
+      ftp = f_skip_typerefs(underlying_array_element_type(ftp));
+    } else {
+      array_type = NULL;
+    }  /* if */
+    make_comparison_args(&arg1, &arg2);
+    arg1 = fe_field_lvalue_selection_expr(arg1, fp);
+    arg2 = fe_field_lvalue_selection_expr(arg2, fp);
+    if (array_type != NULL) {
+      /* Compare an array of elements.  Generate a loop around the comparison,
+         like this:
+           tmp = 0;
+           do {
+             if (!(arg1[tmp] == &src[tmp]))
+               return false;
+           } while (++tmp < num_elements);
+         Note that comparing multidimensional arrays is done as a single loop
+         for all the elements, treating the array as a single-dimensional array
+         of the ultimate underlying element type. */
+      a_variable_ptr    temp_var;
+      an_expr_node_ptr  temp_node, temp_incr_node, compare_node;
+      a_type_ptr        size_t_type = integer_type(targ_size_t_int_kind);
+      a_targ_size_t     num_elems;
+      temp_var = alloc_temporary_variable(size_t_type,
+                                          /*force_static=*/FALSE);
+      /* Make "tmp = 0;" */
+      temp_node = var_lvalue_expr(temp_var);
+      sp->next =
+        make_assignment_statement(temp_node, node_for_integer_constant(
+                                                   0L, targ_size_t_int_kind));
+      sp = sp->next;
+      sp->parent = top_block;
+      /* Make "++tmp < num_elements". */
+      temp_node = var_lvalue_expr(temp_var);
+      temp_incr_node = make_operator_node((an_expr_operator_kind)eok_pre_incr,
+                                          size_t_type, temp_node);
+      num_elems = skip_typerefs(array_type)->size / ftp->size;
+      temp_incr_node->next = node_for_host_large_integer(
+                                              (a_host_large_integer)num_elems,
+                                              targ_size_t_int_kind);
+      compare_node = make_operator_node((an_expr_operator_kind)eok_lt,
+                                        boolean_result_type(),
+                                        temp_incr_node);
+      /* Make the do-while statement. */
+      sp->next = alloc_statement((a_statement_kind)stmk_end_test_while);
+      sp = sp->next;
+      sp->parent = top_block;
+      sp->expr = compare_node;
+      /* Convert the two operands to pointers to the underlying non-array
+         elements and apply a subscript to those pointer values. */
+      arg1 = conv_array_expr_to_underlying_ptr(arg1);
+      arg1 = add_subscript_to_ptr_expr(arg1, temp_var);
+      arg2 = conv_array_expr_to_underlying_ptr(arg2);
+      arg2 = add_subscript_to_ptr_expr(arg2, temp_var);
+    }  /* if */
+    cmp_stmt = make_return_false_stmt_if_false_expr(
+                                              make_eq_comparison(arg1, arg2));
+    if (array_type != NULL) {
+      /* Array case; the comparison goes under the do-while. */
+      sp->variant.loop_statement = cmp_stmt;
+      cmp_stmt->parent = sp;
+    } else {
+      /* Non-array case; the comparison goes at the end of the statement
+         sequence. */
+      sp->next = cmp_stmt;
+      sp = sp->next;
+      cmp_stmt->parent = top_block;
+    }  /* if */
+  }  /* for */
+  /* Make the final "return true;" statement. */
+  sp->next = alloc_statement((a_statement_kind)stmk_return);
+  sp = sp->next;
+  sp->parent = top_block;
+  sp->expr = make_one_expr(boolean_result_type());
+  /* We now have a list of one or more statements hanging off the local
+     variable head_of_statement_list.  The start of the list is pointed to
+     by the next field.  Attach the list to the top-level block. */
+  top_block->variant.block.statements = head_of_statement_list.next;
+  error_position = saved_error_position;
+}  /* make_default_eq_body */
+
+
+static void make_default_ne_body(a_scope_ptr  scope,
+                                 a_type_ptr   class_type)
+/*
+Create the body for a defaulted operator!= for the given class type.  The
+definition of the operator has been started and its associated scope is also
+given.
+*/
+{
+  an_expr_node_ptr  arg1, arg2, cmp;
+  a_statement_ptr   top_block, return_stmt;
+
+  top_block = alloc_statement((a_statement_kind)stmk_block);
+  scope->assoc_block = top_block;
+  make_comparison_args(&arg1, &arg2);
+  arg1 = add_indirection_to_node(arg1);
+  arg2 = add_indirection_to_node(arg2);
+  cmp = make_eq_comparison(arg1, arg2);
+  return_stmt = alloc_statement((a_statement_kind)stmk_return);
+  return_stmt->position = error_position;
+  return_stmt->expr = make_operator_node((an_expr_operator_kind)eok_not,
+                                         boolean_result_type(), cmp);
+  return_stmt->parent = top_block;
+  top_block->variant.block.statements = return_stmt;
+}  /* make_default_ne_body */
+
+
+static void define_default_comparison_operator(a_routine_ptr  rp)
+/*
+The given routine is a defaulted comparison operator.  Generate an actual
+definition for it.
+*/
+{
+  a_type_ptr        rtp = skip_typerefs(rp->type), class_type;
+  a_param_type_ptr  ptp = function_type_params(rtp);
+
+  /* Identify the associated class C from the first parameter type (which
+     should be "C const&" whether the function is declared as a member or as a
+     friend). */
+  check_assertion(ptp != NULL && is_reference_type(ptp->type));
+  class_type = type_pointed_to(ptp->type);
+  class_type = skip_typerefs(class_type);
+  check_assertion(is_immediate_class_type(class_type));
+  if (class_type->variant.class_struct_union.is_nonreal_class) {
+    /* Don't bother generating the definition for a member of an unreal
+       instantiation of a template class. */
+  } else {
+    a_scope_ptr  scope;
+    a_generated_func_def_context
+                 context;
+    scope = begin_definition_of_generated_function(rp, rtp, class_type,
+                                                   &context);
+    for (; ptp != NULL; ptp = ptp->next) {
+      (void)implicitly_generated_param_variable(ptp->type);
+    }  /* for */
+    if (opname_kind_is(rp, onk_eq)) {
+      make_default_eq_body(scope, class_type);
+    } else if (opname_kind_is(rp, onk_ne)) {
+      make_default_ne_body(scope, class_type);
+    } else {
+      unexpected_condition();
+    }  /* if */
+    end_definition_of_generated_function(rp, scope, &context);
+  }  /* if */
+}  /* define_default_comparison_operator */
 
 
 void force_definition_of_compiler_generated_routine(a_routine_ptr  rp)
@@ -3547,21 +3868,20 @@ whose definition has not yet been generated (if it's marked as "deleted", it
 is considered already defined), force the definition now.
 */
 {
-  a_special_function_kind  skind = rp->special_kind;
 
   if ((rp->compiler_generated || rp->is_defaulted) && !rp->is_deleted) {
     if (!routine_has_been_defined(rp)) {
       /* Only force a definition for constructors, destructors, and operator=
          functions, as well as generic lambda conversion functions.  In
          particular, do not try to define operator new and delete functions. */
-      if (skind == (a_special_function_kind)sfk_constructor ||
-          skind == (a_special_function_kind)sfk_destructor  ||
-          (skind == (a_special_function_kind)sfk_operator &&
+      if (special_kind_is(rp, sfk_constructor) ||
+          special_kind_is(rp, sfk_destructor) ||
+          (special_kind_is(rp, sfk_operator) &&
            rp->variant.opname_kind == (an_opname_kind)onk_assign)) {
         a_type_ptr  parent_type = parent_class_of(rp);
         a_class_symbol_supplement_ptr
                     cssp = symbol_supplement_for_class(parent_type);
-        if (skind == (a_special_function_kind)sfk_constructor &&
+        if (special_kind_is(rp, sfk_constructor) &&
             cssp->has_initializer_fixups &&
             !is_immediate_managed_class_type(parent_type) &&
             is_default_constructor(rp, /*is_declarative_context=*/TRUE)) {
@@ -3573,7 +3893,7 @@ is considered already defined), force the definition now.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (cli_or_cx_enabled &&
                    is_immediate_delegate_type(parent_type) &&
-                   skind == (a_special_function_kind)sfk_constructor) {
+                   special_kind_is(rp, sfk_constructor)) {
           /* The generated constructor declaration of a delegate class type
              is not one whose body can be generated. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3587,6 +3907,9 @@ is considered already defined), force the definition now.
         check_assertion(
                class_type_supp(parent_class_of(rp))->is_lambda_closure_class);
         define_lambda_conversion_function(rp);
+      } else if (special_kind_is(rp, sfk_operator) &&
+                 opname_is_comparison(rp->variant.opname_kind)) {
+        define_default_comparison_operator(rp);
       }  /* if */
     }  /* if */
   }  /* if */

@@ -3065,6 +3065,7 @@ ec_excessive_comparison_rewrites;;"too many recursive comparison rewrite operati
 ec_invalid_placeholder_for_defaulted_spaceship_return;;"a deducible return type for a default operator<=> must be \"auto\""
 ec_constexpr_implied_source_nonconstant;;"implicit copy of non-constant source"
 ec_struct_binding_restricted_storage_class;;"a structured binding cannot declare an explicit storage class other than static or thread_local"
+ec_defaulted_comparison_for_property;;"defaulted comparison operators are not supported for nontrivial Microsoft property fields"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
