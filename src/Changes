@@ -1,5 +1,14 @@
 Version 5.1
 
+6/11/19  [EDGcpfe/21370]
+Error for typedef with no declaration in strict mode
+
+For typedef declarations that declared nothing, the front end issues a warning.
+In strict ANSI mode, this is now an error.  For example:
+
+  typedef struct A { };  // Previously a warning in strict mode, now an error
+
+
 6/10/19  [EDGcpfe/20913]
 C++20: Initializing aggregates from a parenthesized list of values
 

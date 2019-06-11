@@ -15976,12 +15976,11 @@ state describes the declaration parsed so far.
       if (state->declared_storage_class == (a_storage_class)sc_typedef) {
         /* Typedef declaration with no declarator. */
         severity = es_warning;
-        if (declares_something ||
-            (C_mode() && defines_something && is_immediate_enum_type(tp))) {
-          /* No error on a case like "typedef struct S { int i; };" or
-             "typedef enum { red, green, blue };" -- see first constraint,
-             Section 3.5 of the ANSI C standard.  However, a warning should
-             be issued, since the "typedef" is superfluous. */
+        if (C_mode() && defines_something && is_immediate_enum_type(tp)) {
+          /* No error on a case like "typedef enum { red, green, blue };" --
+             see first constraint, Section 3.5 of the ANSI C standard.
+             However, a warning should be issued, since the "typedef" is
+             superfluous. */
         } else {
           /* A case like "typedef int;" or "typedef struct { int i; };" --
              gets a warning by default but may get an error in strict ANSI
