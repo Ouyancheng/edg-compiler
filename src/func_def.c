@@ -3795,12 +3795,10 @@ given.
 }  /* make_default_eq_body */
 
 
-static void make_default_ne_body(a_scope_ptr  scope,
-                                 a_type_ptr   class_type)
+static void make_default_ne_body(a_scope_ptr  scope)
 /*
-Create the body for a defaulted operator!= for the given class type.  The
-definition of the operator has been started and its associated scope is also
-given.
+Create the body for a defaulted operator!=.  scope is the definition scope of
+the operator (which has just been started).
 */
 {
   an_expr_node_ptr  arg1, arg2, cmp;
@@ -3852,7 +3850,7 @@ definition for it.
     if (opname_kind_is(rp, onk_eq)) {
       make_default_eq_body(scope, class_type);
     } else if (opname_kind_is(rp, onk_ne)) {
-      make_default_ne_body(scope, class_type);
+      make_default_ne_body(scope);
     } else {
       unexpected_condition();
     }  /* if */
