@@ -12500,7 +12500,7 @@ common cases.
   if (!dps->is_template_type_argument &&
       !dps->not_possible_implicit_type_context) {
     /* The caller will have already set the flag if needed for template
-       type arguments.  Don't set the flag if the caller explicitly
+       type arguments.  Don't set the flag it the caller explicitly
        requests it not to be set. */
     dps->is_implicit_type_context = TRUE;
   }  /* if */

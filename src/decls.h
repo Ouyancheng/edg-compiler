@@ -1048,7 +1048,7 @@ typedef struct a_decl_parse_state {
 			/* TRUE if the type was specified using the
 			   injected class name. */
   a_bit_field	not_possible_implicit_type_context:1;
-			/* TRUE if this context can never be a context
+			/* TRUE if this context can never by a context
 			   in which is_implicit_type_context is set.  This
 			   is used to make sure a lower level routine does not
 			   set is_implicit_type_context. */
