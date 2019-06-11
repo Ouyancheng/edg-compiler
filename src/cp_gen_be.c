@@ -311,7 +311,7 @@ Create a new entry with var in the vars_for_decltype list.
 
 static void free_vars_for_decltype(a_var_for_decltype_ptr new_top)
 /*
-Move entries from the vars_for_decltype list to the list of available
+Move entries from the vars_for_decltype list to the pool of available
 entries until new_top is at the front of the list.  If new_top is NULL, all
 entries will be freed.
 */
@@ -361,10 +361,12 @@ typedef struct a_name_context {
 			   name context. */
   a_var_for_decltype_ptr
 		last_var_for_decltype;
-			/* The last variable for decltype entry associated
-			   with this context.  Popping this context from
+			/* The last variable for decltype entry when this
+			   context was pushed.  Popping this context from
 			   the context stack restores the list of variables
-			   for decltype to this entry. */
+			   for decltype to this entry, effectively removing
+			   all variables in this context from consideration
+			   for use in decltype-specifiers. */
   a_byte_boolean
 		invisible_to_cfront;
 			/* TRUE if this context is not visible to cfront
@@ -1172,7 +1174,7 @@ Pop the top entry off the name context stack.
   }  /* for */
   in_class_scope_with_dependent_base =
                    curr_name_context->saved_in_class_scope_with_dependent_base;
-  free_vars_for_decltype(curr_name_context-> last_var_for_decltype);
+  free_vars_for_decltype(curr_name_context->last_var_for_decltype);
   /* Pop the stack. */
   curr_name_context = curr_name_context->next;
   /* Free the entry by putting it on the available list. */
