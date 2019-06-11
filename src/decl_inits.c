@@ -4100,8 +4100,13 @@ the type pointed to is opaque to declaration processing.
   /* C++11 requires a diagnostic on narrowing in these cases, but in nonstrict
      modes we only make it a warning to permit the conversions traditionally
      allowed in C-style aggregate initializations.  That also matches the
-     behavior of newer versions of GCC. */
-  if (strict_ansi_mode || (gpp_mode && gnu_version < 40700)) {
+     behavior of newer versions of GCC.  C++ 20 allows parenthesized expression
+     lists to be treated as aggregate initializers - but narrowing is allowed.
+  */
+  if (is->paren_as_aggregate_init) {
+    is->error_on_narrowing = FALSE;
+    is->warning_on_narrowing = FALSE;
+  } else if (strict_ansi_mode || (gpp_mode && gnu_version < 40700)) {
     is->error_on_narrowing = TRUE;
   } else {
     is->warning_on_narrowing = TRUE;
@@ -4740,7 +4745,15 @@ position is available.
     a_variable_ptr  vp = variable_for_symbol(dps->sym);
     if (is_incomplete_array_type(vp->type) &&
         (is_array_type(dps->type) || is_error_type(dps->type))) {
-      put_type_back_into_variable(vp, dps->sym, diag_pos, linkage, dps->type);
+      a_type_ptr new_type = dps->type;
+      if (is->paren_as_aggregate_init &&
+          is_incomplete_array_type(dps->type) &&
+          is->init_con != NULL) {
+        /* Parenthesized initialization treated as aggregate initialization,
+           for an incomplete array type.  Use the type in the constant. */
+        new_type = is->init_con->type;
+      }  /* if */
+      put_type_back_into_variable(vp, dps->sym, diag_pos, linkage, new_type);
       dps->type = vp->type;
     }  /* if */
   }  /* if */
@@ -5355,9 +5368,58 @@ returned set to TRUE.
        S is a class type name or an initialization of a scalar like int i(0).
        This form of initialization is allowed in C++ mode only.  Note that
        the opening parenthesis has already been scanned in the caller. */
-    a_boolean  dependent_class_type = could_be_dependent_class_type(vp_type);
-    if ((cssp != NULL && cssp->constructor != NULL) ||
-        dependent_class_type) {
+    a_boolean            dependent_class_type =
+                                        could_be_dependent_class_type(vp_type);
+    a_boolean            use_ctor = dependent_class_type;
+    a_boolean            var_is_aggregate = is_aggregate_type(vp_type);
+    an_arg_list_elem_ptr arg_list = NULL;
+    an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
+
+    push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
+                                    (an_expression_kind)ek_normal,
+                                    /*is_full_expr=*/TRUE,
+                                    dps, &dps->init_state);
+    arg_list = scan_expr_list(tok_rparen,
+                              /*is_delegate_init=*/FALSE,
+                              /*is_custom_ms_attr_arg_list=*/FALSE,
+                              /*empty_list_okay=*/TRUE,
+                              /*trailing_comma_okay=*/FALSE,
+                              /*bundle=*/TRUE);
+    if (!use_ctor && cssp != NULL && cssp->constructor != NULL) {
+      use_ctor = TRUE;
+      if (allow_parenthesized_aggregate_init && var_is_aggregate &&
+          !overloaded_function_match_possible(
+                                            cssp->constructor,
+                                            oc_constructor,
+                                            /*is_template_id=*/FALSE,
+                                            /*template_arg_list=*/NULL,
+                                            arg_list,
+                                            /*have_selector=*/FALSE,
+                                            /*bound_function_selector*/NULL)) {
+        /* No viable constructor.  The type is an aggregate, so attempt
+           aggregate initialization. */
+        use_ctor = FALSE;
+      }  /* if */
+    }  /* if */
+    pop_expr_stack_for_initializer(saved_expr_stack,
+                                   /*is_full_expr=*/TRUE,
+                                   dps, &dps->init_state);
+    if (!use_ctor && allow_parenthesized_aggregate_init && var_is_aggregate) {
+      an_init_component_ptr braced_init =
+                      alloc_init_component((an_init_component_kind)ick_braced);
+      braced_init->variant.braced.list = arg_list;
+      braced_init->variant.braced.start_pos = pos_first_token;
+      braced_init->variant.braced.end_pos = pos_curr_token;
+      arg_list = braced_init;
+      dps->init_state.paren_as_aggregate_init = TRUE;
+    }  /* if */
+    if (arg_list != NULL) {
+      check_assertion(!anything_cached(&dps->prescanned_initializer_cache));
+      add_init_component_to_initializer_cache(
+                                        arg_list, /*to_front=*/TRUE,
+                                        &dps->prescanned_initializer_cache);
+    }  /* if */
+    if (use_ctor) {
       /* It's a class type and there's a constructor or we're dealing with a
          dependent type that could be such a class. */
       /* Depending on the arguments present, a constructor, possibly the copy
@@ -5384,9 +5446,11 @@ returned set to TRUE.
       init_con = dps->init_state.init_con;
       init_dip = dps->init_state.init_dip;
     } else {
-      /* An entity with no constructor.  (If it's a C-style struct with no
-         constructor, initialization with bitwise copy is allowed -- e.g.,
-         S x, y(x) -- but typically it's an object of non-class type.) */
+      /* An entity with either no constructor or no matching constructor and
+         aggregate initialization should be attempted.  (If it's a C-style
+         struct with no constructor, initialization with bitwise copy is
+         allowed -- e.g., S x, y(x) -- but typically it's an object of
+         non-class type.) */
       add_stop_token(tok_rparen);
       /* Scan the initializer.  Either a constant pointer is returned or else
          a dynamic init entry representing an expression. */

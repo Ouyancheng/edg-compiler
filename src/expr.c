@@ -73,13 +73,6 @@ static void scan_expr_full(an_operand              *result,
                            an_operand              *bound_function_selector,
                            int                      prec_level,
                            a_local_expr_options_set local_options);
-static an_arg_list_elem_ptr scan_expr_list(
-                                      a_token_kind closing_token,
-                                      a_boolean    is_delegate_init,
-                                      a_boolean    is_custom_ms_attr_arg_list,
-                                      a_boolean    empty_list_okay,
-                                      a_boolean    trailing_comma_okay,
-                                      a_boolean    bundle);
 static void bound_function_in_cast(a_type_ptr        type_cast_to,
                                    a_source_position *start_position,
                                    an_operand        *operand,
@@ -357,201 +350,6 @@ Set all pointers in the "new" parse state to NULL.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* clear_new_parse_state_ptrs */
 #endif /* !NULL_POINTER_IS_ZERO */
-
-static void save_expr_stack(an_expr_stack_entry_ptr *saved_expr_stack)
-/*
-Clear the expression stack, returning the old expression stack pointer
-to the caller in *saved_expr_stack, for later restoration by calling
-restore_expr_stack.  This is used at the start of processing of an
-expression that is not part of the surrounding context.
-*/
-{
-  *saved_expr_stack = expr_stack;
-  expr_stack = NULL;
-}  /* save_expr_stack */
-
-
-static void restore_expr_stack(an_expr_stack_entry_ptr saved_expr_stack)
-/*
-Restore the expression stack to the state it had when save_expr_stack
-was called.
-*/
-{
-  expr_stack = saved_expr_stack;
-}  /* restore_expr_stack */
-
-
-static void transfer_expr_context_if_applicable(
-                                              an_expr_stack_entry *saved_stack)
-/*
-The expression stack has been saved and cleared by save_expr_stack;
-*saved_stack is the saved top of the expression stack.  Now, a new stack
-entry has been pushed.  If it appears that the new expression is part of
-the same context as the previous stack entry, transfer context flags
-to the new entry.  For example, if the old entry indicates we're inside
-of a default argument expression, mark the new entry the same way.
-*/
-{
-  if (saved_stack != NULL && expr_stack != NULL) {
-    if (saved_stack->next_stack_push_considered_same_expression) {
-      transfer_context_from_enclosing_expr_stack_entry(/*direct=*/TRUE,
-                                                       saved_stack,
-                                                       expr_stack);
-    } else if (expr_stack->rcblock != NULL) {
-      if (expr_stack->rcblock == saved_stack->rcblock) {
-        transfer_context_from_enclosing_expr_stack_entry(/*direct=*/TRUE,
-                                                         saved_stack,
-                                                         expr_stack);
-      }  /* if */
-    } else if (saved_stack->scope_number != NO_SCOPE_NUMBER &&
-               saved_stack->scope_number == expr_stack->scope_number) {
-      transfer_context_from_enclosing_expr_stack_entry(/*direct=*/FALSE,
-                                                       saved_stack,
-                                                       expr_stack);
-    }  /* if */
-  }  /* if */
-}  /* transfer_expr_context_if_applicable */
-
-
-static void set_up_initializer_rescan(a_decl_parse_state *dps)
-/*
-If the initializer for an entity was previously scanned and saved in
-dps->prescanned_initializer_cache, activate that initializer cache so
-that the expression will be consumed next before any more expressions
-are scanned.  Otherwise, do nothing.
-*/
-{
-  check_assertion(dps != NULL);
-  if (anything_cached(&dps->prescanned_initializer_cache)) {
-    check_assertion(expr_stack != NULL &&
-                    expr_stack->initializer_cache == NULL);
-    expr_stack->initializer_cache = &dps->prescanned_initializer_cache;
-  }  /* if */
-}  /* set_up_initializer_rescan */
-
-
-static void push_expr_stack_for_initializer(
-                                 an_expr_stack_entry *expr_stack_entry,
-                                 an_expr_stack_entry **saved_expr_stack,
-                                 an_expression_kind  expr_kind,
-                                 a_boolean           is_full_expr,
-                                 a_decl_parse_state  *dps,
-                                 an_init_state       *is)
-/*
-Push an expression stack entry for the scanning or processing of an
-initializer.  "dps" and/or "is" describe the entity being initialized.
-Both can be NULL, e.g., for a ctor-initializer.  is_full_expr is TRUE
-if the initializer is to be treated as full-expression.
-expr_stack_entry is the new stack entry to be pushed, and
-saved_expr_stack is used to save the existing expression stack for
-later restoration in the case of a full expression.  expr_kind is the
-kind of expression stack entry to be pushed; however, it will be
-forced to ek_init_constant if dps/is indicate the initializer must be
-constant and expr_kind is not already a constant expression kind.
-*/
-{
-  if (is == NULL && dps != NULL) is = &dps->init_state;
-  if (dps == NULL && is != NULL) dps = is->decl_parse_state;
-  if (is_full_expr) {
-    save_expr_stack(saved_expr_stack);
-  } else {
-    *saved_expr_stack = NULL;
-    check_assertion(expr_stack != NULL);
-  }  /* if */
-  if (is != NULL && is->initializer_must_be_constant) {
-    if ((int)expr_kind > (int)ek_init_constant) {
-      expr_kind = (an_expression_kind)ek_init_constant;
-    }  /* if */
-  } else if (is != NULL && is->not_evaluated) {
-    expr_kind = (an_expression_kind)ek_sizeof;
-  }  /* if */
-  push_expr_stack(expr_kind, expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  if (is_full_expr) {
-    transfer_expr_context_if_applicable(*saved_expr_stack);
-    if (is != NULL) is->elements_are_full_expressions = FALSE;
-  }  /* if */
-  if (is != NULL && is->static_lifetime_init) {
-    expr_stack_entry->in_static_initializer = TRUE;
-    expr_stack_entry->favor_constant_result = TRUE;
-  } else if (favor_constant_result_for_nonstatic_init) {
-    expr_stack_entry->favor_constant_result = TRUE;
-  }  /* if */
-  if (is != NULL) {
-    /* Transfer some additional flags from the init state. */
-    expr_stack_entry->traditional_const_expr_required =
-                                          is->traditional_const_expr_required;
-    if (!is->not_potentially_evaluated) {
-      expr_stack_entry->potentially_evaluated = TRUE;
-    } else {
-      /* If an initializer is not potentially evaluated, it is certainly not
-         evaluated at all. */
-      check_assertion(is->not_evaluated);
-    }  /* if */
-  }  /* if */
-  if (dps != NULL && dps->sym != NULL) {
-    if (symbol_is(dps->sym, sk_static_data_member) ||
-        symbol_is(dps->sym, sk_field)) {
-      /* Record entities defined in the initializer expression for a
-         static data member (needed for correspondence checking and name
-         mangling when the static data member is a template instance).
-         In the case of aggregate initializers, this routine may be called
-         multiple times for the same initializer: Ensure that additional
-         entries are appended to any existing entries. */
-      an_il_entity_list_entry_ptr *ep;
-      if (symbol_is(dps->sym, sk_static_data_member)) {
-        a_variable_ptr sdm_var = dps->sym->variant.static_data_member.variable;
-        ep = &sdm_var->entities_defined_in_initializer;
-      } else {
-        ep = &dps->sym->variant.field.ptr->entities_defined_in_initializer;
-      }  /* if */
-      while (*ep != NULL) ep = &(*ep)->next;
-      expr_stack_entry->p_end_of_entities_defined_in_expression = ep;
-    }  /* if */
-    if (symbol_is(dps->sym, sk_field)) {
-      /* For a field initializer, try to get a constant result if possible. */
-      expr_stack->favor_constant_result = TRUE;
-    }  /* if */
-  }  /* if */
-  if (dps != NULL) set_up_initializer_rescan(dps);
-}  /* push_expr_stack_for_initializer */
-
-
-static void pop_expr_stack_for_initializer(
-                                 an_expr_stack_entry *saved_expr_stack,
-                                 a_boolean           is_full_expr,
-                                 a_decl_parse_state  *dps,
-                                 an_init_state       *is)
-/*
-Pop the expression stack at the end of scanning an initializer.  The
-parameters match the corresponding ones for push_expr_stack_for_initializer.
-*/
-{
-  if (is == NULL && dps != NULL) is = &dps->init_state;
-  if (dps == NULL && is != NULL) dps = is->decl_parse_state;
-  if (dps != NULL && dps->sym != NULL &&
-      (symbol_is(dps->sym, sk_static_data_member) ||
-       symbol_is(dps->sym, sk_field))) {
-    /* Stop the recording of entities defined in the expression (not strictly
-       necessary, but just to be neat). */
-    expr_stack->p_end_of_entities_defined_in_expression = NULL;
-  }  /* if */
-  if (is != NULL) {
-    /* Copy the constant_expr_ruled_out flag from the expression stack into
-       the init state.  That flag may then be carried up to another expression
-       stack in cases that involve a
-           <expression> -> <initializer> -> <expression>
-       transition. */
-    is->constant_expr_ruled_out = expr_stack->constant_expr_ruled_out;
-  }  /* if */
-  pop_expr_stack();
-  if (is_full_expr) {
-    restore_expr_stack(saved_expr_stack);
-    if (is != NULL) is->elements_are_full_expressions = TRUE;
-  }  /* if */
-}  /* pop_expr_stack_for_initializer */
-
 
 static void set_deduced_return_type(a_type_ptr        return_type,
                                     a_source_position *err_pos,
@@ -2573,13 +2371,12 @@ given options and PREC_LOWEST precedence.
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- is_custom_ms_attr_arg_list is not used in this case. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-static an_arg_list_elem_ptr scan_expr_list(
-                                      a_token_kind closing_token,
-                                      a_boolean    is_delegate_init,
-                                      a_boolean    is_custom_ms_attr_arg_list,
-                                      a_boolean    empty_list_okay,
-                                      a_boolean    trailing_comma_okay,
-                                      a_boolean    bundle)
+an_arg_list_elem_ptr scan_expr_list(a_token_kind closing_token,
+                                    a_boolean    is_delegate_init,
+                                    a_boolean    is_custom_ms_attr_arg_list,
+                                    a_boolean    empty_list_okay,
+                                    a_boolean    trailing_comma_okay,
+                                    a_boolean    bundle)
 /*
 Scan a comma-separated list of expressions.  The list must be terminated by
 the token indicated by closing_token (which is not consumed by this routine).
@@ -2606,7 +2403,9 @@ resulting argument list is returned.
     expr_list = expr_stack->initializer_cache->first_init;
     end_expr_list = expr_stack->initializer_cache->last_init;
     clear_initializer_cache(expr_stack->initializer_cache);
-    unbundle_init_component_list_expressions(expr_list);
+    if (!bundle) {
+      unbundle_init_component_list_expressions(expr_list);
+    }  /* if */
     after_cached_expr = TRUE;
   }  /* while */
   /* Check for an empty argument list (or the end, if we picked up some
@@ -19663,7 +19462,37 @@ Scans the new initializer expression (if present).
 }  /* scan_new_initializer */
 
 
-static void deduce_new_array_size(a_new_parse_state *nps)
+static an_init_component_ptr scan_paren_expr_as_braced_list(
+                                                      a_new_parse_state  *nps,
+                                                      a_decl_parse_state *dps)
+/*
+Scans a parenthesized expression list (e.g., (1,2,3)), and returns it as a
+braced initializer list.
+*/
+{
+  an_init_component_ptr expr_list;
+
+  check_assertion(!anything_cached(&dps->prescanned_initializer_cache));
+  expr_list = alloc_init_component((an_init_component_kind)ick_braced);
+  expr_list->variant.braced.start_pos = nps->init_position;
+  expr_list->variant.braced.list =
+                           scan_expr_list(tok_rparen,
+                                          /*is_delegate_init=*/FALSE,
+                                          /*is_custom_ms_attr_arg_list=*/FALSE,
+                                          /*empty_list_okay=*/TRUE,
+                                          /*trailing_comma_okay=*/FALSE,
+                                          /*bundle=*/TRUE);
+  expr_list->variant.braced.end_pos = pos_curr_token;
+  dps->init_state.paren_as_aggregate_init = TRUE;
+  nps->has_braced_initializer = TRUE;
+  /* Check for closing parenthesis. */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  return expr_list;
+}  /* scan_paren_expr_as_braced_list */
+
+
+static void deduce_new_array_size(a_new_parse_state  *nps,
+                                  a_decl_parse_state *dps)
 /*
 C++20 allows for the deduction of a new array size from the provided braced
 initializer to match direct-initialization behaviour.  For example:
@@ -19673,14 +19502,19 @@ should both produce a 3-element array of integers, initialized to 1, 2 and 3.
 Deduce the array size and update the new type accordingly.
 */
 {
-  check_assertion(nps->has_braced_initializer);
+  check_assertion(allow_parenthesized_aggregate_init ||
+                  nps->has_braced_initializer);
   /* Don't attempt to deduce the array size from the initializer if we will be
      re-scanning later.  The array size will be deduced during the rescan. */
   if (!expr_stack->possible_rescan_context) {
     a_targ_size_t         num_initializers = 0;
     an_init_component_ptr icp;
     nps->array_size_is_deduced = TRUE;
-    nps->braced_init_list = parse_braced_init_list(/*bundle=*/FALSE);
+    if (nps->has_braced_initializer) {
+      nps->braced_init_list = parse_braced_init_list(/*bundle=*/FALSE);
+    } else {
+      nps->braced_init_list = scan_paren_expr_as_braced_list(nps, dps);
+    }  /* if */
     icp = nps->braced_init_list->variant.braced.list;
     if (icp == NULL) {
       /* An empty initializer list.  Treat as if it were "new T[0]{}" */
@@ -19715,7 +19549,8 @@ Deduce the array size and update the new type accordingly.
 }  /* deduce_new_array_size */
 
 
-static void get_base_new_type(a_new_parse_state *nps)
+static void get_base_new_type(a_new_parse_state  *nps,
+                              a_decl_parse_state *dps)
 /*
 Returns the base type for the new statement.
 */
@@ -19763,8 +19598,9 @@ Returns the base type for the new statement.
       /* A case like "new int[]" -- an incomplete array type.  C++20 allows
          this, provided we have an initializer that we can use to deduce the
          array size. */
-      if (cpp20_mode && nps->has_braced_initializer) {
-        deduce_new_array_size(nps);
+      if (allow_parenthesized_aggregate_init ||
+          (cpp20_mode && nps->has_braced_initializer)) {
+        deduce_new_array_size(nps, dps);
       } else {
         expr_pos_error(incomplete_type_err_code(nps->new_type),
                        &nps->type_position);
@@ -20479,7 +20315,8 @@ initializer was provided.
 
 static void prep_new_object_init_braced_initializer(
                                               a_rescan_control_block *rcblock,
-                                              a_new_parse_state      *nps)
+                                              a_new_parse_state      *nps,
+                                              a_decl_parse_state     *dps)
 /*
 Validate and prepare (if warranted) the initializer for the object when a
 braced initializer was provided.
@@ -20493,10 +20330,12 @@ braced initializer was provided.
      This must be done after it has been determined that initialization
      is required, but before the initialization is actually processed. */
   make_dyn_init_for_deletion_for_throw(nps);
-  if (rcblock != NULL || nps->array_size_is_deduced) {
+  if (rcblock != NULL || nps->array_size_is_deduced ||
+      dps->init_state.paren_as_aggregate_init) {
     /* On a rescan, use the substituted version of the braced-init-list
-       scanned originally.  Similarly, if we deduced the array size, we'll
-       have already scanned the initializer; use that result. */
+       scanned originally.  Similarly, if we deduced the array size or are
+       treating a parenthesized initializer as a braced-init-list, we'll have
+       already scanned the initializer; use that result. */
     check_assertion(nps->braced_init_list != NULL &&
                     is_braced_init_component(nps->braced_init_list));
     alep = nps->braced_init_list;
@@ -20514,6 +20353,7 @@ braced initializer was provided.
   init_state.variable_size_array = nps->variable_size_array;
   init_state.initializer_can_dimension_array = TRUE;
   init_state.force_dynamic_init = TRUE;
+  init_state.paren_as_aggregate_init = dps->init_state.paren_as_aggregate_init;
   if (rcblock != NULL) init_state.no_diagnostics = TRUE;
   prep_list_initializer(alep, nps->new_type,
                         /*is_direct_init=*/TRUE,
@@ -21297,7 +21137,7 @@ expression, and return the result in *result (or an error indication in
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   nps.unqual_new_type = skip_typerefs(nps.new_type);
-  get_base_new_type(&nps);
+  get_base_new_type(&nps, &dps);
   validate_new_type(&nps);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* We have parsed through the type (the initializer will be parsed later
@@ -21431,6 +21271,14 @@ expression, and return the result in *result (or an error indication in
   /* See if the object has or needs initialization.  Note that we need to
      scan the initializer (if there is one) even if an error was detected
      above. */
+  if (allow_parenthesized_aggregate_init && !nps.err &&
+      nps.has_new_initializer && nps.array_new &&
+      !nps.empty_initializer && nps.braced_init_list == NULL) {
+    /* Array initialization with a parenthesized expression - treat as if it
+       were a braced initialization list.  If we deduced the size of the array
+       we'll have already done this. */
+    nps.braced_init_list = scan_paren_expr_as_braced_list(&nps, &dps);
+  }  /* if */
   if (!nps.has_new_initializer) {
     /* No new-initializer is present. */
     prep_new_object_init_no_initializer(&nps);
@@ -21439,7 +21287,7 @@ expression, and return the result in *result (or an error indication in
 #if MICROSOFT_EXTENSIONS_ALLOWED
     check_assertion(!nps.cli_array_new);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    prep_new_object_init_braced_initializer(rcblock, &nps);
+    prep_new_object_init_braced_initializer(rcblock, &nps, &dps);
   } else {
     /* A parenthesized new-initializer is present. */
     prep_new_object_init_paren_initializer(rcblock, &nps, &dps);
@@ -38660,7 +38508,8 @@ parenthesized initializer.
       flush_initializer_cache(&dps->prescanned_initializer_cache);
     }  /* if */
   }  /* if */
-  if (icp != NULL && parenthesized && is_braced_init_component(icp)) {
+  if (icp != NULL && parenthesized && is_braced_init_component(icp) &&
+      !dps->init_state.paren_as_aggregate_init) {
     /* Mark a single braced-init-list in parentheses, because the C++11
        standard ([dcl.init]p13) makes that invalid: "If the entity being
        initialized does not have class type, the expression-list in a

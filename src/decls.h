@@ -535,6 +535,10 @@ typedef struct an_init_state {
 			/* TRUE for an entry representing the initializer for
 			   a base-class ctor-initializer.  Also TRUE for a
 			   ctor-initializer for a delegating constructor. */
+  a_bit_field	paren_as_aggregate_init:1;
+			/* TRUE if has_initializer is TRUE, and the initializer
+			   is a parenthesized expression being treated as
+			   aggregate initialization. */
 } an_init_state;
 
 

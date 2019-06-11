@@ -404,6 +404,14 @@ extern void scan_dependent_parenthesized_initializer(
                           an_operand_ptr           single_operand,
                           a_dynamic_init_ptr       *dip);
 
+extern an_arg_list_elem_ptr scan_expr_list(
+                                       a_token_kind closing_token,
+                                       a_boolean    is_delegate_init,
+                                       a_boolean    is_custom_ms_attr_arg_list,
+                                       a_boolean    empty_list_okay,
+                                       a_boolean    trailing_comma_okay,
+                                       a_boolean    bundle);
+
 extern an_arg_list_elem_ptr rescan_expr_list(an_expr_node_ptr       src_list,
                                              a_rescan_control_block *rcblock);
 

@@ -3576,6 +3576,7 @@ default mode (e.g., exception handling).
         rvalue_allowed_with_const_qual_memptr = TRUE;
         va_opt_enabled = TRUE;
         nested_inline_namespace_definitions_enabled = TRUE;
+        allow_parenthesized_aggregate_init = TRUE;
         if (!option_kind_used[(int)optk_char8_t]) {
           char8_t_enabled = TRUE;
         }  /* if */
@@ -11606,6 +11607,7 @@ variables declared in cmd_line.h.
   designators_allowed = DEFAULT_DESIGNATORS_ALLOWED;
   extended_designators_allowed = DEFAULT_EXTENDED_DESIGNATORS_ALLOWED;
   cpp20_designators_restriction = FALSE;
+  allow_parenthesized_aggregate_init = FALSE;
   variadic_macros_allowed = DEFAULT_VARIADIC_MACROS_ALLOWED;
   extended_variadic_macros_allowed = DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED;
   pragma_operator_allowed = FALSE;

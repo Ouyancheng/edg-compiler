@@ -1735,6 +1735,29 @@ as in a decltype.
 }  /* transfer_context_from_enclosing_expr_stack_entry */
 
 
+void save_expr_stack(an_expr_stack_entry_ptr *saved_expr_stack)
+/*
+Clear the expression stack, returning the old expression stack pointer
+to the caller in *saved_expr_stack, for later restoration by calling
+restore_expr_stack.  This is used at the start of processing of an
+expression that is not part of the surrounding context.
+*/
+{
+  *saved_expr_stack = expr_stack;
+  expr_stack = NULL;
+}  /* save_expr_stack */
+
+
+void restore_expr_stack(an_expr_stack_entry_ptr saved_expr_stack)
+/*
+Restore the expression stack to the state it had when save_expr_stack
+was called.
+*/
+{
+  expr_stack = saved_expr_stack;
+}  /* restore_expr_stack */
+
+
 void push_expr_stack(an_expression_kind      expression_kind,
                      an_expr_stack_entry_ptr new_entry,
                      a_boolean               force_object_lifetime,
@@ -1899,6 +1922,140 @@ the expression stack.
   new_entry->rcblock = rcblock;
 }  /* push_expr_stack_with_rcblock */
 
+void push_expr_stack_for_initializer(an_expr_stack_entry *expr_stack_entry,
+                                     an_expr_stack_entry **saved_expr_stack,
+                                     an_expression_kind  expr_kind,
+                                     a_boolean           is_full_expr,
+                                     a_decl_parse_state  *dps,
+                                     an_init_state       *is)
+/*
+Push an expression stack entry for the scanning or processing of an
+initializer.  "dps" and/or "is" describe the entity being initialized.
+Both can be NULL, e.g., for a ctor-initializer.  is_full_expr is TRUE
+if the initializer is to be treated as full-expression.
+expr_stack_entry is the new stack entry to be pushed, and
+saved_expr_stack is used to save the existing expression stack for
+later restoration in the case of a full expression.  expr_kind is the
+kind of expression stack entry to be pushed; however, it will be
+forced to ek_init_constant if dps/is indicate the initializer must be
+constant and expr_kind is not already a constant expression kind.
+*/
+{
+  if (is == NULL && dps != NULL) is = &dps->init_state;
+  if (dps == NULL && is != NULL) dps = is->decl_parse_state;
+  if (is_full_expr) {
+    save_expr_stack(saved_expr_stack);
+  } else {
+    *saved_expr_stack = NULL;
+    check_assertion(expr_stack != NULL);
+  }  /* if */
+  if (is != NULL && is->initializer_must_be_constant) {
+    if ((int)expr_kind > (int)ek_init_constant) {
+      expr_kind = (an_expression_kind)ek_init_constant;
+    }  /* if */
+  } else if (is != NULL && is->not_evaluated) {
+    expr_kind = (an_expression_kind)ek_sizeof;
+  }  /* if */
+  push_expr_stack(expr_kind, expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  if (is_full_expr) {
+    transfer_expr_context_if_applicable(*saved_expr_stack);
+    if (is != NULL) is->elements_are_full_expressions = FALSE;
+  }  /* if */
+  if (is != NULL && is->static_lifetime_init) {
+    expr_stack_entry->in_static_initializer = TRUE;
+    expr_stack_entry->favor_constant_result = TRUE;
+  } else if (favor_constant_result_for_nonstatic_init) {
+    expr_stack_entry->favor_constant_result = TRUE;
+  }  /* if */
+  if (is != NULL) {
+    /* Transfer some additional flags from the init state. */
+    expr_stack_entry->traditional_const_expr_required =
+                                          is->traditional_const_expr_required;
+    if (!is->not_potentially_evaluated) {
+      expr_stack_entry->potentially_evaluated = TRUE;
+    } else {
+      /* If an initializer is not potentially evaluated, it is certainly not
+         evaluated at all. */
+      check_assertion(is->not_evaluated);
+    }  /* if */
+  }  /* if */
+  if (dps != NULL && dps->sym != NULL) {
+    if (symbol_is(dps->sym, sk_static_data_member) ||
+        symbol_is(dps->sym, sk_field)) {
+      /* Record entities defined in the initializer expression for a
+         static data member (needed for correspondence checking and name
+         mangling when the static data member is a template instance).
+         In the case of aggregate initializers, this routine may be called
+         multiple times for the same initializer: Ensure that additional
+         entries are appended to any existing entries. */
+      an_il_entity_list_entry_ptr *ep;
+      if (symbol_is(dps->sym, sk_static_data_member)) {
+        a_variable_ptr sdm_var = dps->sym->variant.static_data_member.variable;
+        ep = &sdm_var->entities_defined_in_initializer;
+      } else {
+        ep = &dps->sym->variant.field.ptr->entities_defined_in_initializer;
+      }  /* if */
+      while (*ep != NULL) ep = &(*ep)->next;
+      expr_stack_entry->p_end_of_entities_defined_in_expression = ep;
+    }  /* if */
+    if (symbol_is(dps->sym, sk_field)) {
+      /* For a field initializer, try to get a constant result if possible. */
+      expr_stack->favor_constant_result = TRUE;
+    }  /* if */
+  }  /* if */
+  if (dps != NULL) set_up_initializer_rescan(dps);
+}  /* push_expr_stack_for_initializer */
+
+
+void transfer_expr_context_if_applicable(an_expr_stack_entry *saved_stack)
+/*
+The expression stack has been saved and cleared by save_expr_stack;
+*saved_stack is the saved top of the expression stack.  Now, a new stack
+entry has been pushed.  If it appears that the new expression is part of
+the same context as the previous stack entry, transfer context flags
+to the new entry.  For example, if the old entry indicates we're inside
+of a default argument expression, mark the new entry the same way.
+*/
+{
+  if (saved_stack != NULL && expr_stack != NULL) {
+    if (saved_stack->next_stack_push_considered_same_expression) {
+      transfer_context_from_enclosing_expr_stack_entry(/*direct=*/TRUE,
+                                                       saved_stack,
+                                                       expr_stack);
+    } else if (expr_stack->rcblock != NULL) {
+      if (expr_stack->rcblock == saved_stack->rcblock) {
+        transfer_context_from_enclosing_expr_stack_entry(/*direct=*/TRUE,
+                                                         saved_stack,
+                                                         expr_stack);
+      }  /* if */
+    } else if (saved_stack->scope_number != NO_SCOPE_NUMBER &&
+               saved_stack->scope_number == expr_stack->scope_number) {
+      transfer_context_from_enclosing_expr_stack_entry(/*direct=*/FALSE,
+                                                       saved_stack,
+                                                       expr_stack);
+    }  /* if */
+  }  /* if */
+}  /* transfer_expr_context_if_applicable */
+
+
+void set_up_initializer_rescan(a_decl_parse_state *dps)
+/*
+If the initializer for an entity was previously scanned and saved in
+dps->prescanned_initializer_cache, activate that initializer cache so
+that the expression will be consumed next before any more expressions
+are scanned.  Otherwise, do nothing.
+*/
+{
+  check_assertion(dps != NULL);
+  if (anything_cached(&dps->prescanned_initializer_cache)) {
+    check_assertion(expr_stack != NULL &&
+                    expr_stack->initializer_cache == NULL);
+    expr_stack->initializer_cache = &dps->prescanned_initializer_cache;
+  }  /* if */
+}  /* set_up_initializer_rescan */
+
 
 void undo_side_effects_for_discarded_unevaluated_expression(void)
 /*
@@ -2006,6 +2163,40 @@ major expression.
   /* Pop the stack. */
   expr_stack = new_top;
 }  /* pop_expr_stack */
+
+
+void pop_expr_stack_for_initializer(an_expr_stack_entry *saved_expr_stack,
+                                    a_boolean           is_full_expr,
+                                    a_decl_parse_state  *dps,
+                                    an_init_state       *is)
+/*
+Pop the expression stack at the end of scanning an initializer.  The
+parameters match the corresponding ones for push_expr_stack_for_initializer.
+*/
+{
+  if (is == NULL && dps != NULL) is = &dps->init_state;
+  if (dps == NULL && is != NULL) dps = is->decl_parse_state;
+  if (dps != NULL && dps->sym != NULL &&
+      (symbol_is(dps->sym, sk_static_data_member) ||
+       symbol_is(dps->sym, sk_field))) {
+    /* Stop the recording of entities defined in the expression (not strictly
+       necessary, but just to be neat). */
+    expr_stack->p_end_of_entities_defined_in_expression = NULL;
+  }  /* if */
+  if (is != NULL) {
+    /* Copy the constant_expr_ruled_out flag from the expression stack into
+       the init state.  That flag may then be carried up to another expression
+       stack in cases that involve a
+           <expression> -> <initializer> -> <expression>
+       transition. */
+    is->constant_expr_ruled_out = expr_stack->constant_expr_ruled_out;
+  }  /* if */
+  pop_expr_stack();
+  if (is_full_expr) {
+    restore_expr_stack(saved_expr_stack);
+    if (is != NULL) is->elements_are_full_expressions = TRUE;
+  }  /* if */
+}  /* pop_expr_stack_for_initializer */
 
 
 void temporarily_set_non_constant_expression_kind(

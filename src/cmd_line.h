@@ -912,6 +912,11 @@ EXTERN a_boolean
 			   enforced. */
 
 EXTERN a_boolean
+		allow_parenthesized_aggregate_init;
+			/* TRUE if C++20 aggregate initialization via
+			   parentheses is allowed. */
+
+EXTERN a_boolean
 		variadic_macros_allowed;
 			/* TRUE if '#define VM(x, ...) __VA_ARGS__' should be
 			   accepted. */

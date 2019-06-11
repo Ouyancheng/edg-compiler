@@ -23,6 +23,7 @@ exprutil.h -- Declarations related to expression parsing.
 #ifndef SYMBOL_TBL_H
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
+#include "decls.h"
 
 /* Include of overload.h comes later. */
 
@@ -1632,6 +1633,10 @@ extern void transfer_context_from_enclosing_expr_stack_entry(
                                                an_expr_stack_entry *old_entry,
                                                an_expr_stack_entry *new_entry);
 
+extern void save_expr_stack(an_expr_stack_entry_ptr *saved_expr_stack);
+
+extern void restore_expr_stack(an_expr_stack_entry_ptr saved_expr_stack);
+
 extern void push_expr_stack(an_expression_kind      expression_kind,
                             an_expr_stack_entry_ptr new_entry,
                             a_boolean               force_object_lifetime,
@@ -1644,9 +1649,28 @@ extern void push_expr_stack_with_rcblock(
                               a_boolean               suppress_object_lifetime,
                               a_rescan_control_block  *rcblock);
 
+extern void push_expr_stack_for_initializer(
+                                       an_expr_stack_entry *expr_stack_entry,
+                                       an_expr_stack_entry **saved_expr_stack,
+                                       an_expression_kind  expr_kind,
+                                       a_boolean           is_full_expr,
+                                       a_decl_parse_state  *dps,
+                                       an_init_state       *is);
+
+extern void transfer_expr_context_if_applicable(
+                                            an_expr_stack_entry *saved_stack);
+
+extern void set_up_initializer_rescan(a_decl_parse_state *dps);
+
 extern void undo_side_effects_for_discarded_unevaluated_expression(void);
 
 extern void pop_expr_stack(void);
+
+extern void pop_expr_stack_for_initializer(
+                                        an_expr_stack_entry *saved_expr_stack,
+                                        a_boolean           is_full_expr,
+                                        a_decl_parse_state  *dps,
+                                        an_init_state       *is);
 
 extern void temporarily_set_non_constant_expression_kind(
                                         an_expression_kind *saved_kind,
