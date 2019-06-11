@@ -3049,7 +3049,7 @@ for specifying the length (which can be ambiguous in some cases).
 {
 #if !IA64_ABI
   char     *str;
-  sizeof_t str_length;
+  sizeof_t str_length, added = 0, subtracted = 0;
 
   /* The Cfront-like ABI encoding for a floating point value is:
        4n1p5 <-- encoding for "-1.5"
@@ -3069,17 +3069,38 @@ for specifying the length (which can be ambiguous in some cases).
          following the decimal point. */
       /* The first digit after the decimal is considered significant even
          if it is a zero. */
+#if !USE_HOST_FP_CONVERSION_ROUTINES
+      char *dot = p;
+#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
       for (last_signif = ++p; isdigit((unsigned char)*p); p++) /*lint !e443*/ {
         if (*p != '0') last_signif = p;
       }  /* for */
       /* Change any insignificant zeroes to blanks. */
       while (last_signif < --p) {
         *p = ' ';
-        str_length--;
+        subtracted++;
       }  /* while */
+#if !USE_HOST_FP_CONVERSION_ROUTINES
+      p = strchr(str, 'E');
+      if (p != NULL && isdigit((unsigned char)p[1])) {
+        /* A "p" will be added below, so adjust the length of the constant. */
+        added = 1;
+      }  /* if */
+      /* For cases like "1.0E20", the native conversion routines don't emit the
+         ".0" but the internal conversion routines do, so remove the ".0"
+         (by overwriting with spaces) to keep the mangled names the same. */
+      if (p != NULL && last_signif == dot+1 && dot[1] == '0') {
+        dot[0] = ' ';
+        dot[1] = ' ';
+        subtracted += 2;
+      }  /* if */
+#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
     }  /* if */
   }
-  store_digits_and_underscore((unsigned long)str_length, old_form, mctl);
+  /* Put out the length of the string (taking into account characters that
+     have been either removed or added). */
+  store_digits_and_underscore((unsigned long)str_length + added - subtracted,
+                              old_form, mctl);
   while (str_length > 0) {
     /* Move the string and recode non-alphanumeric characters. */
     char c = *str++;
@@ -3095,10 +3116,23 @@ for specifying the length (which can be ambiguous in some cases).
       } else if (c == '+') {
         /* Use "p" to represent a plus sign. */
         c = 'p';
+#if !USE_HOST_FP_CONVERSION_ROUTINES
+      } else if (c == 'E') {
+        /* Use "e" (or "ep") rather than "E" for an exponent. */
+        c = 'e';
+        /* See also case below where a "p" may be appended. */
+#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
       }  /* if */
       add_to_mangled_name(c, mctl);
-      str_length--;
+#if !USE_HOST_FP_CONVERSION_ROUTINES
+      if (c == 'e' && added) {
+        /* Add an explicit "p" (for plus) to match host floating-point
+           routine mangling. */
+        add_to_mangled_name('p', mctl);
+      }  /* if */
+#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
     }  /* if */
+    str_length--;
   }  /* while */
 #else /* IA64_ABI */
   /* The IA-64 ABI specifies that a floating point value be encoded as a
