@@ -24981,7 +24981,7 @@ will be an lvalue instead of the usual prvalue.
                             /*is_direct_init=*/FALSE,
                             /*check_narrowing=*/TRUE,
                             /*warning_on_narrowing=*/FALSE,
-                            rconv_context,
+                            rconv_context | CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS,
                             /*fill_in_dtor=*/TRUE,
                             /*force_temp=*/TRUE,
                             rmake_lvalue_temp,
