@@ -23,7 +23,9 @@ exprutil.h -- Declarations related to expression parsing.
 #ifndef SYMBOL_TBL_H
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
+#ifndef DECLS_H
 #include "decls.h"
+#endif /* ifndef DECLS_H */
 
 /* Include of overload.h comes later. */
 

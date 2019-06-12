@@ -1922,6 +1922,7 @@ the expression stack.
   new_entry->rcblock = rcblock;
 }  /* push_expr_stack_with_rcblock */
 
+
 void push_expr_stack_for_initializer(an_expr_stack_entry *expr_stack_entry,
                                      an_expr_stack_entry **saved_expr_stack,
                                      an_expression_kind  expr_kind,

@@ -537,7 +537,7 @@ typedef struct an_init_state {
 			   ctor-initializer for a delegating constructor. */
   a_bit_field	paren_as_aggregate_init:1;
 			/* TRUE if has_initializer is TRUE, and the initializer
-			   is a parenthesized expression being treated as
+			   is a parenthesized expression-list being treated as
 			   aggregate initialization. */
 } an_init_state;
 

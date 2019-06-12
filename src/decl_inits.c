@@ -4100,7 +4100,7 @@ the type pointed to is opaque to declaration processing.
   /* C++11 requires a diagnostic on narrowing in these cases, but in nonstrict
      modes we only make it a warning to permit the conversions traditionally
      allowed in C-style aggregate initializations.  That also matches the
-     behavior of newer versions of GCC.  C++ 20 allows parenthesized expression
+     behavior of newer versions of GCC.  C++20 allows parenthesized expression
      lists to be treated as aggregate initializers - but narrowing is allowed.
   */
   if (is->paren_as_aggregate_init) {

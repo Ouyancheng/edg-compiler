@@ -19462,11 +19462,11 @@ Scans the new initializer expression (if present).
 }  /* scan_new_initializer */
 
 
-static an_init_component_ptr scan_paren_expr_as_braced_list(
+static an_init_component_ptr scan_paren_expr_list_as_braced_list(
                                                       a_new_parse_state  *nps,
                                                       a_decl_parse_state *dps)
 /*
-Scans a parenthesized expression list (e.g., (1,2,3)), and returns it as a
+Scan a parenthesized expression-list (e.g., (1,2,3)), and return it as a
 braced initializer list.
 */
 {
@@ -19488,7 +19488,7 @@ braced initializer list.
   /* Check for closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   return expr_list;
-}  /* scan_paren_expr_as_braced_list */
+}  /* scan_paren_expr_list_as_braced_list */
 
 
 static void deduce_new_array_size(a_new_parse_state  *nps,
@@ -19513,7 +19513,7 @@ Deduce the array size and update the new type accordingly.
     if (nps->has_braced_initializer) {
       nps->braced_init_list = parse_braced_init_list(/*bundle=*/FALSE);
     } else {
-      nps->braced_init_list = scan_paren_expr_as_braced_list(nps, dps);
+      nps->braced_init_list = scan_paren_expr_list_as_braced_list(nps, dps);
     }  /* if */
     icp = nps->braced_init_list->variant.braced.list;
     if (icp == NULL) {
@@ -19598,7 +19598,7 @@ Returns the base type for the new statement.
       /* A case like "new int[]" -- an incomplete array type.  C++20 allows
          this, provided we have an initializer that we can use to deduce the
          array size. */
-      if (allow_parenthesized_aggregate_init ||
+      if ((allow_parenthesized_aggregate_init && nps->has_new_initializer) ||
           (cpp20_mode && nps->has_braced_initializer)) {
         deduce_new_array_size(nps, dps);
       } else {
@@ -20319,7 +20319,8 @@ static void prep_new_object_init_braced_initializer(
                                               a_decl_parse_state     *dps)
 /*
 Validate and prepare (if warranted) the initializer for the object when a
-braced initializer was provided.
+braced initializer (or a parenthesized expression-list that's being treated as
+a braced initializer) was provided.
 */
 {
   an_init_state        init_state;
@@ -21274,10 +21275,10 @@ expression, and return the result in *result (or an error indication in
   if (allow_parenthesized_aggregate_init && !nps.err &&
       nps.has_new_initializer && nps.array_new &&
       !nps.empty_initializer && nps.braced_init_list == NULL) {
-    /* Array initialization with a parenthesized expression - treat as if it
-       were a braced initialization list.  If we deduced the size of the array
-       we'll have already done this. */
-    nps.braced_init_list = scan_paren_expr_as_braced_list(&nps, &dps);
+    /* Array initialization with a parenthesized expression-list - treat as if
+       it were a braced initialization list.  If we deduced the size of the
+       array we'll have already done this. */
+    nps.braced_init_list = scan_paren_expr_list_as_braced_list(&nps, &dps);
   }  /* if */
   if (!nps.has_new_initializer) {
     /* No new-initializer is present. */
