@@ -3286,7 +3286,10 @@ initialization. */
       pos_error(ec_designator_for_non_POD, init_component_pos(icp));
     }  /* if */
   }  /* if */
-  if (okay && *field != NULL &&
+  /* N4810 [over.ics.list]p2 - validation that the designated initializer list
+     matches restrictions is deferred until the actual initialization of the
+     parameter, and does not affect overload resolution. */
+  if (okay && *field != NULL && !is->check_validity_only &&
       (cpp20_designators_restriction || gpp_version_is(any_version))) {
     /* GCC restricts "non-trivial" designated initializers in all modes. */
     if (class_type->kind != (a_type_kind)tk_union) {
@@ -3324,7 +3327,8 @@ initialization. */
   if (okay) {
     if ((orig_field != *field || *p_bcp != NULL ) &&
         cpp20_designators_restriction && !is->init_error &&
-        orig_field != NULL && class_type->kind != (a_type_kind)tk_union) {
+        !is->check_validity_only && orig_field != NULL &&
+        class_type->kind != (a_type_kind)tk_union) {
     /* C++20 designators can cause base classes and certain members to
        be skipped. Initialize those members before initializing the
        designated member. If we found an error, we shouldn't proceed with
@@ -3332,7 +3336,8 @@ initialization. */
        may not be in order.  If orig_field is NULL, we have already
        initialized all the members and this designator is invalid. It is
        possible that it has not been diagnosed as invalid yet, so we
-       check orig_field here just in case. */
+       check orig_field here just in case.  If we're checking validity only,
+       there's no need to initialize the remainder. */
        aggr_init_class_remainder_if_needed(aggr_con, class_type, orig_field,
                                            *p_bcp, is, diag_pos, *field);
        *p_bcp = NULL;
