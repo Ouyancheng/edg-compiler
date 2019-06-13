@@ -1,12 +1,12 @@
 Version 5.1
 
 6/12/19  [EDGcpfe/21369]
-Explicit conversions to references in braced-initialization
+Explicit conversions in braced-initialization of references
 
 In cases where a reference type is being initialized by braced-initialization
-and the initialization requires the invocation of a user-defined conversion
-function, the front-end was failing to consider these user-defined conversion
-functions.  This resulted in an error.  For example:
+and the initialization requires the invocation of an explicit user-defined
+conversion function, the front-end was failing to consider these explicit
+user-defined conversion functions.  This resulted in an error.  For example:
 
   struct A {
     explicit operator int&&();
