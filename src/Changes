@@ -328,8 +328,12 @@ specification.  For example:
   // Caused "already defined" error with --no_exceptions
   template<typename T> struct A<T (*)() noexcept> {};
 
-This is now fixed.  As a consequence of this change, the mangled names for
-functions in C++17 mode when --no_exceptions was specified may be different.
+This is now fixed.  Prior to this change the mangled name generated could be
+different depending on whether or not the --no_exceptions option was used in
+C++17 mode.  After this change, the mangled names will be the same regardless
+of the --no_exceptions option (but of course, this means that the mangled names
+could be different from those generated before this change when --no_exceptions
+is used).
 
 
 6/3/19   [EDGcpfe/21337]
