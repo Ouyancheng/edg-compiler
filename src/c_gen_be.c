@@ -8206,8 +8206,12 @@ block with state information for the processing.
       a_field_ptr   last_field = ipdp->curr_field;
       /* ipdp->curr_field was left pointing at the last initializable field,
          but the decision regarding insertion of padding was made on the
-         basis of all declared fields, not just the initializable ones. */
+         basis of all declared fields, not just the initializable ones.
+         Ignore an empty class object. */
       while (last_field->next != NULL) {
+        if (last_field->next->is_optimized_empty_class) {
+          break;
+        }  /* if */
         last_field = last_field->next;
       }  /* while */
       offset_after_fields = offset_after_field(last_field);
