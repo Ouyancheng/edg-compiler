@@ -339,6 +339,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,add_to_destructions_list)*/
 /*lint -esym(769,ec_compound_lvalue_as_asm_operand)*/
 /*lint -esym(552,inline_variables_in_comdat)*/
+/*lint -esym(769,ec_invalid_std_comparison_type)*/
 #endif /* !DO_IL_LOWERING */
 #if !BACK_END_IS_CP_GEN_BE
 /*lint -esym(714,clang_target_version_number)*/
