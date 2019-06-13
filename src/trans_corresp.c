@@ -6308,7 +6308,8 @@ symbols when looking up a correspondence: if none is found, return NULL.
                                    /*issue_errors=*/FALSE,
                                    ETP_NO_OPTIONS,
                                    &templ_sym->decl_position, es_error) &&
-        identical_types(routine->type, corresp_routine->type) &&
+        identical_types_full(routine->type, corresp_routine->type,
+                             ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) &&
         equiv_template_arg_lists(routine->template_arg_list,
                                  corresp_routine->template_arg_list,
                                  ETA_NO_OPTIONS)) {

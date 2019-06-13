@@ -1,5 +1,26 @@
 Version 5.1
 
+6/13/19  [EDGcpfe/20580]
+Spurious "template function had a different meaning" error with multiple
+translation units
+
+When attempting to establish the canonical entry for a template function that
+appears in multiple translation units, the front end was failing to account for
+template functions that differed in type by the decltype expression alone.
+This could lead to spurious "function had a different meaning" errors caused
+when the canonical entry for a template function did not agree with the
+function symbol itself.  For example, given two source files that both include
+a header with these declarations:
+
+  template <class T, class U>
+  auto f(T a, U b) -> decltype((a)); // #1
+  template <class T, class U>
+  auto f(T a, U b) -> decltype((b)); // #2
+
+The canonical entry for #1 was incorrectly referring to the entry for #2.  This
+is now fixed.
+
+
 6/13/19  [EDGcpfe/19678]
 Missing diagnostic on narrowing conversion from char to bool
 
