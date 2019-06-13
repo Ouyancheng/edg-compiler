@@ -358,6 +358,7 @@ an_expr_node_ptr make_lvalue_cast_node(an_expr_node_ptr source_expr,
 extern a_token_kind token_for_rel_op(an_opname_kind  opname);
 
 extern void complete_comparison_rewrite(an_opname_kind           opname,
+                                        an_expr_node_ptr         call_node,
                                         a_token_sequence_number  tsn,
                                         an_operand_ptr           result,
                                         a_boolean                reversed);

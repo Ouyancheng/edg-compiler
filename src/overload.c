@@ -18209,9 +18209,10 @@ no_applicable_operator_function:
                 /* A candidate was selected that represents a rewrite of a
                    comparison operator.  Another operation has to be applied
                    to the result. */
-                a_boolean  reversed =
-                         candidate_functions->supplemental_reversed_candidate;
-                complete_comparison_rewrite(orig_kind, operator_tok_seq_number,
+                a_boolean  reversed = candidate_functions
+                                            ->supplemental_reversed_candidate;
+                complete_comparison_rewrite(orig_kind, call_node,
+                                            operator_tok_seq_number,
                                             result, reversed);
               }  /* if */
             }  /* if */

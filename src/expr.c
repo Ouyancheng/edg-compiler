@@ -27823,21 +27823,37 @@ Return the token kind associated with the given operator name kind.
 
 
 void complete_comparison_rewrite(an_opname_kind           opname,
+                                 an_expr_node_ptr         call_node,
                                  a_token_sequence_number  tsn,
                                  an_operand_ptr           result,
                                  a_boolean                reversed)
 /*
 A comparison operator (<, <=, >=, >, ==, !=, or <=>) described by opname and
 tsn is being rewritten in terms of a <=> or == operation represented by
-*result.  E.g., "x < y" might have to be rewritten as "operator<=>(x, y) < 0".
-Apply the second operator ("<" in this example) to result.  If reversed is
-true, the operands in the operation represented by *result are reversed.
-For example, "x <=> y" might be rewritten as "0 <=> operator<=>(y, x)".
+*result (with call_node the actual function call).  E.g., "x < y" might have
+to be rewritten as "operator<=>(x, y) < 0".  Apply the second operator ("<" in
+this example) to result.  If reversed is true, the operands in the operation
+represented by *result are reversed.  For example, "x <=> y" might be rewritten
+as "0 <=> operator<=>(y, x)".
 */
 {
   static unsigned long  n_active_rewrites = 0;
 
   n_active_rewrites += 1;
+  if (call_node != NULL) {
+    /* If the operator<=> is deleted, an error will be issued, but its return
+       type is likely to lead to additional, unhelpful, diagnostics.  In that
+       case just proceed with an error operand instead. */
+    an_expr_node_ptr  rout_expr = call_node->variant.operation.operands,
+                      rout_node = NULL;
+    a_routine_ptr     rp = routine_and_node_from_function_expr(rout_expr,
+                                                               &rout_node);
+    if (rp != NULL && rp->is_deleted) {
+      expect_error();
+      make_error_operand(result);
+      goto done;
+    }  /* if */
+  }  /* if */
   if (expr_stack->template_deduction_context) {
     /* The additional operator will be rescanned.  Nothing to do at this
        time. */
@@ -27858,8 +27874,8 @@ For example, "x <=> y" might be rewritten as "0 <=> operator<=>(y, x)".
     if (opname == (an_opname_kind)onk_ne) {
       /* Invert the result. */
       an_operand  opnd = *result;
-      do_unary_operation((an_expr_operator_kind)eok_not, result, bool_type(),
-                         &opnd, &opnd.position, tsn);
+      do_unary_operation((an_expr_operator_kind)eok_not, &opnd, bool_type(),
+                         result, &opnd.position, tsn);
       restore_operand_details(&opnd, result);
     }  /* if */
   } else {
@@ -27888,6 +27904,7 @@ For example, "x <=> y" might be rewritten as "0 <=> operator<=>(y, x)".
     }  /* if */
     restore_operand_details(&other_opnd, result);
   }  /* if */
+done:
   n_active_rewrites -= 1;
 }  /* complete_comparison_rewrite */
 
