@@ -1623,12 +1623,6 @@ static an_integer_value
 		zero_int;
 static an_integer_value
 		one_int;
-static an_integer_value
-		minus_one_int;
-static an_integer_value
-		unordered_int;
-			/* The value returned by operator <=> when operands
-			   are unordered. */
 static an_internal_float_value
 		zero_flt[(int)fk_last];
 static an_internal_float_value
@@ -14581,10 +14575,6 @@ that are needed for the operation of the interpreter.
     a_boolean    dummy;
     set_integer_value(&zero_int, (a_host_large_integer)0);
     set_integer_value(&one_int, (a_host_large_integer)1);
-    set_integer_value(&minus_one_int, (a_host_large_integer)-1);
-    /* The value for unordered_int has to match the "unordered" constant
-       value in the <compare> implementation. */
-    set_integer_value(&unordered_int, (a_host_large_integer)-127);
     for (fk = (a_float_kind)fk_float; fk < (a_float_kind)fk_last; ++fk) {
       fp_host_large_integer_to_float(fk, (a_host_large_integer)0,
                                      &zero_flt[(int)fk], &dummy);

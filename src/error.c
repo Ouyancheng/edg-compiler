@@ -5729,6 +5729,7 @@ errors.
 }  /* syntax_error */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+#if DO_IL_LOWERING
 
 /*lint -esym(759,pos_ty_catastrophe)*/
 /*lint -esym(765,pos_ty_catastrophe)*/
@@ -5747,6 +5748,7 @@ at the indicated position, and then terminate the compilation.
 #endif /* __GNUC__ */
 }  /* pos_ty_catastrophe */
 
+#endif /* DO_IL_LOWERING */
 
 /*lint -esym(759,pos_st_catastrophe)*/
 /*lint -esym(765,pos_st_catastrophe)*/
