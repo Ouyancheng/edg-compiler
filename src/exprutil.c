@@ -16201,6 +16201,7 @@ reference entry, or is NULL if none is needed.
   }  /* if */
   /* Make an expression for the function. */
   node = function_lvalue_expr(routine);
+  node->position = *position;
   make_glvalue_expression_operand(node, result);
   if (routine->source_corresp.is_class_member) {
   /* Remember whether or not the routine is virtual.  Use of a qualified
