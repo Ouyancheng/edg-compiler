@@ -6334,20 +6334,17 @@ field designator.
                                   type->variant.class_struct_union.field_list);
     }  /* if */
     /* Loop through the list of initializer constants. */
-    /* First, skip over any initializers for base classes; they are
-       implicit and mustn't be put out in the generated code. */
+    /* First, skip over any implicit initializers for base classes and
+       initial members; they shouldn't appear in the generated source. */
     for (sub_con = first_con;
          sub_con != NULL &&
-                       sub_con->constant_for_base_class_from_constexpr_folding;
+                (sub_con->constant_for_base_class_from_constexpr_folding ||
+                 sub_con->implicit_aggr_element ||
+                 (sub_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
+                  is_default_dynamic_init(sub_con->variant.dynamic_init.ptr)));
          sub_con = sub_con->next) {}
     if (sub_con != NULL &&
-        (sub_con->implicit_aggr_element ||
-         (sub_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
-          is_default_dynamic_init(sub_con->variant.dynamic_init.ptr)))) {
-      /* First member gets default initialization, so we're done with
-         this aggregate. */
-    } else if (sub_con != NULL &&
-               sub_con->kind == (a_constant_repr_kind)ck_init_repeat) {
+        sub_con->kind == (a_constant_repr_kind)ck_init_repeat) {
       /* A ck_init_repeat constant is used to do default initialization
          (via constructor) on all the elements of an array, so we're
          done with this aggregate. */
