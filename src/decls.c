@@ -11178,11 +11178,15 @@ the symbol through dps->sym and its linkage (which is always "none") through
       if (var->storage_class == (a_storage_class)sc_extern) {
         var->storage_class = (a_storage_class)sc_unspecified;
       }  /* if */
-      if (!var->is_constexpr && (dps->dso_flags & DSO_CONSTEXPR) != 0 &&
-          !dps->is_definition) {
-        pos_sy_error(ec_previous_nonconstexpr_decl_conflict,
-                     &dps->specifiers_pos, sym);
-        dps->dso_flags &= ~(a_decl_flag_set)DSO_CONSTEXPR;
+      if ((dps->dso_flags & DSO_CONSTEXPR) != 0 && !var->is_constexpr) {
+        /* This declaration uses "constexpr" but the in-class one did not. */
+        if (!dps->is_definition) {
+          pos_sy_error(ec_previous_nonconstexpr_decl_conflict,
+                       &dps->specifiers_pos, sym);
+          dps->dso_flags &= ~(a_decl_flag_set)DSO_CONSTEXPR;
+        } else {
+          var->is_constexpr = TRUE;
+        }  /* if */
       }  /* if */
       if (var->is_thread_local !=
           ((dps->dso_flags & DSO_THREAD_LOCAL) == DSO_THREAD_LOCAL)) {

@@ -27697,7 +27697,7 @@ operator_tsn describe the location of the operator.
       if (is_integral_or_enum_type(op_type)) {
         result_type = strong_ordering_type();
       } else if (is_real_floating_type(op_type)) {
-        result_type = strong_ordering_type();
+        result_type = partial_ordering_type();
       } else {
         expr_pos_ty2_error(ec_invalid_spaceship_types, operator_pos,
                            opnd1->type, opnd2->type);
@@ -27803,6 +27803,25 @@ the resulting expression.
 }  /* scan_spaceship_operator */
 
 
+a_token_kind token_for_rel_op(an_opname_kind  opname)
+/*
+Return the token kind associated with the given operator name kind.
+*/
+{
+  a_token_kind  op_token = tok_last;
+
+  switch (opname) {
+    case onk_lt: op_token = (a_token_kind)tok_lt; break;
+    case onk_gt: op_token = (a_token_kind)tok_gt; break;
+    case onk_le: op_token = (a_token_kind)tok_le; break;
+    case onk_ge: op_token = (a_token_kind)tok_ge; break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return op_token;
+}  /* token_for_rel_op */
+
+
 void complete_comparison_rewrite(an_opname_kind           opname,
                                  a_token_sequence_number  tsn,
                                  an_operand_ptr           result,
@@ -27864,16 +27883,8 @@ For example, "x <=> y" might be rewritten as "0 <=> operator<=>(y, x)".
       check_assertion(reversed);
       process_spaceship_operator(opnd1, opnd2, pos, tsn, result);
     } else {
-      a_token_kind  op_token = tok_last;
-      switch (opname) {
-        case onk_lt: op_token = (a_token_kind)tok_lt; break;
-        case onk_gt: op_token = (a_token_kind)tok_gt; break;
-        case onk_le: op_token = (a_token_kind)tok_le; break;
-        case onk_ge: op_token = (a_token_kind)tok_ge; break;
-        default:
-          unexpected_condition();
-      }  /* switch */
-      process_rel_operator(opnd1, opnd2, op_token, pos, tsn, result);
+      process_rel_operator(opnd1, opnd2, token_for_rel_op(opname), pos, tsn,
+                           result);
     }  /* if */
     restore_operand_details(&other_opnd, result);
   }  /* if */
@@ -28311,6 +28322,203 @@ operator== and operator!=, and assumes the expression is evaluated.
   restore_expr_stack(saved_expr_stack);
   return result_expr;
 }  /* make_eq_comparison */
+
+
+static void set_variable_initializer(a_variable_ptr vp,
+                                     an_operand_ptr  operand)
+/*
+Set the initializer for the variable vp from the operand "operand".
+*/
+{
+  a_dynamic_init_ptr dip;
+  an_operand         local_operand;
+
+  /* Copy the operand so if its type changes the caller will not be
+     affected. */
+  copy_operand(operand, &local_operand);
+  if (is_class_struct_union_type(vp->type)) {
+    /* See if we can elide the copy for class-typed variables. */
+    prep_elision_initializer_operand(&local_operand, vp->type,
+                                     /*fill_in_dtor=*/TRUE,
+                                     CCO_INITIALIZING_VARIABLE,
+                                     ec_bad_initializer_type,
+                                     /*elision_done=*/(a_boolean *)NULL,
+                                     &dip);
+  } else {
+    prep_initializer_operand(&local_operand, vp->type,
+                             /*is_transparent=*/(a_boolean *)NULL,
+                             /*conversion=*/(a_conv_descr_ptr)NULL,
+                             /*is_copy_initialization=*/TRUE,
+                             CCO_INITIALIZING_VARIABLE,
+                             ec_bad_initializer_type);
+    dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
+    dip->variant.expression = make_node_from_operand(&local_operand);
+  }  /* if */
+  wrap_up_dynamic_init_full_expression(dip);
+  if (dip != NULL) {
+    vp->init_kind = (an_init_kind)initk_dynamic;
+    vp->initializer.dynamic = dip;
+    dip->variable = vp;
+    record_end_of_lifetime_destruction(
+            dip,
+            /*static_lifetime=*/var_has_static_or_thread_storage_duration(vp),
+            /*block_lifetime=*/TRUE);
+    if (symbol_for(vp) != NULL) {
+      /* Record initialization for purposes of analyzing control flow (i.e.,
+         whether a goto bypasses required initialization).  Skip this for
+         compiler-generated variables. */
+      record_trivial_init_control_flow(vp);
+    }  /* if */
+  }  /* if */
+}  /* set_variable_initializer */
+
+
+a_variable_ptr make_spaceship_cmp_variable(an_expr_node_ptr  arg1,
+                                           an_expr_node_ptr  arg2,
+                                           a_type_ptr        tp,
+                                           an_expr_node_ptr  *p_ne_expr)
+/*
+The given expression nodes are lvalues x and y.  Return a variable v of type tp
+initialized with x <=> y.  Also return through *p_ne_expr the full-expression
+v != 0, contextually converted to bool.  This routine is used to synthesize
+operator<=>, and assumes the expressions are evaluated.
+*/
+{
+  an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
+  an_operand           opnd1, opnd2, result;
+  a_variable_ptr       result_vp;
+
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  expr_stack_entry.evaluated = TRUE;
+  expr_stack_entry.potentially_evaluated = TRUE;
+  make_glvalue_expression_operand(arg1, &opnd1);
+  make_glvalue_expression_operand(arg2, &opnd2);
+  process_spaceship_operator(&opnd1, &opnd2, &error_position,
+                             curr_token_sequence_number, &result);
+  result_vp = alloc_temporary_variable(tp, /*force_state=*/FALSE);
+  set_variable_initializer(result_vp, &result);
+  pop_expr_stack();
+  /* Create an expression result_vp != 0. */
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  make_lvalue_variable_operand(result_vp, &error_position, &error_position,
+                               &opnd1, (a_ref_entry_ptr)NULL);
+  make_zero_operand(&opnd2, integer_type((an_integer_kind)ik_int));
+  process_eq_operator(&opnd1, &opnd2, (a_token_kind)tok_ne, &error_position,
+                      curr_token_sequence_number, &result);
+  if (!is_error_operand(&result)) {
+    process_boolean_controlling_expression(&result);
+  }  /* if */
+  *p_ne_expr = make_node_from_operand(&result);
+  *p_ne_expr = wrap_up_full_expression(*p_ne_expr);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  return result_vp;
+}  /* make_spaceship_cmp_variable */
+
+
+void make_std_strong_ordering_equal_return(a_type_ptr       func_tp,
+                                           a_statement_ptr  return_stmt)
+/*
+return_stmt is a return statement in a function of type func_tp.  Adjust that
+statement so that it represents
+    return std::strong_ordering::equal;
+*/
+{
+  a_symbol_ptr  equal_sym;
+
+  equal_sym = look_up_name_string_in_class("equal", strong_ordering_type(),
+                                           IDL_DO_NOT_ADD_TO_NONREAL_CLASS);
+  if (equal_sym == NULL || !symbol_is(equal_sym, sk_static_data_member)) {
+    return_stmt->expr = error_node();
+  } else {
+    an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
+    a_conv_context_set   conv_context = CCO_INITIALIZING_RETURN_VALUE;
+    an_operand           result;
+    a_type_ptr           return_type = func_tp->variant.routine.return_type;
+    a_boolean            return_by_cctor = func_tp->variant.routine.extra_info
+                                                  ->value_returned_by_cctor;
+    save_expr_stack(&saved_expr_stack);
+    push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/FALSE);
+    expr_stack_entry.evaluated = TRUE;
+    expr_stack_entry.potentially_evaluated = TRUE;
+    make_lvalue_variable_operand(
+                               equal_sym->variant.static_data_member.variable,
+                               &error_position, &error_position,
+                               &result, (a_ref_entry_ptr)NULL);
+    if (return_by_cctor) {
+      a_dynamic_init_ptr  return_dip = NULL;
+      expr_stack->in_cctor_elision_initializer = TRUE;
+      /* Build a dynamic initialization entry for the return statement. */
+      prep_elision_initializer_operand(&result, return_type,
+                                       /*fill_in_dtor=*/FALSE,
+                                       conv_context, ec_bad_return_value_type,
+                                       /*elision_done=*/(a_boolean *)NULL,
+                                       &return_dip);
+      wrap_up_dynamic_init_full_expression(return_dip);
+      /* Fix up destructor references in the overall expression. */
+      fix_up_dynamic_init_dtors();
+      return_stmt->variant.return_dynamic_init = return_dip;
+    } else {
+      prep_initializer_operand(&result, return_type, (a_boolean *)NULL,
+                               (a_conv_descr_ptr)NULL,
+                               /*is_copy_initialization=*/TRUE, conv_context,
+                               ec_bad_return_value_type);
+      return_stmt->expr = wrap_up_full_expression(
+                                             make_node_from_operand(&result));
+    }  /* if */
+    pop_expr_stack();
+    restore_expr_stack(saved_expr_stack);
+  }  /* if */
+}  /* make_std_strong_ordering_equal_return */
+
+
+an_expr_node_ptr make_synthesized_rel_op(a_token_kind      op_token,
+                                         an_expr_node_ptr  arg1,
+                                         an_expr_node_ptr  arg2)
+/*
+The given expression nodes are lvalues x and y.  Return a node representing
+    (x <=> y) @ 0
+contextually converted to bool (where @ is a relational operator described by
+op_token).  This routine is used to synthesize relational operators, and
+assumes the expression is evaluated.
+*/
+{
+  an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
+  an_operand           opnd1, opnd2, ss_result, zero, result;
+  an_expr_node_ptr     result_expr;
+
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  expr_stack_entry.evaluated = TRUE;
+  expr_stack_entry.potentially_evaluated = TRUE;
+  make_glvalue_expression_operand(arg1, &opnd1);
+  make_glvalue_expression_operand(arg2, &opnd2);
+  process_spaceship_operator(&opnd1, &opnd2, &error_position,
+                             curr_token_sequence_number, &ss_result);
+
+  process_eq_operator(&opnd1, &opnd2, (a_token_kind)tok_eq, &error_position,
+                      curr_token_sequence_number, &result);
+  make_zero_operand(&zero, integer_type((an_integer_kind)ik_int));
+  process_rel_operator(&ss_result, &zero, op_token, &error_position,
+                       curr_token_sequence_number, &result);
+  if (!is_error_operand(&result)) {
+    process_boolean_controlling_expression(&result);
+  }  /* if */
+  result_expr = make_node_from_operand(&result);
+  result_expr = wrap_up_full_expression(result_expr);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  return result_expr;
+}  /* make_synthesized_rel_op */
 
 #if GNU_EXTENSIONS_ALLOWED
 
@@ -39082,55 +39290,6 @@ and not a copy or re-evaluation thereof.
   }  /* if */
   make_lvalue_or_rvalue_expression_operand(expr, operand);
 }  /* make_enhanced_for_expression_operand */
-
-
-static void set_variable_initializer(a_variable_ptr vp,
-                                     an_operand_ptr  operand)
-/*
-Set the initializer for the variable vp from the operand "operand".
-*/
-{
-  a_dynamic_init_ptr dip;
-  an_operand         local_operand;
-
-  /* Copy the operand so if its type changes the caller will not be
-     affected. */
-  copy_operand(operand, &local_operand);
-  if (is_class_struct_union_type(vp->type)) {
-    /* See if we can elide the copy for class-typed variables. */
-    prep_elision_initializer_operand(&local_operand, vp->type,
-                                     /*fill_in_dtor=*/TRUE,
-                                     CCO_INITIALIZING_VARIABLE,
-                                     ec_bad_initializer_type,
-                                     /*elision_done=*/(a_boolean *)NULL,
-                                     &dip);
-  } else {
-    prep_initializer_operand(&local_operand, vp->type,
-                             /*is_transparent=*/(a_boolean *)NULL,
-                             /*conversion=*/(a_conv_descr_ptr)NULL,
-                             /*is_copy_initialization=*/TRUE,
-                             CCO_INITIALIZING_VARIABLE,
-                             ec_bad_initializer_type);
-    dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
-    dip->variant.expression = make_node_from_operand(&local_operand);
-  }  /* if */
-  wrap_up_dynamic_init_full_expression(dip);
-  if (dip != NULL) {
-    vp->init_kind = (an_init_kind)initk_dynamic;
-    vp->initializer.dynamic = dip;
-    dip->variable = vp;
-    record_end_of_lifetime_destruction(
-            dip,
-            /*static_lifetime=*/var_has_static_or_thread_storage_duration(vp),
-            /*block_lifetime=*/TRUE);
-    if (symbol_for(vp) != NULL) {
-      /* Record initialization for purposes of analyzing control flow (i.e.,
-         whether a goto bypasses required initialization).  Skip this for
-         compiler-generated variables. */
-      record_trivial_init_control_flow(vp);
-    }  /* if */
-  }  /* if */
-}  /* set_variable_initializer */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 

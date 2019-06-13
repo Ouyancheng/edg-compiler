@@ -355,6 +355,8 @@ an_expr_node_ptr make_lvalue_cast_node(an_expr_node_ptr source_expr,
                                        a_type_ptr       type_cast_to,
                                        a_boolean        compiler_generated);
 
+extern a_token_kind token_for_rel_op(an_opname_kind  opname);
+
 extern void complete_comparison_rewrite(an_opname_kind           opname,
                                         a_token_sequence_number  tsn,
                                         an_operand_ptr           result,
@@ -371,6 +373,21 @@ extern a_boolean generated_rel_op_is_deleted(a_type_ptr  class_tp);
 
 extern an_expr_node_ptr make_eq_comparison(an_expr_node_ptr  arg1,
                                            an_expr_node_ptr  arg2);
+
+extern
+a_variable_ptr make_spaceship_cmp_variable(an_expr_node_ptr  arg1,
+                                           an_expr_node_ptr  arg2,
+                                           a_type_ptr        tp,
+                                           an_expr_node_ptr  *p_ne_expr);
+
+extern
+void make_std_strong_ordering_equal_return(a_type_ptr       func_tp,
+                                           a_statement_ptr  return_stmt);
+
+extern
+an_expr_node_ptr make_synthesized_rel_op(a_token_kind      op_token,
+                                         an_expr_node_ptr  arg1,
+                                         an_expr_node_ptr  arg2);
 
 extern void check_closing_paren_after_expr_list(void);
 

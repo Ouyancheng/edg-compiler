@@ -1642,6 +1642,75 @@ static a_boolean
 			/* Flag indicating whether these constants and types
 			   have been initialized yet. */
 
+static a_constant_ptr
+		strong_ordering_equal = NULL,
+		strong_ordering_less = NULL,
+		strong_ordering_greater = NULL,
+		partial_ordering_equivalent = NULL,
+		partial_ordering_less = NULL,
+		partial_ordering_greater = NULL,
+		partial_ordering_unordered = NULL,
+		strong_equality_equal = NULL,
+		strong_equality_nonequal = NULL;
+			/* The constants that initialize the constexpr static
+			   members std::strong_ordering::equal, etc. */
+
+static a_constant_ptr get_constexpr_member_value(a_type_ptr    class_type,
+                                                 a_const_char  *name)
+/*
+Look up the given name in the given class type.  It should find a constexpr
+static data member.  Return the constant that initializes that member.  Issue
+a hard error in case of failure since it indicates something is wrong with the
+<compare> header.
+*/
+{
+  a_symbol_ptr    sym;
+  a_variable_ptr  vp = NULL;
+  a_constant_ptr  cp = NULL;
+
+  sym = look_up_name_string_in_class(name, class_type,
+                                     IDL_DO_NOT_ADD_TO_NONREAL_CLASS);
+  if (sym != NULL && symbol_is(sym, sk_static_data_member)) {
+    vp = sym->variant.static_data_member.variable;
+  }  /* if */
+  if (vp != NULL && vp->init_kind == (an_init_kind)initk_static &&
+      is_const_qualified_type(vp->type)) {
+    cp = vp->initializer.constant;
+  }  /* if */
+  if (cp == NULL) {
+    pos_ty_str_error(ec_invalid_std_comparison_value, &error_position,
+                     class_type, name);
+    cp = alloc_error_constant();
+  }  /* if */
+  return cp;
+}  /* get_constexpr_member_value */
+
+
+static void initialize_ordering_constants(void)
+/*
+Initialize strong_ordering_equal, etc.  These are the constant initializing
+std::strong_ordering::equal, etc.
+*/
+{
+  strong_ordering_equal = get_constexpr_member_value(
+                                           strong_ordering_type(), "equal");
+  strong_ordering_less = get_constexpr_member_value(
+                                           strong_ordering_type(), "less");
+  strong_ordering_greater = get_constexpr_member_value(
+                                           strong_ordering_type(), "greater");
+  partial_ordering_equivalent = get_constexpr_member_value(
+                                       partial_ordering_type(), "equivalent");
+  partial_ordering_less = get_constexpr_member_value(
+                                       partial_ordering_type(), "less");
+  partial_ordering_greater = get_constexpr_member_value(
+                                       partial_ordering_type(), "greater");
+  partial_ordering_unordered = get_constexpr_member_value(
+                                       partial_ordering_type(), "unordered");
+  strong_equality_equal = get_constexpr_member_value(
+                                          strong_equality_type(), "equal");
+  strong_equality_nonequal = get_constexpr_member_value(
+                                          strong_equality_type(), "nonequal");
+}  /* initialize_ordering_constants */
 
 /*
 Structure describing a variant path in a subobject.
@@ -12413,137 +12482,149 @@ the value representation of the integer value.
             }  /* if */
             break;
           case eok_spaceship:
-            if (opnd1_type->kind == (a_type_kind)tk_integer) {
-              /* Integral operands. */
-              int  cmp;
-              int_kind = opnd1_type->variant.integer.int_kind;
-              is_signed = int_kind_is_signed[int_kind];
-              cmp = cmp_integer_values((an_integer_value *)opnd1_value,
-                                       is_signed,
-                                       (an_integer_value *)opnd2_value,
-                                       is_signed);
-              if (cmp == 0) {
-                *(an_integer_value*)result_storage = zero_int;
-              } else if (cmp == 1) {
-                *(an_integer_value*)result_storage = one_int;
-              } else if (cmp == -1) {
-                *(an_integer_value*)result_storage = minus_one_int;
-              } else {
-                unexpected_condition();
+            {
+              a_constant_ptr  result_con;
+              if (strong_ordering_equal == NULL) {
+                initialize_ordering_constants();
               }  /* if */
-            } else if (opnd1_type->kind == (a_type_kind)tk_float) {
-              /* Floating-point operands. */
-              int  cmp;
-              cmp = fp_compare(opnd1_type->variant.float_kind,
-                               fp_value(opnd1_value),
-                               fp_value(opnd2_value),
-                               &unord);
-              if (unord) {
-                /* The floating-point values are not comparable. */
-                *(an_integer_value*)result_storage = unordered_int;
-              } else if (cmp == 0) {
-                *(an_integer_value*)result_storage = zero_int;
-              } else if (cmp == 1) {
-                *(an_integer_value*)result_storage = one_int;
-              } else if (cmp == -1) {
-                *(an_integer_value*)result_storage = minus_one_int;
-              } else {
-                unexpected_condition();
-              }  /* if */
-            } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
-              /* Pointer operands. */
-              a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
-              a_constexpr_address  *ptr2 = (a_constexpr_address*)opnd2_value;
-              if (!compatible_address_kinds(ptr1, ptr2)) {
-                info_with_pos(ec_constexpr_pointers_not_comparable,
-                              &expr->position, ips);
-                do_constexpr_fail(result);
-              } else if (is_function_address(ptr1) ||
-                         is_function_address(ptr2)) {
-                if (is_function_address(ptr1) && is_function_address(ptr2)) {
-                  if (ptr1->variant.routine == ptr2->variant.routine) {
-                    *(an_integer_value*)result_storage = one_int;
-                  } else {
-                    *(an_integer_value*)result_storage = zero_int;
-                  }  /* if */
+              if (opnd1_type->kind == (a_type_kind)tk_integer) {
+                /* Integral operands. */
+                int  cmp;
+                int_kind = opnd1_type->variant.integer.int_kind;
+                is_signed = int_kind_is_signed[int_kind];
+                cmp = cmp_integer_values((an_integer_value *)opnd1_value,
+                                         is_signed,
+                                         (an_integer_value *)opnd2_value,
+                                         is_signed);
+                if (cmp == 0) {
+                  result_con = strong_ordering_equal;
+                } else if (cmp == 1) {
+                  result_con = strong_ordering_greater;
+                } else if (cmp == -1) {
+                  result_con = strong_ordering_less;
                 } else {
+                  unexpected_condition();
+                }  /* if */
+              } else if (opnd1_type->kind == (a_type_kind)tk_float) {
+                /* Floating-point operands. */
+                int  cmp;
+                cmp = fp_compare(opnd1_type->variant.float_kind,
+                                 fp_value(opnd1_value),
+                                 fp_value(opnd2_value),
+                                 &unord);
+                if (unord) {
+                  /* The floating-point values are not comparable. */
+                  result_con = partial_ordering_unordered;
+                } else if (cmp == 0) {
+                  result_con = partial_ordering_equivalent;
+                } else if (cmp == 1) {
+                  result_con = partial_ordering_greater;
+                } else if (cmp == -1) {
+                  result_con = partial_ordering_less;
+                } else {
+                  unexpected_condition();
+                }  /* if */
+              } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+                /* Pointer operands. */
+                a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
+                a_constexpr_address  *ptr2 = (a_constexpr_address*)opnd2_value;
+                if (!compatible_address_kinds(ptr1, ptr2)) {
                   info_with_pos(ec_constexpr_pointers_not_comparable,
                                 &expr->position, ips);
                   do_constexpr_fail(result);
-                }  /* if */
-              } else if (is_runtime_data_address(ptr1) ==
+                } else if (is_function_address(ptr1) ||
+                           is_function_address(ptr2)) {
+                  if (is_function_address(ptr1) && is_function_address(ptr2)) {
+                    if (ptr1->variant.routine == ptr2->variant.routine) {
+                      result_con = strong_equality_equal;
+                    } else {
+                      result_con = strong_equality_nonequal;
+                    }  /* if */
+                  } else {
+                    info_with_pos(ec_constexpr_pointers_not_comparable,
+                                  &expr->position, ips);
+                    do_constexpr_fail(result);
+                  }  /* if */
+                } else if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
-                if (!is_runtime_data_address(ptr1)) {
-                  if (ptr1->address == ptr2->address) {
-                    *(an_integer_value*)result_storage = zero_int;
-                  } else if (addresses_are_comparable(ips, ptr1, ptr2)) {
-                    if (ptr1->address < ptr2->address) {
-                      *(an_integer_value*)result_storage = minus_one_int;
+                  if (!is_runtime_data_address(ptr1)) {
+                    if (ptr1->address == ptr2->address) {
+                      result_con = strong_ordering_equal;
+                    } else if (addresses_are_comparable(ips, ptr1, ptr2)) {
+                      if (ptr1->address < ptr2->address) {
+                        result_con = strong_ordering_less;
+                      } else {
+                        result_con = strong_ordering_greater;
+                      }  /* if */
                     } else {
-                      *(an_integer_value*)result_storage = one_int;
+                      info_with_pos(ec_constexpr_pointers_not_comparable,
+                                    &expr->position, ips);
+                      do_constexpr_fail(result);
                     }  /* if */
                   } else {
-                    info_with_pos(ec_constexpr_pointers_not_comparable,
-                                  &expr->position, ips);
-                    do_constexpr_fail(result);
-                  }  /* if */
-                } else {
-                  /* The addresses are represented using a_constant entries. */
-                  int  cmp;
-                  if (compare_address_constants(ptr1->variant.addr_con,
-                                                ptr2->variant.addr_con,
-                                                &cmp)) {
-                    if (cmp == 0) {
-                      *(an_integer_value*)result_storage = zero_int;
-                    } else if (cmp == 1) {
-                      *(an_integer_value*)result_storage = one_int;
-                    } else if (cmp == -1) {
-                      *(an_integer_value*)result_storage = minus_one_int;
+                    /* The addresses are represented using a_constant
+                       entries. */
+                    int  cmp;
+                    if (compare_address_constants(ptr1->variant.addr_con,
+                                                  ptr2->variant.addr_con,
+                                                  &cmp)) {
+                      if (cmp == 0) {
+                        result_con = strong_ordering_equal;
+                      } else if (cmp == 1) {
+                        result_con = strong_ordering_greater;
+                      } else if (cmp == -1) {
+                        result_con = strong_ordering_less;
+                      } else {
+                        unexpected_condition();
+                      }  /* if */
                     } else {
-                      unexpected_condition();
+                      info_with_pos(ec_constexpr_pointers_not_comparable,
+                                    &expr->position, ips);
+                      do_constexpr_fail(result);
                     }  /* if */
+                  }  /* if */
+                } else {
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
+                }  /* if */
+                release_variant_path_if_needed(ptr1);
+                release_variant_path_if_needed(ptr2);
+              } else if (opnd1_type->kind == (a_type_kind)tk_ptr_to_member) {
+                /* For pointer-to-members, <=> behaves like !=. */
+                a_constexpr_ptr_to_mem  *pm1, *pm2;
+                pm1 = (a_constexpr_ptr_to_mem*)opnd1_value;
+                pm2 = (a_constexpr_ptr_to_mem*)opnd2_value;
+                if (pm1->subtract_adjustment != pm2->subtract_adjustment ||
+                    pm1->this_class_adjustment != pm2->this_class_adjustment) {
+                  result_con = strong_equality_nonequal;
+                } else if (pm1->is_ptr_to_mem_function) {
+                  if (pm2->is_ptr_to_mem_function &&
+                      pm1->variant.routine == pm2->variant.routine) {
+                    result_con = strong_equality_equal;
                   } else {
-                    info_with_pos(ec_constexpr_pointers_not_comparable,
-                                  &expr->position, ips);
-                    do_constexpr_fail(result);
+                    result_con = strong_equality_nonequal;
+                  }  /* if */
+                } else {
+                  if (!pm2->is_ptr_to_mem_function &&
+                      pm1->variant.field == pm2->variant.field) {
+                    result_con = strong_equality_equal;
+                  } else {
+                    result_con = strong_equality_nonequal;
                   }  /* if */
                 }  /* if */
+              } else if (opnd1_type->kind == (a_type_kind)tk_nullptr) {
+                /* Two nullptr values always compare equal. */
+                result_con = strong_equality_equal;
               } else {
-                do_constexpr_fail(result);
-                info_with_pos(ec_constexpr_access_to_runtime_storage,
-                              &expr->position, ips);
+                unexpected_condition();
               }  /* if */
-              release_variant_path_if_needed(ptr1);
-              release_variant_path_if_needed(ptr2);
-            } else if (opnd1_type->kind == (a_type_kind)tk_ptr_to_member) {
-              /* For pointer-to-members, <=> behaves like !=. */
-              a_constexpr_ptr_to_mem  *pm1, *pm2;
-              pm1 = (a_constexpr_ptr_to_mem*)opnd1_value;
-              pm2 = (a_constexpr_ptr_to_mem*)opnd2_value;
-              if (pm1->subtract_adjustment != pm2->subtract_adjustment ||
-                  pm1->this_class_adjustment != pm2->this_class_adjustment) {
-                *(an_integer_value *)result_storage = one_int;
-              } else if (pm1->is_ptr_to_mem_function) {
-                if (pm2->is_ptr_to_mem_function &&
-                    pm1->variant.routine == pm2->variant.routine) {
-                  *(an_integer_value *)result_storage = zero_int;
-                } else {
-                  *(an_integer_value *)result_storage = one_int;
-                }  /* if */
-              } else {
-                if (!pm2->is_ptr_to_mem_function &&
-                    pm1->variant.field == pm2->variant.field) {
-                  *(an_integer_value *)result_storage = zero_int;
-                } else {
-                  *(an_integer_value *)result_storage = one_int;
-                }  /* if */
+              if (result) {
+                result = copy_val_from_constant(ips, result_con,
+                                                result_storage,
+                                                result_storage);
               }  /* if */
-            } else if (opnd1_type->kind == (a_type_kind)tk_nullptr) {
-              /* Two nullptr values always compare equal. */
-              *(an_integer_value *)result_storage = one_int;
-            } else {
-              unexpected_condition();
-            }  /* if */
+            }
             break;
           case eok_assign:
             { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;

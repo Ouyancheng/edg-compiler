@@ -544,6 +544,10 @@ extern void sym_error(an_error_code   error_code,
                       struct a_symbol *symbol);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 /*lint -sem(pos_st_catastrophe, r_no)*/
+extern DOES_NOT_RETURN pos_ty_catastrophe(an_error_code     error_code,
+                                          a_source_position *error_pos,
+                                          struct a_type     *type);
+/*lint -sem(pos_st_catastrophe, r_no)*/
 extern DOES_NOT_RETURN pos_st_catastrophe(an_error_code     error_code,
                                           a_source_position *error_pos,
                                           a_const_char      *error_string);

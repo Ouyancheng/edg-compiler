@@ -15275,6 +15275,34 @@ expression).  This routine is used in lowering both C and C++.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+static an_expr_node_ptr spaceship_result_constant_expr(int         val,
+                                                       a_type_ptr  tp)
+/*
+*/
+{
+  a_constant_ptr  aggr = alloc_constant((a_constant_repr_kind)ck_aggregate),
+                  elem = alloc_constant((a_constant_repr_kind)ck_integer);
+  a_type_ptr      elem_type;
+  an_expr_node_ptr  result_expr;
+
+  tp = skip_typerefs(tp);
+  if (!is_immediate_class_type(tp) ||
+      tp->variant.class_struct_union.field_list == NULL ||
+      tp->variant.class_struct_union.field_list->next != NULL ||
+      !is_integral_type(tp->variant.class_struct_union.field_list->type)) {
+    pos_ty_catastrophe(ec_invalid_std_comparison_type, &error_position, tp);
+  }  /* if */
+  aggr->type = tp;
+  elem_type = tp->variant.class_struct_union.field_list->type;
+  elem->type = elem_type;
+  set_integer_value(&elem->variant.integer_value, (a_host_large_integer)val);
+  add_constant_to_aggregate(elem, aggr, (a_base_class*)NULL, (a_field*)NULL);
+  result_expr = alloc_node_for_constant(aggr);
+  lower_expr(result_expr);
+  return result_expr;
+}  /* spaceship_result_constant_expr */
+
+
 static void lower_cpp20_spaceship(an_expr_node_ptr  expr)
 /*
 Rewrite the given eok_spaceship in terms of eok_question and either eok_lt or
@@ -15293,10 +15321,8 @@ or, for pointer to function, pointer to member, and nullptr_t types:
   an_expr_node_ptr  temp1, temp2, one, zero, minus_one, cmp;
   a_boolean         op1_has_side_effects, op2_has_side_effects;
   
-  one = node_for_promoted_integer_constant(1L, (an_integer_kind)ik_int);
-  one = add_cast(one, expr->type);
-  zero = node_for_promoted_integer_constant(0L, (an_integer_kind)ik_int);
-  zero = add_cast(zero, expr->type);
+  one = spaceship_result_constant_expr(1, expr->type);
+  zero = spaceship_result_constant_expr(0, expr->type);
   if (is_pointer_to_function_type(op1->type) ||
       is_ptr_to_member_type(op1->type) ||
       is_nullptr_type(op1->type)) {
@@ -15315,9 +15341,7 @@ or, for pointer to function, pointer to member, and nullptr_t types:
                                   : temp2 < temp1 ? RT(1)
                                                   : RT(0)
     */
-    minus_one = node_for_promoted_integer_constant(-1L,
-                                                   (an_integer_kind)ik_int);
-    minus_one = add_cast(minus_one, expr->type);
+    minus_one = spaceship_result_constant_expr(-1, expr->type);
     op1_has_side_effects = node_has_side_effects(op1, (a_boolean *)NULL);
     op2_has_side_effects = node_has_side_effects(op2, (a_boolean *)NULL);
     temp1 = make_reusable_copy(op1, op2_has_side_effects);

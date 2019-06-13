@@ -3625,6 +3625,7 @@ where cond is the given expression.
   if_stmt->expr = make_operator_node((an_expr_operator_kind)eok_not,
                                      boolean_result_type(), cond);
   if_stmt->variant.if_stmt.then_statement = return_stmt;
+  return_stmt->parent = if_stmt;
   return if_stmt;
 }  /* make_return_false_stmt_if_false_expr */
 
@@ -3819,6 +3820,218 @@ the operator (which has just been started).
 }  /* make_default_ne_body */
 
 
+static a_statement_ptr make_spaceship_element_comparison(
+                                                       an_expr_node_ptr arg1,
+                                                       an_expr_node_ptr arg2,
+                                                       a_type_ptr       tp,
+                                                       a_statement_ptr  block)
+/*
+Create a pair of statements:
+
+	R v{arg1 <=> arg2);
+	if (v != 0) return v;
+
+with R give type and return a pointer to the first statement.  block is the
+parent statement for the new statements.
+*/
+{
+  a_variable_ptr    vp;
+  a_statement_ptr   init_stmt, if_stmt, return_stmt;
+  an_expr_node_ptr  return_cond;
+
+  /* Create the variable, its initializer, and the v != 0 expression. */
+  vp = make_spaceship_cmp_variable(arg1, arg2, tp, &return_cond);
+  check_assertion(vp->init_kind == (an_init_kind)initk_dynamic);
+  /* Allocate the initializer statement for the variable. */
+  init_stmt = alloc_statement((a_statement_kind)stmk_init);
+  init_stmt->parent = block;
+  init_stmt->variant.dynamic_init = vp->initializer.dynamic;
+  /* Create the return statement. */
+  return_stmt = alloc_statement((a_statement_kind)stmk_return);
+  return_stmt->position = error_position;
+  return_stmt->expr = var_rvalue_expr(vp);
+  /* Place the return statement under an if-statement. */
+  if_stmt = alloc_statement((a_statement_kind)stmk_if);
+  if_stmt->parent = block;
+  if_stmt->position = error_position;
+  if_stmt->expr = return_cond;
+  if_stmt->variant.if_stmt.then_statement = return_stmt;
+  return_stmt->parent = if_stmt;
+  init_stmt->next = if_stmt;
+  return init_stmt;
+}  /* make_spaceship_element_comparison */
+
+
+static void make_default_spaceship_body(a_scope_ptr  scope,
+                                        a_type_ptr   rtp,
+                                        a_type_ptr   class_type)
+/*
+Create the body for a defaulted operator<=> (of type rtp, with not typerefs)
+for the given class type.  The definition of the operator has been started and
+its associated scope is also given.
+*/
+{
+  a_statement_ptr    sp, top_block;
+  a_statement        head_of_statement_list;
+  a_base_class_ptr   bcp;
+  a_symbol_ptr       sym;
+  a_source_position  saved_error_position = error_position;
+  a_type_ptr         return_type = rtp->variant.routine.return_type;
+
+  error_position = class_type->source_corresp.decl_position;
+  /* Create the top-level block statement for the function. */
+  top_block = alloc_statement((a_statement_kind)stmk_block);
+  scope->assoc_block = top_block;
+  /* "head_of_statement_list" is a local statement variable whose only
+      interesting property is its "next" field, from which a linked list of
+      allocated statement entries will be hung.  That list will eventually be
+      transferred to the block statement that is created. */
+  head_of_statement_list.next = NULL;
+  sp = &head_of_statement_list;
+  /* Perform "memberwise comparisons.  Start with the direct base classes in
+     declaration order (if any) and then the nonstatic data members in
+     declaration order (if any). */
+  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+    an_expr_node_ptr  arg1, arg2;
+    /* We are only interested in direct base classes. */
+    if (bcp->direct) continue;
+    if (bcp->is_virtual && virtual_base_class_is_indirect(bcp, class_type)) {
+      /* If bcp is also an indirect virtual base class, it will be handled by
+         the assignment function of some other base class. */
+      continue;
+    }  /* if */
+    make_comparison_args(&arg1, &arg2);
+    arg1 = add_indirection_to_node(base_class_selection_expr(arg1, bcp));
+    arg2 = add_indirection_to_node(base_class_selection_expr(arg2, bcp));
+    sp->next = make_spaceship_element_comparison(arg1, arg2, return_type,
+                                                 top_block);
+    /* Two statements should have been returned. */
+    sp = sp->next->next;
+    check_assertion(sp->next == NULL);
+  }  /* for */
+  /* For the data members, use the symbol list rather than the field list to
+     be sure we adhere to declaration order and to be sure only user-defined
+     members are compared. */
+  sym = class_type_supp(symbol_for(class_type))->symbols;
+  for (; sym != NULL; sym = sym->next_in_scope) {
+    a_field_ptr       fp;
+    a_type_ptr        ftp, array_type;
+    an_expr_node_ptr  arg1, arg2;
+    if (!symbol_is(sym, sk_field)) continue;
+    fp = sym->variant.field.ptr;
+    if (field_is_nontrivial_property_or_event(fp)) {
+      /* Generated comparisons are currently not supported for nontrivial
+         property/event fields. */
+      pos_error(ec_defaulted_comparison_for_property, &error_position);
+      continue;
+    }  /* if */
+    ftp = skip_typerefs(fp->type);
+    /* If this is an array, we need the underlying element type. */
+    if (is_array_type(ftp)) {
+      array_type = ftp;
+      ftp = f_skip_typerefs(underlying_array_element_type(ftp));
+    } else {
+      array_type = NULL;
+    }  /* if */
+    make_comparison_args(&arg1, &arg2);
+    arg1 = fe_field_lvalue_selection_expr(arg1, fp);
+    arg2 = fe_field_lvalue_selection_expr(arg2, fp);
+    if (array_type != NULL) {
+      /* Compare an array of elements.  Generate a loop around the comparison,
+         like this:
+           tmp = 0;
+           do {
+             if (!(arg1[tmp] == &src[tmp]))
+               return false;
+           } while (++tmp < num_elements);
+         Note that comparing multidimensional arrays is done as a single loop
+         for all the elements, treating the array as a single-dimensional array
+         of the ultimate underlying element type. */
+      a_variable_ptr    temp_var;
+      an_expr_node_ptr  temp_node, temp_incr_node, compare_node;
+      a_type_ptr        size_t_type = integer_type(targ_size_t_int_kind);
+      a_targ_size_t     num_elems;
+      temp_var = alloc_temporary_variable(size_t_type,
+                                          /*force_static=*/FALSE);
+      /* Make "tmp = 0;" */
+      temp_node = var_lvalue_expr(temp_var);
+      sp->next =
+        make_assignment_statement(temp_node, node_for_integer_constant(
+                                                   0L, targ_size_t_int_kind));
+      sp = sp->next;
+      sp->parent = top_block;
+      /* Make "++tmp < num_elements". */
+      temp_node = var_lvalue_expr(temp_var);
+      temp_incr_node = make_operator_node((an_expr_operator_kind)eok_pre_incr,
+                                          size_t_type, temp_node);
+      num_elems = skip_typerefs(array_type)->size / ftp->size;
+      temp_incr_node->next = node_for_host_large_integer(
+                                              (a_host_large_integer)num_elems,
+                                              targ_size_t_int_kind);
+      compare_node = make_operator_node((an_expr_operator_kind)eok_lt,
+                                        boolean_result_type(),
+                                        temp_incr_node);
+      /* Make the do-while statement. */
+      sp->next = alloc_statement((a_statement_kind)stmk_end_test_while);
+      sp = sp->next;
+      sp->parent = top_block;
+      sp->expr = compare_node;
+      /* Convert the two operands to pointers to the underlying non-array
+         elements and apply a subscript to those pointer values. */
+      arg1 = conv_array_expr_to_underlying_ptr(arg1);
+      arg1 = add_subscript_to_ptr_expr(arg1, temp_var);
+      arg2 = conv_array_expr_to_underlying_ptr(arg2);
+      arg2 = add_subscript_to_ptr_expr(arg2, temp_var);
+    }  /* if */
+    if (array_type != NULL) {
+      /* Array case; the comparison goes under the do-while. */
+      sp->variant.loop_statement = make_spaceship_element_comparison(
+                                                 arg1, arg2, return_type, sp);
+    } else {
+      /* Non-array case; the comparison goes at the end of the statement
+         sequence. */
+      sp->next = make_spaceship_element_comparison(
+                                          arg1, arg2, return_type, top_block);
+      sp = sp->next->next;
+    }  /* if */
+  }  /* for */
+  /* Make the final "return (R)std::strong_ordering::equal;" statement. */
+  sp->next = alloc_statement((a_statement_kind)stmk_return);
+  sp = sp->next;
+  sp->parent = top_block;
+  make_std_strong_ordering_equal_return(rtp, sp);
+  /* We now have a list of one or more statements hanging off the local
+     variable head_of_statement_list.  The start of the list is pointed to
+     by the next field.  Attach the list to the top-level block. */
+  top_block->variant.block.statements = head_of_statement_list.next;
+  error_position = saved_error_position;
+}  /* make_default_spaceship_body */
+
+
+static void make_default_rel_op_body(an_opname_kind  onk,
+                                     a_scope_ptr  scope)
+/*
+Create the body for a defaulted relational operator described by onk.  scope is
+the definition scope of the operator (which has just been started).
+*/
+{
+  an_expr_node_ptr  arg1, arg2, cmp;
+  a_statement_ptr   top_block, return_stmt;
+
+  top_block = alloc_statement((a_statement_kind)stmk_block);
+  scope->assoc_block = top_block;
+  make_comparison_args(&arg1, &arg2);
+  arg1 = add_indirection_to_node(arg1);
+  arg2 = add_indirection_to_node(arg2);
+  cmp = make_synthesized_rel_op(token_for_rel_op(onk), arg1, arg2);
+  return_stmt = alloc_statement((a_statement_kind)stmk_return);
+  return_stmt->position = error_position;
+  return_stmt->expr = cmp;
+  return_stmt->parent = top_block;
+  top_block->variant.block.statements = return_stmt;
+}  /* make_default_rel_op_body */
+
+
 static void define_default_comparison_operator(a_routine_ptr  rp)
 /*
 The given routine is a defaulted comparison operator.  Generate an actual
@@ -3851,6 +4064,10 @@ definition for it.
       make_default_eq_body(scope, class_type);
     } else if (opname_kind_is(rp, onk_ne)) {
       make_default_ne_body(scope);
+    } else if (opname_kind_is(rp, onk_spaceship)) {
+      make_default_spaceship_body(scope, rtp, class_type);
+    } else if (opname_kind_is_rel_op(rp)) {
+      make_default_rel_op_body(rp->variant.opname_kind, scope);
     } else {
       unexpected_condition();
     }  /* if */

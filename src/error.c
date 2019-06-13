@@ -5730,6 +5730,24 @@ errors.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
+/*lint -esym(759,pos_ty_catastrophe)*/
+/*lint -esym(765,pos_ty_catastrophe)*/
+DOES_NOT_RETURN pos_ty_catastrophe(an_error_code     error_code,
+                                   a_source_position *error_pos,
+                                   a_type            *type)
+/*
+Report the indicated catastrophic error (with the indicated fill-in type)
+at the indicated position, and then terminate the compilation.
+*/
+{
+  pos_ty_diagnostic(es_catastrophe, error_code, error_pos, type);
+#ifdef __GNUC__
+  /* Avoid gcc warning.  The function above does not return in this case. */
+  exit_compilation(es_internal_error);
+#endif /* __GNUC__ */
+}  /* pos_ty_catastrophe */
+
+
 /*lint -esym(759,pos_st_catastrophe)*/
 /*lint -esym(765,pos_st_catastrophe)*/
 DOES_NOT_RETURN pos_st_catastrophe(an_error_code     error_code,
