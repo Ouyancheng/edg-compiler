@@ -5070,6 +5070,8 @@ and a vector are compatible.
       check_assertion(source_type->kind == (a_type_kind)tk_integer &&
                       dest_type->kind   == (a_type_kind)tk_integer);
       if (source_type->size > dest_type->size ||
+          (!source_type->variant.integer.bool_type &&
+           dest_type->variant.integer.bool_type) ||
           (source_type->size == dest_type->size &&
            !int_kind_is_signed[(int)source_type->variant.integer.int_kind] &&
            int_kind_is_signed[(int)  dest_type->variant.integer.int_kind]) ||

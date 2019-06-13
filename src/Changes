@@ -1,5 +1,18 @@
 Version 5.1
 
+6/13/19  [EDGcpfe/19678]
+Missing diagnostic on narrowing conversion from char to bool
+
+The front end was failing to diagnose the conversion from char to bool as a
+narrowing conversion.  For example:
+
+  struct S {
+    S(bool);
+  };
+  char c = 'a';
+  S s{c}; // Previously accepted, now an error
+
+
 6/12/19  [EDGcpfe/21369]
 Explicit conversions in braced-initialization of references
 
