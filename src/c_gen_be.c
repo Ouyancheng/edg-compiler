@@ -4587,7 +4587,7 @@ on top of the expansion.
        node_operator_is(operand_1, eok_points_to_field))) {
     a_field_ptr      field;
     a_boolean        comma_case;
-    a_targ_size_t    subobject_offset = 0;
+    a_targ_size_t    sub_object_offset = 0;
     object_expr = operand_1->variant.operation.operands;
     check_assertion(object_expr->next->kind == (an_expr_node_kind)enk_field);
     field = node_field(object_expr->next);
@@ -4597,7 +4597,7 @@ on top of the expansion.
          class, so we transform this reference into a reference to the
          first member of the base class (skipping empty classes). See
          create_prefix_and_dump_field_name for details. */
-      subobject_offset += field->offset;
+      sub_object_offset += field->offset;
       field = next_non_empty_initializable_field(
                            field->type->variant.class_struct_union.field_list);
     }  /* if */
@@ -4610,7 +4610,7 @@ on top of the expansion.
         goto after_operand_output;
       }  /* if */
       bit_field_case = TRUE;
-      field_offset = subobject_offset + field->offset;
+      field_offset = sub_object_offset + field->offset;
     } else if (node_operator_is(operand_1, eok_dot_field) &&
                ((!object_expr->is_lvalue &&
                  (!optimizable_rvalue_selection(operand_1, &comma_case) ||
