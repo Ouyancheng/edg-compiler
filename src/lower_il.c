@@ -1952,7 +1952,7 @@ Used by lowering when adding an array decay.  The node is created as an rvalue.
   node = make_operator_node((an_expr_operator_kind)eok_array_to_pointer, 
                      type_after_array_to_pointer_transformation(operand->type),
                      operand);
-  node->variant.operation.compiler_generated = TRUE;
+  node->compiler_generated = TRUE;
   return node;
 }  /* make_array_to_pointer_node */
 
@@ -2328,7 +2328,7 @@ operand_node (as well as the resulting node) are rvalues.
   set_expr_node_kind(node, (an_expr_node_kind)enk_operation);
   set_node_operator(node, (an_expr_operator_kind)eok_cast,
                     new_type, /*is_lvalue=*/FALSE, operand_node);
-  node->variant.operation.compiler_generated = TRUE;
+  node->compiler_generated = TRUE;
 }  /* change_to_cast */
 
 
@@ -10930,12 +10930,10 @@ NULL-preservation code is required.
   }  /* if */
   if (!identical_types(node_type, result_node->type)) {
     /* A final cast is needed. */
-    a_boolean saved_compiler_generated =
-                                    node->variant.operation.compiler_generated;
+    a_boolean saved_compiler_generated = node->compiler_generated;
     result_node = add_cast(result_node, node_type);
     if (is_derived_cast) {
-      result_node->variant.operation.compiler_generated =
-                                                      saved_compiler_generated;
+      result_node->compiler_generated = saved_compiler_generated;
     }  /* if */
   }  /* if */
   /* Convert result_node (an rvalue pointer) to the same form as the
@@ -16568,7 +16566,7 @@ a 0/1 value.  This routine is called for both C and C++ expressions.
                                  integer_type((an_integer_kind)ik_int),
                                  make_operands_for_ne_0(copy_node(expr)),
                                  /*is_lvalue=*/FALSE);
-        expr->variant.operation.compiler_generated = TRUE;
+        expr->compiler_generated = TRUE;
         lower_ne_0_normalization(expr);
         if (!(is_operation_node(expr) && node_operator_is(expr, eok_ne))) {
           /* In some cases (e.g., testing a complex value), lowering the "!= 0"

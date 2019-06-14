@@ -9466,8 +9466,7 @@ an argument of a call in gpp mode even though the standard says it's not.
         /* Drop "*" or the reference equivalent. */
         expr = skip_parens(expr->variant.operation.operands);
       }  /* if */
-      if (is_operation_node(expr) &&
-          !expr->variant.operation.compiler_generated) {
+      if (is_operation_node(expr) && !expr->compiler_generated) {
         an_expr_node_ptr potential_this = NULL;
         an_expr_node_ptr op1 = expr->variant.operation.operands;
         an_expr_node_ptr op2 = op1->next;
@@ -11533,7 +11532,7 @@ if is_lvalue is TRUE.
     sel_expr = make_operator_node((an_expr_operator_kind)eok_address_of,
                                   make_pointer_type(sel_expr->type),
                                   sel_expr);
-    sel_expr->variant.operation.compiler_generated = TRUE;
+    sel_expr->compiler_generated = TRUE;
   } else {
     if (!is_lvalue) sel_expr = rvalue_expr_for_lvalue(sel_expr);
   }  /* if */
@@ -20365,7 +20364,7 @@ the temporary.
              the explicit conversion; the conversion function call is an
              implicit side effect of that cast and should be marked as
              compiler-generated. */
-          conv_function_call_node->variant.operation.compiler_generated = TRUE;
+          conv_function_call_node->compiler_generated = TRUE;
         }  /* if */
       } else if (is_a_glvalue(operand)) {
         adjust_glvalue_type(operand, dest_type);
@@ -20593,8 +20592,7 @@ is_transparent.  conv_context describes the context of the conversion.
       a_constant_ptr  cp = &source_operand->variant.constant;
       if (constant_is(cp, ck_template_param) && tpck_is(cp, tpck_expression)) {
         an_expr_node_ptr  expr = expr_node_from_tpck_expression(cp);
-        if (is_operation_node(expr) &&
-            expr->variant.operation.compiler_generated &&
+        if (is_operation_node(expr) && expr->compiler_generated &&
             is_cast_operation_node(expr) &&
             !is_template_dependent_type(expr->type)) {
           /* If we are implicitly converting a template argument to a

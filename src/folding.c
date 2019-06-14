@@ -210,7 +210,7 @@ TRUE if the cast actually appeared in the source.
   }  /* if */
   node = make_operator_node(op, new_type, node);
   if (!is_explicit) {
-    node->variant.operation.compiler_generated = TRUE;
+    node->compiler_generated = TRUE;
   }  /* if */
   make_template_param_expr_constant(node, new_constant);
   new_constant->variant.template_param.do_not_rescan = TRUE;
@@ -230,7 +230,7 @@ The cast is implicit if is_implicit_cast is TRUE.
       (!is_implicit_cast || !identical_types(cp->type, new_type))) {
     cp->expr = make_operator_node((an_expr_operator_kind)eok_cast, new_type,
                                   cp->expr);
-    cp->expr->variant.operation.compiler_generated = is_implicit_cast;
+    cp->expr->compiler_generated = is_implicit_cast;
   }  /* if */
   cp->implicit_cast = TRUE;
   if (!is_implicit_cast) {
@@ -2520,7 +2520,7 @@ exit:
                             make_operator_node((an_expr_operator_kind)eok_cast,
                                                new_constant->type,
                                                constant->expr);
-      cast_expr->variant.operation.compiler_generated = is_implicit_cast;
+      cast_expr->compiler_generated = is_implicit_cast;
       cast_expr->variant.operation.is_reinterpret_cast = is_reinterpret_cast;
       new_constant->expr = cast_expr;
     }  /* if */
@@ -6650,8 +6650,7 @@ handle_pm_field_selection:
                 /* The type cast to is dependent or the source is dependent,
                    so add a template param cast. */
                 make_template_param_cast_constant(conaddr1, con, expr->type,
-                                                  !expr->variant.operation.
-                                                           compiler_generated);
+                                                  !expr->compiler_generated);
                 *template_constant = TRUE;
                 is_constant_addr = TRUE;
               } else {
@@ -6665,8 +6664,7 @@ handle_pm_field_selection:
                 fold_base_class_cast(conaddr1, bcp, expr->type, con,
                                      /*check_cast_access=*/FALSE,
                                      /*check_ambiguity=*/FALSE,
-                                     (a_boolean)expr->variant.operation.
-                                                            compiler_generated,
+                                     (a_boolean)expr->compiler_generated,
                                      (options & CAO_IS_OBJECT_POINTER) != 0,
                                      /*omit_backing_expr=*/FALSE,
                                      &did_not_fold, &error_position,
@@ -6698,14 +6696,12 @@ handle_pm_field_selection:
                 /* The type cast to is dependent or the source is dependent,
                    so add a template param cast. */
                 make_template_param_cast_constant(conaddr1, con, new_type,
-                                                  !expr->variant.operation.
-                                                           compiler_generated);
+                                                  !expr->compiler_generated);
                 *template_constant = TRUE;
               } else {
                 copy_constant(conaddr1, con);
                 implicit_or_explicit_cast(
-                                   con, new_type,
-                                   expr->variant.operation.compiler_generated);
+                                     con, new_type, expr->compiler_generated);
               }  /* if */
               if (expr->variant.operation.is_reinterpret_cast) {
                 con->is_reinterpret_cast = TRUE;
@@ -7056,8 +7052,7 @@ cast_case:
               conv_pointer_to_whatever(conaddr1, con,
                                        /*check_cast_access=*/FALSE,
                                        /*check_ambiguity=*/FALSE,
-                                       (a_boolean)expr->variant.operation.
-                                                            compiler_generated,
+                                       (a_boolean)expr->compiler_generated,
                                        /*fold_constant_addr_exprs=*/TRUE,
                                        (a_boolean)expr->variant.operation.
                                                            is_reinterpret_cast,

@@ -4897,8 +4897,7 @@ it represents a backing expression for the floating-point constant value.
     if (not_a_number && expr != NULL) {
       /* Strip any compiler-generated casts from the backing expression before
          testing it below. */
-      while (is_operation_node(expr) &&
-             expr->variant.operation.compiler_generated &&
+      while (is_operation_node(expr) && expr->compiler_generated &&
              is_cast_operation_node(expr)) {
         expr = expr->variant.operation.operands;
       }  /* while */
@@ -5136,7 +5135,7 @@ on every expression.
                      op == (an_expr_operator_kind)eok_lvalue_adjust ||
                      op == (an_expr_operator_kind)eok_class_rvalue_adjust ||
                      op == (an_expr_operator_kind)eok_unbox_lvalue ||
-                     (expr->variant.operation.compiler_generated &&
+                     (expr->compiler_generated &&
                       is_cast_operation_node(expr))) {
             /* Elide certain implicit operations. */
             form_expression(operand, octl);

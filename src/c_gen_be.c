@@ -5545,7 +5545,7 @@ described by arguments.
 #if BUILTIN_FUNCTIONS_ENABLED
     if (remove_compiler_generated_casts &&
         is_operation_node(call_argument) &&
-        call_argument->variant.operation.compiler_generated &&
+        call_argument->compiler_generated &&
         call_argument->variant.operation.kind ==
                                      (an_expr_operator_kind)eok_cast) {
       /* Remove a compiler-generated cast. */
@@ -5859,8 +5859,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                   dubious.  Also, pcc seems to have some difficulty with
                   implicit conversions from "void *" in some cases.)
           */
-          if (expr->variant.operation.compiler_generated &&
-              is_pointer_type(expr->type) &&
+          if (expr->compiler_generated && is_pointer_type(expr->type) &&
               is_directly_variably_modified_type(expr->type)) {
             /* Do not put out an implicit cast to a variably-modified type. */
           } else {

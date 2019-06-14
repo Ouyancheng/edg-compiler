@@ -5712,7 +5712,7 @@ operands to be parenthesized at that level.
          potential comma operations also.) */
       tblock->result = TRUE;
       tblock->terminate = TRUE;
-    } else if (!(expr->variant.operation.compiler_generated ||
+    } else if (!(expr->compiler_generated ||
                  op == (an_expr_operator_kind)eok_lvalue)) {
       /* Compiler-generated operations like casts to the parameter type
          are typically skipped in the generated output and thus won't
@@ -8571,7 +8571,7 @@ is the one associated with the definition of the enum.
           con_expr = expr_node_from_tpck_expression(enum_con);
           while (is_operation_node(con_expr) &&
                  node_operator_is(con_expr, eok_cast) &&
-                 con_expr->variant.operation.compiler_generated) {
+                 con_expr->compiler_generated) {
             /* Skip over a compiler-generated cast of the expression to
                the underlying type. */
             con_expr = con_expr->variant.operation.operands;
@@ -8583,8 +8583,7 @@ is the one associated with the definition of the enum.
               }  /* if */
             }  /* if */
           }  /* while */
-          if (is_operation_node(con_expr) &&
-              con_expr->variant.operation.compiler_generated) {
+          if (is_operation_node(con_expr) && con_expr->compiler_generated) {
             /* The constant is a compiler-generated expression; no
                explicit expression is needed. */
             explicit_enum_expr = FALSE;
@@ -10361,8 +10360,7 @@ C++.
      but since it is not implicit in the naming, *naming_class is set
      to class B.  Node (3) is returned. */
   /* No skip_parens needed here. */
-  while (is_operation_node(node) &&
-         node->variant.operation.compiler_generated &&
+  while (is_operation_node(node) && node->compiler_generated &&
          (node_operator_is(node, eok_base_class_cast) ||
           node_operator_is(node, eok_cast) ||
           node_operator_is(node, eok_lvalue_adjust) ||
@@ -10591,7 +10589,7 @@ the expression reflects an implicit member access ("this->y"), so the
     op = (an_expr_operator_kind)eok_dot_field;
   }  /* if */
   if (op == (an_expr_operator_kind)eok_points_to_field) {
-    if (expr->variant.operation.compiler_generated) {
+    if (expr->compiler_generated) {
       if (is_variable_node(object_expr) &&
           node_variable(object_expr)->is_this_parameter) {
         /* This is an implicit member access ("this->y"), so nothing should
@@ -10758,8 +10756,7 @@ of a "?" operation returning a class rvalue.  Generate code for it.
     arg = dip->variant.constructor.args;
     check_assertion(arg != NULL && arg->next == NULL);
     arg = skip_parens(arg);
-    while (is_operation_node(arg) &&
-           arg->variant.operation.compiler_generated) {
+    while (is_operation_node(arg) && arg->compiler_generated) {
       /* Remove compiler-generated nodes that adjust cv-qualification,
          handle references, etc. */
       arg = skip_parens(arg->variant.operation.operands);
@@ -11124,14 +11121,12 @@ removed and FALSE otherwise.
       node = dip->variant.expression;
     }  /* if*/
   }  /* if */
-  while (is_operation_node(node) &&
-         node->variant.operation.compiler_generated &&
+  while (is_operation_node(node) && node->compiler_generated &&
          (node_operator_is(node, eok_cast) ||
           node_operator_is(node, eok_base_class_cast))) {
     node = node->variant.operation.operands;
   }  /* while */
-  if (is_operation_node(node) &&
-      node->variant.operation.compiler_generated &&
+  if (is_operation_node(node) && node->compiler_generated &&
       (node_operator_is(node, eok_address_of) ||
        node_operator_is(node, eok_handle_to))) {
     /* We can ignore the "(<type>)&" or "(<type>)%" sequence and just
@@ -11232,8 +11227,7 @@ expression node terminates the traversal leaving temp_init_node unchanged.
     temp_init_node = expr;
     tblock->terminate = TRUE;
   } else if (expr->kind == (an_expr_node_kind)enk_object_lifetime ||
-             (is_operation_node(expr) &&
-              expr->variant.operation.compiler_generated)) {
+             (is_operation_node(expr) && expr->compiler_generated)) {
     /* Continue the traversal. */
   } else {
     tblock->terminate = TRUE;
@@ -11246,7 +11240,7 @@ Return TRUE if the given expression is a C++/CLI gcnew for a CLI array.
 */
 #define is_compiler_generated_gcnew_cli_array(expr)                     \
   ((expr)->kind == (an_expr_node_kind)enk_gcnew &&                      \
-   (expr)->variant.gcnew_info->compiler_generated &&                    \
+   (expr)->compiler_generated &&                                        \
    (expr)->variant.gcnew_info->is_cli_array)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -11358,7 +11352,7 @@ get to the expression that will appear, and return that.
     if (is_operation_node(node) &&
         (node_operator_is(node, eok_reference_to) ||
          node_operator_is(node, eok_ref_indirect) ||
-         (node->variant.operation.compiler_generated &&
+         (node->compiler_generated &&
           (node_operator_is(node, eok_address_of) ||
            node_operator_is(node, eok_indirect) ||
            node_operator_is(node, eok_class_rvalue_adjust) ||
@@ -11841,7 +11835,7 @@ Generate code for a gcnew expression.
   a_type_ptr             type = gsp->type;
   a_dynamic_init_ptr     dip  = gsp->dynamic_init;
 
-  if (!gsp->compiler_generated) {
+  if (!gcnew_expr->compiler_generated) {
     if (cppcx_enabled) {
       write_tok_str("ref new ");
     } else {
@@ -12158,8 +12152,7 @@ normal way.
                      skip_typerefs(routine->type)->variant.routine.return_type;
     a_type_ptr    bare_return_type = skip_typerefs(return_type);
     /* This is a call of a conversion function. */
-    if (expr->variant.operation.compiler_generated &&
-        !expr->keep_as_cast_for_cp_gen_be) {
+    if (expr->compiler_generated && !expr->keep_as_cast_for_cp_gen_be) {
       /* This is an implicit conversion.  Put out just the operand. */
       gen_object_expr_for_implicit_call(operand_2,
                                         /*obj_expr_of_mfunc_operator=*/FALSE);
@@ -13318,7 +13311,7 @@ handled through recursion.
         arg1 = arg1->variant.operation.operands;
       }  /* while */
       if (is_operation_node(arg1) && node_operator_is(arg1, eok_indirect) &&
-          arg1->variant.operation.compiler_generated) {
+          arg1->compiler_generated) {
         /* Skip over a compiler-generated indirection node. */
         arg1 = arg1->variant.operation.operands;
       }  /* if */
@@ -13660,9 +13653,9 @@ operations in one of its operands to be parenthesized at that level.
            those cases also when msvc_is_generated_code_target.) */
         tblock->result = TRUE;
         tblock->terminate = TRUE;
-    } else if (!expr->variant.operation.compiler_generated &&
+    } else if (!expr->compiler_generated &&
                generated_precedence[expr->variant.operation.kind] >
-               generated_precedence[(int)eok_shiftr]) {
+                                      generated_precedence[(int)eok_shiftr]) {
       /* This operator binds more tightly than ">>" and thus would cause a
          ">>" in an operand to be parenthesized.  (This also covers ">",
          which binds even less tightly than ">>".)  A compiler-generated
@@ -13949,7 +13942,7 @@ gen_expr that might end up generating this expr as a temporary.
         }  /* if */
         goto done_with_operation_after_parens;
       } else if ((op == (an_expr_operator_kind)eok_call &&
-                  !expr->variant.operation.compiler_generated) ||
+                  !expr->compiler_generated) ||
                  op == (an_expr_operator_kind)eok_dot_member_call ||
                  op == (an_expr_operator_kind)eok_points_to_member_call) {
         /* Suppress parentheses around a function call.  They're not needed
@@ -13969,7 +13962,7 @@ gen_expr that might end up generating this expr as a temporary.
       switch (op) {
         /* One-operand operators. */
         case eok_address_of:
-          check_assertion(!expr->variant.operation.compiler_generated);
+          check_assertion(!expr->compiler_generated);
           write_tok_ch('&');
           gen_expr_with_parens(operand_1);
           goto done_with_operation;
@@ -13985,8 +13978,7 @@ gen_expr that might end up generating this expr as a temporary.
           goto done_with_operation;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case eok_indirect:
-          if (expr->variant.operation.compiler_generated &&
-              is_constant_node(operand_1) &&
+          if (expr->compiler_generated && is_constant_node(operand_1) &&
               handle_lvalue_constant_node(operand_1, /*need_parens=*/FALSE)) {
             /* The compiler-generated "*" offsets an implicit "&" in the
                constant operand, so the operand can just be generated as an
@@ -13994,7 +13986,7 @@ gen_expr that might end up generating this expr as a temporary.
                handle_lvalue_constant_node, so nothing further needs to be
                done. */
           } else {
-            if (expr->variant.operation.compiler_generated &&
+            if (expr->compiler_generated &&
                 (strip_lvalue_cast_sequence(&operand_1) ||
                  (is_operation_node(operand_1) &&
                   (operand_1->variant.operation.is_reference_cast ||
@@ -14056,8 +14048,7 @@ gen_expr that might end up generating this expr as a temporary.
           /* Make the deprecated conversion from a const string literal
              to "char *" explicit in case the underlying compiler does
              not allow that in this context. */
-          if (expr->variant.operation.compiler_generated &&
-              !expr->keep_as_cast_for_cp_gen_be &&
+          if (expr->compiler_generated && !expr->keep_as_cast_for_cp_gen_be &&
               !is_const_string_literal_cast(expr)) {
             /* Normal implicit cast.  Just omit the cast. */
             a_boolean saved_suppress_cast_on_short_integral_const =
@@ -14090,12 +14081,12 @@ gen_expr that might end up generating this expr as a temporary.
         case eok_unbox:
         case eok_unbox_lvalue:
           /* Related-class casts, boxing/unboxing. */
-          if (expr->variant.operation.compiler_generated) {
+          if (expr->compiler_generated) {
             /* For an implicit cast, just put out the underlying operand. */
             if (op == (an_expr_operator_kind)eok_box &&
                 is_operation_node(operand_1) &&
                 node_operator_is(operand_1, eok_indirect) &&
-                operand_1->variant.operation.compiler_generated) {
+                operand_1->compiler_generated) {
               /* Ignore a compiler-generated "%*" sequence. */
               gen_expr(operand_1->variant.operation.operands,
                        /*need_parens=*/FALSE, obj_expr_of_mfunc_operator);
@@ -14108,8 +14099,7 @@ gen_expr that might end up generating this expr as a temporary.
           }  /* if */
           goto done_with_operation;
         case eok_lvalue_cast:
-          if (!expr->variant.operation.compiler_generated ||
-              expr->keep_as_cast_for_cp_gen_be) {
+          if (!expr->compiler_generated || expr->keep_as_cast_for_cp_gen_be) {
             if (!msvc_is_generated_code_target &&
                 !expr->keep_as_cast_for_cp_gen_be &&
                 standalone_identical_types(expr->type, operand_1->type)) {
@@ -14127,7 +14117,7 @@ gen_expr that might end up generating this expr as a temporary.
         case eok_lvalue_adjust:
           if (is_array_type(expr->type) && is_operation_node(operand_1) &&
               node_operator_is(operand_1, eok_indirect) &&
-              operand_1->variant.operation.compiler_generated &&
+              operand_1->compiler_generated &&
               is_operation_node(operand_1->variant.operation.operands) &&
               node_operator_is(operand_1->variant.operation.operands,
                                                        eok_array_to_pointer)) {
@@ -14141,14 +14131,14 @@ gen_expr that might end up generating this expr as a temporary.
                      /*obj_expr_of_mfunc_operator=*/FALSE);
           } else {
             /* Compiler-generated, so there is no source representation. */
-            check_assertion(expr->variant.operation.compiler_generated);
+            check_assertion(expr->compiler_generated);
             gen_expr(operand_1, /*need_parens=*/FALSE,
                      /*obj_expr_of_mfunc_operator=*/FALSE);
           }  /* if */
           goto done_with_operation;
         case eok_class_rvalue_adjust:
           /* Always compiler-generated, so it has no source representation. */
-          check_assertion(expr->variant.operation.compiler_generated);
+          check_assertion(expr->compiler_generated);
           gen_expr(operand_1, /*need_parens=*/FALSE,
                    /*obj_expr_of_mfunc_operator=*/FALSE);
           goto done_with_operation;

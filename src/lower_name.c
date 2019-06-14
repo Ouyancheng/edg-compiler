@@ -4776,11 +4776,11 @@ call that has no arguments).
               (op == (an_expr_operator_kind)eok_base_class_cast ||
                op == (an_expr_operator_kind)eok_pm_base_class_cast)) &&
 #endif /* !IA64_ABI */
-             expr->variant.operation.compiler_generated)) {
+             expr->compiler_generated)) {
           /* These are all inserted by the compiler and don't represent
              explicit constructs in the source code. */
           expr = child;
-        } else if (expr->variant.operation.compiler_generated) {
+        } else if (expr->compiler_generated) {
           /* Remove various compiler-generated operations so the mangling
              accurately reflects the original source. */
 #if ABI_COMPATIBILITY_VERSION >= 402
@@ -4809,7 +4809,7 @@ call that has no arguments).
               expr = child;
               break;
             } else if (is_operation_node(child)) {
-              if (child->variant.operation.compiler_generated &&
+              if (child->compiler_generated &&
                   ((op == (an_expr_operator_kind)eok_address_of &&
                     child->kind == (an_expr_operator_kind)eok_indirect) ||
                    (op == (an_expr_operator_kind)eok_indirect &&
@@ -4849,7 +4849,7 @@ call that has no arguments).
 #if MICROSOFT_EXTENSIONS_ALLOWED && CHECKING
     } else if (expr->kind == (an_expr_node_kind)enk_gcnew) {
       /* Compiler-generated gcnew shouldn't get to mangling. */
-      check_assertion(!expr->variant.gcnew_info->compiler_generated);
+      check_assertion(!expr->compiler_generated);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && CHECKING */
     }  /* if */
   }  /* while */
@@ -4967,8 +4967,7 @@ dependent.
               !expr->variant.new_delete->is_new) ||
              expr->kind == (an_expr_node_kind)enk_throw ||
              expr->kind == (an_expr_node_kind)enk_temp_init ||
-             (is_cast_operation_node(expr) &&
-              !expr->variant.operation.compiler_generated) ||
+             (is_cast_operation_node(expr) && !expr->compiler_generated) ||
              (is_operation_node(expr) &&
               (node_operator_is(expr, eok_dot_vacuous_destructor_call) ||
                node_operator_is(expr, eok_points_to_vacuous_destructor_call))))
@@ -5636,7 +5635,7 @@ expression.
     default:
       unexpected_condition();
   }  /* switch */
-  if (expr->variant.operation.compiler_generated) {
+  if (expr->compiler_generated) {
     if (expr->is_objectless_nonstatic_data_mem_ref
 #if !IA64_ABI
         && (nrp != NULL && nrp->qualifier != NULL)

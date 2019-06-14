@@ -5232,7 +5232,7 @@ to TRUE or FALSE depending on whether the cast was explicit or not.
         !expr->variant.operation.is_const_cast) {
       an_expr_node_ptr  opnd = expr->variant.operation.operands;
       if (is_constant_node(opnd)) {
-        *is_explicit = !expr->variant.operation.compiler_generated;
+        *is_explicit = !expr->compiler_generated;
         *p_base_con = node_constant(opnd);
         result = TRUE;
       }  /* if */
@@ -7073,8 +7073,7 @@ are done.
                            node2->variant.operation.is_const_cast &&
             node1->variant.operation.is_reinterpret_cast ==
                            node2->variant.operation.is_reinterpret_cast &&
-            node1->variant.operation.compiler_generated ==
-                           node2->variant.operation.compiler_generated &&
+            node1->compiler_generated == node2->compiler_generated &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
             node1->variant.operation.requires_runtime_cast_check ==
                         node2->variant.operation.requires_runtime_cast_check &&
@@ -7151,7 +7150,7 @@ are done.
           eq = (gsp1->is_cli_array == gsp2->is_cli_array &&
                 !(gsp1->is_cli_array &&
                   gsp1->has_new_initializer != gsp2->has_new_initializer) &&
-                gsp1->compiler_generated == gsp2->compiler_generated &&
+                node1->compiler_generated == node2->compiler_generated &&
                 identical_types_full(gsp1->type, gsp2->type, itf_options) &&
                 compare_expression_lists(gsp1->cli_array_dimension_lengths,
                                          gsp2->cli_array_dimension_lengths,
@@ -15633,8 +15632,7 @@ init_entity_type can be NULL if the caller does not need that information.
   /* Skip compiler-generated casts as well as any enk_temp_init nodes
      introduced to reuse the address of the initialized temporary array. */
   for (;;) {
-    if (is_cast_operation_node(arg1) &&
-        arg1->variant.operation.compiler_generated) {
+    if (is_cast_operation_node(arg1) && arg1->compiler_generated) {
       arg1 = arg1->variant.operation.operands;
     } else if (arg1->kind == (an_expr_node_kind)enk_temp_init &&
                arg1->variant.init.dynamic_init->is_reused_value) {
@@ -16524,7 +16522,7 @@ gives the source position for errors.
       /* There is already an expression, so add a cast to it. */
       *expr = make_operator_node((an_expr_operator_kind)eok_cast, new_type,
                                  *expr);
-      (*expr)->variant.operation.compiler_generated = TRUE;
+      (*expr)->compiler_generated = TRUE;
     } else {
       if (*alloc_con != NULL) {
         /* Drop back from an allocated to an unallocated copy of the
@@ -17671,8 +17669,7 @@ options is a set of name lookup options.
                 if (error_detected != ec_no_error) subst_fail(*copy_error);
               }  /* if */
             } else if (op == (an_expr_operator_kind)eok_cast) {
-              a_boolean is_implicit_cast =
-                                    expr->variant.operation.compiler_generated;
+              a_boolean is_implicit_cast = expr->compiler_generated;
               a_boolean is_reinterpret_cast;
               if (!substituted_cast_is_valid(constant_1, operation_type,
                                              !is_implicit_cast,
@@ -18118,7 +18115,7 @@ constant.
       tpck_is(constant, tpck_expression)) {
     an_expr_node_ptr	expr = expr_node_from_tpck_expression(constant);
     if (is_operation_node(expr) && node_operator_is(expr, eok_cast) &&
-        expr->variant.operation.compiler_generated) {
+        expr->compiler_generated) {
       an_expr_node_ptr	operand = expr->variant.operation.operands;
       if (is_constant_node(operand)) {
         constant = node_constant(operand);
@@ -19169,8 +19166,7 @@ a constant that is the previous value incremented by one.
                            make_operator_node((an_expr_operator_kind)eok_add,
                                               con->type,
                                               operands);
-  con->variant.template_param.variant.expr->
-                                   variant.operation.compiler_generated = TRUE;
+  con->variant.template_param.variant.expr->compiler_generated = TRUE;
   release_local_constant(&one_val);
 }  /* increment_template_dependent_enum_constant */
 
@@ -19227,7 +19223,7 @@ The cast is marked as compiler-generated.
 {
   an_expr_node_ptr expr = make_operator_node((an_expr_operator_kind)eok_cast,
                                              new_type, node);
-  expr->variant.operation.compiler_generated = TRUE;
+  expr->compiler_generated = TRUE;
   return expr;
 }  /* add_cast */
 
@@ -19266,7 +19262,7 @@ cv-qualification or other non-base-class type adjustment.
                                    (an_expr_operator_kind)eok_lvalue_adjust,
                                    type, node);
   copy_node_value_category(node, new_node);
-  new_node->variant.operation.compiler_generated = TRUE;
+  new_node->compiler_generated = TRUE;
   return new_node;
 }  /* add_cast_to_glvalue */
 
@@ -19299,15 +19295,14 @@ adjust its type to "type", and return a pointer to the resulting expression.
 {
   check_assertion(!is_glvalue_node(node) &&
                   is_class_struct_union_type(type));
-  if (is_operation_node(node) &&
-      node_operator_is(node, eok_base_class_cast) &&
-      node->variant.operation.compiler_generated) {
+  if (is_operation_node(node) && node->compiler_generated &&
+      node_operator_is(node, eok_base_class_cast)) {
     /* A base class adjustment can be folded into a base class cast. */
     node->type = type;
   } else {
     node = make_operator_node((an_expr_operator_kind)eok_class_rvalue_adjust,
                               type, node);
-    node->variant.operation.compiler_generated = TRUE;
+    node->compiler_generated = TRUE;
   }  /* if */
   return node;
 }  /* add_rvalue_class_adjust_node */
@@ -20531,7 +20526,7 @@ of "*" in the source code.  The returned node is designated an lvalue.
 {
   if (!is_error_node(node)) {
     if (is_operation_node(node) &&
-        (node->variant.operation.compiler_generated
+        (node->compiler_generated
 #if DO_IL_LOWERING
          || il_lowering_underway
 #endif /* DO_IL_LOWERING */
@@ -20561,7 +20556,7 @@ of "*" in the source code.  The returned node is designated an lvalue.
       node->next = NULL;
       node = make_lvalue_operator_node((an_expr_operator_kind)eok_indirect,
                                        new_type, node);
-      node->variant.operation.compiler_generated = TRUE;
+      node->compiler_generated = TRUE;
     }  /* if */
   }  /* if */
   return node;
@@ -20588,7 +20583,7 @@ a pointer to the new expression.  The returned node is designated an lvalue.
     node->next = NULL;
     node = make_lvalue_operator_node((an_expr_operator_kind)eok_ref_indirect,
                                      new_type, node);
-    node->variant.operation.compiler_generated = TRUE;
+    node->compiler_generated = TRUE;
   }  /* if */
   return node;
 }  /* add_ref_indirection_to_node */
@@ -20667,7 +20662,7 @@ The returned node is a prvalue.
   if (!is_error_node(node)) {
     check_assertion(node->is_lvalue);
     if (is_operation_node(node) &&
-        (node->variant.operation.compiler_generated
+        (node->compiler_generated
 #if DO_IL_LOWERING
          || il_lowering_underway
 #endif /* DO_IL_LOWERING */
@@ -20683,7 +20678,7 @@ The returned node is a prvalue.
       node->next = NULL;
       node = make_operator_node((an_expr_operator_kind)eok_address_of,
                                 addr_type, node);
-      node->variant.operation.compiler_generated = TRUE;
+      node->compiler_generated = TRUE;
     }  /* if */
   }  /* if */
   return node;
@@ -20793,7 +20788,7 @@ operator in the source code.  The returned node is a prvalue.
     node->next = NULL;
     node = make_operator_node((an_expr_operator_kind)eok_reference_to,
                               ref_type, node);
-    node->variant.operation.compiler_generated = TRUE;
+    node->compiler_generated = TRUE;
   }  /* if */
   return node;
 }  /* add_reference_to_to_node */
@@ -20841,9 +20836,8 @@ proper, use fe_field_lvalue_selection_expr instead.
 
 #if DO_IL_LOWERING
   /* See if we can optimize some of the operations added during lowering. */
-  if (il_lowering_underway &&
-      is_operation_node(node) &&
-      node->variant.operation.compiler_generated) {
+  if (il_lowering_underway && is_operation_node(node) &&
+      node->compiler_generated) {
     an_expr_node_ptr  operand = node->variant.operation.operands;
     if ((node_operator_is(node, eok_address_of) &&
          is_class_struct_union_type(operand->type)) ||
@@ -20875,7 +20869,7 @@ proper, use fe_field_lvalue_selection_expr instead.
   selection_type = make_field_selection_type(field, qualifiers);
   /* Make the field selection node. */
   node = make_lvalue_operator_node(op, selection_type, node);
-  node->variant.operation.compiler_generated = TRUE;
+  node->compiler_generated = TRUE;
   return node;
 }  /* field_lvalue_selection_expr */
 
@@ -20951,7 +20945,7 @@ rest.
   } else {
     new_op1->is_lvalue = TRUE;
   }  /* if */
-  new_op1->variant.operation.compiler_generated = TRUE;
+  new_op1->compiler_generated = TRUE;
   /* Attach the new selection to the original selection. */
   new_op1->next = op2;
   node->variant.operation.operands = new_op1;
@@ -21070,7 +21064,7 @@ pointer.
                                                  qualifiers));
       node = make_operator_node((an_expr_operator_kind)eok_base_class_cast,
                                 tp, node);
-      node->variant.operation.compiler_generated = TRUE;
+      node->compiler_generated = TRUE;
     }  /* for */
   }  /* if */
   return node;
@@ -28658,9 +28652,8 @@ return that.  If not, return the original expression.
       texpr = texpr->variant.operation.operands;
     }  /* if */
   }  /* if */
-  while (is_operation_node(texpr) &&
-         node_operator_is(texpr, eok_base_class_cast) &&
-         texpr->variant.operation.compiler_generated) {
+  while (is_operation_node(texpr) && texpr->compiler_generated &&
+         node_operator_is(texpr, eok_base_class_cast)) {
     /* Drop base class casts. */
     texpr = texpr->variant.operation.operands;
   }  /* while */

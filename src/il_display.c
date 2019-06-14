@@ -4109,7 +4109,6 @@ Display the indicated gcnew supplement for an expression node.
 {
   disp_boolean("has_new_initializer", (a_boolean)gsp->has_new_initializer);
   disp_boolean("is_cli_array", (a_boolean)gsp->is_cli_array);
-  disp_boolean("compiler_generated", (a_boolean)gsp->compiler_generated);
   disp_ptr("type", (char *)gsp->type, iek_type);
   disp_ptr("cli_array_dimension_lengths",
            (char *)gsp->cli_array_dimension_lengths, iek_expr_node);
@@ -4299,6 +4298,9 @@ Display the indicated expression node.
   if (ptr->do_not_interpret) {
     disp_boolean("do_not_interpret", TRUE);
   }  /* if */
+  if (ptr->compiler_generated) {
+    disp_boolean("compiler_generated", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case enk_error:
@@ -4313,9 +4315,6 @@ Display the indicated expression node.
       (void)printf("%s\n", type_kind_string(ptr->variant.operation.type_kind));
       if (ptr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
         disp_boolean("returns_lvalue_instead_of_usual_rvalue", TRUE);
-      }  /* if */
-      if (ptr->variant.operation.compiler_generated) {
-        disp_boolean("compiler_generated", TRUE);
       }  /* if */
       if (ptr->variant.operation.is_reinterpret_cast) {
         disp_boolean("is_reinterpret_cast", TRUE);

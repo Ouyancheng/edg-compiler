@@ -3367,7 +3367,6 @@ fields to default values.
       node->variant.operation.kind = (an_expr_operator_kind)eok_last;
       node->variant.operation.type_kind = (a_type_kind)tk_unknown;
       node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
-      node->variant.operation.compiler_generated = FALSE;
       node->variant.operation.is_reinterpret_cast = FALSE;
       node->variant.operation.is_const_cast = FALSE;
       node->variant.operation.is_reference_cast = FALSE;
@@ -3458,7 +3457,6 @@ fields to default values.
 #endif /* DEBUG */
       gnsp->has_new_initializer         = FALSE;
       gnsp->is_cli_array                = FALSE;
-      gnsp->compiler_generated          = FALSE;
       gnsp->type                        = NULL;
       gnsp->cli_array_dimension_lengths = NULL;
       gnsp->dynamic_init                = NULL;
@@ -3622,6 +3620,7 @@ its kind to the indicated kind.
   node->type_definition_needed = FALSE;
   node->volatile_fetch = FALSE;
   node->do_not_interpret = FALSE;
+  node->compiler_generated = FALSE;
   node->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   node->expr_range = null_source_range; 

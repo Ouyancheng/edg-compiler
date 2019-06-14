@@ -3290,8 +3290,7 @@ if setting the positions in the underlying expression.
     }  /* if */
     /* Don't set the position on a compiler-generated operation unless it is
        an operator-notation call node. */
-    if (!is_operation_node(expr) ||
-        !expr->variant.operation.compiler_generated ||
+    if (!is_operation_node(expr) || !expr->compiler_generated ||
         expr->variant.operation.call_uses_operator_syntax) {
       /* Set the position on the expression. */
       if (operator_pos == NULL && expr->position.seq != 0) {
@@ -4065,8 +4064,7 @@ cast in some modes.  orig_operand_expr can be NULL.
           break;
         default:
           /* Keep stripping for an implicit cast node. */
-          if (expr->variant.operation.compiler_generated &&
-              is_cast_operation_node(expr)) break;
+          if (expr->compiler_generated && is_cast_operation_node(expr)) break;
           /* Something else.  Stop stripping. */
           goto end_of_loop;
       }  /* switch */
@@ -4110,8 +4108,7 @@ end_of_loop:
           source_form == csf_old_style) &&
          is_operation_node(expr) &&
          expr->variant.operation.is_conversion_call)) {
-      check_assertion(!(is_operation_node(expr) &&
-                        expr->variant.operation.compiler_generated));
+      check_assertion(!(is_operation_node(expr) && expr->compiler_generated));
       node_to_return = expr;
     }  /* if */
   }  /* if */
@@ -4511,13 +4508,12 @@ that has it.
   for (;;) {
     /* This routine is similar to find_primary_cast_node. */
     if (is_operation_node(expr)) {
-      if ((expr->variant.operation.compiler_generated &&
-           is_cast_operation_node(expr)) ||
+      if ((expr->compiler_generated && is_cast_operation_node(expr)) ||
           expr->variant.operation.implicit_step_of_explicit_cast) {
         /* Implicit cast -- keep stripping. */
         expr = expr->variant.operation.operands;
       } else if (expr->variant.operation.is_conversion_call &&
-                 expr->variant.operation.compiler_generated) {
+                 expr->compiler_generated) {
         /* A call that implements an implicit conversion.  Go to the
            second operand (the input to the conversion function). */
         expr = expr->variant.operation.operands;
@@ -4963,8 +4959,7 @@ expression (which is returned in *op_expr).
   *is_type = FALSE;
   *type = NULL;
   *op_expr = NULL;
-  if (is_operation_node(expr) &&
-      expr->variant.operation.compiler_generated &&
+  if (is_operation_node(expr) && expr->compiler_generated &&
       node_operator_is(expr, eok_indirect)) {
     /* The expression has a generated "*" on top.  Look underneath to
        see if we have a uuidof address. */
@@ -7740,7 +7735,7 @@ appropriately and error_detected can be NULL.
                                    qual_curr_type, curr_node);
         copy_node_value_category(curr_node, new_node);
         if (is_implicit_cast) {
-          new_node->variant.operation.compiler_generated = TRUE;
+          new_node->compiler_generated = TRUE;
           new_node->position = *err_pos;
         }  /* if */
         new_node->variant.operation.implicit_in_member_naming =
@@ -7959,7 +7954,7 @@ is implicit.
                               related_ptr_to_member_type(member_type,
                                                          new_class_pointed_to),
                               *p_node);
-  (*p_node)->variant.operation.compiler_generated = is_implicit_cast;
+  (*p_node)->compiler_generated = is_implicit_cast;
 }  /* add_a_pm_derived_class_cast */
 
 
@@ -8056,7 +8051,7 @@ If handle_to_form is TRUE, the source form uses the unary "%" operator.
                                (an_expr_operator_kind)eok_handle_to_box :
                                (an_expr_operator_kind)eok_box),
                             make_handle_type(boxed_type), expr);
-  expr->variant.operation.compiler_generated = is_implicit;
+  expr->compiler_generated = is_implicit;
   return expr;
 }  /* add_box_to_expression */
 
@@ -8103,7 +8098,7 @@ needed.
       check_assertion(expr->is_lvalue);
       expr = make_lvalue_operator_node((an_expr_operator_kind)eok_unbox_lvalue,
                                        unboxed_type, expr);
-      expr->variant.operation.compiler_generated = TRUE;;
+      expr->compiler_generated = TRUE;;
     }  /* if */
   }  /* if */
   return expr;
@@ -8235,8 +8230,7 @@ the rewritten expression.
     /* Copy the position information from the original constant node,
        skipping over any compiler-generated nodes like array-decay, which
        have no source position. */
-    while (is_operation_node(expr) &&
-           expr->variant.operation.compiler_generated) {
+    while (is_operation_node(expr) && expr->compiler_generated) {
       expr = expr->variant.operation.operands;
     }  /* while */
     cli_string_node->position = expr->position;
@@ -8418,7 +8412,7 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
     /* Cast to bool.  Use eok_bool_cast. */
     *p_node = make_operator_node((an_expr_operator_kind)eok_bool_cast,
                                  new_type, *p_node);
-    (*p_node)->variant.operation.compiler_generated = is_implicit_cast;
+    (*p_node)->compiler_generated = is_implicit_cast;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cli_or_cx_enabled &&
              boxing_conversion_possible(old_type, new_type,
@@ -8431,7 +8425,7 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
       check_need_for_final_cast = TRUE;
       check_assertion(is_operation_node(*p_node) &&
                       node_operator_is(*p_node, eok_box));
-      (*p_node)->variant.operation.compiler_generated = FALSE;
+      (*p_node)->compiler_generated = FALSE;
     }  /* if */
   } else if (cli_or_cx_enabled &&
              unboxing_conversion_possible(old_type, new_type,
@@ -8457,7 +8451,7 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
                                  *p_node);
     (*p_node)->variant.operation.is_reinterpret_cast = is_reinterpret_cast;
     if (is_implicit_cast) {
-      (*p_node)->variant.operation.compiler_generated = TRUE;
+      (*p_node)->compiler_generated = TRUE;
       (*p_node)->position = *err_pos;
     }  /* if */
   }  /* if */
@@ -8470,7 +8464,7 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
       
       expr = make_operator_node((an_expr_operator_kind)eok_cast, new_type,
                                 expr);
-      expr->variant.operation.compiler_generated = is_implicit_cast;
+      expr->compiler_generated = is_implicit_cast;
       *p_node = expr;
     }  /* if */
   }  /* if */
@@ -9722,7 +9716,7 @@ is an lvalue reference to const.
       expr = make_lvalue_operator_node((an_expr_operator_kind)eok_ref_cast,
                                        underlying_type, expr);
       mark_as_reference_cast(expr, dest_type);
-      if (is_implicit_cast) expr->variant.operation.compiler_generated = TRUE;
+      if (is_implicit_cast) expr->compiler_generated = TRUE;
       make_glvalue_expression_operand(expr, operand);
       if (is_rvalue_ref) {
         /* The result of a cast to an rvalue reference type is an xvalue. */
@@ -11096,7 +11090,7 @@ on top of the operand (in place) unless the operand is a template parameter
                               expr);
     make_expression_operand(expr, operand);
     /* This is a compiler-generated operand. */
-    expr->variant.operation.compiler_generated = TRUE;
+    expr->compiler_generated = TRUE;
     operand->position = save_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     operand->end_position = save_end_position;
@@ -12419,7 +12413,7 @@ when gnu_version would ordinarily indicate they should not be.
         an_expr_node_ptr orig_expr = expr;
         a_boolean        cast_on_top_originally =
                                  (op == (an_expr_operator_kind)eok_cast &&
-                                  !expr->variant.operation.compiler_generated);
+                                  !expr->compiler_generated);
         /* See whether we can find an underlying lvalue. */
         expr = conv_prvalue_expr_to_lvalue(expr, &do_recovery,
                                            /*see_if_possible=*/TRUE,
@@ -14406,7 +14400,7 @@ e.g., if the source operand is an lvalue.
         expr = make_operator_node(op, dest_type, opexpr);
         if (is_implicit_cast) {
           expr->position = opexpr->position;
-          expr->variant.operation.compiler_generated = TRUE;
+          expr->compiler_generated = TRUE;
         }  /* if */
         if (is_reference_cast) {
           mark_as_reference_cast(expr, orig_dest_type);
@@ -15237,7 +15231,7 @@ position of the "?" and ":".
            (is_cast_operation_node(expr) ||
             node_operator_is(expr, eok_ref_indirect) ||
             expr->variant.operation.is_conversion_call) &&
-           expr->variant.operation.compiler_generated) ||
+           expr->compiler_generated) ||
           expr->kind == (an_expr_node_kind)enk_temp_init) {
         expr->keep_as_cast_for_cp_gen_be = TRUE;
       }  /* if */
@@ -17004,7 +16998,7 @@ to the pointer-to-class case described above.
                                  cast_dest_type,
                                  (an_expr_node_ptr)NULL);
       copy_node_value_category(base_cast_node, new_derived_cast_node);
-      new_derived_cast_node->variant.operation.compiler_generated = TRUE;
+      new_derived_cast_node->compiler_generated = TRUE;
       if (identical_types(operand_class, target_class)) {
         /* We've reached the end of the traversal successfully.  The node
            we just created is also the top of the tree. */
@@ -17564,7 +17558,7 @@ error cases.
     *function_call_node = call_node;
   }  /* if */
   call_node->position = *pos;
-  call_node->variant.operation.compiler_generated = compiler_generated;
+  call_node->compiler_generated = compiler_generated;
   call_node->variant.operation.is_virtual_call = is_virtual;
   call_node->variant.operation.is_conversion_call = is_conversion;
   call_node->variant.operation.arg_dependent_lookup_suppressed_on_call =
@@ -18819,7 +18813,7 @@ in the source (and *operator_position gives its position).
               expr = make_operator_node((an_expr_operator_kind)eok_handle_to,
                                         make_handle_type(expr->type), expr);
               if (is_implicit) {
-                expr->variant.operation.compiler_generated = TRUE;
+                expr->compiler_generated = TRUE;
               } else {
                 expr->position = *operator_position;
               }  /* if */
@@ -18849,7 +18843,7 @@ in the source (and *operator_position gives its position).
                                          addr_type, expr);
               }  /* if */
               if (is_implicit)  {
-                expr->variant.operation.compiler_generated = TRUE;
+                expr->compiler_generated = TRUE;
               } else {
                 expr->position = *operator_position;
               }  /* if */
@@ -19599,9 +19593,8 @@ set *top_cast and *bottom_cast to NULL and return the original expression.
       node_operator_is(node, eok_class_rvalue_adjust)) {
     node = node->variant.operation.operands;
   }  /* if */
-  while (is_operation_node(node) &&
-         node_operator_is(node, eok_base_class_cast) &&
-         node->variant.operation.compiler_generated) {
+  while (is_operation_node(node) && node->compiler_generated &&
+         node_operator_is(node, eok_base_class_cast)) {
     *top_cast = expr;
     *bottom_cast = node;
     node = node->variant.operation.operands;
@@ -21071,7 +21064,7 @@ decay on it, and return a pointer to the decayed expression.
     a_source_position  *pos = &node->position;
     node = make_operator_node((an_expr_operator_kind)eok_array_to_pointer,
                               ptr_type, node);
-    node->variant.operation.compiler_generated = TRUE;
+    node->compiler_generated = TRUE;
     node->position = *pos;
   }  /* if */
   return node;

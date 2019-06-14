@@ -6783,7 +6783,7 @@ give the starting and ending source positions for the field reference
   check_assertion(is_expression_operand(result) &&
                   is_operation_node(result->variant.expression));
   if (compiler_generated) {
-    result->variant.expression->variant.operation.compiler_generated = TRUE;
+    result->variant.expression->compiler_generated = TRUE;
     if (result->variant.expression->position.seq == 0) {
       /* If the node has no explicit position, use the enk_field operand node
          instead. */
@@ -9516,7 +9516,7 @@ happen for a C++/CLI static property reference).
         expr = sub_expr;
       } else {
         expr = make_comma_node(expr, sub_expr);
-        expr->variant.operation.compiler_generated = TRUE;
+        expr->compiler_generated = TRUE;
       }  /* if */
     }  /* if */
   }  /* for */
@@ -9714,7 +9714,7 @@ reference rewrite.
     orig_operand = *result;
     expr = make_node_from_operand(result);
     expr = make_comma_node(temp_init_expr, expr);
-    expr->variant.operation.compiler_generated = TRUE;
+    expr->compiler_generated = TRUE;
     expr->variant.operation.rewritten_property_reference_kind =
                  (a_rewritten_property_reference_kind)rprk_comma_discard_first;
     make_expression_operand(expr, result);
@@ -9816,7 +9816,7 @@ any use of the temporary.  The overall result is placed in *result.
       conv_glvalue_to_prvalue(&operator_result);
     }  /* if */
     expr = make_comma_node(expr, make_node_from_operand(&operator_result));
-    expr->variant.operation.compiler_generated = TRUE;
+    expr->compiler_generated = TRUE;
     expr->variant.operation.rewritten_property_reference_kind =
                 (a_rewritten_property_reference_kind)rprk_comma_discard_second;
     make_expression_operand(expr, result);
@@ -19817,7 +19817,7 @@ argument for that.
       sizeof_node = make_operator_node((an_expr_operator_kind)eok_multiply,
                                        sizeof_node->type,
                                        array_size_expr);
-      sizeof_node->variant.operation.compiler_generated = TRUE;
+      sizeof_node->compiler_generated = TRUE;
     }  /* if */
     make_expression_operand(sizeof_node, &sizeof_operand);
   } else {
@@ -21847,7 +21847,7 @@ usual nature.
   lvalue_cast_node = make_lvalue_operator_node(
                                         (an_expr_operator_kind)eok_lvalue_cast,
                                         type_cast_to, source_expr);
-  lvalue_cast_node->variant.operation.compiler_generated = compiler_generated;
+  lvalue_cast_node->compiler_generated = compiler_generated;
   return lvalue_cast_node;
 }  /* make_lvalue_cast_node */
 
@@ -39004,10 +39004,10 @@ operation implementing the allocation of the array and its initialization.
   /* Construct the enk_gcnew expression and the gcnew supplement. */
   gcnew_node = alloc_expr_node((an_expr_node_kind)enk_gcnew);
   gcnew_node->type = hatype;
+  gcnew_node->compiler_generated = TRUE;
   gsp = gcnew_node->variant.gcnew_info;
   gsp->has_new_initializer = FALSE;
   gsp->is_cli_array = TRUE;
-  gsp->compiler_generated = TRUE;
   aggr_init_cli_array(icp, hatype, is, &gsp->dynamic_init,
                       &gsp->cli_array_dimension_lengths);
   gsp->type = type_pointed_to(hatype);
@@ -44188,9 +44188,8 @@ set accordingly.
         operator_token = tok_lparen;
         break;
       case eok_dot_field:
-        if (expr->variant.operation.compiler_generated &&
-            (op1 = expr->variant.operation.operands,
-             is_variable_node(op1)) &&
+        if (expr->compiler_generated &&
+            (op1 = expr->variant.operation.operands, is_variable_node(op1)) &&
             node_variable(op1)->is_anonymous_parent_object) {
           /* This selection picks a field out of an anonymous union variable.
              Treat it as a simple identifier reference. */
