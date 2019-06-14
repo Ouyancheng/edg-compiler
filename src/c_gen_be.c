@@ -4437,9 +4437,10 @@ class subobject members as needed to create the member name prefix.
        fields. */
     a_member_name_prefix_component prefix;
     push_member_name_prefix_component(&prefix, field);
-    /* Use the (mangled) name of the first member. */
-    create_prefix_and_dump_field_name(field->type->
-                                        variant.class_struct_union.field_list);
+    /* Use the (mangled) name of the first non-empty member. */
+    create_prefix_and_dump_field_name(
+          next_non_empty_initializable_field(
+                          field->type->variant.class_struct_union.field_list));
     pop_member_name_prefix_component(&prefix);
   } else {
     dump_field_name(field);
@@ -4586,9 +4587,20 @@ on top of the expansion.
        node_operator_is(operand_1, eok_points_to_field))) {
     a_field_ptr      field;
     a_boolean        comma_case;
+    a_targ_size_t    subobject_offset = 0;
     object_expr = operand_1->variant.operation.operands;
     check_assertion(object_expr->next->kind == (an_expr_node_kind)enk_field);
     field = node_field(object_expr->next);
+    while (field->base_class_subobject_with_tail_padding) {
+      /* The specified field represents the subobject for a base class with
+         tail padding.  This field does not exist in the generated derived
+         class, so we transform this reference into a reference to the
+         first member of the base class (skipping empty classes). See
+         create_prefix_and_dump_field_name for details. */
+      subobject_offset += field->offset;
+      field = next_non_empty_initializable_field(
+                           field->type->variant.class_struct_union.field_list);
+    }  /* if */
     if (field->is_bit_field) {
       if (!node->is_lvalue && !node->is_xvalue) {
         /* The node has been rvalued, effectively making it a no-op.  Just
@@ -4598,7 +4610,7 @@ on top of the expansion.
         goto after_operand_output;
       }  /* if */
       bit_field_case = TRUE;
-      field_offset = field->offset;
+      field_offset = subobject_offset + field->offset;
     } else if (node_operator_is(operand_1, eok_dot_field) &&
                ((!object_expr->is_lvalue &&
                  (!optimizable_rvalue_selection(operand_1, &comma_case) ||
