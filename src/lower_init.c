@@ -6475,9 +6475,7 @@ dealt with).
   con_ptr = aggr_const->variant.aggregate.first_constant;
   /* Work through the list of constants, pairing each one with a member of
      the aggregate. */
-  for (prev_con = NULL;
-       con_ptr != NULL;
-       prev_con = con_ptr, con_ptr = next_con) {
+  for (prev_con = NULL; con_ptr != NULL; con_ptr = next_con) {
     a_boolean others_follow, remove_constant;
 #if C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX
     check_assertion(!ipmp->is_complex || ipmp->curr_elem < 2);
@@ -6793,6 +6791,11 @@ dealt with).
       if (aggr_const->variant.aggregate.last_constant == con_ptr) {
         aggr_const->variant.aggregate.last_constant = prev_con;
       }  /* if */
+    }  /* if */
+    if (!(remove_constant && prev_con == NULL)) {
+      /* Update prev_con unless we just removed the first constant in the
+         aggregate. */
+      prev_con = con_ptr;
     }  /* if */
     /* Loop while there are more constants. */
   }  /* for */
