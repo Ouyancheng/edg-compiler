@@ -8021,9 +8021,18 @@ block with state information for the processing.
                           elem_con->kind!=(a_constant_repr_kind)ck_designator);
         } else if (!*gen_assignments && is_immediate_class_type(type)) {
           /* Check if we added some padding before this field, and if so
-             generate initializers for that padding. */
+             generate initializers for that padding.  See calls to
+             dump_field_padding for the added fields that are initialized here.
+             Empty fields are skipped, but not non-initializable fields
+             (e.g., bit-fields). */
           a_targ_size_t  padding, p;
+          a_boolean      advance_prev_field = FALSE;
           do {
+            if (advance_prev_field) {
+              /* For subsequent times through this loop, advance prev_field. */
+              prev_field = next_non_empty_field(prev_field->next);
+            }  /* if */
+            advance_prev_field = FALSE;
             a_field_ptr after_prev = (prev_field != NULL) ? prev_field->next
                                                           : ipdp->curr_field;
             after_prev = next_non_empty_field(after_prev);
@@ -8040,7 +8049,7 @@ block with state information for the processing.
               if (msvc_is_generated_code_target) {
                 track_microsoft_bit_field_allocation(prev_field);
               }  /* if */
-              prev_field = next_non_empty_field(prev_field->next);
+              advance_prev_field = TRUE;
             }  /* if */
           } while (prev_field != NULL &&
                    (next_non_empty_field(prev_field->next) !=
