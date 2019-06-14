@@ -8028,13 +8028,14 @@ block with state information for the processing.
           a_targ_size_t  padding, p;
           a_boolean      advance_prev_field = FALSE;
           do {
+            a_field_ptr after_prev;
             if (advance_prev_field) {
               /* For subsequent times through this loop, advance prev_field. */
               prev_field = next_non_empty_field(prev_field->next);
             }  /* if */
             advance_prev_field = FALSE;
-            a_field_ptr after_prev = (prev_field != NULL) ? prev_field->next
-                                                          : ipdp->curr_field;
+            after_prev = (prev_field != NULL) ? prev_field->next
+                                              : ipdp->curr_field;
             after_prev = next_non_empty_field(after_prev);
             padding = field_padding(prev_field, after_prev, type);
             if (padding != 0) {
