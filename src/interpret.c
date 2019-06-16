@@ -12476,7 +12476,7 @@ the value representation of the integer value.
             break;
           case eok_spaceship:
             {
-              a_constant_ptr  result_con;
+              a_constant_ptr  result_con = NULL;
               if (strong_ordering_equal == NULL) {
                 initialize_ordering_constants();
               }  /* if */
