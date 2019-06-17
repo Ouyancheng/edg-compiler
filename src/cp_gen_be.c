@@ -9287,7 +9287,10 @@ is the one associated with the definition of the class.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Put out the class definition. */
+  /* Put out the class definition.  If the class is a generated explicit
+     specialization, make sure the members are treated as normal
+     declarations. */
+  is_generated_explicit_specialization = FALSE;
   push_name_context_if_member(&type->source_corresp);
   if (il_header.source_language == sl_Cplusplus) {
     /* Push the class scope onto the name context stack in order to get
@@ -9951,8 +9954,6 @@ this one is such a continuation.
   an_attribute_ptr             attributes = NULL;
   a_boolean                    saved_suppress_nontype_expr =
                                              octl.suppress_expr_in_nontype_arg;
-  a_boolean                    saved_generated_expl_spec =
-                                          is_generated_explicit_specialization;
 
   *another_decl_in_comma_list = FALSE;
   is_generated_explicit_specialization = FALSE;
@@ -10317,7 +10318,7 @@ this one is such a continuation.
     }  /* if */
   }  /* if */
   octl.suppress_expr_in_nontype_arg = saved_suppress_nontype_expr;
-  is_generated_explicit_specialization = saved_generated_expl_spec;
+  is_generated_explicit_specialization = FALSE;
 }  /* gen_type_decl */
 
 
@@ -18501,8 +18502,6 @@ this one is such a continuation.
   a_gen_decl_options_set       gd_options = GDO_NO_OPTIONS;
   a_boolean                    saved_suppress_nontype_expr =
                                              octl.suppress_expr_in_nontype_arg;
-  a_boolean                    saved_generated_expl_spec =
-                                          is_generated_explicit_specialization;
 
   is_generated_explicit_specialization = FALSE;
   name_ref = get_current_name_ref();
@@ -18986,7 +18985,7 @@ this one is such a continuation.
 end_of_routine:;
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   octl.suppress_expr_in_nontype_arg = saved_suppress_nontype_expr;
-  is_generated_explicit_specialization = saved_generated_expl_spec;
+  is_generated_explicit_specialization = FALSE;
 }  /* gen_variable_decl */
 
 
@@ -19660,8 +19659,6 @@ TRUE if the declaration following this one is such a continuation.
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENC_LISTS */
   a_boolean                     saved_suppress_nontype_expr =
                                              octl.suppress_expr_in_nontype_arg;
-  a_boolean                     saved_generated_expl_spec =
-                                          is_generated_explicit_specialization;
 
   is_generated_explicit_specialization = FALSE;
   name_ref = get_current_name_ref();
@@ -20388,6 +20385,7 @@ handle_as_definition:
                                          suppress_specifiers,
                                          &context_pop_needed,
                                          &saved_state, name_ref);
+  is_generated_explicit_specialization = FALSE;
   in_friend_declaration = FALSE;
   rout->expl_template_arg_list_used = saved_expl_template_arg_list_used;
   if (need_to_unset_typedefs) {
@@ -20524,7 +20522,6 @@ end_of_routine:
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   in_generated_instance = saved_in_generated_instance;
   octl.suppress_expr_in_nontype_arg = saved_suppress_nontype_expr;
-  is_generated_explicit_specialization = saved_generated_expl_spec;
 }  /* gen_routine_decl */
 
 
