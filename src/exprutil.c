@@ -9838,8 +9838,10 @@ desired.
     if (field_size > int_size) field_size = (unsigned int)int_size;
   }  /* if */
 
-  if (is_immediate_enum_type(promoted_type)) {
-    /* Enum bitfields keep their underlying type when being promoted. */
+  if (is_immediate_enum_type(promoted_type) &&
+      !promoted_type->variant.integer.has_explicit_enum_base) {
+    /* Unscoped enum bitfields keep their underlying type when being
+       promoted. */
   } else if (gcc_version_is(< 40000) &&
       field->bit_size == (unsigned int)(targ_sizeof_long*targ_char_bit)) {
     /* gcc before 4.0 considers bit fields that are exactly as long as "long"
