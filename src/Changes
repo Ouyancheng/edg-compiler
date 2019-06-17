@@ -1,5 +1,46 @@
 Version 5.1
 
+6/14/19  [EDGcpfe/20014,EDGcpfe/20120]
+C++20: Three-way comparison (aka. the spaceship operator)
+
+In C++20 mode, the front end now supports the three-way comparison operator
+("<=>", aka., the spaceship operator).  For example:
+
+  #include <compare>  // Required.
+  int main() {
+    return (1 <=> 2) != 0;
+  }
+
+It also handles the associated changes in overload resolution and the
+synthesis of defaulted == and <=> operators.  In addition, a sample
+implementation of the new <compare> header is now provided (that sample
+implementation does not currently include the "3way" library functions
+mandated by the standard).  The following example is thus accepted in C++20
+mode:
+
+  #include <compare>
+  struct B {
+    float x = 1.1;
+    auto operator<=>(B const&) const = default;
+  };
+  enum E { e };
+  struct S: B {
+    E e;
+    int i;
+    auto operator<=>(S const&) const = default;
+    friend bool operator==(S const&, S const&) = default;
+  };
+  constexpr S s1 = { {}, e, 42 };
+  constexpr S s2 = { {}, e, 41 };
+  static_assert(s1 > s2);  // Evaluates: s1.operator<=>(s2) > 0
+  static_assert(s1 != s2); // Evaluates: !operator==(s1, s2)
+
+Some aspects of this language feature are still somewhat in flux at the time
+of this writing.  Our current implementation mostly follows the specification
+of the working paper number N4810, with some adjustments in overload
+resolution to reflect more recent committee discussions.
+
+
 6/14/19  [EDGcpfe/21383]
 Compiler-generated expressions (IL CHANGE)
 
@@ -5519,27 +5560,6 @@ GNU compatibility: Fold-expressions
 In GNU C++ mode with gnu_version >= 60000 the front end now enables fold
 expressions in C++11 mode.  A warning is issued for the first fold expression
 appearing outside a system header if C++17 mode is not enabled.
-
-
-11/15/18 [EDGcpfe/20014,EDGcpfe/20120]
-C++20: Initial support for three-way comparison (aka. the spaceship operator)
-
-In C++20 mode, the front end now recognizes and partially handles the three-way
-comparison operator ("<=>", aka., the spaceship operator).  For example:
-
-  #include <compare>  // Required.
-  int main() {
-    return (1 <=> 2) != 0;
-  }
-
-This initial support does not include defaulting the operator, nor the special
-handling of user-defined operator<=> candidates added by the C++
-standardization committee's paper P0905R1.  Lowering for built-in types and
-rendering by the C++-generating back end are implemented.  A partial <compare>
-header is provided as a sample implementation, but the front end should be able
-to work with third-party implementations of that header as well.  This feature
-was added to the draft for the next C++ standard through paper P0595R3.
-However, some aspects of the specification are still in flux.
 
 
 11/14/18 [EDGcpfe/19073,EDGcpfe/17331]

@@ -27841,17 +27841,24 @@ as "0 <=> operator<=>(y, x)".
 
   n_active_rewrites += 1;
   if (call_node != NULL) {
-    /* If the operator<=> is deleted, an error will be issued, but its return
-       type is likely to lead to additional, unhelpful, diagnostics.  In that
-       case just proceed with an error operand instead. */
     an_expr_node_ptr  rout_expr = call_node->variant.operation.operands,
                       rout_node = NULL;
     a_routine_ptr     rp = routine_and_node_from_function_expr(rout_expr,
                                                                &rout_node);
+    /* If the operator<=> is deleted, an error will be issued, but its return
+       type is likely to lead to additional, unhelpful, diagnostics.  In that
+       case just proceed with an error operand instead. */
     if (rp != NULL && rp->is_deleted) {
       expect_error();
       make_error_operand(result);
       goto done;
+    }  /* if */
+    /* Mark the call as compiler-generated.  If operands were reversed, also
+       note that. */
+    check_assertion(rout_expr->next != NULL && rout_expr->next->next != NULL);
+    call_node->compiler_generated = TRUE;
+    if (reversed) {
+      call_node->variant.operation.eval_right_to_left = TRUE;
     }  /* if */
   }  /* if */
   if (expr_stack->template_deduction_context) {

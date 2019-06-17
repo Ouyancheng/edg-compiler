@@ -23523,7 +23523,7 @@ has an "auto" return type, determine the return type and make the operator
 declared, declare one that matches the spaceship operator.
 */
 {
-  a_routine_ptr       rp, erp, srp = NULL;
+  a_routine_ptr       rp, erp = NULL, srp = NULL;
   a_type_ptr          rtp, class_type = cdsp->class_type;
   a_class_type_supplement_ptr
                       ctsp = class_type_supp(class_type);
@@ -23540,8 +23540,8 @@ declared, declare one that matches the spaceship operator.
   for (rp = ctsp->assoc_scope->routines; rp != NULL; rp = rp->next) {
     if (special_kind_is(rp, sfk_operator)) {
       if (opname_kind_is(rp, onk_eq)) {
-        /* There is an equality member operator.  Nothing more to do. */
-        goto done;
+        /* There is an equality member operator. */
+        erp = rp;
       } else if (opname_kind_is(rp, onk_spaceship) && rp->is_defaulted) {
         srp = rp;
       }  /* for */
@@ -23551,8 +23551,8 @@ declared, declare one that matches the spaceship operator.
     rp = rlep->routine;
     if (special_kind_is(rp, sfk_operator)) {
       if (opname_kind_is(rp, onk_eq)) {
-        /* There is an equality member operator.  Nothing more to do. */
-        goto done;
+        /* There is an equality member operator. */
+        erp = rp;
       } else if (opname_kind_is(rp, onk_spaceship) && rp->is_defaulted) {
         srp = rp;
       }  /* for */
@@ -23571,35 +23571,35 @@ declared, declare one that matches the spaceship operator.
       determine_defaulted_spaceship_return_type(srp, class_type);
     }  /* if */
   }  /* if */
-  /* If we got this far, this function does not declare an operator==:
-     Implicitly declare a defaulted one. */
-  initialize_member_decl_info(&decl_info, pos);
-  clear_func_info(&func_info);
-  /* All special functions are inline definitions */
-  func_info.is_inline = TRUE;
-  if (exceptions_enabled) func_info.throw_position = *pos;
-  make_opname_locator((an_opname_kind)onk_eq, &loc, pos);
-  rtp = copy_routine_type_with_param_types(skip_typerefs(srp->type),
-                                           /*copy_default_args=*/FALSE);
-  rtp->variant.routine.return_type = bool_type();
-  decl_info.decl_state.type = rtp;
-  if (routine_type_is_nonstatic_member_function(srp->type)) {
-    an_access_specifier  saved_access = cdsp->access;
-    cdsp->access = srp->source_corresp.access;
-    decl_member_function(&loc, &func_info, cdsp, &decl_info,
-                         /*compiler_generated=*/TRUE);
-    cdsp->access = saved_access;
-  } else {
-    (void)decl_friend_function(&loc, cdsp, &func_info, &decl_info);
+  if (erp == NULL) {
+    /* No equality operator was found: Implicitly declare a defaulted one. */
+    initialize_member_decl_info(&decl_info, pos);
+    clear_func_info(&func_info);
+    /* All special functions are inline definitions */
+    func_info.is_inline = TRUE;
+    if (exceptions_enabled) func_info.throw_position = *pos;
+    make_opname_locator((an_opname_kind)onk_eq, &loc, pos);
+    rtp = copy_routine_type_with_param_types(skip_typerefs(srp->type),
+                                             /*copy_default_args=*/FALSE);
+    rtp->variant.routine.return_type = bool_type();
+    decl_info.decl_state.type = rtp;
+    if (routine_type_is_nonstatic_member_function(srp->type)) {
+      an_access_specifier  saved_access = cdsp->access;
+      cdsp->access = srp->source_corresp.access;
+      decl_member_function(&loc, &func_info, cdsp, &decl_info,
+                           /*compiler_generated=*/TRUE);
+      cdsp->access = saved_access;
+    } else {
+      (void)decl_friend_function(&loc, cdsp, &func_info, &decl_info);
+    }  /* if */
+    erp = decl_info.decl_state.sym->variant.routine.ptr;
+    erp->compiler_generated = TRUE;
+    erp->is_constexpr = TRUE;
+    if (generated_eq_is_deleted(class_type)) {
+      erp->is_deleted = TRUE;
+    }  /* if */
+    done_with_func_info(func_info);
   }  /* if */
-  erp = decl_info.decl_state.sym->variant.routine.ptr;
-  erp->compiler_generated = TRUE;
-  erp->is_constexpr = TRUE;
-  if (generated_eq_is_deleted(class_type)) {
-    erp->is_deleted = TRUE;
-  }  /* if */
-  done_with_func_info(func_info);
-done:;
 }  /* check_implicit_comparison_operators */
 
 

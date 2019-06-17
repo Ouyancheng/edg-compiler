@@ -12253,6 +12253,141 @@ static a_byte overloadable_operator_precedence[] = {
 };  /* overloadable_operator_precedence */
 
 
+static a_boolean handle_rewritten_comparison(an_expr_node_ptr  expr,
+                                             an_opname_kind    op)
+/*
+Check if the given node, which invokes an operator of the given kind,
+represents a comparison that was rewritten according to the C++20 rules.
+E.g., something like "x == y" might have been rewritten as "operator==(y, x)"
+(note the reversal of operands), something like "x != y" might be rewritten as
+"!operator==(x, y)", or something like "x >= y" might be rewritten as
+"operator>=(operator<=>(x, y), 0)".  In all these cases, the call to the
+underlying operator== or operator<=> will be marked as "compiler generated".
+If the parameters describe such a rewrite, render an expression matching the
+(simpler) original syntax and return TRUE.  Otherwise, return FALSE.
+*/
+{
+  a_boolean         handled = FALSE;
+  an_expr_node_ptr  generated_call = NULL, arg1, arg2;
+  a_routine_ptr     rp;
+
+  if (op == (an_opname_kind)onk_eq) {
+    /* The only rewrite that occurs with "==" is the reversal of the operands.
+       In those cases, the "==" operation is always a call node. */
+    if (expr->compiler_generated && is_call_node(expr)) {
+      an_expr_node_ptr  func_expr = expr->variant.operation.operands;
+      rp = routine_from_function_expr(func_expr);
+      generated_call = expr;
+    }  /* if */
+  } else if (op == (an_opname_kind)onk_not) {
+    /* Check for a "!" operation on top of a compiler-generated call to an
+       "operator==" function.  The "!" operation itself may be a built-in
+       operator or a call to a "operator!" function. */
+    if (is_call_node(expr)) {
+      /* Skip the node indicating the target function. */
+      expr = expr->variant.operation.operands->next;
+    } else {
+      expr = expr->variant.operation.operands;
+    }  /* if */
+    expr = skip_implicit_steps(expr);
+    if (expr->compiler_generated && is_call_node(expr)) {
+      an_expr_node_ptr  func_expr = expr->variant.operation.operands;
+      rp = routine_from_function_expr(func_expr);
+      if (special_kind_is(rp, sfk_operator) && opname_kind_is(rp, onk_eq)) {
+        generated_call = expr;
+        op = (an_opname_kind)eok_ne;
+      }  /* if */
+    }  /* if */
+  } else if (opname_is_rel_op(op) || op == (an_opname_kind)onk_spaceship) {
+    /* Check for a relational operator or a spaceship operator on top of a
+       compiler-generated call to an "operator<=>" function.  The top operation
+       may be a built-in operator or a call to an operator itself. */
+    if (is_call_node(expr)) {
+      /* Skip the node indicating the target function. */
+      arg1 = expr->variant.operation.operands->next;
+    } else {
+      arg1 = expr->variant.operation.operands;
+    }  /* if */
+    /* Check both arguments in turn to see if they're compiler-generated calls
+       to an operator<=>. */
+    expr = skip_implicit_steps(arg1);
+    if (expr->compiler_generated && is_call_node(expr)) {
+      an_expr_node_ptr  func_expr = expr->variant.operation.operands;
+      rp = routine_from_function_expr(func_expr);
+      if (special_kind_is(rp, sfk_operator) &&
+          opname_kind_is(rp, onk_spaceship)) {
+        generated_call = expr;
+      }  /* if */
+    }  /* if */
+    if (generated_call == NULL &&
+        (expr = skip_implicit_steps(arg1->next))->compiler_generated &&
+        is_call_node(expr)) {
+      an_expr_node_ptr  func_expr = expr->variant.operation.operands;
+      rp = routine_from_function_expr(func_expr);
+      if (special_kind_is(rp, sfk_operator) &&
+          opname_kind_is(rp, onk_spaceship)) {
+        generated_call = expr;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (generated_call != NULL) {
+    /* We determined the given expression is a rewrite.  op is the original
+       operator, generated_call is the compiler-generated call to the
+       underlying operator== or operator<=> (pointed to by rp). */
+    a_type_ptr        rtp = skip_typerefs(rp->type);
+    a_param_type_ptr  ptp1, ptp2;
+    a_byte            op_precedence = overloadable_operator_precedence[op];
+    a_boolean         reversed = FALSE, member_call, operand_parens_needed;
+    member_call = routine_type_is_nonstatic_member_function(rtp);
+    arg1 = generated_call->variant.operation.operands->next;
+    arg2 = arg1->next;
+    if (generated_call->variant.operation.eval_right_to_left) {
+      /* Swap the operands, and use the parameters in reversed order. */
+      reversed = TRUE;
+      expr = arg1;
+      arg1 = arg2;
+      arg2 = expr;
+      ptp2 = function_type_params(rtp);
+      ptp1 = ptp2->next;
+    } else {
+      ptp1 = function_type_params(rtp);
+      ptp2 = ptp1->next;
+    }  /* if */
+    operand_parens_needed = parens_may_be_needed(op_precedence, arg1);
+    if (operand_parens_needed) {
+      write_tok_ch('(');
+    }  /* if */
+    if (member_call && !reversed) {
+      gen_object_expr_for_implicit_call(
+                                   arg1, /*obj_expr_of_mfunc_operator=*/TRUE);
+    } else {
+      gen_argument(arg1, ptp1, /*operator_notation=*/TRUE);
+    }  /* if */
+    if (operand_parens_needed) {
+      write_tok_ch(')');
+    }  /* if */
+    write_space();
+    write_tok_str(opname_names[op]);
+    write_space();
+    operand_parens_needed = parens_may_be_needed(op_precedence, arg2);
+    if (operand_parens_needed) {
+      write_tok_ch('(');
+    }  /* if */
+    if (member_call && !reversed) {
+      gen_object_expr_for_implicit_call(
+                                   arg2, /*obj_expr_of_mfunc_operator=*/TRUE);
+    } else {
+      gen_argument(arg2, ptp2, /*operator_notation=*/TRUE);
+    }  /* if */
+    if (operand_parens_needed) {
+      write_tok_ch(')');
+    }  /* if */
+    handled = TRUE;
+  }  /* if */
+  return handled;
+}  /* handle_rewritten_comparison */
+
+
 static a_boolean handle_operator_call(an_expr_node_ptr expr)
 /*
 expr is a call expression.  If it is the result of operator syntax ("a+b")
@@ -12397,6 +12532,9 @@ return FALSE and let the caller generate the code normally.
         write_ch(')');
         octl.pending_right_paren = FALSE;
       }  /* if */
+      handled = TRUE;
+    } else if ((opname_is_comparison(op) || op == (an_opname_kind)onk_not) &&
+               handle_rewritten_comparison(expr, op)) {
       handled = TRUE;
     } else
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -14028,6 +14166,10 @@ gen_expr that might end up generating this expr as a temporary.
           opstr = "+";
           break;
         case eok_not:
+          if (handle_rewritten_comparison(expr, op)) {
+            goto done_with_operation;
+          }  /* if */
+          /*FALLTHROUGH*/
         case eok_vector_not:
           opstr = "!";
           break;
@@ -14259,10 +14401,18 @@ gen_expr that might end up generating this expr as a temporary.
           opstr = "!=";
           break;
         case eok_gt:
+          if (handle_rewritten_comparison(expr, op)) {
+            goto done_with_operation;
+          }  /* if */
+          /*FALLTHROUGH*/
         case eok_vector_gt:
           opstr = ">";
           break;
         case eok_lt:
+          if (handle_rewritten_comparison(expr, op)) {
+            goto done_with_operation;
+          }  /* if */
+          /*FALLTHROUGH*/
         case eok_vector_lt:
           opstr = "<";
           if (msvc_is_generated_code_target && in_template_argument_list) {
@@ -14274,10 +14424,18 @@ gen_expr that might end up generating this expr as a temporary.
           }  /* if */
           break;
         case eok_ge:
+          if (handle_rewritten_comparison(expr, op)) {
+            goto done_with_operation;
+          }  /* if */
+          /*FALLTHROUGH*/
         case eok_vector_ge:
           opstr = ">=";
           break;
         case eok_le:
+          if (handle_rewritten_comparison(expr, op)) {
+            goto done_with_operation;
+          }  /* if */
+          /*FALLTHROUGH*/
         case eok_vector_le:
           opstr = "<=";
           break;
