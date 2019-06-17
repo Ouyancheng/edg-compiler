@@ -3375,7 +3375,7 @@ end up at the same address.  The layout state lob is updated if necessary.
       /* Check for conflicts with previously allocated empty bases. */
       a_base_class_ptr prior_ebcp = first_empty_base;
       a_field_ptr prior_efp = first_empty_class_field;
-      while (prior_ebcp && prior_ebcp != ebcp) {
+      while (ebcp != NULL && prior_ebcp != NULL && prior_ebcp != ebcp) {
         if (prior_ebcp->offset == ebcp->offset &&
             empty_base_conflict(empty_class_type, prior_ebcp->type,
                                 (a_base_class_ptr)NULL,
