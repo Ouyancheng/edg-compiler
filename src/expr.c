@@ -6329,7 +6329,7 @@ are expected to be NULL in that case.
       }  /* if */
     } else if (!C_mode() &&
                is_template_dependent_context() &&
-               (is_template_param_type(operand->type) ||
+               (is_template_param_type_or_ref_thereto(operand->type) ||
                 ((gpp_mode || clang_mode || microsoft_mode) &&
                  member_of_proto_inst && !stricter_template_checking))) {
       /* A call of a dependent expression in a prototype instantiation.  Note

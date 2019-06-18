@@ -1,5 +1,20 @@
 Version 5.1
 
+6/18/19  [EDGcpfe/21253]
+Spurious error on call through reference type cast in dependent context
+
+Consider:
+
+  auto f = [](auto &&f) {
+             return static_cast<decltype(f)>(f)();  // Previously an error.
+           };                                       // Now okay.
+
+This previously elicited a spurious error because the front end failed to
+look through the reference type represented by "decltype(f)" to note that the
+underlying type is template-dependent (and therefore it could become a pointer
+to a function type after substitution).  That is now fixed.
+
+
 6/18/19  [EDGcpfe/21242]
 Microsoft compatibility: Empty classes and constant expressions
 

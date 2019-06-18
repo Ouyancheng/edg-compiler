@@ -17874,9 +17874,10 @@ whether the call was folded or not.
       /* Normal call using a pointer to function. */
       function_type = type_pointed_to(function_node_type);
     } else {
-      check_assertion(is_template_dependent_context() &&
-                      (is_template_param_type(function_node_type) ||
-                       is_class_struct_union_type(function_node_type)));
+      check_assertion(
+                 is_template_dependent_context() &&
+                 (is_template_param_type_or_ref_thereto(function_node_type) ||
+                  is_class_struct_union_type(function_node_type)));
       /* Function is unknown because call is dependent. */
       unknown_dependent_function = TRUE;
       function_type = type_of_unknown_templ_param_nontype;

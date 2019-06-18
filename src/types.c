@@ -2734,6 +2734,20 @@ Return TRUE if the given type is a template parameter type.
 }  /* is_template_param_type */
 
 
+a_boolean is_template_param_type_or_ref_thereto(a_type_ptr  tp)
+/*
+Return TRUE if the given type is a template parameter type or a reference to
+such a type.
+*/
+{
+  tp = skip_typerefs(tp);
+  if (is_any_reference(tp)) {
+    tp = skip_typerefs(tp->variant.pointer.type);
+  }  /* if */
+  return is_template_param(tp);
+}  /* is_template_param_type_or_ref_thereto */
+
+
 a_boolean is_unknown_template_param_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a template parameter type of tptk_unknown
