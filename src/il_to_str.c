@@ -6040,6 +6040,7 @@ do_sizeof_cases:
           /* g++ does not accept the C99 syntax for designated initializers
              but does accept a nonstandard variant:
                  struct S s = { m: 0 }; */
+          check_assertion(name != NULL);
           octl->output_str(name, octl);
           octl->output_str(": ", octl);
         } else
@@ -6048,7 +6049,13 @@ do_sizeof_cases:
         {
           /* Use the C99 designated initializer syntax. */
           octl->output_str(".", octl);
-          octl->output_str(name, octl);
+          if (name == NULL) {
+            /* An unnamed designated initializer. Can occur when an unnamed
+               union member is the recipient of a designated initializer. */
+            octl->output_str("<unnamed>", octl);
+          } else {
+            octl->output_str(name, octl);
+          }  /* if */
           octl->output_str(" = ", octl);
         }  /* if */
       } else {
