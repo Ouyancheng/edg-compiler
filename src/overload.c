@@ -17909,8 +17909,10 @@ no_applicable_operator_function:
         } else {
           /* Exactly one function applies and is best. */
           a_symbol_ptr overloaded_function_symbol;
+          a_boolean    compiler_generated = FALSE;
           proj_function_symbol = candidate_functions->function_symbol;
           if (candidate_functions->supplemental_comparison_candidate) {
+            compiler_generated = TRUE;
             if (proj_function_symbol != NULL) {
               a_symbol_ptr   sym = fundamental_symbol_of(proj_function_symbol);
               a_routine_ptr  rp = func_sym_routine(sym);
@@ -18161,7 +18163,7 @@ no_applicable_operator_function:
               assemble_function_call(&function_operand,
                                      bound_function_selector,
                                      arg_expr_list,
-                                     /*compiler_generated=*/TRUE,
+                                     compiler_generated,
                                      /*arg_dep_lookup_suppressed=*/FALSE,
                                      /*qualified_function_name=*/FALSE,
                                      found_through_adl,
