@@ -14289,7 +14289,7 @@ the value representation of the integer value.
             } else if (is_immediate_class_type(tp) &&
                        tp->variant.class_struct_union.is_empty_class &&
                        is_trivially_copyable_type(tp) &&
-                       !(microsoft_mode || gpp_version_is(<50000) ||
+                       !(ms_version_is(<1914) || gpp_version_is(<50000) ||
                          clang_version_is(< 30600))) {
               /* An empty class type object with trivial copy semantics is
                  considered "constant". */

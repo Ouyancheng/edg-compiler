@@ -1,5 +1,21 @@
 Version 5.1
 
+6/18/19  [EDGcpfe/21242]
+Microsoft compatibility: Empty classes and constant expressions
+
+The changes for EDGcpfe/18739 (see entry of 2/21/18) allowed the trivial
+copying of empty class objects as part of constant expressions even when those
+empty objects are "non-constant run-time" objects.  However, that change was
+not enabled in Microsoft mode.  Now, it is enabled in Microsoft C++ modes with
+microsoft_version >= 1400.  In many cases, this corresponds to the behavior of
+MSVC++, but sometimes (for reasons that are not entirely clear) MSVC++ will
+issue errors on such cases.  Note that this can also apply to closure types.
+For example:
+
+  auto closure = [](auto p) { return p; };
+  constexpr auto r = closure; // Now accepted in some Microsoft C++ modes.
+
+
 6/17/19  [EDGcpfe/21336]
 C++-generating back end: inaccessible names in underlying type of typedef
 
