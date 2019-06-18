@@ -1690,23 +1690,24 @@ template, add its instances as well in case they may be needed.
                                 &type_for_all_scopes) &&
       has_name_before_mangling(targ_type)) {
     a_boolean typedef_added = FALSE;
-    a_boolean circular;
-    if (!entity_name_is_accessible(&targ_type->source_corresp, iek_type,
-                                   /*ignore_context=*/TRUE,
-                                   &targ_for_all_scopes) &&
-        !(circular = target_type_has_circularity(type))) {
+    a_boolean circular = target_type_has_circularity(type);;
+    if (!circular && !entity_name_is_accessible(
+                              &targ_type->source_corresp, iek_type,
+                              /*ignore_context=*/TRUE, &targ_for_all_scopes)) {
       /* This typedef can be substituted for the target type when that type
          is inaccessible.  Add it to the table of such typedefs. */
       add_typedef_to(accessible_typedef_hash_table, type);
       typedef_added = TRUE;
     }  /* if */
-    while (!typedef_added && typeref_is_typedef(targ_type)) {
+    /* If we didn't add this typedef because its target is an accessible
+       typedef, check the target of that typedef; we want to add this one
+       if that target is inaccessible. */
+    while (!circular && !typedef_added && type_is_typedef(targ_type)) {
       targ_type = targ_type->variant.typeref.type;
       if (has_name_before_mangling(targ_type) &&
           !entity_name_is_accessible(&targ_type->source_corresp, iek_type,
                                      /*ignore_context=*/TRUE,
-                                     &targ_for_all_scopes) &&
-          !circular) {
+                                     &targ_for_all_scopes)) {
         add_typedef_to(accessible_typedef_hash_table, type);
         typedef_added = TRUE;
       }  /* if */
