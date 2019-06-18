@@ -9841,8 +9841,8 @@ desired.
   if (is_immediate_enum_type(promoted_type) &&
       !(promoted_type->variant.integer.has_explicit_enum_base ||
         integer_type_is_scoped_enum(promoted_type))) {
-    /* Unscoped enum bitfields keep their underlying type when being
-       promoted. */
+    /* Enum bit fields without a fixed underlying type keep their underlying
+       type when being promoted. */
   } else if (gcc_version_is(< 40000) &&
       field->bit_size == (unsigned int)(targ_sizeof_long*targ_char_bit)) {
     /* gcc before 4.0 considers bit fields that are exactly as long as "long"
