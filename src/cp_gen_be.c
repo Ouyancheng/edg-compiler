@@ -1534,6 +1534,11 @@ typedef struct a_typedef_hash_entry {
   a_typedef_hash_entry_ptr
 		next;	/* The next entry in the bucket, or NULL if none. */
   a_type_ptr	type;	/* The typedef type designated by this entry. */
+  a_scope_ptr	fcn_scope;
+			/* The value of innermost_function_scope at the
+			   time this entry was created.  The entry cannot
+			   be used if the typedef is local to a function
+			   and we are now outside the function. */
 } a_typedef_hash_entry;
 
 /*
@@ -1595,6 +1600,7 @@ Add type (which must be a typedef) to hash_table.
   }  /* if */
   /* Set the bucket entry to point to the specified typedef. */
   hash_table[bucket].type = type;
+  hash_table[bucket].fcn_scope = innermost_function_scope;
 }  /* add_typedef_to */
 
 
@@ -1614,7 +1620,9 @@ otherwise, return NULL.
        result == NULL && entry != NULL && entry->type != NULL;
        entry = entry->next) {
     a_boolean matches =
-           standalone_identical_types(entry->type->variant.typeref.type, type);
+         standalone_identical_types(entry->type->variant.typeref.type, type) &&
+                                (entry->fcn_scope == NULL ||
+                                 entry->fcn_scope == innermost_function_scope);
     if (!matches && entry->type->variant.typeref.is_template_alias) {
       /* Instances of template aliases can also match base classes. */
       a_base_class_ptr bcp = find_base_class_of(
@@ -1681,14 +1689,28 @@ template, add its instances as well in case they may be needed.
                                 /*ignore_context=*/TRUE,
                                 &type_for_all_scopes) &&
       has_name_before_mangling(targ_type)) {
+    a_boolean typedef_added = FALSE;
+    a_boolean circular;
     if (!entity_name_is_accessible(&targ_type->source_corresp, iek_type,
                                    /*ignore_context=*/TRUE,
                                    &targ_for_all_scopes) &&
-        !target_type_has_circularity(type)) {
+        !(circular = target_type_has_circularity(type))) {
       /* This typedef can be substituted for the target type when that type
          is inaccessible.  Add it to the table of such typedefs. */
       add_typedef_to(accessible_typedef_hash_table, type);
+      typedef_added = TRUE;
     }  /* if */
+    while (!typedef_added && typeref_is_typedef(targ_type)) {
+      targ_type = targ_type->variant.typeref.type;
+      if (has_name_before_mangling(targ_type) &&
+          !entity_name_is_accessible(&targ_type->source_corresp, iek_type,
+                                     /*ignore_context=*/TRUE,
+                                     &targ_for_all_scopes) &&
+          !circular) {
+        add_typedef_to(accessible_typedef_hash_table, type);
+        typedef_added = TRUE;
+      }  /* if */
+    }  /* while */
     if (type->variant.typeref.is_template_alias &&
         type->variant.typeref.is_prototype_instantiation) {
       /* This is the prototype instantiation of an alias template.  Go
@@ -1889,6 +1911,7 @@ Pass for_all_scopes through to entity_name_is_accessible.
 {
   a_boolean                   is_accessible = TRUE;
   a_source_correspondence_ptr scp;
+  a_constant_ptr              constant;
 
   switch (argp->kind) {
   case tak_type:
@@ -1917,11 +1940,11 @@ Pass for_all_scopes through to entity_name_is_accessible.
     }  /* if */
     break;
   case tak_nontype:
+    constant = argp->variant.constant;
     if (!argp->is_array_bound_of_unknown_type &&
         (argp->variant.constant->kind == (a_constant_repr_kind)ck_address ||
          argp->variant.constant->kind ==
                                      (a_constant_repr_kind)ck_ptr_to_member)) {
-      a_constant_ptr constant = argp->variant.constant;
       if (constant->kind == (a_constant_repr_kind)ck_address) {
         if (constant->variant.address.kind ==
                                            (an_address_base_kind)abk_routine) {
@@ -1945,6 +1968,27 @@ Pass for_all_scopes through to entity_name_is_accessible.
           is_accessible = entity_name_is_accessible(
                 &constant->variant.ptr_to_member.variant.field->source_corresp,
                 iek_field, ignore_context, for_all_scopes);
+        }  /* if */
+      }  /* if */
+    } else {
+      an_expr_node_ptr expr = constant->expr;
+      if (expr == NULL &&
+          constant->kind == (a_constant_repr_kind)ck_template_param &&
+          constant->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression) {
+        expr = expr_node_from_tpck_expression(constant);
+      }  /* if */
+      if (expr != NULL) {
+        if (is_variable_node(expr)) {
+          is_accessible =
+                entity_name_is_accessible(&node_variable(expr)->source_corresp,
+                                          iek_variable, ignore_context,
+                                          for_all_scopes);
+        } else {
+          /* Other kinds of expressions are too complex to analyze reliably
+             and efficiently.  For safety, we assume they involve
+             inaccessible names. */
+          is_accessible = FALSE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -9485,12 +9529,9 @@ declaration following this one is such a continuation.
   gen_attributes(attributes, al_postfix, sec_decl != NULL);
   gen_attributes(attributes, al_id_equivalent_as_postfix, sec_decl != NULL);
   type->typedef_definition_has_been_put_out = TRUE;
-  if (innermost_function_scope == NULL) {
-    /* This typedef is in namespace or class scope, so it can potentially
-       be used as a substitute if the target type is inaccessible or
-       otherwise unusable. */
-    register_substitutable_typedef(type);
-  }  /* if */
+  /* This typedef can potentially be used as a substitute if the target
+     type is inaccessible or otherwise unusable. */
+  register_substitutable_typedef(type);
 }  /* gen_typedef_definition */
 
 

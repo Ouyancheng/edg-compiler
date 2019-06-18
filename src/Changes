@@ -1,5 +1,37 @@
 Version 5.1
 
+6/17/19  [EDGcpfe/21336]
+C++-generating back end: inaccessible names in underlying type of typedef
+
+Under some complex circumstances involving dependent expressions as nontype
+template arguments, the C++-generating back end sometimes replaced a
+typedef name appearing in the source with its underlying type in the
+generated code when some names referred to in that type are inaccessible.
+This is now fixed.  For example, with --c++11 --g++:
+
+  template<int X, int Y> struct A {
+    static const int vx = X;
+    static const int vy = Y;
+    static const int v = X + Y;
+  };
+
+  template<int X, int Y> struct B {
+    static const int v = X + Y;
+  };
+
+  template<typename _R1, typename _R2> class C {
+    static const int vx1 = _R1::vx;
+    static const int vx2 = _R2::vx;
+  public:
+    typedef A<B<(_R1::vx / vx1), (_R2::vx / vx2)>::v,
+              B<(_R1::vy / vx2), (_R2::vy / vx1)>::v> type;
+    };
+  typedef C<A<2, 3>,A<2, 3>>::type r;
+  // In the generated code, "r::vx" was previously replaced by a version
+  // of its underlying type that referred to the private member vx1:
+  int i = r::vx;
+
+
 6/14/19  [EDGcpfe/20014,EDGcpfe/20120]
 C++20: Three-way comparison (aka. the spaceship operator)
 
