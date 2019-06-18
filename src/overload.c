@@ -17043,7 +17043,8 @@ that would have been chosen except that it was inaccessible because of
 hide-by-sig lookup.
 */
 {
-  a_candidate_function_ptr  candidate_functions, saved_candidate_functions;
+  a_candidate_function_ptr  candidate_functions = NULL,
+                            saved_candidate_functions;
   an_arg_list_elem_ptr      arg_list = NULL, arg_list2;
   a_boolean                 dependent_call = FALSE;
   a_boolean                 find_supplemental_candidates = FALSE,
