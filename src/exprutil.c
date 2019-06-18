@@ -9839,7 +9839,8 @@ desired.
   }  /* if */
 
   if (is_immediate_enum_type(promoted_type) &&
-      !promoted_type->variant.integer.has_explicit_enum_base) {
+      !(promoted_type->variant.integer.has_explicit_enum_base ||
+        integer_type_is_scoped_enum(promoted_type))) {
     /* Unscoped enum bitfields keep their underlying type when being
        promoted. */
   } else if (gcc_version_is(< 40000) &&
