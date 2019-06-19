@@ -73,6 +73,13 @@ static void scan_expr_full(an_operand              *result,
                            an_operand              *bound_function_selector,
                            int                      prec_level,
                            a_local_expr_options_set local_options);
+static an_arg_list_elem_ptr scan_expr_list(
+                                      a_token_kind closing_token,
+                                      a_boolean    is_delegate_init,
+                                      a_boolean    is_custom_ms_attr_arg_list,
+                                      a_boolean    empty_list_okay,
+                                      a_boolean    trailing_comma_okay,
+                                      a_boolean    bundle);
 static void bound_function_in_cast(a_type_ptr        type_cast_to,
                                    a_source_position *start_position,
                                    an_operand        *operand,
@@ -2371,12 +2378,13 @@ given options and PREC_LOWEST precedence.
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- is_custom_ms_attr_arg_list is not used in this case. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-an_arg_list_elem_ptr scan_expr_list(a_token_kind closing_token,
-                                    a_boolean    is_delegate_init,
-                                    a_boolean    is_custom_ms_attr_arg_list,
-                                    a_boolean    empty_list_okay,
-                                    a_boolean    trailing_comma_okay,
-                                    a_boolean    bundle)
+static an_arg_list_elem_ptr scan_expr_list(
+                                      a_token_kind closing_token,
+                                      a_boolean    is_delegate_init,
+                                      a_boolean    is_custom_ms_attr_arg_list,
+                                      a_boolean    empty_list_okay,
+                                      a_boolean    trailing_comma_okay,
+                                      a_boolean    bundle)
 /*
 Scan a comma-separated list of expressions.  The list must be terminated by
 the token indicated by closing_token (which is not consumed by this routine).
