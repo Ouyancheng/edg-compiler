@@ -2712,19 +2712,13 @@ option values if they were not already set by a command line option.
         }  /* if */
       }  /* if */
       if (microsoft_version >= 1920) {
-        /* Visual Studio 2017 version 16.0 (anticipated). */
+        /* Visual Studio 2019 version 16.0. */
         if (ms_cpp20_mode) {
-          conditional_explicit_enabled = TRUE;
-          constexpr_virtual_enabled = TRUE;
-          explicit_copy_this_capture_enabled = TRUE;
-          lambda_template_param_list_enabled = TRUE;
           lambda_allowed_in_uneval_context = TRUE;
           cpp20_designators_restriction = TRUE;
           aggregate_classes_can_have_user_ctors = FALSE;
-          adl_for_non_visible_templates = TRUE;
           spaceship_enabled = TRUE;
           rvalue_allowed_with_const_qual_memptr = TRUE;
-          nested_inline_namespace_definitions_enabled = TRUE;
           /* Enable emulation of Visual Studio's /std:c++20 and /std:c++latest
              command-line options.  Note that internally most C++20 features
              are enabled via global variables, but for those that aren't, set
@@ -2737,10 +2731,29 @@ option values if they were not already set by a command line option.
           }  /* if */
         }  /* if */
       }  /* if */
-      if (microsoft_version >= 1922) {
-        /* Visual Studio 2017 version 16.2 (anticipated). */
+      if (microsoft_version >= 1921) {
+        /* Visual Studio 2019 version 16.1. */
         if (ms_cpp20_mode) {
+          adl_for_non_visible_templates = TRUE;
+          designators_allowed = TRUE;
+          cpp20_designators_restriction = TRUE;
+        }  /* if */
+      }  /* if */
+      if (microsoft_version >= 1922) {
+        /* Visual Studio 2019 version 16.2. */
+        if (ms_cpp20_mode) {
+          conditional_explicit_enabled = TRUE;
+          explicit_copy_this_capture_enabled = TRUE;
+          lambda_template_param_list_enabled = TRUE;
+          spaceship_enabled = TRUE;
           char8_t_enabled = TRUE;
+        }  /* if */
+      }  /* if */
+      if (microsoft_version >= 1923) {
+        /* Visual Studio 2019 version 16.3. */
+        if (ms_cpp20_mode) {
+          relaxed_typename_enabled = TRUE;
+          nested_inline_namespace_definitions_enabled = TRUE;
         }  /* if */
       }  /* if */
     } else {

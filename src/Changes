@@ -1,5 +1,12 @@
 Version 5.1
 
+6/19/19  [EDGcpfe/21404]
+Microsoft compatibility: C++20 features enabled in Microsoft emulation mode
+
+A number of changes have been made to better align the enabling of C++20
+features in the correct Microsoft emulation mode.
+
+
 6/18/19  [EDGcpfe/18985,EDGcpfe/21183]
 GNU compatibility: Constexpr evaluation of comma-like operators
 
