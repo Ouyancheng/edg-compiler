@@ -19519,7 +19519,9 @@ Deduce the array size and update the new type accordingly.
     a_targ_size_t         num_initializers = 0;
     an_init_component_ptr icp;
     nps->array_size_is_deduced = TRUE;
-    if (nps->has_braced_initializer) {
+    if (nps->braced_init_list != NULL) {
+      /* In some rescan contexts we'll have pre-scanned this list already. */
+    } else if (nps->has_braced_initializer) {
       nps->braced_init_list = parse_braced_init_list(/*bundle=*/FALSE);
     } else {
       nps->braced_init_list = scan_paren_expr_list_as_braced_list(nps, dps);
