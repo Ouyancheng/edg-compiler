@@ -19481,6 +19481,7 @@ braced initializer list.
   an_init_component_ptr expr_list;
 
   check_assertion(!anything_cached(&dps->prescanned_initializer_cache));
+  check_assertion(!nps->has_braced_initializer);
   expr_list = alloc_init_component((an_init_component_kind)ick_braced);
   expr_list->variant.braced.start_pos = nps->init_position;
   expr_list->variant.braced.list =
@@ -21281,8 +21282,9 @@ expression, and return the result in *result (or an error indication in
      scan the initializer (if there is one) even if an error was detected
      above. */
   if (allow_parenthesized_aggregate_init && !nps.err &&
-      nps.has_new_initializer && nps.array_new &&
-      !nps.empty_initializer && nps.braced_init_list == NULL) {
+      nps.has_new_initializer && !nps.has_braced_initializer &&
+      nps.array_new && !nps.empty_initializer &&
+      nps.braced_init_list == NULL) {
     /* Array initialization with a parenthesized expression-list - treat as if
        it were a braced initialization list.  If we deduced the size of the
        array we'll have already done this. */
