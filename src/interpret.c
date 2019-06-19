@@ -10316,17 +10316,22 @@ the value representation of the integer value.
         if (!result) break;
         alloc_complete_object(ips, opnd_n_bytes, opnd1_type, opnd1_value);
         /* Evaluate the first operand, unless this is an operation that
-           requires the second operand to be evaluated first. */
-        if (!expr->variant.operation.eval_right_to_left &&
-            !do_constexpr_expression(ips, opnd1, opnd1_value, opnd1_value)) {
+           requires the second operand to be evaluated first or expr is an
+           operator that sometimes does not evaluate its first operand. */
+        if (node_operator_is(expr, eok_comma) ||
+            node_operator_is(expr, eok_dot_static) ||
+            node_operator_is(expr, eok_points_to_static)) {
+          /* To avoid spurious warnings from certain tools. */
+          opnd2_value = opnd1_value;
+          opnd2_type = opnd1_type;
+        } else if (!expr->variant.operation.eval_right_to_left &&
+                   !do_constexpr_expression(ips, opnd1,
+                                            opnd1_value, opnd1_value)) {
           do_constexpr_fail(result);
         } else if (opnd2 != NULL &&
                    !node_operator_is(expr, eok_land) &&
                    !node_operator_is(expr, eok_lor) &&
-                   !node_operator_is(expr, eok_question) &&
-                   !node_operator_is(expr, eok_comma) &&
-                   !node_operator_is(expr, eok_dot_static) &&
-                   !node_operator_is(expr, eok_points_to_static)) {
+                   !node_operator_is(expr, eok_question)) {
           /* Evaluate the second operand.  For short-circuiting operators,
              whether to evaluate the second operand will be decided below in
              the specific code for each such operator.  The comma operator can
@@ -13851,6 +13856,21 @@ the value representation of the integer value.
           case eok_dot_static:
           case eok_points_to_static:
             { a_boolean  restore_lvalue = FALSE, restore_xvalue = FALSE;
+              if (gpp_mode && !is_template_dependent_context() &&
+                  !node_has_side_effects(opnd1, (a_boolean*)NULL)) {
+                /* In some cases, GCC does not appear to evaluate the first
+                   operand for these operators.  It is not clear exactly when
+                   this happens, but "!node_has_side_effects" is a close
+                   approximation. */
+              } else {
+                /* Explicitly evaluate the first operand (since that was not
+                   done earlier for these operators. */
+                if (!do_constexpr_expression(ips, opnd1,
+                                             opnd1_value, opnd1_value)) {
+                  result = FALSE;
+                  break;
+                }  /* if */
+              }  /* if */
               /* The caller might have "rvalued" expr, but that didn't
                  propagate to the operands.  Temporarily enable that
                  propagation. */
