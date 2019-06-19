@@ -12031,7 +12031,8 @@ points to the template parameter list.
       templ_type = skip_typedefs(templ_type);
       if (templ_type->variant.template_param.kind ==
                              (a_template_param_type_kind)tptk_param) {
-        if (depth_of_template !=
+        if (depth_of_template == AUTO_TYPE_NESTING_DEPTH ||
+            depth_of_template !=
             templ_type->variant.template_param.extra_info->coordinates.depth) {
           /* Template parameters from a different nesting depth.  This can
              happen for "auto"/"decltype(auto)", which have a dedicated depth
