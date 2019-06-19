@@ -7285,14 +7285,17 @@ The position of the current token will be used as the operand position.
 {
   a_constant *con_ptr, constant;
 
-  check_assertion(sym->kind == (a_symbol_kind)sk_constant);
+  check_assertion(symbol_is(sym, sk_constant));
   con_ptr = sym->variant.constant;
   copy_constant_for_operand(con_ptr, &constant);
   break_instance_source_corresp(&constant.source_corresp);
   /* Detach any associated expression on template argument values accessed
      as the values of template parameters. */
   constant.expr = NULL;
-  if (is_reference_type(constant.type)) {
+  if (constant_is(con_ptr, ck_error)) {
+    expr_expect_error();
+    make_error_operand(operand);
+  } else if (is_reference_type(constant.type)) {
     /* The constant has a reference type.  This happens for a constant
        that is an argument for a nontype template parameter that has
        a reference type.  Make a glvalue based on that constant. */
