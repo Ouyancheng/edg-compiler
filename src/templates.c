@@ -37102,6 +37102,7 @@ instantiation.
       /* A variable template or static data member of a class template.
          Set the instantiation flags. */
       a_template_instance_ptr tip;
+      state.sym = sym;
       tip = template_instance_for_symbol(sym);
       if (tip != NULL) {
         a_variable_ptr  var;
