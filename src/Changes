@@ -84,8 +84,8 @@ This is now fixed.  For example, with --c++11 --g++:
               B<(_R1::vy / vx2), (_R2::vy / vx1)>::v> type;
     };
   typedef C<A<2, 3>,A<2, 3>>::type r;
-  // In the generated code, "r::vx" was previously replaced by a version
-  // of its underlying type that referred to the private member vx1:
+  // In the generated code, r was previously replaced by a version of its
+  // underlying type that referred to the private member vx1:
   int i = r::vx;
 
 
