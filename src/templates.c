@@ -37257,6 +37257,7 @@ final_check:;
                 &state.storage_class_pos);
     }  /* if */
   }  /* if */
+  run_end_of_parse_actions(&state, /*more_declarators=*/FALSE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (!is_pragma) {
     if (ssep != NULL && ssep->entity.kind == (a_byte_il_entry_kind)iek_none) {
