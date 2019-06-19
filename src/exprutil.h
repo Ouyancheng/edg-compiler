@@ -995,6 +995,11 @@ typedef struct an_expr_stack_entry {
 		in_coroutine_desc_init:1;
 			/* TRUE if we're in the process of building the
 			   coroutine descriptor. */
+  a_bit_field
+		paren_as_aggregate_init:1;
+			/* Set to true when a braced initializer component has
+			   been created because a parenthesized expression-list
+			   is being treated as aggregate initialization. */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor

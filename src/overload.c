@@ -24322,6 +24322,9 @@ will be an lvalue instead of the usual prvalue.
       /* Unexpected mode: check validity only, but issue errors. */
       unexpected_condition();
     }  /* if */
+    if (is->paren_as_aggregate_init) {
+      expr_stack->paren_as_aggregate_init = TRUE;
+    }  /* if */
   } else {
     /* Normal inside-expression-processing interface, using an_operand. */
     if (expr_stack->suppress_diagnostics) issue_errors = FALSE;

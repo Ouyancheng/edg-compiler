@@ -4108,7 +4108,7 @@ the type pointed to is opaque to declaration processing.
      behavior of newer versions of GCC.  C++20 allows parenthesized expression
      lists to be treated as aggregate initializers - but narrowing is allowed.
   */
-  if (is->paren_as_aggregate_init) {
+  if (expr_stack->paren_as_aggregate_init) {
     is->error_on_narrowing = FALSE;
     is->warning_on_narrowing = FALSE;
   } else if (strict_ansi_mode || (gpp_mode && gnu_version < 40700)) {
@@ -5376,7 +5376,7 @@ returned set to TRUE.
     a_boolean            dependent_class_type =
                                         could_be_dependent_class_type(vp_type);
     a_boolean            use_ctor = dependent_class_type;
-    a_boolean            var_is_aggregate = is_aggregate_type(vp_type);
+    a_boolean            aggr_init = FALSE;
     an_arg_list_elem_ptr arg_list = NULL;
     an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
 
@@ -5384,39 +5384,16 @@ returned set to TRUE.
                                     (an_expression_kind)ek_normal,
                                     /*is_full_expr=*/TRUE,
                                     dps, &dps->init_state);
-    arg_list = scan_expr_list(tok_rparen,
-                              /*is_delegate_init=*/FALSE,
-                              /*is_custom_ms_attr_arg_list=*/FALSE,
-                              /*empty_list_okay=*/TRUE,
-                              /*trailing_comma_okay=*/FALSE,
-                              /*bundle=*/TRUE);
-    if (!use_ctor && cssp != NULL && cssp->constructor != NULL) {
-      use_ctor = TRUE;
-      if (allow_parenthesized_aggregate_init && var_is_aggregate &&
-          !overloaded_function_match_possible(
-                                            cssp->constructor,
-                                            oc_constructor,
-                                            /*is_template_id=*/FALSE,
-                                            /*template_arg_list=*/NULL,
-                                            arg_list,
-                                            /*have_selector=*/FALSE,
-                                            /*bound_function_selector*/NULL)) {
-        /* No viable constructor.  The type is an aggregate, so attempt
-           aggregate initialization. */
-        use_ctor = FALSE;
-      }  /* if */
-    }  /* if */
+    scan_ctor_args_or_paren_aggr_init(vp_type, /*rcblock=*/NULL,
+                                      /*arg_list_supplied=*/FALSE,
+                                      &arg_list, &aggr_init);
     pop_expr_stack_for_initializer(saved_expr_stack,
-                                   /*is_full_expr=*/TRUE,
-                                   dps, &dps->init_state);
-    if (!use_ctor && allow_parenthesized_aggregate_init && var_is_aggregate) {
-      an_init_component_ptr braced_init =
-                      alloc_init_component((an_init_component_kind)ick_braced);
-      braced_init->variant.braced.list = arg_list;
-      braced_init->variant.braced.start_pos = pos_first_token;
-      braced_init->variant.braced.end_pos = pos_curr_token;
-      arg_list = braced_init;
+                                    /*is_full_expr=*/TRUE,
+                                    dps, &dps->init_state);
+    if (aggr_init) {
       dps->init_state.paren_as_aggregate_init = TRUE;
+    } else if (cssp != NULL && cssp->constructor != NULL) {
+      use_ctor = TRUE;
     }  /* if */
     if (arg_list != NULL) {
       check_assertion(!anything_cached(&dps->prescanned_initializer_cache));

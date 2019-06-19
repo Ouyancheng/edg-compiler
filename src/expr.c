@@ -2877,8 +2877,8 @@ to TRUE.
     arg_block.args_will_be_discarded = TRUE;
   } /* if */
   if (arg_list_supplied) {
-    /* Use the argument list supplied. */
-    check_assertion(rcblock == NULL);
+    /* Use the argument list supplied.  rcblock can be non-NULL here if the
+       expression list had to be previously re-scanned already. */
     arg_list = supplied_arg_list;
     arg_block.closing_paren_position = pos_curr_token;
   } else if (rcblock != NULL) {
@@ -25599,6 +25599,73 @@ deduction purposes).
 }  /* scan_braced_init_list_cast */
 
 
+void scan_ctor_args_or_paren_aggr_init(
+                                      a_type_ptr             dest_type,
+                                      a_rescan_control_block *rcblock,
+                                      a_boolean              arg_list_supplied,
+                                      an_arg_list_elem_ptr   *arg_list,
+                                      a_boolean              *aggr_init)
+/*
+Scan an expression list that will be either the arguments to a constructor or
+C++20 parenthesized aggregate initialization.  If arg_list_supplied is TRUE, a
+pre-scanned list is present in *arg_list, otherwise the scanned argument list
+will be returned in *arg_list. Set *aggr_init to TRUE if this should be treated
+as aggregate initialization, and FALSE otherwise.  If this should be treated as
+aggregate initialization, wrap *arg_list with an ick_braced component and set
+*arg_list to that wrapper.
+*/
+{
+  a_boolean                     aggregate_case = is_aggregate_type(dest_type);
+  a_boolean                     dependent_type =
+                                      could_be_dependent_class_type(dest_type);
+  a_class_symbol_supplement_ptr cssp = NULL;
+  a_source_position             start_pos = pos_curr_token;
+
+  *aggr_init = allow_parenthesized_aggregate_init && aggregate_case &&
+               !dependent_type;
+  if (is_class_struct_union_type(dest_type)) {
+    cssp = symbol_supplement_for_class(dest_type);
+  }  /* if */
+  if (!arg_list_supplied) {
+    if (rcblock != NULL) {
+      *arg_list = rescan_expr_list(rcblock->argument_list, rcblock);
+    } else {
+      *arg_list = scan_expr_list(tok_rparen,
+                                 /*is_delegate_init=*/FALSE,
+                                 /*is_custom_ms_attr_arg_list=*/FALSE,
+                                 /*empty_list_okay=*/TRUE,
+                                 /*trailing_comma_okay=*/FALSE,
+                                 /*bundle=*/TRUE);
+    }  /* if */
+  }  /* if */
+  if (!dependent_type && cssp != NULL && cssp->constructor != NULL) {
+    *aggr_init = FALSE;
+    if (allow_parenthesized_aggregate_init && aggregate_case &&
+        !overloaded_function_match_possible(
+                                          cssp->constructor,
+                                          oc_constructor,
+                                          /*is_template_id=*/FALSE,
+                                          /*template_arg_list=*/NULL,
+                                          *arg_list,
+                                          /*have_selector=*/FALSE,
+                                          /*bound_function_selector*/NULL)) {
+      /* No viable constructor.  The type is an aggregate, so attempt
+          aggregate initialization. */
+      *aggr_init = TRUE;
+    }  /* if */
+  }  /* if */
+  if (*aggr_init) {
+    an_init_component_ptr braced_init =
+                      alloc_init_component((an_init_component_kind)ick_braced);
+    braced_init->variant.braced.list = *arg_list;
+    braced_init->variant.braced.start_pos = start_pos;
+    braced_init->variant.braced.end_pos = pos_curr_token;
+    *arg_list = braced_init;
+    expr_stack->paren_as_aggregate_init = TRUE;
+  }  /* if */
+}  /* scan_ctor_args_or_paren_aggr_init */
+
+
 static void scan_functional_notation_type_conversion(
                                     a_rescan_control_block   *rcblock,
                                     a_dynamic_init_ptr       rescan_dip,
@@ -25862,11 +25929,27 @@ freed by this routine.
     /* Converting to a class type.  The contents of the parentheses are
        arguments for a constructor call. */
     a_constant_ptr    folded_con;
-    a_boolean         unboxing_conv;
+    a_boolean         unboxing_conv, aggr_init = FALSE;
     a_source_position *end_position_arg = NULL;
+
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position_arg = &end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    scan_ctor_args_or_paren_aggr_init(type_cast_to, rcblock, arg_list_supplied,
+                                      &supplied_arg_list, &aggr_init);
+    unbundle_init_component_list_expressions(supplied_arg_list);
+    if (aggr_init) {
+      scan_braced_init_list_cast(type_cast_to, csf_functional,
+                                 supplied_arg_list, rcblock != NULL, result);
+      check_closing_paren_after_expr_list();
+      if (arg_list_supplied) {
+        /* The arg list was provided - don't free it here. */
+        supplied_arg_list->variant.braced.list = NULL;
+      }  /* if */
+      free_arg_list(supplied_arg_list);
+      supplied_arg_list = NULL;
+      goto have_result;
+    }  /* if */
     scan_ctor_arguments(ctor_sym, start_position,
                         (a_type_ptr)NULL, type_cast_to,
                         /*fill_in_dtor=*/TRUE,
@@ -25874,7 +25957,8 @@ freed by this routine.
                         /*is_custom_ms_attr_arg_list=*/FALSE,
                         CCO_DIRECT_INITIALIZATION,
                         rcblock,
-                        arg_list_supplied, supplied_arg_list,
+                        /*arg_list_supplied=*/TRUE,
+                        supplied_arg_list,
                         (an_arg_list_elem *)NULL,
                         /*trivial_ctor=*/(a_boolean *)NULL,
                         /*elision_done=*/(a_boolean *)NULL,
@@ -25883,6 +25967,14 @@ freed by this routine.
                         /*simple_result=*/result,
                         &dip, &temp_init_node,
                         end_position_arg);
+    if (!arg_list_supplied) {
+      /* Free the arg list that we scanned. */
+      free_arg_list(supplied_arg_list);
+      if (rcblock == NULL) {
+        /* Advance past the closing rparen. */
+        (void)required_token(tok_rparen, ec_exp_rparen);
+      }  /* if */
+    }  /* if */
     error_position = *start_position;
     if (unboxing_conv) {
       /* The cast is actually a C++/CLI unboxing conversion.  Go
