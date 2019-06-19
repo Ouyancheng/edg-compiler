@@ -15,7 +15,7 @@ Consider:
   struct S {
     constexpr static int f() { return 42; }
   };
-  void g(S  const &s) {
+  void g(S const &s) {
     constexpr int r1 = s.f();
     constexpr int r2 = (s, S::f());
   }
@@ -25,7 +25,7 @@ essentially equivalent.  They are also invalid, because "s" is not a valid
 core constant expression in that context.  However, it appears that GCC
 accepts such cases (i.e., no attempt is made to evaluate the "left" operand
 if it is simple enough).  The front now approximates that behavior and accepts
-the case (and other similar ones) above in GCC modes.
+the case above (and other similar ones) in GCC modes.
 
 
 6/18/19  [EDGcpfe/21253]
