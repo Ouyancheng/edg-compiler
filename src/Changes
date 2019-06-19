@@ -50,7 +50,7 @@ The changes for EDGcpfe/18739 (see entry of 2/21/18) allowed the trivial
 copying of empty class objects as part of constant expressions even when those
 empty objects are "non-constant run-time" objects.  However, that change was
 not enabled in Microsoft mode.  Now, it is enabled in Microsoft C++ modes with
-microsoft_version >= 1400.  Note that this can also apply to closure types.
+microsoft_version >= 1914.  Note that this can also apply to closure types.
 For example:
 
   auto closure = [](auto p) { return p; };
