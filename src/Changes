@@ -10,7 +10,7 @@ Consider:
   };
   void g(S  const &s) {
     constexpr int r1 = s.f();
-    constexpr int r2 = (s, f());
+    constexpr int r2 = (s, S::f());
   }
 
 Because S::f is a static member function, the initializers for r1 and r2 are
