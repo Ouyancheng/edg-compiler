@@ -19431,8 +19431,8 @@ Scans the new initializer expression (if present).
       /* A class template name placeholder can be deduced without an
          initializer. */
       a_boolean  still_dependent = FALSE;
-      check_assertion(is_class_template_placeholder_type(dps->auto_type));
-      if (deduce_class_template_args(dps->type, /*is_direct_init=*/TRUE,
+      if (is_class_template_placeholder_type(dps->auto_type) &&
+          deduce_class_template_args(dps->type, /*is_direct_init=*/TRUE,
                                      /*parenthesized_init=*/FALSE,
                                      /*keep_placeholder=*/TRUE,
                                      (an_arg_list_elem *)NULL,
@@ -19441,7 +19441,8 @@ Scans the new initializer expression (if present).
         complete_type_is_needed(nps->new_type);
         nps->deducible_new_type = FALSE;
       } else if (!still_dependent) {
-        /* There was an error.  Proceed as if no placeholder appeared. */
+        /* There was an error, or this isn't a class template placeholder type.
+           Proceed as if no placeholder appeared. */
         nps->new_type = error_type();
         nps->deducible_new_type = FALSE;
       }  /* if */
