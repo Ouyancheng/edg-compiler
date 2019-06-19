@@ -6050,10 +6050,10 @@ do_sizeof_cases:
           /* Use the C99 designated initializer syntax. */
           octl->output_str(".", octl);
           if (name == NULL) {
-            /* An unnamed designated initializer.  Can occur when an unnamed
-               union member is the recipient of a designated initializer.  This
-               can be encountered when debugging a constant, but shouldn't make
-               its way into generated code. */
+            /* An unnamed designated initializer.  Can occur when a member of
+               an anonymous union is the recipient of a designated initializer.
+               This is appropriate in diagnostic and debugging output, but
+               shouldn't make its way into generated code. */
             check_assertion(!octl->gen_compilable_code);
             octl->output_str("<unnamed>", octl);
           } else {
