@@ -20263,7 +20263,7 @@ operator should be created.  No routine body is generated at this time.
   set_routine_calling_method_flag(rout_type, &null_source_position);
   decl_info->decl_state.type = rout_type;
   class_decl_pos = &class_type->source_corresp.decl_position;
-  /* All special functions are inline definitions */
+  /* All special functions are inline definitions. */
   func_info->is_inline = TRUE;
   if (exceptions_enabled) func_info->throw_position = *class_decl_pos;
   /* Create a locator for the symbol that will be created. */
@@ -23575,7 +23575,7 @@ declared, declare one that matches the spaceship operator.
     /* No equality operator was found: Implicitly declare a defaulted one. */
     initialize_member_decl_info(&decl_info, pos);
     clear_func_info(&func_info);
-    /* All special functions are inline definitions */
+    /* All special functions are inline definitions. */
     func_info.is_inline = TRUE;
     if (exceptions_enabled) func_info.throw_position = *pos;
     make_opname_locator((an_opname_kind)onk_eq, &loc, pos);

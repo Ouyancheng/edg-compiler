@@ -12324,7 +12324,7 @@ If the parameters describe such a rewrite, render an expression matching the
   } else if (op == (an_opname_kind)onk_not) {
     /* Check for a "!" operation on top of a compiler-generated call to an
        "operator==" function.  The "!" operation itself may be a built-in
-       operator or a call to a "operator!" function. */
+       operator or a call to an "operator!" function. */
     if (is_call_node(expr)) {
       /* Skip the node indicating the target function. */
       expr = expr->variant.operation.operands->next;

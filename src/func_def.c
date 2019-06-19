@@ -3066,7 +3066,7 @@ dimensional array, return a pointer to the first non-array element.
 static an_expr_node_ptr add_subscript_to_ptr_expr(an_expr_node_ptr  ptr_expr,
                                                   a_variable_ptr    idx_vp)
 /*
-Return an expression "ptr[idx]" with ptr and idx the described by ptr_expr and
+Return an expression "ptr[idx]" with ptr and idx as described by ptr_expr and
 idx_vp, respectively.
 */
 {
@@ -3454,7 +3454,7 @@ typedef struct a_generated_func_def_context {
   a_scope_depth
 		saved_innermost_scope_that_affects_access,
 		saved_depth_template_declaration_scope;
-			/* Some scope stack depth that must be temporarily
+			/* Some scope stack depths that must be temporarily
 			   adjusted while creating the function definition. */
 } a_generated_func_def_context ;
 
@@ -3466,7 +3466,7 @@ static a_scope_ptr begin_definition_of_generated_function(
                                      a_generated_func_def_context  *context)
 /*
 rout_ptr represent a generated function (e.g., a special member function) of
-type rtp (no typerefs) associated with the give class type.  Start the
+type rtp (no typerefs) associated with the given class type.  Start the
 definition scope for the function and record some information about the
 original context in *context to be able to restore that context later on using
 end_definition_of_generated_function.  Return an IL entry for the definition
@@ -3490,8 +3490,8 @@ scope.
   context->saved_depth_template_declaration_scope =
                                              depth_template_declaration_scope;
   depth_template_declaration_scope = NO_SCOPE_DEPTH;
-    /* Push a class symbol reactivation scope, to make class member names
-       visible for processing the function definition. */
+  /* Push a class symbol reactivation scope, to make class member names
+     visible for processing the function definition. */
   push_class_and_template_reactivation_scope_full(
                                            class_type,
                                            /*reactivate_template_params=*/TRUE,
@@ -3521,7 +3521,7 @@ static void end_definition_of_generated_function(
                                      a_scope_ptr                   scope,
                                      a_generated_func_def_context  *context)
 /*
-rout_ptr represent a generated function (e.g., a special member function) for
+rout_ptr represents a generated function (e.g., a special member function) for
 which begin_definition_of_generated_function returned scope and *context.
 Complete the definition and restore the original context.
 */
@@ -3567,7 +3567,7 @@ empty statement block.
   db_enter(4, "define_special_member_function");
   class_type = parent_class_of(rout_ptr);
   if (class_type->variant.class_struct_union.is_nonreal_class) {
-    /* Don't bother generating the definition for a member of an unreal
+    /* Don't bother generating the definition for a member of an nonreal
        instantiation of a template class. */
   } else {
     a_scope_ptr  scope;
@@ -3674,13 +3674,13 @@ given.
       transferred to the block statement that is created. */
   head_of_statement_list.next = NULL;
   sp = &head_of_statement_list;
-  /* Perform "memberwise comparisons.  Start with the direct base classes in
+  /* Perform memberwise comparisons.  Start with the direct base classes in
      declaration order (if any) and then the nonstatic data members in
      declaration order (if any). */
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
     an_expr_node_ptr  arg1, arg2;
     /* We are only interested in direct base classes. */
-    if (bcp->direct) continue;
+    if (!bcp->direct) continue;
     if (bcp->is_virtual && virtual_base_class_is_indirect(bcp, class_type)) {
       /* If bcp is also an indirect virtual base class, it will be handled by
          the assignment function of some other base class. */
@@ -3828,11 +3828,11 @@ static a_statement_ptr make_spaceship_element_comparison(
 /*
 Create a pair of statements:
 
-	R v{arg1 <=> arg2);
-	if (v != 0) return v;
+        R v{arg1 <=> arg2);
+        if (v != 0) return v;
 
-with R give type and return a pointer to the first statement.  block is the
-parent statement for the new statements.
+with R the given type, and return a pointer to the first statement.  block is
+the parent statement for the new statements.
 */
 {
   a_variable_ptr    vp;
@@ -3866,7 +3866,7 @@ static void make_default_spaceship_body(a_scope_ptr  scope,
                                         a_type_ptr   rtp,
                                         a_type_ptr   class_type)
 /*
-Create the body for a defaulted operator<=> (of type rtp, with not typerefs)
+Create the body for a defaulted operator<=> (of type rtp, with no typerefs)
 for the given class type.  The definition of the operator has been started and
 its associated scope is also given.
 */
@@ -3888,13 +3888,13 @@ its associated scope is also given.
       transferred to the block statement that is created. */
   head_of_statement_list.next = NULL;
   sp = &head_of_statement_list;
-  /* Perform "memberwise comparisons.  Start with the direct base classes in
+  /* Perform memberwise comparisons.  Start with the direct base classes in
      declaration order (if any) and then the nonstatic data members in
      declaration order (if any). */
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
     an_expr_node_ptr  arg1, arg2;
     /* We are only interested in direct base classes. */
-    if (bcp->direct) continue;
+    if (!bcp->direct) continue;
     if (bcp->is_virtual && virtual_base_class_is_indirect(bcp, class_type)) {
       /* If bcp is also an indirect virtual base class, it will be handled by
          the assignment function of some other base class. */
@@ -3941,8 +3941,8 @@ its associated scope is also given.
          like this:
            tmp = 0;
            do {
-             if (!(arg1[tmp] == &src[tmp]))
-               return false;
+             R v{arg1[tmp] <=> arg2[tmp]);
+             if (v != 0) return v;
            } while (++tmp < num_elements);
          Note that comparing multidimensional arrays is done as a single loop
          for all the elements, treating the array as a single-dimensional array
@@ -4009,7 +4009,7 @@ its associated scope is also given.
 
 
 static void make_default_rel_op_body(an_opname_kind  onk,
-                                     a_scope_ptr  scope)
+                                     a_scope_ptr     scope)
 /*
 Create the body for a defaulted relational operator described by onk.  scope is
 the definition scope of the operator (which has just been started).
@@ -4049,7 +4049,7 @@ definition for it.
   class_type = skip_typerefs(class_type);
   check_assertion(is_immediate_class_type(class_type));
   if (class_type->variant.class_struct_union.is_nonreal_class) {
-    /* Don't bother generating the definition for a member of an unreal
+    /* Don't bother generating the definition for a member of an nonreal
        instantiation of a template class. */
   } else {
     a_scope_ptr  scope;
