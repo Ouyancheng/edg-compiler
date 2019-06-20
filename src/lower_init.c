@@ -6627,12 +6627,20 @@ dealt with).
              function). */
           an_expr_node_ptr  args;
           /* Call the routine: helper(ptr, count); */
-          check_assertion(con_ptr->variant.init_repeat.constant != 0);
+          check_assertion(con_ptr->variant.init_repeat.constant != NULL);
           args = make_address_of_init_entity_node(&ipd,
                                                   /*using_as_dest=*/FALSE);
-          args->next = node_for_host_large_integer(
+          if (con_ptr->variant.init_repeat.count == 0) {
+            /* The repeat count isn't known at compilation time; use
+               ipd.num_elem_node for the count. */
+            check_assertion(ipd.num_elem_node != NULL);
+            args->next = make_reusable_copy(ipd.num_elem_node,
+                                            /*vars_can_change=*/TRUE);
+          } else {
+            args->next = node_for_host_large_integer(
                                             con_ptr->variant.init_repeat.count,
                                             targ_size_t_int_kind);
+          }  /* if */
           make_call_statement(helper_routine_to_initialize_repeated_constant(
                                                                  repeated_con,
                                                                  args->type,
@@ -6808,12 +6816,17 @@ dealt with).
        (e.g., in a "new" operation), so in that case insert code to zero the
        array elements at run time. */
     if (ipd.indirect_through_variable) {
+      an_expr_node_ptr eff_num_elem_node = NULL;
+      if (ipdp->num_elem_node != NULL) {
+        eff_num_elem_node = make_reusable_copy(ipdp->num_elem_node,
+                                               /*vars_can_change=*/TRUE);
+      }  /* if */
       insert_call_to_zero_entity(aggr_type->variant.array.element_type,
                                  /*have_complete_object=*/FALSE,
                                  make_address_of_init_entity_node(&ipd,
                                                      /*using_as_dest=*/TRUE),
-                                 ipdp->num_elem_node,
-                                 ipdp->num_elem_node == NULL ?
+                                 eff_num_elem_node,
+                                 eff_num_elem_node == NULL ?
                                                 num_array_elements(aggr_type) :
                                                 (a_targ_size_t) 0,
                                  insert_location);
