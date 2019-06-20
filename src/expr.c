@@ -19290,6 +19290,7 @@ expression.
   if (rcblock->argument_list == NULL) {
     /* Class template argument deduction doesn't require an initializer. */
     no_operand = TRUE;
+    auto_alep = nps->braced_init_list;
   } else {
     make_rescan_operand(rcblock->argument_list, rcblock, &auto_operand);
     if (is_braced_init_list_operand(&auto_operand)) {
@@ -19315,8 +19316,6 @@ expression.
       auto_alep = NULL;
     }  /* if */
   } else {
-    check_assertion(!nps->has_braced_initializer &&
-                    nps->braced_init_list == NULL);
     deduced = deduce_auto_type(nps->new_type, /*auto_type=*/(a_type_ptr)NULL,
                                /*keep_placeholder=*/TRUE, &auto_operand,
                                auto_alep, &nps->type_position,
@@ -19337,15 +19336,17 @@ expression.
   }  /* if */
   /* Save the expression in the cache so it will get picked up below,
      avoiding rescanning it again. */
-  if (auto_alep != NULL) {
-    add_init_component_to_initializer_cache(
-                                          auto_alep, /*to_front=*/TRUE,
-                                          &dps->prescanned_initializer_cache);
-  } else if (!no_operand) {
-    add_operand_to_initializer_cache(&auto_operand,
-                                     /*to_front=*/TRUE,
-                                     /*bundle=*/FALSE,
-                                     &dps->prescanned_initializer_cache);
+  if (!no_operand) {
+    if (auto_alep != NULL) {
+      add_init_component_to_initializer_cache(
+                                           auto_alep, /*to_front=*/TRUE,
+                                           &dps->prescanned_initializer_cache);
+    } else {
+      add_operand_to_initializer_cache(&auto_operand,
+                                       /*to_front=*/TRUE,
+                                       /*bundle=*/FALSE,
+                                       &dps->prescanned_initializer_cache);
+    }  /* if */
   }  /* if */
   nps->new_type = deduced_new_type;
 }  /* rescan_new_deduce_placeholder_type */
