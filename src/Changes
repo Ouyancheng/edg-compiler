@@ -1,5 +1,28 @@
 Version 5.1
 
+6/20/19  [EDGcpfe/21409]
+Abort in scan_ctor_arguments with constexpr user conversion function
+
+When a constexpr user conversion function was used to enable copy construction
+of an object, the front end would abort.  For example:
+
+  struct A {
+    int x;
+    constexpr A(int i) : x(i) {}
+    constexpr A(const A& obj) : x(obj.x + 10) {}
+  };
+  struct _AAA {
+    A val;
+    constexpr operator A() const { return val; }
+  };
+  constexpr A a(37);
+  constexpr A b(_AAA{a}); // Previously the front end would abort here
+  static_assert(a.x == 37, "a.x should be 37");
+  static_assert(b.x == 57, "b.c should be 57");
+
+This is now fixed.
+
+
 6/20/19  [EDGcpfe/20016]
 C++20: Deprecate the POD type category
 

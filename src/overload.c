@@ -20179,10 +20179,9 @@ is_explicit_cast is TRUE if this node represents an explicit cast.
     kind = (a_dynamic_init_kind)dik_bitwise_copy;
   } else {
     conv_glvalue_to_prvalue(operand);
-    if (constexpr_enabled && curr_expr_kind_is_const()) {
-      if (is_constant_operand(operand)) {
-        kind = (a_dynamic_init_kind)dik_constant;
-      }  /* if */
+    if (is_constant_operand(operand) &&
+        operand->variant.constant.is_result_of_constexpr_call) {
+      kind = (a_dynamic_init_kind)dik_constant;
     }  /* if */
   }  /* if */
   /* Allocate the dynamic initialization entry and the enk_temp_init node. */
@@ -21546,16 +21545,18 @@ void temp_init_from_operand_full(an_operand *operand,
                                  a_type_ptr temp_type,
                                  a_boolean  result_is_lvalue)
 /*
-Create an enk_temp_init node that initializes a temporary of type
-temp_type to a copy of the indicated operand.  temp_type should be
-the same as the operand type or differ only in cv-qualification.
-If it's NULL, operand->type is used.  The source operand can be an
-rvalue or an lvalue.  On return, *operand will have been changed to an
-lvalue for the temporary if result_is_lvalue is TRUE, or a prvalue for
-the temporary if result_is_lvalue is FALSE.  Used only in C++ mode.
+Create an enk_temp_init node that initializes a temporary of type temp_type to
+the value of the indicated operand (eithery by copy, or, if the indicated
+operand is a constant, by simple dik_constant initialization).  temp_type
+should be the same as the operand type or differ only in cv-qualification.  If
+it's NULL, operand->type is used.  The source operand can be an rvalue or an
+lvalue.  On return, *operand will have been changed to an lvalue for the
+temporary if result_is_lvalue is TRUE, or a prvalue for the temporary if
+result_is_lvalue is FALSE.
 */
 {
-  a_boolean          cctor_case, class_bitwise_copy;
+  a_boolean          handled = FALSE, class_bitwise_copy;
+  a_boolean          is_constant = is_constant_operand(operand);
   a_type_ptr         unqual_temp_type;
   a_routine_ptr      cctor_routine;
   an_expr_node_ptr   cctor_arg;
@@ -21575,14 +21576,14 @@ the temporary if result_is_lvalue is FALSE.  Used only in C++ mode.
   unqual_temp_type = skip_typerefs(temp_type);
   complete_type_is_needed(temp_type);
   check_assertion(!is_incomplete_type(temp_type));
-  cctor_case = FALSE;
-  if (is_class_struct_union_type(unqual_temp_type)) {
+  if (!is_constant &&
+      is_class_struct_union_type(unqual_temp_type)) {
     /* The operand and temporary have a class type.  If it's a C-style
        struct, a direct copy can be done.  Otherwise, look for a copy
        constructor to use. */
     if (C_dialect != C_dialect_cplusplus) {
       /* C struct. */
-      /* cctor_case = FALSE;  -- already set */
+      /* handled = FALSE;  -- already set */
     } else {
       /* A copy constructor must be used.  An error is issued if there
          is no applicable copy constructor.  No access checking is done
@@ -21600,15 +21601,15 @@ the temporary if result_is_lvalue is FALSE.  Used only in C++ mode.
                                 /*record_ref=*/FALSE);
       if (class_bitwise_copy) {
         /* A bitwise copy can be done. */
-        /* cctor_case = FALSE;  -- already set */
+        /* handled = FALSE;  -- already set */
       } else if (cctor_routine == NULL) {
         /* No appropriate copy constructor.  The error has already been
            issued.  */
-        cctor_case = TRUE;
+        handled = TRUE;
         conv_to_error_operand(operand);
       } else {
         /* Make the dynamic init call the copy constructor. */
-        cctor_case = TRUE;
+        handled = TRUE;
         set_up_for_constructor_call(operand, cctor_routine,
                                     /*is_base_init=*/FALSE,
                                     (a_conv_descr *)NULL, &cctor_arg,
@@ -21623,9 +21624,9 @@ the temporary if result_is_lvalue is FALSE.  Used only in C++ mode.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (!cctor_case) {
-    /* Normal case -- use a dik_expression initialization to copy the
-       operand into the temporary. */
+  if (!handled) {
+    /* Normal case -- use dynamic initialization to copy the operand into the
+       temporary. */
     temp_init_by_bitwise_copy_from_operand(operand, temp_type,
                                            result_is_lvalue,
                                            /*is_explicit_cast=*/FALSE);
