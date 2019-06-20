@@ -20196,7 +20196,7 @@ initializer was provided.
 {
   if (is_class_struct_union_type(nps->base_new_type) &&
       !nps->nonreal_new_type &&
-      (nps->cssp == NULL || !nps->cssp->is_cpp03_POD ||
+      (nps->cssp == NULL || !is_pod_class(nps->unqual_base_new_type) ||
        nps->cssp->constructor != NULL)
 #if MICROSOFT_EXTENSIONS_ALLOWED
       && !(cli_or_cx_enabled && is_value_class_type(nps->base_new_type))

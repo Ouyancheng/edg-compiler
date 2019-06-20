@@ -1,5 +1,23 @@
 Version 5.1
 
+6/20/19  [EDGcpfe/21405]
+Assertion failure in scan_new_operator with non-cpp03 POD class and no
+initializer
+
+In certain specific cases where a non-cpp03 POD class without a constructor is
+being created without an initializer via a "new" expression, the front end
+aborted with a "non-POD class has neither actual nor assumed ctor" message.
+For example:
+
+  template<auto lam = [] {
+    struct A {int x = 29;};
+    new A; // Previously aborted with "neither actual nor assumed ctor" message
+  }>
+  void f();
+
+This is now fixed.
+
+
 6/20/19  [EDGcpfe/21415]
 Incorrect dynamic initialization of certain arrays whose bounds are specified
 at run time
