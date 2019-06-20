@@ -9910,12 +9910,18 @@ represented by an entry of type a_constant (ck_address or ck_integer).
     a_constexpr_address  *result_addr = (a_constexpr_address*)result_storage;
     a_boolean            pointer_case = FALSE;
     a_type_ptr           tp = skip_typerefs(expr->type);
-    if (tp->kind == (a_type_kind)tk_pointer) {
-      tp = skip_typerefs(tp->variant.pointer.type);
-    }  /* if */
-    if (opnd_type->kind == (a_type_kind)tk_pointer) {
+    if (type_is(opnd_type, tk_pointer)) {
       opnd_type = skip_typerefs(opnd_type->variant.pointer.type);
       pointer_case = TRUE;
+    } else {
+      an_expr_node_ptr  opnd = expr->variant.operation.operands;
+      if (!opnd->is_lvalue) {
+        info_with_pos(ec_bad_ref_dynamic_cast_operand, &opnd->position, ips);
+        do_constexpr_fail(result);
+        goto done;
+      }  /* if */
+    }  /* if */
+      tp = skip_typerefs(tp->variant.pointer.type);
     }  /* if */
     if (same_entities(tp, opnd_type)) {
       /* The type is already as requested. */
