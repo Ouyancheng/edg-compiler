@@ -5553,35 +5553,30 @@ successful.
   a_statement_ptr             init = csp->initialization;
   a_dynamic_init_ptr          cond_var_init = csp->dynamic_init;
 
-  if (cond_var_init == NULL && init == NULL) {
-    expect_error()
-    do_constexpr_fail(result);
-  } else {
-    save_storage_stack(ips, *vs_state);
-    if (init != NULL) {
-      if (init->kind == (a_statement_kind)stmk_decl) {
-        /* Allocate storage for any variables. */
-        an_il_entity_list_entry_ptr  p = init->variant.decl.entities;
-        for (; p != NULL; p = p->next) {
-          if (p->entity.kind == (a_byte_il_entry_kind)iek_variable) {
-            a_variable_ptr  vp = (a_variable_ptr)p->entity.ptr;
-            (void)do_constexpr_alloc_variable(ips, vp, &result);
-            if (!result) break;
-          }  /* if */
-        }  /* for */
-      } else if (init->kind == (a_statement_kind)stmk_expr) {
-        /* Nothing to allocate just now. */
-      } else {
-        unexpected_condition();
-      }  /* if */
+  save_storage_stack(ips, *vs_state);
+  if (init != NULL) {
+    if (init->kind == (a_statement_kind)stmk_decl) {
+      /* Allocate storage for any variables. */
+      an_il_entity_list_entry_ptr  p = init->variant.decl.entities;
+      for (; p != NULL; p = p->next) {
+        if (p->entity.kind == (a_byte_il_entry_kind)iek_variable) {
+          a_variable_ptr  vp = (a_variable_ptr)p->entity.ptr;
+          (void)do_constexpr_alloc_variable(ips, vp, &result);
+          if (!result) break;
+        }  /* if */
+      }  /* for */
+    } else if (init->kind == (a_statement_kind)stmk_expr) {
+      /* Nothing to allocate just now. */
+    } else {
+      unexpected_condition();
     }  /* if */
-    if (result && cond_var_init != NULL) {
-      a_variable_ptr  cond_var = cond_var_init->variable;
-      (void)do_constexpr_alloc_variable(ips, cond_var, &result);
-    }  /* if */
-    if (!result) {
-      restore_storage_stack(ips, *vs_state);
-    }  /* if */
+  }  /* if */
+  if (result && cond_var_init != NULL) {
+    a_variable_ptr  cond_var = cond_var_init->variable;
+    (void)do_constexpr_alloc_variable(ips, cond_var, &result);
+  }  /* if */
+  if (!result) {
+    restore_storage_stack(ips, *vs_state);
   }  /* if */
   return result;
 }  /* do_constexpr_condition_alloc */
