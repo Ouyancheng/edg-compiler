@@ -9921,6 +9921,7 @@ represented by an entry of type a_constant (ck_address or ck_integer).
         goto done;
       }  /* if */
     }  /* if */
+    if (type_is(tp, tk_pointer)) {
       tp = skip_typerefs(tp->variant.pointer.type);
     }  /* if */
     if (same_entities(tp, opnd_type)) {
