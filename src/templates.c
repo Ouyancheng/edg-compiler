@@ -10795,6 +10795,11 @@ packs should be suppressed.
   a_template_param_ptr		tpp;
   a_template_param_list_pos	pos = coordinates->position;
 
+  if (coordinates->depth == AUTO_TYPE_NESTING_DEPTH) {
+    /* Auto type position is special and doesn't correlate to an actual
+       position. */
+    pos = 1;
+  }  /* if */
   if (*templ_arg_list == NULL) {
     /* The template argument list does not exist yet.  Create an
        argument list with NULL type/constant pointers. */
