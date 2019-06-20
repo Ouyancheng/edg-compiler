@@ -7979,8 +7979,15 @@ past_postfix_declarator_operators:
       /* Note the presence of "explicit( <bool-expr> )" (before we potentially
          copy the type to create a "declared type"). */
       if (state->conditional_explicit_attr) {
-        complete_type->variant.routine.extra_info
-                      ->is_conditionally_explicit = TRUE;
+        if (!type_is(complete_type, tk_routine)) {
+          /* "explicit" is only permitted on constructors and on conversion
+             functions, neither of which can be declared with a typedef or
+             decltype construct for the top-level function type. */
+          expect_error();
+        } else {
+          complete_type->variant.routine.extra_info
+                       ->is_conditionally_explicit = TRUE;
+        }  /* if */
       }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* Set the declared type in the func_info block.  Note that further
