@@ -9948,7 +9948,7 @@ represented by an entry of type a_constant (ck_address or ck_integer).
         a_base_class_ptr      prev_bcp, baseward_bcp;
 
         baseward_bcp = find_base_in_type(opnd_type, tp);
-        if (tp->kind != (a_type_kind)tk_void &&
+        if (type_is(tp, tk_void) &&
             (baseward_bcp = find_base_in_type(opnd_type, tp))!= NULL) {
           /* The dynamic cast is actually a (static) derived-to-base cast. */
           if (baseward_bcp->ambiguous) {
@@ -9998,7 +9998,7 @@ represented by an entry of type a_constant (ck_address or ck_integer).
                checked for the equal types case, this must be an attempt to
                cast past the most-derived class type. */
             if (pointer_case) {
-              if (tp->kind == (a_type_kind)tk_void) {
+              if (type_is(tp, tk_void)) {
                 remove_trailing_subobject_path_entry(new_con);
                 clear_runtime_constant_address(result_storage, new_con);
               } else {
@@ -10014,7 +10014,7 @@ represented by an entry of type a_constant (ck_address or ck_integer).
             a_base_class_derivation_ptr  bcdp = prev_bcp->derivation;
             /* Undo the previous cast offset. */
             new_con->variant.address.offset -= prev_bcp->offset;
-            if (tp->kind == (a_type_kind)tk_void ||
+            if (type_is(tp, tk_void) ||
                 same_entities(tp, prev_bcp->derived_class)) {
               /* A cast to the most-derived class (either by casting to void*
                  or because the destination type happens to match the most-
@@ -10121,7 +10121,7 @@ represented by an entry of type a_constant (ck_address or ck_integer).
         }  /* if */
         goto done;
       }  /* if */
-      if (tp->kind != (a_type_kind)tk_void &&
+      if (type_is(tp, tk_void) &&
           (baseward_bcp = find_base_in_type(opnd_type, tp))!= NULL) {
         /* The dynamic cast is actually a (static) derived-to-base cast. */
         if (baseward_bcp->ambiguous) {
@@ -10156,7 +10156,7 @@ represented by an entry of type a_constant (ck_address or ck_integer).
         }  /* if */
         bcp = *(a_base_class_ptr*)result_addr->address;
       }  /* while */
-      if (tp->kind == (a_type_kind)tk_void) {
+      if (type_is(tp, tk_void)) {
         /* result_addr now points to the most-derived object, which is exactly
            what dynamic_cast<void*>(...) must do. */
         goto done;
