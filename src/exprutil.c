@@ -10162,9 +10162,10 @@ C mode.
     /* Class.  No promotion needed. */
     if (!C_mode()) {
       if (is_ellipsis &&
-          !symbol_supplement_for_class(arg_type)->is_cpp03_POD &&
+          is_nonPOD_or_has_nontrivial_copy_semantics(arg_type) &&
           curr_expr_is_evaluated()) {
-        /* Warn on passing a non-POD class to an ellipsis. */
+        /* Warn on passing a non-POD class (a class with non-trivial copy
+           semantics, in modern C++) to an ellipsis. */
         expr_pos_warning(ec_non_pod_passed_to_ellipsis,
                          &argument_operand->position);
       }  /* if */

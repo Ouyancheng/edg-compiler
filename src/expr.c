@@ -4206,11 +4206,12 @@ been scanned: builtin_func represents the reference to the builtin function
     err = TRUE;
   } else if (!C_mode() &&
              is_class_struct_union_type(type) &&
-             !symbol_supplement_for_class(type)->is_cpp03_POD) {
-    /* A C++ class type must be a POD.  Note that this check is needed --
-       if we don't check this we may try to take the address of a
-       va_arg node to get the object address to call the copy
-       constructor, and we'll get an abort. */
+             is_nonPOD_or_has_nontrivial_copy_semantics(type)) {
+    /* A C++03 class type must be a POD; in modern C++, it requires trivial
+       copy semantics.  Note that this check is needed -- if we don't check
+       this we may try to take the address of a va_arg node to get the
+       object address to call the copy constructor, and we'll get an
+       abort. */
     expr_pos_error(ec_non_pod_va_arg, &type_position);
     err = TRUE;
   } else if (!va_arg_returns_lvalue) {
@@ -12733,7 +12734,7 @@ indication in *rcblock).
     /* Instantiate the type if it is a template class. */
     complete_type_is_needed(utype);
     if (!C_mode() &&
-        !class_symbol_supp(symbol_for(utype))->is_cpp03_POD &&
+        !is_nonPOD_or_has_non_standard_layout(utype) &&
         !utype->variant.class_struct_union.is_nonreal_class) {
       expr_pos_warning(ec_offset_in_non_POD_nonstandard, &type_position);
     }  /* if */

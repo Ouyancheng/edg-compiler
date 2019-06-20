@@ -1,5 +1,20 @@
 Version 5.1
 
+6/20/19  [EDGcpfe/20016]
+C++20: Deprecate the POD type category
+
+Committee document P0767R1 moved the definition of POD types to Annex D of
+the draft C++ Standard for C++20 and removed all references to the term
+from the main body of the Standard.  Type restrictions that had previously
+been phrased in terms of POD types now refer to more-granular
+characteristics such as triviality and standard-layout types.  The front
+end has now been changed to remove the term "POD" from all diagnostics and,
+for C++11 and later dialects, to use the more-granular type checking for
+those diagnostics.  (Earlier dialects continue to check whether the types
+are PODs or not when determining whether a type can be used in the relevant
+contexts.)
+
+
 6/20/19  [EDGcpfe/21405]
 Assertion failure in scan_new_operator with non-cpp03 POD class and no
 initializer

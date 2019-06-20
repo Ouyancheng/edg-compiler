@@ -6524,7 +6524,7 @@ TRUE if a definition preceded the current declaration.
     } else {
       a_type_ptr  var_type = skip_typerefs(variable->type);
       if (!C_mode() && is_immediate_class_type(var_type) &&
-          !class_symbol_supp(symbol_for(var_type))->is_cpp03_POD) {
+          is_nonPOD_or_has_nontrivial_copy_semantics(var_type)) {
         pos_error(ec_register_mapped_variable_must_be_POD, diag_pos);
       } else if (variable->asm_name_is_valid &&
                  variable->asm_name_or_reg.name == NULL) {

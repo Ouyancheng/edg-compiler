@@ -6737,6 +6737,25 @@ template argument kind to be used.
   ((a_templ_arg_kind)((sym_kind) == (a_symbol_kind)sk_type ? tak_type :	\
    ((sym_kind) == (a_symbol_kind)sk_constant ? tak_nontype : tak_template)))
 
+/*
+Return TRUE if tp is not a C++03 POD (for pre-C++11 modes) or has nontrivial
+constructors or destructor (for C++11 and later modes).
+*/
+#define is_nonPOD_or_has_nontrivial_copy_semantics(tp)              \
+    ((cpp11_mode)                                                   \
+       ? (has_nontrivial_ctor(symbol_supplement_for_class(tp)) ||   \
+          !symbol_supplement_for_class(tp)->has_trivial_destructor) \
+       : !symbol_supplement_for_class(tp)->is_cpp03_POD)
+
+/*
+Returns TRUE if tp is not a C++03 POD (for pre-C++11 modes) or is not a
+standard-layout class (for C++11 and later modes).
+*/
+#define is_nonPOD_or_has_non_standard_layout(tp)           \
+    ((cpp11_mode)                                          \
+       ? !symbol_supplement_for_class(tp)->standard_layout \
+       : !symbol_supplement_for_class(tp)->is_cpp03_POD)
+
 void form_optionally_qualified_symbol_name(
 		a_symbol_ptr				sym,
 		an_il_to_str_output_control_block_ptr	octl,

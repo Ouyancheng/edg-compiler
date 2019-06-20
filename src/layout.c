@@ -790,7 +790,7 @@ only).
     if (is_immediate_class_type(ftp) &&
         !ftp->variant.class_struct_union.is_packed &&
         symbol_for(ftp) != NULL &&
-        !symbol_supplement_for_class(ftp)->is_cpp03_POD) {
+        is_nonPOD_or_has_non_standard_layout(ftp)) {
       a_targ_alignment  pragma_alignment = 0;
       an_attribute_ptr  psap = find_attribute(
                                        ak_pragma_pack_state,

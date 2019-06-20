@@ -2048,11 +2048,13 @@ available.
     etype = skip_typerefs(etype);
     if (is_immediate_class_type(etype) &&
         !etype->variant.class_struct_union.is_nonreal_class &&
-        !symbol_supplement_for_class(etype)->is_cpp03_POD) {
-      /* Allowing designators in non-POD types would raise subtle questions
-         about order of initialization and destruction.  For now, at least,
-         we disallow such constructs.  (The error is only issued on the first
-         designator if there is a sequence of consecutive designators.) */
+        is_nonPOD_or_has_nontrivial_copy_semantics(etype)) {
+      /* Allowing designators in non-POD types (for C++03; classes with
+         non-trivial copy/construction semantics in modern C++) would raise
+         subtle questions about order of initialization and destruction.
+         For now, at least, we disallow such constructs.  (The error is
+         only issued on the first designator if there is a sequence of
+         consecutive designators.) */
       pos_error(ec_designator_for_non_POD, init_component_pos(icp));
     }  /* if */
   }  /* if */
