@@ -2832,6 +2832,25 @@ see is_auto_template_param_type.
 }  /* is_auto_type */
 
 
+a_boolean is_decltype_auto_type(a_type_ptr tp)
+/*
+Return TRUE if the indicated type is a special type used to represent
+"decltype(auto)".  No typerefs are stripped before checking for that.  This is
+used to check for decltype(auto) types used as variable types or deduced return
+types.  For decltype(auto) nontype template parameter types, see
+is_decltype_auto_template_param_type.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_auto_type(tp)) {
+    result = tp->variant.template_param.extra_info->coordinates.position ==
+                                                      DECLTYPE_AUTO_POS_NUMBER;
+  }  /* if */
+  return result;
+}
+
+
 a_boolean is_auto_template_param_type(a_type_ptr tp)
 /*
 Return TRUE if the indicated type is a special type used to represent
@@ -2851,6 +2870,27 @@ is_auto_type.
   }  /* if */
   return result;
 }  /* is_auto_template_param_type */
+
+
+a_boolean is_decltype_auto_template_param_type(a_type_ptr tp)
+/*
+Return TRUE if the indicated type is a special type used to represent
+"decltype(auto)".  No typerefs are stripped before checking for that.  This is
+used to check for nontype template parameters that are declared with
+decltype(auto) types.  For other uses of decltype(auto) types, see
+is_decltype_auto_type.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_template_param(tp) &&
+      tp->variant.template_param.kind ==
+                               (a_template_param_type_kind)tptk_param &&
+      tp->variant.template_param.is_decltype_auto) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_decltype_auto_template_param_type */
 
 
 a_boolean is_class_template_placeholder_type(a_type_ptr tp)

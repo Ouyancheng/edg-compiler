@@ -163,6 +163,9 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,entity_is_nonreal)*/
 /*lint -esym(759,entity_is_nonreal)*/
 /*lint -esym(765,entity_is_nonreal)*/
+/*lint -esym(714,is_decltype_auto_template_param_type)*/
+/*lint -esym(759,is_decltype_auto_template_param_type)*/
+/*lint -esym(765,is_decltype_auto_template_param_type)*/
 #if !RECORD_MACRO_INVOCATIONS
 /*lint -esym(755,copy_simple_position_to_full_position)*/
 #endif /* !RECORD_MACRO_INVOCATIONS */

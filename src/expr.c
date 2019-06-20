@@ -19391,6 +19391,16 @@ Scan the new-type-name or ( type-name ) from source.
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (nps->deducible_new_type && is_array_type(nps->new_type)) {
+    if (is_decltype_auto_type(underlying_array_element_type(nps->new_type))) {
+      /* An error should have been issued already. */
+      expect_error();
+    } else {
+      expr_pos_error(ec_auto_type_in_array_type, &nps->type_position);
+    }  /* if */
+    nps->new_type = error_type();
+    nps->deducible_new_type = FALSE;
+  }  /* if */
 }  /* scan_new_type */
 
 
@@ -19524,7 +19534,14 @@ Deduce the array size and update the new type accordingly.
     if (nps->braced_init_list != NULL) {
       /* In some rescan contexts we'll have pre-scanned this list already. */
     } else if (nps->has_braced_initializer) {
-      nps->braced_init_list = parse_braced_init_list(/*bundle=*/FALSE);
+      if (nps->using_expr_cache) {
+        nps->braced_init_list = fetch_init_component_from_initializer_cache(
+                                           &dps->prescanned_initializer_cache);
+        nps->using_expr_cache = FALSE;
+        check_assertion(is_braced_init_component(nps->braced_init_list));
+      } else {
+        nps->braced_init_list = parse_braced_init_list(/*bundle=*/FALSE);
+      }  /* if */
     } else {
       nps->braced_init_list = scan_paren_expr_list_as_braced_list(nps, dps);
     }  /* if */

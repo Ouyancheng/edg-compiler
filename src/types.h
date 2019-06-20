@@ -270,7 +270,9 @@ extern a_boolean is_unknown_template_param_type(a_type_ptr tp);
 extern a_boolean is_template_class_type(a_type_ptr tp);
 extern a_boolean is_polymorphic_class_type(a_type_ptr tp);
 extern a_boolean is_auto_type(a_type_ptr tp);
+extern a_boolean is_decltype_auto_type(a_type_ptr tp);
 extern a_boolean is_auto_template_param_type(a_type_ptr tp);
+extern a_boolean is_decltype_auto_template_param_type(a_type_ptr tp);
 extern a_boolean is_class_template_placeholder_type(a_type_ptr tp);
 #if !STANDALONE_UTILITY_PROGRAM
 extern
