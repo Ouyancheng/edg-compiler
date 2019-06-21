@@ -60,7 +60,7 @@ This is now fixed.
 Incorrect dynamic initialization of certain arrays whose bounds are specified
 at run time
 
-Lowering had incorrectly lowered some dynamic initializations of arrays
+Lowering had incorrectly lowered some dynamic initializations of arrays,
 effectively not performing them.  In the example below, the initialization
 for A::B::y had been performed zero times, resulting in g() never being
 called (with --c++17):
@@ -80,7 +80,7 @@ called (with --c++17):
   }
 
 Additionally, a bug where multiple expressions pointed to the same
-expression node, resulting in invalid IL was also fixed.
+expression node, resulting in invalid IL, was also fixed.
 
 
 6/20/19  [EDGcpfe/21416]
