@@ -1,6 +1,6 @@
 Version 5.1
 
-4/17/19  [EDGcpfe/18111,EDGcpfe/21119,EDGcpfe/21276]
+6/21/19  [EDGcpfe/18111,EDGcpfe/21119,EDGcpfe/21276]
 The noexcept operator and constant expressions
 
 In C++11 and C++14, applying the noexcept operator to a "core constant
