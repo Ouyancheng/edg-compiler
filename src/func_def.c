@@ -3094,10 +3094,12 @@ object, including for the case where the parameter has a reference type.
      operator=. */
   if (is_any_reference_type(source_var->type)) {
     source_expr = var_rvalue_expr(source_var);
+    source_expr->position = error_position;
     source_expr = add_ref_indirection_to_node(source_expr);
   } else {
     source_expr = var_lvalue_expr(source_var);
   }  /* if */
+  source_expr->position = error_position;
   return source_expr;
 }  /* lvalue_for_source_param */
 
@@ -3124,6 +3126,7 @@ operator routine or do bitwise assignment.
   a_param_type_ptr               ptp;
   a_boolean                      bitwise_assign, move_assign;
   a_source_position              *err_pos;
+  a_source_position              saved_error_position = error_position;
 
   db_enter(4, "make_default_assignment_body");
   /* The source variable of the copy is the first parameter on the parameters
@@ -3138,6 +3141,7 @@ operator routine or do bitwise assignment.
   class_type =
           type_pointed_to(scope->variant.routine.this_param_variable->type);
   err_pos = &class_type->source_corresp.decl_position;
+  error_position = *err_pos;
   /* Create the top-level block statement for the function. */
   top_block = alloc_statement((a_statement_kind)stmk_block);
   scope->assoc_block = top_block;
@@ -3375,6 +3379,7 @@ operator routine or do bitwise assignment.
      variable head_of_statement_list.  The start of the list is pointed to
      by the next field.  Attach the list to the top-level block. */
   top_block->variant.block.statements = head_of_statement_list.next;
+  error_position = saved_error_position;
   db_exit();
   return;
 }  /* make_default_assignment_body */

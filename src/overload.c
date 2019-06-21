@@ -18003,6 +18003,7 @@ no_applicable_operator_function:
             if (kind == (an_opname_kind)onk_assign &&
                 function_symbol->kind == (a_symbol_kind)sk_member_function &&
                 !function_symbol->variant.routine.ptr->is_deleted &&
+                !function_symbol->variant.routine.ptr->is_consteval &&
                 function_symbol->variant.routine.ptr->
                                                     is_trivial_copy_function) {
               /* This function is the default bitwise copy assignment
@@ -20020,6 +20021,7 @@ is used only in C++ mode.
   }  /* if */
   *class_bitwise_copy = FALSE;
   if (ctor_routine->is_trivial_copy_function && !ctor_routine->is_deleted &&
+      !ctor_routine->is_consteval &&
       ((ctor_arg_conversion != NULL && conv_usable(ctor_arg_conversion)) ||
        (is_class_struct_union_type(operand->type) &&
         is_same_class_or_base_class_thereof(operand->type, ctor_class)))) {
@@ -26773,7 +26775,7 @@ next_function:;
          case, we can use a bitwise copy instead. */
       a_routine_ptr  ctor = cctor_sym->variant.routine.ptr;
       if (ctor->is_trivial_copy_function && !ctor->is_deleted &&
-          cssp->construction_by_bitwise_copy_allowed &&
+          ctor->is_consteval && cssp->construction_by_bitwise_copy_allowed &&
           !routine_is_move_constructor(ctor)) {
         *class_bitwise_copy = TRUE;
         cctor_sym = NULL;
@@ -27031,7 +27033,7 @@ next_function:;
       assign_sym = candidate_functions->function_symbol;
       rp = assign_sym->variant.routine.ptr;
       if (rp->is_trivial_copy_function && !rp->is_deleted &&
-          cssp->assignment_by_bitwise_copy_allowed) {
+          !rp->is_consteval && cssp->assignment_by_bitwise_copy_allowed) {
         /* The selected operator can be used for bitwise assignment. */
         *bitwise_assign = TRUE;
         assign_sym = NULL;
