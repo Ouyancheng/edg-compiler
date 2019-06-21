@@ -26103,7 +26103,13 @@ freed by this routine.
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else if (allow_parenthesized_aggregate_init && parenthesized &&
-             is_aggregate_type(type_cast_to)) {
+             is_aggregate_type(type_cast_to) &&
+             scanning_source ? (curr_token != tok_lbrace &&
+                                curr_token != tok_rparen) :
+                              (arg_list_supplied ?
+                               (supplied_arg_list != NULL &&
+                                !is_braced_init_component(supplied_arg_list)) :
+                               rcblock->argument_list != NULL)) {
     /* Try parenthesized aggregate initialization. */
     a_boolean aggr_init;
     scan_ctor_args_or_paren_aggr_init(type_cast_to, rcblock, arg_list_supplied,
