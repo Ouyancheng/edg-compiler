@@ -3689,16 +3689,18 @@ components follow at the current level).
        the subaggregate constant. */
     is->chained_designator_okay = TRUE;
     aggr_init_array(&icp, &aggr_type, is, init_component_pos(icp), result);
-  } else if (is_template_param_type(aggr_type)) {
-    /* We cannot represent designators in nonreal types.  This was diagnosed
-       earlier in a way that should prevent us from getting here. */
-    unexpected_condition();
   } else {
     /* Not a type for which designators are valid. */
     is->init_error = TRUE;
     if (!is->no_diagnostics) {
-      pos_ty_error(ec_designator_requires_aggregate_type,
-                   init_component_pos(icp), aggr_type);
+      if (is_template_param_type(aggr_type)) {
+        /* We cannot represent designators in nonreal types. */
+        pos_error(ec_designator_for_template_dependent_type,
+                  init_component_pos(icp));
+      } else {
+        pos_ty_error(ec_designator_requires_aggregate_type,
+                     init_component_pos(icp), aggr_type);
+      }  /* if */
     }  /* if */
     icp = skip_designators(icp);
   }  /* if */
