@@ -15323,21 +15323,25 @@ or, for pointer to function, pointer to member, and nullptr_t types:
   an_expr_node_ptr  op2 = op1->next;
   an_expr_node_ptr  temp1, temp2, one, zero, minus_one, cmp;
   a_boolean         op1_has_side_effects, op2_has_side_effects;
+  a_type_kind       type_kind = expr->variant.operation.type_kind;
   
   one = spaceship_result_constant_expr(1, expr->type);
   zero = spaceship_result_constant_expr(0, expr->type);
-  if (is_pointer_to_function_type(op1->type) ||
-      is_ptr_to_member_type(op1->type) ||
-      is_nullptr_type(op1->type)) {
+  if (type_kind == (a_type_kind)tk_pointer ||
+      type_kind == (a_type_kind)tk_ptr_to_member ||
+#if GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX
+      type_kind == (a_type_kind)tk_complex ||
+#endif /* GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX */
+      type_kind == (a_type_kind)tk_nullptr) {
     /* <=> just tests equality.  Replace x <=> y by:
 	     x == y ? RT(0) ? RT(1)
     */
     cmp = make_operator_node((an_expr_operator_kind)eok_eq,
                              integer_type((an_integer_kind)ik_int), op1);
-    if (node_operator_type_kind_is(cmp, tk_ptr_to_member)) {
-      lower_pm_comparison(cmp, /*operand1_lower=*/FALSE);
+    if (type_kind == (a_type_kind)tk_ptr_to_member) {
+      lower_pm_comparison(cmp, /*operand1_lowered=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX
-    } else if (node_constant_is(cmp, ck_complex))  {
+    } else if (type_kind == (a_type_kind)tk_complex)  {
       lower_c99_constant_expr(cmp);
 #endif /* GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX */
     }  /* if */
