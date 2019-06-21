@@ -3,8 +3,8 @@ Version 5.1
 6/20/19  [EDGcpfe/21409]
 Abort in scan_ctor_arguments with constexpr user-defined conversion function
 
-When a constexpr user conversion function was used to enable copy construction
-of an object, the front end would abort.  For example:
+When a constexpr user-defined conversion function was used to enable copy
+construction of an object, the front end would abort.  For example:
 
   struct A {
     int x;

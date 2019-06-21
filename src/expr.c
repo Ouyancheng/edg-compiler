@@ -3714,9 +3714,9 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                              /*force_copy_to_temp=*/FALSE);
         if (is_temp_after_conv && !is_error_operand(operand)) {
           /* We determined previously that the result after the conversion
-             would be a temp we could reuse.  If the conversion function is
-             constexpr, then this temporary has already been folded into a
-             constant. */
+             would be a temp we could reuse.  This temporary may have already
+             been folded into a constant (e.g., if the conversion function is
+             constexpr). */
           if (is_constant_operand(operand)) {
             a_constant_ptr con = local_constant();
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
