@@ -12744,7 +12744,7 @@ indication in *rcblock).
     /* Instantiate the type if it is a template class. */
     complete_type_is_needed(utype);
     if (!C_mode() &&
-        !is_nonPOD_or_has_non_standard_layout(utype) &&
+        is_nonPOD_or_has_non_standard_layout(utype) &&
         !utype->variant.class_struct_union.is_nonreal_class) {
       expr_pos_warning(ec_offset_in_non_POD_nonstandard, &type_position);
     }  /* if */
