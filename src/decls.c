@@ -13065,6 +13065,7 @@ selection operation associated with this operator function reference.
       if (err) complete_type = error_type();
     }  /* if */
     check_pending_qualifiers_used(&state);
+    run_end_of_parse_actions(&state, /*more_declarators=*/FALSE);
     make_type_conversion_locator(complete_type, &locator_for_curr_id,
                                  &start_pos);
   } else {
