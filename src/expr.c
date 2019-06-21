@@ -27799,12 +27799,10 @@ operator_tsn describe the location of the operator.
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
-    a_boolean   normal_case = FALSE;
+    a_boolean   normal_case = FALSE, err_case = FALSE;
     a_type_ptr  op_type, result_type = NULL;
     if (is_error_operand(opnd1) || is_error_operand(opnd2)) {
-      make_error_operand(result);
-      operand_will_not_be_used_because_of_error(opnd1);
-      operand_will_not_be_used_because_of_error(opnd2);
+      err_case = TRUE;
       goto done_with_builtin_spaceship;
     }  /* if */
     do_operand_transformations(opnd1, TOPT_NO_OPTIONS);
@@ -27818,6 +27816,8 @@ operator_tsn describe the location of the operator.
       if (is_bool_type(opnd1->type) != is_bool_type(opnd2->type)) {
         pos_ty2_error(ec_invalid_spaceship_types, operator_pos,
                       opnd1->type, opnd2->type);
+        err_case = TRUE;
+        goto done_with_builtin_spaceship;
       } else {
         diagnose_comparison_if_different_enum_types(opnd1->type, opnd2->type,
                                                     operator_pos, es_error);
@@ -27834,6 +27834,8 @@ operator_tsn describe the location of the operator.
       } else {
         expr_pos_ty2_error(ec_invalid_spaceship_types, operator_pos,
                            opnd1->type, opnd2->type);
+        err_case = TRUE;
+        goto done_with_builtin_spaceship;
       }  /* if */
       normal_case = TRUE;
     } else if (is_scoped_enum_type(opnd1->type) &&
@@ -27853,13 +27855,16 @@ operator_tsn describe the location of the operator.
                          &op_type)) {
         change_binary_operand_types(op_type, opnd1, opnd2,
                                     (an_expr_operator_kind)eok_spaceship);
-      }  /* if */
-      if (is_pointer_to_function_type(op_type)) {
-        result_type = strong_equality_type();
+        if (is_pointer_to_function_type(op_type)) {
+          result_type = strong_equality_type();
+        } else {
+          result_type = strong_ordering_type();
+        }  /* if */
+        normal_case = TRUE;
       } else {
-        result_type = strong_ordering_type();
+        err_case = TRUE;
+        goto done_with_builtin_spaceship;
       }  /* if */
-      normal_case = TRUE;
     } else if (is_ptr_to_member_type(opnd1->type) ||
                is_ptr_to_member_type(opnd2->type)) {
       /* At least one operand is a pointer to member.  See if the operands
@@ -27884,9 +27889,8 @@ operator_tsn describe the location of the operator.
     } else {
       expr_pos_ty2_error(ec_invalid_spaceship_types, operator_pos,
                          opnd1->type, opnd2->type);
-      operand_will_not_be_used_because_of_error(opnd1);
-      operand_will_not_be_used_because_of_error(opnd2);
-      make_error_operand(result);
+      err_case = TRUE;
+      goto done_with_builtin_spaceship;
     }  /* if */
     if (normal_case) {
       an_expr_node_ptr  result_node, op1_node, op2_node;
@@ -27897,7 +27901,13 @@ operator_tsn describe the location of the operator.
                                        result_type, op1_node);
       make_expression_operand(result_node, result);
     }  /* if */
-done_with_builtin_spaceship:;
+done_with_builtin_spaceship:
+    if (err_case) {
+      expr_expect_error();
+      operand_will_not_be_used_because_of_error(opnd1);
+      operand_will_not_be_used_because_of_error(opnd2);
+      make_error_operand(result);
+    }  /* if */
   }  /* if */
   set_operand_position(result, &opnd1->position, &opnd2->end_position,
                        operator_pos);
