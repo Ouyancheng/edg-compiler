@@ -26102,6 +26102,25 @@ freed by this routine.
       end_position = curr_construct_end_position;
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  } else if (allow_parenthesized_aggregate_init && parenthesized &&
+             is_aggregate_type(type_cast_to)) {
+    /* Try parenthesized aggregate initialization. */
+    a_boolean aggr_init;
+    scan_ctor_args_or_paren_aggr_init(type_cast_to, rcblock, arg_list_supplied,
+                                      &supplied_arg_list, &aggr_init);
+    /* We can assume aggregate initialization here - if type_cast_to had a
+       viable constructor we would have hit ctor_case above. */
+    check_assertion(aggr_init);
+    unbundle_init_component_list_expressions(supplied_arg_list);
+    scan_braced_init_list_cast(type_cast_to, csf_functional,
+                               supplied_arg_list, rcblock != NULL, result);
+    check_closing_paren_after_expr_list();
+    if (arg_list_supplied) {
+      /* The arg list was provided - don't free it here. */
+      supplied_arg_list->variant.braced.list = NULL;
+    }  /* if */
+    free_arg_list(supplied_arg_list);
+    supplied_arg_list = NULL;
   } else {
     /* Not a constructor case; obeys the same rules as a C-style cast. */
     if (scanning_source) add_matching_stop_token(tok_rparen);
