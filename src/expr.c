@@ -27882,7 +27882,11 @@ operator_tsn describe the location of the operator.
       result_type = strong_equality_type();
       normal_case = TRUE;
     } else {
-      error_in_operand(expr_not_arithmetic_code(), result);
+      expr_pos_ty2_error(ec_invalid_spaceship_types, operator_pos,
+                         opnd1->type, opnd2->type);
+      operand_will_not_be_used_because_of_error(opnd1);
+      operand_will_not_be_used_because_of_error(opnd2);
+      make_error_operand(result);
     }  /* if */
     if (normal_case) {
       an_expr_node_ptr  result_node, op1_node, op2_node;
