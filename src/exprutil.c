@@ -5833,7 +5833,8 @@ the current context.
       ((curr_expr_is_evaluated() &&
         (!is_prototype_instantiation_context() ||
          curr_expr_kind_is_const())) ||
-       expr_stack->in_noexcept_operand_expression)) {
+       (expr_stack->in_noexcept_operand_expression &&
+        core_constant_expr_is_noexcept))) {
     fold = TRUE;
   }  /* if */
   return fold;
@@ -6427,7 +6428,9 @@ routine; for indirect calls, rout is NULL.
   a_boolean folded = FALSE;
   a_boolean is_consteval = (rout != NULL && rout->is_consteval);
 
-  if (constexpr_call_folding_should_be_done() || is_consteval) {
+  if ((constexpr_call_folding_should_be_done() || is_consteval) &&
+      (!expr_stack->in_noexcept_operand_expression ||
+       core_constant_expr_is_noexcept)) {
     a_constant_ptr  result_con = local_constant();
     a_boolean       release_constant = TRUE;
     folded = interpret_constexpr_call(call_expr, is_consteval, result_con,

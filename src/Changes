@@ -1,5 +1,34 @@
 Version 5.1
 
+4/17/19  [EDGcpfe/18111,EDGcpfe/21119,EDGcpfe/21276]
+The noexcept operator and constant expressions
+
+In C++11 and C++14, applying the noexcept operator to a "core constant
+expression" (an expression that the compiler can evaluate) produced a "true"
+value:
+
+  static_assert(noexcept(true ? 0 : throw 0), "");  // Okay in C++11 and C++14.
+                                                    // Fails in C++17.
+
+That rule was accidentally dropped through the changes made by the committee's
+paper P0003R5, but, after review, the committee decided to let the effect of
+P0003R5 in this area stand.  Since other compilers never implemented the
+original rule, the front end now applies the revised rules (causing the
+static_assert above to fail) by default.  The previous behavior can be
+restored by setting the global flag core_constant_expr_is_noexcept to TRUE.
+The previous behavior is also still enabled in Microsoft mode (which is a
+slightly different from both the original C++11/C++14 standard and from the
+revised standard rules).  Furthermore, the behavior in GNU C++ mode has been
+tweaked to more closely match the slightly nonstandard behavior of GCC.  E.g.,
+in GNU C++ modes the above example fails, but the following succeeds:
+
+  constexpr int const* f(int const *p) { return p; }
+  constexpr int i = 42;
+  static_assert(noexcept(*f(&i)), "");  // Okay in all GNU C++ modes that
+                                        // support noexcept.  Fails in
+                                        // default modes.
+ 
+
 6/21/19  [EDGcpfe/21402]
 Abort in aggr_init_chained_designator with template-dependent types
 
@@ -2079,35 +2108,6 @@ Use const-qualified temporaries when possible
 A change has been made to const-qualify lowered temporary variables in more
 situations.
 
-
-4/17/19  [EDGcpfe/18111,EDGcpfe/21119]
-The noexcept operator and constant expressions
-
-In C++11 and C++14, applying the noexcept operator to a "core constant
-expression" (an expression that the compiler can evaluate) produced a "true"
-value:
-
-  static_assert(noexcept(true ? 0 : throw 0), "");  // Okay in C++11 and C++14.
-                                                    // Fails in C++17.
-
-That rule was accidentally dropped through the changes made by the committee's
-paper P0003R5, but, after review, the committee decided to let the effect of
-P0003R5 in this area stand.  Since other compilers never implemented the
-original rule, the front end now applies the revised rules (causing the
-static_assert above to fail) by default.  The previous behavior can be
-restored by setting the global flag core_constant_expr_is_noexcept to TRUE.
-The previous behavior is also still enabled in Microsoft mode (which is a
-slightly different from both the original C++11/C++14 standard and from the
-revised standard rules).  Furthermore, the behavior in GNU C++ mode has been
-tweaked to more closely match the slightly nonstandard behavior of GCC.  E.g.,
-in GNU C++ modes the above example fails, but the following succeeds:
-
-  constexpr int const* f(int const *p) { return p; }
-  constexpr int i = 42;
-  static_assert(noexcept(*f(&i)), "");  // Okay in all GNU C++ modes that
-                                        // support noexcept.  Fails in
-                                        // default modes.
- 
 
 4/16/19  [EDGcpfe/20452]
 Inline static data members of class templates
