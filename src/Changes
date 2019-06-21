@@ -84,14 +84,15 @@ expression node, resulting in invalid IL, was also fixed.
 6/20/19  [EDGcpfe/21416]
 Auto array types in "new" expressions
 
-Previously the front end would not diagnose the usage of "auto" in a "new"
-expression directly - instead it issued a "could not deduce auto type" message.
-This is in contrast with the message issued when attempting to use "auto" when
-declaring an array ('"auto" type cannot appear in top-level array type').  In
-addition, this "could not deduce auto type" error would only appear when
-instantiating a template that had such a "new" expression, instead of issuing
-the error while parsing the prototype template.  These diagnostics have been
-made to be consistent with each other.  For example:
+Previously the front end would not directly diagnose the usage of "auto" in a
+"new" array expression - instead it issued a "could not deduce auto type"
+message when the deduction eventually failed.  This is in contrast with the
+message issued when attempting to use "auto" when declaring an array ('"auto"
+type cannot appear in top-level array type').  In addition, this "could not
+deduce auto type" error would only appear when instantiating a template that
+had such a "new" expression, instead of issuing the error during prototype
+instantiation.  These diagnostics have been made to be consistent with each
+other.  For example:
 
   template<typename T>
   void f() {
