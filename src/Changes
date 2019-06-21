@@ -41,9 +41,10 @@ Assertion failure in scan_new_operator with non-C++03 POD class and no
 initializer
 
 In certain specific cases, given a class that has no constructor and is POD by
-C++11 rules but not by C++03 rules where this class is being created without
-an initializer via a "new" expression, the front end aborted with a "non-POD
-class has neither actual nor assumed ctor" message.  For example:
+C++11 rules but not by C++03 rules, where an object of this class type is being
+created without an initializer via a "new" expression, the front end aborted
+with a "non-POD class has neither actual nor assumed ctor" message.  For
+example:
 
   template<auto lam = [] {
     struct A {int x = 29;};
