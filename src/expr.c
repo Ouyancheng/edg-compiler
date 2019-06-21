@@ -3717,18 +3717,17 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
              would be a temp we could reuse.  If the conversion function is
              constexpr, then this temporary has already been folded into a
              constant. */
-          if (arg_match->conversion.routine->is_constexpr) {
+          if (is_constant_operand(operand)) {
             a_constant_ptr con = local_constant();
-            check_assertion(is_constant_operand(operand));
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
             extract_constant_from_operand(operand, con);
             set_dynamic_init_constant(dip, move_local_constant_to_il(&con));
           } else {
             (void)is_temp_init_usable_in_optimization(
-                                                 operand,
-                                                 /*suppress_dtor=*/!fill_in_dtor,
-                                                 &temp_init_node,
-                                                 &dip);
+                                               operand,
+                                               /*suppress_dtor=*/!fill_in_dtor,
+                                               &temp_init_node,
+                                               &dip);
             handle_elided_copy_constructor(source_type,
                                            /*elided_cctor=*/(a_routine *)NULL,
                                            source_pos);

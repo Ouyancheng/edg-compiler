@@ -1,7 +1,7 @@
 Version 5.1
 
 6/20/19  [EDGcpfe/21409]
-Abort in scan_ctor_arguments with constexpr user conversion function
+Abort in scan_ctor_arguments with constexpr user-defined conversion function
 
 When a constexpr user conversion function was used to enable copy construction
 of an object, the front end would abort.  For example:
@@ -17,8 +17,6 @@ of an object, the front end would abort.  For example:
   };
   constexpr A a(37);
   constexpr A b(_AAA{a}); // Previously the front end would abort here
-  static_assert(a.x == 37, "a.x should be 37");
-  static_assert(b.x == 57, "b.c should be 57");
 
 This is now fixed.
 
