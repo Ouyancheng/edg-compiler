@@ -15334,6 +15334,13 @@ or, for pointer to function, pointer to member, and nullptr_t types:
     */
     cmp = make_operator_node((an_expr_operator_kind)eok_eq,
                              integer_type((an_integer_kind)ik_int), op1);
+    if (node_operator_type_kind_is(cmp, tk_ptr_to_member)) {
+      lower_pm_comparison(cmp, /*operand1_lower=*/FALSE);
+#if GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX
+    } else if (node_constant_is(cmp, ck_complex))  {
+      lower_c99_constant_expr(cmp);
+#endif /* GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX */
+    }  /* if */
     cmp->next = zero;
     zero->next = one;
     set_node_operator(expr, (an_expr_operator_kind)eok_question,
