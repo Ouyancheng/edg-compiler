@@ -1,5 +1,14 @@
 Version 5.1
 
+6/24/19  [EDGcpfe/21368]
+Microsoft compatibility: __builtin_clz*, __builtin_ctz*, __builtin_popcnt*
+
+When microsoft_version >= 1923, the builtins __builtin_clz, __builtin_clzl,
+__builtin_clzll, __builtin_ctz, __builtin_ctzl, __builtin_ctzll,
+__builtin_popcount, __builtin_popcountl, and __builtin_popcountll are now
+enabled (and can be used in constexpr contexts).
+
+
 6/21/19  [EDGcpfe/18111,EDGcpfe/21119,EDGcpfe/21276]
 The noexcept operator and constant expressions
 
