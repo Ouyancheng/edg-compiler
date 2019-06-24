@@ -2841,6 +2841,24 @@ standard "lowering" for such nodes.
     /* Xvalues get lowered to lvalues. */
     expr->is_xvalue = FALSE;
     expr->is_lvalue = TRUE;
+    if (is_operation_node(expr) &&
+        (node_operator_is(expr, eok_dot_field) ||
+         node_operator_is(expr, eok_pm_field)) &&
+        !expr->variant.operation.operands->is_lvalue &&
+        expr->variant.operation.operands->kind ==
+                                            (an_expr_node_kind)enk_temp_init) {
+      /* If an eok_dot_field operation is an xvalue and its first operand is
+         a class prvalue enk_temp_init, change the operand to an lvalue.
+         That is true for a case like this:
+           struct A {
+             struct {
+               int y;
+             } x;
+           };
+           A a = { A().x = { .y = (*new int(29)) }};
+         */
+      expr->variant.operation.operands->is_lvalue = TRUE;
+    }  /* if */
   }  /* if */
 }  /* change_xvalue_node_to_lvalue */
 
