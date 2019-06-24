@@ -6800,10 +6800,8 @@ dealt with).
       if (aggr_const->variant.aggregate.last_constant == con_ptr) {
         aggr_const->variant.aggregate.last_constant = prev_con;
       }  /* if */
-    }  /* if */
-    if (!(remove_constant && prev_con == NULL)) {
-      /* Update prev_con unless we just removed the first constant in the
-         aggregate. */
+    } else {
+      /* Update prev_con unless we just removed a constant. */
       prev_con = con_ptr;
     }  /* if */
     /* Loop while there are more constants. */
