@@ -5834,7 +5834,7 @@ the current context.
         (!is_prototype_instantiation_context() ||
          curr_expr_kind_is_const())) ||
        (expr_stack->in_noexcept_operand_expression &&
-        core_constant_expr_is_noexcept))) {
+        (core_constant_expr_is_noexcept || gpp_version_is(<90000))))) {
     fold = TRUE;
   }  /* if */
   return fold;
