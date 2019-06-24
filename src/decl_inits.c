@@ -1508,63 +1508,45 @@ occurred).  Diagnostics should be issued at the given position, unless
 is->no_diagnostics is TRUE.
 */
 {
-  a_constant_ptr                 result = NULL;
-  a_class_symbol_supplement_ptr  cssp;
+  a_constant_ptr  result = NULL;
+  a_field_ptr     fp, first_field;
 
   check_assertion(is_immediate_class_type(tp) &&
                   class_type_supp(tp)->anonymous_union_kind ==
                                           (an_anonymous_union_kind)auk_field);
-  cssp = class_symbol_supp(symbol_for(tp));
-  if (cssp->variant_member_with_nontrivial_default_ctor ||
-      cssp->variant_member_with_nontrivial_dtor) {
-    /* A union with a variant member that has a nontrivial default constructor
-       has a deleted default constructor itself, which prevents its default
-       initialization.  Similarly with the destructor.  (For anonymous union
-       types, we don't record special members in the symbol table, but from
-       the standard's point of view the type of anonymous unions are ordinary
-       unions.) */
-    if (!is->no_diagnostics) {
-      pos2_diagnostic(es_error, ec_cannot_default_initialize_anon_union,
-                      diag_pos, &tp->source_corresp.decl_position);
-    }  /* if */
-    is->init_error = TRUE;
-    result = alloc_error_constant();
-  } else {
-    a_field_ptr  fp, first_field;
+  if (!is->check_validity_only) {
+    result = alloc_constant((a_constant_repr_kind)ck_aggregate);
+    result->type = tp;
+    result->implicit_aggr_element = TRUE;
+  }  /* if */
+  first_field = tp->variant.class_struct_union.field_list;
+  /* Search for a field with a field initializer. */
+  for (fp = next_proper_initializable_field(first_field);
+       fp != NULL;
+       fp = next_proper_initializable_field(fp->next)) {
+    if (fp->has_initializer) break;
+  }  /* for */
+  if (fp != NULL) {
+    /* A field with an initializer was found.  Make an initializer element
+       from the field initializer. */
+    a_constant_ptr  con;
+    con = aggr_init_constant_from_field_initializer(
+                                        fp, fp->initializer, tp, is, diag_pos);
     if (!is->check_validity_only) {
-      result = alloc_constant((a_constant_repr_kind)ck_aggregate);
-      result->type = tp;
-      result->implicit_aggr_element = TRUE;
-    }  /* if */
-    first_field = tp->variant.class_struct_union.field_list;
-    /* Search for a field with a field initializer. */
-    for (fp = next_proper_initializable_field(first_field);
-         fp != NULL;
-         fp = next_proper_initializable_field(fp->next)) {
-      if (fp->has_initializer) break;
-    }  /* for */
-    if (fp != NULL) {
-      /* A field with an initializer was found.  Make an initializer element
-         from the field initializer. */
-      a_constant_ptr  con;
-      con = aggr_init_constant_from_field_initializer(
-                                       fp, fp->initializer, tp, is, diag_pos);
-      if (!is->check_validity_only) {
-        if (fp != first_field) {
-          /* Add a designator to indicate the field to initialize. */
-          a_constant_ptr
-                des_con = alloc_constant((a_constant_repr_kind)ck_designator);
-          des_con->variant.designator.is_field_designator = TRUE;
-          des_con->variant.designator.variant.field = fp;
-          add_constant_to_aggregate(des_con, result, (a_base_class_ptr)NULL,
-                                    (a_field_ptr)NULL);
-        }  /* if */
-        con->implicit_aggr_element = TRUE;
-        add_constant_to_aggregate(con, result, (a_base_class_ptr)NULL, fp);
+      if (fp != first_field) {
+        /* Add a designator to indicate the field to initialize. */
+        a_constant_ptr
+                 des_con = alloc_constant((a_constant_repr_kind)ck_designator);
+        des_con->variant.designator.is_field_designator = TRUE;
+        des_con->variant.designator.variant.field = fp;
+        add_constant_to_aggregate(des_con, result, (a_base_class_ptr)NULL,
+                                  (a_field_ptr)NULL);
       }  /* if */
-    } else {
-      /* A traditional (POD) union.  Just keep the empty aggregate constant. */
+      con->implicit_aggr_element = TRUE;
+      add_constant_to_aggregate(con, result, (a_base_class_ptr)NULL, fp);
     }  /* if */
+  } else {
+    /* A traditional (POD) union.  Just keep the empty aggregate constant. */
   }  /* if */
   return result;
 }  /* implicit_init_anonymous_union_member */

@@ -1361,11 +1361,19 @@ typedef struct a_class_symbol_supplement {
 			   fixup processing is complete.  This also indicates
 			   that the class is tracked on a list of class that
 			   may need fixups. */
+  a_bit_field	union_member_with_initializer:1;
+			/* TRUE if this class is a union and has a member with
+			   a default member initializer. */
   a_bit_field	variant_member_with_nontrivial_default_ctor:1;
 			/* TRUE if this class has a variant member with a
-			   nontrivial default constructor.  (In that case,
-			   possible with unrestricted unions only, a generated
-			   default constructor is implicitly deleted.) */
+			   nontrivial default constructor.  FALSE if the
+			   anonymous union containing this member also has a
+			   (possibly the same) member with a default member
+			   initializer that overrides this case
+			   (see union_member_with_initializer).  (If this field
+			   is TRUE, possible with unrestricted unions only, a
+			   generated default constructor is implicitly
+			   deleted.) */
   a_bit_field	variant_member_with_nontrivial_copy_ctor:1;
 			/* TRUE if this class has a variant member with a
 			   nontrivial copy constructor. */

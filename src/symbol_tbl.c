@@ -3803,6 +3803,7 @@ state.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cssp->being_defined = FALSE;
         cssp->may_need_fixups = FALSE;
+        cssp->union_member_with_initializer = FALSE;
         cssp->variant_member_with_nontrivial_default_ctor = FALSE;
         cssp->variant_member_with_nontrivial_copy_ctor = FALSE;
         cssp->variant_member_with_nontrivial_move_ctor = FALSE;

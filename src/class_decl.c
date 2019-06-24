@@ -17847,12 +17847,28 @@ for the union type (class_type).
 {
   a_type_ptr                     tp = skip_typerefs(field_type);
   a_class_symbol_supplement_ptr  cssp, parent_cssp;
+  a_boolean                      initializer_overrides_ctor = FALSE;
+  a_boolean                      initializer_overrides_other_ctor = FALSE;
   an_error_severity              severity = es_none;
 
   db_enter(4, "check_valid_union_field");
   if (tp->kind == (a_type_kind)tk_array) {
     tp = underlying_array_element_type(tp);
     tp = skip_typerefs(tp);
+  }  /* if */
+  parent_cssp = symbol_supplement_for_class(class_type);
+  if (gpp_mode || clang_mode) {
+    initializer_overrides_ctor = has_initializer;
+    /* initializer_overrides_other_ctor already FALSE */
+  } else if (!microsoft_mode) {
+    initializer_overrides_other_ctor = initializer_overrides_ctor =
+                 has_initializer || parent_cssp->union_member_with_initializer;
+  }
+  if (has_initializer) {
+    parent_cssp->union_member_with_initializer = TRUE;
+    if (initializer_overrides_other_ctor) {
+      parent_cssp->variant_member_with_nontrivial_default_ctor = FALSE;
+    }  /* if */
   }  /* if */
   if (is_immediate_class_type(tp)) {
     cssp = symbol_supplement_for_class(tp);
@@ -17862,9 +17878,8 @@ for the union type (class_type).
          performed. */
     } else if (unrestricted_unions_enabled) {
       if (class_type != NULL) {
-        parent_cssp = symbol_supplement_for_class(class_type);
         if (cssp->has_nontrivial_default_constructor &&
-            !((gpp_mode || clang_mode) && has_initializer)) {
+            !initializer_overrides_ctor) {
           parent_cssp->variant_member_with_nontrivial_default_ctor = TRUE;
         }  /* if */
         if (cssp->makes_copy_construction_nontrivial) {
@@ -22721,7 +22736,8 @@ The routine body is not generated until it is known to be needed.
   }  /* if */
   if (unrestricted_unions_enabled) {
     /* Variant members with special member functions suppress the corresponding
-       special member in the parent type by default. */
+       special member in the parent type by default, unless there's a default
+       member initializer that effectively acts as a default constructor. */
     if (cssp->variant_member_with_nontrivial_default_ctor) {
       gsfd.suppress_default_ctor = TRUE;
     }  /* if */

@@ -1,5 +1,36 @@
 Version 5.1
 
+6/14/19  [EDGcpfe/21433]
+Implicit constructors for unions with members having non-trivial constructors
+
+Committee core issue 2084 noted that a union that contains a member with a
+default member initializer as well as a (possibly the same) member that has a
+non-trivial constructor would have its constructor implicitly deleted.  The
+Committee resolution is that a default member initializer in a union should be
+treated as if a user-declared default constructor was present - meaning that
+the constructor should not be deleted.  This has been implemented except in
+compatibility modes for GCC, Clang, and MSVC, as none of these have implemented
+this change yet.  In addition, Committee core issue 1301 changed list
+initialization of a union that is an aggregate to use aggregate initialization
+and not the constructor, whether or not it's deleted.  For example:
+
+  struct A {
+    A();
+  };
+  struct B {
+    union {
+      int i = 1;
+      A a;
+    };
+  };
+  void f() {
+    B b1;   // Uses default constructor - no longer deleted (core issue 2084)
+    B b2{}; // Uses aggregate initialization, not ctor (core issue 1301)
+  }
+
+The front end has been updated to reflect these changes.
+
+
 6/24/19  [EDGcpfe/21440]
 Clang compatibility: Spurious error with designated initializers
 

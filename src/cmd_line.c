@@ -2562,6 +2562,7 @@ option values if they were not already set by a command line option.
       noexcept_enabled = TRUE;
       constexpr_enabled = TRUE;
       unrestricted_unions_enabled = TRUE;
+      aggregate_classes_can_have_field_initializers = TRUE;
       inheriting_constructors_enabled = TRUE;
       ref_qualifiers_enabled = rvalue_references_enabled;
       alignas_enabled = TRUE;
@@ -2630,7 +2631,6 @@ option values if they were not already set by a command line option.
         /* Emulate Visual Studio "15". */
         relaxed_constexpr_enabled = TRUE;
         constexpr_implies_const = FALSE;
-        aggregate_classes_can_have_field_initializers = TRUE;
         if (!(option_kind_used[(int)optk_alternative_tokens])) {
           alternative_tokens_allowed = !ms_permissive;
         }  /* if */
