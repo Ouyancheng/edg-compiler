@@ -3221,7 +3221,8 @@ initialization. */
              In modes where it is permitted, we must generate anonymous
              designators to navigate the aggregate structure. */
           if ((!C_mode() || gcc_version_is(< 40600)) &&
-              !(cpp20_designators_restriction || gpp_version_is(>= 80100))) {
+              !(cpp20_designators_restriction || gpp_version_is(>= 80100) ||
+                clang_version_is(any_version))) {
             okay = FALSE;
             pos_error(ec_indirect_anon_union_designator,
                       init_component_pos(icp));
