@@ -20353,25 +20353,6 @@ it might produce an error).
                                                    node_constant(op2),
                                                    result_con)) {
                 con_expr_value = alloc_shareable_constant(result_con);
-              } else if (constexpr_enabled) {
-                /* In C++11, the result of a constant subscript of a
-                   constant address designating a constant value can be
-                   folded. */
-                a_constant_ptr addr_con = local_constant();
-                a_boolean      did_not_fold;
-                an_error_code  error_detected;
-                binary_operation((an_expr_operator_kind)eok_padd,
-                                 node_constant(op1), node_constant(op2),
-                                 node->type, addr_con,
-                                 /*constant_context=*/FALSE,
-                                 /*evaluated_context=*/TRUE,
-                                 &did_not_fold, &template_constant,
-                                 &error_detected, err_pos);
-                if (!did_not_fold &&
-                    constant_value_at_address(addr_con, result_con) != NULL) {
-                  con_expr_value = copy_unshared_constant(result_con);
-                }  /* if */
-                release_local_constant(&addr_con);
               }  /* if */
             }  /* if */
           }  /* if */
