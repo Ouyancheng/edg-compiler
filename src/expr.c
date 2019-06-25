@@ -28368,20 +28368,42 @@ actual return type and mark the routine as deleted if appropriate.
     if (is_array_type(ftp)) {
       ftp = underlying_array_element_type(ftp);
     }  /* if */
-    if (!is_class_struct_union_type(ftp) && !is_enum_type(ftp)) {
-      /* Not a member type for which comparison can fail. */
-      continue;
+    if (is_class_struct_union_type(ftp) || is_enum_type(ftp)) {
+      ptr_class_tp = make_qualified_type(ftp, (a_type_qualifier_set)TQ_CONST);
+      ptr_class_tp = make_pointer_type(ptr_class_tp);
+      make_zero_of_proper_type(ptr_class_tp, zero_ptr);
+      make_glvalue_from_null_ptr_constant(zero_ptr, &opnd1);
+      make_glvalue_from_null_ptr_constant(zero_ptr, &opnd2);
+      process_spaceship_operator(&opnd1, &opnd2, &pos_curr_token,
+                                 curr_token_sequence_number, &cmp_opnd);
+      update_common_comparison_tag(cmp_opnd.type, &cctk);
+      reclaim_fs_nodes_of_operand(&cmp_opnd);
+    } else {
+      /* A built-in type. */
+      ftp = skip_typerefs(ftp);
+      switch (ftp->kind) {
+        case tk_integer:
+          cctk |= (a_comparison_category_set)cctk_strong_ordering;
+          break;
+        case tk_float:
+          cctk |= (a_comparison_category_set)cctk_partial_ordering;
+          break;
+        case tk_pointer:
+          if (is_pointer_to_function_type(ftp)) {
+            cctk |= (a_comparison_category_set)cctk_strong_equality;
+          } else {
+            cctk |= (a_comparison_category_set)cctk_strong_ordering;
+          }  /* if */
+          break;
+        case tk_ptr_to_member:
+        case tk_nullptr:
+          cctk |= (a_comparison_category_set)cctk_strong_equality;
+          break;
+        default:
+          cctk |= (a_comparison_category_set)cctk_other;
+          break;
+      }  /* switch */
     }  /* if */
-    ptr_class_tp = make_qualified_type(ftp, (a_type_qualifier_set)TQ_CONST);
-    ptr_class_tp = make_pointer_type(ptr_class_tp);
-    make_zero_of_proper_type(ptr_class_tp, zero_ptr);
-    make_glvalue_from_null_ptr_constant(zero_ptr, &opnd1);
-    make_glvalue_from_null_ptr_constant(zero_ptr, &opnd2);
-    process_spaceship_operator(&opnd1, &opnd2, &pos_curr_token,
-                               curr_token_sequence_number, &cmp_opnd);
-    update_common_comparison_tag(cmp_opnd.type, &cctk);
-    /* Contextually convert *result to bool. */
-    reclaim_fs_nodes_of_operand(&cmp_opnd);
     if (expr_stack->any_suppressed_error ||
         (cctk & (a_comparison_category_set)cctk_other)) {
       cctk |= (a_comparison_category_set)cctk_other;

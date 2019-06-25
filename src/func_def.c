@@ -3837,16 +3837,19 @@ Create a pair of statements:
         if (v != 0) return v;
 
 with R the given type, and return a pointer to the first statement.  block is
-the parent statement for the new statements.
+the parent statement for the new statements.  In error cases, return NULL.
 */
 {
   a_variable_ptr    vp;
-  a_statement_ptr   init_stmt, if_stmt, return_stmt;
+  a_statement_ptr   init_stmt = NULL, if_stmt, return_stmt;
   an_expr_node_ptr  return_cond;
 
   /* Create the variable, its initializer, and the v != 0 expression. */
   vp = make_spaceship_cmp_variable(arg1, arg2, tp, &return_cond);
-  check_assertion(vp->init_kind == (an_init_kind)initk_dynamic);
+  if (vp->init_kind != (an_init_kind)initk_dynamic) {
+    expect_error();
+    goto done;
+  }  /* if */
   /* Allocate the initializer statement for the variable. */
   init_stmt = alloc_statement((a_statement_kind)stmk_init);
   init_stmt->parent = block;
@@ -3863,6 +3866,7 @@ the parent statement for the new statements.
   if_stmt->variant.if_stmt.then_statement = return_stmt;
   return_stmt->parent = if_stmt;
   init_stmt->next = if_stmt;
+done:
   return init_stmt;
 }  /* make_spaceship_element_comparison */
 
@@ -3910,9 +3914,11 @@ its associated scope is also given.
     arg2 = add_indirection_to_node(base_class_selection_expr(arg2, bcp));
     sp->next = make_spaceship_element_comparison(arg1, arg2, return_type,
                                                  top_block);
-    /* Two statements should have been returned. */
-    sp = sp->next->next;
-    check_assertion(sp->next == NULL);
+    /* Two statements should have been returned, or none in error cases. */
+    if (sp->next != NULL) {
+      sp = sp->next->next;
+      check_assertion(sp->next == NULL);
+    }  /* if */
   }  /* for */
   /* For the data members, use the symbol list rather than the field list to
      be sure we adhere to declaration order and to be sure only user-defined
@@ -3997,7 +4003,9 @@ its associated scope is also given.
          sequence. */
       sp->next = make_spaceship_element_comparison(
                                           arg1, arg2, return_type, top_block);
-      sp = sp->next->next;
+      if (sp->next != NULL) {
+        sp = sp->next->next;
+      }  /* if */
     }  /* if */
   }  /* for */
   /* Make the final "return (R)std::strong_ordering::equal;" statement. */
