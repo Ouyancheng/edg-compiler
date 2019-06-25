@@ -3815,6 +3815,14 @@ that the remaining arguments will be defaulted.
         }  /* if */
       }  /* if */
     }  /* if */
+    if (entry_kind == iek_routine && clang_is_generated_code_target &&
+        is_generated_explicit_specialization &&
+        ((a_routine_ptr)scp)->special_kind ==
+                                    (a_special_function_kind)sfk_constructor) {
+      /* Clang does not permit template arguments on out-of-class
+         constructor declarations. */
+      goto end_of_routine;
+    }  /* if */
     if (insert_space) write_space();
     /* Put out the template argument list, e.g., "<int, float>". */
     if (num_arguments == 0) {
