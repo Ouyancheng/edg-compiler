@@ -4860,13 +4860,21 @@ set correctly.
         goto done;
       }  /* if */
       func_scope = scope_stack[depth].il_scope;
+      check_assertion(func_scope != NULL &&
+                      scope_is(func_scope, sck_function));
     } else {
-      /* The parent scope is not on the scope stack, so use
-         innermost_function_scope. */
-      func_scope = innermost_function_scope;
+      /* The parent scope is not on the scope stack: Use
+         innermost_function_scope if available; otherwise, iterate up the
+         scope chain. */
+      if (innermost_function_scope != NULL) {
+        func_scope = innermost_function_scope;
+      } else {
+        func_scope = parent_scope;
+        while (!scope_is(func_scope, sck_function)) {
+          func_scope = func_scope->parent;
+        }  /* while */
+      }  /* if */
     }  /* if */
-    check_assertion(func_scope != NULL &&
-                    func_scope->kind == (a_scope_kind)sck_function);
     scp->enclosing_routine = func_scope->variant.routine.ptr;
     if (in_file_scope(scp)) {
       /* There is a memory region problem; scp (in the file scope memory

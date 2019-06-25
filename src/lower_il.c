@@ -8342,7 +8342,7 @@ subobject_partner field of the class type supplement.  If the original
 class has no virtual base classes, the subobject type will be the same
 type.  The original class type must have been lowered just to the point where
 the fields for the virtual base class space would be added; that allows
-this routine to do a relatively simple copy of the all the fields.
+this routine to do a relatively simple copy of all the fields.
 */
 {
   a_field_ptr                 old_field, last_field;
