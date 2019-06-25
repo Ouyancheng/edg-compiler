@@ -757,6 +757,10 @@ COMDAT sections?"
 #endif /* IA64_ABI */
 #endif /* ifndef LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS */
 
+#if !LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS && IA64_ABI
+ #error -- LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS must be TRUE for IA-64 ABI
+#endif /* !LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS && IA64_ABI */
+
 /*
 Flag that is TRUE if templates should be instantiated everywhere they
 are used, with duplicates discarded by the linker.  This approach
