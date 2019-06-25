@@ -1044,9 +1044,14 @@ Merge the name reference list from the expiring_scp into the surviving_scp.
       surviving_scp->name_references = nrpe;
     } else {
       /* Both have lists, so find the end of the surviving list and concatenate
-         the two. */
-      while (nrps->next != NULL) nrps = nrps->next;
-      nrps->next = nrpe;
+         the two.  If the expiring list is contained within the surviving one
+         then do nothing.  This can happen with certain built-in functions that
+         are "instantiated" for various invocation points (e.g.,
+         __c11_atomic_load). */
+      while (nrps->next != NULL && nrps != nrpe) nrps = nrps->next;
+      if (nrps != nrpe) {
+        nrps->next = nrpe;
+      }  /* if */
     }  /* if */
     expiring_scp->name_references = NULL;
   }  /* if */

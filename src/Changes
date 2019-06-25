@@ -1,5 +1,35 @@
 Version 5.1
 
+6/25/19  [EDGcpfe/21446]
+Multiple translation units: Potential infinite loop when using built-in
+functions
+
+In some multiple translation unit modes where source sequence lists are
+generated, the front end could enter into an infinite loop when attempting
+to merge name reference lists for built-in function types.  For example, when
+compiling two source files that both include a header containing this code:
+
+  template<typename>
+  void f()
+  {
+    _Atomic(bool) atom;
+    __c11_atomic_exchange(&atom, 0, 0);
+  };
+  struct B
+  {
+    _Atomic(bool) atom;
+    void f() volatile {
+      __c11_atomic_exchange(&atom, 0, 0);
+    }
+    void g() {
+      __c11_atomic_exchange(&atom, 0, 0);
+    }
+  };
+
+In the above example, the front end would enter into an infinite loop.  This is
+now fixed.
+
+
 6/14/19  [EDGcpfe/21433]
 Implicit constructors for unions with members having non-trivial constructors
 
