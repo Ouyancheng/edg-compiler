@@ -24823,7 +24823,7 @@ will be an lvalue instead of the usual prvalue.
                (ctor_sym = symbol_supplement_for_class(dest_type)->constructor)
                                                                      != NULL) {
       /* A class with constructors.  Process as constructor arguments. */
-      a_routine_ptr ctor_rout = NULL;
+      a_boolean explicit_ctor = FALSE;
       if (arg_match != NULL) {
         /* Overload resolution. */
         a_conv_descr conversion;
@@ -24850,7 +24850,9 @@ will be an lvalue instead of the usual prvalue.
              user-defined conversion sequence. */
           arg_match->match_level = aml_user_conversion;
           arg_match->conversion = conversion;
-          if (!ambiguous) ctor_rout = conversion.routine;
+          if (!ambiguous && conversion.routine != NULL) {
+            explicit_ctor = conversion.routine->is_explicit_constructor;
+          }  /* if */
         } else {
           arg_match->match_level = aml_none;
         }  /* if */
@@ -24880,6 +24882,7 @@ will be an lvalue instead of the usual prvalue.
                             list,
                             icp,
                             /*trivial_ctor=*/(a_boolean *)NULL,
+                            &explicit_ctor,
                             &elision_done,
                             /*unboxing_conv=*/(a_boolean *)NULL,
                             /*string_ctor_skip=*/(a_boolean *)NULL,
@@ -24892,12 +24895,9 @@ will be an lvalue instead of the usual prvalue.
         if (dip == NULL) {
           /* There was an error. */
           make_error_operand(&operand);
-        } else if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
-          ctor_rout = dip->variant.constructor.ptr;
         }  /* if */
       }  /* if */
-      if (!is_direct_init && ctor_rout != NULL &&
-          ctor_rout->is_explicit_constructor) {
+      if (!is_direct_init && explicit_ctor) {
         /* An explicit constructor cannot be used for copy-list-initialization.
            This is tested after overload resolution, rather than (as usual)
            causing the constructor not to be viable within overload resolution.

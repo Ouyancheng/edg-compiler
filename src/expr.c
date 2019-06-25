@@ -3290,6 +3290,7 @@ void scan_ctor_arguments(a_symbol_ptr             constructor_sym,
                          an_arg_list_elem_ptr     supplied_arg_list,
                          an_arg_list_elem_ptr     init_list_ctor_arg_list,
                          a_boolean                *trivial_ctor,
+                         a_boolean                *explicit_ctor,
                          a_boolean                *elision_done,
                          a_boolean                *unboxing_conv,
                          a_boolean                *string_ctor_skip,
@@ -3321,26 +3322,26 @@ can be elided or turned into a bitwise move.  If is_custom_ms_attr_arg_list
 is TRUE, this function is invoked to parse the arguments for a custom
 "Microsoft COM-style attribute".  conv_context describes the conversion
 implied by the constructor (usually, CCO_DIRECT_INITIALIZATION, but not
-for some list-initializer cases like "X x = { 1, 2 };").  If trivial_ctor
-is non-NULL, and the initialization required turns out to be calling a
-trivial default constructor (which does nothing), and there's no
-destructor to be called (either because the class doesn't have one or
-because fill_in_dtor is FALSE), return *trivial_ctor set to TRUE,
-don't construct a dynamic initialization entry, and return *p_dip set
-to NULL.  Otherwise, return *trivial_ctor set to FALSE if trivial_ctor
-is non-NULL.  If elision_done is non-NULL, set *elision_done to
-indicate whether or not copy elision was done.  If unboxing_conv is
-non-NULL, and there is a single argument and its conversion to the
-class type is a C++/CLI unboxing conversion, return *unboxing_conv set
-to TRUE, return the argument in *simple_result, don't construct a
-dynamic initialization entry, and return *p_dip set to NULL.  If
-string_ctor_skip is non-NULL, and there is a single argument of
-C++/CLI type System::String, return *string_ctor_skip set to TRUE,
-return the argument in *simple_result, don't construct a dynamic
-initialization entry, and return *p_dip set to NULL.  If
-closing_paren_position is non-NULL, *closing_paren_position is set to
-the source position of the closing parenthesis (but it's not set on a
-rescan).
+for some list-initializer cases like "X x = { 1, 2 };").
+
+If trivial_ctor is non-NULL, and the initialization required turns out to be
+calling a trivial default constructor (which does nothing), and there's no
+destructor to be called (either because the class doesn't have one or because
+fill_in_dtor is FALSE), return *trivial_ctor set to TRUE, don't construct a
+dynamic initialization entry, and return *p_dip set to NULL.  Otherwise, return
+*trivial_ctor set to FALSE if trivial_ctor is non-NULL.  If explicit_ctor is
+non-NULL, set *explicit_ctor to TRUE if the constructor to be called has been
+marked as explicit, otherwise set *explicit_ctor to FALSE.  If elision_done is
+non-NULL, set *elision_done to indicate whether or not copy elision was done.
+If unboxing_conv is non-NULL, and there is a single argument and its conversion
+to the class type is a C++/CLI unboxing conversion, return *unboxing_conv set
+to TRUE, return the argument in *simple_result, don't construct a dynamic
+initialization entry, and return *p_dip set to NULL.  If string_ctor_skip is
+non-NULL, and there is a single argument of C++/CLI type System::String, return
+*string_ctor_skip set to TRUE, return the argument in *simple_result, don't
+construct a dynamic initialization entry, and return *p_dip set to NULL.  If
+closing_paren_position is non-NULL, *closing_paren_position is set to the
+source position of the closing parenthesis (but it's not set on a rescan).
 
 This routine may be called only in C++ mode.  It's used for parenthesis-
 enclosed initializers for classes that have constructors, as in
@@ -3413,6 +3414,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
   expr_stack->allow_call_with_incomplete_return_type = FALSE;
   /* Initialize returned flags: */
   if (trivial_ctor != NULL) *trivial_ctor = FALSE;
+  if (explicit_ctor != NULL) *explicit_ctor = FALSE;
   if (elision_done != NULL) *elision_done = FALSE;
   if (unboxing_conv != NULL) *unboxing_conv = FALSE;
   if (string_ctor_skip != NULL) *string_ctor_skip = FALSE;
@@ -3565,6 +3567,9 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
        list is just the single braced-init-list. */
     if (init_list_ctor_case) eff_arg_list = init_list_ctor_arg_list;
     routine = constructor_sym->variant.routine.ptr;
+    if (explicit_ctor != NULL) {
+      *explicit_ctor = routine->is_explicit_constructor;
+    }  /* if */
     if (routine->is_trivial_default_constructor) {
       /* The constructor selected is a trivial default constructor, which
          does nothing.  The routine is not marked as called. */
@@ -20537,6 +20542,7 @@ parenthesized initializer was provided.
                         (an_arg_list_elem *)NULL,
                         (an_arg_list_elem *)NULL,
                         &trivial_ctor,
+                        /*explicit_ctor=*/(a_boolean *)NULL,
                         /*elision_done=*/(a_boolean *)NULL,
                         /*unboxing_conv=*/(a_boolean *)NULL,
                         string_ctor_skip,
@@ -20697,6 +20703,7 @@ C++/CLI/CX array case.
                           nps->init_raw_args,
                           (an_arg_list_elem *)NULL,
                           &trivial_ctor,
+                          /*explicit_ctor=*/(a_boolean *)NULL,
                           /*elision_done=*/(a_boolean *)NULL,
                           &unboxing_conversion,
                           &string_ctor_skip,
@@ -26002,6 +26009,7 @@ freed by this routine.
                         supplied_arg_list,
                         (an_arg_list_elem *)NULL,
                         /*trivial_ctor=*/(a_boolean *)NULL,
+                        /*explicit_ctor=*/(a_boolean *)NULL,
                         /*elision_done=*/(a_boolean *)NULL,
                         &unboxing_conv,
                         /*string_ctor_skip=*/(a_boolean *)NULL,
@@ -46132,6 +46140,7 @@ source position to be used in overall errors.
                       conv_context, (a_rescan_control_block *)NULL,
                       args_supplied, arg_list, (an_arg_list_elem *)NULL,
                       /*trivial_ctor=*/(a_boolean *)NULL,
+                      /*explicit_ctor=*/(a_boolean *)NULL,
                       /*elision_done=*/(a_boolean *)NULL,
                       /*unboxing_conv=*/(a_boolean *)NULL,
                       /*string_ctor_skip=*/(a_boolean *)NULL,
@@ -47857,6 +47866,7 @@ attribute.
                             (an_arg_list_elem *)NULL,
                             (an_arg_list_elem *)NULL,
                             /*trivial_ctor=*/(a_boolean *)NULL,
+                            /*explicit_ctor=*/(a_boolean *)NULL,
                             /*elision_done=*/(a_boolean *)NULL,
                             /*unboxing_conv=*/(a_boolean *)NULL,
                             /*string_ctor_skip=*/(a_boolean *)NULL,

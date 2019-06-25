@@ -8957,6 +8957,7 @@ member functions), or the default constructor.
                         alep,
                         /*init_list_ctor_arg_list=*/NULL,
                         /*trivial_ctor=*/NULL,
+                        /*explicit_ctor=*/NULL,
                         /*elision_done=*/NULL,
                         /*unboxing_conv=*/NULL,
                         /*string_ctor_skip=*/NULL,
