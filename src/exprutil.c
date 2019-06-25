@@ -9848,10 +9848,9 @@ desired.
   }  /* if */
 
   if (is_immediate_enum_type(promoted_type) &&
-      !(promoted_type->variant.integer.has_explicit_enum_base ||
-        integer_type_is_scoped_enum(promoted_type))) {
-    /* Enum bit fields without a fixed underlying type keep their underlying
-       type when being promoted. */
+      ikind >= (an_integer_kind)ik_int) {
+    /* Enum bit fields keep their underlying type when being promoted, unless
+       this underlying type is smaller than an int. */
   } else if (gcc_version_is(< 40000) &&
       field->bit_size == (unsigned int)(targ_sizeof_long*targ_char_bit)) {
     /* gcc before 4.0 considers bit fields that are exactly as long as "long"
