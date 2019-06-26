@@ -27906,6 +27906,9 @@ operator_tsn describe the location of the operator.
                               opnd1, opnd2, operator_pos, &op_type)) {
         change_binary_operand_types(op_type, opnd1, opnd2,
                                     (an_expr_operator_kind)eok_spaceship);
+      } else {
+        err_case = TRUE;
+        goto done_with_builtin_spaceship;
       }  /* if */
       result_type = strong_equality_type();
       normal_case = TRUE;
@@ -27916,6 +27919,9 @@ operator_tsn describe the location of the operator.
                                                   &op_type)) {
         change_binary_operand_types(op_type, opnd1, opnd2,
                                     (an_expr_operator_kind)eok_spaceship);
+      } else {
+        err_case = TRUE;
+        goto done_with_builtin_spaceship;
       }  /* if */
       result_type = strong_equality_type();
       normal_case = TRUE;
