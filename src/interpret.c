@@ -8427,8 +8427,25 @@ the body of the (constructor) function proper.
       goto done;
     }  /* if */
     /* Phase 1: Allocate and evaluate the arguments. */
+    /* The "+1" below is to account for the "this" pointer (handled later). */
     p_arg_ptr = (a_byte**)arg_ptrs+1;
     arg_size = (a_byte_count*)arg_sizes;
+    if (implied_src != NULL) {
+      /* The first non-this argument is implicit (i.e., not represented in
+         the IL).  Since it always corresponds to the reference parameter of
+         a copy/move constructor, we know it is a constexpr address. */
+      a_byte_count  n_bytes = sizeof(a_constexpr_address);
+      a_byte        *arg_bytes;
+      do_host_alignment(n_bytes);
+      *arg_size = n_bytes;
+      arg_size += 1;
+      n_bytes += sizeof(a_var_postfix);
+      alloc_complete_object(ips, n_bytes, params->type, arg_bytes);
+      *(a_constexpr_address*)arg_bytes = *implied_src;
+      mark_complete_object_initialized(arg_bytes);
+      *p_arg_ptr = arg_bytes;
+      p_arg_ptr += 1;
+    }  /* if */
     for (arg = args; arg != NULL; arg = arg->next) {
       a_type_ptr    tp = skip_typerefs(arg->type);
       a_byte_count  n_bytes;
@@ -8493,17 +8510,6 @@ the body of the (constructor) function proper.
         goto done;
       }  /* if */
     }  /* for */
-    if (implied_src != NULL) {
-      a_byte_count  n_bytes = sizeof(a_constexpr_address);
-      a_byte        *arg_bytes;
-      do_host_alignment(n_bytes);
-      *arg_size = n_bytes;
-      n_bytes += sizeof(a_var_postfix);
-      alloc_complete_object(ips, n_bytes, params->type, arg_bytes);
-      *(a_constexpr_address*)arg_bytes = *implied_src;
-      mark_complete_object_initialized(arg_bytes);
-      *p_arg_ptr = arg_bytes;
-    }  /* if */
     /* Phase 2: Map the parameters to the arguments. */
     /* First map the "this" pointer. */
     alloc_seq_number = ips->curr_alloc_seq_number++;
