@@ -1,5 +1,14 @@
 Version 5.1
 
+6/25/19  [EDGcpfe/21456]
+Synthesis of inheriting constructor definitions
+
+In configuration with INSTANTIATE_EXTERN_INLINE set to TRUE, the front end
+often synthesized a definition for an inheriting constructor when it should
+not have done so (that in turn could lead to duplicate definition errors issued
+by a linker that cannot discard duplicate definition).  That is now fixed.
+
+
 6/25/19  [EDGcpfe/21434]
 Copy-list-initialization with explicit constexpr constructors
 

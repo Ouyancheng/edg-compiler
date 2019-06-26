@@ -23453,6 +23453,13 @@ constructor.
         form_exception_specification_for_generated_function(new_rp, bctor);
       }  /* if */
       done_with_func_info(func_info);
+      if (instantiate_extern_inline && !new_rp->is_deleted) {
+        /* When inline functions are instantiated like templates, add the
+           function to the list of inline functions if it is inline.  (Members
+           of prototype instantiations don't need to be treated that way, of
+           course.) */
+        add_to_inline_function_list(new_rp);
+      }  /* if */
     }  /* if */
   }  /* for */
   cdsp->access = saved_access;
@@ -30438,8 +30445,8 @@ wrap_up_class_definition.
     /* Check to see if a remark should be issued on direct base classes
        with nonvirtual destructors. */
     check_base_class_destructors(class_state);
-    if (!class_type->variant.class_struct_union.
-                                           is_ms_instantiated_nonreal_class &&
+    if (!class_type->variant.class_struct_union
+                            .is_ms_instantiated_nonreal_class &&
         !is_template_dependent_context()) {
       /* Create compiler-generated default constructor, copy constructor,
          destructor, and assignment operator, if any is needed. */
