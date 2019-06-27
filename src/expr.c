@@ -25754,7 +25754,8 @@ freed by this routine.
   a_boolean                     allow_ms_array = microsoft_bugs && !C_mode();
   a_ruled_out_expr_kind_set     ruled_out_expr_kinds = ROEK_NONE;
   a_dynamic_init_ptr            dip = NULL;
-  an_expr_node_ptr              temp_init_node, orig_operand_expression = NULL;
+  an_expr_node_ptr              temp_init_node = NULL,
+                                orig_operand_expression = NULL;
   an_expr_node_ptr              expr;
   a_source_position             local_start_position, type_position;
   a_boolean                     expr_not_present = FALSE;
@@ -26365,6 +26366,17 @@ have_result:
                                       start_position,
                                       &type_position,
                                       type_cast_to);
+  if (temp_init_node != NULL && temp_init_node->extra.rescan_info != NULL &&
+      dip != NULL && dip->kind == (a_dynamic_init_kind)dik_constant) {
+    /* An enk_temp_init node was created to represent this cast and it has
+       associated rescanning info.  The node may have been folded, in which
+       case it may have an associated backing expression that needs that same
+       rescanning information. */
+    an_expr_node_ptr  backing_expr = dip->variant.constant.ptr->expr;
+    if (backing_expr != NULL && is_temp_node(backing_expr)) {
+      backing_expr->extra.rescan_info = temp_init_node->extra.rescan_info;
+    }  /* if */
+  }  /* if */
   rule_out_expr_kinds(ruled_out_expr_kinds, result);
 #if BACK_END_IS_CP_GEN_BE
   if (uses_class_templ_arg_deduction && dip != NULL) {
