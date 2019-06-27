@@ -2552,7 +2552,7 @@ variadic template, an abort could occur (in update_template_param_symbols).
 Now fixed.
 
 
-4/5/19   [EDGcpfe/21109]
+4/5/19   [EDGcpfe/19843,EDGcpfe/21109]
 Incorrect substitution of explicit template arguments during deduction
 
 Consider:
