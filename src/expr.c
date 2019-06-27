@@ -32412,6 +32412,10 @@ icp.
                                        /*fold_constexpr=*/TRUE,
                                        /*check_constexpr=*/FALSE,
                                        &dps->declarator_pos);
+    if (is_error_dynamic_init(dip)) {
+      expr_expect_error();
+      err = TRUE;
+    }  /* if */
   }  /* if */
   /* Change the references to "use". */
   change_some_ref_kinds(operand.ref_entries_list, SRK_REFERENCE, SRK_USE);
