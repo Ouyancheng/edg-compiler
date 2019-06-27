@@ -2659,7 +2659,7 @@ Clang's.  For example, in GNU C++11 mode:
   }
 
 
-4/3/19   [EDGcpfe/20159,EDGcpfe/20991]
+4/3/19   [EDGcpfe/19820,EDGcpfe/20159,EDGcpfe/20991]
 Incorrect syntax disambiguation for class template argument deduction
 
 Consider:
