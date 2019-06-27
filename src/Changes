@@ -3996,7 +3996,7 @@ For example, in C++17 mode:
 This is now fixed.
 
 
-1/25/19  [EDGcpfe/19750,EDGcpfe/20481]
+1/25/19  [EDGcpfe/19750,EDGcpfe/20056,EDGcpfe/20481]
 Copying an abstract base subobject using a braced initializer
 
 Consider:
