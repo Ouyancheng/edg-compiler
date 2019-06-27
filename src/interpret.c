@@ -4077,9 +4077,15 @@ Release the variant path structures when the check is completed.
   }  /* if */
   do {
     a_field_ptr  *p_active_field = (a_field_ptr*)vpep->base_address;
-    a_field_ptr  active_field = *p_active_field;
     a_field_ptr  selected_field = vpep->field;
     if (!activation_mode) {
+      a_field_ptr  active_field;
+      if (!subobject_is_initialized(vpep->base_address,
+                                    addr->complete_object)) {
+        activation_mode = TRUE;
+        break;
+      }  /* if */
+      active_field = *p_active_field;
       if (selected_field != active_field) {
         if (strict) {
           /* Before C++20, this was always an error. */
