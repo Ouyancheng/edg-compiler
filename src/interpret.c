@@ -4064,7 +4064,7 @@ Release the variant path structures when the check is completed.
   a_variant_path_entry_ptr
              vpep = addr->variant.variant_path->next;
 
-  if (!is_initialized(addr)) {
+  if (!subobject_is_initialized(addr->address, addr->complete_object)) {
     if (strict) {
       /* Before C++20, this was always an error. */
       result = FALSE;
