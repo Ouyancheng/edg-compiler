@@ -7057,7 +7057,7 @@ fixed.  For example, with --clang --c++03 --exceptions:
   #endif
 
 
-9/28/18  [EDGcpfe/20196]
+9/28/18  [EDGcpfe/20089,EDGcpfe/20196]
 Spurious error on use of lambda in constant-expression context
 
 Consider the following example:
