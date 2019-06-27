@@ -1,5 +1,16 @@
 Version 5.1
 
+6/27/19  [EDGcpfe/21458]
+Vector types are trivially copyable
+
+The front end now treats vector types as trivially copyable (in modes that
+accept such types).  For example:
+
+  using V = int __attribute__((vector_size(4*sizeof(int))));
+  static_assert(__is__trivially_copyable(V), "Unexpected");
+    // Now accepted in GNU C++11 mode.
+
+
 6/25/19  [EDGcpfe/21456]
 Synthesis of inheriting constructor definitions
 

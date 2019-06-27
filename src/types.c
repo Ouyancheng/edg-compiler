@@ -2066,6 +2066,10 @@ Return TRUE if the given type is trivially copyable.
       } else {
         result = FALSE;
       }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+    } else if (type_is(tp, tk_vector)) {
+      result = TRUE;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     } else {
       result = FALSE;
     }  /* if */
