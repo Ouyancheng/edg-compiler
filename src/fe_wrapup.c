@@ -205,7 +205,7 @@ It's a static entity that may be referenced from exported templates.
       } else {
         /* Other cases are treated as if they were extern inline. */
         check_assertion(rout->is_inline);
-        if (instantiate_extern_inline &&
+        if (instantiate_extern_inline && !rout->is_consteval &&
             !rout->on_inline_function_list) {
           /* Add the function to the inline functions list, which is an
              instantiation list for non-templates. */

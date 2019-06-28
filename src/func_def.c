@@ -1856,6 +1856,7 @@ of lambda expressions.
   }  /* if */
   pop_stop_token_stack();
   if (instantiate_extern_inline && rout_ptr->is_inline &&
+      !rout_ptr->is_consteval &&
       !rout_ptr->is_prototype_instantiation &&
       !rout_ptr->on_inline_function_list) {
     /* When inline functions are instantiated like templates, add the function
@@ -2606,7 +2607,9 @@ routine.
   fn_scope->assoc_block = block_stmt;
   pop_scope();
   check_assertion(conv_op->is_inline);
-  if (instantiate_extern_inline) add_to_inline_function_list(conv_op);
+  if (instantiate_extern_inline && !conv_op->is_consteval) {
+    add_to_inline_function_list(conv_op);
+  }  /* if */
   if (constexpr_lambdas_enabled) {
     /* The conversion operator is constexpr in C++17. */
     conv_op->is_constexpr = TRUE;

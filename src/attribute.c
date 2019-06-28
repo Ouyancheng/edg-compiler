@@ -6867,7 +6867,7 @@ attributes in C mode).
   if (representative->is_inline) {
     /* Transfer the setting of "is_inline". */
     set_inline_flag(target_routine, TRUE);
-    if (instantiate_extern_inline &&
+    if (instantiate_extern_inline && !representative->is_consteval &&
         !representative->on_inline_function_list) {
       /* When inline functions are instantiated like templates, add the
          function to the list of inline functions if it is inline (the

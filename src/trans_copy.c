@@ -2665,7 +2665,7 @@ inline functions, if appropriate.
   if (instantiate_extern_inline) {
     a_routine_ptr primary_routine =
                             (a_routine_ptr)transitive_copy_address_of(routine);
-    if (treat_as_extern_inline(primary_routine) &&
+    if (treat_as_extern_inline(primary_routine) && !routine->is_consteval &&
         !routine->is_prototype_instantiation) {
       if (primary_routine->on_inline_function_list) {
         /* There is already a list entry for the routine in the primary IL. */

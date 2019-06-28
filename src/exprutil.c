@@ -17623,6 +17623,43 @@ done:
 }  /* func_call_expr */
 
 
+static a_boolean expr_designates_consteval_function(an_expr_node_ptr  expr)
+/*
+The given expression is the expression that designates a called function in a
+call.  Return TRUE if the designated function is known to be a consteval
+function.  This function looks through comma (and similar) operators.
+*/
+{
+  a_routine_ptr  rp = NULL;
+
+  expr = skip_parens(expr);
+  while (is_operation_node(expr) &&
+         (node_operator_is(expr, eok_comma) ||
+          node_operator_is(expr, eok_dot_static) ||
+          node_operator_is(expr, eok_points_to_static))) {
+    /* A field selection of a static member or a comma operator.  The second
+       operand gives the function expression. */
+    expr = skip_parens(expr->variant.operation.operands->next);
+  }  /* if */
+  if (is_constant_node(expr)) {
+    a_constant_ptr con = node_constant(expr);
+    if (!expr->is_lvalue && con_is_exact_addr_of_routine(con)) {
+      /* Constant that is the address of a routine. */
+      rp = con->variant.address.variant.routine;
+    }  /* if */
+  } else {
+    if (is_operation_node(expr) && node_operator_is(expr, eok_address_of)) {
+      /* Remove "&" if present. */
+      expr = skip_parens(expr->variant.operation.operands);
+    }  /* if */
+    if (is_routine_node(expr)) {
+      rp = node_routine(expr);
+    }  /* if */
+  }  /* if */
+  return rp != NULL && rp->is_consteval;
+}  /* expr_designates_consteval_function */
+
+
 void make_function_call(an_expr_node_ptr  function_node,
                         a_type_ptr        function_type,
                         a_boolean         is_virtual,
@@ -17779,8 +17816,15 @@ whether the call was folded or not.
       } else {
         /* If needed, diagnose the folding failure or record that a
            constant-expression is now ruled out. */
-        a_boolean  is_consteval = (rout != NULL && rout->is_consteval);
-        a_boolean  no_diagnostic = relaxed_constexpr_enabled && !is_consteval;
+        a_boolean  is_consteval, no_diagnostic;
+        if (rout != NULL) {
+          is_consteval = rout->is_consteval;
+        } else {
+          an_expr_node_ptr
+                   func_expr = function_call_node->variant.operation.operands;
+          is_consteval = expr_designates_consteval_function(func_expr);
+        }  /* if */
+        no_diagnostic = relaxed_constexpr_enabled && !is_consteval;
         (void)call_did_not_fold_to_constant(rout, result, no_diagnostic,
                                             &diag_list,
                                             (a_source_position*)NULL);

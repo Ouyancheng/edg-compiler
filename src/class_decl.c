@@ -22692,7 +22692,8 @@ members.
           }  /* if */
         }  /* if */
       }  /* if */
-      if (instantiate_extern_inline && rp->is_inline && !rp->is_deleted) {
+      if (instantiate_extern_inline && rp->is_inline && !rp->is_deleted &&
+          !rp->is_consteval) {
         add_to_inline_function_list(rp);
       }  /* if */
     }  /* if */
@@ -23453,7 +23454,8 @@ constructor.
         form_exception_specification_for_generated_function(new_rp, bctor);
       }  /* if */
       done_with_func_info(func_info);
-      if (instantiate_extern_inline && !new_rp->is_deleted) {
+      if (instantiate_extern_inline && !new_rp->is_deleted &&
+          !new_rp->is_consteval) {
         /* When inline functions are instantiated like templates, add the
            function to the list of inline functions if it is inline.  (Members
            of prototype instantiations don't need to be treated that way, of
