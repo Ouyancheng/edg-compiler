@@ -5193,6 +5193,31 @@ class_type, bcp, and ctor_bcp are as for make_var_for_virtual_function_table.
 }  /* set_virtual_function_table_name */
 
 
+static a_boolean has_referenced_consteval_constructor(a_type_ptr class_type)
+/*
+Returns TRUE if the specified class type has a consteval constructor that
+is referenced.
+*/
+{
+  a_routine_ptr rp;
+  a_boolean     result = FALSE;
+
+  check_assertion(is_immediate_class_type(class_type) &&
+                  class_type_supp(class_type)->assoc_scope != NULL);
+  for (rp = class_type_supp(class_type)->assoc_scope->routines;
+       rp != NULL;
+       rp = rp->next) {
+    if (rp->is_consteval &&
+        rp->special_kind == (a_special_function_kind)sfk_constructor &&
+        rp->source_corresp.referenced) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* has_referenced_consteval_constructor */
+
+
 a_variable_ptr make_var_for_virtual_function_table(a_type_ptr       class_type,
                                                    a_base_class_ptr bcp,
                                                    a_base_class_ptr ctor_bcp)
@@ -5254,9 +5279,21 @@ definition.
   vtbl_var = make_lowered_variable((char *)NULL, /*already_il_name=*/TRUE,
                                    array_type, (a_storage_class)sc_extern);
   /* make_lowered_variable creates a variable with referenced set TRUE, but the
-     variable is not necessarily going to be referenced, so clear the
-     flag. */
-  vtbl_var->source_corresp.referenced = FALSE;
+     variable is not necessarily going to be referenced, so the flag is
+     generally set to FALSE, but see the exception below. */
+  if (consteval_enabled &&
+      has_referenced_consteval_constructor(class_type)) {
+    /* In cases where consteval functions are enabled, the normal method for
+       determining whether or not a virtual function table should be emitted
+       in this translation unit may not work properly.  That mechanism
+       relies on constructors being lowered (consteval routines are not
+       lowered) and/or lowering of folded initializers (which occurs too
+       late in the lowering process).  As a workaround, assume that the
+       vtable variable will be referenced if the class has a consteval
+       constructor that is itself referenced. */
+  } else {
+    vtbl_var->source_corresp.referenced = FALSE;
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if ((ctsp->decl_modifiers & DM_DLLFLAGS) != 0) {
     /* Set any required dllimport/dllexport attributes.  If the storage class
