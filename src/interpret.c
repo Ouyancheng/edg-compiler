@@ -4120,6 +4120,25 @@ Release the variant path structures when the check is completed.
     /* The assignment that is about to take place "initializes" the
        corresponding subobject. */
     mark_subobject_initialized(addr->address, addr->complete_object);
+    /* However, that may have left other subobjects uninitialized.  For
+       example:
+         union U {
+           struct S {
+             short h;
+             union V {
+               int i;
+               unsigned u;
+             } v;
+           } s;
+           double f;
+         };
+         constexpr int g() {
+           U u = { .f = 1.0 };
+           u.s.v.u = 42;  // Initialized v but leaves h uninitialized.
+           return u.s.h;
+         }
+    */
+    unmark_complete_object_initialized(addr->complete_object);
   }  /* if */
 done:
   release_variant_path(addr);
