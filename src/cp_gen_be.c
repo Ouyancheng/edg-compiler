@@ -3521,7 +3521,8 @@ argument list and to FALSE otherwise.
     a_routine_ptr rout = (a_routine_ptr)scp;
     if (rout->expl_template_arg_list_used ||
         (clang_is_generated_code_target &&
-         is_generated_explicit_specialization)) {
+         is_generated_explicit_specialization &&
+         !in_template_argument_list)) {
       tap = rout->template_arg_list;
       result = TRUE;
       if (insert_space != NULL &&
