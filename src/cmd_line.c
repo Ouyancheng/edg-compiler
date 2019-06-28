@@ -2741,8 +2741,10 @@ option values if they were not already set by a command line option.
       }  /* if */
       if (microsoft_version >= 1922) {
         /* Visual Studio 2019 version 16.2. */
-        if (ms_cpp20_mode) {
+        if (ms_cpp14_mode) {
           conditional_explicit_enabled = TRUE;
+        }  /* if */
+        if (ms_cpp20_mode) {
           explicit_copy_this_capture_enabled = TRUE;
           lambda_template_param_list_enabled = TRUE;
           spaceship_enabled = TRUE;
