@@ -13455,12 +13455,8 @@ Transform lvalue-returning assignments, prefix ++/-- operators, and "?" and
 "," operators to valid C.  If the expression passed in is not one of those
 it is left alone.  Note that "?" and "," lvalue-returning operations aren't
 handled directly at this level; they're handled in the context of their
-parent operation.  Only called for enk_operation nodes.
-
-Note that this routine does not respect the strict evaluation ordering as
-dictated in C++17 (e.g., "(f2(), x) = f1()" is lowered to "(f2(), (x = f1())"
-thereby changing the order of f1 and f2).  Back ends that require strict
-ordering should set LOWER_LVALUE_RETURNING_OPERATIONS to FALSE.
+parent operation.  Only called for enk_operation nodes.  Re-writing of the
+expression (if necessary) observes the strict evaluation ordering rules.
 */
 {
   an_expr_operator_kind op, child_op;
@@ -13500,6 +13496,20 @@ ordering should set LOWER_LVALUE_RETURNING_OPERATIONS to FALSE.
       a_type_ptr       expr_type = expr->type;
       a_boolean        orig_expr_result_is_not_used = expr->result_is_not_used;
       a_boolean        orig_expr_is_lvalue = expr->is_lvalue;
+      if (strict_cpp17_eval_order &&
+          child2 != NULL &&
+          expr->variant.operation.eval_right_to_left &&
+          node_has_side_effects(child1, (a_boolean*)NULL) &&
+          node_has_side_effects(child2, (a_boolean*)NULL)) {
+        /* The operation being re-written evaluates right-to-left and both
+           operands have side effects meaning that we need to ensure that
+           child2 is evaluated first (and replaced by a temporary). E.g.,
+             (f2(), x) = f1();
+           Where f1 needs to be called before f2.
+           */
+        copy_init = child2;
+        child2 = assign_expr_to_temp_and_make_expr_for_reuse(copy_init);
+      }  /* if */
       if (child_op == (an_expr_operator_kind)eok_question ||
           child_op == (an_expr_operator_kind)eok_vector_question) {
         /* Lvalue "?" rewrite.  Change
@@ -13524,8 +13534,14 @@ ordering should set LOWER_LVALUE_RETURNING_OPERATIONS to FALSE.
           /* Statement expressions cannot be copied with copy_expr_tree.
              Hence we evaluate such expressions into a temporary and copy
              the reference to the temporary instead. */
-          copy_init = node_to_copy;
-          node_to_copy= assign_expr_to_temp_and_make_expr_for_reuse(copy_init);
+          an_expr_node_ptr copy_init2 = node_to_copy;
+          node_to_copy =
+                       assign_expr_to_temp_and_make_expr_for_reuse(copy_init2);
+          if (copy_init == NULL) {
+            copy_init = copy_init2;
+          } else {
+            copy_init = make_comma_node(copy_init, copy_init2);
+          }  /* if */
         }  /* if */
         newop1 = copy_node(expr);
         newop2 = copy_node(expr);
