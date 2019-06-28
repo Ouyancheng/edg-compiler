@@ -7522,6 +7522,10 @@ type entry if appropriate, otherwise using the indicated declared_type.
     /* Exception specification mismatch (usually involves predeclared
        functions like new and delete). */
     use_routine_type = FALSE;
+  } else if (rtsp1->trailing_return_type != rtsp2->trailing_return_type) {
+    /* One declaration used trailing return type syntax whereas the other used
+       traditional return type syntax. */
+    use_routine_type = FALSE;
   } else if (rout_type->kind != (a_type_kind)tk_routine) {
     /* The routine's type was previously expressed using a typedef, decltype
        specifier, or a similar construct.  That may refer to entities that
