@@ -4067,7 +4067,8 @@ Release the variant path structures when the check is completed.
   if (!subobject_is_initialized(addr->address, addr->complete_object)) {
     if (strict) {
       /* Before C++20, this was always an error. */
-      result = FALSE;
+      do_constexpr_fail(result);
+      info_with_pos(ec_object_not_initialized, pos, ips);
       goto done;
     } else {
       /* Enter "activation mode": Automatically set the active member to the
