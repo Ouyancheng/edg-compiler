@@ -5043,7 +5043,10 @@ IL prefix is accessed).
               lower_os_constant(addressed_con);
               check_assertion(is_ptr_or_ref_type(constant->type));
               ptd_to_type = type_pointed_to(constant->type);
-              if (is_const_qualified_type(ptd_to_type)) {
+              if (is_const_qualified_type(ptd_to_type) &&
+                  !(is_class_struct_union_type(ptd_to_type) &&
+                    skip_typerefs(ptd_to_type)->
+                              variant.class_struct_union.any_mutable_member)) {
                 /* A constant temporary is okay in this case (and can help
                    back ends generate better code). */
                 const_okay = TRUE;
