@@ -13455,7 +13455,7 @@ Transform lvalue-returning assignments, prefix ++/-- operators, and "?" and
 "," operators to valid C.  If the expression passed in is not one of those
 it is left alone.  Note that "?" and "," lvalue-returning operations aren't
 handled directly at this level; they're handled in the context of their
-parent operation.  Only called for enk_operation nodes.  Re-writing of the
+parent operation.  Only called for enk_operation nodes.  Rewriting of the
 expression (if necessary) observes the strict evaluation ordering rules.
 */
 {
@@ -13501,8 +13501,8 @@ expression (if necessary) observes the strict evaluation ordering rules.
           expr->variant.operation.eval_right_to_left &&
           node_has_side_effects(child1, (a_boolean*)NULL) &&
           node_has_side_effects(child2, (a_boolean*)NULL)) {
-        /* The operation being re-written evaluates right-to-left and both
-           operands have side effects meaning that we need to ensure that
+        /* The operation being rewritten evaluates right-to-left and both
+           operands have side effects, meaning that we need to ensure that
            child2 is evaluated first (and replaced by a temporary). E.g.,
              (f2(), x) = f1();
            Where f1 needs to be called before f2.
