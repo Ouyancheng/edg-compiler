@@ -4064,18 +4064,6 @@ Release the variant path structures when the check is completed.
   a_variant_path_entry_ptr
              vpep = addr->variant.variant_path->next;
 
-  if (!subobject_is_initialized(addr->address, addr->complete_object)) {
-    if (strict) {
-      /* Before C++20, this was always an error. */
-      do_constexpr_fail(result);
-      info_with_pos(ec_object_not_initialized, pos, ips);
-      goto done;
-    } else {
-      /* Enter "activation mode": Automatically set the active member to the
-         one assigned to (possibly at multiple levels). */
-      activation_mode = TRUE;
-    }  /* if */
-  }  /* if */
   do {
     a_field_ptr  *p_active_field = (a_field_ptr*)vpep->base_address;
     a_field_ptr  active_field = *p_active_field;
