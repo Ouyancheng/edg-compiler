@@ -4128,7 +4128,6 @@ Release the variant path structures when the check is completed.
     */
     unmark_complete_object_initialized(addr->complete_object);
   }  /* if */
-done:
   release_variant_path(addr);
   return result;
 }  /* check_variant_assign */
