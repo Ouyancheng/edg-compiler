@@ -14714,6 +14714,7 @@ gen_expr that might end up generating this expr as a temporary.
                   (is_typedef_invisible_in_cp_gen_be(type) ||
                    !type->typedef_definition_has_been_put_out ||
                    (clang_is_generated_code_target &&
+                    has_name_before_mangling(type->variant.typeref.type) &&
                     !scope_is_in_name_context_stack(
                                         type->source_corresp.parent_scope)))) {
                 /* The type is unusable: it's either invisible
