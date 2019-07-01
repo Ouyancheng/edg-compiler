@@ -13367,6 +13367,9 @@ typedef struct an_aggregate_position {
   a_targ_size_t	number_of_elements;
 			/* Number of elements in the array or vector when
 			   array_init == TRUE. */
+  a_next_field_options_set
+                options;
+                        /* Options to control which fields are selected. */
 } an_aggregate_position;
 
 
@@ -13381,18 +13384,16 @@ Set *aggr_pos to indicate the position of the given field.
 }  /* set_aggregate_position_for_field */
 
 
-static void init_aggregate_position(a_constant_ptr        aggr_con,
-                                    an_aggregate_position *aggr_pos)
+static void init_aggregate_position(a_type_ptr               aggr_type,
+                                    a_next_field_options_set options,
+                                    an_aggregate_position    *aggr_pos)
 /*
 Initialize the indicated aggregate position block, indicating the
-position of the first member of the aggregate constant aggr_con.
+position of the first member of the aggregate constant aggr_con.  "options"
+specifies which fields in the aggregate are considered during the traversal.
 */
 {
-  a_type_ptr aggr_type;
-
-  check_assertion(aggr_con != NULL &&
-                  aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
-  aggr_type = f_skip_typerefs(aggr_con->type);
+  aggr_type = skip_typerefs(aggr_type);
   aggr_pos->array_init = (aggr_type->kind == (a_type_kind)tk_array
 #if GNU_VECTOR_TYPES_ALLOWED
                            || aggr_type->kind == (a_type_kind)tk_vector
@@ -13402,6 +13403,7 @@ position of the first member of the aggregate constant aggr_con.
   aggr_pos->curr_elem = 0;
   aggr_pos->member_type = NULL;
   aggr_pos->number_of_elements = 0;
+  aggr_pos->options = options;
   if (aggr_pos->array_init) {
     if (aggr_type->kind == (a_type_kind)tk_array) {
       /* Initializing members of an array. */
@@ -13421,8 +13423,9 @@ position of the first member of the aggregate constant aggr_con.
   } else {
     /* Initializing members of a struct or union. */
     a_field_ptr first_field =
-                    next_non_empty_initializable_field(
-                             aggr_type->variant.class_struct_union.field_list);
+                    next_applicable_field(
+                             aggr_type->variant.class_struct_union.field_list,
+                             options);
     if (first_field != NULL) {
       set_aggregate_position_for_field(first_field, aggr_pos);
     }  /* if */
@@ -13442,7 +13445,7 @@ the aggregate.
   } else {
     a_field_ptr field = aggr_pos->curr_field;
     check_assertion(field != NULL);
-    field = next_non_empty_initializable_field(field->next);
+    field = next_applicable_field(field->next, aggr_pos->options);
     check_assertion(field != NULL);
     set_aggregate_position_for_field(field, aggr_pos);
   }  /* if */
@@ -13487,7 +13490,11 @@ lowered.
     an_aggregate_position aggr_pos;
     con = alloc_constant((a_constant_repr_kind)ck_aggregate);
     con->type = type;
-    init_aggregate_position(con, &aggr_pos);
+    init_aggregate_position(type,
+                            (NF_INITIALIZABLE |
+                             NF_SKIP_OPTIMIZED_EMPTY_CLASS |
+                             NF_SKIP_PROPERTY_OR_EVENT),
+                            &aggr_pos);
     /* Check that there is at least one initializable member. */
     if (aggr_pos.member_type != NULL) {
       con->variant.aggregate.first_constant =
@@ -13556,16 +13563,32 @@ typedef struct an_init_con_pos {
 			/* If the constant is a repeated constant, the
 			   number of repetitions yet to be processed.
 			   Zero otherwise. */
+  a_boolean     skip_empty_bases;
+                        /* TRUE if constants for optimized empty bases should
+                           be skipped during the traversal (typically TRUE
+                           when doing designated initializers and FALSE
+                           otherwise). */
+  a_boolean     skip_empty_fields;
+                        /* TRUE if constants for optimized empty fields should
+                           be skipped during the traversal (typically FALSE
+                           when doing designated initializers and TRUE
+                           otherwise). */
+
 } an_init_con_pos;
 
 
-static a_constant_ptr skip_optimized_empty_constants(a_constant_ptr cp)
+static a_constant_ptr skip_optimized_empty_constants(
+                                             a_constant_ptr cp,
+                                             a_boolean      skip_empty_bases,
+                                             a_boolean      skip_empty_fields)
 /*
-cp is a constant in an aggregate; skip it if it initializes an empty object
-(and will be later removed during lowering).
+Returns cp or the next constant in the aggregate that meets the criteria
+specified by skip_empty_bases and skip_empty_fields.
 */
 {
-  while (cp != NULL && cp->initializes_empty_object) {
+  while (cp != NULL && cp->initializes_empty_object &&
+         (cp->constant_for_base_class ? skip_empty_bases :
+                                        skip_empty_fields)){
     cp = cp->next;
   }  /* while */
   return cp;
@@ -13573,17 +13596,23 @@ cp is a constant in an aggregate; skip it if it initializes an empty object
 
 
 static void set_init_con_pos(a_constant_ptr  con,
+                             a_boolean       skip_empty_bases,
+                             a_boolean       skip_empty_fields,
                              an_init_con_pos *init_con_pos)
 /*
 Set an init constant position for the indicated constant.  It's okay for
-con to be NULL, to set a null position.  This routine assumes that constants
-for empty objects may still exist in the aggregate and skips those.
+con to be NULL, to set a null position.  skip_empty_bases and skip_empty_fields
+indicate how to handle constants for empty objects may still exist in the
+aggregate.
 */
 {
-  /* Skip any constants for empty classes. */
-  con = skip_optimized_empty_constants(con);
+  /* Skip applicable constants for empty classes. */
+  con = skip_optimized_empty_constants(con, skip_empty_bases,
+                                       skip_empty_fields);
   init_con_pos->ptr = con;
   init_con_pos->repeat_count = 0;
+  init_con_pos->skip_empty_bases = skip_empty_bases;
+  init_con_pos->skip_empty_fields = skip_empty_fields;
   if (con != NULL && con->kind == (a_constant_repr_kind)ck_init_repeat) {
     /* For a repeated constant, indicate the number of repetitions yet to
        be handled (all of them). */
@@ -13603,7 +13632,10 @@ the list, or the next iteration of a repeated constant.
   } else if (init_con_pos->ptr == NULL) {
     /* Do not advance at end of list. */
   } else {
-    set_init_con_pos(init_con_pos->ptr->next, init_con_pos);
+    set_init_con_pos(init_con_pos->ptr->next,
+                     init_con_pos->skip_empty_bases,
+                     init_con_pos->skip_empty_fields,
+                     init_con_pos);
   }  /* if */
 }  /* advance_init_con_pos */
   
@@ -13744,7 +13776,8 @@ directly.  *con_pos will be set to indicate the simple constant.
 #endif /* DEBUG */
     }  /* if */
     /* The new current position is on the non-repeated actual constant. */
-    set_init_con_pos(simple_con, con_pos);
+    set_init_con_pos(simple_con, /*skip_empty_bases=*/TRUE,
+                     /*skip_empty_fields=*/FALSE, con_pos);
   }  /* if */
 }  /* split_constant_if_repeated */
 
@@ -13772,8 +13805,12 @@ is not called for union initializations.
 
   check_assertion(desig_con != NULL &&
                   desig_con->kind == (a_constant_repr_kind)ck_designator);
-  init_aggregate_position(aggr_con, &aggr_pos);
-  set_init_con_pos(aggr_con->variant.aggregate.first_constant, &con);
+  init_aggregate_position(aggr_con->type,
+                          (NF_INITIALIZABLE | NF_SKIP_PROPERTY_OR_EVENT),
+                          &aggr_pos);
+  set_init_con_pos(aggr_con->variant.aggregate.first_constant,
+                   /*skip_empty_bases=*/TRUE, /*skip_empty_fields=*/FALSE,
+                   &con);
   prev_con = NULL;
   /* Find the right insert point. */
   while (!same_aggregate_member(&aggr_pos, desig_con)) {
@@ -13791,7 +13828,8 @@ is not called for union initializations.
         (void)fprintf(f_debug, "Finding insert point: inserting at end\n");
       }  /* if */
 #endif /* DEBUG */
-      set_init_con_pos(zero_con, &con);
+      set_init_con_pos(zero_con, /*skip_empty_bases=*/TRUE,
+                       /*skip_empty_fields=*/FALSE, &con);
       if (aggr_pos.array_init) {
         /* For an array, we can add a repeat count to initialize multiple
            elements. */
@@ -13806,7 +13844,8 @@ is not called for union initializations.
             (void)fprintf(f_debug, "\n");
           }  /* if */
 #endif /* DEBUG */
-          set_init_con_pos(repeat_con, &con);
+          set_init_con_pos(repeat_con, /*skip_empty_bases=*/TRUE,
+                           /*skip_empty_fields=*/FALSE, &con);
           if (prev_con == NULL) {
             aggr_con->variant.aggregate.first_constant = repeat_con;
           } else {
@@ -13906,7 +13945,8 @@ values are being overwritten by the current aggregate.
     if (number_of_zero_constants_needed == 0) {
       /* Designated constant follows prior constant. */
       *prev_con = prior_constant;
-      set_init_con_pos((*prev_con)->next, earlier_con);
+      set_init_con_pos((*prev_con)->next, /*skip_empty_bases=*/TRUE,
+                       /*skip_empty_fields=*/FALSE, earlier_con);
       found_insert_point = TRUE;
     } else if (prior_constant->next == NULL && earlier_aggr_con == NULL) {
       /* There is a gap between the prior constant and this one.
@@ -13916,7 +13956,8 @@ values are being overwritten by the current aggregate.
                              number_of_zero_constants_needed);
       prior_constant->next = zero_con;
       *prev_con = zero_con;
-      set_init_con_pos((a_constant_ptr)NULL, earlier_con);
+      set_init_con_pos((a_constant_ptr)NULL, /*skip_empty_bases=*/TRUE,
+                       /*skip_empty_fields=*/FALSE, earlier_con);
       found_insert_point = TRUE;
     }  /* if */
 #if DEBUG
@@ -13956,7 +13997,8 @@ different than the old member), the old value is added to
               (old_designator->variant.designator.variant.field ==
                         new_designator->variant.designator.variant.field)) {
     /* Same member.  Move the old constant to *earlier_con. */
-    set_init_con_pos(old_con, earlier_con);
+    set_init_con_pos(old_con, /*skip_empty_bases=*/TRUE,
+                     /*skip_empty_fields=*/FALSE, earlier_con);
 #if DEBUG
     if (db_flag_is_set("designators")) {
       (void)fprintf(f_debug,
@@ -13981,7 +14023,8 @@ different than the old member), the old value is added to
     }  /* if */
 #endif /* DEBUG */
     /* Clear *earlier_con. */
-    set_init_con_pos((a_constant_ptr)NULL, earlier_con);
+    set_init_con_pos((a_constant_ptr)NULL, /*skip_empty_bases=*/TRUE,
+                     /*skip_empty_fields=*/FALSE, earlier_con);
   }  /* if */
 }  /* process_union_designators */
   
@@ -13995,6 +14038,11 @@ standard C.  If earlier_aggr_con is non-NULL, aggr_con is a replacement
 for earlier_aggr_con (it initializes the same aggregate, overwriting
 the earlier initialization).  The constants under earlier_aggr_con
 have already had their designated initializers lowered.
+
+Note that aggr_con has not yet been lowered so it may contain constants
+that pertain to empty aggregates (i.e., optimized empty bases and/or fields).
+The processing here skips the empty base constants (because there are no
+designated initializers for base classes), but must process empty fields.
 */
 {
   a_constant_ptr  temp_con;
@@ -14010,14 +14058,17 @@ have already had their designated initializers lowered.
   if (!C_mode() && is_immediate_class_type(aggr_type)) {
     prelower_class_type(aggr_type);
   }  /* if */
-  set_init_con_pos(aggr_con->variant.aggregate.first_constant, &con);
+  set_init_con_pos(aggr_con->variant.aggregate.first_constant,
+                   /*skip_empty_bases=*/TRUE, /*skip_empty_fields=*/FALSE,
+                   &con);
   prev_con = NULL;
   if (earlier_aggr_con != NULL) {
     /* There is an earlier list of constants, being overwritten. */
     check_assertion(earlier_aggr_con->kind ==
                                            (a_constant_repr_kind)ck_aggregate);
     temp_con = earlier_aggr_con->variant.aggregate.first_constant;
-    set_init_con_pos(temp_con, &earlier_con);
+    set_init_con_pos(temp_con, /*skip_empty_bases=*/TRUE,
+                     /*skip_empty_fields=*/FALSE, &earlier_con);
     if (union_init) {
       /* For a union, see whether the previous initialization and the
          new one initialize the same member. */
@@ -14063,7 +14114,8 @@ have already had their designated initializers lowered.
     }  /* if */
   } else {
     /* No earlier constant was provided. */
-    set_init_con_pos((a_constant_ptr)NULL, &earlier_con);
+    set_init_con_pos((a_constant_ptr)NULL, /*skip_empty_bases=*/TRUE,
+                     /*skip_empty_fields=*/FALSE, &earlier_con);
   }  /* if */
   /* The outer loop is repeated for each ck_designator list found. */
   for (;;) {
@@ -14341,7 +14393,9 @@ have already had their designated initializers lowered.
 #if CHECKING
     a_constant_ptr        last_con = NULL;
 #endif /* CHECKING */
-    init_aggregate_position(aggr_con, &aggr_pos);
+    init_aggregate_position(aggr_type,
+                            (NF_INITIALIZABLE | NF_SKIP_PROPERTY_OR_EVENT),
+                            &aggr_pos);
     temp_con = aggr_con->variant.aggregate.first_constant;
     if (temp_con != NULL &&
         temp_con->kind == (a_constant_repr_kind)ck_designator) {
@@ -14352,7 +14406,8 @@ have already had their designated initializers lowered.
                        temp_con->variant.designator.variant.field, &aggr_pos);
       temp_con = temp_con->next;
     }  /* if */
-    set_init_con_pos(temp_con, &con_pos);
+    set_init_con_pos(temp_con, /*skip_empty_bases=*/TRUE,
+                     /*skip_empty_fields=*/FALSE, &con_pos);
     while (con_pos.ptr != NULL) {
       a_type_ptr member_type = skip_typerefs(aggr_pos.member_type);
       temp_con = con_pos.ptr;
@@ -14434,8 +14489,13 @@ aggr_con->is_partially_initialized to reflect the new value.
     check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
     temp_con = aggr_con->variant.aggregate.first_constant;
     /* Set initial positions in both aggregate and constant. */
-    init_aggregate_position(aggr_con, &aggr_pos);
-    set_init_con_pos(temp_con, &con_pos);
+    init_aggregate_position(aggr_type,
+                            (NF_INITIALIZABLE |
+                             NF_SKIP_OPTIMIZED_EMPTY_CLASS |
+                             NF_SKIP_PROPERTY_OR_EVENT),
+                            &aggr_pos);
+    set_init_con_pos(temp_con, /*skip_empty_bases=*/TRUE,
+                     /*skip_empty_fields=*/TRUE, &con_pos);
     /* Iterate for each constant in the aggregate constant. */
     while (con_pos.ptr != NULL) {
       temp_con = con_pos.ptr;
@@ -14453,7 +14513,8 @@ aggr_con->is_partially_initialized to reflect the new value.
                            temp_con->variant.designator.variant.array_element;
         }  /* if */
         temp_con = temp_con->next;
-        set_init_con_pos(temp_con, &con_pos);
+        set_init_con_pos(temp_con, /*skip_empty_bases=*/TRUE,
+                         /*skip_empty_fields=*/TRUE, &con_pos);
       }  /* if */
       if (temp_con->kind == (a_constant_repr_kind)ck_init_repeat) {
         temp_con = temp_con->variant.init_repeat.constant;
@@ -15668,7 +15729,9 @@ are traversed while searching for the matching constant).
 
   check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
   cp = skip_optimized_empty_constants(
-                                  aggr_con->variant.aggregate.first_constant);
+                                    aggr_con->variant.aggregate.first_constant,
+                                    /*skip_empty_bases=*/TRUE,
+                                    /*skip_empty_fields=*/TRUE);
   for (field = next_non_empty_initializable_field(
                             class_type->variant.class_struct_union.field_list);
        field != NULL && cp != NULL;
@@ -15707,7 +15770,9 @@ are traversed while searching for the matching constant).
       break;
     }  /* if */
     check_assertion(f_offset < b_offset);
-    cp = skip_optimized_empty_constants(cp->next);
+    cp = skip_optimized_empty_constants(cp->next,
+                                        /*skip_empty_bases=*/TRUE,
+                                        /*skip_empty_fields=*/TRUE);
   }  /* for */
   check_assertion(cp != NULL);
   return cp;
@@ -15770,7 +15835,9 @@ given by vptr_node.
     /* Note that optimized empty class constants may still be present in the
        constant; if so, skip them. */
     cp = skip_optimized_empty_constants(
-                                   aggr_con->variant.aggregate.first_constant);
+                                    aggr_con->variant.aggregate.first_constant,
+                                    /*skip_empty_bases=*/TRUE,
+                                    /*skip_empty_fields=*/TRUE);
     for (field = next_initializable_field(
                             class_type->variant.class_struct_union.field_list);
          field != NULL;
@@ -15811,7 +15878,9 @@ given by vptr_node.
         /* Advance to the next constant in the aggregate. */
         check_assertion(cp != NULL);
         prev_con = cp;
-        cp = skip_optimized_empty_constants(cp->next);
+        cp = skip_optimized_empty_constants(cp->next,
+                                            /*skip_empty_bases=*/TRUE,
+                                            /*skip_empty_fields=*/TRUE);
       }  /* if */
     }  /* for */
     check_assertion(field != NULL);
