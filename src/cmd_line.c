@@ -2717,7 +2717,6 @@ option values if they were not already set by a command line option.
           lambda_allowed_in_uneval_context = TRUE;
           cpp20_designators_restriction = TRUE;
           aggregate_classes_can_have_user_ctors = FALSE;
-          spaceship_enabled = TRUE;
           rvalue_allowed_with_const_qual_memptr = TRUE;
           /* Enable emulation of Visual Studio's /std:c++20 and /std:c++latest
              command-line options.  Note that internally most C++20 features
