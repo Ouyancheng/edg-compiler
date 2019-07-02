@@ -1080,8 +1080,8 @@ is a reference type and
 
 is valid and causes r to be bound to a temporary.  For example:
 
-  static_assert(!__reference_bind_to_temporary(int&, int&));
-  static_assert(__reference_bind_to_temporary(int const&, long));
+  static_assert(!__reference_binds_to_temporary(int&, int&));
+  static_assert(__reference_binds_to_temporary(int const&, long));
     // Now accepted in some Clang modes.
 
 
