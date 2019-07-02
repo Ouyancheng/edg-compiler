@@ -2207,7 +2207,15 @@ may overwritten here (to a different type of expression).
     an_expr_node_ptr new_node = node->variant.operation.operands;
     new_node->next = NULL;
     if (node_operator_is(node, eok_dot_field)) {
-      new_node = add_address_of_to_node(new_node);
+      if (new_node->is_lvalue) {
+        new_node = add_address_of_to_node(new_node);
+      } else {
+        /* Create a temporary variable for the class rvalue so we can take
+           it's address. */
+        a_variable_ptr   temp = make_local_temporary(new_node->type);
+        new_node = make_var_assignment_expr(temp, new_node);
+        new_node = make_comma_node(new_node, var_addr_expr(temp));
+      }  /* if */
     } else {
       check_assertion(node_operator_is(node, eok_points_to_field));
     }  /* if */
@@ -2217,9 +2225,8 @@ may overwritten here (to a different type of expression).
     new_node = make_operator_node((an_expr_operator_kind)eok_padd,
                                   char_star_type(), new_node);
     new_node = add_cast(new_node, make_pointer_type(node->type));
-    new_node = add_indirection_to_node(new_node);
-    if (!node->is_lvalue) {
-      new_node = rvalue_expr_for_lvalue(new_node);
+    if (node->is_lvalue) {
+      new_node = add_indirection_to_node(new_node);
     }  /* if */
     overwrite_node(node, new_node);
   }  /* if */
