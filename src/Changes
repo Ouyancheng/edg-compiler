@@ -1,5 +1,22 @@
 Version 5.1
 
+7/2/19   [EDGcpfe/21436]
+Microsoft compatibility: rvalue reference binding to const volatile references
+
+In certain cases the Microsoft compiler allows rvalue references to bind to
+const volatile lvalue references.  This is not standard compliant, and when
+permissive mode is disabled, the Microsoft compiler no longer allows this.  The
+front end was already emulating the permissive mode (when microsoft_bugs is
+set), but was not emulating the non-permissive mode.  For example:
+
+  using T = int;
+  T t{};
+  const volatile T& x =
+    static_cast<T&&>(t); // Now rejected with --no_ms_permissive
+
+This is now fixed.
+
+
 7/2/19   [EDGcpfe/21475]
 Segfault in attach_attributes_to_routine_instance
 

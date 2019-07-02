@@ -1102,8 +1102,9 @@ xvalues), e.g., an lvalue reference to non-volatile const.
     if (is_const_qualified_type(under_type)) {
       can_bind = TRUE;
       if (is_volatile_qualified_type(under_type)) {
-        if (microsoft_bugs && (microsoft_version < 1600 ||
-                               !is_class_struct_union_type(under_type))) {
+        if (microsoft_bugs && ms_permissive &&
+            (microsoft_version < 1600 ||
+             !is_class_struct_union_type(under_type))) {
           /* Before VC10, Microsoft allowed binding rvalues to references to
              const volatile types.  VC10 and later still allow it if the
              reference is to a non-class type. */
