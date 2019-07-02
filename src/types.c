@@ -8587,7 +8587,7 @@ restrictive" relationship, see exception_spec_is_less_restrictive.)
   a_boolean                            is_less_restrictive = FALSE;
   an_exception_specification_ptr       esp1, esp2;
 
-  if (exceptions_enabled) {
+  if (exceptions_enabled || exc_spec_in_func_type) {
     type1 = skip_typerefs(type1);
     type2 = skip_typerefs(type2);
     if (is_error(type1) || is_error(type2)) {
