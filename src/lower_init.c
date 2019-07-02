@@ -13602,7 +13602,7 @@ static void set_init_con_pos(a_constant_ptr  con,
 /*
 Set an init constant position for the indicated constant.  It's okay for
 con to be NULL, to set a null position.  skip_empty_bases and skip_empty_fields
-indicate how to handle constants for empty objects may still exist in the
+indicate how to handle constants for empty objects that may still exist in the
 aggregate.
 */
 {
