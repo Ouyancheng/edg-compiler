@@ -1501,6 +1501,29 @@ instantiation.
 }  /* decl_cache_for_variable_template */
 
 
+static a_template_cache_ptr decl_cache_for_function_template(
+					a_template_symbol_supplement_ptr tssp)
+/*
+Returns a pointer to the declaration cache to be used for a function template.
+Typically, this is the cache stored in the template symbol's supplement.
+But if the template is a member template declared within a class template,
+the body may be associated with the member template from the prototype
+instantiation.
+*/
+{
+  a_template_cache_ptr	tcp;
+
+  if (tssp->prototype_template != NULL && !tssp->is_specific_definition) {
+    /* Use the cache from the original template. */
+    tcp = &tssp->prototype_template->variant.template_info->
+                                                   variant.function.decl_cache;
+  } else {
+    tcp = &tssp->variant.function.decl_cache;
+  }  /* if */
+  return tcp;
+}  /* decl_cache_for_function_template */
+
+
 static
 a_func_info_block *func_info_for_template(
                                       a_template_symbol_supplement_ptr tssp)
@@ -6490,7 +6513,8 @@ on_primary_declaration flag is TRUE.
                     tssp->variant.function.routine->source_corresp.attributes,
                     primary_only,
                     template_sym,
-                    cache_for_template(tssp)->decl_info->parameters,
+                    decl_cache_for_function_template(tssp)->
+                                                         decl_info->parameters,
                     rp->template_arg_list, parent_class_or_null(rp),
                     /*is_partial_instantiation=*/FALSE,
                     (a_boolean*)NULL);
