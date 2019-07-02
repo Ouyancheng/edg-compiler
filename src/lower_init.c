@@ -9580,6 +9580,7 @@ un-initialized.
 
   check_assertion(dip->is_partially_initialized &&
                   (dip->kind == (a_dynamic_init_kind)dik_constant ||
+                   dip->kind == (a_dynamic_init_kind)dik_lambda ||
                    dip->kind ==
                               (a_dynamic_init_kind)dik_nonconstant_aggregate));
   if (ipdp->indirect_through_variable || is_vla_type(entity_type)) {
@@ -10502,7 +10503,14 @@ do_keep_constant:
       break;
     case dik_lambda:
       { an_implied_copy_source lambda_source;
-        check_assertion(!dip->is_partially_initialized);
+        if (dip->is_partially_initialized) {
+          /* For cases where the initialization only partially covers the
+             entity being initialized, initialize the remaining portion
+             of the entity if necessary. */
+          stretch_partial_initialization_if_necessary(dip, ipdp,
+                                                      have_complete_object,
+                                                      eff_insert_location);
+        }  /* if */
         if (!dip->variant.constant.non_constant) {
           /* Analogous to dik_constant. */
           lower_constant(dip->variant.constant.ptr);
