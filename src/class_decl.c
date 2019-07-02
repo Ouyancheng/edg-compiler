@@ -4050,27 +4050,25 @@ instantiate the exception specification.
       if (rfp->symbol == rsym) {
         if (rfp->process_exception_spec) {
           a_token_cache  *cache = esp->variant.token_cache;
-          /* Reactivate the function prototype scope. */
-          (void)push_scope((a_scope_kind)sck_func_prototype,
-                           rfp->func_info.scope_number,
-                           underlying_function_type(rfp->symbol),
-                           (a_routine_ptr)NULL);
-          if (rfp->func_info.prototype_scope_symbols != NULL) {
-            reactivate_prototype_scope_symbols(
-                                      rfp->func_info.prototype_scope_symbols);
-          }  /* if */
-          /* Scan the exception specification argument. */
           if (cache != NULL) {
+            /* Reactivate the function prototype scope. */
+            (void)push_scope((a_scope_kind)sck_func_prototype,
+                             rfp->func_info.scope_number,
+                             underlying_function_type(rfp->symbol),
+                             (a_routine_ptr)NULL);
+            if (rfp->func_info.prototype_scope_symbols != NULL) {
+              reactivate_prototype_scope_symbols(
+                                       rfp->func_info.prototype_scope_symbols);
+            }  /* if */
+            /* Scan the exception specification argument. */
             esp->arg_cached = FALSE;
             esp->variant.token_cache = NULL;
             delayed_scan_of_exception_spec(rp, cache);
             free_token_cache(cache);
-          } else {
-            instantiate_exception_spec_if_needed(rsym);
+            rfp->process_exception_spec = FALSE;
+            /* Pop the reactivated function prototype scope off the stack. */
+            pop_scope();
           }  /* if */
-          rfp->process_exception_spec = FALSE;
-          /* Pop the reactivated function prototype scope off the stack. */
-          pop_scope();
           break;
         }  /* if */
       }  /* if */
