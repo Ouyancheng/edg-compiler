@@ -13931,12 +13931,13 @@ be embedded in other mangled names.
   a_mangling_control_block mctl;
   a_boolean                is_string = FALSE;
   unsigned long            sequence_number = 0;
+  a_variable_ptr           var;
 
   check_assertion(kind == iek_variable ||
                   kind == iek_constant ||
                   kind == iek_type);
   if (kind == iek_variable) {
-    a_variable_ptr var = (a_variable_ptr)scp;
+    var = (a_variable_ptr)scp;
     check_assertion(!var->is_template_variable);
     if (var->is_anonymous_parent_object) {
       /* Give an anonymous union variable a name based on the name of
@@ -13979,12 +13980,14 @@ be embedded in other mangled names.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   if (!scp->name_has_been_mangled &&
-      (scp->name != NULL || is_string /*lint --e(845)*/)) {
+      (scp->name != NULL ||
+       (kind == iek_variable &&
+        struct_binding_container_needs_mangling(var)) ||
+       is_string /*lint --e(845)*/)) {
     /* Leave the name alone if the entity is unnamed or if it has been
        mangled already (e.g., for a class name-as-subobject).  The lint
        comment indicates that is_string is known to be FALSE in some
        configurations. */
-    check_assertion(is_string || !entity_needs_to_be_individuated(scp, kind));
     start_mangling(&mctl);
     /* Name mangling is needed. */
 #if !IA64_ABI
@@ -14015,6 +14018,10 @@ be embedded in other mangled names.
         check_assertion(ssp->discriminator != 0);
         unique_number = ssp->discriminator;
         add_str_to_mangled_name(scp->name, &mctl);
+      } else if (kind == iek_variable &&
+                 struct_binding_container_needs_mangling(var)){
+        /* Structured bindings get their own mangling. */
+        mangled_variable_name_with_possible_qualification(var, &mctl);
       } else if (!is_string) {
         /* Develop a scope number for the scope in which the entity appears.
            This number must be relative to the function rather than to the
@@ -14028,8 +14035,7 @@ be embedded in other mangled names.
         check_assertion_str(found,
                             "mangle_promoted_entity_name: scope not found");
 #if GNU_EXTENSIONS_ALLOWED
-        if (kind == iek_variable &&
-            ((a_variable_ptr)scp)->has_gnu_abi_tag_attribute) {
+        if (kind == iek_variable && var->has_gnu_abi_tag_attribute) {
           /* The Cfront ABI adds "abi_tag" mangling as a prefix. */
           add_abi_tag_mangling(scp->attributes, &mctl);
         }  /* if */
@@ -14085,11 +14091,14 @@ be embedded in other mangled names.
         mangled_name_with_length(scp->name, &mctl);
         /* Close the nested name. */
         add_to_mangled_name('E', &mctl);
+      } else if (kind == iek_variable &&
+                 struct_binding_container_needs_mangling(var)){
+        /* Structured bindings get their own mangling. */
+        mangled_variable_name_with_possible_qualification(var, &mctl);
       } else {
         mangled_name_with_length(scp->name, &mctl);
 #if GNU_EXTENSIONS_ALLOWED
-        if (kind == iek_variable &&
-            ((a_variable_ptr)scp)->has_gnu_abi_tag_attribute) {
+        if (kind == iek_variable && var->has_gnu_abi_tag_attribute) {
           /* The IA-64 ABI adds "abi_tag" mangling as a suffix. */
           add_abi_tag_mangling(scp->attributes, &mctl);
         }  /* if */
