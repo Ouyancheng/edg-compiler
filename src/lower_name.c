@@ -13991,7 +13991,7 @@ be embedded in other mangled names.
     start_mangling(&mctl);
     /* Name mangling is needed. */
 #if !IA64_ABI
-    { unsigned long        unique_number;
+    { unsigned long        unique_number = 0;
       a_length_reservation length_reservation;
       /* The encoding is the original name, followed by "__Lnn", where "nn"
          is the scope number within the function, followed by two underscores,
