@@ -4183,7 +4183,7 @@ bound case, FALSE for the "expr" field of the constant itself.
                         curr_il_region_number == file_scope_region_number);
         switch_il_region(mem_region_for_routine(
                                          function_scope->variant.routine.ptr));
-        *expr = copy_expr_tree(*expr, CE_NO_OPTIONS);
+        *expr = copy_expr_tree(*expr, CE_COPYING_FOR_LOCAL_EXPR_NODE_REF);
         switch_il_region(file_scope_region_number);
       }  /* if */
       make_local_expr_node_ref(
@@ -4194,7 +4194,7 @@ bound case, FALSE for the "expr" field of the constant itself.
       *expr = NULL;
     } else if (!in_file_scope(*expr)) {
       /* Copy the expression to file-scope memory. */
-      *expr = copy_expr_tree(*expr, CE_NO_OPTIONS);
+      *expr = copy_expr_tree(*expr, CE_ALWAYS_COPY_BACKING_EXPRESSIONS);
     }  /* if */
   }  /* if */
 }  /* make_bound_expr_referenceable_from_file_scope */

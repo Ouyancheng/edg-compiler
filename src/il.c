@@ -19569,7 +19569,8 @@ be called to start a copy.
                        i_copy_constant_full(node_constant(expr),
                                             (a_constant *)NULL,
                                             subcopy_options, cblock);
-        if (options & CE_COPYING_FOR_LOCAL_EXPR_NODE_REF &&
+        if (((options & CE_COPYING_FOR_LOCAL_EXPR_NODE_REF) ||
+             (options & CE_ALWAYS_COPY_BACKING_EXPRESSIONS)) &&
             node_constant(expr)->expr != NULL) {
           /* Get a local copy of the backing expression as well. */
           node_constant(expr_copy)->expr =

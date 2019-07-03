@@ -1591,6 +1591,12 @@ typedef int an_expr_copy_options_set;
 			   copy will be placed in one).  In particular, this
 			   is required to handle overlapping lifetime
 			   destructions. */
+#define CE_ALWAYS_COPY_BACKING_EXPRESSIONS 0x10000
+			/* When TRUE, always copy backing expressions.  The
+			   caller is responsible for ensuring that references
+			   to local entities don't leak into the wrong scope
+			   memory (e.g., a reference to a local entity in
+			   file-scope memory). */
 
 a_constant_ptr copy_constant_full(a_constant_ptr           old_constant,
                                   a_constant_ptr           new_constant,
