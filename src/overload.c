@@ -24115,6 +24115,9 @@ object lifetime context.
   if (is_expression_component(icp) && icp->constant_expr_ruled_out) {
     expr_stack->constant_expr_ruled_out = TRUE;
   }  /* if */
+  if (icp->consteval_function_designator_seen) {
+    expr_stack->consteval_function_designator_seen = TRUE;
+  }  /* if */
 }  /* unbundle_init_component_expressions */
 
 

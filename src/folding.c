@@ -6462,10 +6462,16 @@ start_underlying_expression:
       }
       break;
     case enk_routine:
-      /* An lvalue for a function. */
-      make_constant_routine_address(node_routine(expr), con, address_escapes,
-                                    template_constant);
-      is_constant_addr = TRUE;
+      { /* An lvalue for a function.  Do not fold the case of a consteval
+           function because it makes it harder to track invalid uses of such
+           functions. */
+        a_routine_ptr  rp = expr->variant.routine.ptr;
+        if (!rp->is_consteval) {
+          make_constant_routine_address(node_routine(expr), con,
+                                        address_escapes, template_constant);
+          is_constant_addr = TRUE;
+        }  /* if */
+      }
       break;
     case enk_constant:
       { a_constant_ptr econ = node_constant(expr);
@@ -6956,12 +6962,18 @@ prefer to handle that higher up.
       }  /* if */
       break;
     case enk_routine:
-      /* An rvalue for a function.  That's a function pointer, which can
-         be rendered as a constant. */
-      make_constant_routine_address(expr->variant.routine.ptr, con,
-                                    address_escapes,
-                                    template_constant);
-      is_constant_ptr = TRUE;
+      {
+        /* An rvalue for a function.  That's a function pointer, which can
+           be rendered as a constant.  However, don't fold pointers to
+           consteval functions here because it makes it harder to track
+           invalid uses of such functions. */
+        a_routine_ptr  rp = expr->variant.routine.ptr;
+        if (!rp->is_consteval) {
+          make_constant_routine_address(expr->variant.routine.ptr, con,
+                                        address_escapes, template_constant);
+          is_constant_ptr = TRUE;
+        }  /* if */
+      }
       break;
     case enk_constant:
       /* A constant with pointer type is a constant pointer value. */

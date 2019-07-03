@@ -175,6 +175,10 @@ typedef struct an_init_component {
 			   constant expression in the current mode.  That
 			   can be very slightly different from whether the
 			   expression actually evaluates to a constant. */
+  a_bit_field	consteval_function_designator_seen:1;
+			/* TRUE if during the parsing of this component a
+			   function designator for a consteval function was
+			   seen. */
   a_pack_expansion_descr_ptr
 		pack_expansion_descr;
 			/* If non-NULL, this entity is a pack expansion

@@ -2371,6 +2371,9 @@ given options and PREC_LOWEST precedence.
   /* Save any reference entries separately from the current expression. */
   detach_ref_entries_from_curr_expr(operand_of_arg_list_elem(icp));
   icp->detached_ref_entries = TRUE;
+  if (expr_stack->consteval_function_designator_seen) {
+    icp->consteval_function_designator_seen = TRUE;
+  }  /* if */
   return icp;
 }  /* scan_expr_as_init_component */
 
@@ -3221,59 +3224,6 @@ indication in *rcblock).
 }  /* scan_parenthesized_initializer_expression */
 
 
-static void begin_pending_consteval_failure_bracket(
-                                    a_boolean                    *do_restore,
-                                    a_pending_consteval_failure  *saved_entry)
-/*
-We are about to start processing call arguments (for a function or constructor
-call).  While parsing those call arguments, we might encounter a call to a
-consteval function that doesn't fold.  In such cases, we might record the
-"pending consteval failure" entry: Initialize that entry and save the prior
-state if needed (in that case *do_restore is set to TRUE).
-*/
-{
-  if (pending_consteval_failure.routine == NULL) {
-    /* Reuse the currently active entry since it doesn't record a failure
-       yet. */
-    *do_restore = FALSE;
-  } else {
-    *do_restore = TRUE;
-    *saved_entry = pending_consteval_failure;
-    pending_consteval_failure.routine = NULL;
-  }  /* if */
-}  /* begin_pending_consteval_failure_bracket */
-
-
-static void end_pending_consteval_failure_bracket(
-                                    a_routine_ptr                routine,
-                                    a_boolean                    do_restore,
-                                    a_pending_consteval_failure  *saved_entry)
-/*
-We're done processing a call to a function or constructor described by routine.
-If a pending consteval failure was recorded during the processing of the
-arguments of this call and it is not a call to a consteval function, issue an
-error.  Either way, restore the "pending consteval failure" state that was in
-effect when the corresponding call to begin_pending_consteval_failure_bracket
-was made.  do_restore and *saved_entry are the values that were returned from
-that corresponding call.
-*/
-{
-  if (pending_consteval_failure.routine != NULL) {
-    a_diag_list_ptr  diag_list = &pending_consteval_failure.diag_list;
-    if (routine == NULL || !routine->is_consteval) {
-      check_args_for_nonconsteval_call();
-      if (diag_list->head != NULL) {
-        discard_more_info_list(diag_list);
-      }  /* if */
-      pending_consteval_failure.routine = NULL;
-    }  /* if */
-  }  /* if */
-  if (pending_consteval_failure.routine == NULL && do_restore) {
-    pending_consteval_failure = *saved_entry;
-  }  /* if */
-}  /* end_pending_consteval_failure_bracket */
-
-
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- simple_result is unused in that case. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3390,9 +3340,6 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
   a_boolean           init_list_ctor_case = FALSE;
   a_boolean           saved_allow_call_with_incomplete_return_type;
   a_boolean           saved_in_call_argument;
-  a_pending_consteval_failure
-                      saved_pending_consteval_failure;
-  a_boolean           restore_pending_consteval_failure;
 
   db_enter(4, "scan_ctor_arguments");
 
@@ -3401,10 +3348,6 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                    is_braced_init_component(init_list_ctor_arg_list) &&
                    init_list_ctor_arg_list->variant.braced.list ==
                                                            supplied_arg_list));
-  /* If needed, start a new entry to record a consteval call failure in an
-     argument. */
-  begin_pending_consteval_failure_bracket(&restore_pending_consteval_failure,
-                                          &saved_pending_consteval_failure);
   saved_in_call_argument = expr_stack->in_call_argument;
   expr_stack->in_call_argument = TRUE;
   /* Allowing a call with incomplete return type doesn't propagate to calls
@@ -3870,9 +3813,6 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 end_of_routine:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  end_pending_consteval_failure_bracket(routine,
-                                        restore_pending_consteval_failure,
-                                        &saved_pending_consteval_failure);
   if (arg_list != NULL && arg_list != supplied_arg_list) {
     free_arg_list(arg_list);
   }  /* if */
@@ -5930,15 +5870,8 @@ are expected to be NULL in that case.
   a_boolean         result_operand_is_call;
   a_boolean         member_of_proto_inst = FALSE;
   a_boolean         saved_uses_this_operand = expr_stack->uses_this_operand;
-  a_pending_consteval_failure
-                    saved_pending_consteval_failure;
-  a_boolean         restore_pending_consteval_failure;
 
   db_enter(4, "scan_function_call");
-  /* If needed, start a new entry to record a consteval call failure in an
-     argument. */
-  begin_pending_consteval_failure_bracket(&restore_pending_consteval_failure,
-                                          &saved_pending_consteval_failure);
   /* While processing this call, ensure that the "uses_this_operand" only
      reflects uses of "this" within the current call. */
   expr_stack->uses_this_operand = FALSE;
@@ -6715,9 +6648,6 @@ are expected to be NULL in that case.
   }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 done:
-  end_pending_consteval_failure_bracket(routine,
-                                        restore_pending_consteval_failure,
-                                        &saved_pending_consteval_failure);
   free_arg_list(arg_list);
   db_exit();
 }  /* scan_function_call */
@@ -39019,9 +38949,10 @@ empty pack expansion, this routine returns NULL.
                                  (allow_empty_expansion ? &expr_not_present :
                                                           NULL));
   if (icp != NULL && !parenthesized) check_arg_list_elem_is_expression(icp);
-  if (icp != NULL && is_expression_component(icp) &&
-      expr_stack->constant_expr_ruled_out) {
-    icp->constant_expr_ruled_out = TRUE;
+  if (icp != NULL && is_expression_component(icp)) {
+    if (expr_stack->constant_expr_ruled_out) {
+      icp->constant_expr_ruled_out = TRUE;
+    }  /* if */
   }  /* if */
   pop_expr_stack_for_initializer(saved_expr_stack,
                                  /*is_full_expr=*/TRUE,
@@ -42312,9 +42243,6 @@ function.
   } else {
     do_operand_transformations(&result, TOPT_NO_OPTIONS);
   }  /* if */
-  if (!for_consteval_function) {
-    check_args_for_nonconsteval_call();
-  }  /* if */
   node = make_node_from_operand(&result);
   if (ptp == NULL ||
       /* Eliminate object lifetimes in prototype instantiations if
@@ -42810,6 +42738,9 @@ eventually be used as the operand of a call.
     }  /* if */
     alep->bundled = TRUE;
     detach_ref_entries_from_curr_expr(operand);
+  }  /* if */
+  if (expr_stack->consteval_function_designator_seen) {
+    alep->consteval_function_designator_seen = TRUE;
   }  /* if */
 }  /* bundle_coroutine_result */
 

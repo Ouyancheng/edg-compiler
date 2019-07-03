@@ -1012,6 +1012,7 @@ kind to "kind" and its fields to default values, and return a pointer to it.
   icp->on_free_list = FALSE;
 #endif /* CHECKING */
   icp->constant_expr_ruled_out = FALSE;
+  icp->consteval_function_designator_seen = FALSE;
   icp->pack_expansion_descr = NULL;
   set_init_component_kind(icp, kind);
   return icp;
@@ -1417,6 +1418,9 @@ an initializer cache) for later restoration and further processing.
   }  /* if */
   detach_ref_entries_from_curr_expr(operand);
   add_init_component_to_initializer_cache(icp, to_front, cache);
+  if (expr_stack->consteval_function_designator_seen) {
+    icp->consteval_function_designator_seen = TRUE;
+  }  /* if */
 }  /* add_operand_to_initializer_cache */
 
 
@@ -1814,6 +1818,7 @@ is pushed regardless of any of the other factors.
   new_entry->in_noexcept_operand_expression = FALSE;
   new_entry->suppress_constexpr_call_folding = FALSE;
   new_entry->consteval_call_need_not_fold = FALSE;
+  new_entry->consteval_function_designator_seen = FALSE;
   new_entry->allow_call_with_incomplete_return_type = FALSE;
   new_entry->allow_array_decay_in_constant_expr = FALSE;
   new_entry->uses_this_operand = FALSE;
@@ -3049,6 +3054,67 @@ more temp inits in the whole expression.
 }  /* curr_expr_may_contain_unordered_temp_inits */
 
 
+static void diagnose_consteval_routine_node(
+                                   an_expr_node_ptr                    node,
+                                   an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+If the given node is an enk_routine node or an enk_constant node for a pointer-
+to-member-function constant and the associated routine is consteval, issue an
+error indicating that the address of the consteval function cannot be used in
+that context.
+*/
+{
+  a_routine_ptr  rp = NULL;
+
+  if (is_routine_node(node)) {
+    rp = node_routine(node);
+  } else if (is_constant_node(node)) {
+    a_constant_ptr  cp = node_constant(node);
+    if (constant_is(cp, ck_ptr_to_member) &&
+        cp->variant.ptr_to_member.is_function_ptr) {
+      rp = cp->variant.ptr_to_member.variant.routine;
+    }  /* if */
+  }  /* if */
+  if (rp != NULL && rp->is_consteval) {
+    if (!rp->is_deleted) {
+      expr_pos_error(ec_address_of_consteval_function_leaked,
+                     &node->position);
+    }  /* if */
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* diagnose_consteval_routine_node */
+
+
+void diag_invalid_consteval_func_in_expr(an_expr_node_ptr  expr)
+/*
+Traverse the given expression tree to find invalid references to consteval
+functions (i.e., references that don't appear under a call to a consteval
+function, which would be folded by now).
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = diagnose_consteval_routine_node;
+  traverse_expr(expr, &tblock);
+}  /* diag_invalid_consteval_func_in_expr */
+
+
+static void diag_invalid_consteval_func_in_dyn_init(a_dynamic_init_ptr  dip)
+/*
+Traverse the given dynamic initializer entry find invalid references to
+consteval functions (i.e., references that don't appear under a call to a
+consteval function, which would be folded by now).
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = diagnose_consteval_routine_node;
+  traverse_dynamic_init(dip, &tblock);
+}  /* diag_invalid_consteval_func_in_dyn_init */
+
+
 an_expr_node_ptr wrap_up_full_expression(an_expr_node_ptr expr)
 /*
 Do any processing required at the end of a "full expression" that is expr.
@@ -3060,6 +3126,11 @@ the expr_stack).
 
   if (expr_stack->prev == NULL) {
     /* Full expression. */
+    if (expr_stack->consteval_function_designator_seen) {
+      /* If a consteval function designator was recorded, make sure it hasn't
+         "leaked". */
+      diag_invalid_consteval_func_in_expr(expr);
+    }  /* if */
     /* If the expression contains more than one enk_temp_init, see if they
        are unordered with respect to one another.  This must be done at the
        end because of temp inits that get optimized out. */
@@ -3103,19 +3174,23 @@ a previous error.
 {
   an_object_lifetime_ptr lifetime = expr_stack->lifetime;
 
-  /* If the initialization contains more than one enk_temp_init, see if they
-     are unordered with respect to one another.  This must be done at the
-     end because of temp inits that get optimized out.  Also check for
-     any sequencing issues if so enabled. */
-  if (dip != NULL && !C_mode() &&
-      (sequencing_diagnostics_enabled ||
-       curr_expr_may_contain_unordered_temp_inits())) {
-    an_expr_or_stmt_traversal_block tblock;
-    set_up_unordered_issues_traversal_block(&tblock);
-    traverse_dynamic_init(dip, &tblock);
+  if (dip != NULL && !C_mode()) {
+    /* If the initialization contains more than one enk_temp_init, see if they
+       are unordered with respect to one another.  This must be done at the
+       end because of temp inits that get optimized out.  Also check for any
+       sequencing issues if so enabled. */
+    if (sequencing_diagnostics_enabled ||
+        curr_expr_may_contain_unordered_temp_inits()) {
+      an_expr_or_stmt_traversal_block tblock;
+      set_up_unordered_issues_traversal_block(&tblock);
+      traverse_dynamic_init(dip, &tblock);
 #if SEQUENCING_DIAGNOSTICS_ENABLED
-    free_seq_pt_var_entry_list(tblock.seq_pt_var_list);
+      free_seq_pt_var_entry_list(tblock.seq_pt_var_list);
 #endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
+    }  /* if */
+    if (expr_stack->consteval_function_designator_seen) {
+      diag_invalid_consteval_func_in_dyn_init(dip);
+    }  /* if */
   }  /* if */
   if (!C_mode() && lifetime != NULL) {
     if (dip != NULL) {
@@ -6417,68 +6492,30 @@ function).  In such cases, record a pending diagnostic if appropriate.
 }  /* consteval_failure */
 
 
-static a_boolean expr_designates_consteval_function(an_expr_node_ptr  expr,
-                                                    a_routine_ptr     *p_rp)
-/*
-The given expression is the expression that designates a called function in a
-call.  Return TRUE if the designated function is known to be a consteval
-function.  This function looks through comma (and similar) operators.  If a
-specific function is found and *p_rp is non-NULL, set *p_rp to the associated
-routine entry.
-*/
-{
-  a_routine_ptr  rp = NULL;
-
-  expr = skip_parens(expr);
-  while (is_operation_node(expr) &&
-         (node_operator_is(expr, eok_comma) ||
-          node_operator_is(expr, eok_dot_static) ||
-          node_operator_is(expr, eok_points_to_static))) {
-    /* A field selection of a static member or a comma operator.  The second
-       operand gives the function expression. */
-    expr = skip_parens(expr->variant.operation.operands->next);
-  }  /* if */
-  if (is_constant_node(expr)) {
-    a_constant_ptr con = node_constant(expr);
-    if (!expr->is_lvalue && con_is_exact_addr_of_routine(con)) {
-      /* Constant that is the address of a routine. */
-      rp = con->variant.address.variant.routine;
-    }  /* if */
-  } else {
-    if (is_operation_node(expr) && node_operator_is(expr, eok_address_of)) {
-      /* Remove "&" if present. */
-      expr = skip_parens(expr->variant.operation.operands);
-    }  /* if */
-    if (is_routine_node(expr)) {
-      rp = node_routine(expr);
-    }  /* if */
-  }  /* if */
-  if (p_rp != NULL) *p_rp = rp;
-  return rp != NULL && rp->is_consteval;
-}  /* expr_designates_consteval_function */
-
-
 static a_boolean expr_fold_constexpr_call(an_expr_node_ptr  call_expr,
-                                          a_routine_ptr     rout,
+                                          a_routine_ptr     *p_rout,
                                           an_operand        *result,
                                           a_diag_list_ptr   diag_list)
 /*
 Interface to interpret_constexpr_call for use within the expression-processing
-routines.  This function attempts to fold the call call_expr to a constant;
-if it can, result is set to an operand for the result and returns TRUE.
-Otherwise, result is left unchanged and FALSE is returned (diagnostic nodes are
-potentially added to *diag_list).  For a direct call, rout indicates the called
-routine; for indirect calls, rout is NULL.
+routines.  This function attempts to fold the call call_expr to a constant; if
+it can, return TRUE and set *result to an operand for the result.  Otherwise,
+return FALSE and leave *result unchanged (diagnostic nodes are potentially
+added to *diag_list). For a direct call, *p_rout indicates the called routine;
+for indirect calls, *p_rout is NULL but this function sets it to the called
+function if possible (i.e., if evaluation can proceed far enough to determine
+the call target).
 */
 {
-  a_boolean folded = FALSE, is_consteval;
+  a_boolean      folded = FALSE, is_consteval;
+  a_routine_ptr  rout = *p_rout;
 
-  if (rout != NULL) {
-    is_consteval = rout->is_consteval;
-  } else {
-    an_expr_node_ptr  func_expr = call_expr->variant.operation.operands;
-    is_consteval = expr_designates_consteval_function(func_expr, &rout);
+  if (rout == NULL) {
+    rout = get_constexpr_callee(call_expr, diag_list);
+    if (rout == NULL) goto done;
+    *p_rout = rout;
   }  /* if */
+  is_consteval = rout->is_consteval;
   if ((constexpr_call_folding_should_be_done() || is_consteval) &&
       (!expr_stack->in_noexcept_operand_expression ||
        core_constant_expr_is_noexcept)) {
@@ -6522,6 +6559,7 @@ routine; for indirect calls, rout is NULL.
     }  /* if */
     if (release_constant) release_local_constant(&result_con);
   }  /* if */
+done:
   return folded;
 }  /* expr_fold_constexpr_call */
 
@@ -16212,6 +16250,38 @@ done:
 }  /* make_ptr_to_member_constant_operand */
 
 
+static void check_address_of_consteval_function(a_routine_ptr      rp,
+                                                a_source_position  *pos)
+/*
+The address of the given consteval routine is being taken but such an address
+can only be exposed in some limited contexts:
+  - in an unevaluated context
+  - in the definition of another consteval function
+  - as part of a consteval call
+This last context can only be verified after the full expression has been
+processed (because we might not know the enclosing call until after overload
+resolution).  Hence, such cases are handled elsewhere (see, e.g., the function
+diag_invalid_consteval_func_in_expr).  For now, if the first two contexts do
+not apply, record the fact that we saw a reference to the given consteval
+routine.
+*/
+{
+  if (!expr_stack->consteval_call_need_not_fold &&
+      curr_expr_is_potentially_evaluated()) {
+    if (innermost_function_scope == NULL ||
+        !current_routine_entry()->is_consteval) {
+      if (rp->is_deleted) {
+        /* An error should have been issued already.  An additional one is not
+           really helpful. */
+        expect_error();
+      } else {
+        expr_stack->consteval_function_designator_seen = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* check_address_of_consteval_function */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/  /* <-- compiler_generated, end_position are not used. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -16243,6 +16313,9 @@ reference entry, or is NULL if none is needed.
   }  /* if */
 #endif /* CHECKING */
   routine = routine_sym->variant.routine.ptr;
+  if (routine->is_consteval) {
+    check_address_of_consteval_function(routine, position);
+  }  /* if */
   if (C_dialect == C_dialect_cplusplus &&
       curr_expr_is_potentially_evaluated()) {
     if (routine == il_header.main_routine) {
@@ -16480,9 +16553,6 @@ successful folding.
   if (ctor_routine != NULL) {
     if (curr_expr_is_potentially_evaluated()) {
       ctor_routine->called = TRUE;
-      if (!ctor_routine->is_consteval) {
-        check_args_for_nonconsteval_call();
-      }  /* if */
     }  /* if */
     if (ctor_routine->is_consteval) {
       fold_constexpr = TRUE;
@@ -17393,50 +17463,6 @@ Returns TRUE if the type has the nodiscard attribute applied to it.
 }  /* type_has_nodiscard_attribute */
 
 
-void check_args_for_nonconsteval_call(void)
-/*
-Check the current expression's ref entries list for one that corresponds to
-taking the address of a consteval function and issue an error if that is the
-case.  This is called to catch uses in call arguments.  Also, if there is a
-pending consteval call failure, issue the error now since the enclosing call
-is not to a consteval function.
-*/
-{
-  if (innermost_function_scope == NULL ||
-      !current_routine_entry()->is_consteval) {
-    a_ref_entry_ptr  rep = curr_expr_ref_entries;
-    for (; rep != NULL; rep = rep->next) {
-      if ((rep->kind & SRK_ADDRESS_TAKEN) &&
-          is_simple_function_symbol(rep->symbol) &&
-          rep->symbol->variant.routine.ptr->is_consteval) {
-        if (rep->symbol->variant.routine.ptr->is_deleted) {
-          /* An error should have been issued already.  An additional one is
-             not really helpful. */
-          expect_error();
-        } else {
-          pos_error(ec_address_of_consteval_function_leaked, &rep->position);
-        }  /* if */
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  if (pending_consteval_failure.routine != NULL) {
-    if (pending_consteval_failure.routine->is_deleted) {
-      /* An error should have been issued already.  An additional one is not
-         really helpful. */
-      expect_error();
-    } else {
-      a_diagnostic_ptr  dp;
-      dp = pos_sy_start_error(ec_consteval_call_nonconstant,
-                              &pending_consteval_failure.diag_pos,
-                              symbol_for(pending_consteval_failure.routine));
-      add_more_info_list(dp, &pending_consteval_failure.diag_list);
-      end_diagnostic(dp);
-    }  /* if */
-  }  /* if */
-}  /* check_args_for_nonconsteval_call */
-
-
 #if !BACK_END_IS_CP_GEN_BE
 /*ARGSUSED*/  /* found_through_adl is only used with the C++-generating
                  back end. */
@@ -17545,12 +17571,6 @@ error cases.
       }  /* if */
       goto done;
     }  /* if */
-  }  /* if */
-  if (curr_expr_is_potentially_evaluated() &&
-      !(rout != NULL && rout->is_consteval)) {
-    /* A call to a non-consteval function.  Make sure we're not passing a
-       pointer to a consteval function to it. */
-    check_args_for_nonconsteval_call();
   }  /* if */
   if (rout != NULL) {
     /* We know which routine is being called. */
@@ -17794,7 +17814,7 @@ whether the call was folded or not.
              !virtual_suppressed))) &&
           (!expr_stack->in_noexcept_operand_expression ||
            core_constant_expr_is_noexcept || microsoft_mode) &&
-          expr_fold_constexpr_call(function_call_node, rout, result,
+          expr_fold_constexpr_call(function_call_node, &rout, result,
                                    &diag_list)) {
         /* The call is to a constexpr function (or a function otherwise known
            to the front end) and it has been folded to a constant result.
@@ -17831,14 +17851,7 @@ whether the call was folded or not.
         /* If needed, diagnose the folding failure or record that a
            constant-expression is now ruled out. */
         a_boolean  is_consteval, no_diagnostic;
-        if (rout != NULL) {
-          is_consteval = rout->is_consteval;
-        } else {
-          an_expr_node_ptr
-                   func_expr = function_call_node->variant.operation.operands;
-          is_consteval = expr_designates_consteval_function(
-                                             func_expr, (a_routine_ptr*)NULL);
-        }  /* if */
+        is_consteval = rout != NULL && rout->is_consteval;
         no_diagnostic = relaxed_constexpr_enabled && !is_consteval;
         (void)call_did_not_fold_to_constant(rout, result, no_diagnostic,
                                             &diag_list,
@@ -21308,40 +21321,6 @@ if necessary).
 }  /* type_of_call */
 
 
-static void check_address_of_consteval_function(a_routine_ptr      rp,
-                                                a_source_position  *pos)
-/*
-The address of the given consteval routine is being taken but such an address
-can only be exposed in some limited contexts:
-  - in an unevaluated context
-  - in the definition of another consteval function
-  - in an argument of a consteval call
-This last context can only be verified after the complete call has been
-processed (because we might not know the enclosing call until after overload
-resolution).  Hence, such cases are handled elsewhere (see the function
-check_args_for_addrress_of_consteval_function).
-
-In cases where none of these limited contexts apply, issue an error at the
-given source position.
-*/
-{
-  if (!expr_stack->in_call_argument &&
-      !expr_stack->is_default_arg_expression &&
-      curr_expr_is_potentially_evaluated()) {
-    if (innermost_function_scope == NULL ||
-        !current_routine_entry()->is_consteval) {
-      if (rp->is_deleted) {
-        /* An error should have been issued already.  An additional one is not
-           really helpful. */
-        expect_error();
-      } else {
-        pos_error(ec_address_of_consteval_function_leaked, pos);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-}  /* check_address_of_consteval_function */
-
-
 void conv_sym_for_member_operand_to_ptr_to_member(
                                          an_operand        *operand,
                                          a_source_position *ampersand_position)
@@ -21356,7 +21335,7 @@ by an "&" in the source, and *ampersand_position gives its position.
   a_boolean    has_required_ampersand = (ampersand_position != NULL &&
                                          /* Watch out for &(A::f). */
                                          operand->is_id_expression);
-  a_boolean    allow_addr_of_managed_member = FALSE;
+  a_boolean    allow_addr_of_managed_member = FALSE, force_node = FALSE;
 
   orig_operand = *operand;
   check_assertion(is_sym_for_member_operand(operand));
@@ -21365,6 +21344,7 @@ by an "&" in the source, and *ampersand_position gives its position.
   if (symbol_is(fund_sym, sk_member_function)) {
     a_routine_ptr  rp = fund_sym->variant.routine.ptr;
     if (rp->is_consteval) {
+      force_node = TRUE;
       check_address_of_consteval_function(rp, &operand->position);
     }  /* if */
   }  /* if */
@@ -21385,6 +21365,10 @@ by an "&" in the source, and *ampersand_position gives its position.
                                       has_required_ampersand,
                                       allow_addr_of_managed_member,
                                       operand);
+  if (force_node) {
+    an_expr_node_ptr  node = alloc_node_for_constant_operand(operand);
+    make_expression_operand(node, operand);
+  }  /* if */
   /* Restore the original source position, etc. */
   restore_operand_details_incl_ref(operand, &orig_operand);
   /* Change the kind in the reference entries to address-taken. */

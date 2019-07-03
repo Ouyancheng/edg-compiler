@@ -885,6 +885,13 @@ typedef struct an_interpreter_state {
 		disallow_mutable_field_load:1;
 			/* TRUE if extract_value_from_constant should not
 			   permit access to a mutable field. */
+  a_bit_field
+		allow_consteval_routine_node:1;
+			/* TRUE if an enk_routine node for a consteval function
+			   is permitted outside the immediate target operand of
+			   a call (i.e., something like "(1, f)()" where f
+			   designates a consteval function; if it were "f()"
+			   it would always be allowed). */
   a_storage_stack_state
 		static_storage;
 			/* Pointer to the storage stack state used to allocate
@@ -2255,6 +2262,7 @@ result of calls to std::is_constant_evaluated().
   ips->permit_address_of_local_temporary = FALSE;
   ips->static_lifetime_init = FALSE;
   ips->disallow_mutable_field_load = FALSE;
+  ips->allow_consteval_routine_node = FALSE;
   n_active_interpreter_states += 1;
 }  /* init_interpreter_state */
 
@@ -4781,9 +4789,19 @@ formats as necessary.  Return FALSE if the constant is an error constant.
         a_byte_count      offset = 0;
         a_boolean         is_null;
         if (con->variant.ptr_to_member.is_function_ptr) {
-          pm_value->variant.routine =
-                                   con->variant.ptr_to_member.variant.routine;
-          is_null = (pm_value->variant.routine == NULL);
+          a_routine_ptr  rp = con->variant.ptr_to_member.variant.routine;
+          if (rp != NULL && rp->is_consteval &&
+              !ips->allow_consteval_routine_node) {
+            /* Don't treat a reference to a consteval function as a constant
+               unless a constant is really needed.  That keeps the enk_routine
+               node in the expression tree so invalid uses can be diagnosed. */
+            info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                          constant_pos(con, ips), ips);
+            do_constexpr_fail(result);
+            break;
+          }  /* if */
+          pm_value->variant.routine = rp;
+          is_null = (rp == NULL);
           pm_value->is_ptr_to_mem_function = TRUE;
         } else {
           pm_value->variant.field = con->variant.ptr_to_member.variant.field;
@@ -4806,6 +4824,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                                 constant_pos(con, ips), con->orig_type,
                                 con->type, ips);
             do_constexpr_fail(result);
+            break;
            }  /* if */
         }  /* if */
         if (bcp != NULL) {
@@ -7860,6 +7879,84 @@ if *p_this_arg is not statically initialized.)
 }  /* adjust_virtual_callee */
 
 
+static a_routine_ptr eval_constexpr_callee(
+                         an_interpreter_state    *ips,
+                         an_expr_node_ptr        call_node,
+                         a_constexpr_ptr_to_mem  **p_pm_target,
+                         a_byte                  **p_pre_evaluated_this_bytes)
+/*
+Interpret the given call node until the call target is determined, except for
+the effects of virtual dispatch.  If successful, return the IL entry for the
+callee; otherwise return NULL and update *ips with the reason for the failure.
+If the call is through a pointer-to-member-function, allocate and store in
+*p_pm_target the computed value of that pointer-to-member-function;
+furthermore, if the "this" value had to be computed, allocate and store that
+in *p_pre_evaluated_this_bytes (needed because in "(f().*pm())()" f() must be
+evaluated before pm() in C++17 mode).
+*/
+{
+  a_routine_ptr     callee = NULL;
+  an_expr_node_ptr  callee_node = call_node->variant.operation.operands;
+
+  if (is_routine_node(callee_node)) {
+    callee = node_routine(callee_node);
+  } else if (node_operator_is(call_node, eok_dot_pm_call) ||
+             node_operator_is(call_node, eok_points_to_pm_call)) {
+    /* A call through a pointer-to-member function.  We'll determine the
+       callee here, and adjust the "this" pointer later on. */
+    a_type_ptr    pm_type = skip_typerefs(callee_node->type);
+    a_byte        *pm_bytes;
+    a_boolean     result = TRUE;
+    a_byte_count  n_pm_bytes = value_bytes_for_type(ips, pm_type, &result);
+    alloc_complete_object(ips, n_pm_bytes, pm_type, pm_bytes);
+    *p_pm_target = (a_constexpr_ptr_to_mem*)pm_bytes;
+    if (call_node->variant.operation.eval_left_to_right) {
+      /* As of C++17, in a call like (f().*pm())() the sub-expression f() must
+         be evaluated before the sub-expression pm().  We therefore evaluate
+         that expression now, and copy the result (which is a constexpr address
+         and therefore safe to copy) to the expected location of the "this"
+         pointer value later on. */
+      an_expr_node_ptr  selector_arg = callee_node->next;
+      a_type_ptr        tp = skip_typerefs(selector_arg->type);
+      a_byte_count      this_n_bytes = sizeof(a_constexpr_address);
+      do_host_alignment(this_n_bytes);
+      alloc_complete_object(ips, this_n_bytes, generic_ptr_type,
+                            *p_pre_evaluated_this_bytes);
+      if (!eval_selector_arg(ips, selector_arg, tp,
+                             *p_pre_evaluated_this_bytes)) {
+        goto done;
+      }  /* if */
+    }  /* if */
+    if (do_constexpr_expression(ips, callee_node, pm_bytes, pm_bytes)) {
+      callee = (*p_pm_target)->variant.routine;
+      if (callee == NULL) {
+        info_with_pos(ec_constexpr_null_callee, &callee_node->position, ips);
+      }  /* if */
+    }  /* if */
+  } else {
+    /* An indirect call. */
+    a_byte  *addr_bytes;
+    alloc_complete_object(ips, sizeof(a_constexpr_address), generic_ptr_type,
+                          addr_bytes);
+    if (do_constexpr_expression( ips, callee_node, addr_bytes, addr_bytes)) {
+      a_constexpr_address  *addr = (a_constexpr_address*)addr_bytes;
+      if (is_function_address(addr)) {
+        callee = addr->variant.routine;
+        if (callee == NULL) {
+          info_with_pos(ec_constexpr_null_callee, &callee_node->position, ips);
+        }  /* if */
+      } else if (addr->address == NULL) {
+        info_with_pos(ec_constexpr_null_callee, &callee_node->position, ips);
+      } else {
+        unexpected_condition();
+      }  /* if */
+    }  /* if */
+  }  /* if */
+done:
+  return callee;
+}  /* eval_constexpr_callee */
+
+
 static a_boolean do_constexpr_call(an_interpreter_state  *ips,
                                    an_expr_node_ptr      call_node,
                                    a_byte                *result_storage,
@@ -7878,71 +7975,11 @@ otherwise, return FALSE and update *ips accordingly.
   a_byte            *pre_evaluated_this_bytes = NULL;
 
   /* First determine the actual callee. */
-  callee_node = call_node->variant.operation.operands;
-  if (is_routine_node(callee_node)) {
-    callee = node_routine(callee_node);
-  } else if (node_operator_is(call_node, eok_dot_pm_call) ||
-             node_operator_is(call_node, eok_points_to_pm_call)) {
-    /* A call through a pointer-to-member function.  We'll determine the
-       callee here, and adjust the "this" pointer later on. */
-    a_type_ptr    pm_type = skip_typerefs(callee_node->type);
-    a_byte        *pm_bytes;
-    a_byte_count  n_pm_bytes = value_bytes_for_type(ips, pm_type, &result);
-    alloc_complete_object(ips, n_pm_bytes, pm_type, pm_bytes);
-    pm_target = (a_constexpr_ptr_to_mem*)pm_bytes;
-    if (call_node->variant.operation.eval_left_to_right) {
-      /* As of C++17, in a call like (f().*pm())() the sub-expression f() must
-         be evaluated before the sub-expression pm().  We therefore evaluate
-         that expression now, and copy the result (which is a constexpr address
-         and therefore safe to copy) to the expected location of the "this"
-         pointer value later on. */
-      an_expr_node_ptr  selector_arg = callee_node->next;
-      a_type_ptr        tp = skip_typerefs(selector_arg->type);
-      a_byte_count      this_n_bytes = sizeof(a_constexpr_address);
-      do_host_alignment(this_n_bytes);
-      alloc_complete_object(ips, this_n_bytes, generic_ptr_type,
-                            pre_evaluated_this_bytes);
-      if (!eval_selector_arg(ips, selector_arg, tp,
-                             pre_evaluated_this_bytes)) {
-        do_constexpr_fail(result);
-        goto done;
-      }  /* if */
-    }  /* if */
-    if (do_constexpr_expression(ips, callee_node, pm_bytes, pm_bytes)) {
-      callee = pm_target->variant.routine;
-      if (callee == NULL) {
-        info_with_pos(ec_constexpr_null_callee, &callee_node->position, ips);
-        do_constexpr_fail(result);
-        goto done;
-      }  /* if */
-    } else {
-      do_constexpr_fail(result);
-      goto done;
-    }  /* if */
-  } else {
-    /* An indirect call. */
-    a_byte  *addr_bytes;
-    alloc_stack_bytes(ips, sizeof(a_constexpr_address), addr_bytes);
-    if (do_constexpr_expression( ips, callee_node, addr_bytes, addr_bytes)) {
-      a_constexpr_address  *addr = (a_constexpr_address*)addr_bytes;
-      if (is_function_address(addr)) {
-        callee = addr->variant.routine;
-        if (callee == NULL) {
-          info_with_pos(ec_constexpr_null_callee, &callee_node->position, ips);
-          do_constexpr_fail(result);
-          goto done;
-        }  /* if */
-      } else if (addr->address == NULL) {
-        info_with_pos(ec_constexpr_null_callee, &callee_node->position, ips);
-        do_constexpr_fail(result);
-        goto done;
-      } else {
-        unexpected_condition();
-      }  /* if */
-    } else {
-      do_constexpr_fail(result);
-      goto done;
-    }  /* if */
+  callee = eval_constexpr_callee(ips, call_node, &pm_target,
+                                &pre_evaluated_this_bytes);
+  if (callee == NULL) {
+    do_constexpr_fail(result);
+    goto done;
   }  /* if */
   /* Now interpret the call if possible. */
 #if BUILTIN_FUNCTIONS_ENABLED
@@ -8024,6 +8061,7 @@ otherwise, return FALSE and update *ips accordingly.
        the second phase.  We also allocate an additional buffer to keep track
        of the sizes of the argument objects, so we can quickly get to their
        variable postfix in the second phase. */
+    callee_node = call_node->variant.operation.operands;
     for (arg = callee_node->next; arg != NULL; arg = arg->next) {
       n_args += 1;
     }  /* for */
@@ -14430,7 +14468,11 @@ the value representation of the integer value.
       break;
     case enk_routine:
       { a_routine_ptr  rp = node_routine(expr);
-        if (!rp->is_prototype_instantiation) {
+        /* Don't treat a reference to a consteval function as a constant
+           unless a constant is really needed.  That keeps the enk_routine
+           node in the expression tree so invalid uses can be diagnosed. */
+        if (!rp->is_prototype_instantiation &&
+            !(rp->is_consteval && !ips->allow_consteval_routine_node)) {
 #if GNU_EXTENSIONS_ALLOWED
           if (rp->is_weak) {
             /* Weakly declared functions have no definite address (they could
@@ -15403,6 +15445,12 @@ indicates the value produced by std::is_constant_evaluated().
          requires substitution before deciding that it is an actual constant
          value.  (Also, it may have associated rescan info that would not be
          equivalent in the copy.) */
+    } else if (constant_is(expr_con, ck_ptr_to_member) &&
+               expr_con->variant.ptr_to_member.is_function_ptr &&
+               expr_con->variant.ptr_to_member.variant.routine->is_consteval) {
+      /* Don't treat a reference to a consteval function as a constant unless
+         a constant is really needed.  That keeps the enk_routine node in the
+         expression tree so invalid uses can be diagnosed. */
     } else {
       (void)copy_constant_full(expr_con, result_con,
                                CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR);
@@ -15506,6 +15554,36 @@ done:
 }  /* interpret_expr */
 
 
+a_routine_ptr get_constexpr_callee(an_expr_node_ptr  call_expr,
+                                   a_diag_list_ptr   diag_list)
+/*
+Attempt to interpret the call represented by call_expr until the actual callee
+is determined (except for virtual dispatch).  If successful, return the IL
+entry for that callee; otherwise, return NULL and record diagnostic info in
+*diag_list.  The interpretation is done assuming the callee is a consteval
+function (i.e., std::is_constant_evaluated() produces TRUE).
+*/
+{
+  a_routine_ptr           callee = NULL;
+  an_interpreter_state    ips;
+  a_constexpr_ptr_to_mem  *pm_target = NULL;
+  a_byte                  *pre_evaluated_this_bytes = NULL;
+
+  if (trans_unit_initialization_needed) {
+    initialize_interpreter_data();
+    trans_unit_initialization_needed = FALSE;
+  }  /* if */
+  init_interpreter_state(&ips, /*is_constant_evaluated=*/TRUE);
+  ips.allow_consteval_routine_node = TRUE;
+  ips.position = call_expr->position;
+  callee = eval_constexpr_callee(&ips, call_expr, &pm_target,
+                                 &pre_evaluated_this_bytes);
+  *diag_list = ips.diag_list;
+  release_interpreter_state(&ips);
+  return callee;
+}  /* get_constexpr_callee */
+
+
 a_boolean interpret_constexpr_call(an_expr_node_ptr  call_expr,
                                    a_boolean         is_constant_evaluated,
                                    a_constant_ptr    result_con,
@@ -15536,6 +15614,9 @@ indicates the value produced by std::is_constant_evaluated().
     trans_unit_initialization_needed = FALSE;
   }  /* if */
   init_interpreter_state(&ips, is_constant_evaluated);
+  if (is_constant_evaluated) {
+    ips.allow_consteval_routine_node = TRUE;
+  }  /* if */
   ips.position = call_expr->position;
   n_bytes = expr_result_size(&ips, call_expr, result_type, &result); 
   if (!result) {
@@ -15741,6 +15822,9 @@ position associated with the call.
     trans_unit_initialization_needed = FALSE;
   }  /* if */
   init_interpreter_state(&ips, is_constant_evaluated);
+  if (is_constant_evaluated) {
+    ips.allow_consteval_routine_node = TRUE;
+  }  /* if */
   ips.position = *pos;
   if (dip->variant.constructor.is_copy_constructor_with_implied_source) {
     /* An implied source is never constant. */

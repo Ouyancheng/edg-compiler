@@ -32,6 +32,9 @@ a_boolean interpret_expr(an_expr_node_ptr  expr,
                          a_constant_ptr    result_con,
                          a_diag_list_ptr   diag_list);
 
+a_routine_ptr get_constexpr_callee(an_expr_node_ptr  call_expr,
+                                   a_diag_list_ptr   diag_list);
+
 a_boolean interpret_constexpr_call(an_expr_node_ptr  call_expr,
                                    a_boolean         is_constant_evaluated,
                                    a_constant_ptr    result_con,

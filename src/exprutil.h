@@ -943,6 +943,10 @@ typedef struct an_expr_stack_entry {
 			   calls in default arguments of consteval
 			   functions. */
   a_bit_field
+		consteval_function_designator_seen:1;
+			/* When TRUE, a function designator for a consteval
+			   function was seen. */
+  a_bit_field
 		allow_call_with_incomplete_return_type:1;
 			/* TRUE if a call with an incomplete return type should
 			   be permitted at the top level of an expression.
@@ -1690,6 +1694,8 @@ extern a_boolean entities_are_recorded_for_current_expression(void);
 
 extern void rule_out_expr_kinds(a_ruled_out_expr_kind_set ruled_out_set,
                                 an_operand                *operand);
+
+extern void diag_invalid_consteval_func_in_expr(an_expr_node_ptr  expr);
 
 extern an_expr_node_ptr wrap_up_full_expression(an_expr_node_ptr expr);
 
@@ -3007,8 +3013,6 @@ extern void make_upc_thread_operand(an_operand            *operand,
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
 extern a_boolean type_has_nodiscard_attribute(a_type_ptr type);
-
-extern void check_args_for_nonconsteval_call(void);
 
 #if DEBUG
 extern void count_rescan_fs_expr_nodes(unsigned long *p_count);
