@@ -3085,7 +3085,7 @@ that context.
 }  /* diagnose_consteval_routine_node */
 
 
-void diag_invalid_consteval_func_in_expr(an_expr_node_ptr  expr)
+static void diag_invalid_consteval_func_in_expr(an_expr_node_ptr  expr)
 /*
 Traverse the given expression tree to find invalid references to consteval
 functions (i.e., references that don't appear under a call to a consteval
@@ -16250,8 +16250,7 @@ done:
 }  /* make_ptr_to_member_constant_operand */
 
 
-static void check_address_of_consteval_function(a_routine_ptr      rp,
-                                                a_source_position  *pos)
+static void check_address_of_consteval_function(a_routine_ptr  rp)
 /*
 The address of the given consteval routine is being taken but such an address
 can only be exposed in some limited contexts:
@@ -16314,7 +16313,7 @@ reference entry, or is NULL if none is needed.
 #endif /* CHECKING */
   routine = routine_sym->variant.routine.ptr;
   if (routine->is_consteval) {
-    check_address_of_consteval_function(routine, position);
+    check_address_of_consteval_function(routine);
   }  /* if */
   if (C_dialect == C_dialect_cplusplus &&
       curr_expr_is_potentially_evaluated()) {
@@ -21345,7 +21344,7 @@ by an "&" in the source, and *ampersand_position gives its position.
     a_routine_ptr  rp = fund_sym->variant.routine.ptr;
     if (rp->is_consteval) {
       force_node = TRUE;
-      check_address_of_consteval_function(rp, &operand->position);
+      check_address_of_consteval_function(rp);
     }  /* if */
   }  /* if */
   if (ampersand_position != NULL) {
@@ -21413,7 +21412,7 @@ by an "&" operator and *ampersand_position gives its position.
         require_true_enable_if_condition(rtp, &operand->position);
       }  /* if */
       if (rout->is_consteval) {
-        check_address_of_consteval_function(rout, &operand->position);
+        check_address_of_consteval_function(rout);
       }  /* if */
     }  /* if */
   }  /* if */
