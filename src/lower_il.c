@@ -2211,7 +2211,7 @@ may overwritten here (to a different type of expression).
         new_node = add_address_of_to_node(new_node);
       } else {
         /* Create a temporary variable for the class rvalue so we can take
-           it's address. */
+           its address. */
         a_variable_ptr   temp = make_local_temporary(new_node->type);
         new_node = make_var_assignment_expr(temp, new_node);
         new_node = make_comma_node(new_node, var_addr_expr(temp));
