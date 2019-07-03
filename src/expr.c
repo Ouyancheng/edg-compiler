@@ -43511,21 +43511,17 @@ expression is the value of an enumerator.
 
 void scan_constant_dimension_expression(a_constant *constant)
 /*
-Scan an integral constant expression that is an array dimension bound
-and return it in *constant, which will be subsequently allocated in the
-file scope memory region.
+Scan an integral constant expression that is an array dimension bound and
+return it in *constant.
 */
 {
-  a_memory_region_number region_to_switch_back_to;
   a_type_ptr required_type = cpp11_mode ? integer_type(targ_size_t_int_kind) :
                                           NULL;
 
-  switch_to_file_scope_region(&region_to_switch_back_to);
   scan_integral_constant_expression_full(required_type,
                                          /*is_array_bound=*/TRUE,
                                          /*is_enum=*/FALSE,
                                          constant);
-  switch_back_to_original_region(region_to_switch_back_to);
 }  /* scan_constant_dimension_expression */
 
 

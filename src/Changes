@@ -1,5 +1,26 @@
 Version 5.1
 
+7/2/19   [EDGcpfe/21423]
+Abort when dynamic initializers with destructors used in static array bounds
+
+The front end expects the dimension for a static array type to be a constant
+integral type.  With constexpr, it was possible to create an expression that
+failed the requirements to be constexpr, and the resulting dynamic initializer
+could cause the front end to abort if there is a corresponding destructor
+that may need to be called during the initialization.  For example:
+
+  struct A {
+    constexpr A() noexcept(false) { throw 0; } // Not actually constexpr
+    ~A();
+  };
+  void f()
+  {
+    static const A a [ new A[1]{} ]; // Previously caused an abort
+  }
+
+This has now been fixed.
+
+
 7/2/19   [EDGcpfe/21463]
 Exception specifications as part of function types of function parameters when
 exceptions disabled
