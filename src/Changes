@@ -100,7 +100,7 @@ The front end now treats vector types as trivially copyable (in modes that
 accept such types).  For example:
 
   using V = int __attribute__((vector_size(4*sizeof(int))));
-  static_assert(__is__trivially_copyable(V), "Unexpected");
+  static_assert(__is_trivially_copyable(V), "Unexpected");
     // Now accepted in GNU C++11 mode.
 
 
