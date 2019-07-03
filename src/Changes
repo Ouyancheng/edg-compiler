@@ -38,13 +38,13 @@ This is now fixed.
 
 
 7/2/19   [EDGcpfe/21436]
-Microsoft compatibility: rvalue reference binding to const volatile references
+Microsoft compatibility: binding const volatile lvalue reference to rvalues
 
-In certain cases the Microsoft compiler allows rvalue references to bind to
-const volatile lvalue references.  This is not standard compliant, and when
-permissive mode is disabled, the Microsoft compiler no longer allows this.  The
-front end was already emulating the permissive mode (when microsoft_bugs is
-set), but was not emulating the non-permissive mode.  For example:
+In certain cases the Microsoft compiler allows binding const volatile lvalue
+references to rvalues.  This is not standard compliant, and when permissive
+mode is disabled, the Microsoft compiler no longer allows this.  The front end
+was already emulating the permissive mode (when microsoft_bugs is set), but was
+not emulating the non-permissive mode.  For example:
 
   using T = int;
   T t{};
