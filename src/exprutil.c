@@ -5972,12 +5972,17 @@ return FALSE.
   /* Create an expression tree representing the conversion call and
      interpret it. */
   if (call_node == NULL) {
-    /* Allocate expression nodes the first time this routine is called. */
+    /* Allocate expression nodes the first time this routine is called.  Use
+       the file-scope memory region to ensure there are no function-scope
+       conflicts. */
+    a_memory_region_number region_to_switch_back_to;
+    switch_to_file_scope_region(&region_to_switch_back_to);
     call_node = alloc_expr_node((an_expr_node_kind)enk_operation);
     rout_node = alloc_expr_node((an_expr_node_kind)enk_routine);
     src_node = alloc_expr_node((an_expr_node_kind)enk_constant);
     rout_node->next = src_node;
     value_node = alloc_expr_node((an_expr_node_kind)enk_operation);
+    switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
   if (is_constant_operand(source_operand)) {
     src_node->kind = (an_expr_node_kind)enk_constant;
