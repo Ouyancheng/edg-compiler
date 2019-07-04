@@ -19437,7 +19437,8 @@ braced initializer list.
 {
   an_init_component_ptr expr_list;
 
-  check_assertion(!anything_cached(&dps->prescanned_initializer_cache));
+  check_assertion(nps->using_expr_cache ||
+                  !anything_cached(&dps->prescanned_initializer_cache));
   check_assertion(!nps->has_braced_initializer);
   expr_list = alloc_init_component((an_init_component_kind)ick_braced);
   expr_list->variant.braced.start_pos = nps->init_position;
