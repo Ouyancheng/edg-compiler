@@ -20233,6 +20233,11 @@ initializer was provided.
       }  /* if */
       nps->err = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (is_template_declaration_context()) {
+      /* In a template declaration context.  This implies that the expression
+         is appearing inside the expression for a defaulted argument.  An error
+         will not be issued until instantiation, and the class may no longer
+         be incomplete then. */
     } else {
       /* Note that this case comes up if the class type is incomplete.
          An error was issued previously. */

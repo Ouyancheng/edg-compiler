@@ -1,5 +1,27 @@
 Version 5.1
 
+7/4/19   [EDGcpfe/21445]
+Abort when using local classes in "new" expressions inside a defaulted template
+argument declaration
+
+The front end would abort when it encountered a "new" expression using a local
+class when parsing a defaulted template argument declaration.  For example:
+
+  template<int I = [] {
+    struct A {
+      int&& x = 29;
+    };
+    new A; // Previously caused an abort
+    return 0;
+  }()>
+  int f();
+  void g() {
+    f<1>();
+  }
+
+This is now fixed.
+
+
 7/2/19   [EDGcpfe/21423]
 Abort when dynamic initializers with destructors used in array bounds
 
