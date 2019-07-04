@@ -1,21 +1,23 @@
 Version 5.1
 
 7/2/19   [EDGcpfe/21423]
-Abort when dynamic initializers with destructors used in static array bounds
+Abort when dynamic initializers with destructors used in array bounds
 
-The front end expects the bounds for a static array type to be an integral
-constant expression.  When provided with an expression that cannot be folded to
-an integral constant, the resulting dynamic initializer for the expression
-could cause the front end to abort if there is a corresponding destructor
-that may need to be called during the initialization.  For example:
+The front end expects the bound for an array type to be an integral constant
+expression.  When provided with an expression that cannot be folded to an
+integral constant, the resulting dynamic initializer for the expression could
+cause the front end to abort if there is a corresponding destructor that may
+need to be called during the initialization.  For example:
 
   struct A {
-    constexpr A() noexcept(false) { throw 0; } // Not actually constexpr
+    constexpr A(bool b) noexcept(false) { if (b) throw 0; }
+    constexpr operator unsigned() { return 1; }
     ~A();
   };
+  using T = A[1];
   void f()
   {
-    static const A a [ new A[1]{} ]; // Previously caused an abort
+    int a [ T{{true}}[0] ];  // Previously caused abort
   }
 
 This has now been fixed.
