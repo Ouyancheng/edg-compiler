@@ -11,11 +11,12 @@ class when parsing a defaulted template argument declaration.  For example:
     struct A {
       int&& x = 29;
     };
-    new A; // Previously caused an abort
+    decltype(new A) x; // Previously caused an abort
     return 0;
   }()>
   int f();
   void g() {
+    f<>();
     f<1>();
   }
 
