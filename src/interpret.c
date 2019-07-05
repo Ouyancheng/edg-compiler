@@ -7933,12 +7933,15 @@ evaluated before pm() in C++17 mode).
         info_with_pos(ec_constexpr_null_callee, &callee_node->position, ips);
       }  /* if */
     }  /* if */
+  } else if (callee_node->kind == (an_expr_node_kind)enk_lambda) {
+    /* This can happen in prototype instantiations. */
+    callee = callee_node->variant.init.source.lambda->lambda_routine;
   } else {
     /* An indirect call. */
     a_byte  *addr_bytes;
     alloc_complete_object(ips, sizeof(a_constexpr_address), generic_ptr_type,
                           addr_bytes);
-    if (do_constexpr_expression( ips, callee_node, addr_bytes, addr_bytes)) {
+    if (do_constexpr_expression(ips, callee_node, addr_bytes, addr_bytes)) {
       a_constexpr_address  *addr = (a_constexpr_address*)addr_bytes;
       if (is_function_address(addr)) {
         callee = addr->variant.routine;
