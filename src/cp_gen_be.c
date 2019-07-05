@@ -3522,6 +3522,7 @@ argument list and to FALSE otherwise.
     if (rout->expl_template_arg_list_used ||
         (clang_is_generated_code_target &&
          is_generated_explicit_specialization &&
+         rout->special_kind != (a_special_function_kind)sfk_conversion &&
          !in_template_argument_list)) {
       tap = rout->template_arg_list;
       result = TRUE;
