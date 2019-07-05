@@ -1,11 +1,12 @@
 Version 5.1
 
 7/4/19   [EDGcpfe/21445]
-Abort when using local classes in "new" expressions inside a defaulted template
-argument declaration
+Abort when using local classes in "new" expressions inside a default template
+argument
 
-The front end would abort when it encountered a "new" expression using a local
-class when parsing a defaulted template argument declaration.  For example:
+The front end would abort with an assertion failure in scan_new_operator when
+it encountered a "new" expression using a local class when parsing a default
+template argument.  For example (with --c++17):
 
   template<int I = [] {
     struct A {
@@ -15,10 +16,6 @@ class when parsing a defaulted template argument declaration.  For example:
     return 0;
   }()>
   int f();
-  void g() {
-    f<>();
-    f<1>();
-  }
 
 This is now fixed.
 

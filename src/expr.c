@@ -20236,7 +20236,7 @@ initializer was provided.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_template_declaration_context()) {
       /* In a template declaration context.  This implies that the expression
-         is appearing inside the expression for a defaulted argument.  An error
+         is appearing inside the expression for a default argument.  An error
          will not be issued until instantiation, and the class may no longer
          be incomplete then. */
     } else {
