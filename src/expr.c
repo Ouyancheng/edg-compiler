@@ -35435,7 +35435,7 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
         base_dest_type = underlying_array_element_type(dest_type);
         array_case = TRUE;
       }  /* if */
-      if (FALSE && var != NULL && var->init_kind == (an_init_kind)initk_binding) {
+      if (var != NULL && var->init_kind == (an_init_kind)initk_binding) {
         /* The captured variable is a structured binding that wraps an
            expression.  Regardless of underlying type, we want to use that
            expression. */
