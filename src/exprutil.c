@@ -6511,7 +6511,9 @@ the call target).
   a_routine_ptr  rout = *p_rout;
 
   if (rout == NULL) {
-    rout = get_constexpr_callee(call_expr, diag_list);
+    if (!is_template_dependent_type(call_expr->type)) {
+      rout = get_constexpr_callee(call_expr, diag_list);
+    }  /* if */
     if (rout == NULL) goto done;
     *p_rout = rout;
   }  /* if */
