@@ -13752,6 +13752,10 @@ typedef struct an_expr_node {
 			/* TRUE if the operands must be evaluated in the
 			   reverse order in which they appear on the operands
 			   list. */
+      a_bit_field
+		is_consteval_call:1;
+			/* TRUE if this is a call to a "consteval" function.
+			   For use by the front end only. */
       an_expr_node_ptr  
                 operands;
                         /* The list of operands. */

@@ -3064,23 +3064,35 @@ error indicating that the address of the consteval function cannot be used in
 that context.
 */
 {
-  a_routine_ptr  rp = NULL;
-
-  if (is_routine_node(node)) {
-    rp = node_routine(node);
-  } else if (is_constant_node(node)) {
-    a_constant_ptr  cp = node_constant(node);
-    if (constant_is(cp, ck_ptr_to_member) &&
-        cp->variant.ptr_to_member.is_function_ptr) {
-      rp = cp->variant.ptr_to_member.variant.routine;
+  if (is_operation_node(node)) {
+    if (node->variant.operation.is_consteval_call) {
+      if (expr_error_should_be_issued()) {
+        a_diag_list    diag_list;
+        a_routine_ptr  rp = get_constexpr_callee(node, &diag_list);
+        check_assertion(rp != NULL);
+        pos_sy_error(ec_consteval_call_nonconstant, &node->position,
+                     symbol_for(rp));
+      }  /* if */
+      tblock->terminate = TRUE;
     }  /* if */
-  }  /* if */
-  if (rp != NULL && rp->is_consteval) {
-    if (!rp->is_deleted) {
-      expr_pos_error(ec_address_of_consteval_function_leaked,
-                     &node->position);
+  } else {
+    a_routine_ptr  rp = NULL;
+    if (is_routine_node(node)) {
+      rp = node_routine(node);
+    } else if (is_constant_node(node)) {
+      a_constant_ptr  cp = node_constant(node);
+      if (constant_is(cp, ck_ptr_to_member) &&
+          cp->variant.ptr_to_member.is_function_ptr) {
+        rp = cp->variant.ptr_to_member.variant.routine;
+      }  /* if */
     }  /* if */
-    tblock->terminate = TRUE;
+    if (rp != NULL && rp->is_consteval) {
+      if (!rp->is_deleted) {
+        expr_pos_error(ec_address_of_consteval_function_leaked,
+                       &node->position);
+      }  /* if */
+      tblock->terminate = TRUE;
+    }  /* if */
   }  /* if */
 }  /* diagnose_consteval_routine_node */
 
@@ -6517,7 +6529,12 @@ the call target).
     if (rout == NULL) goto done;
     *p_rout = rout;
   }  /* if */
-  is_consteval = rout->is_consteval;
+  if (rout->is_consteval) {
+    is_consteval = TRUE;
+    call_expr->variant.operation.is_consteval_call = TRUE;
+  } else {
+    is_consteval = FALSE;
+  }  /* if */
   if ((constexpr_call_folding_should_be_done() || is_consteval) &&
       (!expr_stack->in_noexcept_operand_expression ||
        core_constant_expr_is_noexcept)) {
