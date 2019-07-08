@@ -2193,9 +2193,7 @@ be done because the intermediate lambda does not allow implicit captures.
     if (scope_is(ssep, sck_func_prototype) && ssep->decl_parse_state != NULL &&
         ssep->decl_parse_state->is_lambda) {
       /* If the lambda appears in the prototype scope of another lambda, start
-         the search from outside the class scope of that other lambda.
-         Currently, this can only occur in error situations. */
-      expect_error();
+         the search from outside the class scope of that other lambda. */
       if (scope_is(ssep-1, sck_template_instantiation)) {
         /* Generic lambdas have a template instantiation scope surrounding the
            function scope of the call operator. */
