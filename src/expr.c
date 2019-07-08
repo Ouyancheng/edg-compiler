@@ -369,7 +369,8 @@ type is void for a return without an expression).  Set the function return
 type, issuing an error if this return type conflicts with a previously-
 established type.  This function is also called to set the deduced return type
 of a defaulted spaceship operator with an "auto" return type (in that case, the
-return type is not produced from a return statement).
+return type is not produced from a return statement and the function is not
+being defined).
 */
 {
   a_type_ptr  rout_type, curr_return_type;
@@ -386,8 +387,10 @@ return type is not produced from a return statement).
     } else {
       return_type = error_type();
     }  /* if */
-    scope_stack[depth_innermost_function_scope].orig_return_type =
+    if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+      scope_stack[depth_innermost_function_scope].orig_return_type =
                                                              curr_return_type;
+    }  /* if */
     rout->has_deduced_return_type = TRUE;
   } else if (!identical_types(return_type, curr_return_type)) {
     /* Multiple returns with different types.  That might be a problem. */
