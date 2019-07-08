@@ -9384,8 +9384,11 @@ dps->specifiers_type to the corresponding type.  Otherwise, return FALSE.
       /* Find the template parameter corresponding to the current token. */
       for (; tpp != NULL; tpp = tpp->next) {
         a_symbol_ptr  sym = tpp->param_symbol;
-        check_assertion(sym != NULL && symbol_is(sym, sk_type));
-        if (sym->token_sequence_number == curr_token_sequence_number) break;
+        check_assertion(sym != NULL);
+        if (sym->token_sequence_number == curr_token_sequence_number) {
+          check_assertion(symbol_is(sym, sk_type));
+          break;
+        }  /* if */
       }  /* for */
       if (tpp != NULL) {
         dps->specifiers_type = tpp->param_symbol->variant.type.ptr;
