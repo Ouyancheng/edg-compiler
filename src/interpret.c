@@ -7933,9 +7933,11 @@ evaluated before pm() in C++17 mode).
         info_with_pos(ec_constexpr_null_callee, &callee_node->position, ips);
       }  /* if */
     }  /* if */
-  } else if (callee_node->kind == (an_expr_node_kind)enk_lambda) {
+  } else if (is_temp_node(callee_node)) {
     /* This can happen in prototype instantiations. */
-    callee = callee_node->variant.init.source.lambda->lambda_routine;
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                  &call_node->position, ips);
+    callee = NULL;
   } else {
     /* An indirect call. */
     a_byte  *addr_bytes;
