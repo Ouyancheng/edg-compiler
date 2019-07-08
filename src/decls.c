@@ -17243,11 +17243,22 @@ any entity on which a standard alignment attribute may have been specified
       /* This is the first time an alignment attribute is explicitly specified
          for this entity.  If a definition appeared previously, this is an
          error. */
+      an_error_severity severity = es_none;
       if (is_defined) {
-        pos2_diagnostic(es_error, ec_variable_align_attr_not_on_definition,
-                        &dps->strongest_alignment->position,
-                        &scp->decl_position);
-      } else {
+        if (clang_mode) {
+          severity = es_warning;
+        } else if (gnu_mode) {
+          severity = es_none;
+        } else {
+          severity = es_error;
+        }  /* if */
+        if (severity != es_none) {
+          pos2_diagnostic(severity, ec_variable_align_attr_not_on_definition,
+                          &dps->strongest_alignment->position,
+                          &scp->decl_position);
+        }  /* if */
+      }  /* if */
+      if (severity != es_error) {
         /* Set the alignment. */
         *entity_alignment = dps->alignment;
         if (tp != NULL) {
