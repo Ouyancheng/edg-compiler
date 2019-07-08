@@ -13931,13 +13931,12 @@ be embedded in other mangled names.
   a_mangling_control_block mctl;
   a_boolean                is_string = FALSE;
   unsigned long            sequence_number = 0;
-  a_variable_ptr           var;
+  a_variable_ptr           var = (a_variable_ptr)scp;
 
   check_assertion(kind == iek_variable ||
                   kind == iek_constant ||
                   kind == iek_type);
   if (kind == iek_variable) {
-    var = (a_variable_ptr)scp;
     check_assertion(!var->is_template_variable);
     if (var->is_anonymous_parent_object) {
       /* Give an anonymous union variable a name based on the name of
