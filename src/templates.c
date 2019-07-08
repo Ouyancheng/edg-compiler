@@ -31680,8 +31680,12 @@ operator.  In particular, push a template declaration scope and initialize and
 update *templ_state accordingly.  Then scan the template parameter list.
 */
 {
+  a_boolean          is_dependent = FALSE;
+  a_source_position  pos;
+
   /* Bypass the "<". */
   check_assertion(curr_token == tok_lt);
+  pos = pos_curr_token;
   (void)get_token();
   if (curr_token == tok_gt) {
     pos_error(ec_empty_lambda_template_param_list, &pos_curr_token);
@@ -31690,6 +31694,17 @@ update *templ_state accordingly.  Then scan the template parameter list.
   }  /* if */
   start_generic_lambda_state(templ_state);
   scan_template_param_list(templ_state);
+  templ_state->decl_info->declaration_scope =
+                                         scope_stack[decl_scope_level].number;
+  if (all_template_info_in_il) {
+    create_template_decl(templ_state, &pos);
+  }  /* if */
+  templ_state->last_token_sequence_number_of_params =
+                                                   curr_token_sequence_number;
+  extract_template_parameter_cache(templ_state);
+  update_param_depth_and_default_args(templ_state, templ_state->decl_info,
+                                      /*update_nesting_depths=*/FALSE,
+                                      &is_dependent);
 done:;
 }  /* scan_lambda_template_param_list */
 
