@@ -13453,6 +13453,26 @@ case is handled properly.
 #endif /* LOWER_STRING_LITERALS_TO_NON_CONST */
 #if LOWER_LVALUE_RETURNING_OPERATIONS
 
+static a_boolean expr1_could_affect_expr2(an_expr_node_ptr expr1,
+                                          an_expr_node_ptr expr2)
+/*
+Returns TRUE if executing expr1 could possibly affect the value of expr2.
+Note that this routine only performs a cursory check (i.e., assuming that
+any non-constant expr2 could be modified by any expr1 that has side-effects).
+The safe answer is TRUE.
+*/
+{
+  a_boolean is_non_null;
+
+  return !is_constant_valued_expression(expr2,
+                                        /*local_vars_change=*/TRUE,
+                                        /*other_vars_change=*/TRUE,
+                                        /*this_cannot_be_null=*/FALSE,
+                                        &is_non_null) &&
+         node_has_side_effects((expr1), (a_boolean*)NULL);
+}  /* expr1_could_affect_expr2 */
+
+
 static void rewrite_discarded_lvalue_as_rvalue(an_expr_node_ptr expr);
 
 static void lower_operations_returning_lvalue_instead_of_usual_rvalue(
@@ -13506,11 +13526,12 @@ expression (if necessary) observes the strict evaluation ordering rules.
       if (strict_cpp17_eval_order &&
           child2 != NULL &&
           expr->variant.operation.eval_right_to_left &&
-          node_has_side_effects(child1, (a_boolean*)NULL) &&
-          node_has_side_effects(child2, (a_boolean*)NULL)) {
-        /* The operation being rewritten evaluates right-to-left and both
-           operands have side effects, meaning that we need to ensure that
-           child2 is evaluated first (and replaced by a temporary). E.g.,
+          (expr1_could_affect_expr2(child1, child2) ||
+           expr1_could_affect_expr2(child2, child1))) {
+        /* The operation being rewritten evaluates right-to-left and the two
+           child operands could possibly affect the value of the expressions,
+           meaning that we need to ensure that child2 is evaluated first (and
+           replaced by a temporary). E.g.,
              (f2(), x) = f1();
            Where f1 needs to be called before f2.
            */
