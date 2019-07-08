@@ -888,6 +888,7 @@ fields to default values.
       cp->variant.dynamic_init.ptr = NULL;
 #if DO_IL_LOWERING
       cp->variant.dynamic_init.field_or_base.field = NULL;
+      cp->variant.dynamic_init.field_or_base.base = NULL;
 #endif /* DO_IL_LOWERING */
       break;
     case ck_aggregate:
@@ -896,6 +897,7 @@ fields to default values.
       cp->variant.aggregate.has_dynamic_init_component = FALSE;
 #if DO_IL_LOWERING
       cp->variant.aggregate.field_or_base.field = NULL;
+      cp->variant.aggregate.field_or_base.base = NULL;
 #endif /* DO_IL_LOWERING */
       break;
     case ck_init_repeat:
