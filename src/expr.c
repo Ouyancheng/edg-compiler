@@ -32406,7 +32406,14 @@ bound expression (C[n]) and record it in *binding.
 {
   a_constant_ptr    n_constant = local_constant();
   an_expr_node_ptr  c_node, n_node, bound_expr;
+  a_boolean         switched_region = FALSE;
+  a_memory_region_number
+                    region_to_switch_back_to;
 
+  if (in_file_scope(container)) {
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    switched_region = TRUE;
+  }  /* if */
   set_integer_constant(n_constant, (a_host_large_integer)n,
                        targ_size_t_int_kind);
   n_node = alloc_node_for_constant(alloc_shareable_constant(n_constant));
@@ -32429,6 +32436,9 @@ bound expression (C[n]) and record it in *binding.
   binding->init_kind = (an_init_kind)initk_binding;
   binding->initializer.bound_expr = bound_expr;
   mark_variable_value_set(symbol_for(binding));
+  if (switched_region) {
+    switch_back_to_original_region(region_to_switch_back_to);
+  }  /* if */
 }  /* record_struct_binding_expr_for_array_element */
 
 
@@ -32445,10 +32455,17 @@ bound expression (C.f) and record it in *binding.
   a_symbol_ptr         field_sym = symbol_for(field);
   a_symbol_locator     field_loc;
   an_expr_stack_entry  expr_stack_entry;
+  a_boolean            switched_region = FALSE;
+  a_memory_region_number
+                       region_to_switch_back_to;
 
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
+  if (in_file_scope(container)) {
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    switched_region = TRUE;
+  }  /* if */
   make_lvalue_variable_operand(container, &pos_curr_token, &pos_curr_token,
                                &selector, (a_ref_entry_ptr)NULL);
   make_locator_for_symbol(field_sym, &field_loc);
@@ -32465,6 +32482,9 @@ bound expression (C.f) and record it in *binding.
                                (a_ref_entry_ptr)NULL, &result_opnd);
   binding->init_kind = (an_init_kind)initk_binding;
   binding->initializer.bound_expr = make_node_from_operand(&result_opnd);
+  if (switched_region) {
+    switch_back_to_original_region(region_to_switch_back_to);
+  }  /* if */
   mark_variable_value_set(symbol_for(binding));
   pop_expr_stack();
 }  /* record_struct_binding_expr_for_field */
