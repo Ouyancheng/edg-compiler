@@ -35435,7 +35435,11 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
         base_dest_type = underlying_array_element_type(dest_type);
         array_case = TRUE;
       }  /* if */
-      if (is_class_struct_union_type(base_dest_type)) {
+      if (FALSE && var != NULL && var->init_kind == (an_init_kind)initk_binding) {
+        /* The captured variable is a structured binding that wraps an
+           expression.  Regardless of underlying type, we want to use that
+           expression. */
+      } else if (is_class_struct_union_type(base_dest_type)) {
         /* Find the proper copy constructor for copying a class object or an
            element of an array of class objects. */
         a_type_ptr           dest_class_type = skip_typerefs(base_dest_type);
