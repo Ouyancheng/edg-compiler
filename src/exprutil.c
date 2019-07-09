@@ -18151,6 +18151,19 @@ intended to be called from outside of the expression routines.
                         /*uses_operator_syntax=*/FALSE,
                         err_pos,
                         /*function_call_node=*/(an_expr_node_ptr *)NULL);
+  if (rout->is_consteval) {
+    a_boolean  consteval_context = innermost_function_scope != NULL &&
+                                   current_routine_entry()->is_consteval;
+    if (!consteval_context) {
+      an_operand   folded_call;
+      a_diag_list  diag_list;
+      clear_diag_list(&diag_list);
+      if (expr_fold_constexpr_call(node, &rout, &folded_call, &diag_list)) {
+        node = make_node_from_operand(&folded_call);
+      }  /* if */
+      discard_more_info_list(&diag_list);
+    }  /* if */
+  }  /* if */
   if (is_any_reference_type(node->type)) {
     /* The function returns a reference. */
     node = add_ref_indirection_to_node(node);
