@@ -6513,7 +6513,7 @@ Interface to interpret_constexpr_call for use within the expression-processing
 routines.  This function attempts to fold the call call_expr to a constant; if
 it can, return TRUE and set *result to an operand for the result.  Otherwise,
 return FALSE and leave *result unchanged (diagnostic nodes are potentially
-added to *diag_list). For a direct call, *p_rout indicates the called routine;
+added to *diag_list).  For a direct call, *p_rout indicates the called routine;
 for indirect calls, *p_rout is NULL but this function sets it to the called
 function if possible (i.e., if evaluation can proceed far enough to determine
 the call target).
