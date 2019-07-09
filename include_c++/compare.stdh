@@ -1,4 +1,4 @@
-/* Edison Design Group, 2018. */
+/* Edison Design Group, 2018-2019. */
 /*
 compare -- Include file for three-way comparison support
 */
@@ -466,7 +466,7 @@ Note: The following values have to match what is produced by the constant-
   };
 
   template<typename... Ts> using common_comparison_category_t =
-                               typename common_comparison_category<Ts...>::type;
+                              typename common_comparison_category<Ts...>::type;
 
 
   constexpr bool is_eq(weak_equality __cmp) noexcept {
