@@ -602,21 +602,30 @@ folds to a constant, return that constant.  Otherwise, issue an error at the
 given position and return an error constant.
 */
 {
-  a_constant_ptr  result = alloc_constant((a_constant_repr_kind)ck_error);
-  a_routine_ptr   ctor = dip->variant.constructor.ptr;
+  a_constant_ptr  result;
 
-  if (ctor->is_constexpr) {
-    if (!fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE,
-                             /*check_constexpr=*/TRUE,
-                             /*is_constant_evaluated=*/TRUE,
-                             diag_pos, result)) {
-      /* The call to the default constructor could not be folded. */
-      expect_error();
+  if (dip->kind == (a_dynamic_init_kind)dik_constant) {
+    /* The constructor call was already folded (e.g., because it is a
+       consteval constructor). */
+    result = dip->variant.constant.ptr;
+  } else {
+    a_routine_ptr  ctor;
+    check_assertion(dip->kind == (a_dynamic_init_kind)dik_constructor);
+    result = alloc_constant((a_constant_repr_kind)ck_error);
+    ctor = dip->variant.constructor.ptr;
+    if (ctor->is_constexpr) {
+      if (!fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE,
+                               /*check_constexpr=*/TRUE,
+                               /*is_constant_evaluated=*/TRUE,
+                               diag_pos, result)) {
+        /* The call to the default constructor could not be folded. */
+        expect_error();
+        set_error_constant(result);
+      }  /* if */
+    } else {
+      pos_ty_error(ec_default_ctor_not_constexpr, diag_pos, tp);
       set_error_constant(result);
     }  /* if */
-  } else {
-    pos_ty_error(ec_default_ctor_not_constexpr, diag_pos, tp);
-    set_error_constant(result);
   }  /* if */
   return result;
 }  /* get_default_constructed_constant */
@@ -6587,7 +6596,8 @@ FALSE is returned) for non-class objects.
                                              /*evaluated=*/TRUE,
                                              consteval_context);
           
-          if (ctor->is_constexpr && !var->is_vla) {
+          if (ctor->is_constexpr && !var->is_vla &&
+              init_dip->kind == (a_dynamic_init_kind)dik_constructor) {
             /* Folding the constructor call may require access to the variable
                being initialized. */
             init_dip->variable = var;
