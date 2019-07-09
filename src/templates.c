@@ -15728,7 +15728,7 @@ accordingly.
       pop_scope();
       /* Pop the template instantiation scope. */
       pop_template_instantiation_scope();
-      if (!exceptions_enabled) {
+      if (!exceptions_enabled && !exc_spec_in_func_type) {
         /* When exceptions are disabled, no exception specification should be
            recorded.  However, with noexcept an entry may have been created to
            enable this instantiation.  Now that that is done, we can discard
