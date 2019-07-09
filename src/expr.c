@@ -35465,7 +35465,7 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
       }  /* if */
       if (var != NULL && var->init_kind == (an_init_kind)initk_binding) {
         /* The captured variable is a structured binding that wraps an
-           expression.  Regardless of underlying type, we want to use that
+           expression.  Regardless of the underlying type, we want to use that
            expression. */
       } else if (is_class_struct_union_type(base_dest_type)) {
         /* Find the proper copy constructor for copying a class object or an
