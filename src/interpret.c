@@ -15735,13 +15735,17 @@ value produced by std::is_constant_evaluated().
       /* Map the result address (which is the "this" pointer) to a ck_address
          constant, so that copy_interpreter_object_to_constant can turn that
          address back into a ck_address constant entry if needed. */
-      a_constant_ptr  this_con = local_constant();
-      clear_constant(this_con, (a_constant_repr_kind)ck_address);
-      this_con->variant.address.kind = (an_address_base_kind)abk_variable;
-      if (dip->variable != NULL) {
-        this_con->variant.address.variant.variable = dip->variable;
+      a_boolean       class_case = is_immediate_class_type(result_type);
+      a_constant_ptr  this_con;
+      if (class_case) {
+        this_con = local_constant();
+        clear_constant(this_con, (a_constant_repr_kind)ck_address);
+        this_con->variant.address.kind = (an_address_base_kind)abk_variable;
+        if (dip->variable != NULL) {
+          this_con->variant.address.variant.variable = dip->variable;
+        }  /* if */
+        map_stack_bytes(&ips, result_storage, (a_byte*)this_con);
       }  /* if */
-      map_stack_bytes(&ips, result_storage, (a_byte*)this_con);
       if (!copy_interpreter_object_to_constant(
                                          &ips, result_storage, result_storage,
                                          result_type, result_con)) {
@@ -15774,8 +15778,10 @@ value produced by std::is_constant_evaluated().
           result_con->explicit_cast_applied = TRUE;
         }  /* if */
       }  /* if */
-      unmap_stack_bytes(&ips, result_storage);
-      release_local_constant(&this_con);
+      if (class_case) {
+        unmap_stack_bytes(&ips, result_storage);
+        release_local_constant(&this_con);
+      }  /* if */
     }  /* if */
   }  /* if */
   *diag_list = ips.diag_list;
