@@ -268,15 +268,19 @@ the dynamic init entry.
 }  /* copy_ctor_default_args_to_dynamic_init */
 
 
-static a_dynamic_init_ptr alloc_ctor_dynamic_init(a_routine_ptr ctor_rp,
-                                                  a_boolean     implied_source,
-                                                  a_boolean     evaluated)
+static a_dynamic_init_ptr alloc_ctor_dynamic_init(
+                                              a_routine_ptr ctor_rp,
+                                              a_boolean     implied_source,
+                                              a_boolean     evaluated,
+                                              a_boolean     consteval_context)
 /*
-Allocate a dik_constructor dynamic init entry that will call the
-constructor given by ctor_rp.  If the constructor has default arguments,
-add the expressions for those.  If implied_source is TRUE, the source
-for the (copy) constructor call will be implicit.  If evaluated is TRUE,
-the constructor (if non-NULL) will be marked as called.
+Allocate a dik_constructor dynamic init entry that will call the constructor
+given by ctor_rp.  If the constructor has default arguments, add the
+expressions for those.  If implied_source is TRUE, the source for the (copy)
+constructor call will be implicit.  If evaluated is TRUE, the constructor (if
+non-NULL) will be marked as called.  If consteval_context is TRUE, the call to
+the constructor is in a consteval context and therefore is not required to
+produce a constant even if the constructor is consteval.
 */
 {
   a_dynamic_init_ptr dip;
@@ -290,6 +294,19 @@ the constructor (if non-NULL) will be marked as called.
     /* A user-defined default constructor may have default args that
        should be incorporated into the constructor call. */
     copy_ctor_default_args_to_dynamic_init(dip);
+    if (ctor_rp->is_consteval && evaluated && !consteval_context) {
+      a_constant_ptr  cp = alloc_constant((a_constant_repr_kind)ck_error);
+      if (fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE,
+                              /*check_constexpr=*/TRUE,
+                              /*is_constant_evaluated=*/TRUE,
+                              &error_position, cp)) {
+        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+        dip->variant.constant.ptr = cp;
+        if (cp->is_partially_initialized) {
+          dip->is_partially_initialized = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
   return dip;
 }  /* alloc_ctor_dynamic_init */
@@ -1329,7 +1346,8 @@ given position, unless is->no_diagnostics is TRUE.
            entry or, if a constant result is needed, a constant representing
            the folded constructor call. */
         dip = alloc_ctor_dynamic_init(ctor_rp, /*implied_source=*/FALSE,
-                                      !is->not_potentially_evaluated);
+                                      !is->not_potentially_evaluated,
+                                      /*consteval_context=*/FALSE);
         dip->variant.constructor.value_initialization = TRUE;
         if (is->initializer_must_be_constant) {
           result = get_default_constructed_constant(dip, tp, diag_pos);
@@ -3812,7 +3830,8 @@ particular situation.
   } else {
     a_dynamic_init_ptr  dip;
     dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE,
-                                  !is->not_potentially_evaluated);
+                                  !is->not_potentially_evaluated,
+                                  /*consteval_context=*/FALSE);
     /* We're representing an aggregate class object initialized with "{}",
        i.e., "value initialization". */
     dip->variant.constructor.value_initialization = TRUE;
@@ -6524,8 +6543,12 @@ FALSE is returned) for non-class objects.
           /* Fold the default constructor call to obtain a constant
              initializer. */
           a_constant_ptr  cp;
+          a_boolean       consteval_context =
+                                        innermost_function_scope != NULL &&
+                                        current_routine_entry()->is_consteval;
           init_dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE,
-                                             /*evaluated=*/TRUE);
+                                             /*evaluated=*/TRUE,
+                                             consteval_context);
           /* Folding the constructor call may require access to the variable
              being initialized. */
           init_dip->variable = var;
@@ -6556,10 +6579,13 @@ FALSE is returned) for non-class objects.
       } else {
         if (ctor != NULL) {
           a_constant_ptr  folded_con = local_constant(), cp;
-          a_boolean       folded;
+          a_boolean       folded, consteval_context;
+          consteval_context = innermost_function_scope != NULL &&
+                              current_routine_entry()->is_consteval;
           /* Normal case -- there's a constructor to do the initialization. */
           init_dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE,
-                                             /*evaluated=*/TRUE);
+                                             /*evaluated=*/TRUE,
+                                             consteval_context);
           
           if (ctor->is_constexpr && !var->is_vla) {
             /* Folding the constructor call may require access to the variable
@@ -6639,7 +6665,8 @@ FALSE is returned) for non-class objects.
         } else if (is_nonreal_class) {
           /* Assume a dynamic initialization is needed. */
           init_dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE,
-                                             /*evaluated=*/TRUE);
+                                             /*evaluated=*/TRUE,
+                                             /*consteval_context=*/FALSE);
         } else {
           /* Default initialization of an object that has a destructor.  We
              generate a dik_none dynamic initialization entry for this object,
@@ -9113,7 +9140,8 @@ initialized.  These are addressed in the course of the processing.
           /* A valid copy/move constructor does exist.  Generate the dynamic
              init entry. */
           dip = alloc_ctor_dynamic_init(rp, /*implied_source=*/TRUE,
-                                        /*evaluated=*/TRUE);
+                                        /*evaluated=*/TRUE,
+                                        ctor_rout->is_consteval);
         }  /* if */
       } else if (ctor_rout->is_inheriting_ctor &&
                  cip->kind != (a_constructor_init_kind)cik_field &&
@@ -9342,7 +9370,8 @@ initialized.  These are addressed in the course of the processing.
           /* A default constructor does exist.  Generate the dynamic init
              entry. */
           dip = alloc_ctor_dynamic_init(rp, /*implied_source=*/FALSE,
-                                        /*evaluated=*/TRUE);
+                                        /*evaluated=*/TRUE,
+                                        ctor_rout->is_consteval);
           if (ctor_rout->is_constexpr && !rp->is_constexpr) {
             /* Check that a constexpr constructor doesn't call a non-
                constexpr constructor.  For compiler-generated constructors
