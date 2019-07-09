@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2015-2018 Edison Design Group Inc.                   [_]          *
+* Copyright 2015-2019 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -16032,6 +16032,6 @@ One-time initialization for interpret.c static variables.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2015-2018 Edison Design Group Inc.                   [_]          *
+* Copyright 2015-2019 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

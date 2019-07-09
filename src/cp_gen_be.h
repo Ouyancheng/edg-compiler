@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1994-2018 Edison Design Group Inc.                   [_]          *
+* Copyright 1994-2019 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -43,6 +43,6 @@ extern a_boolean expr_has_comma_operation(an_expr_node_ptr expr);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1994-2018 Edison Design Group Inc.                   [_]          *
+* Copyright 1994-2019 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

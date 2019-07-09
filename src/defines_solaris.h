@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2018 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2019 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -170,7 +170,7 @@ in the C-generating back end.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2018 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2019 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 
