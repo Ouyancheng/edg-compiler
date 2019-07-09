@@ -31832,10 +31832,15 @@ in *rcblock).
   }  /* if */
 
   if (expr_present) {
+    a_boolean  consteval_func_seen =
+                               expr_stack->consteval_function_designator_seen;
     /* Fix up destructor references in the overall expression. */
     fix_up_dynamic_init_dtors();
     /* Pop the expression stack entry pushed above. */
     pop_expr_stack();
+    if (consteval_func_seen) {
+      expr_stack->consteval_function_designator_seen = TRUE;
+    }  /* if */
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
