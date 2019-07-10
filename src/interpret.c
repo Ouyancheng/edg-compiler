@@ -10315,8 +10315,8 @@ otherwise, it need only be large enough for the type of the prvalue result.
         a_type_ptr       opnd1_type;
         a_byte           *opnd1_value;
         an_expr_node_ptr opnd2;
-        a_type_ptr       opnd2_type;
-        a_byte           *opnd2_value;
+        a_type_ptr       opnd2_type = NULL;
+        a_byte           *opnd2_value = NULL;
         a_boolean        ovfl, err, depends_on_fp_mode, unord;
         a_byte_count     opnd_n_bytes;
 

@@ -8604,7 +8604,7 @@ caller is responsible for sorting that out.)
 */
 {
   a_scope_ptr            sp = ssep->il_scope;
-  a_memory_region_number region_to_switch_back_to;
+  a_memory_region_number region_to_switch_back_to = NO_MEMORY_REGION_NUMBER;
 
   if (sp == NULL) {
     /* There is no IL scope. */
@@ -14489,7 +14489,7 @@ dest_type is the type being initialized.
     a_constant_ptr          folded_value = local_constant();
     a_diag_list             diag_list;
     a_variable_ptr          var = dip->variable;
-    an_init_kind            init_kind;
+    an_init_kind            init_kind = (an_init_kind)initk_none;
     a_memory_region_number  region_to_switch_back_to = NULL_region_number;
     if (var != NULL) {
       /* Temporarily set the variable as uninitialized to avoid runaway
@@ -18002,7 +18002,7 @@ source_pos give the source position.  options is a set of options
 for the copy/substitution.
 */
 {
-  a_symbol_ptr   sym;
+  a_symbol_ptr   sym = NULL;
   a_type_ptr     parent_type;
   a_boolean      copy_error = FALSE;
 
