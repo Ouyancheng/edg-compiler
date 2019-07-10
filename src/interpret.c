@@ -15832,12 +15832,6 @@ position associated with the call.
     ips.allow_consteval_routine_node = TRUE;
   }  /* if */
   ips.position = *pos;
-  if (dip->variant.constructor.is_copy_constructor_with_implied_source) {
-    /* An implied source is never constant. */
-    more_info_diagnostic(ec_constexpr_implied_source_nonconstant, pos,
-                         &ips.diag_list);
-    do_constexpr_fail(result);
-  }  /* if */
   ctor = dip->variant.constructor.ptr;
   result_type = parent_class_of(ctor);
   n_bytes = value_bytes_for_type(&ips, result_type, &result); 
