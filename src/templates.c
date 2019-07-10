@@ -15730,9 +15730,9 @@ accordingly.
       pop_template_instantiation_scope();
       if (!exceptions_enabled && !exc_spec_in_func_type) {
         /* When exceptions are disabled, no exception specification should be
-           recorded.  However, with noexcept an entry may have been created to
-           enable this instantiation.  Now that that is done, we can discard
-           the entry. */
+           recorded unless required as part of the function type.  However,
+           with noexcept an entry may have been created to enable this
+           instantiation.  Now that that is done, we can discard the entry. */
         rp->type->variant.routine.extra_info->exception_specification = NULL;
       }  /* if */
     }  /* if */
