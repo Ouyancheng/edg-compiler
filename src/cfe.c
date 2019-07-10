@@ -19,6 +19,7 @@ Changed to C++ front end and enhanced by
   Daveed Vandevoorde  1999-
   William M. Miller   2004-
   Michael J. Herrick  2006-
+  Ellen Herrick       2018-
   Caleb Sunstrum      2019-
 
 */
