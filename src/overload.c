@@ -5486,6 +5486,7 @@ in a new-expression).
   a_boolean                check_arg_count_mismatch = TRUE;
   a_boolean                rescan_pushed = FALSE;
 
+  *discarded_because_post_decl = FALSE;
   if (expr_stack != NULL && expr_stack->any_suppressed_error) {
     /* Do not continue overload resolution if we have already found a
        substitution error in the operands.  This case is not counted as a
@@ -5495,7 +5496,6 @@ in a new-expression).
 #if DEBUG
   n_viability_checks += 1;
 #endif /* DEBUG */
-  *discarded_because_post_decl = FALSE;
   if (proj_function_symbol != NULL) {
     /* Normal case: a known function. */
     a_boolean invisible_because_explicit;
