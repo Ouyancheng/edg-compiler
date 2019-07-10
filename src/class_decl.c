@@ -31962,17 +31962,22 @@ caller has already moved past the '[', and this routine leaves the trailing
           /* Capture of "this" or *this from an enclosing class.  (This is
              not the "this" of a closure class member.) */
           a_symbol_ptr  closure_sym = symbol_for(lambda->closure_class);
+          a_type_ptr    this_type = NULL;
           /* Captures are not permitted for lambdas in default argument
              expressions. */
           if (class_symbol_supp(closure_sym)
                          ->lambda_immediately_inside_default_arg_expression ||
-              !variable_this_exists(&var, (a_type_ptr *)NULL) ||
+              !variable_this_exists(&var, &this_type) ||
               scope_stack_top().in_noexcept_spec) {
             /* We should be in a nonstatic member function. */
             pos_error(ec_this_used_incorrectly, &error_position);
-          } else if (var == NULL && !scope_stack_top().in_field_initializer) {
+          } else if (this_type == NULL &&
+                     !scope_stack_top().in_field_initializer) {
             /* A "this" in a prototype scope.  There should be an error about
-               the lambda not being allowed in this context. */
+               the lambda not being allowed in this context.  We check the type
+               of "this" instead of the variable, since if we're in a nested
+               lambda context inside a field initializer, the associated
+               variable will not exist yet. */
             expect_error();
           } else if (by_ref) {
             /* "&this" or "&*this" is not allowed in a capture list. */
