@@ -20822,6 +20822,7 @@ in C++ mode.
   }  /* if */
 #endif /* CHECKING */
   expr = var_rvalue_expr(this_param_var);
+  expr->position = error_position;
   return expr;
 }  /* this_param_value_expr */
 
