@@ -4227,7 +4227,7 @@ static a_feature_support feature_support_list[] = {
     0,
     &coroutines_enabled,
     "__cpp_coroutines",
-    "201806L" },
+    "201902L" },
   { "",
     0,
     &class_template_arg_deduction_enabled,
