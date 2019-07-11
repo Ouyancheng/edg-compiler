@@ -1,5 +1,12 @@
 Version 5.1, July 12, 2019
 
+3/14/19  [EDGcpfe/20530,EDGcpfe/20644]
+C++20: char8_t type
+
+A typeinfo entry has now been added for the char8_t type in configurations
+where the front end implements it.
+
+
 -------------------------------------------------------------------------------
 Version 5.0, August 10, 2018
 
