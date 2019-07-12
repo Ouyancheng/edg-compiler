@@ -1,3 +1,25 @@
+Version 6.0
+
+7/12/19  [EDGcpfe/21515]
+Assertion failure in lower_dynamic_init
+
+An assertion failure (in lower_dynamic_init) could occur when lowering
+certain dynamic initializations in configurations where
+PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE is FALSE.  Now fixed.  For example
+(with --c++17):
+
+  struct S {
+    int m;
+    constexpr S(int i=1) : m(i) {};
+    ~S() {}
+  };
+  int f() {
+    static S s(42);
+    return s.m;
+  }
+
+
+-------------------------------------------------------------------------------
 Version 5.1, July 12, 2019
 
 7/10/19  [EDGcpfe/21505]

@@ -9913,17 +9913,15 @@ C99 mode for the same reason.
       push_context(&static_context2, (a_scope_ptr)NULL, local_static_lifetime);
       begin_object_lifetime(local_static_lifetime, insert_location);
       unbind_object_lifetime(local_static_lifetime);
-      if (keep_object_lifetime_info_in_lowered_il) {
-        check_assertion(block_stmt != NULL);
+      if (keep_object_lifetime_info_in_lowered_il && block_stmt != NULL) {
         bind_object_lifetime(local_static_lifetime, iek_block,
                              (char *)block_stmt->variant.block.extra_info);
       }  /* if */
-      if (exceptions_enabled) {
+      if (exceptions_enabled && local_static_guard_var != NULL) {
         /* Add a dynamic init entry to represent the conditional flag.  This
            is turned into a region table entry that indicates that the
            conditional flag must be cleared if an exception is thrown before
            the initialization is completed. */
-        check_assertion(local_static_guard_var != NULL);
         add_local_static_guard_var_cleanup(local_static_guard_var,
                                            local_static_lifetime,
                                            insert_location);
