@@ -2220,13 +2220,18 @@ may overwritten here (to a different type of expression).
       check_assertion(node_operator_is(node, eok_points_to_field));
     }  /* if */
     new_node = add_cast_to_char_star(new_node);
-    new_node->next = node_for_integer_constant((long)field->offset,
-                                               targ_size_t_int_kind);
-    new_node = make_operator_node((an_expr_operator_kind)eok_padd,
-                                  char_star_type(), new_node);
+    if (field->offset != 0) {
+      new_node->next = node_for_integer_constant((long)field->offset,
+                                                 targ_size_t_int_kind);
+      new_node = make_operator_node((an_expr_operator_kind)eok_padd,
+                                    char_star_type(), new_node);
+    }  /* if */
     new_node = add_cast(new_node, make_pointer_type(node->type));
-    if (node->is_lvalue) {
+    if (node->is_lvalue || is_class_struct_union_type(node->type)) {
       new_node = add_indirection_to_node(new_node);
+      if (!node->is_lvalue) {
+        new_node = rvalue_expr_for_lvalue(new_node);
+      }  /* if */
     }  /* if */
     overwrite_node(node, new_node);
   }  /* if */

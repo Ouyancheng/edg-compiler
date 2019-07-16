@@ -1,5 +1,25 @@
 Version 6.0
 
+7/16/19  [EDGcpfe/21503,EDGcpfe/21521,EDGcpfe/21525,EDGcpfe/21526,
+          EDGcpfe/21527]
+Incorrect lowered IL generated for some [[no_unique_address]] cases
+
+In certain cases, the lowered IL generated for a reference to a field with the
+[[no_unique_address]] attribute was incorrect, leading (in configurations that
+use the C-generating back end) to C that could not compile or various assertion
+failures.  Now fixed.  For example (with --c++20):
+
+  struct C {};
+  int f(C);
+  struct B {
+    [[no_unique_address]] C c;
+    int g() {
+      return f(c);
+    }
+  } b;
+  int x = b.g();
+
+
 7/16/19  [EDGcpfe/18875,EDGcpfe/19127,EDGcpfe/21547]
 Clang compatibility: __builtin_*_overflow builtins
 
