@@ -687,6 +687,13 @@ the builtin function's type.
   if (builtin_enabled(cond_index, condition, /*is_secondary=*/FALSE)) {
     clear_locator(&loc, &null_source_position);
     (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
+    if (loc.symbol_header->is_builtin_function &&
+        loc.symbol_header->is_user_builtin_function &&
+        !is_user_builtin_function) {
+      /* A user builtin function has already been loaded (and that takes
+         precedence over a non-user builtin function). */
+      goto done;
+    }  /* if */
     loc.symbol_header->is_builtin_function = TRUE;
     loc.symbol_header->builtin_function_index = idx;
     loc.symbol_header->is_user_builtin_function = is_user_builtin_function;
@@ -721,6 +728,7 @@ the builtin function's type.
       }  /* if */
     }  /* if */
   }  /* if */
+done:;
 }  /* preload_builtin_symbol */
 
 
@@ -735,6 +743,13 @@ current emulation mode.
   a_builtin_user_descr      *budp;
   a_builtin_function_index  i;
 
+  /* Load user builtin function first (they override any non-user builtin
+     functions with the same name). */
+  for (budp = builtin_user_table, i = 0; budp->name != NULL; budp++, i++) {
+    preload_builtin_symbol(budp->name, 0, budp->cond, i,
+                           /*is_user_builtin_function=*/TRUE, budp->kind,
+                           0, budp->type_string);
+  }  /* for */
   for (bdp = builtin_table, i = 0; bdp->name != NULL; bdp++, i++) {
     if (*bdp->name != '_') {
       /* Don't preload any non-user defined builtins whose name doesn't begin
@@ -746,11 +761,6 @@ current emulation mode.
     preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i,
                            /*is_user_builtin_function=*/FALSE, bdp->kind,
                            bdp->type_index, NULL);
-  }  /* for */
-  for (budp = builtin_user_table, i = 0; budp->name != NULL; budp++, i++) {
-    preload_builtin_symbol(budp->name, 0, budp->cond, i,
-                           /*is_user_builtin_function=*/TRUE, budp->kind,
-                           0, budp->type_string);
   }  /* for */
   builtin_functions_enabled = TRUE;
 }  /* preload_builtin_symbols */
