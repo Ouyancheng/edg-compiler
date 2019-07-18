@@ -7628,8 +7628,12 @@ last argument in the list).
         /* Mangle the type for the template argument, including an indication
            of whether or not the type is a pack expansion. */
         mangled_encoding_for_type_with_pack_expansion(tap->variant.type,
-                                (a_boolean)(tap->pack_expansion_descr != NULL),
-                                mctl);
+                                             (tap->pack_expansion_descr != NULL
+#if ABI_COMPATIBILITY_VERSION >= 520
+                                              || tap->is_pack
+#endif /* ABI_COMPATIBILITY_VERSION >= 520 */
+                                                             ),
+                                             mctl);
       }  /* if */
     } else if (is_template_templ_arg(tap)) {
       /* A template template argument. */

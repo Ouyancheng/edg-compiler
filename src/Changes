@@ -1,5 +1,17 @@
 Version 6.0
 
+7/18/19  [EDGcpfe/21500]
+Mangled name for prototype instantiation with parameter pack
+
+A change has been made (when ABI_COMPATIBILITY_VERSION >= 520) to include
+a parameter pack indication in the mangled name of a prototype instantiation of
+a template with a parameter pack.  In the example below the two entities had
+been given the same mangled name (with --c++11):
+
+  template <class...> struct A;        // Had been _Z1AIJT_EE now _Z1AIJDpT_EE
+  template <class T>  struct A<T> {};  // _Z1AIJT_EE
+
+
 7/18/19  [EDGcpfe/21518]
 Assertion failure in mangled_simple_id
 
