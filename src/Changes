@@ -1,5 +1,15 @@
 Version 6.0
 
+7/18/19  [EDGcpfe/21492]
+Clang compatibility: thread-local wrappers
+
+In configurations that use USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES,
+wrapper routines for thread-local variables were emitted in all cases in
+Clang emulation mode, but only for dynamically-initialized thread-local
+variables in GNU emulation mode.  A change has been made to make the
+Clang emulation mode the same as the GNU emulation mode.
+
+
 7/18/19  [EDGcpfe/21500]
 Mangled name for prototype instantiation with parameter pack
 
