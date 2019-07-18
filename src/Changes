@@ -1,5 +1,14 @@
 Version 6.0
 
+7/18/19  [EDGcpfe/21518]
+Assertion failure in mangled_simple_id
+
+Mangling of certain unresolved names, in some configurations, could cause
+an assertion failure in mangled_simple_id.  Now fixed.  For example:
+
+  template <class T> auto f(T t) -> decltype(decltype(t)::X::g());
+
+
 7/16/19  [EDGcpfe/21503,EDGcpfe/21521,EDGcpfe/21525,EDGcpfe/21526,
           EDGcpfe/21527]
 Incorrect lowered IL generated for some [[no_unique_address]] cases

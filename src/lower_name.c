@@ -796,6 +796,14 @@ static void add_variable_template_indication(a_variable_ptr           vp,
 static void mangled_name_with_length(a_const_char             *name,
                                      a_mangling_control_block *mctl);
 
+static void mangled_simple_id_or_name(
+                              a_source_correspondence_ptr scp,
+                              a_const_char                *name,
+                              a_template_arg_ptr          template_arg_list,
+                              a_name_reference_ptr        name_reference,
+                              a_boolean                   include_length,
+                              a_mangling_control_block    *mctl);
+
 /*
 Interface to mangled_type_name_full for the usual case, where the
 caller has not checked already for a substitution in IA-64 ABI mode and
@@ -3685,6 +3693,7 @@ qualifiers seen so far (and is typically set to one by the initial caller).
          this is a top-level unresolved type. */
       mangled_encoding_for_type((a_type_ptr)scp, mctl);
     } else {
+      a_const_char *name_ref_name = NULL;
       /* Emit the source name for this qualifier (with any template args). */
       if (kind == iek_type) {
         /* Skip any typedefs. */
@@ -3701,8 +3710,15 @@ qualifiers seen so far (and is typically set to one by the initial caller).
         /* Ensure that an unnamed namespace is given a name. */
         (void)give_unnamed_namespace_a_name((a_namespace_ptr)scp, mctl);
       }  /* if */
-      mangled_simple_id(scp, template_arg_list, (a_name_reference_ptr)NULL,
-                        /*include_length=*/TRUE, mctl);
+      if (current->uses_qualifiers && current->variant.qualifier != NULL) {
+        /* If a name reference is used and it has the name that was used
+           in the source, use that in cases where the entity is otherwise
+           unnamed. */
+        name_ref_name = current->variant.qualifier->name;
+      }  /* if */
+      mangled_simple_id_or_name(scp, name_ref_name, template_arg_list,
+                                (a_name_reference_ptr)NULL,
+                                /*include_length=*/TRUE, mctl);
     }  /* if */
   }  /* if */
 }  /* mangled_scope_resolution */
@@ -4942,6 +4958,35 @@ mangled name (including any template arguments) is prefixed to the name.
   if (include_length) fill_in_length(&length_reservation, mctl);
 #endif /* !IA64_ABI */
 }  /* mangled_simple_id */
+
+
+static void mangled_simple_id_or_name(
+                              a_source_correspondence_ptr scp,
+                              a_const_char                *name,
+                              a_template_arg_ptr          template_arg_list,
+                              a_name_reference_ptr        name_reference,
+                              a_boolean                   include_length,
+                              a_mangling_control_block    *mctl)
+/*
+In cases where a mangled name is needed for an unnamed entity, the name of
+the entity may have been captured in a name reference (but not in the entity
+itself).  For such cases (when scp->name is NULL and "name" is not), use the
+name reference name when mangling the simple id.  Other than "name", the
+other arguments are the same as described in mangled_simple_id.
+*/
+{
+  a_boolean restore_name = FALSE;
+
+  if (scp->name == NULL && name != NULL) {
+    scp->name = name;
+    restore_name = TRUE;
+  }  /* if */
+  mangled_simple_id(scp, template_arg_list, name_reference, include_length,
+                    mctl);
+  if (restore_name) {
+    scp->name = NULL;
+  }  /* if */
+}  /* mangled_simple_id_or_name */
 
 #if ABI_COMPATIBILITY_VERSION >= 402
 #if IA64_ABI
