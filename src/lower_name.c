@@ -3303,7 +3303,6 @@ template classes.
 {
   an_address_base_kind abkind;
 #if !IA64_ABI
-  a_const_char         *str;
   a_length_reservation length_reservation;
 #endif /* !IA64_ABI */
 
@@ -3333,13 +3332,19 @@ template classes.
 #if IA64_ABI
     add_template_argument_mangled_name_prefix(con, mctl);
 #endif /* IA64_ABI */
+#if ABI_COMPATIBILITY_VERSION >= 520
+    /* Give a variable proper mangling (earlier versions mangled just the
+       name, which is incomplete).  The earlier code is maintained for
+       backward compatibility. */
+    mangled_variable_name_with_possible_qualification(variable, mctl);
+#else /* ABI_COMPATIBILITY_VERSION < 520 */
     if (is_class_or_namespace_member(variable)) {
       /* Static data member or namespace member variable. */
       mangled_variable_name_with_possible_qualification(variable, mctl);
     } else {
       /* Normal variable. */
 #if !IA64_ABI
-      str = unmangled_or_fabricated_name_of_variable(variable);
+      a_const_char *str = unmangled_or_fabricated_name_of_variable(variable);
       check_assertion_str(str != NULL,
                      "mangled_encoding_for_address_constant: addr of unnamed");
       add_str_to_mangled_name(str, mctl);
@@ -3354,6 +3359,7 @@ template classes.
 #endif /* ABI_COMPATIBILITY_VERSION < 415 */
 #endif /* IA64_ABI */
     }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 520 */
   } else if (abkind == (an_address_base_kind)abk_routine) {
     a_boolean     suppress_param_encoding = TRUE;
     a_boolean     suppress_parent_encoding = FALSE;
@@ -7853,7 +7859,10 @@ IA-64 ABI to distinguish function-local entities with the same name.
   a_discriminator discriminator = 0;
   a_symbol_ptr  sym = (a_symbol_ptr)scp->assoc_info;
 
-  if (scp->is_local_to_function && sym != NULL) {
+  if (sym != NULL &&
+      (scp->is_local_to_function ||
+       (sym->kind == (a_symbol_kind)sk_variable &&
+        sym->variant.variable.ptr->promoted_local_static))) {
     if (sym->kind == (a_symbol_kind)sk_constant &&
         is_enum_constant(sym->variant.constant)) {
       /* This is an enumerator constant.  The constant itself never appears
@@ -12617,6 +12626,17 @@ to the mangled name.
     add_str_to_mangled_name(name, mctl);
   }  /* if */
   if (kind == iek_variable) {
+#if ABI_COMPATIBILITY_VERSION >= 520
+    a_symbol_ptr  sym = (a_symbol_ptr)scp->assoc_info;
+    if (sym != NULL &&
+        (scp->is_local_to_function ||
+         sym->variant.variable.ptr->promoted_local_static)) {
+      /* Add an indication that the variable is local to a function. */
+      check_assertion(scp->enclosing_routine != NULL);
+      add_local_name_suffix(sym->variant.variable.discriminator,
+                            scp->enclosing_routine, mctl);
+    }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 520 */
     /* For variable templates, emit the template argument list now. */
     add_variable_template_indication((a_variable_ptr)scp, mctl);
   }  /* if */
@@ -12701,6 +12721,9 @@ to the mangled name.
       alloc_substitution((char *)tmpl, iek_template,
                          /*is_pack_expansion=*/FALSE, mctl);
     }  /* if */
+#if ABI_COMPATIBILITY_VERSION >= 520
+    add_discriminator_if_necessary(scp, mctl);
+#endif /* ABI_COMPATIBILITY_VERSION >= 520 */
 skip_mangling:;
 #endif /* IA64_ABI && ABI_COMPATIBILITY_VERSION >= 510 */
   }  /* if */

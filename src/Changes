@@ -1,5 +1,31 @@
 Version 6.0
 
+7/22/19  [EDGcpfe/11127,EDGcpfe/21364]
+Mangled names for local variables
+
+A change has been made (to both IA-64 and Cfront ABIs) to discriminate between
+local variables with the same name when used in mangled names.  This change
+is only effective when ABI_COMPATIBILITY_VERSION >= 520.  In the example
+below, the two instantiations of "tf" had mistakenly been given the same
+mangled name (with --c++17):
+
+  template<int* T> int tf() {
+     return *T;
+  }
+  extern inline int f(int a) {
+    if (a) {
+       static int r = 1;
+       return tf<&r>();
+    } else {
+       static int r = 2;
+       return tf<&r>();
+    }
+  }
+  int main() {
+     return f(1);
+  }
+
+
 7/18/19  [EDGcpfe/21500]
 Mangled name for prototype instantiation with parameter pack
 
