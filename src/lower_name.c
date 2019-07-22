@@ -3440,7 +3440,7 @@ template classes.
 #endif /* IA64_ABI */
 }  /* mangled_encoding_for_address_constant */
 
-#if DO_IL_LOWERING || !IA64_ABI
+#if DO_IL_LOWERING || (!IA64_ABI && ABI_COMPATIBILITY_VERSION < 520)
 
 static a_const_char *first_field_name(a_type_ptr              class_type,
                                       a_source_correspondence **field_scp)
@@ -3500,7 +3500,7 @@ appear in mangled names).
   return name;
 }  /* unmangled_or_fabricated_name_of_variable */
 
-#endif /* DO_IL_LOWERING || !IA64_ABI */
+#endif /* DO_IL_LOWERING || (!IA64_ABI && ABI_COMPATIBILITY_VERSION < 520) */
 #if ABI_COMPATIBILITY_VERSION >= 402
 
 static a_boolean is_unresolved_type(a_type_ptr type)
