@@ -1,6 +1,6 @@
 Version 6.0
 
-8/22/19  [EDGcpfe/21560]
+7/22/19  [EDGcpfe/21560]
 C++-generating back end, clang compatibility: template keyword following
 namespace qualifier
 
