@@ -2354,7 +2354,8 @@ EXTERN a_boolean
 			   just dynamically-initialized thread_locals).
 			   Setting this to FALSE provides GNU compatibility
 			   (and less overhead for thread_locals that are not
-			   dynamically initialized). */
+			   dynamically initialized).  Set this to TRUE for
+			   clang compatibility. */
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 
 EXTERN a_boolean

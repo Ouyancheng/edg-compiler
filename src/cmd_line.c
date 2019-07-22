@@ -4563,11 +4563,6 @@ This function is also called in clang mode.
        fields in any special way wrt. promotion. */
     bit_field_promotion_applies_to_some_operations = FALSE;
   }  /* if */
-#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
-  /* GCC and clang provide thread local wrappers only for variables that
-     have dynamic initialization. */
-  all_thread_locals_have_wrappers = FALSE;
-#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
   if (clang_mode) {
     if (clang_version >= 30700) {
       nullability_qualifiers_enabled = TRUE;
@@ -4578,6 +4573,11 @@ This function is also called in clang mode.
       float128_enabled = FALSE;
     }  /* if */
   } else {
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+    /* GNU produces wrappers only for dynamically-initialized thread_local
+       variables; clang provides wrappers for all. */
+    all_thread_locals_have_wrappers = FALSE;
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
     if (gnu_version < 30400) {
       /* GCC has supported __float80 and __float128 since GCC 3.4. */
       float80_enabled = FALSE;
