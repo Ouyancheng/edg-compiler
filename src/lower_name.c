@@ -741,10 +741,10 @@ static void mangled_simple_id(a_source_correspondence_ptr scp,
                               a_name_reference_ptr        name_reference,
                               a_boolean                   include_length,
                               a_mangling_control_block    *mctl);
-#if DO_IL_LOWERING || !IA64_ABI
+#if (DO_IL_LOWERING || !IA64_ABI) && ABI_COMPATIBILITY_VERSION < 520
 static a_const_char *unmangled_or_fabricated_name_of_variable(
                                                            a_variable_ptr var);
-#endif /* DO_IL_LOWERING || !IA64_ABI */
+#endif /* (DO_IL_LOWERING || !IA64_ABI) && ABI_COMPATIBILITY_VERSION < 520 */
 #if ABI_COMPATIBILITY_VERSION >= 402
 static void mangled_unresolved_name(an_expr_node_ptr         expr,
                                     an_expr_node_ptr         arguments,
