@@ -1,5 +1,23 @@
 Version 6.0
 
+8/22/19  [EDGcpfe/21560]
+C++-generating back end, clang compatibility: template keyword following
+namespace qualifier
+
+The change for EDGcpfe/21238 (in version 5.1) addressed a bug in the clang
+compiler that required the template keyword in certain cases where a
+template name has a namespace qualifier.  However, clang rejects code in
+which the template keyword appears in a namespace-qualified friend
+declaration.  This additional clang compatibility issue has now been
+addressed.  For example, with --clang_version=50000:
+
+  namespace N { template<typename> struct S; }
+  class E1 {
+    template<typename> friend struct N::S; // Previously generated as
+                                           // N::template S, rejected by clang
+  };
+
+
 7/22/19  [EDGcpfe/11127,EDGcpfe/21364]
 Mangled names for local variables
 
