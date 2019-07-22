@@ -230,7 +230,7 @@ an external tool; this table should be used for builtin functions that are
 not captured by the external tool, or are added by the customer.
 
 This table may also be used to "override" signatures and/or condition entries
-for builtins whose entries in the automatically generated table are found
+for builtins whose entries in the automatically-generated table are found
 to be incorrect (i.e., a matching entry here will prevent the loading of the
 same entry in builtin_table).
 

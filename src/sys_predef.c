@@ -743,7 +743,7 @@ current emulation mode.
   a_builtin_user_descr      *budp;
   a_builtin_function_index  i;
 
-  /* Load user builtin function first (they override any non-user builtin
+  /* Load user builtin functions first (they override any non-user builtin
      functions with the same name). */
   for (budp = builtin_user_table, i = 0; budp->name != NULL; budp++, i++) {
     preload_builtin_symbol(budp->name, 0, budp->cond, i,
