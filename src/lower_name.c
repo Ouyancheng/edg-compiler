@@ -7860,9 +7860,12 @@ IA-64 ABI to distinguish function-local entities with the same name.
   a_symbol_ptr  sym = (a_symbol_ptr)scp->assoc_info;
 
   if (sym != NULL &&
-      (scp->is_local_to_function ||
-       (sym->kind == (a_symbol_kind)sk_variable &&
-        sym->variant.variable.ptr->promoted_local_static))) {
+      (scp->is_local_to_function
+#if DO_IL_LOWERING
+       || (sym->kind == (a_symbol_kind)sk_variable &&
+           sym->variant.variable.ptr->promoted_local_static)
+#endif /* DO_IL_LOWERING */
+                                                            )) {
     if (sym->kind == (a_symbol_kind)sk_constant &&
         is_enum_constant(sym->variant.constant)) {
       /* This is an enumerator constant.  The constant itself never appears
@@ -12629,8 +12632,11 @@ to the mangled name.
 #if ABI_COMPATIBILITY_VERSION >= 520
     a_symbol_ptr  sym = (a_symbol_ptr)scp->assoc_info;
     if (sym != NULL &&
-        (scp->is_local_to_function ||
-         sym->variant.variable.ptr->promoted_local_static)) {
+        (scp->is_local_to_function
+#if DO_IL_LOWERING
+         || sym->variant.variable.ptr->promoted_local_static
+#endif /* DO_IL_LOWERING */
+                                                            )) {
       /* Add an indication that the variable is local to a function. */
       check_assertion(scp->enclosing_routine != NULL);
       add_local_name_suffix(sym->variant.variable.discriminator,
