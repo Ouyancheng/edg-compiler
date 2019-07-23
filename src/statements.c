@@ -3196,6 +3196,13 @@ a structured statement has ended.
       /* A bottom-test loop.  The code after the loop is reachable if the
          current location is reachable. */
     }  /* if */
+    if (sssep->fallthrough_statement != NULL) {
+      /* A fallthrough statement was the last item in the loop. */
+      pos_diagnostic(clang_mode ? es_error :
+                                  strict_ansi_discretionary_severity,
+                     ec_fallthrough_must_precede_switch_case,
+                     &sssep->fallthrough_statement->position);
+    }  /* if */
   } else {
     /* Non-loop statement. */
     if (kind == ssk_switch) {

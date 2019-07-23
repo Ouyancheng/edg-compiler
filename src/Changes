@@ -1,5 +1,27 @@
 Version 6.0
 
+7/23/19  [EDGcpfe/21578]
+Core issue 2406: [[fallthrough]] in loop statements
+
+Core issue 2406 clarifies that a program is ill-formed if a fallthrough
+statement (i.e., an empty statement with the [[fallthrough]] attribute)
+is contained in an iteration statement and the next statement is not part of
+the same execution of the substatement of the innermost enclosing iteration
+statement.  The following example now gives a warning in default mode or
+an error in strict mode (with --c++17):
+
+  void f(int n) {
+    switch (n) {
+    case 1:
+      do {
+        [[fallthrough]]; // Now an error in strict mode.
+      } while (false);
+    default:
+      break;
+    }
+  }
+
+
 7/22/19  [EDGcpfe/21555]
 C++-generating back end: struct definitions in casts
 
