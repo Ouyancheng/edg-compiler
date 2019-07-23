@@ -4661,6 +4661,7 @@ deduction failed.
   a_template_symbol_supplement_ptr
                        tssp;
   a_boolean            suppress_param_advance = FALSE;
+  a_boolean            nontrailing_pack_seen = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean            processing_param_array_expanded_case = FALSE;
   a_type_ptr           cli_param_array_element_type = NULL;
@@ -4691,8 +4692,17 @@ deduction failed.
      deduction. */
   for (ptp = rtsp->param_type_list, alep = arg_list;
        ptp != NULL && alep != NULL;) {
+    if (ptp->is_parameter_pack && ptp->next != NULL) {
+      /* A function parameter pack that is not the last parameter is a
+         non-deduced context and, if not expanded through explicit template
+         arguments, it may expand to the empty set if its type builds on a
+         trailing template parameter pack (N4810 [temp.arg.explicit]/4).
+         Assume that will be the case by skipping this parameter. */
+      nontrailing_pack_seen = TRUE;
+      ptp = ptp->next;
+      continue;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (ptp->is_cli_param_array) {
+    } else if (ptp->is_cli_param_array) {
       /* C++/CLI parameter array. */
       suppress_param_advance = TRUE;
       if (!processing_param_array_expanded_case) {
@@ -4748,12 +4758,10 @@ deduction failed.
           unexpected_condition();
         }  /* if */
       }  /* if */
-    } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not add code here. */
-    if (!deduce_one_parameter(ptp, (a_type_ptr)NULL, &alep,
-                              (a_type_ptr)NULL,
-                              template_sym, template_arg_list)) {
+    } else if (!deduce_one_parameter(ptp, (a_type_ptr)NULL, &alep,
+                                     (a_type_ptr)NULL,
+                                     template_sym, template_arg_list)) {
       /* Deduction failed. */
       goto done;
     }  /* if */
@@ -4762,7 +4770,12 @@ deduction failed.
 #if CHECKING
   if (alep != NULL) {
     /* We ran out of parameters, but we still have arguments.  There should
-       be an ellipsis. */
+       be an ellipsis, unless we ran into a nontrailing pack that was assumed
+       to expand to an empty pack. */
+    if (nontrailing_pack_seen) {
+      /* Deduction failed. */
+      goto done;
+    }  /* if */
     check_assertion_str(rtsp->has_ellipsis,
                 "function_template_call_argument_deduction: missing ellipsis");
   } else if (ptp != NULL) {

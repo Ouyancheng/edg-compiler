@@ -1,5 +1,21 @@
 Version 6.0
 
+7/23/19  [EDGcpfe/20802]
+Handling of non-trailing function parameter packs
+
+Consider the following variadic template case:
+
+  template<typename ... Ts> int f(Ts ... ps, int x);
+  int r = f(1); // Now accepted.  Previously an error.
+
+The function parameter pack ps is a non-deducible context (because it's not
+a leading pack).  Previously, this caused the front end to fail to match the
+call "f(1)" to the given function template.  However, a close reading of the
+C++ standard suggests that instead such a pack should be substituted with an
+empty expansion, which allows the example above to be valid.  That rule is now
+implemented in the front end.
+
+
 7/23/19  [EDGcpfe/21578]
 Core issue 2406: [[fallthrough]] in loop statements
 
