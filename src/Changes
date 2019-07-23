@@ -1,5 +1,18 @@
 Version 6.0
 
+7/22/19  [EDGcpfe/21555]
+C++-generating back end: struct definitions in casts
+
+In C code in which a cast defines a struct, the C++-generating back end
+sometimes replaced the definition of the struct with an
+elaborated-type-specifier.  In cases where the struct is unnamed, its name
+was given as an undeclared temporary name (of the form __T12345678).  This
+is now fixed.  In the following example, with --microsoft --c, the struct
+definition was replaced in the generated code by "struct __T12345678":
+
+  typedef char c[(int)&(((struct { char x; } *)0)->x)+1];
+
+
 7/22/19  [EDGcpfe/21560]
 C++-generating back end, clang compatibility: template keyword following
 namespace qualifier

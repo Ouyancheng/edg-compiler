@@ -6738,9 +6738,12 @@ al_tag_name attributes (if any).
 
   type = orig_type_if_nonreal_prototype_type(type);
   type_for_naming = type;
-  if (type->definition_delayed) {
+  if (type->definition_delayed ||
+      (!type->has_been_defined &&
+       !type->autonomous_primary_tag_decl)) {
     /* Put out the definition if it is needed and was delayed because a
-       non-autonomous definition appeared. */
+       non-autonomous definition appeared or if it is non-autonomous and
+       hasn't been defined yet. */
     type->definition_delayed = FALSE;
     /* Save the current position in the source sequence stream and change it
        to the source sequence entry for the type. */
