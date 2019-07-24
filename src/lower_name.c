@@ -12637,10 +12637,15 @@ to the mangled name.
          || sym->variant.variable.ptr->promoted_local_static
 #endif /* DO_IL_LOWERING */
                                                             )) {
-      /* Add an indication that the variable is local to a function. */
-      check_assertion(scp->enclosing_routine != NULL);
-      add_local_name_suffix(sym->variant.variable.discriminator,
-                            scp->enclosing_routine, mctl);
+      /* Add an indication that the variable is local to a function
+         (in some error cases, no enclosing_routine is set). */
+
+      if (scp->enclosing_routine != NULL) {
+        add_local_name_suffix(sym->variant.variable.discriminator,
+                              scp->enclosing_routine, mctl);
+      } else {
+        check_assertion(total_errors != 0);
+      }  /* if */
     }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 520 */
     /* For variable templates, emit the template argument list now. */
