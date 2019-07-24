@@ -1,5 +1,13 @@
 Version 6.0
 
+7/24/19  [EDGcpfe/21514]
+Use of uninitialized variable in select_coroutine_new
+
+The front end used an uninitialized variable in the select_coroutine_new
+function when processing a coroutine that has no parameters.  This could lead
+to selecting the wrong operator "new" and/or crashes.  This is now fixed.
+
+
 7/23/19  [EDGcpfe/18122,EDGcpfe/20802,EDGcpfe/20933]
 Handling of non-trailing function parameter packs
 

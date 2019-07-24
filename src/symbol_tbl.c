@@ -8904,6 +8904,7 @@ in alep.  The caller is responsible for freeing the created argument list.
   an_operand           arg_operand;
   a_scope_ptr          sp = scope_for_routine(coroutine);
 
+  *alep = NULL;
   if (sp->variant.routine.this_param_variable != NULL) {
     var_expr = var_rvalue_expr(sp->variant.routine.this_param_variable);
     make_expression_operand(var_expr, &arg_operand);
