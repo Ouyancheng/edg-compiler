@@ -4767,7 +4767,6 @@ deduction failed.
     }  /* if */
     if (!suppress_param_advance) ptp = ptp->next;
   }  /* for */
-#if CHECKING
   if (alep != NULL) {
     /* We ran out of parameters, but we still have arguments.  There should
        be an ellipsis, unless we ran into a nontrailing pack that was assumed
@@ -4811,7 +4810,6 @@ deduction failed.
       goto done;
     }  /* if */
   }  /* if */
-#endif /* CHECKING */
   push_substitution(template_sym, *template_arg_list);
   if (in_substitution_loop()) {
     /* A substitution identical to this one is already under way.  Treat this
