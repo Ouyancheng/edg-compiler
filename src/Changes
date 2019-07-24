@@ -1,6 +1,6 @@
 Version 6.0
 
-7/23/19  [EDGcpfe/20802]
+7/23/19  [EDGcpfe/18122,EDGcpfe/20802,EDGcpfe/20933]
 Handling of non-trailing function parameter packs
 
 Consider the following variadic template case:
