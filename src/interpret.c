@@ -15567,7 +15567,8 @@ the value representation of the integer value.
         /* Don't treat a reference to a consteval function as a constant
            unless a constant is really needed.  That keeps the enk_routine
            node in the expression tree so invalid uses can be diagnosed. */
-        if (!rp->is_prototype_instantiation &&
+        if (rp != NULL &&
+            !rp->is_prototype_instantiation &&
             !(rp->is_consteval && !ips->allow_consteval_routine_node)) {
 #if GNU_EXTENSIONS_ALLOWED
           if (rp->is_weak) {
