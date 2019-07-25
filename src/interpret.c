@@ -7931,7 +7931,7 @@ registered in *ips for the given position).
         do_constexpr_fail(result);
         goto done;
       }  /* if */
-      alloc_length *= dim;
+      alloc_length = (a_byte_count)(alloc_length*dim);
       elem_tp = skip_typerefs(elem_tp->variant.array.element_type);
     } while (type_is(elem_tp, tk_array));
   }  /* if */
@@ -7988,6 +7988,8 @@ done:
 }  /* do_constexpr_dynamic_alloc */
 
 
+/*ARGSUSED*/  /* Some parameters are unused, but they are needed to conform
+                 to a callback convention. */
 static a_boolean do_constexpr_std_allocator_allocate(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -8033,7 +8035,7 @@ where the result should be stored.
   get_int_val_from(p_arg_bytes[1], size_tp, alloc_length, ovflo);
   if (ovflo || alloc_length < 0 || alloc_length > MAX_ARRAY_LENGTH) {
     info_with_pos_num(ec_constexpr_alloc_too_large, &call_node->position,
-                      alloc_length, ips);
+                      (a_byte_count)alloc_length, ips);
     do_constexpr_fail(result);
     goto done;
   }  /* if */
@@ -8047,7 +8049,8 @@ where the result should be stored.
                            callee->type, ips);
     goto done;
   }  /* if */
-  if (!do_constexpr_dynamic_alloc(ips, tap->variant.type, alloc_length,
+  if (!do_constexpr_dynamic_alloc(ips, tap->variant.type,
+                                  (a_byte_count)alloc_length,
                                   &call_node->position,
                                   (a_constexpr_address*)result_storage,
                                   &elem_size)) {
@@ -8169,7 +8172,7 @@ where the result should be stored.
   get_int_val_from(p_arg_bytes[2], size_tp, alloc_length, ovflo);
   if (ovflo || alloc_length < 0 || alloc_length > MAX_ARRAY_LENGTH) {
     info_with_pos_num(ec_constexpr_alloc_too_large, &call_node->position,
-                      alloc_length, ips);
+                      (a_byte_count)alloc_length, ips);
     do_constexpr_fail(result);
     goto done;
   }  /* if */
@@ -8201,7 +8204,7 @@ where the result should be stored.
     do_constexpr_fail(result);
     goto done;
   }  /* if */
-  total_size = alloc_length*elem_size;
+  total_size = (a_byte_count)(alloc_length*elem_size);
   do_host_alignment(total_size);
   orig_data_size = allocation->total_size - allocation->prefix_size;
   if (total_size != orig_data_size) {
@@ -8358,7 +8361,9 @@ a narrow string.  Return FALSE in case of a serious issue.
         a_host_large_integer  max_len;
         conv_integer_value_to_host_large_integer(
                      p_len, /*is_signed=*/TRUE, &max_len, &ovflo);
-        if (max_len < 0) {
+        if (ovflo) {
+          /* Ignore the parameter. */
+        } else if (max_len < 0) {
           len = 0;
         } else if (max_len < len-pos) {
           len = max_len-pos;
@@ -11234,7 +11239,7 @@ Evaluate the given new-expression.
     }  /* if */
     alloc_length = (a_byte_count)length;
   }  /* if */
-// Adjust type & number for arrays of arrays FIXME
+  /* Adjust type & number for arrays of arrays FIXME */
   cap = (a_constexpr_address*)result_storage;
   if (ndsp->placement_new) {
     a_type_ptr        new_tp = skip_typerefs(ndsp->type);
