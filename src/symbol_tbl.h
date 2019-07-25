@@ -4836,6 +4836,9 @@ extern void enter_symbol_for_namespace_abi(a_symbol_locator  *locator);
 
 extern a_symbol_ptr look_up_name_string_in_std(a_const_char  *name);
 
+extern a_boolean is_member_of_namespace(a_symbol_ptr  sym,
+                                        a_symbol_ptr  ns_sym);
+
 EXTERN a_namespace_ptr
 		namespace_for_coroutine_types;
 			/* Namespace containing the various class templates

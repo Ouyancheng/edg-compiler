@@ -8773,6 +8773,30 @@ Look up name in namespace std and return the symbol found, if any.
 }  /* look_up_name_string_in_std */
 
 
+a_boolean is_member_of_namespace(a_symbol_ptr  sym,
+                                 a_symbol_ptr  ns_sym)
+/*
+Return TRUE if the sym represents a member of the namespace indicated by
+ns_sym, ignoring any directly-enclosing inline namespaces.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (sym_is_namespace_member(sym)) {
+    a_namespace_ptr  nsp = sym_parent_namespace(sym);
+    while (nsp->is_inline) {
+      nsp = parent_namespace_or_null(nsp);
+      if (nsp == NULL) goto done;
+    }  /* if */
+    if (nsp == ns_sym->variant.namespace_info.ptr) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* is_member_of_namespace */
+
+
 a_symbol_ptr look_up_name_string_in_class(
                                         a_const_char             *symbol_name,
                                         a_type_ptr               class_type,

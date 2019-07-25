@@ -8450,9 +8450,9 @@ interpreter) and if so mark it as such.
   a_constexpr_intrinsic_tag  tag = cit_last;
 
   if (is_namespace_member(rp) &&
-      parent_namespace_of(rp) ==
-                       symbol_for_namespace_std->variant.namespace_info.ptr) {
-    /* A member of namespace "std". */
+      is_member_of_namespace(symbol_for(rp), symbol_for_namespace_std)) {
+    /* A member of namespace "std" (ignoring immediately-enclosing inline
+       namespaces). */
     a_const_char  *name = sym_hdr->identifier;
     switch (name[0]) {
       case 'c':

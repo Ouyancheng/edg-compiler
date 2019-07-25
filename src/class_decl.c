@@ -14678,9 +14678,7 @@ of std::allocator<T> instances.
     if (strcmp(id, "allocate") == 0 || strcmp(id, "deallocate") == 0) {
       a_symbol_ptr  parent_sym = symbol_for(sym_parent_class(sym));
       if (parent_sym->header->has_intrinsic_name &&
-          sym_is_namespace_member(parent_sym) &&
-          sym_parent_namespace(parent_sym) ==
-                       symbol_for_namespace_std->variant.namespace_info.ptr) {
+          is_member_of_namespace(parent_sym, symbol_for_namespace_std)) {
         a_const_char *parent_id = parent_sym->header->identifier;
         if (strcmp(parent_id, "allocator") == 0) {
           a_routine_ptr  rp = sym->variant.routine.ptr;
