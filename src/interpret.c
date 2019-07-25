@@ -11481,7 +11481,10 @@ the value representation of the integer value.
         } else if (opnd2 != NULL &&
                    !node_operator_is(expr, eok_land) &&
                    !node_operator_is(expr, eok_lor) &&
-                   !node_operator_is(expr, eok_question)) {
+                   !node_operator_is(expr, eok_question) &&
+                   !node_operator_is(expr, eok_dot_vacuous_destructor_call) &&
+                   !node_operator_is(expr,
+                                     eok_points_to_vacuous_destructor_call)) {
           /* Evaluate the second operand.  For short-circuiting operators,
              whether to evaluate the second operand will be decided below in
              the specific code for each such operator.  The comma operator can
@@ -15567,8 +15570,7 @@ the value representation of the integer value.
         /* Don't treat a reference to a consteval function as a constant
            unless a constant is really needed.  That keeps the enk_routine
            node in the expression tree so invalid uses can be diagnosed. */
-        if (rp != NULL &&
-            !rp->is_prototype_instantiation &&
+        if (!rp->is_prototype_instantiation &&
             !(rp->is_consteval && !ips->allow_consteval_routine_node)) {
 #if GNU_EXTENSIONS_ALLOWED
           if (rp->is_weak) {
