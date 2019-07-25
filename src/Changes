@@ -17,7 +17,7 @@ Consider the following variadic template case:
   int r = f(1); // Now accepted.  Previously an error.
 
 The function parameter pack ps is a non-deducible context (because it's not
-a leading pack).  Previously, this caused the front end to fail to match the
+a trailing pack).  Previously, this caused the front end to fail to match the
 call "f(1)" to the given function template.  However, a close reading of the
 C++ standard suggests that instead such a pack should be substituted with an
 empty expansion, which allows the example above to be valid.  That rule is now
