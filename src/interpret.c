@@ -7928,7 +7928,7 @@ registered in *ips for the given position).
   }  /* if */
   elem_size = value_bytes_for_type(ips, elem_tp, &result); 
   if (!result) goto done;
-  if ((a_byte_count)(MAX_CONSTEXPR_DYN_ALLOC_SIZE/elem_size) < alloc_length) {
+  if (MAX_CONSTEXPR_DYN_ALLOC_SIZE/elem_size < alloc_length) {
     info_with_pos(ec_constexpr_allocation_too_large, diag_pos, ips);
     do_constexpr_fail(result);
     goto done;
@@ -8191,7 +8191,7 @@ where the result should be stored.
   elem_tp = skip_typerefs(elem_tp);
   elem_size = value_bytes_for_type(ips, elem_tp, &result); 
   if (!result) goto done;
-  if ((a_byte_count)(MAX_CONSTEXPR_DYN_ALLOC_SIZE/elem_size) < alloc_length) {
+  if (MAX_CONSTEXPR_DYN_ALLOC_SIZE/elem_size < (a_byte_count)alloc_length) {
     info_with_pos(ec_constexpr_allocation_too_large, &call_node->position,
                   ips);
     do_constexpr_fail(result);
@@ -8362,7 +8362,7 @@ a narrow string.  Return FALSE in case of a serious issue.
           /* Ignore the parameter. */
         } else if (max_len < 0) {
           len = 0;
-        } else if (max_len < len-pos) {
+        } else if ((a_byte_count)max_len < len-pos) {
           len = (a_byte_count)(max_len-pos);
         }  /* if */
       }  /* if */
