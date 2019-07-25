@@ -3396,15 +3396,6 @@ indicated subobject and all its subobject as uninitialized.
 }  /* mark_whole_subobject_uninitialized */
 
 
-/*
-Mark the complete object at the given address as uninitialized.
-*/
-#define mark_complete_object_uninitialized(ips, obj)                         \
-  (mark_whole_subobject_uninitialized(                                       \
-            ips, obj, *(a_type_ptr*)((a_byte*)obj-sizeof(a_type_ptr)), obj), \
-   *((a_byte*)obj-sizeof(a_type_ptr)-1) = 0)
-
-
 static void init_subobject_to_zero(an_interpreter_state  *ips,
                                    a_byte                *subobj,
                                    a_type_ptr            tp,
@@ -7926,7 +7917,7 @@ registered in *ips for the given position).
     /* Adjust the number of elements for the array type. */
     do {
       a_targ_size_t  dim = elem_tp->variant.array.variant.number_of_elements;
-      if (MAX_CONSTEXPR_DYN_ALLOC_SIZE/dim < alloc_length) {
+      if ((a_byte_count)(MAX_CONSTEXPR_DYN_ALLOC_SIZE/dim) < alloc_length) {
         info_with_pos(ec_constexpr_allocation_too_large, diag_pos, ips);
         do_constexpr_fail(result);
         goto done;
@@ -7937,7 +7928,7 @@ registered in *ips for the given position).
   }  /* if */
   elem_size = value_bytes_for_type(ips, elem_tp, &result); 
   if (!result) goto done;
-  if (MAX_CONSTEXPR_DYN_ALLOC_SIZE/elem_size < alloc_length) {
+  if ((a_byte_count)(MAX_CONSTEXPR_DYN_ALLOC_SIZE/elem_size) < alloc_length) {
     info_with_pos(ec_constexpr_allocation_too_large, diag_pos, ips);
     do_constexpr_fail(result);
     goto done;
@@ -8200,7 +8191,7 @@ where the result should be stored.
   elem_tp = skip_typerefs(elem_tp);
   elem_size = value_bytes_for_type(ips, elem_tp, &result); 
   if (!result) goto done;
-  if (MAX_CONSTEXPR_DYN_ALLOC_SIZE/elem_size < alloc_length) {
+  if ((a_byte_count)(MAX_CONSTEXPR_DYN_ALLOC_SIZE/elem_size) < alloc_length) {
     info_with_pos(ec_constexpr_allocation_too_large, &call_node->position,
                   ips);
     do_constexpr_fail(result);
@@ -8344,7 +8335,7 @@ a narrow string.  Return FALSE in case of a serious issue.
     } else if (is_signed) {
       fprintf(f_error, "%lld", (long long)val);
     } else {
-      fprintf(f_error, "%llu", (unsigned long long)val);
+      fprintf(f_error, "%llu", (unsigned long long)(long long)val);
     }  /* if */
   } else {
     /* A sequence of characters.  The first argument is a pointer to the
@@ -8732,7 +8723,9 @@ otherwise, return FALSE and update *ips accordingly.
   /* First check the case of a built-in function that is handled specially by
      the interpreter. */
   {
+#if GNU_EXTENSIONS_ALLOWED || BUILTIN_FUNCTIONS_ENABLED
     a_routine_ptr  eff_callee = callee;
+#endif /* GNU_EXTENSIONS_ALLOWED || BUILTIN_FUNCTIONS_ENABLED */
 #if GNU_EXTENSIONS_ALLOWED
     if (eff_callee->implicit_alias && !eff_callee->defined &&
         gnu_routine_supp(eff_callee)->aliased_routine != NULL) {
