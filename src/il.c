@@ -14002,8 +14002,9 @@ this is a dik_expression dynamic init entry.)
 
 /* Forward declarations needed because of recursion: */
 static void unlink_object_lifetime(an_object_lifetime_ptr lifetime);
-static a_lambda_ptr copy_lambda(a_lambda_ptr lambda);
-
+static a_lambda_ptr copy_lambda(a_lambda_ptr              lambda,
+                                an_expr_copy_options_set  options,
+                                a_tree_copy_control_block *cblock);
 
 static a_dynamic_init_ptr i_copy_dynamic_init(
                                              a_dynamic_init_ptr        dip,
@@ -14102,7 +14103,8 @@ options for the copy.  cblock is a control block for the copy.
                                                     cblock);
         if (dip->variant.constant.lambda != NULL) {
           new_dip->variant.constant.lambda =
-                                    copy_lambda(dip->variant.constant.lambda);
+                                    copy_lambda(dip->variant.constant.lambda,
+                                                options_unshared, cblock);
         }  /* if */
       }
       break;
@@ -19364,7 +19366,36 @@ matches is_lvalue.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-static a_lambda_ptr copy_lambda(a_lambda_ptr lambda)
+static a_lambda_capture_ptr copy_lambda_capture(
+                                             a_lambda_capture_ptr      capture,
+                                             an_expr_copy_options_set  options,
+                                             a_tree_copy_control_block *cblock)
+/*
+Allocate a copy of a lambda capture and return a pointer to it.
+*/
+{
+  a_lambda_capture_ptr capture_copy;
+
+  capture_copy = alloc_lambda_capture();
+  *capture_copy = *capture;
+  if (in_file_scope(capture_copy) && !in_file_scope(capture)) {
+    /* Normally it'd be fine to continue to refer to the original nodes,
+       however since the capture copy is in file scope, it can't refer to nodes
+       in function scope - copy the appropriate nodes instead.  This should
+       only be possible for init captures - a local lambda with non-init
+       captures should never have to be copied into file-scope memory, and this
+       case should have been caught sooner. */
+    check_assertion(capture->is_init_capture);
+    capture_copy->captured.initializer =
+           i_copy_dynamic_init(capture->captured.initializer, options, cblock);
+  }  /* if */
+  return capture_copy;
+}  /* copy_lambda_capture */
+
+
+static a_lambda_ptr copy_lambda(a_lambda_ptr              lambda,
+                                an_expr_copy_options_set  options,
+                                a_tree_copy_control_block *cblock)
 /*
 Allocate a copy of a lambda and return a pointer to it.
 */
@@ -19377,8 +19408,7 @@ Allocate a copy of a lambda and return a pointer to it.
   for (capture = lambda->capture_list;
        capture != NULL;
        capture = capture->next) {
-    capture_copy = alloc_lambda_capture();
-    *capture_copy = *capture;
+    capture_copy = copy_lambda_capture(capture, options, cblock);
     capture_copy->next = NULL;
     if (prev == NULL) {
       lambda_copy->capture_list = capture_copy;
@@ -19516,6 +19546,25 @@ options is a set of options for the copy.
 }  /* copy_list_of_expr_trees */
 
 
+static a_boolean lambda_expr_captures_something(a_lambda_ptr lambda)
+/*
+Return TRUE if the provided lambda expression captures something, FALSE
+otherwise.  An init capture is not considered to be capturing something.
+*/
+{
+  a_boolean            result = FALSE;
+  a_lambda_capture_ptr lcp = lambda->capture_list;
+
+  for (; lcp != NULL; lcp = lcp->next) {
+    if (!lcp->is_init_capture) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* lambda_expr_captures_something */
+
+
 static an_expr_node_ptr i_copy_expr_tree(an_expr_node_ptr          expr,
                                          an_expr_copy_options_set  options,
                                          a_tree_copy_control_block *cblock)
@@ -19644,10 +19693,11 @@ be called to start a copy.
       /* Make a copy of the lambda and its initialization. */
       if (!in_file_scope(expr->variant.init.source.lambda) &&
           in_file_scope(expr_copy) &&
-          expr->variant.init.source.lambda->capture_list != NULL) {
-        /* A local lambda with captures should never have to be copied into
-           file-scope memory (it would cause memory region problems with
-           the captures), but we may get here in severe error cases. */
+          lambda_expr_captures_something(expr->variant.init.source.lambda)) {
+        /* A local lambda with captures (except for init captures) should never
+           have to be copied into file-scope memory (it would cause memory
+           region problems with the captures), but we may get here in severe
+           error cases. */
         expect_error();
         expr_copy = error_node();
       } else {
@@ -19662,7 +19712,8 @@ be called to start a copy.
                 expr_copy->variant.init.dynamic_init->variant.constant.lambda;
         } else {
           expr_copy->variant.init.source.lambda =
-                                copy_lambda(expr->variant.init.source.lambda);
+                                copy_lambda(expr->variant.init.source.lambda,
+                                            options, cblock);
         }  /* if */
       }  /* if */
       break;

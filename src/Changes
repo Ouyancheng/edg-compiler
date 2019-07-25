@@ -1,5 +1,23 @@
 Version 6.0
 
+7/25/19  [EDGcpfe/21539]
+Abort when a lambda expression appears in an array bounds expression
+
+With the change for EDGcpfe/21423, the front end would abort in
+i_copy_expr_tree if a lambda expression that had init captures appeared in an
+array bounds expression, and the backing expression for the integral constant
+was retained (e.g., RECORD_BACKING_EXPRS_WITH_IL_LOWERING == TRUE).  For
+example:
+
+  struct A {};
+  A f() {
+    A z[ ([x = 1]{}, 1) ]; // Previously could abort
+    return z[0];
+  };
+
+This is now fixed.
+
+
 7/25/19  [EDGcpfe/21597]
 C++20: Support for constexpr destructors and dynamic allocations
 
