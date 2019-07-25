@@ -60,7 +60,7 @@ static a_me_input_line	me_input_line;
 /*
 Maximum number of errors that can be processed.
 */
-#define MAX_ERRORS 3000
+#define MAX_ERRORS 10000
 
 /*
 Maximum number of error tags that can be used.

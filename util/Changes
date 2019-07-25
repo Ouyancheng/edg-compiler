@@ -1,3 +1,13 @@
+Version 6.0
+
+07/25/19 [EDGcpfe/21614]
+Increase MAX_ERRORS in mk_errinfo
+
+The number of error messages in the front end has grown larger than the
+3000 allocated.  That number has been increased to 10000.
+
+
+-------------------------------------------------------------------------------
 Version 5.1, July 12, 2019
 
 3/15/19  [EDGcpfe/20530,EDGcpfe/20644]
