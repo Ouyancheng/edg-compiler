@@ -7116,6 +7116,11 @@ expression context) rather than a declaration.
                                     &dps, var_ptr->type, &pos_curr_token);
       scan_and_discard_init_component(&dps);
     } else {
+      if (!dps.has_direct_initializer && curr_token == tok_assign &&
+          proto_var->initializer_in_class) {
+        /* Advance past the "=". */
+        (void)get_token();
+      }  /* if */
       if (!is_var_templ_instance ||
           !proto_var->initializer_in_class || var_ptr->is_constexpr) {
         initializer(&dps, &template_sym->decl_position, idl_external,
@@ -17797,6 +17802,9 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
   /* Now that the instance has been added to the list, other instantiations
      can be resumed. */
   defer_instantiations--;
+  if (rp->is_constexpr && sym->header->has_intrinsic_name) {
+    check_for_constexpr_intrinsic(rp, sym->header);
+  }  /* if */
   /* Do any instantiations that were deferred while this routine was being
      created. */
   process_deferred_class_fixups_and_instantiations(/*for_instantiation=*/TRUE);

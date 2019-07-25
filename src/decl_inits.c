@@ -5699,6 +5699,8 @@ returned set to TRUE.
           add_more_info_list(dp, &diag_list);
           end_diagnostic(dp);
           init_err = TRUE;
+          init_con = alloc_error_constant();
+          init_dip = NULL;
         }  /* if */
         release_local_constant(&folded_con);
       }  /* if */
@@ -6543,25 +6545,48 @@ FALSE is returned) for non-class objects.
           }  /* if */
         }  /* if */
       } else if (var->is_constexpr) {
-        check_assertion_or_expect_error(!has_nontrivial_destructor(cssp));
-        if (ctor == NULL) {
+        check_assertion_or_expect_error(!has_nontrivial_destructor(cssp) ||
+                                        constexpr_dynamic_alloc_enabled);
+        if (ctor == NULL && dtor == NULL) {
           /* This should only be possible with nonreal classes or in some
              error cases. */
           check_assertion_or_expect_error(is_nonreal_class);
         } else {
-          /* Fold the default constructor call to obtain a constant
+          /* Fold the default constructor/destructor calls to obtain a constant
              initializer. */
-          a_constant_ptr  cp;
+          a_diag_list     diag_list;
+          a_constant_ptr  cp, folded_con = local_constant();
           a_boolean       consteval_context =
                                         innermost_function_scope != NULL &&
                                         current_routine_entry()->is_consteval;
-          init_dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE,
-                                             /*evaluated=*/TRUE,
-                                             consteval_context);
-          /* Folding the constructor call may require access to the variable
-             being initialized. */
+          if (ctor != NULL) {
+            init_dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE,
+                                               /*evaluated=*/TRUE,
+                                               consteval_context);
+          } else {
+            init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
+          }  /* if */
+          if (dtor != NULL) {
+            record_dtor_in_dynamic_init(dtor, init_dip, /*evaluated=*/TRUE);
+          }  /* if */
+          /* Folding the constructor/destructor calls may require access to
+             the variable being initialized. */
           init_dip->variable = var;
-          cp = get_default_constructed_constant(init_dip, tp, err_pos);
+          clear_diag_list(&diag_list);
+          if (interpret_dynamic_init(init_dip, err_pos, tp,
+                                     /*is_constant_evaluated=*/TRUE,
+                                     folded_con, &diag_list)) {
+            cp = move_local_constant_to_il(&folded_con);
+          } else {
+            /* A constant was required: Issue a diagnostic. */
+            a_diagnostic_ptr  dp;
+            dp = pos_start_error(ec_initializer_not_constant, err_pos);
+            add_more_info_list(dp, &diag_list);
+            end_diagnostic(dp);
+            cp = alloc_error_constant();
+            release_local_constant(&folded_con);
+          }  /* if */
+          discard_more_info_list(&diag_list);
           /* Clear the variable field again.  It may get recorded later if
              needed. */
           init_dip->variable = NULL;
@@ -6742,12 +6767,6 @@ FALSE is returned) for non-class objects.
          TRUE to avoid spurious diagnostics about uninitialized variables. */
       def_init_performed = TRUE;
     }  /* if */
-#if CHECKING
-    if (var->is_constexpr && !is_nonreal_class) {
-      check_assertion_or_expect_error(initializer_constant(var) != NULL ||
-                                      is_template_dependent_type(var->type));
-    }  /* if */
-#endif /* CHECKING */
   }  /* if */
   db_exit();
   return def_init_performed;

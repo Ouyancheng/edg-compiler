@@ -2656,10 +2656,11 @@ typedef struct a_template_symbol_supplement {
 			   template. */
   a_template_ptr
 		il_template_entry;
-			/* When  the symbol kind is sk_class_template or
-			   sk_function_template, the IL entry created to
-			   represent this template.  Points to the entry
-			   associated with the first declaration. */
+			/* When  the symbol kind is sk_class_template,
+			   sk_function_template, or sk_variable_template, the
+			   IL entry created to represent this template.  Points
+			   to the entry associated with the first
+			   declaration. */
   a_symbol_list_entry_ptr
 		all_instantiations;
 			/* When secondary translation units are processed,

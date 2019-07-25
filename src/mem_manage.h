@@ -116,6 +116,11 @@ extern
 a_void_ptr alloc_general_or_in_region(a_memory_region_number	region,
 				      sizeof_t			size);
 
+extern void* malloc_for_interpreter(sizeof_t size);
+
+extern void free_for_interpreter(void     *block,
+                                 sizeof_t size);
+
 /* Make sure that mem_region_table is large enough. */
 extern
 void ensure_mem_region_table_space(a_memory_region_number region_number);

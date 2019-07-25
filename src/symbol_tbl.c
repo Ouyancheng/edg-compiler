@@ -17392,8 +17392,19 @@ for space tracking purposes.
 #endif /* DEBUG */
 
 
+/*
+A table of identifiers that are of interest to front end processing.  The
+associated symbol table entries are flagged so other identifiers can avoid
+special checks.
+*/
 static a_const_char* intrinsic_names[] = {
   "is_constant_evaluated",
+  "allocator",
+  "allocate",
+  "deallocate",
+  "construct_at",
+  "destroy_at",
+  "__report_constexpr_value",
   "main"
 };
 

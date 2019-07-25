@@ -224,6 +224,51 @@ allocation and generates a catastrophic error.
 }  /* malloc_with_check */
 
 
+void* malloc_for_interpreter(sizeof_t size)
+/*
+Interface to malloc for the interpreter.  A failure to allocate doesn't trigger
+a catastrophe.
+*/
+{
+  void *result;
+
+  result = (void*)malloc((true_size_t)size_t_arg(size));
+#if DEBUG
+  /* Track total allocation. */
+  if (result != NULL) {
+    /* Can't do this conditionally on db_active since db_active is not yet
+       set when command line processing is done. */
+    adjust_record_of_total_allocation((long)size);
+    if (db_flag_is_set("malloc") || debug_level >= 5) {
+      fprintf(f_debug,
+              "malloc_for_interpreter: allocating %lu at %p, total = %lu\n",
+              (unsigned long)size, result, (unsigned long)total_mem_allocated);
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
+  return result;
+}  /* malloc_for_interpreter */
+
+
+void free_for_interpreter(void     *block,
+                          sizeof_t size)
+/*
+Free a block of the given size allocated by a call to malloc_for_interpreter.
+*/
+{
+#if DEBUG
+  /* Can't do this conditionally on db_active since db_active is not yet
+     set when command line processing is done. */
+  adjust_record_of_total_allocation(-(long)size);
+  if (debug_level >= 5) {
+    fprintf(f_debug, "free_for_interpreter: freeing block of size %lu\n",
+                     (unsigned long)size);
+  }  /* if */
+#endif /* DEBUG */
+  free((char*)block);
+}  /* free_for_interpreter */
+
+
 #if !DEBUG
 /*ARGSUSED*/ /* <-- old_size is not used if !DEBUG. */
 #endif /* DEBUG */

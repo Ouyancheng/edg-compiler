@@ -14475,9 +14475,6 @@ operand for eok_comma nodes.  Return the node found at the end of such a chain
 }  /* skip_commas_and_parens */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/* ARGSUSED */  /* <-- decl_pos_block is not used in some configurations. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 a_type_ptr scan_decltype_operator(a_rescan_control_block *rcblock,
                                   a_boolean              might_be_id_start)
 /*

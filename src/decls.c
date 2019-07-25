@@ -1039,7 +1039,8 @@ and associated routines.
 {
   a_boolean    is_start = FALSE;
 
-  if (curr_token == tok_decltype) {
+  if (curr_token == tok_decltype ||
+      (curr_token == tok_typename && next_token() == tok_lparen)) {
     /* A decltype could be decltype(x) or decltype(x)::something.  In the
        latter case we need to coalesce it before deciding what it is.  */
     (void)is_generalized_identifier_start(GID_NO_OPTIONS);
@@ -8038,10 +8039,11 @@ position.
   } else {
     check_assertion(rtp->kind == (a_type_kind)tk_routine);
     /* The return type and parameter types of a constexpr function must be
-       literal types.  Since destructors don't have a return type, this
-       implies they cannot be constexpr. */
-    if (special_kind_is(rp, sfk_destructor)) {
-      /* Destructors cannot be constexpr: This is diagnosed elsewhere. */
+       literal types. */
+    if (special_kind_is(rp, sfk_destructor) &&
+        !constexpr_dynamic_alloc_enabled) {
+      /* Destructors cannot be constexpr in this mode: This is diagnosed
+         elsewhere. */
       expect_error();
     } else if (!special_kind_is(rp, sfk_constructor) &&
                !could_be_literal_type(rtp->variant.routine.return_type)) {
@@ -8436,12 +8438,12 @@ adjust *dps and *idlbp as needed.
 }  /* check_clang_c_overload */
 
 
-static void check_for_constexpr_intrinsic(a_routine_ptr     rp,
-                                          a_symbol_locator  *loc)
+void check_for_constexpr_intrinsic(a_routine_ptr    rp,
+                                   a_symbol_header  *sym_hdr)
 /*
-The given routine is being declared with the given locator and that locator is
-associated with an intrinsic.  Check whether the routine is actually a
-"constexpr intrinsic" (i.e., a function handled specially by the constexpr
+The given routine is being declared with the given symbol header and that
+header is associated with an intrinsic.  Check whether the routine is actually
+a "constexpr intrinsic" (i.e., a function handled specially by the constexpr
 interpreter) and if so mark it as such.
 */
 {
@@ -8451,8 +8453,30 @@ interpreter) and if so mark it as such.
       parent_namespace_of(rp) ==
                        symbol_for_namespace_std->variant.namespace_info.ptr) {
     /* A member of namespace "std". */
-    a_const_char  *name = loc->symbol_header->identifier;
+    a_const_char  *name = sym_hdr->identifier;
     switch (name[0]) {
+      case 'c':
+        if (strcmp(name, "construct_at") == 0 &&
+            rp->template_arg_list != NULL &&
+            rp->template_arg_list->kind == (a_templ_arg_kind)tak_type) {
+          a_type_ptr       rtp = skip_typerefs(rp->type);
+          a_param_type_ptr ptp = function_type_params(rtp);
+          if (ptp != NULL && is_pointer_type(ptp->type)) {
+            tag = cit_std_construct_at;
+          }  /* if */
+        }  /* if */
+        break;
+      case 'd':
+        if (strcmp(name, "destroy_at") == 0 &&
+            rp->template_arg_list != NULL &&
+            rp->template_arg_list->kind == (a_templ_arg_kind)tak_type) {
+          a_type_ptr       rtp = skip_typerefs(rp->type);
+          a_param_type_ptr ptp = function_type_params(rtp);
+          if (ptp != NULL && is_pointer_type(ptp->type)) {
+            tag = cit_std_destroy_at;
+          }  /* if */
+        }  /* if */
+        break;
       case 'i':
         if (strcmp(name, "is_constant_evaluated") == 0) {
           a_type_ptr  rtp = skip_typerefs(rp->type);
@@ -8462,6 +8486,27 @@ interpreter) and if so mark it as such.
           }  /* if */
         }  /* if */
         break;
+      case '_':
+        if (strcmp(name, "__report_constexpr_value") == 0) {
+          a_type_ptr       rtp = skip_typerefs(rp->type);
+          a_param_type_ptr ptp = function_type_params(rtp);
+          /* Check for one of the following signatures:
+                  T report_constexpr_value(<integer-type>);
+                  T report_constexpr_value(char [const] *);
+                  T report_constexpr_value(char [const] *, <integer-type>);
+             Any one of those can be handled by the interpreter. */
+          if (is_void_type(rtp->variant.routine.return_type) &&
+              ptp != NULL &&
+              ((is_integral_type(ptp->type) && ptp->next == NULL) ||
+               ((is_pointer_type(ptp->type) &&
+                 is_character_type(type_pointed_to(ptp->type))) &&
+                (ptp->next == NULL ||
+                 (is_integral_type(ptp->next->type) &&
+                  is_signed_integral_type(ptp->next->type) &&
+                  ptp->next->next == NULL))))) {
+            tag = cit_std_report_constexpr_value;
+          }  /* if */
+        }  /* if */
       default:
         break;
     }  /* switch */
@@ -9879,7 +9924,7 @@ skip_overloading:;
     if (!routine_ptr->is_inline) set_inline_flag(routine_ptr, TRUE);
     if (locator->symbol_header != NULL &&
         locator->symbol_header->has_intrinsic_name) {
-      check_for_constexpr_intrinsic(routine_ptr, locator);
+      check_for_constexpr_intrinsic(routine_ptr, locator->symbol_header);
     }  /* if */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED

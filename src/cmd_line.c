@@ -3573,6 +3573,7 @@ default mode (e.g., exception handling).
         conditional_explicit_enabled = TRUE;
         constexpr_virtual_enabled = TRUE;
         constexpr_try_enabled = TRUE;
+        constexpr_dynamic_alloc_enabled = TRUE;
         consteval_enabled = TRUE;
         if (!coroutines_enabled) {
           /* This may have been enabled already via --set_flag; we don't want
@@ -11556,6 +11557,7 @@ variables declared in cmd_line.h.
   relaxed_constexpr_enabled = FALSE;
   constexpr_virtual_enabled = FALSE;
   constexpr_try_enabled = FALSE;
+  constexpr_dynamic_alloc_enabled = FALSE;
   adl_for_non_visible_templates = FALSE;
   relaxed_typename_enabled = FALSE;
   relaxed_specialization_access_checking = FALSE;

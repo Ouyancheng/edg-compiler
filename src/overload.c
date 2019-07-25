@@ -25471,11 +25471,13 @@ describes the context of the conversion.
        destructor is supposed to be accessible and not deleted. */
     handle_elided_destructor(source_operand->type, &source_operand->position);
   }  /* if */
-  if (expr_stack->favor_constant_result) {
-    a_boolean  is_constant_evaluated = 
-                             (conv_context & CCO_IS_CONSTANT_EVALUATED) != 0;
-    force_operand_to_constant_if_possible_full(source_operand,
-                                               is_constant_evaluated);
+  if (expr_stack->favor_constant_result &&
+      (conv_context & CCO_IS_CONSTANT_EVALUATED) == 0) {
+    /* Try to fold the result.  Don't do that if the caller has indicated that
+       this context is (potentially) "manifestly constant-evaluated": In that
+       case the caller will ensure that the result is folded. */
+    force_operand_to_constant_if_possible_full(
+                             source_operand, /*is_constant_evaluated=*/FALSE);
   }  /* if */
 }  /* prep_initializer_operand */
 

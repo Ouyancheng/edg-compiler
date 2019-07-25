@@ -237,7 +237,27 @@ than may seem at first).  See, e.g., SET_result_val_from_operand_address in
 do_constexpr_expression.
 */
 
+
 typedef unsigned int a_byte_count;
+
+/*
+Macro defining the largest allowed size of a type in the interpreter.
+*/
+#define MAX_CONSTEXPR_TYPE_SIZE ((a_byte_count)(1<<20))
+
+/*
+Macros that control the maximum length of an array.  The length of arrays is
+sometimes stored in a bit field (see a_constexpr_address).  So, the width of
+that field is defined here.
+*/
+#define ARRAY_LENGTH_WIDTH 24
+#define MAX_ARRAY_LENGTH ((1<<ARRAY_LENGTH_WIDTH) - 1)
+
+/*
+Macro defining the maximum size in bytes of a block allocated to represent
+a dynamic memory allocation.
+*/
+#define MAX_CONSTEXPR_DYN_ALLOC_SIZE ((a_byte_count)(1<<28))
 
 typedef unsigned int an_alloc_seq_number;
 			/* An integral type used to number allocations and
@@ -283,6 +303,65 @@ request larger chunks are handled in terms of individual calls to alloc_general
 #define CONSTEXPR_STACK_ALLOC_LIMIT (1<<10)
 
 /*
+Structure describing a destruction to be performed.  A storage stack state
+points to a list of these.
+*/
+typedef struct a_constexpr_destruction {
+  struct a_constexpr_destruction
+		*next;
+			/* Next destruction to perform, or NULL if this is the
+			   last destruction on the list. */
+  a_dynamic_init_ptr
+		dip;
+			/* An entry describing the destructor to execute. */
+  a_byte	*sub_obj;
+			/* Address of the subobject to destroy (could be a
+			   complete object address). */
+  a_byte	*complete_obj;
+			/* Address of the complete object to destroy. */
+  a_source_position
+		*pos;
+			/* Position for diagnostics. */
+}  a_constexpr_destruction;
+
+
+/*
+Structure describing a dynamic allocation during constexpr evaluation.  These
+are maintained on a list of "live" allocations (deallocation removes them from
+the list).  This structure is placed at the top of a block that also includes
+the allocated object.
+*/
+typedef struct a_constexpr_allocation *a_constexpr_allocation_ptr;
+typedef struct a_constexpr_allocation {
+  a_constexpr_allocation_ptr
+		next, prev;
+			/* Next and previous allocation on the "live" list. */
+  a_type_ptr
+		elem_type;
+			/* The type of the elements being allocated. */
+  a_source_position
+		pos;	/* Position in the source code where the allocation
+			   was requested. */
+  an_alloc_seq_number
+                alloc_seq_number;
+			/* The sequence number associated with this
+			   allocation. */
+  a_byte_count
+		total_size;
+			/* The total size of this block (used when freeing
+			   the block). */
+  a_byte_count
+		prefix_size;
+			/* The distance between the start of the block (i.e.,
+			   the address of this object) and the stored object
+			   past its bookkeeping preamble. */
+  a_byte_count
+		length;
+			/* The number of items allocated in the block. */
+} a_constexpr_allocation;
+
+
+/*
 Structure describing a state of the allocation stack.  States can be saved to
 be restored later (effectively "popping" the allocation stack).
 */
@@ -301,6 +380,10 @@ typedef struct a_storage_stack_state {
   an_alloc_seq_number
 		alloc_seq_number;
 			/* A sequence number used to detect leaks. */
+  a_constexpr_destruction
+		*destructions;
+			/* Destructions to perform when this state is
+			   popped. */
 } a_storage_stack_state;
 
 
@@ -892,11 +975,20 @@ typedef struct an_interpreter_state {
 			   a call (i.e., something like "(1, f)()" where f
 			   designates a consteval function; if it were "f()"
 			   it would always be allowed). */
+ a_bit_field
+		report_started:1;
+			/* TRUE if a call to std::__report_constexpr_value was
+			   already evaluated in this invocation of the
+			   interpreter. */
   a_storage_stack_state
 		static_storage;
 			/* Pointer to the storage stack state used to allocate
 			   static storage-duration variables.  Initialized
 			   when first needed. */
+  a_constexpr_allocation_ptr
+		dyn_allocations;
+			/* Pointer to a doubly-linked list of allocations
+			   performed during the evaluation. */
 } an_interpreter_state;
 
 
@@ -937,6 +1029,7 @@ Initialize stack storage for the given storage stack.
   /* Leave space for the bookkeeping information (three pointers). */
   sss->top = sss->curr_block+3*ptr_size;
   sss->large_blocks = NULL;
+  sss->destructions = NULL;
 }  /* alloc_constexpr_stack_block */
 
 
@@ -1093,12 +1186,17 @@ Macros to save and restore an allocation stack state.
   (state) = (ips)->storage_stack;                                            \
   (ips)->storage_stack.alloc_seq_number = ++(ips)->curr_alloc_seq_number;    \
   add_to_live_set(&(ips)->live_set, (ips)->curr_alloc_seq_number);           \
+  (ips)->storage_stack.destructions = NULL;                                  \
 }
 
 
-#define restore_storage_stack(ips, state)                                    \
+#define restore_storage_stack(ips, state, result_flag)                       \
 {                                                                            \
-  a_byte  *curr_large_blocks = (ips)->storage_stack.large_blocks;            \
+  a_byte  *curr_large_blocks;                                                \
+  if ((ips)->storage_stack.destructions != NULL && (result_flag)) {          \
+    (result_flag) = perform_destructions(ips);                               \
+  }  /* if */                                                                \
+  curr_large_blocks = (ips)->storage_stack.large_blocks;                     \
   remove_from_live_set(&(ips)->live_set,                                     \
                        (ips)->storage_stack.alloc_seq_number);               \
   (ips)->storage_stack = (state);                                            \
@@ -1128,6 +1226,7 @@ because of performance concerns).
 */
 #define init_storage_stack_state_to_silence_GCC(sss)                         \
   ((sss).top = (sss).curr_block = (sss).large_blocks = NULL,                 \
+   (sss).destructions = NULL,                                                \
    (sss).alloc_seq_number = 0)
 #else /* !defined(__GNUC__) && ... */
 #define init_storage_stack_state_to_silence_GCC(sss) /* Nothing */
@@ -1880,7 +1979,7 @@ typedef struct a_constexpr_address {
 			/* Flags describing properties of this address.
 			   See the CA_... macros above. */
   unsigned int
-		length: 24;
+		length: ARRAY_LENGTH_WIDTH;
 			/* If the CA_ARRAY_ELEMENT flag is set or for an array
 		           lvalue, the number of elements in the array.  If the
 			   CA_BIT_FIELD flag is set, twice the number of bits
@@ -1892,7 +1991,6 @@ typedef struct a_constexpr_address {
 			   object even if it is a null address (used to
 			   support classic implementations of "offsetof").
 			   Otherwise, zero. */
-#define MAX_ARRAY_LENGTH ((1<<24) - 1)
   an_alloc_seq_number
 		alloc_seq_number;
 			/* The allocation sequence number of the storage
@@ -2263,6 +2361,8 @@ result of calls to std::is_constant_evaluated().
   ips->static_lifetime_init = FALSE;
   ips->disallow_mutable_field_load = FALSE;
   ips->allow_consteval_routine_node = FALSE;
+  ips->report_started = FALSE;
+  ips->dyn_allocations = NULL;
   n_active_interpreter_states += 1;
 }  /* init_interpreter_state */
 
@@ -2291,6 +2391,18 @@ Release the storage allocated for the given interpreter state.
   if (n_free_variant_path_entries != n_variant_path_entries &&
       n_active_interpreter_states == 0) {
     reclaim_variant_path_entries();
+  }  /* if */
+  if (ips->dyn_allocations != NULL) {
+    a_constexpr_allocation_ptr
+            alloc = ips->dyn_allocations, next_alloc;
+    do {
+      next_alloc = alloc->next;
+      free_for_interpreter((void*)alloc, (sizeof_t)alloc->total_size);
+      alloc = next_alloc;
+    } while (alloc != NULL);
+  }  /* if */
+  if (ips->report_started) {
+    fprintf(f_error, "\n(end constexpr evaluation)\n"); 
   }  /* if */
 }  /* release_interpreter_state */
 
@@ -2512,12 +2624,6 @@ describing the problem.
     info_with_pos(ec_constexpr_access_past_object, &expr->position, ips);
   }  /* if */
 }  /* info_one_past_end_of_array */
-
-
-/*
-Macro defining the largest allowed size of a type in the interpreter.
-*/
-#define MAX_CONSTEXPR_TYPE_SIZE ((a_byte_count)(1<<20))
 
 
 static a_byte_count lay_out_class_type(an_interpreter_state  *ips,
@@ -3100,6 +3206,14 @@ Retrieve the type of a complete object in its prefix.
   (*(a_type_ptr*)(data_ptr-sizeof(a_type_ptr)))
 
 /*
+Compute the number of bytes needed to hold an initialization bitmap for a
+given number of bytes.
+*/
+#define compute_bitmap_size(n_bytes)                                         \
+  (((n_bytes)+CHAR_BIT-1)/CHAR_BIT)
+
+
+/*
 Given a type utp and the size n_bytes required to represent its value, compute
 the number of bytes needed as a bookkeeping prefix for a complete object of
 that type.
@@ -3109,7 +3223,7 @@ that type.
   a_byte_count  bitmap_size;                                                 \
   if (is_immediate_class_type(utp) ||                                        \
       utp->kind == (a_type_kind)tk_array) {                                  \
-    bitmap_size = (n_bytes+CHAR_BIT-1)/CHAR_BIT;                             \
+    bitmap_size = compute_bitmap_size(n_bytes);                              \
   } else {                                                                   \
     bitmap_size = 0;                                                         \
   }  /* if */                                                                \
@@ -3280,6 +3394,15 @@ indicated subobject and all its subobject as uninitialized.
     mark_subobject_uninitialized(subobj, complete_obj);
   }  /* if */
 }  /* mark_whole_subobject_uninitialized */
+
+
+/*
+Mark the complete object at the given address as uninitialized.
+*/
+#define mark_complete_object_uninitialized(ips, obj)                         \
+  (mark_whole_subobject_uninitialized(                                       \
+            ips, obj, *(a_type_ptr*)((a_byte*)obj-sizeof(a_type_ptr)), obj), \
+   *((a_byte*)obj-sizeof(a_type_ptr)-1) = 0)
 
 
 static void init_subobject_to_zero(an_interpreter_state  *ips,
@@ -4230,19 +4353,6 @@ the corresponding integer value (zero for a null address).
 }  /* is_integer_address */
 
 
-/*
-Macro to interpret a full-expression.
-*/
-#define do_constexpr_full_expression(                                         \
-                    ips, expr, result_storage, complete_object, result_flag)  \
-{                                                                             \
-  a_storage_stack_state  saved_stack_for_full_expr;                           \
-  save_storage_stack(ips, saved_stack_for_full_expr);                         \
-  (result_flag) = do_constexpr_expression(                                    \
-                                ips, expr, result_storage, complete_object);  \
-  restore_storage_stack(ips, saved_stack_for_full_expr);                      \
-}
-
 static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
                                         a_statement_ptr       stmt);
 
@@ -4261,12 +4371,53 @@ static a_boolean do_constexpr_ctor(an_interpreter_state  *ips,
                                    a_constexpr_address   *implied_src);
 
 
+static a_boolean do_constexpr_dtor(an_interpreter_state  *ips,
+                                   a_routine_ptr         callee,
+                                   a_source_position     *pos,
+                                   a_byte                *result_storage,
+                                   a_byte                *complete_object);
+
 static a_boolean do_constexpr_dynamic_init(
                                       an_interpreter_state  *ips,
                                       a_dynamic_init_ptr    dip,
                                       a_source_position     *pos,
                                       a_byte                *result_storage,
                                       a_byte                *complete_object);
+
+
+static a_boolean perform_destructions(an_interpreter_state  *ips)
+/*
+Perform the destructions for the current storage stack;
+*/
+{
+  a_boolean  result = TRUE;
+  a_constexpr_destruction
+             *dlist = ips->storage_stack.destructions;
+
+  do {
+    if (!do_constexpr_dtor(ips, dlist->dip->destructor, dlist->pos,
+                           dlist->sub_obj, dlist->complete_obj)) {
+      result = FALSE;
+      break;
+    }  /* if */
+    dlist = dlist->next;
+  } while (dlist != NULL);
+  return result;
+}  /* perform_destructions */
+
+
+/*
+Macro to interpret a full-expression.
+*/
+#define do_constexpr_full_expression(                                         \
+                    ips, expr, result_storage, complete_object, result_flag)  \
+{                                                                             \
+  a_storage_stack_state  saved_stack_for_full_expr;                           \
+  save_storage_stack(ips, saved_stack_for_full_expr);                         \
+  (result_flag) = do_constexpr_expression(                                    \
+                                ips, expr, result_storage, complete_object);  \
+  restore_storage_stack(ips, saved_stack_for_full_expr, result_flag);         \
+}
 
 
 static a_boolean translate_il_address_offset(an_interpreter_state  *ips,
@@ -4534,7 +4685,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
              in the interpreter. */
           clear_runtime_constant_address(value, con);
         } else if (tp->kind == (a_type_kind)tk_integer) {
-          *(an_integer_value *)value = con->variant.integer_value;
+          *(an_integer_value*)value = con->variant.integer_value;
         } else {
           unexpected_condition();
         }  /* if */
@@ -5460,11 +5611,6 @@ Evaluate the given dynamic initialization for the given storage.
 {
   a_boolean  result = FALSE;
 
-  if (dip->destructor != NULL) {
-    info_with_pos(ec_constexpr_ctor_with_dtor, pos, ips);
-    do_constexpr_fail(result);
-    goto done;
-  }  /* if */
   switch (dip->kind) {
     case dik_constant:
     case dik_nonconstant_aggregate:
@@ -5521,9 +5667,74 @@ Evaluate the given dynamic initialization for the given storage.
     default:
       unexpected_condition();
   }  /* switch */
-done:
   return result;
 }  /* do_constexpr_dynamic_init */
+
+
+static a_boolean register_destruction(an_interpreter_state  *ips,
+                                      a_dynamic_init_ptr    dip,
+                                      a_byte                *sub_obj,
+                                      a_byte                *complete_obj,
+                                      a_source_position     *pos)
+/*
+Register a destruction to be performed when the current storage stack state
+is released.
+*/
+{
+  a_boolean  result = TRUE;
+
+  if (!constexpr_dynamic_alloc_enabled) {
+    info_with_pos(ec_constexpr_ctor_with_dtor, pos, ips);
+    do_constexpr_fail(result);
+  } else {
+    /* Register the destruction in the current storage stack state. */
+    a_byte                   *d_bytes;
+    a_constexpr_destruction  *destruction;
+    alloc_stack_bytes(ips, sizeof(a_constexpr_destruction), d_bytes);
+    destruction = (a_constexpr_destruction*)d_bytes;
+    destruction->next = ips->storage_stack.destructions;
+    destruction->dip = dip;
+    destruction->sub_obj = sub_obj;
+    destruction->complete_obj = complete_obj;
+    destruction->pos = pos;
+    ips->storage_stack.destructions = destruction;
+  }  /* if */
+  return result;
+}  /* register_destruction */
+
+
+static a_boolean register_extended_destruction(
+                                          an_interpreter_state  *ips,
+                                          a_dynamic_init_ptr    dip,
+                                          a_byte                *sub_obj,
+                                          a_byte                *complete_obj,
+                                          a_source_position     *pos)
+/*
+Register a destruction to be performed when the "extension" storage stack
+state is released.
+*/
+{
+  a_boolean  result = TRUE;
+
+  if (!constexpr_dynamic_alloc_enabled) {
+    info_with_pos(ec_constexpr_ctor_with_dtor, pos, ips);
+    do_constexpr_fail(result);
+  } else {
+    /* Register the destruction in the current storage stack state. */
+    a_byte                   *d_bytes;
+    a_constexpr_destruction  *destruction;
+    alloc_bytes(ips->extension_state, sizeof(a_constexpr_destruction),
+                d_bytes);
+    destruction = (a_constexpr_destruction*)d_bytes;
+    destruction->next = ips->extension_state->destructions;
+    destruction->dip = dip;
+    destruction->sub_obj = sub_obj;
+    destruction->complete_obj = complete_obj;
+    destruction->pos = pos;
+    ips->extension_state->destructions = destruction;
+  }  /* if */
+  return result;
+}  /* register_extended_destruction */
 
 
 static a_boolean do_constexpr_init_variable(an_interpreter_state   *ips,
@@ -5576,7 +5787,10 @@ otherwise, this routine will look up that storage in ips->map.
        restore_storage_stack below. */
     release_constexpr_stack(&ips->storage_stack);
   }  /* if */
-  restore_storage_stack(ips, saved_stack_for_full_expr);
+  restore_storage_stack(ips, saved_stack_for_full_expr, result);
+  if (result && dip->destructor != NULL) {
+    result = register_destruction(ips, dip, storage, storage, pos);
+  }  /* if */
   return result;
 }  /* do_constexpr_init_variable */
 
@@ -5621,7 +5835,7 @@ successful.
     (void)do_constexpr_alloc_variable(ips, cond_var, &result);
   }  /* if */
   if (!result) {
-    restore_storage_stack(ips, *vs_state);
+    restore_storage_stack(ips, *vs_state, result);
   }  /* if */
   return result;
 }  /* do_constexpr_condition_alloc */
@@ -5629,12 +5843,14 @@ successful.
 
 static void do_constexpr_condition_dealloc(an_interpreter_state   *ips,
                                            an_expr_node_ptr       expr,
-                                           a_storage_stack_state  *vs_state)
+                                           a_storage_stack_state  *vs_state,
+                                           a_boolean              *p_result)
 /*
 expr is an enk_condition node representing the condition expression of a
 statement (i.e., the <expr> in "if (<expr>) ...", "switch (<expr>) ...", etc.).
 Deallocate and unmap all associated variables.  Restore the storage state
-recorded in *vs_state.
+recorded in *vs_state.  Set *p_result to FALSE if this fails (due to a failing
+destructor evaluation).
 */
 {
   a_condition_supplement_ptr  csp = expr->variant.condition;
@@ -5658,7 +5874,7 @@ recorded in *vs_state.
     }  /* if */
   }  /* if */
   /* Reclaim the storage of the variables that were unmapped above. */
-  restore_storage_stack(ips, *vs_state);
+  restore_storage_stack(ips, *vs_state, *p_result);
 }  /* do_constexpr_condition_dealloc */
 
 
@@ -5731,7 +5947,7 @@ skip_typerefs(expr->type).
     result = FALSE;
   }  /* if */
   release_address_structures(expr, expr_type, value);
-  restore_storage_stack(ips, saved_stack_for_full_expr);
+  restore_storage_stack(ips, saved_stack_for_full_expr, result);
   return result;
 }  /* do_constexpr_condition */
 
@@ -5881,7 +6097,7 @@ Interpret the given block statement and its associated scope (if any).
       }  /* if */
       do_constexpr_unmap_variable(ips, vp);
     }  /* for */
-    restore_storage_stack(ips, saved_stack);
+    restore_storage_stack(ips, saved_stack, result);
   }  /* if */
   return result;
 }  /* do_constexpr_block_statement */
@@ -6025,7 +6241,7 @@ initialization and execute the increment before the main iteration.
     } while (result && bool_val);
 unmap_storage:
     if (has_cond_var) {
-      do_constexpr_condition_dealloc(ips, expr, &cond_saved_stack);
+      do_constexpr_condition_dealloc(ips, expr, &cond_saved_stack, &result);
     }  /* if */
   }  /* if */
   { /* Unmap the local storage if necessary. */
@@ -6038,7 +6254,7 @@ unmap_storage:
       }  /* while */
     }  /* if */
   }
-  restore_storage_stack(ips, saved_stack);
+  restore_storage_stack(ips, saved_stack, result);
   return result;
 }  /* do_constexpr_for_statement */
 
@@ -6168,7 +6384,7 @@ unmap_storage:
     do_constexpr_unmap_variable(ips, vp[k]);
   }  /* if */
 done:
-  restore_storage_stack(ips, saved_stack);
+  restore_storage_stack(ips, saved_stack, result);
   return result;
 }  /* do_constexpr_range_based_for_statement */
 
@@ -6383,7 +6599,7 @@ successfully interpreted, FALSE otherwise.
 done_with_switch:
   if (has_cond_var) {
     do_constexpr_condition_cleanup(ips, expr);
-    do_constexpr_condition_dealloc(ips, expr, &saved_stack);
+    do_constexpr_condition_dealloc(ips, expr, &saved_stack, &result);
   }  /* if */
   return result;
 }  /* do_constexpr_switch */
@@ -6420,7 +6636,7 @@ successfully interpreted, FALSE otherwise.
         } else {
           release_address_structures(expr, tp, expr_value);
         }  /* if */
-        restore_storage_stack(ips, saved_stack);
+        restore_storage_stack(ips, saved_stack, result);
       }
       break;
     case stmk_if:
@@ -6463,7 +6679,7 @@ successfully interpreted, FALSE otherwise.
         }  /* if */
         if (has_cond_var) {
           do_constexpr_condition_cleanup(ips, expr);
-          do_constexpr_condition_dealloc(ips, expr, &saved_stack);
+          do_constexpr_condition_dealloc(ips, expr, &saved_stack, &result);
         }  /* if */
       }
       break;
@@ -6527,7 +6743,7 @@ successfully interpreted, FALSE otherwise.
           }  /* if */
         } while (result && bool_val);
         if (has_cond_var) {
-          do_constexpr_condition_dealloc(ips, expr, &saved_stack);
+          do_constexpr_condition_dealloc(ips, expr, &saved_stack, &result);
         }  /* if */
       }
       break;
@@ -7625,6 +7841,22 @@ to FALSE and the reason for the failure is recorded in *ips.
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
+static a_boolean run_function_body(an_interpreter_state  *ips,
+                                   a_scope_ptr           callee_scope)
+/*
+The given scope is a function scope.  Execute its associated compound
+statement.
+*/
+{
+  a_statement_ptr  block_stmt = callee_scope->assoc_block;
+
+  if (block_stmt->kind == (a_statement_kind)stmk_try_block) {
+    block_stmt = block_stmt->variant.try_block->statement;
+  }  /* if */
+  return do_constexpr_block_statement(ips, block_stmt, callee_scope);
+}  /* run_function_body */
+
+
 /*ARGSUSED*/  /* Some parameters are unused, but they are needed to conform
                  to a callback convention. */
 static a_boolean do_constexpr_std_is_constant_evaluated(
@@ -7650,6 +7882,505 @@ TRUE.  Otherwise result FALSE.
 }  /* do_constexpr_std_is_constant_evaluated */
 
 
+static void report_leftover_allocations(an_interpreter_state  *ips)
+/*
+*/
+{
+  uint32_t  count = 0;
+  a_constexpr_allocation_ptr
+            alloc = ips->dyn_allocations;
+
+  for (; alloc != NULL; alloc = alloc->next) ++count;
+  if (count > 0) {
+    info_with_pos_num(ec_constexpr_leftover_allocations,
+                      &ips->position, count, ips);
+    info_with_pos(ec_constexpr_allocation_pos, &ips->dyn_allocations->pos,
+                  ips);
+  }  /* if */
+}  /* report_leftover_allocations */
+
+
+static a_boolean do_constexpr_dynamic_alloc(an_interpreter_state  *ips,
+                                            a_type_ptr            orig_elem_tp,
+                                            a_byte_count          alloc_length,
+                                            a_source_position     *diag_pos,
+                                            a_constexpr_address   *cap,
+                                            a_byte_count          *p_elem_size)
+/*
+Allocate alloc_length consecutive objects of type orig_elem_tp on the
+interpreter's dynamic allocation heap and place the result in *cap.  Return
+TRUE if successful, and FALSE otherwise (in which case, a diagnostic is
+registered in *ips for the given position).
+*/
+{
+  a_boolean            result = TRUE;
+  a_type_ptr           elem_tp = skip_typerefs(orig_elem_tp);
+  a_byte_count         header_size, prefix_size, bitmap_size, elem_size,
+                       total_size;
+  a_byte               *block;
+  an_alloc_seq_number  alloc_seq_number;
+  a_constexpr_allocation_ptr
+                       allocation;
+
+  if (type_is(elem_tp, tk_array)) {
+    /* Adjust the number of elements for the array type. */
+    do {
+      a_targ_size_t  dim = elem_tp->variant.array.variant.number_of_elements;
+      if (MAX_CONSTEXPR_DYN_ALLOC_SIZE/dim < alloc_length) {
+        info_with_pos(ec_constexpr_allocation_too_large, diag_pos, ips);
+        do_constexpr_fail(result);
+        goto done;
+      }  /* if */
+      alloc_length *= dim;
+      elem_tp = skip_typerefs(elem_tp->variant.array.element_type);
+    } while (type_is(elem_tp, tk_array));
+  }  /* if */
+  elem_size = value_bytes_for_type(ips, elem_tp, &result); 
+  if (!result) goto done;
+  if (MAX_CONSTEXPR_DYN_ALLOC_SIZE/elem_size < alloc_length) {
+    info_with_pos(ec_constexpr_allocation_too_large, diag_pos, ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  total_size = alloc_length*elem_size;
+  do_host_alignment(total_size);
+  prefix_size = sizeof(a_constexpr_allocation);
+  do_host_alignment(prefix_size);
+  header_size = prefix_size;
+  /* Add the size of the bookkeeping prefix as if this were an array (see also
+     compute_prefix_size_for_type). */
+  bitmap_size = compute_bitmap_size(total_size);
+  prefix_size += bitmap_size+1+sizeof(a_type_ptr);
+  do_host_alignment(prefix_size);
+  total_size += prefix_size;
+  block = (a_byte*)malloc_for_interpreter(total_size);
+  if (block == NULL) {
+    info_with_pos(ec_constexpr_allocation_too_large, diag_pos, ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  /* Clear the bitmap and the "completely initialized" flag. */
+  memzero(block+header_size, size_t_arg(bitmap_size+1));
+  allocation = (a_constexpr_allocation_ptr)block;
+  alloc_seq_number = ips->curr_alloc_seq_number++;
+  allocation->alloc_seq_number = alloc_seq_number;
+  add_to_live_set(&ips->live_set, alloc_seq_number);
+  allocation->elem_type = orig_elem_tp;
+  allocation->pos = *diag_pos;
+  allocation->total_size = total_size;
+  allocation->prefix_size = prefix_size;
+  allocation->length = alloc_length;
+  allocation->next = ips->dyn_allocations;
+  allocation->prev = NULL;
+  if (ips->dyn_allocations != NULL) {
+    ips->dyn_allocations->prev = allocation;
+  }  /* if */
+  ips->dyn_allocations = allocation;
+  clear_address(cap, block+prefix_size);
+  cap->variant.base_address = cap->address;
+  record_complete_object_type(elem_tp, cap->complete_object);
+  cap->flags |= CA_ARRAY_ELEMENT;
+  cap->length = alloc_length;
+  cap->alloc_seq_number = alloc_seq_number;
+  *p_elem_size = elem_size;
+done:
+  return result;
+}  /* do_constexpr_dynamic_alloc */
+
+
+static a_boolean do_constexpr_std_allocator_allocate(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Interpret a call (represented by call_node) to std::allocator<T>::allocate
+(represented by callee).  This ignores the actual definition of that function
+(which is likely not constexpr-friendly) and instead allocates storage in the
+interpreter's domain (updating *ips as needed).  *p_arg_bytes points to the
+already-evaluated argument of the call.  result_storage/complete_obj indicates
+where the result should be stored.
+*/
+{
+  a_boolean             result = TRUE, ovflo;
+  an_expr_node_ptr      callee_node, size_arg;
+  a_type_ptr            size_tp, allocator_tp;
+  a_template_arg_ptr    tap;
+  a_host_large_integer  alloc_length;
+  a_byte_count          elem_size;
+
+  callee_node = call_node->variant.operation.operands;
+  if (callee_node == NULL || callee_node->next == NULL ||
+      callee_node->next->next == NULL) {
+    do_constexpr_fail(result);
+    info_with_pos_sym_type(ec_constexpr_invalid_intrinsic_signature,
+                           &call_node->position, symbol_for(callee),
+                           callee->type, ips);
+    goto done;
+  }  /* if */
+  /* Skip the callee and selector nodes. */
+  size_arg = callee_node->next->next;
+  size_tp = skip_typerefs(size_arg->type);
+  if (size_tp->kind != (a_type_kind)tk_integer) {
+    do_constexpr_fail(result);
+    info_with_pos_sym_type(ec_constexpr_invalid_intrinsic_signature,
+                           &call_node->position, symbol_for(callee),
+                           callee->type, ips);
+    goto done;
+  }  /* if */
+  get_int_val_from(p_arg_bytes[1], size_tp, alloc_length, ovflo);
+  if (ovflo || alloc_length < 0 || alloc_length > MAX_ARRAY_LENGTH) {
+    info_with_pos_num(ec_constexpr_alloc_too_large, &call_node->position,
+                      alloc_length, ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  check_assertion(callee->source_corresp.is_class_member);
+  allocator_tp = parent_class_of(callee);
+  tap = class_type_supp(allocator_tp)->template_arg_list;
+  if (tap == NULL || tap->kind != (a_templ_arg_kind)tak_type) {
+    do_constexpr_fail(result);
+    info_with_pos_sym_type(ec_constexpr_invalid_intrinsic_signature,
+                           &call_node->position, symbol_for(callee),
+                           callee->type, ips);
+    goto done;
+  }  /* if */
+  if (!do_constexpr_dynamic_alloc(ips, tap->variant.type, alloc_length,
+                                  &call_node->position,
+                                  (a_constexpr_address*)result_storage,
+                                  &elem_size)) {
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+done:
+  return result;
+}  /* do_constexpr_std_allocator_allocate */
+
+
+static a_constexpr_allocation_ptr find_constexpr_allocation(
+                                             an_interpreter_state  *ips,
+                                             a_byte                *ptr_bytes,
+                                             a_source_position     *diag_pos)
+/*
+The given bytes hold a constexpr address, presumably representing the address
+of a constexpr allocation.  Find the associated allocation and return it.  If
+there is none, record a diagnostic in ips for the given position and return
+NULL.
+*/
+{
+  a_constexpr_allocation  *allocation;
+  a_constexpr_address     *ptr_val = (a_constexpr_address*)ptr_bytes;
+
+  for (allocation = ips->dyn_allocations;
+       allocation != NULL;
+       allocation = allocation->next) {
+    if (ptr_val->address == (a_byte*)allocation+allocation->prefix_size) {
+      break;
+    }  /* if */
+  }  /* for */
+  if (allocation == NULL) {
+    /* The pointer argument doesn't appear to correspond to an earlier
+       allocation. */
+    info_with_pos(ec_constexpr_bad_deallocation, diag_pos, ips);
+  }  /* if */
+  return allocation;
+}  /* find_constexpr_allocation */
+
+
+static void free_allocation(an_interpreter_state    *ips,
+                            a_constexpr_allocation  *allocation)
+/*
+Release the given allocation.
+*/
+{
+  remove_from_live_set(&ips->live_set, allocation->alloc_seq_number);
+  if (allocation->prev == NULL) {
+    ips->dyn_allocations = allocation->next;
+  } else {
+    allocation->prev->next = allocation->next;
+  }  /* if */
+  if (allocation->next != NULL) {
+    allocation->next->prev = allocation->prev;
+  }  /* if */
+  free_for_interpreter((a_byte*)allocation, (sizeof_t)allocation->total_size);
+}  /* free_constexpr_allocation */
+
+
+static a_boolean do_constexpr_std_allocator_deallocate(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Interpret a call (represented by call_node) to std::allocator<T>::deallocate
+(represented by callee).  This ignores the actual definition of that function
+(which is likely not constexpr-friendly) and instead allocates storage in the
+interpreter's domain (updating *ips as needed).  *p_arg_bytes points to the
+already-evaluated arguments of the call.  result_storage/complete_obj indicates
+where the result should be stored.
+*/
+{
+  a_boolean             result = TRUE;
+  an_expr_node_ptr      callee_node, ptr_arg, size_arg;
+  a_type_ptr            ptr_tp, size_tp, elem_tp, allocator_tp;
+  a_template_arg_ptr    tap;
+  a_host_large_integer  alloc_length;
+  a_boolean             ovflo;
+  a_byte_count          elem_size, total_size, orig_data_size;
+  a_constexpr_allocation_ptr
+                        allocation;
+
+  callee_node = call_node->variant.operation.operands;
+  if (callee_node == NULL || callee_node->next == NULL ||
+      callee_node->next->next == NULL ||
+      callee_node->next->next->next == NULL) {
+    /* Three "arguments": (1) the selector (allocator), (2) the pointer to
+       allocator, and (3) the size to deallocate. */
+    goto done;
+  }  /* if */
+  ptr_arg = callee_node->next->next;
+  ptr_tp = skip_typerefs(ptr_arg->type);
+  if (ptr_tp->kind != (a_type_kind)tk_pointer) {
+    do_constexpr_fail(result);
+    info_with_pos_sym_type(ec_constexpr_invalid_intrinsic_signature,
+                           &call_node->position, symbol_for(callee),
+                           callee->type, ips);
+    goto done;
+  }  /* if */
+  allocation = find_constexpr_allocation(ips, p_arg_bytes[1],
+                                         &call_node->position);
+  if (allocation == NULL) {
+    result = FALSE;
+    goto done;
+  }  /* if */
+  size_arg = ptr_arg->next;
+  size_tp = skip_typerefs(size_arg->type);
+  if (size_tp->kind != (a_type_kind)tk_integer) {
+    do_constexpr_fail(result);
+    info_with_pos_sym_type(ec_constexpr_invalid_intrinsic_signature,
+                           &call_node->position, symbol_for(callee),
+                           callee->type, ips);
+    goto done;
+  }  /* if */
+  get_int_val_from(p_arg_bytes[2], size_tp, alloc_length, ovflo);
+  if (ovflo || alloc_length < 0 || alloc_length > MAX_ARRAY_LENGTH) {
+    info_with_pos_num(ec_constexpr_alloc_too_large, &call_node->position,
+                      alloc_length, ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  check_assertion(callee->source_corresp.is_class_member);
+  allocator_tp = parent_class_of(callee);
+  tap = class_type_supp(allocator_tp)->template_arg_list;
+  if (tap == NULL || tap->kind != (a_templ_arg_kind)tak_type) {
+    do_constexpr_fail(result);
+    info_with_pos_sym_type(ec_constexpr_invalid_intrinsic_signature,
+                           &call_node->position, symbol_for(callee),
+                           callee->type, ips);
+    goto done;
+  }  /* if */
+  elem_tp = tap->variant.type;
+  if (!same_entities(allocation->elem_type, elem_tp)) {
+    info_with_pos_type2(ec_constexpr_bad_deallocation_type,
+                        &call_node->position, elem_tp, allocation->elem_type,
+                        ips);
+    info_with_pos(ec_constexpr_allocation_pos, &allocation->pos, ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  elem_tp = skip_typerefs(elem_tp);
+  elem_size = value_bytes_for_type(ips, elem_tp, &result); 
+  if (!result) goto done;
+  if (MAX_CONSTEXPR_DYN_ALLOC_SIZE/elem_size < alloc_length) {
+    info_with_pos(ec_constexpr_allocation_too_large, &call_node->position,
+                  ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  total_size = alloc_length*elem_size;
+  do_host_alignment(total_size);
+  orig_data_size = allocation->total_size - allocation->prefix_size;
+  if (total_size != orig_data_size) {
+    info_with_pos_num2(ec_constexpr_bad_deallocation_size,
+                       &call_node->position, alloc_length,
+                       orig_data_size/elem_size, ips);
+    info_with_pos(ec_constexpr_allocation_pos, &allocation->pos, ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  free_allocation(ips, allocation);
+done:
+  return result;
+}  /* do_constexpr_std_allocator_deallocate */
+
+
+static a_byte
+		*valid_placement_new_address;
+			/* An address for which a placement-new is
+			   acceptable. */
+
+static a_type_ptr
+		valid_placement_new_type;
+			/* The type of the object stored at the
+			   valid_placement_new_address.  NULL if no address
+			   is acceptable. */
+
+
+/*ARGSUSED*/  /* Some parameters are unused, but they are needed to conform
+                 to a callback convention. */
+static a_boolean do_constexpr_std_construct_at(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Execute a call to:
+	std::construct_at<T>(T* location, Args&&... args)
+See do_constexpr_std_allocator_allocate for the meaning of the parameters.
+*/
+{
+  /* The definition of construct_at relies on "placement new", which is usually
+     a problem for constexpr evaluation because placement-new takes a void*,
+     which we don't know to be valid in general.  However, in this case we know
+     it's valid because it comes from the parameter "location" of the right
+     type.  So we temporarily enable placement-new here, and record the address
+     at which the object will be constructed.  do_constexpr_new then makes use
+     of that information. */
+  a_boolean            result = TRUE;
+  a_template_arg_ptr   tap = callee->template_arg_list;
+  a_constexpr_address  *cap = (a_constexpr_address*)p_arg_bytes[0];
+
+  check_assertion(valid_placement_new_type == NULL &&
+                  tap != NULL && tap->kind == (a_templ_arg_kind)tak_type);
+  valid_placement_new_address = cap->address;
+  valid_placement_new_type = skip_typerefs(tap->variant.type);
+  result = run_function_body(ips, scope_for_routine(callee));
+  valid_placement_new_type = NULL;
+  return result;
+}  /* do_constexpr_std_allocator_construct_at */
+
+
+/*ARGSUSED*/  /* Some parameters are unused, but they are needed to conform
+                 to a callback convention. */
+static a_boolean do_constexpr_std_destroy_at(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Execute a call to std::destroy_at.  See do_constexpr_std_allocator_allocate
+for the meaning of the parameters.
+*/
+{
+  a_boolean  result = TRUE;
+
+  result = run_function_body(ips, scope_for_routine(callee));
+  return result;
+}  /* do_constexpr_std_destroy_at */
+
+
+/*ARGSUSED*/  /* Some parameters are unused, but they are needed to conform
+                 to a callback convention. */
+static a_boolean do_constexpr_std_report_constexpr_value(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Print out the value of the first argument if it is an integer or a pointer to
+a narrow string.  Return FALSE in case of a serious issue.
+*/
+{
+  a_boolean         result = TRUE;
+  a_type_ptr        rtp = skip_typerefs(callee->type);
+  a_param_type_ptr  ptp = function_type_params(rtp);
+
+  if (!ips->is_constant_evaluated) {
+    /* Don't generate output if a constant is not needed, but fail evaluation
+       in that case.  That avoids repeated output due to the front end trying
+       to fold the same sub-expression multiple times (when it doesn't really
+       need to). */
+    result = FALSE;
+    goto done;
+  }  /* if */
+  if (!ips->report_started) {
+    a_const_char   *full_name, *diag_file_name;
+    a_line_number  line_number;
+    a_boolean      at_end_of_source;
+    conv_seq_to_file_and_line(ips->position.seq, &diag_file_name, &full_name,
+                              &line_number, &at_end_of_source);
+    fprintf(f_error, "\n(begin constexpr evaluation at line %lu of \"%s\")\n",
+            (unsigned long)line_number, diag_file_name); 
+    ips->report_started = TRUE;
+  }  /* if */
+  if (is_integral_type(ptp->type)) {
+    a_boolean             is_signed = is_signed_integral_type(ptp->type);
+    a_host_large_integer  val;
+    a_boolean             ovflo;
+    a_byte                *val_bytes = p_arg_bytes[0];
+    conv_integer_value_to_host_large_integer(
+                     (an_integer_value *)val_bytes, is_signed, &val, &ovflo);
+    if (ovflo) {
+      fprintf(f_error, "(overflow)");
+    } else if (is_signed) {
+      fprintf(f_error, "%lld", (long long)val);
+    } else {
+      fprintf(f_error, "%llu", (unsigned long long)val);
+    }  /* if */
+  } else {
+    /* A sequence of characters.  The first argument is a pointer to the
+       string.  There may be a second argument indicating the number of
+       characters to output. */
+    a_constexpr_address  *cap = (a_constexpr_address*)p_arg_bytes[0];
+    if (is_array_element(cap) && !cannot_dereference(cap)) {
+      an_integer_value      *p_val = (an_integer_value*)cap->address;
+      a_type_ptr            elem_type = type_pointed_to(ptp->type);
+      a_byte_count          elem_size, pos, len;
+      a_host_large_integer  char_val;
+      a_boolean             ovflo;
+      elem_type = skip_typerefs(elem_type);
+      get_array_pos(ips, cap, elem_type, &len, &pos, &elem_size,
+                    &result);
+      if (ptp->next != NULL) {
+        /* There is a second parameter indicating the number of characters
+           to output. */
+        an_integer_value      *p_len = (an_integer_value*)p_arg_bytes[1];
+        a_host_large_integer  max_len;
+        conv_integer_value_to_host_large_integer(
+                     p_len, /*is_signed=*/TRUE, &max_len, &ovflo);
+        if (max_len < 0) {
+          len = 0;
+        } else if (max_len < len-pos) {
+          len = max_len-pos;
+        }  /* if */
+      }  /* if */
+      while (pos<len) {
+        conv_integer_value_to_host_large_integer(
+                p_val, is_signed_integral_type(elem_type), &char_val, &ovflo);
+        if (char_val == 0) break;
+        fprintf(f_error, "%c", (char)char_val);
+        ++pos;
+        ++p_val;
+      }  /* while */
+    } else {
+      fprintf(f_error, "(invalid string pointer)");
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* do_constexpr_std_report_constexpr_value */
+
+
 typedef a_boolean (*an_intrinsic_evaluator)(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -7661,9 +8392,13 @@ typedef a_boolean (*an_intrinsic_evaluator)(
 
 static an_intrinsic_evaluator intrinsics_table[(int)cit_last] = {
   (an_intrinsic_evaluator)NULL,
-  do_constexpr_std_is_constant_evaluated
+  do_constexpr_std_is_constant_evaluated,
+  do_constexpr_std_allocator_allocate,
+  do_constexpr_std_allocator_deallocate,
+  do_constexpr_std_construct_at,
+  do_constexpr_std_destroy_at,
+  do_constexpr_std_report_constexpr_value
 };
-
 
 
 static a_boolean do_constexpr_intrinsic_call(
@@ -7973,6 +8708,7 @@ otherwise, return FALSE and update *ips accordingly.
   a_constexpr_ptr_to_mem
                     *pm_target = NULL;
   a_byte            *pre_evaluated_this_bytes = NULL;
+  a_boolean          is_member_call = !node_operator_is(call_node, eok_call);
 
   /* First determine the actual callee. */
   callee = eval_constexpr_callee(ips, call_node, &pm_target,
@@ -7982,7 +8718,6 @@ otherwise, return FALSE and update *ips accordingly.
     goto done;
   }  /* if */
   /* Now interpret the call if possible. */
-#if BUILTIN_FUNCTIONS_ENABLED
   /* First check the case of a built-in function that is handled specially by
      the interpreter. */
   {
@@ -7994,6 +8729,7 @@ otherwise, return FALSE and update *ips accordingly.
       eff_callee = gnu_routine_supp(eff_callee)->aliased_routine;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if BUILTIN_FUNCTIONS_ENABLED
     if (special_kind_is(eff_callee, sfk_none) &&
         eff_callee->variant.builtin_function_kind !=
                                           (a_builtin_function_kind)bfk_none &&
@@ -8003,9 +8739,31 @@ otherwise, return FALSE and update *ips accordingly.
     } else if (!result) {
       goto done;
     }  /* if */
-  }
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-  if (special_kind_is(callee, sfk_lambda_entry_point)) {
+  }
+  if (special_kind_is(callee, sfk_destructor)) {
+    /* An explicit call to a destructor is handled separately (among other
+       things, it may require destroying subobjects). */
+    an_expr_node_ptr     selector_arg = call_node->variant.operation.operands
+                                                 ->next;
+    a_type_ptr           tp = skip_typerefs(selector_arg->type);
+    a_byte_count         this_n_bytes = sizeof(a_constexpr_address);
+    a_constexpr_address  *cap;
+    do_host_alignment(this_n_bytes);
+    alloc_complete_object(ips, this_n_bytes, generic_ptr_type,
+                          pre_evaluated_this_bytes);
+    if (!eval_selector_arg(ips, selector_arg, tp,
+                           pre_evaluated_this_bytes)) {
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
+    cap = (a_constexpr_address*)pre_evaluated_this_bytes;
+    result = do_constexpr_dtor(ips, callee, &call_node->position,
+                               cap->address, cap->complete_object);
+    mark_subobject_uninitialized(cap->address, cap->complete_object);
+    unmark_complete_object_initialized(cap->complete_object);
+    goto done;
+  } else if (special_kind_is(callee, sfk_lambda_entry_point)) {
     /* Use the real call operator instead of the entry point. */
     callee = callee->variant.lambda_call_operator;
     lambda_entry_case = TRUE;
@@ -8028,7 +8786,6 @@ otherwise, return FALSE and update *ips accordingly.
     do_constexpr_fail(result);
   } else {
     a_scope_ptr      callee_scope;
-    a_statement_ptr  block_stmt;
     a_call_frame     frame;
     a_variable_ptr   params, param, this_var;
     a_byte_count     n_args = 0, n_params, retval_offset = 0;
@@ -8037,7 +8794,6 @@ otherwise, return FALSE and update *ips accordingly.
     an_alloc_seq_number
                      alloc_seq_number;
     unsigned long    up_front_cost;
-    a_boolean        is_member_call = !node_operator_is(call_node, eok_call);
     a_boolean        eval_right_to_left =
                               call_node->variant.operation.eval_right_to_left;
     /* Account a relatively high cost for the call up-front, to limit the
@@ -8294,11 +9050,7 @@ otherwise, return FALSE and update *ips accordingly.
                                    result_storage, complete_object);
     } else {
       /* Run the function's top-level block statement. */
-      block_stmt = callee_scope->assoc_block;
-      if (block_stmt->kind == (a_statement_kind)stmk_try_block) {
-        block_stmt = block_stmt->variant.try_block->statement;
-      }  /* if */
-      result = do_constexpr_block_statement(ips, block_stmt, callee_scope);
+      result = run_function_body(ips, callee_scope);
     }  /* if */
     if (retval_offset != 0 && result) {
       /* A virtual call dispatching to an overriding function with a
@@ -8819,6 +9571,165 @@ the body of the (constructor) function proper.
 done:
   return result;
 }  /* do_constexpr_ctor */
+
+
+static a_boolean do_constexpr_dtor(an_interpreter_state  *ips,
+                                   a_routine_ptr         callee,
+                                   a_source_position     *pos,
+                                   a_byte                *result_storage,
+                                   a_byte                *complete_object)
+/*
+Interpret a call to the given destructor (callee).  Return TRUE if no error
+occurred; otherwise, return FALSE and update *ips accordingly.  pos is the
+position of the call.  The object being destroyed is at the location indicated
+by result_storage, which is within the given complete object.
+
+This is similar to do_constexpr_ctor.
+*/
+{
+  a_boolean  result = TRUE;
+
+  /* Retrieve the routine scope, or issue an error. */
+  if (callee == NULL) {
+    unexpected_condition();
+  } else if (!callee->is_constexpr) {
+    info_with_pos_sym(ec_constexpr_call_to_nonconstexpr_function,
+                      pos, symbol_for(callee), ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  if (!callee->defined) {
+    set_instance_required(symbol_for(callee), TRUE, SIR_CONSTANT_CONTEXT);
+  }  /* if */
+  if (callee->function_def_number == NULL_function_def_number) {
+    info_with_pos_sym(ec_constexpr_function_undefined, pos,
+                      symbol_for(callee), ips);
+    do_constexpr_fail(result);
+  } else if (callee->is_prototype_instantiation) {
+    info_with_pos_sym(ec_constexpr_call_not_interpretable, pos,
+                      symbol_for(callee), ips);
+    do_constexpr_fail(result);
+  } else if (cost_exceeded(ips)) {
+    more_info_diagnostic(ec_excessive_constexpr_complexity, &ips->position,
+                         &ips->diag_list);
+    do_constexpr_fail(result);
+  } else {
+    a_scope_ptr          callee_scope = scope_for_routine(callee);
+    a_statement_ptr      block_stmt = callee_scope->assoc_block;
+    a_call_frame         frame;
+    a_variable_ptr       this_var;
+    a_constructor_init_ptr
+                         dtor_init;
+    a_byte               *this_bytes;
+    an_alloc_seq_number  alloc_seq_number;
+    a_type_ptr           class_type = parent_class_of(callee);
+    unsigned long        up_front_cost;
+    /* Don't attempt to interpret a non-constexpr function.  The flag
+       scope->is_constexpr_routine is set at the end of a constexpr function
+       definition, so this also prevents the interpretation of a function that
+       is not fully parsed (e.g., requested due to a recursive call in a
+       constexpr function). */
+    if (!callee_scope->is_constexpr_routine) {
+      do_constexpr_fail(result);
+      info_with_pos_sym(ec_constexpr_call_not_interpretable, pos,
+                        symbol_for(callee), ips);
+      goto done;
+    }  /* if */
+    /* Account a relatively high cost for the call up-front, to limit the
+       overall call depth.  When the call returns, that cost will be
+       reduced. */
+    up_front_cost = max_cost_constexpr_call/max_depth_constexpr_call+1;
+    ips->cost += up_front_cost;
+    /* Phase 1: Allocate and evaluate the "this" argument. */
+    /* Create the "this" argument and map it to the "this" parameter
+       variable. */
+    alloc_seq_number = ips->curr_alloc_seq_number++;
+    this_var = callee_scope->variant.routine.this_param_variable;
+    if (this_var == NULL) {
+      /* A constructor should always have a "this" parameter, but in some
+         error cases, it may not have been created. */
+      expect_error();
+      do_constexpr_fail(result);
+      goto done;
+    } else {
+      /* This is similar to do_constexpr_alloc_variable, except for the
+         allocation sequence number value. */
+      a_type_ptr     this_type = skip_typerefs(this_var->type);
+      a_byte_count   this_n_bytes = sizeof(a_constexpr_address);
+      a_byte_count   with_postfix_bytes;
+      a_var_postfix  *postfix;
+      do_host_alignment(this_n_bytes);
+      with_postfix_bytes = this_n_bytes+sizeof(a_var_postfix);
+      alloc_complete_object(ips, with_postfix_bytes, this_type, this_bytes);
+      clear_address(this_bytes, result_storage);
+      ((a_constexpr_address *)this_bytes)->complete_object = complete_object;
+      ((a_constexpr_address *)this_bytes)->alloc_seq_number = alloc_seq_number;
+      mark_complete_object_initialized(this_bytes);
+      postfix = (a_var_postfix*)(this_bytes+this_n_bytes);
+      postfix->alloc_seq_number = alloc_seq_number;
+      map_or_replace_ptr(&ips->map, this_var, this_bytes,
+                         postfix->prev_storage);
+    }  /* if */
+    /* Set up the call frame. */
+    push_call_frame(ips, &frame, callee, pos, result_storage, complete_object);
+    /* Run the function's top-level block statement. */
+    if (!result) {
+      /* Something went wrong.  Don't perform additional interpretation. */
+    } else {
+      if (block_stmt->kind == (a_statement_kind)stmk_try_block) {
+        block_stmt = block_stmt->variant.try_block->statement;
+      }  /* if */
+      result = do_constexpr_block_statement(ips, block_stmt, callee_scope);
+    }  /* if */
+    /* Run the "constructor initializers" that describe subobject
+       destructions. */
+    unmark_complete_object_initialized(complete_object);
+    mark_whole_subobject_uninitialized(ips, result_storage, class_type,
+                                       complete_object);
+    dtor_init = callee_scope->variant.routine.constructor_inits;
+    for (; dtor_init != NULL; dtor_init = dtor_init->next) {
+      a_byte_count        offset;
+      a_dynamic_init_ptr  sub_dip;
+      if (dtor_init->kind == (a_constructor_init_kind)cik_field) {
+        a_field_ptr  fp = dtor_init->variant.field;
+        get_mapped_byte_count(&persistent_map, fp, offset);
+        sub_dip = dtor_init->initializer;
+        if (class_type->kind == (a_type_kind)tk_union) {
+          /* Clear the active field for the enclosing union. */
+          *(a_field_ptr*)result_storage = NULL;
+        }  /* if */
+      } else {
+        a_base_class_ptr  bcp = dtor_init->variant.base_class;
+        get_mapped_byte_count(&persistent_map, bcp, offset);
+        sub_dip = dtor_init->initializer;
+      }  /* if */
+      /* Clear the derivation/active-field state. */
+      *(void**)(result_storage+offset) = NULL;
+      if (!do_constexpr_dtor(ips, sub_dip->destructor, pos,
+                             result_storage+offset, complete_object)) {
+        do_constexpr_fail(result);
+        break;
+      } else {
+        mark_subobject_uninitialized(result_storage+offset, complete_object);
+      }  /* if */
+    }  /* for */
+    pop_call_frame(ips);
+    { /* Unmap the "this" parameter. */
+      a_var_postfix  *postfix;
+      postfix = (a_var_postfix*)(this_bytes+sizeof(a_constexpr_address));
+      if (postfix->prev_storage == NULL) {
+        unmap_ptr(&ips->map, this_var);
+      } else {
+        replace_mapped_ptr(&ips->map, this_var, postfix->prev_storage);
+      }  /* if */
+    }
+    /* Reduce the cost of the call to just 2. */
+    ips->cost -= up_front_cost-2;
+    ips->call_seen = TRUE;
+  }  /* if */
+done:
+  return result;
+}  /* do_constexpr_dtor */
 
 
 static a_constant_ptr make_interpreter_copy_of_constant(
@@ -10276,6 +11187,171 @@ done:;
 }  /* do_constexpr_dynamic_cast */
 
 
+static a_boolean do_constexpr_new(an_interpreter_state  *ips,
+                                  an_expr_node_ptr      expr,
+                                  a_byte                *result_storage,
+                                  a_byte                *complete_object)
+/*
+Evaluate the given new-expression.
+*/
+{
+  a_boolean                    result = TRUE;
+  a_new_delete_supplement_ptr  ndsp = expr->variant.new_delete;
+  a_byte_count                 alloc_length, elem_size;
+  a_constexpr_address          *cap;
+
+  if (!constexpr_dynamic_alloc_enabled) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                  &expr->position, ips);
+    goto done;
+  }  /* if */
+  if (ndsp->number_of_elements == NULL) {
+    /* No declarator of the form [<run-time length>]. */
+    alloc_length = 1;
+  } else {
+    a_byte_count          opnd_n_bytes;
+    an_expr_node_ptr      length_expr = ndsp->number_of_elements;
+    a_type_ptr            length_tp = skip_typerefs(length_expr->type);
+    a_byte                *length_bytes;
+    a_boolean             ovflo;
+    a_host_large_integer  length;
+    check_assertion(type_is(length_tp, tk_integer));
+    opnd_n_bytes = expr_result_size(ips, length_expr, length_tp, &result);
+    if (!result) goto done;
+    alloc_complete_object(ips, opnd_n_bytes, length_tp, length_bytes);
+    if (!do_constexpr_expression(ips, length_expr,
+                                 length_bytes, length_bytes)) {
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
+    get_int_val_from(length_bytes, length_tp, length, ovflo);
+    if (ovflo || length < 0 || length > MAX_ARRAY_LENGTH) {
+      info_with_pos_num(ec_constexpr_alloc_too_large, &length_expr->position,
+                        length, ips);
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
+    alloc_length = (a_byte_count)length;
+  }  /* if */
+// Adjust type & number for arrays of arrays FIXME
+  cap = (a_constexpr_address*)result_storage;
+  if (ndsp->placement_new) {
+    a_type_ptr        new_tp = skip_typerefs(ndsp->type);
+    an_expr_node_ptr  ptr_expr = ndsp->arg;
+    a_type_ptr        ptr_tp = skip_typerefs(ptr_expr->type);
+    if (new_tp != valid_placement_new_type) {
+      /* The new-expression does not allocate a type deduced for an enclosing
+         std::construct_at<T> call. */
+      do_constexpr_fail(result);
+    } else if (ptr_expr == NULL || ptr_expr->next != NULL ||
+               !type_is(ptr_tp, tk_pointer) ||
+               !is_void_type(ptr_tp->variant.pointer.type)) {
+      /* The placement new isn't for an "operator new" with a single placement
+         parameter of type "void*/
+      do_constexpr_fail(result);
+    } else {
+      /* Evaluate the address at which to place the object and ensure it's
+         what was passed to an enclosing "std::construct_at<T>" call. */
+      if (!do_constexpr_expression(ips, ptr_expr,
+                                   result_storage, complete_object)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      if (cap->address != valid_placement_new_address) {
+        /* The placement new address is not the one that came though the
+           std::construct_at parameter.  Presumably that is a consequence of
+           an incorrect std::construct_at definition. */
+        do_constexpr_fail(result);
+      }  /* if */
+    }  /* if */
+    if (!result) {
+      info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                    &expr->position, ips);
+      goto done;
+    }  /* if */
+  } else if (!do_constexpr_dynamic_alloc(ips, ndsp->type, alloc_length,
+                                         &expr->position, cap, &elem_size)) {
+    result = FALSE;
+    goto done;
+  }  /* if */
+  if (ndsp->dynamic_init != NULL) {
+    /* Initialize each element. */
+    a_dynamic_init_ptr  dip = ndsp->dynamic_init;
+    int                 k = 0;
+    a_byte              *elem = cap->address,
+                        *complete_obj = cap->complete_object;
+    for (; k<alloc_length; ++k, elem += elem_size) {
+      if (!do_constexpr_dynamic_init(ips, dip, &expr->position, elem,
+                                     complete_obj)) {
+        result = FALSE;
+        break;
+      }  /* if */
+      mark_subobject_initialized(elem, complete_obj);
+    }  /* for */
+  }  /* if */
+done:
+  return result;
+}  /* do_constexpr_new */
+
+
+static a_boolean do_constexpr_delete(an_interpreter_state  *ips,
+                                     an_expr_node_ptr      expr,
+                                     a_byte                *result_storage,
+                                     a_byte                *complete_object)
+/*
+Evaluate the given delete-expression.
+*/
+{
+  a_boolean                    result = TRUE;
+  a_new_delete_supplement_ptr  ndsp = expr->variant.new_delete;
+  a_byte_count                 opnd_n_bytes;
+  an_expr_node_ptr             ptr_expr = ndsp->arg;
+  a_type_ptr                   ptr_tp = skip_typerefs(ptr_expr->type);
+  a_byte                       *ptr_bytes;
+  a_constexpr_allocation       *allocation;
+
+  check_assertion(type_is(ptr_tp, tk_pointer));
+  opnd_n_bytes = expr_result_size(ips, ptr_expr, ptr_tp, &result);
+  if (!result) goto done;
+  alloc_complete_object(ips, opnd_n_bytes, ptr_tp, ptr_bytes);
+  if (!do_constexpr_expression(ips, ptr_expr, ptr_bytes, ptr_bytes)) {
+    result = FALSE;
+    goto done;
+  }  /* if */
+  allocation = find_constexpr_allocation(ips, ptr_bytes, &expr->position);
+  if (allocation == NULL) {
+    result = FALSE;
+    goto done;
+  } else {
+    /* Perform necessary destructions and mark subobject uninitialized. */
+    a_dynamic_init_ptr  dip = ndsp->dynamic_init;
+    a_byte_count        k = 0, length = allocation->length, elem_size;
+    a_byte              *arr = (a_byte*)allocation+allocation->prefix_size,
+                        *elem = arr;
+    a_type_ptr          elem_type = skip_typerefs(allocation->elem_type);
+    elem_size = value_bytes_for_type(ips, elem_type, &result);
+    if (!result) goto done;
+    unmark_complete_object_initialized(arr);
+    for (; k<length; ++k, elem += elem_size) {
+      if (dip != NULL) {
+        if (!do_constexpr_dtor(ips, dip->destructor, &expr->position,
+                               elem, arr)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        mark_subobject_uninitialized(elem, arr);
+      } else {
+        mark_whole_subobject_initialized(ips, elem, elem_type, arr);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  free_allocation(ips, allocation);
+done:
+  return result;
+}  /* do_constexpr_delete */
+
+
 static a_boolean do_constexpr_expression(
                                        an_interpreter_state  *ips,
                                        an_expr_node_ptr      orig_expr,
@@ -10918,9 +11994,25 @@ the value representation of the integer value.
             break;
           case eok_dot_vacuous_destructor_call:
           case eok_points_to_vacuous_destructor_call:
-            info_with_pos(ec_constexpr_vacuous_dtor_call,
-                          &expr->position, ips);
-            do_constexpr_fail(result);
+            if (constexpr_dynamic_alloc_enabled) {
+              a_constexpr_address  *cap = (a_constexpr_address*)opnd1_value;
+              if (is_array_element(cap) ||
+                  cap->address != cap->complete_object) {
+                a_type_ptr  obj_type;
+                if (type_is(opnd1_type, tk_pointer)) {
+                  obj_type = skip_typerefs(opnd1_type->variant.pointer.type);
+                } else {
+                  obj_type = opnd1_type;
+                }  /* if */
+                mark_whole_subobject_uninitialized(ips, cap->address, obj_type,
+                                                   cap->complete_object);
+              }  /* if */
+              unmark_complete_object_initialized(cap->complete_object);
+            } else {
+              info_with_pos(ec_constexpr_vacuous_dtor_call,
+                            &expr->position, ips);
+              do_constexpr_fail(result);
+            }  /* if */
             break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           case eok_assume:
@@ -13943,16 +15035,18 @@ the value representation of the integer value.
                   break;
                 }  /* if */
               }  /* if */
-              /* The caller might have "rvalued" expr, but that didn't
-                 propagate to the operands.  Temporarily enable that
-                 propagation. */
-              if (opnd2->is_lvalue && !expr->is_lvalue) {
-                opnd2->is_lvalue = FALSE;
-                restore_lvalue = TRUE;
-              }  /* if */
-              if (opnd2->is_xvalue && !expr->is_xvalue) {
-                opnd2->is_xvalue = FALSE;
-                restore_xvalue = TRUE;
+              if (!expr->is_lvalue && !expr->is_xvalue) {
+                /* The caller might have "rvalued" expr, but that didn't
+                   propagate to the operands.  Temporarily enable that
+                   propagation. */
+                if (opnd2->is_lvalue) {
+                  opnd2->is_lvalue = FALSE;
+                  restore_lvalue = TRUE;
+                }  /* if */
+                if (opnd2->is_xvalue) {
+                  opnd2->is_xvalue = FALSE;
+                  restore_xvalue = TRUE;
+                }  /* if */
               }  /* if */
               result = do_constexpr_expression(
                                  ips, opnd2, result_storage, complete_object);
@@ -14493,10 +15587,11 @@ the value representation of the integer value.
       break;
     case enk_lambda:
     case enk_temp_init:
-      { a_dynamic_init_ptr     dip;
-        a_byte                 *tmp_bytes, *tmp_complete_obj;
-        an_alloc_seq_number    alloc_seq_number;
-        a_byte_count           prefix_size;
+      { a_dynamic_init_ptr   dip;
+        a_byte               *tmp_bytes, *tmp_complete_obj;
+        an_alloc_seq_number  alloc_seq_number;
+        a_byte_count         prefix_size;
+        a_boolean            temp_lifetime;
         if (C_mode()) {
           info_with_pos(ec_constexpr_access_to_runtime_storage,
                         &expr->position, ips);
@@ -14509,10 +15604,10 @@ the value representation of the integer value.
              interpreter address for the temporary object.  Allocate the
              storage for that object here. */
           a_constexpr_address  *cap;
-          a_boolean            temp_lifetime = dip->has_temporary_lifetime;
           n_bytes = value_bytes_for_type(ips, tp, &result);
           if (!result) break;
           compute_prefix_size_for_type(tp, n_bytes, prefix_size);
+          temp_lifetime = dip->has_temporary_lifetime;
           if (!temp_lifetime) {
             /* A lifetime-extended temporary.  Switch to the storage stack
                state that was saved at the time the stmk_init statement was
@@ -14521,6 +15616,12 @@ the value representation of the integer value.
               alloc_bytes(ips->extension_state, n_bytes+prefix_size,
                           tmp_bytes);
               alloc_seq_number = ips->extension_state->alloc_seq_number;
+              if (dip->destructor != NULL &&
+                  !register_extended_destruction(ips, dip,
+                                                 tmp_bytes, tmp_bytes,
+                                                 &expr->position)) {
+                break;
+              }  /* if */
               ips->extension_state = NULL;
             } else {
               /* If we're processing the initializer of a static-lifetime
@@ -14562,9 +15663,9 @@ the value representation of the integer value.
              evaluate the initialization directly into result_storage. */
           tmp_bytes = result_storage;
           tmp_complete_obj = complete_object;
+          temp_lifetime = TRUE;
         }  /* if */
-        if (dip->kind == (a_dynamic_init_kind)dik_zero &&
-            dip->destructor == NULL) {
+        if (dip->kind == (a_dynamic_init_kind)dik_zero) {
           init_subobject_to_zero(ips, tmp_bytes, tp, tmp_complete_obj);
         } else if (!do_constexpr_dynamic_init(
                     ips, dip, &expr->position, tmp_bytes, tmp_complete_obj)) {
@@ -14575,7 +15676,19 @@ the value representation of the integer value.
         } else {
           mark_subobject_initialized(tmp_bytes, tmp_complete_obj);
         }  /* if */
+        if (result && dip->destructor != NULL && temp_lifetime) {
+          result = register_destruction(ips, dip, tmp_bytes, tmp_complete_obj,
+                                        &expr->position);
+        }  /* if */
       }
+      break;
+    case enk_new_delete:
+      if (expr->variant.new_delete->is_new) {
+        result = do_constexpr_new(ips, expr, result_storage, complete_object);
+      } else {
+        result = do_constexpr_delete(ips, expr, result_storage,
+                                     complete_object);
+      }  /* if */
       break;
     case enk_object_lifetime:
       result = do_constexpr_expression(ips, expr->variant.object_lifetime.expr,
@@ -14664,6 +15777,8 @@ that are needed for the operation of the interpreter.
   n_variant_path_entries = 0;
   free_variant_path_entries = NULL;
   n_free_variant_path_entries = 0;
+  valid_placement_new_address = NULL;
+  valid_placement_new_type = NULL;
   if (!useful_constants_initialized) {
     /* Initialize useful constants. */
     a_float_kind fk;
@@ -15093,7 +16208,7 @@ diagnostic in *ips.
             }  /* if */
           } else {
             if (constant_is(cp, ck_string)) {
-              if (constant_is(cp, ck_string) && ips->call_seen) {
+              if (ips->call_seen) {
                 /* If the ck_string constant was allocated in a different
                    memory region, we recorded &cp-variant.string.value in the
                    interpretation map.  In that case, a copy should be made to
@@ -15533,6 +16648,19 @@ indicates the value produced by std::is_constant_evaluated().
       }  /* if */
       if (!result) {
         /* Nothing more to do. */
+      } else if (ips.storage_stack.destructions != NULL &&
+                 (expr->kind != (an_expr_node_kind)enk_object_lifetime ||
+                  !perform_destructions(&ips))) {
+        /* If there are pending destructions, but this node is not an
+           enk_object_lifetime entry, expr doesn't represent a full expression
+           and therefore we shouldn't attempt to evaluate the destruction of
+           temporaries yet.  If we do have a full expression, ensure that the
+           destruction interpretation succeeds. */
+        result = FALSE;
+      } else if (ips.dyn_allocations != NULL) {
+        /* Leftover dynamic allocations are always invalid in this case. */
+        report_leftover_allocations(&ips);
+        do_constexpr_fail(result);
       } else if (!copy_interpreter_object_to_constant(
                                          &ips, result_storage, result_storage,
                                          result_type, result_con)) {
@@ -15592,7 +16720,8 @@ a_boolean interpret_constexpr_call(an_expr_node_ptr  call_expr,
 Attempt to interpret the call represented by call_expr.  Return TRUE if
 successful, and produce the resulting value in result_con.  Otherwise, return
 FALSE, and record diagnostic info in *diag_list.  is_constant_evaluated
-indicates the value produced by std::is_constant_evaluated().
+indicates the value produced by std::is_constant_evaluated() (currently, this
+can only be TRUE if the called function is "consteval").
 */
 {
   a_boolean             result = TRUE;
@@ -15638,6 +16767,18 @@ indicates the value produced by std::is_constant_evaluated().
       } else {
         do_constexpr_fail(result);
       }  /* if */
+    } else if (ips.storage_stack.destructions != NULL) {
+      /* Since we're just interpreting a call node, this isn't a full
+         expression and we cannot evaluate the destruction of temporaries.
+         (An exception are invocations of consteval functions, but the
+         temporaries for those were handled by do_constexpr_call.  If there
+         are destructions left, they are not part of the consteval invocation
+         proper.) */
+      result = FALSE;
+    } else if (ips.dyn_allocations != NULL) {
+      /* Leftover dynamic allocations are always invalid in this case. */
+      report_leftover_allocations(&ips);
+      do_constexpr_fail(result);
     } else if (!copy_interpreter_object_to_constant(
                                          &ips, result_storage, result_storage,
                                          result_type, result_con)) {
@@ -15749,6 +16890,14 @@ value produced by std::is_constant_evaluated().
       if (!copy_interpreter_object_to_constant(
                                          &ips, result_storage, result_storage,
                                          result_type, result_con)) {
+        do_constexpr_fail(result);
+      } if (dip->destructor != NULL &&
+            !do_constexpr_dtor(&ips, dip->destructor, pos,
+                               result_storage, result_storage)) {
+        do_constexpr_fail(result);
+      } else if (ips.dyn_allocations != NULL) {
+        /* Leftover dynamic allocations are always invalid in this case. */
+        report_leftover_allocations(&ips);
         do_constexpr_fail(result);
       } else {
         /* Record a backing expression.  If it is already an expression, we can
@@ -15868,6 +17017,20 @@ position associated with the call.
       } else {
         do_constexpr_fail(result);
       }  /* if */
+    } else if (ips.storage_stack.destructions != NULL &&
+               (!is_constant_evaluated || !perform_destructions(&ips))) {
+      /* If there are pending destructions, but this initialization is not an
+         a full-expresssion, we shouldn't attempt to evaluate the destruction
+         of temporaries yet.  When is_constant_evaluated is FALSE, folding is
+         not required and so we just continue as if it is not a full-expression
+         context.  is_constant_evaluated is TRUE in full-expression contexts
+         only, and therefore it is safe to attempt the destruction of
+         temporaries in that case. */
+      result = FALSE;
+    } else if (ips.dyn_allocations != NULL) {
+      /* Leftover dynamic allocations are always invalid in this case. */
+      report_leftover_allocations(&ips);
+      do_constexpr_fail(result);
     } else {
       /* Map the result address (which is the "this" pointer) to a ck_address
          constant, so that copy_interpreter_object_to_constant can turn that
@@ -15885,6 +17048,20 @@ position associated with the call.
       }  /* if */
       unmap_stack_bytes(&ips, result_storage);
       release_local_constant(&this_con);
+    }  /* if */
+    if (ips.storage_stack.destructions != NULL &&
+        (!is_constant_evaluated || !perform_destructions(&ips))) {
+      /* If there are pending destructions, but this initialization is not an
+         a full-expresssion, we shouldn't attempt to evaluate the destruction
+         of temporaries yet.  When is_constant_evaluated is FALSE, folding is
+         not required and so we just continue as if it is not a full-expression
+         context.  is_constant_evaluated is TRUE in full-expression contexts
+         only, and therefore it is safe to attempt the destruction of
+         temporaries in that case. */
+      result = FALSE;
+    } else if (result && ips.dyn_allocations != NULL) {
+      report_leftover_allocations(&ips);
+      do_constexpr_fail(result);
     }  /* if */
   }  /* if */
   *diag_list = ips.diag_list;
@@ -15937,7 +17114,6 @@ std::is_constant_evaluated.)
   rp->is_constexpr_intrinsic = TRUE;
   map_byte_count(&persistent_map, rp, (a_byte_count)tag);
 }  /* register_constexpr_intrinsic */
-
 
 #if DEBUG
 
@@ -16018,6 +17194,9 @@ One-time initialization for interpret.c static variables.
   register_trans_unit_variable(free_variant_path_entries);
   register_trans_unit_variable(n_variant_path_entries);
   register_trans_unit_variable(n_free_variant_path_entries);
+  register_trans_unit_variable(valid_placement_new_address);
+  register_trans_unit_variable(valid_placement_new_type);
+  useful_constants_initialized = FALSE;
   free_stack_blocks = NULL;
   free_variant_path_entries = NULL;
 #if DEBUG && TRACK_INTERPRETER_ALLOCATIONS

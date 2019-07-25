@@ -9618,7 +9618,8 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
     }  /* if */
   } else if (symbol_is(sym, sk_member_function)) {
     a_routine_ptr  rp = sym->variant.routine.ptr;
-    if (special_kind_is(rp, sfk_destructor)) {
+    if (special_kind_is(rp, sfk_destructor) &&
+        !constexpr_dynamic_alloc_enabled) {
       if (!rout_is_real_template_instance(rp)) {
         pos_error(ec_constexpr_destructor, &dps->constexpr_pos);
       }  /* if */

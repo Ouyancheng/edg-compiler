@@ -56,8 +56,17 @@ a_boolean interpret_constexpr_ctor(a_dynamic_init_ptr  dip,
 typedef enum a_constexpr_intrinsic_tag {
   cit_error,
   cit_std_is_constant_evaluated,
+  cit_std_allocator_allocate,
+  cit_std_allocator_deallocate,
+  cit_std_construct_at,
+  cit_std_destroy_at,
+  cit_std_report_constexpr_value,
+  cit_std_meta_name_of,
   cit_last
 } a_constexpr_intrinsic_tag;
+
+void register_constexpr_intrinsic(a_constexpr_intrinsic_tag  tag,
+                                  a_routine_ptr              rp);
 
 void register_constexpr_intrinsic(a_constexpr_intrinsic_tag  tag,
                                   a_routine_ptr              rp);

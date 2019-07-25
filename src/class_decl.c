@@ -25,13 +25,14 @@ class_decl.c -- Scanning of class declarations.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
+#include "disambig.h"
 #include "expr.h"
 #include "exprutil.h"
+#include "interpret.h"
 #include "layout.h"
 #if MAINTAIN_NEEDED_FLAGS
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
-#include "disambig.h"
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -14663,6 +14664,38 @@ issued at the given position.
 }  /* set_member_function_name_linkage */
 
 
+static void check_constexpr_intrinsic_member(a_symbol_ptr sym)
+/*
+The given symbol represents a member function of a class (which is known not
+to be a nonreal class).  Check whether the member function must be treated
+specially by the constexpr interpreter and if so record that fact.  Currently,
+the only such member functions are the "allocate" and "deallocate" members
+of std::allocator<T> instances.
+*/
+{
+  if (sym->header->has_intrinsic_name) {
+    a_const_char *id = sym->header->identifier;
+    if (strcmp(id, "allocate") == 0 || strcmp(id, "deallocate") == 0) {
+      a_symbol_ptr  parent_sym = symbol_for(sym_parent_class(sym));
+      if (parent_sym->header->has_intrinsic_name &&
+          sym_is_namespace_member(parent_sym) &&
+          sym_parent_namespace(parent_sym) ==
+                       symbol_for_namespace_std->variant.namespace_info.ptr) {
+        a_const_char *parent_id = parent_sym->header->identifier;
+        if (strcmp(parent_id, "allocator") == 0) {
+          a_routine_ptr  rp = sym->variant.routine.ptr;
+          rp->is_constexpr_intrinsic = TRUE;
+          register_constexpr_intrinsic(id[0] == 'a' ?
+                                                 cit_std_allocator_allocate :
+                                                 cit_std_allocator_deallocate,
+                                      rp);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* check_constexpr_intrinsic_member */
+
+
 static void decl_member_function(a_symbol_locator        *locator,
                                  a_func_info_block_ptr   func_info,
                                  a_class_def_state_ptr   class_state,
@@ -14988,6 +15021,9 @@ implicitly declared member functions.
       rtn->is_consteval = TRUE;
     }  /* if */
     rtn->is_constexpr = TRUE;
+    if (!class_type->variant.class_struct_union.is_nonreal_class) {
+      check_constexpr_intrinsic_member(sym);
+    }  /* if */
     if (!is_static_member) {
       cssp->has_constexpr_nonstatic_member_function = TRUE;
     }  /* if */
@@ -30211,8 +30247,9 @@ flag is set in the class symbol supplement of the given type.
     if (is_immediate_managed_class_type(type)) {
       /* Don't treat managed class types as literal types. */
       cssp->known_not_to_be_a_literal_type = TRUE;
-    } else if (has_nontrivial_destructor(cssp)) {
-      /* Literal class types must have trivial destructors. */
+    } else if (has_nontrivial_destructor(cssp) &&
+               !constexpr_dynamic_alloc_enabled) {
+      /* Literal class types must have trivial or constexpr destructors. */
       cssp->known_not_to_be_a_literal_type = TRUE;
     } else if (type->variant.class_struct_union.any_volatile_member) {
       /* Literal class types cannot have volatile subobjects. */
