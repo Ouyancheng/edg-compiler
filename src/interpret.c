@@ -2402,7 +2402,7 @@ Release the storage allocated for the given interpreter state.
     } while (alloc != NULL);
   }  /* if */
   if (ips->report_started) {
-    fprintf(f_error, "\n(end constexpr evaluation)\n"); 
+    fprintf(f_error, "\n%s\n", error_text(ec_constexpr_end_report));
   }  /* if */
 }  /* release_interpreter_state */
 
@@ -8111,6 +8111,8 @@ Release the given allocation.
 }  /* free_constexpr_allocation */
 
 
+/*ARGSUSED*/  /* Some parameters are unused, but they are needed to conform
+                 to a callback convention. */
 static a_boolean do_constexpr_std_allocator_deallocate(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -8209,7 +8211,7 @@ where the result should be stored.
   orig_data_size = allocation->total_size - allocation->prefix_size;
   if (total_size != orig_data_size) {
     info_with_pos_num2(ec_constexpr_bad_deallocation_size,
-                       &call_node->position, alloc_length,
+                       &call_node->position, (a_byte_count)alloc_length,
                        orig_data_size/elem_size, ips);
     info_with_pos(ec_constexpr_allocation_pos, &allocation->pos, ips);
     do_constexpr_fail(result);
@@ -8322,8 +8324,12 @@ a narrow string.  Return FALSE in case of a serious issue.
     a_boolean      at_end_of_source;
     conv_seq_to_file_and_line(ips->position.seq, &diag_file_name, &full_name,
                               &line_number, &at_end_of_source);
-    fprintf(f_error, "\n(begin constexpr evaluation at line %lu of \"%s\")\n",
-            (unsigned long)line_number, diag_file_name); 
+    fprintf(f_error, "\n%s\n", error_text(ec_constexpr_begin_report));
+    if (line_number != 0) {
+      fprintf(f_error, "%s%lu%s%s\n",
+              error_text(ec_at_line), (unsigned long)line_number,
+              error_text(ec_of), diag_file_name);
+    }  /* if */
     ips->report_started = TRUE;
   }  /* if */
   if (is_integral_type(ptp->type)) {
@@ -8366,7 +8372,7 @@ a narrow string.  Return FALSE in case of a serious issue.
         } else if (max_len < 0) {
           len = 0;
         } else if (max_len < len-pos) {
-          len = max_len-pos;
+          len = (a_byte_count)(max_len-pos);
         }  /* if */
       }  /* if */
       while (pos<len) {
@@ -11233,7 +11239,7 @@ Evaluate the given new-expression.
     get_int_val_from(length_bytes, length_tp, length, ovflo);
     if (ovflo || length < 0 || length > MAX_ARRAY_LENGTH) {
       info_with_pos_num(ec_constexpr_alloc_too_large, &length_expr->position,
-                        length, ips);
+                        (a_byte_count)length, ips);
       do_constexpr_fail(result);
       goto done;
     }  /* if */
@@ -11286,7 +11292,7 @@ Evaluate the given new-expression.
     int                 k = 0;
     a_byte              *elem = cap->address,
                         *complete_obj = cap->complete_object;
-    for (; k<alloc_length; ++k, elem += elem_size) {
+    for (; k<(int)alloc_length; ++k, elem += elem_size) {
       if (!do_constexpr_dynamic_init(ips, dip, &expr->position, elem,
                                      complete_obj)) {
         result = FALSE;
@@ -11301,9 +11307,7 @@ done:
 
 
 static a_boolean do_constexpr_delete(an_interpreter_state  *ips,
-                                     an_expr_node_ptr      expr,
-                                     a_byte                *result_storage,
-                                     a_byte                *complete_object)
+                                     an_expr_node_ptr      expr)
 /*
 Evaluate the given delete-expression.
 */
@@ -15691,8 +15695,7 @@ the value representation of the integer value.
       if (expr->variant.new_delete->is_new) {
         result = do_constexpr_new(ips, expr, result_storage, complete_object);
       } else {
-        result = do_constexpr_delete(ips, expr, result_storage,
-                                     complete_object);
+        result = do_constexpr_delete(ips, expr);
       }  /* if */
       break;
     case enk_object_lifetime:

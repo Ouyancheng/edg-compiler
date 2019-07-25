@@ -3075,8 +3075,9 @@ ec_constexpr_bad_deallocation_size;;"deallocation size (%d1) does not correspond
 ec_constexpr_allocation_pos;;"allocation occurred here"
 ec_constexpr_bad_deallocation_type;;"deallocation type (%t1) does not correspond to allocation type (%t2)"
 ec_constexpr_leftover_allocations;;"some dynamic allocations (total number = %d) were not deallocated"
-ec_constexpr_begin_report;;"output from std::__report_constexpr_value"
 ec_constexpr_invalid_intrinsic_signature;;"intrinsic %n declared with unexpected signature (type %t)"
+ec_constexpr_begin_report;;">> output from std::__report_constexpr_value"
+ec_constexpr_end_report;;">> end output from std::__report_constexpr_value"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

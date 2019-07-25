@@ -8507,6 +8507,7 @@ interpreter) and if so mark it as such.
             tag = cit_std_report_constexpr_value;
           }  /* if */
         }  /* if */
+        break;
       default:
         break;
     }  /* switch */

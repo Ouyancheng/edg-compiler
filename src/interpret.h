@@ -61,7 +61,6 @@ typedef enum a_constexpr_intrinsic_tag {
   cit_std_construct_at,
   cit_std_destroy_at,
   cit_std_report_constexpr_value,
-  cit_std_meta_name_of,
   cit_last
 } a_constexpr_intrinsic_tag;
 
