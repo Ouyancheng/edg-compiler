@@ -121,9 +121,9 @@ namespace qualifier
 
 The change for EDGcpfe/21238 (in version 5.1) addressed a bug in the clang
 compiler that required the template keyword in certain cases where a
-template name has a namespace qualifier.  However, clang rejects code in
-which the template keyword appears in a namespace-qualified friend
-declaration.  This additional clang compatibility issue has now been
+template name has a namespace qualifier.  However, clang rejects the use
+of the "template" keyword if it appears in a declaration rather than in an
+expression.  This additional clang compatibility issue has now been
 addressed.  For example, with --clang_version=50000:
 
   namespace N { template<typename> struct S; }
