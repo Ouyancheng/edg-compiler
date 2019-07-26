@@ -4,9 +4,9 @@ Version 6.0
 C++20: Enhancements to [[nodiscard]] attribute
 
 The [[nodiscard]] attribute has been enhanced to include an optional string
-literal (see P1301R4) and is now also permitted when it appertains to a
-constructor (see P1771R1).  The value of __has_cpp_attribute(nodiscard) has
-been updated to return 201907L.
+literal (see P1301R4).  Additionally, the [[nodiscard]] attribute can now
+appertain to a constructor (see P1771R1).  The value of
+__has_cpp_attribute(nodiscard) has been updated to return 201907L.
 
 
 7/25/19  [EDGcpfe/21555]
