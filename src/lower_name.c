@@ -3107,7 +3107,7 @@ for specifying the length (which can be ambiguous in some cases).
   }
   /* Put out the length of the string (taking into account characters that
      have been either removed or added). */
-  store_digits_and_underscore((unsigned long)str_length + added - subtracted,
+  store_digits_and_underscore((unsigned long)(str_length + added - subtracted),
                               old_form, mctl);
   while (str_length > 0) {
     /* Move the string and recode non-alphanumeric characters. */

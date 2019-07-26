@@ -9185,7 +9185,8 @@ float_accum_1:
       end_of_curr_token = curr_char_loc - 1;
       conv_string_literal(start_of_curr_token, end_of_curr_token + 1,
                           SCLK_ORDINARY_STRING_LITERAL,
-                          end_of_curr_token - start_of_curr_token + 1,
+                          (unsigned long)(end_of_curr_token -
+                                          start_of_curr_token + 1),
                           &err_code, &err_pos);
       ctoken = tok_clang_version;
 #if DEBUG

@@ -5713,7 +5713,7 @@ Display and return the amount of space used for various IL tables.
   /* Report some more specific numbers. */
   fprintf(f_debug, "%25s %8lu %8u %8lu\n", "(fs expr node)",
           num_fs_expr_nodes_allocated, (unsigned)sizeof(an_expr_node), 
-          num_fs_expr_nodes_allocated*sizeof(an_expr_node));
+          (unsigned long)(num_fs_expr_nodes_allocated*sizeof(an_expr_node)));
   { unsigned long     num_avail_fs_nodes = 0;
     an_expr_node_ptr  node = avail_fs_nodes;
     for (; node != NULL; node = node->extra.next_avail) {
@@ -5721,11 +5721,12 @@ Display and return the amount of space used for various IL tables.
     }  /* for */
     fprintf(f_debug, "%25s %8lu %8u %8lu\n", "(avail. fs expr node)",
             num_avail_fs_nodes, (unsigned)sizeof(an_expr_node), 
-            num_avail_fs_nodes*sizeof(an_expr_node));
+            (unsigned long)(num_avail_fs_nodes*sizeof(an_expr_node)));
   }
   fprintf(f_debug, "%25s %8lu %8u %8lu\n", "(fs rescan expr node)",
           num_rescan_fs_expr_nodes_allocated, (unsigned)sizeof(an_expr_node), 
-          num_rescan_fs_expr_nodes_allocated*sizeof(an_expr_node));
+          (unsigned long)(num_rescan_fs_expr_nodes_allocated*
+                          sizeof(an_expr_node)));
   db_space_used("new/delete supplement", num_new_delete_supplements_allocated,
                 a_new_delete_supplement);
 #if MICROSOFT_EXTENSIONS_ALLOWED
