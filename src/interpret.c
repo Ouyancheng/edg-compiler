@@ -7916,9 +7916,21 @@ registered in *ips for the given position).
   if (type_is(elem_tp, tk_array)) {
     /* Adjust the number of elements for the array type. */
     do {
-      a_targ_size_t  dim = elem_tp->variant.array.variant.number_of_elements;
-      if (dim != 0 &&
-          (a_byte_count)(MAX_CONSTEXPR_DYN_ALLOC_SIZE/dim) < alloc_length) {
+      a_targ_size_t  dim;
+      if (elem_tp->variant.array.is_template_dependent_size_array) {
+        info_with_pos(ec_constexpr_dependent_array_size, diag_pos, ips);
+        do_constexpr_fail(result);
+        goto done;
+      }  /* if */
+      dim = elem_tp->variant.array.variant.number_of_elements;
+      if (dim == 0) {
+        if (elem_tp->incomplete) {
+          info_with_pos(ec_constexpr_access_to_runtime_storage, diag_pos, ips);
+          do_constexpr_fail(result);
+          goto done;
+        }  /* if */
+      } else if ((a_byte_count)(MAX_CONSTEXPR_DYN_ALLOC_SIZE/dim) <
+                                                               alloc_length) {
         info_with_pos(ec_constexpr_allocation_too_large, diag_pos, ips);
         do_constexpr_fail(result);
         goto done;
