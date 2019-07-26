@@ -6578,12 +6578,14 @@ FALSE is returned) for non-class objects.
                                      folded_con, &diag_list)) {
             cp = move_local_constant_to_il(&folded_con);
           } else {
-            /* A constant was required: Issue a diagnostic. */
-            a_diagnostic_ptr  dp;
-            dp = pos_start_error(ec_initializer_not_constant, err_pos);
-            add_more_info_list(dp, &diag_list);
-            end_diagnostic(dp);
-            cp = alloc_error_constant();
+            if (!is_template_dependent_context()) {
+              /* A constant was required: Issue a diagnostic. */
+              a_diagnostic_ptr  dp;
+              dp = pos_start_error(ec_initializer_not_constant, err_pos);
+              add_more_info_list(dp, &diag_list);
+              end_diagnostic(dp);
+              cp = alloc_error_constant();
+            }  /* if */
             release_local_constant(&folded_con);
           }  /* if */
           discard_more_info_list(&diag_list);
