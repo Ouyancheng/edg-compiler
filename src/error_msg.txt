@@ -2890,7 +2890,7 @@ ec_initializer_not_constant;;"initialization is not constant"
 ec_constexpr_incomplete_type;;"cannot evaluate value of incomplete %t"
 ec_nodiscard_routine;;"ignoring return value from routine declared with \"nodiscard\" attribute"
 ec_nodiscard_return_type;;"ignoring return value type with \"nodiscard\" attribute"
-ec_nodiscard_doesnt_apply;;"the \"nodiscard\" attribute doesn't apply to constructors, destructors, or routines with void return type"
+ec_nodiscard_doesnt_apply;;"the \"nodiscard\" attribute doesn't apply to destructors or routines with void return type"
 ec_fallthrough_applies_to_null_statement;;"the \"fallthrough\" attribute only applies to null statements"
 ec_fallthrough_not_in_switch;;"the \"fallthrough\" attribute may only appear in an enclosing switch statement"
 ec_fallthrough_must_precede_switch_case;;"fallthrough statement must precede switch case label or default"
@@ -3079,6 +3079,12 @@ ec_constexpr_invalid_intrinsic_signature;;"intrinsic %n declared with unexpected
 ec_constexpr_begin_report;;">> output from std::__report_constexpr_value"
 ec_constexpr_end_report;;">> end output from std::__report_constexpr_value"
 ec_constexpr_dependent_array_size;;"cannot use array with dependent array size in constexpr evaluation"
+ec_nodiscard_routine_with_reason;;"ignoring return value from routine declared with \"nodiscard\" attribute (%sq)"
+ec_nodiscard_return_type_with_reason;;"ignoring return value type with \"nodiscard\" attribute (%sq)"
+ec_nodiscard_constructor;;"constructor used to create this object has \"nodiscard\" attribute"
+ec_nodiscard_constructor_with_reason;;"constructor used to create this object has \"nodiscard\" attribute (%sq)"
+ec_nodiscard_object_type;;"object type has \"nodiscard\" attribute"
+ec_nodiscard_object_type_with_reason;;"object type has \"nodiscard\" attribute (%sq)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

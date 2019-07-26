@@ -4770,7 +4770,7 @@ static a_cpp_attribute_support attribute_support_list[] = {
   { "no_unique_address",
     "201803L" },
   { "nodiscard",
-    "201603L" },
+    "201907L" },
   { "noreturn",
     "200809L" },
   { "unlikely",

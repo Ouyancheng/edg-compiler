@@ -982,11 +982,16 @@ on the next_operand_ref field.
 
 static void check_expression_for_nodiscard_warning(an_expr_node_ptr node)
 /*
-Check the expression (or any relevant children) for the presence of a
-function call and issue a warning if the routine or return type have the
-"nodiscard" standard attribute applied.
+Check the expression (or any relevant children) for the presence of a function
+call or dynamic initialization and issue a warning if the routine or return
+type or temporary type have the "nodiscard" standard attribute applied.
 */
 {
+  an_error_code    error_code = ec_no_error;
+  a_const_char     *reason = NULL;
+  a_routine_ptr    rp;
+  an_attribute_ptr ap;
+
   node = skip_parens(node);
   for (;;) {
     if (is_operation_node(node)) {
@@ -1015,45 +1020,86 @@ function call and issue a warning if the routine or return type have the
       } else if (is_call_node(node)) {
         /* Some type of function call; see if the nodiscard attribute is
            applicable. */
-        an_error_code error_code = ec_no_error;
         /* Retrieve the type of the routine being called. */
         a_type_ptr  tp = type_of_call(node);
         /* For the nodiscard attribute, there are two cases: the routine
            can have the attribute attached to it, or the class/enum return
            type might have the attribute.  In either case, an explicit cast
            to void suppresses these warnings. */
-        a_routine_ptr rp =
-                  routine_from_function_expr(node->variant.operation.operands);
+        rp = routine_from_function_expr(node->variant.operation.operands);
         if (rp != NULL && rp->has_nodiscard_attribute &&
             !is_void_type(rp->type->variant.routine.return_type)) {
-          error_code = ec_nodiscard_routine;
+          ap = attribute_string_literal_arg(ak_nodiscard, &rp->source_corresp);
+          if (ap != NULL &&
+              is_ordinary_string_constant(ap->arguments->variant.constant)) {
+            reason = ap->arguments->variant.constant->variant.string.value;
+            error_code = ec_nodiscard_routine_with_reason;
+          } else {
+            error_code = ec_nodiscard_routine;
+          }  /* if */
         } else if (is_function_type(tp)) {
           /* Look at the function's return type. */
-          if (type_has_nodiscard_attribute(return_type_of(tp))) {
-            error_code = ec_nodiscard_return_type;
+          if (type_has_nodiscard_attribute(return_type_of(tp), &reason)) {
+            if (reason != NULL) {
+              error_code = ec_nodiscard_return_type_with_reason;
+            } else {
+              error_code = ec_nodiscard_return_type;
+            }  /* if */
           }  /* if */
-        }  /* if */
-        if (error_code != ec_no_error) {
-          expr_pos_warning(error_code, &node->position);
         }  /* if */
         break;
       } else {
         /* Didn't find a call node -- no warning. */
         break;
       }  /* if */
-    } else if (node->kind == (an_expr_node_kind)enk_temp_init &&
-               (node->variant.init.dynamic_init->kind ==
+    } else if (node->kind == (an_expr_node_kind)enk_temp_init) {
+      /* Initialization of a temporary whose type has nodiscard should elicit
+         a warning. */
+      if (type_has_nodiscard_attribute(node->type, &reason)) {
+        if (reason != NULL) {
+          error_code = ec_nodiscard_object_type_with_reason;
+        } else {
+          error_code = ec_nodiscard_object_type;
+        }  /* if */
+        break;
+      } else if (node->variant.init.dynamic_init->kind ==
+                                        (a_dynamic_init_kind)dik_constructor) {
+        /* If the type doesn't have the nodiscard attribute but the selected
+           constructor does, then also issue a warning. */
+        rp = node->variant.init.dynamic_init->variant.constructor.ptr;
+        if (rp != NULL && rp->has_nodiscard_attribute) {
+          ap = attribute_string_literal_arg(ak_nodiscard, &rp->source_corresp);
+          if (ap != NULL &&
+              is_ordinary_string_constant(ap->arguments->variant.constant)) {
+            reason = ap->arguments->variant.constant->variant.string.value;
+            error_code = ec_nodiscard_constructor_with_reason;
+          } else {
+            error_code = ec_nodiscard_constructor;
+          }  /* if */
+        }  /* if */
+        break;
+      } else if (node->variant.init.dynamic_init->kind ==
                                          (a_dynamic_init_kind)dik_expression ||
-                node->variant.init.dynamic_init->kind ==
-                             (a_dynamic_init_kind)dik_class_result_via_ctor)) {
-      /* Follow an expression in a dynamic init. */
-      node = node->variant.init.dynamic_init->variant.expression;
+                 node->variant.init.dynamic_init->kind ==
+                             (a_dynamic_init_kind)dik_class_result_via_ctor) {
+        /* Follow an expression in a dynamic init. */
+        node = node->variant.init.dynamic_init->variant.expression;
+      } else {
+        break;
+      }  /* if */
     } else {
       /* No expression. */
       break;
     }  /* if */
     node = skip_parens(node);
   }  /* for */
+  if (error_code != ec_no_error) {
+    if (reason != NULL) {
+      expr_pos_st_warning(error_code, &node->position, reason);
+    } else {
+      expr_pos_warning(error_code, &node->position);
+    }  /* if */
+  }  /* if */
 }  /* check_expression_for_nodiscard_warning */
 
 

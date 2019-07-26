@@ -5944,12 +5944,6 @@ Return whether a given symbol is of a given kind.
 #define symbol_is(sym, sym_kind)                                             \
   ((sym)->kind == (a_symbol_kind)(sym_kind))
 
-
-extern an_attribute_ptr deprecation_arg_attr_for(
-                                            a_source_correspondence_ptr  scp);
-
-extern a_const_char *deprecation_string_for(a_source_correspondence_ptr  scp);
-
 /*
 Return the master instance pointer of a template instance.
 */

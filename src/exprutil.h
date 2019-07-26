@@ -2688,6 +2688,10 @@ extern void expr_pos_error(an_error_code     error_code,
 extern void expr_pos_warning(an_error_code     error_code,
                              a_source_position *error_pos);
 
+extern void expr_pos_st_warning(an_error_code     error_code,
+                                a_source_position *error_pos,
+                                a_const_char      *str);
+
 extern void expr_pos_diagnostic(an_error_severity sev,
                                 an_error_code     error_code,
                                 a_source_position *error_pos);
@@ -3010,7 +3014,8 @@ extern void make_upc_thread_operand(an_operand            *operand,
                                     a_constant_repr_kind  kind);
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
-extern a_boolean type_has_nodiscard_attribute(a_type_ptr type);
+extern a_boolean type_has_nodiscard_attribute(a_type_ptr   type,
+                                              a_const_char **reason);
 
 #if DEBUG
 extern void count_rescan_fs_expr_nodes(unsigned long *p_count);

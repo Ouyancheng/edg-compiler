@@ -222,7 +222,7 @@ static an_attr_descr known_attr_table[] = {
   { "hiding", "", "1c+", ak_hiding },
   { "noreturn", "", "1c+", ak_noreturn },
   { "override", "", "1c+", ak_override },
-  { "nodiscard", "", "1c+(201703-|M(1910-))", ak_nodiscard },
+  { "nodiscard", "?(sx)", "1c+(201703-|M(1910-))", ak_nodiscard },
   { "maybe_unused", "", "1c+(201703-|M(1910-))", ak_maybe_unused },
   { "fallthrough", "", "1c+(201703-|M(1910-))", ak_fallthrough },
   /* Note that the value of 202000 is temporary until C++20 is standardized. */
@@ -4653,6 +4653,35 @@ be issued by check_explicit_specifier).
 }  /* apply_conditional_explicit */
 
 
+static void check_for_previous_string_literal(
+                                        an_attribute_kind           kind,
+                                        a_source_correspondence_ptr scp,
+                                        a_constant_ptr              cp,
+                                        a_source_position           *error_pos)
+/*
+This routine is used when scanning a string literal argument for the IL
+entity denoted by scp.  The string literal being scanned is in cp and the
+attribute kind is specified by "kind".  If the IL entity had a previous
+string literal that was different, issue a remark (at error_pos).  Also, if
+a wide string literal was specified, issue a remark (since it can't be used
+in diagnostics).
+*/
+{
+  an_attribute_ptr  prev_ap = attribute_string_literal_arg(kind, scp);
+
+  if (!is_ordinary_string_constant(cp)) {
+    pos_remark(ec_wide_deprecation_string, error_pos);
+  }  /* if */
+  if (prev_ap != NULL) {
+    if (!eq_constants(prev_ap->arguments->variant.constant, cp)) {
+      /* Note that if multiple attributes were recorded,
+         attribute_string_literal_arg will return the first. */
+      pos_remark(ec_decl_modifiers_incompatible_with_previous_decl, error_pos);
+    }  /* if */
+  }  /* if */
+}  /* check_for_previous_string_literal */
+
+
 static char* apply_deprecated_attr(an_attribute_ptr  ap,
                                    char              *entity,
                                    an_il_entry_kind  entity_kind)
@@ -4713,17 +4742,10 @@ The given entity must be a variable, routine, type, or field.  Apply the
            optional string argument. */
         report_bad_attribute_arg(aap, ap);
       } else if (scp != NULL) {
-        an_attribute_ptr  prev_ap = deprecation_arg_attr_for(scp);
-        if (prev_ap != NULL) {
-          if (!eq_constants(prev_ap->arguments->variant.constant, cp)) {
-            /* Note that if multiple deprecated attributes were recorded,
-               deprecation_arg_attr_for will return the first. */
-            pos_remark(ec_decl_modifiers_incompatible_with_previous_decl,
-                       &aap->position);
-          }  /* if */
-        } else if (!is_ordinary_string_constant(cp)) {
-          pos_remark(ec_wide_deprecation_string, &aap->position);
-        }  /* if */
+        /* Issue any diagnostics associated with the string literal, if
+           needed. */
+        check_for_previous_string_literal(ak_deprecated, scp, cp,
+                                          &aap->position);
       }  /* if */
     }  /* if */
     if (scp != NULL) {
@@ -4733,6 +4755,52 @@ The given entity must be a variable, routine, type, or field.  Apply the
   return entity;
 }  /* apply_deprecated_attr */
  
+
+an_attribute_ptr attribute_string_literal_arg(an_attribute_kind           kind,
+                                              a_source_correspondence_ptr scp)
+/*
+If the specified IL entity (scp) has an attribute of "kind" and that attribute
+has a string literal associated with it, return that attribute.  Note that the
+string literal may or may not be a narrow string literal.  Note also that
+only the first such matching attribute is returned.
+*/
+{
+  an_attribute_ptr  result = NULL;
+  an_attribute_ptr  ap = scp->attributes;
+
+  for (; ap != NULL; ap = ap->next) {
+    if (ap->kind == (a_byte_attribute_kind)kind &&
+        ap->arguments != NULL &&
+        ap->arguments->next == NULL &&
+        ap->arguments->kind == (an_attribute_arg_kind)aak_constant &&
+        ap->arguments->variant.constant->kind ==
+                                           (a_constant_repr_kind)ck_string) {
+      result = ap;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* attribute_string_literal_arg */
+
+
+a_const_char *deprecation_string_for(a_source_correspondence_ptr  scp)
+/*
+Return the value of the narrow string literal recorded for the "deprecated"
+attribute (if any) applied to the entity associated with scp.
+*/
+{
+  a_const_char      *result = NULL;
+
+  if (scp->is_deprecated) {
+    an_attribute_ptr  ap = attribute_string_literal_arg(ak_deprecated, scp);
+    if (ap != NULL &&
+        is_ordinary_string_constant(ap->arguments->variant.constant)) {
+      result = ap->arguments->variant.constant->variant.string.value;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* deprecation_string_for */
+
 
 static char* apply_final_attr(an_attribute_ptr  ap,
                               char              *entity,
@@ -4924,15 +4992,16 @@ type rather than to the routine itself).
   check_assertion(nodiscard_attribute_enabled);
   if (entity_kind == iek_routine) {
     a_routine_ptr rp = (a_routine_ptr)entity;
-    if (rp->special_kind == (a_special_function_kind)sfk_constructor ||
-        rp->special_kind == (a_special_function_kind)sfk_destructor ||
+    if (rp->special_kind == (a_special_function_kind)sfk_destructor ||
         (rp->type->variant.routine.return_type != NULL &&
+         !rp->special_kind == (a_special_function_kind)sfk_constructor &&
          is_void_type(rp->type->variant.routine.return_type) &&
         (!rp->is_template_function || rp->is_prototype_instantiation) &&
         !curr_scope_is_class_instantiation())) {
       /* It doesn't make sense to apply this attribute to a routine with a
-         void return type, or to special functions -- issue a warning
-         (but not for real instantiations). */
+         void return type, or to destructors -- issue a warning
+         (but not for real instantiations).  The attribute is allowed on
+         constructors (as of P1771r1). */
       pos_warning(ec_nodiscard_doesnt_apply, &ap->position);
       make_attr_unrecognized(ap);
     } else {
@@ -4950,6 +5019,21 @@ type rather than to the routine itself).
     }  /* if */
   } else {
     unexpected_condition();
+  }  /* if */
+  if (!is_unrecognized_attr(ap) && ap->arguments != NULL) {
+    /* Check for an optional string literal argument (as of P1301r4). */
+    a_source_correspondence *scp = source_corresp_for_il_entry(entity,
+                                                               entity_kind);
+    an_attribute_arg_ptr  aap = ap->arguments;
+    a_constant_ptr        cp;
+    check_assertion(aap->next == NULL &&
+                    aap->kind == (an_attribute_arg_kind)aak_constant);
+    cp = aap->variant.constant;
+    check_assertion(cp->kind == (a_constant_repr_kind)ck_string &&
+                    cp->variant.string.value[cp->variant.string.length-1] ==
+                                                                         '\0');
+    /* Issue any diagnostics associated with the string literal, if needed. */
+    check_for_previous_string_literal(ak_nodiscard, scp, cp, &aap->position);
   }  /* if */
   return entity;
 }  /* apply_nodiscard_attr */

@@ -328,6 +328,13 @@ extern void apply_attributes_to_prototype_instantiation(
                                a_source_position                *def_pos,
                                a_boolean                        is_definition);
 
+extern an_attribute_ptr attribute_string_literal_arg(
+                                            an_attribute_kind            kind,
+                                            a_source_correspondence_ptr  scp);
+
+extern a_const_char *deprecation_string_for(a_source_correspondence_ptr  scp);
+
+
 extern void attribute_one_time_init(void);
 
 extern void attribute_trans_unit_init(void);

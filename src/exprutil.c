@@ -6873,6 +6873,21 @@ a template deduction context.
 }  /* expr_pos_warning */
 
 
+void expr_pos_st_warning(an_error_code     error_code,
+                         a_source_position *error_pos,
+                         a_const_char      *str)
+/*
+Report the indicated warning at the indicated position.  Suppress the warning
+if we're in a context where diagnostics should be suppressed, e.g.,
+a template deduction context.
+*/
+{
+  if (expr_diagnostic_should_be_issued(es_warning, error_code)) {
+    pos_st_warning(error_code, error_pos, str);
+  }  /* if */
+}  /* expr_pos_st_warning */
+
+
 void expr_pos_diagnostic(an_error_severity sev,
                          an_error_code     error_code,
                          a_source_position *error_pos)
@@ -16629,6 +16644,10 @@ successful folding.
         set_dynamic_init_constant(dip, alloc_error_constant());
       }  /* if */
     }  /* if */
+    if (ctor_routine->has_nodiscard_attribute) {
+      /* Mark this expression for nodiscard processing. */
+      expr_stack->nodiscard_expr_seen = TRUE;
+    }  /* if */
   }  /* if */
   return dip;
 }  /* alloc_expr_ctor_dynamic_init */
@@ -16931,6 +16950,12 @@ represents an explicit cast.
   }  /* if */
   /* Put the dynamic initialization on a destruction list if appropriate. */
   set_temp_init_dynamic_init_lifetime(temp_init_node);
+  if (nodiscard_attribute_enabled &&
+      expr_stack != NULL &&
+      type_has_nodiscard_attribute(temp_type, NULL)) {
+    /* Note this for processing later. */
+    expr_stack->nodiscard_expr_seen = TRUE;
+  }  /* if */
   return temp_init_node;
 }  /* alloc_temp_init_node */
 
@@ -17462,9 +17487,12 @@ top of the call), and if so return TRUE; otherwise, return FALSE.
 }  /* type_operator_construct_termination_next */
 
 
-a_boolean type_has_nodiscard_attribute(a_type_ptr type)
+a_boolean type_has_nodiscard_attribute(a_type_ptr   type,
+                                       a_const_char **reason)
 /*
-Returns TRUE if the type has the nodiscard attribute applied to it.
+Returns TRUE if the type has the nodiscard attribute applied to it.  If reason
+is non-NULL, *reason is set to point to a string literal that appeared as an
+argument to the [[nodiscard]] attribute (or NULL if there is not one).
 */
 {
   a_boolean result = FALSE;
@@ -17476,6 +17504,14 @@ Returns TRUE if the type has the nodiscard attribute applied to it.
   } else if (is_immediate_enum_type(type) &&
              integer_type_supp(type)->has_nodiscard_attribute) {
     result = TRUE;
+  }  /* if */
+  if (result && reason != NULL) {
+    an_attribute_ptr  ap;
+    ap = attribute_string_literal_arg(ak_nodiscard, &type->source_corresp);
+    if (ap != NULL &&
+        is_ordinary_string_constant(ap->arguments->variant.constant)) {
+      *reason = ap->arguments->variant.constant->variant.string.value;
+    }  /* if */
   }  /* if */
   return result;
 }  /* type_has_nodiscard_attribute */
@@ -17648,7 +17684,7 @@ error cases.
       op = (an_expr_operator_kind)eok_call;
     }  /* if */
     if (nodiscard_attribute_enabled &&
-        type_has_nodiscard_attribute(return_type)) {
+        type_has_nodiscard_attribute(return_type, NULL)) {
       /* Note this for processing later. */
       expr_stack->nodiscard_expr_seen = TRUE;
     }  /* if */
