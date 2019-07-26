@@ -3078,6 +3078,7 @@ ec_constexpr_leftover_allocations;;"some dynamic allocations (total number = %d)
 ec_constexpr_invalid_intrinsic_signature;;"intrinsic %n declared with unexpected signature (type %t)"
 ec_constexpr_begin_report;;">> output from std::__report_constexpr_value"
 ec_constexpr_end_report;;">> end output from std::__report_constexpr_value"
+ec_constexpr_dependent_array_size;;"cannot use array with dependent array size in constexpr evaluation"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

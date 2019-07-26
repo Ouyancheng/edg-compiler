@@ -2679,7 +2679,7 @@ redo:
             err_code = ec_constexpr_vla;
             break;
           } else if (etp->variant.array.is_template_dependent_size_array) {
-            err_code = ec_constexpr_type_invalid;
+            err_code = ec_constexpr_dependent_array_size;
             break;
           } else if (etp->variant.array.variant.number_of_elements == 0 &&
                      !etp->variant.array.bound_is_zero) {
@@ -2712,7 +2712,7 @@ redo:
 #if DEBUG
           check_assertion(ips != NULL);
 #endif /* DEBUG */
-          info_with_pos(err_code,type_pos(tp, ips), ips);
+          info_with_pos(err_code, type_pos(tp, ips), ips);
           do_constexpr_fail(*p_result);
           result = 0;
         }  /* if */
