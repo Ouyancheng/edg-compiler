@@ -7972,8 +7972,10 @@ registered in *ips for the given position).
   clear_address(cap, block+prefix_size);
   cap->variant.base_address = cap->address;
   record_complete_object_type(elem_tp, cap->complete_object);
-  cap->flags |= CA_ARRAY_ELEMENT;
-  cap->length = alloc_length;
+  if (alloc_length != 1) {
+    cap->flags |= CA_ARRAY_ELEMENT;
+    cap->length = alloc_length;
+  }  /* if */
   cap->alloc_seq_number = alloc_seq_number;
   *p_elem_size = elem_size;
 done:
@@ -8206,7 +8208,7 @@ where the result should be stored.
   if (total_size != orig_data_size) {
     info_with_pos_num2(ec_constexpr_bad_deallocation_size,
                        &call_node->position, (a_byte_count)alloc_length,
-                       orig_data_size/elem_size, ips);
+                       elem_size == 0 ? 0 : orig_data_size/elem_size, ips);
     info_with_pos(ec_constexpr_allocation_pos, &allocation->pos, ips);
     do_constexpr_fail(result);
     goto done;
@@ -11296,6 +11298,7 @@ Evaluate the given new-expression.
       }  /* if */
       mark_subobject_initialized(elem, complete_obj);
     }  /* for */
+    mark_complete_object_initialized(complete_obj);
   }  /* if */
 done:
   return result;
