@@ -3190,7 +3190,7 @@ enum a_constant_repr_kind_tag {
 			   aggregates. */
   ck_aggregate,         /* For list of constants in initialization. */
   ck_init_repeat,       /* Used to specify a repeated initialization constant
-                           in an array.  Used in C++, not in C. */
+                           in an array. */
   ck_template_param,	/* Nontype parameter in a class template declaration
 			   (C++ front end only, except when prototype
 			   instantiations are passed to a back end). */

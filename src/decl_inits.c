@@ -6307,7 +6307,7 @@ elements in the array to be initialized.  Note that multi-dimensional
 arrays are treated as one-dimensional arrays.
 */
 {
-  a_constant_ptr           aggr_con, dynamic_init_con;
+  a_constant_ptr  aggr_con, dynamic_init_con, repeat_con;
 
   /* The IL structure is
        new dynamic init new_dip (dik_nonconstant_aggregate) ->
@@ -6326,9 +6326,9 @@ arrays are treated as one-dimensional arrays.
   aggr_con->type = array_type;
   new_dip->variant.constant.ptr = aggr_con;
   /* Set it to point to a newly created ck_init_repeat constant. */
-  aggr_con->variant.aggregate.first_constant =
-    aggr_con->variant.aggregate.last_constant =
-    add_repeat_con(dynamic_init_con, count);
+  repeat_con = add_repeat_con(dynamic_init_con, count);
+  aggr_con->variant.aggregate.first_constant = repeat_con;
+  aggr_con->variant.aggregate.last_constant = repeat_con;
 }  /* repeat_nonconstant_init */
 
 

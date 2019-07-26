@@ -4378,7 +4378,7 @@ static a_boolean do_constexpr_dynamic_init(
 
 static a_boolean perform_destructions(an_interpreter_state  *ips)
 /*
-Perform the destructions for the current storage stack;
+Perform the destructions for the current storage stack.
 */
 {
   a_boolean  result = TRUE;
@@ -7875,6 +7875,9 @@ TRUE.  Otherwise result FALSE.
 
 static void report_leftover_allocations(an_interpreter_state  *ips)
 /*
+Interpretation is mostly completed and the caller has determined that some
+dynamic allocations have not been freed.  Record a diagnostic that explains
+the missing allocation.
 */
 {
   uint32_t  count = 0;
@@ -7901,7 +7904,8 @@ static a_boolean do_constexpr_dynamic_alloc(an_interpreter_state  *ips,
 Allocate alloc_length consecutive objects of type orig_elem_tp on the
 interpreter's dynamic allocation heap and place the result in *cap.  Return
 TRUE if successful, and FALSE otherwise (in which case, a diagnostic is
-registered in *ips for the given position).
+registered in *ips for the given position).  If successful, also the
+interpreter size of the allocated elements in *p_elem_size.
 */
 {
   a_boolean            result = TRUE;
@@ -8130,15 +8134,14 @@ static a_boolean do_constexpr_std_allocator_deallocate(
 /*
 Interpret a call (represented by call_node) to std::allocator<T>::deallocate
 (represented by callee).  This ignores the actual definition of that function
-(which is likely not constexpr-friendly) and instead allocates storage in the
+(which is likely not constexpr-friendly) and instead deallocates storage in the
 interpreter's domain (updating *ips as needed).  *p_arg_bytes points to the
-already-evaluated arguments of the call.  result_storage/complete_obj indicates
-where the result should be stored.
+already-evaluated arguments of the call.
 */
 {
   a_boolean             result = TRUE;
   an_expr_node_ptr      callee_node, ptr_arg, size_arg;
-  a_type_ptr            ptr_tp, size_tp, elem_tp, allocator_tp;
+  a_type_ptr            ptr_tp, size_tp, elem_tp, allocator_tp, result_type;
   a_template_arg_ptr    tap;
   a_host_large_integer  alloc_length;
   a_boolean             ovflo;
@@ -8171,7 +8174,9 @@ where the result should be stored.
   }  /* if */
   size_arg = ptr_arg->next;
   size_tp = skip_typerefs(size_arg->type);
-  if (size_tp->kind != (a_type_kind)tk_integer) {
+  result_type = skip_typerefs(call_node->type);
+  if (size_tp->kind != (a_type_kind)tk_integer ||
+      result_type->kind != tk_void) {
     do_constexpr_fail(result);
     info_with_pos_sym_type(ec_constexpr_invalid_intrinsic_signature,
                            &call_node->position, symbol_for(callee),
@@ -8310,8 +8315,20 @@ static a_boolean do_constexpr_std_report_constexpr_value(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Print out the value of the first argument if it is an integer or a pointer to
-a narrow string.  Return FALSE in case of a serious issue.
+call_node represents a call to std::__report_constexpr_value, which is an
+overloaded function with one of the following signatures:
+
+  void __report_constexpr_value(<integer-type>);
+  void __report_constexpr_value(const char*);
+  void __report_constexpr_value(const char*, int length);
+
+If the first alternative is called, print out the given value in decimal form.
+If the second alternative is called, print out the null-terminated string value
+pointed to by the first argument.  The third alternative is like the second,
+except no more than length characters are output.  Return FALSE in case of a
+serious issue.  
+
+See do_constexpr_std_allocator_allocate for the meaning of the parameters.
 */
 {
   a_boolean         result = TRUE;
@@ -9667,7 +9684,7 @@ This is similar to do_constexpr_ctor.
     alloc_seq_number = ips->curr_alloc_seq_number++;
     this_var = callee_scope->variant.routine.this_param_variable;
     if (this_var == NULL) {
-      /* A constructor should always have a "this" parameter, but in some
+      /* A destructor should always have a "this" parameter, but in some
          error cases, it may not have been created. */
       expect_error();
       do_constexpr_fail(result);
@@ -11220,6 +11237,7 @@ Evaluate the given new-expression.
   a_new_delete_supplement_ptr  ndsp = expr->variant.new_delete;
   a_byte_count                 alloc_length, elem_size;
   a_constexpr_address          *cap;
+  a_type_ptr                   type = skip_typerefs(ndsp->type), elem_type;
 
   if (!constexpr_dynamic_alloc_enabled) {
     do_constexpr_fail(result);
@@ -11230,6 +11248,7 @@ Evaluate the given new-expression.
   if (ndsp->number_of_elements == NULL) {
     /* No declarator of the form [<run-time length>]. */
     alloc_length = 1;
+    elem_type = type;
   } else {
     a_byte_count          opnd_n_bytes;
     an_expr_node_ptr      length_expr = ndsp->number_of_elements;
@@ -11254,14 +11273,14 @@ Evaluate the given new-expression.
       goto done;
     }  /* if */
     alloc_length = (a_byte_count)length;
+    check_assertion(type_is(type, tk_array));
+    elem_type = skip_typerefs(type->variant.array.element_type);
   }  /* if */
-  /* Adjust type & number for arrays of arrays FIXME */
   cap = (a_constexpr_address*)result_storage;
   if (ndsp->placement_new) {
-    a_type_ptr        new_tp = skip_typerefs(ndsp->type);
     an_expr_node_ptr  ptr_expr = ndsp->arg;
     a_type_ptr        ptr_tp = skip_typerefs(ptr_expr->type);
-    if (new_tp != valid_placement_new_type) {
+    if (type != valid_placement_new_type) {
       /* The new-expression does not allocate a type deduced for an enclosing
          std::construct_at<T> call. */
       do_constexpr_fail(result);
@@ -11269,7 +11288,7 @@ Evaluate the given new-expression.
                !type_is(ptr_tp, tk_pointer) ||
                !is_void_type(ptr_tp->variant.pointer.type)) {
       /* The placement new isn't for an "operator new" with a single placement
-         parameter of type "void*/
+         parameter of type "void". */
       do_constexpr_fail(result);
     } else {
       /* Evaluate the address at which to place the object and ensure it's
@@ -11291,7 +11310,7 @@ Evaluate the given new-expression.
                     &expr->position, ips);
       goto done;
     }  /* if */
-  } else if (!do_constexpr_dynamic_alloc(ips, ndsp->type, alloc_length,
+  } else if (!do_constexpr_dynamic_alloc(ips, elem_type, alloc_length,
                                          &expr->position, cap, &elem_size)) {
     result = FALSE;
     goto done;
@@ -11302,14 +11321,38 @@ Evaluate the given new-expression.
     int                 k = 0;
     a_byte              *elem = cap->address,
                         *complete_obj = cap->complete_object;
-    for (; k<(int)alloc_length; ++k, elem += elem_size) {
-      if (!do_constexpr_dynamic_init(ips, dip, &expr->position, elem,
-                                     complete_obj)) {
-        result = FALSE;
-        break;
+    if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate &&
+        constant_is(dip->variant.constant.ptr, ck_aggregate) &&
+        dip->variant.constant.ptr->variant.aggregate.first_constant != NULL &&
+        constant_is(dip->variant.constant.ptr
+                       ->variant.aggregate.first_constant, ck_init_repeat) &&
+        dip->variant.constant.ptr->variant.aggregate.first_constant
+                                 ->variant.init_repeat.count == 0) {
+      /* A variable-size array initialization represented with a zero-length
+         array count. */
+      a_constant_ptr  aggr_con = dip->variant.constant.ptr,
+                      repeat_con = aggr_con->variant.aggregate.first_constant,
+                      elem_con = repeat_con->variant.init_repeat.constant;
+      if (type_is(elem_type, tk_array)) {
+        alloc_length *= (a_byte_count)num_array_elements(elem_type);
       }  /* if */
-      mark_subobject_initialized(elem, complete_obj);
-    }  /* for */
+      for (; k<(int)alloc_length; ++k, elem += elem_size) {
+        if (!extract_value_from_constant(ips, elem_con,
+                                         elem, complete_object)) {
+          result = FALSE;
+          break;
+        }  /* if */
+      }  /* for */
+    } else {
+      for (; k<(int)alloc_length; ++k, elem += elem_size) {
+        if (!do_constexpr_dynamic_init(ips, dip, &expr->position, elem,
+                                       complete_obj)) {
+          result = FALSE;
+          break;
+        }  /* if */
+        mark_subobject_initialized(elem, complete_obj);
+      }  /* for */
+    }  /* if */
     mark_complete_object_initialized(complete_obj);
   }  /* if */
 done:
@@ -17041,10 +17084,10 @@ position associated with the call.
       }  /* if */
     } else if (ips.storage_stack.destructions != NULL &&
                (!is_constant_evaluated || !perform_destructions(&ips))) {
-      /* If there are pending destructions, but this initialization is not an
-         a full-expresssion, we shouldn't attempt to evaluate the destruction
-         of temporaries yet.  When is_constant_evaluated is FALSE, folding is
-         not required and so we just continue as if it is not a full-expression
+      /* If there are pending destructions, but this initialization is not a
+         full-expresssion, we shouldn't attempt to evaluate the destruction of
+         temporaries yet.  When is_constant_evaluated is FALSE, folding is not
+         required and so we just continue as if it is not a full-expression
          context.  is_constant_evaluated is TRUE in full-expression contexts
          only, and therefore it is safe to attempt the destruction of
          temporaries in that case. */

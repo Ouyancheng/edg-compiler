@@ -224,7 +224,7 @@ allocation and generates a catastrophic error.
 }  /* malloc_with_check */
 
 
-void* malloc_for_interpreter(sizeof_t size)
+void *malloc_for_interpreter(sizeof_t size)
 /*
 Interface to malloc for the interpreter.  A failure to allocate doesn't trigger
 a catastrophe.

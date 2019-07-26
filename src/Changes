@@ -65,7 +65,7 @@ implements evaluation of the placement-new expression that occurs in a normal
 std::construct_at implementation (other placement-new expressions are not
 permitted, though).
 
-These features were added to draft working paper for C++20 through the
+These features were added to the draft working paper for C++20 through the
 standardization committee's paper P0784R7.
 
 
