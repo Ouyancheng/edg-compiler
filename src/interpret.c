@@ -7917,7 +7917,8 @@ registered in *ips for the given position).
     /* Adjust the number of elements for the array type. */
     do {
       a_targ_size_t  dim = elem_tp->variant.array.variant.number_of_elements;
-      if ((a_byte_count)(MAX_CONSTEXPR_DYN_ALLOC_SIZE/dim) < alloc_length) {
+      if (dim != 0 &&
+          (a_byte_count)(MAX_CONSTEXPR_DYN_ALLOC_SIZE/dim) < alloc_length) {
         info_with_pos(ec_constexpr_allocation_too_large, diag_pos, ips);
         do_constexpr_fail(result);
         goto done;
@@ -7928,7 +7929,8 @@ registered in *ips for the given position).
   }  /* if */
   elem_size = value_bytes_for_type(ips, elem_tp, &result); 
   if (!result) goto done;
-  if (MAX_CONSTEXPR_DYN_ALLOC_SIZE/elem_size < alloc_length) {
+  if (elem_size != 0 &&
+      MAX_CONSTEXPR_DYN_ALLOC_SIZE/elem_size < alloc_length) {
     info_with_pos(ec_constexpr_allocation_too_large, diag_pos, ips);
     do_constexpr_fail(result);
     goto done;
@@ -8191,7 +8193,8 @@ where the result should be stored.
   elem_tp = skip_typerefs(elem_tp);
   elem_size = value_bytes_for_type(ips, elem_tp, &result); 
   if (!result) goto done;
-  if (MAX_CONSTEXPR_DYN_ALLOC_SIZE/elem_size < (a_byte_count)alloc_length) {
+  if (elem_size != 0 &&
+      MAX_CONSTEXPR_DYN_ALLOC_SIZE/elem_size < (a_byte_count)alloc_length) {
     info_with_pos(ec_constexpr_allocation_too_large, &call_node->position,
                   ips);
     do_constexpr_fail(result);
