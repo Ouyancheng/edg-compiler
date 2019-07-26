@@ -1,5 +1,21 @@
 Version 6.0
 
+7/25/19  [EDGcpfe/21555]
+C++-generating back end: embedded type definitions in typedefs
+
+The C++-generating back end incorrectly handled non-autonomous type
+definitions embedded within typedef declarations.  Instead of the type
+definition, the generated code used an elaborated-type-specifier, including
+use of a temporary name (of the form __T12345678) if the embedded type is
+unnamed.  This is now fixed.  For example, with --microsoft --c,
+
+  typedef char c[(int)&(((struct { char x; } *)0)->x)+1];
+
+appeared in the generated code as:
+
+  typedef char c[(int)&(((struct __T12345678 *)0)->x)+1];
+
+
 7/25/19  [EDGcpfe/21539]
 Abort when a lambda expression appears in an array bounds expression
 

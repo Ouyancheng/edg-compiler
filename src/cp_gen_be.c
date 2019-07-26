@@ -2864,10 +2864,11 @@ autonomous may be skipped.  E.g.:
 #endif /* !CHECKING */
 static void skip_end_of_embedded_constructs(char  *entry)
 /*
-The given (variable or routine) entry was declared with "embedded declarations"
-that have been skipped with a call to f_skip_embedded_declarations.  However,
-the end-of-construct marker is still in the source sequence entry stream,
-possibly preceded by preprocessing directives: Skip these now.
+The given (variable, routine, or typeref) entry was declared with "embedded
+declarations" that have been skipped with a call to
+f_skip_embedded_declarations.  However, the end-of-construct marker is
+still in the source sequence entry stream, possibly preceded by
+preprocessing directives: Skip these now.
 */
 {
   a_src_seq_end_of_construct_ptr ssecp;
@@ -9447,6 +9448,7 @@ declaration following this one is such a continuation.
   a_boolean         anon_union_case = FALSE;
   an_attribute_ptr  attributes;
   a_boolean         is_alias;
+  a_boolean         embedded_constructs;
 
   if (sec_decl != NULL) {
     /* Use the type from the secondary declaration entry instead of the one
@@ -9465,16 +9467,25 @@ declaration following this one is such a continuation.
     }  /* if */
     attributes = sec_decl->attributes;
     is_alias = sec_decl->is_alias;
+    embedded_constructs = sec_decl->embedded_source_sequence_entries;
   } else {
     under_type = type->variant.typeref.type;
     attributes = type->source_corresp.attributes;
     is_alias = type->variant.typeref.is_alias;
+    embedded_constructs =
+                        type->variant.typeref.embedded_source_sequence_entries;
   }  /* if */
   /* Advance past the source sequence entry for the typedef itself. */
   /* This does not use check_for_and_take_source_seq_entry on purpose,
      because in C++ there can be more than one definition of the typedef
      and this routine is called for each one. */
   adv_curr_source_sequence_entry();
+  if (embedded_constructs) {
+    /* Skip over any declarations embedded in the declarator (e.g., in
+       casts or sizeof constructs), setting them up to be generated
+       on-the-fly as needed. */
+    f_skip_embedded_declarations(/*end_of_construct_marked=*/TRUE);
+  }  /* if */
   /* The caller has called set_decl_position already. */
   gen_attributes(attributes, al_prefix, sec_decl == NULL);
   if (anon_union_case) {
@@ -9541,6 +9552,9 @@ declaration following this one is such a continuation.
   gen_attributes(attributes, al_postfix, sec_decl != NULL);
   gen_attributes(attributes, al_id_equivalent_as_postfix, sec_decl != NULL);
   type->typedef_definition_has_been_put_out = TRUE;
+  if (embedded_constructs) {
+    skip_end_of_embedded_constructs((char*)type);
+  }  /* if */
   /* This typedef can potentially be used as a substitute if the target
      type is inaccessible or otherwise unusable. */
   register_substitutable_typedef(type);

@@ -17182,7 +17182,7 @@ it embeds in its declarator, insert an end-of-construct source sequence entry.
 This allows source sequence entries associated with a declarator to be
 distinguished from those that follow the declarator.  For example:
     int (*f())[sizeof(struct { int x; })];
-And end-of-construct entry is added after the source sequence entries for the
+An end-of-construct entry is added after the source sequence entries for the
 embedded struct declaration.
 */
 {
@@ -17205,6 +17205,39 @@ embedded struct declaration.
                                (char *)rp, (a_byte_il_entry_kind)iek_routine);
   }  /* if */
 }  /* add_src_seq_end_of_routine */
+
+
+static void add_src_seq_end_of_type_alias_if_needed(a_decl_parse_state *dps)
+/*
+A typedef declaration has been processed.  If that declaration triggered
+the creation of source sequence entries for constructs it embeds in its
+declarator, insert an end-of-construct source sequence entry.  This allows
+source sequence entries associated with a declarator to be distinguished
+from those that follow the declarator.  For example:
+  typedef int a[sizeof(struct S { int i; })];
+An end-of-construct entry is added after the source sequence entries for the
+embedded struct declaration.
+*/
+{
+  a_source_sequence_entry_ptr ssep = dps->source_sequence_entry;
+
+  check_assertion(dps->sym != NULL);
+  if (ssep != NULL && ssep->next != NULL) {
+    /* The source sequence entry associated with the typedef declaration
+       is followed by entries for embedded constructs. */
+    a_type_ptr tp = dps->sym->variant.type.ptr;
+    check_assertion(tp->kind == (a_type_kind)tk_typeref);
+    if (ss_entry_kind(ssep) == iek_type) {
+      tp->variant.typeref.embedded_source_sequence_entries = TRUE;
+    } else {
+      check_assertion(ss_entry_kind(ssep) == iek_src_seq_secondary_decl);
+      ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)->
+                                       embedded_source_sequence_entries = TRUE;
+    }  /* if */
+    add_end_of_construct_source_sequence_entry(
+                                   (char *)tp, (a_byte_il_entry_kind)iek_type);
+  }  /* if */
+}  /* add_src_seq_end_of_type_alias_if_needed */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
@@ -18697,6 +18730,9 @@ decl_pos_block.
                                        /*is_variable_decl=*/FALSE);
   decl_typedef(locator, state, (a_type_ptr)NULL, decl_pos_block);
   record_entity_in_decl_stmt_if_needed(state->sym);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  add_src_seq_end_of_type_alias_if_needed(state);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED
   if (curr_token == tok_assign && gcc_mode && gnu_version < 30100 &&
       (state->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) == 0) {

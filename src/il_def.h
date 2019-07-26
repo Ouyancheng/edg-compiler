@@ -9731,6 +9731,17 @@ typedef struct a_type {
 			/* TRUE if this typeref represents a lowered complex
 			   type. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX */
+      a_bit_field
+		embedded_source_sequence_entries:1;
+			/* TRUE if the declaration represented by this
+			   entry embeds another construct with associated
+			   source sequence entries.  For example:
+			     typedef int i[sizeof(struct S { int j; })];
+			   In this example, the source sequence entries for
+			   the non-autonomous struct S are considered to be
+			   "embedded".  In such cases, the embedded entries
+			   are followed by an a_src_seq_end_of_construct
+			   for the typeref entry. */
     } typeref;
     /* When kind == tk_ptr_to_member: */
     struct {

@@ -2406,6 +2406,9 @@ Display the indicated type entry.
         disp_boolean("is_lowered_complex_type", TRUE);
       }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX */
+      if (ptr->variant.typeref.embedded_source_sequence_entries) {
+        disp_boolean("embedded_source_sequence_entries", TRUE);
+      }  /* if */
       break;
     case tk_ptr_to_member:
       disp_ptr("class_of_which_a_member",
