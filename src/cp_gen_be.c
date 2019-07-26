@@ -4944,7 +4944,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         if (class_type != NULL && clang_is_generated_code_target &&
             class_type->variant.class_struct_union.is_template_class &&
             class_type->variant.class_struct_union.is_nonreal_class &&
-            !(options & GN_FRIEND_DECL)) {
+            !(options & GN_DECLARATION)) {
           /* The clang compiler has a bug such that it requires a "template"
              keyword following a namespace qualifier when the name is a
              template-id that is a member of an unknown specialization, e.g.,
