@@ -8159,7 +8159,7 @@ already-evaluated arguments of the call.
   }  /* if */
   ptr_arg = callee_node->next->next;
   ptr_tp = skip_typerefs(ptr_arg->type);
-  if (ptr_tp->kind != (a_type_kind)tk_pointer) {
+  if (!type_is(ptr_tp, tk_pointer)) {
     do_constexpr_fail(result);
     info_with_pos_sym_type(ec_constexpr_invalid_intrinsic_signature,
                            &call_node->position, symbol_for(callee),
@@ -8175,8 +8175,7 @@ already-evaluated arguments of the call.
   size_arg = ptr_arg->next;
   size_tp = skip_typerefs(size_arg->type);
   result_type = skip_typerefs(call_node->type);
-  if (size_tp->kind != (a_type_kind)tk_integer ||
-      result_type->kind != tk_void) {
+  if (!type_is(size_tp, tk_integer) || !type_is(result_type, tk_void)) {
     do_constexpr_fail(result);
     info_with_pos_sym_type(ec_constexpr_invalid_intrinsic_signature,
                            &call_node->position, symbol_for(callee),
