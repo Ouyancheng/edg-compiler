@@ -7904,7 +7904,7 @@ static a_boolean do_constexpr_dynamic_alloc(an_interpreter_state  *ips,
 Allocate alloc_length consecutive objects of type orig_elem_tp on the
 interpreter's dynamic allocation heap and place the result in *cap.  Return
 TRUE if successful, and FALSE otherwise (in which case, a diagnostic is
-registered in *ips for the given position).  If successful, also the
+registered in *ips for the given position).  If successful, also return the
 interpreter size of the allocated elements in *p_elem_size.
 */
 {
@@ -11287,7 +11287,7 @@ Evaluate the given new-expression.
                !type_is(ptr_tp, tk_pointer) ||
                !is_void_type(ptr_tp->variant.pointer.type)) {
       /* The placement new isn't for an "operator new" with a single placement
-         parameter of type "void". */
+         parameter of type "void*". */
       do_constexpr_fail(result);
     } else {
       /* Evaluate the address at which to place the object and ensure it's
@@ -17084,7 +17084,7 @@ position associated with the call.
     } else if (ips.storage_stack.destructions != NULL &&
                (!is_constant_evaluated || !perform_destructions(&ips))) {
       /* If there are pending destructions, but this initialization is not a
-         full-expresssion, we shouldn't attempt to evaluate the destruction of
+         full-expression, we shouldn't attempt to evaluate the destruction of
          temporaries yet.  When is_constant_evaluated is FALSE, folding is not
          required and so we just continue as if it is not a full-expression
          context.  is_constant_evaluated is TRUE in full-expression contexts
@@ -17115,10 +17115,10 @@ position associated with the call.
     }  /* if */
     if (ips.storage_stack.destructions != NULL &&
         (!is_constant_evaluated || !perform_destructions(&ips))) {
-      /* If there are pending destructions, but this initialization is not an
-         a full-expresssion, we shouldn't attempt to evaluate the destruction
-         of temporaries yet.  When is_constant_evaluated is FALSE, folding is
-         not required and so we just continue as if it is not a full-expression
+      /* If there are pending destructions, but this initialization is not a
+         full-expression, we shouldn't attempt to evaluate the destruction of
+         temporaries yet.  When is_constant_evaluated is FALSE, folding is not
+         required and so we just continue as if it is not a full-expression
          context.  is_constant_evaluated is TRUE in full-expression contexts
          only, and therefore it is safe to attempt the destruction of
          temporaries in that case. */
