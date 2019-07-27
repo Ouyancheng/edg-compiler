@@ -6584,9 +6584,9 @@ FALSE is returned) for non-class objects.
               dp = pos_start_error(ec_initializer_not_constant, err_pos);
               add_more_info_list(dp, &diag_list);
               end_diagnostic(dp);
-              cp = alloc_error_constant();
             }  /* if */
             release_local_constant(&folded_con);
+            cp = alloc_error_constant();
           }  /* if */
           discard_more_info_list(&diag_list);
           /* Clear the variable field again.  It may get recorded later if
