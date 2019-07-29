@@ -5001,7 +5001,7 @@ type rather than to the routine itself).
       /* It doesn't make sense to apply this attribute to a routine with a
          void return type, or to destructors -- issue a warning
          (but not for real instantiations).  The attribute is allowed on
-         constructors (as of P1771r1). */
+         constructors (as of P1771R1). */
       pos_warning(ec_nodiscard_doesnt_apply, &ap->position);
       make_attr_unrecognized(ap);
     } else {
@@ -5021,7 +5021,7 @@ type rather than to the routine itself).
     unexpected_condition();
   }  /* if */
   if (!is_unrecognized_attr(ap) && ap->arguments != NULL) {
-    /* Check for an optional string literal argument (as of P1301r4). */
+    /* Check for an optional string literal argument (as of P1301R4). */
     a_source_correspondence *scp = source_corresp_for_il_entry(entity,
                                                                entity_kind);
     an_attribute_arg_ptr  aap = ap->arguments;

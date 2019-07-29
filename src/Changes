@@ -7,6 +7,9 @@ The [[nodiscard]] attribute has been enhanced to include an optional string
 literal (see P1301R4).  Additionally, the [[nodiscard]] attribute can now
 appertain to a constructor (see P1771R1).  The value of
 __has_cpp_attribute(nodiscard) has been updated to return 201907L.
+Note that these features are available in C++17 mode as well (including
+the new value for __has_cpp_attribute(nodiscard)) even though P1301R4 is
+a C++20 feature.
 
 
 7/25/19  [EDGcpfe/21555]
