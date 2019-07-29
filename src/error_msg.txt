@@ -3083,8 +3083,8 @@ ec_nodiscard_routine_with_reason;;"ignoring return value from routine declared w
 ec_nodiscard_return_type_with_reason;;"ignoring return value type with \"nodiscard\" attribute (%sq)"
 ec_nodiscard_constructor;;"constructor used to create discarded object has \"nodiscard\" attribute"
 ec_nodiscard_constructor_with_reason;;"constructor used to create discarded object has \"nodiscard\" attribute (%sq)"
-ec_nodiscard_object_type;;"discarded object type has \"nodiscard\" attribute"
-ec_nodiscard_object_type_with_reason;;"discarded object type has \"nodiscard\" attribute (%sq)"
+ec_nodiscard_object_type;;"type of discarded object has \"nodiscard\" attribute"
+ec_nodiscard_object_type_with_reason;;"type of discarded object has \"nodiscard\" attribute (%sq)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
