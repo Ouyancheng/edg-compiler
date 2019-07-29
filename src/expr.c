@@ -16198,7 +16198,9 @@ This is allowed in both Microsoft C and C++ modes.
 */
 {
   a_source_position   start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position   end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_expr_stack_entry expr_stack_entry;
   an_expr_node_ptr    arg_list;
 
