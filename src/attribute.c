@@ -4994,7 +4994,7 @@ type rather than to the routine itself).
     a_routine_ptr rp = (a_routine_ptr)entity;
     if (rp->special_kind == (a_special_function_kind)sfk_destructor ||
         (rp->type->variant.routine.return_type != NULL &&
-         !rp->special_kind == (a_special_function_kind)sfk_constructor &&
+         rp->special_kind != (a_special_function_kind)sfk_constructor &&
          is_void_type(rp->type->variant.routine.return_type) &&
         (!rp->is_template_function || rp->is_prototype_instantiation) &&
         !curr_scope_is_class_instantiation())) {
