@@ -16474,9 +16474,10 @@ diagnostic in *ips.
       break;
     case tk_array:
       { a_type_ptr      etp = skip_typerefs(type->variant.array.element_type);
-        a_targ_size_t   k, n_elems = type->size/etp->size;
+        a_targ_size_t   k, n_elems;
         a_byte_count    elem_size = value_bytes_for_type(ips, etp, &result);
         a_byte          *sub_obj = object;
+        n_elems = type->variant.array.variant.number_of_elements;
         if (!result) break;
         set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
         for (k = 0; k<n_elems; k += 1, sub_obj += elem_size) {
