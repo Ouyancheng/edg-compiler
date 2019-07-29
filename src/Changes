@@ -1,5 +1,24 @@
 Version 6.0
 
+7/29/19  [EDGcpfe/21546,EDGcpfe/21613]
+Uninitialized end position for constructor calls
+
+In configurations where EXTRA_SOURCE_POSITIONS_IN_IL == TRUE, the change
+introduced by EDGcpfe/20913 (in version 5.1) inadvertently caused the end
+position for some constructor calls to not be set (leaving the memory
+uninitialized).  For example:
+
+  struct A {
+    A();
+  };
+  void f() {
+    A a = A(); // End position of the initializer not set
+    A();       // End position of the temporary expression not set
+  }
+
+This is now fixed.
+
+
 7/26/19  [EDGcpfe/21585,EDGcpfe/21594]
 C++20: Enhancements to [[nodiscard]] attribute
 

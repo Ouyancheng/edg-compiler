@@ -8988,8 +8988,7 @@ member functions), or the default constructor.
                         /*string_ctor_skip=*/NULL,
                         /*simple_result=*/NULL,
                         &dip,
-                        (an_expr_node_ptr*)NULL,
-                        /*closing_paren_position=*/NULL);
+                        (an_expr_node_ptr*)NULL);
     expr_stack->suppress_diagnostics = saved_suppress_diagnostics;
     if (expr_stack->any_suppressed_error) {
       dip = NULL;
