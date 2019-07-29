@@ -3081,10 +3081,10 @@ ec_constexpr_end_report;;">> end output from std::__report_constexpr_value"
 ec_constexpr_dependent_array_size;;"cannot use array with dependent array size in constexpr evaluation"
 ec_nodiscard_routine_with_reason;;"ignoring return value from routine declared with \"nodiscard\" attribute (%sq)"
 ec_nodiscard_return_type_with_reason;;"ignoring return value type with \"nodiscard\" attribute (%sq)"
-ec_nodiscard_constructor;;"constructor used to create this object has \"nodiscard\" attribute"
-ec_nodiscard_constructor_with_reason;;"constructor used to create this object has \"nodiscard\" attribute (%sq)"
-ec_nodiscard_object_type;;"object type has \"nodiscard\" attribute"
-ec_nodiscard_object_type_with_reason;;"object type has \"nodiscard\" attribute (%sq)"
+ec_nodiscard_constructor;;"constructor used to create discarded object has \"nodiscard\" attribute"
+ec_nodiscard_constructor_with_reason;;"constructor used to create discarded object has \"nodiscard\" attribute (%sq)"
+ec_nodiscard_object_type;;"discarded object type has \"nodiscard\" attribute"
+ec_nodiscard_object_type_with_reason;;"discarded object type has \"nodiscard\" attribute (%sq)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
