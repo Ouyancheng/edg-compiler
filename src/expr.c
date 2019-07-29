@@ -16228,7 +16228,9 @@ This is allowed in both Microsoft C and C++ modes.
                         (an_arg_list_elem *)NULL,
                         (an_arg_list_elem **)NULL,
                         (an_operand *)NULL, (a_boolean *)NULL);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   /* The value of __noop is an int 0. */
   make_integer_constant_operand(result, (a_host_large_integer)0L);
