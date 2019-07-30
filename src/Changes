@@ -5,8 +5,9 @@ Uninitialized end position for constructor calls
 
 In configurations where EXTRA_SOURCE_POSITIONS_IN_IL == TRUE, the change
 introduced by EDGcpfe/20913 (in version 5.1) inadvertently caused the end
-position for some constructor calls (e.g., an_operand.end_position) to not be
-set (leaving the memory uninitialized).  For example:
+position for some constructor calls (e.g., an_expr_node.expr_range.end or
+a_variable.initializer_range.end) to not be set (leaving the memory
+uninitialized).  For example:
 
   struct A {
     A();
