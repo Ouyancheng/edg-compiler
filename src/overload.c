@@ -24902,7 +24902,8 @@ will be an lvalue instead of the usual prvalue.
                             /*string_ctor_skip=*/(a_boolean *)NULL,
                             /*simple_result=*/(an_operand *)NULL,
                             &dip,
-                            (an_expr_node_ptr *)NULL);
+                            (an_expr_node_ptr *)NULL,
+                            (a_source_position *)NULL);
         force_narrowing_check_on_arg_list_members(list, /*value=*/FALSE);
         if (elision_done) init_handled_at_this_level = FALSE;
         if (dip == NULL) {

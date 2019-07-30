@@ -2852,7 +2852,8 @@ static void scan_call_arguments(
                            an_arg_list_elem_ptr     supplied_arg_list,
                            an_arg_list_elem_ptr     *p_arg_list,
                            an_operand               *single_operand,
-                           a_boolean                *single_operand_returned)
+                           a_boolean                *single_operand_returned,
+                           a_source_position        *closing_paren_position)
 /*
 Scan the arguments of a function call and return a list of argument
 expressions in *p_argument_list.  The type of the function being
@@ -2877,15 +2878,18 @@ return_raw_arguments is TRUE, just scan and return the arguments as an
 argument expression list in *p_arg_list; do not check the
 arguments against any specific parameter list and do not set
 *p_argument_list (this is used, for example, when scanning the
-arguments for an overloaded function).
+arguments for an overloaded function).  If closing_paren_position is
+non-NULL, *closing_paren_position is set to the source position of the
+closing parenthesis of the call (but it's not set on a rescan).
 
 If rcblock is non-NULL, redo semantic analysis on a previously-scanned
 argument list, given by rcblock->argument_list.  The arguments are
 returned in either *p_argument_list or *p_arg_list, as specified
 by return_raw_arguments.  already_after_left_paren is ignored.
-If arg_list_supplied is TRUE, a third interface alternative: the
-possibly-empty list of arguments is supplied by supplied_arg_list, and no
-source is scanned.  supplied_arg_list is not freed by this routine.
+*closing_paren_position is not set or altered.  If arg_list_supplied
+is TRUE, a third interface alternative: the possibly-empty list of
+arguments is supplied by supplied_arg_list, and no source is scanned.
+supplied_arg_list is not freed by this routine.
 
 If the expression stack indicates that one or more expressions have
 been cached, those are consumed before any more expressions are read
@@ -2934,14 +2938,26 @@ to TRUE.
   } /* if */
   if (arg_list_supplied) {
     /* Use the argument list supplied.  rcblock can be non-NULL here if the
-       expression list had to be previously re-scanned already. */
+       expression list had to be previously re-scanned already.  Use the end
+       position of the supplied argument list as the closing paren position -
+       unless it is NULL, in which case fall back to pos_curr_token. */
+    a_source_position_ptr icp_end_pos = supplied_arg_list != NULL ?
+                                    init_component_end_pos(supplied_arg_list) :
+                                    &pos_curr_token;
     arg_list = supplied_arg_list;
-    arg_block.closing_paren_position = pos_curr_token;
+    arg_block.closing_paren_position = *icp_end_pos;
+    if (rcblock == NULL && closing_paren_position != NULL) {
+      *closing_paren_position = *icp_end_pos;
+    }  /* if */
   } else if (rcblock != NULL) {
     /* Convert the previously-scanned rcblock->argument_list list of
        expressions into an argument list. */
     arg_list = rescan_expr_list(rcblock->argument_list, rcblock);
     arg_list_allocated_locally = TRUE;
+    /* closing_paren_position is deliberately not set.  At this level in the
+       rescan we only know about the arguments, and not about the surrounding
+       parentheses.  It's not set to NULL because the caller is likely to
+       have set it correctly already. */
   } else {
     /* The argument list needs to be scanned from source. */
     if (!already_after_left_paren) {
@@ -2958,6 +2974,9 @@ to TRUE.
     arg_list_allocated_locally = TRUE;
     set_err_pos_to_curr_token();
     arg_block.closing_paren_position = pos_curr_token;
+    if (closing_paren_position != NULL) {
+      *closing_paren_position = pos_curr_token;
+    }  /* if */
   }  /* if */
   if (single_operand != NULL && is_single_elem(arg_list) &&
       is_expression_component(arg_list)) {
@@ -3040,7 +3059,8 @@ specified, and return *dip set to NULL.
                       arg_list_supplied,
                       supplied_arg_list,
                       (an_arg_list_elem **)NULL,
-                      single_operand, &single_operand_returned);
+                      single_operand, &single_operand_returned,
+                      (a_source_position *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (scanning_source) end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -3105,7 +3125,8 @@ list given by supplied_arg_list (but do not free the list).
                         /*arg_list_supplied=*/FALSE,
                         (an_arg_list_elem *)NULL,
                         &arg_list,
-                        (an_operand *)NULL, (a_boolean *)NULL);
+                        (an_operand *)NULL, (a_boolean *)NULL,
+                        (a_source_position *)NULL);
     arg_list_will_not_be_used_because_of_error(arg_list);
     free_arg_list(arg_list);
   }  /* if */
@@ -3282,7 +3303,8 @@ void scan_ctor_arguments(a_symbol_ptr             constructor_sym,
                          a_boolean                *string_ctor_skip,
                          an_operand               *simple_result,
                          a_dynamic_init_ptr       *p_dip,
-                         an_expr_node_ptr         *p_temp_init_node)
+                         an_expr_node_ptr         *p_temp_init_node,
+                         a_source_position        *closing_paren_position)
 /*
 Scan and process the argument list for a C++ constructor call.  The
 current token is the one right after the opening parenthesis of the
@@ -3324,7 +3346,9 @@ to TRUE, return the argument in *simple_result, don't construct a dynamic
 initialization entry, and return *p_dip set to NULL.  If string_ctor_skip is
 non-NULL, and there is a single argument of C++/CLI type System::String, return
 *string_ctor_skip set to TRUE, return the argument in *simple_result, don't
-construct a dynamic initialization entry, and return *p_dip set to NULL.
+construct a dynamic initialization entry, and return *p_dip set to NULL.  If
+closing_paren_position is non-NULL, *closing_paren_position is set to the
+source position of the closing parenthesis (but it's not set on a rescan).
 
 This routine may be called only in C++ mode.  It's used for parenthesis-
 enclosed initializers for classes that have constructors, as in
@@ -3443,7 +3467,8 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                       is_custom_ms_attr_arg_list,
                       rcblock, arg_list_supplied, supplied_arg_list,
                       &arg_list,
-                      (an_operand *)NULL, (a_boolean *)NULL);
+                      (an_operand *)NULL, (a_boolean *)NULL,
+                      closing_paren_position);
   eff_arg_list = arg_list;
   error_position = *source_pos;
   if (value_initialization_enabled &&
@@ -6463,10 +6488,10 @@ are expected to be NULL in that case.
                       /*arg_list_supplied=*/FALSE,
                       (an_arg_list_elem *)NULL,
                       &arg_list,
-                      (an_operand *)NULL, (a_boolean *)NULL);
-  if (rcblock == NULL) {
-    closing_paren_position = pos_curr_token;
-  } else if (expr_stack->any_suppressed_error || rcblock->error_detected) {
+                      (an_operand *)NULL, (a_boolean *)NULL,
+                      &closing_paren_position);
+  if (rcblock != NULL &&
+      (expr_stack->any_suppressed_error || rcblock->error_detected)) {
     /* If there were suppressed errors, the call is unreliable and further
        substitutions are not helpful. */
     make_error_operand(result);
@@ -16198,9 +16223,7 @@ This is allowed in both Microsoft C and C++ modes.
 */
 {
   a_source_position   start_position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position   end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_expr_stack_entry expr_stack_entry;
   an_expr_node_ptr    arg_list;
 
@@ -16229,10 +16252,8 @@ This is allowed in both Microsoft C and C++ modes.
                         /*arg_list_supplied=*/FALSE,
                         (an_arg_list_elem *)NULL,
                         (an_arg_list_elem **)NULL,
-                        (an_operand *)NULL, (a_boolean *)NULL);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_position = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+                        (an_operand *)NULL, (a_boolean *)NULL,
+                        &end_position);
   }  /* if */
   /* The value of __noop is an int 0. */
   make_integer_constant_operand(result, (a_host_large_integer)0L);
@@ -19133,7 +19154,8 @@ placement and initializer from a rescan block for the operator.
                         /*arg_list_supplied=*/FALSE,
                         (an_arg_list_elem *)NULL,
                         &nps->arg_list,
-                        (an_operand *)NULL, (a_boolean *)NULL);
+                        (an_operand *)NULL, (a_boolean *)NULL,
+                        (a_source_position *)NULL);
   }  /* if */
   if (nps->has_new_initializer) {
     /* Set up the argument list for the new initializer. */
@@ -19242,7 +19264,8 @@ in parentheses.
                             /*arg_list_supplied=*/FALSE,
                             (an_arg_list_elem *)NULL,
                             &nps->arg_list,
-                            (an_operand *)NULL, (a_boolean *)NULL);
+                            (an_operand *)NULL, (a_boolean *)NULL,
+                            (a_source_position *)NULL);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -20427,13 +20450,11 @@ parenthesized initializer was provided.
                         (an_arg_list_elem *)NULL,
                         &nps->init_raw_args,
                         (an_operand_ptr)NULL,
-                        (a_boolean *)NULL);
-    if (rcblock == NULL) {
-      nps->end_new_init_position = pos_curr_token;
+                        (a_boolean *)NULL,
+                        &nps->end_new_init_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      nps->end_position = curr_construct_end_position;
+    if (rcblock == NULL) nps->end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    }  /* if */
   } else if (cli_or_cx_enabled &&
              is_delegate_type(nps->unqual_base_new_type)) {
     /* The initializer for C++/CLI and C++/CX delegates is scanned
@@ -20516,7 +20537,8 @@ parenthesized initializer was provided.
                         /*unboxing_conv=*/(a_boolean *)NULL,
                         string_ctor_skip,
                         simple_result,
-                        &nps->dip, (an_expr_node_ptr *)NULL);
+                        &nps->dip, (an_expr_node_ptr *)NULL,
+                        (a_source_position *)NULL);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     nps->is_gcnew_string_special_case = special_case;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -20559,13 +20581,11 @@ parenthesized initializer was provided.
                         (an_arg_list_elem *)NULL,
                         &nps->init_raw_args,
                         /*single_operand=*/(an_operand *)NULL,
-                        /*single_operand_returned=*/(a_boolean *)NULL);
-    if (rcblock == NULL) {
-      nps->end_new_init_position = pos_curr_token;
+                        /*single_operand_returned=*/(a_boolean *)NULL,
+                        &nps->end_new_init_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      nps->end_position = curr_construct_end_position;
+    if (rcblock == NULL) nps->end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    }  /* if */
     nps->needs_initialization = TRUE;
   } else if (is_error_type(nps->base_new_type)) {
     /* The type is not known.  Scan the argument list and discard it. */
@@ -20678,7 +20698,8 @@ C++/CLI/CX array case.
                           &unboxing_conversion,
                           &string_ctor_skip,
                           &simple_result,
-                          &nps->dip, (an_expr_node_ptr *)NULL);
+                          &nps->dip, (an_expr_node_ptr *)NULL,
+                          (a_source_position *)NULL);
       /* The constructor invocation shouldn't involve a trivial_ctor, an
          unboxing_conversion, or a skipped string ctor. */
       check_assertion (!(trivial_ctor || unboxing_conversion ||
@@ -25948,7 +25969,11 @@ freed by this routine.
        arguments for a constructor call. */
     a_constant_ptr    folded_con;
     a_boolean         unboxing_conv, aggr_init = FALSE;
+    a_source_position *end_position_arg = NULL;
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position_arg = &end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     scan_ctor_args_or_paren_aggr_init(type_cast_to, rcblock, arg_list_supplied,
                                       &supplied_arg_list, &aggr_init);
     unbundle_init_component_list_expressions(supplied_arg_list);
@@ -25980,10 +26005,8 @@ freed by this routine.
                         &unboxing_conv,
                         /*string_ctor_skip=*/(a_boolean *)NULL,
                         /*simple_result=*/result,
-                        &dip, &temp_init_node);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_position = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+                        &dip, &temp_init_node,
+                        end_position_arg);
     if (!arg_list_supplied) {
       /* Free the arg list that we scanned. */
       free_arg_list(supplied_arg_list);
@@ -36056,7 +36079,8 @@ passed).
                         /*arg_list_supplied=*/TRUE, op_list,
                         (an_arg_list_elem_ptr*)NULL,
                         /*single_operand=*/(an_operand*)NULL,
-                        /*single_operand_return=*/(a_boolean*)NULL);
+                        /*single_operand_return=*/(a_boolean*)NULL,
+                        (a_source_position*)NULL);
     /* Clear backing expressions in the argument constants since they're
        meaningless and confuse mangling. */
     if (is_constant_node(arg_list)) {
@@ -46159,7 +46183,8 @@ source position to be used in overall errors.
                       /*unboxing_conv=*/(a_boolean *)NULL,
                       /*string_ctor_skip=*/(a_boolean *)NULL,
                       /*simple_result=*/(an_operand *)NULL,
-                      &is->init_dip, (an_expr_node_ptr *)NULL);
+                      &is->init_dip, (an_expr_node_ptr *)NULL,
+                      (a_source_position *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -47885,7 +47910,8 @@ attribute.
                             /*string_ctor_skip=*/(a_boolean *)NULL,
                             /*simple_result=*/(an_operand *)NULL,
                             &dip,
-                            (an_expr_node_ptr *)NULL);
+                            (an_expr_node_ptr *)NULL,
+                            (a_source_position *)NULL);
         if (dip != NULL) {
           check_assertion(dip->kind == (a_dynamic_init_kind)dik_constructor);
           attr->variant.custom_info.constructor = dip->variant.constructor.ptr;

@@ -416,7 +416,8 @@ void scan_ctor_arguments(a_symbol_ptr             constructor_sym,
                          a_boolean                *string_ctor_skip,
                          an_operand_ptr           simple_result,
                          a_dynamic_init_ptr       *p_dip,
-                         an_expr_node_ptr         *p_temp_init_node);
+                         an_expr_node_ptr         *p_temp_init_node,
+                         a_source_position        *closing_paren_position);
 
 extern void scan_dependent_parenthesized_initializer(
                           a_rescan_control_block   *rcblock,
