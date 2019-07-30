@@ -7971,7 +7971,7 @@ interpreter size of the allocated elements in *p_elem_size.
   /* Clear the bitmap and the "completely initialized" flag. */
   memzero(block+header_size, size_t_arg(bitmap_size+1));
   allocation = (a_constexpr_allocation_ptr)block;
-  alloc_seq_number = ips->curr_alloc_seq_number++;
+  alloc_seq_number = ++ips->curr_alloc_seq_number;
   allocation->alloc_seq_number = alloc_seq_number;
   add_to_live_set(&ips->live_set, alloc_seq_number);
   allocation->elem_type = orig_elem_tp;
