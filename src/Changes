@@ -1,5 +1,31 @@
 Version 6.0
 
+7/30/19  [EDGcpfe/21435]
+SFINAE failure with decltype of invalid code
+
+When invalid code appeared in a decltype expression in a template argument,
+the front end may have incorrectly deduced the decltype of the expression as
+something other than an error type.  This could lead to SFINAE (or other)
+failures.  For example:
+
+  struct AGGR {
+    short x;
+  };
+  void func(AGGR);
+  template <typename, typename To, typename From>
+  struct Test {
+    static constexpr bool value = false;
+  };
+  template <typename To, typename From>
+  struct Test<decltype( func({From()}) ), To, From> {
+    static constexpr bool value = true;
+  };
+  // Previously used the specialization of Test, causing the assert to fail
+  static_assert(!Test<void, AGGR, float>::value);
+
+This is now fixed.
+
+
 7/29/19  [EDGcpfe/21546,EDGcpfe/21613]
 Uninitialized end position for constructor calls
 

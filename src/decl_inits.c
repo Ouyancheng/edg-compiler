@@ -3590,7 +3590,13 @@ issued if no more specific position is available.
         /* A base is available for the next initializer component. */
         aggr_init_base(&icp, &bcp, is, *init_con, diag_pos);
       } else if (fp != NULL) {
-        /* A field is available for the next initializer component. */
+        /* A field is available for the next initializer component.  Narrowing
+           conversions during aggregate initialization are ill-formed, so force
+           the narrowing conversion check in SFINAE contexts. */
+        if (!C_mode() && is->no_diagnostics && !is->check_validity_only &&
+            (expr_stack == NULL || !expr_stack->paren_as_aggregate_init)) {
+          icp->check_narrowing = TRUE;
+        }  /* if */
         aggr_init_field(&icp, &fp, is, *init_con, diag_pos);
       } else {
         /* No more fields to initialize. */

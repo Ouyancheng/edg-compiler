@@ -13034,6 +13034,9 @@ next parameter.
       arg_block->argument_tail->next = expr;
     }  /* if */
     arg_block->argument_tail = expr;
+    if (is_error_node(expr)) {
+      arg_block->args_will_be_discarded = TRUE;
+    }  /* if */
   }
   if (ptp != NULL &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -13324,6 +13327,7 @@ list checking (e.g., for the presence of too few arguments).
           arg_block->argument_tail->next = error_nodes;
         }  /* if */
         arg_block->argument_tail = last_node;
+        arg_block->args_will_be_discarded = TRUE;
       }  /* if */
       /* Suppress the end-of-printf check below. */
       arg_block->fmt_string = NULL;
@@ -13958,6 +13962,7 @@ arg_list is not freed by this routine.
     }  /* if */
     process_call_argument_list(arg_list, &arg_block);
     *arg_expr_list = arg_block.argument_head;
+    okay = !arg_block.args_will_be_discarded;
   }  /* if */
 done:
   db_exit();
