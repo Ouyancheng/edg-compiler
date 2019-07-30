@@ -2938,16 +2938,11 @@ to TRUE.
   } /* if */
   if (arg_list_supplied) {
     /* Use the argument list supplied.  rcblock can be non-NULL here if the
-       expression list had to be previously re-scanned already.  Use the end
-       position of the supplied argument list as the closing paren position -
-       unless it is NULL, in which case fall back to pos_curr_token. */
-    a_source_position_ptr icp_end_pos = supplied_arg_list != NULL ?
-                                    init_component_end_pos(supplied_arg_list) :
-                                    &pos_curr_token;
+       expression list had to be previously re-scanned already. */
     arg_list = supplied_arg_list;
-    arg_block.closing_paren_position = *icp_end_pos;
+    arg_block.closing_paren_position = pos_curr_token;
     if (rcblock == NULL && closing_paren_position != NULL) {
-      *closing_paren_position = *icp_end_pos;
+      *closing_paren_position = pos_curr_token;
     }  /* if */
   } else if (rcblock != NULL) {
     /* Convert the previously-scanned rcblock->argument_list list of
