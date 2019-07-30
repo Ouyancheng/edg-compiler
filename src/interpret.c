@@ -11238,7 +11238,9 @@ Evaluate the given new-expression.
   a_constexpr_address          *cap;
   a_type_ptr                   type = skip_typerefs(ndsp->type), elem_type;
 
-  if (!constexpr_dynamic_alloc_enabled) {
+  if (!ips->is_constant_evaluated || !constexpr_dynamic_alloc_enabled) {
+    /* Don't attempt to evaluate a new-expression if a constant result is not
+       needed, because it could be somewhat expensive. */
     do_constexpr_fail(result);
     info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
                   &expr->position, ips);
@@ -11373,6 +11375,15 @@ Evaluate the given delete-expression.
   a_byte                       *ptr_bytes;
   a_constexpr_allocation       *allocation;
 
+  if (!ips->is_constant_evaluated || !constexpr_dynamic_alloc_enabled) {
+    /* Don't attempt to evaluate a delete-expression if a constant result is
+       not needed, because the corresponding new-expression would have been
+       evaluated anyway. */
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                  &expr->position, ips);
+    goto done;
+  }  /* if */
   check_assertion(type_is(ptr_tp, tk_pointer));
   opnd_n_bytes = expr_result_size(ips, ptr_expr, ptr_tp, &result);
   if (!result) goto done;
