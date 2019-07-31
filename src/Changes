@@ -1,5 +1,19 @@
 Version 6.0
 
+7/31/19  [EDGcpfe/20111,EDGcpfe/21417]
+Zero not accepted as null pointer constant in default template argument
+
+Zero can be used as a null pointer constant in a default template argument
+starting with C++11.  The front end now accepts such usage (note that it
+was previously accepted in Microsoft mode).
+
+  template<typename T> struct A { typedef T type; };
+  template<typename T> class B {
+    template<typename A<T>::type* = 0>
+    B() {}
+  };
+
+
 7/30/19  [EDGcpfe/21435]
 SFINAE failure with decltype of invalid code
 
