@@ -29982,7 +29982,14 @@ that follows.
         if (dps->is_definition) {
           a_boolean  incomplete_type_error_reported = FALSE;
 
-          vp->storage_class = (a_storage_class)sc_unspecified;
+          if (symbol_is(sym, sk_variable) &&
+              is_const_qualified_type(dps->type)) {
+            /* Const qualified variable template specializations are given
+               internal linkage. */
+            vp->storage_class = (a_storage_class)sc_static;
+          } else {
+            vp->storage_class = (a_storage_class)sc_unspecified;
+          }  /* if */
           /* Make sure that the type of the variable is complete.
              If the type cannot be completed, an error will be issued by
              initializer.  Note that a static data member specialization

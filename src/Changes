@@ -1,5 +1,20 @@
 Version 6.0
 
+7/31/19  [EDGcpfe/21612]
+Linkage of explicit specializations of const variable template instances
+
+Currently, const instances of variable templates are given internal
+linkage (in the same way that other const variables are).  while the front
+end gave internal linkage to implicit instantiations, it did not do so for
+explicit specializations.   Explicit specialization are now also given
+internal linkage in such cases.  This will be changing as a result of core
+issue 2387, which specifies that all instances of variable templates should
+have the same linkage as the template.
+
+  template <int i> const int x = 100;
+  template <> const int x<0> = 99;  // now has internal linkage
+
+
 7/31/19  [EDGcpfe/20111,EDGcpfe/21417]
 Zero not accepted as null pointer constant in default template argument
 
