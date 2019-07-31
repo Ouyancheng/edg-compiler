@@ -13034,9 +13034,6 @@ next parameter.
       arg_block->argument_tail->next = expr;
     }  /* if */
     arg_block->argument_tail = expr;
-    if (is_error_node(expr)) {
-      arg_block->args_will_be_discarded = TRUE;
-    }  /* if */
   }
   if (ptp != NULL &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -13387,12 +13384,16 @@ original list is not freed).  Some state information is recorded in *arg_block
 */
 {
   an_arg_list_elem_ptr alep;
-  a_boolean            saved_in_call_argument;
+  a_boolean            saved_in_call_argument, err = FALSE;
 
   saved_in_call_argument = expr_stack->in_call_argument;
   expr_stack->in_call_argument = TRUE;
   for (alep = arg_list; alep != NULL; alep = next_elem(alep)) {
     process_call_argument(alep, arg_block);
+    if (arg_block->argument_tail == NULL ||
+        is_error_node(arg_block->argument_tail)) {
+      err = TRUE;
+    }  /* if */
   }  /* for */
   if (arg_block->fmt_string != NULL) {
     /* Check printf/scanf-like argument lists. */
@@ -13403,6 +13404,9 @@ original list is not freed).  Some state information is recorded in *arg_block
     warn_if_missing_sentinel(arg_list, arg_block);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  if (err) {
+    arg_block->args_will_be_discarded = TRUE;
+  }  /* if */
   /* Do processing for the end of the argument list. */
   process_end_of_call_arguments(arg_block);
   expr_stack->in_call_argument = saved_in_call_argument;

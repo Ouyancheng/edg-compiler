@@ -20,7 +20,12 @@ failures.  For example:
   struct Test<decltype( func({From()}) ), To, From> {
     static constexpr bool value = true;
   };
-  // Previously used the specialization of Test, causing the assert to fail
+  /* Previously used the specialization of Test, causing the assert to fail.
+     The expression func({From()}) in the partial specialization's template
+     argument list attempts to initialize AGGR::x, of type short, from a value
+     of type float.  This is a narrowing error, which should cause the partial
+     specialization not to match the template arguments used in the
+     static_assert condition. */
   static_assert(!Test<void, AGGR, float>::value);
 
 This is now fixed.
