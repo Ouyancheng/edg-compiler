@@ -11377,8 +11377,8 @@ Evaluate the given delete-expression.
 
   if (!ips->is_constant_evaluated || !constexpr_dynamic_alloc_enabled) {
     /* Don't attempt to evaluate a delete-expression if a constant result is
-       not needed, because the corresponding new-expression would have been
-       evaluated anyway. */
+       not needed, because the corresponding new-expression would not have
+       been evaluated anyway. */
     do_constexpr_fail(result);
     info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
                   &expr->position, ips);
