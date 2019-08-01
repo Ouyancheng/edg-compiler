@@ -1,5 +1,17 @@
 Version 6.0
 
+7/31/19  [EDGcpfe/21608]
+C++-generating back end: trailing type attributes
+
+When the name of a type is followed by a type attribute, the C++-generating
+back end failed to insert a space before the attribute in the generated
+code, effectively concatenating the type name and the attribute specifier.
+This is now fixed.  For example, with --g++ --c++11:
+
+  using T = int __attribute((aligned(16)));  // Previously generated as
+                                             // int__attribute
+
+
 7/31/19  [EDGcpfe/21612]
 Linkage of explicit specializations of const variable template instances
 
