@@ -75,6 +75,9 @@ expr.h -- Declarations related to expression parsing.
 #define EOPT_FOLD_EXPR_CONTEXT 0x400
 			/* This is a parenthesized expression that could
 			   possibly be a C++17 fold expression. */
+#define EOPT_CALL_RESCAN 0x800
+			/* Flag set when calling make_rescan_operand_full from
+			   make_call_rescan_oprands. */
 #define EOPT_NO_OPTIONS 0
 
 typedef int a_local_expr_options_set;
@@ -1022,6 +1025,14 @@ Return TRUE if "node" is a function call operation.
     node_operator_is((node), eok_points_to_member_call) ||              \
     node_operator_is((node), eok_dot_pm_call) ||                        \
     node_operator_is((node), eok_points_to_pm_call)))
+
+/*
+Return TRUE if "node" is a vacuous destructor call.
+*/
+#define is_vacuous_dtor_call_node(node)                                 \
+  (is_operation_node((node)) &&                                         \
+   (node_operator_is((node), eok_dot_vacuous_destructor_call) ||        \
+    node_operator_is((node), eok_points_to_vacuous_destructor_call)))
 
 
 #if GNU_EXTENSIONS_ALLOWED

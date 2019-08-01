@@ -19682,9 +19682,7 @@ constructs like "int::~int()", which are nonstandard and rejected by many
 compilers.)
 */
 {
-  if (is_operation_node(expr) &&
-      (node_operator_is(expr, eok_dot_vacuous_destructor_call) ||
-       node_operator_is(expr, eok_points_to_vacuous_destructor_call))) {
+  if (is_vacuous_dtor_call_node(expr)) {
     a_type_ptr type = expr->variant.operation.operands->type;
     if (node_operator_is(expr, eok_points_to_vacuous_destructor_call)) {
       type = type_pointed_to(type);

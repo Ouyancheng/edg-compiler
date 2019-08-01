@@ -12085,8 +12085,19 @@ the value representation of the integer value.
               }  /* if */
               unmark_complete_object_initialized(cap->complete_object);
             } else {
-              info_with_pos(ec_constexpr_vacuous_dtor_call,
-                            &expr->position, ips);
+              a_type_ptr  otp;
+              if (node_operator_is(expr, eok_dot_vacuous_destructor_call)) {
+                otp = opnd1_type;
+              } else {
+                otp = skip_typerefs(opnd1_type->variant.pointer.type);
+              }  /* if */
+              if (!is_immediate_class_type(otp)) {
+                info_with_pos(ec_constexpr_vacuous_dtor_call,
+                              &expr->position, ips);
+              } else {
+                info_with_pos(ec_constexpr_explicit_dtor_call,
+                              &expr->position, ips);
+              }  /* if */
               do_constexpr_fail(result);
             }  /* if */
             break;

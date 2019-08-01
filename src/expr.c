@@ -6617,10 +6617,6 @@ are expected to be NULL in that case.
   if (vacuous_destructor_case) {
     /* Vacuous destructor case; leave the original operand alone. */
     copy_operand(operand, result);
-    if (construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
-                                                     &call_position)) {
-      conv_to_error_operand(result);
-    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (ignore_call) {
     /* Ignore a call of the form 0(x) -- copy the zero to the result. */
@@ -7867,7 +7863,7 @@ a left parenthesis in the source.
   }  /* if */
   check_assertion(expr != NULL && is_operation_node(expr));
   op1 = expr->variant.operation.operands;
-  if (call_rescan_case) {
+  if (call_rescan_case && is_call_node(expr)) {
     member_op = op1;
   } else {
     member_op = op1->next;
@@ -8609,6 +8605,20 @@ make_proxy_type_if_needed:
                               node);
     make_expression_operand(node, result);
     set_operand_id_details_from_locator(result, &locator);
+    if (!(rcblock == NULL ? member_name_followed_by_left_paren
+                          : (call_rescan_case ||
+                             is_vacuous_dtor_call_node(rcblock->expr)))) {
+      /* A pseudo-destructor must be called.  In the rescan case, there are
+         two cases: (1) the form p->~T() and (2) the form p->T::~T().  (Either
+         case could use the "dot" notation, too.)  The first form will be an
+         eok_dot_static/eok_points_to_static node before substitution, and
+         "call_rescan_case" will be set to TRUE if we are under a call node.
+         The second case is already a vacuous call node, but we will have
+         checked that it is being called when it was first parsed (i.e.,
+         before substitution). */
+      expr_pos_error(ec_vacuous_destructor_not_called,
+                     &locator.source_position);
+    }  /* if */
   } else {
     /* Normal selection, not a vacuous destructor reference. */
     /* Record that the field was referenced, for cross-reference (etc.)
@@ -45228,11 +45238,11 @@ alternative callable from outside, see rescan_expr_with_substitution.
       case tok_period:
       case tok_arrow:
         { a_boolean offsetof_case =
-                               (local_options & EOPT_OPERAND_OF_OFFSETOF) != 0;
+                              (local_options & EOPT_OPERAND_OF_OFFSETOF) != 0,
+                    call_rescan_case = (local_options & EOPT_CALL_RESCAN) != 0;
           scan_field_selection_operator((an_operand *)NULL, rcblock,
-                                        /*call_rescan_case=*/FALSE,
-                                        offsetof_case, result,
-                                        bound_function_selector);
+                                        call_rescan_case, offsetof_case,
+                                        result, bound_function_selector);
         }
         break;
       case tok_period_star:

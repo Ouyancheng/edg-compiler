@@ -4956,7 +4956,7 @@ the call, to be converted to operand form later.
      explicit rescan information on all calls. */
   eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
   op1 = expr->variant.operation.operands;
-  make_rescan_operand_full(op1, rcblock, EOPT_NO_OPTIONS,
+  make_rescan_operand_full(op1, rcblock, EOPT_CALL_RESCAN,
                            operand, bound_function_selector);
   if (rcblock->error_detected) goto done;
   args = op1->next;
@@ -4994,18 +4994,17 @@ void make_selection_rescan_operands(
                               a_source_position       *operator_position,
                               a_token_sequence_number *operator_tok_seq_number)
 /*
-As part of redoing semantic analysis on an expression while doing
-template deduction, extract the operands of the expression given by
-rcblock->expr (a selection node) and return the first as operand_1.
-(The second operand will be handled later.)  Also return the operator
-position and operator token sequence number in *operator_position and
-*operator_tok_seq_number.  If call_rescan_case is TRUE, rcblock->expr
-is a member call with an included implied selection; pick up the second
-operand of the call (the selector) and return it as operand_1.
-rcblock also gives context information for the template deduction
-being done, e.g., the template argument list being tried.
-offsetof_case is TRUE if we are handling a field selection in a
-__builtin_offsetof.
+As part of redoing semantic analysis on an expression while doing template
+deduction, extract the operands of the expression given by rcblock->expr (a
+selection node) and return the first as operand_1.  (The second operand will
+be handled later.)  Also return the operator position and operator token
+sequence number in *operator_position and *operator_tok_seq_number.  If
+call_rescan_case is TRUE and rcblock->expr is a call node, it is a member call
+with an included implied selection; pick up the second operand of the call
+(the selector) and return it as operand_1.  rcblock also gives context
+information for the template deduction being done, e.g., the template argument
+list being tried.  offsetof_case is TRUE if we are handling a field selection
+in a __builtin_offsetof.
 */
 {
   an_expr_node_ptr              expr = rcblock->expr, op1, sel_op;
@@ -5016,7 +5015,7 @@ __builtin_offsetof.
   check_assertion(expr != NULL && is_operation_node(expr));
   eriep = get_expr_rescan_info(expr, &rescan_info);
   op1 = expr->variant.operation.operands;
-  if (call_rescan_case) {
+  if (call_rescan_case && is_call_node(expr)) {
     sel_op = op1->next;
   } else {
     sel_op = op1;
