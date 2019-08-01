@@ -43,11 +43,11 @@ This is now fixed.  For example, with --g++ --c++11:
                                              // int__attribute
 
 
-7/31/19  [EDGcpfe/21612]
+7/31/19  [EDGcpfe/20221,EDGcpfe/21612]
 Linkage of explicit specializations of const variable template instances
 
 Currently, const instances of variable templates are given internal
-linkage (in the same way that other const variables are).  while the front
+linkage (in the same way that other const variables are).  While the front
 end gave internal linkage to implicit instantiations, it did not do so for
 explicit specializations.   Explicit specialization are now also given
 internal linkage in such cases.  This will be changing as a result of core
