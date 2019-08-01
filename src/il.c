@@ -22858,8 +22858,8 @@ dependent.
 
   expr = skip_parens(expr);
   if (is_routine_node(expr)) {
-    a_routine_ptr rout = expr->variant.routine.ptr;
-    if (rout->source_corresp.is_class_member &&
+    a_routine_ptr rout = node_routine(expr);
+    if (rout != NULL && rout->source_corresp.is_class_member &&
         !routine_type_is_nonstatic_member_function(rout->type) &&
         parent_class_of(rout)->variant.class_struct_union.is_nonreal_class) {
       is_dependent = TRUE;

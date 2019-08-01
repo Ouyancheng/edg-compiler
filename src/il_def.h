@@ -12613,7 +12613,12 @@ enum an_expr_operator_kind_tag {
   eok_dot_vacuous_destructor_call,
 			/* Call of a "destructor" for a class or simple type
 			   that does not have one, e.g., x.int::~int().
-			   The result is void. */
+			   The result is void.  The first operand is the
+			   expression designating the object to "destroy".
+			   If a user-defined type name was used, an additional
+			   enk_routine operand may follow: It will have a NULL
+			   routine pointer, but points to an associated name
+			   reference entry. */
   eok_points_to_vacuous_destructor_call,
 			/* Similar to eok_dot_vacuous_destructor_call, but
 			   for the "->" case, e.g., p->int::~int(). */
