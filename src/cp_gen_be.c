@@ -3420,7 +3420,32 @@ a name.  Never generate a qualified name.
   }  /* if */
   if (name == NULL) {
     /* For entities without names, create a name. */
-    gen_temp_name((char *)scp);
+    a_constant_ptr enumerator_for_decltype = NULL;
+    a_boolean      for_all_scopes;
+    if (entry_kind == iek_type) {
+      a_type_ptr tp = (a_type_ptr)scp;
+      if (is_immediate_enum_type(tp)) {
+        if (tp->variant.integer.is_scoped_enum) {
+          enumerator_for_decltype =
+                          tp->variant.integer.enum_info.assoc_scope->constants;
+        } else {
+          enumerator_for_decltype =
+                                   tp->variant.integer.enum_info.constant_list;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (enumerator_for_decltype != NULL &&
+        entity_name_is_accessible(&enumerator_for_decltype->source_corresp,
+                                  iek_constant, /*ignore_context=*/FALSE,
+                                  &for_all_scopes)) {
+      /* Use "decltype(enumerator)" to name the type. */
+      write_tok_str("decltype(");
+      gen_constant(enumerator_for_decltype, /*need_parens=*/FALSE);
+      write_tok_ch(')');
+    } else {
+      /* Put out a unique name based on the address of the IL entry.*/
+      gen_temp_name((char *)scp);
+    }  /* if */
   } else if (entry_kind == iek_routine &&
              ((a_routine_ptr)scp)->special_kind ==
                                      (a_special_function_kind)sfk_conversion) {

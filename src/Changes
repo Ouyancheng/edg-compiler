@@ -1,5 +1,25 @@
 Version 6.0
 
+8/1/19   [EDGcpfe/21606]
+C++-generating back end: unnamed enumerations as template arguments
+
+When an enumeration is unnamed, a function template is instantiated using
+that enumeration type as a deduced template argument, and that function
+template instance is later referenced using a decltype-specifier as an
+explicit template argument, the C++-generating back end previously put out
+all references to that function template instance with an explicit template
+argument that was an undeclared temporary name (of the form __T12345678).
+This is now fixed; the template argument in such references now uses a
+decltype-specifier referring to the first enumerator of the unnamed
+enumeration.  For example, with --c++11:
+
+  template<typename T> int f(T);
+  enum { E1, E2 };
+  int i = f(E2);               // Previously generated as f<__T12345678>, now
+                               // as f<decltype(E1)>
+  int j = f<decltype(E2)>(E2); // Also generated as f<decltype(E1)>
+
+
 7/31/19  [EDGcpfe/21397]
 Pseudo-destructors
 
