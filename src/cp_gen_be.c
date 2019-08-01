@@ -8579,6 +8579,7 @@ is the one associated with the definition of the enum.
       (void)gen_ms_attribute_block_from_ss_list();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* The source sequence entry for the enum constant should be next. */
+      advance_past_preprocessing_directives();
       check_for_and_take_source_seq_entry(
                                enum_con->source_corresp.source_sequence_entry);
       set_output_position(&enum_con->source_corresp.decl_position);

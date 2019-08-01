@@ -1,5 +1,19 @@
 Version 6.0
 
+7/31/19  [EDGcpfe/21607]
+C++-generating back end: preprocessing directives in enumerator lists
+
+The front end could abort (in check_for_and-take_source_seq_entry) with an
+internal error if preprocessing directives (#pragma or #define) appear
+between enumeration constants in the definition of an enumeration.  This is
+now fixed.  For example, in a configuration with RECORD_MACROS_IN_IL set to
+TRUE, the following example aborted:
+
+  enum { ZERO,
+  #define EMPTY  // Previously caused an internal error
+         ONE };
+
+
 7/31/19  [EDGcpfe/21608]
 C++-generating back end: trailing type attributes
 
