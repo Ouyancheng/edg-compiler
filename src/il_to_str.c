@@ -2458,7 +2458,9 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
                           octl);
     }  /* if */
     if (attrib_stop_type != orig_type) {
-      octl->output_str(" ", octl);
+      if (octl->gen_compilable_code) {
+        octl->output_str(" ", octl);
+      }  /* if */
       output_type_attributes(orig_type, attrib_stop_type, octl);
     }  /* if */
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
@@ -2502,7 +2504,9 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
                           octl);
     }  /* if */
     if (attrib_stop_type != orig_type) {
-      octl->output_str(" ", octl);
+      if (octl->gen_compilable_code) {
+        octl->output_str(" ", octl);
+      }  /* if */
       output_type_attributes(orig_type, attrib_stop_type, octl);
     }  /* if */
   } else if (kind == (a_type_kind)tk_routine) {
@@ -2604,7 +2608,9 @@ handle_specifiers_type:
         octl->output_str(")", octl);
       }  /* if */
       if (attrib_stop_type != orig_type) {
-        octl->output_str(" ", octl);
+        if (octl->gen_compilable_code) {
+          octl->output_str(" ", octl);
+        }  /* if */
         output_type_attributes(orig_type, attrib_stop_type, octl);
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
