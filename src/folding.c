@@ -6405,7 +6405,8 @@ start_underlying_expression:
   expr = skip_parens(expr);
   check_assertion(is_glvalue_node(expr) || is_error_node(expr));
   if (constexpr_enabled && is_glvalue_node(expr) &&
-      (is_operation_node(expr) ||
+      ((is_operation_node(expr) &&
+        !node_operator_is(expr, eok_subscript)) ||
        expr->kind == (an_expr_node_kind)enk_builtin_operation) &&
       !is_template_dependent_context()) {
     /* Use the interpreter to fold the expression. */

@@ -1,5 +1,26 @@
 Version 6.0
 
+8/2/19   [EDGcpfe/21635]
+Incorrect constant folding of address of incomplete array
+
+The change for EDGcpfe/19246 (in version 5.0) caused the front end to fail to
+fold the address of an array subscript operation when the array type is
+incomplete.  This could lead to the generation of run-time code to determine
+the address when it could be determined at compile-time.  For example:
+
+  struct A {
+    const A* p;
+  };
+  static const A arr[] =
+  {
+   {&arr[1]},
+   {&arr[0]}
+  };  // Previously had a dynamic initializer instead of a constant one
+  const A* f() { return arr; }
+
+This is now fixed.
+
+
 8/2/19   [EDGcpfe/21634]
 Missing dik_lambda case in disp_dynamic_init
 
