@@ -5659,7 +5659,9 @@ returned set to TRUE.
                   dtor, init_dip, !dps->init_state.not_potentially_evaluated);
       }  /* if */
     } else if (constexpr_enabled &&
-               !scope_stack_top().in_prototype_instantiation && !init_err) {
+               !(scope_stack_top().in_prototype_instantiation ||
+                 in_ms_nonreal_class_instantiation()) &&
+               !init_err) {
       /* See if the initializer can be evaluated as a constant expression. */
       a_diag_list     diag_list;
       a_constant_ptr  folded_con = local_constant();
