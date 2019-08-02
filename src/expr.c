@@ -1920,6 +1920,13 @@ constructs, in which case offsetof_case is TRUE.
          are operators, e.g., x[1, 2] has a single subscript expression that
          is the comma expression "1, 2". */
       scan_expr(&operand_2, PREC_LOWEST, EOPT_NO_OPTIONS);
+      if (!C_mode() && is_expression_operand(&operand_2) &&
+          is_operation_node(operand_2.variant.expression) &&
+          node_operator_is(operand_2.variant.expression, eok_comma) &&
+          !operand_2.variant.expression->is_parenthesized) {
+        expr_pos_warning(ec_comma_operator_in_array_subscript_deprecated,
+                         &operand_2.position);
+      }  /* if */
     }  /* if */
     closing_bracket_position = pos_curr_token;
   }  /* if */

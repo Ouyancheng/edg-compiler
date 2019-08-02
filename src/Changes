@@ -1,5 +1,19 @@
 Version 6.0
 
+8/2/19   [EDGcpfe/21580]
+Deprecated un-parenthesized comma operator in array subscript expressions
+
+Committee document P1161R3 deprecated the usage of un-parenthesized comma
+operators in array subscript expressions.  The front end will now issue
+warnings in all C++ modes whenever such expressions are encountered.  For
+example:
+
+void f(int *a, int b, int c) {
+  a[b,c];   // Deprecated
+  a[(b,c)]; // Still accepted
+}
+
+
 8/2/19   [EDGcpfe/21635]
 Incorrect constant folding of address of incomplete array
 
