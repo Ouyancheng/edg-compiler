@@ -1,5 +1,13 @@
 Version 6.0
 
+8/2/19   [EDGcpfe/21634]
+Missing dik_lambda case in disp_dynamic_init
+
+The dik_lambda case was missing from a switch statement in disp_dynamic_init
+which could cause "**BAD DYNAMIC INIT KIND**" to be displayed rather than the
+constant associated with the dik_lambda in edgcpdisp output.
+
+
 8/2/19   [EDGcpfe/21591]
 C++20: Permit conversions to arrays of unknown bound
 

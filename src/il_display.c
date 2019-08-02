@@ -6644,6 +6644,9 @@ Display the indicated dynamic_init structure.
       disp_boolean("value_initialization",
                    (a_boolean)ptr->variant.constructor.value_initialization);
       break;
+    case dik_lambda:
+      (void)printf("dik_lambda\n");
+      goto do_constant;
     case dik_nonconstant_aggregate:
       (void)printf("dik_nonconstant_aggregate\n");
 do_constant:
