@@ -7476,15 +7476,6 @@ apply that would make one better than the other, and return
   }  /* if */
   if (cmp == 0) {
     /* [over.ics.rank]p3 list-initialization sequence tiebreakers. */
-    a_type_ptr param_type1 = arg_match1->param_type;
-    a_type_ptr param_type2 = arg_match2->param_type;
-
-    if (param_type1 != NULL) param_type1 = skip_pointer_types(param_type1);
-    if (param_type2 != NULL) param_type2 = skip_pointer_types(param_type2);
-    check_assertion(!arg_match1->conversion.std.conv_to_array ||
-                    is_array_type(param_type1));
-    check_assertion(!arg_match2->conversion.std.conv_to_array ||
-                    is_array_type(param_type2));
     if (arg_match1->conversion.std.conv_to_std_initializer_list !=
         arg_match2->conversion.std.conv_to_std_initializer_list) {
       /* C++11 [over.ics.rank]p3 last bullet: "List-initialization sequence L1
@@ -7498,14 +7489,18 @@ apply that would make one better than the other, and return
       }  /* if */
     } else if (cpp14_mode &&
                arg_match1->conversion.std.conv_to_array &&
-               arg_match2->conversion.std.conv_to_array &&
-               identical_types(underlying_array_element_type(param_type1),
-                               underlying_array_element_type(param_type2))) {
+               arg_match2->conversion.std.conv_to_array) {
+      a_type_ptr    param_type1 = skip_pointer_types(arg_match1->param_type);
+      a_type_ptr    param_type2 = skip_pointer_types(arg_match2->param_type);
+      a_type_ptr    elem_type1 = underlying_array_element_type(param_type1);
+      a_type_ptr    elem_type2 = underlying_array_element_type(param_type2);
       a_targ_size_t num_elem1 =
                            arg_match1->conversion.std.num_elements_initialized;
       a_targ_size_t num_elem2 =
                            arg_match2->conversion.std.num_elements_initialized;
-      if (num_elem1 != num_elem2) {
+      if (!identical_types(elem_type1, elem_type2)) {
+        /* No tiebreaker if the underlying types are different. */
+      } if (num_elem1 != num_elem2) {
       /* C++14 [over.ics.rank] added a case where L1 and L2 both convert to
          arrays of N1 and N2 T.  L1 is a better match if N1 is smaller than
          N2. */
@@ -7516,7 +7511,7 @@ apply that would make one better than the other, and return
         }  /* if */
       } else if (cpp20_mode &&
                  (param_type1->variant.array.variant.number_of_elements == 0 ||
-                  param_type2->variant.array.variant.number_of_elements == 0)) {
+                 param_type2->variant.array.variant.number_of_elements == 0)) {
         /* C++20 [over.ics.rank] added to the above the case where n1 == n2,
            if L2 converts to an array of unknown bound and L1 does not, L1
            is a better match. */
