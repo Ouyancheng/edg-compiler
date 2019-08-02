@@ -3177,6 +3177,16 @@ a pointer or a reference type, or a C++/CLI handle or tracking reference.
 }  /* type_pointed_to */
 
 
+a_type_ptr skip_pointer_types(a_type_ptr tp)
+/*
+If tp is a pointer or reference type, return the type pointed to, otherwise
+return tp itself.
+*/
+{
+  return is_any_ptr_or_ref_type(tp) ? type_pointed_to(tp) : tp;
+}  /* skip_pointer_types */
+
+
 a_type_ptr pm_member_type(a_type_ptr pm_type)
 /*
 pm_type is a pointer-to-member type.  Return the member type pointed to.
@@ -7574,6 +7584,14 @@ check_typerefs:
                      type. */
                   compat = TRUE;
                 }  /* if */
+              } else if (cpp20_mode && is_impl_conv) {
+                /* In C++20 mode we can implicitly convert an array with known
+                   bounds to an array with unknown bounds - but not the other
+                   way around. */
+                if (!has_unknown_specified_bound(type_2) &&
+                    type_2->variant.array.variant.number_of_elements == 0) {
+                  compat = TRUE;
+                }  /* if */
               }  /* if */
             }  /* if */
           }
@@ -7989,6 +8007,8 @@ Clear a standard conversion description to default values.
   std_conv->param_array_conversion = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   std_conv->conv_to_std_initializer_list = FALSE;
+  std_conv->conv_to_array = FALSE;
+  std_conv->num_elements_initialized = 0;
 }  /* clear_std_conv_descr */
 
 
@@ -8904,8 +8924,12 @@ Microsoft-mode handling of the __unaligned and __restrict qualifiers).
                  is_array(source_type) && is_array(dest_type)) {
         /* N4261 reworked qualification conversions to include arrays (thereby
            resolving Core issue 330).  GCC, Clang, and (some versions of) MSVC
-           do not appear to implement that yet. */
-        if (!identical_array_type_level(source_type, dest_type)) {
+           do not appear to implement that yet.  P0338R4 (in C++20) adjusted
+           this further to allow conversions from arrays with known bounds to
+           arrays with unknown bounds. */
+        if (!identical_array_type_level(source_type, dest_type) &&
+            !(cpp20_mode && !has_unknown_specified_bound(dest_type) &&
+              dest_type->variant.array.variant.number_of_elements == 0)) {
           same = FALSE;
           break;
         }  /* if */

@@ -2361,6 +2361,14 @@ initialization).  *is describes the initialization as a whole.
       aggr_init_array_remainder_if_needed(*init_con, rcount, etype, is,
                                           diag_pos);
     }  /* if */
+    if (!is->init_error && is->arg_match != NULL) {
+      is->arg_match->conversion.std.conv_to_array = TRUE;
+      if (!no_bound) {
+        is->arg_match->conversion.std.num_elements_initialized = ecount;
+      } else {
+        is->arg_match->conversion.std.num_elements_initialized = icount;
+      }  /* if */
+    }  /* if */
     if (incomplete_array) {
       /* If appropriate, update the type of the constant and/or the type of
          the destination to reflect the actual number of initializer

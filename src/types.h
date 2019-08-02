@@ -292,6 +292,7 @@ extern a_targ_size_t num_vector_elements(a_type_ptr vector_type);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 extern a_type_ptr find_bottom_of_type(a_type_ptr type);
 extern a_type_ptr type_pointed_to(a_type_ptr pointer_type);
+extern a_type_ptr skip_pointer_types(a_type_ptr tp);
 extern a_type_ptr pm_member_type(a_type_ptr pm_type);
 extern a_type_ptr pm_class_type(a_type_ptr pm_type);
 extern a_type_ptr f_underlying_type_of_derived_type(
@@ -1181,6 +1182,13 @@ typedef struct a_std_conv_descr {
 			/* TRUE if this is a conversion of a braced-init-list
 			   to an std::initializer_list<X> object.  See C++11
 			   [over.ics.rank]p3 last bullet. */
+  a_bit_field	conv_to_array:1;
+			/* TRUE if this is a conversion of a braced-init-list
+			   to an array object.  See C++14 [over.ics.rank]p3
+			   last bullet, second sub-bullet. */
+  a_targ_size_t	num_elements_initialized;
+			/* If conv_to_array is TRUE, contains the number of
+			   elements initialized by the braced-init-list. */
 } a_std_conv_descr;
 
 
