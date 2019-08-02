@@ -17372,7 +17372,8 @@ template declaration and is NULL otherwise.
     var->declared_with_class_template_placeholder = TRUE;
   }  /* if */
   if (decl_info->is_member_template ||
-      in_class_template_definition(class_state)) {
+      in_class_template_definition(class_state) ||
+      in_ms_nonreal_class_instantiation()) {
     var->is_template_variable = TRUE;
     var->is_prototype_instantiation = TRUE;
     var->is_nonreal = TRUE;
