@@ -11237,6 +11237,7 @@ Evaluate the given new-expression.
   a_byte_count                 alloc_length, elem_size;
   a_constexpr_address          *cap;
   a_type_ptr                   type = skip_typerefs(ndsp->type), elem_type;
+  an_expr_node_ptr             length_expr = ndsp->number_of_elements;
 
   if (!ips->is_constant_evaluated || !constexpr_dynamic_alloc_enabled) {
     /* Don't attempt to evaluate a new-expression if a constant result is not
@@ -11246,13 +11247,12 @@ Evaluate the given new-expression.
                   &expr->position, ips);
     goto done;
   }  /* if */
-  if (ndsp->number_of_elements == NULL) {
+  if (length_expr == NULL) {
     /* No declarator of the form [<run-time length>]. */
     alloc_length = 1;
     elem_type = type;
   } else {
     a_byte_count          opnd_n_bytes;
-    an_expr_node_ptr      length_expr = ndsp->number_of_elements;
     a_type_ptr            length_tp = skip_typerefs(length_expr->type);
     a_byte                *length_bytes;
     a_boolean             ovflo;
@@ -11345,6 +11345,27 @@ Evaluate the given new-expression.
         }  /* if */
       }  /* for */
     } else {
+      /* In some cases the initializer is a braced list whose number of
+         elements is potentially larger than the number of elements allocated.
+         For example, "new int[n]{1, 2, 3}" where n evaluates to 2.  Check for
+         that (non-constant) case. */
+      if ((dip->kind == (a_dynamic_init_kind)dik_constant ||
+           dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) &&
+          length_expr != NULL) {
+        a_constant_ptr  init_cp = dip->variant.constant.ptr;
+        if (constant_is(init_cp, ck_aggregate)) {
+          a_type_ptr  init_tp = skip_typerefs(init_cp->type);
+          if (type_is(init_tp, tk_array) &&
+              init_tp->variant.array.variant.number_of_elements >
+                                                               alloc_length) {
+            info_with_pos_num(ec_constexpr_alloc_too_small,
+                              &length_expr->position,
+                              (a_byte_count)alloc_length, ips);
+            do_constexpr_fail(result);
+            goto done;
+          }  /* if */
+        }  /* if */
+      }  /* if */
       for (; k<(int)alloc_length; ++k, elem += elem_size) {
         if (!do_constexpr_dynamic_init(ips, dip, &expr->position, elem,
                                        complete_obj)) {

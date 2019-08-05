@@ -3088,6 +3088,7 @@ ec_nodiscard_object_type_with_reason;;"type of discarded object has \"nodiscard\
 ec_vacuous_destructor_not_called;;"a pseudo-destructor reference can only be used for a pseudo-destructor call"
 ec_constexpr_explicit_dtor_call;;"an explicit destructor call is not permitted in a constant-expression"
 ec_comma_operator_in_array_subscript_deprecated;;"an unparenthesized comma operator in an array subscript expression is deprecated"
+ec_constexpr_alloc_too_small;;"number of dynamically-allocated elements (%d) too small for initializer"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
