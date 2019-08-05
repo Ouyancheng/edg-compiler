@@ -1,5 +1,25 @@
 Version 6.0
 
+
+8/5/19   [EDGcpfe/19157,EDGcpfe/21466]
+Invalid treatment of types of lvalues in interpreter
+
+The constexpr interpreter previous checked that it could compute the size of
+the types of lvalues.  This could result in spurious errors in cases of lvalues
+referring to large objects.  For example:
+
+  #define offsetof(T, M) (__INTADDR__(&(((T*)0)->M)))
+  union U {
+    unsigned char x[(500*1024)];
+  };
+  constexpr auto r = offsetof(U, x);  // Previously an error.  Now okay.
+
+Here, the offsetof expression was previously not evaluated as a constant
+because the interpreter considered U to be too large of a type to allocate.
+However, no object of type U has to be allocated to compute the offsetof
+expression.  This issue is now fixed.
+
+
 8/2/19   [EDGcpfe/21580]
 Deprecated un-parenthesized comma operator in array subscript expressions
 

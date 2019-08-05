@@ -11463,13 +11463,13 @@ otherwise, it need only be large enough for the type of the prvalue result.
   a_boolean            result = TRUE;
   an_expr_node_ptr     expr = skip_parens(orig_expr);
   a_type_ptr           tp = skip_typerefs(expr->type);
-  a_byte_count         n_bytes = value_bytes_for_type(ips, tp, &result);
+  a_byte_count         n_bytes;
   an_integer_kind      int_kind;
   a_boolean            is_signed;
   a_host_large_integer host_int_val;
 
   if (!result) goto done;
-  if (expr->do_not_interpret) {
+  if (type_is(tp, tk_template_param) || expr->do_not_interpret) {
     info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
                   &expr->position, ips);
     do_constexpr_fail(result);
@@ -11520,6 +11520,7 @@ nodes.
       *(a_constexpr_address*)result_storage = *(a_constexpr_address*)(opnd);  \
     } else {                                                                  \
       /* Do the lvalue-to-rvalue conversion into the result. */               \
+      n_bytes = value_bytes_for_type(ips, tp, &result);                       \
       result = do_glvalue_to_prvalue(ips, expr, tp,                           \
                                      (a_constexpr_address*)(opnd), n_bytes,   \
                                      result_storage, complete_object);        \
@@ -11576,7 +11577,8 @@ the value representation of the integer value.
                    !node_operator_is(expr, eok_question) &&
                    !node_operator_is(expr, eok_dot_vacuous_destructor_call) &&
                    !node_operator_is(expr,
-                                     eok_points_to_vacuous_destructor_call)) {
+                                     eok_points_to_vacuous_destructor_call) &&
+                   opnd2->kind != (an_expr_node_kind)enk_field) {
           /* Evaluate the second operand.  For short-circuiting operators,
              whether to evaluate the second operand will be decided below in
              the specific code for each such operator.  The comma operator can
@@ -11584,7 +11586,11 @@ the value representation of the integer value.
              that case); eok_dot_static and eok_points_to_static are equivalent
              to the comma operator in this respect.  If this is an operation
              that requires the second operand to be evaluated first, the
-             evaluation of the first operand is performed here also. */
+             evaluation of the first operand is performed here also.  If the
+             second operand is a enk_field node, do not "evaluate" it (it
+             would do nothing, and determining the corresponding type size
+             could trigger a spurious failure (the size is not needed for
+             glvalue cases). */
           opnd2_type = skip_typerefs(opnd2->type);
           opnd_n_bytes = expr_result_size(ips, opnd2, opnd2_type, &result);
           if (!result) break;
@@ -13938,6 +13944,7 @@ the value representation of the integer value.
                    address and return either the address or the value, as
                    appropriate. */
                 a_byte  *dst_storage = value_bytes_at(dst);
+                n_bytes = value_bytes_for_type(ips, tp, &result);
                 (void)memcpy(dst_storage, opnd2_value, size_t_arg(n_bytes));
                 if (tp->kind == (a_type_kind)tk_pointer) {
                   /* Copying a pointer type.  Make sure its side structures,
@@ -15554,6 +15561,7 @@ the value representation of the integer value.
               info_with_pos(ec_object_not_initialized, &expr->position, ips);
               do_constexpr_fail(result);
             } else {
+              n_bytes = value_bytes_for_type(ips, tp, &result);
               (void)memcpy(result_storage, var_bytes, size_t_arg(n_bytes));
               if (tp->kind == (a_type_kind)tk_pointer) {
                 /* Copying an address type.  Make sure its side structures, if
@@ -15673,7 +15681,8 @@ the value representation of the integer value.
         /* Don't treat a reference to a consteval function as a constant
            unless a constant is really needed.  That keeps the enk_routine
            node in the expression tree so invalid uses can be diagnosed. */
-        if (!rp->is_prototype_instantiation &&
+        if (rp != NULL &&
+            !rp->is_prototype_instantiation &&
             !(rp->is_consteval && !ips->allow_consteval_routine_node)) {
 #if GNU_EXTENSIONS_ALLOWED
           if (rp->is_weak) {
@@ -15707,12 +15716,12 @@ the value representation of the integer value.
           break;
         }  /* if */
         dip = expr->variant.init.dynamic_init;
+        n_bytes = value_bytes_for_type(ips, tp, &result);
         if (expr->is_lvalue || expr->is_xvalue) {
           /* A glvalue temporary is expected.  I.e., the caller expects an
              interpreter address for the temporary object.  Allocate the
              storage for that object here. */
           a_constexpr_address  *cap;
-          n_bytes = value_bytes_for_type(ips, tp, &result);
           if (!result) break;
           compute_prefix_size_for_type(tp, n_bytes, prefix_size);
           temp_lifetime = dip->has_temporary_lifetime;
@@ -15815,6 +15824,7 @@ the value representation of the integer value.
           get_stack_bytes(ips, &ips->curr_call_frame, this_bytes);
         }  /* if */
         if (this_bytes != NULL) {
+          n_bytes = value_bytes_for_type(ips, tp, &result);
           (void)memcpy(result_storage, this_bytes, size_t_arg(n_bytes));
           copy_address_structures(result_storage);
           if (result_storage == complete_object) {
