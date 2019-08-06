@@ -12066,6 +12066,14 @@ the value representation of the integer value.
               a_targ_size_t        length;
               if (opnd1->is_lvalue || opnd1->is_xvalue) {
                 *result_addr = *(a_constexpr_address *)opnd1_value;
+               if (is_runtime_data_address(result_addr)) {
+                  a_constant_ptr  orig_con = result_addr->variant.addr_con;
+                  a_constant_ptr  new_con;
+                  new_con = make_interpreter_copy_of_constant(ips, orig_con);
+                  new_con->type = tp;
+                  result_addr->variant.addr_con = new_con;
+                  break;
+                }  /* if */
               } else {
                 /* The somewhat unusual case of an array rvalue. */
                 clear_address(result_addr, opnd1_value);
@@ -12076,13 +12084,7 @@ the value representation of the integer value.
               length = opnd1_type->variant.array.variant.number_of_elements;
               if (length <= MAX_ARRAY_LENGTH) {
                 result_addr->length = length;
-                if (is_runtime_data_address(result_addr)) {
-                  a_constant_ptr  orig_con = result_addr->variant.addr_con;
-                  a_constant_ptr  new_con;
-                  new_con = make_interpreter_copy_of_constant(ips, orig_con);
-                  new_con->type = tp;
-                  result_addr->variant.addr_con = new_con;
-                } else if (is_variant_path(result_addr)) {
+                if (is_variant_path(result_addr)) {
                   result_addr->variant.variant_path->base_address =
                                                          result_addr->address;
                 } else {
@@ -15862,6 +15864,9 @@ the value representation of the integer value.
       }
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    case enk_error:
+      ips->input_error = TRUE;
+      /*FALLTHROUGH*/
     default:
       do_constexpr_fail(result);
       info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
