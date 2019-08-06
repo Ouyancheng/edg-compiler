@@ -15773,6 +15773,33 @@ A variable surrounded by parentheses still counts as the simple variable.
 }  /* operand_is_lvalue_for_variable */
 
 
+a_boolean operand_is_lvalue_for_rref_variable(an_operand      *operand,
+                                              a_variable_ptr  *var)
+/*
+If the given operand represents an lvalue for a variable, return TRUE and
+make *var point to the IL entry for that variable.  Otherwise, return FALSE.
+A variable surrounded by parentheses still counts as the simple variable.
+*/
+{
+  a_boolean  result = FALSE;
+
+  *var = NULL;
+  if (is_expression_operand(operand)) {
+    an_expr_node_ptr expr = skip_parens(operand->variant.expression);
+    if (expr->is_lvalue && is_operation_node(expr) &&
+        node_operator_is(expr, eok_ref_indirect)) {
+      expr = expr->variant.operation.operands;
+      if (is_variable_node(expr) &&
+          is_rvalue_reference_type(node_variable(expr)->type)) {
+        result = TRUE;
+        *var = node_variable(expr);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* operand_is_lvalue_for_variable */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/  /* <-- end_position is not used in that case. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */

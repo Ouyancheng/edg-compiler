@@ -1997,6 +1997,9 @@ extern a_boolean variable_has_constant_address(a_variable_ptr variable);
 extern a_boolean operand_is_lvalue_for_variable(an_operand      *operand,
                                                 a_variable_ptr  *var);
 
+extern a_boolean operand_is_lvalue_for_rref_variable(an_operand      *operand,
+                                                     a_variable_ptr  *var);
+
 extern void make_lvalue_variable_operand(a_variable_ptr    variable,
                                          a_source_position *position,
                                          a_source_position *end_position,

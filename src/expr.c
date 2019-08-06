@@ -42548,7 +42548,9 @@ lowering or a back end to do the rewriting.
        if this return expression invalidates it.  Return value optimization
        is possible if all return statements in the function return the
        same nonstatic local variable. */
-    if (!operand_is_lvalue_for_variable(operand, &return_var)) {
+    if (!operand_is_lvalue_for_variable(operand, &return_var) &&
+        !(cpp20_mode &&
+          operand_is_lvalue_for_rref_variable(operand, &return_var))) {
       /* The expression is not a simple variable, so the optimization is no
          longer possible. */
       /* possible = FALSE; -- already set. */

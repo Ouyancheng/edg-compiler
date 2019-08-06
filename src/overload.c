@@ -19309,7 +19309,9 @@ other cases, FALSE is returned and the source operand is left unchanged.
 
   if ((conv_context & CCO_MOVE_OPTIMIZATION_ALLOWED) &&
       rvalue_references_enabled &&
-      operand_is_lvalue_for_variable(source_operand, &var)) {
+      (operand_is_lvalue_for_variable(source_operand, &var) ||
+       (cpp20_mode &&
+        operand_is_lvalue_for_rref_variable(source_operand, &var)))) {
     /* The move constructor optimization might apply here.  Check further. */
     a_boolean initializing_return_value =
                            (conv_context & CCO_INITIALIZING_RETURN_VALUE) != 0;
@@ -19370,8 +19372,11 @@ other cases, FALSE is returned and the source operand is left unchanged.
         /* We're counting on the fact that the cast to a reference type above
            doesn't change the original expression. */
         a_variable_ptr var2;
-        check_assertion(operand_is_lvalue_for_variable(source_operand,
-                                                       &var2) &&
+        check_assertion((operand_is_lvalue_for_variable(source_operand,
+                                                        &var2) ||
+                         (cpp20_mode &&
+                          operand_is_lvalue_for_rref_variable(source_operand,
+                                                              &var2))) &&
                         var == var2);
       } /* if */
 #endif /* CHECKING */
