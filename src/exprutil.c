@@ -15776,9 +15776,10 @@ A variable surrounded by parentheses still counts as the simple variable.
 a_boolean operand_is_lvalue_for_rref_variable(an_operand      *operand,
                                               a_variable_ptr  *var)
 /*
-If the given operand represents an lvalue for a variable, return TRUE and
-make *var point to the IL entry for that variable.  Otherwise, return FALSE.
-A variable surrounded by parentheses still counts as the simple variable.
+If the given operand represents an lvalue for an rvalue reference variable,
+return TRUE and make *var point to the IL entry for that variable.  Otherwise,
+return FALSE.  A variable surrounded by parentheses still counts as the simple
+variable.
 */
 {
   a_boolean  result = FALSE;
