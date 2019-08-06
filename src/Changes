@@ -1,10 +1,9 @@
 Version 6.0
 
-
 8/5/19   [EDGcpfe/19157,EDGcpfe/21466]
 Invalid treatment of types of lvalues in interpreter
 
-The constexpr interpreter previous checked that it could compute the size of
+The constexpr interpreter previously checked that it could compute the size of
 the types of lvalues.  This could result in spurious errors in cases of lvalues
 referring to large objects.  For example:
 

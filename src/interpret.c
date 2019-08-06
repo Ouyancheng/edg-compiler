@@ -11587,7 +11587,7 @@ the value representation of the integer value.
              to the comma operator in this respect.  If this is an operation
              that requires the second operand to be evaluated first, the
              evaluation of the first operand is performed here also.  If the
-             second operand is a enk_field node, do not "evaluate" it (it
+             second operand is an enk_field node, do not "evaluate" it (it
              would do nothing, and determining the corresponding type size
              could trigger a spurious failure (the size is not needed for
              glvalue cases). */
