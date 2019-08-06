@@ -5698,6 +5698,7 @@ returned set to TRUE.
       } else if (interpret_dynamic_init(init_dip, &pos_first_token, vp->type,
                                         is_constant_evaluated,
                                         folded_con, &diag_list)) {
+        if (is_error_constant(folded_con)) init_err = TRUE;
         if (static_lifetime) {
           init_con = move_local_constant_to_il(&folded_con);
           init_dip = NULL;
