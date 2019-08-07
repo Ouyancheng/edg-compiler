@@ -5278,13 +5278,14 @@ Check the type of a variable node to make sure it is consistent with the
 type of the variable to which it refers.
 */
 {
-  a_type_ptr tp = expr->type;
-  a_type_ptr expected_type;
-  a_boolean  types_match;
+  a_type_ptr     tp = expr->type, expected_type;
+  a_variable_ptr vp;
+  a_boolean      types_match;
 
   check_assertion_str(is_variable_node(expr),
                       "check_type_of_variable_node: wrong kind of node");
-  expected_type = node_variable(expr)->type;
+  vp = node_variable(expr);
+  expected_type = vp->type;
   if (is_array_type(tp) && is_array_type(expected_type) &&
       (is_incomplete_array_type(tp) ||
        is_incomplete_array_type(expected_type))) {
@@ -5301,6 +5302,12 @@ type of the variable to which it refers.
        conversion would have caused the array type to decay to a pointer,
        so the cases are mutually exclusive.) */
     expected_type = make_unqualified_type(expected_type);
+  } else if (vp->is_compound_literal && (clang_mode || gnu_mode)) {
+    /* The variable holding a compound literal in GNU and Clang mode can be
+       "const" (to model immutability) even though the compound-literal
+       expression is not). */
+    expected_type = make_unqualified_type(expected_type);
+    tp = make_unqualified_type(tp);
   }  /* if */
   types_match = il_identical_types(tp, expected_type);
   if (!types_match) {
