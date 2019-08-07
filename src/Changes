@@ -76,12 +76,12 @@ issue is now fixed.
 
 
 8/2/19   [EDGcpfe/21580]
-Deprecated un-parenthesized comma operator in array subscript expressions
+Deprecated unparenthesized comma operator in array subscript expressions
 
-Committee document P1161R3 deprecated the usage of un-parenthesized comma
-operators in array subscript expressions.  The front end will now issue
-warnings in all C++ modes whenever such expressions are encountered.  For
-example:
+Committee document P1161R3 deprecated the usage of unparenthesized comma
+operators in array subscript expressions.  The front end will now issue remarks
+in all C++ modes prior to C++20 and warnings in C++20 mode whenever such
+expressions are encountered.  For example:
 
 void f(int *a, int b, int c) {
   a[b,c];   // Deprecated
