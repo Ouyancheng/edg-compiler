@@ -2212,7 +2212,9 @@ properly (see floating.h).
 #endif /* USE_SOFTFLOAT && USE_HOST_FP_CONVERSION_ROUTINES */
 
 #if USE_SOFTFLOAT
+BEGIN_EXTERN_C_BLOCK
 #include "softfloat.h"
+END_EXTERN_C_BLOCK
 
 /*
 Use SoftFloat's float128_t type as the host's floating-point internal

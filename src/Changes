@@ -1,5 +1,13 @@
 Version 6.0
 
+8/7/19   [EDGcpfe/21648]
+Softfloat library now in extern "C" block
+
+The Softfloat library (see the Changes entry for EDGcpfe/21259) is a C library
+and is now referenced in an extern "C" block when the front end is compiled
+by a C++ compiler.
+
+
 8/6/19   [EDGcpfe/21615]
 Class template argument deduction and const variables
 
