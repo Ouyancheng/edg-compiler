@@ -18555,6 +18555,7 @@ if one is present.
     a_boolean	def_init_okay, sym_invisible = state->sym->is_invisible;
     if (gpp_mode) state->sym->is_invisible = TRUE;
     def_init_okay = def_initializer(state->sym, &locator->source_position);
+    state->type = var_ptr->type;
     if (gpp_mode) state->sym->is_invisible = sym_invisible;
     if (def_init_okay) {
       /* Default initialization was successful. */

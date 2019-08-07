@@ -15385,11 +15385,7 @@ instantiated (for a template parameter "T", this includes types such as "T",
 */
 {
   tp = skip_typerefs(tp);
-  return (is_template_param(tp) &&
-          !(tp->variant.template_param.kind ==
-                                (a_template_param_type_kind)tptk_param &&
-            tp->variant.template_param.extra_info->coordinates.depth ==
-                                 CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH)) ||
+  return is_template_param(tp) ||
          (is_immediate_class_type(tp) &&
           tp->variant.class_struct_union.is_nonreal_class);
 }  /* could_be_dependent_class_type */
