@@ -1,5 +1,18 @@
 Version 6.0
 
+8/6/19   [EDGcpfe/21615]
+Class template argument deduction and const variables
+
+The front end previously failed to diagnose a missing initializer on a variable
+whose type involved deduced class template arguments.  For example:
+
+  template<typename ...> struct S { int x[2]; };
+  constexpr S s;  // Deduces S<> as the type of s, but missing initializer
+                  // was previously not diagnosed.  An error is now issued.
+
+This is now fixed.
+
+
 8/6/19   [EDGcpfe/21642]
 USE_POINTER_TO_CONST_CHAR eliminated
 
