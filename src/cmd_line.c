@@ -9096,11 +9096,6 @@ file.
 #else /* !defined(USE_PATCH_INIT_STARTUP) */
   comment_undefined_macro_name(USE_PATCH_INIT_STARTUP);
 #endif /* defined(USE_PATCH_INIT_STARTUP) */
-#if defined(USE_POINTER_TO_CONST_CHAR)
-  define_numeric_valued_macro(USE_POINTER_TO_CONST_CHAR);
-#else /* !defined(USE_POINTER_TO_CONST_CHAR) */
-  comment_undefined_macro_name(USE_POINTER_TO_CONST_CHAR);
-#endif /* defined(USE_POINTER_TO_CONST_CHAR) */
 #if defined(USE_QUADMATH_LIBRARY)
   define_numeric_valued_macro(USE_QUADMATH_LIBRARY);
 #else /* !defined(USE_QUADMATH_LIBRARY) */

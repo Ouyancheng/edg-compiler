@@ -1,5 +1,13 @@
 Version 6.0
 
+8/6/19   [EDGcpfe/21642]
+USE_POINTER_TO_CONST_CHAR eliminated
+
+As part of transitioning the source code of the front end to C++11, the
+configuration macro USE_POINTER_TO_CONST_CHAR has been eliminated.  Defining
+this macro to FALSE now triggers a #error directive.
+
+
 8/6/19   [EDGcpfe/21596]
 More implicit moves in return statements and throw expressions
 

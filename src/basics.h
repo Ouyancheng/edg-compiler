@@ -418,23 +418,20 @@ typedef char * a_const_void_ptr;
 
 /*
 Define a type to be used in declaring variables, parameters, and fields
-that are intended as pointers to read-only string data.  This permits the
-front end to be compiled as C++11 source (which does not permit the
-previously-deprecated implicit conversion of a string literal to char*)
-while preserving the historical interface for C and C++03 applications.
+that are intended as pointers to read-only string data.  Since C++11, this
+must be a pointer to const char.
+
+In earlier releases (which could be built with C89 compilers), the const
+qualifier was omitted when USE_POINTER_TO_CONST_CHAR was configured FALSE.
+Catch configurations that still assume the old type.
 */
-#ifndef USE_POINTER_TO_CONST_CHAR
-#if defined(__cplusplus) && __cplusplus >= 201103L
-#define USE_POINTER_TO_CONST_CHAR TRUE
-#else /* !(defined(__cplusplus) && __cplusplus >= 201103L) */
-#define USE_POINTER_TO_CONST_CHAR FALSE
-#endif /* defined(__cplusplus) && __cplusplus >= 201103L */
-#endif /* USE_POINTER_TO_CONST_CHAR */
-#if USE_POINTER_TO_CONST_CHAR
 typedef const char a_const_char;
-#else /* !USE_POINTER_TO_CONST_CHAR */
-typedef char a_const_char;
+
+#ifdef USE_POINTER_TO_CONST_CHAR
+#if !USE_POINTER_TO_CONST_CHAR
+ #error -- USE_POINTER_TO_CONST_CHAR (obsolete) can no longer be set to FALSE
 #endif /* USE_POINTER_TO_CONST_CHAR */
+#endif /* ifdef USE_POINTER_TO_CONST_CHAR */
 
 /*
 Type to be used for bit fields.
