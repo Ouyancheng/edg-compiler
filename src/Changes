@@ -1,5 +1,16 @@
 Version 6.0
 
+8/7/19   [EDGcpfe/21647]
+Incorrect setting of is_local_to_function for variable template instances
+
+The is_local_to_function field of the source correspondence field for
+variable template instances could be incorrectly set to TRUE in some
+cases.  This could cause various kinds of problems.  It has been observed
+to cause an internal error in add_discriminator in name mangling, and
+an EXPENSIVE_CHECKING internal error in expensive_il_entry_prefix_of
+during the IL walk process.  Now fixed.
+
+
 8/7/19   [EDGcpfe/21649]
 Abort with inline variables and implicit inclusion
 
