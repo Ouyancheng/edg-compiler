@@ -26,8 +26,8 @@ More implicit moves in return statements and throw expressions
 
 Committee document P1825R0 added additional contexts where implicit moves are
 possible.  Rvalue reference variables are now candidates for implicit moves,
-and a throw expressions now match return statements for when an implicit move
-is possible, so long as the scope of the thrown entity does not extend past the
+and throw expressions now match return statements for when an implicit move is
+possible, so long as the scope of the thrown entity does not extend past the
 try block containing the throw.  For example (with --c++20):
 
   struct base {
