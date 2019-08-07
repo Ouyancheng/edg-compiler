@@ -21313,6 +21313,13 @@ already indicates the load.
     case enk_typeid:
       rvalueable = TRUE;
       break;
+    case enk_constant:
+      { a_constant_ptr  cp = node_constant(node);
+        if (constant_is(cp, ck_template_param)) {
+          rvalueable = TRUE;
+        }  /* if */
+      }
+      break;
     case enk_param_ref:
       /* An enk_param_ref is generally rvalueable, but not when it represents
          "this". */
