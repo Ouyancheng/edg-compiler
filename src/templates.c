@@ -32344,7 +32344,7 @@ template entities.
            source file that will provide the definition.  Then check
            again to see if a template definition is present. */
         do_implicit_include_if_needed(tip);
-        template_def = template_sym->defined;
+        template_def = !vp->is_inline && template_sym->defined;
       }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
     } else {
@@ -32486,7 +32486,8 @@ this overrides an "extern template" directive.
     } else {
       specialized = vp->is_specialized;
       template_def = !vp->is_inline && tip->template_sym->defined;
-      if (!template_def && !specialized && export_template_allowed) {
+      if (!template_def && !vp->is_inline && !specialized &&
+          export_template_allowed) {
         /* When exported templates are being used, look for an exported
            definition of this template */
         template_def = exported_definition_is_available(tip);
@@ -32500,7 +32501,7 @@ this overrides an "extern template" directive.
            source file that will provide the definition.  Then check
            again to see if a template definition is present. */
         do_implicit_include_if_needed(tip);
-        template_def = tip->template_sym->defined;
+        template_def = !vp->is_inline && tip->template_sym->defined;
       }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
     }  /* if */
