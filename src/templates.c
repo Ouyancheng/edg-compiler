@@ -10348,7 +10348,10 @@ instance symbol.
   a_variable_template_info_ptr		vtip;
   a_symbol_ptr				new_sym;
   a_template_instance_ptr		tip;
+  a_memory_region_number		region_to_switch_back_to;
 
+  /* Variable template instances must be allocated in the file scope. */
+  switch_to_file_scope_region(&region_to_switch_back_to);
   check_assertion(symbol_is(template_sym, sk_variable_template));
   tssp = template_sym->variant.template_info;
   /* Create the symbol for the prototype instantiation. */
@@ -10362,15 +10365,16 @@ instance symbol.
   new_sym->variant.variable.ptr = var;
   vtip->assoc_template = tssp->il_template_entry;
   var->source_corresp.access = access_for_symbol(template_sym);
-  set_source_corresp(&(var->source_corresp), new_sym);
-  set_membership_in_source_corresp(&(var->source_corresp),
-                                   new_sym);
   tip = alloc_template_instance();
   tip->template_sym = template_sym;
   tip->instance_sym = new_sym;
   new_sym->variant.variable.instance_ptr = tip;
   vtip->template_arg_list = templ_arg_list;
   var->template_info->assoc_template = tssp->il_template_entry;
+  set_source_corresp(&(var->source_corresp), new_sym);
+  set_membership_in_source_corresp(&(var->source_corresp),
+                                   new_sym);
+  switch_back_to_original_region(region_to_switch_back_to);
   return new_sym;
 }  /* make_template_variable */
 

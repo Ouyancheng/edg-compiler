@@ -1391,6 +1391,7 @@ is within a function body.
     }  /* if */
     scope_depth = decl_scope_level;
   } else if (is_template_instance_class_symbol(sym) ||
+             is_template_variable_symbol(sym) ||
              is_template_alias_instance_symbol(sym)) {
     /* Template classes and aliases can be created at arbitrary times and so
        the scope stack cannot be used to determine the scope depth. */
