@@ -3021,11 +3021,30 @@ The safe answer, if the truth cannot be discovered, is FALSE.
   a_boolean is_true_constant;
 
   expr = skip_parens(expr);
-  if (is_operation_node(expr) && node_operator_is(expr, eok_bool_cast)) {
-    expr = skip_parens(expr->variant.operation.operands);
-  }  /* if */
-  while (is_operation_node(expr) && node_operator_is(expr, eok_comma)) {
-    expr = skip_parens(expr->variant.operation.operands->next);
+  while (is_operation_node(expr)) {
+    if ( node_operator_is(expr, eok_bool_cast)) {
+      expr = skip_parens(expr->variant.operation.operands);
+    } else if (node_operator_is(expr, eok_comma)) {
+      expr = skip_parens(expr->variant.operation.operands->next);
+#if BUILTIN_FUNCTIONS_ENABLED
+    } else if (is_call_node(expr)) {
+      a_routine_ptr  rp = routine_from_function_expr(
+                                            expr->variant.operation.operands);
+      if (rp != NULL && is_gnu_builtin_function(rp)) {
+        a_builtin_function_kind  bfk = rp->variant.builtin_function_kind;
+        if (bfk == (a_builtin_function_kind)bfk_expect ||
+            bfk == (a_builtin_function_kind)bfk_expect_with_probability) {
+          expr = skip_parens(expr->variant.operation.operands->next);
+        } else {
+          break;
+        }  /* if */
+      } else {
+        break;
+      }  /* if */
+#endif  /* BUILTIN_FUNCTIONS_ENABLED */
+    } else {
+      break;
+    }  /* if */
   }  /* while */
   is_true_constant = (is_constant_node(expr) &&
                       constant_bool_value_known_at_compile_time(
@@ -3232,8 +3251,8 @@ a structured statement has ended.
     } else if (kind == ssk_constexpr_if &&
                sp->variant.constexpr_if->else_statement == NULL &&
                !is_true_constant_expr(sp->expr)) {
-      /* If without an else, except "if (1) ...".  If the initial statement
-         can be reached, the end can be reached. */
+      /* If without an else, except "if constexpr (1) ...".  If the initial
+         statement can be reached, the end can be reached. */
       merge_reachability(&sssep->start_reachable, &sssep->end_reachable);
     }  /* if */
     /* The code after the statement can be reached if the end of the statement

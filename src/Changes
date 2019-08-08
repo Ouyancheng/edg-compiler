@@ -1,5 +1,25 @@
 Version 6.0
 
+8/8/19   [EDGcpfe/21472]
+Effect of __builtin_expect on control-flow warnings
+
+Consider (in GNU or Clang mode):
+
+  int f() {
+    if (__builtin_expect(true, 0)) throw 0;
+  }
+  int g() {
+    if (true) throw 0;
+  }
+
+Previously, this triggered a warning about f() missing a return statement.
+No such warning was issued for g(), because the front end recognized that the
+if-condition in g() is always true.  Now, the front end sees through the
+__builtin_expect (and __builtin_expect_with_probability) intrinsics to
+identify control-flow conditions are always true, and as a result no warning
+is emitted anymore for f() above.
+
+
 8/7/19   [EDGcpfe/21647]
 Incorrect setting of is_local_to_function for variable template instances
 
