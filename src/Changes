@@ -1,5 +1,23 @@
 Version 6.0
 
+8/8/19   [EDGcpfe/20556]
+Cfront ABI: Missing diagnostic on implied reference to deleted destructor
+
+In Cfront ABI configurations the front end sometimes failed to diagnose the
+implied reference to a deleted destructor.  For example:
+
+  struct N {
+    N();
+    ~N() = delete;
+  };
+  N n();
+  void g() {
+    sizeof(n()); // Previously incorrectly accepted with Cfront ABI.
+  }              // Now an error.
+
+That is now fixed.
+
+
 8/8/19   [EDGcpfe/21472]
 Effect of __builtin_expect on control-flow warnings
 
