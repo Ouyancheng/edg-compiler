@@ -1422,6 +1422,9 @@ Casts are not needed for pointer to member function types.
 #endif /* DO_IL_LOWERING */
 #endif /* NEED_NAME_MANGLING */
 
+extern a_boolean expr1_could_affect_expr2(an_expr_node_ptr expr1,
+                                          an_expr_node_ptr expr2);
+
 #endif /* ifndef LOWER_IL_H */
 
 /******************************************************************************

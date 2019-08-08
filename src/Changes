@@ -1,5 +1,27 @@
 Version 6.0
 
+8/8/19   [EDGcpfe/21565]
+Strict evaluation ordering and lowered class assignments
+
+Certain class assignments are rewritten during the lowering process to calls to
+memcpy (or eliminated if the class is empty).  In cases where strict evaluation
+ordering is in force (see the Changes entry for EDGcpfe/17701), lowering
+had failed to maintain the proper expression ordering.  For example (with
+--c++17):
+
+  struct S {
+    int x;
+    char c;
+    S() {}
+  };
+  S s;
+  S& second() { return s; }
+  S first() { return s; }
+  void f() {
+    second() = first();   // first() is called before second() with --c++17
+  }
+
+
 8/8/19   [EDGcpfe/21381]
 Memory region problem with __integer_pack
 

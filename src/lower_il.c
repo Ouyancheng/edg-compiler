@@ -13456,10 +13456,9 @@ case is handled properly.
 }  /* lower_operation_on_const_string_if_possible */
 
 #endif /* LOWER_STRING_LITERALS_TO_NON_CONST */
-#if LOWER_LVALUE_RETURNING_OPERATIONS
 
-static a_boolean expr1_could_affect_expr2(an_expr_node_ptr expr1,
-                                          an_expr_node_ptr expr2)
+a_boolean expr1_could_affect_expr2(an_expr_node_ptr expr1,
+                                   an_expr_node_ptr expr2)
 /*
 Returns TRUE if executing expr1 could possibly affect the value of expr2.
 Note that this routine only performs a cursory check (i.e., assuming that
@@ -13477,6 +13476,7 @@ The safe answer is TRUE.
          node_has_side_effects((expr1), (a_boolean*)NULL);
 }  /* expr1_could_affect_expr2 */
 
+#if LOWER_LVALUE_RETURNING_OPERATIONS
 
 static void rewrite_discarded_lvalue_as_rvalue(an_expr_node_ptr expr);
 
