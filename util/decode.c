@@ -2660,10 +2660,13 @@ is TRUE, suppress any function-local information.
              decode the local information yet, it will be decoded when the
              local type is processed. */
           unsigned long skip;
-          a_const_char  *dummy;
+          a_const_char  *dummy, *save_end_of_name;
+          save_end_of_name = dctl->end_of_name;
           p2 = get_length(p2+6, &skip, &dummy, dctl);
+          dctl->end_of_name = save_end_of_name;
           p2 += skip;
-        } else if (get_char(p2+2, dctl) == 'L') {
+        }  /* if */
+        if (get_char(p2+2, dctl) == 'L') {
           has_function_local_info = TRUE;
           nchars2 = nchars;
           /* Set the length for the scan below to stop just before "__L". */

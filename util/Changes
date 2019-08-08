@@ -1,5 +1,20 @@
 Version 6.0
 
+8/8/19   [EDGcpfe/21114]
+Demangling certain local functions in the Cfront ABI
+
+Some mangled names had failed to demangle properly when using the Cfront ABI.
+Affected names have a local function indication immediately following
+template arguments.  The following is a mangled name that had failed to
+properly decode:
+
+  for_each__tm__64_P17V__tm__9_XCiL_1_841__Ul1_FR17V__tm__9_XCiL_1_8__L1__exec__Fv__3stdFZ1ZT1Z2Z_Z2Z
+
+It now decodes to:
+
+  T2 std::for_each<T1, T2>(T1, T1, T2) [with T1=V<(int)8> *, T2=exec()::[lambda(V<(int)8> &) (instance 1)]]
+
+
 07/25/19 [EDGcpfe/21614]
 Increase MAX_ERRORS in mk_errinfo
 
