@@ -12639,7 +12639,6 @@ to the mangled name.
                                                             )) {
       /* Add an indication that the variable is local to a function
          (in some error cases, no enclosing_routine is set). */
-
       if (scp->enclosing_routine != NULL) {
         add_local_name_suffix(sym->variant.variable.discriminator,
                               scp->enclosing_routine, mctl);
