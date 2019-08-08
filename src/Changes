@@ -14,7 +14,7 @@ during the IL walk process.  Now fixed.
 8/7/19   [EDGcpfe/21649]
 Abort with inline variables and implicit inclusion
 
-An abort could occur (in instantiate_template_variable) when inline variables
+An abort could occur (in instantiate template_variable) when inline variables
 were used in conjunction with implicit inclusion of template definitions.
 Now fixed.  This example would abort with "-tused --c++17 --implicit_include".
 
