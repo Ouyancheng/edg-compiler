@@ -16131,6 +16131,7 @@ of a_constant entries.
   }  /* if */
   bound_pos = pos_curr_token;
   scan_integral_constant_expression(bound);
+  do_fs_constant_fixup(bound);
   (void)required_token(tok_rparen, ec_exp_rparen);
   (void)required_token(tok_ellipsis, ec_exp_ellipsis);
   remove_stop_token(tok_rparen);

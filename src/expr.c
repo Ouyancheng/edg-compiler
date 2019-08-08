@@ -43763,6 +43763,50 @@ expression context.  Return either *is_constant TRUE and a constant value in
 }  /* scan_nonconstant_dimension_expression */
 
 
+void do_fs_constant_fixup(a_constant_ptr  cp)
+/*
+The given constant is allocated in file-scope memory.  Fixup any references
+to function-scope entities that it may contain.
+*/
+{
+  if (has_non_file_scope_ref(cp)) {
+    /* The constant has some function-scope parts, so copy its tree.
+       This should only come up in constant expressions where no automatic
+       variables can be referenced anyway, so the file-scope parts should
+       just be expression nodes and should be gone in the copy. */
+    a_constant_ptr  old_cp = local_constant();
+    copy_constant(cp,  old_cp);
+    (void)copy_constant_full(old_cp, cp,
+                             CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+    check_assertion_str2(!has_non_file_scope_ref(cp),
+                         "extract_constant_from_operand_with_fs_fixup:",
+                         "copied constant still has func scope ref");
+    release_local_constant(&old_cp);
+  } else if (constant_is(cp, ck_template_param) &&
+             tpck_is(cp, tpck_expression) &&
+             expr_has_reference_to_routine_scope_variable(
+                                  cp->variant.template_param.variant.expr)) {
+    /* The dependent expression has a reference to a local scope variable,
+       even though the expression is allocated in file scope memory.  Copy
+       the expression into the routine scope memory region and make a local
+       expression reference node for it instead of pointing to it
+       directly. */
+    an_expr_node_ptr expr = cp->variant.template_param.variant.expr;
+    an_expr_node_ptr var_node = get_routine_scope_variable_node_found();
+    a_variable_ptr   var = node_variable(var_node);
+    a_routine_ptr    rp = var->source_corresp.enclosing_routine;
+    a_scope_ptr      func_scope = scope_for_routine(rp);
+    switch_il_region(mem_region_for_routine(rp));
+    expr = copy_expr_tree(expr, CE_COPYING_FOR_LOCAL_EXPR_NODE_REF);
+    switch_il_region(file_scope_region_number);
+    make_local_expr_node_ref(expr,
+                             (a_local_expr_node_ref_kind)lerk_tpl_param_expr,
+                             (char*)cp, func_scope);
+    cp->variant.template_param.variant.expr = NULL;
+  }  /* if */
+}  /* do_fs_constant_fixup */
+
+
 void extract_constant_from_operand_with_fs_fixup(an_operand *operand,
                                                  a_constant *constant)
 /*
@@ -43773,42 +43817,7 @@ required adjustment to make that possible.
 {
   check_assertion(constant != NULL && in_file_scope(constant));
   extract_constant_from_operand(operand, constant);
-  if (has_non_file_scope_ref(constant)) {
-    /* The constant has some function-scope parts, so copy its tree.
-       This should only come up in constant expressions where no automatic
-       variables can be referenced anyway, so the file-scope parts should
-       just be expression nodes and should be gone in the copy. */
-    a_constant_ptr old_constant = local_constant();
-    copy_constant(constant, old_constant);
-    (void)copy_constant_full(old_constant, constant,
-                             CE_COPIED_CONSTANTS_MAY_BE_SHARED);
-    check_assertion_str2(!has_non_file_scope_ref(constant),
-                         "extract_constant_from_operand_with_fs_fixup:",
-                         "copied constant still has func scope ref");
-    release_local_constant(&old_constant);
-  } else if (constant->kind == (a_constant_repr_kind)ck_template_param &&
-             constant->variant.template_param.kind ==
-                             (a_template_param_constant_kind)tpck_expression &&
-             expr_has_reference_to_routine_scope_variable(
-                              constant->variant.template_param.variant.expr)) {
-    /* The dependent expression has a reference to a local scope variable,
-       even though the expression is allocated in file scope memory.  Copy
-       the expression into the routine scope memory region and make a local
-       expression reference node for it instead of pointing to it
-       directly. */
-    an_expr_node_ptr expr = constant->variant.template_param.variant.expr;
-    an_expr_node_ptr var_node = get_routine_scope_variable_node_found();
-    a_variable_ptr   var = node_variable(var_node);
-    a_routine_ptr    rp = var->source_corresp.enclosing_routine;
-    a_scope_ptr      func_scope = scope_for_routine(rp);
-    switch_il_region(mem_region_for_routine(rp));
-    expr = copy_expr_tree(expr, CE_COPYING_FOR_LOCAL_EXPR_NODE_REF);
-    switch_il_region(file_scope_region_number);
-    make_local_expr_node_ref(expr,
-                             (a_local_expr_node_ref_kind)lerk_tpl_param_expr,
-                             (char *)constant, func_scope);
-    constant->variant.template_param.variant.expr = NULL;
-  }  /* if */
+  do_fs_constant_fixup(constant);
 }  /* extract_constant_from_operand_with_fs_fixup */
 
 

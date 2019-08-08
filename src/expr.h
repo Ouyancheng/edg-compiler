@@ -593,6 +593,8 @@ extern void scan_nonconstant_dimension_expression(
                                     an_expr_node_ptr *expression,
                                     a_constant       *constant);
 
+extern void do_fs_constant_fixup(a_constant_ptr  cp);
+
 extern void extract_constant_from_operand_with_fs_fixup(
                                                      an_operand_ptr operand,
                                                      a_constant     *constant);
