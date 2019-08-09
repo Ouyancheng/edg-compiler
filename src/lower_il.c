@@ -2303,6 +2303,8 @@ expr contains an expression of the form "(*x).y"; change it to "x->y".
   check_assertion(is_operation_node(operand) &&
                   node_operator_is(operand, eok_indirect));
   operand->variant.operation.operands->next = operand->next;
+  check_assertion(!expr->variant.operation.eval_left_to_right &&
+                  !expr->variant.operation.eval_right_to_left);
   set_node_operator(expr, (an_expr_operator_kind)eok_points_to_field,
                     expr->type, expr->is_lvalue,
                     operand->variant.operation.operands);
@@ -2322,6 +2324,8 @@ expr contains an expression of the form "(&x)->y"; change it to "x.y".
   check_assertion(is_operation_node(operand) &&
                   node_operator_is(operand, eok_address_of));
   operand->variant.operation.operands->next = operand->next;
+  check_assertion(!expr->variant.operation.eval_left_to_right &&
+                  !expr->variant.operation.eval_right_to_left);
   set_node_operator(expr, (an_expr_operator_kind)eok_dot_field,
                     expr->type, expr->is_lvalue,
                     operand->variant.operation.operands);
@@ -13372,6 +13376,10 @@ throughout the entire expression).
           child->next = expr->next;
           set_node_operator(child, (an_expr_operator_kind)eok_padd,
                             expr->type, expr->is_lvalue, gchild);
+          child->variant.operation.eval_left_to_right =
+                                    expr->variant.operation.eval_left_to_right;
+          child->variant.operation.eval_right_to_left =
+                                    expr->variant.operation.eval_right_to_left;
           overwrite_node(expr, child);
         } else if (node_operator_is(child, eok_lvalue_adjust) &&
                    is_operation_node(gchild) &&

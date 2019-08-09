@@ -1,5 +1,13 @@
 Version 6.0
 
+8/9/19   [EDGcpfe/21641]
+Strict evaluation ordering lost on optimized eok_subscript operations
+
+During lowering, optimize_node_if_possible will rewrite an eok_subscript
+operation with an eok_padd operation.  Doing so had inadvertently removed
+any settings for strict evaluation ordering for the operation.  Now fixed.
+
+
 8/8/19   [EDGcpfe/21565]
 Strict evaluation ordering and lowered class assignments
 
