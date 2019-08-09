@@ -138767,7 +138767,7 @@ represent new possibilities:
 New flags related to explicit template specialization have been added to
 a_routine, a_variable, and (as a class_struct_union variant) a_type:
 
-  -- is_specialized is TRUE when the definition of an template function,
+  -- is_specialized is TRUE when the definition of a template function,
      template static data member, or template class, respectively, is
      supplied explicitly rather than generated from the associated
      template.
