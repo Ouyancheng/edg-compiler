@@ -325,6 +325,25 @@ entries will be freed.
 }  /* free_vars_for_decltype */
 
 
+static a_variable_ptr var_for_decltype(a_type_ptr type)
+/*
+Return a pointer to a variable that can be used to create a
+decltype-specifier for the given type or NULL if there is none.
+*/
+{
+  a_var_for_decltype_ptr vfdp;
+  a_variable_ptr         var = NULL;
+
+  for (vfdp = vars_for_decltype; vfdp != NULL && var == NULL;
+       vfdp = vfdp->next) {
+    if (vfdp->var->type == type) {
+      var = vfdp->var;
+    }  /* if */
+  }  /* for */
+  return var;
+}  /* var_for_decltype */
+
+
 /*
 Entry used in a stack to indicate the name contexts we are currently
 inside of.  This is used to avoid adding class qualifiers to names when
@@ -3959,21 +3978,17 @@ currently active selector class.
 static a_boolean synthesize_decltype_specifier(a_type_ptr type)
 /*
 If type can be represented as a decltype-specifier using one of the
-variables in the vars_for_decltype_list, put out the decltype-specifier
+variables in the vars_for_decltype list, put out the decltype-specifier
 and return TRUE; otherwise, return FALSE.
 */
 {
-  a_var_for_decltype_ptr vfdp = NULL;
-  a_boolean              result = FALSE;
+  a_variable_ptr var = var_for_decltype(type);
+  a_boolean      result = FALSE;
 
-  /* See if there is a variable we can use to create a decltype-specifier
-     for the type. */
-  for (vfdp = vars_for_decltype; vfdp != NULL && vfdp->var->type != type;
-       vfdp = vfdp->next) {}
-  if (vfdp != NULL) {
+  if (var != NULL) {
     /* Create a decltype-specifier. */
     write_tok_str("decltype(");
-    gen_variable_name(vfdp->var);
+    gen_variable_name(var);
     write_tok_ch(')');
     result = TRUE;
   }  /* if */
@@ -9881,6 +9896,43 @@ containing such an exception specification invalid.
 }  /* check_for_member_of_undefined_class */
 
 
+static a_boolean is_or_uses_unnameable_class_type(a_type_ptr type)
+/*
+Return TRUE if type is an unnamed class type for which no variable is
+available to be used in a decltype-specifier or if it or one of its parents
+is a template instance with a type template argument for which
+is_or_uses_unnameable_class_type returns TRUE; FALSE otherwise.
+*/
+{
+  a_boolean          result = FALSE;
+  a_template_arg_ptr argp;
+
+  type = skip_typerefs_not_typedefs(type);
+  if (is_immediate_class_type(type) &&
+      unmangled_name_of(&type->source_corresp) == NULL) {
+    result = (var_for_decltype(type) == NULL);
+  }  /* if */
+  if (!result &&
+      name_has_template_arguments(&type->source_corresp, iek_type, &argp,
+                                  (a_boolean *)NULL)) {
+    begin_template_arg_list_traversal_simple(argp, &argp);
+    for (; argp != NULL && !result;
+         advance_to_next_template_arg_simple(&argp)) {
+      if (argp->kind == (a_templ_arg_kind)tak_type) {
+        result = is_or_uses_unnameable_class_type(argp->variant.type);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (!result) {
+    a_type_ptr parent = parent_class_or_null(type);
+    if (parent != NULL) {
+      result = is_or_uses_unnameable_class_type(parent);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_or_uses_unnameable_class_type */
+
+
 static a_boolean suppress_invalid_explicit_specialization(
                                               a_source_correspondence_ptr scp,
                                               an_il_entry_kind            kind,
@@ -9924,7 +9976,13 @@ instantiations are only permitted in namespace scope).
         a_source_correspondence_ptr arg_scp = NULL;
         switch (tap->kind) {
           case tak_type:
-            arg_scp = &skip_typerefs(tap->variant.type)->source_corresp;
+            if (is_or_uses_unnameable_class_type(tap->variant.type)) {
+              /* The specialization would use an undeclared temporary name
+                 and thus be invalid. */
+              result = TRUE;
+            } else {
+              arg_scp = &skip_typerefs(tap->variant.type)->source_corresp;
+            }  /* if */
             break;
           case tak_nontype:
             if (!tap->is_array_bound_of_unknown_type) {
