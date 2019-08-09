@@ -27,7 +27,7 @@ Memory region problem with __integer_pack
 
 In GNU C++ mode, the front end supports the __integer_pack construct (see the
 entry of 1/17/18 for EDGcpfe/18903).  Previously, if that construct was used
-with an template argument involving a local variable, the resulting IL
+with a template argument involving a local variable, the resulting IL
 representation could violate the requirement that file-scope IL entries do not
 directly point to function-scope IL entries.  In particular, such situations
 were encountered in some uses of the Boost libraries.  That problem is now

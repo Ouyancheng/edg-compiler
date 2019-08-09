@@ -43765,7 +43765,7 @@ expression context.  Return either *is_constant TRUE and a constant value in
 
 void do_fs_constant_fixup(a_constant_ptr  cp)
 /*
-The given constant is allocated in file-scope memory.  Fixup any references
+The given constant is allocated in file-scope memory.  Adjust any references
 to function-scope entities that it may contain.
 */
 {
