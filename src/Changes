@@ -67,9 +67,9 @@ Consider (in GNU or Clang mode):
 Previously, this triggered a warning about f() missing a return statement.
 No such warning was issued for g(), because the front end recognized that the
 if-condition in g() is always true.  Now, the front end sees through the
-__builtin_expect (and __builtin_expect_with_probability) intrinsics to
-identify control-flow conditions are always true, and as a result no warning
-is emitted anymore for f() above.
+__builtin_expect (and __builtin_expect_with_probability) intrinsics to identify
+control-flow conditions that are always true, and as a result no warning is
+emitted anymore for f() above.
 
 
 8/7/19   [EDGcpfe/21647]
