@@ -1,5 +1,17 @@
 Version 6.0
 
+8/9/19   [EDGcpfe/21605]
+Ignore apostrophe in printf format string
+
+Previously a warning was emitted if an apostrophe was found in a printf
+format string; now it is ignored.  For example (with --g++):
+
+  void __attribute__((format(printf, 1, 2))) f(const char * str, ...);
+  void g() {
+    f("%'d", 10);
+  }
+
+
 8/9/19   [EDGcpfe/21641]
 Strict evaluation ordering lost on optimized eok_subscript operations
 

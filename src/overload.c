@@ -12115,7 +12115,7 @@ another_specifier:;
       goto another_specifier;
     }  /* if */
     *value_pos = printf_scanf_arg_pos(&fmt_string);
-    /* For printf, ignore a sequence of flags (-, +, space, #, or 0).
+    /* For printf, ignore a sequence of flags (-, +, space, #, ', or 0).
        For scanf, ignore the assignment-suppressing character "*". */
     if (is_scanf) {
       if (*fmt_string == '*') {
@@ -12124,7 +12124,9 @@ another_specifier:;
       }  /* if */
     } else {
       while (*fmt_string == '-' || *fmt_string == '+' || *fmt_string == ' ' ||
-             *fmt_string == '#' || *fmt_string == '0') fmt_string++;
+             *fmt_string == '#' || *fmt_string == '\''|| *fmt_string == '0') {
+        fmt_string++;
+      }  /* while */
     }  /* if */
     /* An optional field width is next.  For printf, it can be a "*". */
     if (isdigit((unsigned char)*fmt_string)) {
