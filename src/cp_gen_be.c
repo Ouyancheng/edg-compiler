@@ -9858,6 +9858,33 @@ flags on the classes found on an earlier call.
 
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
+/*
+Definitions related to prevention of unbounded loops and recursion while
+scanning the types associated with a generated explicit specialization to
+determine whether it would be invalid.  Whenever a class type is encountered
+during the scan, a type scan record is allocated and the type are linked
+to each other.  A type whose scan record pointer is non-NULL has been, or is
+currently being, processed and should not be examined again.
+*/
+
+typedef struct a_type_scan_record {
+  a_type_scan_record_ptr
+		next;	/* The next scan record in the used or free list. */
+  a_type_ptr	type;	/* The type associated with this record. */
+} a_type_scan_record;
+
+/*
+The head of a singly-linked list of type scan records for types that have
+already been seen during the current scan.
+*/
+static a_type_scan_record_ptr scanned_types;
+
+/*
+The head of a singly-linked list of type scan records that are available
+for reuse.
+*/
+static a_type_scan_record_ptr available_type_scan_records;
+
 static void check_for_member_of_undefined_class(
                                     an_expr_node_ptr                    expr,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
@@ -9896,6 +9923,67 @@ containing such an exception specification invalid.
 }  /* check_for_member_of_undefined_class */
 
 
+static a_boolean i_is_or_uses_unnameable_class_type(a_type_ptr type)
+/*
+Return TRUE if type is an unnamed class type for which no variable is
+available to be used in a decltype-specifier or if it or one of its parents
+is a template instance with a type template argument for which
+is_or_uses_unnameable_class_type returns TRUE; FALSE otherwise.  This
+function should not be called directly but only via
+is_or_uses_unnameable_class_type.
+*/
+{
+  a_boolean          result = FALSE;
+  a_template_arg_ptr argp;
+
+  type = skip_typerefs_not_typedefs(type);
+  if (is_immediate_class_type(type) &&
+      type->variant.class_struct_union.scan_record != NULL) {
+    /* This type has already been, or is currently being, processed.  Do
+       nothing, to avoid unbounded loops and recursion. */
+  } else {
+    if (is_immediate_class_type(type)) {
+      /* Mark the current type as being processed. */
+      a_type_scan_record_ptr tsrp;
+      if (available_type_scan_records != NULL) {
+        tsrp = available_type_scan_records;
+        available_type_scan_records = tsrp->next;
+      } else {
+        tsrp = alloc_general_of_type(a_type_scan_record);
+      }  /* if */
+      tsrp->next = scanned_types;
+      scanned_types = tsrp;
+      tsrp->type = type;
+      type->variant.class_struct_union.scan_record = tsrp;
+    }  /* if */
+    /* Check if the current type is unnameable. */
+    if (is_immediate_class_type(type) &&
+        unmangled_name_of(&type->source_corresp) == NULL) {
+      result = (var_for_decltype(type) == NULL);
+    }  /* if */
+    if (!result &&
+        name_has_template_arguments(&type->source_corresp, iek_type, &argp,
+                                    (a_boolean *)NULL)) {
+      /* Check if any of the type's template arguments are unnameable. */
+      begin_template_arg_list_traversal_simple(argp, &argp);
+      for (; argp != NULL && !result;
+           advance_to_next_template_arg_simple(&argp)) {
+        if (argp->kind == (a_templ_arg_kind)tak_type) {
+          result = i_is_or_uses_unnameable_class_type(argp->variant.type);
+        }  /* if */
+      }  /* for */
+    }  /* if */
+    if (!result) {
+      a_type_ptr parent = parent_class_or_null(type);
+      if (parent != NULL) {
+        result = i_is_or_uses_unnameable_class_type(parent);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* i_is_or_uses_unnameable_class_type */
+
+
 static a_boolean is_or_uses_unnameable_class_type(a_type_ptr type)
 /*
 Return TRUE if type is an unnamed class type for which no variable is
@@ -9904,32 +9992,19 @@ is a template instance with a type template argument for which
 is_or_uses_unnameable_class_type returns TRUE; FALSE otherwise.
 */
 {
-  a_boolean          result = FALSE;
-  a_template_arg_ptr argp;
+  a_type_scan_record_ptr tsrp;
+  a_type_scan_record_ptr next_tsrp;
 
-  type = skip_typerefs_not_typedefs(type);
-  if (is_immediate_class_type(type) &&
-      unmangled_name_of(&type->source_corresp) == NULL) {
-    result = (var_for_decltype(type) == NULL);
-  }  /* if */
-  if (!result &&
-      name_has_template_arguments(&type->source_corresp, iek_type, &argp,
-                                  (a_boolean *)NULL)) {
-    begin_template_arg_list_traversal_simple(argp, &argp);
-    for (; argp != NULL && !result;
-         advance_to_next_template_arg_simple(&argp)) {
-      if (argp->kind == (a_templ_arg_kind)tak_type) {
-        result = is_or_uses_unnameable_class_type(argp->variant.type);
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  if (!result) {
-    a_type_ptr parent = parent_class_or_null(type);
-    if (parent != NULL) {
-      result = is_or_uses_unnameable_class_type(parent);
-    }  /* if */
-  }  /* if */
-  return result;
+  /* Unlink records of the previous scan, if any, so we can start fresh. */
+  for (tsrp = scanned_types; tsrp != NULL; tsrp = next_tsrp) {
+    tsrp->type->variant.class_struct_union.scan_record = NULL;
+    next_tsrp = tsrp->next;
+    tsrp->next = available_type_scan_records;
+    available_type_scan_records = tsrp;
+  }  /* for */
+  scanned_types = NULL;
+  /* Scan for unnameable types. */
+  return i_is_or_uses_unnameable_class_type(type);
 }  /* is_or_uses_unnameable_class_type */
 
 
@@ -21249,6 +21324,10 @@ Initialize for the C++/C-generating back end.
   vars_for_decltype = NULL;
   avail_vars_for_decltype = NULL;
   is_generated_explicit_specialization = FALSE;
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  scanned_types = NULL;
+  available_type_scan_records = NULL;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 }  /* init_cp_gen_be */
 
 

@@ -111,6 +111,12 @@ typedef struct an_expr_rescan_info_entry *an_expr_rescan_info_entry_ptr;
    processing routines, but part of the ck_string variant of a_constant for
    convenience); its values are not known here. */
 typedef int a_string_or_char_literal_kind;
+#if BACK_END_IS_CP_GEN_BE && TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+/* Opaque type definition for a_type_scan_record_ptr, which is used by the
+   C++-generating back end during scans of template argument types to avoid
+   unbounded loops and recursion. */
+typedef struct a_type_scan_record *a_type_scan_record_ptr;
+#endif /* BACK_END_IS_CP_GEN_BE && ... */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* Deal with a forward reference: */
 typedef struct a_property_or_event_descr *a_property_or_event_descr_ptr;
@@ -9579,6 +9585,19 @@ typedef struct a_type {
 			   by "#pragma pack". (A zero value means that each
 			   nonstatic data member's alignment is based solely
 			   on its type.) */
+#if BACK_END_IS_CP_GEN_BE && TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      a_type_scan_record_ptr
+		scan_record;
+			/* When the C++-generating back end scans types to
+			   determine whether a generated explicit
+			   specialization would be invalid, it creates a
+			   scan record pointing to the type entry for each
+			   type traversed during the scan, to facilitate
+			   prevention of unbounded loops and recursion.
+			   This pointer designates the corresponding scan
+			   record if this type has already been processed
+			   during that scan and is NULL if not. */
+#endif /* BACK_END_IS_CP_GEN_BE && ... */
     } class_struct_union;
     /* When kind == tk_typeref: */
     struct {
