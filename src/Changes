@@ -1,5 +1,20 @@
 Version 6.0
 
+8/9/19   [EDGcpfe/21633]
+C++-generating back end: local lambdas as template arguments
+
+In C++-generating back end configurations in which
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS or
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, using a
+local lambda as a template argument to a template which then instantiates
+additional templates using the type of that lambda as a template argument
+could result in a generated explicit specialization appearing in the
+generated code with an undeclared temporary name (of the form __T12345678)
+as that template argument.  This has now been fixed; explicit
+specializations, in which a type template argument cannot be named, are
+now suppressed in the generated code.
+
+
 8/9/19   [EDGcpfe/21605]
 Ignore apostrophe in printf format string
 
