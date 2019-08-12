@@ -1,5 +1,23 @@
 Version 6.0
 
+8/12/19  [EDGcpfe/21628]
+Internal error on invalid specialization of member via using-declaration
+
+An internal error could occur (in full_specialization) on an explicit
+instantiation of a member of a class template that was overloaded and
+the specialization that was selected was made part of the overload set
+by a using-declaration (which makes the program ill-formed).  Now fixed.
+
+  struct A {
+    void f();
+  };
+  template <class T> struct B : A {
+    using A::f;
+    void f(int);
+  };
+  template <> void B<int>::f();
+
+
 8/9/19   [EDGcpfe/21633]
 C++-generating back end: local lambdas as template arguments
 

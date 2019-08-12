@@ -29294,6 +29294,49 @@ completed.  The closing brace is left for the caller to consume.
 }  /* cache_inclass_specialization_definition */
 
 
+static a_symbol_ptr check_specialization_projection_symbol(
+                                                     a_symbol_ptr      sym,
+                                                     a_symbol_locator *locator)
+/*
+If sym is a projection symbol (of some kind), make sure its use is valid
+for an explicit specialization.   If not, issue a diagnostic.
+
+Return a symbol that is either the original symbol or the fundamental
+symbol of the original symbol.
+*/ 
+{
+  if (sym == NULL) {
+    /* Just return the NULL symbol. */
+  } else if (sym->is_class_member &&
+             sym->kind == (a_symbol_kind)sk_projection) {
+    /* Specifying an inherited name in a template specialization
+       declaration is disallowed. */
+    pos_error(ec_inherited_member_not_allowed, &locator->source_position);
+    reduce_projection_symbol_to_fundamental_symbol(sym);
+  } else if ((sym->kind == (a_symbol_kind)sk_namespace_projection ||
+              sym->synthesized_namespace_projection) &&
+              !locator->is_file_scope_qualified_name) {
+    /* Specifying a name made visible by a using-declaration or
+       using-directive is not allowed unless it is an inline namespace
+       member. */
+    a_namespace_ptr	parent_namespace = qualifier_namespace_ptr(*locator);
+    a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+    if (sym->synthesized_namespace_projection &&
+        (sym->kind == (a_symbol_kind)sk_overloaded_function ||
+         is_symbol_from_inline_namespace_of_scope(
+                           fund_sym, parent_namespace->variant.assoc_scope))) {
+     /* This is a symbol made visible by an inline namespace. */
+   } else {
+     /* Issue an error that the namespace has no direct member of the
+        specified name. */
+     namespace_has_no_actual_member_error(locator);
+    }  /* if */
+    sym = fund_sym;
+  }  /* if */
+  return sym;
+}  /* check_specialization_projection_symbol */
+
+
 static void full_specialization(a_tmpl_decl_state_ptr decl_state)
 /*
 One or more empty template parameter clauses ("template <>") have been
@@ -29545,32 +29588,7 @@ that follows.
       pos_st_error(ec_not_a_template_name, &locator.source_position,
                    locator.symbol_header->identifier);
     } else {
-      if (sym->is_class_member &&
-          sym->kind == (a_symbol_kind)sk_projection) {
-        /* Specifying an inherited name in a template specialization
-           declaration is disallowed. */
-        pos_error(ec_inherited_member_not_allowed, &locator.source_position);
-        reduce_projection_symbol_to_fundamental_symbol(sym);
-      } else if ((sym->kind == (a_symbol_kind)sk_namespace_projection ||
-                  sym->synthesized_namespace_projection) &&
-                  !locator.is_file_scope_qualified_name) {
-        /* Specifying a name made visible by a using-declaration or
-           using-directive is not allowed unless it is an inline namespace
-           member. */
-        a_namespace_ptr	parent_namespace = qualifier_namespace_ptr(locator);
-        a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-        if (sym->synthesized_namespace_projection &&
-            (sym->kind == (a_symbol_kind)sk_overloaded_function ||
-              is_symbol_from_inline_namespace_of_scope(
-                           fund_sym, parent_namespace->variant.assoc_scope))) {
-          /* This is a symbol made visible by an inline namespace. */
-        } else {
-          /* Issue an error that the namespace has no direct member of the
-             specified name. */
-          namespace_has_no_actual_member_error(&locator);
-        }  /* if */
-        sym = fund_sym;
-      }  /* if */
+      sym = check_specialization_projection_symbol(sym, &locator);
       if (is_function_type(dps->type) && is_function_or_template_symbol(sym)) {
         if (ms_extensions && decl_state->class_declared_in != NULL &&
             decl_state->class_declared_in
@@ -29608,6 +29626,7 @@ that follows.
                         /*prefer_template=*/TRUE,
                         decl_state->nesting_depth + decl_state->friend_depth,
                         es_error, &is_new_template_instance);
+          sym = check_specialization_projection_symbol(sym, &locator);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
           /* The call to find_matching_template_instance above can cause a
