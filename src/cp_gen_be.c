@@ -9861,10 +9861,11 @@ flags on the classes found on an earlier call.
 /*
 Definitions related to prevention of unbounded loops and recursion while
 scanning the types associated with a generated explicit specialization to
-determine whether it would be invalid.  Whenever a class type is encountered
-during the scan, a type scan record is allocated and the type are linked
-to each other.  A type whose scan record pointer is non-NULL has been, or is
-currently being, processed and should not be examined again.
+determine whether it would be invalid.  Whenever a class type is
+encountered during the scan, a type scan record is allocated and it and the
+type are linked to each other.  A type whose scan record pointer is
+non-NULL has been, or is currently being, processed and should not be
+examined again.
 */
 
 typedef struct a_type_scan_record {
@@ -9928,7 +9929,7 @@ static a_boolean i_is_or_uses_unnameable_class_type(a_type_ptr type)
 Return TRUE if type is an unnamed class type for which no variable is
 available to be used in a decltype-specifier or if it or one of its parents
 is a template instance with a type template argument for which
-is_or_uses_unnameable_class_type returns TRUE; FALSE otherwise.  This
+i_is_or_uses_unnameable_class_type returns TRUE; FALSE otherwise.  This
 function should not be called directly but only via
 is_or_uses_unnameable_class_type.
 */
@@ -9989,7 +9990,7 @@ static a_boolean is_or_uses_unnameable_class_type(a_type_ptr type)
 Return TRUE if type is an unnamed class type for which no variable is
 available to be used in a decltype-specifier or if it or one of its parents
 is a template instance with a type template argument for which
-is_or_uses_unnameable_class_type returns TRUE; FALSE otherwise.
+i_is_or_uses_unnameable_class_type returns TRUE; FALSE otherwise.
 */
 {
   a_type_scan_record_ptr tsrp;

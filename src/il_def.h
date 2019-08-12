@@ -9590,13 +9590,15 @@ typedef struct a_type {
 		scan_record;
 			/* When the C++-generating back end scans types to
 			   determine whether a generated explicit
-			   specialization would be invalid, it creates a
-			   scan record pointing to the type entry for each
-			   type traversed during the scan, to facilitate
+			   specialization would be invalid because of an
+			   unnameable template argument, it creates a scan
+			   record pointing to the type entry for each type
+			   traversed during the scan, to facilitate
 			   prevention of unbounded loops and recursion.
 			   This pointer designates the corresponding scan
-			   record if this type has already been processed
-			   during that scan and is NULL if not. */
+			   record if this type is being or has already been
+			   processed during that scan and thus should be
+			   skipped; otherwise, it is NULL. */
 #endif /* BACK_END_IS_CP_GEN_BE && ... */
     } class_struct_union;
     /* When kind == tk_typeref: */
