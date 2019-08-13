@@ -20722,8 +20722,7 @@ source position to be used for any errors.
 
   /* See [class.temporary] paragraph 1 for the C++ standard's requirement that
      the elided destructor be accessible and not deleted. */
-  if (!C_mode() && !mandatory_copy_elision &&
-      is_immediate_class_type(class_type)) {
+  if (!C_mode() && is_immediate_class_type(class_type)) {
     a_symbol_ptr dtor_sym= symbol_supplement_for_class(class_type)->destructor;
     if (dtor_sym != NULL) {
       a_routine_ptr dtor = dtor_sym->variant.routine.ptr;
@@ -20745,7 +20744,19 @@ source position to be used for any errors.
         if (expr_stack->suppress_diagnostics) {
           p_error_detected = &error_detected;
         }  /* if */
-        if (strict_ansi_mode) sev = strict_ansi_discretionary_severity; 
+        if (exceptions_enabled) {
+          /* Even though the normal destructor call is suppressed, the
+             destructor may still have to be invoked as part of unwinding.
+             For example:
+               struct X { ~X(); };
+               struct S { S(); S(S const&); S(S&&); ~S(); };
+               S g() {
+                 X x;
+                 return S();  // Must invoke ~S() when ~X() throws.
+               }
+          */
+          sev = es_error; 
+        }  /* if */
         if (mandatory_copy_elision) {
           err_code = ec_inaccessible_rvalue_dtor;
         } else {

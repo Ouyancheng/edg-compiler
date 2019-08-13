@@ -1,10 +1,10 @@
 Version 6.0
 
 8/12/19  [EDGcpfe/20556]
-Implied and elided destructor calls
+Implied calls to unusable destructors
 
-In Cfront ABI configurations the front end sometimes failed to diagnose the
-implied reference to a deleted destructor.  For example:
+In some configurations the front end sometimes failed to diagnose the
+implied reference to a deleted or inaccessible destructor.  For example:
 
   struct N {
     N();
@@ -15,19 +15,7 @@ implied reference to a deleted destructor.  For example:
     sizeof(n()); // Previously incorrectly accepted with Cfront ABI.
   }              // Now an error.
 
-That is now fixed.  Furthermore, the front end sometimes also erroneously
-issued an error for an elided destructor.  For example, in C++17 mode (where
-copy elision is mandatory):
-
-  template<typename T> struct X {
-  private:
-    ~X() {}
-  };
-  X<char> g();
-  X<char> f() { return g(); }  // Previously elicited a spurious diagnostic
-                               // in C++17 mode.
-
-That is now also fixed.
+That is now fixed.
 
 
 8/12/19  [EDGcpfe/21567]
