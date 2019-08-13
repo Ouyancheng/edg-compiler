@@ -3089,6 +3089,12 @@ ec_vacuous_destructor_not_called;;"a pseudo-destructor reference can only be use
 ec_constexpr_explicit_dtor_call;;"an explicit destructor call is not permitted in a constant-expression"
 ec_comma_operator_in_array_subscript_deprecated;;"an unparenthesized comma operator in an array subscript expression is deprecated"
 ec_constexpr_alloc_too_small;;"number of dynamically-allocated elements (%d) too small for initializer"
+ec_volatile_inc_dec_deprecated;;"a volatile operand to %s expression is deprecated"
+ec_volatile_ass_deprecated;;"use of the result of an assignment to a volatile scalar object is deprecated"
+ec_volatile_op_ass_deprecated;;"a volatile destination type for a compound assignment expression is deprecated"
+ec_volatile_func_param_deprecated;;"a volatile function parameter is deprecated"
+ec_volatile_return_type_deprecated;;"a volatile return type is deprecated"
+ec_volatile_str_bind_deprecated;;"use of a volatile qualifier on a structured binding is deprecated"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

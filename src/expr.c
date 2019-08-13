@@ -9916,6 +9916,15 @@ case.
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(operand);
   } else {
+    if (!C_mode() && is_volatile_qualified_type(operand->type)) {
+      /* P1152R4 (in C++20) deprecated using a volatile-qualified operand in a
+         postfix increment/decrement expression. */
+      an_error_severity sev = cpp20_mode ? es_warning : es_remark;
+      expr_pos_st_diagnostic(sev, ec_volatile_inc_dec_deprecated,
+                             &operand->position,
+                             is_increment ? "an increment" :
+                                            "a decrement");
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     property_ref_case = is_property_ref_operand(operand);
     if (property_ref_case) {
@@ -10260,6 +10269,15 @@ and return the result in *result (or an error indication in *rcblock).
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(&operand);
   } else {
+    if (!C_mode() && is_volatile_qualified_type(operand.type)) {
+      /* P1152R4 (in C++20) deprecated using a volatile-qualified operand in a
+         prefix increment/decrement expression. */
+      an_error_severity sev = cpp20_mode ? es_warning : es_remark;
+      expr_pos_st_diagnostic(sev, ec_volatile_inc_dec_deprecated,
+                             &operand.position,
+                             is_increment ? "an increment" :
+                                            "a decrement");
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     property_ref_case = is_property_ref_operand(&operand);
     if (property_ref_case && !err) {
@@ -24731,6 +24749,9 @@ scan.  Return the expression in *operand, and if a bound function is
 scanned, return the selector in *bound_function_selector.
 */
 {
+  a_boolean saved_expr_will_be_discarded = expr_stack->expr_will_be_discarded;
+
+  expr_stack->expr_will_be_discarded = is_void_type(type_cast_to);
   /* In non-strict mode, scan the operand of a cast to an integral type
      in an integral constant or template argument expression specially to
      allow address expressions that reduce to integer values.  This is
@@ -24768,6 +24789,7 @@ scanned, return the selector in *bound_function_selector.
   if (is_expr_list && !*expr_not_present) {
     mark_expr_of_operand_as_pack_expansion_if_necessary(operand);
   }  /* if */
+  expr_stack->expr_will_be_discarded = saved_expr_will_be_discarded;
 }  /* scan_cast_expression */
 
 
@@ -30918,10 +30940,13 @@ that case.  If the second operand of the assignment was a braced-init-list
   a_token_sequence_number
                     operator_tok_seq_number;
   a_boolean         err = FALSE;
+  a_boolean         saved_expr_will_be_discarded =
+                                            expr_stack->expr_will_be_discarded;
 
   db_enter(4, "scan_simple_assignment_operator");
 
   *op2_was_braced_init_list = FALSE;
+  expr_stack->expr_will_be_discarded = FALSE;
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
     check_assertion(rcblock->operator_token == tok_assign);
@@ -30972,6 +30997,16 @@ that case.  If the second operand of the assignment was a braced-init-list
                               result);
   }  /* if */
   rule_out_expr_kinds(ROEK_CONSTANT, result);
+  expr_stack->expr_will_be_discarded = saved_expr_will_be_discarded;
+  if (!C_mode() && !expr_stack->expr_will_be_discarded &&
+      !expr_stack->potentially_unevaluated &&
+      (rcblock != NULL || curr_token != tok_comma) &&
+      is_volatile_qualified_type(result->type) &&
+      !is_class_struct_union_type(result->type)) {
+    an_error_severity sev = cpp20_mode ? es_warning : es_remark;
+    expr_pos_diagnostic(sev, ec_volatile_ass_deprecated,
+                        &result->position);
+  }  /* if */
   db_exit();
 }  /* scan_simple_assignment_operator */
 
@@ -31456,6 +31491,10 @@ operation_type_determined:
                                           operator_tok_seq_number,
                                           (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
+  if (!C_mode() && is_volatile_qualified_type(result->type)) {
+    an_error_severity sev = cpp20_mode ? es_warning : es_remark;
+    expr_pos_diagnostic(sev, ec_volatile_op_ass_deprecated, &result->position);
+  }  /* if */
   db_exit();
 }  /* scan_compound_assignment_operator */
 
@@ -37713,6 +37752,7 @@ case, just process that expression.
                   /*force_object_lifetime=*/repeated_in_loop,
                   /*suppress_object_lifetime=*/FALSE);
   transfer_expr_context_if_applicable(saved_expr_stack);
+  expr_stack->expr_will_be_discarded = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
   /* If we are in a GNU statement expression, this may be the last statement
      thereof.  If so, it wouldn't really be a "void" expression because its

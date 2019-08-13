@@ -1,5 +1,32 @@
 Version 6.0
 
+8/13/19  [EDGcpfe/21593]
+Deprecating ill-advised uses of volatile
+
+Committee document P1152R4 (in C++20) deprecates certain uses of volatile
+types, as these are often subtly broken at run time.  The following scenarios
+are deprecated:
+ - Postfix ++ and -- expressions and prefix ++ and -- expressions on volatile-
+   qualified operands
+ - Simple assignments to a volatile type that is not a class type, unless they
+   are discarded-value expressions or appear in an unevaluated context.
+ - Compound assignments to a volatile type (e.g., +=)
+ - Volatile-qualified return types and/or parameters in functions.
+ - Volatile-qualified structured binding declarations.
+For example:
+
+  typedef volatile int volint;
+  volint f(int i, volint vi) { // Return type and vi parameter usage deprecated
+    int arr[3] = {1,2,3};
+    volatile auto [a,b,c] = arr; // Deprecated
+    vi++;                        // Deprecated
+    vi = i;                      // Not deprecated
+    i = vi;                      // Not deprecated
+    i = vi = i;                  // Deprecated
+    vi -= i;                     // Deprecated
+  }
+
+
 8/13/19  [EDGcpfe/21655]
 Abort in unlink_src_seq_entries on invalid typeof construct
 

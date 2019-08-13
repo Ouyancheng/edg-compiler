@@ -1801,6 +1801,7 @@ is pushed regardless of any of the other factors.
   new_entry->is_template_arg_expression = FALSE;
   new_entry->is_vla_dimension_expression = FALSE;
   new_entry->in_cctor_elision_initializer = FALSE;
+  new_entry->expr_will_be_discarded = FALSE;
   new_entry->favor_constant_result = FALSE;
   new_entry->inside_conditional_expression = FALSE;
   new_entry->unevaluated_expr_will_be_kept_in_il = FALSE;
@@ -6900,6 +6901,23 @@ should be suppressed, e.g., a template deduction context.
     pos_diagnostic(sev, error_code, error_pos);
   }  /* if */
 }  /* expr_pos_diagnostic */
+
+
+void expr_pos_st_diagnostic(an_error_severity sev,
+                            an_error_code     error_code,
+                            a_source_position *error_pos,
+                            a_const_char      *str)
+/*
+Report the indicated diagnostic with the indicated severity at the indicated
+position with the given string substitution.  Suppress the diagnostic if we're
+in a context where diagnostics should be suppressed, e.g., a template deduction
+context.
+*/
+{
+  if (expr_diagnostic_should_be_issued(sev, error_code)) {
+    pos_st_diagnostic(sev, error_code, error_pos, str);
+  }  /* if */
+}  /* expr_pos_st_diagnostic */
 
 
 void expr_pos_st_error(an_error_code     error_code,

@@ -6748,6 +6748,10 @@ and record it in *dps.  Also update positions in decl_pos_block.
       !dps->type->variant.pointer.is_reference) {
     pos_error(ec_invalid_struct_binding_syntax, &dps->declarator_start_pos);
   }  /* if */
+  if (dps->qualifiers & TQ_VOLATILE) {
+    an_error_severity sev = cpp20_mode ? es_warning : es_remark;
+    pos_diagnostic(sev, ec_volatile_str_bind_deprecated, &dps->qualifiers_pos);
+  }  /* if */
   clear_token_cache(cache, /*reusable=*/FALSE);
   if (cache_token_stream_until_matching_token(cache, CTS_NO_OPTIONS)) {
     /* A syntax error.  We'll run into it again when we parse the cache
@@ -8017,6 +8021,15 @@ past_postfix_declarator_operators:
   }  /* if */
   *p_complete_type = complete_type;
   *p_bottom_derived_type = bottom_derived_type;
+  if (!C_mode() && complete_type != NULL && is_function_type(complete_type)) {
+    a_type_ptr return_type = skip_typerefs(complete_type)->
+                                                  variant.routine.return_type;
+    if (return_type != NULL && is_volatile_qualified_type(return_type)) {
+      an_error_severity sev = cpp20_mode ? es_warning : es_remark;
+      pos_diagnostic(sev, ec_volatile_return_type_deprecated,
+                     &state->return_type_pos);
+    }  /* if */
+  }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
     fputs("complete_type: ", f_debug);

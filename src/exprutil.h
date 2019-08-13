@@ -1004,6 +1004,10 @@ typedef struct an_expr_stack_entry {
 			/* Set to true when a braced initializer component has
 			   been created because a parenthesized expression-list
 			   is being treated as aggregate initialization. */
+  a_bit_field
+		expr_will_be_discarded:1;
+			/* TRUE if scanning an expression whose result will be
+			   discarded (e.g., a void expression). */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor
@@ -2698,6 +2702,11 @@ extern void expr_pos_st_warning(an_error_code     error_code,
 extern void expr_pos_diagnostic(an_error_severity sev,
                                 an_error_code     error_code,
                                 a_source_position *error_pos);
+
+extern void expr_pos_st_diagnostic(an_error_severity sev,
+                                   an_error_code     error_code,
+                                   a_source_position *error_pos,
+                                   a_const_char      *str);
 
 extern void expr_pos_st_error(an_error_code     error_code,
                               a_source_position *error_pos,

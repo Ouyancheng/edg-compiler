@@ -1435,6 +1435,10 @@ declaration.  error_pos is the default position for diagnostics.
         is_qualified_function_type(rtp)) {
       pos_error(ec_bad_qualified_function_type_parameter, error_pos);
     }  /* if */
+    if (!C_mode() && is_volatile_qualified_type(dps->type)) {
+      an_error_severity sev = cpp20_mode ? es_warning : es_remark;
+      pos_diagnostic(sev, ec_volatile_func_param_deprecated, error_pos);
+    }  /* if */
     /* Adjust the type if necessary (for example, "array of x" becomes
        "pointer to x"). */
     adjust_parameter_type(&dps->type);
