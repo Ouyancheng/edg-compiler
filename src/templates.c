@@ -29325,11 +29325,11 @@ symbol of the original symbol.
         (sym->kind == (a_symbol_kind)sk_overloaded_function ||
          is_symbol_from_inline_namespace_of_scope(
                            fund_sym, parent_namespace->variant.assoc_scope))) {
-     /* This is a symbol made visible by an inline namespace. */
-   } else {
-     /* Issue an error that the namespace has no direct member of the
-        specified name. */
-     namespace_has_no_actual_member_error(locator);
+       /* This is a symbol made visible by an inline namespace. */
+     } else {
+       /* Issue an error that the namespace has no direct member of the
+          specified name. */
+       namespace_has_no_actual_member_error(locator);
     }  /* if */
     sym = fund_sym;
   }  /* if */
