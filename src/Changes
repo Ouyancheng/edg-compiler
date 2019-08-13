@@ -1,6 +1,6 @@
 Version 6.0
 
-8/12/19  [EDGcpfe/20556]
+8/13/19  [EDGcpfe/20556]
 Implied calls to unusable destructors
 
 In some configurations the front end sometimes failed to diagnose the
