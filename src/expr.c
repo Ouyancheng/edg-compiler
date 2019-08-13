@@ -15219,15 +15219,6 @@ the expression-processing routines.
     }  /* if */
     result = typeof_type;
   }  /* if */
-  if (!is_type) {
-    pop_expr_stack();
-    restore_expr_stack(saved_expr_stack);
-    switch_back_region_and_lifetime(region_to_switch_back_to,
-                                    saved_object_lifetime);
-    if (rcblock != NULL) {
-      decltype_rescan_operand = saved_decltype_rescan_operand;
-    }  /* if */
-  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (ssep == NULL) {
     /* No source sequence entries are being recorded. */
@@ -15243,6 +15234,15 @@ the expression-processing routines.
                                                (a_byte_il_entry_kind)iek_type);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  if (!is_type) {
+    pop_expr_stack();
+    restore_expr_stack(saved_expr_stack);
+    switch_back_region_and_lifetime(region_to_switch_back_to,
+                                    saved_object_lifetime);
+    if (rcblock != NULL) {
+      decltype_rescan_operand = saved_decltype_rescan_operand;
+    }  /* if */
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     /* Update the end of the specifiers range to describe the end of the

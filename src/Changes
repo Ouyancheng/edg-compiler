@@ -1,5 +1,19 @@
 Version 6.0
 
+8/13/19  [EDGcpfe/21655]
+Abort in unlink_src_seq_entries on invalid typeof construct
+
+The changes for EDGcpfe/17886 (and related) introduced a regression in
+configurations that record source sequence entries, causing the front end to
+abort with an internal error in unlink_seq_seq_entries when recovering from an
+invalid use of typeof in GNU mode.  For example:
+
+  int x;
+  int typeof;  // Aborts in version 5.1.  Now an ordinary error.
+
+That is now fixed.
+
+
 8/13/19  [EDGcpfe/20556]
 Implied calls to unusable destructors
 
