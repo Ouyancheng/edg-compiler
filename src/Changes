@@ -1,5 +1,26 @@
 Version 6.0
 
+8/12/19  [EDGcpfe/21567]
+C++-generating back end: local typedefs as template arguments
+
+The changes for EDGcpfe/21336 (in version 5.1) caused a regression in which
+a local typedef name that is used as a template argument was put out in the
+generated code with an extraneous global qualifier "::".  This is now
+fixed.  For example, with --c++14 --gnu_version=80100:
+
+  template <typename T> int f(T) ;
+  template <typename> struct A { };
+  template <unsigned long> struct B {
+    typedef int type;
+  };
+  template <typename T> class C : public A<T> {
+    template <int N> int g() {
+      typedef typename B<N>::type type;
+      return f(A<type>());  // Previously generated as A<::type>
+    }
+  };
+
+
 8/12/19  [EDGcpfe/21628]
 Internal error on invalid specialization of member via using-declaration
 

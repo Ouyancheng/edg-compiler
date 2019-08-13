@@ -4596,6 +4596,12 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
   a_boolean               is_decltype = FALSE;
   a_boolean               is_unknown_function_operator = FALSE;
 
+  if (il_header.source_language == sl_Cplusplus &&
+      entry_kind == iek_type && !(options & GN_DECLARATION)) {
+    /* See if a reference to (but not a declaration of) an inaccessible
+       type can be replaced by a known accessible typedef. */
+    replace_inaccessible_type_with_accessible_typedef(&scp);
+  }  /* if */
   if (entry_kind == (an_il_entry_kind)iek_constant) {
     a_constant_ptr con = (a_constant_ptr)scp;
     if (con->kind == (a_constant_repr_kind)ck_template_param) {
@@ -4656,11 +4662,6 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
     if (entry_kind == iek_type) {
       a_type_ptr     tp;
       a_template_ptr assoc_template = NULL;
-      if (!(options & GN_DECLARATION)) {
-        /* See if a reference to (but not a declaration of) an inaccessible
-           type can be replaced by a known accessible typedef. */
-        replace_inaccessible_type_with_accessible_typedef(&scp);
-      }  /* if */
       tp = (a_type_ptr)scp;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
       if (tp->kind == (a_type_kind)tk_template_param &&
