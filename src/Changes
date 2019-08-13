@@ -1,5 +1,35 @@
 Version 6.0
 
+8/12/19  [EDGcpfe/20556]
+Implied and elided destructor calls
+
+In Cfront ABI configurations the front end sometimes failed to diagnose the
+implied reference to a deleted destructor.  For example:
+
+  struct N {
+    N();
+    ~N() = delete;
+  };
+  N n();
+  void g() {
+    sizeof(n()); // Previously incorrectly accepted with Cfront ABI.
+  }              // Now an error.
+
+That is now fixed.  Furthermore, the front end sometimes also erroneously
+issued an error for an elided destructor.  For example, in C++17 mode (where
+copy elision is mandatory):
+
+  template<typename T> struct X {
+  private:
+    ~X() {}
+  };
+  X<char> g();
+  X<char> f() { return g(); }  // Previously elicited a spurious diagnostic
+                               // in C++17 mode.
+
+That is now also fixed.
+
+
 8/12/19  [EDGcpfe/21567]
 C++-generating back end: local typedefs as template arguments
 
@@ -106,24 +136,6 @@ representation could violate the requirement that file-scope IL entries do not
 directly point to function-scope IL entries.  In particular, such situations
 were encountered in some uses of the Boost libraries.  That problem is now
 fixed.
-
-
-8/8/19   [EDGcpfe/20556]
-Cfront ABI: Missing diagnostic on implied reference to deleted destructor
-
-In Cfront ABI configurations the front end sometimes failed to diagnose the
-implied reference to a deleted destructor.  For example:
-
-  struct N {
-    N();
-    ~N() = delete;
-  };
-  N n();
-  void g() {
-    sizeof(n()); // Previously incorrectly accepted with Cfront ABI.
-  }              // Now an error.
-
-That is now fixed.
 
 
 8/8/19   [EDGcpfe/21472]

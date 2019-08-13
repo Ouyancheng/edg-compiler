@@ -20722,7 +20722,8 @@ source position to be used for any errors.
 
   /* See [class.temporary] paragraph 1 for the C++ standard's requirement that
      the elided destructor be accessible and not deleted. */
-  if (!C_mode() && is_immediate_class_type(class_type)) {
+  if (!C_mode() && !mandatory_copy_elision &&
+      is_immediate_class_type(class_type)) {
     a_symbol_ptr dtor_sym= symbol_supplement_for_class(class_type)->destructor;
     if (dtor_sym != NULL) {
       a_routine_ptr dtor = dtor_sym->variant.routine.ptr;
