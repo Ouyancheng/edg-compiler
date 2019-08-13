@@ -1460,6 +1460,7 @@ extern int fileno(FILE *);
 /*lint -esym(552,vcmeta_directory_name)*/
 /*lint -esym(552,put_variable_into_comdat_group)*/
 /*lint -esym(757,put_variable_into_comdat_group)*/
+/*lint -esym(757,expr1_could_affect_expr2)*/
 
 #endif /* ifndef LINT_H */
 
