@@ -29295,7 +29295,7 @@ completed.  The closing brace is left for the caller to consume.
 
 
 static a_symbol_ptr check_specialization_projection_symbol(
-                                                     a_symbol_ptr      sym,
+                                                     a_symbol_ptr     sym,
                                                      a_symbol_locator *locator)
 /*
 If sym is a projection symbol (of some kind), make sure its use is valid
