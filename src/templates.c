@@ -13342,7 +13342,8 @@ do_substitution:
              X<void(*)(int), &g> x;
            Using "new_list" here, ends up substituting <void> for "As...",
            triggering a spurious substitution error. */
-        if ((options & CTWS_IS_PARTIAL_SPECIALIZATION_CHECK) != 0) {
+        if ((options & (CTWS_IS_PARTIAL_ORDER_CHECK |
+                        CTWS_IS_PARTIAL_SPECIALIZATION_CHECK)) != 0) {
           list_for_subst = arg_list_to_copy;
         }  /* if */
         substitute_template_argument(new_tap, tpp, list_for_subst,
@@ -14690,10 +14691,8 @@ a pointer over a reference type or creating an array of references.
         /* We can reuse "type" as long as we can reuse the return type and all
            its param types.  Otherwise we will need to allocate a new type
            entry. Go through "type" until we find that a new type was returned
-           from copy_type_with_substitution.  Clear the partial order check
-           flag so that it will not be applied to recursive calls. */
+           from copy_type_with_substitution. */
         is_partial_order_check = (options & CTWS_IS_PARTIAL_ORDER_CHECK) != 0;
-        options = options & ~CTWS_IS_PARTIAL_ORDER_CHECK;
         reusable_param_types = 0;
         first_new_type_for_param_types_list = NULL;
         rtsp = type->variant.routine.extra_info;
