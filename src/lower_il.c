@@ -13373,13 +13373,17 @@ throughout the entire expression).
           overwrite_node(expr, gchild);
         } else if (node_operator_is(child, eok_subscript)) {
           /* Optimize &x[y] to x + y. */
+          a_boolean save_eval_left_to_right, save_eval_right_to_left;
+          save_eval_left_to_right= child->variant.operation.eval_left_to_right;
+          save_eval_right_to_left= child->variant.operation.eval_right_to_left;
           child->next = expr->next;
           set_node_operator(child, (an_expr_operator_kind)eok_padd,
                             expr->type, expr->is_lvalue, gchild);
-          child->variant.operation.eval_left_to_right =
-                                    expr->variant.operation.eval_left_to_right;
-          child->variant.operation.eval_right_to_left =
-                                    expr->variant.operation.eval_right_to_left;
+          /* Maintain the order of evaluation by copying the flags from the
+             eok_subscript node to the eok_padd node (they are reset by
+             set_node_operator). */
+          child->variant.operation.eval_left_to_right= save_eval_left_to_right;
+          child->variant.operation.eval_right_to_left= save_eval_right_to_left;
           overwrite_node(expr, child);
         } else if (node_operator_is(child, eok_lvalue_adjust) &&
                    is_operation_node(gchild) &&

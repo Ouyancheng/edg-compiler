@@ -5493,14 +5493,10 @@ eval_right_to_left and eval_left_to_right flags.
                       expr->variant.operation.eval_right_to_left);
     }  /* if */
   } else {
-    a_boolean eval_left_to_right, eval_right_to_left;
-    eval_order_for_binary_node_kind(expr->variant.operation.kind,
-                                    &eval_left_to_right,
-                                    &eval_right_to_left);
-    check_assertion(expr->variant.operation.eval_left_to_right ==
-                                                          eval_left_to_right &&
-                    expr->variant.operation.eval_right_to_left ==
-                                                          eval_right_to_left);
+    /* Lowering may change the evaluation ordering from the canonical ordering
+       so there is little checking that can be done here. */
+    check_assertion(!(expr->variant.operation.eval_left_to_right &&
+                      expr->variant.operation.eval_right_to_left));
   }  /* if */
 }  /* check_expression_evaluation_order */
 
