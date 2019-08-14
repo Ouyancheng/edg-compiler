@@ -17773,31 +17773,20 @@ error cases.
      allow_call_with_incomplete_return_type) the language specifies that no
      temporary object is created. */
   if (!unknown_dependent_function &&
-      !expr_stack->allow_call_with_incomplete_return_type) {
-    if (function_type->variant.routine.extra_info->value_returned_by_cctor) {
-      /* An error was already issued for a function returning an abstract
-         class type, so do not issue another on a call of such a function. */
-      temp_init_node = create_expr_temporary(return_type,
-                                             /*is_lvalue=*/FALSE,
-                                             /*is_explicit_cast=*/FALSE,
-                                             /*suppress_abstract_test=*/TRUE,
-                                             (a_dynamic_init_kind)
+      !expr_stack->allow_call_with_incomplete_return_type &&
+      function_type->variant.routine.extra_info->value_returned_by_cctor) {
+    /* An error was already issued for a function returning an abstract
+       class type, so do not issue another on a call of such a function. */
+    temp_init_node = create_expr_temporary(return_type,
+                                           /*is_lvalue=*/FALSE,
+                                           /*is_explicit_cast=*/FALSE,
+                                           /*suppress_abstract_test=*/TRUE,
+                                           (a_dynamic_init_kind)
                                                     dik_class_result_via_ctor,
-                                             pos,
-                                             &dip);
-      dip->variant.expression = call_node;
-      call_node = temp_init_node;
-    } else {
-      /* create_expr_temporary will check for a destructor if appropriate.
-         In some configurations, value_returned_by_cctor may be false even
-         though a destructor is involved.  If needed, check the destructor
-         separately. */
-      a_type_ptr  tp = skip_typerefs(return_type);
-      if (is_immediate_class_type(tp) &&
-          class_symbol_supp(symbol_for(tp))->destructor != NULL) {
-        (void)expr_select_destructor(tp, tp, pos, /*honor_virtual=*/FALSE);
-      }  /* if */
-    }  /* if */
+                                           pos,
+                                           &dip);
+    dip->variant.expression = call_node;
+    call_node = temp_init_node;
   }  /* if */
 done:
   return call_node;

@@ -20744,19 +20744,7 @@ source position to be used for any errors.
         if (expr_stack->suppress_diagnostics) {
           p_error_detected = &error_detected;
         }  /* if */
-        if (exceptions_enabled) {
-          /* Even though the normal destructor call is suppressed, the
-             destructor may still have to be invoked as part of unwinding.
-             For example:
-               struct X { ~X(); };
-               struct S { S(); S(S const&); S(S&&); ~S(); };
-               S g() {
-                 X x;
-                 return S();  // Must invoke ~S() when ~X() throws.
-               }
-          */
-          sev = es_error; 
-        }  /* if */
+        if (strict_ansi_mode) sev = strict_ansi_discretionary_severity; 
         if (mandatory_copy_elision) {
           err_code = ec_inaccessible_rvalue_dtor;
         } else {

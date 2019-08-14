@@ -41,24 +41,6 @@ from an invalid use of typeof in GNU mode.  For example:
 That is now fixed.
 
 
-8/13/19  [EDGcpfe/20556]
-Implied calls to unusable destructors
-
-In some configurations the front end sometimes failed to diagnose the
-implied reference to a deleted or inaccessible destructor.  For example:
-
-  struct N {
-    N();
-    ~N() = delete;
-  };
-  N n();
-  void g() {
-    sizeof(n()); // Previously incorrectly accepted with Cfront ABI.
-  }              // Now an error.
-
-That is now fixed.
-
-
 8/12/19  [EDGcpfe/21567]
 C++-generating back end: local typedefs as template arguments
 
