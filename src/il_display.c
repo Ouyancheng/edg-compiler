@@ -3635,6 +3635,11 @@ Display the indicated routine.
   if (ptr->definition_has_direct_linkage_specifier) {
     disp_boolean("definition_has_direct_linkage_specifier", TRUE);
   }  /* if */
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  if (ptr->evaluated_in_interpreter) {
+    disp_boolean("evaluated_in_interpreter", TRUE);
+  }  /* if */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* BACK_END_IS_CP_GEN_BE */
   if (ptr->definition_for_inlining_only) {
     disp_boolean("definition_for_inlining_only", TRUE);

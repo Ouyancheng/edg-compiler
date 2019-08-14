@@ -20641,6 +20641,15 @@ handle_as_definition:
         }  /* if */
       }  /* if */
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS && ... */
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      if (rout->is_template_function && !rout->is_prototype_instantiation &&
+          !rout->is_specialized && !rout->evaluated_in_interpreter) {
+        /* No call to this function was ever successfully evaluated in the
+           interpreter.  It is therefore not guaranteed that declaring the
+           specialization "constexpr" will result in valid code. */
+        write_constexpr = FALSE;
+      }  /* if */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
       if (write_constexpr) {
         write_tok_str("constexpr ");
         suppress_inline_kwd = TRUE;

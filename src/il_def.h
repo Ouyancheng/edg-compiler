@@ -11623,6 +11623,11 @@ typedef struct a_routine {
 			   bug that does not allow an explicit specialization
 			   for a conversion function template to be declared
 			   but not defined. */
+  a_bit_field	evaluated_in_interpreter:1;
+			/* TRUE if a call to this function completed in the
+			   interpreter.  This is useful to decide whether it
+			   is safe to declare as "constexpr" an implicit
+			   instance rendered as an explicit specialization. */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* BACK_END_IS_CP_GEN_BE */
   a_bit_field	definition_for_inlining_only:1;

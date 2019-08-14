@@ -3020,6 +3020,7 @@ to it.  The entry is allocated in the file scope memory region.
                                   = FALSE;
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   rp->has_been_defined            = FALSE;
+  rp->evaluated_in_interpreter    = FALSE;
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* BACK_END_IS_CP_GEN_BE */
   rp->definition_for_inlining_only = FALSE;

@@ -1,5 +1,43 @@
 Version 6.0
 
+8/14/19  [EDGcpfe/20871]
+Rendering of "constexpr" for generated specializations
+
+In C++-generating back end configurations in which the configuration macro
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, the front
+end renders implicit specializations of function templates or member functions
+of class templates as explicit specializations.  Previously, the explicit
+specialization usually was rendered with "constexpr" if the associated template
+was declared "constexpr".  However, that may result in invalid code: Whereas a
+template can validly be declared "constexpr" even when some of its instances
+can never produce a constant expression, an explicit specialization may not
+be validly declared "constexpr" if it cannot possibly produce a constant
+expression (no diagnostic is required by the standard, but some compilers do
+issue errors for some cases).  For example:
+
+  int g();
+  template<typename T> constexpr int f() {
+    return sizeof(T) == 1 ? g() : 42;
+  }
+  int r = f<char>();
+
+Here, f<char>() cannot ever produce a constant expression, but the front end
+previously rendered it as follows (slightly reformatted):
+
+  template<> constexpr int f< char> () {
+    return (sizeof(char) == (1)) ? g() : 42;
+  }
+
+(Some compilers issue an error on that invalid code.) Now, the "constexpr"
+specifier is only issued for such cases if at least one call to the function
+was successfully evaluated by the constexpr interpreter.  Since that isn't the
+case with the example above, the specialization is instead rendered as:
+
+  template<> inline int f< char> () {
+    return (sizeof(char) == (1)) ? g() : 42;
+  }
+
+
 8/13/19  [EDGcpfe/21593]
 Deprecating ill-advised uses of volatile
 

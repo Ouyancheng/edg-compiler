@@ -9089,11 +9089,18 @@ otherwise, return FALSE and update *ips accordingly.
       /* Run the function's top-level block statement. */
       result = run_function_body(ips, callee_scope);
     }  /* if */
-    if (retval_offset != 0 && result) {
-      /* A virtual call dispatching to an overriding function with a
-         covariant return type.  The return value is an address that must
-         be updated to match the static type of the expression. */
-      ((a_constexpr_address*)result_storage)->address += retval_offset;
+    if (result) {
+      if (retval_offset != 0) {
+        /* A virtual call dispatching to an overriding function with a
+           covariant return type.  The return value is an address that must
+           be updated to match the static type of the expression. */
+        ((a_constexpr_address*)result_storage)->address += retval_offset;
+      }  /* if */
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if BACK_END_IS_CP_GEN_BE
+      callee->evaluated_in_interpreter = TRUE;
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* BACK_END_IS_CP_GEN_BE */
     }  /* if */
     /* Release any address structures, if needed. */
     p_arg_ptr = (a_byte**)arg_ptrs;
@@ -9562,6 +9569,11 @@ the body of the (constructor) function proper.
       }  /* if */
       result = do_constexpr_block_statement(ips, block_stmt, callee_scope);
     }  /* if */
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if BACK_END_IS_CP_GEN_BE
+    if (result) callee->evaluated_in_interpreter = TRUE;
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* BACK_END_IS_CP_GEN_BE */
     /* Release any address structures, if needed. */
     p_arg_ptr = (a_byte**)arg_ptrs+1;
     for (arg = args; arg != NULL; arg = arg->next) {
@@ -9750,6 +9762,11 @@ This is similar to do_constexpr_ctor.
         mark_subobject_uninitialized(result_storage+offset, complete_object);
       }  /* if */
     }  /* for */
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if BACK_END_IS_CP_GEN_BE
+    if (result) callee->evaluated_in_interpreter = TRUE;
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* BACK_END_IS_CP_GEN_BE */
     pop_call_frame(ips);
     { /* Unmap the "this" parameter. */
       a_var_postfix  *postfix;
