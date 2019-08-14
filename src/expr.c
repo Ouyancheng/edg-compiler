@@ -43114,15 +43114,6 @@ make_coroutine_result_expression.)
            until we know whether it's going to be optimized away. */
         deduced_return_type = TRUE;
         expr_stack->in_cctor_elision_initializer = TRUE;
-    } else {
-      a_type_ptr  return_type = routine_type->variant.routine.return_type;
-      return_type = skip_typerefs(return_type);
-      if (is_immediate_class_type(return_type) &&
-          class_symbol_supp(symbol_for(return_type))->destructor != NULL) {
-        /* In mandatory copy elision situations a destructor should be elided
-           even when copying is trivial. */
-        expr_stack->in_cctor_elision_initializer = TRUE;
-      }  /* if */
     }  /* if */
     scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
     if (curr_routine->is_coroutine) {

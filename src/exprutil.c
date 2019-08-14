@@ -17795,16 +17795,7 @@ error cases.
       a_type_ptr  tp = skip_typerefs(return_type);
       if (is_immediate_class_type(tp) &&
           class_symbol_supp(symbol_for(tp))->destructor != NULL) {
-        if (!expr_stack->in_cctor_elision_initializer) {
-          (void)expr_select_destructor(tp, tp, pos, /*honor_virtual=*/FALSE);
-        } else {
-          /* In an elision context it is not a-priori known whether the
-             destructor is invoked at all.  Allocate a dummy dynamic
-             initializer entry: It is placed on a fixup list that will
-             perform the needed check if appropriate. */
-          (void)alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_zero, tp,
-                                        pos);
-        }  /* if */
+        (void)expr_select_destructor(tp, tp, pos, /*honor_virtual=*/FALSE);
       }  /* if */
     }  /* if */
   }  /* if */
