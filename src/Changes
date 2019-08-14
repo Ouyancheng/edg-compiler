@@ -7,10 +7,10 @@ Committee document P1152R4 (in C++20) deprecates certain uses of volatile
 types, as these are often subtly broken at run time.  The following scenarios
 are deprecated:
  - Postfix ++ and -- expressions and prefix ++ and -- expressions on volatile-
-   qualified operands
- - Simple assignments to a volatile type that is not a class type, unless they
-   are discarded-value expressions or appear in an unevaluated context.
- - Compound assignments to a volatile type (e.g., +=)
+   qualified operands.
+ - Simple assignments to a volatile type, unless they are discarded-value
+   expressions or appear in an unevaluated context.
+ - Compound assignments to a volatile type (e.g., +=).
  - Volatile-qualified return types and/or parameters in functions.
  - Volatile-qualified structured binding declarations.
 For example:

@@ -828,6 +828,12 @@ by *diag_pos or at a position recorded in *dps (depending on the diagnostic).
                      &dps->qualifiers_pos);
     }  /* if */
   }  /* if */
+  if (!C_mode() && is_volatile_qualified_type(type) &&
+      !(is_nonspecialized_instantiation_context() &&
+        !scope_stack[decl_scope_level].in_prototype_instantiation)) {
+    an_error_severity sev = cpp20_mode ? es_warning : es_remark;
+    pos_diagnostic(sev, ec_volatile_return_type_deprecated, diag_pos);
+  }  /* if */
 }  /* report_bad_return_type_qualifier */
 
 
@@ -8021,15 +8027,6 @@ past_postfix_declarator_operators:
   }  /* if */
   *p_complete_type = complete_type;
   *p_bottom_derived_type = bottom_derived_type;
-  if (!C_mode() && complete_type != NULL && is_function_type(complete_type)) {
-    a_type_ptr return_type = skip_typerefs(complete_type)->
-                                                  variant.routine.return_type;
-    if (return_type != NULL && is_volatile_qualified_type(return_type)) {
-      an_error_severity sev = cpp20_mode ? es_warning : es_remark;
-      pos_diagnostic(sev, ec_volatile_return_type_deprecated,
-                     &state->return_type_pos);
-    }  /* if */
-  }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
     fputs("complete_type: ", f_debug);

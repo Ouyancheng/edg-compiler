@@ -9916,15 +9916,6 @@ case.
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(operand);
   } else {
-    if (!C_mode() && is_volatile_qualified_type(operand->type)) {
-      /* P1152R4 (in C++20) deprecated using a volatile-qualified operand in a
-         postfix increment/decrement expression. */
-      an_error_severity sev = cpp20_mode ? es_warning : es_remark;
-      expr_pos_st_diagnostic(sev, ec_volatile_inc_dec_deprecated,
-                             &operand->position,
-                             is_increment ? "an increment" :
-                                            "a decrement");
-    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     property_ref_case = is_property_ref_operand(operand);
     if (property_ref_case) {
@@ -10015,6 +10006,15 @@ case.
                                          result, &processed);
         }  /* if */
       }  /* if */
+    }  /* if */
+    if (!processed && !C_mode() && is_volatile_qualified_type(operand->type)) {
+      /* P1152R4 (in C++20) deprecated using a volatile-qualified operand in a
+         postfix increment/decrement expression. */
+      an_error_severity sev = cpp20_mode ? es_warning : es_remark;
+      expr_pos_st_diagnostic(sev, ec_volatile_inc_dec_deprecated,
+                             &operand->position,
+                             is_increment ? "an increment" :
+                                            "a decrement");
     }  /* if */
     if (!processed &&
         operator_not_allowed_in_cpp11_constant_expr(&operator_position)) {
@@ -10269,15 +10269,6 @@ and return the result in *result (or an error indication in *rcblock).
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(&operand);
   } else {
-    if (!C_mode() && is_volatile_qualified_type(operand.type)) {
-      /* P1152R4 (in C++20) deprecated using a volatile-qualified operand in a
-         prefix increment/decrement expression. */
-      an_error_severity sev = cpp20_mode ? es_warning : es_remark;
-      expr_pos_st_diagnostic(sev, ec_volatile_inc_dec_deprecated,
-                             &operand.position,
-                             is_increment ? "an increment" :
-                                            "a decrement");
-    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     property_ref_case = is_property_ref_operand(&operand);
     if (property_ref_case && !err) {
@@ -10311,6 +10302,15 @@ and return the result in *result (or an error indication in *rcblock).
                                      (a_nondependent_call_depth)0,
                                      (a_source_position *)NULL,
                                      result, &processed);
+    }  /* if */
+    if (!processed && !C_mode() && is_volatile_qualified_type(operand.type)) {
+      /* P1152R4 (in C++20) deprecated using a volatile-qualified operand in a
+         prefix increment/decrement expression. */
+      an_error_severity sev = cpp20_mode ? es_warning : es_remark;
+      expr_pos_st_diagnostic(sev, ec_volatile_inc_dec_deprecated,
+                             &operand.position,
+                             is_increment ? "an increment" :
+                                            "a decrement");
     }  /* if */
     if (!processed &&
         operator_not_allowed_in_cpp11_constant_expr(&operator_position)) {
