@@ -1,5 +1,22 @@
 Version 6.0
 
+8/15/19  [EDGcpfe/21632]
+C++-generating back end: incorrect reference to injected-class-name in friend
+
+The changes for EDGcpfe/20394 and EDGcpfe/20426 (both in version 5.1)
+resulted in a regression in which a friend function declaration appearing
+in a class template with an unnamed template parameter and using the
+injected-class-name of the class template in a parameter type of the friend
+function incorrectly referred to the injected-class-name using a qualified
+name.  This is now fixed.  For example, with --g++:
+
+  namespace N {
+  template<typename> struct S {
+    friend void f(S);  // Previously generated as f(N::S)
+  };
+  }
+
+
 8/15/19  [EDGcpfe/21665]
 Volatile and trivial copyability
 
