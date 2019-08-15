@@ -63,7 +63,7 @@ case with the example above, the specialization is instead rendered as:
 
 
 8/13/19  [EDGcpfe/21593]
-Deprecating ill-advised uses of volatile
+C++20: Deprecating ill-advised uses of volatile
 
 Committee document P1152R4 (in C++20) deprecates certain uses of volatile
 types, as these are often subtly broken at run time.  The following scenarios
