@@ -47400,7 +47400,7 @@ the corresponding __builtin_is_constructible operation.
     } else {
       /* Check that the underlying element type is default constructible. */
       result = compute_is_constructible(
-                         kind, underlying_array_element_type(dst_type), args);
+                         kind, underlying_array_element_type(dst_type), expr);
     }  /* if */
   } else if (is_incomplete_type(dst_type) && !is_void_type(dst_type)) {
     if (!gpp_mode) {
