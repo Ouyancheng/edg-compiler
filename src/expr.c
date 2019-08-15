@@ -13022,6 +13022,7 @@ on a previously-scanned argument given by rcblock->argument_list.
           result->type = void_type();
           result->variant.type_operand.type = type;
         }  /* if */
+        result->position = start_position;
         record_type_operand_position_for_rescan(result, &start_position);
       }
       break;
@@ -13189,6 +13190,7 @@ indication in *rcblock).
     a_boolean         not_a_constant;
     expr = alloc_expr_node((an_expr_node_kind)enk_builtin_operation);
     expr->type = type;
+    expr->position = start_position;
     expr->variant.builtin_operation.kind = (a_builtin_operation_kind)kind;
     expr->variant.builtin_operation.operands = arg1;
     record_operator_position_in_expr_rescan_info(expr, &start_position,
@@ -47365,18 +47367,21 @@ destination types in Microsoft mode.
 
 a_boolean compute_is_constructible(a_builtin_operation_kind kind,
                                    a_type_ptr               dst_type,
-                                   an_expr_node_ptr         args)
+                                   an_expr_node_ptr         expr)
 /*
 Compute the "is_constructible" type relationship predicate of the C++
 standard.  It determines whether an invented variable of type dst_type
-can be constructed from arguments with types as given by the (possibly
-empty) list of type operands args, and returns TRUE if so.
+can be constructed from arguments with types as given by a (possibly empty)
+list of type operands, and returns TRUE if so.  expr is the node representing
+the corresponding __builtin_is_constructible operation.
 */
 {
   a_boolean               result = FALSE;
   an_expr_stack_entry     expr_stack_entry;
   an_expr_stack_entry_ptr saved_expr_stack;
   an_arg_list_elem_ptr    arg_list = NULL, end_arg_list = NULL;
+  an_expr_node_ptr        arg0 = expr->variant.builtin_operation.operands,
+                          args = arg0->next;
 
   /* Even though this is not an expression scan, make sure the expr_stack
      has something on it.  If there is already something on the stack,
@@ -47386,11 +47391,7 @@ empty) list of type operands args, and returns TRUE if so.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
   complete_type_is_needed(dst_type);
-  if (is_function_type(dst_type) ||
-      is_incomplete_type(dst_type) ||
-      is_abstract_class_type(dst_type)) {
-    result = FALSE;
-  } else if (is_array_type(dst_type)) {
+  if (is_array_type(dst_type)) {
     /* Arrays can sometimes be default constructed. */
     if (args != NULL) {
       result = FALSE;
@@ -47399,6 +47400,14 @@ empty) list of type operands args, and returns TRUE if so.
       result = compute_is_constructible(
                          kind, underlying_array_element_type(dst_type), args);
     }  /* if */
+  } else if (is_incomplete_type(dst_type) && !is_void_type(dst_type)) {
+    if (!gpp_mode) {
+      expr_pos_error(ec_incomplete_type_not_allowed, &arg0->position);
+    }  /* if */
+    result = FALSE;
+  } else if (is_function_type(dst_type) ||
+             is_abstract_class_type(dst_type)) {
+    result = FALSE;
   } else {
     /* Make a list of expressions of the required types. */
     an_arg_list_elem_ptr alep;

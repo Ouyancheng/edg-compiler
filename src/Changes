@@ -1,5 +1,12 @@
 Version 6.0
 
+8/15/19  [EDGcpfe/21664]
+__builtin_is_constructible and incomplete types
+
+Previously, applying __builtin_is_constructible to an incomplete type resulted
+in a "false" value.
+
+
 8/15/19  [EDGcpfe/21632]
 C++-generating back end: incorrect reference to injected-class-name in friend
 
