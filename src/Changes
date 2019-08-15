@@ -1,5 +1,12 @@
 Version 6.0
 
+8/15/19  [EDGcpfe/21665]
+Volatile and trivial copyability
+
+The changes for EDGcpfe/18467 are now also enabled in Microsoft C++ mode with
+microsoft_version > 1910 and in GNU C++ mode with gnu_version >= 100000.
+
+
 8/15/19  [EDGcpfe/21617]
 Abort in 5.1 from performance optimizations
 

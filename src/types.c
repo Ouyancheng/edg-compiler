@@ -1951,10 +1951,11 @@ Return TRUE if the given type is trivially copyable.
   a_boolean  result;
   
   if (is_volatile_qualified_type(tp) &&
-      (microsoft_mode ? TRUE :
+      (microsoft_mode ? microsoft_version <= 1910 :
        clang_mode     ? clang_version >= 30400 && clang_version <= 40000 :
-       gpp_mode       ? !is_class_struct_union_type(tp) :
-                        FALSE)) {
+       gpp_mode       ? (gnu_version < 100000 &&
+                         !is_class_struct_union_type(tp)) :
+       /* else */       FALSE)) {
     result = FALSE;
   } else {
     tp = skip_array_types(tp);
@@ -1973,7 +1974,7 @@ Return TRUE if the given type is trivially copyable.
           !cssp->has_user_provided_move_constructor &&
           !cssp->has_user_provided_move_assign_operator &&
           !(tp->variant.class_struct_union.any_volatile_member &&
-            microsoft_mode)) {
+            microsoft_mode && microsoft_version <= 1910)) {
         a_symbol_ptr  sym;
         a_boolean     is_list, has_trivial_copy_function = FALSE;
         result = TRUE;
