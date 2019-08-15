@@ -47472,12 +47472,12 @@ the corresponding __builtin_is_constructible operation.
     }  /* if */
     result = !expr_stack->any_suppressed_error;
     if (result && is_expression_operand(&operand)) {
-      an_expr_node_ptr expr = operand.variant.expression;
+      an_expr_node_ptr node = operand.variant.expression;
       if (kind == (a_builtin_operation_kind)bok_is_nothrow_constructible) {
-        result = !expr_might_throw(expr);
+        result = !expr_might_throw(node);
       } else if (kind == (a_builtin_operation_kind)
                                              bok_is_trivially_constructible) {
-        result = !expr_calls_nontrivial_ctor(expr);
+        result = !expr_calls_nontrivial_ctor(node);
       }  /* if */
     }  /* if */
     scope_stack_top().defer_access_checks = saved_defer_access_checks;
