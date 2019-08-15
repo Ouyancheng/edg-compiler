@@ -1,7 +1,7 @@
 Version 6.0
 
 8/14/19  [EDGcpfe/20871]
-Rendering of "constexpr" for generated specializations
+C++-generating back end: Rendering of "constexpr" for generated specializations
 
 In C++-generating back end configurations in which the configuration macro
 NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, the front
