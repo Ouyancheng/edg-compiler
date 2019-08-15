@@ -407,6 +407,17 @@ typedef struct a_name_context {
 			   dependent bases.  (For efficiency, this will only
 			   be set to TRUE if the target compiler searches
 			   dependent bases during unqualified lookup.) */
+  a_byte_boolean
+		ignore_lexical_context_for_gcc_clang_friend;
+			/* G++ and clang have unusual lookup rules for
+			   names used in friend declarations, and it's
+			   safest to require all such names to be
+			   qualified.  When processing a friend function
+			   declaration in g++ or clang mode, this flag is
+			   set in the top entry on the name context stack,
+			   causing us to pretend that the stack is empty
+			   and thus triggering the necessary
+			   qualification. */
 } a_name_context;
 
 static a_name_context_ptr
@@ -1056,6 +1067,7 @@ hidden name entries that apply to the base class list should be processed.
   ncp->invisible_to_cfront = FALSE;
   ncp->field_selection_context = FALSE;
   ncp->has_dependent_base = FALSE;
+  ncp->ignore_lexical_context_for_gcc_clang_friend = FALSE;
   ncp->saved_in_class_scope_with_dependent_base =
                                             in_class_scope_with_dependent_base;
   /* Put the entry on the stack. */
@@ -1263,7 +1275,9 @@ Return TRUE if the indicated scope is currently on the name context stack.
   a_boolean          scope_in_stack = FALSE;
   a_name_context_ptr ncp;
 
-  for (ncp = curr_name_context; ncp != NULL && !scope_in_stack;
+  for (ncp = curr_name_context;
+       ncp != NULL && !ncp->ignore_lexical_context_for_gcc_clang_friend &&
+                                                               !scope_in_stack;
        ncp = ncp->next) {
     if (ncp->assoc_scope == scope) {
       scope_in_stack = TRUE;
@@ -1300,7 +1314,9 @@ the scope might be in a memory region that is freed.
   a_boolean          scope_in_stack = FALSE;
   a_name_context_ptr ncp;
 
-  for (ncp = curr_name_context; ncp != NULL && !scope_in_stack;
+  for (ncp = curr_name_context;
+       ncp != NULL && !ncp->ignore_lexical_context_for_gcc_clang_friend &&
+                                                               !scope_in_stack;
        ncp = ncp->next) {
     if (ncp->assoc_scope != NULL && ncp->assoc_scope->number == number) {
       scope_in_stack = TRUE;
@@ -1345,7 +1361,9 @@ considered.
   a_boolean          class_in_stack = FALSE;
   a_name_context_ptr ncp;
 
-  for (ncp = curr_name_context; ncp != NULL && !class_in_stack;
+  for (ncp = curr_name_context;
+       ncp != NULL && !ncp->ignore_lexical_context_for_gcc_clang_friend &&
+                                                               !class_in_stack;
        ncp = ncp->next) {
     if (ncp->class_type == class_type) {
       class_in_stack = !(ncp->field_selection_context &&
@@ -4840,6 +4858,9 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
             && decltype_type == NULL
 #endif /* PROTOTYPE_INSTANTATIONS_IN_IL */
                                     ) ||
+           (entry_kind == iek_type &&
+            curr_name_context->ignore_lexical_context_for_gcc_clang_friend &&
+            curr_name_context->class_type == (a_type_ptr)scp) ||
            class_is_in_name_context_stack(
                                  class_type, include_base_classes,
                                  /*ignore_field_selection_contexts=*/FALSE))) {
@@ -4946,6 +4967,9 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
            ((options & GN_DECLARATION) && !(options & GN_FRIEND_DECL))) &&
           (scp->visible_as_unqualified_name ||
            member_of_global_unnamed_namespace ||
+           (entry_kind == iek_type &&
+            curr_name_context->ignore_lexical_context_for_gcc_clang_friend &&
+            curr_name_context->class_type == (a_type_ptr)scp) ||
            scope_is_in_name_context_stack(nsp->variant.assoc_scope)) &&
           /* MSVC++ 7.0 does not always correctly parse "class S<x>::N {}",
              but the problem goes away with a leading namespace qualifier. */
@@ -19605,7 +19629,7 @@ declarator (or NULL if it wasn't recorded).
   a_name_context_ptr           name_context_for_access_reset = NULL;
   a_type_ptr                   parent_class;
   a_boolean                    state_was_saved = FALSE;
-  a_name_context_ptr           orig_top_of_name_context_stack = NULL;
+  a_name_context_ptr           name_context_to_restore = NULL;
 
   *context_pop_needed = FALSE;
   parent_class = (scp->is_class_member) ? scp_parent_class(scp) : NULL;
@@ -19750,12 +19774,11 @@ declarator (or NULL if it wasn't recorded).
           (gcc_is_generated_code_target || clang_is_generated_code_target)) {
         /* G++ and clang have unusual lookup rules for names used in friend
            declarations.  It's safest to require all names to be qualified,
-           which we accomplish by temporarily emptying the name context
-           stack. */
-        orig_top_of_name_context_stack = curr_name_context;
-        while (curr_name_context->next != NULL) {
-          curr_name_context = curr_name_context->next;
-        }  /* while */
+           which we accomplish by setting the
+           ignore_lexical_context_for_gcc_clang_friend flag in the top
+           entry in the name context stack. */
+        curr_name_context->ignore_lexical_context_for_gcc_clang_friend = TRUE;
+        name_context_to_restore = curr_name_context;
       } else {
         /* Push the name context for a class/namespace member. */
         push_name_context_if_member(scp);
@@ -19815,10 +19838,10 @@ declarator (or NULL if it wasn't recorded).
     rout->type = saved_routine_type;
     octl.render_auto_deduction_typerefs = saved_render_auto_deduction_typerefs;
   }  /* if */
-  if (orig_top_of_name_context_stack != NULL) {
-    /* Restore the name context stack, which was temporarily emptied to
-       require full qualification of names appearing in the declaration. */
-    curr_name_context = orig_top_of_name_context_stack;
+  if (name_context_to_restore != NULL) {
+    /* Restore lexical context lookup. */
+    name_context_to_restore->ignore_lexical_context_for_gcc_clang_friend =
+                                                                         FALSE;
   }  /* if */
   if (name_context_for_access_reset != NULL) {
     name_context_for_access_reset->class_type_for_access_not_naming = NULL;
