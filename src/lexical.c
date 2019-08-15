@@ -22368,7 +22368,7 @@ of characters added.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (is_restrict_token(token)) {
 #if !SUPPRESS_RESTRICT_IN_GENERATED_CODE
-    char *restrict_kw = "restrict";
+    a_const_char *restrict_kw = "restrict";
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
     /* When targeting a gcc/g++ compiler, put out "__restrict__" since
        "restrict" may not be accepted.  Clang accepts "restrict", but only
