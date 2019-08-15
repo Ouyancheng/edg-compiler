@@ -68,6 +68,12 @@ case with the example above, the specialization is instead rendered as:
     return (sizeof(char) == (1)) ? g() : 42;
   }
 
+Note: This is a revision of a change made in version 5.1 for the same issue
+number EDGcpfe/20871.  Although the "constexpr" specifier is now more
+consistently dropped from generated explicit specialization source code when
+it is not known to be valid, the IL still reflects the "constexpr" flag
+(unlike the original attempt at addressing this issue).
+
 
 8/13/19  [EDGcpfe/21593]
 C++20: Deprecating ill-advised uses of volatile
