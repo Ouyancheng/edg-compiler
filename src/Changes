@@ -1,5 +1,29 @@
 Version 6.0
 
+8/15/19  [EDGcpfe/21617]
+Abort in 5.1 from performance optimizations
+
+A performance improvement made in version 5.1 (see EDGcpfe/20767) introduced
+an abort that could occur during partial ordering of function templates.  The
+abort would occur in get_template_arg_list_by_pos during partial ordering of
+certain class templates that make use of nontype template arguments whose
+type depends on other template arguments.  Now fixed.
+
+  template <class T, class U, U N> struct A { };
+
+  template <class T1, class T2, class U2, U2 N2>
+  void f(T1 t1, A<T2, U2, N2> t2) { }
+ 
+  template <class T1, class U1, U1 N1, class T2, class U2, U2 N2>
+  void f(A<T1, U1, N1> t1, A<T2, U2, N2> t2) { }
+ 
+  int main() {
+    A<char, int, 2> a;
+    f(a, a);
+  }
+
+
+
 8/14/19  [EDGcpfe/20871]
 C++-generating back end: Rendering of "constexpr" for generated specializations
 
