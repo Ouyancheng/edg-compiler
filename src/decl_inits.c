@@ -9932,9 +9932,9 @@ declaration that has internal linkage because of the explicit presence of a
              vp->storage_class != (a_storage_class)sc_extern) ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             symbol_is(sym, sk_static_data_member) ||
-            (sym->is_class_member && vp->is_constexpr)) {
+            vp->is_constexpr) {
           /* In C++ const qualified variables that are internally linked
-             must be initialized (ARM 7.1.6). */
+             must be initialized.  So must constexpr variable declarations. */
           if (could_be_dependent_class_type(type)) {
             /* If the type is dependent and could end up being a class type
                after substitution no diagnostic should be issued since the
