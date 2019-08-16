@@ -11355,8 +11355,7 @@ Evaluate the given new-expression.
         alloc_length *= (a_byte_count)num_array_elements(elem_type);
       }  /* if */
       for (; k<(int)alloc_length; ++k, elem += elem_size) {
-        if (!extract_value_from_constant(ips, elem_con,
-                                         elem, complete_object)) {
+        if (!extract_value_from_constant(ips, elem_con, elem, complete_obj)) {
           result = FALSE;
           break;
         }  /* if */
