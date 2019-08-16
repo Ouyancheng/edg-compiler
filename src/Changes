@@ -46,8 +46,10 @@ That problem is now fixed.
 8/15/19  [EDGcpfe/21664]
 __builtin_is_constructible and incomplete types
 
-Previously, applying __builtin_is_constructible to an incomplete type resulted
-in a "false" value.
+Previously, applying __builtin_is_constructible to an incomplete class or
+enumeration type was accepted and resulted in a "false" value.  Now such
+cases elicit a diagnostic (or a deduction failure it they occur during
+template argument deduction).
 
 
 8/15/19  [EDGcpfe/21632]

@@ -47402,13 +47402,14 @@ the corresponding __builtin_is_constructible operation.
       result = compute_is_constructible(
                          kind, underlying_array_element_type(dst_type), expr);
     }  /* if */
-  } else if (is_incomplete_type(dst_type) && !is_void_type(dst_type)) {
+  } else if (is_function_type(dst_type) ||
+             is_void_type(dst_type) ||
+             is_abstract_class_type(dst_type)) {
+    result = FALSE;
+  } else if (is_incomplete_type(dst_type)) {
     if (!gpp_mode) {
       expr_pos_error(ec_incomplete_type_not_allowed, &arg0->position);
     }  /* if */
-    result = FALSE;
-  } else if (is_function_type(dst_type) ||
-             is_abstract_class_type(dst_type)) {
     result = FALSE;
   } else {
     /* Make a list of expressions of the required types. */
