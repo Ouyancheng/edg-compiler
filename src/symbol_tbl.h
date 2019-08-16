@@ -6751,7 +6751,8 @@ constructors or destructor (for C++11 and later modes).
     ((cpp11_mode)                                                     \
        ? ((symbol_supplement_for_class(tp)->constructor != NULL &&    \
            f_has_nontrivial_ctor(symbol_supplement_for_class(tp))) || \
-          has_nontrivial_destructor(symbol_supplement_for_class(tp))) \
+          (symbol_supplement_for_class(tp)->destructor != NULL &&     \
+           !symbol_supplement_for_class(tp)->has_trivial_destructor)) \
        : !symbol_supplement_for_class(tp)->is_cpp03_POD)
 
 /*
