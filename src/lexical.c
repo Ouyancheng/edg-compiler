@@ -21650,8 +21650,8 @@ of the compound statement.
        could also have been the compound statement of the function body).
        If variadic templates are enabled, look for a pack expansion. */
     if (next_tok == tok_ellipsis && variadic_templates_enabled) {
-      cache_curr_token(p_token_cache);
       (void)get_token();
+      cache_curr_token(p_token_cache);
       next_tok = next_token();
       /* We know this was not a compound statement if it was followed by
          an ellipsis. */

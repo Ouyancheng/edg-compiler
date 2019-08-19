@@ -1,5 +1,23 @@
 Version 6.0
 
+8/19/19  [EDGcpfe/19039,EDGcpfe/21626]
+Spurious error brace-initialized ctor-initializer that is a pack expansion
+
+If a class template contained a constructor with a ctor-initializer that
+used a brace-initialized pack expansion (i.e., "A<Ts>{args}..." in the
+example below), spurious errors were issued.  Now fixed.
+
+  template <typename T> struct A {
+    A(T t);
+  };
+  template <typename... Ts> struct B : public A<Ts>...  {
+    B(Ts&&... args) : A<Ts>{args}... {}
+  };
+  int main() {
+    B<char, short , int, long> b('c', 1, 2, 3L);
+  }
+
+
 8/15/19  [EDGcpfe/21631]
 Spurious error for class defined in statement expression in function template
 
