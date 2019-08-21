@@ -10064,6 +10064,24 @@ instantiations are only permitted in namespace scope).
       result = TRUE;
     }  /* if */
   }  /* if */
+  if (!result && kind == iek_routine && msvc_is_generated_code_target &&
+      msvc_target_version_number < 1915) {
+    /* MSVC versions before 19.15 have a bug that prevents associating an
+       explicit specialization with its template if the template's return
+       type is a dependent decltype.  Check for that case. */
+    a_routine_ptr proto_rp =
+         ((a_routine_ptr)scp)->assoc_template->prototype_instantiation.routine;
+    if (proto_rp != NULL) {
+      a_type_ptr ret_type = proto_rp->type->variant.routine.return_type;
+      if (ret_type->kind == (a_type_kind)tk_typeref &&
+          ret_type->variant.typeref.is_dependent_type_operator) {
+        /* This would be a specialization of a template like
+             template<typename T> auto g(T) -> decltype(f<T>())
+           which triggers the MSVC bug.  Suppress the specialization. */
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   if (!result) {
     /* Check template arguments for accessibility and visibility. */
     begin_template_arg_list_traversal_simple(tap, &tap);
