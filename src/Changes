@@ -401,7 +401,7 @@ this macro to FALSE now triggers a #error directive.
 
 
 8/6/19   [EDGcpfe/21596]
-More implicit moves in return statements and throw expressions
+C++20: More implicit moves in return statements and throw expressions
 
 Committee document P1825R0 added additional contexts where implicit moves are
 possible.  Rvalue reference variables are now candidates for implicit moves,
