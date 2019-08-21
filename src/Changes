@@ -455,7 +455,7 @@ issue is now fixed.
 
 
 8/2/19   [EDGcpfe/21580]
-Deprecated unparenthesized comma operator in array subscript expressions
+C++20: Deprecated unparenthesized comma operator in array subscript expressions
 
 Committee document P1161R3 deprecated the usage of unparenthesized comma
 operators in array subscript expressions.  The front end will now issue remarks
