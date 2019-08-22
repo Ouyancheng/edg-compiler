@@ -1144,6 +1144,10 @@ Initialize the option information table.
                          "short_enums",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_short_enums,
+                         "no_short_enums",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   add_option_description(optk_long_long,
                          "long_long",
@@ -10293,8 +10297,7 @@ enable_microsoft_mode:
       case optk_short_enums:
         /* An option to specify that all enumeration types should be
            treated as if they were declared with the "packed" attribute. */
-        check_assertion(opt_value == TRUE);
-        il_header.short_enums = TRUE;
+        il_header.short_enums = opt_value;
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       case optk_long_long:

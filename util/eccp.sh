@@ -832,6 +832,7 @@ check_abbreviation()
 --no_restrict
 --no_rtti
 --no_rvalue_refs
+--no_short_enums
 --no_special_subscript_cost
 --no_standard_includes
 --no_stdarg_builtin
@@ -1493,6 +1494,7 @@ process_option()
 	 --upc_relaxed | \
 	 --upc_strict | \
 	 --short_enums | \
+	 --no_short_enums | \
          --fixed_point | \
          --no_fixed_point | \
          --named_address_spaces | \
