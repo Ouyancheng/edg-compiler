@@ -18791,13 +18791,15 @@ static a_symbol_ptr select_dual_lookup_symbol(
 					a_symbol_ptr	normal_sym,
 					a_symbol_ptr	class_fund_sym,
 					a_symbol_ptr	class_sym,
+					a_boolean	follows_template,
 					a_boolean	might_be_template,
 					a_boolean	prefer_class_member)
 /*
 normal_fund_sym and class_fund_sym are the results of a normal and
 class-qualified ID lookup, respectively.  normal_sym and class_sym are
 the symbols placed in the specific_symbol field by those lookups, and
-which may point to projection symbols.  might_be_template is TRUE if
+which may point to projection symbols.  follows_template is TRUE if
+the name is preceded by the "template" keyword.  omight_be_template is TRUE if
 the name being looked up is followed by a "<".  Reconcile the two
 symbols according to the rules for the dual lookup, issue any
 diagnostics that might be needed, and return the symbol to be used.
@@ -18904,12 +18906,17 @@ a field selection.
       if (identical_types(normal_type, sym_parent_class(class_fund_sym))) {
         equiv_symbols = TRUE;
       }  /* if */
+    } else if (class_fund_sym->is_nonreal_member &&
+               (follows_template && is_template_symbol(class_fund_sym))) {
+      /* The class symbol is nonreal but is a template and follows the
+         "template" keyword.   Use that for now.  The normal symbol might
+         be used in a real instantiation, but we can't use that now
+         because the argument list might not be appropriate for that
+         template. */
+      equiv_symbols = TRUE;
+      use_normal_if_equiv = FALSE;
     } else if (class_fund_sym->is_nonreal_member) {
-      /* The class symbol is nonreal.  Use the normal symbol.  During the
-         real instantiation, any class symbol that is found is required to
-         refer to the same type as the one found by the normal lookup,
-         so we can safely use the normal symbol here and issue an error
-         during the real instantiation if necessary. */
+      /* The class symbol is nonreal.  Use the normal symbol for now. */
       equiv_symbols = TRUE;
     } else if (is_type_symbol(normal_fund_sym) &&
                is_type_symbol(class_fund_sym)) {
@@ -19047,6 +19054,7 @@ static a_symbol_ptr look_up_qualifier_start(
                   a_type_ptr               class_type,
                   a_boolean                might_be_vacuous_dtor_or_finalizer,
                   a_boolean                *is_vacuous_dtor_or_finalizer,
+                  a_boolean                follows_template,
                   a_boolean                might_be_template,
                   a_boolean                in_if_exists,
                   a_boolean                prefer_class_member,
@@ -19055,7 +19063,8 @@ static a_symbol_ptr look_up_qualifier_start(
 This routine does the "dual lookup" that is done in contexts such as
 the "A" in "p->A::B" and "f" in "p->f<...>...".  This involves looking
 the name up using a "normal" lookup and also looking it up in the class
-type of the left operand of the "." or "->".  might_be_template is TRUE
+type of the left operand of the "." or "->".  follows_template is TRUE if
+the name is preceded by the "template" keyword.  might_be_template is TRUE
 if the token after the identifier is a "<".
 might_be_vacuous_dtor_or_finalizer is TRUE if the name being looked up is
 followed by "::~"/"::!", and a vacuous destructor/finalizer is valid in the
@@ -19113,6 +19122,7 @@ we are scanning a C++/CLI typeid of the form X::typeid.
                                        : locator_for_curr_id.specific_symbol;
     sym = select_dual_lookup_symbol(class_type, normal_fund_sym, normal_sym, 
                                     class_fund_sym, class_sym,
+                                    follows_template,
                                     might_be_template, prefer_class_member);
   } else {
     sym = normal_fund_sym;
@@ -19148,6 +19158,7 @@ we are scanning a C++/CLI typeid of the form X::typeid.
       class_sym = locator_for_curr_id.specific_symbol;
       sym = select_dual_lookup_symbol(class_type, normal_fund_sym, normal_sym,
                                       class_fund_sym, class_sym,
+                                      follows_template,
                                       might_be_template, prefer_class_member);
     } else {
       sym = normal_fund_sym;
@@ -19766,6 +19777,7 @@ selection operator, in which case it points to the type of the left operand.
                                    lookup_kind, field_sel_type,
                                    might_be_vacuous_dtor_or_finalizer,
                                    &is_vacuous_dtor_or_finalizer,
+                                   follows_template,
 				   /*might_be_template=*/next_tok == tok_lt ||
                                                          follows_template,
                                    in_if_exists,
