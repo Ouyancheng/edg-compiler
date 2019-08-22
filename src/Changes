@@ -4,13 +4,14 @@ Version 6.0
 --no_short_enums command-line option
 
 Previously the front end only accepted the --short_enums command-line
-option and not its negation, because the option is only applicable in GNU
-modes and the default behavior for all supported GNU modes is not to
+option and not its negation, because the option is only applicable in GNU C
+modes and the default behavior for all supported GNU C modes is not to
 produce short enumerations.  Now, however, the --no_short_enums
-command-line option is accepted, this allows overriding a project-wide
---short_enums on a per-file basis, for example, as well as accommodating
-customers who have local modifications in support of platforms for which
-enumerations are short by default.
+command-line option is accepted.  This allows overriding a project-wide
+--short_enums via a --no_short_enums appearing later in the command line
+for specific files, for example, as well as accommodating customers who
+have local modifications in support of platforms for which enumerations are
+short by default.
 
 
 8/21/19  [EDGcpfe/21621]
