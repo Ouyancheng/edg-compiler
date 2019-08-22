@@ -19,13 +19,13 @@ a dependent decltype-specifier return type
 
 In configurations with
 NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE, the
-C++-generating back end represents implicit specializations of function
+C++-generating back end represents implicit instantiations of function
 templates as explicit specializations.  When the return type of a function
-template is a dependent decltype-specifier, a generated explicit for it
-specialization triggered a bug in versions of MSVC prior to 19.15, causing
-it to issue a spurious error C2912, "not a specialization of a function
-template".  In order to avoid this bug, the C++-generating back end now
-suppresses such generated explicit specializations when
+template is a dependent decltype-specifier, a generated explicit
+specialization for it triggered a bug in versions of MSVC prior to 19.15,
+causing them to issue a spurious error C2912, "not a specialization of a
+function template".  In order to avoid this bug, the C++-generating back
+end now suppresses such generated explicit specializations when
 msvc_is_generated_code_target is TRUE and msvc_target_version_number is
 less than 1915.  For example, with --microsoft --msvc_target_version=1914
 --c++17:
