@@ -13650,6 +13650,13 @@ arguments are integer constant expressions.  The result is an rvalue of vector
 type with the same element type as v1 and v2, but with the number of elements
 specified by the number of integer arguments.
 
+An undocumented variant of __builtin_shufflevector is:
+
+        __builtin_shufflevector(v1, mask)
+
+In this case the second argument is a vector of integer elements with the
+same number of elements as v1.
+
 If rcblock is non-NULL, redo semantic analysis on a previously-scanned GNU
 __builtin_shuffle or Clang __builtin_shufflevector construct.
 */
@@ -13818,9 +13825,17 @@ __builtin_shuffle or Clang __builtin_shufflevector construct.
   if (p_op2 != NULL) {
     op2_is_vector = check_operand_is_vector(rcblock, p_op2, &op2_is_dependent);
     /* In non-dependent, non-error cases the two operands must have the same
-       type. */
+       element type.  Apparently __builtin_shufflevector also allows a case
+       where (when there are only two arguments), the second argument can have
+       an integral vector type with the same number of elements as the first
+       argument. */
     if (op1_is_vector && op2_is_vector &&
-        !identical_types(p_op1->type, p_op2->type)) {
+        !(identical_types(p_op1->type, p_op2->type) ||
+          (is_shufflevector && p_op3 == NULL &&
+           is_integral_type(
+                    skip_typerefs(p_op2->type)->variant.vector.element_type) &&
+           num_vector_elements(p_op1->type) ==
+                                          num_vector_elements(p_op2->type)))) {
       if (rcblock == NULL) {
         pos_ty2_error(ec_incompatible_shuffle_source_operands,
                       &p_op1->position, p_op1->type, p_op2->type);
@@ -13968,10 +13983,10 @@ __builtin_shuffle or Clang __builtin_shufflevector construct.
       /* No operand was template-dependent (and none was an error). */
       if (is_shufflevector && int_args != 0) {
         /* The return type is a vector with the same element type as the first
-           two arguments, but with a vector size that is the same as the number
+           argument, but with a vector size that is the same as the number
            of integer arguments that were specified.  It appears that when
            no integer arguments are specified, the return type is the same
-           as the two vectors. */
+           as the first vector. */
         check_assertion(!op1_is_dependent && !op2_is_dependent &&
                         is_vector_type(p_op1->type));
         result_type = make_vector_type(

@@ -3095,6 +3095,9 @@ ec_volatile_op_ass_deprecated;;"a volatile destination type for a compound assig
 ec_volatile_func_param_deprecated;;"a volatile function parameter is deprecated"
 ec_volatile_return_type_deprecated;;"a volatile return type is deprecated"
 ec_volatile_str_bind_deprecated;;"use of a volatile qualifier on a structured binding is deprecated"
+ec_ext_vector_type_invalid_size;;"the \"ext_vector_type\" argument must be between 1 and 2047"
+ec_ext_vector_type_not_in_typedef;;"the \"ext_vector_type\" attribute may appear only in a typedef"
+ec_ext_vector_type_requires_integral_floating_type;;"the \"ext_vector_type\" attribute applies only to integer or floating-point types"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

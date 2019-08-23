@@ -6949,6 +6949,8 @@ check_typerefs:
                               type_2->variant.vector.element_type,
                               flags) &&
             type_1->size == type_2->size &&
+            type_1->variant.vector.is_ext_vector_type ==
+                                   type_2->variant.vector.is_ext_vector_type &&
             type_1->alignment == type_2->alignment) {
           identical = TRUE;
         }  /* if */
@@ -7776,6 +7778,8 @@ check_typerefs:
           if (f_identical_types(type_1->variant.vector.element_type,
                                 type_2->variant.vector.element_type,
                                 flags) &&
+              type_1->variant.vector.is_ext_vector_type ==
+                                   type_2->variant.vector.is_ext_vector_type &&
               type_1->size == type_2->size) {
             compat = TRUE;
           }  /* if */
@@ -8220,6 +8224,8 @@ that are not present in standalone back ends and utilities.
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
       identical = (type_1->size == type_2->size &&
+                   type_1->variant.vector.is_ext_vector_type ==
+                                   type_2->variant.vector.is_ext_vector_type &&
                    standalone_identical_types(type_1->
                                                  variant.vector.element_type,
                                               type_2->

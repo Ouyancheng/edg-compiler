@@ -260,6 +260,9 @@ static an_attr_descr known_attr_table[] = {
   { "destructor", "", "gx", ak_destructor },
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   { "error", "(sn)", "gx(40000-)", ak_error },
+#if GNU_VECTOR_TYPES_ALLOWED
+  { "ext_vector_type", "(ci)", "lx", ak_ext_vector_type },
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   { "externally_visible", "", "gx(40000-)", ak_externally_visible },
 #if GNU_X86_ATTRIBUTES_ALLOWED
   { "fastcall", "", "gx(30400-)", ak_fastcall },
@@ -574,6 +577,7 @@ static an_attr_application_fn apply_unused_attr;
 static an_attr_application_fn apply_used_attr;
 #if GNU_VECTOR_TYPES_ALLOWED
 static an_attr_application_fn apply_vector_size_attr;
+static an_attr_application_fn apply_ext_vector_type_attr;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 static an_attr_application_fn apply_visibility_attr;
@@ -671,6 +675,9 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_constructor, "r", apply_constructor_attr },
   { ak_destructor, "r", apply_destructor_attr },
   { ak_error, "r", NO_APPL_FN },
+#if GNU_VECTOR_TYPES_ALLOWED
+  { ak_ext_vector_type, "T", apply_ext_vector_type_attr },
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   { ak_externally_visible, "r:+x|v:+x", NO_APPL_FN },
 #if GNU_X86_ATTRIBUTES_ALLOWED
   { ak_fastcall, "t|r|v|d|p", apply_fastcall_attr },
@@ -7399,6 +7406,89 @@ error type.
   }  /* if */
   return (char*)result;
 }  /* apply_vector_size_attr */
+
+
+static char* apply_ext_vector_type_attr(an_attribute_ptr  ap,
+                                        char              *entity,
+                                        an_il_entry_kind  entity_kind)
+/*
+The given entity must be a type (entity_kind is iek_type).  Apply the Clang
+"ext_vector_type" attribute to it and return the resulting vector type.  If the
+attribute doesn't apply to the given type, issue an error and return an
+error type.
+*/
+{
+  a_type_ptr            elem_type = (a_type_ptr)entity, vector_type, result;
+  an_attribute_arg_ptr  aap = ap->arguments;
+  a_constant_ptr        size_con;
+  a_boolean             ovflo = FALSE, err = FALSE;
+  a_host_large_integer  size = 0;
+  a_decl_parse_state    *dps = (a_decl_parse_state*)ap->assoc_info;
+
+  /* Simple table-based constraint checking ensures that we can make a number
+     of assumptions here. */
+  check_assertion(entity_kind == iek_type &&
+                  aap != NULL && aap->next == NULL &&
+                  aap->kind == (an_attribute_arg_kind)aak_constant);
+  /* Validate the element type. */
+  if (is_error_type(elem_type)) {
+    err = TRUE;
+#if C99_IL_EXTENSIONS_SUPPORTED
+  } else if (is_nonreal_floating_type(elem_type)) {
+    pos_error(ec_ext_vector_type_requires_integral_floating_type,
+              &ap->position);
+    err = TRUE;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  } else if (!(is_integral_type(elem_type) && !is_bool_type(elem_type)) &&
+             !is_floating_type(elem_type) &&
+             !is_template_param_type(elem_type)) {
+    pos_error(ec_ext_vector_type_requires_integral_floating_type,
+              &ap->position);
+    err = TRUE;
+  } else {
+    check_assertion(!is_incomplete_type(elem_type));
+  }  /* if */
+  /* Validate the argument. */
+  size_con = aap->variant.constant;
+  if (size_con->kind == (a_constant_repr_kind)ck_template_param) {
+    /* Record a dummy (nonzero) size. */
+    size = 1;
+  } else {
+    a_host_large_unsigned  elem_size = skip_typerefs(elem_type)->size;
+    check_assertion(size_con->kind == (a_constant_repr_kind)ck_integer);
+    size = value_of_integer_constant(size_con, &ovflo);
+    if (ovflo || size <= 0 || size > (a_host_large_integer)2047) {
+      pos_error(ec_ext_vector_type_invalid_size, &ap->position);
+      err = TRUE;
+    } else if (elem_size == 0) {
+      expect_error();
+    }  /* if */
+  }  /* if */
+  if (dps->declared_storage_class != (a_storage_class)sc_typedef) {
+    /* The ext_vector_type attribute must appear in a typedef. */
+    pos_error(ec_ext_vector_type_not_in_typedef, &ap->position);
+    err = TRUE;
+  }  /* if */
+  if (err) {
+    /* Make sure the attribute is marked as "unrecognized". */
+    make_attr_unrecognized(ap);
+    result = error_type();
+  } else {
+    /* The attribute argument gives the number of elements in the vector;
+       convert that to the overall size of the vector type. */
+    size = elem_type->size * size;
+    /* Allocate the vector type. */
+    vector_type = alloc_type((a_type_kind)tk_vector);
+    vector_type->source_corresp.decl_position = ap->position;
+    vector_type->size = size;
+    vector_type->alignment = size;
+    vector_type->variant.vector.element_type = elem_type;
+    vector_type->variant.vector.size_constant = size_con;
+    vector_type->variant.vector.is_ext_vector_type = TRUE;
+    result = vector_type;
+  }  /* if */
+  return (char*)result;
+}  /* apply_ext_vector_type_attr */
 
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED

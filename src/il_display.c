@@ -2453,6 +2453,9 @@ Display the indicated type entry.
                iek_type);
       disp_ptr("size_constant", (char *)ptr->variant.vector.size_constant,
                iek_constant);
+      if (ptr->variant.vector.is_ext_vector_type) {
+        disp_boolean("is_ext_vector_type", TRUE);
+      }  /* if */
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     default:

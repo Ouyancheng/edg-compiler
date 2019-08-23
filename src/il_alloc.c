@@ -2192,6 +2192,7 @@ to default values.
     case tk_vector:
       pte->variant.vector.element_type = NULL;
       pte->variant.vector.size_constant = NULL;
+      pte->variant.vector.is_ext_vector_type = FALSE;
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     default:

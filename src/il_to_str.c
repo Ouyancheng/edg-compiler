@@ -1721,8 +1721,8 @@ void form_vector_type_attribute(
                      a_boolean                             *need_leading_space,
                      an_il_to_str_output_control_block_ptr octl)
 /*
-Output a GNU "vector_size" attribute as required by the specified type,
-which must be a tk_vector, in the way described by octl.  If
+Output a GNU "vector_size" or "ext_vector_type" attribute as required by the
+specified type, which must be a tk_vector, in the way described by octl.  If
 *need_leading_space is TRUE, precede the attribute with a leading space.
 *need_leading_space is set to TRUE to indicate that a space will be needed
 after the attribute.
@@ -1732,7 +1732,11 @@ after the attribute.
   if (*need_leading_space) {
     octl->output_str(" ", octl);
   }  /* if */
-  octl->output_str("__attribute((vector_size(", octl);
+  if (type->variant.vector.is_ext_vector_type) {
+    octl->output_str("__attribute((ext_vector_type(", octl);
+  } else {
+    octl->output_str("__attribute((vector_size(", octl);
+  }  /* if */
   if (type->variant.vector.size_constant != NULL) {
     form_constant(type->variant.vector.size_constant,
                   /*need_parens=*/FALSE, octl);
