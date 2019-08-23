@@ -18799,7 +18799,7 @@ normal_fund_sym and class_fund_sym are the results of a normal and
 class-qualified ID lookup, respectively.  normal_sym and class_sym are
 the symbols placed in the specific_symbol field by those lookups, and
 which may point to projection symbols.  follows_template is TRUE if
-the name is preceded by the "template" keyword.  omight_be_template is TRUE if
+the name is preceded by the "template" keyword.  might_be_template is TRUE if
 the name being looked up is followed by a "<".  Reconcile the two
 symbols according to the rules for the dual lookup, issue any
 diagnostics that might be needed, and return the symbol to be used.
@@ -18909,7 +18909,7 @@ a field selection.
     } else if (class_fund_sym->is_nonreal_member &&
                (follows_template && is_template_symbol(class_fund_sym))) {
       /* The class symbol is nonreal but is a template and follows the
-         "template" keyword.   Use that for now.  The normal symbol might
+         "template" keyword.  Use that for now.  The normal symbol might
          be used in a real instantiation, but we can't use that now
          because the argument list might not be appropriate for that
          template. */
@@ -19778,7 +19778,7 @@ selection operator, in which case it points to the type of the left operand.
                                    might_be_vacuous_dtor_or_finalizer,
                                    &is_vacuous_dtor_or_finalizer,
                                    follows_template,
-				   /*might_be_template=*/next_tok == tok_lt ||
+                                   /*might_be_template=*/next_tok == tok_lt ||
                                                          follows_template,
                                    in_if_exists,
                                    cpp11_mode ? is_conversion_type :

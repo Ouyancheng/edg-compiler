@@ -4,7 +4,24 @@ Version 6.0
 Incorrect lookup of name following "template" in some contexts
 
 In contexts where the name following "template" could be a class member
-or a name from the current context, 
+or a name from the current context, the front end sometimes incorrectly
+used the name from the current context during a prototype instantiation,
+which could result in spurious errors.  Now fixed.
+
+  template <typename T> struct A {
+    template <int I> void B() {}
+  };
+  template <typename T> struct B {
+    void f() {
+      A<T> a;
+      a.template B<0>();
+    }
+  };
+  int main() {
+    B<int> b;
+    b.f();
+  }
+
 
 8/21/19  [EDGcpfe/21694]
 --no_short_enums command-line option
