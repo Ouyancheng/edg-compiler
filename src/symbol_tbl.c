@@ -13109,17 +13109,27 @@ a context where deferral of errors applies.
     ssep = &scope_stack[curr_deferred_access_scope];
     defer_access_checks = ssep->defer_access_checks;
   }  /* if */
-  if (!defer_access_checks ||
-      (error_detected != NULL && in_expr_testing_context())) {
+  if (!defer_access_checks || in_expr_testing_context()) {
+    a_boolean suppressed_error = FALSE;
+    a_boolean *p_error_detected = error_detected;
     /* In rescan and similar contexts, do the check immediately so that the
        result can be returned. */
+    if (error_detected == NULL && in_expr_testing_context()) {
+      p_error_detected = &suppressed_error;
+    }  /* if */
     if (locator == NULL || !locator->access_control_error_reported) {
       issue_access_error(sym,
                          protected_access_class,
                          source_position, severity, error_code,
                          in_template_arg_list,
-                         error_detected);
+                         p_error_detected);
       if (locator != NULL) locator->access_control_error_reported = TRUE;
+    }  /* if */
+    if (suppressed_error) {
+      /* This can only be true if error_detected == NULL and
+         in_expr_testing_context(), meaning expr_stack != NULL and
+         expr_stack->suppress_diagnostics == TRUE. */
+      expr_stack->any_suppressed_error = TRUE;
     }  /* if */
   } else {
     /* Access checks are deferred, so put an entry on a list for later

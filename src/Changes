@@ -1,5 +1,24 @@
 Version 6.0
 
+8/23/19  [EDGcpfe/21384]
+Spurious access error instead of substitution failure
+
+In certain cases the front end would issue an access failure error when
+attempting to instantiate a template, instead of producing a substitution
+failure.  For example:
+
+  template<class Tx> void f(const Tx &);
+  template<class Tx> auto g(int) -> decltype(f<Tx>({}));
+  template<class Ty> bool g(float);
+  class A
+  {
+    A() {}; // Private ctor
+  };
+  decltype(g<A>(0)) a; // Spurious A::A() is inaccessible error
+
+This is now fixed.
+
+
 8/22/19  [EDGcpfe/21652]
 Incorrect lookup of name following "template" in some contexts
 
