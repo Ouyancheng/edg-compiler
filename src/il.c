@@ -28332,10 +28332,13 @@ process_referenced_type_for_ordering for the description of must_be_complete.
       }  /* if */
       break;
     case tk_pointer:
-      /* A pointer type.  Process the underlying type, which does
-         not need to be complete. */
+      /* A pointer type.  Process the underlying type, which typically does
+         not need to be complete.  That appears not to be true for pointers
+         to arrays as later versions of GCC (4.0.0 and later) and clang both
+         require a complete type in that case. */
       process_referenced_type_for_ordering(type->variant.pointer.type,
-                                           /*must_be_complete=*/FALSE);
+                                           is_array_type(
+                                                  type->variant.pointer.type));
       break;
     case tk_array:
       /* An array type.  Process the underlying type. */

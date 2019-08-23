@@ -1,5 +1,24 @@
 Version 6.0
 
+8/23/19  [EDGcpfe/21166]
+C-generating back end: type list ordering
+
+When ENSURE_LOWERED_TYPE_LIST_ORDERING is TRUE, the type list is sorted to
+ensure that the type list is in order.  Typically a back end C compiler allows
+a pointer to an incomplete type, but clang and GCC version 4.0.0 and later
+don't allow a pointer to an incomplete array type.  A change has been made to
+reflect that in the ordering.  For example:
+
+  namespace N {
+    struct A {};
+  }
+  struct B {
+    B();
+    N::A (*m)[2];
+  };
+  B::B() {}
+
+
 8/23/19  [EDGcpfe/16614,EDGcpfe/20883]
 Clang compatibility: ext_vector_type attribute
 
