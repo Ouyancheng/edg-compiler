@@ -917,6 +917,9 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_builtin_operation_kind_tag::bok_builtin_convertvector)*/
 /*lint -esym(769,ec_vector_type_required)*/
 /*lint -esym(769,ec_vector_types_differ_in_length)*/
+/*lint -esym(769,ec_ext_vector_type_invalid_size)*/
+/*lint -esym(769,ec_ext_vector_type_not_in_typedef)*/
+/*lint -esym(769,ec_ext_vector_type_requires_integral_floating_type)*/
 #endif /* !GNU_VECTOR_TYPES_ALLOWED */
 /*lint -esym(759,find_local_scope)*/
 /*lint -esym(765,find_local_scope)*/
@@ -1461,6 +1464,9 @@ extern int fileno(FILE *);
 /*lint -esym(552,put_variable_into_comdat_group)*/
 /*lint -esym(757,put_variable_into_comdat_group)*/
 /*lint -esym(757,expr1_could_affect_expr2)*/
+/*lint -esym(769,ec_ext_vector_type_invalid_size)*/
+/*lint -esym(769,ec_ext_vector_type_not_in_typedef)*/
+/*lint -esym(769,ec_ext_vector_type_requires_integral_floating_type)*/
 
 #endif /* ifndef LINT_H */
 

@@ -2602,7 +2602,9 @@ typedef enum an_attribute_kind_tag {
   ak_constructor,	/* "constructor" (gnu). */
   ak_destructor,	/* "destructor" (gnu). */
   ak_error,		/* "error" (gnu). */
+#if GNU_VECTOR_TYPES_ALLOWED
   ak_ext_vector_type,	/* "ext_vector_type" (clang). */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   ak_externally_visible,
 			/* "externally_visible" (gnu). */
 #if GNU_X86_ATTRIBUTES_ALLOWED
