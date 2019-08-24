@@ -25,8 +25,8 @@ Clang compatibility: ext_vector_type attribute
 Basic support for clang's ext_vector_type attribute has been added.
 Additionally, support has been added for an undocumented variant of clang's
 __builtin_shufflevector where there are two arguments and the second
-argument is an vector of integral types.  Note that at the present time,
-no additional support for these vector types (e.g., V.wxyz expressions) have
+argument is a vector of integral types.  Note that at the present time,
+no additional support for these vector types (e.g., V.wxyz expressions) has
 been added.  For example (with --clang):
 
   typedef float float4 __attribute__((ext_vector_type(4)));
