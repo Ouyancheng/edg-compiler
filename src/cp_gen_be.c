@@ -4053,11 +4053,12 @@ own qualification.
       }  /* if */
     }  /* if */
     if (scp != NULL) {
+      a_boolean need_closing_paren = FALSE;
       write_tok_str("decltype(");
       if (as_qualifier) {
         gen_unqualified_name(scp, kind);
       } else {
-        gen_name(scp, kind, GN_NO_OPTIONS, /*need_closing_paren=*/NULL);
+        gen_name(scp, kind, GN_NO_OPTIONS, &need_closing_paren);
       }  /* if */
       write_tok_ch(')');
       result = TRUE;
