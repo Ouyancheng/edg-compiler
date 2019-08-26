@@ -1,5 +1,37 @@
 Version 6.0
 
+8/26/19  [EDGcpfe/21695]
+C++-generating back end: unnamed class types and decltype-specifiers
+
+When an unnamed class type is used as the type of a non-static data member
+and that class is referred to via a decltype-specifier, the C++-generating
+back end used an undeclared temporary name (of the form __T12345678) to
+refer to that type in the generated code.  That is now fixed.  In addition,
+the changes for EDGcpfe/21274 (in version 5.1) introduced a regression for
+the similar case of a variable member of a namespace whose type is an
+unnamed class, using an undeclared temporary name to refer to that type.
+That regression is also fixed.  For example, with --g++ --c++11:
+
+   struct {
+       struct { char c;} m;
+   } a;
+   namespace N {
+     struct {
+       int i;
+     } b;
+   }
+
+   template <typename T> void f(T) { }
+
+   void func(){
+     f<decltype(a.m)>(a.m);    // Previously generated as
+                              // f<decltype(a)::__T12345678>(a.m), now as
+                              // f<decltype(decltype(a)::m)>(a.m)
+     f<decltype(N::b)>(N::b); // Previously generated as
+                              // f<N::__T12345678>(N::b)
+   }
+
+
 8/23/19  [EDGcpfe/21166]
 C-generating back end: type list ordering
 

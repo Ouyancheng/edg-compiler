@@ -247,8 +247,8 @@ static a_hidden_name_fixup_ptr
 			   freed and are available for reuse. */
 
 /*
-Definitions for a linked list of variables that are defined with unnamed
-class or enumeration types.  This is used so that an appropriate
+Definitions for a linked list of variables or fields that are defined with
+unnamed class or enumeration types.  This is used so that an appropriate
 decltype-specifier for the type can be synthesized if that type is used as
 a qualifier in a qualified name or as a template argument.  For example,
 
@@ -265,83 +265,105 @@ enumeration qualifiers and template arguments; those should be exceedingly
 rare, so performance should not be an issue.
 */
 
-typedef struct a_var_for_decltype *a_var_for_decltype_ptr;
-typedef struct a_var_for_decltype {
-  a_var_for_decltype_ptr
+typedef struct an_entity_for_decltype *an_entity_for_decltype_ptr;
+typedef struct an_entity_for_decltype {
+  an_entity_for_decltype_ptr
 		next;	/* The next entry in the list, or NULL if none. */
-  a_variable_ptr
-		var;	/* Designates a variable that is declared with an
-			   unnamed class or enumeration type and thus might
-			   be used in a decltype-specifier to refer to that
-			   type. */
-} a_var_for_decltype;
+  a_boolean	is_variable;
+			/* TRUE if this entry designates a variable, FALSE
+			   if it designates a field. */
+  union {
+    a_variable_ptr
+		var;	/* When is_variable is TRUE, designates a variable
+			   that is declared with an unnamed class or
+			   enumeration type and thus might be used in a
+			   decltype-specifier to refer to that type. */
+    a_field_ptr	field;	/* When is_variable is FALSE, designates a field
+			   that is declared with an unnamed class or
+			   enumeration type and thus might be used in a
+			   decltype-specifier to refer to that type. */
+  } variant;
+} an_entity_for_decltype;
 
 /*
-A list of variables that can be used in decltype-specifiers to refer to
+A list of entities that can be used in decltype-specifiers to refer to
 unnamed class or enumeration types.
 */
-static a_var_for_decltype_ptr
-		vars_for_decltype;
+static an_entity_for_decltype_ptr
+		entities_for_decltype;
 
 /*
-A list of available (used and freed) variable for decltype entries.
+A list of available (used and freed) entity for decltype entries.
 */
-static a_var_for_decltype_ptr
-		avail_vars_for_decltype;
+static an_entity_for_decltype_ptr
+		avail_entities_for_decltype;
 
 
-static void register_var_for_decltype(a_variable_ptr var)
+static void register_entity_for_decltype(a_variable_ptr var,
+                                         a_field_ptr    field)
 /*
-Create a new entry with var in the vars_for_decltype list.
+Create a new entry with var or field (one must be NULL, the other non-NULL)
+in the entities_for_decltype list.
 */
 {
-  a_var_for_decltype_ptr new_entry;
+  an_entity_for_decltype_ptr new_entry;
 
-  if (avail_vars_for_decltype != NULL) {
-    new_entry = avail_vars_for_decltype;
-    avail_vars_for_decltype = new_entry->next;
+  if (avail_entities_for_decltype != NULL) {
+    new_entry = avail_entities_for_decltype;
+    avail_entities_for_decltype = new_entry->next;
   } else {
-    new_entry = alloc_general_of_type(a_var_for_decltype);
+    new_entry = alloc_general_of_type(an_entity_for_decltype);
   }  /* if */
-  new_entry->next = vars_for_decltype;
-  new_entry->var = var;
-  vars_for_decltype = new_entry;
-}  /* register_var_for_decltype */
+  new_entry->next = entities_for_decltype;
+  if (var != NULL) {
+    check_assertion(field == NULL);
+    new_entry->variant.var = var;
+    new_entry->is_variable = TRUE;
+  } else {
+    check_assertion(field != NULL);
+    new_entry->variant.field = field;
+    new_entry->is_variable = FALSE;
+  }  /* if */
+  entities_for_decltype = new_entry;
+}  /* register_entity_for_decltype */
 
 
-static void free_vars_for_decltype(a_var_for_decltype_ptr new_top)
+static void free_entities_for_decltype(an_entity_for_decltype_ptr new_top)
 /*
-Move entries from the vars_for_decltype list to the pool of available
+Move entries from the entities_for_decltype list to the pool of available
 entries until new_top is at the front of the list.  If new_top is NULL, all
 entries will be freed.
 */
 {
-  while (vars_for_decltype != new_top) {
-    a_var_for_decltype_ptr freed = vars_for_decltype;
-    vars_for_decltype = freed->next;
-    freed->next = avail_vars_for_decltype;
-    avail_vars_for_decltype = freed;
+  while (entities_for_decltype != new_top) {
+    an_entity_for_decltype_ptr freed = entities_for_decltype;
+    entities_for_decltype = freed->next;
+    freed->next = avail_entities_for_decltype;
+    avail_entities_for_decltype = freed;
   }  /* while */
-}  /* free_vars_for_decltype */
+}  /* free_entities_for_decltype */
 
 
-static a_variable_ptr var_for_decltype(a_type_ptr type)
+static an_entity_for_decltype_ptr entity_for_decltype(a_type_ptr type)
 /*
-Return a pointer to a variable that can be used to create a
-decltype-specifier for the given type or NULL if there is none.
+Return a pointer to an entry designating a variable or field that can be
+used to create a decltype-specifier for the given type or NULL if there is
+none.
 */
 {
-  a_var_for_decltype_ptr vfdp;
-  a_variable_ptr         var = NULL;
+  an_entity_for_decltype_ptr efdp;
+  an_entity_for_decltype_ptr result = NULL;
 
-  for (vfdp = vars_for_decltype; vfdp != NULL && var == NULL;
-       vfdp = vfdp->next) {
-    if (vfdp->var->type == type) {
-      var = vfdp->var;
+  for (efdp = entities_for_decltype; efdp != NULL && result == NULL;
+       efdp = efdp->next) {
+    a_type_ptr tp = efdp->is_variable ? efdp->variant.var->type
+                                      : efdp->variant.field->type;
+    if (type == tp) {
+      result = efdp;
     }  /* if */
   }  /* for */
-  return var;
-}  /* var_for_decltype */
+  return result;
+}  /* entity_for_decltype */
 
 
 /*
@@ -378,14 +400,18 @@ typedef struct a_name_context {
   a_hidden_name_fixup_ptr
 		fixups;	/* Hidden-name fixups to be done at the end of the
 			   name context. */
-  a_var_for_decltype_ptr
-		last_var_for_decltype;
-			/* The last variable for decltype entry when this
-			   context was pushed.  Popping this context from
-			   the context stack restores the list of variables
-			   for decltype to this entry, effectively removing
-			   all variables in this context from consideration
-			   for use in decltype-specifiers. */
+  an_entity_for_decltype_ptr
+		last_entity_for_decltype;
+			/* The last entity for decltype entry when this
+			   context was pushed.  If this context is for a
+			   function or block, popping it from the context
+			   stack restores the list of entities for decltype
+			   to this entry, effectively removing all entities
+			   in this context from consideration for use in
+			   decltype-specifiers.  (Namespace and class
+			   members can be addressed for decltype-specifiers
+			   even after their scope is closed, unlike
+			   function and block scopes.) */
   a_byte_boolean
 		invisible_to_cfront;
 			/* TRUE if this context is not visible to cfront
@@ -1063,7 +1089,7 @@ hidden name entries that apply to the base class list should be processed.
   ncp->assembly_access = (an_access_specifier)as_public;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ncp->fixups = NULL;
-  ncp->last_var_for_decltype = vars_for_decltype;
+  ncp->last_entity_for_decltype = entities_for_decltype;
   ncp->invisible_to_cfront = FALSE;
   ncp->field_selection_context = FALSE;
   ncp->has_dependent_base = FALSE;
@@ -1165,7 +1191,7 @@ field_selection_context is TRUE.
   ncp->fixups = NULL;
   ncp->saved_in_class_scope_with_dependent_base =
                                             in_class_scope_with_dependent_base;
-  ncp->last_var_for_decltype = vars_for_decltype;
+  ncp->last_entity_for_decltype = entities_for_decltype;
   /* Indicate that this context represents a field selection operation and
      should be popped once the immediately-following name is generated. */
   ncp->field_selection_context = TRUE;
@@ -1205,7 +1231,10 @@ Pop the top entry off the name context stack.
   }  /* for */
   in_class_scope_with_dependent_base =
                    curr_name_context->saved_in_class_scope_with_dependent_base;
-  free_vars_for_decltype(curr_name_context->last_var_for_decltype);
+  if (curr_name_context->assoc_scope->kind == (a_scope_kind)sck_function ||
+      curr_name_context->assoc_scope->kind == (a_scope_kind)sck_block) {
+    free_entities_for_decltype(curr_name_context->last_entity_for_decltype);
+  }  /* if */
   /* Pop the stack. */
   curr_name_context = curr_name_context->next;
   /* Free the entry by putting it on the available list. */
@@ -3993,22 +4022,46 @@ currently active selector class.
 }  /* is_direct_base_or_member_of_selector */
 
 
-static a_boolean synthesize_decltype_specifier(a_type_ptr type)
+static a_boolean synthesize_decltype_specifier(a_type_ptr type,
+                                               a_boolean  as_qualifier)
 /*
 If type can be represented as a decltype-specifier using one of the
-variables in the vars_for_decltype list, put out the decltype-specifier
-and return TRUE; otherwise, return FALSE.
+entities in the entities_for_decltype list, put out the decltype-specifier
+and return TRUE; otherwise, return FALSE.  If as_qualifier is TRUE, the
+specifier is part of a nested-name-specifier and thus should not add its
+own qualification.
 */
 {
-  a_variable_ptr var = var_for_decltype(type);
-  a_boolean      result = FALSE;
+  an_entity_for_decltype_ptr entry = entity_for_decltype(type);
+  a_boolean                  result = FALSE;
+  an_il_entry_kind           kind;
 
-  if (var != NULL) {
+  if (entry != NULL) {
     /* Create a decltype-specifier. */
-    write_tok_str("decltype(");
-    gen_variable_name(var);
-    write_tok_ch(')');
-    result = TRUE;
+    a_source_correspondence_ptr scp = NULL;
+    if (entry->is_variable) {
+      scp = &entry->variant.var->source_corresp;
+      kind = iek_variable;
+    } else {
+      a_boolean for_all_scopes;
+      scp = &entry->variant.field->source_corresp;
+      kind = iek_field;
+      if (!entity_name_is_accessible(scp, kind, /*ignore_context=*/FALSE,
+                                     &for_all_scopes)) {
+        /* Inaccessible name, do not use it for a decltype-specifier. */
+        scp = NULL;
+      }  /* if */
+    }  /* if */
+    if (scp != NULL) {
+      write_tok_str("decltype(");
+      if (as_qualifier) {
+        gen_unqualified_name(scp, kind);
+      } else {
+        gen_name(scp, kind, GN_NO_OPTIONS, /*need_closing_paren=*/NULL);
+      }  /* if */
+      write_tok_ch(')');
+      result = TRUE;
+    }  /* if */
   }  /* if */
   return result;
 }  /* synthesize_decltype_specifier */
@@ -4119,7 +4172,7 @@ gen_name.  See gen_name for the meaning of need_closing_paren.
       gen_unqualified_name(&class_type->source_corresp, iek_type);
     } else {
       if (!has_name_before_mangling(class_type) &&
-          synthesize_decltype_specifier(class_type)) {
+          synthesize_decltype_specifier(class_type, /*as_qualifier=*/TRUE)) {
         /* Created a decltype-specifier for the nameless type. */
       } else {
         /* Use recursion to handle multiple levels of nesting. */
@@ -7257,7 +7310,7 @@ A reference is not the definition.
       if (scope != NULL) pop_name_context();
     }  /* if */
     if (!has_name_before_mangling(orig_type) &&
-        synthesize_decltype_specifier(orig_type)) {
+        synthesize_decltype_specifier(orig_type, /*as_qualifier=*/FALSE)) {
       /* Created a decltype-specifier for the nameless type. */
     } else if (!use_elab_type_spec) {
       /* Use just the type name. */
@@ -9130,6 +9183,11 @@ declaration following this one is such a continuation.
   /* Do not insert code here. */
   {
     write_end_of_declaration_punctuation(*another_decl_in_comma_list);
+  }  /* if */
+  if (!C_mode() && (is_immediate_class_type(field->type) ||
+                    is_immediate_enum_type(field->type)) &&
+      !has_name_before_mangling(field->type)) {
+    register_entity_for_decltype(/*var=*/NULL, field);
   }  /* if */
 }  /* gen_field_decl */
 
@@ -19408,7 +19466,7 @@ this one is such a continuation.
   } else if (!C_mode() && (is_immediate_class_type(var_type) ||
                            is_immediate_enum_type(var_type)) &&
              !has_name_before_mangling(var_type)) {
-    register_var_for_decltype(var);
+    register_entity_for_decltype(var, /*field=*/NULL);
   }  /* if */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 end_of_routine:;
@@ -21373,8 +21431,8 @@ Initialize for the C++/C-generating back end.
   in_parameter_pack_declaration = FALSE;
   curr_pack_alignment = 0;
   need_pragma_pack_restore = FALSE;
-  vars_for_decltype = NULL;
-  avail_vars_for_decltype = NULL;
+  entities_for_decltype = NULL;
+  avail_entities_for_decltype = NULL;
   is_generated_explicit_specialization = FALSE;
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   scanned_types = NULL;
