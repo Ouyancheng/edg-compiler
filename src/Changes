@@ -1,5 +1,18 @@
 Version 6.0
 
+8/26/19  [EDGcpfe/21698]
+C++-generating back end: incorrect IL for initializer after code generation
+
+The changes for EDGcpfe/20976 (in version 5.1) introduced a regression for
+applications that examine the IL after the C++-generating back end is run:
+for variables whose initial value is the result of folding a dynamic
+initializer to a constant, the C++-generating back end overwrote the
+constant in the an_initializer entry with the original dynamic initializer
+but left the variable's init_kind field as initk_static.  This is now
+fixed, and the an_initializer entry is restored to the original folded
+constant once the code for the initialization has been generated.
+
+
 8/26/19  [EDGcpfe/21695]
 C++-generating back end: unnamed class types and decltype-specifiers
 

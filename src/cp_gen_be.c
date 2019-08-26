@@ -18772,6 +18772,8 @@ Output the initializer, if any, for the indicated variable.
     a_dynamic_init_ptr dip;
     a_boolean          restore_init = FALSE;
     a_boolean          context_pop_required = FALSE;
+    a_constant_ptr     folded_constant_to_restore = NULL;
+
     get_variable_initializer(var, curr_name_context->assoc_scope,
                              &init_kind, &initializer);
     if (init_kind == (an_init_kind)initk_static) {
@@ -18781,6 +18783,7 @@ Output the initializer, if any, for the indicated variable.
            initializer from the dynamic initializer entry, because we may
            not be able to render valid code from the constant representation
            (e.g., if it involves a class with a constexpr constructor). */
+        folded_constant_to_restore = initializer->constant;
         init_kind = (an_init_kind)initk_dynamic;
         initializer->dynamic = node->variant.initializer.dyn_init;
       }  /* if */
@@ -18929,6 +18932,12 @@ handle_dynamic_init:
     if (context_pop_required) {
       /* Pop the name context for a class/namespace member. */
       pop_name_context_if_member(&var->source_corresp);
+    }  /* if */
+    if (folded_constant_to_restore != NULL) {
+      /* We replaced an initk_static constant initializer with an
+         initk_dynamic dip.  Restore the original constant to the
+         initializer. */
+      initializer->constant = folded_constant_to_restore;
     }  /* if */
   }  /* if */
 }  /* gen_variable_initializer */
