@@ -12153,6 +12153,7 @@ allocated.
                                     (rp)->gnu_extra_info)
 #define has_gnu_routine_supp(rp) ((rp)->gnu_extra_info != NULL)
 #if CHECKING
+/*lint -emacro(664,gnu_routine_supp)*/
 #define gnu_routine_supp(rp) \
   (check_assertion(has_gnu_routine_supp(rp)), (rp)->gnu_extra_info)
 #else /* !CHECKING */

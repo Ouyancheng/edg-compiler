@@ -290,7 +290,7 @@ that this is indeed an IL entity.
 #if EXPENSIVE_CHECKING
 #define IL_ENTRY_MAGIC_NUMBER 0xbdbdbdbd  /* Value unlikely to be on stack. */
 #define init_magic_number(epp) \
-  ((epp)->magic_number) = IL_ENTRY_MAGIC_NUMBER
+  (((epp)->magic_number) = IL_ENTRY_MAGIC_NUMBER)
 #else /* !EXPENSIVE_CHECKING */
 #define init_magic_number(epp) /* Nothing */
 #endif /* EXPENSIVE_CHECKING */

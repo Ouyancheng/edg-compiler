@@ -857,12 +857,15 @@ scope, or the lifetime from the parent context, will be used.
   a_context_ptr parent_context = curr_context;
   a_boolean     new_lifetime;
 
-  curr_context = context;
+  curr_context = context; /*lint !e733 !e789*/
   /* Set the fields. */
   context->parent = parent_context;
   /* For the scope, use (1) the parameter passed in, or (2) the scope from
      the parent context. */
-  if (scope == NULL) scope = parent_context->scope;
+  if (scope == NULL) {
+    check_assertion(parent_context != NULL);
+    scope = parent_context->scope;
+  }  /* if */
   context->scope = scope;
   /* For the lifetime, use (1) the parameter passed in, (2) the lifetime from
      the scope, or (3) the lifetime from the parent context. */
@@ -1569,12 +1572,9 @@ version of a pointer to member function constant.
 }  /* is_ptr_to_member_function_constant_expr */
 
 
-#if !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
-/*ARGSUSED*/  /* <--- promote_if_necessary is not used in that case. */
-#endif /* !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
-void add_temporary_to_scope(a_variable_ptr temp,
-                            a_scope_ptr    scope,
-                            a_boolean      promote_if_necessary)
+void add_temporary_to_scope(a_variable_ptr       temp,
+                            a_scope_ptr          scope,
+                            ARG_UNUSED a_boolean promote_if_necessary)
 /*
 Add the indicated temporary variable to the variables list of the indicated
 scope.  If scope is NULL, use the nearest enclosing scope.  If
@@ -2778,11 +2778,8 @@ specified by node.  The class object is not known to be a complete object
 
 #if ABI_CHANGES_FOR_RTTI
 
-#if IA64_ABI
-/*ARGSUSED*/  /* <--- other_expr is not used in that case. */
-#endif /* IA64_ABI */
-an_expr_node_ptr make_any_vptr_rvalue(an_expr_node_ptr expr,
-                                      an_expr_node_ptr *other_expr)
+an_expr_node_ptr make_any_vptr_rvalue(an_expr_node_ptr            expr,
+                                      ARG_UNUSED an_expr_node_ptr *other_expr)
 /*
 Make an (rvalue) expression tree for the value of the virtual function
 table pointer from the class object whose address is given by the
@@ -3987,15 +3984,12 @@ indicated class.
 }  /* conv_integer_constant_with_overflow_check */
 
 
-#if !MAINTAIN_NEEDED_FLAGS
-/*ARGSUSED*/ /* preserve_needed_flag is not used in this case. */
-#endif /* !MAINTAIN_NEEDED_FLAGS */
 void set_integer_constant_with_overflow_check(
                                     a_constant_ptr       con,
                                     a_host_large_integer con_val,
                                     an_integer_kind      ikind,
                                     a_type_ptr           class_type,
-                                    a_boolean            preserve_needed_flag)
+                                    ARG_UNUSED a_boolean preserve_needed_flag)
 /*
 Set the constant "con" to the integer value "con_val" with integer kind
 "ikind".  Check to make sure that the value will fit an integer of that size,
@@ -4023,15 +4017,12 @@ kinds.
 }  /* set_integer_constant_with_overflow_check */
 
 
-#if !MAINTAIN_NEEDED_FLAGS
-/*ARGSUSED*/ /* preserve_needed_flag is not used in this case. */
-#endif /* !MAINTAIN_NEEDED_FLAGS */
 void set_unsigned_integer_constant_with_overflow_check(
                                     a_constant_ptr        con,
                                     a_host_large_unsigned con_val,
                                     an_integer_kind       ikind,
                                     a_type_ptr            class_type,
-                                    a_boolean             preserve_needed_flag)
+                                    ARG_UNUSED a_boolean  preserve_needed_flag)
 /*
 Set the constant "con" to the integer value "con_val" with integer kind
 "ikind".  Check to make sure that the value will fit an integer of that size,
@@ -4874,10 +4865,9 @@ rearranges the constant to match the order of the lowered base class fields.
 
 #endif /* IA64_ABI */
 
-/*ARGSUSED*/  /* <-- tblock is not used. */
 static void prelower_class_in_aggregate(
-                                      a_constant_ptr                  constant,
-                                      an_expr_or_stmt_traversal_block *tblock)
+                           a_constant_ptr                             constant,
+                           ARG_UNUSED an_expr_or_stmt_traversal_block *tblock)
 /*
 Called during a constant traversal to pre-lower the specified constant
 (if it's an aggregate).  The aggregate constants that are generated for
@@ -5130,7 +5120,7 @@ IL prefix is accessed).
             lower_constant(cp);
             if (cp->kind == (a_constant_repr_kind)ck_aggregate &&
                 cp->initializes_empty_object) {
-              if (constant->variant.aggregate.first_constant == cp) {
+              if (prev == NULL) {
                 constant->variant.aggregate.first_constant = cp->next;
               } else {
                 prev->next = cp->next;
@@ -5945,12 +5935,9 @@ index number of the first entry, or 0 if no entries were created.
 
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 
-#if !CFRONT_OBJECT_CODE_COMPATIBILITY || ABI_CHANGES_FOR_RTTI
-/*ARGSUSED*/  /* <-- Because class_type is not used in that case. */
-#endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY || ... */
 static a_boolean base_class_needs_virtual_function_table(
-                                                   a_base_class_ptr bcp,
-                                                   a_type_ptr       class_type)
+                                              a_base_class_ptr      bcp,
+                                              ARG_UNUSED a_type_ptr class_type)
 /*
 Return TRUE if a virtual function table instance is needed for base class
 bcp when it occurs as part of a complete object of class class_type.
@@ -6886,15 +6873,12 @@ primary_function is NULL.
 
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- rabcp, delta, and vcall_index are not used in that case. */
-#endif /* !IA64_ABI */
 static a_routine_ptr make_wrapper_routine(
-                                     a_routine_ptr         overriding_function,
-                                     a_routine_ptr         overridden_function,
-                                     a_base_class_ptr      rabcp,
-                                     a_targ_ptrdiff_t      delta,
-                                     a_virtual_table_index vcall_index)
+                          a_routine_ptr                    overriding_function,
+                          a_routine_ptr                    overridden_function,
+                          ARG_UNUSED a_base_class_ptr      rabcp,
+                          ARG_UNUSED a_targ_ptrdiff_t      delta,
+                          ARG_UNUSED a_virtual_table_index vcall_index)
 /*
 Create or find a routine for an entry wrapper that handles "this" adjustments
 and/or covariant return types.  The routine is a version of
@@ -7198,21 +7182,17 @@ overrides both of them.
 
 #endif /* IA64_ABI */
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- primary_function, subobject_bcp, adjustment_bcp,
-                    overriding_function, thunk, not used in that case. */
-#endif /* !IA64_ABI */
 static void find_delta_and_vcall_index(
-                                     a_routine_ptr         primary_function,
-                                     a_base_class_ptr      overriding_bcp,
-                                     a_base_class_ptr      overridden_bcp,
-                                     a_base_class_ptr      subobject_bcp,
-                                     a_base_class_ptr      adjustment_bcp,
-                                     a_boolean             filling_vtable,
-                                     a_routine_ptr         overriding_function,
-                                     a_targ_ptrdiff_t      *delta,
-                                     a_virtual_table_index *vcall_index,
-                                     a_routine_ptr         *thunk)
+                         ARG_UNUSED a_routine_ptr         primary_function,
+                         a_base_class_ptr                 overriding_bcp,
+                         a_base_class_ptr                 overridden_bcp,
+                         ARG_UNUSED a_base_class_ptr      subobject_bcp,
+                         ARG_UNUSED a_base_class_ptr      adjustment_bcp,
+                         ARG_UNUSED a_boolean             filling_vtable,
+                         ARG_UNUSED a_routine_ptr         overriding_function,
+                         a_targ_ptrdiff_t                 *delta,
+                         a_virtual_table_index            *vcall_index,
+                         ARG_UNUSED a_routine_ptr         *thunk)
 /*
 The primary_function (declared in the overridden_bcp) has been overridden
 in the overriding_bcp, or in the overridden_bcp->derived_class if
@@ -7742,17 +7722,15 @@ done:
   *next_entry_number = entry_number;
 }  /* fill_virtual_function_table */
 
-#if !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
-/*ARGSUSED*/ /* <-- ctor_bcp is not used in this mode. */
-#endif /* !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+
 static void define_one_virtual_function_table(
-                                          a_type_ptr       class_type,
-                                          a_base_class_ptr bcp,
-                                          a_base_class_ptr ctor_bcp,
-                                          a_variable_ptr   vtbl_var,
-                                          a_boolean        definition_needed,
-                                          a_boolean        force_static,
-                                          a_routine_ptr    first_virtual)
+                               a_type_ptr                  class_type,
+                               a_base_class_ptr            bcp,
+                               ARG_UNUSED a_base_class_ptr ctor_bcp,
+                               a_variable_ptr              vtbl_var,
+                               a_boolean                   definition_needed,
+                               a_boolean                   force_static,
+                               a_routine_ptr               first_virtual)
 /*
 Finish the job begun by make_var_for_virtual_function_table: finish making
 a virtual function table variable.  This routine handles things that could
@@ -8076,9 +8054,6 @@ for the same virtual function table variable; see note below.
 
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- class_type is not used in that case. */
-#endif /* !IA64_ABI */
 static void define_construction_vtbls(
                                     a_construction_vtbl_ptr construction_vtbls,
                                     a_boolean               definition_needed,
@@ -9079,11 +9054,9 @@ constructor.  Change it to add an indirection to the type.
 }  /* add_indirection_to_cctor_param_type */
 
 
-#if !NEW_CAN_BE_FOLDED_INTO_CTOR && !ASSIGNMENT_TO_THIS_ALLOWED
-/*ARGSUSED*/  /* <-- routine or routine_type are not used in those cases. */
-#endif /* !NEW_CAN_BE_FOLDED_INTO_CTOR && !ASSIGNMENT_TO_THIS_ALLOWED */
-a_boolean should_drop_const_on_this_param_variable(a_routine_ptr routine,
-                                                   a_type_ptr    routine_type)
+a_boolean should_drop_const_on_this_param_variable(
+                                         ARG_UNUSED a_routine_ptr routine,
+                                         ARG_UNUSED a_type_ptr    routine_type)
 /*
 Return TRUE if the top-level "const" on the "this" parameter variable of the
 indicated routine should be dropped.  routine_type is the routine type.
@@ -9518,15 +9491,14 @@ Do IL lowering of the indicated list of variables and everything under it.
 }  /* lower_variable_list */
 
 #if !IA64_ABI
-/*ARGSUSED*/ /* <-- variable and insert_location are not used in that case. */
 #define LOWER_INITIALIZER_LINKAGE static
 #else /* IA64_ABI */
 #define LOWER_INITIALIZER_LINKAGE /*external*/
 #endif /* IA64_ABI */
 LOWER_INITIALIZER_LINKAGE void lower_initializer(
-                                           a_variable_ptr     variable,
-                                           an_init_kind       *init_kind,
-                                           an_initializer_ptr initializer)
+                                         ARG_UNUSED a_variable_ptr variable,
+                                         an_init_kind              *init_kind,
+                                         an_initializer_ptr        initializer)
 /*
 Lower an initializer, which might be in a variable or a
 local-variable-static-init entry.
@@ -10403,9 +10375,9 @@ a_param_type entry for the "this" parameter.
 }  /* param_type_for_this */
 
 
-/*ARGSUSED*/  /* <-- end_traversal is not used. */
-static a_boolean ttt_type_has_param_passed_via_cctor(a_type_ptr tp,
-                                                     a_boolean  *end_traversal)
+static a_boolean ttt_type_has_param_passed_via_cctor(
+                                         a_type_ptr            tp,
+                                         ARG_UNUSED a_boolean  *end_traversal)
 /*
 Return TRUE (and stop the type traversal) if the specified type (tp) is
 a function that has a parameter that is passed via copy constructor.
@@ -11213,7 +11185,7 @@ of a base or derived class of that class.
         op = (an_expr_operator_kind)eok_add;
       } else {
         op = (an_expr_operator_kind)eok_subtract;
-        offset = -offset;
+        offset = -offset; /*lint !e2704*/
       }  /* if */
       /* Make a node for the offset constant. */
       set_unsigned_integer_constant_with_overflow_check(
@@ -12051,17 +12023,12 @@ created.
 }  /* make_vtbl_entry_node */
 
 
-#if IA64_ABI
-/*ARGSUSED*/  /* <--- vtbl_temp_var is not used in that case. */
-#else /* !IA64_ABI */
-/*ARGSUSED*/  /* <--- vars_can_change is not used in that case. */
-#endif /* IA64_ABI */
 an_expr_node_ptr get_virtual_function_address(
-                                             an_expr_node_ptr func_node,
-                                             an_expr_node_ptr *object_node,
-                                             a_boolean        vars_can_change,
-                                             a_variable_ptr   *vtbl_temp_var,
-                                             an_expr_node_ptr *assign_node)
+                                  an_expr_node_ptr            func_node,
+                                  an_expr_node_ptr            *object_node,
+                                  ARG_UNUSED a_boolean        vars_can_change,
+                                  ARG_UNUSED a_variable_ptr   *vtbl_temp_var,
+                                  an_expr_node_ptr            *assign_node)
 /*
 Returns an expression that represents the address of the virtual function
 in the virtual function table for *object_node that corresponds to the function
@@ -12775,13 +12742,10 @@ the expression have already been lowered.
 }  /* lower_pm_call */
 
 
-#if !MINIMAL_INLINING
-/*ARGSUSED*/ /* <-- statement is not used in this case. */
-#endif /* !MINIMAL_INLINING */
-void lower_call(an_expr_node_ptr      expr,
-                an_init_pos_descr_ptr ipdp,
-                a_statement_ptr       statement,
-                a_boolean             *expr_has_been_detached)
+void lower_call(an_expr_node_ptr           expr,
+                an_init_pos_descr_ptr      ipdp,
+                ARG_UNUSED a_statement_ptr statement,
+                a_boolean                  *expr_has_been_detached)
 /*
 Lower a call (nonmember, member, virtual, or pointer-to-member).  expr points
 to the call node.  ipdp, if non-NULL, indicates an entity into which the
@@ -13816,10 +13780,9 @@ already processed these).
 }  /* rewrite_nullptr_expr_if_necessary */
 
 
-/*ARGSUSED*/  /* <-- tblock is not used. */
 static void perform_post_pass_on_lowered_node(
-                                    an_expr_node_ptr                    expr,
-                                    an_expr_or_stmt_traversal_block_ptr tblock)
+                         an_expr_node_ptr                               expr,
+                         ARG_UNUSED an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 This routine is called for each node of an expression during expression 
 traversal by perform_post_pass_on_lowered_expression.  It is called before
@@ -13842,10 +13805,9 @@ applicable to this expression node.
 }  /* perform_post_pass_on_lowered_node */
 
 
-/*ARGSUSED*/  /* <-- tblock is not used. */
 static void perform_post_pass_on_lowered_node_post_expr(
-                                    an_expr_node_ptr                    expr,
-                                    an_expr_or_stmt_traversal_block_ptr tblock)
+                         an_expr_node_ptr                               expr,
+                         ARG_UNUSED an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 This routine is called for each node of an expression during expression 
 traversal by perform_post_pass_on_lowered_expression.  It is called after
@@ -16049,7 +16011,7 @@ cast.  See lower_expr for typical invocation.
                 break;
               }  /* if */
             }  /* if */
-            /*FALLTHROUGH*/
+            FALLTHROUGH
           case eok_pre_decr:
           case eok_post_decr:
 #if LOWER_VARIABLE_LENGTH_ARRAYS
@@ -16107,7 +16069,7 @@ cast.  See lower_expr for typical invocation.
                  code. */
               break;
             }  /* if */
-            /*FALLTHROUGH*/
+            FALLTHROUGH
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
           case eok_add_assign:
           case eok_subtract_assign:
@@ -16405,11 +16367,8 @@ at the end of a full expression.
 }  /* release_reusable_temporaries */
 
 
-#if !MINIMAL_INLINING
-/*ARGSUSED*/  /* <-- statement is not used in that case. */
-#endif /* !MINIMAL_INLINING */
-void lower_full_expr(an_expr_node_ptr expr,
-                     a_statement_ptr  statement)
+void lower_full_expr(an_expr_node_ptr            expr,
+                     ARG_UNUSED a_statement_ptr  statement)
 /*
 Lower a full expression, i.e., a top-level expression, one that is not
 inside another expression.  If the expression is the one in an
@@ -17280,12 +17239,9 @@ indicated statement.
 
 #endif /* INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE */
 
-#if DO_FULL_PORTABLE_EH_LOWERING
-/*ARGSUSED*/  /* <-- "statement" is not used in that case. */
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 static void reset_cleanup_state_at_transfer_of_control(
-                                               a_statement_ptr statement,
-                                               a_statement_ptr block_statement)
+                                    ARG_UNUSED a_statement_ptr statement,
+                                    a_statement_ptr            block_statement)
 /*
 "statement" points to a transfer of control statement (goto, return)
 that has just been lowered.  Adjust the current cleanup state after the
@@ -17985,9 +17941,6 @@ the context stack.
 }  /* pop_scopeless_compound_stmt */
 
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- saved_curr_context is unused in that case. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
 static void pop_block_statement_context(
                                    a_statement_ptr    block_statement,
                                    a_statement_ptr    last_statement,
@@ -19146,10 +19099,7 @@ over C++ arrays or appropriate STL-like collections) are currently lowered.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- statement is not used in that case. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
-void lower_asm_statement(a_statement_ptr statement)
+void lower_asm_statement(ARG_UNUSED a_statement_ptr statement)
 /*
 Do IL lowering of the indicated stmk_asm statement and everything
 under it.  Used in both C++ and C mode.
@@ -19666,6 +19616,7 @@ done for the parent class.
     if (*local_types == NULL) {
       *local_types = first;
     } else {
+      check_assertion(*end_local_types != NULL);
       (*end_local_types)->next = first;
     }  /* if */
     last = first;
@@ -20613,10 +20564,6 @@ scope that is part of the indicated routine) to the file scope.
 }  /* promote_static_variables_out_of_function */
 
 
-#if !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
-/*ARGSUSED*/ /* <-- promote_types is not used if local entities are
-                    not being promoted. */
-#endif /* !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 static void r_promote_local_entities_to_file_scope(
                                                a_scope_ptr   scope,
                                                a_scope_ptr   scope_with_block,
@@ -21451,10 +21398,7 @@ next_kind:;
 }  /* lower_orphaned_entries */
 
 
-#if !(NEW_CAN_BE_FOLDED_INTO_CTOR || DELETE_CAN_BE_FOLDED_INTO_DTOR)
-/*ARGSUSED*/
-#endif /* !(NEW_CAN_BE_FOLDED_INTO_CTOR || DELETE_CAN_BE_FOLDED_INTO_DTOR) */
-static void do_class_lowering_wrapup(a_scope_ptr scope)
+static void do_class_lowering_wrapup(ARG_UNUSED a_scope_ptr scope)
 /*
 Do any wrapup processing on classes that has to wait until the very
 end of the lowering process for a memory region.  Note that this is done
@@ -21779,7 +21723,7 @@ terms into C ones, so that a C back end can handle it without change.
         db_flag_is_set("dump_type_lists") ||
         db_flag_is_set("dump_lifetimes")) {
       fprintf(f_debug, "Lowering IL in memory region %lu\n",
-                       (unsigned long)region_number);
+                       (unsigned long)(long)region_number);
       if (db_flag_is_set("dump_type_lists")) {
         db_type_lists(scope, 0);
       }  /* if */

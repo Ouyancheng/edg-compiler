@@ -73,7 +73,7 @@ extern a_boolean f_db_sym_trace(a_const_char	*flag_name,
    "Lexical table use"). */
 #define db_space_used_header(name)					 \
   fprintf(f_debug, "\n%s\n", name);					 \
-  fprintf(f_debug, "%25s %8s %8s %8s\n", "Table", "Number", "Each", "Total");
+  fprintf(f_debug, "%25s %8s %8s %8s\n", "Table", "Number", "Each", "Total")
   
 
 /* Macros that display the space used by a given type of structure.
@@ -138,12 +138,12 @@ extern a_boolean f_db_sym_trace(a_const_char	*flag_name,
 /* Prints a "miscellaneous" line including a name, a number (printed under
    the "total" column, and a remark. */
 #define db_space_used_other(name, number, remarks)			\
-  fprintf(f_debug, "%25s %8s %8s %8lu %s\n", name,  "", "", number, remarks);
+  fprintf(f_debug, "%25s %8s %8s %8lu %s\n", name,  "", "", number, remarks)
 
 /* Prints a "miscellaneous" line including a name, a floating point number
    (printed under the "total" column, and a remark. */
 #define db_space_used_float_other(name, number, remarks)		\
-  fprintf(f_debug, "%25s %8s %8s %8.2f %s\n", name,  "", "", number, remarks);
+  fprintf(f_debug, "%25s %8s %8s %8.2f %s\n", name,  "", "", number, remarks)
 
 
 /* Prints the grand total. */

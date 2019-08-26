@@ -249,13 +249,13 @@ EXTERN a_boolean
 Macro used to set cannot_do_pch_processing.
 */
 #define abandon_pch_processing()					\
-  cannot_do_pch_processing = TRUE;
+  (cannot_do_pch_processing = TRUE)
 
 /*
 Macro used to set cannot_create_pch_file.
 */
 #define suppress_creation_of_pch()					\
-  cannot_create_pch_file = TRUE;
+  (cannot_create_pch_file = TRUE)
 
 extern
 void add_pch_event(a_pch_event_kind	kind,

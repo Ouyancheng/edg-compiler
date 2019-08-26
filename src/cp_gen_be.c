@@ -2925,10 +2925,7 @@ autonomous may be skipped.  E.g.:
   f_skip_embedded_declarations(/*end_of_construct_marked=*/FALSE);
 
 
-#if !CHECKING
-/*ARGSUSED*/ /* entry is not used is some configurations. */
-#endif /* !CHECKING */
-static void skip_end_of_embedded_constructs(char  *entry)
+static void skip_end_of_embedded_constructs(ARG_UNUSED char  *entry)
 /*
 The given (variable, routine, or typeref) entry was declared with "embedded
 declarations" that have been skipped with a call to
@@ -3160,9 +3157,9 @@ complete token.  This is the non-macro version.
 }  /* write_str */
 
 
-/*ARGSUSED*/ /* local_octl is not used. */
-static void write_str_octl(a_const_char                          *str,
-                           an_il_to_str_output_control_block_ptr local_octl)
+static void write_str_octl(
+                   a_const_char                                     *str,
+                   ARG_UNUSED an_il_to_str_output_control_block_ptr local_octl)
 /*
 Version of write_str intended to be called by the il-to-str routines.
 */
@@ -3261,10 +3258,9 @@ This is the non-macro version.
 }  /* write_tok_str */
 
 
-/*ARGSUSED*/ /* local_octl is not used. */
 static void write_tok_str_octl(
-                              a_const_char                          *str,
-                              an_il_to_str_output_control_block_ptr local_octl)
+                   a_const_char                                     *str,
+                   ARG_UNUSED an_il_to_str_output_control_block_ptr local_octl)
 /*
 Version of write_tok_str intended to be called by the il-to-str routines.
 */
@@ -7493,7 +7489,7 @@ will be put out when they are encountered when generating the parameter types.
                             type->declared_in_function_prototype,
                       "bypass_prototyped_param_...: not prototype scope type");
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-         found_decl = is_type = TRUE;
+        found_decl = is_type = TRUE;
       } else {
         unexpected_condition_str("bypass_prototyped_param_...: not a type");
       }  /* if */
@@ -8359,9 +8355,6 @@ bindings container variable.
 }  /* gen_structured_bindings_list */
 
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- mode is not used in that case. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
 static void gen_general_declaration_using_type(
                               a_type_ptr                   type,
                               a_source_correspondence      *scp,
@@ -9830,13 +9823,11 @@ declarator.
   }  /* if */
 }  /* adjust_namespace_state_for_specialization */
 
-#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-/* ARGSUSED */ /* <-- scp is not used in that case. */
-#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+
 static void gen_template_specialization_header(
-                            a_source_correspondence *scp,
-                            a_boolean               is_in_class_specialization,
-                            a_template_arg_ptr      template_arg_list)
+                 ARG_UNUSED a_source_correspondence *scp,
+                 a_boolean                          is_in_class_specialization,
+                 a_template_arg_ptr                 template_arg_list)
 /*
 scp points to the source correspondence entry of a routine, class, or
 variable that is a specialization, and template_arg_list is the
@@ -14498,7 +14489,7 @@ gen_expr that might end up generating this expr as a temporary.
           if (handle_rewritten_comparison(expr, op)) {
             goto done_with_operation;
           }  /* if */
-          /*FALLTHROUGH*/
+          FALLTHROUGH
         case eok_vector_not:
           opstr = "!";
           break;
@@ -14733,7 +14724,7 @@ gen_expr that might end up generating this expr as a temporary.
           if (handle_rewritten_comparison(expr, op)) {
             goto done_with_operation;
           }  /* if */
-          /*FALLTHROUGH*/
+          FALLTHROUGH
         case eok_vector_gt:
           opstr = ">";
           break;
@@ -14741,7 +14732,7 @@ gen_expr that might end up generating this expr as a temporary.
           if (handle_rewritten_comparison(expr, op)) {
             goto done_with_operation;
           }  /* if */
-          /*FALLTHROUGH*/
+          FALLTHROUGH
         case eok_vector_lt:
           opstr = "<";
           if (msvc_is_generated_code_target && in_template_argument_list) {
@@ -14756,7 +14747,7 @@ gen_expr that might end up generating this expr as a temporary.
           if (handle_rewritten_comparison(expr, op)) {
             goto done_with_operation;
           }  /* if */
-          /*FALLTHROUGH*/
+          FALLTHROUGH
         case eok_vector_ge:
           opstr = ">=";
           break;
@@ -14764,7 +14755,7 @@ gen_expr that might end up generating this expr as a temporary.
           if (handle_rewritten_comparison(expr, op)) {
             goto done_with_operation;
           }  /* if */
-          /*FALLTHROUGH*/
+          FALLTHROUGH
         case eok_vector_le:
           opstr = "<=";
           break;
@@ -16263,12 +16254,9 @@ instantiation is available.
 }  /* gen_template_from_prototype_instantiation */
 
 
-#if !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-/*ARGSUSED*/  /* tp is not used in some configurations. */
-#endif /* !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 static a_boolean template_should_be_generated_from_prototype_instantiation(
-                                                 a_template_ptr  tp,
-                                                 a_boolean       is_definition)
+                                       ARG_UNUSED a_template_ptr tp,
+                                       a_boolean                 is_definition)
 /*
 Determine whether the given template should be generated from the IL of its
 prototype instantiation (if not, it is generated from its recorded textual
@@ -16722,11 +16710,9 @@ for the given routine (only render non-__declspec modifiers).
 #define gen_microsoft_routine_decl_modifiers(rout) /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* abstract_generated is not used in some configurations. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static void gen_member_function_modifiers(a_routine_ptr  rout,
-                                          a_boolean      *abstract_generated)
+static void gen_member_function_modifiers(
+                                      a_routine_ptr        rout,
+                                      ARG_UNUSED a_boolean *abstract_generated)
 /*
 Generate any needed "function-modifiers" for the given member function.
 Set *abstract_generated to TRUE if the Microsoft function-modifier "abstract"
@@ -18455,7 +18441,7 @@ output_functional_notation_cast_arguments:
          should get here. */
       expr = dip->variant.bitwise_copy.source;
       check_assertion(expr != NULL);
-      /*FALLTHROUGH*/
+      FALLTHROUGH
     case dik_expression:
     case dik_class_result_via_ctor:
       /* Expression. */
@@ -18933,7 +18919,7 @@ handle_dynamic_init:
              recorded even though var->has_explicit_initializer is TRUE. */
           break;
         }  /* if */
-        /*FALLTHROUGH*/
+        FALLTHROUGH
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
       default:
         unexpected_condition_str("gen_variable_initializer: bad init kind");
@@ -19926,11 +19912,9 @@ declarator (or NULL if it wasn't recorded).
 }  /* gen_routine_specifiers_and_declaration */
 
 
-/*ARGSUSED*/ /* <-- tblock is not used (but is part of the signature for
-                a_traversal_expr_process_function and so is required here) */
 static void gen_typedef_for_unnamed_pseudo_dtor_type(
-                                    an_expr_node_ptr                    expr,
-                                    an_expr_or_stmt_traversal_block_ptr tblock)
+                         an_expr_node_ptr                               expr,
+                         ARG_UNUSED an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 This routine is called for each expression encountered during a traversal
 of the body of a generated instance of a function template.  If expr is an

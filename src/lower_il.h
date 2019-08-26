@@ -838,6 +838,7 @@ is TRUE (only in the IA-64 ABI) if the destructor takes a VTT parameter.
 /*
 Utility that returns TRUE if the class type has been pre-lowered.
 */
+/*lint -emacro(664,class_has_been_prelowered)*/
 #define class_has_been_prelowered(class)                                      \
   (check_assertion(is_immediate_class_type((class))),                         \
    class_type_supp((class))->subobject_partner != NULL)
@@ -847,6 +848,7 @@ Utility to return a pointer to the subobject type for a class type that has
 already been pre-lowered.  Note that in cases where a subobject type isn't
 needed the class type itself is returned.
 */
+/*lint -emacro(664,subobject_for_class)*/
 #define subobject_for_class(class)                                            \
   (check_assertion(class_has_been_prelowered((class))),                       \
    class_type_supp((class))->has_subobject_type ?                             \

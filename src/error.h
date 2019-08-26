@@ -225,7 +225,7 @@ extern void check_expected_errors(void);
    assertion is provided. */
 #define check_assertion_str(test, string)                        \
   if (/*lint --e(774,506)*/!(test))                              \
-    assertion_failed(__FILE__, __LINE__, __EDG_func__, string, (char *)NULL);
+    assertion_failed(__FILE__, __LINE__, __EDG_func__, string, (char *)NULL)
 #define check_assertion_or_expect_error_str(test, string)                    \
   if (/*lint --e(774)*/!(test) && total_errors == 0) {                       \
     record_expected_error(__FILE__, __LINE__, __EDG_func__, string,          \
@@ -242,7 +242,7 @@ extern void check_expected_errors(void);
    this is simply done to make it easier to use long strings as arguments. */
 #define check_assertion_str2(test, string1, string2)          \
   if (/*lint --e(774,506)*/!(test))                           \
-    assertion_failed(__FILE__, __LINE__, __EDG_func__, string1, string2);
+    assertion_failed(__FILE__, __LINE__, __EDG_func__, string1, string2)
 #define check_assertion_or_expect_error_str2(test, string1, string2)         \
   if (/*lint --e(774)*/!(test) && total_errors == 0) {                       \
     record_expected_error(__FILE__, __LINE__, __EDG_func__, string1, string2);\

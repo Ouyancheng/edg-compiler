@@ -1069,6 +1069,39 @@ Type of the value returned by hash functions.
 typedef uint32_t
 		a_hash_value;
 
+
+/*
+Define macros for lint-like annotations.  These can expand to various
+annotations depending on the compiler/tool that is being used to read the
+source code.
+
+ARG_UNUSED: specifies that the argument that follows may not be used in all
+configurations.
+
+FALLTHROUGH: specifies that flow-of-control purposely flows from one case to
+another without an intervening "break" statement.
+*/
+#ifdef _lint
+/* Use PC-lint annotations. */
+#define FALLTHROUGH /*lint -fallthrough*/
+#define ARG_UNUSED /*lint -e{715}*/
+#else /* !defined(_lint) */
+/* Use standard attributes if those are supported. */
+#ifndef __has_cpp_attribute
+#define __has_cpp_attribute(x) 0
+#endif /* !defined(__has_cpp_attribute) */
+#if __has_cpp_attribute(fallthrough)
+#define FALLTHROUGH [[fallthrough]]
+#else /* !__has_cpp_attribute(fallthrough) */
+#define FALLTHROUGH /*nothing*/
+#endif /* __has_cpp_attribute(fallthrough) */
+#if __has_cpp_attribute(maybe_unused)
+#define ARG_UNUSED [[maybe_unused]]
+#else /* !__has_cpp_attribute(maybe_unused) */
+#define ARG_UNUSED /*nothing*/
+#endif /* __has_cpp_attribute(maybe_unused) */
+#endif /* defined(_lint) */
+
 #ifdef __cplusplus
 END_EXTERN_C_BLOCK_IN_CPP_FILE
 #endif /* ifdef __cplusplus */

@@ -78,7 +78,6 @@ value of TARG_SUPPORTS_X86_64).  An additional configuration (i.e., the
 #define TARG_SIZEOF_POINTER 8
 #define TARG_ALIGNOF_POINTER 8
 #define TARG_SIZEOF_DOUBLE 8
-#define TARG_ALIGNOF_DOUBLE 8
 #define TARG_SIZEOF_LONG_DOUBLE 16
 #define TARG_ALIGNOF_LONG_DOUBLE 16
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_int)

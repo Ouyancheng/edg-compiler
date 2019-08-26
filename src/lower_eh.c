@@ -414,11 +414,8 @@ used for cases where a typeinfo variable is being created.
 }  /* make_runtime_typeinfo_type */
 
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- type is not used in all configurations. */
-#endif /* !IA64_ABI */
-a_type_ptr make_typeinfo_type(a_type_info_kind kind, 
-                              a_type_ptr       type)
+a_type_ptr make_typeinfo_type(a_type_info_kind      kind, 
+                              ARG_UNUSED a_type_ptr type)
 /*
 Make the typeinfo struct type of the kind indicated if it is not made
 already, and return a pointer to it.  If type is non-NULL, it
@@ -715,10 +712,7 @@ string literals were implemented).
 }  /* make_typeinfo_type */
 
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- type is not used in that case. */
-#endif /* !IA64_ABI */
-static a_type_info_kind get_typeinfo_kind(a_type_ptr type)
+static a_type_info_kind get_typeinfo_kind(ARG_UNUSED a_type_ptr type)
 /*
 Return kind of typeinfo entry that should be used to represent "type".
 For example, if "type" is a pointer type, the kind is tik_pointer.
@@ -957,7 +951,7 @@ static a_type_ptr
                         /* A "cached" version of a pointer to a const-qualified
                            (tik_implementation) typeinfo type. */
 
-static a_type_ptr make_ptr_to_const_typeinfo_type()
+static a_type_ptr make_ptr_to_const_typeinfo_type(void)
 /*
 Return a pointer-to-const typeinfo (tik_implementation) type.
 */
@@ -1466,12 +1460,9 @@ specification removed.
 
 #endif /* IA64_ABI || GENERATE_EH_TABLES */
 
-#if !IA64_ABI
-/*ARGSUSED*/  /* <-- use_comdat is not used in that case. */
-#endif /* !IA64_ABI */
-static void define_typeinfo_var(a_type_ptr type,
-                                a_boolean  force_static,
-                                a_boolean  use_comdat)
+static void define_typeinfo_var(a_type_ptr            type,
+                                a_boolean             force_static,
+                                ARG_UNUSED a_boolean  use_comdat)
 /*
 Generate a definition for the typeinfo variable (used to provide runtime
 type information) associated with type "type".  If force_static is TRUE,
@@ -3251,12 +3242,10 @@ represent the address of an entity in the region table.
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 
-#if !DO_FULL_PORTABLE_EH_LOWERING
-/*ARGSUSED*/ /* <-- insert_location is not used. */
-#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
-static void make_handle_for_entity(an_init_pos_descr_ptr ipdp,
-                                   a_handle              *handle,
-                                   an_insert_location    *insert_location)
+static void make_handle_for_entity(
+                                an_init_pos_descr_ptr         ipdp,
+                                a_handle                      *handle,
+                                ARG_UNUSED an_insert_location *insert_location)
 /*
 Return the handle (identifier to be used in the region table) for the
 entity indicated by ipdp.  The handle is placed in *handle.  If any code
@@ -4202,6 +4191,7 @@ the clone.
     if (con_list == NULL) {
       con_list = copy_con;
     } else {
+      check_assertion(end_con_list != NULL);
       end_con_list->next = copy_con;
     }  /* if */
     end_con_list = copy_con;
@@ -4512,6 +4502,7 @@ beginning and end of the list of constants for the array.  Increment
   if (*first_con == NULL) {
     *first_con = sub_aggr_con;
   } else {
+    check_assertion(last_con != NULL && *last_con != NULL);
     (*last_con)->next = sub_aggr_con;
   }  /* if */
   *last_con = sub_aggr_con;
@@ -4655,10 +4646,10 @@ typedef enum {
   ehsek_old_try_block,	/* Used for a try block up to version 3.10. */
   ehsek_function,
   ehsek_throw_spec,
-  ehsek_throw_processing_marker,	/* Used by runtime. */
   /*lint -esym(749,ehsek_throw_processing_marker)*/
-  ehsek_vec_new_or_delete,		/* Used by runtime. */
+  ehsek_throw_processing_marker,	/* Used by runtime. */
   /*lint -esym(749,ehsek_vec_new_or_delete)*/
+  ehsek_vec_new_or_delete,		/* Used by runtime. */
 #if ABI_COMPATIBILITY_VERSION <= 310
   ehsek_try_block = ehsek_old_try_block,
 #else /* ABI_COMPATIBILITY_VERSION > 310 */
@@ -5306,11 +5297,10 @@ for the scope of the handler.
 }  /* begin_catch_clause */
 
 
-/*ARGSUSED*/ /* <-- try_block is not used in the portable mode. */
-             /*     context_ptr is not used in the other modes. */
-void cleanup_on_exit_from_try_block(a_context_ptr        context_ptr,
-                                    a_try_supplement_ptr try_block,
-                                    an_insert_location   *insert_location)
+void cleanup_on_exit_from_try_block(
+                              ARG_UNUSED a_context_ptr        context_ptr,
+                              ARG_UNUSED a_try_supplement_ptr try_block,
+                              an_insert_location              *insert_location)
 /*
 Generate any cleanup required on exit from a try block.  context_ptr points to
 the context for the try block.  Any code generated is inserted at
@@ -5341,11 +5331,8 @@ static a_routine_ptr
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 
-#if DO_FULL_PORTABLE_EH_LOWERING
-/*ARGSUSED*/ /* <-- handler is not used in the portable mode. */
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
-void cleanup_on_exit_from_catch(a_handler_ptr      handler,
-                                an_insert_location *insert_location)
+void cleanup_on_exit_from_catch(ARG_UNUSED a_handler_ptr handler,
+                                an_insert_location       *insert_location)
 /*
 Generate any cleanup required on exit from a catch clause.  Any code
 generated is inserted at insert_location.
@@ -5536,7 +5523,7 @@ with zero is built, and a pointer to it is returned in *setjmp_compare_node.
     for (ap = rp->source_corresp.attributes;
          ap != NULL;
          ap = ap->next) {
-      if (ap->kind == (an_attribute_kind)ak_always_inline) {
+      if (ap->kind == (a_byte_attribute_kind)ak_always_inline) {
         rp->always_inline = FALSE;
         pos_remark(ec_always_inline_suppressed, &ap->position);
         if (prev == NULL) {
@@ -6356,12 +6343,10 @@ the throw, whereas the rest of the throw expression evaluation is
 
 #endif /* ABI_COMPATIBILITY_VERSION >= 233 */
 
-#if DO_FULL_PORTABLE_EH_LOWERING
-/*ARGSUSED*/ /* <-- "unreachable" is not used in that case. */
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
-void insert_code_to_indicate_cleanup_state(a_dynamic_init_ptr cleanup_state,
-                                           an_insert_location *insert_location,
-                                           a_boolean          unreachable)
+void insert_code_to_indicate_cleanup_state(
+                                         a_dynamic_init_ptr   cleanup_state,
+                                         an_insert_location   *insert_location,
+                                         ARG_UNUSED a_boolean unreachable)
 /*
 Insert code to indicate the indicated cleanup state.  The code is inserted
 at *insert_location, and *insert_location is updated.  This routine is called
@@ -6408,10 +6393,7 @@ tables).
 }  /* insert_code_to_indicate_cleanup_state */
 
 
-#ifndef AT_LEAST_ONE_FIELD_IN_AN_EH_LOWERING_CONTEXT
-/*ARGSUSED*/
-#endif /* ifndef AT_LEAST_ONE_FIELD_IN_AN_EH_LOWERING_CONTEXT */
-void save_eh_lowering_context(an_eh_lowering_context *ehcontext)
+void save_eh_lowering_context(ARG_UNUSED an_eh_lowering_context *ehcontext)
 /*
 Save the current state of exception handling lowering, as reflected in
 global variables, in *ehcontext, for later restoration by
@@ -6433,10 +6415,7 @@ restore_eh_lowering_context.
 }  /* save_eh_lowering_context */
 
 
-#ifndef AT_LEAST_ONE_FIELD_IN_AN_EH_LOWERING_CONTEXT
-/*ARGSUSED*/
-#endif /* ifndef AT_LEAST_ONE_FIELD_IN_AN_EH_LOWERING_CONTEXT */
-void restore_eh_lowering_context(an_eh_lowering_context *ehcontext)
+void restore_eh_lowering_context(ARG_UNUSED an_eh_lowering_context *ehcontext)
 /*
 Restore the current state of exception handling lowering, as reflected in
 global variables, from *ehcontext.

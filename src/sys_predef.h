@@ -213,7 +213,7 @@ a continuation of the automatically-generated a_builtin_function_kind_tag
 enumeration.
 */
 enum a_builtin_user_function_kind_tag {
-  bufk_first = bfk_last,          /* initial entry */
+  bufk_first = (int)bfk_last,     /* initial entry */
   bufk_choose_expr,               /* __builtin_choose_expr */
   bufk_launder,                   /* __builtin_launder */
   bufk_is_constant_evaluated,     /* __builtin_is_constant_evaluated */

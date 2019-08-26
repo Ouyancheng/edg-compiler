@@ -147,7 +147,8 @@ Macro that returns the trans_unit_corresp for an IL entry that has a source
 correspondence.
 */
 #if EXPENSIVE_CHECKING
-#define trans_unit_corresp_of(ptr) /*lint --e(666)*/			\
+/*lint -emacro(664,trans_unit_corresp_of)*/
+#define trans_unit_corresp_of(ptr) 			                \
   (*(check_assertion(in_front_end), &(ptr)->source_corresp.trans_unit_corresp))
 #else /* !EXPENSIVE_CHECKING */
 #define trans_unit_corresp_of(ptr)					\
@@ -193,6 +194,7 @@ the objects pointed to by ptr1 and ptr2 have already been set (if in
 doubt whether that assumption is valid, it is always safe to use one
 of the "corresponding_*" macros).
 */
+/*lint -emacro(666,same_entities)*/
 #define same_entities(ptr1, ptr2)                                        \
   ((ptr1) == (ptr2) ||                                                   \
    ((ptr1) != NULL && (ptr2) != NULL && in_front_end &&                  \

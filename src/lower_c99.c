@@ -3079,10 +3079,7 @@ match the adjusted parameter types if needed.
 }  /* match_routine_type_in_call */
 
                              
-#if !LOWER_FIXED_POINT
-/*ARGSUSED*/  /* <-- expr is not used in that case. */
-#endif /* !LOWER_FIXED_POINT */
-static void lower_c99_call(an_expr_node_ptr expr)
+static void lower_c99_call(ARG_UNUSED an_expr_node_ptr expr)
 /*
 Do any required lowering on an eok_call expression node.  The operands
 have been lowered already.
@@ -3603,10 +3600,7 @@ replace them by a representation compatible with C89.
 }  /* lower_c99_constant */
 
 
-#if !LOWER_COMPLEX
-/*ARGSUSED*/  /* <-- expr is not used in that case. */
-#endif /* !LOWER_COMPLEX */
-void lower_c99_constant_expr(an_expr_node_ptr  expr)
+void lower_c99_constant_expr(ARG_UNUSED an_expr_node_ptr  expr)
 /*
 Transform the given enk_constant expression to remove certain C99-specific
 constructs.
@@ -3783,11 +3777,8 @@ of the mask corresponds to the first expression in the list.
 }  /* lower_c99_expr_list */
 
 
-#if !MINIMAL_INLINING
-/*ARGSUSED*/ /* <-- statement is not used in this case. */
-#endif /* !MINIMAL_INLINING */
-static void lower_c99_expr_full(an_expr_node_ptr  expr,
-                                a_statement_ptr   statement)
+static void lower_c99_expr_full(an_expr_node_ptr           expr,
+                                ARG_UNUSED a_statement_ptr statement)
 /*
 Transform the given expression to remove certain C99-specific constructs.
 If statement is non-NULL, expr is the expression of the expression
@@ -4212,7 +4203,7 @@ Do C99 lowering on the indicated statement.
            and so we just fall through to the ordinary expression case. */
         check_assertion(statement->variant.stmt_expr_result.dynamic_init ==
                                                                          NULL);
-        /*FALLTHROUGH*/
+        FALLTHROUGH
 #endif /* GNU_EXTENSIONS_ALLOWED */
       case stmk_expr:
         /* Expression statement.  Pass in the statement to allow better

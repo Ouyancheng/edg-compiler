@@ -359,13 +359,11 @@ calling sequence.
 }  /* make_prototyped_runtime_routine */
 
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- class_type and bcp are unused in that case. */
-#endif /* !IA64_ABI */
-static void make_vtbl_address_constant(a_variable_ptr   var,
-                                       a_type_ptr       class_type,
-                                       a_base_class_ptr bcp,
-                                       a_constant       *addr_constant)
+static void make_vtbl_address_constant(
+                                    a_variable_ptr              var,
+                                    ARG_UNUSED a_type_ptr       class_type,
+                                    ARG_UNUSED a_base_class_ptr bcp,
+                                    a_constant                  *addr_constant)
 /*
 Make an address constant for the address of a virtual function table variable
 (var) and return it in *addr_constant.  class_type is the type whose
@@ -1680,7 +1678,7 @@ initialization (when ipdp->array_element_sequence is TRUE).
       break;
     case dik_lambda:
       check_assertion(!dip->variant.constant.non_constant);
-      /* FALLTHROUGH */
+      FALLTHROUGH
     case dik_constant:
       /* Assign a constant to the entity to be initialized. */
       /* The constant has already been lowered. */
@@ -2132,13 +2130,10 @@ update *insert_location.
 }  /* add_bitwise_copy */
 
 
-#if IA64_ABI
-/*ARGSUSED*/ /* is_target_ctor is unused in that case. */
-#endif /* IA64_ABI */
-void make_ctor_implied_arg_list(a_routine_ptr    ctor_routine,
-                                a_boolean        is_target_ctor,
-                                an_expr_node_ptr *implied_arg_list,
-                                an_expr_node_ptr *end_implied_arg_list)
+void make_ctor_implied_arg_list(a_routine_ptr        ctor_routine,
+                                ARG_UNUSED a_boolean is_target_ctor,
+                                an_expr_node_ptr     *implied_arg_list,
+                                an_expr_node_ptr     *end_implied_arg_list)
 /*
 Build and return a list of the implied arguments to be added to a call of the
 constructor ctor_routine.  If is_target_ctor is TRUE, the ctor_routine is
@@ -2214,6 +2209,8 @@ There is an implied argument for the VTT.
         if (*implied_arg_list == NULL) {
           *implied_arg_list = implied_arg_node;
         } else {
+          check_assertion(end_implied_arg_list != NULL &&
+                          *end_implied_arg_list != NULL);
           (*end_implied_arg_list)->next = implied_arg_node;
         }  /* if */
         *end_implied_arg_list = implied_arg_node;
@@ -2324,18 +2321,15 @@ of the storage before the constructor is called.
 }  /* need_zeroing_for_value_initialization */
 
 
-#if !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
-/*ARGSUSED*/  /* <-- construction_vtbls_var and ipdp are not used in
-                     that case. */
-#endif /* !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
-static void add_constructor_call(a_dynamic_init_ptr     dip,
-                                 an_expr_node_ptr       entity_node,
-                                 an_expr_node_ptr       source_node,
-                                 a_boolean              have_complete_object,
-                                 an_init_pos_descr_ptr  ipdp,
-                                 a_constructor_init_ptr ctor_init,
-                                 a_variable_ptr         construction_vtbls_var,
-                                 an_insert_location_ptr insert_location)
+static void add_constructor_call(
+                       a_dynamic_init_ptr               dip,
+                       an_expr_node_ptr                 entity_node,
+                       an_expr_node_ptr                 source_node,
+                       a_boolean                        have_complete_object,
+                       ARG_UNUSED an_init_pos_descr_ptr ipdp,
+                       a_constructor_init_ptr           ctor_init,
+                       ARG_UNUSED a_variable_ptr        construction_vtbls_var,
+                       an_insert_location_ptr           insert_location)
 /*
 Make a call statement that invokes a constructor as required in the dynamic
 initialization entry pointed to by dip.  entity_node is an rvalue expression
@@ -2428,6 +2422,7 @@ dip->variant.constructor.args has already been lowered.
           if (implied_arg_list == NULL) {
             implied_arg_list = implied_arg_node;
           } else {
+            check_assertion(end_implied_arg_list != NULL);
             end_implied_arg_list->next = implied_arg_node;
           }  /* if */
           end_implied_arg_list = implied_arg_node;
@@ -3161,11 +3156,9 @@ static a_variable_ptr
 
 #endif /* !IA64_ABI */
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- elem_type, new_routine are not used in that case. */
-#endif /* !IA64_ABI */
-static an_expr_node_ptr get_prefix_size_node(a_type_ptr    elem_type,
-                                             a_routine_ptr new_routine)
+static an_expr_node_ptr get_prefix_size_node(
+                                          ARG_UNUSED a_type_ptr    elem_type,
+                                          ARG_UNUSED a_routine_ptr new_routine)
 /*
 Utility routine to return an expression that represents the size of the
 prefix that is added to an array whose type is elem_type or NULL (in the
@@ -3271,17 +3264,14 @@ IA-64 ABI).
 }  /* expr_for_num_elements_in_cookie */
 
 
-#if IA64_ABI
-/*ARGSUSED*/ /* <-- zero_storage is not used in that case. */
-#endif /* IA64_ABI */
-static an_expr_node_ptr make_vec_new_call(an_expr_node_ptr entity_node,
-                                          a_type_ptr       entity_type,
-                                          an_expr_node_ptr num_elem_node,
-                                          a_routine_ptr    ctor_routine,
-                                          a_routine_ptr    dtor_routine,
-                                          a_routine_ptr    new_routine,
-                                          a_routine_ptr    delete_routine,
-                                          a_boolean        zero_storage)
+static an_expr_node_ptr make_vec_new_call(an_expr_node_ptr     entity_node,
+                                          a_type_ptr           entity_type,
+                                          an_expr_node_ptr     num_elem_node,
+                                          a_routine_ptr        ctor_routine,
+                                          a_routine_ptr        dtor_routine,
+                                          a_routine_ptr        new_routine,
+                                          a_routine_ptr        delete_routine,
+                                          ARG_UNUSED a_boolean zero_storage)
 /*
 Make a call to a runtime routine (__vec_new or __array_new) that will
 allocate an array and call a constructor for each element of the
@@ -5797,14 +5787,12 @@ must NOT already be lowered (see comment in default_version_of_routine).
 }  /* add_array_constructor_call */
 
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- vtt_addr_node is not used in that case. */
-#endif /* !IA64_ABI */
-static void add_destructor_call(a_routine_ptr          dtor_routine,
-                                an_init_pos_descr_ptr  ipdp,
-                                a_boolean              have_complete_object,
-                                an_expr_node_ptr       vtt_addr_node,
-                                an_insert_location_ptr insert_location)
+static void add_destructor_call(
+                              a_routine_ptr               dtor_routine,
+                              an_init_pos_descr_ptr       ipdp,
+                              a_boolean                   have_complete_object,
+                              ARG_UNUSED an_expr_node_ptr vtt_addr_node,
+                              an_insert_location_ptr      insert_location)
 /*
 Make a call statement that invokes the destructor dtor_routine for
 the entity whose position is given by ipdp.  If the entity is a whole array,
@@ -6178,7 +6166,7 @@ aggregate_this_stack.
 }  /* push_aggregate_this */
 
 
-static void pop_aggregate_this()
+static void pop_aggregate_this(void)
 /*
 Pop the top entry from aggregate_this_stack.
 */
@@ -6461,8 +6449,9 @@ dealt with).
          "init node". */
       an_expr_node_ptr init_node = make_address_of_init_entity_node(ipdp,
                                                       /*using_as_dest=*/FALSE);
-      check_assertion(identical_types_ignoring_qualifiers(aggr_type,
-                                            type_pointed_to(init_node->type)));
+      check_assertion(f_identical_types(aggr_type,
+                                        type_pointed_to(init_node->type),
+                                        ITF_IGNORE_TOP_LEVEL_QUALIFIERS));
     }  /* if */
 #endif /* EXPENSIVE_CHECKING && CHECKING */
   }  /* if */
@@ -6960,21 +6949,12 @@ routine is invoked at program startup.
 
 #endif /* USE_PATCH_INIT_STARTUP */
 
-#if !ONE_INSTANTIATION_PER_OBJECT
-/*ARGSUSED*/ /* <-- needed_bit_number is not used in that case. */
-#endif /* !ONE_INSTANTIATION_PER_OBJECT */
-#if !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-/*ARGSUSED*/ /* <-- init_priority is not used in that case. */
-#endif /* !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-#if !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
-/*ARGSUSED*/ /* <-- unique_id is not used in that case. */
-#endif /* !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 static a_scope_ptr make_file_scope_init_or_term_routine(
                                  a_type_ptr                  param1_type,
-                                 unsigned long               needed_bit_number,
-                                 int                         init_priority,
+                                 ARG_UNUSED unsigned long    needed_bit_number,
+                                 ARG_UNUSED int              init_priority,
                                  a_const_char                *prefix,
-                                 unsigned long               unique_id,
+                                 ARG_UNUSED unsigned long    unique_id,
                                  a_boolean                   do_thread_local,
                                  an_insert_location_ptr      insert_location,
                                  a_memory_region_number      *il_region,
@@ -11344,6 +11324,7 @@ no temporary is needed; a copy is made.)
     if (arg_list == NULL) {
       arg_list = arg;
     } else {
+      check_assertion(end_arg_list != NULL);
       end_arg_list->next = arg;
     }  /* if */
     end_arg_list = arg;
@@ -14514,8 +14495,8 @@ designated initializers for base classes), but must process empty fields.
                     /* Allow a match if the class type is being used as a
                        subobject. */
                     class_has_been_prelowered(con_type) &&
-                    identical_types(subobject_for_class(con_type),
-                                    member_type)),
+                    f_identical_types(subobject_for_class(con_type),
+                                      member_type, ITF_NO_FLAGS)),
                    "lower_aggregate_designated_initializers: type mismatch");
       }
       last_con = con_pos.ptr;
@@ -14856,11 +14837,8 @@ the temporary variable.
 #define DEFINE_CONSTRUCTION_VTBLS_ARRAY_LINKAGE static
 #endif /* !IA64_ABI */
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- class_type is unused in that case. */
-#endif /* !IA64_ABI */
 DEFINE_CONSTRUCTION_VTBLS_ARRAY_LINKAGE
-void define_construction_vtbls_array(a_type_ptr              class_type,
+void define_construction_vtbls_array(ARG_UNUSED a_type_ptr   class_type,
                                      a_variable_ptr          var,
                                      a_construction_vtbl_ptr elements)
 /* 
@@ -14934,11 +14912,8 @@ given by the elements.
 }  /* define_construction_vtbls_array */
 
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- class_type is unused in that case. */
-#endif /* !IA64_ABI */
 static a_variable_ptr make_construction_vtbls_array(
-                                           a_type_ptr              class_type,
+                                           ARG_UNUSED a_type_ptr   class_type,
                                            a_construction_vtbl_ptr elements)
 /*
 Create an array whose initial value is an array of pointers to virtual
@@ -15335,16 +15310,11 @@ in define_default_version_of_routine (as an alternate entry point).
 
 #endif /* !IA64_ABI */
 
-#if IA64_ABI
-/*ARGSUSED*/  /* <-- ipdp and insert_location are not used in that case. */
-#else /* !IA64_ABI */
-/*ARGSUSED*/  /* <-- implied_arg_node is not used in that case. */
-#endif /* IA64_ABI */
 void build_construction_vtbls_pointer(
-                             a_destructible_entity_descr_ptr dedp,
-                             an_init_pos_descr               *ipdp,
-                             an_insert_location_ptr          insert_location,
-                             an_expr_node_ptr                *implied_arg_node)
+                           a_destructible_entity_descr_ptr   dedp,
+                           ARG_UNUSED an_init_pos_descr      *ipdp,
+                           ARG_UNUSED an_insert_location_ptr insert_location,
+                           ARG_UNUSED an_expr_node_ptr       *implied_arg_node)
 /*
 If the destructible entity description dedp says so (as determined
 by build_construction_vtbls_pointer_for_subobject_construction),
@@ -15385,19 +15355,15 @@ code is needed).
 #endif /* !IA64_ABI */
 }  /* build_construction_vtbls_pointer */
 
-#if IA64_ABI
-/*ARGSUSED*/  /* <-- ipdp and insert_location are not used in that case. */
-#else /* !IA64_ABI */
-/*ARGSUSED*/  /* <-- implied_arg_node is not used in that case. */
-#endif /* IA64_ABI */
+
 static void build_construction_vtbls_pointer_for_subobject_construction(
-                                 a_dynamic_init_ptr     dip,
-                                 a_base_class_ptr       base_class,
-                                 an_init_pos_descr      *ipdp,
-                                 a_variable_ptr         construction_vtbls_var,
-                                 an_insert_location_ptr insert_location,
-                                 an_expr_node_ptr       *implied_arg_node,
-                                 a_boolean              *just_test)
+                      a_dynamic_init_ptr                dip,
+                      a_base_class_ptr                  base_class,
+                      ARG_UNUSED an_init_pos_descr      *ipdp,
+                      a_variable_ptr                    construction_vtbls_var,
+                      ARG_UNUSED an_insert_location_ptr insert_location,
+                      ARG_UNUSED an_expr_node_ptr       *implied_arg_node,
+                      a_boolean                         *just_test)
 /*
 We are about to generate a call of a constructor or destructor for a
 base class subobject, as part of a constructor or destructor for a larger
@@ -15564,15 +15530,12 @@ are inserted at *insert_location, and *insert_location is updated.
 }  /* lower_ctor_init */
 
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- ctor_vtbl_var is not used in that case. */
-#endif /* !IA64_ABI */
-static
-void insert_primary_vtbl_assignment(a_type_ptr             class_type,
-                                    a_variable_ptr         this_param_var,
-                                    a_variable_ptr         ctor_vtbl_var,
-                                    a_constant_ptr         aggr_con,
-                                    an_insert_location_ptr insert_location)
+static void insert_primary_vtbl_assignment(
+                                    a_type_ptr                class_type,
+                                    a_variable_ptr            this_param_var,
+                                    ARG_UNUSED a_variable_ptr ctor_vtbl_var,
+                                    a_constant_ptr            aggr_con,
+                                    an_insert_location_ptr    insert_location)
 /*
 If class_type has a virtual function table, set the vptr in the object pointed
 to by this_param_var to that virtual function table.  If ctor_vtbl_var
@@ -15617,15 +15580,12 @@ the __vptr field.
 }  /* insert_primary_vtbl_assignment */
 
 
-#if !DO_FULL_PORTABLE_EH_LOWERING
-/*ARGSUSED*/ /* <-- complete_var_handle is not used in that case. */
-#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
 static void add_virtual_base_init_code(
-                                     a_scope_ptr        scope,
-                                     a_variable_ptr     complete_var,
-                                     a_handle_number    complete_var_handle,
-                                     a_variable_ptr     construction_vtbls_var,
-                                     an_insert_location *insert_location)
+                             a_scope_ptr                scope,
+                             a_variable_ptr             complete_var,
+                             ARG_UNUSED a_handle_number complete_var_handle,
+                             a_variable_ptr             construction_vtbls_var,
+                             an_insert_location         *insert_location)
 /*
 This routine emits initialization code for virtual base classes; it is called
 during construction of the complete object constructor or the subobject
@@ -16685,15 +16645,12 @@ constructor scope, and also lower the user code.
 }  /* lower_constructor_code */
 
 
-#if !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
-/*ARGSUSED*/ /* <-- destruction_vtbls_var is not used in that case. */
-#endif /* !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
-static void lower_dtor_init(a_constructor_init_ptr ctor_init,
-                            a_variable_ptr         this_param_var,
-                            a_boolean              have_complete_object,
-                            a_boolean              base_of_complete_object,
-                            a_variable_ptr         destruction_vtbls_var,
-                            an_insert_location_ptr insert_location)
+static void lower_dtor_init(a_constructor_init_ptr    ctor_init,
+                            a_variable_ptr            this_param_var,
+                            a_boolean                 have_complete_object,
+                            a_boolean                 base_of_complete_object,
+                            ARG_UNUSED a_variable_ptr destruction_vtbls_var,
+                            an_insert_location_ptr    insert_location)
 /*
 Generate code to implement the constructor_init entry pointed to by ctor_init,
 one that appears on the constructor_init list for a destructor.
@@ -16893,11 +16850,8 @@ points to an int variable that is non-zero if the object is complete.
 
 #endif /* HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
 
-#if !GENERATE_EH_TABLES
-/*ARGSUSED*/  /* <-- prologue_insert_location is not used in some versions. */
-#endif /* !GENERATE_EH_TABLES */
 static void gen_dtor_member_and_base_destructions(
-                     an_insert_location              *prologue_insert_location,
+                     ARG_UNUSED an_insert_location   *prologue_insert_location,
                      a_destructor_wrapper_info_block *dtor_info)
 /*
 The current function is a destructor.  Generate code to destroy bases
@@ -18090,10 +18044,9 @@ has not yet been defined, it is created here.
 
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 
-/*ARGSUSED*/  /* <-- tblock is not used. */
 static void set_dynamic_init_included_in_slice(
-                                    a_dynamic_init_ptr                  dip,
-                                    an_expr_or_stmt_traversal_block_ptr tblock)
+                         a_dynamic_init_ptr                             dip,
+                         ARG_UNUSED an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 Called from the expression traversal routines.  Set the included_in_slice
 flag in the indicated dynamic initialization entry.
@@ -18132,15 +18085,12 @@ static a_routine_list_entry_ptr
 #endif /* !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 
-#if !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
-/*ARGSUSED*/ /* more_matching_inits is not used in that case. */
-#endif /* !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 static void b_lower_file_scope_dynamic_inits(
-                                      unsigned long       needed_bit_number,
-                                      int                 init_priority,
-                                      a_boolean           do_single_init,
-                                      a_boolean           do_thread_local,
-                                      a_boolean           *more_matching_inits)
+                                     unsigned long        needed_bit_number,
+                                     int                  init_priority,
+                                     a_boolean            do_single_init,
+                                     a_boolean            do_thread_local,
+                                     ARG_UNUSED a_boolean *more_matching_inits)
 /*
 Do lowering on the file-scope dynamic initializations list.  Determine the set
 of file-scope dynamic initializations that match the input criteria (described
@@ -19296,6 +19246,7 @@ Note: this is called when lowering C and C++.
     if (arg_list == NULL) {
       arg_list = pass_through_arg;
     } else {
+      check_assertion(end_arg_list != NULL);
       end_arg_list->next = pass_through_arg;
     }  /* if */
     end_arg_list = pass_through_arg;
@@ -19399,7 +19350,7 @@ static a_routine_ptr
                 builtin_cpu_supports_routine;
 
 
-static void create_builtin_cpu_routines()
+static void create_builtin_cpu_routines(void)
 /*
 Initialize the builtin_cpu_*_routine variables (if necessary).  Note that these
 builtins were loaded during "target" attribute processing (it's unlikely that
