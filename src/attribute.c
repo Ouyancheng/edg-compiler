@@ -971,7 +971,7 @@ in diagnostic messages that may be delayed).
     result = (a_const_char*)copy_string_of_length_to_region(
                                                        FRONT_END_REGION_NUMBER,
                                                        buffer,
-                                                       (size_t)ret);
+                                                       (sizeof_t)(long)ret);
   }  /* if */
   if (result == NULL) {
     /* The attribute has no name.  This routine is often used to display
@@ -1182,12 +1182,9 @@ Initialize the attribute name map.
 }  /* init_attr_name_map */
 
 
-#if !CHECKING
-/*ARGSUSED*/  /* ap is not used in some configurations. */
-#endif /* !CHECKING */
-static a_boolean in_attr_cond_range(unsigned long     version,
-                                    a_const_char      **cond_range,
-                                    an_attribute_ptr  ap)
+static a_boolean in_attr_cond_range(unsigned long               version,
+                                    a_const_char                **cond_range,
+                                    ARG_UNUSED an_attribute_ptr ap)
 /*
 *cond_range is a "version range" portion of the cond string in an attribute
 description entry (an_attr_descr) for the given attribute.  Return TRUE if
@@ -1223,12 +1220,10 @@ exists).
 }  /* in_attr_cond_range */
 
 
-#if !CHECKING
-/*ARGSUSED*/  /* ap is not used in some configurations. */
-#endif /* !CHECKING */
-static a_boolean attribute_condition_satisfied(unsigned long     version,
-                                               a_const_char      *str,
-                                               an_attribute_ptr  ap)
+static a_boolean attribute_condition_satisfied(
+                                           unsigned long               version,
+                                           a_const_char                *str,
+                                           ARG_UNUSED an_attribute_ptr ap)
 /*
 str is the beginning of the primary version range in the condition string in
 the description entry (an_attr_descr) for the given attribute.  version is
@@ -2939,10 +2934,10 @@ attribute ap applied to the given routine matches those constraints.
 }  /* check_simple_routine_constraints */
 
 
-/*ARGSUSED*/
-static void check_simple_statement_constraints(a_const_char      *constr,
-                                               an_attribute_ptr  ap,
-                                               a_statement_ptr   statement)
+static void check_simple_statement_constraints(
+                                         a_const_char                *constr,
+                                         ARG_UNUSED an_attribute_ptr ap,
+                                         ARG_UNUSED a_statement_ptr  statement)
 /*
 constr encodes a simple target constraint for a statement.  Check that the
 attribute ap applied to the given statement matches those constraints.
@@ -3054,10 +3049,10 @@ attribute ap applied to the given variable matches those constraints.
 }  /* check_simple_variable_constraints */
 
 
-/*ARGSUSED*/
-static void check_simple_parameter_constraints(a_const_char      *constr,
-                                               an_attribute_ptr  ap,
-                                               a_param_type_ptr  ptp)
+static void check_simple_parameter_constraints(
+                                           a_const_char                *constr,
+                                           ARG_UNUSED an_attribute_ptr ap,
+                                           ARG_UNUSED a_param_type_ptr ptp)
 /*
 constr encodes a simple target constraint for a parameter.  Check that the
 attribute ap applied to the parameter represented by ptp matches those
@@ -3068,10 +3063,9 @@ constraints.
 }  /* check_simple_parameter_constraints */
 
 
-/*ARGSUSED*/
-static void check_simple_label_constraints(a_const_char      *constr,
-                                           an_attribute_ptr  ap,
-                                           a_label_ptr       label)
+static void check_simple_label_constraints(a_const_char                *constr,
+                                           ARG_UNUSED an_attribute_ptr ap,
+                                           ARG_UNUSED a_label_ptr      label)
 /*
 constr encodes a simple target constraint for a label.  Check that the
 attribute ap applied to the given label matches those constraints.
@@ -3081,10 +3075,10 @@ attribute ap applied to the given label matches those constraints.
 }  /* check_simple_label_constraints */
 
 
-/*ARGSUSED*/
-static void check_simple_namespace_constraints(a_const_char      *constr,
-                                               an_attribute_ptr  ap,
-                                               a_namespace_ptr   nsp)
+static void check_simple_namespace_constraints(
+                                           a_const_char                *constr,
+                                           ARG_UNUSED an_attribute_ptr ap,
+                                           ARG_UNUSED a_namespace_ptr  nsp)
 /*
 constr encodes a simple target constraint for a namespace.  Check that the
 attribute ap applied to the given namespace matches those constraints.
@@ -3094,10 +3088,10 @@ attribute ap applied to the given namespace matches those constraints.
 }  /* check_simple_namespace_constraints */
 
 
-/*ARGSUSED*/
-static void check_simple_using_decl_constraints(a_const_char      *constr,
-                                                an_attribute_ptr  ap,
-                                                a_using_decl_ptr  udp)
+static void check_simple_using_decl_constraints(
+                                           a_const_char                *constr,
+                                           ARG_UNUSED an_attribute_ptr ap,
+                                           ARG_UNUSED a_using_decl_ptr udp)
 /*
 constr encodes a simple target constraint for an entry of type a_using_decl.
 Check that the attribute ap applied to the entry pointed to by udp matches
@@ -3108,10 +3102,10 @@ those constraints.
 }  /* check_simple_using_decl_constraints */
 
 
-/*ARGSUSED*/
-static void check_simple_constant_constraints(a_const_char      *constr,
-                                              an_attribute_ptr  ap,
-                                              a_constant_ptr    cp)
+static void check_simple_constant_constraints(
+                                           a_const_char                *constr,
+                                           ARG_UNUSED an_attribute_ptr ap,
+                                           ARG_UNUSED a_constant_ptr   cp)
 /*
 constr encodes a simple target constraint for a constant.  Check that the
 attribute ap applied to the given constant matches those constraints.
@@ -3795,11 +3789,8 @@ if a substitution error occurs.
 }  /* substitute_attribute_arg_type */
 
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* kind is not used in some configurations. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
 static a_boolean attribute_applies_to_partial_instantiation(
-                                                        an_attribute_kind kind)
+                                             ARG_UNUSED an_attribute_kind kind)
 /*
 Returns TRUE if the specified attribute kind applies to a partial
 instantiation.
@@ -4479,10 +4470,9 @@ of the ratified C++11 standard.  A warning is issued in strict mode.
 }  /* issue_warning_for_removed_attribute */
 
 
-/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
-static char* apply_base_check_attr(an_attribute_ptr  ap,
-                                   char              *entity,
-                                   an_il_entry_kind  entity_kind)
+static char* apply_base_check_attr(ARG_UNUSED an_attribute_ptr ap,
+                                   char                        *entity,
+                                   an_il_entry_kind            entity_kind)
 /*
 The given entity must be a class type.  Apply the "base_check" attribute to it
 and return entity.  (The "checking" implied by "base_check" is delayed until
@@ -4843,10 +4833,9 @@ C++11 standard.
 }  /* apply_final_attr */
 
 
-/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
-static char* apply_hiding_attr(an_attribute_ptr  ap,
-                               char              *entity,
-                               an_il_entry_kind  entity_kind)
+static char* apply_hiding_attr(an_attribute_ptr            ap,
+                               char                        *entity,
+                               ARG_UNUSED an_il_entry_kind entity_kind)
 /*
 Check that the "hiding" attribute appears in a class definition.  Additional
 checking is delayed until the definition is complete (because later member
@@ -5158,10 +5147,10 @@ attribute currently has no effect in the front end.
 }  /* apply_likely_attr */
 
 
-/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
-static char* apply_no_unique_address_attr(an_attribute_ptr  ap,
-                                          char              *entity,
-                                          an_il_entry_kind  entity_kind)
+static char* apply_no_unique_address_attr(
+                                       ARG_UNUSED an_attribute_ptr ap,
+                                       char                        *entity,
+                                       an_il_entry_kind            entity_kind)
 /*
 Apply the "no_unique_address" attribute to the field and return that entity.
 */
@@ -5237,10 +5226,9 @@ to it and return the entity.
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 #if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
-/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
-static char* apply_naked_attr(an_attribute_ptr  ap,
-                              char              *entity,
-                              an_il_entry_kind  entity_kind)
+static char* apply_naked_attr(ARG_UNUSED an_attribute_ptr ap,
+                              char                        *entity,
+                              an_il_entry_kind            entity_kind)
 /*
 Apply the GNU or Microsoft "naked" attribute to the given entity and return
 that entity.
@@ -5305,10 +5293,9 @@ done:
 }  /* apply_nothrow_attr */
 
 
-/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
-static char* apply_pure_attr(an_attribute_ptr  ap,
-                             char              *entity,
-                             an_il_entry_kind  entity_kind)
+static char* apply_pure_attr(ARG_UNUSED an_attribute_ptr ap,
+                             char                        *entity,
+                             an_il_entry_kind            entity_kind)
 /*
 Apply the "pure" attribute to the specified entity (which must be a routine).
 */
@@ -5492,10 +5479,9 @@ For example:
 }  /* apply_alloc_size_attr */
 
 
-/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
-static char* apply_always_inline_attr(an_attribute_ptr  ap,
-                                      char              *entity,
-                                      an_il_entry_kind  entity_kind)
+static char* apply_always_inline_attr(ARG_UNUSED an_attribute_ptr ap,
+                                      char                        *entity,
+                                      an_il_entry_kind            entity_kind)
 /*
 The given entity must be a routine.  Apply the GNU "always_inline" attribute
 to it and return the entity.
@@ -5555,10 +5541,9 @@ Apply the GNU "cdecl" attribute to the given entity and return that entity.
 
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
 
-/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
-static char* apply_cleanup_attr(an_attribute_ptr  ap,
-                                char              *entity,
-                                an_il_entry_kind  entity_kind)
+static char* apply_cleanup_attr(ARG_UNUSED an_attribute_ptr ap,
+                                char                        *entity,
+                                ARG_UNUSED an_il_entry_kind entity_kind)
 /*
 The given entity must be a variable or parameter.  Apply the GNU "cleanup"
 attribute to it and return the entity.
@@ -5638,10 +5623,9 @@ attribute to it and return the entity.
 }  /* apply_cleanup_attr */
 
 
-/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
-static char* apply_common_attr(an_attribute_ptr  ap,
-                               char              *entity,
-                               an_il_entry_kind  entity_kind)
+static char* apply_common_attr(ARG_UNUSED an_attribute_ptr ap,
+                               char                        *entity,
+                               an_il_entry_kind            entity_kind)
 /*
 Apply the given "common" attribute to the given entity (which must be a
 variable) and return the entity.
@@ -6151,10 +6135,9 @@ a class type, routine, or variable) and return entity.
 }  /* apply_internal_linkage_attr */
 
 
-/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
-static char* apply_malloc_attr(an_attribute_ptr  ap,
-                               char              *entity,
-                               an_il_entry_kind  entity_kind)
+static char* apply_malloc_attr(ARG_UNUSED an_attribute_ptr ap,
+                               char                        *entity,
+                               an_il_entry_kind            entity_kind)
 /*
 The given entity must be a function.  Apply the GNU "malloc" attribute to it
 and return the entity.
@@ -6479,10 +6462,10 @@ doesn't apply to the given type, issue an error and return an error type.
 }  /* apply_mode_attr */
 
 
-/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
-static char* apply_no_instrument_function_attr(an_attribute_ptr  ap,
-                                               char              *entity,
-                                               an_il_entry_kind  entity_kind)
+static char* apply_no_instrument_function_attr(
+                                       ARG_UNUSED an_attribute_ptr ap,
+                                       char                        *entity,
+                                       ARG_UNUSED an_il_entry_kind entity_kind)
 /*
 The given entity must be a function.  Apply the GNU "no_instrument_function"
 attribute to it and return the entity.
@@ -6494,10 +6477,10 @@ attribute to it and return the entity.
 }  /* apply_no_instrument_function_attr */
 
 
-/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
-static char* apply_no_check_memory_usage_attr(an_attribute_ptr  ap,
-                                              char              *entity,
-                                              an_il_entry_kind  entity_kind)
+static char* apply_no_check_memory_usage_attr(
+                                       ARG_UNUSED an_attribute_ptr ap,
+                                       char                        *entity,
+                                       ARG_UNUSED an_il_entry_kind entity_kind)
 /*
 The given entity must be a function.  Apply the GNU "no_check_memory_usage"
 attribute to it and return the entity.
@@ -6509,10 +6492,9 @@ attribute to it and return the entity.
 }  /* apply_no_check_memory_usage_attr */
 
 
-/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
-static char* apply_nocommon_attr(an_attribute_ptr  ap,
-                                 char              *entity,
-                                 an_il_entry_kind  entity_kind)
+static char* apply_nocommon_attr(ARG_UNUSED an_attribute_ptr ap,
+                                 char                        *entity,
+                                 ARG_UNUSED an_il_entry_kind entity_kind)
 /*
 Apply the given "nocommon" attribute to the given entity (which must be a
 variable) and return the entity.
@@ -6611,10 +6593,9 @@ entity.
 }  /* apply_nonnull_attr */
 
 
-/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
-static char* apply_packed_attr(an_attribute_ptr  ap,
-                               char              *entity,
-                               an_il_entry_kind  entity_kind)
+static char* apply_packed_attr(ARG_UNUSED an_attribute_ptr ap,
+                               char                        *entity,
+                               an_il_entry_kind            entity_kind)
 /*
 Apply the given GNU "packed" attribute to the given entity and return that
 entity.
@@ -7236,10 +7217,9 @@ attribute to it and return the entity.
 }  /* apply_transparent_union_attr */
 
 
-/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
-static char* apply_unused_attr(an_attribute_ptr  ap,
-                               char              *entity,
-                               an_il_entry_kind  entity_kind)
+static char* apply_unused_attr(ARG_UNUSED an_attribute_ptr ap,
+                               char                        *entity,
+                               an_il_entry_kind            entity_kind)
 /*
 Apply the given "unused" attribute to the given entity (and return that
 entity).
@@ -7266,10 +7246,9 @@ entity).
 }  /* apply_unused_attr */
 
 
-/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
-static char* apply_used_attr(an_attribute_ptr  ap,
-                             char              *entity,
-                             an_il_entry_kind  entity_kind)
+static char* apply_used_attr(ARG_UNUSED an_attribute_ptr ap,
+                             char                        *entity,
+                             an_il_entry_kind            entity_kind)
 /*
 Apply the given "used" attribute to the given entity (and return that entity).
 */
@@ -7776,10 +7755,9 @@ that entity.  See also the "nodiscard" standard attribute, which is similar.
 }  /* apply_warn_unused_result_attr */
 
 
-/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
-static char* apply_weak_attr(an_attribute_ptr  ap,
-                             char              *entity,
-                             an_il_entry_kind  entity_kind)
+static char* apply_weak_attr(ARG_UNUSED an_attribute_ptr ap,
+                             char                        *entity,
+                             an_il_entry_kind            entity_kind)
 /*
 Apply the GNU "weak" attribute to the given entity and return that entity.
 */
@@ -8163,10 +8141,9 @@ done:;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
-static char* apply_appdomain_attr(an_attribute_ptr  ap,
-                                  char              *entity,
-                                  an_il_entry_kind  entity_kind)
+static char* apply_appdomain_attr(an_attribute_ptr            ap,
+                                  char                        *entity,
+                                  ARG_UNUSED an_il_entry_kind entity_kind)
 /*
 Apply the Microsoft __declspec(appdomain) attribute to the given entity
 (and return that entity).
@@ -8360,10 +8337,10 @@ turns it into an pin pointer to T.
 }  /* apply_edg_pin_ptr_alias_attr */
 
 
-/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
-static char* apply_implementation_key_attr(an_attribute_ptr  ap,
-                                           char              *entity,
-                                           an_il_entry_kind  entity_kind)
+static char* apply_implementation_key_attr(
+                                       an_attribute_ptr            ap,
+                                       char                        *entity,
+                                       ARG_UNUSED an_il_entry_kind entity_kind)
 /*
 Check the Microsoft __declspec(implementation_key) attribute (it isn't really
 "applied" to the given entity).  Return the given entity.
@@ -8377,10 +8354,9 @@ Check the Microsoft __declspec(implementation_key) attribute (it isn't really
 }  /* apply_implementation_key_attr */
 
 
-/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
-static char* apply_intrin_type_attr(an_attribute_ptr  ap,
-                                    char              *entity,
-                                    an_il_entry_kind  entity_kind)
+static char* apply_intrin_type_attr(ARG_UNUSED an_attribute_ptr ap,
+                                    char                        *entity,
+                                    ARG_UNUSED an_il_entry_kind entity_kind)
 /*
 Apply the Microsoft __declspec(intrin_type) attribute to the given entity (and
 return that entity).
@@ -8392,10 +8368,9 @@ return that entity).
 }  /* apply_intrin_type_attr */
 
 
-/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
-static char* apply_jitintrinsic_attr(an_attribute_ptr  ap,
-                                     char              *entity,
-                                     an_il_entry_kind  entity_kind)
+static char* apply_jitintrinsic_attr(an_attribute_ptr            ap,
+                                     char                        *entity,
+                                     ARG_UNUSED an_il_entry_kind entity_kind)
 /*
 Apply the Microsoft __declspec(jitintrinsic) attribute to the given entity
 (and return that entity).
@@ -8410,10 +8385,9 @@ Apply the Microsoft __declspec(jitintrinsic) attribute to the given entity
 }  /* apply_jitintrinsic_attr */
 
 
-/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
-static char* apply_noalias_attr(an_attribute_ptr  ap,
-                                char              *entity,
-                                an_il_entry_kind  entity_kind)
+static char* apply_noalias_attr(ARG_UNUSED an_attribute_ptr ap,
+                                char                        *entity,
+                                ARG_UNUSED an_il_entry_kind entity_kind)
 /*
 Apply the Microsoft __declspec(noalias) attribute to the given entity (and
 return that entity).
@@ -8425,11 +8399,9 @@ return that entity).
 }  /* apply_noalias_attr */
 
 
-/*ARGSUSED*/  /* ap and entity_kind are unused (but required by the callback
-                 type). */
-static char* apply_non_user_code_attr(an_attribute_ptr  ap,
-                                      char              *entity,
-                                      an_il_entry_kind  entity_kind)
+static char* apply_non_user_code_attr(ARG_UNUSED an_attribute_ptr ap,
+                                      char                        *entity,
+                                      ARG_UNUSED an_il_entry_kind entity_kind)
 /*
 Apply the Microsoft __declspec(non_user_code) attribute to the given entity
 (and return that entity).
@@ -8439,10 +8411,9 @@ Apply the Microsoft __declspec(non_user_code) attribute to the given entity
 }  /* apply_non_user_code_attr */
 
 
-/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
-static char* apply_novtable_attr(an_attribute_ptr  ap,
-                                 char              *entity,
-                                 an_il_entry_kind  entity_kind)
+static char* apply_novtable_attr(ARG_UNUSED an_attribute_ptr ap,
+                                 char                        *entity,
+                                 ARG_UNUSED an_il_entry_kind entity_kind)
 /*
 Apply the Microsoft __declspec(novtable) attribute to the given entity (and
 return that entity).
@@ -8456,10 +8427,9 @@ return that entity).
 }  /* apply_novtable_attr */
 
 
-/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
-static char* apply_process_attr(an_attribute_ptr  ap,
-                                char              *entity,
-                                an_il_entry_kind  entity_kind)
+static char* apply_process_attr(an_attribute_ptr            ap,
+                                char                        *entity,
+                                ARG_UNUSED an_il_entry_kind entity_kind)
 /*
 Apply the Microsoft __declspec(process) attribute to the given entity
 (and return that entity).
@@ -8592,10 +8562,9 @@ stream.
 }  /* apply_property_attr */
 
 
-/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
-static char* apply_restrict_attr(an_attribute_ptr  ap,
-                                 char              *entity,
-                                 an_il_entry_kind  entity_kind)
+static char* apply_restrict_attr(an_attribute_ptr            ap,
+                                 char                        *entity,
+                                 ARG_UNUSED an_il_entry_kind entity_kind)
 /*
 Apply the Microsoft __declspec(restrict) attribute to the given entity (and
 return that entity).
@@ -8613,10 +8582,9 @@ return that entity).
 }  /* apply_restrict_attr */
 
 
-/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
-static char* apply_safebuffers_attr(an_attribute_ptr  ap,
-                                    char              *entity,
-                                    an_il_entry_kind  entity_kind)
+static char* apply_safebuffers_attr(an_attribute_ptr            ap,
+                                    char                        *entity,
+                                    ARG_UNUSED an_il_entry_kind entity_kind)
 /*
 Apply the Microsoft __declspec(safebuffers) attribute to the given entity (and
 return that entity).
@@ -8630,10 +8598,9 @@ return that entity).
 }  /* apply_safebuffers_attr */
 
 
-/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
-static char* apply_selectany_attr(an_attribute_ptr  ap,
-                                  char              *entity,
-                                  an_il_entry_kind  entity_kind)
+static char* apply_selectany_attr(an_attribute_ptr            ap,
+                                  char                        *entity,
+                                  ARG_UNUSED an_il_entry_kind entity_kind)
 /*
 Apply the Microsoft __declspec(selectany) attribute to the given entity (and
 return that entity).
@@ -8657,10 +8624,9 @@ return that entity).
 
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
 
-/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
-static char* apply_thread_attr(an_attribute_ptr  ap,
-                               char              *entity,
-                               an_il_entry_kind  entity_kind)
+static char* apply_thread_attr(an_attribute_ptr            ap,
+                               char                        *entity,
+                               ARG_UNUSED an_il_entry_kind entity_kind)
 /*
 Apply the Microsoft __declspec(thread) attribute to the given entity (and
 return that entity).
@@ -8733,10 +8699,9 @@ return that entity).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_EDG_TEST_ATTRIBUTES
 
-/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
-static char* apply_edg_e1_attr(an_attribute_ptr  ap,
-                               char              *entity,
-                               an_il_entry_kind  entity_kind)
+static char* apply_edg_e1_attr(an_attribute_ptr            ap,
+                               char                        *entity,
+                               ARG_UNUSED an_il_entry_kind entity_kind)
 /*
 A test attribute that triggers an error in all contexts (it has no other
 effect).
@@ -8747,10 +8712,9 @@ effect).
 }  /* apply_edg_e1_attr */
 
 
-/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
-static char* apply_edg_n1_attr(an_attribute_ptr  ap,
-                               char              *entity,
-                               an_il_entry_kind  entity_kind)
+static char* apply_edg_n1_attr(an_attribute_ptr            ap,
+                               char                        *entity,
+                               ARG_UNUSED an_il_entry_kind entity_kind)
 /*
 A test attribute that triggers an error if it appears outside of namespace
 scope (it has no other effect).
@@ -9303,13 +9267,13 @@ process_alias_fixup_list.
 #if DEBUG
     pragma_extname_string_space += pragma_len;
 #endif /* DEBUG */
-    /*lint --e(668)*/(void)memcpy(ppp->pragma_text, "redefine_extname ",
-                                  size_t_arg(prefix_len));
-    /*lint --e(668)*/(void)memcpy(ppp->pragma_text+prefix_len, src_name,
-                                  size_t_arg(src_name_len));
+    /*lint -e(668)*/(void)memcpy(ppp->pragma_text, "redefine_extname ",
+                                 size_t_arg(prefix_len));
+    /*lint -e(668)*/(void)memcpy(ppp->pragma_text+prefix_len, src_name,
+                                 size_t_arg(src_name_len));
     ppp->pragma_text[prefix_len+src_name_len] = ' ';
-    /*lint --e(668)*/(void)memcpy(ppp->pragma_text+prefix_len+src_name_len+1,
-                                  asm_name, size_t_arg(asm_name_len+1));
+    /*lint -e(668)*/(void)memcpy(ppp->pragma_text+prefix_len+src_name_len+1,
+                                 asm_name, size_t_arg(asm_name_len+1));
     /* Record the pragma in the IL. */
     create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
   }  /* if */
@@ -9746,6 +9710,7 @@ attributes from new_list are applied to tssp->attributes.
         if (added_head == NULL) {
           added_head = new_ap;
         } else {
+          check_assertion(added_tail != NULL);
           added_tail->next = new_ap;
         }  /* if */
         added_tail = new_ap;

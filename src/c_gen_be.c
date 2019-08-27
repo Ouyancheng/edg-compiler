@@ -988,8 +988,8 @@ complete token.  This is the non-macro version.
 /*
 Write a space to the output file.
 */
-#define write_space() write_ch(' ');
-#define m_write_space() m_write_ch(' ');
+#define write_space() write_ch(' ')
+#define m_write_space() m_write_ch(' ')
 
 
 /*
@@ -1013,9 +1013,9 @@ complete token.  This is the non-macro version.
 }  /* write_str */
 
 
-/*ARGSUSED*/ /* local_octl is not used. */
-static void write_str_octl(a_const_char                          *str,
-                           an_il_to_str_output_control_block_ptr local_octl)
+static void write_str_octl(
+                   a_const_char                                     *str,
+                   ARG_UNUSED an_il_to_str_output_control_block_ptr local_octl)
 /*
 Version of write_str intended to be called by the il-to-str routines.
 */
@@ -1085,10 +1085,9 @@ This is the non-macro version.
 }  /* write_tok_str */
 
 
-/*ARGSUSED*/ /* local_octl is not used. */
 static void write_tok_str_octl(
-                              a_const_char                          *str,
-                              an_il_to_str_output_control_block_ptr local_octl)
+                   a_const_char                                     *str,
+                   ARG_UNUSED an_il_to_str_output_control_block_ptr local_octl)
 /*
 Version of write_tok_str intended to be called by the il-to-str routines.
 */
@@ -1246,13 +1245,13 @@ written (to comment out unreferenced code when doing annotations, presumably).
 /*
 Start a comment, unless we're already inside one.
 */
-#define start_comment() if (!in_comment++) write_str("/*");
+#define start_comment() if (!in_comment++) write_str("/*")
 
 
 /*
 End a comment, for real if we're at the outermost level.
 */
-#define end_comment() if (!--in_comment) write_str("*/");
+#define end_comment() if (!--in_comment) write_str("*/")
 
 
 static a_boolean start_unreferenced_bracket(
@@ -2320,20 +2319,17 @@ Do any desirable consistency checks on the indicated type.
 #endif /* CHECKING */
 
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- rout is not used in this case. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
 static void dump_general_declaration_using_type(
-                                      a_type_ptr              type,
-                                      a_source_correspondence *scp,
-                                      a_variable_ptr          var,
-                                      a_routine_ptr           rout,
-                                      a_field_ptr             field,
-                                      char                    *temp,
-                                      a_const_char            *name,
-                                      a_type_qualifier_set    added_qualifiers,
-                                      a_boolean               suppress_const,
-                                      uint32_t                counter)
+                                     a_type_ptr               type,
+                                     a_source_correspondence  *scp,
+                                     a_variable_ptr           var,
+                                     ARG_UNUSED a_routine_ptr rout,
+                                     a_field_ptr              field,
+                                     char                     *temp,
+                                     a_const_char             *name,
+                                     a_type_qualifier_set     added_qualifiers,
+                                     a_boolean                suppress_const,
+                                     uint32_t                 counter)
 /*
 Output a declaration built around a type.  "type" gives the type.  The rest
 of the arguments specify the name, if any, to be placed in the middle of
@@ -2978,7 +2974,7 @@ Dump out declarations to describe padding after the indicated bit field,
 which has a declared size that is larger than its base type.
 */
 {
-  uint32_t     padding = field->declared_bit_size - field->bit_size;
+  uint32_t     padding = (uint32_t)field->declared_bit_size - field->bit_size;
   uint32_t     bits = field->offset_bit_remainder + field->bit_size;
   a_const_char *bf_type;
 
@@ -3255,7 +3251,7 @@ field.
     /* Link at the end. */
     last_name_prefix_component->next = pfxp;
   }  /* if */
-  last_name_prefix_component = pfxp;
+  last_name_prefix_component = pfxp /*lint !e733*/;
   pfxp->next = NULL;
   pfxp->prev_subobject_offset = subobject_offset;
   subobject_offset += field->offset;
@@ -4018,7 +4014,7 @@ with a routine.
     /* Cfront-like ABI: The encoding is the original name, two
        underscores, the mangled name of the routine, and "__Lnn" where
        "nn" is the scope number. */
-    (void)sprintf(buffer, "__L%lu", (unsigned long)scope_number);
+    (void)sprintf(buffer, "__L%lu", (unsigned long)(long)scope_number);
     mangled_name_length = name_length + 2 + routine_name_length +
                           strlen(buffer);
 #else /* IA64_ABI */
@@ -6020,7 +6016,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case eok_padd:
           pointer_arithmetic_op = TRUE;
-          /*FALLTHROUGH*/
+          FALLTHROUGH
         case eok_add:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_fjadd:
@@ -6031,7 +6027,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_psubtract:
         case eok_pdiff:
           pointer_arithmetic_op = TRUE;
-          /*FALLTHROUGH*/
+          FALLTHROUGH
         case eok_subtract:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_fjsubtract:
@@ -6057,7 +6053,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
 #if C99_IL_EXTENSIONS_SUPPORTED
-          /*FALLTHROUGH*/
+          FALLTHROUGH
         case eok_jdivide:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
           opstr = "/";
@@ -6113,13 +6109,13 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto process_assignment;
         case eok_padd_assign:
           pointer_arithmetic_op = TRUE;
-          /*FALLTHROUGH*/
+          FALLTHROUGH
         case eok_add_assign:
           opstr = "+=";
           goto process_assignment;
         case eok_psubtract_assign:
           pointer_arithmetic_op = TRUE;
-          /*FALLTHROUGH*/
+          FALLTHROUGH
         case eok_subtract_assign:
           opstr = "-=";
           goto process_assignment;
@@ -6844,7 +6840,7 @@ sizeof_cases:
           break;
         case leck_unreachable_cleanup_state:
           write_tok_str("(unreachable) ");
-          /* FALLTHROUGH */
+          FALLTHROUGH
         case leck_cleanup_state:
           write_tok_str("cleanup_state");
           write_tok_str(" = ");
@@ -7152,10 +7148,7 @@ IL lowering.
            strlen(IL_LOWERING_INIT_ROUTINE_PREFIX)) == 0)
 
 
-#if C_GEN_BE_GENERATES_ANSI_C && !USE_INIT_SECTION_IN_GENERATED_C
-/*ARGSUSED*/ /* <-- routine is not used in all configurations. */
-#endif /* C_GEN_BE_GENERATES_ANSI_C && !USE_INIT_SECTION_IN_GENERATED_C */
-static void dump_rout_initializations(a_routine_ptr routine)
+static void dump_rout_initializations(ARG_UNUSED a_routine_ptr routine)
 /*
 Dump any initializations for the routine "routine" that must be rendered
 as assignment statements (see dump_initializer).  routine == NULL if
@@ -7313,11 +7306,8 @@ derived class, in which case variable will be NULL.
 }  /* dump_var_for_init */
 
 
-#if C_GEN_BE_GENERATES_ANSI_C
-/*ARGSUSED*/ /* <-- variable is only used when generating K&R C. */
-#endif /* C_GEN_BE_GENERATES_ANSI_C */
-static void set_init_file(a_variable_ptr variable,
-                          FILE           **prev_f_C_output)
+static void set_init_file(ARG_UNUSED a_variable_ptr variable,
+                          FILE                      **prev_f_C_output)
 /*
 Set f_C_output to the temporary file to which an initialization assignment
 for the indicated variable should be written.  Save the previous value
@@ -9872,9 +9862,9 @@ Generate code for the indicated list of statements.
 }  /* dump_statement_list */
 
 
-/*ARGSUSED*/  /* <-- tblock is not used. */
-static void dump_expr_prescan_temps(an_expr_node_ptr                    node,
-                                    an_expr_or_stmt_traversal_block_ptr tblock)
+static void dump_expr_prescan_temps(
+                         an_expr_node_ptr                               node,
+                         ARG_UNUSED an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 Called from the expression/statement traversal routines to put out
 prescan temporaries in the indicated expression.
@@ -9915,10 +9905,9 @@ prescan temporaries in the indicated expression.
 }  /* dump_expr_prescan_temps */
 
 
-/*ARGSUSED*/  /* <-- tblock is not used. */
 static void dump_constant_prescan_temps(
-                                    a_constant_ptr                      con,
-                                    an_expr_or_stmt_traversal_block_ptr tblock)
+                         a_constant_ptr                                 con,
+                         ARG_UNUSED an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 Called from the expression/statement traversal routines to put out
 prescan temporaries for the indicated constant.
@@ -10000,9 +9989,8 @@ its subtree.
 }  /* dump_prescan_temps */
 
 
-/*ARGSUSED*/ /* <-- type is used only in certain configurations. */
-static void dump_old_style_parameter_decls(a_scope_ptr scope,
-					   a_type_ptr  type)
+static void dump_old_style_parameter_decls(a_scope_ptr           scope,
+					   ARG_UNUSED a_type_ptr type)
 /*
 Generate parameter declarations for the definition of an unprototyped
 function.  scope is the associated scope, type is the type of the
@@ -10427,12 +10415,9 @@ is put in the pragma, otherwise "name" is used.
 
 #if !USE_INIT_SECTION_IN_GENERATED_C
 
-#if !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-/*ARGSUSED*/  /* <-- init_priority is not used in that case. */
-#endif /* !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-static void dump_gcc_init_sequence(a_routine_ptr rout,
-                                   a_const_char  *name,
-                                   unsigned long init_priority)
+static void dump_gcc_init_sequence(a_routine_ptr            rout,
+                                   a_const_char             *name,
+                                   ARG_UNUSED unsigned long init_priority)
 /*
 Put out GCC-specific code to invoke the specified routine at initialization
 time.  This routine should be invoked before the closing ";" of the declaration
@@ -11475,13 +11460,10 @@ must be redone for each generated C file.
 
 #if ONE_INSTANTIATION_PER_OBJECT
 
-#if !IA64_ABI
-/*ARGSUSED*/  /* <-- name_char_pos is not used in that case. */
-#endif /* !IA64_ABI */
 static void generate_one_instantiation_C_output_file(
                                      a_source_correspondence *scp,
                                      unsigned long           needed_bit_number,
-                                     char                    *name_char_pos)
+                                     ARG_UNUSED char         *name_char_pos)
 /*
 Generate the C output file for the instantiation whose associated
 routine or variable has the given source correspondence field and

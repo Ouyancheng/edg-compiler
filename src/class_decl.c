@@ -4268,10 +4268,7 @@ created.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* class_type is not used in some configurations. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static void wrap_up_class_definition(a_type_ptr  class_type)
+static void wrap_up_class_definition(ARG_UNUSED a_type_ptr  class_type)
 /*
 Perform any tasks that must be done after the definition of the given class as
 a whole (i.e., including fixups for default arguments, etc.).
@@ -5555,18 +5552,14 @@ done:
 }  /* record_virtual_function_override */
 
 
-#if !ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN || \
-    !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* class_type is used only to support covariant return types. */
-#endif /* !ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN || ... */
 static a_boolean return_types_are_override_compatible(
-                                 a_type_ptr        type_of_overriding_routine,
-                                 a_type_ptr        type_of_overridden_routine,
-                                 a_base_class_ptr  base_class,
-                                 a_base_class_ptr  *return_adjustment_bcp,
-                                 a_symbol_ptr      overridden_sym,
-                                 a_class_def_state *class_state,
-                                 a_source_position *diag_pos)
+                       a_type_ptr                   type_of_overriding_routine,
+                       a_type_ptr                   type_of_overridden_routine,
+                       ARG_UNUSED a_base_class_ptr  base_class,
+                       a_base_class_ptr             *return_adjustment_bcp,
+                       a_symbol_ptr                 overridden_sym,
+                       ARG_UNUSED a_class_def_state *class_state,
+                       a_source_position            *diag_pos)
 /*
 Given the routine types of overriding and overridden virtual functions, return
 TRUE if the return types are identical or "covariant".  The overriding function
@@ -6589,14 +6582,11 @@ implement that inheritance.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* func_info is not used in some configurations. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void check_for_virtual_override(
-                                     a_boolean               virtual_specified,
-                                     a_member_decl_info_ptr  decl_info,
-                                     a_class_def_state_ptr   class_state,
-                                     a_func_info_block_ptr   func_info)
+                            a_boolean                        virtual_specified,
+                            a_member_decl_info_ptr           decl_info,
+                            a_class_def_state_ptr            class_state,
+                            ARG_UNUSED a_func_info_block_ptr func_info)
 /*
 A nonstatic member function, represented by decl_info, has been declared and,
 depending on the value of virtual_specified, may have been explicitly declared
@@ -7753,6 +7743,7 @@ NULL, a pointer to step is returned.
       if (new_path == NULL) {
         new_path = new_dsp;
       } else {
+        check_assertion(end_of_new_path != NULL);
         end_of_new_path->next = new_dsp;
       }  /* if */
       end_of_new_path = new_dsp;
@@ -8809,14 +8800,11 @@ shares virtual function info.
 }  /* set_virtual_function_info_base_class */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* type_ptr is only used when Microsoft extensions are enabled. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static void scan_inheritance_kind(a_type_ptr           type_ptr,
-                                  an_ms_attribute_ptr  *p_ms_attributes,
-                                  a_boolean            *is_virtual,
-                                  an_access_specifier  *access,
-                                  a_boolean            *explicit_access)
+static void scan_inheritance_kind(ARG_UNUSED a_type_ptr type_ptr,
+                                  an_ms_attribute_ptr   *p_ms_attributes,
+                                  a_boolean             *is_virtual,
+                                  an_access_specifier   *access,
+                                  a_boolean             *explicit_access)
 /*
 Scan any of the keywords "virtual", "public", "private", and "protected"
 that might precede a base class specifier in the definition of the class
@@ -8988,11 +8976,8 @@ given by base_type.  Issue a diagnostic if not.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* type only used when Microsoft extensions are enabled. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static a_boolean check_base_class_type(a_type_ptr        type,
-                                       a_type_ptr        base_type)
+static a_boolean check_base_class_type(ARG_UNUSED a_type_ptr type,
+                                       a_type_ptr            base_type)
 /*
 Check whether a derived class type (type) can have a base class of type
 base_type.  If so, return TRUE, and, for some template base classes in
@@ -9248,16 +9233,12 @@ done:;
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if IA64_ABI
-/*ARGSUSED*/  /* p_may_be_first_direct_nonvirtual_base is not used in some
-                 configurations. */
-#endif /* IA64_ABI */
 static void add_new_direct_base(
                 a_base_class_ptr       direct_bcp,
                 a_class_def_state_ptr  class_state,
                 an_access_specifier    access,
                 a_base_class_ptr       *p_last_base,
-                a_boolean              *p_may_be_first_direct_nonvirtual_base)
+                ARG_UNUSED a_boolean   *p_may_be_first_direct_nonvirtual_base)
 /*
 Add direct_bcp as a base class to direct_bcp->derived_class, and recursively
 add any base classes of direct_bcp->type.  class_state describes the class
@@ -10379,12 +10360,9 @@ of a C++ class, struct, or union or a C struct or union.
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* decl_info is not used in this case. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void record_sse_for_special_friend_class(
-                                         a_type_ptr              friend_class,
-                                         a_member_decl_info_ptr  decl_info)
+                                a_type_ptr                        friend_class,
+                                ARG_UNUSED a_member_decl_info_ptr decl_info)
 /*
 Enter a secondary source sequence entry representing a friend declaration
 where either the class name is not expressed using an elaborated class name
@@ -10420,12 +10398,9 @@ the friend and decl_info describes the friend declaration overall.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-#if !GENERATE_SOURCE_SEQUENCE_LISTS
-/*ARGSUSED*/ /* for_friend_template is not used in some configurations. */
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-void decl_friend_class(a_type_ptr  class_type,
-                       a_type_ptr  friend_class_type,
-                       a_boolean   for_friend_template)
+void decl_friend_class(a_type_ptr           class_type,
+                       a_type_ptr           friend_class_type,
+                       ARG_UNUSED a_boolean for_friend_template)
 /*
 Do processing for declaring an entire class (friend_class_type) friend of the
 current class (class_type).  If for_friend_template is TRUE, the befriended
@@ -10969,16 +10944,13 @@ and issues a warning.
 }  /* check_for_invalid_friend_declaration */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/  /* pos_info is not used in some configurations. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 a_symbol_ptr decl_dependent_class_scope_function(
-                                        a_boolean               friend_decl,
-                                        a_boolean               expl_spec,
-                                        a_symbol_locator        *locator,
-                                        a_decl_parse_state      *dps,
-                                        a_func_info_block_ptr   func_info,
-                                        a_decl_pos_block        *pos_info)
+                                       a_boolean                   friend_decl,
+                                       a_boolean                   expl_spec,
+                                       a_symbol_locator            *locator,
+                                       a_decl_parse_state          *dps,
+                                       a_func_info_block_ptr       func_info,
+                                       ARG_UNUSED a_decl_pos_block *pos_info)
 /*
 Create a routine and associated symbol for a template dependent function
 declaration of type dps->type appearing in class scope.  Although the
@@ -11615,16 +11587,12 @@ symbol pointers pointing to removed symbols to NULL.
 }  /* remove_member_using_decl */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* overridden_function only used when Microsoft extensions are
-                enabled. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_symbol_ptr symbol_for_member_function(
-                                   a_symbol_locator       *locator,
-                                   a_type_ptr             class_type,
-                                   a_symbol_ptr           overridden_function,
-                                   a_member_decl_info_ptr decl_info,
-                                   a_symbol_ptr           *overload_sym)
+                                   a_symbol_locator        *locator,
+                                   a_type_ptr              class_type,
+                                   ARG_UNUSED a_symbol_ptr overridden_function,
+                                   a_member_decl_info_ptr  decl_info,
+                                   a_symbol_ptr            *overload_sym)
 /*
 Return a pointer to an sk_member_function symbol to represent a function
 described by *locator and *decl_info.  If this is a redeclaration, the
@@ -13564,11 +13532,9 @@ IL entry accordingly.  def_pos is the position of the "= default;" or
 
 #if GNU_EXTENSIONS_ALLOWED
 
-#if !GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-/*ARGSUSED*/
-#endif /* !GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-static void copy_gnu_class_properties_to_routine(a_type_ptr     class_type,
-                                                 a_routine_ptr  routine)
+static void copy_gnu_class_properties_to_routine(
+                                           ARG_UNUSED a_type_ptr    class_type,
+                                           ARG_UNUSED a_routine_ptr routine)
 /*
 routine is a member function of class_type.  Copy any properties of class_type
 (specified by GNU attributes) that should be propagated to its member
@@ -14185,12 +14151,9 @@ set the move_ctor_or_assign_parameter flag of its first parameter to TRUE.
 }  /* mark_special_move_parameters */
 
 
-#if !(MICROSOFT_EXTENSIONS_ALLOWED && CHECKING)
-/*ARGSUSED*/ /* is_reverse_fn is not used in some configurations. */
-#endif /* !(MICROSOFT_EXTENSIONS_ALLOWED && CHECKING) */
 static a_boolean is_implicitly_callable_conversion_function_full(
-                                                    a_type_ptr rout_type,
-                                                    a_boolean  is_reverse_fn)
+                                           a_type_ptr            rout_type,
+                                           ARG_UNUSED a_boolean  is_reverse_fn)
 /*
 Return TRUE if a conversion function with the indicated routine type is
 one that can be implicitly called.  As described in [class.conv.fct],
@@ -15981,16 +15944,13 @@ The nesting depth of the parameters is ignored for this compatibility checking.
 }  /* compatible_member_function_template_param_types */
 
 
-#if !GENERATE_SOURCE_SEQUENCE_LISTS
-/*ARGSUSED*/ /* il_template_entry is not used in all configurations. */
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 static void decl_member_function_template(
-				a_symbol_locator        *locator,
-				a_template_param_ptr	templ_param_list,
-                                a_template_ptr          il_template_entry,
-                                a_func_info_block       *func_info,
-                                a_class_def_state_ptr   class_state,
-                                a_member_decl_info_ptr  decl_info)
+				a_symbol_locator          *locator,
+				a_template_param_ptr	  templ_param_list,
+                                ARG_UNUSED a_template_ptr il_template_entry,
+                                a_func_info_block         *func_info,
+                                a_class_def_state_ptr     class_state,
+                                a_member_decl_info_ptr    decl_info)
 /*
 Process the declaration of a member function template.  *locator is the symbol
 locator of the template.  templ_param_list is the template parameter list of
@@ -16374,7 +16334,7 @@ decl_member_function_template.
       a_template_symbol_supplement_ptr
                             tssp;
       a_token_kind          final_token = tok_rbrace;
-      templ_state->final_token_ptr = &final_token;
+      templ_state->final_token_ptr = /*lint --e(733)*/ &final_token;
       decl_member_function_template(&loc, templ_param_list, il_template_entry,
                                     func_info, class_state, decl_info);
       check_assertion(dps->sym != NULL &&
@@ -16387,6 +16347,7 @@ decl_member_function_template.
       complete_generated_member_template(templ_state, (a_func_info_block*)NULL,
                                          dps->sym);
       generic_lambda_completed = TRUE;
+      templ_state->final_token_ptr = NULL;
     } else {
       /* The ordinary (i.e., non-generic case): Call decl_member_function. */
       decl_member_function(&loc, func_info, class_state, decl_info,
@@ -17024,11 +16985,9 @@ unnamed class.
 
 #if GNU_EXTENSIONS_ALLOWED
 
-#if !GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-/*ARGSUSED*/
-#endif /* !GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-static void copy_gnu_class_properties_to_variable(a_type_ptr      class_type,
-                                                  a_variable_ptr  var)
+static void copy_gnu_class_properties_to_variable(
+                                         ARG_UNUSED a_type_ptr      class_type,
+                                         ARG_UNUSED a_variable_ptr  var)
 /*
 var is a static data member of class_type.  Copy any properties of class_type
 (from attributes applied to the class) that should be propagated to its static
@@ -19507,14 +19466,10 @@ declarations.
 
 #if DECL_MODIFIERS_IN_USE
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* class_type and member_type only used when Microsoft extensions
-                are enabled. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void check_declspec_for_field(a_member_decl_info_ptr  decl_info,
                                      a_symbol_locator        *locator,
-                                     a_type_ptr              class_type,
-                                     a_type_ptr              member_type)
+                                     ARG_UNUSED a_type_ptr   class_type,
+                                     ARG_UNUSED a_type_ptr   member_type)
 /*
 A field of type member_type is being declared in the given class.  Issue a
 diagnostic for __declspec specifiers that are not valid in this context.  Also
@@ -23371,6 +23326,7 @@ templates from that base template.
       scope_stack_top().source_sequence_entries_disallowed 
                                     = saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      templ_decl_state.final_token_ptr = NULL;
     }  /* if */
   }  /* for */
   cdsp->access = saved_access;
@@ -24553,8 +24509,9 @@ declaration from a using-declaration.)
           /* A using-declaration may not specify a constructor or
              destructor. */
           an_error_severity  sev = microsoft_mode ? es_warning :
-                                   strict_ansi_mode ? es_error :
-                                                      es_discretionary_error;
+                                   (an_error_severity)(strict_ansi_mode ?
+                                                       es_error :
+                                                       es_discretionary_error);
           an_error_code      ec = ec_no_ctor_or_dtor_using_declaration;
           pos_diagnostic(sev, ec, &decl_pos);
           if (is_effective_error(ec, sev)) {
@@ -24696,8 +24653,8 @@ declaration from a using-declaration.)
         /* If other_sym is non-NULL, there is already a function declaration by
            this name in the current class: we will add the declared symbol or
            symbols to an overload set of the current class. */
-        other_sym = locator.specific_symbol;
-        if (other_sym == NULL) {
+        other_sym = locator.specific_symbol /*lint !e530*/;
+        if (other_sym == NULL) /*lint !e530*/ {
           /* Nothing to do. */
         } else if (is_nontype_template_param_symbol(other_sym)) {
           /* We're treating the template param symbol as if it were a function
@@ -24815,7 +24772,8 @@ are:   A<T> for A<int>, A<T>::B for A<int>::B, and A<T>::B::C for A<int>::B::C.
        tag symbol of its parent class; then find the corresponding nested
        class within it.  The prototype tag symbol of the parent class is
        stored in the latter's class symbol supplement. */
-    parent_sym = symbol_supplement_for_class(sym_parent_class(curr_sym))->
+    a_type_ptr class_type = sym_parent_class(curr_sym);
+    parent_sym = symbol_supplement_for_class(class_type)->
                                                        corresp_prototype_sym;
     if (parent_sym != NULL) {
       /* sym is the corresponding prototype tag symbol of the parent class.
@@ -24938,8 +24896,8 @@ of its parent class.
      defined within its body. */
   if (tag_sym->variant.class_struct_union.type !=
                                       instantiation_ssep->assoc_type) {
-    parent_tssp = symbol_supplement_for_class(sym_parent_class(tag_sym))
-                                                             ->template_info;
+    a_type_ptr class_type = sym_parent_class(tag_sym);
+    parent_tssp = symbol_supplement_for_class(class_type)->template_info;
     tssp->variant.class_template.prototype_instantiation = tag_sym;
     /* A member class of a template class whose body is supplied in the class
        shares the template declaration information with the enclosing class. */
@@ -28094,13 +28052,11 @@ done:
 }  /* member_declarator */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* The parameters are used only in some configurations. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static
-a_boolean check_cppcli_explicit_conversion(a_type_ptr          class_type,
-                                           a_decl_parse_state  *dps,
-                                           a_decl_flag_set     dso_flags)
+a_boolean check_cppcli_explicit_conversion(
+                                     ARG_UNUSED a_type_ptr          class_type,
+                                     ARG_UNUSED a_decl_parse_state  *dps,
+                                     ARG_UNUSED a_decl_flag_set     dso_flags)
 /*
 Return TRUE if the explicit conversion function declaration described by *dps
 and dso_flags (the flag set returned by decl_specifiers) can validly appear in
@@ -28170,23 +28126,17 @@ class type.  Check that dps->type is a valid type for such a declaration.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !GENERATE_SOURCE_SEQUENCE_LISTS || !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* instance and template_decl is not used unless source
-                sequence lists are generated. */
-             /* ms_attributes is only used when Microsoft extensions are
-                allowed. */
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS || !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_symbol_ptr class_member_declaration(
-                      a_class_def_state_ptr    class_state,
-                      a_tmpl_decl_state_ptr    templ_state,
-                      an_ms_attribute_ptr      ms_attributes,
-                      a_boolean                is_member_template,
-                      a_template_param_ptr     templ_param_list,
-                      a_boolean                *skip_semicolon_check,
-                      a_type_ptr               *member_template_instance_type,
-                      a_template_instance_ptr  instance,
-                      a_template_ptr           il_template_entry,
-                      a_decl_pos_block_ptr     decl_pos_block_ptr)
+             a_class_def_state_ptr              class_state,
+             a_tmpl_decl_state_ptr              templ_state,
+             ARG_UNUSED an_ms_attribute_ptr     ms_attributes,
+             a_boolean                          is_member_template,
+             a_template_param_ptr               templ_param_list,
+             a_boolean                          *skip_semicolon_check,
+             a_type_ptr                         *member_template_instance_type,
+             ARG_UNUSED a_template_instance_ptr instance,
+             a_template_ptr                     il_template_entry,
+             a_decl_pos_block_ptr               decl_pos_block_ptr)
 /*
 Scan a member declaration appearing inside a class definition.  class_state
 points to a block of information tracking general information about the class.
@@ -28197,7 +28147,7 @@ declaration.  templ_param_list is non-NULL for function template declarations.
 decl_pos_block_ptr is non-NULL when then extra source position information
 collected during this declaration needs to be returned to the caller.
 If prototype instantiations are recorded in the IL, the template header is
-passed via template_decl.  templ_state points to a block of information
+passed via il_template_entry.  templ_state points to a block of information
 that is provided if this is a member template declaration.
 */
 {
@@ -28506,6 +28456,7 @@ that is provided if this is a member template declaration.
       if (is_member_template_rescan) {
         /* Record an error type (leaving a NULL type would cause problems in
            error recovery). */
+        check_assertion(instance != NULL);
         instance->declared_type = error_type();
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -30700,22 +30651,17 @@ alignment of those fields).
 }  /* record_max_member_alignment_if_needed */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL || !GENERATE_SOURCE_SEQUENCE_LISTS
-/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
-                information is being recorded in the IL.
-                il_template_entry is not used unless source sequence entries
-                are being generated. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !GENERATE_SOURCE_SEQUENCE_LISTS */
-a_boolean scan_class_definition(a_type_ptr          class_type,
-                                a_decl_parse_state  *dps,
-                                a_scope_depth       effective_decl_level,
-                                a_boolean           is_partial,
-                                a_boolean           is_local_class,
-                                a_boolean           delayed_nested_class_def,
-                                a_boolean           is_template_instantiation,
-                                a_boolean           is_template_specialization,
-                                a_template_ptr      il_template_entry,
-                                a_decl_pos_block    *decl_pos_block)
+a_boolean scan_class_definition(
+                        a_type_ptr                  class_type,
+                        a_decl_parse_state          *dps,
+                        a_scope_depth               effective_decl_level,
+                        ARG_UNUSED a_boolean        is_partial,
+                        a_boolean                   is_local_class,
+                        a_boolean                   delayed_nested_class_def,
+                        a_boolean                   is_template_instantiation,
+                        a_boolean                   is_template_specialization,
+                        ARG_UNUSED a_template_ptr   il_template_entry,
+                        ARG_UNUSED a_decl_pos_block *decl_pos_block)
 /*
 Scan the body of a class definition, including the base classes list.
 class_type points to the type entry of the class, struct, or union whose
@@ -31486,7 +31432,9 @@ classes.
             if (C_dialect != C_dialect_pcc) {
               diagnostic(strict_ansi_mode ?
                                           strict_ansi_discretionary_severity :
-                         C_mode() ? es_warning : es_discretionary_error,
+                                          (an_error_severity)(C_mode() ?
+                                                       es_warning :
+                                                       es_discretionary_error),
                          ec_exp_semicolon);
             }  /* if */ 
           } else {
@@ -32506,12 +32454,10 @@ NULL in such cases.
 }  /* finish_lambda_routine_processing */
 
 
-#if !(MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED)
-/*ARGSUSED*/  /* call_conv is not used in some configurations. */
-#endif /* !(MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED) */
-static void make_lambda_static_call_locator(a_symbol_locator      *member_loc,
-                                            a_calling_convention  call_conv,
-                                            a_source_position     *pos)
+static void make_lambda_static_call_locator(
+                                   a_symbol_locator                *member_loc,
+                                   ARG_UNUSED a_calling_convention call_conv,
+                                   a_source_position               *pos)
 /*
 Create a symbol locator for the static member of a lambda that permits a
 conversion to a pointer to function.  The static member will have the
@@ -32603,6 +32549,7 @@ decl_info/locator/func_info the member to be declared.
                                          templ_sym);
     }  /* if */
     pop_scope();
+    templ_decl_state.final_token_ptr = NULL;
   }  /* if */
 }  /* decl_generated_lambda_member */
 
@@ -33648,10 +33595,9 @@ because they were used in declaring an external function or variable.
 }  /* check_class_linkage */
 
 
-/* ARGSUSED */ /* Neither sym nor stmt is used. */
-void define_type_info_pragma(a_pending_pragma_ptr    ppp,
-                             a_symbol_ptr            sym,
-                             a_statement_ptr         stmt)
+void define_type_info_pragma(a_pending_pragma_ptr       ppp,
+                             ARG_UNUSED a_symbol_ptr    sym,
+                             ARG_UNUSED a_statement_ptr stmt)
 /*
 Called when a define_type_info pragma is encountered.  Since this pragma
 is supposed to be handled in scan_tag_name, any automatic call of this

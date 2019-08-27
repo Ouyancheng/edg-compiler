@@ -1014,6 +1014,7 @@ circuit some of the processing in common cases.
 /* Use routine_types_are_redecl_compatible to check types of routines, ignoring
    top-level calling convention modifiers.  This is intended for redeclaration
    checking, as in "are these declaring the same function?" */
+/*lint -emacro(835,routine_types_are_redecl_compatible)*/
 #define routine_types_are_redecl_compatible(t1, t2, extra_flags)          \
          ((t1) == (t2) ||                                                 \
           f_types_are_compatible((t1), (t2),                              \
@@ -1021,7 +1022,7 @@ circuit some of the processing in common cases.
                                  TCF_IGNORE_TOP_LEVEL_NOEXCEPT |          \
                                  TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED | \
                                  TCF_CHECK_ENABLE_IF_ATTRIBUTES |         \
-                                 (extra_flags)/*lint --e(835)*/))
+                                 (extra_flags)))
 
 #define types_are_compatible_for_impl_conversion(t1, t2)              \
   ((t1) == (t2) ||                                                    \
