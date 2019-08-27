@@ -38,10 +38,10 @@ That regression is also fixed.  For example, with --g++ --c++11:
 
    void func(){
      f<decltype(a.m)>(a.m);    // Previously generated as
-                              // f<decltype(a)::__T12345678>(a.m), now as
-                              // f<decltype(decltype(a)::m)>(a.m)
-     f<decltype(N::b)>(N::b); // Previously generated as
-                              // f<N::__T12345678>(N::b)
+                               // f<decltype(a)::__T12345678>(a.m), now as
+                               // f<decltype(decltype(a)::m)>(a.m)
+     f<decltype(N::b)>(N::b);  // Previously generated as
+                               // f<N::__T12345678>(N::b)
    }
 
 
