@@ -3829,10 +3829,8 @@ otherwise implicitly enabled cfront mode.
 }  /* exclude_cfront_mode */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static void exclude_microsoft_mode(an_error_code  error_code)
+/*lint -ecall(523,exclude_microsoft_mode)*/
+static void exclude_microsoft_mode(ARG_UNUSED an_error_code  error_code)
 /*
 Microsoft mode is incompatible with other settings.  Either issue the given
 diagnostic (error_code) if the conflict is explicit, or silently turn off an
@@ -3876,10 +3874,7 @@ otherwise implicitly enabled Microsoft mode.
 }  /* exclude_microsoft_mode */
 
 
-#if !SUN_EXTENSIONS_ALLOWED
-/* ARGSUSED */ /* The parameter is only used when Sun extensions are allowed */
-#endif /* !SUN_EXTENSIONS_ALLOWED */
-static void exclude_sun_mode(an_error_code  error_code)
+static void exclude_sun_mode(ARG_UNUSED an_error_code  error_code)
 /*
 Sun mode is incompatible with other settings.  Either issue the given
 diagnostic (error_code) if the conflict is explicit, or silently turn off
@@ -3940,10 +3935,8 @@ if C11 mode was enabled explicitly.
   }  /* if */
 }  /* exclude_c99_mode */
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/
-#endif /* !GNU_EXTENSIONS_ALLOWED */
-static void exclude_gcc_mode(an_error_code  error_code)
+
+static void exclude_gcc_mode(ARG_UNUSED an_error_code  error_code)
 /*
 GNU C mode is incompatible with other settings.  Either issue the given
 diagnostic (error_code) if the conflict is explicit, or silently turn off
@@ -3969,10 +3962,7 @@ an otherwise implicitly enabled GNU C mode.
 }  /* exclude_gcc_mode */
 
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/
-#endif /* !GNU_EXTENSIONS_ALLOWED */
-static void exclude_gpp_mode(an_error_code  error_code)
+static void exclude_gpp_mode(ARG_UNUSED an_error_code  error_code)
 /*
 GNU C++ mode is incompatible with other settings.  Either issue the given
 diagnostic (error_code) if the conflict is explicit, or silently turn off
@@ -5051,6 +5041,7 @@ selected either.
 }  /* exclude_gnu_specific_options */
 
 
+/*lint -ecall(523,exclude_sun_specific_options)*/
 static void exclude_sun_specific_options(void)
 /*
 Sun mode is not selected: Make sure no option specific to Sun mode was
@@ -5060,6 +5051,7 @@ selected either.
 }  /* exclude_sun_specific_options */
 
 
+/*lint -ecall(523,check_embedded_c_options)*/
 static void check_embedded_c_options(void)
 /*
 An ANSI C dialect has been selected.  If any options were selected to enable
@@ -5392,7 +5384,7 @@ assigns those severities.
 
 
 #if DUMP_CONFIG_ENABLED
-static void dump_configuration_macros()
+static void dump_configuration_macros(void)
 /*
 Display the values of all the configuration macros with which this
 executable was built in a form suitable for capture and use as a defines.h
@@ -5402,22 +5394,22 @@ file.
 /* Macros used to display the various options. */
 /* Write a #define directive for the option, which has a non-numeric value: */
 #define define_string_valued_macro(X) \
-  fprintf(f_error, "#define %s %s\n", #X, stringize(X));
+  fprintf(f_error, "#define %s %s\n", #X, stringize(X))
 /* Write a comment giving the option name and its (non-numeric) value: */
 #define comment_string_valued_macro(X) \
-  fprintf(f_error, "/*      %s %s */\n", #X, stringize(X));
+  fprintf(f_error, "/*      %s %s */\n", #X, stringize(X))
 /*lint -esym(750,comment_string_valued_macro)*/
 /* Write a #define directive for the option, which has a numeric value: */
 #define define_numeric_valued_macro(X) /*lint --e(506)*/                     \
   fprintf(f_error, "#define %s " PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER "\n",  \
-          #X, (a_host_large_integer)(X));
+          #X, (a_host_large_integer)(X))
 /* Write a comment giving the option name and its (numeric) value: */
 #define comment_numeric_valued_macro(X) /*lint --e(506)*/                     \
   fprintf(f_error, "/*      %s " PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER " */\n",\
-          #X, (a_host_large_integer)(X));
+          #X, (a_host_large_integer)(X))
 /* Write a comment giving the option name and noting that it is undefined: */
 #define comment_undefined_macro_name(X) \
-  fprintf(f_error, "/*      %s not defined */\n", #X);
+  fprintf(f_error, "/*      %s not defined */\n", #X)
 
 /* Print a banner. */
   fprintf(f_error,
@@ -8272,9 +8264,9 @@ file.
   comment_undefined_macro_name(TARG_DBL_MIN_EXP);
 #endif /* defined(TARG_DBL_MIN_EXP) */
 #if defined(TARG_DEFAULT_NEW_ALIGNMENT)
-  define_numeric_valued_macro(TARG_DEFAULT_NEW_ALIGNMENT)
+  define_numeric_valued_macro(TARG_DEFAULT_NEW_ALIGNMENT);
 #else /* !defined(TARG_DEFAULT_NEW_ALIGNMENT) */
-  comment_undefined_macro_name(TARG_DEFAULT_NEW_ALIGNMENT)
+  comment_undefined_macro_name(TARG_DEFAULT_NEW_ALIGNMENT);
 #endif /* defined(TARG_DEFAULT_NEW_ALIGNMENT) */
 #if defined(TARG_DELTA_INT_KIND)
   define_string_valued_macro(TARG_DELTA_INT_KIND);
@@ -9651,7 +9643,7 @@ Process the arguments on the command line that invoked the compiler.
         /* Debugging option to limit the amount of CPU time used
            during a compilation. */
         { int time_limit;
-          time_limit = scan_opt_arg_number(opt_arg);
+          time_limit = (int)scan_opt_arg_number(opt_arg);
           set_cpu_time_limit(time_limit);
         }
         break;
@@ -9677,7 +9669,7 @@ Process the arguments on the command line that invoked the compiler.
         break;
       case optk_msvc_target_version:
         /* The Microsoft C/C++ compiler being targeted. */
-        msvc_target_version_number = scan_opt_arg_number(opt_arg);
+        msvc_target_version_number = (int)scan_opt_arg_number(opt_arg);
         break;
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
       case optk_create_pch:

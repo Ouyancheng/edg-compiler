@@ -675,7 +675,7 @@ are set to one.  bits must be at least one.
   /* The version that works on a host type was originally a macro.  It
      was converted to a function to work around a gcc bug that caused
      the macro to fail when an_integer_value was a long long. */
-  int			shift_count = BITS_IN_AN_INTEGER_VALUE - bits;
+  int			shift_count = (int)BITS_IN_AN_INTEGER_VALUE - bits;
   an_integer_value	result = (~(an_integer_value)0);
   result = result >> shift_count;
   *mask = result;
@@ -690,7 +690,7 @@ Sign extend an integer value.  The current value consists of "bits"
 bits.  The high order bit of the field is the sign bit.
 */
 {
-  int			shift_bits = (BITS_IN_AN_INTEGER_VALUE - bits);
+  int		shift_bits = ((int)BITS_IN_AN_INTEGER_VALUE - bits);
   a_boolean	err;
   shift_left_integer_value(value, shift_bits, &err);
   shift_right_integer_value(value, shift_bits, /*is_signed=*/TRUE,
@@ -1612,6 +1612,7 @@ buffer.  If an arithmetic value is negative, it is preceded by a "-".
          type of the integer, probably because it is a negative value and
          thus padded with leading 'ff' bytes.  Advance the result pointer
          to skip over the superfluous digits. */
+      /*lint -e{679}*/
       result += num_hex_digits_printed - num_hex_digits_in_repr;
     }  /* if */
     /* Add the hexadecimal prefix. */
@@ -1942,6 +1943,7 @@ a single printf command in the caller.
   static char		buffer[5][64];
   int			old_bufpos = bufpos;
 
+  buffer[bufpos][0] = '\0';
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
   sprintf(&buffer[bufpos][0], PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE,
           *value);

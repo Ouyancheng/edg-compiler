@@ -87,7 +87,7 @@ const_ints.h -- Declarations related to manipulation of target integer
    bits.  The high order bit of the field is the sign bit. */
 #define sign_extend_integer_value(value, bits)				\
 {									\
-  int			 se_shift_bits = (BITS_IN_AN_INTEGER_VALUE - (bits));\
+  int se_shift_bits = ((int)BITS_IN_AN_INTEGER_VALUE - (bits));         \
   a_signed_integer_value se_work;					\
   se_work = *(value) << se_shift_bits;					\
   *(value) = signed_shift_right(se_work, se_shift_bits);		\
