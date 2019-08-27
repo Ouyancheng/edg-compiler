@@ -10035,7 +10035,7 @@ is_or_uses_unnameable_class_type.
     /* Check if the current type is unnameable. */
     if (is_immediate_class_type(type) &&
         unmangled_name_of(&type->source_corresp) == NULL) {
-      result = (var_for_decltype(type) == NULL);
+      result = (entity_for_decltype(type) == NULL);
     }  /* if */
     if (!result &&
         name_has_template_arguments(&type->source_corresp, iek_type, &argp,
