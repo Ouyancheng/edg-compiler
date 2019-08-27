@@ -609,7 +609,8 @@ static void gen_pragma_start(a_pragma_ptr pp);
 static void gen_pragma_end(a_pragma_ptr pp);
 static void gen_template_header(a_template_decl_ptr tdp,
                                 a_type_ptr          parent_class,
-                                a_boolean           is_cppcli_generic);
+                                a_boolean           is_cppcli_generic,
+                                a_boolean           for_generic_lambda);
 static a_boolean strip_lvalue_cast_sequence(an_expr_node_ptr *expr);
 static void gen_initializer_constant(a_constant_ptr constant,
                                      a_type_ptr     type,
@@ -10418,12 +10419,14 @@ this one is such a continuation.
       if (assoc_template->canonical_template->is_exported) gen_export();
 #if MICROSOFT_EXTENSIONS_ALLOWED
       gen_template_header(
-                       template_decl, parent_class_or_null(type),
-                       is_immediate_class_type(type) &&
-                       type->variant.class_struct_union.is_generic_definition);
+                        template_decl, parent_class_or_null(type),
+                        is_immediate_class_type(type) &&
+                        type->variant.class_struct_union.is_generic_definition,
+                        /*for_generic_lambda=*/FALSE);
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
       gen_template_header(template_decl, parent_class_or_null(type),
-                          /*is_cppcli_generic=*/FALSE);
+                          /*is_cppcli_generic=*/FALSE,
+                          /*for_generic_lambda=*/FALSE);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_specialization) {
       /* A specialization. */
@@ -13996,7 +13999,7 @@ Render code for the given lambda.
 
   gen_lambda_captures(lambda);
   closure_scope = class_type_supp(lambda->closure_class)->assoc_scope;
-  if (lambda->is_generic && !prototype_instantiations_in_il) {
+  if (lambda->is_generic && !il_header.il_has_all_prototype_instantiations) {
     /* No lambda routine is recorded if this is a generic lambda and
        prototype instantiations are not recorded in the IL.  Render the
        lambda from the text form. */
@@ -14029,6 +14032,37 @@ Render code for the given lambda.
     curr_source_sequence_entry = scope->source_sequence_list;
     adv_to_signif_source_sequence_entry();
     if (lambda->has_parameter_decl) {
+      if (lambda->is_generic) {
+        /* C++20 allows writing an explicit template parameter list in a
+           generic lambda.  Check to see if one was specified and, if so,
+           put it out. */
+        a_template_parameter_ptr last_named_parameter =
+                                 rp->assoc_template->template_decl->param_list;
+        while (last_named_parameter != NULL &&
+               last_named_parameter->source_corresp.name != NULL &&
+               last_named_parameter->next->source_corresp.name != NULL) {
+          last_named_parameter = last_named_parameter->next;
+        }  /* while */
+        if (last_named_parameter != NULL &&
+            last_named_parameter->source_corresp.name != NULL) {
+          /* Generic lambdas specified using only "auto" function
+             parameters have only unnamed template parameters.  If there is
+             a named template parameter, there was an explicit template
+             parameter list for this lambda.  It is permitted to have both
+             a regular template parameter list and "auto" function
+             parameters; the template parameters corresponding to "auto"
+             function parameters appear at the end of the template
+             parameter list, so temporarily truncate the template parameter
+             list before the first "auto" parameter and put it out. */
+          a_template_parameter_ptr next = last_named_parameter->next;
+          last_named_parameter->next = NULL;
+          gen_template_header(rp->assoc_template->template_decl,
+                              /*parent_class=*/NULL,
+                              /*is_cppcli_generic=*/FALSE,
+                              /*for_generic_lambda=*/TRUE);
+          last_named_parameter->next = next;
+        }  /* if */
+      }  /* if */
       gen_function_declarator_with_scope(rp->type, scope,
                                          /*top_level_decl=*/TRUE,
                                          /*suppress_def_args=*/FALSE);
@@ -16039,17 +16073,21 @@ Return TRUE if a linkage specification was indeed rendered.
 
 static void gen_template_header(a_template_decl_ptr tdp,
                                 a_type_ptr          parent_class,
-                                a_boolean           is_cppcli_generic)
+                                a_boolean           is_cppcli_generic,
+                                a_boolean           for_generic_lambda)
 /*
 Generate a "template<...>" or "generic<...>" header (depending on the value
 of is_cppcli_generic) from the given IL entry.  If the template is a member
 of a class, parent_class designates that class; otherwise, it is NULL.
 This also installs a mapping of template parameter coordinates to the
-source sequence entries recorded with this particular header.  */
+source sequence entries recorded with this particular header.  If
+for_generic_lambda is TRUE, the "template" keyword will not be put out
+(used for the template parameter list in C++20-style lambdas with template
+parameter lists). */
 {
   a_template_parameter_ptr  param = tdp->param_list;
 
-  if (tdp->parent != NULL
+  if (tdp->parent != NULL && !for_generic_lambda
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       && (tdp->parent->param_list != NULL
           || parent_class->variant.class_struct_union.is_nonreal_class)
@@ -16067,14 +16105,16 @@ source sequence entries recorded with this particular header.  */
     a_type_ptr grandparent_class;
     grandparent_class =
             (parent_class != NULL) ? parent_class_or_null(parent_class) : NULL;
-    gen_template_header(tdp->parent, grandparent_class, is_cppcli_generic);
+    gen_template_header(tdp->parent, grandparent_class, is_cppcli_generic,
+                        /*for_generic_lambda=*/FALSE);
   }  /* if */
   set_output_position(&tdp->template_pos);
   /* Put a space after the "<" to avoid forming the digraph "<:" if the
      first parameter is a nontype parameter whose type name begins with
      the global scope operator. */
-  write_tok_str(is_cppcli_generic ? (char *)"generic< "
-                                  : (char *)"template< ");
+  write_tok_str(is_cppcli_generic  ? (char *)"generic< " :
+                for_generic_lambda ? (char *)"< "
+                                   : (char *)"template< ");
   for (; param != NULL; param = param->next) {
     if (param->kind == (a_template_parameter_kind)tpk_nontype) {
       a_constant_ptr  cp = param->variant.nontype.constant;
@@ -16131,9 +16171,9 @@ source sequence entries recorded with this particular header.  */
                            &param->variant.templ.class_template->
                                                                source_corresp);
       gen_template_header(
-                     param->variant.templ.class_template->template_decl,
-                     parent_class_or_null(param->variant.templ.class_template),
-                     /*is_cppcli_generic=*/FALSE);
+                    param->variant.templ.class_template->template_decl,
+                    parent_class_or_null(param->variant.templ.class_template),
+                    /*is_cppcli_generic=*/FALSE, /*for_generic_lambda=*/FALSE);
       write_tok_str(" class ");
       if (param->is_pack) write_tok_str("...");
       /* Set the source position for the name. */
@@ -19128,7 +19168,8 @@ this one is such a continuation.
       parent_class = parent_class_or_null(parent_class);
     }  /* if */
     gen_template_header(template_decl, parent_class,
-                        /*is_cppcli_generic=*/FALSE);
+                        /*is_cppcli_generic=*/FALSE,
+                        /*for_generic_lambda=*/FALSE);
   } else if (is_specialization) {
     adjust_namespace_state_for_specialization(&var->source_corresp,
                                               &common_scope, &orig_scope,
@@ -20444,10 +20485,12 @@ handle_as_definition:
     if (assoc_template->canonical_template->is_exported) gen_export();
 #if MICROSOFT_EXTENSIONS_ALLOWED
     gen_template_header(template_decl, parent_class_or_null(rout),
-                        rout->is_generic_definition);
+                        rout->is_generic_definition,
+                        /*for_generic_lambda=*/FALSE);
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
     gen_template_header(template_decl, parent_class_or_null(rout),
-                        /*is_cppcli_generic=*/FALSE);
+                        /*is_cppcli_generic=*/FALSE,
+                        /*for_generic_lambda=*/FALSE);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   if (is_definition && !rout->is_defaulted && !rout->is_deleted) {

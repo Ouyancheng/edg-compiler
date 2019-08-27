@@ -1,5 +1,18 @@
 Version 6.0
 
+8/27/19  [EDGcpfe/21702]
+C++-generating back end: missing explicit template parameter list for lambda
+
+In C++20 mode, a generic lambda can have a traditional template parameter
+list instead of, or in addition to, having function parameters that use the
+"auto" type specifier (see the description for
+[EDGcpfe/20004,EDGcpfe/20273]).  However, the C++-generating back end
+failed to put out the template parameter list for such lambdas.  This is
+now fixed.  For example, with --c++20:
+
+  auto f = []<typename T>(T a) {};  // Previously omitted "<typename T>"
+
+
 8/26/19  [EDGcpfe/21698]
 C++-generating back end: incorrect IL for initializer after code generation
 
