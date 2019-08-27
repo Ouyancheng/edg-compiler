@@ -1231,8 +1231,9 @@ Pop the top entry off the name context stack.
   }  /* for */
   in_class_scope_with_dependent_base =
                    curr_name_context->saved_in_class_scope_with_dependent_base;
-  if (curr_name_context->assoc_scope->kind == (a_scope_kind)sck_function ||
-      curr_name_context->assoc_scope->kind == (a_scope_kind)sck_block) {
+  if (curr_name_context->assoc_scope != NULL &&
+      (curr_name_context->assoc_scope->kind == (a_scope_kind)sck_function ||
+       curr_name_context->assoc_scope->kind == (a_scope_kind)sck_block)) {
     free_entities_for_decltype(curr_name_context->last_entity_for_decltype);
   }  /* if */
   /* Pop the stack. */
