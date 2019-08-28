@@ -31720,16 +31720,17 @@ update *templ_state accordingly.  Then scan the template parameter list.
   a_boolean          is_dependent = FALSE;
   a_source_position  pos;
 
-  /* Bypass the "<". */
   check_assertion(curr_token == tok_lt);
   pos = pos_curr_token;
-  (void)get_token();
-  if (curr_token == tok_gt) {
+  if (next_token() == tok_gt) {
+    (void)get_token();
     pos_error(ec_empty_lambda_template_param_list, &pos_curr_token);
     (void)get_token();
     goto done;
   }  /* if */
   start_generic_lambda_state(templ_state);
+  /* Bypass the "<". */
+  (void)get_token();
   scan_template_param_list(templ_state);
   templ_state->decl_info->declaration_scope =
                                          scope_stack[decl_scope_level].number;
@@ -38502,11 +38503,7 @@ the function template, and decl_state tracks its declaration.
   curr_default_args = saved_curr_default_args;
 #if RECORD_TEMPLATE_STRINGS
   /* Record a text version of the generated template body. */
-  init_token_string(&def_pos, /*keep_spacing=*/TRUE,
-                    /*suppress_identifier_wrapping=*/FALSE);
-  add_token_cache_to_string(&tssp->variant.function.decl_cache.tokens);
-  add_token_cache_to_string(&tssp->cache.tokens);
-  decl_state->il_template_entry->text = make_copy_of_token_string();
+  record_string_version_of_template(decl_state, sym, &tssp->cache.tokens);
 #endif /* RECORD_TEMPLATE_STRINGS */
 }  /* complete_generated_member_template */
 

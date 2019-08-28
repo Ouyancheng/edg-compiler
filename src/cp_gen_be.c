@@ -14036,15 +14036,23 @@ Render code for the given lambda.
         /* C++20 allows writing an explicit template parameter list in a
            generic lambda.  Check to see if one was specified and, if so,
            put it out. */
-        a_template_parameter_ptr last_named_parameter =
+        a_template_parameter_ptr last_expl_param =
                                  rp->assoc_template->template_decl->param_list;
-        while (last_named_parameter != NULL &&
-               last_named_parameter->source_corresp.name != NULL &&
-               last_named_parameter->next->source_corresp.name != NULL) {
-          last_named_parameter = last_named_parameter->next;
+        check_assertion(last_expl_param != NULL);
+        if (last_expl_param->kind == (a_template_parameter_kind)tpk_type &&
+            last_expl_param->variant.type.ptr->
+                                        variant.template_param.is_auto_param) {
+          /* There are no explicit parameters. */
+          last_expl_param = NULL;
+        }  /* if */
+        while (last_expl_param != NULL && last_expl_param->next != NULL &&
+               !(last_expl_param->next->kind ==
+                                         (a_template_parameter_kind)tpk_type &&
+                 last_expl_param->next->variant.type.ptr->
+                                       variant.template_param.is_auto_param)) {
+          last_expl_param = last_expl_param->next;
         }  /* while */
-        if (last_named_parameter != NULL &&
-            last_named_parameter->source_corresp.name != NULL) {
+        if (last_expl_param != NULL) {
           /* Generic lambdas specified using only "auto" function
              parameters have only unnamed template parameters.  If there is
              a named template parameter, there was an explicit template
@@ -14054,13 +14062,13 @@ Render code for the given lambda.
              function parameters appear at the end of the template
              parameter list, so temporarily truncate the template parameter
              list before the first "auto" parameter and put it out. */
-          a_template_parameter_ptr next = last_named_parameter->next;
-          last_named_parameter->next = NULL;
+          a_template_parameter_ptr next = last_expl_param->next;
+          last_expl_param->next = NULL;
           gen_template_header(rp->assoc_template->template_decl,
                               /*parent_class=*/NULL,
                               /*is_cppcli_generic=*/FALSE,
                               /*for_generic_lambda=*/TRUE);
-          last_named_parameter->next = next;
+          last_expl_param->next = next;
         }  /* if */
       }  /* if */
       gen_function_declarator_with_scope(rp->type, scope,
