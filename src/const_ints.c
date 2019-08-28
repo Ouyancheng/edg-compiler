@@ -1943,12 +1943,13 @@ a single printf command in the caller.
   static char		buffer[5][64];
   int			old_bufpos = bufpos;
 
-  buffer[bufpos][0] = '\0';
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+  buffer[bufpos][0] = '\0';
   sprintf(&buffer[bufpos][0], PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE,
           *value);
 #else /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   int			i;
+  buffer[bufpos][0] = '\0';
   sprintf(&buffer[bufpos][0], "0x");
   for (i = 0; i < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
     sprintf(&buffer[bufpos][strlen(&buffer[bufpos][0])], "%04x",
