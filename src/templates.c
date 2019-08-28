@@ -38476,11 +38476,7 @@ the function template, and decl_state tracks its declaration.
 {
   a_template_symbol_supplement_ptr  tssp;
   a_def_arg_expr_fixup_ptr          saved_curr_default_args;
-#if RECORD_TEMPLATE_STRINGS
-  a_source_position                 def_pos;
 
-  def_pos = pos_curr_token;
-#endif /* RECORD_TEMPLATE_STRINGS */
   check_assertion(symbol_is(sym, sk_function_template));
   tssp = sym->variant.template_info;
   /* Don't consider any current default arguments to be associated with
