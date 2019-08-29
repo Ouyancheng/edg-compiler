@@ -434,16 +434,15 @@ typedef struct a_name_context {
 			   be set to TRUE if the target compiler searches
 			   dependent bases during unqualified lookup.) */
   a_byte_boolean
-		ignore_lexical_context_for_gcc_clang_friend;
-			/* G++ and clang have unusual lookup rules for
-			   names used in friend declarations, and it's
-			   safest to require all such names to be
+		ignore_lexical_context_for_friend_decl;
+			/* Every compiler seems to have different lookup
+			   rules for names used in friend declarations, so
+			   it's safest to require all such names to be
 			   qualified.  When processing a friend function
-			   declaration in g++ or clang mode, this flag is
-			   set in the top entry on the name context stack,
-			   causing us to pretend that the stack is empty
-			   and thus triggering the necessary
-			   qualification. */
+			   declaration, this flag is set in the top entry
+			   on the name context stack, causing us to pretend
+			   that the stack is empty and thus triggering the
+			   necessary qualification. */
 } a_name_context;
 
 static a_name_context_ptr
@@ -1094,7 +1093,7 @@ hidden name entries that apply to the base class list should be processed.
   ncp->invisible_to_cfront = FALSE;
   ncp->field_selection_context = FALSE;
   ncp->has_dependent_base = FALSE;
-  ncp->ignore_lexical_context_for_gcc_clang_friend = FALSE;
+  ncp->ignore_lexical_context_for_friend_decl = FALSE;
   ncp->saved_in_class_scope_with_dependent_base =
                                             in_class_scope_with_dependent_base;
   /* Put the entry on the stack. */
@@ -1307,7 +1306,7 @@ Return TRUE if the indicated scope is currently on the name context stack.
   a_name_context_ptr ncp;
 
   for (ncp = curr_name_context;
-       ncp != NULL && !ncp->ignore_lexical_context_for_gcc_clang_friend &&
+       ncp != NULL && !ncp->ignore_lexical_context_for_friend_decl &&
                                                                !scope_in_stack;
        ncp = ncp->next) {
     if (ncp->assoc_scope == scope) {
@@ -1346,7 +1345,7 @@ the scope might be in a memory region that is freed.
   a_name_context_ptr ncp;
 
   for (ncp = curr_name_context;
-       ncp != NULL && !ncp->ignore_lexical_context_for_gcc_clang_friend &&
+       ncp != NULL && !ncp->ignore_lexical_context_for_friend_decl &&
                                                                !scope_in_stack;
        ncp = ncp->next) {
     if (ncp->assoc_scope != NULL && ncp->assoc_scope->number == number) {
@@ -1393,7 +1392,7 @@ considered.
   a_name_context_ptr ncp;
 
   for (ncp = curr_name_context;
-       ncp != NULL && !ncp->ignore_lexical_context_for_gcc_clang_friend &&
+       ncp != NULL && !ncp->ignore_lexical_context_for_friend_decl &&
                                                                !class_in_stack;
        ncp = ncp->next) {
     if (ncp->class_type == class_type) {
@@ -4911,7 +4910,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
 #endif /* PROTOTYPE_INSTANTATIONS_IN_IL */
                                     ) ||
            (entry_kind == iek_type &&
-            curr_name_context->ignore_lexical_context_for_gcc_clang_friend &&
+            curr_name_context->ignore_lexical_context_for_friend_decl &&
             curr_name_context->class_type == (a_type_ptr)scp) ||
            class_is_in_name_context_stack(
                                  class_type, include_base_classes,
@@ -5020,7 +5019,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           (scp->visible_as_unqualified_name ||
            member_of_global_unnamed_namespace ||
            (entry_kind == iek_type &&
-            curr_name_context->ignore_lexical_context_for_gcc_clang_friend &&
+            curr_name_context->ignore_lexical_context_for_friend_decl &&
             curr_name_context->class_type == (a_type_ptr)scp) ||
            scope_is_in_name_context_stack(nsp->variant.assoc_scope)) &&
           /* MSVC++ 7.0 does not always correctly parse "class S<x>::N {}",
@@ -19892,14 +19891,13 @@ declarator (or NULL if it wasn't recorded).
     gen_attributes(sec_decl == NULL ? scp->attributes : sec_decl->attributes,
                    al_declarator_id, /*primary_only=*/(sec_decl == NULL));
     if (!force_unqualified_name || friend_decl) {
-      if (friend_decl &&
-          (gcc_is_generated_code_target || clang_is_generated_code_target)) {
-        /* G++ and clang have unusual lookup rules for names used in friend
-           declarations.  It's safest to require all names to be qualified,
-           which we accomplish by setting the
-           ignore_lexical_context_for_gcc_clang_friend flag in the top
-           entry in the name context stack. */
-        curr_name_context->ignore_lexical_context_for_gcc_clang_friend = TRUE;
+      if (friend_decl) {
+        /* Every compiler seems to have different lookup rules for names
+           used in friend declarations.  It's safest to require all names
+           to be qualified, which we accomplish by setting the
+           ignore_lexical_context_for_friend_decl flag in the top entry in
+           the name context stack. */
+        curr_name_context->ignore_lexical_context_for_friend_decl = TRUE;
         name_context_to_restore = curr_name_context;
       } else {
         /* Push the name context for a class/namespace member. */
@@ -19962,8 +19960,7 @@ declarator (or NULL if it wasn't recorded).
   }  /* if */
   if (name_context_to_restore != NULL) {
     /* Restore lexical context lookup. */
-    name_context_to_restore->ignore_lexical_context_for_gcc_clang_friend =
-                                                                         FALSE;
+    name_context_to_restore->ignore_lexical_context_for_friend_decl = FALSE;
   }  /* if */
   if (name_context_for_access_reset != NULL) {
     name_context_for_access_reset->class_type_for_access_not_naming = NULL;

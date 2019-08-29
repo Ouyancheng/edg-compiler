@@ -1,5 +1,34 @@
 Version 6.0
 
+8/29/19  [EDGcpfe/21683]
+C++-generating back end: friend function parameters and name lookup
+
+In some cases the C++-generating back end failed to use a qualified name in
+the code generated for a friend declaration when the qualification is
+needed to avoid matching an incorrect declaration found by unqualified
+lookup.  This has now been addressed by extending the change for
+EDGcpfe/20394 to apply to all modes, not just g++ and clang modes, and thus
+always using qualified names in the parameter list of a friend function
+declaration.  For example:
+
+  namespace N1 { class B; }
+  namespace N2 { void f(N1::B&); class B; void f(N2::B&);}
+  namespace N1 {
+    class A {
+      friend void N2::f(N1::B&);  // Previously generated as f(B&), thus
+                                  // matching f(N2::B&)
+      int m;
+    };
+  }
+  class N1::A g;
+  namespace N2 {
+    void f(N1::B& b) {
+      g.m = 1;  // Previously an access error in the generated code because
+                // the friend declaration matched f(N2::B&), not this function
+    }
+  }
+
+
 8/27/19  [EDGcpfe/21702]
 C++-generating back end: missing explicit template parameter list for lambda
 
