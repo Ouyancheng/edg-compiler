@@ -14045,6 +14045,11 @@ Render code for the given lambda.
           /* There are no explicit parameters. */
           last_expl_param = NULL;
         }  /* if */
+        /* C++20 generic lambdas can have both an explicit template
+           parameter list and "auto" function parameters; template
+           parameters reflecting the latter appear at the end of the
+           template parameter list.  Find the last parameter from the
+           explicit parameter list, if one was specified. */
         while (last_expl_param != NULL && last_expl_param->next != NULL &&
                !(last_expl_param->next->kind ==
                                          (a_template_parameter_kind)tpk_type &&
@@ -14053,15 +14058,10 @@ Render code for the given lambda.
           last_expl_param = last_expl_param->next;
         }  /* while */
         if (last_expl_param != NULL) {
-          /* Generic lambdas specified using only "auto" function
-             parameters have only unnamed template parameters.  If there is
-             a named template parameter, there was an explicit template
-             parameter list for this lambda.  It is permitted to have both
-             a regular template parameter list and "auto" function
-             parameters; the template parameters corresponding to "auto"
-             function parameters appear at the end of the template
-             parameter list, so temporarily truncate the template parameter
-             list before the first "auto" parameter and put it out. */
+          /* There was an explicit template parameter list.  Temporarily
+             truncate the list following the last explicit parameter and call
+             gen_template_header to put out only the explicitly-specified
+             ones. */
           a_template_parameter_ptr next = last_expl_param->next;
           last_expl_param->next = NULL;
           gen_template_header(rp->assoc_template->template_decl,
