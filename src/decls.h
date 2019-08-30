@@ -47,14 +47,16 @@ the "::" at the start of a qualified name) is a type name.  If gid_options
 includes GID_TEMPLATE_ARGS_OPTIONAL, this is considered a prescan context.
 If ids_options includes IDS_IS_SIZEOF, this is a sizeof context.
 */
+/*lint -ecall(835,curr_id_is_type_name)*/
+/*lint -emacro(835,curr_id_is_type_name)*/
 #define curr_id_is_type_name(gid_options, ids_options)			\
   (curr_type_symbol(							\
      /*is_new_type_name=*/FALSE,					\
      /*in_prescan=*/							\
-         /*lint -e(835)*/((gid_options) & GID_TEMPLATE_ARGS_OPTIONAL) != 0,\
+         ((gid_options) & GID_TEMPLATE_ARGS_OPTIONAL) != 0,             \
      /*in_type_check=*/TRUE, /*is_sizeoof_context=*/			\
      /*is_implicit_type_context=*/FALSE,				\
-         /*lint -e(835)*/((ids_options) & IDS_IS_SIZEOF) != 0) != NULL)
+         ((ids_options) & IDS_IS_SIZEOF) != 0) != NULL)
 
 /*
 Flags used to specify options to is_decl_start.

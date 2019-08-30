@@ -306,13 +306,9 @@ the type symbol for the typedef, for use in diagnostics.
 }  /* is_cfront_member_function_typedef */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
-                information is being recorded in the IL. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 a_type_qualifier_set collect_type_qualifiers(
-                                       a_decl_pos_block_ptr  decl_pos_block,
-                                       a_upc_block_size      *upc_block_size)
+                               ARG_UNUSED a_decl_pos_block_ptr decl_pos_block,
+                               ARG_UNUSED a_upc_block_size     *upc_block_size)
 /*
 Call decl_specifiers to scan one or more declarator qualifiers, and return
 a bit vector describing what was found.  At least one qualifier must be
@@ -740,13 +736,10 @@ is non-NULL, issue an error at that position.  Otherwise, return TRUE.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !NAMED_ADDRESS_SPACES_ALLOWED && !UPC_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* *err is not used in some configurations. */
-#endif /* !NAMED_ADDRESS_SPACES_ALLOWED && !UPC_EXTENSIONS_ALLOWED */
-void report_bad_return_type_qualifier(a_type_ptr          type,
-                                      a_decl_parse_state  *dps,
-                                      a_source_position   *diag_pos,
-                                      a_boolean           *err)
+void report_bad_return_type_qualifier(a_type_ptr           type,
+                                      a_decl_parse_state   *dps,
+                                      a_source_position    *diag_pos,
+                                      ARG_UNUSED a_boolean *err)
 /*
 The given type is a qualified type used as a function return type.  Issue an
 error if the qualification is invalid or a warning or remark if it is not
@@ -1945,10 +1938,10 @@ need not be addressed here.
 }  /* is_prototyped_parameter_list_start */
 
 
-/*ARGSUSED*/  /* "dps" is currently unused. */
-static void scan_member_function_modifiers(a_symbol_locator    *locator,
-                                           a_decl_parse_state  *dps,
-                                           a_func_info_block   *func_info)
+static void scan_member_function_modifiers(
+                                      ARG_UNUSED a_symbol_locator   *locator,
+                                      ARG_UNUSED a_decl_parse_state *dps,
+                                      a_func_info_block             *func_info)
 /*
 Scan for member function modifiers and record their presence in *func_info.
 *dps describes some syntactic properties of the current declaration.
@@ -2347,24 +2340,21 @@ routine is also called for the trailing return type of a lambda declarator.
 }  /* scan_trailing_return_type */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* state is not used in some configurations. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void cplusplus_function_declarator_trailer(
-                                   a_decl_parse_state  *state,
-                                   a_type_ptr          rout_type,
-                                   a_func_info_block   *func_info,
-                                   a_symbol_locator    *locator,
-                                   a_type_ptr          parent_type,
-                                   a_boolean           top_level,
-                                   a_boolean           is_nonstatic_member,
-                                   a_boolean           is_constructor,
-                                   a_boolean           is_static_constructor,
-                                   a_boolean           is_destructor,
-                                   a_boolean           is_finalizer,
-                                   a_boolean           disallow_exception_spec,
-                                   a_boolean           is_typedef_decl,
-                                   a_decl_pos_block    *decl_pos_block)
+                         ARG_UNUSED a_decl_parse_state  *state,
+                         a_type_ptr                    rout_type,
+                         a_func_info_block             *func_info,
+                         a_symbol_locator              *locator,
+                         a_type_ptr                    parent_type,
+                         a_boolean                     top_level,
+                         a_boolean                     is_nonstatic_member,
+                         a_boolean                     is_constructor,
+                         a_boolean                     is_static_constructor,
+                         a_boolean                     is_destructor,
+                         a_boolean                     is_finalizer,
+                         a_boolean                     disallow_exception_spec,
+                         a_boolean                     is_typedef_decl,
+                         a_decl_pos_block              *decl_pos_block)
 /*
 Parse any C++-specific additions to a function declarator that follow its
 closing right parenthesis (cv-qualifiers and/or exception specifications),
@@ -2879,9 +2869,10 @@ an error if a default argument expression is encountered.
   if (!is_name_linkage_kind_for_rout_type(extra_info->routine_name_linkage)) {
     /* Custom name linkage kinds may presumably not affect routine types
        (i.e., calling conventions). */
+    /*lint -e{587,650,685}*/
     check_assertion(!C_mode() &&
                     extra_info->routine_name_linkage >
-                        (a_name_linkage_kind)nlk_last_standard); /*lint !e685*/
+                        (a_name_linkage_kind)nlk_last_standard);
     extra_info->routine_name_linkage =
                                   (a_name_linkage_kind)nlk_cplusplus_external;
   }  /* if */
@@ -4219,16 +4210,12 @@ scope in a class scope.
 }  /* in_class_definition */
 
 
-#if !UPC_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* threads_dimension_allowed is only used in configurations
-                 supporting UPC extensions. */
-#endif /* !UPC_EXTENSIONS_ALLOWED */
 void array_declarator(a_decl_parse_state    *dps,
                       a_type_ptr            *new_type_ptr,
                       a_boolean             nonconstant_dimension_allowed,
                       a_boolean             vla_allowed,
                       a_boolean             vla_asterisk_allowed,
-                      a_boolean             threads_dimension_allowed,
+                      ARG_UNUSED a_boolean  threads_dimension_allowed,
                       a_boolean             top_level_field_decl,
                       a_boolean             top_level_param_decl,
                       a_decl_pos_block_ptr  decl_pos_block)
@@ -4393,7 +4380,7 @@ constant.
             err = TRUE;
             break;
           }  /* if */
-          /*FALLTHROUGH*/
+          FALLTHROUGH
 #endif /* UPC_EXTENSIONS_ALLOWED */
         case ck_integer:
           /* Array size must be greater than zero. */
@@ -4914,13 +4901,9 @@ Expands to nothing when Microsoft extensions are not being used.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- because when MICROSOFT_EXTENSIONS_ALLOWED is FALSE,
-                    plain_ptr_seen and ptr_to_member_seen are not used. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void collect_pointer_declarator_extended_qualifiers(
-                                  a_boolean                 plain_ptr_seen,
-                                  a_boolean                 ptr_to_member_seen,
+                                  ARG_UNUSED a_boolean      plain_ptr_seen,
+                                  ARG_UNUSED a_boolean      ptr_to_member_seen,
                                   a_pointer_modifier_state  *ptr_mods,
                                   a_decl_pos_block_ptr      decl_pos_block)
 /*
@@ -5176,23 +5159,16 @@ __w64 annotation, and __based variable specifiers).  The given type must be a
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- left_calling_convention and unbound_calling_convention
-                    are only used when Microsoft extensions are allowed.
-                    Moreover, left_qualifiers and unbound_qualifiers are used
-                    only if either Microsoft extensions or near/far are
-                    allowed. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_type_ptr pointer_declarator(
-                      a_type_ptr            specifiers_type,
-                      a_decl_parse_state    *state,
-                      a_boolean   	    reference_allowed,
-                      a_call_conv_descr_ptr left_calling_convention,
-                      a_call_conv_descr_ptr unbound_calling_convention,
-                      a_type_qualifier_set  *left_qualifiers,
-                      a_type_qualifier_set  *unbound_qualifiers,
-                      a_boolean             *ptr_to_member_scanned,
-                      a_decl_pos_block_ptr  decl_pos_block)
+                   a_type_ptr                       specifiers_type,
+                   a_decl_parse_state               *state,
+                   a_boolean   	               reference_allowed,
+                   ARG_UNUSED a_call_conv_descr_ptr left_calling_convention,
+                   ARG_UNUSED a_call_conv_descr_ptr unbound_calling_convention,
+                   ARG_UNUSED a_type_qualifier_set  *left_qualifiers,
+                   ARG_UNUSED a_type_qualifier_set  *unbound_qualifiers,
+                   a_boolean                        *ptr_to_member_scanned,
+                   a_decl_pos_block_ptr             decl_pos_block)
 /*
 Scan the pointer component of a declarator.  This is "*", "&", "&&", or "C::*"
 (where C is a class type) optionally followed by "const" and/or "volatile".
@@ -5780,11 +5756,9 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
 }  /* pointer_declarator */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- opname and parent_type are unused in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static a_boolean is_microsoft_static_operator(an_opname_kind  opname,
-                                              a_type_ptr      parent_type)
+static a_boolean is_microsoft_static_operator(
+                                        ARG_UNUSED an_opname_kind  opname,
+                                        ARG_UNUSED a_type_ptr      parent_type)
 /*
 Microsoft compilers allow most operators to be declared as static member
 functions.  In C++/CLI mode, this is true only if parent_type (the class type
@@ -5863,23 +5837,19 @@ attributes are applied to the underlying type).
 }  /* scan_id_attributes */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
-                information is being recorded in the IL. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void scan_real_declarator_id(
-                        a_decl_parse_state  *dps,
-                        a_decl_flag_set     input_flags,
-                        a_decl_flag_set     *output_flags,
-                        a_symbol_locator    *locator,
-                        a_boolean           *is_constructor,
-                        a_boolean           *is_static_constructor,
-                        a_boolean           *is_destructor,
-                        a_boolean           *is_finalizer,
-                        a_boolean           *parenthesized_initializer_allowed,
-                        a_boolean           *not_a_function_declarator,
-                        a_type_ptr          *p_member_parent_type,
-                        a_decl_pos_block    *decl_pos_block)
+                a_decl_parse_state          *dps,
+                a_decl_flag_set             input_flags,
+                a_decl_flag_set             *output_flags,
+                a_symbol_locator            *locator,
+                a_boolean                   *is_constructor,
+                ARG_UNUSED a_boolean        *is_static_constructor,
+                a_boolean                   *is_destructor,
+                ARG_UNUSED a_boolean        *is_finalizer,
+                a_boolean                   *parenthesized_initializer_allowed,
+                a_boolean                   *not_a_function_declarator,
+                a_type_ptr                  *p_member_parent_type,
+                ARG_UNUSED a_decl_pos_block *decl_pos_block)
 /*
 This routine is called by declarator for real declarators; it scans the name
 that is specified (and any following attributes).  The current token is the
@@ -6783,32 +6753,27 @@ and record it in *dps.  Also update positions in decl_pos_block.
 }  /* cache_struct_bindings_list */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED || !NEAR_AND_FAR_ALLOWED
-/*ARGSUSED*/  /* <-- because p_left_call_conv et al. are used only in
-                     Microsoft mode, and p_left_qualifiers is used only when
-                     near and far are supported. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void r_declarator(
-		  a_decl_flag_set             input_flags,
-                  a_decl_flag_set             *output_flags,
-                  a_decl_parse_state          *state,
-                  a_type_ptr                  specifiers_type,
-                  a_type_ptr                  member_parent_type,
-                  a_symbol_locator            *locator,
-                  a_type_ptr                  *p_complete_type,
-                  a_type_ptr                  *p_bottom_derived_type,
-                  a_boolean                   *is_constructor,
-                  a_boolean                   *is_static_constructor,
-                  a_boolean                   *is_destructor,
-                  a_boolean                   *is_finalizer,
-                  a_call_conv_descr_ptr       p_left_call_conv,
-                  a_call_conv_descr_ptr       p_unbound_call_conv,
-                  a_type_qualifier_set        *p_left_qualifiers,
-                  a_type_qualifier_set        *p_unbound_qualifiers,
-                  an_attribute_ptr            *p_predeclarator_attributes,
-                  a_source_sequence_entry_ptr *declarator_ssep,
-                  a_func_info_block           *func_info,
-                  a_decl_pos_block_ptr        decl_pos_block)
+		  a_decl_flag_set                  input_flags,
+                  a_decl_flag_set                  *output_flags,
+                  a_decl_parse_state               *state,
+                  a_type_ptr                       specifiers_type,
+                  a_type_ptr                       member_parent_type,
+                  a_symbol_locator                 *locator,
+                  a_type_ptr                       *p_complete_type,
+                  a_type_ptr                       *p_bottom_derived_type,
+                  a_boolean                        *is_constructor,
+                  a_boolean                        *is_static_constructor,
+                  a_boolean                        *is_destructor,
+                  a_boolean                        *is_finalizer,
+                  ARG_UNUSED a_call_conv_descr_ptr p_left_call_conv,
+                  ARG_UNUSED a_call_conv_descr_ptr p_unbound_call_conv,
+                  ARG_UNUSED a_type_qualifier_set  *p_left_qualifiers,
+                  ARG_UNUSED a_type_qualifier_set  *p_unbound_qualifiers,
+                  an_attribute_ptr                 *p_predeclarator_attributes,
+                  a_source_sequence_entry_ptr      *declarator_ssep,
+                  a_func_info_block                *func_info,
+                  a_decl_pos_block_ptr             decl_pos_block)
 /*
 Scan a declarator or an abstract declarator, depending on the values of the
 DI_REAL_DECLARATOR_ALLOWED and DI_ABSTRACT_DECLARATOR_ALLOWED flags in
@@ -7476,8 +7441,9 @@ function_lparen:
               !(state->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
             /* Something like "*~D()". */
             pos_error(*is_constructor ? ec_bad_constructor_decl :
-                      *is_destructor  ? ec_bad_destructor_decl
-                                      : ec_bad_finalizer_decl,
+                      (an_error_code)
+                      (*is_destructor ? ec_bad_destructor_decl
+                                      : ec_bad_finalizer_decl),
                       &state->declarator_start_pos);
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
