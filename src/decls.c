@@ -1333,9 +1333,6 @@ an error diagnostic and return TRUE.
 }  /* check_member_function_typedef */
 
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- attributes is not used in this case. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
 void adjust_parameter_type(a_type_ptr  *type_ptr)
 /*
 *type_ptr points to the type of a parameter.  Modify the type if
@@ -2424,11 +2421,11 @@ is invalid.  Also promote the fields of the union type to the current scope.
       case sc_extern:
         /* Error, then default to automatic. */
         pos_error(ec_anon_union_storage_class, &error_position);
-        /*FALLTHROUGH*/
+        FALLTHROUGH
       case sc_unspecified:
         /* Default to automatic. */
         storage_class = (a_storage_class)sc_auto;
-        /*FALLTHROUGH*/
+        FALLTHROUGH
       case sc_static:
       case sc_auto:
       case sc_register:
@@ -3340,7 +3337,7 @@ when the declaration is a friend declaration within a class.
       /* Go through the list of functions and look for type compatibility.
          If types_are_compatible returns TRUE, this is a redeclaration.
          If no type match is found, this is a candidate for overloading. */
-      /*lint --e{446} other_decl modified in loop (LINTBUG) */
+      /*lint --e{446,850} other_decl modified in loop (LINTBUG) */
       for (; other_decl != NULL;
              other_decl = is_list ? other_decl->next : NULL) {
         a_routine_ptr  rp;
@@ -3596,11 +3593,8 @@ only.
 }  /* has_linkage_within_innermost_namespace_scope */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- dps is unused in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static void id_linkage(an_id_linkage_block  *idlbp,
-                       a_decl_parse_state   *dps)
+static void id_linkage(an_id_linkage_block           *idlbp,
+                       ARG_UNUSED a_decl_parse_state *dps)
 /*
 Determine the linkage (internal, external, or none) of the current variable,
 routine, or function template declaration (described by *dps).  Find previous
@@ -4561,6 +4555,7 @@ created; the caller must set it.
        the new entity are both variables or both routines. */
     if (!is_function) {
       /* The entity being declared is a variable. */
+      check_assertion(variable_ptr != NULL);
       if (*variable_ptr == NULL) {
         *variable_ptr = ext_sym->variant.extern_symbol_descr->variant.variable;
         if (*variable_ptr != NULL) {
@@ -4579,6 +4574,7 @@ created; the caller must set it.
       }  /* if */
     } else {
       /* The entity being declared is a routine. */
+      check_assertion(routine_ptr != NULL);
       if (*routine_ptr == NULL) {
         *routine_ptr =
                     ext_sym->variant.extern_symbol_descr->variant.routine.ptr;
@@ -4681,8 +4677,10 @@ created; the caller must set it.
           etfp->type = preexisting_type;
           etfp->is_routine = is_function;
           if (!is_function) {
+            check_assertion(variable_ptr != NULL);
             etfp->variant.variable = *variable_ptr;
           } else {
+            check_assertion(routine_ptr != NULL);
             etfp->variant.routine = *routine_ptr;
           }  /* if */
         }  /* if */
@@ -4855,16 +4853,12 @@ done:;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if DECL_MODIFIERS_IN_USE
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/* ARGSUSED */ /* is_redecl and is_definition are only used in Microsoft
-                  mode. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void update_routine_decl_modifiers(
                              a_routine_ptr               routine,
                              a_decl_modifiers_block_ptr  new_modifiers,
                              a_source_position           *position,
-                             a_boolean                   is_redecl,
-                             a_boolean                   is_definition,
+                             ARG_UNUSED a_boolean        is_redecl,
+                             ARG_UNUSED a_boolean        is_definition,
                              a_boolean                   is_inline)
 /*
 Update the decl_modifiers field of the routine entry to reflect the modifiers
@@ -6291,13 +6285,10 @@ is a namespace projection symbol made visible by an inline namespace.
 }  /* move_variable_to_end_of_list */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/* ARGSUSED */ /* The parameters are only used when Microsoft extensions are
-                  allowed. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static a_boolean microsoft_for_init_hiding(a_symbol_locator  *loc,
-                                           a_scope_depth     decl_level,
-                                           a_boolean         *in_for_init)
+static a_boolean microsoft_for_init_hiding(
+                                     ARG_UNUSED a_symbol_locator  *loc,
+                                     ARG_UNUSED a_scope_depth     decl_level,
+                                     ARG_UNUSED a_boolean         *in_for_init)
 /*
 Starting with version 7, Microsoft Visual C++ allows for-initializers to
 declare variables that conflict with a declaration in the surrounding scope.
@@ -6771,16 +6762,12 @@ of the variable.
 }  /* update_variable_decl_info */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL && !NAMED_REGISTERS_ALLOWED && \
-    !GENERATE_SOURCE_SEQUENCE_LISTS
-/*ARGSUSED*/ /* decl_pos_block is not used in some configurations. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL && !NAMED_REGISTERS_ALLOWED && ... */
-void decl_variable(a_symbol_locator             *locator,
-                   a_decl_parse_state           *dps,
-                   a_symbol_reference_kind      srk_flags,
-                   an_id_linkage_kind           *linkage_ptr,
-                   a_symbol_ptr                 *ext_sym,
-                   a_decl_pos_block_ptr         decl_pos_block)
+void decl_variable(a_symbol_locator                *locator,
+                   a_decl_parse_state              *dps,
+                   a_symbol_reference_kind         srk_flags,
+                   an_id_linkage_kind              *linkage_ptr,
+                   a_symbol_ptr                    *ext_sym,
+                   ARG_UNUSED a_decl_pos_block_ptr decl_pos_block)
 /*
 Enter the declaration of an identifier for a variable.  *locator gives the
 symbol locator (and thus its name and its declaration position).  *dps
@@ -8522,17 +8509,14 @@ interpreter) and if so mark it as such.
 }  /* check_for_constexpr_intrinsic */
 
 
-#if !(EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS)
-/* ARGSUSED */ /* decl_pos_block is not used in some configurations. */
-#endif /* !(EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS) */
-void decl_routine(a_symbol_locator         *locator,
-                  a_decl_parse_state       *dps,
-                  a_func_info_block_ptr    func_info,
-                  a_symbol_reference_kind  srk_flags,
-                  an_id_linkage_kind       *linkage_ptr,
-                  a_type_ptr               *old_type,
-                  a_symbol_ptr             *ext_sym,
-                  a_decl_pos_block_ptr     decl_pos_block)
+void decl_routine(a_symbol_locator                *locator,
+                  a_decl_parse_state              *dps,
+                  a_func_info_block_ptr           func_info,
+                  a_symbol_reference_kind         srk_flags,
+                  an_id_linkage_kind              *linkage_ptr,
+                  a_type_ptr                      *old_type,
+                  a_symbol_ptr                    *ext_sym,
+                  ARG_UNUSED a_decl_pos_block_ptr decl_pos_block)
 /*
 Enter the declaration of an identifier for a nonmember routine.  *locator
 gives the symbol locator (and thus its name and its declaration position).
@@ -11133,15 +11117,12 @@ the reconciliation process.
 }  /* reconcile_static_data_member_types */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
-                information is being recorded in the IL. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static void define_static_data_member(a_symbol_locator    *locator,
-                                      a_decl_parse_state  *dps,
-                                      a_boolean           has_initializer,
-                                      an_id_linkage_kind  *linkage_ptr,
-                                      a_decl_pos_block    *decl_pos_block)
+static void define_static_data_member(
+                                  a_symbol_locator            *locator,
+                                  a_decl_parse_state          *dps,
+                                  a_boolean                   has_initializer,
+                                  an_id_linkage_kind          *linkage_ptr,
+                                  ARG_UNUSED a_decl_pos_block *decl_pos_block)
 /*
 Enter the definition of a static data member.  *locator gives the symbol
 locator (and thus its name and its declaration position).  *dps describes
@@ -11506,14 +11487,10 @@ Issue a diagnostic if the modifier is invalid.
 
 #endif /* DECL_MODIFIERS_IN_USE */
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
-                information is being recorded in the IL. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-void decl_typedef(a_symbol_locator             *locator,
-                  a_decl_parse_state           *state,
-                  a_type_ptr                   class_type,
-                  a_decl_pos_block_ptr         decl_pos_block)
+void decl_typedef(a_symbol_locator                *locator,
+                  a_decl_parse_state              *state,
+                  a_type_ptr                      class_type,
+                  ARG_UNUSED a_decl_pos_block_ptr decl_pos_block)
 /*
 Enter the declaration of an identifier for a typedef.  *locator gives the
 symbol locator (and thus its name and its declaration position).  *state
@@ -12380,9 +12357,10 @@ Note that this routine determines whether the "implicit int" rule applies.
      all, but the global function "main" is handled with a different error
      code (in case discretionary-error control for "main" should be
      independent of that for other functions). */
-  error_code = is_main_func        ? ec_implicit_int_on_main :
-               any_decl_specifiers ? ec_missing_type_specifier :
-                                     ec_missing_decl_specifiers;
+  error_code = is_main_func         ? ec_implicit_int_on_main :
+               (an_error_code)
+               (any_decl_specifiers ? ec_missing_type_specifier :
+                                      ec_missing_decl_specifiers);
   if (C_dialect == C_dialect_pcc) {
     /* pcc mode is the most permissive when it comes to diagnosing missing
        type specifiers.  Only non-function cases are diagnosed, and the
@@ -13268,11 +13246,9 @@ definition.
 }  /* record_lint_argsused_and_varargs_state */
 
 
-/* ARGSUSED */ /* sp is required for pragma processing functions of type
-                  a_next_construct_pragma_function. */
-void record_arg_pragma(a_pending_pragma_ptr  ppp,
-                       a_symbol_ptr          sym,
-                       a_statement_ptr       sp)
+void record_arg_pragma(a_pending_pragma_ptr       ppp,
+                       a_symbol_ptr               sym,
+                       ARG_UNUSED a_statement_ptr sp)
 /*
 A pragma indicating special argument checking (e.g., for printf args) has
 been specified immediately before the current declaration.  If the current
@@ -13885,12 +13861,9 @@ a normal try.
 }  /* handler_declaration */
 
 
-#if !GENERATE_SOURCE_SEQUENCE_LISTS && !MICROSOFT_EXTENSIONS_ALLOWED
-/* ARGSUSED */ /* is_asm_statement is not referenced.*/
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS && !MICROSOFT_EXTENSIONS_ALLOWED */
-an_asm_entry_ptr asm_declaration(a_boolean         asm_decl_allowed,
-                                 a_boolean         is_asm_statement,
-                                 an_attribute_ptr  *p_attributes)
+an_asm_entry_ptr asm_declaration(a_boolean            asm_decl_allowed,
+                                 ARG_UNUSED a_boolean is_asm_statement,
+                                 an_attribute_ptr     *p_attributes)
 /*
 Scan an asm declaration, create an entry to represent it in the IL, and
 return a pointer to the asm entry.  asm_decl_allowed is FALSE if an error
@@ -14520,15 +14493,12 @@ namespace scope specified by ssep.
 }  /* add_to_inline_namespace_list */
 
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- attributes is not used in this case. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
-void make_using_directive(a_namespace_ptr    nsp,
-			  a_scope_depth	     depth,
-                          a_source_position  *pos,
-			  a_boolean	     compiler_generated,
-			  a_boolean	     inline_namespace,
-			  an_attribute_ptr   attributes)
+void make_using_directive(a_namespace_ptr             nsp,
+			  a_scope_depth	              depth,
+                          a_source_position           *pos,
+			  a_boolean	              compiler_generated,
+			  a_boolean	              inline_namespace,
+			  ARG_UNUSED an_attribute_ptr attributes)
 /*
 Create a using-decl entry for a using-directive that specifies the indicated
 namespace, add it to the list of using-decl entries for the scope specified
@@ -15838,11 +15808,8 @@ current scope.
 }  /* nonmember_using_declaration */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/  /* p_end_of_using_pos is not used in some configurations. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-void alias_declaration(a_decl_parse_state  *dps,
-                       a_source_position   *p_end_of_using_pos)
+void alias_declaration(a_decl_parse_state           *dps,
+                       ARG_UNUSED a_source_position *p_end_of_using_pos)
 /*
 Handle a declaration of the form:
 
@@ -16492,12 +16459,9 @@ prototype scope associated with func_info to the current scope.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-#if !GENERATE_SOURCE_SEQUENCE_LISTS
-/*ARGSUSED*/  /* func_info is not used in some configurations. */
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-static void prep_old_style_param_decl(a_decl_parse_state  *state,
-                                      a_func_info_block   *func_info,
-                                      a_symbol_locator    *locator)
+static void prep_old_style_param_decl(a_decl_parse_state           *state,
+                                      ARG_UNUSED a_func_info_block *func_info,
+                                      a_symbol_locator             *locator)
 /*
 The current declaration -- described by state, func_info, and locator -- is
 (apparently) an old-style C parameter declaration.  Perform various checks
@@ -17422,7 +17386,7 @@ that the type of the initializer is consistent with the type of the variable.
                in various modes.  So we don't check those here. */
             break;
           }  /* if */
-          /*FALLTHROUGH*/
+          FALLTHROUGH
         case dik_nonconstant_aggregate:
           init_type = dip->variant.constant.ptr->type;
           break;
@@ -20174,12 +20138,9 @@ scanning a translation-unit, except there's no diagnostic on the empty file.
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- is_metadata is not used in this case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-void scan_top_level_generated_code(a_const_char      *buffer,
-                                   an_assembly_index assembly_index,
-                                   a_boolean         is_metadata)
+void scan_top_level_generated_code(a_const_char         *buffer,
+                                   an_assembly_index    assembly_index,
+                                   ARG_UNUSED a_boolean is_metadata)
 /*
 Scan top level declarations of "generated code" given by *buffer.  Generated
 code can be code read from assembly files (i.e., metadata), or directly from

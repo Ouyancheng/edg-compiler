@@ -277,12 +277,9 @@ scan the default argument expression but discard the token cache.
 }  /* prescan_default_function_arg_expr */
 
 
-#if !NEED_NAME_MANGLING
-/*ARGSUSED*/  /* rout_sym is unused in some configurations. */
-#endif /* !NEED_NAME_MANGLING */
-void delayed_scan_of_default_arg_expr(a_param_type_ptr param_type_entry,
-                                      a_symbol_ptr     rout_sym,
-                                      a_boolean	       check_for_errors)
+void delayed_scan_of_default_arg_expr(a_param_type_ptr        param_type_entry,
+                                      ARG_UNUSED a_symbol_ptr rout_sym,
+                                      a_boolean	              check_for_errors)
 /*
 Do the delayed scan of the default argument expression for a parameter.  The
 cache has just been reactivated, so curr_token should represent the first
