@@ -540,14 +540,11 @@ issue an error at the given source position.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* err_pos is not used in all configurations. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void update_extended_decl_info_for_class(
-                            a_type_ptr                  class_type,
-                            an_extended_decl_info_block *extended_decl_info,
-                            a_boolean                   explicit_inst,
-                            a_source_position           *err_pos)
+                            a_type_ptr                   class_type,
+                            an_extended_decl_info_block  *extended_decl_info,
+                            a_boolean                    explicit_inst,
+                            ARG_UNUSED a_source_position *err_pos)
 /*
 Update the specified class type with information based on a previous scan of
 extended declaration modifiers, as specified by *extended_decl_info.  If
@@ -645,14 +642,11 @@ of class_type.  err_pos is a pointer to a source position used for diagnostics.
 #endif /* DECL_MODIFIERS_IN_USE || NEAR_AND_FAR_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* p_attr and syn_loc are not used in some configurations. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void scan_extended_decl_modifiers(
-                             an_extended_decl_info_block  *extended_decl_info,
-                             an_attribute_ptr             *p_attr,
-                             an_attribute_location        syn_loc,
-                             a_boolean                    is_enum_decl)
+                          an_extended_decl_info_block      *extended_decl_info,
+                          ARG_UNUSED an_attribute_ptr      *p_attr,
+                          ARG_UNUSED an_attribute_location syn_loc,
+                          a_boolean                        is_enum_decl)
 /*
 Scan extended declaration modifiers (e.g., Microsoft extensions) and record
 them in the specified extended-decl-info block or, in the case of Microsoft
@@ -1025,22 +1019,19 @@ This is a helper routine for scan_tag_name.
 }  /* check_consistent_tag_kind */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
-                information is being recorded in the IL. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
-                                  a_symbol_locator  *locator,
-                                  a_boolean         *is_friend_decl,
-                                  a_boolean         is_specialization,
-                                  a_boolean         *check_for_vacuous_decl,
-                                  a_boolean         is_ref_within_new_expr,
-                                  a_boolean         no_definition_allowed,
-                                  a_boolean         is_event_interface,
-                                  a_scope_depth     *effective_decl_level,
-                                  a_boolean         *tag_resolution,
-                                  a_boolean         *is_predeclared_type_decl,
-                                  a_decl_pos_block  *decl_pos_block)
+static a_symbol_ptr scan_tag_name(
+                         a_symbol_kind               tag_kind,
+                         a_symbol_locator            *locator,
+                         a_boolean                   *is_friend_decl,
+                         a_boolean                   is_specialization,
+                         a_boolean                   *check_for_vacuous_decl,
+                         a_boolean                   is_ref_within_new_expr,
+                         a_boolean                   no_definition_allowed,
+                         a_boolean                   is_event_interface,
+                         a_scope_depth               *effective_decl_level,
+                         a_boolean                   *tag_resolution,
+                         a_boolean                   *is_predeclared_type_decl,
+                         ARG_UNUSED a_decl_pos_block *decl_pos_block)
 /*
 Scan a tag identifier for a class, struct, union, enum, or interface
 declaration.  If a tag symbol already exists for the identifier, return
@@ -1208,7 +1199,7 @@ caution when modifying this routine.
               !is_nonreal_instance_class_symbol(instance_sym)) {
             computed_decl_level = depth_innermost_namespace_scope;
           }  /* if */
-          /*FALLTHROUGH*/
+          FALLTHROUGH
         case sck_file:
         case sck_namespace:
         case sck_namespace_extension:
@@ -2010,12 +2001,9 @@ done:;
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* is_template is only used for Microsoft emulation. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static void check_friend_class_declaration(a_symbol_locator  *locator,
-                                           a_symbol_ptr      *tag_sym,
-                                           a_boolean         *is_template)
+static void check_friend_class_declaration(a_symbol_locator     *locator,
+                                           a_symbol_ptr         *tag_sym,
+                                           ARG_UNUSED a_boolean *is_template)
 /*
 Check that a friend class declaration is well-formed.  locator describes the
 source construct to name the class and tag_sym describes the associated class.
@@ -2238,14 +2226,10 @@ An error is issued if the "abstract" or "sealed" appear in a union definition.
 }  /* scan_class_modifiers */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* is_abstract and is_sealed are not used in some
-                 configurations. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-void apply_class_modifiers(a_type_ptr  class_type,
-                           a_boolean   is_final,
-                           a_boolean   is_abstract,
-                           a_boolean   is_sealed)
+void apply_class_modifiers(a_type_ptr           class_type,
+                           a_boolean            is_final,
+                           ARG_UNUSED a_boolean is_abstract,
+                           ARG_UNUSED a_boolean is_sealed)
 /*
 Update the class type entry to account for any "final"/"sealed" or "abstract"
 context-sensitive keywords encountered while scanning the class definition.
@@ -2716,7 +2700,7 @@ issued in some cases.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_type_ptr scan_edg_internal_type()
+static a_type_ptr scan_edg_internal_type(void)
 /*
 Scan a construct of the form
 
@@ -2762,7 +2746,7 @@ otherwise.
 }  /* scan_edg_internal_type */
 
 
-static a_type_ptr scan_edg_vector_type()
+static a_type_ptr scan_edg_vector_type(void)
 /*
 Scan a construct of the form
 
@@ -2853,14 +2837,12 @@ type.
 }  /* scan_edg_vector_type */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* diag_pos is not used in some configurations. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-void update_membership_of_class(a_symbol_ptr       tag_sym,
-                                a_boolean          def_or_vacuous_decl,
-                                a_boolean          is_event_interface,
-                                a_scope_depth      decl_level,
-                                a_source_position  *diag_pos)
+void update_membership_of_class(
+                              a_symbol_ptr                 tag_sym,
+                              a_boolean                    def_or_vacuous_decl,
+                              ARG_UNUSED a_boolean         is_event_interface,
+                              a_scope_depth                decl_level,
+                              ARG_UNUSED a_source_position *diag_pos)
 /*
 The given class/struct/union symbol has just been created.  Record its class
 or namespace membership if appropriate.  In C++ mode, also set its name
@@ -3308,20 +3290,16 @@ one af_ms_declspec attribute.
   return result;
 }  /* has_declspec_attributes */
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL || \
-    (!GNU_EXTENSIONS_ALLOWED || !GENERATE_SOURCE_SEQUENCE_LISTS)
-/*ARGSUSED*/ /* decl_pos_block and marked_as_gnu_extension are not used in
-                some configurations. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED || ... */
-static a_boolean class_specifier(a_decl_parse_state  *dps,
-                                 a_decl_flag_set     dsi_flags,
-                                 a_boolean           vacuous_decl_allowed,
-                                 a_boolean           is_friend_decl,
-                                 a_boolean           marked_as_gnu_extension,
-                                 a_type_ptr          *type_ptr,
-                                 a_boolean           *declares_something,
-                                 a_boolean           *defines_something,
-                                 a_decl_pos_block    *decl_pos_block)
+static a_boolean class_specifier(
+                           a_decl_parse_state          *dps,
+                           a_decl_flag_set             dsi_flags,
+                           a_boolean                   vacuous_decl_allowed,
+                           a_boolean                   is_friend_decl,
+                           ARG_UNUSED a_boolean        marked_as_gnu_extension,
+                           a_type_ptr                  *type_ptr,
+                           a_boolean                   *declares_something,
+                           a_boolean                   *defines_something,
+                           ARG_UNUSED a_decl_pos_block *decl_pos_block)
 /*
 Scan a class-specifier, which declares a class type (class/struct/union).  This
 function also handles Microsoft __interface declarations (treated as a special
@@ -5298,17 +5276,14 @@ integer type and adjust the associated integer values if needed.
 }  /* change_enum_constants_type */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL || !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* decl_pos_block and p_ms_attributes are not used in some
-                configurations. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !MICROSOFT_EXTENSIONS_ALLOWED */
-void scan_enumerator_list(a_type_ptr             enum_type,
-                          a_decl_parse_state     *dps,
-                          a_decl_flag_set        dsi_flags,
-                          an_ms_attribute_ptr    *p_ms_attributes,
-                          a_type_ptr             class_of_which_a_member,
-                          a_boolean              *declares_something,
-                          a_decl_pos_block       *decl_pos_block)
+void scan_enumerator_list(
+                        a_type_ptr                     enum_type,
+                        a_decl_parse_state             *dps,
+                        a_decl_flag_set                dsi_flags,
+                        ARG_UNUSED an_ms_attribute_ptr *p_ms_attributes,
+                        a_type_ptr                     class_of_which_a_member,
+                        a_boolean                      *declares_something,
+                        ARG_UNUSED a_decl_pos_block    *decl_pos_block)
 /*
 Scan the list of enumerators in an enum type definition, including its
 enclosing braces.  (The current token is the left brace, except perhaps in
@@ -5972,19 +5947,15 @@ is updated to reflect relevant positions of this definition.
 }  /* scan_enumerator_list */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
-                information is being recorded in the IL. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-void enum_specifier(a_decl_parse_state   *dps,
-                    a_decl_flag_set      dsi_flags,
-                    a_boolean            vacuous_decl_allowed,
-                    a_boolean            is_enum_template_definition,
-                    a_type_ptr           *type_ptr,
-                    an_ms_attribute_ptr  *p_ms_attributes,
-                    a_boolean            *declares_something,
-                    a_boolean            *defines_something,
-                    a_decl_pos_block     *decl_pos_block)
+void enum_specifier(a_decl_parse_state          *dps,
+                    a_decl_flag_set             dsi_flags,
+                    a_boolean                   vacuous_decl_allowed,
+                    a_boolean                   is_enum_template_definition,
+                    a_type_ptr                  *type_ptr,
+                    an_ms_attribute_ptr         *p_ms_attributes,
+                    a_boolean                   *declares_something,
+                    a_boolean                   *defines_something,
+                    ARG_UNUSED a_decl_pos_block *decl_pos_block)
 /*
 Scan an enumeration specifier (i.e., the definition of an enumeration type) or
 an elaborated name for an enumeration type (e.g., "enum E").  C++11 scoped
@@ -6126,6 +6097,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     local_decl_pos_block.identifier_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    clear_locator(&locator, &null_source_position);
     tag_sym = scan_tag_name((a_symbol_kind)sk_enum_tag, &locator,
                             &is_friend_decl, /*is_specialization=*/FALSE,
                             &vacuous_decl_allowed,
@@ -6880,16 +6852,12 @@ context (where embedded expressions may need to be rescanned).
 }  /* clear_template_deduction_context_flag */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
-                information is being recorded in the IL. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-void typename_specifier(a_type_ptr            *type_ptr,
-                        a_symbol_ptr	      *type_sym,
-                        a_boolean             within_using_decl,
-                        a_boolean             is_decl_specifier,
-                        a_decl_parse_state    *dps,
-                        a_decl_pos_block_ptr  decl_pos_block)
+void typename_specifier(a_type_ptr                      *type_ptr,
+                        a_symbol_ptr	                *type_sym,
+                        a_boolean                       within_using_decl,
+                        a_boolean                       is_decl_specifier,
+                        a_decl_parse_state              *dps,
+                        ARG_UNUSED a_decl_pos_block_ptr decl_pos_block)
 /*
 Scan a typename-specifier.  The identifier that follows the typename keyword
 must be a type name, otherwise a diagnostic is issued.  The type is returned in
@@ -7038,11 +7006,9 @@ group in the given cache.
 }  /* cache_std_attribute_group */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* dps is not used in some configurations. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static a_symbol_ptr look_up_class_member_decl(a_type_ptr          class_type,
-                                              a_decl_parse_state  *dps)
+static a_symbol_ptr look_up_class_member_decl(
+                                      a_type_ptr                    class_type,
+                                      ARG_UNUSED a_decl_parse_state *dps)
 /*
 Look up the current identifier in the given class and return the symbol found.
 *dps describes the declaration for which this look-up is done: If its declared
@@ -7442,7 +7408,7 @@ unchanged.
         case ik_unsigned_char:
           if (plain_char_int_kind != ikind && *sign != sign_none) break;
           /* Fall into signed char case. */
-          /*FALLTHROUGH*/
+          FALLTHROUGH
         case ik_signed_char:
           if (*size != size_none
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -7555,15 +7521,14 @@ unchanged.
   return basic_type;
 }  /* basic_type_from_typedef */
 
-#if !C99_IL_EXTENSIONS_SUPPORTED || !FIXED_POINT_ALLOWED
-/*ARGSUSED*/  /* <-- complex_attr or saturating_fp not used in that case. */
-#endif /* !C99_IL_EXTENSIONS_SUPPORTED || !FIXED_POINT_ALLOWED */
-static a_boolean combine_type_specifiers(a_decl_parse_state   *dps,
-                                         a_basic_type         basic_type,
-                                         a_type_sign          sign,
-                                         a_type_size          size,
-                                         a_complex_attribute  complex_attr,
-                                         a_boolean            saturating_fp)
+
+static a_boolean combine_type_specifiers(
+                                  a_decl_parse_state             *dps,
+                                  a_basic_type                   basic_type,
+                                  a_type_sign                    sign,
+                                  a_type_size                    size,
+                                  ARG_UNUSED a_complex_attribute complex_attr,
+                                  ARG_UNUSED a_boolean           saturating_fp)
 /*
 Given a basic type, a sign specifier, and a size specifier, return a pointer to
 a type entry in dps->specifiers_type.  This routine is only called from
@@ -8413,7 +8378,7 @@ final position of the construct (whether or not a block size was specified).
           break;
         case ck_upc_threads:
           pos_error(ec_threads_constant_not_allowed, &error_position);
-          /*FALLTHROUGH*/
+          FALLTHROUGH
         case ck_error:
           *err = TRUE;
           break;
@@ -8618,16 +8583,13 @@ the current identifier is a class member and a template-id.
 }  /* gpp_type_name_matches_class_name */
 
 
-#if !NAMED_ADDRESS_SPACES_ALLOWED
-/*ARGSUSED*/ /* <-- named_address_space is not used in some configurations. */
-#endif /* !NAMED_ADDRESS_SPACES_ALLOWED */
 static a_boolean process_nontype_identifier(
-                                a_decl_parse_state        *dps,
-                                a_decl_specifiers_set     decl_specifiers_seen,
-                                a_decl_flag_set           input_flags,
-                                a_basic_type              *basic_type,
-                                a_named_address_space_id  *named_address_space,
-                                a_boolean                 *err)
+                      a_decl_parse_state                  *dps,
+                      a_decl_specifiers_set               decl_specifiers_seen,
+                      a_decl_flag_set                     input_flags,
+                      a_basic_type                        *basic_type,
+                      ARG_UNUSED a_named_address_space_id *named_address_space,
+                      a_boolean                           *err)
 /*
 The current token is an identifier or (in C++) a global qualification token
 ("::") followed by an identifier.  If the name introduced by this token is
@@ -10067,7 +10029,7 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
   /* Helper macro to record the position of the first qualifier (other than
      "restrict", which has its own position record). */
 #define record_qualifiers_pos()                                              \
-  if (state->qualifiers_pos.seq == 0) state->qualifiers_pos = pos_curr_token;
+  if (state->qualifiers_pos.seq == 0) state->qualifiers_pos = pos_curr_token
   /* Loop for each declaration specifier. */
   for (;;) {
     /* Some specifiers are discarded.  This flag indicates whether the
@@ -10174,7 +10136,7 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
           break;
         }  /* if */
         /* Otherwise drop through for normal storage class processing. */
-        /*FALLTHROUGH*/
+        FALLTHROUGH
       case tok_static:
       case tok_register:
       case tok_mutable:
@@ -10264,7 +10226,7 @@ storage_class_specifier:
           goto no_get_token;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
-        /*FALLTHROUGH*/
+        FALLTHROUGH
       case tok_alignas:
 #if GNU_EXTENSIONS_ALLOWED
       case tok_attribute:
@@ -10825,7 +10787,7 @@ storage_class_specifier:
             goto exit_loop;
           }  /* if */
         }  /* if */
-        /*FALLTHROUGH*/
+        FALLTHROUGH
       case tok_char:
       case tok_wchar_t:
       case tok_char8_t:
@@ -11371,7 +11333,7 @@ process_enum_specifier:
           (void)get_token();
           goto no_get_token;
         }  /* if */
-        /*FALLTHROUGH*/
+        FALLTHROUGH
       case tok_identifier:  /* Identifier or "::". */
       case tok_colon_colon:
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -11458,7 +11420,7 @@ process_enum_specifier:
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
           }  /* if */
         }
-        /*FALLTHROUGH*/
+        FALLTHROUGH
       case tok_decltype_construct:
         /* When a decltype is encountered by is_identifier_start, it must
            be scanned to see if it is followed by "::".  When it is not
@@ -11874,7 +11836,7 @@ operator_or_conversion_name:
             goto process_enum_specifier;
           }  /* if */
         }  /* if */
-        /*FALLTHROUGH*/
+        FALLTHROUGH
       case tok_protected:
         if (microsoft_bugs && microsoft_version >= 1300 &&
             *storage_class == (a_storage_class)sc_typedef) {
@@ -11925,7 +11887,7 @@ destructor_name:
         }  /* if */
         /* If destructors aren't expected, fall through into the default
            case. */
-        /*FALLTHROUGH*/
+        FALLTHROUGH
       default:
         /* Something unexpected.  After the first time, we can just exit
            the loop (we've taken all we're supposed to).  The first time,

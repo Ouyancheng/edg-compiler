@@ -450,6 +450,7 @@ are recognized for all entry kinds.
                name matches any translation unit.  Skip past the translation
                unit name on the generated name, if there is one. */
             if (eff_name[0] == '[') {
+              check_assertion(eff_name != NULL);
               eff_name = strchr(eff_name, ']');
               check_assertion(eff_name != NULL);
               eff_name++;
@@ -460,6 +461,7 @@ are recognized for all entry kinds.
             if (eff_name[0] == '[') continue;
             eff_request_name += 2;
           }  /* if */
+          check_assertion(eff_name != NULL);
           if (strcmp(eff_name, eff_request_name) == 0) {
             /* A match. */
             result = TRUE;

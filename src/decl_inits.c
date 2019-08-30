@@ -44,9 +44,6 @@ decl_inits.c -- Scanning of initializers in declarations.
    /* else */                (array_type)->size / (elem_type)->size)
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- init_info is not used in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void set_initialized_array_size(a_type_ptr    *type,
                                        a_targ_size_t size,
                                        a_boolean     unknown_dependent)
@@ -4234,7 +4231,7 @@ the type pointed to is opaque to declaration processing.
         aggr_init_complex(&icp, dtype, is, &is->init_con);
         break;
       }  /* if */
-      /*FALLTHROUGH*/
+      FALLTHROUGH
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     default:
       unexpected_condition();
@@ -4367,7 +4364,8 @@ initializer, already copied and substituted.
   a_boolean              saved_reduce_backing_expression_use;
 
   check_assertion(rescan_aggr != NULL || curr_token == tok_lbrace ||
-                  anything_cached(&dps->prescanned_initializer_cache));
+                  (dps != NULL &&
+                   anything_cached(&dps->prescanned_initializer_cache)));
   saved_reduce_backing_expression_use = reduce_backing_expression_use;
   dtype = skip_typerefs(dtype);
   if (rescan_aggr != NULL) {
@@ -4526,7 +4524,7 @@ initializer, already copied and substituted.
         aggr_init_complex(&icp, dtype, is, &is->init_con);
         break;
       }  /* if */
-      /*FALLTHROUGH*/
+      FALLTHROUGH
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     default:
       /* Non-class, non-aggregate initialization. */
@@ -4567,10 +4565,12 @@ initializer, already copied and substituted.
   if (is->any_uninitialized_const_or_ref_member && !is->init_error) {
     /* A const or reference field was not initialized.  Issue a diagnostic. */
     if (C_mode()) {
+      check_assertion(dps != NULL);
       pos_sy_warning(ec_var_with_uninitialized_field, diag_pos, dps->sym);
     } else if (is->no_diagnostics) {
       is->init_error = TRUE;
     } else if (is_var_init) {
+      check_assertion(dps != NULL);
       pos_sy_error(ec_var_with_uninitialized_member, diag_pos, dps->sym);
     } else {
       pos_error(ec_unnamed_object_with_uninitialized_field, diag_pos);
@@ -4581,14 +4581,11 @@ initializer, already copied and substituted.
 }  /* braced_initializer */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* decl_pos_block is not used in some configurations. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static void brace_init_variable(a_decl_parse_state  *dps,
-                                a_boolean           direct,
-                                an_id_linkage_kind  linkage,
-                                a_source_position   *diag_pos,
-                                a_decl_pos_block    *decl_pos_block)
+static void brace_init_variable(a_decl_parse_state          *dps,
+                                a_boolean                   direct,
+                                an_id_linkage_kind          linkage,
+                                a_source_position           *diag_pos,
+                                ARG_UNUSED a_decl_pos_block *decl_pos_block)
 /*
 Handle a braced-initializer following the declarator for a variable or static
 data member.  If direct is TRUE, the initializer uses direct initialization
@@ -4794,13 +4791,11 @@ position is available.
 }  /* expr_direct_init_object */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* decl_pos_block is not used in some configurations. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static void expr_init_aggr_variable(a_decl_parse_state  *dps,
-                                    an_id_linkage_kind  linkage,
-                                    a_source_position   *diag_pos,
-                                    a_decl_pos_block    *decl_pos_block)
+static void expr_init_aggr_variable(
+                                   a_decl_parse_state          *dps,
+                                   an_id_linkage_kind          linkage,
+                                   a_source_position           *diag_pos,
+                                   ARG_UNUSED a_decl_pos_block *decl_pos_block)
 /*
 dps, linkage,  decl_pos_block describe a variable of class or array type
 initialized with what looks like an expression.  I.e., an initialization of
@@ -4950,11 +4945,9 @@ to use for diagnostics by default.
 }  /* expr_init_aggr_variable */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* decl_pos_block is not used in some configurations. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static void expr_init_scalar_variable(a_decl_parse_state  *dps,
-                                      a_decl_pos_block    *decl_pos_block)
+static void expr_init_scalar_variable(
+                                   a_decl_parse_state          *dps,
+                                   ARG_UNUSED a_decl_pos_block *decl_pos_block)
 /*
 dps (which must be non-NULL) and decl_pos_block describe a variable of scalar
 type initialized with what looks like an expression.  I.e., an initialization
@@ -7949,14 +7942,11 @@ initializer in that entry.
 }  /* handle_missing_mem_init_args */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* pos is not used in some configurations. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static void scan_mem_init_args(a_routine_ptr           ctor,
-                               a_constructor_init_ptr  cip,
-                               a_type_ptr              init_type,
-                               a_type_ptr              array_type,
-                               a_source_position       *pos)
+static void scan_mem_init_args(a_routine_ptr                ctor,
+                               a_constructor_init_ptr       cip,
+                               a_type_ptr                   init_type,
+                               a_type_ptr                   array_type,
+                               ARG_UNUSED a_source_position *pos)
 /*
 Scan the arguments of a mem-initializer (including the delimiting parentheses
 or braces).  ctor is the constructor with which the mem-initializer is
@@ -8643,6 +8633,7 @@ initialized.  These are addressed in the course of the processing.
   cib.cip_list = cib.end_of_cip_list = NULL;
   cib.direct_list = cib.end_of_direct_list = NULL;
   cib.virtual_list = cib.end_of_virtual_list = NULL;
+  cib.pesep = NULL;
   cib.pending_mem_init_cache = NULL;
   cib.last_order_checked_init = NULL;
   cib.pending_decltype_initializer_type = NULL;
@@ -9334,6 +9325,7 @@ initialized.  These are addressed in the course of the processing.
             if (uninit_list == NULL) {
               uninit_list = diag_cip;
             } else {
+              check_assertion(end_of_uninit_list != NULL);
               end_of_uninit_list->next = diag_cip;
             }  /* if */
             end_of_uninit_list = diag_cip;
