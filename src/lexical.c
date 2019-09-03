@@ -14051,7 +14051,6 @@ check_start_of_pp_directive:
                              /*is_identifier_start=*/TRUE)) {
         goto id_scan;
       }  /* if */
-      FALLTHROUGH
     bad_token:
       /* Something else, an error. */
       err_code_for_error_token = ec_bad_token;
