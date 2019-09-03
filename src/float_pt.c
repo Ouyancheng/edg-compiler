@@ -616,7 +616,7 @@ Display an internal floating-point value, for debugging purposes.
   unsigned int i;
 
   for (i = 0; i < sizeof(a_host_fp_value); ++i) {
-    fprintf(f_debug, "%02x ", ifv->bytes[i]);
+    fprintf(f_debug, "%02x ", (unsigned int)ifv->bytes[i]);
   }  /* for */
   fprintf(f_debug, "\n");
 }  /* db_internal_float_value */
@@ -2633,16 +2633,13 @@ before setting it if there are unused bits.
 }  /* fp_string_to_float */
 
 
-#if !USE_HOST_FP_CONVERSION_ROUTINES
-/*ARGSUSED*/  /* kind, float_value, str, temp not used in that case. */
-#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
 static a_boolean handle_fp_to_string_special_cases(
                                          a_float_kind            kind,
                                          an_internal_float_value *float_value,
                                          a_boolean               *pos_infinity,
                                          a_boolean               *neg_infinity,
                                          a_boolean               *not_a_number,
-                                         char                    *str,
+                                         ARG_UNUSED char         *str,
                                          a_host_fp_value         *temp)
 /*
 The float value in float_value (with precision as indicated by kind)
@@ -3702,10 +3699,9 @@ return FALSE.  Returns FALSE for -0.0 (use fp_signbit to test for this case).
 }  /* fp_is_negative */
 
 
-/*ARGSUSED*/  /* kind is not used. */
-a_boolean fp_same_representation(a_float_kind            kind,
-                                 an_internal_float_value *value_1,
-                                 an_internal_float_value *value_2)
+a_boolean fp_same_representation(ARG_UNUSED a_float_kind            kind,
+                                 an_internal_float_value            *value_1,
+                                 an_internal_float_value            *value_2)
 /*
 Compare two floating-point values.  Return TRUE if they have the same
 representation.  This differs from fp_compare, other than the

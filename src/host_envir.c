@@ -167,7 +167,9 @@ EXTERN_C unsigned long strtoul(const char *str, char **endptr, int base);
 /*
 Included to define ctime, etc.
 */
-#include <time.h> /*lint !e451 some versions of time.h have bad guard test */
+/*lint -e451*/ /* Some versions of time.h have a bad guard test. */
+#include <time.h>
+/*lint +e451*/
 
 /*
 Header files needed to use the system routines to get the elapsed clock
@@ -2018,8 +2020,7 @@ In C++, signal handlers must be extern "C".
 */
 BEGIN_EXTERN_C_BLOCK
 
-/*ARGSUSED*/ /* <-- Because "sig" is not used. */
-static a_signal_handler_return_value term_on_signal(int sig)
+static a_signal_handler_return_value term_on_signal(ARG_UNUSED int sig)
 /*
 Routine set up as a signal handler, called to terminate compilation on
 receipt of a signal.
@@ -2038,8 +2039,7 @@ receipt of a signal.
 
 #if DEBUG && !EDG_WIN32
 
-/*ARGSUSED*/ /* <-- Because "sig" is not used. */
-static a_signal_handler_return_value abort_on_cpu_limit(int sig)
+static a_signal_handler_return_value abort_on_cpu_limit(ARG_UNUSED int sig)
 /*
 Routine set up as a signal handler, called to terminate compilation 
 with an internal error on receipt of a signal.
@@ -2310,11 +2310,9 @@ Display the difference in CPU time and elapsed time between two timers.
 }  /* display_time_used */
 
 
-#if !UNICODE_SOURCE_SUPPORTED
-/*ARGSUSED*/ /* <-- "to_internal" is not used in that case. */
-#endif /* !UNICODE_SOURCE_SUPPORTED */
-static a_const_char *convert_file_name_encoding(a_const_char *orig_name,
-                                                a_boolean    to_internal)
+static a_const_char *convert_file_name_encoding(
+                                              a_const_char         *orig_name,
+                                              ARG_UNUSED a_boolean to_internal)
 /*
 orig_name is the null-terminated name of a file or directory.  Translate
 to or from the internal encoding of the file name (depending on the value
@@ -2731,11 +2729,10 @@ See comment above.
 VMS version.  A VMS specific version is not supplied in the standard
 distribution.
 */
-/*ARGSUSED*/ /* <-- Because all arguments are unused in the VMS version. */
-char *get_file_name_from_dir(a_boolean	first,
-			     char	*dir_name,
-			     char	*suffix,
-			     char	*curr_dir_name)
+char *get_file_name_from_dir(ARG_UNUSED a_boolean first,
+			     ARG_UNUSED char      *dir_name,
+			     ARG_UNUSED char      *suffix,
+			     ARG_UNUSED char      *curr_dir_name)
 /*
 See comment above.
 
@@ -2763,11 +2760,10 @@ UNIX Version.
 #endif /* ifndef __osf__ */
 #endif /* ifndef __AIX__ */
 
-/*ARGSUSED*/ /* <-- Because "curr_dir_name" is not used. */
-char *get_file_name_from_dir(a_boolean	  first,
-			     a_const_char *dir_name,
-			     a_const_char *suffix,
-			     a_const_char *curr_dir_name)
+char *get_file_name_from_dir(a_boolean	             first,
+			     a_const_char            *dir_name,
+			     a_const_char            *suffix,
+			     ARG_UNUSED a_const_char *curr_dir_name)
 /*
 See comment above.
 */
@@ -3302,13 +3298,9 @@ Close the mapped input file and the associated map object.
 }  /* close_mapped_input_file */
 
 
-#if !USE_FIXED_ADDRESS_FOR_MMAP
-/*ARGSUSED*/ /* <-- Because "curr_size" is only used when
-                    USE_FIXED_ADDRESS_FOR_MMAP is TRUE. */
-#endif /* !USE_FIXED_ADDRESS_FOR_MMAP */
-a_void_ptr map_file_region(sizeof_t	curr_size,
-		           sizeof_t	incremental_size,
-			   sizeof_t	file_offset)
+a_void_ptr map_file_region(ARG_UNUSED sizeof_t curr_size,
+		           sizeof_t            incremental_size,
+			   sizeof_t            file_offset)
 /*
 Expand a memory mapped file.  This routine assumes that curr_size bytes
 have already been allocated and mapped, and that incremental_size bytes
@@ -3406,8 +3398,7 @@ page size.
 }  /* map_file_region */
 
 
-/*ARGSUSED*/ /* <-- Because "file" is not used. */
-void map_input_file_to_region(FILE		*file,
+void map_input_file_to_region(ARG_UNUSED FILE	*file,
                               sizeof_t		offset,
 			      sizeof_t		size,
 			      a_void_ptr	address,
@@ -3445,9 +3436,8 @@ to be used if a diagnostic is issued.
 }  /* map_input_file_to_region */
 
 
-/*ARGSUSED*/ /* <-- Because "size" is not used. */
-void unmap_memory(a_void_ptr	addr,
-	          sizeof_t	size)
+void unmap_memory(a_void_ptr          addr,
+	          ARG_UNUSED sizeof_t size)
 /*
 Unmap a block of previously mapped memory.
 */
@@ -3507,13 +3497,9 @@ incremental_size must be a multiple of the page size.
 }  /* get_page_size */
 
 
-#if !USE_FIXED_ADDRESS_FOR_MMAP
-/*ARGSUSED*/ /* <-- Because "curr_size" is only used when
-                    USE_FIXED_ADDRESS_FOR_MMAP is TRUE. */
-#endif /* !USE_FIXED_ADDRESS_FOR_MMAP */
-a_void_ptr map_file_region(sizeof_t	curr_size,
-		           sizeof_t	incremental_size,
-			   sizeof_t	file_offset)
+a_void_ptr map_file_region(ARG_UNUSED sizeof_t curr_size,
+		           sizeof_t            incremental_size,
+			   sizeof_t            file_offset)
 /*
 Expand a memory mapped file.  This routine assumes that curr_size bytes
 have already been allocated and mapped, and that incremental_size bytes
@@ -3779,12 +3765,9 @@ in case it had been previously changed by set_cpu_time_limit.
 
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 
-#if !UNICODE_SOURCE_SUPPORTED
-/*ARGSUSED*/ /* <-- "is_native" is not used in that case. */
-#endif /* !UNICODE_SOURCE_SUPPORTED */
 int f_mbc_length(a_const_char		*ptr,
                  a_boolean		*err,
-                 a_boolean		is_native)
+                 ARG_UNUSED a_boolean	is_native)
 /*
 Return the length of the multibyte character sequence beginning at ptr.
 If the sequence there is invalid, set *err to TRUE if err is non-NULL,
@@ -3936,13 +3919,10 @@ are assumed to be Latin-1.
 }  /* f_mbc_length */
 
 
-#if !UNICODE_SOURCE_SUPPORTED
-/*ARGSUSED*/ /* <-- "is_native" is not used in that case. */
-#endif /* !UNICODE_SOURCE_SUPPORTED */
-int mbc_to_wide_char(a_const_char  *mb,
-                     unsigned long *wc,
-                     a_boolean     *err,
-                     a_boolean	   is_native)
+int mbc_to_wide_char(a_const_char         *mb,
+                     unsigned long        *wc,
+                     a_boolean            *err,
+                     ARG_UNUSED a_boolean is_native)
 /*
 Convert a multibyte character sequence pointed to by mb to a single wide
 character returned in *wc.  Return the number of characters in the
@@ -4264,10 +4244,7 @@ representation in the array chars, and return the length (1-4).
 
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 
-#if !EDG_WIN32
-/*ARGSUSED*/ /* <-- "locale_name" is not used in that case. */
-#endif /* !EDG_WIN32 */
-a_boolean set_windows_locale(a_const_char *locale_name)
+a_boolean set_windows_locale(ARG_UNUSED a_const_char *locale_name)
 /*
 Set the locale to be used for multibyte character to Unicode conversion.
 Return TRUE if the locale_name is invalid, FALSE otherwise.
@@ -4289,12 +4266,10 @@ Return TRUE if the locale_name is invalid, FALSE otherwise.
 }  /* set_windows_locale */
 
 
-#if !EDG_WIN32
-/*ARGSUSED*/ /* <-- "uc" is not used in that case. */
-#endif /* !EDG_WIN32 */
-int unicode_to_multibyte_char(unsigned long uc,
-                              char          chars[MAX_MULTIBYTE_CHAR_LENGTH],
-                              a_boolean     *err)
+int unicode_to_multibyte_char(
+                     ARG_UNUSED unsigned long uc,
+                     char                     chars[MAX_MULTIBYTE_CHAR_LENGTH],
+                     a_boolean                *err)
 /*
 Convert the Unicode code point uc to a multibyte character sequence.  Put
 the bytes of the multibyte representation in the array chars, and return
@@ -5498,11 +5473,10 @@ READ_CPPCLI_PORTABLE_ASSEMBLIES is FALSE, the routines are simple stubs that
 return an error indication.
 */
 
-/*ARGSUSED*/
 an_assembly_index import_metadata_file(
-                                a_const_char              *assembly_full_name,
-                                a_cpp_cli_import_flag_set import_flags,
-                                a_boolean                 *is_duplicate)
+                      ARG_UNUSED a_const_char              *assembly_full_name,
+                      ARG_UNUSED a_cpp_cli_import_flag_set import_flags,
+                      ARG_UNUSED a_boolean                 *is_duplicate)
 /*
 Prepare an assembly for metadata import.  This is a substitute version
 (the real function is in ms_metadata.cpp) that either returns an error or
@@ -5609,10 +5583,9 @@ end_of_routine:
 }  /* import_metadata_file */
 
 
-/*ARGSUSED*/
-void import_all_types(an_assembly_index assembly_index,
-                      char              *buffer,
-                      size_t            *buffer_size)
+void import_all_types(ARG_UNUSED an_assembly_index assembly_index,
+                      ARG_UNUSED char              *buffer,
+                      ARG_UNUSED size_t            *buffer_size)
 /*
 Import all types from the specified assembly into the buffer whose size
 is in *buffer_size.  This routine is a substitute version for the actual
@@ -5633,12 +5606,12 @@ string from a portable assembly if so configured.
 }  /* import_all_types */
 
 
-/*ARGSUSED*/
-void import_class_definition(an_assembly_scope_index assembly_scope_index,
-                             a_cpp_cli_token         metadata_type_def_token,
-                             char                    *buffer,
-                             size_t                  *buffer_size,
-                             a_boolean               *is_delegate)
+void import_class_definition(
+                    ARG_UNUSED an_assembly_scope_index assembly_scope_index,
+                    ARG_UNUSED a_cpp_cli_token         metadata_type_def_token,
+                    ARG_UNUSED char                    *buffer,
+                    ARG_UNUSED size_t                  *buffer_size,
+                    ARG_UNUSED a_boolean               *is_delegate)
 /*
 Import a specific class definition (as defined by metadata_type_def_token) from
 the specified assembly into the buffer whose size is in *buffer_size.  This
@@ -5693,8 +5666,7 @@ so configured.
 }  /* import_class_definition */
 
 
-/*ARGSUSED*/
-void ms_metadata_trans_unit_init(a_const_char *file_name) {}
+void ms_metadata_trans_unit_init(ARG_UNUSED a_const_char *file_name) {}
 
 
 void ms_metadata_trans_unit_wrapup(void)

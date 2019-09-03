@@ -317,11 +317,8 @@ compilation.
 }  /* require_definitions_of_virtual_functions_in_class */
 
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* routine is not used in this case. */
-#endif /* !IA64_ABI */
 static a_boolean is_explicit_instantiation_to_be_ignored(
-						a_routine_ptr	routine)
+                                              ARG_UNUSED a_routine_ptr routine)
 /*
 Return TRUE if routine was explicitly instantiated and we are in an ABI
 where that should suppress the generation of the vtable.
@@ -593,14 +590,11 @@ variable.
 }  /* attach_param_variable_attributes */
 
 
-#if !GENERATE_SOURCE_SEQUENCE_LISTS
-/* ARGSUSED */ /* <-- declared_type not used in that case. */
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-static void decl_parameter(a_param_id_ptr    param_id,
-                           a_type_ptr        declared_type,
-                           a_param_type_ptr  ptp,
-                           a_boolean         function_instantiation,
-                           a_boolean         non_initial_variadic_param)
+static void decl_parameter(a_param_id_ptr        param_id,
+                           ARG_UNUSED a_type_ptr declared_type,
+                           a_param_type_ptr      ptp,
+                           a_boolean             function_instantiation,
+                           a_boolean             non_initial_variadic_param)
 /*
 Enter the declaration of an identifier for a parameter.  The param_id
 points to an sk_parameter symbol, which under ordinary circumstances, is
@@ -1903,17 +1897,14 @@ this_class information.  Update rout_type with information from prev_type.
 }  /* adjust_member_routine_type */
 
 
-#if !DECL_MODIFIERS_IN_USE || !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* decl_modifiers and decl_pos_block are not used in some
-                configurations. */
-#endif /* !DECL_MODIFIERS_IN_USE || !EXTRA_SOURCE_POSITIONS_IN_IL */
-static void define_member_function(a_symbol_locator            *locator,
-                                   a_decl_parse_state          *dps,
-                                   a_func_info_block           *func_info,
-                                   an_id_linkage_kind          *linkage_ptr,
-                                   a_type_ptr                  *old_type,
-                                   a_symbol_ptr                *ext_sym,
-                                   a_decl_pos_block_ptr        decl_pos_block)
+static void define_member_function(
+                                a_symbol_locator                *locator,
+                                a_decl_parse_state              *dps,
+                                a_func_info_block               *func_info,
+                                an_id_linkage_kind              *linkage_ptr,
+                                a_type_ptr                      *old_type,
+                                a_symbol_ptr                    *ext_sym,
+                                ARG_UNUSED a_decl_pos_block_ptr decl_pos_block)
 /*
 This routine is called in the case of a member function definition.  Its
 function is similar to that of decl_routine, which is called for
@@ -2815,6 +2806,7 @@ member declaration (allowed in Microsoft mode only).
         if (old_style_param_types == NULL) {
           old_style_param_types = ptp;
         } else {
+          check_assertion(end_old_style_param_types != NULL);
           end_old_style_param_types->next = ptp;
         }  /* if */
         end_old_style_param_types = ptp;
@@ -4147,10 +4139,7 @@ is considered already defined), force the definition now.
 }  /* force_definition_of_compiler_generated_routine */
 
 
-#if !(DO_IL_LOWERING && ABI_COMPATIBILITY_VERSION < 238)
-/* ARGSUSED */ /* <-- scope is not used in that case. */
-#endif /* !(DO_IL_LOWERING && ABI_COMPATIBILITY_VERSION < 238) */
-void generate_required_virtual_destructor_bodies(a_scope_ptr  scope)
+void generate_required_virtual_destructor_bodies(ARG_UNUSED a_scope_ptr  scope)
 /*
 Go through the classes on the types list of the indicated scope and generate
 bodies for virtual destructors, as required.  Then (if it is a file or

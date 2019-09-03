@@ -84,10 +84,7 @@ Retrieve the complex value of the constant into *cx_val.
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/
-#endif /* !GNU_EXTENSIONS_ALLOWED */
-a_boolean variable_has_non_null_address(a_variable_ptr vp)
+a_boolean variable_has_non_null_address(ARG_UNUSED a_variable_ptr vp)
 /*
 Return TRUE if the indicated variable has a non-NULL address.  That's usually
 TRUE; the exceptions are weak-linkage variables (in principle, even
@@ -106,10 +103,7 @@ to be defined, but GCC does not implement that optimization).
 }  /* variable_has_non_null_address */
 
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/
-#endif /* !GNU_EXTENSIONS_ALLOWED */
-a_boolean routine_has_non_null_address(a_routine_ptr rp)
+a_boolean routine_has_non_null_address(ARG_UNUSED a_routine_ptr rp)
 /*
 Return TRUE if the indicated routine has a non-NULL address.  That's usually
 TRUE; the exceptions are weak-linkage routines (in principle, even weak-linkage
@@ -895,11 +889,8 @@ integral type.
 }  /* set_pointer_offset */
 
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* unknown is not used in some configurations. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
-static char *base_object(a_constant  *constant,
-                         a_boolean   *unknown)
+static char *base_object(a_constant           *constant,
+                         ARG_UNUSED a_boolean *unknown)
 /*
 Return a pointer to the "base object" that underlies the pointer constant.
 This is NULL if the pointer is an integer cast to a pointer type.  Otherwise,
@@ -1891,12 +1882,10 @@ Convert an integer constant to a pointer constant of type as specified by
 }  /* conv_integer_to_pointer */
 
 
-#if !CHECKING
-/*ARGSUSED*/ /* <-- old_constant is not used if CHECKING is FALSE. */
-#endif /* !CHECKING */
-static void conv_integer_to_ptr_to_member(a_constant *old_constant,
-                                          a_constant *new_constant,
-                                          a_boolean  is_implicit_cast)
+static void conv_integer_to_ptr_to_member(
+                                        ARG_UNUSED a_constant *old_constant,
+                                        a_constant            *new_constant,
+                                        a_boolean             is_implicit_cast)
 /*
 Convert an integer constant to a pointer to member.  is_implicit_cast
 is TRUE if the cast is implicit.
@@ -1991,23 +1980,20 @@ diagnostic is issued, do so with source position *err_pos.  Set
 }  /* issue_folding_diagnostic */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- is_cli_attr_arg_expression is not used in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-void type_change_constant_full(a_constant        *constant,
-                               a_type_ptr        new_type,
-                               a_boolean         is_implicit_cast,
-                               a_boolean         constant_context,
-                               a_boolean         evaluated_context,
-                               a_boolean         fold_constant_addr_exprs,
-                               a_boolean         is_cli_attr_arg_expression,
-                               a_boolean         check_cast_access,
-                               a_boolean         check_ambiguity,
-                               a_boolean         is_reinterpret_cast,
-                               a_boolean         maintain_expression,
-                               a_boolean         *did_not_fold,
-                               an_error_code     *error_detected,
-                               a_source_position *err_pos)
+void type_change_constant_full(a_constant           *constant,
+                               a_type_ptr           new_type,
+                               a_boolean            is_implicit_cast,
+                               a_boolean            constant_context,
+                               a_boolean            evaluated_context,
+                               a_boolean            fold_constant_addr_exprs,
+                               ARG_UNUSED a_boolean is_cli_attr_arg_expression,
+                               a_boolean            check_cast_access,
+                               a_boolean            check_ambiguity,
+                               a_boolean            is_reinterpret_cast,
+                               a_boolean            maintain_expression,
+                               a_boolean            *did_not_fold,
+                               an_error_code        *error_detected,
+                               a_source_position    *err_pos)
 /*
 Convert the indicated constant to "new_type".  If is_implicit_cast is
 TRUE, this is an implicit cast; more warnings are given.  If
@@ -9724,7 +9710,7 @@ the folding mechanism is used as a way to validate argument values.
             if (!err) {
               folded = make_fp_nan(&result->variant.float_value,
                                    result_type->variant.float_kind,
-                                   signaling, mantissa);
+                                   signaling, (an_fp_value_part)mantissa);
             }  /* if */
           }  /* if */
         }
@@ -10049,6 +10035,7 @@ in the stack).
 }  /* copy_constant_for_constexpr_evaluation */
 
 
+/*lint -ecall(523,folding_fails)*/
 static void folding_fails(void)
 /*
 Exists as a useful place to set a breakpoint to catch the first point
