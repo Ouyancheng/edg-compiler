@@ -217,6 +217,12 @@ Return TRUE if type has a definition.
 
   if (is_immediate_class_type(type)) {
     result = class_type_has_body(type);
+  } else if (is_scoped_enum_type(type)) {
+    /* Scoped enums are considered complete even if they are opaque, so check
+       whether there was an enumerator list seen. */
+    type = skip_typerefs(type);
+    result = !type->incomplete &&
+             integer_type_supp(type)->enumerator_list_seen;
   } else {
     result = !is_incomplete_type(type);
   }  /* if */
@@ -3397,7 +3403,8 @@ type is in fact valid.
        enum type. */
     match = FALSE;
     report_error = TRUE;
-  } else if (type->incomplete || corresp_type->incomplete) {
+  } else if (!type_has_definition(type) ||
+             !type_has_definition(corresp_type)) {
     /* At least one of the two types was declared without being defined.
        In that case, there is no need to verify the list of enumerator
        constants. */

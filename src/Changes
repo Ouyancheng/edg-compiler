@@ -1,5 +1,23 @@
 Version 6.0
 
+9/3/19   [EDGcpfe/19115]
+Multiple translation units: Redeclaration error with opaque scoped enum decl
+
+When compiling multiple translation units where two translation units declare
+the same scoped enum and at least one of those declarations is opaque, the
+front end would issue a spurious "incompatible reclaration" error.  For
+example, if t1.cpp contained this:
+
+  enum class E { EV }; // Spurious incompatible redeclaration error
+
+and t2.cpp contained this:
+
+  enum class E; // Spurious incompatible redeclaration error
+
+then compiling both files on the same command line would result in an error.
+This is now fixed.
+
+
 9/3/19   [EDGcpfe/21719]
 C++-generating back end: assertion failure with user-defined literal
 
