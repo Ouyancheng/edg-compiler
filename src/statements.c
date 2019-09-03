@@ -990,7 +990,7 @@ that is being generated.
                                           &sp->position);
           }  /* if */
         }  /* if */
-        /*FALLTHROUGH*/
+        FALLTHROUGH
       default:
         /* Advance to the next entry in the list. */
         next_cfdp = cfdp->next;
@@ -1035,7 +1035,7 @@ to point to the lifetime promote_to.
           /* Skip over the nested block. */
           cfdp = cfdp->variant.block.end_of_block;
         }  /* if */
-        /*FALLTHROUGH*/
+        FALLTHROUGH
       default:
         continue;
     }  /* switch */
@@ -7394,7 +7394,7 @@ rescan_statement:
     case tok_upc_forall:
     /* The upc_forall statement is similar to the standard for statement. */
       check_assertion(!constexpr_enabled);
-      /*FALLTHROUGH*/
+      FALLTHROUGH
 #endif /* UPC_EXTENSIONS_ALLOWED */
     case tok_for:
       /* For statement and range-based-for ([stmt.ranged]). */
@@ -7516,7 +7516,7 @@ default_label_case:
         cannot_bind_to_curr_construct();
         break;
       }  /* if */
-      /* FALLTHROUGH */
+      FALLTHROUGH
     case tok_else:
     case tok_catch:
 #if MICROSOFT_EXTENSIONS_ALLOWED

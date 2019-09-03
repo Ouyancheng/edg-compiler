@@ -2807,7 +2807,7 @@ redo:
 #endif /* FIXED_POINT_ALLOWED */
     case tk_error:
       ips->input_error = TRUE;
-      /*FALLTHROUGH*/
+      FALLTHROUGH
     case tk_template_param:
     case tk_unknown:
       /* Fail interpretation. */
@@ -7639,7 +7639,7 @@ to FALSE and the reason for the failure is recorded in *ips.
     case bfk_char_memchr:
     case bufk_u8memchr:
       has_count = TRUE;
-      /*FALLTHROUGH*/
+      FALLTHROUGH
     case bfk_strchr:
     case bfk_wcschr:
       {
@@ -7691,11 +7691,11 @@ to FALSE and the reason for the failure is recorded in *ips.
     case bfk_wmemcmp:
     case bufk_u8memcmp:
       is_memcmp = TRUE;
-      /*FALLTHROUGH*/
+      FALLTHROUGH
     case bfk_strncmp:
     case bfk_wcsncmp:
       has_count = TRUE;
-      /*FALLTHROUGH*/
+      FALLTHROUGH
     case bfk_strcmp:
     case bfk_wcscmp:
       {
@@ -12970,7 +12970,7 @@ the value representation of the integer value.
             fp_negate(opnd2_type->variant.float_kind,
                       fp_value(opnd2_value), fp_value(opnd2_value),
                       &err, &depends_on_fp_mode);
-            /*FALLTHROUGH*/
+            FALLTHROUGH
           case eok_fjadd:
             cx_value(result_storage)->real = *fp_value(opnd1_value);
             cx_value(result_storage)->imag = *fp_value(opnd2_value);
@@ -12979,7 +12979,7 @@ the value representation of the integer value.
             fp_negate(opnd2_type->variant.float_kind,
                       fp_value(opnd2_value), fp_value(opnd2_value),
                       &err, &depends_on_fp_mode);
-            /*FALLTHROUGH*/
+            FALLTHROUGH
           case eok_jfadd:
             cx_value(result_storage)->real = *fp_value(opnd2_value);
             cx_value(result_storage)->imag = *fp_value(opnd1_value);
@@ -15508,7 +15508,7 @@ the value representation of the integer value.
           case eok_call:
             /* Calls are handled separately.  We should not get here. */
             unexpected_condition();
-            /*FALLTHROUGH*/
+            FALLTHROUGH
           default:
             do_constexpr_fail(result);
             info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
@@ -15882,7 +15882,7 @@ the value representation of the integer value.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_error:
       ips->input_error = TRUE;
-      /*FALLTHROUGH*/
+      FALLTHROUGH
     default:
       do_constexpr_fail(result);
       info_with_pos(ec_constexpr_expression_cannot_be_interpreted,

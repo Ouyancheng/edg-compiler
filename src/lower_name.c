@@ -4520,7 +4520,7 @@ do_unknown_function:
     case ck_fixed_point:
       /* C++ modes do not currently allowed fixed-point types, and therefore
          no mangling should be needed for them. */
-      /* FALLTHROUGH */
+      FALLTHROUGH
 #endif /* FIXED_POINT_ALLOWED */
     default:
       unexpected_condition_str("literal_representation: bad constant kind");
@@ -9489,7 +9489,7 @@ specified type.  Substitutions are not allocated for <builtin-type>s
   switch (type->kind) {
     case tk_error:
       check_assertion(total_errors != 0);
-      /* FALLTHROUGH */
+      FALLTHROUGH
     case tk_void:
     case tk_float:
     case tk_nullptr:

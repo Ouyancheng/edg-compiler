@@ -2234,7 +2234,7 @@ return NULL.
           }  /* if */
           break;
         }  /* if */
-        /* FALLTHROUGH */
+        FALLTHROUGH
       default:
         tp = NULL;
     }  /* switch */

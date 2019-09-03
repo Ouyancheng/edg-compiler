@@ -882,7 +882,7 @@ expression can't be inlined.
           break;
         case eok_negate:
           if (!node_operator_type_kind_is(expr, tk_integer)) break;
-          /*FALLTHROUGH*/
+          FALLTHROUGH
         case eok_complement:
         case eok_not:
           /* See comment above; avoid pointers to data members.  This is

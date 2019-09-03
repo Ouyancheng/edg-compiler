@@ -1707,7 +1707,7 @@ scopes and for the file scope.
     switch (sp->kind) {
       case sck_function:
         check_name_hiding_by_template_parameters(sp);
-        /* FALLTHROUGH */
+        FALLTHROUGH
       case sck_file:
       case sck_block:
         ssep = &scope_stack[depth_scope_stack];

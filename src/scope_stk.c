@@ -7022,7 +7022,7 @@ about the scope being popped.
         break;
       case sck_namespace:
         if (!is_namespace_wrapup) break;
-        /*FALLTHROUGH*/
+        FALLTHROUGH
       default:
         db_decl_pos_info_for_scope(scope_ptr, pointers_block);
     }  /* switch */

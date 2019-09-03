@@ -12272,7 +12272,7 @@ after_precision:;
       case 'X':
       case 'o':
         *weakly_typed = TRUE;
-        /*FALLTHROUGH*/
+        FALLTHROUGH
       case 'u':
         /* Unsigned int conversion.  If "l" was specified, unsigned long
            conversion; if "h" was specified, unsigned short conversion.
@@ -12315,7 +12315,7 @@ after_precision:;
       case 'r':
       case 'R':
         is_fract_type = TRUE;
-        /*FALLTHROUGH*/
+        FALLTHROUGH
       case 'k':
       case 'K':
         /* Fixed-point conversions.  Note that the saturation behavior does

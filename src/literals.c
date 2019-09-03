@@ -1813,7 +1813,7 @@ the string.
          reflect the actual encoding. */
       constant_size = (pstr - str_start) + char_size;
       num_elems = (a_targ_size_t)(constant_size / char_size);
-      /*FALLTHROUGH*/
+      FALLTHROUGH
     case chk_char32_t:
       /* L"...", u"...", or U"...": */
       ch = 0;

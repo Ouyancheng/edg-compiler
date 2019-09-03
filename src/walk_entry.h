@@ -2700,7 +2700,7 @@ do_set_proper_definition_needed_flag:
               break;
             }  /* if */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-            /* FALLTHROUGH */
+            FALLTHROUGH
           case sck_class_struct_union:
           case sck_enum:
             remap_ptr_not_needed(eptr->variant.assoc_type, a_type_ptr,

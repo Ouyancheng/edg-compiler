@@ -6542,7 +6542,7 @@ translation unit) on the list of symbols headed by syms.
               break;
             case sk_type:
               if (sym->variant.type.is_injected_class_name) break;
-              /* FALLTHROUGH */
+              FALLTHROUGH
             default:
               f_report_bad_trans_unit_corresp((char*)routine,
                                               &sub_sym->decl_position);
@@ -6648,7 +6648,7 @@ unit) on the list of symbols headed by syms.
         case sk_type:
           if (sym->variant.type.is_injected_class_name ||
               is_template_param_type_symbol(sym)) break;
-          /* FALLTHROUGH */
+          FALLTHROUGH
         default:
           f_report_bad_trans_unit_corresp((char*)var, &sym->decl_position);
       }  /* switch */

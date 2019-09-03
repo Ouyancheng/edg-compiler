@@ -4869,7 +4869,7 @@ do_unsigned_char:
           break;
         case ik_signed_char:
 do_signed_char:;
-        /*FALLTHROUGH*/
+          FALLTHROUGH
         case ik_short:
           /* Signed char and signed short are promoted to int. */
           promoted_type = integer_type((an_integer_kind)ik_int);

@@ -5491,7 +5491,7 @@ then converting the result back to being THREADS-based if appropriate.
           *did_not_fold = TRUE;
           break;
         }  /* if */
-        /*FALLTHROUGH*/
+        FALLTHROUGH
       case eok_multiply: 
         check_assertion(C_mode());  /* Would need error_detected in C++. */
         binary_operation(op, constant_1, constant_2, result_type, result, 
@@ -8568,11 +8568,11 @@ and, if pos is not NULL, an error will be reported.
             result = FALSE;
             break;
           }
-          /*FALLTHROUGH*/
+          FALLTHROUGH
         case bok_has_trivial_assign:
         case bok_has_nothrow_assign:
           non_move_assign_case = TRUE;
-          /*FALLTHROUGH*/
+          FALLTHROUGH
         case bok_has_trivial_move_assign:
         case bok_has_nothrow_move_assign:
           if (microsoft_mode && microsoft_version < 1800) {
@@ -9193,7 +9193,7 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_varargs_start:
 #endif /* GCC_BUILTIN_VARARGS */
         if (pseudo_call != NULL) *pseudo_call = TRUE;
-        /*FALLTHROUGH*/
+        FALLTHROUGH
       case bfk_huge_valf:
       case bfk_huge_val:
       case bfk_huge_vall:
@@ -9936,7 +9936,7 @@ the folding mechanism is used as a way to validate argument values.
           *err_code = ec_first_arg_must_be_integer_constant;
           break;
         }  /* if */
-        /*FALLTHROUGH*/
+        FALLTHROUGH
       case bfk_atomic_is_lock_free:
         check_assertion(args2 != NULL);
         folded = fold_lock_free_query_if_possible(

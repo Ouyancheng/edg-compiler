@@ -844,7 +844,7 @@ there is additional processing to be done.
             case sck_class_struct_union:
               /* A pragma can only be added to a class scope in C++ mode. */
               if (C_mode()) break;
-              /*FALLTHROUGH*/
+              FALLTHROUGH
             /* Scopes for which a pragma entry may be added to the IL. */
             case sck_enum:
             case sck_file:

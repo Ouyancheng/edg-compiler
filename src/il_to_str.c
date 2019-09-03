@@ -5008,7 +5008,7 @@ for debug output).
       break;
     case dik_class_result_via_ctor:
       octl->output_str("class result via ctor: ", octl);
-      /*FALLTHROUGH*/
+      FALLTHROUGH
     case dik_expression:
       form_expression(dip->variant.expression, octl);
       break;

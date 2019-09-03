@@ -619,7 +619,7 @@ print_name:
           }  /* if */
           break;
         }  /* if */
-        /*FALLTHROUGH*/
+        FALLTHROUGH
       default:
         db_type(tp);
         break;
@@ -2055,7 +2055,7 @@ sizeof_cases:
           break;
         case leck_unreachable_cleanup_state:
           fprintf(f_debug, "(unreachable) ");
-          /* FALLTHROUGH */
+          FALLTHROUGH
         case leck_cleanup_state:
 #if GENERATE_EH_TABLES
           fprintf(f_debug, "cleanup state, region number = %ld\n",
@@ -19933,7 +19933,7 @@ be called to start a copy.
         expr_copy = make_dummy_expr(expr->type, expr->is_lvalue);
         break;
       }  /* if */
-      /*FALLTHROUGH*/
+      FALLTHROUGH
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_fold:
       expr_copy->variant.fold.operands =
@@ -21533,7 +21533,7 @@ process_ptr_to_member_selection:
                 op1 = op2;
                 op2 = saved_op1;
               }  /* if */
-              /*FALLTHROUGH*/
+              FALLTHROUGH
             case eok_indirect:
             case eok_ref_indirect:
               /* An indirection operation (e.g., "*") fetches the thing pointed
