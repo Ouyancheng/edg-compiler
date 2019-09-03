@@ -99,8 +99,8 @@ typedef enum a_diag_fill_in_kind {
 			/* A symbol name (and possibly type). */
   dfk_type,
 			/* A type name. */
-  dfk_last		/* Must be last. */
 			/*lint -esym(749,a_diag_fill_in_kind::dfk_last)*/
+  dfk_last		/* Must be last. */
 } a_diag_fill_in_kind;
 
 
@@ -388,7 +388,7 @@ fill-in entries are valid.
   int          error_code;
   a_const_char *ptr, *end_label;
 
-  for (error_code = 0; error_code < ec_last; error_code++) {
+  for (error_code = 0; error_code < (int)ec_last; error_code++) {
     ptr = error_text((an_error_code)error_code);
     while (ptr != NULL) {
       ptr = mbc_strchr(ptr, '%');
@@ -1285,7 +1285,7 @@ specified by dp.
           goto symbol_name;
         }  /* if */
       }
-      /*FALLTHROUGH*/
+      FALLTHROUGH
     case sk_class_template:
       if (sym->is_template_param) {
         entity_kind = ec_template_template_parameter;
@@ -1870,7 +1870,8 @@ made is returned.
   }  /* if */
 #endif /* DEBUG */
   /* Return the physical line number at which the next entry should be made. */
-  return physical_line + curr_file->physical_line_count_increment;
+  return physical_line +
+                       (a_line_number)curr_file->physical_line_count_increment;
 }  /* update_file_index */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -2138,7 +2139,7 @@ parallel.
 */
 
 #define putcb(out_char, buffer)                                       \
-  add_char_to_text_buffer((buffer), (out_char));
+  add_char_to_text_buffer((buffer), (out_char))
 
 /*
 Shorthand for cases where an output character (out_char) is being written
@@ -2146,7 +2147,7 @@ to the msg_buffer.
 */
 
 #define putcwdb(out_char)                                             \
-  putcb((out_char), msg_buffer);
+  putcb((out_char), msg_buffer)
 
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -2329,7 +2330,7 @@ as appropriate.
             break;
           case olm_line_splice:
             put_char('\\');
-            /*FALLTHROUGH*/
+            FALLTHROUGH
           case olm_multiline_string_splice:
             /* Exit the loop since this line splice marks the end of the
                physical line. */
@@ -2357,11 +2358,9 @@ end_of_loop:
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if !STANDALONE_UTILITY_PROGRAM
 
-#if !UNICODE_SOURCE_SUPPORTED
-/*ARGSUSED*/  /* <-- unicode source_kind is not used in that case. */
-#endif /* !UNICODE_SOURCE_SUPPORTED */
-static void write_error_source_line(a_source_position     *source_pos,
-                                    a_unicode_source_kind unicode_source_kind)
+static void write_error_source_line(
+                          a_source_position                *source_pos,
+                          ARG_UNUSED a_unicode_source_kind unicode_source_kind)
 /*
 Write out the source line associated with the source position source_pos,
 and place a caret under the proper column.  The position has been determined

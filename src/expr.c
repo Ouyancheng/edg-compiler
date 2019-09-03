@@ -857,9 +857,9 @@ swallowed); otherwise, it's "="-form or "{...}" form.
         /* Deduction failed. */
         expr_pos_error(dps->has_deducible_class_templ_args ?
                          ec_cannot_deduce_class_template_arguments :
-                       dps->decltype_auto_specifier_seen ?
+                       (an_error_code)(dps->decltype_auto_specifier_seen ?
                          ec_cannot_deduce_decltype_auto_type :
-                         ec_cannot_deduce_auto_type,
+                         ec_cannot_deduce_auto_type),
                        &dps->auto_pos);
         dps->specifiers_type = dps->deduced_auto_type = dps->type =
                                                                  error_type();
@@ -1265,7 +1265,7 @@ current expression (used to decide how a comma should be treated).
           expr_stack->nested_construct_depth == 0) {
         done = TRUE;
       }  /* if */
-      /*FALLTHROUGH*/
+      FALLTHROUGH
     case tok_shift_left:
       new_prec = PREC_SHIFT;
       break;
@@ -1279,7 +1279,7 @@ current expression (used to decide how a comma should be treated).
       }  /* if */
       /* Not the end of a template argument list, so fall into the normal
          case. */
-      /*FALLTHROUGH*/
+      FALLTHROUGH
     case tok_lt:
     case tok_le:
     case tok_ge:
@@ -1394,13 +1394,10 @@ the position in the underlying expression, if any (see set_operand_position).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/  /* end_pos is not used in some configurations. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static void f_set_operand_position(an_operand        *result,
-                                   a_source_position *start_pos,
-                                   a_source_position *end_pos,
-                                   a_source_position *operator_pos)
+static void f_set_operand_position(an_operand                   *result,
+                                   a_source_position            *start_pos,
+                                   ARG_UNUSED a_source_position *end_pos,
+                                   a_source_position            *operator_pos)
 /*
 Record the source position in an_operand at the end of scanning
 an expression.  result is the result operand.  start_pos and end_pos
@@ -2436,16 +2433,13 @@ given options and PREC_LOWEST precedence.
 }  /* scan_expr_as_init_component */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- is_custom_ms_attr_arg_list is not used in this case. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 static an_arg_list_elem_ptr scan_expr_list(
-                                      a_token_kind closing_token,
-                                      a_boolean    is_delegate_init,
-                                      a_boolean    is_custom_ms_attr_arg_list,
-                                      a_boolean    empty_list_okay,
-                                      a_boolean    trailing_comma_okay,
-                                      a_boolean    bundle)
+                               a_token_kind         closing_token,
+                               a_boolean            is_delegate_init,
+                               ARG_UNUSED a_boolean is_custom_ms_attr_arg_list,
+                               a_boolean            empty_list_okay,
+                               a_boolean            trailing_comma_okay,
+                               a_boolean            bundle)
 /*
 Scan a comma-separated list of expressions.  The list must be terminated by
 the token indicated by closing_token (which is not consumed by this routine).
@@ -2681,6 +2675,7 @@ done.
       if (*expr_list == NULL) {
         *expr_list = alep;
       } else {
+        check_assertion(*end_expr_list != NULL);
         append_elem(*end_expr_list, alep);
       }  /* if */
       *end_expr_list = alep;
@@ -2745,6 +2740,7 @@ template pack expansions into multiple expressions as necessary.
       if (expr_list == NULL) {
         expr_list = alep;
       } else {
+        check_assertion(end_expr_list != NULL);
         append_elem(end_expr_list, alep);
       }  /* if */
       end_expr_list = alep;
@@ -2765,6 +2761,7 @@ template pack expansions into multiple expressions as necessary.
         if (expr_list == NULL) {
           expr_list = alep;
         } else {
+          check_assertion(end_expr_list != NULL);
           append_elem(end_expr_list, alep);
         }  /* if */
         end_expr_list = alep;
@@ -3285,9 +3282,6 @@ indication in *rcblock).
 }  /* scan_parenthesized_initializer_expression */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- simple_result is unused in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void scan_ctor_arguments(a_symbol_ptr             constructor_sym,
                          a_source_position        *source_pos,
                          a_type_ptr               object_class_type,
@@ -3305,7 +3299,7 @@ void scan_ctor_arguments(a_symbol_ptr             constructor_sym,
                          a_boolean                *elision_done,
                          a_boolean                *unboxing_conv,
                          a_boolean                *string_ctor_skip,
-                         an_operand               *simple_result,
+                         ARG_UNUSED an_operand    *simple_result,
                          a_dynamic_init_ptr       *p_dip,
                          an_expr_node_ptr         *p_temp_init_node,
                          a_source_position        *closing_paren_position)
@@ -5196,7 +5190,7 @@ and adjust the argument and routine types as needed.
       break;
     case bfk_sync_bool_compare_and_swap:
       bcap->result_type = bool_type();
-      /*FALLTHROUGH*/
+      FALLTHROUGH
     case bfk_sync_val_compare_and_swap:
       bcap->n_args = 3;
       bcap->is_sync = TRUE;
@@ -7909,7 +7903,7 @@ a left parenthesis in the source.
     case eok_dot_member_call:
     case eok_points_to_member_call:
       check_assertion(call_rescan_case);
-      /*FALLTHROUGH*/
+      FALLTHROUGH
     case eok_dot_static:
     case eok_points_to_static:
       /* Rescan the second operand, producing an operand that essentially
@@ -12646,13 +12640,10 @@ standard headers (e.g., to implement <stdarg.h>).
 }  /* scan_alignof_operator */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/  /* <-- end_position is not used in that case. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void record_position_in_expr_for_rescan(
-                                          an_expr_node_ptr  node,
-                                          a_source_position *start_position,
-                                          a_source_position *end_position)
+                                  an_expr_node_ptr             node,
+                                  a_source_position            *start_position,
+                                  ARG_UNUSED a_source_position *end_position)
 /*
 Record the source starting and ending positions in the given expression so
 they will be available in a later rescan.  This is used for unusual
@@ -15015,11 +15006,8 @@ from outside of the expression-processing routines.
 
 #if GNU_EXTENSIONS_ALLOWED
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/* ARGSUSED */  /* <-- decl_pos_block is not used in some configurations. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-a_type_ptr scan_typeof_operator(a_rescan_control_block *rcblock,
-                                a_decl_pos_block       *decl_pos_block)
+a_type_ptr scan_typeof_operator(a_rescan_control_block      *rcblock,
+                                ARG_UNUSED a_decl_pos_block *decl_pos_block)
 /*
 Scan the typeof operator.  This is a GNU C/C++ extension that is similar
 to sizeof, but returns the type rather than the size.  It is used
@@ -16317,12 +16305,9 @@ This is allowed in both Microsoft C and C++ modes.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* is_cli_typeid is not used in some configurations. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static an_expr_node_ptr make_typeid_node(a_type_ptr             typeid_type,
                                          an_expr_node_ptr       typeid_expr,
-                                         a_boolean              is_cli_typeid,
+                                         ARG_UNUSED a_boolean   is_cli_typeid,
                                          a_type_ptr             node_type)
 /*
 Make an enk_typeid node for an operand represented by typeid_type and
@@ -17202,16 +17187,14 @@ Return TRUE for okay, FALSE for an error.
   return okay;
 }  /* check_array_cast */
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* <-- end_position is not used in that case. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static a_boolean scan_new_style_cast(a_cast_source_form     source_form,
-                                     a_rescan_control_block *rcblock,
-                                     a_source_position      *start_position,
-                                     a_type_ptr             *cast_type,
-                                     a_source_position      *type_position,
-                                     a_source_position      *end_position,
-                                     an_operand             *operand)
+static a_boolean scan_new_style_cast(
+                                  a_cast_source_form           source_form,
+                                  a_rescan_control_block       *rcblock,
+                                  a_source_position            *start_position,
+                                  a_type_ptr                   *cast_type,
+                                  a_source_position            *type_position,
+                                  ARG_UNUSED a_source_position *end_position,
+                                  an_operand                   *operand)
 /*
 As part of scanning a new-style cast, advance past the current token
 (which is the keyword token for the cast, e.g., static_cast), then
@@ -17575,9 +17558,9 @@ indication in *rcblock).
         if (!is_error_type(operand_type)) {
           expr_pos_error(rvalue_reference_case ?
                            ec_bad_rvalue_ref_dynamic_cast_operand :
-                           tracking_reference_case ?
+                           (an_error_code)(tracking_reference_case ?
                              ec_bad_tracking_ref_dynamic_cast_operand :
-                             ec_bad_ref_dynamic_cast_operand,
+                             ec_bad_ref_dynamic_cast_operand),
                          &operand.position);
         }  /* if */
       }  /* if */
@@ -19098,11 +19081,9 @@ Return a newly created list of expression nodes for each of these dimensions
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* nps is only used when MICROSOFT_EXTENSIONS_ALLOWED. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-static a_token_kind get_new_operator_token(a_rescan_control_block *rcblock,
-                                           a_new_parse_state      *nps)
+static a_token_kind get_new_operator_token(
+                                         a_rescan_control_block       *rcblock,
+                                         ARG_UNUSED a_new_parse_state *nps)
 /*
 Get the C++ "new" or C++/CLI "gcnew" operator token.
 */
@@ -23259,18 +23240,15 @@ an lvalue cast in g++ mode.
 }  /* is_gpp_lvalue_cast */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* <-- end_position is not used in that case. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static void do_cast(a_type_ptr               type_cast_to,
-                    an_operand               *operand,
-                    an_operand               *bound_function_selector,
-                    a_cast_source_form       source_form,
-                    a_local_expr_options_set local_options,
-                    a_boolean                err,
-                    a_source_position        *type_position,
-                    a_source_position        *start_position,
-                    a_source_position        *end_position)
+static void do_cast(a_type_ptr                   type_cast_to,
+                    an_operand                   *operand,
+                    an_operand                   *bound_function_selector,
+                    a_cast_source_form           source_form,
+                    a_local_expr_options_set     local_options,
+                    a_boolean                    err,
+                    a_source_position            *type_position,
+                    a_source_position            *start_position,
+                    ARG_UNUSED a_source_position *end_position)
 /*
 Do a cast operation.  The operand *operand is to be cast to the type
 type_cast_to.  If it is a bound function (only in C++),
@@ -24108,7 +24086,7 @@ if it's not valid).
                                       ec_bad_cast,
                                       &warning_suggested)) {
         a_base_class_ptr bcp;
-        a_boolean        baseward_cast;
+        a_boolean        baseward_cast = FALSE;
         /* Valid static_cast conversion. */
         if (warning_suggested != ec_no_error) {
           /* Issue warning on oddball cases. */
@@ -24136,7 +24114,7 @@ if it's not valid).
               pos_ty_diagnostic(es_discretionary_error,
                                 ec_inaccessible_base_class,
                                 start_position,
-                                bcp->type);
+                                /*lint -e(530)*/bcp->type);
             }  /* if */
           } else if (expr_access_checking_should_be_done() &&
                      related_class_pointers_or_handles(adj_source_type,
@@ -25851,6 +25829,7 @@ freed by this routine.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
     /* Normal, non-rescan, processing. */
+    check_assertion(start_position != NULL);
     type_position = *start_position;
     rescan_dip = NULL;
     if (scanning_source) {
@@ -28340,6 +28319,7 @@ does not find a usable best candidate, or if that overload does not produce a
 /*
 A type representing comparison categories (N4810 [cmp.categories]).
 */
+/*lint -esym(753,a_comparison_category_set_tag)*/
 enum a_comparison_category_set_tag {
   cctk_none = 0x0,
   cctk_strong_ordering = 0x1,
@@ -29674,13 +29654,11 @@ third operands of a "?" operator, have the same type.
 }  /* same_types_for_question_operator */
 
 
-#if !NAMED_ADDRESS_SPACES_ALLOWED
-/*ARGSUSED*/ /* <-- type_4 is not used in that case. */
-#endif /* !NAMED_ADDRESS_SPACES_ALLOWED */
-static a_type_ptr type_plus_operand_type_qualifiers(a_type_ptr type,
-                                                    a_type_ptr type_2,
-                                                    a_type_ptr type_3,
-                                                    a_type_ptr type_4)
+static a_type_ptr type_plus_operand_type_qualifiers(
+                                                  a_type_ptr            type,
+                                                  a_type_ptr            type_2,
+                                                  a_type_ptr            type_3,
+                                                  ARG_UNUSED a_type_ptr type_4)
 /*
 Return a type that is "type" plus the union of cv-qualifiers from type_2
 and type_3.  If type_4 has any named address space qualifiers, those are
@@ -31252,7 +31230,7 @@ assignment was a braced-init-list (allowed in C++11 mode),
             break;
           }  /* if */
           /* Fall through to next case: += works like -= */
-          /* FALLTHROUGH */
+          FALLTHROUGH
         case tok_minus_assign:
 #if GNU_VECTOR_TYPES_ALLOWED
           if (gnu_mode &&
@@ -31332,7 +31310,7 @@ assignment was a braced-init-list (allowed in C++11 mode),
             goto operation_type_determined;
           }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-          /*FALLTHROUGH*/
+          FALLTHROUGH
         case tok_remainder_assign:
           (void)check_integral_or_enum_operand(operand_1);
           (void)check_integral_or_enum_operand(&operand_2);
@@ -32311,7 +32289,7 @@ is an lvalue.
       n_internal_opnds = 2;
       opnds[0] = &e_opnd;
       opnds[1] = &i_opnd;
-      internal_opnd_array = opnds;  /*lint !e789*/
+      internal_opnd_array = opnds;  /*lint !e733 !e789*/
       save_expr_stack(&saved_expr_stack);
       push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                       /*force_object_lifetime=*/FALSE,
@@ -35888,10 +35866,7 @@ called to record the start of the header of the indicated lambda.
 }  /* record_start_of_lambda_header */
 
 
-#if !CHECKING
-/*ARGSUSED*/  /* <-- lambda is not used in that case. */
-#endif /* !CHECKING */
-void record_end_of_lambda_header(a_lambda_ptr lambda)
+void record_end_of_lambda_header(ARG_UNUSED a_lambda_ptr lambda)
 /*
 Callback routine from declaration processing into expression processing,
 called to record the end of the header of the indicated lambda.
@@ -37725,15 +37700,12 @@ case, just process that expression.
 }  /* scan_integer_expression */
 
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- marked_as_gnu_extension is not used in that case. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
 an_expr_node_ptr scan_void_expression(
-                                  a_boolean           repeated_in_loop,
-                                  a_boolean           marked_as_gnu_extension,
-                                  a_boolean           is_statement_expr,
-                                  a_dynamic_init_ptr  *dip,
-                                  an_init_component   *cache)
+                                  a_boolean            repeated_in_loop,
+                                  ARG_UNUSED a_boolean marked_as_gnu_extension,
+                                  a_boolean            is_statement_expr,
+                                  a_dynamic_init_ptr   *dip,
+                                  an_init_component    *cache)
 /*
 Scan a "void expression," i.e., one whose value is discarded.  This is used
 for expression statements and for the increment expression of a "for".  It is
@@ -38607,6 +38579,7 @@ parse) and get_continued_elem (for resuming a suspended parse).
         continuation->next = NULL;
         continuation->parent_icp = icp;
         continuation->end_icp = end_icp;
+        check_assertion(p_continuation != NULL);
         *p_continuation = continuation;
         elem_icp = alloc_init_component((an_init_component_kind)ick_continued);
         elem_icp->variant.continuation.state = *p_continuation;
@@ -39200,6 +39173,7 @@ dynamic init entry if one is created to represent this initializer
                         is, eff_arg_match);
   if (is->arg_match != NULL) {
     /* Keep track of the worst conversion on members of a given aggregate. */
+    /*lint -e{530}*/
     if (local_arg_match.match_level == aml_none) {
       is->init_error = TRUE;
     } else {
@@ -44527,7 +44501,7 @@ set accordingly.
           operator_token = tok_identifier;
           break;
         }  /* if */
-        /*FALLTHROUGH*/
+        FALLTHROUGH
       case eok_dot_static:
       case eok_dot_vacuous_destructor_call:
         operator_token = tok_period;
@@ -48322,20 +48296,17 @@ selector is returned through bound_function_selector.
 }  /* perform_right_fold */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/  /* start_pos and end_pos are not used in some configurations. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void assemble_fold_expression_operand(
-                               an_operand            *result,
-                               an_operand            *bound_function_selector,
-                               a_source_position     *start_pos,
-                               a_source_position     *op_pos,
-                               a_source_position     *end_pos,
-                               an_arg_list_elem_ptr  opnd_list,
-                               a_token_kind          op_token,
-                               a_boolean             unary,
-                               a_boolean             left_associative,
-                               a_boolean             generic)
+                         an_operand                   *result,
+                         an_operand                   *bound_function_selector,
+                         ARG_UNUSED a_source_position *start_pos,
+                         a_source_position            *op_pos,
+                         ARG_UNUSED a_source_position *end_pos,
+                         an_arg_list_elem_ptr         opnd_list,
+                         a_token_kind                 op_token,
+                         a_boolean                    unary,
+                         a_boolean                    left_associative,
+                         a_boolean                    generic)
 /*
 The operands of a fold expression have been scanned: This function produces IL
 for the result and returns it as an operand in *result.  In some unusual cases,

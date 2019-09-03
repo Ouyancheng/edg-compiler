@@ -282,8 +282,14 @@ Macros to manage to the next initialization component.
 #define split_tail_elems(icp)                                                \
   ((icp)->next = NULL)
 
+#ifdef _lint
+/*lint -emacro(664,append_elem)*/
+#define append_elem(icp, tail)                                               \
+  (check_assertion((icp) != NULL), (icp)->next = tail)
+#else /* !defined(_lint) */
 #define append_elem(icp, tail)                                               \
   ((icp)->next = tail)
+#endif /* defined(_lint) */
 
 /*
 Macro to identify initialization components that are expressions.

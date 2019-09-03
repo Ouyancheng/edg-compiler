@@ -725,6 +725,11 @@ MICROSOFT_EXTENSIONS_ALLOWED or to "else_text" otherwise.
 #define if_microsoft_extensions_else(then_text, else_text) else_text
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if defined(_lint) && _lint > 1000
+/*lint -esym(2666,if_microsoft_extensions)*/
+/*lint -esym(2666,if_microsoft_extensions_else)*/
+#endif /* defined(_lint) && _lint > 1000 */
+
 /*
 Flag that is TRUE to enable Microsoft mode as the default mode.  This
 is the default value used to initialize microsoft_mode.  This may

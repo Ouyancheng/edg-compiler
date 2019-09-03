@@ -231,9 +231,9 @@ Macro that is TRUE if the disambiguation process should stop at this point.
 Macro that returns GID_USE_PROTOTYPE_NOT_NONREAL if is_template_decl is TRUE
 and if gid_flags does not include GID_IS_TYPENAME.
 */
+/*lint -emacro(835 506,gid_flags_for_template)*/
 #define gid_flags_for_template(flags, gid_flags)			\
-  (is_template_decl(flags) && (/*lint --e(506,835)*/                    \
-                               ((gid_flags) & GID_IS_TYPENAME) == 0) ?  \
+  (is_template_decl(flags) && (((gid_flags) & GID_IS_TYPENAME) == 0) ?  \
                                GID_USE_PROTOTYPE_NOT_NONREAL : GID_NO_OPTIONS)
 
 
@@ -713,7 +713,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         state->static_specifier_seen = TRUE;
         if (state->find_static_specifier_only) goto done;
-        /*FALLTHROUGH*/
+        FALLTHROUGH
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_register:
       case tok_extern:
@@ -947,7 +947,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
           next_token_fetched = TRUE;
           break;
         }  /* if */
-        /*FALLTHROUGH*/
+        FALLTHROUGH
       default:
         is_decl_specifier_token = FALSE;
         break;
