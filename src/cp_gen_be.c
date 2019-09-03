@@ -12829,8 +12829,10 @@ return FALSE and let the caller generate the code normally.
            constant. */
         a_constant_ptr con;
         check_assertion(arg != NULL);
-        if (is_operation_node(arg) &&
-            node_operator_is(arg, eok_array_to_pointer)) {
+        while (is_operation_node(arg) &&
+               (node_operator_is(arg, eok_array_to_pointer) ||
+                (node_operator_is(arg, eok_cast) &&
+                 arg->compiler_generated))) {
           arg = arg->variant.operation.operands;
         }  /* if */
         check_assertion(is_constant_node(arg));
