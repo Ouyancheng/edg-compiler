@@ -1090,16 +1090,16 @@ another without an intervening "break" statement.
 #ifndef __has_cpp_attribute
 #define __has_cpp_attribute(x) 0
 #endif /* !defined(__has_cpp_attribute) */
-#if __has_cpp_attribute(fallthrough)
+#if __has_cpp_attribute(fallthrough) && defined(__cplusplus)
 #define FALLTHROUGH [[fallthrough]]
-#else /* !__has_cpp_attribute(fallthrough) */
+#else /* !(__has_cpp_attribute(fallthrough) && defined(__cplusplus) */
 #define FALLTHROUGH /*nothing*/
 #endif /* __has_cpp_attribute(fallthrough) */
-#if __has_cpp_attribute(maybe_unused)
+#if __has_cpp_attribute(maybe_unused) && defined(__cplusplus)
 #define ARG_UNUSED [[maybe_unused]]
-#else /* !__has_cpp_attribute(maybe_unused) */
+#else /* !(__has_cpp_attribute(maybe_unused) && defined(__cplusplus)) */
 #define ARG_UNUSED /*nothing*/
-#endif /* __has_cpp_attribute(maybe_unused) */
+#endif /* __has_cpp_attribute(maybe_unused) && defined(__cplusplus) */
 #endif /* defined(_lint) */
 
 #ifdef __cplusplus
