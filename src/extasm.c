@@ -212,10 +212,9 @@ In the latter case, issues an error.
 
 #if !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
 
-/*ARGSUSED*/
 static a_boolean validate_expr_for_constraints(
-                                           an_expr_node_ptr              expr,
-                                           an_asm_operand_constraint_ptr cstrt)
+                                ARG_UNUSED an_expr_node_ptr              expr,
+                                ARG_UNUSED an_asm_operand_constraint_ptr cstrt)
 /*
 Verify that expr can legitimately be used as an asm operand with
 constraints given by cstrt.  This code is machine specific and must be
@@ -406,15 +405,13 @@ Errors are diagnosed at the given position.
 
 #endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 
-#if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
-/* ARGSUSED */  /* operands, number_of_constraints are not used. */
-#endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
-static void process_asm_operand(an_asm_operand_ptr  operand,
-                                an_asm_operand_ptr  operands,
-                                an_expr_node_ptr    expr,
-                                a_const_char        *cstring,
-                                a_boolean           output,
-                                int                 *number_of_constraints)
+static void process_asm_operand(
+                          an_asm_operand_ptr            operand,
+                          ARG_UNUSED an_asm_operand_ptr operands,
+                          an_expr_node_ptr              expr,
+                          a_const_char                  *cstring,
+                          a_boolean                     output,
+                          ARG_UNUSED int                *number_of_constraints)
 /*
 Fill in *operand (a GNU asm operand description) using the cstring constraints
 string and the expr expression.  Output is TRUE if the call is for an output
@@ -1173,6 +1170,7 @@ get_token_with_colon_separation for a description of seen_tok_colon_colon.
         if (first_reg == NULL) {
           first_reg = last_reg = alloc_named_register_list();
         } else {
+          check_assertion(last_reg != NULL);
           last_reg->next = alloc_named_register_list();
           last_reg = last_reg->next;
         }  /* if */
@@ -1238,6 +1236,7 @@ get_token_with_colon_separation for a description of seen_tok_colon_colon.
       if (first_label == NULL) {
         first_label = last_label = alloc_label_list();
       } else {
+        check_assertion(last_label != NULL);
         last_label->next = alloc_label_list();
         last_label = last_label->next;
       }  /* if */

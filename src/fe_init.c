@@ -90,7 +90,9 @@ called (and init_flags_and_types has parsed the information in il_header).
 #if __BSD__
 #include <sys/time.h>
 #else  /* !__BSD__ */
-#include <time.h> /*lint !e451 some versions of time.h have bad guard test */
+/*lint -e451*/ /* Some versions of time.h have a bad guard test. */
+#include <time.h>
+/*lint +e451*/
 #endif  /* __BSD__ */
 #if __SYSV__ || __BSD__
 extern time_t time(time_t *timer);
@@ -619,8 +621,8 @@ This function is also called in Sun C++ mode.
     length = (sizeof_t)strlen(keyword);
     check_assertion((length + 3) < sizeof(buffer));
     strcpy(buffer, keyword);
-    buffer[length] = buffer[length + 1] = '_';
-    buffer[length + 2] = '\0';
+    buffer[length] = buffer[length + 1] = '_'; /*lint !e448*/
+    buffer[length + 2] = '\0'; /*lint !e448*/
   }  /* if */
   enter_keyword(token, buffer);
 }  /* enter_gnu_keyword */

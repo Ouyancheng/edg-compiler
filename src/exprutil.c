@@ -363,7 +363,7 @@ list for the current expression, headed by curr_expr_ref_entries.
     if (copy_list == NULL) {
       copy_list = new_ref;
     } else {
-      copy_list_end->next_operand_ref = new_ref;
+      copy_list_end->next_operand_ref = new_ref; /*lint !e413*/
     }  /* if */
     copy_list_end = new_ref;
   }  /* for */
@@ -471,7 +471,7 @@ up to the caller and therefore cannot be modified further.
         curr_expr_ref_entries = rep;
       } else {
         /* coverity[var_deref_op] */
-        last_rep->next = rep;
+        last_rep->next = rep; /*lint !e413*/
       }  /* if */
       last_rep = rep;
       rep->next = NULL;
@@ -913,8 +913,8 @@ given constant.
 }  /* arg_operand_for_constant */
 
 
-/*ARGSUSED*/  /* <-- operand is not used. */
-void free_attachments_to_operand(an_operand *operand)
+/*lint -ecall(523,free_attachments_to_operand)*/
+void free_attachments_to_operand(ARG_UNUSED an_operand *operand)
 /*
 Free any dynamically-allocated attachments to the indicated operand.
 The operand will not be used further.
@@ -6107,11 +6107,8 @@ done:
 }  /* constant_conv_function_result */
 
 
-#if !UPC_EXTENSIONS_ALLOWED
-/*ARGSUSED*/
-#endif /* !UPC_EXTENSIONS_ALLOWED */
-a_boolean error_on_nonconstant_constant(a_constant        *constant,
-                                        a_source_position *pos)
+a_boolean error_on_nonconstant_constant(ARG_UNUSED a_constant        *constant,
+                                        ARG_UNUSED a_source_position *pos)
 /*
 If constant is a constant entry that nevertheless does not have a constant
 value, issue an error at the indicated position and return TRUE.
@@ -6232,7 +6229,7 @@ Extract the constant value from the operand *operand and place it in
         discard_more_info_list(&diag_list);
         break;
       }  /* if */
-      /*FALLTHROUGH*/
+      FALLTHROUGH
     default:
       error_in_operand(ec_expr_not_constant, operand);
       set_error_constant(constant);
@@ -7016,10 +7013,9 @@ the avail_fs_nodes list.
 }  /* reclaim_node_if_possible */
 
 
-/*ARGSUSED*/  /* The tblock parameter is needed because of the callback
-                 requirement, but it is not actually used. */
-static void reclaim_fs_node(an_expr_node_ptr                    node,
-                            an_expr_or_stmt_traversal_block_ptr tblock)
+static void reclaim_fs_node(
+                         an_expr_node_ptr                               node,
+                         ARG_UNUSED an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 If the given expression node is allocated in file-scope memory, place it on
 the avail_fs_nodes list.
@@ -8492,7 +8488,7 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
     /* C++ cast from a pointer to a class to a pointer to a related
        (base or derived) class. */
     new_type_pointed_to = type_pointed_to(new_type);
-    if (baseward_cast) {
+    if (baseward_cast) { /*lint !e530*/
       /* Derived --> base.  Valid unless the cast is ambiguous or
          the base class is inaccessible. */
       add_base_class_casts(bcp, new_type_pointed_to,
@@ -8741,7 +8737,7 @@ was an lvalue or rvalue, etc.
       value_of_constant_var_glvalue_expr(operand->variant.expression,
                                          /*copy_for_reuse=*/FALSE,
                                          &var) != NULL &&
-      var->source_corresp.is_local_to_function) {
+      var->source_corresp.is_local_to_function /*lint !e413*/) {
     /* Convert a use of a function-local const variable to its value so
        that we don't end up with memory region problems.   You can't use
        a reference to such a variable as a nontype template parameter. */
@@ -9017,12 +9013,9 @@ node pointed to by that sequence.  Otherwise, return node.
 }  /* remove_cast_operations */
 
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* result_of_stmt_expr is not used in all configurations. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
 an_expr_node_ptr make_node_from_void_expression_operand(
-                                          an_operand_ptr  operand,
-                                          a_boolean       result_of_stmt_expr)
+                                      an_operand_ptr       operand,
+                                      ARG_UNUSED a_boolean result_of_stmt_expr)
 /*
 *operand is an expression scanned as a void expression, or cast to void.
 Determine an expression representation for the operand, and return a pointer
@@ -10389,16 +10382,14 @@ a prvalue.
 }  /* build_binary_result_operand */
 
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- is_gnu_two_operand_form is not used in that case. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
-static void build_question_result_operand(an_operand *operand_1,
-                                          an_operand *operand_2,
-                                          an_operand *operand_3,
-                                          a_type_ptr result_type,
-                                          a_boolean  result_is_an_lvalue,
-                                          a_boolean  is_gnu_two_operand_form,
-                                          an_operand *result)
+static void build_question_result_operand(
+                                  an_operand           *operand_1,
+                                  an_operand           *operand_2,
+                                  an_operand           *operand_3,
+                                  a_type_ptr           result_type,
+                                  a_boolean            result_is_an_lvalue,
+                                  ARG_UNUSED a_boolean is_gnu_two_operand_form,
+                                  an_operand           *result)
 /*
 Build an operand for the expression that is the operator "?" operating on
 operand_1, operand_2, and operand_3, with result type result_type,
@@ -11279,7 +11270,7 @@ by the caller and not here) may be different than the type of the operation.
             *op = (an_expr_operator_kind)eok_error;
             break;
           }  /* if */
-          /*FALLTHROUGH*/
+          FALLTHROUGH
         default:
           *operation_type = op1_type;
           *op = which_binary_operator(op_token, *operation_type);
@@ -12188,13 +12179,10 @@ is suggested by TR 18037.)
 
 #endif /* FIXED_POINT_ALLOWED */
 
-#if !FIXED_POINT_ALLOWED
-/*ARGSUSED*/  /* <-- op not used in that case. */
-#endif /* !FIXED_POINT_ALLOWED */
-void change_binary_operand_types(a_type_ptr             type,
-                                 an_operand             *operand_1,
-                                 an_operand             *operand_2,
-                                 an_expr_operator_kind  op)
+void change_binary_operand_types(a_type_ptr                       type,
+                                 an_operand                       *operand_1,
+                                 an_operand                       *operand_2,
+                                 ARG_UNUSED an_expr_operator_kind op)
 /*
 The given operation will be applied to the given operands.  If type is not a
 fixed-point type, cast the two operands to the new type if necessary.
@@ -12669,10 +12657,8 @@ for parameters.
 }  /* revert_gcc_rvalue_to_lvalue_if_possible */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- operand is not used in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-void revert_microsoft_rvalue_to_lvalue_if_possible(an_operand *operand)
+void revert_microsoft_rvalue_to_lvalue_if_possible(
+                                                ARG_UNUSED an_operand *operand)
 /*
 Called in a context where an lvalue is required.  If we are in
 Microsoft C++ mode and operand is an rvalue that can be turned back into
@@ -15700,9 +15686,6 @@ or an embedded C register name.
 }  /* is_register_variable */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- in_expr_proc is not used in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_boolean variable_has_constant_address(a_variable_ptr variable)
 /*
 Return TRUE if the indicated variable has a constant address.  A static
@@ -15789,14 +15772,11 @@ variable.
 }  /* operand_is_lvalue_for_variable */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/  /* <-- end_position is not used in that case. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-void make_lvalue_variable_operand(a_variable_ptr    variable,
-                                  a_source_position *position,
-                                  a_source_position *end_position,
-                                  an_operand        *result,
-                                  a_ref_entry_ptr   rep)
+void make_lvalue_variable_operand(a_variable_ptr               variable,
+                                  a_source_position            *position,
+                                  ARG_UNUSED a_source_position *end_position,
+                                  an_operand                   *result,
+                                  a_ref_entry_ptr              rep)
 /*
 Make an lvalue operand for a variable.  The source position of
 the operand is set to *position, and its end position, if any, is
@@ -16140,22 +16120,16 @@ at all, or because the value is "false") issue an error at diag_pos.
 }  /* require_true_enable_if_condition */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- allow_on_managed is not used in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/  /* <-- end_position is not used in that case. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 void make_ptr_to_member_constant_operand(
-                                    a_symbol_ptr      member_sym,
-                                    a_symbol_ptr      member_proj_sym,
-                                    a_source_position *position,
-                                    a_source_position *end_position,
-                                    a_boolean         check_protected_access,
-                                    a_boolean         is_qualified_name,
-                                    a_boolean         has_required_ampersand,
-                                    a_boolean         allow_on_managed,
-                                    an_operand        *result)
+                           a_symbol_ptr                 member_sym,
+                           a_symbol_ptr                 member_proj_sym,
+                           a_source_position            *position,
+                           ARG_UNUSED a_source_position *end_position,
+                           a_boolean                    check_protected_access,
+                           a_boolean                    is_qualified_name,
+                           a_boolean                    has_required_ampersand,
+                           ARG_UNUSED a_boolean         allow_on_managed,
+                           an_operand                   *result)
 /*
 Make an operand for a constant representing a C++ pointer to member.
 member_sym is the member (not overloaded, possibly a projection symbol).
@@ -16330,16 +16304,14 @@ routine.
 }  /* check_address_of_consteval_function */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/  /* <-- compiler_generated, end_position are not used. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-void make_function_designator_operand(a_symbol_ptr      routine_sym,
-                                      a_boolean         is_qualified_name,
-                                      a_boolean         compiler_generated,
-                                      a_source_position *position,
-                                      a_source_position *end_position,
-                                      a_ref_entry_ptr   rep,
-                                      an_operand        *result)
+void make_function_designator_operand(
+                               a_symbol_ptr                 routine_sym,
+                               a_boolean                    is_qualified_name,
+                               ARG_UNUSED a_boolean         compiler_generated,
+                               a_source_position            *position,
+                               ARG_UNUSED a_source_position *end_position,
+                               a_ref_entry_ptr              rep,
+                               an_operand                   *result)
 /*
 Make an operand for a function designator.  routine_sym points to the
 routine symbol entry (not overloaded, but can be a projection symbol).
@@ -16421,11 +16393,10 @@ reference entry, or is NULL if none is needed.
 }  /* make_function_designator_operand */
 
 
-/*ARGSUSED*/  /* <-- end_position is not used in some configurations. */
-void make_field_operand(a_symbol_locator  *locator,
-                        a_source_position *source_position,
-                        a_source_position *end_position,
-                        an_operand        *result)
+void make_field_operand(a_symbol_locator             *locator,
+                        a_source_position            *source_position,
+                        ARG_UNUSED a_source_position *end_position,
+                        an_operand                   *result)
 /*
 Allocate an expression node to contain a field reference, and return an
 operand for it in *result.  locator describes the field name reference.
@@ -17532,25 +17503,21 @@ argument to the [[nodiscard]] attribute (or NULL if there is not one).
 }  /* type_has_nodiscard_attribute */
 
 
-#if !BACK_END_IS_CP_GEN_BE
-/*ARGSUSED*/  /* found_through_adl is only used with the C++-generating
-                 back end. */
-#endif /* !BACK_END_IS_CP_GEN_BE */
 static an_expr_node_ptr func_call_expr(
-                                  an_expr_node_ptr  function_node,
-                                  a_type_ptr        function_type,
-                                  a_routine_ptr     rout,
-                                  a_boolean         is_virtual,
-                                  a_boolean         virtual_suppressed,
-                                  a_boolean         selector_is_object_pointer,
-                                  a_boolean         compiler_generated,
-                                  a_boolean         is_conversion,
-                                  a_boolean         arg_dep_lookup_suppressed,
-                                  a_boolean         qualified_function_name,
-                                  a_boolean         found_through_adl,
-                                  a_boolean         uses_operator_syntax,
-                                  a_source_position *pos,
-                                  an_expr_node_ptr  *function_call_node)
+                               an_expr_node_ptr     function_node,
+                               a_type_ptr           function_type,
+                               a_routine_ptr        rout,
+                               a_boolean            is_virtual,
+                               a_boolean            virtual_suppressed,
+                               a_boolean            selector_is_object_pointer,
+                               a_boolean            compiler_generated,
+                               a_boolean            is_conversion,
+                               a_boolean            arg_dep_lookup_suppressed,
+                               a_boolean            qualified_function_name,
+                               ARG_UNUSED a_boolean found_through_adl,
+                               a_boolean            uses_operator_syntax,
+                               a_source_position    *pos,
+                               an_expr_node_ptr     *function_call_node)
 /*
 Make an expression for a call of the function indicated by function_node,
 whose type is function_type, and which is to be called virtually if is_virtual
@@ -18701,11 +18668,8 @@ to an error operand.  Return TRUE if an error was issued.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* Parameters are ignored in some configurations. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-a_boolean is_dllimport_variable_glvalue(an_expr_node_ptr expr,
-                                        a_constant       *conaddr)
+a_boolean is_dllimport_variable_glvalue(ARG_UNUSED an_expr_node_ptr expr,
+                                        ARG_UNUSED a_constant       *conaddr)
 /*
 Return TRUE if the given expression is an enk_variable glvalue node for a
 dllimport variable.  If so, record the address of the variable in conaddr.
@@ -18776,16 +18740,13 @@ we test for a limited set of cases, and only lvalues.
 }  /* is_possible_nonstatic_selection_masquerading_as_static */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- use_handle_for_ref_class is unused in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void take_address_of_or_reference_to_lvalue(
-                                    an_operand        *operand,
-                                    a_boolean         reference_case,
-                                    a_boolean         rvalue_reference_case,
-                                    a_boolean         use_handle_for_ref_class,
-                                    a_boolean         is_builtin_addressof,
-                                    a_source_position *operator_position)
+                                 an_operand           *operand,
+                                 a_boolean            reference_case,
+                                 a_boolean            rvalue_reference_case,
+                                 ARG_UNUSED a_boolean use_handle_for_ref_class,
+                                 a_boolean            is_builtin_addressof,
+                                 a_source_position    *operator_position)
 /*
 Change operand (an lvalue or a function designator) to a prvalue that is:
 
