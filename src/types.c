@@ -1988,7 +1988,8 @@ Return TRUE if the given type is trivially copyable.
         } else {
           is_list = FALSE;
         }  /* if */
-        if (sym == NULL && cssp->construction_by_bitwise_copy_allowed) {
+        if (sym == NULL && cssp->construction_by_bitwise_copy_allowed &&
+            is_class_or_struct(tp)) {
           /* In some modes the generation of default constructors is
              suppressed.  For the purposes of this check, treat classes that
              have no constructors where construction by bitwise copy is allowed
