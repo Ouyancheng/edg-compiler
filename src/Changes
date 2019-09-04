@@ -5,7 +5,7 @@ Multiple translation units: Redeclaration error with opaque scoped enum decl
 
 When compiling multiple translation units where two translation units declare
 the same scoped enum and at least one of those declarations is opaque, the
-front end would issue a spurious "incompatible reclaration" error.  For
+front end would issue a spurious "incompatible redeclaration" error.  For
 example, if t1.cpp contained this:
 
   enum class E { EV }; // Spurious incompatible redeclaration error

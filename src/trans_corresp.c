@@ -215,12 +215,14 @@ Return TRUE if type has a definition.
 {
   a_boolean  result;
 
+  type = skip_typerefs(type);
   if (is_immediate_class_type(type)) {
     result = class_type_has_body(type);
-  } else if (is_scoped_enum_type(type)) {
+  } else if (is_scoped_enum_type(type) ||
+             (is_enum_type(type) &&
+              type->variant.integer.has_explicit_enum_base)) {
     /* Scoped enums are considered complete even if they are opaque, so check
        whether there was an enumerator list seen. */
-    type = skip_typerefs(type);
     result = !type->incomplete &&
              integer_type_supp(type)->enumerator_list_seen;
   } else {
