@@ -1,5 +1,22 @@
 Version 6.0
 
+9/4/19   [EDGcpfe/21732]
+Incorrect lowering of _Generic construct
+
+In configurations where REPRESENT_C11_GENERIC_CONSTRUCT_IN_IL is TRUE, lowering
+of the C11 _Generic construct was incomplete and could result in an assertion
+failure (in match_routine_type_in_call).  That has now been fixed.  For
+example (with --c11):
+
+  long double fld(long double x);
+  double fd(double x);
+  float ff(float x);
+  #define fg(X) _Generic((X), long double:fld, default:fd, float:ff)(X)
+  void f(void) {
+    Fg(0.0L);
+  }
+
+
 9/4/19   [EDGcpfe/21706]
 __is_trivially_copyable for unions with non-trivially copyable members
 

@@ -66,6 +66,8 @@ for non-C99 dialects and even for plain C89).
 
 /* Forward declarations (needed because of mutual recursion situations). */
 static void lower_c99_constant_list(a_constant_ptr constant_list);
+static void lower_c99_expr_full(an_expr_node_ptr expr,
+                                a_statement_ptr  statement);
 #if LOWER_FIXED_POINT
 static void lower_c99_fixed_point_constant(a_constant_ptr constant);
 static void lower_c99_fixed_point_operation(an_expr_node_ptr expr);
@@ -3755,6 +3757,27 @@ in C99 mode to represent a compound literal.
 }  /* lower_c99_temp_init */
 
 
+static void lower_c11_generic(an_expr_node_ptr expr,
+                              a_statement_ptr  statement)
+/*
+Lower the C11 _Generic construct.  Replace the node with the operand that
+is pointed to by "result" (the front end has determined which of the operands
+should be used).  Perform an lvalue-to-rvalue conversion if necessary.
+*/
+{
+  an_expr_node_ptr new_expr;
+
+  new_expr = expr->variant.c11_generic.result;
+  if (new_expr->is_lvalue && !expr->is_lvalue) {
+    new_expr = rvalue_expr_for_lvalue(new_expr);
+  }  /* if */
+  check_assertion(expr->is_lvalue == new_expr->is_lvalue);
+  new_expr->next = expr->next;
+  overwrite_node(expr, new_expr);
+  lower_c99_expr_full(expr, statement);
+}  /* lower_c11_generic */
+
+
 static void lower_c99_expr_list(an_expr_node_ptr list,
                                 unsigned int     is_bool_controlling_expr_mask)
 /*
@@ -3894,9 +3917,7 @@ second parameter.
                       expr->variant.param_ref.levels_up == 1);
       break;
     case enk_c11_generic:
-      *expr = *expr->variant.c11_generic.result;
-      expr->next = NULL;
-      lower_c99_expr_full(expr, statement);
+      lower_c11_generic(expr, statement);
       break;
 #if BUILTIN_FUNCTIONS_ENABLED
     case enk_builtin_choose_expr:
@@ -3977,6 +3998,7 @@ one not contained inside another expression.
   curr_context->in_full_expression = FALSE;
 #endif /* CHECKING */
 }  /* lower_c99_full_expr */
+
 
 void lower_c99_boolean_controlling_expr(an_expr_node_ptr expr,
                                         a_boolean        is_full_expr)
