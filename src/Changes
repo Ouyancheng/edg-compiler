@@ -13,7 +13,7 @@ example (with --c11):
   float ff(float x);
   #define fg(X) _Generic((X), long double:fld, default:fd, float:ff)(X)
   void f(void) {
-    Fg(0.0L);
+    fg(0.0L);
   }
 
 
