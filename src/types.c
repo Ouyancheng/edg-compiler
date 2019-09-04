@@ -1943,6 +1943,8 @@ type.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
+static a_boolean class_fields_satisfy_pod_requirements(a_type_ptr tp);
+
 a_boolean is_trivially_copyable_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is trivially copyable.
@@ -1989,7 +1991,7 @@ Return TRUE if the given type is trivially copyable.
           is_list = FALSE;
         }  /* if */
         if (sym == NULL && cssp->construction_by_bitwise_copy_allowed &&
-            is_class_or_struct(tp)) {
+            class_fields_satisfy_pod_requirements(tp)) {
           /* In some modes the generation of default constructors is
              suppressed.  For the purposes of this check, treat classes that
              have no constructors where construction by bitwise copy is allowed
@@ -2219,6 +2221,32 @@ array thereof.
 }  /* is_const_default_constructible */
 
 
+static a_boolean class_fields_satisfy_pod_requirements(a_type_ptr tp)
+/*
+Given the provided class/struct/union type, determine whether its fields
+satisfy the requirements in order for the class/struct/union to be considered
+POD.
+*/
+{
+  a_boolean   result = TRUE;
+  a_field_ptr fp;
+
+  check_assertion(is_immediate_class_type(tp));
+  fp = tp->variant.class_struct_union.field_list;
+  /* Check that every field of class type (or array thereof) is of a POD class
+     type. */
+  for (; fp != NULL; fp = fp->next) {
+    a_type_ptr ftp = skip_array_types(fp->type);
+    ftp = skip_typerefs(ftp);
+    if (is_immediate_class_type(ftp) && !is_pod_class(ftp)) {
+      result = FALSE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* class_fields_satisfy_pod_requirements */
+
+
 a_boolean is_pod_class(a_type_ptr  tp)
 /*
 Return TRUE if the given class type is a POD class type.  The definition of
@@ -2235,20 +2263,8 @@ POD changed between C++03 and C++11.
        and no nontrivial default constructor. */
     a_class_symbol_supplement_ptr  cssp = class_symbol_supp(symbol_for(tp));
     result = cssp->standard_layout && has_trivial_default_constructor(cssp) &&
-             is_trivially_copyable_type(tp);
-    if (result) {
-      /* Check that every field of class type (or array thereof) is of a POD
-         class type. */
-      a_field_ptr  fp = tp->variant.class_struct_union.field_list;
-      for (; fp != NULL; fp = fp->next) {
-        a_type_ptr ftp = skip_array_types(fp->type);
-        ftp = skip_typerefs(ftp);
-        if (is_immediate_class_type(ftp) && !is_pod_class(ftp)) {
-          result = FALSE;
-          break;
-        }  /* if */
-      }  /* for */
-    }  /* if */
+             is_trivially_copyable_type(tp) &&
+             class_fields_satisfy_pod_requirements(tp);
   } else {
     result = class_symbol_supp(symbol_for(tp))->is_cpp03_POD;
   }  /* if */
