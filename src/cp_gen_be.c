@@ -21429,8 +21429,7 @@ Initialize for the C++/C-generating back end.
   if (msvc_is_generated_code_target ||
       (gcc_is_generated_code_target &&
        gnu_target_version_number >= 40500 &&
-       gnu_target_version_number <= 40502)
-      ) {
+       gnu_target_version_number <= 40502)) {
     octl.suppress_ptr_to_data_member_parens = TRUE;
   }  /* if */
   in_template_argument_list = FALSE;
