@@ -221,8 +221,8 @@ Return TRUE if type has a definition.
   } else if (is_scoped_enum_type(type) ||
              (is_enum_type(type) &&
               type->variant.integer.has_explicit_enum_base)) {
-    /* Scoped enums are considered complete even if they are opaque, so check
-       whether there was an enumerator list seen. */
+    /* Opaque enumerations are complete types, so check whether there was an
+       enumerator list seen. */
     result = !type->incomplete &&
              integer_type_supp(type)->enumerator_list_seen;
   } else {
