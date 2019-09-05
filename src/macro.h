@@ -50,10 +50,11 @@ dedicated to the variable.  The pointer variable is set to NULL to ensure
 that it has a value that can be examined henceforth (therefore, it
 shouldn't be initialized in its declaration).
 */
+/*lint -emacro(733,register_pointer_variable)*/
+/*lint -emacro(789,register_pointer_variable)*/
 #define register_pointer_variable(ptr_var, ptr_registration)          \
 { ptr_registration.next = registered_pointers;                        \
   ptr_registration.ptr_variable = (char **)&(ptr_var);                \
-  /*lint --e(789)*/                                                   \
   registered_pointers = &ptr_registration;                            \
   (ptr_var) = NULL;                                                   \
 }  /* register_pointer_variable */

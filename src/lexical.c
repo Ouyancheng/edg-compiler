@@ -1362,7 +1362,7 @@ reusable cache.
 
 
 #if DEBUG
-#define incr_num_cached_tokens_allocated() num_cached_tokens_allocated++;
+#define incr_num_cached_tokens_allocated() num_cached_tokens_allocated++
 #else /* !DEBUG */
 #define incr_num_cached_tokens_allocated() /* Nothing */
 #endif /* DEBUG */
@@ -1454,7 +1454,7 @@ When debugging code is not being generated the macro expands to nothing.
   if (cache->is_reusable) {						\
     num_cached_tokens_in_reusable_caches++;				\
   }  /* if */								\
-  cache->token_count++;
+  cache->token_count++
 #else /* !DEBUG */
 #define incr_tokens_in_cache(cache)  /* */
 #endif /* DEBUG */
@@ -1464,7 +1464,7 @@ When debugging code is not being generated the macro expands to nothing.
   if (cache->is_reusable) {						\
     num_cached_tokens_in_reusable_caches--;				\
   }  /* if */								\
-  cache->token_count--;
+  cache->token_count--
 #else /* !DEBUG */
 #define decr_tokens_in_cache(cache)  /* */
 #endif /* DEBUG */
@@ -1559,13 +1559,10 @@ time the cached token is freed.
 }  /* free_cached_token */
 
 
-#if !DEBUG
-/*ARGSUSED*/ /* <-- because "token_cache" is only used in debug code. */
-#endif /* !DEBUG */
 static void free_cached_token_from_reusable_cache(
-				a_token_cache_ptr  token_cache,
-                                a_cached_token_ptr ctp,
-                                a_boolean	   keep_pragma_tokens)
+			       ARG_UNUSED a_token_cache_ptr token_cache,
+                               a_cached_token_ptr           ctp,
+                               a_boolean                    keep_pragma_tokens)
 /*
 Free an individual token from a reusable cache.  keep_pragma_tokens is TRUE
 when the token caches associated with pragma entries should be retained.
@@ -2565,12 +2562,11 @@ scanned.
 }  /* get_token_cache_being_scanned */
 
 
-/*ARGSUSED*/ /* <-- "okay_if_not_found" is only used by checking code. */
 void split_token_cache(a_token_cache	       *cache1,
                        a_token_cache	       *cache2,
                        a_token_sequence_number split_location,
                        a_boolean	       include_prev_token,
-                       a_boolean	       okay_if_not_found,
+                       ARG_UNUSED a_boolean    okay_if_not_found,
                        a_boolean               update_cache_being_scanned)
 /*
 Split cache1 into two pieces.  cache1 will contain all the tokens up
@@ -3595,9 +3591,8 @@ and return a pointer to it.
 }  /* nested_source_line_modif */
 
 
-/*ARGSUSED*/ /* <-- because "kind" is not used in some versions. */
-void gen_pp_line_info(char      kind,
-                      a_boolean next_line)
+void gen_pp_line_info(ARG_UNUSED char kind,
+                      a_boolean       next_line)
 /*
 Write a line-identification directive to f_pp_output as part of preprocessor
 output.  It should identify the current line, or the line following the
@@ -4453,7 +4448,7 @@ only be called when f_raw_listing is non-NULL.
     putc(curr_raw_listing_line_code, f_raw_listing);
     /* Reconstruct the original line and output it. */
     loc_in_line = curr_source_line;
-    /*lint --e{446} olmp modified in loop */
+    /*lint --e{446,850} olmp modified in loop */
     for (olmp = orig_line_modif_list; olmp != NULL; olmp = olmp->next) {
       /* Process each modification in order. */
       /* Write unaffected text that precedes this modification. */
@@ -5674,17 +5669,13 @@ value of is_system_include.
 }  /* header_can_be_found */
 
 
-#if !INSTANTIATION_BY_IMPLICIT_INCLUSION
-/*ARGSUSED*/ /* <-- is_implicit_include is used only if instantiation may use
-                    implicit inclusion. */
-#endif /* !INSTANTIATION_BY_IMPLICIT_INCLUSION */
 a_boolean open_file_for_input(
 		a_const_char			*file_name,
 		a_boolean			use_search_path,
 		a_boolean			is_include_file,
 		a_boolean			is_system_include,
 		a_boolean			is_include_next,
-		a_boolean			is_implicit_include,
+		ARG_UNUSED a_boolean		is_implicit_include,
 		a_boolean			is_preinclude,
 		a_boolean			continue_on_open_failure,
 		a_const_char			**full_file_name,
@@ -6939,7 +6930,7 @@ done:
 #define should_use_pos_of_macro_invocation() \
   (pos_of_macro_invocation.seq != 0)
 #define copy_pos_of_macro_invocation_to(position_var) \
-  (position_var) = pos_of_macro_invocation;
+  ((position_var) = pos_of_macro_invocation)
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
 #if RECORD_MACRO_INVOCATIONS
@@ -7009,7 +7000,7 @@ Record the occurrence of the indicated error at the indicated character
 position of the current logical source line.
 */
 #define error_at_line_pos(error_code, loc_in_line)                    \
-  diagnostic_at_line_pos(es_error, (error_code), (loc_in_line));
+  diagnostic_at_line_pos(es_error, (error_code), (loc_in_line))
 
 
 /*
@@ -7017,7 +7008,7 @@ Record the occurrence of the indicated warning at the indicated character
 position of the current logical source line.
 */
 #define warning_at_line_pos(error_code, loc_in_line)                  \
-  diagnostic_at_line_pos(es_warning, (error_code), (loc_in_line));
+  diagnostic_at_line_pos(es_warning, (error_code), (loc_in_line))
 
 
 /*
@@ -8936,6 +8927,7 @@ next character not being part of valid_chars).  N is either 0 or 1,
 indicating whether the character to be tested is at curr_char_loc or the
 following position.
 */
+/*lint -emacro(835,skip_digit_separator)*/
 #define skip_digit_separator(N)                                               \
   if (*(curr_char_loc + (N)) == '\'') {                                       \
     if (!digit_separators_enabled && !C_mode() &&                             \
@@ -9933,12 +9925,10 @@ are the prefix characters to be used for 4-digit and 8-digit output.
   il_header.UCN_identifiers_used = TRUE;
 }  /* output_ucn_value */
 
-#if !(UNICODE_SOURCE_SUPPORTED && IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS)
-/*ARGSUSED*/ /* <-- force_ucn not used in this case. */
-#endif /* !(UNICODE_SOURCE_SUPPORTED && ...) */
-char *make_canonical_identifier(a_const_char *identifier,
-                                sizeof_t     *length,
-                                a_boolean    force_ucn)
+
+char *make_canonical_identifier(a_const_char         *identifier,
+                                sizeof_t             *length,
+                                ARG_UNUSED a_boolean force_ucn)
 /*
 "identifier" points to the characters of an identifier containing universal
 character names or multibyte characters.  Make a copy of the identifier in
@@ -10103,7 +10093,7 @@ null characters in the closing delimiter.
   }  /* if */
   *olm_adjustment = 0;
   if (curr_char_loc - start_of_raw_string_delimiter >=
-                              raw_string_delimiter_len + right_delim_len + 2) {
+                   (a_ptrdiff)raw_string_delimiter_len + right_delim_len + 2) {
     /* The total string is long enough to contain both copies of the
        delimiter and the left and right parentheses. */
     a_boolean found_right_paren =
@@ -10214,9 +10204,6 @@ null characters in the closing delimiter.
 }  /* is_closing_raw_string_delimiter */
 
 
-#if !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-/*ARGSUSED*/  /* <-- is_wide is not used in that case.*/
-#endif /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 a_boolean accum_quoted_string(
                   unsigned long                 *num_chars,
                   a_boolean                     is_header_name,
@@ -10441,7 +10428,7 @@ caller is responsible for issuing error messages.
             case SCLK_ORDINARY_LITERAL:
               /* Assume the character will have the same length in the
                  target encoding. */
-              nchars += (unsigned long)numch;
+              nchars = (unsigned long)(long)numch;
               break;
             case SCLK_UTF8_LITERAL:
               /* Assume the maximum UTF-8 character length, which will be
@@ -10564,7 +10551,7 @@ kind or tok_error.  The token can be a normal or wide character constant.
     default:
       unexpected_condition();
   }  /* switch */
-  curr_char_loc += offset_to_start_of_literal_value(lit_kind);
+  curr_char_loc += offset_to_start_of_literal_value(lit_kind); /*lint !e679*/
   if (accum_quoted_string(&num_chars, /*is_header_name=*/FALSE, lit_kind,
                           '\'', NULL, -1)) {
     /* Error, character constant is unclosed. */
@@ -10865,7 +10852,7 @@ kind or tok_error.  The token can be a normal or wide string literal.
   register_pointer_variable(start_of_string_value, start_of_string_value_reg);
   check_assertion(lit_kind & SCLK_STRING_LITERAL);
   /* Skip over the prefix, if any, and the leading quote. */
-  curr_char_loc += offset_to_start_of_literal_value(lit_kind);
+  curr_char_loc += offset_to_start_of_literal_value(lit_kind); /*lint !e679*/
   start_of_string_value = curr_char_loc;
   if (lit_kind & SCLK_RAW_STRING_LITERAL) {
     /* The literal appears to be a raw string.  Scan the delimiter and
@@ -11055,14 +11042,12 @@ of an asm function or Microsoft asm block.
   prev_seq_number = curr_seq_number;
 }  /* reset_asm_buffer */
 
-#if !INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
-/*ARGSUSED*/ /* after_comment_stop_char is unused. */
-#endif /* !INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
 #if !ASM_FUNCTION_ALLOWED
 static
 #endif /* !ASM_FUNCTION_ALLOWED */
-void copy_from_source_to_asm_func_buffer(a_const_char *stop_char,
-                                         a_const_char *after_comment_stop_char)
+void copy_from_source_to_asm_func_buffer(
+                              a_const_char            *stop_char,
+                              ARG_UNUSED a_const_char *after_comment_stop_char)
 /*
 The buffer in which to collect the characters comprising the asm function is
 asm_func_body_buffer.  Append to it all the characters in the source beginning
@@ -11378,12 +11363,10 @@ done:
 }  /* build_microsoft_asm_string */
 
 
-#if !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
-/*ARGSUSED*/ /* <-- "start_pos" is not used in that case. */
-#endif /* !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-static a_boolean scan_if_exists_identifier(a_boolean		is_if_exists,
-					   a_boolean		*is_dependent,
-					   a_source_position	*start_pos)
+static a_boolean scan_if_exists_identifier(
+                                    a_boolean                    is_if_exists,
+                                    a_boolean                    *is_dependent,
+                                    ARG_UNUSED a_source_position *start_pos)
 /*
 Scan the identifier in a Microsoft __if_exists or __if_not_exists directive.
 "if_if_exists" is TRUE for __if_exists and FALSE for __if_not_exists.
@@ -11496,11 +11479,8 @@ position of the __if_exists or __if_not_exists token.
 }  /* scan_if_exists_identifier */
 
 
-#if !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
-/*ARGSUSED*/ /* <-- "is_dependent" is not used in that case. */
-#endif /* !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-static void cache_if_exists_tokens(a_token_cache_ptr	cache,
-				   a_boolean		is_dependent)
+static void cache_if_exists_tokens(a_token_cache_ptr    cache,
+				   ARG_UNUSED a_boolean	is_dependent)
 /*
 Cache then tokens between the braces of an __if_exists or __if_not_exists
 directive.
@@ -13540,8 +13520,8 @@ return_end_of_source_token:
           const_for_curr_token.type = integer_type(int_kind);
           if (digit == '0') const_for_curr_token.is_simple_zero = TRUE;
           set_unsigned_integer_value(
-                                  &const_for_curr_token.variant.integer_value,
-                                  (a_host_large_unsigned)(int)(digit-'0'));
+                            &const_for_curr_token.variant.integer_value,
+                            (a_host_large_unsigned)(unsigned char)(digit-'0'));
           curr_char_loc += 1;
         } else {
           ctoken = scan_number();
@@ -14418,10 +14398,7 @@ Check that the stop token array elements all made it back to zero.
 #endif /* CHECKING */
 
 
-#if !CHECKING
-/*ARGSUSED*/ /* <-- because "final_pop" is only used in checking code. */
-#endif /* !CHECKING */
-static void pop_stop_token_stack_full(a_boolean	final_pop)
+static void pop_stop_token_stack_full(ARG_UNUSED a_boolean	final_pop)
 /*
 Pop the current entry off of the stop token stack.  If final_pop is
 TRUE, this call pops the last entry off of the stack.  This is used
@@ -15859,8 +15836,9 @@ This routine is called only in C++ mode.
          it's the right one, swallow it and leave the opname kind as is.
          Otherwise change the opname kind to onk_none so that an error will
          be issued. */
-      if (next_token() == ((opname == (an_opname_kind)onk_function_call) ?
-                                                tok_rparen : tok_rbracket)) {
+      if (next_token() ==
+                 (a_token_kind)((opname == (an_opname_kind)onk_function_call) ?
+                                                  tok_rparen : tok_rbracket)) {
         /* Advance to the second token. */
         (void)get_token();
       } else {
@@ -17773,7 +17751,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
         (*p_min_template_arguments == -1 ||
          *p_min_template_arguments > first_defaulted_arg)) {
       /* Record the number of arguments used in this reference. */
-      *p_min_template_arguments = first_defaulted_arg;
+      *p_min_template_arguments = (int32_t)first_defaulted_arg;
     }  /* if */
     if (is_constructor_reference) {
       /* If a constructor symbol was passed originally, replace the class
@@ -19274,9 +19252,9 @@ next_two_tokens;  Otherwise, second_token is set to tok_error and tok_error
 is returned.
 */
 #define next_two_tokens_if_qualifier_delimiter(separator, second_token)	\
-  (qualifier_delimiter_does_not_follow_token() ?			\
+  ((a_token_kind)(qualifier_delimiter_does_not_follow_token() ?		\
     (*(second_token) = tok_error), tok_error :				\
-    next_two_tokens(separator, second_token))
+    next_two_tokens(separator, second_token)))
 
 
 /*
@@ -21455,7 +21433,7 @@ If the entry is already on the list the new entry is ignored.
        now pointed to by prev_fsp. */
     fsp = alloc_file_suffix();
     /* Allocate space for the suffix including a null delimiter. */
-    fsp->suffix = (char *)alloc_general((sizeof_t)length + 1);
+    fsp->suffix = (char *)alloc_general((sizeof_t)(unsigned)length + 1);
     strncpy(fsp->suffix, suffix, length);
     /* Terminate the copy of the string with a null character. */
     fsp->suffix[length] = '\0';
@@ -22653,12 +22631,9 @@ values for the starting/ending token sequence numbers.
 }  /* add_token_cache_to_string */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- suppress_identifier_wrapping_in_token_string not used. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-void init_token_string(a_source_position *pos,
-                       a_boolean         keep_spacing,
-                       a_boolean         suppress_identifier_wrapping)
+void init_token_string(a_source_position    *pos,
+                       a_boolean            keep_spacing,
+                       ARG_UNUSED a_boolean suppress_identifier_wrapping)
 /*
 Prepare to generate a string from one or more token caches.  Initialize
 the string length to zero and set the current sequence number to the
@@ -23331,7 +23306,7 @@ are handled in lexical_init.)
   in_pcc_mode_half_comment = FALSE;
 #if CHECKING
   /* Make sure there are not too many tokens to fit into a_small_token_kind. */
-  if ((sizeof(a_small_token_kind) * CHAR_BIT) == 8 /*lint --e(506)*/ &&
+  if ((sizeof(a_small_token_kind) * CHAR_BIT) == 8 /*lint --e(506,1564)*/ &&
       (int)tok_last > 255 /*lint --e(845)*/) {
     internal_error("lexical_one_time_init: a_small_token_kind is too small");
   }  /* if */
