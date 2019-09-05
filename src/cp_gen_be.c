@@ -3530,12 +3530,9 @@ a name.  Never generate a qualified name.
         ((a_routine_ptr)scp)->special_kind ==
                                    (a_special_function_kind)sfk_udl_operator) {
       a_const_char *suffix = ud_suffix_from_literal_operator_id(name);
-      if ((clang_is_generated_code_target && strcmp(suffix, "if") != 0)
-#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
-          || (gcc_is_generated_code_target &&
-              gnu_target_version_number < 40900)
-#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
-                                                ) {
+      if ((clang_is_generated_code_target && strcmp(suffix, "if") != 0) ||
+          (gcc_is_generated_code_target &&
+           gnu_target_version_number < 40900)) {
         /* The canonical form of literal-operator-id has no space between
            the "" and the ud-suffix, to prevent something like ""if, which
            is well-formed, from becoming "" if, which is ill-formed.
@@ -4468,7 +4465,6 @@ is called.
   a_boolean invisible;
 
   invisible = typedef_is_unusable(type);
-#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
   if (!invisible && gcc_is_generated_code_target &&
       gnu_target_version_number >= 40200 &&
       gnu_target_version_number < 40400 &&
@@ -4496,7 +4492,6 @@ is called.
     }  /* for */
     invisible = (ncp != NULL && in_nested_class);
   }  /* if */
-#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
   if (!invisible &&
       ((curr_name_context->assoc_scope != NULL &&
         curr_name_context->assoc_scope->kind == (a_scope_kind)sck_function &&
@@ -5574,7 +5569,6 @@ Generate the list of arguments for the attribute, surrounded by parentheses.
         write_tok_str(aap->variant.token);
         break;
       case aak_constant:
-#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
         if (gcc_is_generated_code_target &&
             gnu_target_version_number < 40600 &&
             aap->variant.constant->kind ==
@@ -5591,7 +5585,6 @@ Generate the list of arguments for the attribute, surrounded by parentheses.
           write_tok_ch('(');
           need_closing_paren = TRUE;
         }  /* if */
-#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
         gen_constant(aap->variant.constant, /*need_parens=*/FALSE);
         if (need_closing_paren) {
           write_tok_ch(')');
@@ -6884,7 +6877,6 @@ al_tag_name attributes (if any).
     /* Put out a reference to the tag by name.  Note that unnamed tags will
        have been given compiler-generated names so they can be referred to. */
     a_const_char *tag_kind_str = tag_keyword(type);
-#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
     if (gcc_is_generated_code_target &&
         is_immediate_class_type(type) &&
         type->variant.class_struct_union.is_nonreal_class &&
@@ -6898,10 +6890,7 @@ al_tag_name attributes (if any).
            friend class T::template value<1>;
          Use a typename-specifier instead. */
       tag_kind_str = "typename";
-    } else
-#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
-    /* Do not insert code here. */
-    if (options & GN_DECLARATION) {
+    } else if (options & GN_DECLARATION) {
       options |= GN_ELAB_TYPE_SPEC_AS_DECL;
     }  /* if */
     if (is_immediate_enum_type(type) && (options & GN_DECLARATION) != 0 &&
@@ -6947,11 +6936,8 @@ al_tag_name attributes (if any).
                                      (a_template_param_type_kind)tptk_member &&
                    parent_class_of(proxy_type)->
                                       variant.class_struct_union.proxy_class &&
-                   (
-#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
-                    (gcc_is_generated_code_target &&
+                   ((gcc_is_generated_code_target &&
                      gnu_target_version_number >= 40700) ||
-#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
                     clang_is_generated_code_target)) {
           /* This is a proxy class for a member of a dependent type.  Use
              the "typename" keyword if the target compiler will accept
@@ -7007,7 +6993,6 @@ al_tag_name attributes (if any).
       /* This type depends on a template parameter and thus must be preceded
          by the "typename" keyword. */
       options |= GN_DEPENDENT;
-#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
       if (gcc_is_generated_code_target && (options & GN_FRIEND_DECL) &&
           type_is_prototype_instantiation(type) &&
           type->source_corresp.is_class_member) {
@@ -7015,7 +7000,6 @@ al_tag_name attributes (if any).
            declarations if they contain the "template" keyword. */
         options |= GN_SUPPRESS_TEMPLATE_KEYWORD;
       }  /* if */
-#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
     }  /* if */
     if (!already_declared && (options & GN_DEPENDENT) == 0) {
       /* The initial declaration of a tag cannot use a qualified name. */
@@ -7532,8 +7516,6 @@ parameter.
       write_tok_ch('0');
     } else {
       a_boolean need_parens;
-#if GCC_IS_GENERATED_CODE_TARGET || CLANG_IS_GENERATED_CODE_TARGET || \
-    CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
       if ((gcc_is_generated_code_target &&
            gnu_target_version_number >= 30400 &&
            gnu_target_version_number < 40400) ||
@@ -7558,10 +7540,7 @@ parameter.
            trigger a different bug, so we exclude the earlier versions from
            this processing.) */
         need_parens = TRUE;
-      } else
-#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
-      /* Do not insert code here. */
-      {
+      } else {
         need_parens = expr_has_comma_operation(expr);
       }
       if (need_parens) {
@@ -8023,7 +8002,6 @@ default arguments should be suppressed (needed for template specializations).
                                                  in_parameter_pack_declaration;
   a_boolean                     id_equiv_attribs_as_prefix = FALSE;
 
-#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
   if (gcc_is_generated_code_target && gnu_target_version_number < 30400) {
     /* Versions of g++ prior to 3.4 did not accept attributes applying to a
        parameter in the postfix position, where they are normally put out;
@@ -8031,7 +8009,6 @@ default arguments should be suppressed (needed for template specializations).
        parameter. */
     id_equiv_attribs_as_prefix = TRUE;
   }  /* if */
-#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
   /* Push an entry onto the function prototype stack. */
   fpse.function_type = type;
   fpse.outside_parameter_list = FALSE;
@@ -12292,12 +12269,9 @@ function reference.
            explicitly coded. */
         suppress_this = TRUE;
       } else if (((msvc_is_generated_code_target &&
-                   msvc_target_version_number <= 1900)
-#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
-                  || (gcc_is_generated_code_target &&
-                      gnu_target_version_number < 70000)
-#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
-                                                        ) &&
+                   msvc_target_version_number <= 1900) ||
+                  (gcc_is_generated_code_target &&
+                   gnu_target_version_number < 70000)) &&
                  object_expr->kind == (an_expr_node_kind)enk_param_ref &&
                  object_expr->variant.param_ref.param_num == 0) {
         /* The fact that "this" is represented by an enk_param_ref instead
@@ -12309,7 +12283,6 @@ function reference.
         suppress_this = TRUE;
       } else if (suppress_this && (!msvc_is_generated_code_target ||
                                    msvc_target_version_number != 1000)) {
-#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
         if (gcc_is_generated_code_target &&
             gnu_target_version_number >= 70300 &&
             selection_class->
@@ -12322,13 +12295,12 @@ function reference.
              a NULL return from find_base_class_of, which can occur if the
              function's class is a non-dependent base of a dependent
              base. */
-        } else
-#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
-          /* Do not insert code here. */
+        } else {
           /* Now that we've done all the work, suppress "this->" only in
              Microsoft version 4.2 mode, where it's needed to get around
              some bugs.  Otherwise, it doesn't seem to add much. */
           suppress_this = FALSE;
+        }  /* if */
       }  /* if */
       if (!suppress_this) {
         if (object_expr->kind == (an_expr_node_kind)enk_reuse_value) {
@@ -15083,15 +15055,11 @@ gen_expr that might end up generating this expr as a temporary.
         case eok_va_start:
           /* <stdarg.h> va_start macro, treated as a builtin operator. */
           disable_line_wrapping();
-#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
           if (gcc_builtin_varargs_in_generated_code) {
             /* Use the intrinsic GNU C/C++ "__builtin_va_start". */
             write_tok_str((char *)(gnu_target_version_number < 30300 ?
                            "__builtin_stdarg_start(" : "__builtin_va_start("));
-          } else 
-#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
-          /* Do not insert code here. */
-          {
+          } else  {
             write_tok_str("va_start(");
           }  /* if */
           gen_expr_with_parens(operand_1);
@@ -18303,7 +18271,6 @@ when possible.
          cast to the class type is enclosed in parentheses in that
          context. */
       use_func_notation_cast = TRUE;
-#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
     } else if (gcc_is_generated_code_target &&
                gnu_target_version_number < 30400 &&
                is_immediate_class_type(init_entity_type) &&
@@ -18317,7 +18284,6 @@ when possible.
       write_tok_str("(0,");
       closing_parens_needed++;
       use_func_notation_cast = TRUE;
-#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
     } else if (obj_expr_of_mfunc_operator &&
                sun_is_generated_code_target &&
                has_name_before_mangling(init_entity_type)) {
@@ -20330,7 +20296,6 @@ handle_as_definition:
                           "gen_routine_decl: missing definition");
 #endif /* !STANDALONE_UTILITY_PROGRAM */
       is_definition = FALSE;
-#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
       if (gcc_is_generated_code_target && gnu_target_version_number < 40400 &&
           rout->source_corresp.is_class_member &&
           curr_name_context_is_a_class() &&
@@ -20341,7 +20306,6 @@ handle_as_definition:
            no definition but is declared with the "inline" keyword. */
         suppress_inline_kwd = TRUE;
       }  /* if */
-#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
       if (rout->is_template_function && rout->is_prototype_instantiation &&
           curr_name_context_is_a_class() && rout->assoc_template != NULL) {
         /* There is no definition in the IL for the prototype instantiation
@@ -20743,8 +20707,7 @@ handle_as_definition:
          be set implicitly but specifying it could change the type of the
          member.) */
       a_boolean write_constexpr = TRUE;
-#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS && \
-    GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       if (gcc_is_generated_code_target && gnu_target_version_number < 70200 &&
           rout->source_corresp.is_class_member) {
         /* Older versions of g++ require that a constexpr member function
@@ -20784,7 +20747,7 @@ handle_as_definition:
           }  /* if */
         }  /* if */
       }  /* if */
-#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS && ... */
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       if (rout->is_template_function && !rout->is_prototype_instantiation &&
           !rout->is_specialized && !rout->evaluated_in_interpreter) {
@@ -21463,12 +21426,10 @@ Initialize for the C++/C-generating back end.
   /* The Microsoft compiler has a bug that causes it to issue spurious
      errors for parenthesized pointer-to-data-member declarators, and
      similarly for g++ versions 4.5.0 through 4.5.2. */
-  if (msvc_is_generated_code_target
-#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
-      || (gcc_is_generated_code_target &&
-          gnu_target_version_number >= 40500 &&
-          gnu_target_version_number <= 40502)
-#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
+  if (msvc_is_generated_code_target ||
+      (gcc_is_generated_code_target &&
+       gnu_target_version_number >= 40500 &&
+       gnu_target_version_number <= 40502)
       ) {
     octl.suppress_ptr_to_data_member_parens = TRUE;
   }  /* if */

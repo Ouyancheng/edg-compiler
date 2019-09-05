@@ -892,10 +892,7 @@ header has been read and the target has been determined).
   gcc_is_generated_code_target = GCC_IS_GENERATED_CODE_TARGET;
   gcc_or_clang_is_generated_code_target = gcc_is_generated_code_target ||
                                           clang_is_generated_code_target;
-#if GCC_IS_GENERATED_CODE_TARGET || \
-    (BACK_END_IS_CP_GEN_BE && CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT)
   gnu_target_version_number = GNU_TARGET_VERSION_NUMBER;
-#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
 #if CLANG_IS_GENERATED_CODE_TARGET
   clang_target_version_number = CLANG_TARGET_VERSION_NUMBER;
 #endif /* CLANG_IS_GENERATED_CODE_TARGET */

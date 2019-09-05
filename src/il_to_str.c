@@ -4812,16 +4812,7 @@ it represents a backing expression for the floating-point constant value.
   a_constant_ptr string_con;
   a_const_char  *gnu_builtin_suffix = "";
   int           max_exp = targ_dbl_max_exp;
-  unsigned long gnu_targ_version =
-#if GCC_IS_GENERATED_CODE_TARGET || \
-    (BACK_END_IS_CP_GEN_BE && CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT)
-                                   gnu_target_version_number;
-#else /* !(GCC_IS_GENERATED_CODE_TARGET || ...) */
-  /* We don't have a variable that gives us the actual target version, but
-     all gcc versions since 2.96 (including ones newer than 3.2) can handle
-     the "large constant" form of HUGE_VAL, so we'll assume that. */
-                                   29600;
-#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
+  unsigned long gnu_targ_version = gnu_target_version_number;
 #endif /* (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && BUILTIN_... */
 
   if (!octl->gen_pcc_code) {

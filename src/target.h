@@ -1015,15 +1015,10 @@ EXTERN a_boolean
 			   C++ compiler.  See also
 			   gcc_or_clang_is_generated_code_target. */
 
-#if GCC_IS_GENERATED_CODE_TARGET || \
-    (BACK_END_IS_CP_GEN_BE && CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT)
-
 EXTERN unsigned long
 		gnu_target_version_number;
 			/* The version number of the GNU compiler being
 			   targeted (e.g., 30401 for GNU C/C++ 3.4.1). */
-
-#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
 
 EXTERN a_boolean
 		gcc_builtin_varargs_in_generated_code;

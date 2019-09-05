@@ -3405,26 +3405,20 @@ Macro representing the version of GNU C or C++ for which the C- and C++-
 generating back ends should produce code.  For version x.y.z of a GNU
 compiler, the macro should equal x*10000+y*100+z.  If this file is
 compiled using a GNU compiler (or a GNU-like compiler), then the macro
-defaults to the version of that compiler; otherwise, no default is
-provided.  This macro is the default value of the global variable
+defaults to the version of that compiler; otherwise, an arbitrary default
+is provided.  This macro is the default value of the global variable
 gnu_target_version_number.
 */
 #ifndef GNU_TARGET_VERSION_NUMBER
-#if GCC_IS_GENERATED_CODE_TARGET || \
-    (BACK_END_IS_CP_GEN_BE && CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT)
 #if defined(__GNUC__) && defined(__GNUC_MINOR__) && \
     defined(__GNUC_PATCHLEVEL__)
 #define GNU_TARGET_VERSION_NUMBER  ((__GNUC__)*10000 +                    \
                                     (__GNUC_MINOR__)*100 +                \
                                     (__GNUC_PATCHLEVEL__))
 #else /* !(defined(__GNUC__) && defined(__GNUC_MINOR__) && ...) */
-/* A target version number is needed, but none could be determined from the
-   host compiler: Force a preprocessing error. */
- #error -- GCC_IS_GENERATED_CODE_TARGET and \
-           CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT require \
-           GNU_TARGET_VERSION_NUMBER to be defined
+/* Set an arbitrary default. */
+#define GNU_TARGET_VERSION_NUMBER 30200
 #endif /* defined(__GNUC__) && defined(__GNUC_MINOR__) && ... */
-#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
 #endif /* GNU_TARGET_VERSION_NUMBER */
 
 /*
