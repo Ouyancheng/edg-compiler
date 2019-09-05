@@ -20,7 +20,7 @@ example (with --c11):
 9/4/19   [EDGcpfe/21706]
 __is_trivially_copyable for unions with non-trivially copyable members
 
-The change for EDGcpfe/21184 (in version 5.0) inadvertently introduced a
+The change for EDGcpfe/21184 (in version 5.1) inadvertently introduced a
 regression in the evaluation of __is_trivially_copyable for unions with
 non-trivially copyable members.  For example:
 
