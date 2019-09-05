@@ -1,5 +1,25 @@
 Version 6.0
 
+9/5/19   [EDGcpfe/19140]
+Eliminate unneeded typeinfo reference in configs where GENERATE_EH_TABLES is
+FALSE
+
+A change has been made to eliminate an unneeded typeinfo reference in certain
+cases in configurations that do lowering but have GENERATE_EH_TABLES set to
+FALSE.  For example:
+
+  struct A {
+    virtual void f();
+  };
+  struct B : A {
+    A a;
+    virtual ~B();
+    void f() {
+      dynamic_cast<B *>(&a);
+    }
+  };
+
+
 9/4/19   [EDGcpfe/21732]
 Incorrect lowering of _Generic construct
 

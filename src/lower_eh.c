@@ -2741,7 +2741,8 @@ is returned NULL.  If ptr_flags_var is NULL, the array is not built
 because the caller does not need it.
 
 In modes with GENERATE_EH_TABLES set to FALSE, this routine just strips
-the cv-qualifiers and passes the type through.
+the cv-qualifiers and returns the resulting type, or, for pointer and reference
+types, returns the underlying type.
 */
 {
   a_type_ptr            eff_type;
@@ -2824,6 +2825,15 @@ the cv-qualifiers and passes the type through.
      exception handling may or may not want this code. */
   if (is_reference_type(eff_type)) {
     eff_type = type_pointed_to(eff_type);
+  } else {
+    /* For pointer types, return the underlying type.  (Not doing so can cause
+       issues with needed flag processing as the typeinfo variable for a
+       class is tentatively created with sc_extern storage class while a
+       typeinfo variable for a pointer is created with sc_unspecified which
+       is assumed to be needed in the translation unit). */
+    while (is_pointer_type(eff_type) && !is_or_was_nullptr_type(eff_type)) {
+      eff_type = type_pointed_to(eff_type);
+    }  /* while */
   }  /* if */
 #endif /* IA64_ABI */
 #endif /* GENERATE_EH_TABLES */
