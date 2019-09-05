@@ -1467,6 +1467,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_ext_vector_type_invalid_size)*/
 /*lint -esym(769,ec_ext_vector_type_not_in_typedef)*/
 /*lint -esym(769,ec_ext_vector_type_requires_integral_floating_type)*/
+/*lint -esym(552,gnu_target_version_number)*/
 
 #endif /* ifndef LINT_H */
 
