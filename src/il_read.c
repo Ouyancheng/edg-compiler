@@ -241,9 +241,8 @@ to has kind entry_kind.
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 #if !ALTERNATE_IL_FILE_FORMAT
 
-/*ARGSUSED*/  /* <--- entry_kind is not used. */
-static char *ptr_remap_function(char             *old_ptr,
-                                an_il_entry_kind entry_kind)
+static char *ptr_remap_function(char                        *old_ptr,
+                                ARG_UNUSED an_il_entry_kind entry_kind)
 /*
 Given an old-value pointer, return the new value for it.  This is called
 to convert pointers written out at one location and read back in at

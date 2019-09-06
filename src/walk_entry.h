@@ -399,10 +399,10 @@ the real instantiations that the template generated.
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
 #if NEEDED_FLAG_WALK
 #define set_proper_definition_needed_flag(ptr)                               \
-  set_class_definition_needed(ptr);
+  set_class_definition_needed(ptr)
 #else /* !NEEDED_FLAG_WALK (i.e., KEEP_IN_IL_WALK) */
 #define set_proper_definition_needed_flag(ptr)                               \
-  set_class_keep_definition_in_il(ptr);
+  set_class_keep_definition_in_il(ptr)
 #endif /* NEEDED_FLAG_WALK */
 #define definition_needed_if_class(ptr) \
 { a_type_ptr local_ptr = skip_typerefs(ptr); \
@@ -426,10 +426,10 @@ Set the definition_needed or keep_definition_in_il flag in a routine.
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
 #if NEEDED_FLAG_WALK
 #define set_proper_routine_definition_needed_flag(ptr)   \
-  set_routine_definition_needed(ptr);
+  set_routine_definition_needed(ptr)
 #else /* !NEEDED_FLAG_WALK (i.e., KEEP_IN_IL_WALK) */
 #define set_proper_routine_definition_needed_flag(ptr)       \
-  set_routine_keep_definition_in_il(ptr);
+  set_routine_keep_definition_in_il(ptr)
 #endif /* NEEDED_FLAG_WALK */
 #else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
 #define set_proper_routine_definition_needed_flag(ptr) /* Nothing */
@@ -578,7 +578,7 @@ Process the source correspondence field pointed to by ptr.
 }  /* walk_source_corresp_full */
 #endif /* NEEDED_FLAG_WALK */
 /* The default source correspondence walk just remaps its parent pointer. */
-#define walk_source_corresp(ptr) walk_source_corresp_full((ptr), FALSE);
+#define walk_source_corresp(ptr) walk_source_corresp_full((ptr), FALSE)
 
 /*
 If defined, nonstatic_variable_always_needed returns TRUE if the specified
@@ -1722,7 +1722,8 @@ do_set_proper_definition_needed_flag:
               /* Make sure the definition of type_info is retained, even though
                  the node only uses a pointer to it.  This is necessary with
                  cp_gen_be output. */
-              set_proper_definition_needed_flag(f_skip_typerefs(eptr->type));
+              set_proper_definition_needed_flag(
+                                  f_skip_typerefs(eptr->type)); /*lint !e2666*/
             }  /* if */
             break;
           case enk_sizeof:

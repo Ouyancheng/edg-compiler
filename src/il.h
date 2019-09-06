@@ -2940,7 +2940,8 @@ In DEBUG configurations, this also calls subst_fail_intercept, to ease tracking
 of substitution failures in a debugger.
 */
 #if DEBUG
-#define subst_fail(x) (/*lint --e(505)*/subst_fail_intercept(), (x) = TRUE) 
+/*lint -emacro(505,subst_fail)*/
+#define subst_fail(x) (subst_fail_intercept(), (x) = TRUE) 
 #else /* !DEBUG */
 #define subst_fail(x) ((x) = TRUE)
 #endif /* DEBUG */

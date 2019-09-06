@@ -114,9 +114,9 @@ Display the NULL-terminated string at string_ptr.
 }  /* disp_null_term_string */
 
 
-/*ARGSUSED*/ /* octl is not used. */
-static void put_str_to_stdout(a_const_char                          *str,
-                              an_il_to_str_output_control_block_ptr octl)
+static void put_str_to_stdout(
+                         a_const_char                                     *str,
+                         ARG_UNUSED an_il_to_str_output_control_block_ptr octl)
 /*
 Output the indicated string to stdout.  This is used as an output routine
 when using the il_to_str routines.
@@ -677,11 +677,8 @@ Display the indicated element position entry.
 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* "kind" is only used to display extra source info. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static void disp_source_corresp(a_source_correspondence *scp,
-                                an_il_entry_kind        kind)
+static void disp_source_corresp(a_source_correspondence     *scp,
+                                ARG_UNUSED an_il_entry_kind kind)
 /*
 Display the indicated source correspondence entry.
 */

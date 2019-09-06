@@ -178,7 +178,7 @@ static unsigned long
    field of an IL entry to default values. */
 static a_source_correspondence
 		def_source_corresp;
-#define set_default_source_corresp(sc) (sc) = def_source_corresp;
+#define set_default_source_corresp(sc) ((sc) = def_source_corresp)
 
 static int	file_scope_entry_prefix_size;
 			/* The size of the entry prefix for IL entries
@@ -265,7 +265,7 @@ expands to nothing.
 #define clear_and_incr_past_orphan_pointer(ptr)				\
   incr_num_fs_orphan_pointers_allocated();                            \
   *(char **)ptr = NULL;                                               \
-  ptr += SPACE_FOR_FS_ORPHAN_POINTER;
+  ptr += SPACE_FOR_FS_ORPHAN_POINTER
 #else /* !ORPHAN_PROCESSING_NEEDED */
 #define clear_and_incr_past_orphan_pointer(ptr) /* nothing */
 #endif /* ORPHAN_PROCESSING_NEEDED */
@@ -277,7 +277,7 @@ multiple translation units.
 #define clear_and_incr_past_trans_unit_copy_address_pointer(ptr)	      \
   incr_num_trans_unit_copy_address_pointers_allocated();                      \
   *(char **)ptr = NULL;                                               \
-  ptr += SPACE_FOR_TRANS_UNIT_COPY_ADDRESS_POINTER;
+  ptr += SPACE_FOR_TRANS_UNIT_COPY_ADDRESS_POINTER
 
 /*
 Allocate a file-scope IL entry of size "size" preceded by an_il_entry_prefix
@@ -574,8 +574,8 @@ routine and scope number, and return a pointer to it.
 #if DEBUG && !STANDALONE_UTILITY_PROGRAM
   num_scope_orphaned_list_headers_allocated++;
 #endif /* DEBUG  && !STANDALONE_UTILITY_PROGRAM */
-  solhp->assoc_routine = assoc_routine,
-  solhp->scope_number =  scope_number,
+  solhp->assoc_routine = assoc_routine;
+  solhp->scope_number = scope_number;
   solhp->orphaned_types = NULL;
   solhp->orphaned_variables = NULL;
   solhp->orphaned_namespaces = NULL;
@@ -3659,7 +3659,7 @@ Allocate and initialize an expression node.
       num_expr_nodes_allocated += 1;
       { /* Increment num_rescan_fs_expr_nodes_allocated if we're in an
            expression rescan context (this is approximate). */
-        extern void count_rescan_fs_expr_nodes(unsigned long*);
+        extern void count_rescan_fs_expr_nodes(unsigned long*); /*lint !e2701*/
         count_rescan_fs_expr_nodes(&num_rescan_fs_expr_nodes_allocated);
       }
 #endif /* DEBUG */
@@ -5898,18 +5898,18 @@ you will need to modify or remove these tests.
 */
 {
   int	expected;
+  /*lint -esym(754,*::dummy)*/
   struct pointer_alignment_test {
-    char	dummy;  /*lint -esym(754, pointer_alignment_test::dummy)*/
+    char	dummy;
     void	*ptr;
   };
   struct il_entry_prefix_alignment_test {
     char	dummy;
-		/*lint -esym(754, il_entry_prefix_alignment_test::dummy)*/
     an_il_entry_prefix
 		prefix;
   };
   struct host_alignment_test {
-    char	dummy;  /*lint -esym(754, host_alignment_test::dummy)*/
+    char	dummy;
     a_constant	constant;
   };
   expected = offsetof(struct host_alignment_test, constant);  /*lint !e413*/
@@ -6235,7 +6235,7 @@ for non-file-scope entities.
     non_file_scope_entry_prefix_size = SPACE_FOR_IL_ENTRY_PREFIX;
     do_host_alignment(non_file_scope_entry_prefix_size);
     non_file_scope_entry_prefix_alignment_offset =
-                  non_file_scope_entry_prefix_size - SPACE_FOR_IL_ENTRY_PREFIX;
+             non_file_scope_entry_prefix_size - (int)SPACE_FOR_IL_ENTRY_PREFIX;
   }  /* if */
 }  /* compute_il_prefix_size */
 

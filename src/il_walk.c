@@ -149,7 +149,9 @@ static void walk_string_entry(char             *entry_ptr,
 #define WALK_ENTRY_ROUTINE_NAME walk_entry_and_subtree
 #define WALK_ORPHANED_ENTRY_ROUTINE_NAME walk_orphaned_file_scope_il_entries
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
-#include "walk_entry.h" /*lint !e451 included more than once. */
+/*lint -e451 included more than once. */
+#include "walk_entry.h"
+/*lint +e451*/
 
 
 static void walk_string_entry(char             *entry_ptr,
@@ -517,7 +519,9 @@ cases (anonymous unions containing types).
 #define WALK_ENTRY_ROUTINE_NAME walk_tree_and_set_needed
 #undef WALK_ORPHANED_ENTRY_ROUTINE_NAME
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
-#include "walk_entry.h" /*lint !e451 included more than once. */
+/*lint -e451 included more than once. */
+#include "walk_entry.h"
+/*lint +e451*/
 
 
 static void set_canonical_routine_definition_needed(a_routine_ptr rout)
@@ -1329,7 +1333,9 @@ static void set_keep_in_il_on_source_sequence_entries(a_scope_ptr scope);
 #undef WALK_ORPHANED_ENTRY_ROUTINE_NAME
 #define WALK_ORPHANED_ENTRY_ROUTINE_NAME walk_orphaned_entries_set_keep_in_il
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
-#include "walk_entry.h" /*lint !e451 included more than once. */
+/*lint -e451 included more than once. */
+#include "walk_entry.h"
+/*lint +e451*/
 
 
 static void clear_keep_in_il_to_allow_subtree_walk(char             *entry_ptr,
@@ -1824,7 +1830,8 @@ to be kept.
       if (parent_will_exist_after_lowering(entry_ptr, entry_kind))
 #endif /* DO_IL_LOWERING */
       /* Do not insert code here. */
-      { a_source_correspondence *scp =
+      {
+        a_source_correspondence *scp =
                             source_corresp_for_il_entry(entry_ptr, entry_kind);
         check_assertion(scp != NULL);
         if (scp->is_class_member) {
@@ -2412,7 +2419,9 @@ running them through the indicated remapping function.
 #undef WALK_ORPHANED_ENTRY_ROUTINE_NAME
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
 #define UNDEF_WALK_ENTRY_MACROS_AT_END
-#include "walk_entry.h" /*lint !e451 included more than once. */
+/*lint -e451 included more than once. */
+#include "walk_entry.h"
+/*lint +e451*/
 
 
 void remap_pointers_in_il_entry(char                 *entry_ptr,

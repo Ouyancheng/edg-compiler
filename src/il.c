@@ -263,7 +263,8 @@ Dump a list of template arguments, enclosed by angle brackets.
         a_template_param_coordinate_ptr	coord;
         coord = coordinates_of_template_arg(tap);
         if (coord != NULL) {
-          fprintf(f_debug, " #(%lu,%lu)", (unsigned long)coord->depth,
+          fprintf(f_debug, " #(%lu,%lu)",
+                  (unsigned long)(unsigned)coord->depth,
                   (unsigned long)coord->position);
         }  /* if */
       }
@@ -1684,7 +1685,7 @@ Dump the contents of the indicated type entry, for debug purposes.
               fprintf(f_debug, " placeholder %s", tp->source_corresp.name);
             } else {
               fprintf(f_debug, "#(%lu,%lu) ",
-                      (unsigned long)tp->variant.
+                      (unsigned long)(unsigned)tp->variant.
                               template_param.extra_info->coordinates.depth,
                       (unsigned long)tp->variant.
                               template_param.extra_info->coordinates.position);
@@ -1723,9 +1724,8 @@ Dump the contents of the indicated type entry, for debug purposes.
 }  /* db_type */
 
 
-/*ARGSUSED*/ /* octl is not used. */
-void put_str_to_f_debug(a_const_char                          *str,
-                        an_il_to_str_output_control_block_ptr octl)
+void put_str_to_f_debug(a_const_char                                     *str,
+                        ARG_UNUSED an_il_to_str_output_control_block_ptr octl)
 /*
 Output the indicated string to f_debug.  This is used as an output routine
 when using the il_to_str routines.
@@ -1780,7 +1780,8 @@ Dump the contents of the indicated constant, for debug purposes.
     if (constant_is(cp, ck_template_param)) {
       if (tpck_is(cp, tpck_param)) {
         fprintf(f_debug, "template-param#(%lu,%lu) ",
-       (unsigned long)cp->variant.template_param.variant.coordinates.depth,
+       (unsigned long)(unsigned)
+                          cp->variant.template_param.variant.coordinates.depth,
        (unsigned long)cp->variant.template_param.variant.coordinates.position);
       } else if (tpck_is(cp, tpck_expression)) {
         fprintf(f_debug, "tpck_expression ");
@@ -2231,10 +2232,7 @@ Dump debug information on an expression node.
 }  /* db_expression */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/  /* <-- node is not used in this case. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-void db_expr_range(an_expr_node_ptr node)
+void db_expr_range(ARG_UNUSED an_expr_node_ptr node)
 /*
 Dump the source expression range from the expression node if it is available.
 */
@@ -3153,10 +3151,9 @@ is copied but not counted in updating pos_in_temp_text_buffer.
 }  /* put_str_to_temp_text_buffer */
 
 
-/*ARGSUSED*/ /* octl is not used. */
 void put_str_to_temp_text_buffer_octl(
-                               a_const_char                          *str,
-                               an_il_to_str_output_control_block_ptr octl)
+                         a_const_char                                     *str,
+                         ARG_UNUSED an_il_to_str_output_control_block_ptr octl)
 /*
 Wrapper for put_str_to_temp_text_buffer for use with the il-to-str routines.
 */
@@ -3562,24 +3559,20 @@ is used.
 }  /* add_seq_number_lookup_entry */
 
 
-#if !INSTANTIATION_BY_IMPLICIT_INCLUSION || !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- is_implicit_include, is_assembly_file are not used
-                     in some configurations. */
-#endif /* !INSTANTIATION_BY_IMPLICIT_INCLUSION || ... */
 void record_start_of_source_file(a_source_file_ptr parent_file,
-			         a_seq_number      seq_number,
-				 a_line_number     line_number,
-			         a_const_char      *file_name,
-			         a_const_char      *full_name,
-                                 a_const_char      *name_as_written,
-			         a_source_file_ptr *new_file,
-                                 a_boolean	   is_include_file,
-				 a_boolean	   is_system_include,
-                                 a_boolean         is_preinclude,
-				 a_boolean	   preinclude_macros_only,
-				 a_boolean	   is_implicit_include,
-				 a_boolean	   from_system_include_dir,
-				 a_boolean	   is_assembly_file)
+			         a_seq_number         seq_number,
+				 a_line_number        line_number,
+			         a_const_char         *file_name,
+			         a_const_char         *full_name,
+                                 a_const_char         *name_as_written,
+			         a_source_file_ptr    *new_file,
+                                 a_boolean            is_include_file,
+				 a_boolean            is_system_include,
+                                 a_boolean            is_preinclude,
+				 a_boolean            preinclude_macros_only,
+				 ARG_UNUSED a_boolean is_implicit_include,
+				 a_boolean            from_system_include_dir,
+				 ARG_UNUSED a_boolean is_assembly_file)
 /*
 Create a source file entry in the intermediate language, to record the
 start of a new source file (either the primary source file, an include file,
@@ -3996,7 +3989,7 @@ lookup table.
   update_seq_cache(curr_file, snlep_found->first, snlep_found->last,
                    line_offset, /*physical_line=*/FALSE);
   /* Compute the line number to be returned to the caller. */
-  *line_number = seq_number + line_offset;
+  *line_number = seq_number + (a_line_number)line_offset;
   return curr_file;
 }  /* find_seq_in_lookup_table */
 
@@ -4138,7 +4131,7 @@ examine_children:
   update_seq_cache(curr_file, first_seq_for_cache, last_seq_for_cache,
                    line_offset, physical_line);
   /* Compute the line number to be returned to the caller. */
-  *line_number = seq_number + line_offset;
+  *line_number = seq_number + (a_line_number)line_offset;
   return curr_file;
 }  /* find_seq_in_source_files */
 
@@ -4176,7 +4169,7 @@ physical line position for the sequence number.
     /* If this sequence number falls into the range of lines
        associated with the information saved by the last lookup,
        use the information saved last time to speed up the conversion. */
-    *line_number = seq_number + seq_cache.line_offset;
+    *line_number = seq_number + (a_line_number)seq_cache.line_offset;
     curr_file = seq_cache.source_file;
   } else {
     if (physical_line || !okay_to_use_seq_number_lookup_table) {
@@ -4988,8 +4981,7 @@ to by ssep.
 }  /* add_to_scopes_list */
 
 
-/*ARGSUSED*/  /* <-- sc is unused in some configurations. */
-void break_instance_source_corresp(a_source_correspondence *sc)
+void break_instance_source_corresp(ARG_UNUSED a_source_correspondence *sc)
 /*
 Clear any parts of the indicated source correspondence that record
 information related to a specific source occurrence of an entity.
@@ -5702,13 +5694,10 @@ character kind.
 }  /* character_type */
 
 
-#if !DO_IL_LOWERING
-/*ARGSUSED*/ /* <-- bcp and fp are not used in that case. */
-#endif /* !DO_IL_LOWERING */
-void add_constant_to_aggregate(a_constant_ptr   con,
-                               a_constant_ptr   aggr_con,
-                               a_base_class_ptr bcp,
-                               a_field_ptr      fp)
+void add_constant_to_aggregate(a_constant_ptr              con,
+                               a_constant_ptr              aggr_con,
+                               ARG_UNUSED a_base_class_ptr bcp,
+                               ARG_UNUSED a_field_ptr      fp)
 /*
 Add con at the end of the list of constants in the aggregate constant aggr_con.
 Update some flags in aggr_con if appropriate (e.g., if con uses a designated
@@ -5959,7 +5948,8 @@ combined effect.
   if (first != NULL) {
     first_expr = gather_initializer_expressions(first);
   } else {
-    check_assertion(first_dip->kind == (a_dynamic_init_kind)dik_expression);
+    check_assertion(first_dip != NULL &&
+                    first_dip->kind == (a_dynamic_init_kind)dik_expression);
     first_expr = first_dip->variant.expression;
     if (!node_has_side_effects(first_expr, (a_boolean *)NULL)) {
       first_expr = NULL;
@@ -5974,7 +5964,8 @@ combined effect.
     if (second != NULL) {
       modif_ptr = find_expression_in_initializer(second);
     } else {
-      check_assertion(second_dip->kind == (a_dynamic_init_kind)dik_expression);
+      check_assertion(second_dip != NULL &&
+                      second_dip->kind == (a_dynamic_init_kind)dik_expression);
       modif_ptr = &second_dip->variant.expression;
     }  /* if */
     /* Make a comma node to join the two expressions. */
@@ -6832,7 +6823,7 @@ Return the hash value for the indicated constant.
            In general, this means that those entries won't be found, but
            this is okay because, in general, there can be multiple versions
            of nonreal types. */
-        hash_value += possible_lossy_cast_from_pointer(cp);
+        hash_value += (a_hash_value)possible_lossy_cast_from_pointer(cp);
       }  /* if */
       break;
 #if GNU_EXTENSIONS_ALLOWED
@@ -8900,10 +8891,7 @@ Microsoft extension.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- is_cli_typeid is not used in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-a_type_ptr typeid_constant_type(a_boolean is_cli_typeid)
+a_type_ptr typeid_constant_type(ARG_UNUSED a_boolean is_cli_typeid)
 /*
 Return the type for a "typeid constant"; i.e., a constant representing the
 address of a standard C++ typeid(x) expression, or, if is_cli_typeid is TRUE,
@@ -11072,19 +11060,14 @@ done:;
 }  /* add_to_based_type_fixup_list */
 
 
-#if !NEAR_AND_FAR_ALLOWED || !UPC_EXTENSIONS_ALLOWED || \
-    !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- expl_mem_attr_implicit, upc_block_size, and modifiers are
-                     only used in some configurations. */
-#endif /* !NEAR_AND_FAR_ALLOWED || !UPC_EXTENSIONS_ALLOWED || ... */
 static a_type_ptr get_based_type(
-                               a_type_ptr              base_type,
-                               a_based_type_kind       kind,
-                               a_type_qualifier_set    qualifiers,
-                               a_pointer_modifier_set  modifiers,
-                               a_boolean               expl_mem_attr_implicit,
-                               a_type_ptr              class_type,
-                               a_upc_block_size        upc_block_size)
+                      a_type_ptr                        base_type,
+                      a_based_type_kind                 kind,
+                      a_type_qualifier_set              qualifiers,
+                      ARG_UNUSED a_pointer_modifier_set modifiers,
+                      ARG_UNUSED a_boolean              expl_mem_attr_implicit,
+                      a_type_ptr                        class_type,
+                      ARG_UNUSED a_upc_block_size       upc_block_size)
 /*
 Search the based_types list of base_type to see if it contains a based type
 of the kind indicated by "kind".  If the kind is "btk_qualified", the
@@ -11859,11 +11842,9 @@ namespace "cli".
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- model_pointer_type is not used in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-a_type_ptr make_pointer_type_of_same_kind(a_type_ptr base_type,
-                                          a_type_ptr model_pointer_type)
+a_type_ptr make_pointer_type_of_same_kind(
+                                      a_type_ptr            base_type,
+                                      ARG_UNUSED a_type_ptr model_pointer_type)
 /*
 Make a pointer type with base_type as the underlying type, and return it.
 Make the same kind of pointer as the kind indicated by model_pointer_type
@@ -11914,16 +11895,12 @@ e.g., an rvalue reference if model_ref_type is an rvalue reference.
 }  /* make_reference_type_of_same_kind */
 
 
-#if !NEAR_AND_FAR_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED
-/* ARGSUSED */  /* <- is_error and tracking_ref are not used in some
-                      configurations. */
-#endif /* !NEAR_AND_FAR_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED */
 a_type_ptr make_reference_to_reference(a_type_ptr            base_ref_type,
                                        a_boolean             rvalue_ref,
-                                       a_boolean             tracking_ref,
+                                       ARG_UNUSED a_boolean  tracking_ref,
                                        a_type_qualifier_set  qualifiers,
                                        a_source_position     *qual_pos,
-                                       a_boolean             *is_error)
+                                       ARG_UNUSED a_boolean  *is_error)
 /*
 Make a type "T cv1 &" (if rvalue_ref is FALSE), "T cv1 &&" (if rvalue_ref is
 TRUE), or "T cv1 %" (if tracking_ref is TRUE) where T is a reference type
@@ -12072,6 +12049,7 @@ and return a pointer to the new array type.
     if (new_array == NULL) {
       new_array = tp;
     } else {
+      check_assertion(prev != NULL);
       prev->variant.array.element_type = tp;
     }  /* if */
     prev = tp;
@@ -12090,13 +12068,9 @@ and return a pointer to the new array type.
 }  /* copy_array_type_replacing_element_type */
 
 
-#if !UPC_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- Because upc_block_size is only used when UPC extensions
-                     are enabled. */
-#endif /* !UPC_EXTENSIONS_ALLOWED */
-a_type_ptr f_make_qualified_type(a_type_ptr            base_type,
-                                 a_type_qualifier_set  qualifiers,
-                                 a_upc_block_size      upc_block_size)
+a_type_ptr f_make_qualified_type(a_type_ptr                  base_type,
+                                 a_type_qualifier_set        qualifiers,
+                                 ARG_UNUSED a_upc_block_size upc_block_size)
 /*
 Make a version of the type base_type with the additional type qualifiers
 indicated by the set of flags in "qualifiers".  Attempt to find and reuse
@@ -12414,7 +12388,7 @@ with the original type entry.
   a_vla_dimension_ptr  vlap = NULL;
 
   if (innermost_function_scope != NULL) {
-    /*lint --e{446} vlap modified in loop (LINTBUG) */
+    /*lint --e{446,850} vlap modified in loop (LINTBUG) */
     for (vlap = innermost_function_scope->vla_dimensions;
          vlap != NULL;
          vlap = vlap->next) {
@@ -13130,6 +13104,7 @@ more than the given number of parameter entries.
     if (new_list == NULL) {
       new_list = new_ptp;
     } else {
+      check_assertion(prev_new_ptp != NULL);
       prev_new_ptp->next = new_ptp;
     }  /* if */
     prev_new_ptp = new_ptp;
@@ -19519,6 +19494,7 @@ copy_list_of_expr_trees should be called to start a copy.
     if (expr_list_copy == NULL) {
       expr_list_copy = expr_copy;
     } else {
+      check_assertion(prev_expr_copy != NULL);
       prev_expr_copy->next = expr_copy;
     }  /* if */
     prev_expr_copy = expr_copy;
@@ -20191,6 +20167,7 @@ evaluated is TRUE if the expression is evaluated.
       if (first_node == NULL) {
         first_node = arg_node;
       } else {
+        check_assertion(last_node != NULL);
         last_node->next = arg_node;
       }  /* if */
       last_node = arg_node;
@@ -20300,10 +20277,7 @@ object or a prvalue that is a pointer or handle to an object.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- expr is unused in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-a_boolean is_gc_lvalue_expr(an_expr_node_ptr expr)
+a_boolean is_gc_lvalue_expr(ARG_UNUSED an_expr_node_ptr expr)
 /*
 Return TRUE if the given expression is a gc-lvalue for C++/CLI.  Roughly,
 that means it is an lvalue that is or may be on the managed heap.  The
@@ -20649,10 +20623,9 @@ a pointer to the new expression.  The returned node is designated an lvalue.
 }  /* add_ref_indirection_to_node */
 
 
-/*ARGSUSED*/ /* <-- tblock is not used. */
 static void set_address_taken_on_target_of_addressing_op(
-                                    an_expr_node_ptr                    expr,
-                                    an_expr_or_stmt_traversal_block_ptr tblock)
+                         an_expr_node_ptr                               expr,
+                         ARG_UNUSED an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 Called from set_address_taken_for_variable_or_routine_expr via traverse_expr.
 If expr is an lvalue enk_variable node or an enk_routine node, set the
@@ -22755,10 +22728,7 @@ statement expression.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- expr is not used in that case. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
-a_boolean has_statement_expression(an_expr_node_ptr expr)
+a_boolean has_statement_expression(ARG_UNUSED an_expr_node_ptr expr)
 /*
 Return whether expr contains a statement expression (a GNU extension).
 */
@@ -24703,10 +24673,9 @@ longer be in the tree because their parent no longer is.
 }  /* unlink_object_lifetime */
 
 
-/*ARGSUSED*/  /* <-- tblock is not used. */
 static void process_dynamic_init_for_unlink_destructions(
-                                    a_dynamic_init_ptr                  dip,
-                                    an_expr_or_stmt_traversal_block_ptr tblock)
+                         a_dynamic_init_ptr                             dip,
+                         ARG_UNUSED an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 Called by the expression traversal routines to handle unlinking for
 unlink_expr_destructions.
@@ -24721,12 +24690,9 @@ unlink_expr_destructions.
 }  /* process_dynamic_init_for_unlink_destructions */
 
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- tblock is not used in that mode. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
 static void process_expr_for_unlink_destructions(
-                                    an_expr_node_ptr                    expr,
-                                    an_expr_or_stmt_traversal_block_ptr tblock)
+                         an_expr_node_ptr                               expr,
+                         ARG_UNUSED an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 Called by the expression traversal routines to handle unlinking for
 unlink_expr_destructions.
@@ -24797,10 +24763,7 @@ be done when there were errors.
 }  /* mark_object_lifetime_as_useless */
 
 
-#if !DEBUG
-/*ARGSUSED*/  /* <-- unbound_okay is not used in that case. */
-#endif /* !DEBUG */
-a_boolean pop_object_lifetime_full(a_boolean unbound_okay)
+a_boolean pop_object_lifetime_full(ARG_UNUSED a_boolean unbound_okay)
 /*
 Pop an object lifetime off the object lifetimes stack.  Check whether it
 needs to be kept in the IL tree.  If not, unlink it from the IL and
@@ -25649,10 +25612,9 @@ cleared.
 }  /* eliminate_references_from_befriended_entities */
 
 
-/*ARGSUSED*/ /* <-- force_end_of_traversal not used. */
 static a_boolean ttt_elim_def_arg_lifetimes(
-                                           a_type_ptr  type_ptr,
-                                           a_boolean   *force_end_of_traversal)
+                                  a_type_ptr           type_ptr,
+                                  ARG_UNUSED a_boolean *force_end_of_traversal)
 /*
 This is a service function designed to be called from traverse_type_tree
 (whence the ttt_ prefix).  It eliminates any object lifetimes associated

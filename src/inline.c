@@ -59,11 +59,9 @@ static a_scope_ptr
 			   with this scope is being expanded as an inline. */
 
 
-#if STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION
-/*ARGSUSED*/
-#endif /* STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION */
-static void set_inline_statement_positions(a_statement_ptr  statement,
-                                           a_statement_ptr  original_statement)
+static void set_inline_statement_positions(
+                                a_statement_ptr             statement,
+                                ARG_UNUSED a_statement_ptr  original_statement)
 /*
 Set source positions for an inlined statement.  Statements being inlined at a
 call site will have the source position of the call site when 

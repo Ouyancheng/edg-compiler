@@ -211,12 +211,9 @@ Output an unsigned number in hexadecimal form, as indicated by octl.
 
 #endif /* DEBUG */
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* type, octl used only for GNU attributes. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
 static void form_attributes_for_type(
-                                   a_type_ptr                            type,
-                                   an_il_to_str_output_control_block_ptr octl)
+                         ARG_UNUSED a_type_ptr                            type,
+                         ARG_UNUSED an_il_to_str_output_control_block_ptr octl)
 /*
 Render type attributes associated with the given type, unless they are
 rendered elsewhere.  Do the output in the way described by octl.
@@ -958,9 +955,8 @@ Output a reference to a tag, doing output in the way described by octl.
 }  /* form_tag_reference */
 
 
-/*ARGSUSED*/ /* <-- for_generated_code is not used in certain cases. */
-a_const_char *int_kind_name_full(an_integer_kind kind,
-                                 a_boolean       for_generated_code)
+a_const_char *int_kind_name_full(an_integer_kind      kind,
+                                 ARG_UNUSED a_boolean for_generated_code)
 /*
 Return a string for the name of an integer kind.  Return a string beginning
 with "**BAD" for a bad integer kind.  for_generated_code is TRUE if the
@@ -1226,12 +1222,9 @@ way described by octl.
 }  /* form_float_kind_name */
 
 
-#if !UPC_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* upc_block_size is only used when UPC extensions are allowed. */
-#endif /* !UPC_EXTENSIONS_ALLOWED */
 void form_type_qualifier(
                      a_type_qualifier_set                  qualifiers,
-                     a_upc_block_size                      upc_block_size,
+                     ARG_UNUSED a_upc_block_size           upc_block_size,
                      a_boolean                             need_trailing_space,
                      an_il_to_str_output_control_block_ptr octl)
 /*
@@ -4785,14 +4778,10 @@ Output the given fixed-point value with the proper suffix.
 
 #endif /* FIXED_POINT_ALLOWED */
 
-#if !((BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && \
-      BUILTIN_FUNCTIONS_ENABLED)
-/*ARGSUSED*/ /* expr is not used in this case. */
-#endif /* !((BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && ... */
 static void form_float_constant(
                            an_internal_float_value               *float_value,
                            a_float_kind                          fkind,
-                           an_expr_node_ptr                      expr,
+                           ARG_UNUSED an_expr_node_ptr           expr,
                            an_il_to_str_output_control_block_ptr octl)
 /*
 Output the given floating-point value with the proper suffix (or cast in
@@ -5642,7 +5631,8 @@ precedence confusion.  Do the output in the way described by octl.
         } else
 #endif /* BACK_END_IS_C_GEN_BE */
         /* Do not insert code here.  This is the "else" of an "if". */
-        { if (constant->is_compound_literal &&
+        {
+          if (constant->is_compound_literal &&
               (!octl->gen_compilable_code || !octl->c_generating_back_end)) {
             /* The string was originally a compound literal and, except in
                generated C code, should be put out that way. */
