@@ -7974,7 +7974,7 @@ interpreter size of the allocated elements in *p_elem_size.
   alloc_seq_number = ++ips->curr_alloc_seq_number;
   allocation->alloc_seq_number = alloc_seq_number;
   add_to_live_set(&ips->live_set, alloc_seq_number);
-  allocation->elem_type = orig_elem_tp;
+  allocation->elem_type = elem_tp;
   allocation->pos = *diag_pos;
   allocation->total_size = total_size;
   allocation->prefix_size = prefix_size;
@@ -11452,7 +11452,7 @@ Evaluate the given delete-expression.
         }  /* if */
         mark_subobject_uninitialized(elem, arr);
       } else {
-        mark_whole_subobject_initialized(ips, elem, elem_type, arr);
+        mark_whole_subobject_uninitialized(ips, elem, elem_type, arr);
       }  /* if */
     }  /* for */
   }  /* if */
