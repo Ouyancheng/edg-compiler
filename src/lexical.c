@@ -10428,7 +10428,7 @@ caller is responsible for issuing error messages.
             case SCLK_ORDINARY_LITERAL:
               /* Assume the character will have the same length in the
                  target encoding. */
-              nchars = (unsigned long)(long)numch;
+              nchars += (unsigned long)(long)numch;
               break;
             case SCLK_UTF8_LITERAL:
               /* Assume the maximum UTF-8 character length, which will be
