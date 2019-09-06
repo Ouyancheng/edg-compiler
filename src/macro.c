@@ -636,15 +636,12 @@ Return a pointer to the next free macro text map entry in the specified map.
 }  /* next_macro_text_map_entry */
 
 
-#if !RECORD_MACRO_INVOCATIONS
-/*ARGSUSED*/  /* <-- macro_context is not used in that case. */
-#endif /* RECORD_MACRO_INVOCATIONS */
 static void add_entry_to_macro_text_map(
-                               a_macro_text_map_ptr            mtmp,
-                               sizeof_t                        start_of_region,
-                               a_seq_number                    seq,
-                               a_column_number                 column,
-                               a_macro_invocation_record_index macro_context)
+                    a_macro_text_map_ptr                       mtmp,
+                    sizeof_t                                   start_of_region,
+                    a_seq_number                               seq,
+                    a_column_number                            column,
+                    ARG_UNUSED a_macro_invocation_record_index macro_context)
 /*
 Add a new entry to the specified macro text map with the specified offset,
 sequence number, column, and macro context.
@@ -661,16 +658,13 @@ sequence number, column, and macro context.
 }  /* add_entry_to_macro_text_map */
 
 
-#if !RECORD_MACRO_INVOCATIONS
-/*ARGSUSED*/  /* <-- macro_context is not used in that case. */
-#endif /* !RECORD_MACRO_INVOCATIONS */
 static void clone_macro_text_map_entries(
-                          a_macro_text_map_ptr            src_map,
-                          sizeof_t                        starting_src_offset,
-                          sizeof_t                        src_region_len,
-                          a_macro_text_map_ptr            targ_map,
-                          sizeof_t                        starting_targ_offset,
-                          a_macro_invocation_record_index macro_context)
+               a_macro_text_map_ptr                       src_map,
+               sizeof_t                                   starting_src_offset,
+               sizeof_t                                   src_region_len,
+               a_macro_text_map_ptr                       targ_map,
+               sizeof_t                                   starting_targ_offset,
+               ARG_UNUSED a_macro_invocation_record_index macro_context)
 /*
 Copy the range of macro text map entries in the region designated by
 starting_src_offset and src_region_len from src_map to targ_map, adjusting
@@ -2597,7 +2591,8 @@ with \.  Return the macro argument created.
                                      scan_encoding_prefix(start_of_curr_token);
     /* Skip over the encoding prefix, if any, and the initial quotation
        mark. */
-    src = start_of_curr_token + offset_to_start_of_literal_value(sclk);
+    src = start_of_curr_token +
+                     (a_ptrdiff)offset_to_start_of_literal_value(sclk);
     if (sclk & SCLK_RAW_STRING_LITERAL) {
       /* Scan past the d-char-sequences and parens delimiting the value
          of the raw string literal. */
@@ -4893,6 +4888,7 @@ by subsequent calls.
           }  /* if */
           /* Return the start of the attribute namespace to the caller and
              set up to scan for the attribute name. */
+          check_assertion(ns_id_ptr != NULL);
           *ns_id_ptr = start_of_id;
           start_of_id = NULL;
           full_id_seen = FALSE;
@@ -8302,6 +8298,7 @@ Scan and process a #define directive.
               param_list = pp;
             } else {
               /* Link the last entry to this new entry. */
+              check_assertion(last_param != NULL);
               last_param->next = pp;
             }  /* if */
             last_param = pp;
@@ -9575,7 +9572,8 @@ repl_text_length is not NULL.
     /* Put the length in the header. */
     put_macro_repl_text_number(repl_text_len, rtp);
     /* Copy the text itself. */
-    (void)memcpy(rtp, repl_text, size_t_arg(repl_text_len)); /*lint !e668*/
+    /*lint -e{668,670}*/
+    (void)memcpy(rtp, repl_text, size_t_arg(repl_text_len));
     rtp += repl_text_len;
   }  /* if */
   /* Put the terminator on the string. */

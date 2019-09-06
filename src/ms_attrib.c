@@ -2277,10 +2277,8 @@ target, if any, was found.
 }  /* scan_ms_attribute_target */
 
 
-#if !GENERATE_SOURCE_SEQUENCE_LISTS
-/*ARGSUSED*/ /* is_param_or_base is only used in some configurations. */
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-static an_ms_attribute_ptr scan_ms_attribute(a_boolean	is_param_or_base)
+static an_ms_attribute_ptr scan_ms_attribute(
+                                         ARG_UNUSED a_boolean is_param_or_base)
 /*
 Scan a single Microsoft attribute of an attribute block that may contain
 multiple attributes.  Return a pointer to the attribute entry that represents

@@ -276,6 +276,7 @@ extern int f_unsigned_to_string_buf(a_host_large_unsigned val,
   (((val) < 10) ? ((buf)[0] = (char)('0'+(val)), (buf)[1] = '\0', 1)         \
                 : f_unsigned_to_string_buf(val, buf))
 
+/*lint -emacro(2704,signed_to_string_buf)*/
 #define signed_to_string_buf(val, buf)                                       \
   (((val) < 0) ? ((buf)[0] = '-',                                            \
                   1+unsigned_to_string_buf((a_host_large_unsigned)-(val),    \

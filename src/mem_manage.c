@@ -269,12 +269,9 @@ Free a block of the given size allocated by a call to malloc_for_interpreter.
 }  /* free_for_interpreter */
 
 
-#if !DEBUG
-/*ARGSUSED*/ /* <-- old_size is not used if !DEBUG. */
-#endif /* DEBUG */
-static char *realloc_with_check(char     *old_ptr,
-                                sizeof_t old_size,
-                                sizeof_t new_size)
+static char *realloc_with_check(char                *old_ptr,
+                                ARG_UNUSED sizeof_t old_size,
+                                sizeof_t            new_size)
 /*
 Interface to realloc: reallocate the block pointed to by "old_ptr" to give
 it the new size "new_size".  If "old_ptr" is NULL, works like 
@@ -1215,11 +1212,8 @@ normal allocations list.
 }  /* find_memory_allocation */
 
 
-#if !DEBUG
-/*ARGSUSED*/ /* <-- size is not used if !DEBUG. */
-#endif /* DEBUG */
-void free_general(a_void_ptr	ptr,
-                  sizeof_t	size)
+void free_general(a_void_ptr          ptr,
+                  ARG_UNUSED sizeof_t size)
 /*
 Free a block of memory to general storage.
 */
@@ -1335,7 +1329,7 @@ needed (e.g., it has been written out to the IL file).
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "free_memory_region: region %lu, size = %lu\n",
-                     (unsigned long)region_number,
+                     (unsigned long)(unsigned)region_number,
                      (unsigned long)allocated_in_region[region_number]);
   }  /* if */
 #endif /* DEBUG */
@@ -1558,7 +1552,7 @@ memory or with an IL file.
   if (debug_level >= 1) {
     fprintf(f_debug,
             "check_for_done_with_memory_region: region %lu, size = %lu\n",
-            (unsigned long)region_number,
+            (unsigned long)(unsigned)region_number,
             (unsigned long)allocated_in_region[region_number]);
   }  /* if */
 #endif /* DEBUG */

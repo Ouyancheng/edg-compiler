@@ -295,12 +295,9 @@ Clear a conversion description.
 }  /* clear_conv_descr */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- inaccessible_match is not used in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void clear_overload_set_traversal_block(
                           a_candidate_function_ptr        *candidate_functions,
-                          a_symbol_ptr                    *inaccessible_match,
+                          ARG_UNUSED a_symbol_ptr         *inaccessible_match,
                           an_overload_set_traversal_block *ostblock)
 /*
 Clear an overload set traversal block.  candidate_functions and
@@ -2974,6 +2971,7 @@ copy-initialization).
   }  /* if */
   if (arg_type == NULL) {
     /* Get the actual argument type from arg_operand. */
+    check_assertion(arg_operand != NULL);
     arg_type = arg_operand->type;
   } else {
     /* arg_type is supplied, so arg_operand should be ignored. */
@@ -4902,20 +4900,17 @@ skip:;
 }  /* function_template_call_argument_deduction */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- arg_dep_lookup_done is not used in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_boolean candidate_function_is_visible(
-                                    a_symbol_ptr function_symbol,
-                                    a_boolean    is_template_id,
-                                    a_boolean    effects_copy_initialization,
-                                    a_boolean    arg_dep_lookup_done,
-                                    a_boolean    from_arg_dep_lookup,
-                                    a_boolean    dependent_call,
-                                    a_boolean    is_overloaded_operator,
-                                    a_boolean    allow_post_declared_functions,
-                                    a_boolean    *invisible_because_explicit,
-                                    a_boolean    *invisible_because_post_decl)
+                            a_symbol_ptr         function_symbol,
+                            a_boolean            is_template_id,
+                            a_boolean            effects_copy_initialization,
+                            ARG_UNUSED a_boolean arg_dep_lookup_done,
+                            a_boolean            from_arg_dep_lookup,
+                            a_boolean            dependent_call,
+                            a_boolean            is_overloaded_operator,
+                            a_boolean            allow_post_declared_functions,
+                            a_boolean            *invisible_because_explicit,
+                            a_boolean            *invisible_because_post_decl)
 /*
 Return TRUE if the indicated candidate function (possibly a projection
 symbol, but not an overloaded function) is visible.  That is, return
@@ -5163,15 +5158,11 @@ functions list.
 }  /* already_on_candidates_list */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* param_array_expanded_case is not used in some
-                configurations. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_boolean arg_count_mismatch(
                              a_type_ptr            routine_type,
                              an_arg_list_elem_ptr  arg_list,
                              a_routine_ptr         routine,
-                             a_boolean             *param_array_expanded_case)
+                             ARG_UNUSED a_boolean  *param_array_expanded_case)
 /*
 Return TRUE if the given function call argument list cannot match the given
 routine.  routine is the associated routine if known (or NULL otherwise).
@@ -5320,13 +5311,11 @@ If applicable, record the folded value in ap.
 }  /* enable_if_cond_is_constant */
 
 
-/*ARGSUSED*/ /* arg_match_list, arg_list, and selector are not currently
-                used. */
 static a_boolean enable_if_attribute_fails(
-                                     a_routine_ptr             rp,
-                                     an_arg_match_summary_ptr  arg_match_list,
-                                     an_arg_list_elem_ptr      arg_list,
-                                     an_operand                *selector)
+                            a_routine_ptr                       rp,
+                            ARG_UNUSED an_arg_match_summary_ptr arg_match_list,
+                            ARG_UNUSED an_arg_list_elem_ptr     arg_list,
+                            ARG_UNUSED an_operand               *selector)
 /*
 rp has one or more associated enable_if attributes of the form
 
@@ -5761,6 +5750,7 @@ in a new-expression).
         if (arg_match_list == NULL) {
           arg_match_list = arg_match;
         } else {
+          check_assertion(end_arg_match_list != NULL);
           end_arg_match_list->next = arg_match;
         }  /* if */
         end_arg_match_list = arg_match;
@@ -9651,10 +9641,6 @@ static an_error_code default_undefined_code[(int)oc_last] = {
   ec_struct_binding_undefined_identifier,    /* oc_tuple_like_binding */
 };
 
-#if !BACK_END_IS_CP_GEN_BE
-/*ARGSUSED*/  /* found_through_adl is only used with the C++-generating
-                 back end. */
-#endif /* !BACK_END_IS_CP_GEN_BE */
 a_symbol_ptr select_overloaded_function(
                         a_symbol_ptr             overloaded_function_symbol,
                         a_boolean                is_template_id,
@@ -9673,7 +9659,7 @@ a_symbol_ptr select_overloaded_function(
                         a_boolean                *single_function,
                         a_boolean                *init_list_ctor_case,
                         a_boolean                *unknown_dependent_function,
-                        a_boolean                *found_through_adl,
+                        ARG_UNUSED a_boolean     *found_through_adl,
                         a_symbol_ptr             *surrogate_function_conv_sym,
                         an_arg_match_summary_ptr *arg_match_list)
 /*
@@ -10446,13 +10432,10 @@ can be a handle.
 
 #endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
 
-#if !OPTIMIZE_VIRTUAL_FUNCTION_CALLS
-/*ARGSUSED*/  /* <-- bound_function_selector is not used in that case. */
-#endif /* !OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
 void bind_member_function_operand_to_selector(
-                                         an_operand *bound_function_selector,
-                                         a_boolean  selector_is_object_pointer,
-                                         an_operand *function_operand)
+                                ARG_UNUSED an_operand *bound_function_selector,
+                                a_boolean  selector_is_object_pointer,
+                                an_operand *function_operand)
 /*
 Bind the operand for a function to an associated selector object.  If the
 complete object type can be determined, convert a virtual function call
@@ -11587,15 +11570,12 @@ if is_lvalue is TRUE.
 }  /* make_selection_for_captured_variable */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* <-- is_implicit and end_position are not used in that case. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-void make_this_variable_operand(a_variable_ptr    this_var,
-                                a_type_ptr        this_type,
-                                a_boolean         is_implicit,
-                                a_source_position *position,
-                                a_source_position *end_position,
-                                an_operand        *result)
+void make_this_variable_operand(a_variable_ptr               this_var,
+                                a_type_ptr                   this_type,
+                                ARG_UNUSED a_boolean         is_implicit,
+                                a_source_position            *position,
+                                ARG_UNUSED a_source_position *end_position,
+                                an_operand                   *result)
 /*
 Make an operand for the value of the "this" variable this_var.  The
 reference is implicit if is_implicit is TRUE.  The source position of
@@ -14062,9 +14042,6 @@ builtin_types.
 }  /* type_is_in_builtin_type_set */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- only_std_funcs not used in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void try_conversion_function_match_full(
                           an_operand               *source_operand,
                           a_type_ptr               source_type,
@@ -14072,7 +14049,7 @@ static void try_conversion_function_match_full(
                           a_type_ptr               requested_type,
                           a_builtin_type_kind_set  builtin_types_allowed,
                           a_boolean                cppcli_atypical_case,
-                          a_boolean                only_std_funcs,
+                          ARG_UNUSED a_boolean     only_std_funcs,
                           a_type_ptr               conv_funcs_class,
                           a_boolean                need_lvalue_result,
                           a_boolean                is_copy_initialization,
@@ -15763,7 +15740,7 @@ the target type to be used).
   /* Go through the operands and determine the match level on each operand. */
   for (type_pattern_position = operand_type_pattern, alep = operand_list;
        alep != NULL;
-       type_pattern_position++, need_lvalue_result = FALSE,
+       type_pattern_position++, need_lvalue_result = FALSE, /*lint !e679*/
                                 alep = next_elem(alep)) {
 #if CHECKING
     if (*type_pattern_position == ';' ||
@@ -15793,6 +15770,7 @@ the target type to be used).
     if (arg_match_list == NULL) {
       arg_match_list = arg_match;
     } else {
+      check_assertion(end_arg_match_list != NULL);
       end_arg_match_list->next = arg_match;
     }  /* if */
     end_arg_match_list = arg_match;
@@ -16289,6 +16267,7 @@ for the previous operand.
         an_overload_set_traversal_block ostblock;
         a_symbol_ptr                    conversion_symbol;
         /* Examine each conversion function from the source class. */
+        check_assertion(previous_class_type_considered != NULL);
         for (conversion_symbol =
                    set_up_overload_symbol_list_traversal_simple(
                       symbol_supplement_for_class(
@@ -18196,6 +18175,7 @@ no_applicable_operator_function:
                 if (arg_expr_list == NULL) {
                   arg_expr_list = arg;
                 } else {
+                  check_assertion(end_arg_expr_list != NULL);
                   end_arg_expr_list->next = arg;
                 }  /* if */
                 end_arg_expr_list = arg;
@@ -19430,7 +19410,7 @@ type must not be a reference type (the caller should have rewritten
 that case).
 */
 {
-  a_boolean                okay = FALSE, ambiguous;
+  a_boolean                okay = FALSE, ambiguous = FALSE;
   a_boolean                single_type_message = FALSE;
   a_type_ptr               source_type, diag_dest_type = dest_type;
   a_type_ptr               class_type = NULL;
@@ -19666,25 +19646,21 @@ source_type to dest_type.
 }  /* issue_any_conversion_diagnostics */
 
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- is_transparent is only used if GNU extensions are
-                    allowed. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
 static a_boolean conversion_possible(
-                                an_operand         *source_operand,
-                                a_type_ptr         dest_type,
-                                a_boolean          *is_transparent,
-                                a_type_ptr         orig_dest_type,
-                                a_boolean          need_lvalue_result,
-                                a_boolean          is_copy_initialization,
-                                a_boolean          orig_is_copy_initialization,
-                                a_type_ptr         ref_binding_type,
-                                a_boolean          is_direct_binding,
-                                a_conv_context_set conv_context,
-                                an_error_code      incompatible_err,
-                                a_source_position  *err_pos,
-                                a_conv_descr       *conversion,
-                                a_conv_descr       *ctor_arg_conversion)
+                              an_operand           *source_operand,
+                              a_type_ptr           dest_type,
+                              ARG_UNUSED a_boolean *is_transparent,
+                              a_type_ptr           orig_dest_type,
+                              a_boolean            need_lvalue_result,
+                              a_boolean            is_copy_initialization,
+                              a_boolean            orig_is_copy_initialization,
+                              a_type_ptr           ref_binding_type,
+                              a_boolean            is_direct_binding,
+                              a_conv_context_set   conv_context,
+                              an_error_code        incompatible_err,
+                              a_source_position    *err_pos,
+                              a_conv_descr         *conversion,
+                              a_conv_descr         *ctor_arg_conversion)
 /*
 Check whether or not the source operand can be converted to the
 destination type, implicitly in an initialization.  If so, set
@@ -25595,10 +25571,7 @@ found to be acceptable, and *conversion describes it.
 }  /* prep_arg_passed_via_copy_constructor */
 
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- operand is not used in that case. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
-static a_boolean is_gnu_packed_field_operand(an_operand *operand)
+static a_boolean is_gnu_packed_field_operand(ARG_UNUSED an_operand *operand)
 /*
 Return TRUE if the operand is reference to a packed field in GNU mode.
 */
