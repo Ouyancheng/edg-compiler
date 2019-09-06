@@ -315,9 +315,11 @@ struct Dyn_array: private an_Allocator {
     { return this->elems[this->n_elems-1]; }
   inline void push_back(const an_elem  &value);
   inline void push_back(an_elem  &&value);
-  inline void pop_back(an_elem  value)
+  inline void pop_back()
     { destroy(&this->elems[--this->n_elems]); }
   inline void insert(an_index i, const an_elem  &value);
+  inline void insert(an_index i, an_elem  &&value);
+  inline void remove(an_index i);
   void reserve(a_size);
   void shrink_wrap();
   /* Interfaces to allow range-based for loop. */
@@ -526,6 +528,70 @@ Allocate new storage if needed.
   construct(this->elems+n_elems, move_from(&value));
   this->n_elems = n_elems+1;
 }  /* Dyn_array::push_back */
+
+
+template<typename an_Elem, typename an_Allocator>
+inline void Dyn_array<an_Elem, an_Allocator>::insert(an_index      i,
+                                                     const an_elem &value)
+/*
+Copy-insert the given value at the given index.  All subsequent values (if any)
+are first moved one position up.
+*/
+{
+  a_size  n_elems = this->n_elems;
+
+  if (n_elems == this->n_allocated) {
+    this->grow();
+  }  /* if */
+  an_elem  *elems = this->elems;
+  for (an_index k = n_elems; k>i; --k) {
+    construct(elems+k, move_from(elems+k-1));
+    destroy(elems+k-1);
+  }  /* for */
+  construct(elems+i, value);
+  this->n_elems = n_elems+1;
+}  /* Dyn_array::insert */
+
+
+template<typename an_Elem, typename an_Allocator>
+inline void Dyn_array<an_Elem, an_Allocator>::insert(an_index  i,
+                                                     an_elem   &&value)
+/*
+Move-insert the given value at the given index.  All subsequent values (if any)
+are first moved one position up.
+*/
+{
+  a_size  n_elems = this->n_elems;
+
+  if (n_elems == this->n_allocated) {
+    this->grow();
+  }  /* if */
+  an_elem  *elems = this->elems;
+  for (an_index k = n_elems; k>i; --k) {
+    construct(elems+k, move_from(elems+k-1));
+    destroy(elems+k-1);
+  }  /* for */
+  construct(elems+i, move_from(&value));
+  this->n_elems = n_elems+1;
+}  /* Dyn_array::insert */
+
+
+template<typename an_Elem, typename an_Allocator>
+inline void Dyn_array<an_Elem, an_Allocator>::remove(an_index  i)
+/*
+Destroy the entry at the given index.  All subsequent values (if any) are moved
+one position down.
+*/
+{
+  an_elem  *elems = this->elems;
+
+  destroy(elems+i);
+  a_size  n_elems = --this->n_elems;
+  for (an_index k = i; k<n_elems; ++k) {
+    construct(elems+k, move_from(elems+k+1));
+    destroy(elems+k+1);
+  }  /* for */
+}  /* Dyn_array::remove */
 
 
 template<typename an_Elem, typename an_Allocator>
@@ -1408,10 +1474,10 @@ inline a_Ptr partition_left(a_Ptr        begin,
                             a_Comparison cmp)
 /*
 Same as partition_right, except elements equal to the pivot are put to the
-left of the pivot and only the pivot position is returned.  Since this is
-only used for the the "many equal" case -- which is somewhat rare -- and in
-that case pdqsort already has O(n) performance, no block quicksort is
-applied here for simplicity.
+left of the pivot and only the pivot position is returned.  Since this is only
+used for the "many equal" case -- which is somewhat rare -- and in that case
+pdqsort already has O(n) performance, no block quicksort is applied here for
+simplicity.
 */
 {
   typedef Value_for_ptr<a_Ptr> a_value;
