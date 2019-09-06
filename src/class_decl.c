@@ -28615,6 +28615,10 @@ that is provided if this is a member template declaration.
             }  /* if */
           }  /* if */
         }  /* if */
+        if (func_info.is_definition) {
+          templ_state->defines_something = TRUE;
+          templ_state->decl_parse.is_definition = TRUE;
+        }  /* if */
         remove_stop_token(tok_comma);
         goto next_declaration;
       } else {
