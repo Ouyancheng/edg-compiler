@@ -9,8 +9,9 @@ to diagnose.  For example:
 
   struct S {
     int i;
-    template<typename T> S(T i) : i(i);  // Previously aborted.  Now an error.
-  };
+    template<typename T> S(T i) : i(i);  // Previously aborted.  Now fixed. An
+  };                                     // error is issued in modes where the
+                                         // definition is parsed.
 
 That is now fixed.
 
