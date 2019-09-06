@@ -7991,6 +7991,9 @@ interpreter size of the allocated elements in *p_elem_size.
   if (alloc_length != 1) {
     cap->flags |= CA_ARRAY_ELEMENT;
     cap->length = alloc_length;
+    if (alloc_length == 0) {
+      cap->flags |= CA_CANNOT_DEREFERENCE;
+    }  /* if */
   }  /* if */
   cap->alloc_seq_number = alloc_seq_number;
   *p_elem_size = elem_size;
