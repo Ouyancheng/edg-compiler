@@ -16839,12 +16839,16 @@ If it indicates a destructor, add it to the current object lifetime.
        lifetime.  But don't do that if the dynamic init is potentially
        evaluated but not evaluated.  For potentially-evaluated expressions,
        the code is in the tree and we need to make the tree consistent
-       on the assumption that a back end will generate the dead code,
-       but we don't need to put the entry on the destructions list
-       or generate the cleanup code. */
+       on the assumption that a back end will generate the dead code, but we
+       don't need to put the entry on the destructions list or generate the
+       cleanup code. */
     if (curr_expr_kind_is_const()) {
+      /* In constant-expression contexts, we do not have to generate code for
+         the destruction either.  (Pre-C++20 that is an error if the
+         destruction is non-trivial and evaluated.) */
 #if CHECKING
       if ((dip->destructor != NULL || is_dynamic_init_for_vla(dip)) &&
+          !constexpr_dynamic_alloc_enabled &&
           expr_stack->evaluated) {
         expect_error();
       }  /* if */

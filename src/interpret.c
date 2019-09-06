@@ -16788,7 +16788,8 @@ indicates the value produced by std::is_constant_evaluated().
       if (!result) {
         /* Nothing more to do. */
       } else if (ips.storage_stack.destructions != NULL &&
-                 (expr->kind != (an_expr_node_kind)enk_object_lifetime ||
+                 ((expr->kind != (an_expr_node_kind)enk_object_lifetime &&
+                   !is_constant_evaluated) ||
                   !perform_destructions(&ips))) {
         /* If there are pending destructions, but this node is not an
            enk_object_lifetime entry, expr doesn't represent a full expression
