@@ -1001,7 +1001,7 @@ with is_pack_expansion set to FALSE and once with it set to TRUE.
 
 #endif /* IA64_ABI */
 
-static a_mangling_buffer_ptr alloc_mangling_buffer()
+static a_mangling_buffer_ptr alloc_mangling_buffer(void)
 /*
 Allocate and initialize a mangling buffer.
 */
@@ -1015,7 +1015,7 @@ Allocate and initialize a mangling buffer.
 }  /* alloc_mangling_buffer */
 
 
-static void push_mangling_text_buffer()
+static void push_mangling_text_buffer(void)
 /*
 Set mangling_text_buffer to a new buffer in preparation for generating
 a new mangled name -- allocate one if necessary or use a buffer previously
@@ -1038,7 +1038,7 @@ pop_mangling_text_buffer.
 }  /* push_mangling_text_buffer */
 
 
-static void pop_mangling_text_buffer()
+static void pop_mangling_text_buffer(void)
 /*
 Signal that mangling_text_buffer is no longer needed for mangling.
 Restore the previous mangling_text_buffer if we're nested.
@@ -1098,10 +1098,9 @@ Add the indicated null-terminated string to the mangled name.
 }  /* add_str_to_mangled_name */
 
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- mctl is not used in that case. */
-#endif /* !IA64_ABI */
-static void add_mangled_name_prefix(a_mangling_control_block_ptr mctl)
+/*lint -ecall(523,add_mangled_name_prefix)*/
+static void add_mangled_name_prefix(
+                                  ARG_UNUSED a_mangling_control_block_ptr mctl)
 /*
 Add any prefix required at the beginning of a mangled name.
 */
@@ -1113,11 +1112,8 @@ Add any prefix required at the beginning of a mangled name.
 
 #if IA64_ABI
 
-#if ABI_COMPATIBILITY_VERSION < 402
-/*ARGSUSED*/ /* <-- con is not used in that case. */
-#endif /* ABI_COMPATIBILITY_VERSION < 402 */
 static void add_template_argument_mangled_name_prefix(
-                                             a_constant_ptr               con,
+                                             ARG_UNUSED a_constant_ptr    con,
                                              a_mangling_control_block_ptr mctl)
 /*
 Add the mangled name prefix for an external name in a template argument
@@ -2417,12 +2413,9 @@ compatibility with previous versions).  The type must not have been lowered
 }  /* mangled_encoding_for_function_type */
 
 
-#ifdef IA64_ABI
-/*ARGSUSED*/ /* is_class_member is not used in this case. */
-#endif /* IA64_ABI */
 static void mangled_encoding_for_function_qualifiers(
                                       a_type_ptr               type,
-                                      a_boolean                is_class_member,
+                                      ARG_UNUSED a_boolean     is_class_member,
                                       a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the type qualifiers (if any)
@@ -2516,7 +2509,8 @@ template template parameter), if any.
   if (coordinate->depth != 1) {
     /* Put out "_depth". */
     add_to_mangled_name('_', mctl);
-    add_number_to_mangled_name((unsigned long)coordinate->depth, mctl);
+    add_number_to_mangled_name((unsigned long)(unsigned)coordinate->depth,
+                               mctl);
   }  /* if */
 #else /* IA64_ABI */
   /* The IA-64 encoding is "Tnnn_".  The first parameter is "T_". */
@@ -2542,14 +2536,11 @@ template template parameter), if any.
 }  /* mangled_encoding_for_template_parameter */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* orig_expr is not used in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void mangled_encoding_for_sizeof(
                                       a_type_ptr                     type,
                                       an_expr_node_ptr               expr,
                                       a_template_param_constant_kind kind,
-                                      an_expr_node_ptr               orig_expr,
+                                      ARG_UNUSED an_expr_node_ptr    orig_expr,
                                       a_mangling_control_block       *mctl)
 /*
 Add to the mangled name the encoding of sizeof(type), __ALIGNOF__(type),
@@ -2899,12 +2890,9 @@ generated default arguments are not represented in the returned value.
 }  /* number_of_operands_in_list */
 
 
-#if !(IA64_ABI && ABI_COMPATIBILITY_VERSION >= 410)
-/*ARGSUSED*/  /* opname is not used in that case. */
-#endif /* !(IA64_ABI && ABI_COMPATIBILITY_VERSION >= 410) */
 static unsigned long number_of_operands_in_operator_list(
-                                                       an_opname_kind   opname,
-                                                       an_expr_node_ptr expr)
+                                             ARG_UNUSED an_opname_kind opname,
+                                             an_expr_node_ptr          expr)
 /*
 Returns the number of arguments that should be used when determining which
 mangled encoding to use for the operator associated with opname.  expr is the
@@ -3039,13 +3027,10 @@ extensions, e.g., Microsoft __is_base_of).
 }  /* mangled_encoding_for_builtin_operation */
 
 
-#if IA64_ABI
-/*ARGSUSED*/  /* old_form is not used in that case. */
-#endif /* IA64_ABI */
 static void add_float_value_to_mangled_name(
                                            a_float_kind             float_kind,
                                            an_internal_float_value  *value,
-                                           a_boolean                old_form,
+                                           ARG_UNUSED a_boolean     old_form,
                                            a_mangling_control_block *mctl)
 /*
 Add a string to the mangled name representing the value of the floating
@@ -3996,12 +3981,9 @@ Add to the mangled name the name of the routine.  Used in cfront ABI only.
 
 #endif /* IA64_ABI */
 
-#if IA64_ABI
-/*ARGSUSED*/ /* <-- old_form is not used in that case. */
-#endif /* IA64_ABI */
 static void mangled_encoding_for_ptr_to_member_constant(
                                              a_constant_ptr           con,
-                                             a_boolean                old_form,
+                                             ARG_UNUSED a_boolean     old_form,
                                              a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the ck_ptr_to_member constant con.
@@ -4150,14 +4132,11 @@ specification in the mangling for lengths of literals.
 }  /* mangled_encoding_for_ptr_to_member_constant */
 
 
-#if !IA64_ABI
-/*ARGSUSED*/  /* <-- add_address_of is not used in that case. */
-#endif /* !IA64_ABI */
 static void mangled_encoding_for_unknown_function(
                                     a_constant_ptr           con,
                                     a_boolean                has_template_args,
                                     a_template_arg_ptr       template_arg_list,
-                                    a_boolean                add_address_of,
+                                    ARG_UNUSED a_boolean     add_address_of,
                                     a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the constant con, which is
@@ -4231,13 +4210,10 @@ only).
 #endif /* !IA64_ABI */
 }  /* mangled_encoding_for_unknown_function */
 
-#if !IA64_ABI
-/*ARGSUSED*/  /* <-- in_dependent_expr is not used in that case. */
-#endif /* !IA64_ABI */
 static void literal_representation(
                                   a_constant_ptr           con,
                                   a_boolean                old_form,
-                                  a_boolean                in_dependent_expr,
+                                  ARG_UNUSED a_boolean     in_dependent_expr,
                                   a_boolean                suppress_address_of,
                                   a_mangling_control_block *mctl)
 /*
@@ -4723,12 +4699,9 @@ source code, not what the front end has distilled it into).
 }  /* skip_compiler_generated_initialization */
 
 
-#if !IA64_ABI
-/*ARGSUSED*/  /*  <-- suppress_address_of is not used in some configurations.*/
-#endif /* !IA64_ABI */
 static an_expr_node_ptr skip_compiler_generated_expressions(
-                                         an_expr_node_ptr expr,
-                                         a_boolean        *suppress_address_of)
+                                     an_expr_node_ptr     expr,
+                                     ARG_UNUSED a_boolean *suppress_address_of)
 /*
 This routine skips any expressions that appear at the top of the given
 expression that aren't relevant to mangling (e.g., compiler-generated
@@ -4921,13 +4894,10 @@ expression.
 }  /* mangled_expression_list */
 
 
-#if IA64_ABI
-/*ARGSUSED*/ /* <-- include_length is unused in that case. */
-#endif /* IA64_ABI */
 static void mangled_simple_id(a_source_correspondence_ptr scp,
                               a_template_arg_ptr          template_arg_list,
                               a_name_reference_ptr        name_reference,
-                              a_boolean                   include_length,
+                              ARG_UNUSED a_boolean        include_length,
                               a_mangling_control_block    *mctl)
 /*
 Add to the mangled name the source name of the entity specified by scp.  
@@ -5175,7 +5145,6 @@ mangling was needed and that logic is reflected in this routine.
 
 #endif /* IA64_ABI */
 
-/*ARGSUSED*/ /* <-- suppress_operation_indicator, suppress_underscores. */
 static void mangled_operator_or_special_function(
                          an_opname_kind           kind,
                          unsigned int             num_operands,
@@ -5183,8 +5152,8 @@ static void mangled_operator_or_special_function(
                          a_const_char             *ud_suffix,
                          a_template_arg_ptr       template_arg_list,
                          a_name_reference_ptr     name_reference,
-                         a_boolean                suppress_operation_indicator,
-                         a_boolean                suppress_underscores,
+                         ARG_UNUSED a_boolean     suppress_operation_indicator,
+                         ARG_UNUSED a_boolean     suppress_underscores,
                          a_mangling_control_block *mctl)
 /*
 This routine adds the proper mangling for a special function which can be the
@@ -5228,11 +5197,8 @@ TRUE.
 }  /* mangled_operator_or_special_function */
 
 
-#if IA64_ABI
-/*ARGSUSED*/ /* <-- dtor_type is unused in that case. */
-#endif /* IA64_ABI */
 static void mangled_name_reference(a_name_reference_ptr        name_reference,
-                                   a_type_ptr                  dtor_type,
+                                   ARG_UNUSED a_type_ptr       dtor_type,
                                    a_mangling_control_block    *mctl)
 /*
 Add the qualifiers as specified by name_reference to the mangled name.
@@ -5343,14 +5309,12 @@ details any qualification that applies to the destructor.
 }  /* mangled_destructor_name */
 
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- selector is unused in that case. */
-#endif /* !IA64_ABI */
-static void mangled_unresolved_name(an_expr_node_ptr         expr,
-                                    an_expr_node_ptr         arguments,
-                                    an_expr_node_ptr         selector,
-                                    a_boolean                in_dependent_expr,
-                                    a_mangling_control_block *mctl)
+static void mangled_unresolved_name(
+                                 an_expr_node_ptr            expr,
+                                 an_expr_node_ptr            arguments,
+                                 ARG_UNUSED an_expr_node_ptr selector,
+                                 a_boolean                   in_dependent_expr,
+                                 a_mangling_control_block    *mctl)
 /*
 Add to the mangled name an encoding for the entity represented by the
 expression node.  This is not a general purpose routine for representing
@@ -5594,7 +5558,7 @@ expression that was used to select expr (NULL if no selector was used).
     unsigned long num_operands= number_of_operands_in_operator_list(opname,
                                                                     arguments);
     mangled_operator_or_special_function(opname,
-                                         num_operands,
+                                         (unsigned int)num_operands,
                                          conversion_type,
                                          ud_suffix,
                                          template_arg_list,
@@ -5883,7 +5847,7 @@ this expression is part of a template-dependent expression.
 #endif /* !IA64_ABI */
     if (name == NULL) {
       mangled_operator_or_special_function(rp->variant.opname_kind,
-                                         num_arguments,
+                                         (unsigned int)num_arguments,
                                          (a_type_ptr)NULL,
                                          ud_suffix_for_routine(rp),
                                          (a_template_arg_ptr)NULL,
@@ -7208,12 +7172,9 @@ Seed number for unnamed type names.
 static unsigned long
 		unnamed_type_seed;
 
-#if IA64_ABI
-/*ARGSUSED*/ /* <-- mctl is unused in that case. */
-#endif /* IA64_ABI */
 static a_const_char *give_unnamed_class_or_enum_a_name(
-                                                a_type_ptr               type,
-                                                a_mangling_control_block *mctl)
+                                     a_type_ptr                          type,
+                                     ARG_UNUSED a_mangling_control_block *mctl)
 /*
 If the indicated class or enum type is unnamed, fabricate a name (if it needs
 one) and return that name.  In the Cfront ABI, all unnamed types are given a
@@ -7528,12 +7489,9 @@ given by tap.
 }  /* mangled_encoding_for_template_template_argument */
 
 
-#if IA64_ABI
-/*ARGSUSED*/ /* <-- partial_spec is unused in that case. */
-#endif /* IA64_ABI */
 static void mangled_template_arguments_or_parameter_pack(
                                    a_template_arg_ptr       *template_arg,
-                                   a_boolean                partial_spec,
+                                   ARG_UNUSED a_boolean     partial_spec,
                                    a_boolean                old_form,
                                    a_name_reference_ptr     name_reference,
                                    a_boolean                is_pack,
@@ -8021,15 +7979,11 @@ often be unknown at the time of the call, requiring a length reservation).
 }  /* mangled_encoding_for_class_or_enum_type */
 
 
-#if IA64_ABI
-/*ARGSUSED*/ /* <-- show_partial_spec_args, show_template_specialization,
-                    and show_specialization are not used in that case. */
-#endif /* IA64_ABI */
 static void mangled_full_class_name(
                          a_type_ptr               type,
-                         a_boolean                show_partial_spec_args,
-                         a_boolean                show_template_specialization,
-                         a_boolean                show_specialization,
+                         ARG_UNUSED a_boolean     show_partial_spec_args,
+                         ARG_UNUSED a_boolean     show_template_specialization,
+                         ARG_UNUSED a_boolean     show_specialization,
                          a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the name of the class "type".
@@ -8320,11 +8274,9 @@ template argument lists, and types promoted out of functions.
 
 #endif /* !IA64_ABI */
 
-#if !IA64_ABI
-/*ARGSUSED*/  /* <-- kind is only used for the IA-64 ABI. */
-#endif /* !IA64_ABI */
-static a_boolean entity_needs_parent_qualifier(a_source_correspondence *scp,
-                                               an_il_entry_kind        kind)
+static a_boolean entity_needs_parent_qualifier(
+                                              a_source_correspondence     *scp,
+                                              ARG_UNUSED an_il_entry_kind kind)
 /*
 Return TRUE if the indicated entity (as identified by scp and kind) needs a
 parent qualifier (typically a class, namespace, or scoped enum, but could also
@@ -9216,11 +9168,9 @@ type is mangled in its place.
 }  /* mangled_template_alias_encoding */
 
 
-/*ARGSUSED*/  /* <-- check_for_subst is only used for the IA-64 ABI. */
-              /* <-- ok_to_mangle_type is only used for the Cfront ABI. */
 static void mangled_type_name_full(a_type_ptr               type,
-                                   a_boolean                check_for_subst,
-                                   a_boolean                ok_to_mangle_type,
+                                   ARG_UNUSED a_boolean     check_for_subst,
+                                   ARG_UNUSED a_boolean     ok_to_mangle_type,
                                    a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the name of the type "type".
@@ -9618,12 +9568,9 @@ be used in the context of a pack expansion (as specified by is_pack_expansion).
 }  /* mangled_encoding_for_type_with_pack_expansion */
 
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- suppress_substitution is unused in that case. */
-#endif /* !IA64_ABI */
 static void mangled_encoding_for_type_full(
                                 a_type_ptr               type,
-                                a_boolean                suppress_substitution,
+                                ARG_UNUSED a_boolean     suppress_substitution,
                                 a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the type "type".
@@ -10377,11 +10324,9 @@ a substitution is recorded for the type.
 }  /* mangled_encoding_for_type */
 
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- num_operands is unused in that case. */
-#endif /* !IA64_ABI */
-static a_const_char *mangled_operator_name(an_opname_kind kind,
-                                           unsigned int   num_operands)
+static a_const_char *mangled_operator_name(
+                                          an_opname_kind          kind,
+                                          ARG_UNUSED unsigned int num_operands)
 /*
 Return the string used to indicate the indicated operator name in mangled
 names.  The string does not have the leading "__" used in some cases.  The
@@ -11215,9 +11160,9 @@ by ttt_scp_for_implicit_abi_tags, otherwise terminate the walk.
 }  /* apply_implicit_abi_tags_from_entity */
 
 
-/* ARGSUSED */ /* end_traversal is not used. */
-static a_boolean ttt_add_implicit_abi_tags_for_type(a_type_ptr type,
-                                                    a_boolean  *end_traversal)
+static a_boolean ttt_add_implicit_abi_tags_for_type(
+                                           a_type_ptr           type,
+                                           ARG_UNUSED a_boolean *end_traversal)
 /*
 Called during a type traversal by calculate_implicit_abi_tags.  If the
 type has not previously been marked as part of the mangled signature, and
@@ -11248,9 +11193,8 @@ static void mark_entry(a_source_correspondence      *scp,
                        a_walk_parents_control_block *wpcb);
 
 
-/* ARGSUSED */ /* end_traversal is not used. */
-static a_boolean ttt_mark_entry(a_type_ptr type,
-                                a_boolean  *end_traversal)
+static a_boolean ttt_mark_entry(a_type_ptr           type,
+                                ARG_UNUSED a_boolean *end_traversal)
 /*
 Called during a type traversal from mark_entry to set the entity_marked field
 of the specified type to ttt_mark_value.
@@ -11285,10 +11229,9 @@ of the specified type to ttt_mark_value.
 }  /* ttt_mark_entry */
 
 
-/*ARGSUSED*/ /* wpcb is not used. */
-static void mark_entry(a_source_correspondence      *scp,
-                       an_il_entry_kind             kind,
-                       a_walk_parents_control_block *wpcb)
+static void mark_entry(a_source_correspondence                 *scp,
+                       an_il_entry_kind                        kind,
+                       ARG_UNUSED a_walk_parents_control_block *wpcb)
 /*
 Called as a callback from walk_parents.  Mark (or unmark, depending on the
 value of ttt_mark_value) the IL entity specified by scp and kind, as well as
@@ -11585,18 +11528,15 @@ enclose routine (as necessary).
 #endif /* DO_IL_LOWERING */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-#if !IA64_ABI
-/*ARGSUSED*/  /* <-- ctor_dtor_kind is not used in that case. */
-#endif /* !IA64_ABI */
 static void mangled_function_base_name(
-                                      a_source_correspondence  *scp,
-                                      a_special_function_kind  special_kind,
-                                      an_opname_kind           opname_kind,
-                                      a_ctor_or_dtor_kind      ctor_dtor_kind,
-                                      unsigned int             num_operands,
-                                      a_type_ptr               conversion_type,
-                                      a_const_char             *ud_suffix,
-                                      a_mangling_control_block *mctl)
+                                a_source_correspondence        *scp,
+                                a_special_function_kind        special_kind,
+                                an_opname_kind                 opname_kind,
+                                ARG_UNUSED a_ctor_or_dtor_kind ctor_dtor_kind,
+                                unsigned int                   num_operands,
+                                a_type_ptr                     conversion_type,
+                                a_const_char                   *ud_suffix,
+                                a_mangling_control_block       *mctl)
 /*
 Add to the mangled name the encoding for the base name of the function
 indicated by scp.  special_kind, opname_kind, ctor_dtor_kind, num_operands,
@@ -11850,17 +11790,13 @@ names are generated at a different time (see mangled_resolver_name).
 
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
 
-#if !IA64_ABI
-/*ARGSUSED*/  /* <-- force_primary_name is not used in that case.
-                     base_name_offset is also not used in some cases. */
-#endif /* !IA64_ABI */
 static void mangled_function_name(
                              a_routine_ptr            routine,
                              a_boolean                suppress_param_encoding,
                              a_boolean                suppress_parent_encoding,
-                             a_boolean                force_primary_name,
+                             ARG_UNUSED a_boolean     force_primary_name,
                              a_boolean                force_individuation,
-                             sizeof_t                 *base_name_offset,
+                             ARG_UNUSED sizeof_t      *base_name_offset,
                              a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the name of the function "routine".
@@ -12191,14 +12127,10 @@ mangled without parameter encoding.
 
 #if DO_IL_LOWERING
 
-#if IA64_ABI
-/*ARGSUSED*/ /* <-- is_variable is not used in that case. */
-#else /* !IA64_ABI */
-/*ARGSUSED*/ /* <-- scp is not used in that case. */
-#endif /* IA64_ABI */
-static void start_externalized_name(a_source_correspondence  *scp,
-                                    a_boolean                is_variable,
-                                    a_mangling_control_block *mctl)
+static void start_externalized_name(
+                                ARG_UNUSED a_source_correspondence *scp,
+                                ARG_UNUSED a_boolean               is_variable,
+                                a_mangling_control_block           *mctl)
 /*
 Begin the output of the externalized mangled name for the entity with
 the indicated source correspondence.  The entity is a variable if
@@ -12227,11 +12159,8 @@ is_variable is TRUE, a routine otherwise.
 }  /* start_externalized_name */
 
 
-#if IA64_ABI
-/*ARGSUSED*/ /* <-- scp and mctl are not used in that case. */
-#endif /* IA64_ABI */
-static void end_externalized_name(a_source_correspondence  *scp,
-                                  a_mangling_control_block *mctl)
+static void end_externalized_name(ARG_UNUSED a_source_correspondence  *scp,
+                                  ARG_UNUSED a_mangling_control_block *mctl)
 /*
 End the output of the externalized mangled name for the entity with
 the indicated source correspondence.
@@ -12442,7 +12371,7 @@ to the point where the base name appears.
 */
 {
   a_mangling_control_block mctl;
-  a_boolean                suppress_param_encoding;
+  a_boolean                suppress_param_encoding = FALSE;
   char                     *mangled_name;
   a_boolean                needs_to_be_externalized = FALSE;
 
@@ -12562,14 +12491,11 @@ list to the mangled name.
 }  /* add_variable_template_indication */
 
 
-#if !(IA64_ABI && ABI_COMPATIBILITY_VERSION >= 510)
-/*ARGSUSED*/ /* <-- tmpl is not used in that case. */
-#endif /* !(IA64_ABI && ABI_COMPATIBILITY_VERSION >= 510) */
 static void mangled_name_with_possible_qualification(
-                                                a_source_correspondence  *scp,
-                                                an_il_entry_kind         kind,
-                                                a_template_ptr           tmpl,
-                                                a_mangling_control_block *mctl)
+                                               a_source_correspondence   *scp,
+                                               an_il_entry_kind          kind,
+                                               ARG_UNUSED a_template_ptr tmpl,
+                                               a_mangling_control_block  *mctl)
 /*
 Add to the mangled name the encoding for the name of the class, namespace
 member, scoped enum type, or variable whose source correspondence is given by
@@ -13732,12 +13658,9 @@ for use in a virtual function table name.
 }  /* mangled_vtbl_class_name */
 
 
-#if !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
-/*ARGSUSED*/ /* <-- ctor_bcp is not used in that case. */
-#endif /* !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
-char *mangled_vtbl_name(a_type_ptr               class_type,
-                        a_base_class_ptr         bcp,
-                        a_base_class_ptr         ctor_bcp)
+char *mangled_vtbl_name(a_type_ptr                  class_type,
+                        a_base_class_ptr            bcp,
+                        ARG_UNUSED a_base_class_ptr ctor_bcp)
 /*
 Return the mangled name for the virtual function table for base class
 bcp of class class_type.  If bcp == NULL, the virtual function table is
@@ -13991,14 +13914,11 @@ returned.
 
 #endif /* !IA64_ABI */
 
-#if IA64_ABI
-/*ARGSUSED*/  /* <-- scope is not used in that case. */
-#endif /* IA64_ABI */
 void mangle_promoted_entity_name(a_source_correspondence *scp,
                                  an_il_entry_kind        kind,
                                  a_boolean               final,
                                  a_routine_ptr           routine,
-                                 a_scope_ptr             scope)
+                                 ARG_UNUSED a_scope_ptr  scope)
 /*
 scp points to the source correspondence field of an entity that is
 being promoted out of the routine "routine" (or one of its block

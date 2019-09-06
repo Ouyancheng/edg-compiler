@@ -1052,7 +1052,7 @@ get_another:
         diagnostic(state->warn_on_invalid_conversion ? es_warning
                                                      : es_discretionary_error,
                    ec_bad_multibyte_char);
-        lptr += numch - 1;
+        lptr += (a_ptrdiff)numch - 1;
         targ_ch = '?';
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
       } else if (curr_file_unicode_source_kind != usk_none &&
@@ -1065,7 +1065,7 @@ get_another:
            to return subsequent bytes of the multibyte character. */
         (void)mbc_to_wide_char(lptr, &wc, (a_boolean *)NULL,
                                /*is_native=*/FALSE);
-        lptr += numch - 1;
+        lptr += (a_ptrdiff)numch - 1;
         targ_ch = conv_unicode_literal_char(state, wc, /*utf8_literal=*/FALSE);
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
       } else if (utf8_literal) {
@@ -1073,7 +1073,7 @@ get_another:
            multibyte character, either UTF-8 or a native character set:
            convert it to Unicode and then to UTF-8, returning the first (or
            only) byte. */
-        lptr += numch - 1;
+        lptr += (a_ptrdiff)numch - 1;
         targ_ch = conv_unicode_literal_char(state, wc, /*utf8_literal=*/TRUE);
       } else {
         /* No translation required, just set up *state to return the bytes

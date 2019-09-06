@@ -2093,7 +2093,7 @@ value.
 /*
 Macro that initializes a lookup state variable.
 */
-#define clear_lookup_state(state) (state) = cleared_lookup_state;
+#define clear_lookup_state(state) ((state) = cleared_lookup_state)
 
 
 /* Macro used by normal_id_lookup and do_using_directive_lookup that tests
@@ -2167,11 +2167,8 @@ are needed to use is_acceptable_symbol.
 }  /* sym_matches_lookup_options */
 
 
-#if !DEBUG
-/*ARGSUSED*/ /* <-- ssep is only used in DEBUG code. */
-#endif /* !DEBUG */
 static a_boolean is_symbol_visible_for_gpp_using_dir(
-			a_scope_stack_entry_ptr			ssep,
+			ARG_UNUSED a_scope_stack_entry_ptr	ssep,
 			a_symbol_locator			*locator,
 			a_lookup_state_ptr			lookup_state,
 			a_symbol_ptr				sym_from_scope,
@@ -3910,7 +3907,7 @@ C and C++.
 #if DEBUG
       num_fast_id_lookups++;
 #endif /* DEBUG */
-      /*lint --e{446} sym modified in loop (LINTBUG) */
+      /*lint --e{446,850} sym modified in loop (LINTBUG) */
       for (sym = active_symbol_list; sym != NULL; sym = sym->next) {
         /* See if the symbol is acceptable (e.g., it's a class if it
            must be one). */
@@ -5887,7 +5884,7 @@ file scope.
     /* Search for a symbol in the file scope.  First look on the active
        list. */
     a_symbol_ptr	type_tag_symbol = NULL;
-    /*lint --e{446} sym modified in loop (LINTBUG) */
+    /*lint --e{446,850} sym modified in loop (LINTBUG) */
     for (sym = symbol_list_from_locator(*locator);
          sym != NULL;
          sym = sym->next) {
