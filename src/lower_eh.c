@@ -2826,11 +2826,11 @@ types, returns the underlying type.
   if (is_reference_type(eff_type)) {
     eff_type = type_pointed_to(eff_type);
   } else {
-    /* For pointer types, return the underlying type.  (Not doing so can cause
-       issues with needed flag processing as the typeinfo variable for a
-       class is tentatively created with sc_extern storage class while a
-       typeinfo variable for a pointer is created with sc_unspecified which
-       is assumed to be needed in the translation unit). */
+    /* For pointer types, return the underlying type.  Not doing so can cause
+       issues with needed flag processing.  The typeinfo variable for a pointer
+       is created with the sc_unspecified storage class, which is assumed to be
+       needed in the translation unit; the typeinfo variable for a class is
+       tentatively created with the sc_extern storage class, which is not. */
     while (is_pointer_type(eff_type) && !is_or_was_nullptr_type(eff_type)) {
       eff_type = type_pointed_to(eff_type);
     }  /* while */
