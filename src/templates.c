@@ -17811,8 +17811,8 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
   /* Do any instantiations that were deferred while this routine was being
      created. */
   process_deferred_class_fixups_and_instantiations(/*for_instantiation=*/TRUE);
-  if ((microsoft_mode || !rp->is_class_member) && !exc_spec_in_func_type &&
-      !special_kind_is(rp, sfk_deduction_guide)) {
+  if ((microsoft_mode || !rp->source_corresp.is_class_member) &&
+      !exc_spec_in_func_type && !special_kind_is(rp, sfk_deduction_guide)) {
     /* Consider:
           template<typename T> struct A { static constexpr bool v = true; };
           template<typename T> int f(T&) noexcept(A<T>::v);
