@@ -5950,6 +5950,7 @@ Return whether a given symbol is of a given kind.
 /*
 Return the master instance pointer of a template instance.
 */
+/*lint -emacro(664,master_instance_of)*/
 #define master_instance_of(tip)						\
   ((check_assertion((tip)->master_instance != NULL), (tip)->master_instance))
 

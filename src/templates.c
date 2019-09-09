@@ -92,17 +92,6 @@ Enumeration used to specify the kind of template information file line to
 be written.
 */
 typedef enum /* a_template_info_line_type */ {
-  tilt_command_line,		/* Used by driver. */
-  tilt_curr_dir,		/* Used by driver. */
-  tilt_file_name,		/* Used by driver. */
-  tilt_instantiation_flag,
-  tilt_instantiation_dir_name,	/* Used by driver. */
-  tilt_instantiation_file_name,
-  tilt_secondary_trans_units,	/* Used by driver. */
-  tilt_template_name,
-  tilt_dependency,
-  tilt_entry_point,
-  tilt_last
   /* Lint comments to disable warnings that the driver line types are
      not used. */
   /*lint -esym(749,tilt_command_line)*/
@@ -115,6 +104,17 @@ typedef enum /* a_template_info_line_type */ {
   /*lint -esym(749,tilt_instantiation_file_name)*/
   /* Entry points are only used in INSTANTIATE_EXTERN_INLINE mode. */
   /*lint -esym(749,tilt_entry_point)*/
+  tilt_command_line,		/* Used by driver. */
+  tilt_curr_dir,		/* Used by driver. */
+  tilt_file_name,		/* Used by driver. */
+  tilt_instantiation_flag,
+  tilt_instantiation_dir_name,	/* Used by driver. */
+  tilt_instantiation_file_name,
+  tilt_secondary_trans_units,	/* Used by driver. */
+  tilt_template_name,
+  tilt_dependency,
+  tilt_entry_point,
+  tilt_last
 } a_template_info_line_type;
 
 /*
@@ -2061,6 +2061,7 @@ template argument matching.
            a value provided it is not used in the types being used for the
            partial ordering comparison. */
         if (is_conversion_operator) {
+          check_assertion(rout_type != NULL);
           if (!template_param_used_in_type(
                   tpp->param_symbol, rout_type->variant.routine.return_type,
                   /*deduced_only=*/FALSE)) {
@@ -5782,14 +5783,11 @@ done:;
 }  /* function_prototype_instantiation */
 
 
-#if !GENERATE_SOURCE_SEQUENCE_LISTS
-/*ARGSUSED*/ /* update_declared_type is not used in this case. */
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 void default_arg_prototype_instantiation(
 	a_symbol_ptr				template_sym,
 	a_def_arg_expr_fixup_ptr		def_arg_list,
 	a_symbol_ptr				prototype_scope_symbols,
-        a_boolean                               update_declared_type)
+        ARG_UNUSED a_boolean                    update_declared_type)
 /*
 This routine is called to do a "prototype instantiation" of a default
 argument expression of a function template or a member function
@@ -6179,6 +6177,7 @@ be found by the substitution process.
         vpip->next = ctws_state->variadic_param_info;
         ctws_state->variadic_param_info = vpip;
       } else {
+        check_assertion(ctws_state->variadic_param_info_tail != NULL);
         vpip->next = ctws_state->variadic_param_info_tail->next;
         ctws_state->variadic_param_info_tail->next = vpip;
       }  /* if */
@@ -8019,11 +8018,11 @@ specified by template_sym and tssp.
 }  /* eta_options_for_template */
 
 
-/*ARGSUSED*/ /* arg1_pos is not used. */
-static a_boolean check_make_integer_seq(a_template_arg_ptr template_arg_list,
-                                        a_source_position  *arg1_pos,
-                                        a_source_position  *arg2_pos,
-                                        a_source_position  *arg3_pos)
+static a_boolean check_make_integer_seq(
+                                a_template_arg_ptr           template_arg_list,
+                                ARG_UNUSED a_source_position *arg1_pos,
+                                a_source_position            *arg2_pos,
+                                a_source_position            *arg3_pos)
 /*
 The __make_integer_seq/__make_integer_seq_alias builtin template is being
 instantiated with the template arguments specified in template_arg_list; issue
@@ -8866,13 +8865,10 @@ can have a Microsoft mode nonreal instantiation.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* instantiate_nonreal is not used in this case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_symbol_ptr create_partial_instantiation_of_class(
 				a_symbol_ptr		class_template_sym,
 				a_template_arg_ptr	template_arg_list,
-				a_boolean		instantiate_nonreal,
+				ARG_UNUSED a_boolean	instantiate_nonreal,
 				a_boolean		dependent_arg_list)
 /*
 Do a partial instantiation of class_template_sym based on the template
@@ -9257,13 +9253,11 @@ specified by template_sym.  Return the symbol for the new instance.
 }  /* create_alias_instance */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- template_arg_list is not used in this case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static void set_alias_nonreal_flag(a_symbol_ptr		instance_sym,
-				   a_template_arg_ptr	template_arg_list,
-				   a_boolean		dependent_arg_list,
-				   a_boolean		any_dependent_args)
+static void set_alias_nonreal_flag(
+                         a_symbol_ptr			instance_sym,
+                         ARG_UNUSED a_template_arg_ptr	template_arg_list,
+                         a_boolean			dependent_arg_list,
+                         a_boolean			any_dependent_args)
 /*
 Set the is_nonreal flag of the alias instance specified by instance_sym
 and template_arg_list.  dependent_arg_list is TRUE if any of the template
@@ -10652,6 +10646,7 @@ doing C++17-style template template parameter matching.
           new_list = tap;
         } else {
           /* Add to the end of the list. */
+          check_assertion(prev_tap != NULL);
           prev_tap->next = tap;
         }  /* if */
         prev_tap = tap;
@@ -13255,6 +13250,7 @@ If there is an error in the copying, set *copy_error to TRUE.
       if (new_list == NULL) {
         new_list = tap;
       } else {
+        check_assertion(prev_new_tap != NULL);
         prev_new_tap->next = tap;
       }  /* if */
       prev_new_tap = tap;
@@ -14800,17 +14796,17 @@ a pointer over a reference type or creating an array of references.
         if (!is_partial_order_check && !rtsp->trailing_return_type) {
           /* Because we check for a dependent return type above, we should
              not end up with a different substituted type here. */
-          a_type_ptr	orig_type = skip_typedefs(new_return_type);
+          a_type_ptr	orig_tp = skip_typedefs(new_return_type);
           a_type_ptr	test_type;
           test_type = copy_return_type_with_substitution(
                                         new_return_type,
                                         templ_arg_list, templ_param_list,
                                         source_pos, options, copy_error,
                                         ctws_state);
-          if (!identical_types(test_type, orig_type) &&
+          if (!identical_types(test_type, orig_tp) &&
               !is_or_contains_error_type(test_type)) {
             fprintf(f_debug, "orig_type: ");
-            db_type(orig_type);
+            db_type(orig_tp);
             fprintf(f_debug, "\nsubstituted return type: ");
             db_type(test_type);
             unexpected_condition_str2("copy_type_with_substitution:",
@@ -18507,7 +18503,7 @@ and create a function instantiation entry to bind the two symbols together.
 	 only occur for unusable derived to base conversions (for which a
 	 warning is also issued) so the cost of the extra test should not be
 	 significant. */
-      /*lint --e{446} sym modified in loop (LINTBUG) */
+      /*lint --e{446,850} sym modified in loop (LINTBUG) */
       for (sym = corresp_prototype_tag_sym->
                                variant.class_struct_union.extra_info->symbols;
            sym != NULL;
@@ -18577,6 +18573,7 @@ and create a function instantiation entry to bind the two symbols together.
        multiversion functions, do the same thing, except searching through the
        list of target_specific functions for the matching token sequence
        number. */
+    /*lint --e{446,850} sym modified in loop (LINTBUG) */
     for (; sym != NULL;
          sym = is_list ? sym->next : sym->next_in_lookup_table) {
 #if GNU_FUNCTION_MULTIVERSIONING
@@ -18757,6 +18754,7 @@ instance to the definitions list for the template.
       expect_error();
       sym = NULL;
     } else {
+      /*lint --e{446,850} sym modified in loop (LINTBUG) */
       for (sym = find_symbol_list_in_table(&cssp->pointers_block,
                                            var_sym->header);
            sym != NULL;
@@ -19357,10 +19355,6 @@ done:
 }  /* equiv_template_param_lists */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- allow_missing_member_constraint is not used
-                 in this case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_boolean reconcile_template_param_lists(
 			a_template_param_ptr  param_list,
 		        a_tmpl_decl_state_ptr decl_state,
@@ -19368,7 +19362,7 @@ a_boolean reconcile_template_param_lists(
 			a_source_position     *error_pos,
 			a_boolean	      default_allowed,
 			a_boolean	      checking_parent_params,
-			a_boolean	      allow_missing_member_constraint,
+			ARG_UNUSED a_boolean  allow_missing_member_constraint,
 			an_error_severity     error_severity)
 /*
 Compare the template parameter list of the template declaration currently
@@ -23726,16 +23720,13 @@ Scan the default argument of the type template parameter specified by tpp.
 }  /* scan_type_template_param_default_arg */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/  /* decl_pos_block is not used in some configurations. */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 static a_template_param_ptr decl_type_template_param(
-                                   a_template_param_list_pos  param_pos,
-                                   a_symbol_locator           *loc,
-                                   a_boolean                  is_named,
-                                   a_boolean                  is_pack,
-                                   a_tmpl_decl_state          *decl_state,
-                                   a_decl_pos_block           *decl_pos_block)
+                                   a_template_param_list_pos   param_pos,
+                                   a_symbol_locator            *loc,
+                                   a_boolean                   is_named,
+                                   a_boolean                   is_pack,
+                                   a_tmpl_decl_state           *decl_state,
+                                   ARG_UNUSED a_decl_pos_block *decl_pos_block)
 /*
 Create the IL and front end structure to represent a template type parameter
 (or a type parameter pack).  param_pos is the position of the parameter in a
@@ -24533,6 +24524,7 @@ to represent the template parameters.
            declaration scope. */
         decl_state->decl_info->parameters = template_param_list;
       } else {
+        check_assertion(end_of_template_param_list != NULL);
         end_of_template_param_list->next = template_param;
       }  /* if */
       end_of_template_param_list = template_param;
@@ -27879,12 +27871,9 @@ information is obtained from decl_state.
 }  /* check_alias_template_param_usage */
 
 
-#if !GENERATE_SOURCE_SEQUENCE_LISTS
-/*ARGSUSED*/ /* <-- decl_state is not used in that case. */
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 static void alias_prototype_instantiation(
-			a_tmpl_decl_state_ptr	decl_state,
-			a_symbol_ptr		template_sym)
+			ARG_UNUSED a_tmpl_decl_state_ptr	decl_state,
+			a_symbol_ptr				template_sym)
 /*
 This routine is called to do the prototype instantiation of the template
 alias specified by template_sym.  This is done to detect those errors that
@@ -29205,7 +29194,8 @@ issued.
                                           ? parent_class_of(parent_tp) : NULL;
     }  /* while */
   }  /* if */
-  if ((unsigned long)depth != (decl_state->number_of_template_param_clauses +
+  if ((unsigned long)(long)depth !=
+                              (decl_state->number_of_template_param_clauses +
                                decl_state->friend_depth) &&
       !decl_state->decl_scope_err && !decl_state->friend_depth_known) {
     /* The depths do not match, issue a diagnostic.  Don't set decl_scope_err
@@ -31347,6 +31337,7 @@ to TRUE.
     a_symbol_kind	sym_kind = tpp->param_symbol->kind;
     /* Update the nesting depth of the template parameter, if needed. */
     if (update_nesting_depths) {
+      check_assertion(decl_state != NULL);
       *nesting_depth_addr_of_template_param(tpp) = decl_state->nesting_depth;
     }  /* if */
     if (sym_kind == (a_symbol_kind)sk_class_template) {
@@ -31427,8 +31418,9 @@ instantiations of any template default arguments now.
          depth to the depth of the friend entity found, but subtract out
          the number of template parameter clauses so that the depth will be
          recomputed properly below. */
-      decl_state->nesting_depth = decl_state->friend_depth -
-                                  decl_state->number_of_template_param_clauses;
+      decl_state->nesting_depth = (a_template_nesting_depth)
+                                (decl_state->friend_depth -
+                                 decl_state->number_of_template_param_clauses);
       update_nesting_depths = TRUE;
     } else if (!is_nonreal_instantiation_context()) {
       decl_state->nesting_depth = decl_state->friend_depth;
@@ -32162,11 +32154,8 @@ added, FALSE if it was already on the list.
 }  /* add_to_instantiations_required_list */
 
 
-#if !DO_IL_LOWERING || !IA64_ABI
-/*ARGSUSED*/ /* <-- in_class is not used in that case. */
-#endif /* !DO_IL_LOWERING || !IA64_ABI */
 static a_boolean is_inline_template_function(a_template_instance_ptr tip,
-                                             a_boolean               in_class)
+                                             ARG_UNUSED a_boolean    in_class)
 /*
 Determines whether a template instance pointer refers to a function that
 is inline.  This involves more than simply checking the is_inline flag
@@ -32333,13 +32322,9 @@ static a_boolean exported_definition_is_available(
 						a_template_instance_ptr	tip);
 
 
-#if !INSTANTIATION_BY_IMPLICIT_INCLUSION
-/*ARGSUSED*/ /* <-- implicit_inclusion_okay is not used if no implicit
-                 inclusion. */
-#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 static a_boolean should_be_instantiated(
 			a_template_instance_ptr tip,
-			a_boolean		implicit_inclusion_okay)
+			ARG_UNUSED a_boolean	implicit_inclusion_okay)
 /*
 Determines whether this template instance needs an instantiation and
 generates any errors caused by conflicting instantiation information
@@ -33049,7 +33034,7 @@ and later check whether a specified name was included in that list.
     hash_value = *ptr++;
     hash_value = (hash_value * HASH_FACTOR) + *ptr++;
     hash_value = (hash_value * HASH_FACTOR) + *ptr;
-    ptr = (unsigned char *)name + (length >> 1) - 1;
+    ptr = (unsigned char *)name + (length >> 1) - 1; /*lint !e679*/
     hash_value = (hash_value * HASH_FACTOR) + *ptr++;
     hash_value = (hash_value * HASH_FACTOR) + *ptr++;
     hash_value = (hash_value * HASH_FACTOR) + *ptr;
@@ -33915,7 +33900,7 @@ exist.  This is used to find the definition of an exported template.
     hash_value = *ptr++;
     hash_value = (hash_value * HASH_FACTOR) + *ptr++;
     hash_value = (hash_value * HASH_FACTOR) + *ptr;
-    ptr = (unsigned char *)name + (length >> 1) - 1;
+    ptr = (unsigned char *)name + (length >> 1) - 1; /*lint !e679*/
     hash_value = (hash_value * HASH_FACTOR) + *ptr++;
     hash_value = (hash_value * HASH_FACTOR) + *ptr++;
     hash_value = (hash_value * HASH_FACTOR) + *ptr;
@@ -36645,7 +36630,7 @@ this routine is called indirectly for a class instantiation.
 #define set_instantiation_flags(r)                                            \
   (r)->explicit_instantiation = tip->explicit_instantiation;                  \
   (r)->class_explicitly_instantiated = tip->class_explicitly_instantiated;    \
-  (r)->explicit_do_not_instantiate = tip->explicit_do_not_instantiate;
+  (r)->explicit_do_not_instantiate = tip->explicit_do_not_instantiate
       set_instantiation_flags(rp);
 #if IA64_ABI && DO_IL_LOWERING
       /* Alternate entry points of constructors and destructors get
@@ -36899,16 +36884,13 @@ symbol, otherwise we return NULL.
 
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* decl_pos_block is used only when extra source positions are
-                put out in the IL. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static
-void make_instantiation_directive(a_pragma_kind                pragma_kind,
-                                  a_decl_parse_state_ptr       dps,
-                                  a_symbol_ptr                 sym,
-                                  a_source_sequence_entry_ptr  ssep,
-                                  a_decl_pos_block_ptr         decl_pos_block)
+void make_instantiation_directive(
+                                a_pragma_kind                   pragma_kind,
+                                a_decl_parse_state_ptr          dps,
+                                a_symbol_ptr                    sym,
+                                a_source_sequence_entry_ptr     ssep,
+                                ARG_UNUSED a_decl_pos_block_ptr decl_pos_block)
 /*
 Create an IL entry to represent an instantiation directive.  pragma_kind is
 used to distinguish an instantiation directive from a "do not instantiate"
