@@ -2998,6 +2998,7 @@ description of the parameters.
   a_type_ptr     result_elem_type;
   sizeof_t       elem_no;
 
+  result_type = skip_typerefs(result_type);
   check_assertion(result_type->kind == (a_type_kind)tk_vector &&
                   constant->kind == (a_constant_repr_kind)ck_aggregate);
   result_elem_type = result_type->variant.vector.element_type;
@@ -3107,7 +3108,7 @@ for any diagnostics issued.
        a constant known at compile time. */
     *did_not_fold = TRUE;
 #if GNU_VECTOR_TYPES_ALLOWED
-  } else if (result_type->kind == (a_type_kind)tk_vector) {
+  } else if (is_vector_type(result_type)) {
     /* Perform the operation recursively on each of the elements of the
        vector. */
     decompose_vector_unary_operation(op, constant, result_type, result,
