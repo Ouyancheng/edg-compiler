@@ -385,10 +385,9 @@ for list pointers, i.e., "next" pointers and start-of-list pointers.
 }  /* remap_secondary_list_ptr_to_primary */
 
 
-/*ARGSUSED*/ /* <-- "kind" is not used. */
-static void copy_string_entry(char             *ptr,
-                              an_il_entry_kind kind,
-                              sizeof_t         length)
+static void copy_string_entry(char                        *ptr,
+                              ARG_UNUSED an_il_entry_kind kind,
+                              sizeof_t                    length)
 /*
 Called during the IL walk that copies IL from the secondary translation
 unit to the primary translation unit, to copy the string IL entry at ptr
@@ -1871,6 +1870,7 @@ Macros that do saves/restores needed for each overwrite_primary_xxx
 routine, used when an IL entry in the secondary translation unit
 IL is copied on top of an existing entry in the primary IL.
 */
+/*lint -e823*/
 #if MAINTAIN_NEEDED_FLAGS
 #define save_needed_flag_for_overwrite(primary_entry) \
   a_boolean saved_needed = (primary_entry)->source_corresp.needed;
@@ -1901,6 +1901,7 @@ IL is copied on top of an existing entry in the primary IL.
   (primary_entry)->next = saved_next; \
   restore_needed_flag_for_overwrite(primary_entry) \
   restore_per_instantiation_needed_flags_for_overwrite(primary_entry)
+/*lint +e823*/
 
 
 static void overwrite_primary_type(a_type_ptr type,
@@ -2647,10 +2648,7 @@ into the primary translation unit il_header.
 }  /* merge_il_headers */
 
 
-#if !INSTANTIATE_EXTERN_INLINE
-/*ARGSUSED*/  /* <-- routine is not used in that case. */
-#endif /* !INSTANTIATE_EXTERN_INLINE */
-static void ensure_routine_is_on_inline_list(a_routine_ptr routine)
+static void ensure_routine_is_on_inline_list(ARG_UNUSED a_routine_ptr routine)
 /*
 The indicated routine has been copied or merged from the secondary
 translation unit IL to the primary IL.  routine points to the copy in the
@@ -3122,9 +3120,9 @@ calls are passed to the remap routine.
 }  /* remap_secondary_pointer_for_mark */
 
 
-/*ARGSUSED*/ /* <-- "kind" is not used. */
-static a_boolean mark_secondary_termination_test(char             *ptr,
-                                                 an_il_entry_kind kind)
+static a_boolean mark_secondary_termination_test(
+                                              char                        *ptr,
+                                              ARG_UNUSED an_il_entry_kind kind)
 /*
 Called during the IL walk for
 mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed
@@ -3286,9 +3284,9 @@ primary IL.
 }  /* remap_secondary_pointer_for_rewrite */
 
 
-/*ARGSUSED*/ /* <-- "kind" is not used. */
-static a_boolean rewrite_secondary_termination_test(char             *ptr,
-                                                    an_il_entry_kind kind)
+static a_boolean rewrite_secondary_termination_test(
+                                              char                        *ptr,
+                                              ARG_UNUSED an_il_entry_kind kind)
 /*
 Called during the IL walk for
 rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary to

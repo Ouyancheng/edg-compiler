@@ -160,6 +160,7 @@ Macro like trans_unit_corresp_of, but that can operate on a char* pointer
 or a direct source correspondence pointer.
 */
 #if EXPENSIVE_CHECKING
+/*lint -emacro(664,trans_unit_corresp_of_unknown_entry)*/
 #define trans_unit_corresp_of_unknown_entry(ptr)			  \
   (*(check_assertion(in_front_end),                                       \
      &((a_source_correspondence*)(ptr))->trans_unit_corresp))

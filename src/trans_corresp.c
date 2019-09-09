@@ -426,13 +426,13 @@ The given entity should have a source correspondence.
   check_assertion(kind != (an_il_entry_kind)iek_base_class);
   /* Is the parent canonical? */
   if (scp->is_class_member) {
-    if (canonical_il_entry_of(scp_parent_class(scp)) ==
-                                               (char*)scp_parent_class(scp)) {
+    a_type_ptr parent_class = scp_parent_class(scp);
+    if (canonical_il_entry_of(parent_class) == (char*)parent_class) {
       rank = 1;
     }  /* if */
   } else if (scp_is_namespace_member(scp)) {
-    if (canonical_il_entry_of(scp_parent_namespace(scp)) ==
-                                           (char*)scp_parent_namespace(scp)) {
+    a_namespace_ptr parent_ns = scp_parent_namespace(scp);
+    if (canonical_il_entry_of(parent_ns) == (char*)parent_ns) {
       rank = 1;
     }  /* if */
   }  /* if */
@@ -881,11 +881,9 @@ has not yet been examined for a matching entry in another translation unit.
   f_set_no_trans_unit_corresp((an_il_entry_kind)kind, (char*)(ptr))
 
 
-#if !CHECKING
-/*ARGSUSED*/ /* The kind parameter is only used for consistency checking. */
-#endif /* CHECKING */
-static void f_set_unvisited_trans_unit_corresp(an_il_entry_kind  kind,
-                                               char              *entity)
+static void f_set_unvisited_trans_unit_corresp(
+                                           ARG_UNUSED an_il_entry_kind kind,
+                                           char                        *entity)
 /*
 Detach the given IL entity from a translation unit correspondence entry
 and free the correspondence entry.
@@ -3159,12 +3157,9 @@ done:
 
 #if DECL_MODIFIERS_IN_USE
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* The parameters are only used to check Microsoft-specific
-                declaration modifiers. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static a_boolean incompatible_variable_decl_modifiers(a_variable_ptr  var1,
-                                                      a_variable_ptr  var2)
+static a_boolean incompatible_variable_decl_modifiers(
+                                               ARG_UNUSED a_variable_ptr  var1,
+                                               ARG_UNUSED a_variable_ptr  var2)
 /*
 Return TRUE if and only if the two corresponding variables have incompatible
 declaration modifiers.
@@ -3545,12 +3540,8 @@ none was recorded.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DECL_MODIFIERS_IN_USE
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* The parameters are only used to check Microsoft-specific
-                declaration modifiers. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static a_boolean incompatible_class_decl_modifiers(a_type_ptr  tp1,
-                                                   a_type_ptr  tp2)
+static a_boolean incompatible_class_decl_modifiers(ARG_UNUSED a_type_ptr  tp1,
+                                                   ARG_UNUSED a_type_ptr  tp2)
 /*
 Return TRUE if and only if the two corresponding class types have incompatible
 declaration modifiers.
@@ -7753,6 +7744,7 @@ point to the same entity or entities that have the same canonical entry.
 {
   return ptr1 == ptr2 ||
          (ptr1 != NULL && ptr2 != NULL && in_front_end &&
+          /*lint -e666*/
           same_trans_unit_corresps(trans_unit_corresp_of_unknown_entry(ptr1),
                                    trans_unit_corresp_of_unknown_entry(ptr2)));
 }  /* ff_same_entities */
