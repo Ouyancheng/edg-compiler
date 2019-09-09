@@ -11329,58 +11329,64 @@ Evaluate the given new-expression.
     int                 k = 0;
     a_byte              *elem = cap->address,
                         *complete_obj = cap->complete_object;
-    if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate &&
-        constant_is(dip->variant.constant.ptr, ck_aggregate) &&
-        dip->variant.constant.ptr->variant.aggregate.first_constant != NULL &&
-        constant_is(dip->variant.constant.ptr
-                       ->variant.aggregate.first_constant, ck_init_repeat) &&
-        dip->variant.constant.ptr->variant.aggregate.first_constant
-                                 ->variant.init_repeat.count == 0) {
-      /* A variable-size array initialization represented with a zero-length
-         array count. */
-      a_constant_ptr  aggr_con = dip->variant.constant.ptr,
-                      repeat_con = aggr_con->variant.aggregate.first_constant,
-                      elem_con = repeat_con->variant.init_repeat.constant;
-      if (type_is(elem_type, tk_array)) {
-        alloc_length *= (a_byte_count)num_array_elements(elem_type);
-      }  /* if */
-      for (; k<(int)alloc_length; ++k, elem += elem_size) {
-        if (!extract_value_from_constant(ips, elem_con, elem, complete_obj)) {
-          result = FALSE;
-          break;
-        }  /* if */
-      }  /* for */
-    } else {
-      /* In some cases the initializer is a braced list whose number of
-         elements is potentially larger than the number of elements allocated.
-         For example, "new int[n]{1, 2, 3}" where n evaluates to 2.  Check for
-         that (non-constant) case. */
-      if ((dip->kind == (a_dynamic_init_kind)dik_constant ||
-           dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) &&
-          length_expr != NULL) {
-        a_constant_ptr  init_cp = dip->variant.constant.ptr;
-        if (constant_is(init_cp, ck_aggregate)) {
-          a_type_ptr  init_tp = skip_typerefs(init_cp->type);
-          if (type_is(init_tp, tk_array) &&
+    if (dip->kind == (a_dynamic_init_kind)dik_constant ||
+        dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+      a_constant_ptr  init_cp = dip->variant.constant.ptr;
+      if (constant_is(init_cp, ck_aggregate)) {
+        a_type_ptr  init_tp = skip_typerefs(init_cp->type);
+        if (type_is(init_tp, tk_array)) {
+          a_constant_ptr  elem_cp = init_cp->variant.aggregate.first_constant;
+          /* In some cases the initializer is a braced list whose number of
+             elements is potentially larger than the number of elements
+             allocated.  For example, "new int[n]{1, 2, 3}" where n evaluates
+             to 2.  Check for that (non-constant) case. */
+          if (length_expr != NULL &&
               init_tp->variant.array.variant.number_of_elements >
-                                                               alloc_length) {
+                                                             alloc_length) {
             info_with_pos_num(ec_constexpr_alloc_too_small,
                               &length_expr->position,
                               (a_byte_count)alloc_length, ips);
             do_constexpr_fail(result);
             goto done;
           }  /* if */
+          /* Initialize element-by-element. */
+          for (; k<(int)alloc_length; ++k, elem += elem_size) {
+            if (elem_cp == NULL) goto done;
+            if (constant_is(elem_cp, ck_init_repeat) &&
+                elem_cp->variant.init_repeat.count == 0) {
+              /* A ck_init_repeat entry with zero count indicates that the
+                 remainder of the array should be filled with that
+                 initializer. */
+              if (!extract_value_from_constant(
+                                   ips, elem_cp->variant.init_repeat.constant,
+                                   elem, complete_obj)) {
+                result = FALSE;
+                goto done;
+              }  /* if */
+            } else {
+              /* A normal array element value to evaluate. */
+              if (!extract_value_from_constant(ips, elem_cp, elem,
+                                               complete_obj)) {
+                result = FALSE;
+                goto done;
+              }  /* if */
+              elem_cp = elem_cp->next;
+            }  /* if */
+          }  /* for */
+          mark_complete_object_initialized(complete_obj);
+          goto done;
         }  /* if */
       }  /* if */
-      for (; k<(int)alloc_length; ++k, elem += elem_size) {
-        if (!do_constexpr_dynamic_init(ips, dip, &expr->position, elem,
-                                       complete_obj)) {
-          result = FALSE;
-          break;
-        }  /* if */
-        mark_subobject_initialized(elem, complete_obj);
-      }  /* for */
     }  /* if */
+    /* The initializer is not an array aggregate initializer. */
+    for (; k<(int)alloc_length; ++k, elem += elem_size) {
+      if (!do_constexpr_dynamic_init(ips, dip, &expr->position, elem,
+                                     complete_obj)) {
+        result = FALSE;
+        break;
+      }  /* if */
+      mark_subobject_initialized(elem, complete_obj);
+    }  /* for */
     mark_complete_object_initialized(complete_obj);
   }  /* if */
 done:
