@@ -1856,7 +1856,7 @@ and may have extra operands at the end).
 {
   a_const_char  *temp_ptr;
   a_line_number temp_line;
-  int           digit;
+  a_line_number digit;
   a_const_char  *temp_file;
   a_boolean     bad_line_number;
   a_boolean     from_system_include = FALSE;
@@ -1913,7 +1913,7 @@ and may have extra operands at the end).
     }  /* if */
     temp_line *= 10;
     digit = *temp_ptr - '0';
-    if (temp_line > MAX_LINE_NUMBER-(unsigned long)digit) {
+    if (temp_line > MAX_LINE_NUMBER-digit) {
       bad_line_number = TRUE;
       break;
     }  /* if */
@@ -2469,8 +2469,7 @@ being scanned is a Microsoft __pragma operator.
 }  /* enter_pending_pragma */
 
 
-/*ARGSUSED*/ /* <-- ppp is not used. */
-void once_pragma(a_pending_pragma_ptr	ppp)
+void once_pragma(ARG_UNUSED a_pending_pragma_ptr	ppp)
 /*
 Process a "#pragma once" directive.  This directive indicate that
 this file should be included only once, and if it is #included
@@ -2488,8 +2487,7 @@ Record this information in the input stack entry.
 }  /* once_pragma */
 
 
-/*ARGSUSED*/ /* <-- ppp is not used. */
-void hdrstop_or_no_pch_pragma(a_pending_pragma_ptr ppp)
+void hdrstop_or_no_pch_pragma(ARG_UNUSED a_pending_pragma_ptr ppp)
 /*
 A PCH control pragma.  The actual processing of these
 pragmas is handled in the special prefix processing code for
@@ -2562,8 +2560,7 @@ short_name.
 }  /* create_include_alias_entry */
 
 
-/*ARGSUSED*/ /* <-- ppp is not used. */
-void microsoft_include_alias_pragma(a_pending_pragma_ptr ppp)
+void microsoft_include_alias_pragma(ARG_UNUSED a_pending_pragma_ptr ppp)
 /*
 Process a Microsoft include alias pragma.  The form of the pragma is:
 
@@ -3105,8 +3102,7 @@ If there are any current token pragmas that are C99 predefined pragmas
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 
-/*ARGSUSED*/  /* <-- ppp is not used. */
-static void process_gnu_visibility_pragma(a_pending_pragma_ptr  ppp)
+static void process_gnu_visibility_pragma(ARG_UNUSED a_pending_pragma_ptr  ppp)
 /*
 Handle
 	#pragma GCC visibility push(<ELF-visibility>)
@@ -3255,7 +3251,7 @@ static a_gcc_pragma_options_entry_ptr
 			   for reuse. */
 
 
-static a_gcc_pragma_options_entry_ptr alloc_gcc_pragma_options_entry()
+static a_gcc_pragma_options_entry_ptr alloc_gcc_pragma_options_entry(void)
 /*
 Allocate and return a GCC pragma options entry.
 */

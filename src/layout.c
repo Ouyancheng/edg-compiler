@@ -1407,16 +1407,13 @@ larger than targ_minimum_struct_alignment).  Otherwise, FALSE is returned.
 }  /* is_empty_class_type */
 
 
-#if !IA64_ABI
-/*ARGSUSED*/  /* <-- atype_bcp, consider_virtual_bases are not used
-                     in that case. */
-#endif /* !IA64_ABI */
-static a_boolean empty_base_conflict(a_type_ptr       etype, 
-                                     a_type_ptr       atype,
-                                     a_base_class_ptr atype_bcp,
-                                     a_targ_size_t    offset,
-                                     a_boolean        consider_virtual_bases,
-                                     a_boolean        consider_fields)
+static a_boolean empty_base_conflict(
+                            a_type_ptr                  etype, 
+                            a_type_ptr                  atype,
+                            ARG_UNUSED a_base_class_ptr atype_bcp,
+                            a_targ_size_t               offset,
+                            ARG_UNUSED a_boolean        consider_virtual_bases,
+                            a_boolean                   consider_fields)
 /*
 Determine whether a subobject of type etype (an empty class type) can be
 allocated at offset bytes from the start of another (not necessarily empty)
@@ -2775,14 +2772,11 @@ there's no overflow TRUE is returned.
 }  /* set_field_size_and_offset */
 
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- bcp is not used in that case. */
-#endif /* !IA64_ABI */
 static a_targ_size_t set_offset_and_alignment(
-                                    a_layout_block_ptr  lob,
-                                    a_targ_size_t       size,
-                                    a_targ_alignment    alignment,
-                                    a_base_class_ptr    bcp)
+                                    a_layout_block_ptr          lob,
+                                    a_targ_size_t               size,
+                                    a_targ_alignment            alignment,
+                                    ARG_UNUSED a_base_class_ptr bcp)
 /*
 Given a subobject of the specified size in bytes and requiring the specified
 alignment, allocate space for it in the class whose current status is

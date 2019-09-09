@@ -6742,6 +6742,7 @@ symbol; otherwise return the original symbol.
 Given a symbol kind (associated with a template parameter) return the
 template argument kind to be used.
 */
+/*lint -emacro(641,templ_arg_kind_for_symbol_kind)*/
 #define templ_arg_kind_for_symbol_kind(sym_kind)			\
   ((a_templ_arg_kind)((sym_kind) == (a_symbol_kind)sk_type ? tak_type :	\
    ((sym_kind) == (a_symbol_kind)sk_constant ? tak_nontype : tak_template)))

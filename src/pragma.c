@@ -942,7 +942,7 @@ there is additional processing to be done.
 #if DEBUG
     if (db_flag_is_set("add_pragma_to_il")) {
       fprintf(f_debug, "Adding pragma at seq=%u, col=%u to depth %d\n",
-              pp->position.seq, pp->position.column, scope_depth);
+              pp->position.seq, (unsigned)pp->position.column, scope_depth);
     }  /* if */
 #endif /* DEBUG */
     /* coverity[var_deref_model] */
@@ -1275,6 +1275,7 @@ instead of looking through all of the active scope stack entries.
         if (new_list == NULL) {
           new_list = ppp;
         } else {
+          check_assertion(end_of_new_list != NULL);
           end_of_new_list->next = ppp;
         }  /* if */
         ppp->next = NULL;
@@ -1609,10 +1610,9 @@ by EDG for testing purposes.
 }  /* test_immediate_pragma */
 
 
-/*ARGSUSED*/ /* Parameter are not used. */
-void test_next_construct_pragma(a_pending_pragma_ptr ppp,
-				a_symbol_ptr	     sym_ptr,
-				a_statement_ptr	     stmt_ptr)
+void test_next_construct_pragma(ARG_UNUSED a_pending_pragma_ptr ppp,
+				ARG_UNUSED a_symbol_ptr	        sym_ptr,
+				ARG_UNUSED a_statement_ptr      stmt_ptr)
 /*
 Routine called by the test_next_decl and test_next_statement pragmas that
 are included by EDG for testing purposes.

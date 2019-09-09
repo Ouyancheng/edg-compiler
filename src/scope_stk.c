@@ -1560,8 +1560,9 @@ that made it visible.
        sequence number or the one associated with the using directive
        now being processed.  If the namespace that nominated this namespace
        should not be visible then neither should this one. */
-    effective_decl_seq = parent_decl_seq > udp->decl_sequence_number ?
-                                 parent_decl_seq : udp->decl_sequence_number;
+    effective_decl_seq = (a_decl_sequence_number)
+                         (parent_decl_seq > udp->decl_sequence_number ?
+                                 parent_decl_seq : udp->decl_sequence_number);
     add_active_using_directive_to_scope(udp, ssep, effective_decl_seq);
     udp = udp->next;
   }  /* while */
@@ -2973,6 +2974,7 @@ the scope being pushed.
        kind == (a_scope_kind)sck_namespace_extension ||
        kind == (a_scope_kind)sck_namespace_reactivation ||
        (kind == (a_scope_kind)sck_class_struct_union &&
+        /*lint --e(413)*/
         base_classes_of(assoc_type) != NULL))) {
     ssep->inactive_symbols_may_be_visible = TRUE;
   } else if (kind != (a_scope_kind)sck_file) {
@@ -3018,6 +3020,7 @@ the scope being pushed.
         kind == (a_scope_kind)sck_template_instantiation ||
         kind == (a_scope_kind)sck_instantiation_context ||
         (kind == (a_scope_kind)sck_class_struct_union &&
+         /*lint --e(413)*/
          class_type_supp(assoc_type)->is_lambda_closure_class)) {
       ssep->slow_lookup_required = TRUE;
     } else if (kind != (a_scope_kind)sck_file) {
@@ -3036,6 +3039,7 @@ the scope being pushed.
       }  /* if */
       /* Determine whether this scope represents the specialization of a
          class. */
+      check_assertion(assoc_type != NULL);
       ssep->in_class_specialization =
                        assoc_type->variant.class_struct_union.is_specialized;
  
@@ -3059,6 +3063,7 @@ the scope being pushed.
          the type or constant specified by the corresponding template argument.
          The old values do not need to be saved because they can be easily
          recreated by pop_scope. */
+      check_assertion(template_decl_info != NULL);
       update_template_param_symbols(template_decl_info->parameters,
                                     template_arg_list);
       /* The current stack state is suspended when an template instantiation
@@ -3102,6 +3107,7 @@ the scope being pushed.
     } else if (kind != (a_scope_kind)sck_file &&
                kind != (a_scope_kind)sck_instantiation_context) {
       if (kind == (a_scope_kind)sck_function &&
+          /*lint --e(413)*/
           assoc_routine->compiler_generated &&
           !assoc_routine->is_prototype_instantiation) {
         /* If the definition of a compiler-generated routine is kicked off
@@ -3202,6 +3208,7 @@ the scope being pushed.
     } else if (kind == (a_scope_kind)sck_template_instantiation) {
       /* For template instantiations use the linkage of the template
          declaration. */
+      check_assertion(template_decl_info != NULL);
       ssep->default_name_linkage = template_decl_info->name_linkage;
       ssep->name_linkage_is_explicit = FALSE;
     } else {
@@ -3234,6 +3241,7 @@ the scope being pushed.
         (kind == (a_scope_kind)sck_template_instantiation &&
          (options & PS_MICROSOFT_SPECIALIZATION) == 0) ||
         (kind == (a_scope_kind)sck_class_struct_union &&
+         /*lint --e(413)*/
          !class_type_supp(assoc_type)->is_lambda_closure_class)) {
       /* A scope that introduces a new level at which deferred access
          checks may be recorded. */
@@ -3248,8 +3256,10 @@ the scope being pushed.
                kind == (a_scope_kind)sck_enum ||
                kind == (a_scope_kind)sck_condition ||
                (kind == (a_scope_kind)sck_function &&
+                /*lint --e(413)*/
                 assoc_routine->is_lambda_body) ||
                (kind == (a_scope_kind)sck_class_struct_union &&
+                /*lint --e(413)*/
                 class_type_supp(assoc_type)->is_lambda_closure_class)) {
       /* The current deferred access scope is left unchanged. */
     } else {
@@ -3304,7 +3314,7 @@ the scope being pushed.
         kind == (a_scope_kind)sck_namespace_reactivation) {
       /* Set the scope-pointers-block pointer to refer to the namespace
          symbol supplement. */
-      a_symbol_ptr  sym = symbol_for(assoc_namespace);
+      a_symbol_ptr  sym = symbol_for(assoc_namespace) /*lint !e413*/;
       a_namespace_symbol_supplement_ptr
                     nssp = sym->variant.namespace_info.extra_info;
       ssep->assoc_pointers_block = &nssp->pointers_block;
@@ -3339,6 +3349,7 @@ the scope being pushed.
   }  /* if */
   if (kind == (a_scope_kind)sck_class_struct_union) {
     a_class_symbol_supplement_ptr cssp;
+    check_assertion(assoc_type != NULL);
     cssp = symbol_supplement_for_class(assoc_type);
     ssep->assoc_pointers_block = &cssp->pointers_block;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3352,6 +3363,7 @@ the scope being pushed.
     /* For class reactivation scopes, use the lookup table created when the
        class was scanned. */
     a_class_symbol_supplement_ptr cssp;
+    check_assertion(assoc_type != NULL);
     cssp = symbol_supplement_for_class(assoc_type);
     ssep->pointers_block.lookup_table = cssp->pointers_block.lookup_table;
   } else if (kind == (a_scope_kind)sck_file) {
@@ -4782,7 +4794,7 @@ template_sym is the template that is being instantiated.
   /* Find the innermost instantiation scope, but stop searching
      if we're inside a function. */
   instantiation_ssep = &scope_stack[depth_innermost_instantiation_scope];
-  /*lint --e{446} ssep modified in loop (LINTBUG) */
+  /*lint --e{446,850} ssep modified in loop (LINTBUG) */
   for (ssep = &scope_stack[depth_scope_stack];
        ssep != NULL && ssep != instantiation_ssep;
        ssep = previous_scope_of(ssep)) {
@@ -10973,6 +10985,7 @@ lengths) *err is set to TRUE, FALSE otherwise.
     if (new_pack_list == NULL) {
       new_pack_list = new_prp;
     } else {
+      check_assertion(new_pack_tail != NULL);
       new_pack_tail->next = new_prp;
     }  /* if */
     new_pack_tail = new_prp;
@@ -11451,10 +11464,6 @@ will be NULL outside of template dependent contexts.
 }  /* push_pack_suppression */
 
 
-#if !GENERATE_SOURCE_SEQUENCE_LISTS
-/*ARGSUSED*/ /* saved_source_sequence_entries_disallowed is not used in some
-                configurations. */
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 void begin_prescan_context(
 	a_boolean		suppress_packs,
 	a_boolean		*packs_suppressed,
@@ -11462,7 +11471,7 @@ void begin_prescan_context(
 				*pack_expansion_stack_entry,
 	a_boolean		*saved_in_disambiguation,
 	a_boolean		*saved_in_auto_prescan,
-	a_boolean
+	ARG_UNUSED a_boolean
 				*saved_source_sequence_entries_disallowed)
 /*
 Update the scope stack to indicate that we are in a prescan or
@@ -11502,17 +11511,13 @@ suppress_packs is FALSE.
 }  /* begin_prescan_context */
 
 
-#if !GENERATE_SOURCE_SEQUENCE_LISTS
-/*ARGSUSED*/ /* saved_source_sequence_entries_disallowed is not used in some
-                configurations. */
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 void end_prescan_context(
 	a_boolean		packs_suppressed,
 	a_pack_expansion_stack_entry_ptr
 				pack_expansion_stack_entry,
 	a_boolean		saved_in_disambiguation,
 	a_boolean		saved_in_auto_prescan,
-	a_boolean
+	ARG_UNUSED a_boolean
 				saved_source_sequence_entries_disallowed)
 /*
 Update the scope stack to indicate that we are no longer in a prescan or
@@ -12013,7 +12018,8 @@ that list to pedp.
         for (prp = pedp->packs_referenced; prp != NULL; prp = prp->next) {
           fprintf(f_debug, "  ");
           db_symbol_name(prp->symbol);
-          fprintf(f_debug, " at tsn %lu\n", (long)prp->token_sequence_number);
+          fprintf(f_debug, " at tsn %lu\n",
+                  (unsigned long)prp->token_sequence_number);
         }  /* for */
       }  /* if */
 #endif /* DEBUG */
@@ -12535,7 +12541,8 @@ form.
           } else {
             db_type_name(bases_type);
           }  /* if */
-          fprintf(f_debug, " at tsn %lu\n", (long)curr_token_sequence_number);
+          fprintf(f_debug, " at tsn %lu\n",
+                  (unsigned long)curr_token_sequence_number);
         }  /* if */
 #endif /* DEBUG */
       }  /* if */
