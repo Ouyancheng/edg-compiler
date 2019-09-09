@@ -777,7 +777,7 @@ done:;
 #define unlink_il_scope_src_seq_entry(ssep, il_scope)                 \
   unlink_src_seq_entries((ssep), (ssep),                              \
                          &(il_scope)->source_sequence_list,           \
-                         (a_source_sequence_entry_ptr *)NULL);
+                         (a_source_sequence_entry_ptr *)NULL)
 
 void add_source_sequence_entry_to_list(a_source_sequence_entry_ptr  new_ssep)
 /*
@@ -2142,16 +2142,12 @@ in the secondary source sequence entry that need to be set.
 }  /* set_src_seq_secondary_decl_fields */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
-                information is being recorded in the IL. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 a_src_seq_secondary_decl_ptr update_src_seq_secondary_decl(
-                                        char                  *il_entry_ptr,
-                                        a_type_ptr            declared_type,
-                                        a_name_reference_ptr  name_ref,
-                                        an_sssd_flag_set      flags,
-                                        a_decl_pos_block_ptr  decl_pos_block)
+                                char                            *il_entry_ptr,
+                                a_type_ptr                      declared_type,
+                                a_name_reference_ptr            name_ref,
+                                an_sssd_flag_set                flags,
+                                ARG_UNUSED a_decl_pos_block_ptr decl_pos_block)
 /*
 Call set_src_seq_secondary_decl_fields to set the declared_type field and
 various flags in the secondary-decl source sequence entry associated with

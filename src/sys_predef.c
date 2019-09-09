@@ -1633,12 +1633,10 @@ done:
 }  /* target_specific_distinction */
 
 
-#if !USE_X86_FUNCTION_MULTIVERSIONING
-/*ARGSUSED*/ /* No arguments are used in this case. */
-#endif /* !USE_X86_FUNCTION_MULTIVERSIONING */
-a_routine_ptr find_existing_mv_routine(a_routine_ptr        representative,
-                                       a_routine_ptr        candidate,
-                                       an_attribute_arg_ptr aap)
+a_routine_ptr find_existing_mv_routine(
+                                ARG_UNUSED a_routine_ptr        representative,
+                                ARG_UNUSED a_routine_ptr        candidate,
+                                ARG_UNUSED an_attribute_arg_ptr aap)
 /*
 Returns a pointer to a target-specific version routine with the same
 "target" attributes as "candidate" or NULL if none is found.
@@ -1688,14 +1686,11 @@ attribute processing to check for re-declarations.
 
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
 
-#if !USE_X86_FUNCTION_MULTIVERSIONING
-/*ARGSUSED*/ /* No arguments are used in this case. */
-#endif /* !USE_X86_FUNCTION_MULTIVERSIONING */
-void validate_target_argument(a_const_char         *str,
-                              size_t               str_len,
-                              an_attribute_arg_ptr aap,
-                              a_routine_ptr        routine,
-                              a_boolean            *error_issued)
+void validate_target_argument(ARG_UNUSED a_const_char         *str,
+                              ARG_UNUSED size_t               str_len,
+                              ARG_UNUSED an_attribute_arg_ptr aap,
+                              ARG_UNUSED a_routine_ptr        routine,
+                              ARG_UNUSED a_boolean            *error_issued)
 /*
 Validates the "target" attribute pointed to by str whose length is
 str_len.  The attribute argument is pointed to by aap and is being

@@ -27,9 +27,12 @@ variables to a particular set of target-specific values.
 #define TARGET_MAP_ROUTINE_NAME(config) \
   concat(set_target_config ## _, config)(void)
 /* Assign the target-specific macro value to the associated global variable. */
+/*lint -estring(823,TARGET_MAP_MACRO)*/
 #define TARGET_MAP_MACRO(config_macro, global_var, config) \
   (global_var) = concat(config_macro ## _, config);
-#include "target_map.h"  /*lint !e451 included more than once. */
+/*lint -e451*/
+#include "target_map.h"
+/*lint +e451*/
 
 #if DUMP_CONFIG_ENABLED
 
@@ -42,11 +45,14 @@ configuration macros.
   concat(dump_target_config ## _, config)(void)
 #define STRINGIZE_HELPER(X) stringize(X)
 /* Write the target-specific macro and its value to stderr in #define format.*/
+/*lint -estring(823,TARGET_MAP_MACRO)*/
 #define TARGET_MAP_MACRO(config_macro, global_var, config) \
   fprintf(f_error, "#define %s %s\n", \
           #config_macro "_" stringize(config), \
           STRINGIZE_HELPER(concat(config_macro ## _, config)));
-#include "target_map.h"  /*lint !e451 included more than once. */
+/*lint -e451*/
+#include "target_map.h"
+/*lint +e451*/
 #undef STRINGIZE_HELPER
 
 #endif /* DUMP_CONFIG_ENABLED */

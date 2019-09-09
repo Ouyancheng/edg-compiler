@@ -91,6 +91,7 @@ static a_symbol cleared_symbol;
 Set the shared fields of a symbol to default values, set the kind, and
 initialize its variant fields.
 */
+/*lint -emacro(727,clear_symbol)*/
 #define clear_symbol(sym, kind)                                    \
   { *(sym) = cleared_symbol; set_symbol_kind((sym), (kind)); }
 
@@ -360,10 +361,9 @@ is done according to the output control block octl.
 Current output buffer pointer for put_str_into_db_symbol_buffer. */
 static char *db_symbol_buffer_pointer;
 
-/*ARGSUSED*/ /* octl is not used. */
 static void put_str_into_db_symbol_buffer(
-                               a_const_char                          *str,
-                               an_il_to_str_output_control_block_ptr octl)
+                         a_const_char                                     *str,
+                         ARG_UNUSED an_il_to_str_output_control_block_ptr octl)
 /*
 Output a string into the db_symbol buffer.  Used once
 set_up_for_output_to_buffer has been called to set the buffer address.
@@ -1636,12 +1636,9 @@ symbol entry pointed to by sym.
 }  /* set_membership_in_source_corresp */
 
 
-#if !RECORD_SCOPE_DEPTH_IN_IL
-/*ARGSUSED*/ /* <-- depth is only used when local entities are promoted. */
-#endif /* !RECORD_SCOPE_DEPTH_IN_IL */
-void set_source_corresp_with_scope_depth(a_source_correspondence *sc,
-                                         a_symbol_ptr            sp,
-                                         a_scope_depth           depth)
+void set_source_corresp_with_scope_depth(a_source_correspondence  *sc,
+                                         a_symbol_ptr             sp,
+                                         ARG_UNUSED a_scope_depth depth)
 /*
 Set the source correspondence to point to a given symbol for which
 the scope is not still active.  This routine works by temporarily
@@ -9216,7 +9213,7 @@ selected operator "delete" or NULL if no appropriate symbol could be found.
 }  /* select_coroutine_delete */
 
 
-static a_label_ptr make_coroutine_final_suspend_label()
+static a_label_ptr make_coroutine_final_suspend_label(void)
 /*
 Create the label that will be used as the final suspend label.  Later, when the
 coroutine is being wrapped up, a statement for the label will be generated.
@@ -10906,7 +10903,7 @@ delete symbol, but it may be an overload symbol instead.
       rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
       op_new_has_ellipsis = rtsp->has_ellipsis;
       op_new_param_type_list = rtsp->param_type_list;
-      /*lint --e{446} sym modified in loop (LINTBUG) */
+      /*lint --e{446,850} sym modified in loop (LINTBUG) */
       for (sym = set_up_overload_set_traversal_simple(sym, &ostblock);
            sym != NULL;
            sym = next_symbol_in_overload_set(&ostblock)) {
@@ -13014,6 +13011,7 @@ diagnostic would actually be an error.
   if (!issue_diagnostics) {
     /* In some modes, is_effective_sfinae_error will ignore diagnostic
        overrides in making the error determination. */
+    check_assertion(error_detected != NULL);
     *error_detected = is_effective_sfinae_error(error_code, severity);
   }  /* if */
 }  /* issue_access_error */
@@ -15299,17 +15297,15 @@ return NULL.
 }  /* param_id_on_list */
 
 
-#if !GENERATE_SOURCE_SEQUENCE_LISTS || !GNU_EXTENSIONS_ALLOWED
-/* ARGSUSED */ /* <-- param_ssep is only used with source sequence lists. */
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS || !GNU_EXTENSIONS_ALLOWED */
-void add_to_param_id_list(a_symbol_locator            *locator,
-                          a_type_ptr                  type_ptr,
-                          a_source_position           *type_pos,
-                          a_storage_class             storage_class,
-                          a_func_info_block_ptr       func_info,
-                          a_source_sequence_entry_ptr param_ssep,
-                          a_param_id_ptr              *last_param_id,
-                          a_boolean                   is_pack_element)
+void add_to_param_id_list(
+                        a_symbol_locator                       *locator,
+                        a_type_ptr                             type_ptr,
+                        a_source_position                      *type_pos,
+                        a_storage_class                        storage_class,
+                        a_func_info_block_ptr                  func_info,
+                        ARG_UNUSED a_source_sequence_entry_ptr param_ssep,
+                        a_param_id_ptr                         *last_param_id,
+                        a_boolean                              is_pack_element)
 /*
 Create a new param_id entry and an sk_parameter symbol to go with it,
 and add the former to the parameter id list pointed to by func_info;
@@ -17148,7 +17144,7 @@ Display statistics about a hash table.
   uint32_t		entries;
 
   fprintf(f_debug, "Total entries=%lu, buckets=%lu\n",
-          (unsigned long)table->entry_count,
+          (unsigned long)(long)table->entry_count,
           (unsigned long)table->num_buckets);
   /* Clear the table of entry counts. */
   for (j = 0; j < 32; j++) counts[j] = 0;
@@ -17168,7 +17164,7 @@ Display statistics about a hash table.
   }  /* for */
   entries = 0;
   for (j = 0; j <= max_count_entry; j++) {
-    fprintf(f_debug, "%5u: %lu\n", entries, (unsigned long)counts[j]);
+    fprintf(f_debug, "%5u: %lu\n", entries, (unsigned long)(long)counts[j]);
     entries = entries == 0 ? 1 : entries*2;
   }  /* for */
 }  /* db_hash_statistics */

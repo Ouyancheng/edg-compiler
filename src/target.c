@@ -48,22 +48,30 @@ necessary (also add entries to target_configurations below).
 */
 #ifdef TARGET_CONFIGURATION_1
 #define TARGET_CONFIGURATION TARGET_CONFIGURATION_1
-#include "target_cfg.h"  /*lint !e451 included more than once. */
+/*lint -e451*/
+#include "target_cfg.h"
+/*lint +e451*/
 #endif /* TARGET_CONFIGURATION_1 */
 
 #ifdef TARGET_CONFIGURATION_2
 #define TARGET_CONFIGURATION TARGET_CONFIGURATION_2
-#include "target_cfg.h"  /*lint !e451 included more than once. */
+/*lint -e451*/
+#include "target_cfg.h"
+/*lint +e451*/
 #endif /* TARGET_CONFIGURATION_2 */
 
 #ifdef TARGET_CONFIGURATION_3
 #define TARGET_CONFIGURATION TARGET_CONFIGURATION_3
-#include "target_cfg.h"  /*lint !e451 included more than once. */
+/*lint -e451*/
+#include "target_cfg.h"
+/*lint +e451*/
 #endif /* TARGET_CONFIGURATION_3 */
 
 #ifdef TARGET_CONFIGURATION_4
 #define TARGET_CONFIGURATION TARGET_CONFIGURATION_4
-#include "target_cfg.h"  /*lint !e451 included more than once. */
+/*lint -e451*/
+#include "target_cfg.h"
+/*lint +e451*/
 #endif /* TARGET_CONFIGURATION_4 */
 
 #ifdef TARGET_CONFIGURATION_5
@@ -100,7 +108,9 @@ global variables to the values given by the legacy configuration macros
 /* Assign the legacy macro value to the associated global variable. */
 #define TARGET_MAP_MACRO(config_macro, global_var, config) \
   (global_var) = (config_macro);
-#include "target_map.h"  /*lint !e451 included more than once. */
+/*lint -e451 header file included more than once. */
+#include "target_map.h"
+/*lint +e451*/
 
 
 /*
@@ -167,7 +177,9 @@ configuration macro).
 #define TARGET_MAP_MACRO(config_macro, global_var, config) \
   fprintf(f_error, "#define %s_%s %s\n", #config_macro, \
           suffix, stringize(config_macro));
-#include "target_map.h"  /*lint !e451 included more than once. */
+/*lint -e451 header file included more than once. */
+#include "target_map.h"
+/*lint +e451*/
 
 
 void dump_legacy_config_as_target_config(a_const_char *config)
@@ -360,11 +372,8 @@ keyword be entered into the symbol table.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !NEAR_AND_FAR_ALLOWED
-/*ARGSUSED*/ /* Because tp is not used. */
-#endif /* !NEAR_AND_FAR_ALLOWED */
-a_targ_size_t size_of_pointer_to(a_type_ptr        tp,
-                                 a_targ_alignment  *alignment)
+a_targ_size_t size_of_pointer_to(ARG_UNUSED a_type_ptr        tp,
+                                 a_targ_alignment             *alignment)
 /*
 Return the size and alignment for a pointer type that points to the indicated
 type.  This routine should be rewritten for implementations in which

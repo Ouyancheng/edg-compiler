@@ -99,10 +99,9 @@ static a_boolean
 			/* Flag that indicates whether initialization has
 			   already been done on the output control block. */
 
-/*ARGSUSED*/ /* local_octl is not used. */
 static void write_string_to_xref_file(
-                              a_const_char                          *str,
-                              an_il_to_str_output_control_block_ptr local_octl)
+                   a_const_char                                     *str,
+                   ARG_UNUSED an_il_to_str_output_control_block_ptr local_octl)
 /*
 Write str to the xref file.  The address of this routine is passed to
 the il_to_str routines for generating formatted names.
@@ -1833,13 +1832,11 @@ secondary status.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-#if !GENERATE_SOURCE_SEQUENCE_LISTS
-/* ARGSUSED */ /* <-- ssep is only used with source sequence lists. */
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-void record_symbol_declaration(a_symbol_reference_kind      srk_flags,
-                               a_symbol_ptr                 sym_ptr,
-                               a_source_position            *source_position,
-                               a_source_sequence_entry_ptr  ssep)
+void record_symbol_declaration(
+                       a_symbol_reference_kind                srk_flags,
+                       a_symbol_ptr                           sym_ptr,
+                       a_source_position                      *source_position,
+                       ARG_UNUSED a_source_sequence_entry_ptr ssep)
 /*
 Record information about how the given symbol is declared.  The srk_flags
 parameter describes the specificity of the declaration (e.g., that it is a
@@ -2652,13 +2649,10 @@ from the list.
 }  /* record_param_id_list_declarations */
 
 
-#if !GENERATE_SOURCE_SEQUENCE_LISTS
-/*ARGSUSED*/ /* udp and prev_udp are used only for source sequence entries. */
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-void record_using_decl(a_symbol_ptr       sym,
-                       a_source_position  *pos,
-                       a_using_decl_ptr   udp,
-                       a_using_decl_ptr   prev_udp)
+void record_using_decl(a_symbol_ptr                sym,
+                       a_source_position           *pos,
+                       ARG_UNUSED a_using_decl_ptr udp,
+                       ARG_UNUSED a_using_decl_ptr prev_udp)
 /*
 udp points to a using-decl entry created to represent an using declaration
 specifying fundamental symbol sym.  If appropriate, update the cross reference

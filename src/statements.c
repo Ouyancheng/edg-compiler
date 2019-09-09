@@ -2114,7 +2114,7 @@ function prototype scope are not recorded).
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #define stmt_update_source_sequence_list(sp)                          \
   update_source_sequence_list((char *)sp, iek_statement,              \
-                              (a_source_sequence_entry_ptr)NULL);
+                              (a_source_sequence_entry_ptr)NULL)
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 #define stmt_update_source_sequence_list(sp)       /* Nothing */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -2238,6 +2238,7 @@ by traversing the control-flow list backwards from *start to *end.
               if (first == NULL) {
                 first = last = dealloc_stmt;
               } else {
+                check_assertion(last != NULL);
                 last->next = dealloc_stmt;
                 last = last->next;
               }  /* if */
@@ -2967,7 +2968,7 @@ statement is the top block of a GNU statement expression ({ ... }).
 Interface to push_stmt_stack_full for the usual case.
 */
 #define push_stmt_stack(kind, sp, olp) \
-  push_stmt_stack_full((kind), (sp), (olp), /*is_statement_expr=*/FALSE);
+  push_stmt_stack_full((kind), (sp), (olp), /*is_statement_expr=*/FALSE)
 
 
 static void end_stmt_sequence(a_struct_stmt_stack_entry_ptr sssep)
@@ -6191,12 +6192,9 @@ See also 3.6.6.2.
 }  /* continue_statement */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/* ARGSUSED */ /* <-- end_pos is not used in that case. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void add_goto_for_break(a_struct_stmt_stack_entry_ptr sssep,
                                a_source_position             *pos,
-                               a_source_position             *end_pos)
+                               ARG_UNUSED a_source_position  *end_pos)
 /*
 Add a goto to implement a break statement.  sssep points to the structured
 statement stack entry for the statement being exited.  *pos and *end_pos
@@ -7648,7 +7646,7 @@ expr_statement:
 }  /* statement */
 
 
-static void local_label_declaration()
+static void local_label_declaration(void)
 /*
 Scan a GNU local label declaration of the form:
 	__label__ l1, l2, ..., ln;
