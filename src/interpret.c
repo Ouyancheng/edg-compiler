@@ -496,7 +496,7 @@ Initialize the given data map.
 */
 {
   unsigned      n_slots = (1<<mask_width);
-  a_byte_count  size = n_slots*sizeof(a_data_map_entry);
+  a_byte_count  size = (a_byte_count)n_slots*sizeof(a_data_map_entry);
 
   if (mask_width > MAX_WIDTH_REUSABLE_TABLE) {
     map->table = (a_data_map_entry*)alloc_general(size);
@@ -520,7 +520,7 @@ Release the storage for the given map's table.
 {
   a_map_index       mask = map->hash_mask;
   a_map_index       n_slots = mask+1;
-  a_byte_count      size = n_slots*sizeof(a_data_map_entry);
+  a_byte_count      size = (a_byte_count)n_slots*sizeof(a_data_map_entry);
   unsigned long     mask_width = count_ones(mask);
 
   if (mask_width > MAX_WIDTH_REUSABLE_TABLE) {
@@ -616,7 +616,7 @@ Initialize the given live set.
 */
 {
   unsigned      mask_width = 3, n_slots = (1<<mask_width);
-  a_byte_count  size = n_slots*sizeof(an_alloc_seq_number);
+  a_byte_count  size = (a_byte_count)n_slots*sizeof(an_alloc_seq_number);
 
   if (free_live_set_tables[mask_width] != NULL) {
     set->table = free_live_set_tables[mask_width];
@@ -638,7 +638,7 @@ Release the storage for the given set's table.
 {
   a_live_set_index  mask = set->hash_mask;
   a_live_set_index  n_slots = mask+1;
-  a_byte_count      size = n_slots*sizeof(an_alloc_seq_number);
+  a_byte_count      size = (a_byte_count)n_slots*sizeof(an_alloc_seq_number);
   unsigned long     mask_width = count_ones(mask);
 
   if (mask_width > MAX_WIDTH_REUSABLE_TABLE) {
@@ -662,7 +662,8 @@ Double the number of entries in the given set.  This requires rehashing.
   an_alloc_seq_number  *new_table, *old_table = set->table;
   a_live_set_index     mask = set->hash_mask;
   a_live_set_index     k, n_slots = mask+1;
-  a_byte_count         old_size = n_slots*sizeof(an_alloc_seq_number);
+  a_byte_count         old_size = (a_byte_count)
+                                           n_slots*sizeof(an_alloc_seq_number);
   a_byte_count         new_size = 2*old_size;
   unsigned long        new_width = count_ones(mask)+1, old_width;
 
@@ -1323,6 +1324,7 @@ call frame).
 Macro to retrieve a pointer (dptr) associated with a pointer (iptr) from a
 given data map.
 */
+/*lint -emacro(578,get_mapped_ptr)*/
 #define get_mapped_ptr(map, iptr, dptr)                                      \
 {                                                                            \
   uintptr_t         hash = hash_ptr(iptr);                                   \
@@ -1347,6 +1349,7 @@ given data map.
 Macro to retrieve a byte count (bcount) associated with a pointer (iptr)
 from a given data map.
 */
+/*lint -emacro(578,get_mapped_byte_count)*/
 #define get_mapped_byte_count(map, iptr, bcount)                             \
 {                                                                            \
   uintptr_t         hash = hash_ptr(iptr);                                   \
@@ -2286,7 +2289,7 @@ interpreter value at targ_addr (or a null pointer).
 #define clear_address(addr, targ_addr)                                   \
   memzero((char *)(addr) /*lint -e668*/, sizeof(a_constexpr_address));   \
   ((a_constexpr_address *)(addr))->address = (targ_addr);                \
-  ((a_constexpr_address *)(addr))->complete_object = (targ_addr);
+  ((a_constexpr_address *)(addr))->complete_object = (targ_addr)
   
 
 /*
@@ -2296,7 +2299,7 @@ denoted by the IL a_routine entry rout.
 #define make_function_address(addr, rout)                      \
   memzero((char *)(addr), sizeof(a_constexpr_address));        \
   ((a_constexpr_address *)(addr))->flags = CA_FUNCTION;        \
-  ((a_constexpr_address *)(addr))->variant.routine = (rout);
+  ((a_constexpr_address *)(addr))->variant.routine = (rout)
 
 
 /*
@@ -2306,7 +2309,7 @@ Macro to initialize a constant address at addr referring to the
 #define clear_runtime_constant_address(addr, con)                   \
   memzero((char *)(addr), sizeof(a_constexpr_address));             \
   ((a_constexpr_address *)(addr))->flags = CA_RUNTIME_DATA_ADDRESS; \
-  ((a_constexpr_address *)(addr))->variant.addr_con = (con);
+  ((a_constexpr_address *)(addr))->variant.addr_con = (con)
 
 
 typedef struct a_constexpr_ptr_to_mem {
@@ -3110,7 +3113,7 @@ done:;
 
 
 #define record_subobject_derivation(subobj_ptr, bcp)                         \
-  *(void**)(subobj_ptr) = (void*)(bcp);
+  (*(void**)(subobj_ptr) = (void*)(bcp))
 
 /*
 Class type subobjects record their relationship to the next-more-derived
@@ -6430,7 +6433,7 @@ successfully interpreted, FALSE otherwise.
       break;
     } else if (cmp < 0) {
       /* There may be more entries, but they won't match. */
-      scep = NULL;
+      scep = NULL; /*lint !e850*/
       break;
 #if GNU_EXTENSIONS_ALLOWED
     } else if (scep->range_end != NULL) {
@@ -7848,15 +7851,13 @@ statement.
 }  /* run_function_body */
 
 
-/*ARGSUSED*/  /* Some parameters are unused, but they are needed to conform
-                 to a callback convention. */
 static a_boolean do_constexpr_std_is_constant_evaluated(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
+                                   an_interpreter_state        *ips,
+                                   ARG_UNUSED a_routine_ptr    callee,
+                                   ARG_UNUSED an_expr_node_ptr call_node,
+                                   ARG_UNUSED a_byte           **p_arg_bytes,
+                                   a_byte                      *result_storage,
+                                   ARG_UNUSED a_byte           *complete_obj)
 /*
 Return TRUE and set *result_storage to "true" if ips->is_constant_evaluated is
 TRUE.  Otherwise result FALSE.
@@ -8002,15 +8003,13 @@ done:
 }  /* do_constexpr_dynamic_alloc */
 
 
-/*ARGSUSED*/  /* Some parameters are unused, but they are needed to conform
-                 to a callback convention. */
 static a_boolean do_constexpr_std_allocator_allocate(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
                                         a_byte                **p_arg_bytes,
                                         a_byte                *result_storage,
-                                        a_byte                *complete_obj)
+                                        ARG_UNUSED a_byte     *complete_obj)
 /*
 Interpret a call (represented by call_node) to std::allocator<T>::allocate
 (represented by callee).  This ignores the actual definition of that function
@@ -8125,15 +8124,13 @@ Release the given allocation.
 }  /* free_constexpr_allocation */
 
 
-/*ARGSUSED*/  /* Some parameters are unused, but they are needed to conform
-                 to a callback convention. */
 static a_boolean do_constexpr_std_allocator_deallocate(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
                                         a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
+                                        ARG_UNUSED a_byte     *result_storage,
+                                        ARG_UNUSED a_byte     *complete_obj)
 /*
 Interpret a call (represented by call_node) to std::allocator<T>::deallocate
 (represented by callee).  This ignores the actual definition of that function
@@ -8250,15 +8247,13 @@ static a_type_ptr
 			   is acceptable. */
 
 
-/*ARGSUSED*/  /* Some parameters are unused, but they are needed to conform
-                 to a callback convention. */
 static a_boolean do_constexpr_std_construct_at(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
+                                   an_interpreter_state        *ips,
+                                   a_routine_ptr               callee,
+                                   ARG_UNUSED an_expr_node_ptr call_node,
+                                   a_byte                      **p_arg_bytes,
+                                   ARG_UNUSED a_byte           *result_storage,
+                                   ARG_UNUSED a_byte           *complete_obj)
 /*
 Execute a call to:
 	std::construct_at<T>(T* location, Args&&... args)
@@ -8286,15 +8281,13 @@ See do_constexpr_std_allocator_allocate for the meaning of the parameters.
 }  /* do_constexpr_std_allocator_construct_at */
 
 
-/*ARGSUSED*/  /* Some parameters are unused, but they are needed to conform
-                 to a callback convention. */
 static a_boolean do_constexpr_std_destroy_at(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
+                                   an_interpreter_state        *ips,
+                                   a_routine_ptr               callee,
+                                   ARG_UNUSED an_expr_node_ptr call_node,
+                                   ARG_UNUSED a_byte           **p_arg_bytes,
+                                   ARG_UNUSED a_byte           *result_storage,
+                                   ARG_UNUSED a_byte           *complete_obj)
 /*
 Execute a call to std::destroy_at.  See do_constexpr_std_allocator_allocate
 for the meaning of the parameters.
@@ -8307,15 +8300,13 @@ for the meaning of the parameters.
 }  /* do_constexpr_std_destroy_at */
 
 
-/*ARGSUSED*/  /* Some parameters are unused, but they are needed to conform
-                 to a callback convention. */
 static a_boolean do_constexpr_std_report_constexpr_value(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
+                                   an_interpreter_state        *ips,
+                                   a_routine_ptr               callee,
+                                   ARG_UNUSED an_expr_node_ptr call_node,
+                                   a_byte                      **p_arg_bytes,
+                                   ARG_UNUSED a_byte           *result_storage,
+                                   ARG_UNUSED a_byte           *complete_obj)
 /*
 call_node represents a call to std::__report_constexpr_value, which is an
 overloaded function with one of the following signatures:
@@ -9806,11 +9797,10 @@ pointed to by ips->constants.
 }  /* make_interpreter_copy_of_constant */
 
 
-/*ARGSUSED*/  /* complete_object is not currently used. */
 static a_boolean do_constexpr_offsetof(an_interpreter_state  *ips,
                                        an_expr_node_ptr      expr,
                                        a_byte                *result_storage,
-                                       a_byte                *complete_object)
+                                       ARG_UNUSED a_byte     *complete_object)
 /*
 Evaluate, if possible, the given __builtin_offsetof expression (whose second
 operand should be a chain of subscript and field selection nodes applied to a
@@ -10020,13 +10010,10 @@ done:;
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* tp is not used in some configurations. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_boolean get_value_from_address_constant(
                                        an_interpreter_state  *ips,
                                        a_constant_ptr        addr_con,
-                                       a_type_ptr            tp,
+                                       ARG_UNUSED a_type_ptr tp,
                                        a_byte                *result_storage,
                                        a_byte                *complete_object)
 /*
