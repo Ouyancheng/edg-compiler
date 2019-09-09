@@ -17811,7 +17811,29 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
   /* Do any instantiations that were deferred while this routine was being
      created. */
   process_deferred_class_fixups_and_instantiations(/*for_instantiation=*/TRUE);
-  if (!exc_spec_in_func_type && !special_kind_is(rp, sfk_deduction_guide)) {
+  if ((microsoft_mode || !rp->is_class_member) && !exc_spec_in_func_type &&
+      !special_kind_is(rp, sfk_deduction_guide)) {
+    /* Consider:
+          template<typename T> struct A { static constexpr bool v = true; };
+          template<typename T> int f(T&) noexcept(A<T>::v);
+          int i = f<int>(i);  // (1)
+          template<> struct A<int>;  // (2)
+       The instantiation of f<int>(int&) at (1) may be delayed until the end
+       of the translation unit.  In pre-C++17 modes, that would mean that the
+       explicit specialization is selected and the code is accepted.  However,
+       common practice is to perform the instantiation of the exception
+       specification early, which creates a point of instantiation for A<int>,
+       and therefore making the explicit specialization (2) invalid.  However,
+       GCC and Clang, at least, behave as if that's not the case for the
+       following example:
+          template<typename T> struct B {
+            template<typename...> B() noexcept(T::X);
+          };
+          struct D: B<int> {};
+       I.e., no error is triggered by Clang or GCC for the instantiation of
+       "T::X" in this case.  As an approximation, we therefore do not force
+       the instantiation of the exception specification for class members in
+       non-Microsoft modes. */
     instantiate_exception_spec_if_needed(sym);
   }  /* if */
   db_exit();

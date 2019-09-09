@@ -1,5 +1,23 @@
 Version 6.0
 
+9/9/19   [EDGcpfe/21701]
+Instantiation of exception specifications for member function templates
+
+Consider in C++14 mode:
+
+  template<typename T> struct B {
+    template<typename...> B() noexcept(T::X);
+  };
+  struct D: B<int> {};  // Triggered an error in version 5.1.
+                        // Now accepted in non-Microsoft pre-C++17 modes.
+
+After the changes for EDGcpfe/20840 (see entry of 2/4/19) the front end now
+issues an error for that; so does Microsoft's compiler, but it is a regression
+in non-Microsoft modes.  The change for EDGcpfe/20840 has therefore been
+disabled for member functions in non-Microsoft modes, which causes the front
+end to accept the above case again in non-Microsoft pre-C++17 modes.
+
+
 9/9/19   [EDGcpfe/21629]
 Assertion failure folding unary operation on vector operand
 
