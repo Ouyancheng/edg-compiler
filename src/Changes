@@ -1,5 +1,22 @@
 Version 6.0
 
+9/10/19  [EDGcpfe/21760]
+C++-generating back end: qualification in implicit-this member selection
+
+In the case where a member name is hidden by a local declaration in a
+member function and the member is accessed using an implicit "this", the
+C++-generating back end failed to put out the necessary qualifier on the
+member name to circumvent the hiding.  This is now fixed.  For example:
+
+  struct C {
+    int i;
+    bool f() {
+      int i;
+      return C::i == 2;  // Previously put out without "C::"
+    }
+  };
+
+
 9/9/19   [EDGcpfe/21701]
 Instantiation of exception specifications for member function templates
 
