@@ -11398,7 +11398,7 @@ Evaluate the given new-expression.
       }  /* if */
     }  /* if */
     /* The initializer is not an array aggregate initializer. */
-    for (; k<(int)alloc_length; ++k, elem += elem_size) {
+    for (; k<(int)orig_alloc_length; ++k, elem += elem_size) {
       if (!do_constexpr_dynamic_init(ips, dip, &expr->position, elem,
                                      complete_obj)) {
         result = FALSE;
