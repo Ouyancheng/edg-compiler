@@ -11191,12 +11191,38 @@ command line -D options.
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
+  /* The argument to __has_include and __has_include_next is special -- a
+     header file name -- and must be scanned differently from ordinary
+     macro arguments.  In order to suppress the normal macro argument
+     processing, these macros are defined as object-like, not
+     function-like, and the argument is scanned and processed directly by
+     scan_has_include. */
+  if (cpp17_mode || microsoft_mode || clang_mode || gnu_version_is(>=40902)) {
+    /* __has_include is supported by all emulated compilers and became part of
+       the C++ standard beginning with the C++17 version. */
+    has_include_symbol = enter_predef_macro((char *)NULL, "__has_include",
+                                            /*cannot_be_redefined=*/TRUE,
+                                            /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
+#if !DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES
+  /* Restrict __has_include_next to only those compilers that implement it. */
+  if (clang_mode || gnu_version_is(>=40902))
+#endif /* !DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES */
+  /* Do not insert code here. */
+  {
+    /* __has_include_next is supported by some compilers (but is not part of
+       the C++ standard). */
+    has_include_next_symbol = enter_predef_macro(
+                                            (char *)NULL, "__has_include_next",
+                                            /*cannot_be_redefined=*/TRUE,
+                                            /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
 #if !DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES
   /* Restrict the feature-test operators to clang mode only. */
-  if (clang_mode) {
-#else /* DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES */
-  {
+  if (clang_mode)
 #endif /* !DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES */
+  /* Do not insert code here. */
+  {
     /* Feature-test macros for clang mode and, optionally, in all modes.
        Like the preceding macros, they are entered with a NULL replacement
        text and expanded appropriately in invocation. */
@@ -11220,19 +11246,6 @@ command line -D options.
                                              /*cannot_be_redefined=*/TRUE,
                                              /*ref_suppresses_pch_file=*/FALSE,
                                              /*function_like=*/TRUE);
-    /* The argument to __has_include and __has_include_next is special -- a
-       header file name -- and must be scanned differently from ordinary
-       macro arguments.  In order to suppress the normal macro argument
-       processing, these macros are defined as object-like, not
-       function-like, and the argument is scanned and processed directly by
-       scan_has_include. */
-    has_include_next_symbol = enter_predef_macro(
-                                            (char *)NULL, "__has_include_next",
-                                            /*cannot_be_redefined=*/TRUE,
-                                            /*ref_suppresses_pch_file=*/FALSE);
-    has_include_symbol = enter_predef_macro((char *)NULL, "__has_include",
-                                            /*cannot_be_redefined=*/TRUE,
-                                            /*ref_suppresses_pch_file=*/FALSE);
     /* Similarly, __is_identifier expects exactly one token that either is
        or is not an identifier, so normal macro argument processing is also
        not appropriate. */
@@ -11240,11 +11253,7 @@ command line -D options.
                                             (char *)NULL, "__is_identifier",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
-#if !DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES
   }  /* if */
-#else /* DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES */
-  }
-#endif /* !DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES */
   if (has_include_symbol == NULL && C_dialect == C_dialect_cplusplus &&
       (define_portable_feature_test_macros || cpp17_mode)) {
     /* __has_include is a WG21 SG10 recommendation and is part of standard

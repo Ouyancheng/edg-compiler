@@ -2397,10 +2397,15 @@ for most C and C++ compilers, but some pre-C11 C compilers may not support it.
 
 /*
 Flag that is TRUE if the clang-style feature-test macro operators like
-__has_feature should be enabled in all modes.
+__has_feature should be enabled in all modes.  This configuration macro should
+generally be FALSE if running in Microsoft emulation mode.
 */
 #ifndef DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES
+#if DEFAULT_MICROSOFT_MODE
+#define DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES FALSE
+#else /* !DEFAULT_MICROSOFT_MODE */
 #define DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES TRUE
+#endif /* DEFAULT_MICROSOFT_MODE */
 #endif /* DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES */
 
 EXTERN int32_t

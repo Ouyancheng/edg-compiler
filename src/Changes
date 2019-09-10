@@ -1,5 +1,23 @@
 Version 6.0
 
+9/10/19  [EDGcpfe/17960,EDGcpfe/21766]
+Changes to __has_include and __has_include_next
+
+A change has been made to enable the __has_include feature-test macro
+in more modes (including GNU C mode when gnu_version >= 40902), and is now
+independent of the DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES
+configuration macro (since __has_include is part of C++17).
+
+__has_include_next (not part of the C++17 standard) continues to be enabled
+only in modes where the emulated compiler supports it or when
+DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES is TRUE.
+
+Those changes allow the DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES
+configuration macro to be FALSE in configurations that emulate Microsoft
+Visual Studio (and FALSE is the new default for that configuration macro when
+DEFAULT_MICROSOFT_MODE is TRUE).
+
+
 9/10/19  [EDGcpfe/21760]
 C++-generating back end: qualification in implicit-this member selection
 
@@ -9471,7 +9489,7 @@ __has_attribute, __has_builtin, and __is_identifier in all modes.  These
 macro operators will remain undefined if the new configuration macro
 DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES is defined as FALSE.  (The
 __has_include macro operator will continue to be defined in C++17 mode and
-when the global variable define_portable_feature+_test_macros is TRUE,
+when the global variable define_portable_feature_test_macros is TRUE,
 regardless of the value of the new configuration macro.)  For example, with
 --g++:
 
