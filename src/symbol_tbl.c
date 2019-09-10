@@ -12075,8 +12075,10 @@ functions befriending_list_test and class_scope_test.
            function is a member. */
         skip_to_class = parent_class_of(scope_routine);
       }  /* if */
-    } else if (kind == (a_scope_kind)sck_template_instantiation) {
-      /* Nothing required for template instantiation scopes. */
+    } else if (kind == (a_scope_kind)sck_template_instantiation ||
+               kind == (a_scope_kind)sck_instantiation_context) {
+      /* Nothing required for template instantiation and instantiation
+         context scopes. */
     } else {
       a_type_ptr scope_class_type;
       check_assertion_str(kind == (a_scope_kind)sck_class_struct_union ||

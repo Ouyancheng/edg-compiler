@@ -1,5 +1,33 @@
 Version 6.0
 
+9/10/19  [EDGcpfe/21754]
+Incorrect lookup in member initializer scanned on-demand
+
+A change made in version 4.11 could result in an incorrect lookup in a
+member initializer when the evaluation of the initializer is required
+before the normal completion of the class.  This can occur, for example,
+if the class has been used in an instantiation through use as a template
+argument (in the example below the member initializer in X::Y is needed
+when Y is used as a base class via the instantiation of B<Y>).  The lookup
+incorrectly ignored names declared after the declaration of the class being
+instantiated.  Now fixed.
+
+  template <class T> class A { typename T::a x; };
+  template <class T> class B {
+    struct C : T { typedef int a; };
+    A<C> x;
+  };
+  namespace N { struct C { }; }
+  struct X {
+    struct Y {
+      int a = sizeof(N::C);
+      Y() = default;
+      Y(int i);
+    };
+    B<Y> b;
+  };
+
+
 9/10/19  [EDGcpfe/17960,EDGcpfe/21766]
 Microsoft compatibility: __has_extension/__has_feature
 

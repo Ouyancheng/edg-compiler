@@ -2917,6 +2917,7 @@ the scope being pushed.
       depth_innermost_instantiation_scope = NO_SCOPE_DEPTH;
       depth_template_declaration_scope = NO_SCOPE_DEPTH;
       curr_deferred_access_scope = NO_SCOPE_DEPTH;
+      depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
     }  /* if */
   } else if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
     /* By default, the previous scope is the one that precedes this one
@@ -4494,8 +4495,14 @@ is used for generic lambdas and is the scope containing the lambda.
 
   /* Push a scope that marks the start of the instantiation context on the
      scope stack. */
-  (void)push_scope((a_scope_kind)sck_instantiation_context, NO_SCOPE_NUMBER,
-                   (a_type_ptr)NULL, (a_routine_ptr)NULL);
+  (void)push_scope_full((a_scope_kind)sck_instantiation_context,
+                        NO_SCOPE_NUMBER, NULL, NULL, (a_namespace_ptr)NULL,
+                        (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                        (a_template_arg_ptr)NULL,
+                        (a_template_decl_info_ptr)NULL,
+                        (an_object_lifetime_ptr)NULL,
+                        (a_scope_ptr)NULL, (a_scope_pointers_block_ptr)NULL,
+                        options);
   /* Push the namespace containing the point of instantiation.  This is not
      needed for classes being loaded by get_definition_of_class. */
   if ((options & PS_CLASS_DEFINITION_CONTEXT) == 0 &&
