@@ -1,9 +1,14 @@
 Version 6.0
 
 9/10/19  [EDGcpfe/17960,EDGcpfe/21766]
-Changes to __has_include and __has_include_next
+Microsoft compatibility: __has_extension/__has_feature
 
-A change has been made to enable the __has_include feature-test macro
+In configurations where DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES is
+TRUE, a warning is now given in Microsoft emulation mode for the
+__has_extension and __has_feature feature-test macros (and the macros
+return 0).
+
+Also, a change has been made to enable the __has_include feature-test macro
 in more modes (including GNU C mode when gnu_version >= 40902), and is now
 independent of the DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES
 configuration macro (since __has_include is part of C++17).
@@ -11,11 +16,6 @@ configuration macro (since __has_include is part of C++17).
 __has_include_next (not part of the C++17 standard) continues to be enabled
 only in modes where the emulated compiler supports it or when
 DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES is TRUE.
-
-Those changes allow the DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES
-configuration macro to be FALSE in configurations that emulate Microsoft
-Visual Studio (and FALSE is the new default for that configuration macro when
-DEFAULT_MICROSOFT_MODE is TRUE).
 
 
 9/10/19  [EDGcpfe/21760]

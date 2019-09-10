@@ -6722,7 +6722,12 @@ end_arg_expansion:;
       a_const_char *feature_name = clang_feature_test_id(map, NULL,
                                                          &arg_position);
       a_boolean    feature_supported = FALSE;
-      if (feature_name != NULL) {
+      if (microsoft_mode && !clang_mode) {
+        /* Microsoft Visual Studio doesn't implement these yet, so just
+           return FALSE for all features.  Give a warning that we're ignoring
+           this feature-test macro. */
+        pos_warning(ec_feature_test_macro_ignored, &start_pos);
+      } else if (feature_name != NULL) {
         /* First check to see if the specified identifier is the name of a
            feature. */
         feature = 
