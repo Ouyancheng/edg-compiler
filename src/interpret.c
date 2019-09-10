@@ -7895,18 +7895,20 @@ the missing allocation.
 }  /* report_leftover_allocations */
 
 
-static a_boolean do_constexpr_dynamic_alloc(an_interpreter_state  *ips,
-                                            a_type_ptr            orig_elem_tp,
-                                            a_byte_count          alloc_length,
-                                            a_source_position     *diag_pos,
-                                            a_constexpr_address   *cap,
-                                            a_byte_count          *p_elem_size)
+static a_constexpr_allocation_ptr do_constexpr_dynamic_alloc(
+                                           an_interpreter_state  *ips,
+                                           a_type_ptr            orig_elem_tp,
+                                           a_byte_count          alloc_length,
+                                           a_source_position     *diag_pos,
+                                           a_constexpr_address   *cap,
+                                           a_byte_count          *p_elem_size)
 /*
 Allocate alloc_length consecutive objects of type orig_elem_tp on the
 interpreter's dynamic allocation heap and place the result in *cap.  Return
-TRUE if successful, and FALSE otherwise (in which case, a diagnostic is
-registered in *ips for the given position).  If successful, also return the
-interpreter size of the allocated elements in *p_elem_size.
+a pointer to the complete allocation structure if successful, and NULL
+otherwise (in which case, a diagnostic is registered in *ips for the given
+position).  If successful, also return the interpreter size of the allocated
+elements in *p_elem_size.
 */
 {
   a_boolean            result = TRUE;
@@ -7916,7 +7918,7 @@ interpreter size of the allocated elements in *p_elem_size.
   a_byte               *block;
   an_alloc_seq_number  alloc_seq_number;
   a_constexpr_allocation_ptr
-                       allocation;
+                       allocation = NULL;
 
   if (type_is(elem_tp, tk_array)) {
     /* Adjust the number of elements for the array type. */
@@ -7999,7 +8001,7 @@ interpreter size of the allocated elements in *p_elem_size.
   cap->alloc_seq_number = alloc_seq_number;
   *p_elem_size = elem_size;
 done:
-  return result;
+  return allocation;
 }  /* do_constexpr_dynamic_alloc */
 
 
@@ -8062,11 +8064,11 @@ where the result should be stored.
                            callee->type, ips);
     goto done;
   }  /* if */
-  if (!do_constexpr_dynamic_alloc(ips, tap->variant.type,
-                                  (a_byte_count)alloc_length,
-                                  &call_node->position,
-                                  (a_constexpr_address*)result_storage,
-                                  &elem_size)) {
+  if (do_constexpr_dynamic_alloc(ips, tap->variant.type,
+                                 (a_byte_count)alloc_length,
+                                 &call_node->position,
+                                 (a_constexpr_address*)result_storage,
+                                 &elem_size) == NULL) {
     do_constexpr_fail(result);
     goto done;
   }  /* if */
@@ -11241,10 +11243,11 @@ Evaluate the given new-expression.
 {
   a_boolean                    result = TRUE;
   a_new_delete_supplement_ptr  ndsp = expr->variant.new_delete;
-  a_byte_count                 alloc_length, elem_size;
+  a_byte_count                 alloc_length, elem_size, orig_alloc_length;
   a_constexpr_address          *cap;
   a_type_ptr                   type = skip_typerefs(ndsp->type), elem_type;
   an_expr_node_ptr             length_expr = ndsp->number_of_elements;
+  a_constexpr_allocation_ptr   allocation;
 
   if (!ips->is_constant_evaluated || !constexpr_dynamic_alloc_enabled) {
     /* Don't attempt to evaluate a new-expression if a constant result is not
@@ -11284,6 +11287,7 @@ Evaluate the given new-expression.
     check_assertion(type_is(type, tk_array));
     elem_type = skip_typerefs(type->variant.array.element_type);
   }  /* if */
+  orig_alloc_length = alloc_length;
   cap = (a_constexpr_address*)result_storage;
   if (ndsp->placement_new) {
     an_expr_node_ptr  ptr_expr = ndsp->arg;
@@ -11318,10 +11322,22 @@ Evaluate the given new-expression.
                     &expr->position, ips);
       goto done;
     }  /* if */
-  } else if (!do_constexpr_dynamic_alloc(ips, elem_type, alloc_length,
-                                         &expr->position, cap, &elem_size)) {
-    result = FALSE;
-    goto done;
+    if (type_is(elem_type, tk_array)) {
+      do {
+        alloc_length = (a_byte_count)
+           (alloc_length*elem_type->variant.array.variant.number_of_elements);
+        elem_type = skip_typerefs(elem_type->variant.array.element_type);
+      } while (type_is(elem_type, tk_array));
+    }  /* if */
+  } else {
+    allocation = do_constexpr_dynamic_alloc(ips, elem_type, alloc_length,
+                                            &expr->position, cap, &elem_size);
+    if (allocation == NULL) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+    elem_type = allocation->elem_type;
+    alloc_length = allocation->length;
   }  /* if */
   if (ndsp->dynamic_init != NULL) {
     /* Initialize each element. */
@@ -11342,17 +11358,19 @@ Evaluate the given new-expression.
              to 2.  Check for that (non-constant) case. */
           if (length_expr != NULL &&
               init_tp->variant.array.variant.number_of_elements >
-                                                             alloc_length) {
+                                                          orig_alloc_length) {
             info_with_pos_num(ec_constexpr_alloc_too_small,
                               &length_expr->position,
-                              (a_byte_count)alloc_length, ips);
+                              (a_byte_count)orig_alloc_length, ips);
             do_constexpr_fail(result);
             goto done;
           }  /* if */
           /* Initialize element-by-element. */
           for (; k<(int)alloc_length; ++k, elem += elem_size) {
-            if (elem_cp == NULL) goto done;
-            if (constant_is(elem_cp, ck_init_repeat) &&
+            if (elem_cp == NULL) {
+              init_subobject_to_zero(ips, elem, elem_type, complete_obj);
+              continue;
+            } else if (constant_is(elem_cp, ck_init_repeat) &&
                 elem_cp->variant.init_repeat.count == 0) {
               /* A ck_init_repeat entry with zero count indicates that the
                  remainder of the array should be filled with that
@@ -11372,6 +11390,7 @@ Evaluate the given new-expression.
               }  /* if */
               elem_cp = elem_cp->next;
             }  /* if */
+            mark_subobject_initialized(elem, complete_obj);
           }  /* for */
           mark_complete_object_initialized(complete_obj);
           goto done;
