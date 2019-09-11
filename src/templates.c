@@ -13340,6 +13340,7 @@ do_substitution:
         if ((options & (CTWS_IS_PARTIAL_ORDER_CHECK |
                         CTWS_IS_PARTIAL_SPECIALIZATION_CHECK)) != 0) {
           list_for_subst = arg_list_to_copy;
+          options |= CTWS_MAY_BE_RESCANNED;
         }  /* if */
         substitute_template_argument(new_tap, tpp, list_for_subst,
                                      param_list_for_copy,

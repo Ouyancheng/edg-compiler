@@ -1,5 +1,14 @@
 Version 6.0
 
+9/11/19  [EDGcpfe/21553]
+Abort due to missing rescan info in some uses of partial specializations
+
+The changes for EDGcpfe/20975 (in version 5.1) introduced a regression in some
+complex cases involving the use of partially specialized class templates.  The
+problem manifested itself as an internal error "missing default rescan info"
+(in exprutil.c).  That is now fixed.
+
+
 9/11/19  [EDGcpfe/21512]
 Incorrect setting of needed flag when using --no_extern_inline
 
