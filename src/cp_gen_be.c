@@ -10839,6 +10839,7 @@ the expression reflects an implicit member access ("this->y"), so the
   an_expr_operator_kind op;
   a_type_ptr            naming_class, selection_class = NULL;
   a_name_context_ptr    new_name_context = NULL;
+  a_boolean             suppressed_this = FALSE;
 
   check_assertion(is_operation_node(expr) &&
                   (node_operator_is(expr, eok_dot_field) ||
@@ -10891,23 +10892,11 @@ the expression reflects an implicit member access ("this->y"), so the
   }  /* if */
   if (op == (an_expr_operator_kind)eok_points_to_field) {
     if (expr->compiler_generated) {
-      a_type_ptr  parent_class;
-      a_field_ptr field;
-      check_assertion(field_expr->kind == (an_expr_node_kind)enk_field);
-      field = node_field(field_expr);
-      parent_class = parent_class_of(field);
       if (is_variable_node(object_expr) &&
           node_variable(object_expr)->is_this_parameter) {
         /* This is an implicit member access ("this->y"), so nothing should
            be generated for the object expression and operator. */
-        if (field->source_corresp.qualification_needed) {
-          /* The field is hidden by a member in an intermediate class or by
-             a local declaration in a member function, and since the object
-             expression will be suppressed, put out a qualifier to
-             circumvent the hiding. */
-          (void)gen_class_qualifier(parent_class, GN_BOUND_MEMBER,
-                                    /*need_cloaing_paren=*/NULL);
-        }  /* if */
+        suppressed_this = TRUE;
       } else {
         /* This situation occurs for access to non-static data members
            in unevaluated contexts, such as "sizeof(X::y)", which appears
@@ -10915,11 +10904,16 @@ the expression reflects an implicit member access ("this->y"), so the
            eok_points_to_field.  We may need to generate the qualifier here
            (but not if the parent class is unnamed; for example, if it is a
            closure class). */
+        a_type_ptr  parent_class;
+        a_field_ptr field;
+        check_assertion(field_expr->kind == (an_expr_node_kind)enk_field);
+        field = node_field(field_expr);
+        parent_class = parent_class_of(field);
         /* Ignore anonymous union levels. */
         while (class_type_supp(parent_class)->anonymous_union_kind ==
                                           (an_anonymous_union_kind)auk_field ||
-               parent_class->
-                   variant.class_struct_union.is_nonstd_anonymous_union_type) {
+               parent_class
+                 ->variant.class_struct_union.is_nonstd_anonymous_union_type) {
           parent_class = parent_class_of(parent_class);
         }  /* while */
         if (has_name_before_mangling(parent_class) &&
@@ -10929,7 +10923,7 @@ the expression reflects an implicit member access ("this->y"), so the
                                    /*ignore_field_selection_contexts=*/TRUE) ||
              field->source_corresp.qualification_needed)) {
           (void)gen_class_qualifier(parent_class, GN_BOUND_MEMBER,
-                                    /*need_closing_paren=*/NULL);
+                                    (a_boolean *)NULL);
         }  /* if */
       }  /* if */
     } else if (msvc_is_generated_code_target &&
@@ -10984,7 +10978,7 @@ the expression reflects an implicit member access ("this->y"), so the
                                   (a_boolean *)NULL);
         }  /* if */
       }  /* if */
-    } else if (selection_class != naming_class) {
+    } else if (selection_class != naming_class || suppressed_this) {
       if (is_immediate_class_type(selection_class)) {
         /* Push a name context so that the qualifier will be properly
            qualified.  (Avoid the case where the selection class is a
