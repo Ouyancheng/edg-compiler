@@ -659,7 +659,8 @@ extern a_boolean intf_rout_is_inline_template_function(a_routine_ptr rout);
    as static. */
 #define treat_as_static_inline(rout)					\
   (rout_is_inline(rout) &&						\
-   ((rout)->storage_class == (a_storage_class)sc_static))
+   (!extern_inline_allowed ||						\
+    ((rout)->storage_class == (a_storage_class)sc_static)))
 #endif /* LOWER_EXTERN_INLINE && !IA64_ABI */
 
 /*

@@ -1,5 +1,22 @@
 Version 6.0
 
+9/11/19  [EDGcpfe/21512]
+Incorrect setting of needed flag when using --no_extern_inline
+
+The --no_extern_inline option was provided for compatibility with very
+early C++ compilers that emitted inline functions as static functions
+that did not have the semantics required when the standards committee gave
+inline functions external linkage by default.  In some cases the flag
+associated with this option was not tested when it should have been.
+This resulted in, for example, the needed flag being incorrectly set to
+TRUE for A<int>::f in the example below.  Now fixed.
+
+  template <class T> class A {
+    static void f(){}
+  };
+  template class A<int>;
+
+
 9/10/19  [EDGcpfe/21754]
 Incorrect lookup in member initializer scanned on-demand
 
