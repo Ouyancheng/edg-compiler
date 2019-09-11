@@ -6722,7 +6722,7 @@ end_arg_expansion:;
       a_const_char *feature_name = clang_feature_test_id(map, NULL,
                                                          &arg_position);
       a_boolean    feature_supported = FALSE;
-      if (microsoft_mode && !clang_mode) {
+      if (microsoft_mode) {
         /* Microsoft Visual Studio doesn't implement these yet, so just
            return FALSE for all features.  Give a warning that we're ignoring
            this feature-test macro. */
@@ -11251,9 +11251,9 @@ command line -D options.
                                              /*cannot_be_redefined=*/TRUE,
                                              /*ref_suppresses_pch_file=*/FALSE,
                                              /*function_like=*/TRUE);
-    /* Similarly, __is_identifier expects exactly one token that either is
-       or is not an identifier, so normal macro argument processing is also
-       not appropriate. */
+    /* __is_identifier expects exactly one token that either is or is not an
+       identifier, so normal macro argument processing is not appropriate and
+       it is defined as object-like. */
     is_identifier_symbol = enter_predef_macro(
                                             (char *)NULL, "__is_identifier",
                                             /*cannot_be_redefined=*/TRUE,
