@@ -4254,6 +4254,7 @@ step on the derivation list serves to confirm the match.
       }  /* if */
     }  /* if */
   }  /* for */
+  new_base_class = NULL;
 #if CHECKING
 #if DEBUG
   if (debug_level > 0) {
@@ -4273,8 +4274,6 @@ step on the derivation list serves to confirm the match.
   }  /* if */
 #endif /* DEBUG */
   internal_error("corresponding_base_class: base class not found");
-#else /* CHECKING */
-  new_base_class = NULL;
 #endif /* CHECKING */
 done:
 #if DEBUG
@@ -4313,7 +4312,7 @@ In other words:
   new_bcp = corresponding_base_class(base_class,
                                      old_class_as_base_of_new->derived_class,
                                      disambiguator);
-  return new_bcp;
+  return new_bcp; /*lint !e530*/
 }  /* corresp_base_class */
 
 
@@ -5611,11 +5610,8 @@ can be a handle.
 }  /* pointer_expr_complete_object_type */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- class_type is unused in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-a_type_ptr add_right_pointer_type_to_this(a_type_ptr type,
-                                          a_type_ptr class_type)
+a_type_ptr add_right_pointer_type_to_this(a_type_ptr            type,
+                                          ARG_UNUSED a_type_ptr class_type)
 /*
 Add the right kind of "pointer to" to "type" so it can be used as a "this"
 pointer for a member of the class class_type, and return the pointer type.
@@ -5759,15 +5755,13 @@ Return TRUE if the two array types have identical bounds.
 }  /* identical_array_type_level */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- contextual_generic_parameters is unused in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-a_boolean equiv_class_types(a_type_ptr type_1,
-                            a_type_ptr type_2,
-                            a_boolean  error_matches_anything,
-                            a_boolean  exact_templ_arg_match_required,
-                            a_boolean  contextual_generic_parameters,
-                            a_boolean  exact_decltype_exprs_required)
+a_boolean equiv_class_types(
+                           a_type_ptr           type_1,
+                           a_type_ptr           type_2,
+                           a_boolean            error_matches_anything,
+                           a_boolean            exact_templ_arg_match_required,
+                           ARG_UNUSED a_boolean contextual_generic_parameters,
+                           a_boolean            exact_decltype_exprs_required)
 /*
 type_1 and type_2 are class/struct/union types.  Return TRUE if they are
 equivalent types.  In general, classes, structs, and unions that aren't
@@ -9223,14 +9217,11 @@ conversion in C++/CLI because it drops gc-ness of an interior_ptr.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- source_is_function is not used in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_boolean impl_pointer_conversion(
                          a_type_ptr           source_type,
                          a_boolean            source_is_constant,
                          a_boolean            source_is_string_literal,
-                         a_boolean            source_is_function,
+                         ARG_UNUSED a_boolean source_is_function,
                          a_constant           *source_constant,
                          a_type_ptr           dest_type,
                          a_boolean            allow_qualifier_or_eh_mismatch,
@@ -10202,14 +10193,11 @@ Cfront mode.
 }  /* this_param_types_correspond */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- source_is_function is not used in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_boolean pm_function_types_correspond(
-                                   a_type_ptr dest_type,
-                                   a_type_ptr source_type,
-                                   a_boolean  source_is_function,
-                                   a_boolean  allow_qualifier_or_eh_mismatch)
+                           a_type_ptr           dest_type,
+                           a_type_ptr           source_type,
+                           ARG_UNUSED a_boolean source_is_function,
+                           a_boolean            allow_qualifier_or_eh_mismatch)
 /*
 Return TRUE if a pointer-to-member-function type with underlying function type
 source_type can be converted to a pointer-to-member-function type with
@@ -11131,6 +11119,7 @@ exception specifications are not checked.
       !baseward_cast) {
     /* A pointer to a base class can be cast to a pointer to a derived
        class if it's not a virtual base and no qualifiers are dropped. */
+    check_assertion(bcp != NULL);
     if (!bcp->is_virtual) {
       related_class_case = TRUE;
       source_type_pointed_to = type_pointed_to(source_type);
@@ -12745,7 +12734,7 @@ make_new_comp_type:
         if (rtsp->param_type_list == NULL) {
           rtsp->param_type_list = new_ptp;
         } else {
-          /* coverity[var_deref_op] */
+          check_assertion(end_of_list != NULL);
           end_of_list->next = new_ptp;
         }  /* if */
         end_of_list = new_ptp;
@@ -13868,10 +13857,9 @@ side effect.
 
 #if DO_IL_LOWERING
 
-/*ARGSUSED*/  /* force_end_of_traversal is not used (but part of the
-                 interface). */
-static a_boolean ttt_lower_vla_dimensions(a_type_ptr  type_ptr,
-                                          a_boolean   *force_end_of_traversal)
+static a_boolean ttt_lower_vla_dimensions(
+                                  a_type_ptr           type_ptr,
+                                  ARG_UNUSED a_boolean *force_end_of_traversal)
 /*
 If type_ptr is a VLA type, lower its dimension expression.
 */
@@ -15355,10 +15343,9 @@ to stricter/less visibility).
 }  /* ELF_visibility_strictness */
 
 
-/* ARGSUSED */  /* force_end_of_traversal is not used. */
 static a_boolean ttt_check_ELF_visibility_of_type(
-                                           a_type_ptr  type,
-                                           a_boolean   *force_end_of_traversal)
+                                  a_type_ptr           type,
+                                  ARG_UNUSED a_boolean *force_end_of_traversal)
 /*
 This is a service function designed to be called from traverse_type_tree
 (whence the ttt_ prefix).  It always returns FALSE, but updates the file
@@ -15551,11 +15538,10 @@ typedef a_type_modifier_function *a_type_modifier_function_ptr;
 static a_type_ptr f_strip_local_and_nonreal_typedefs(a_type_ptr  type);
 
 
-/*ARGSUSED*/ /* flags is not required but is part of the general interface. */
 static a_boolean tmtt_strip_local_and_nonreal_typedefs(
-                                    a_type_ptr                      type,
-                                    a_type_tree_traversal_flag_set  flags,
-                                    a_type_ptr                      *new_type)
+                           a_type_ptr                                type,
+                           ARG_UNUSED a_type_tree_traversal_flag_set flags,
+                           a_type_ptr                                *new_type)
 /*
 Strip local and nonreal typedef from type, returning TRUE if a modification
 was done. The modified type (or the original type if no modification was done)
@@ -15567,11 +15553,10 @@ is returned in *new_type.
 }  /* tmtt_strip_local_and_nonreal_typedefs */
 
 
-/*ARGSUSED*/ /* flags is not required but is part of the general interface. */
 static a_boolean tmtt_remove_assoc_vla_dimensions(
-                                    a_type_ptr                      type,
-                                    a_type_tree_traversal_flag_set  flags,
-                                    a_type_ptr                      *new_type)
+                           a_type_ptr                                type,
+                           ARG_UNUSED a_type_tree_traversal_flag_set flags,
+                           a_type_ptr                                *new_type)
 /*
 Modify type so that it no longer is or contains array types with associated
 VLA dimension entries.  The modified type (or the original type if no
@@ -15583,11 +15568,10 @@ modification was done) is returned in *new_type.
 }  /* tmtt_remove_assoc_vla_dimensions */
 
 
-/*ARGSUSED*/ /* flags is not required but is part of the general interface. */
 static a_boolean tmtt_strip_routine_default_args(
-                                    a_type_ptr                      type,
-                                    a_type_tree_traversal_flag_set  flags,
-                                    a_type_ptr                      *new_type)
+                           a_type_ptr                                type,
+                           ARG_UNUSED a_type_tree_traversal_flag_set flags,
+                           a_type_ptr                                *new_type)
 /*
 Modify type so that any routine types that it contains no longer have
 any default arguments.  The modified type (or the original type if no
@@ -15599,11 +15583,10 @@ modification was done) is returned in *new_type.
 }  /* tmtt_strip_routine_default_args */
 
 
-/*ARGSUSED*/ /* flags is not required but is part of the general interface. */
 static a_boolean tmtt_strip_qualifiers_from_param_types(
-                                    a_type_ptr                      type,
-                                    a_type_tree_traversal_flag_set  flags,
-                                    a_type_ptr                      *new_type)
+                           a_type_ptr                                type,
+                           ARG_UNUSED a_type_tree_traversal_flag_set flags,
+                           a_type_ptr                                *new_type)
 /*
 Modify type so that any routine types that it contains no longer have
 qualifiers on their parameter types.  The modified type (or the original
@@ -16148,7 +16131,7 @@ Return TRUE if base_class_type is a virtual base class of derived_type.
   a_base_class_ptr  bcp;
 
   /* Loop through the base classes. */
-  /*lint --e{446} bcp modified in loop (LINTBUG) */
+  /*lint --e{446,850} bcp modified in loop (LINTBUG) */
   for (bcp = base_classes_of(derived_type); bcp != NULL; bcp = bcp->next) {
     if (same_entities(bcp->type, base_class_type)) {
       /* Found it if it's virtual. */
