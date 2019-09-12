@@ -5137,6 +5137,7 @@ command line switches.
         16-bit mode     il_header.near_and_far_allowed   --microsoft_16
       C99               std_version >= 199901            --c99
       C11               std_version >= 201112            --c11
+      C18               std_version >= 201710            --c18, --c17
         strict          strict_ansi_mode                 -A, -a, etc.
       "normal"            
         strict          strict_ansi_mode                 -A, -a, etc.
