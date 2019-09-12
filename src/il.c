@@ -483,6 +483,13 @@ a source correspondence).
 
   if (scp->assoc_info != NULL) {
     db_symbol_name(sym);
+    if (symbol_is(sym, sk_variable)) {
+      a_variable_ptr  var = sym->variant.variable.ptr;
+      if (var->template_info != NULL &&
+          var->template_info->template_arg_list != NULL) {
+        db_template_arg_list(var->template_info->template_arg_list);
+      }  /* if */
+    }  /* if */
     fprintf(f_debug, " (%s)", symbol_kind_names[(int)sym->kind]);
   } else {
     db_name(scp);

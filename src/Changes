@@ -1,5 +1,18 @@
 Version 6.0
 
+9/12/19  [EDGcpfe/21705]
+Abort on recursive use of __is_constructible (and similar)
+
+The type traits helper function __is_constructible (and some similar type
+traits helper functions) is sometimes evaluated in the front end by setting up
+an expression that is "rescanned" (i.e., substituted much like what happens
+during template argument deduction).  In some complex cases, that substitution
+can trigger recursive evaluation to the same __is_constructible query, but the
+front end previously did not reliably handle such recursion and sometimes
+aborted with an internal error ("missing default rescan info", in exprutil.c).
+That is now fixed.
+
+
 9/12/19  [EDGcpfe/21323]
 Incorrect declared type for explicit specialization of variable template
 

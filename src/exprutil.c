@@ -15890,8 +15890,21 @@ be returned for a C mode const variable.
       !var->is_prototype_instantiation && !var->is_nonreal &&
       var->init_kind == (an_init_kind)initk_none) {
     /* A variable template instance: Make sure the initializer is
-       instantiated if needed. */
-    set_instance_required(symbol_for(var), TRUE, SIR_NONE);
+       instantiated if needed.  In contexts where diagnostics are suppressed
+       (due to rescanning), avoid requesting the instantiation if that
+       instantiation is already under way (indicating unbounded recursion):
+       Instead end the recursion and record a rescanning failure. */
+    a_symbol_ptr             var_sym = symbol_for(var);
+    a_template_instance_ptr  tip;
+    tip = symbol_is(var_sym, sk_variable) ?
+                             var_sym->variant.variable.instance_ptr :
+                             var_sym->variant.static_data_member.instance_ptr;
+    if (!tip->instantiation_required ||
+        expr_stack == NULL || !expr_stack->suppress_diagnostics) {
+      set_instance_required(var_sym, TRUE, SIR_NONE);
+    } else {
+      record_suppressed_error();
+    }  /* if */
   }  /* if */
   if (var->source_corresp.is_class_member &&
       var->init_kind == (an_init_kind)initk_none &&

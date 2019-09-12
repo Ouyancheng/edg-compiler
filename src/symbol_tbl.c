@@ -931,6 +931,10 @@ do_variable:
       if (var == NULL) {
         put_string("<null>");
       } else {
+        if (var->template_info != NULL &&
+            var->template_info->template_arg_list != NULL) {
+          db_template_arg_list(var->template_info->template_arg_list);
+        }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (var->is_initonly) {
           put_string("initonly ");
