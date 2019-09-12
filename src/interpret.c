@@ -496,7 +496,7 @@ Initialize the given data map.
 */
 {
   unsigned      n_slots = (1<<mask_width);
-  a_byte_count  size = (a_byte_count)n_slots*sizeof(a_data_map_entry);
+  a_byte_count  size = (a_byte_count)(n_slots*sizeof(a_data_map_entry));
 
   if (mask_width > MAX_WIDTH_REUSABLE_TABLE) {
     map->table = (a_data_map_entry*)alloc_general(size);
@@ -520,7 +520,7 @@ Release the storage for the given map's table.
 {
   a_map_index       mask = map->hash_mask;
   a_map_index       n_slots = mask+1;
-  a_byte_count      size = (a_byte_count)n_slots*sizeof(a_data_map_entry);
+  a_byte_count      size = (a_byte_count)(n_slots*sizeof(a_data_map_entry));
   unsigned long     mask_width = count_ones(mask);
 
   if (mask_width > MAX_WIDTH_REUSABLE_TABLE) {
@@ -616,7 +616,7 @@ Initialize the given live set.
 */
 {
   unsigned      mask_width = 3, n_slots = (1<<mask_width);
-  a_byte_count  size = (a_byte_count)n_slots*sizeof(an_alloc_seq_number);
+  a_byte_count  size = (a_byte_count)(n_slots*sizeof(an_alloc_seq_number));
 
   if (free_live_set_tables[mask_width] != NULL) {
     set->table = free_live_set_tables[mask_width];
@@ -638,7 +638,7 @@ Release the storage for the given set's table.
 {
   a_live_set_index  mask = set->hash_mask;
   a_live_set_index  n_slots = mask+1;
-  a_byte_count      size = (a_byte_count)n_slots*sizeof(an_alloc_seq_number);
+  a_byte_count      size = (a_byte_count)(n_slots*sizeof(an_alloc_seq_number));
   unsigned long     mask_width = count_ones(mask);
 
   if (mask_width > MAX_WIDTH_REUSABLE_TABLE) {
@@ -663,7 +663,7 @@ Double the number of entries in the given set.  This requires rehashing.
   a_live_set_index     mask = set->hash_mask;
   a_live_set_index     k, n_slots = mask+1;
   a_byte_count         old_size = (a_byte_count)
-                                           n_slots*sizeof(an_alloc_seq_number);
+                                         (n_slots*sizeof(an_alloc_seq_number));
   a_byte_count         new_size = 2*old_size;
   unsigned long        new_width = count_ones(mask)+1, old_width;
 
@@ -1028,7 +1028,7 @@ Initialize stack storage for the given storage stack.
   /* Set the next-block pointer to NULL. */
   *(a_byte**)(new_block+ptr_size) = NULL;
   /* Leave space for the bookkeeping information (three pointers). */
-  sss->top = sss->curr_block+3*ptr_size;
+  sss->top = sss->curr_block+3*ptr_size; /*lint !e679*/
   sss->large_blocks = NULL;
   sss->destructions = NULL;
 }  /* alloc_constexpr_stack_block */
@@ -1110,7 +1110,7 @@ Add a block of storage (to parcel out) to the given storage stack.
 
   do_host_alignment(ptr_size);
   /* Record the current stack top in the bookkeeping section. */
-  *(a_byte**)(sss->curr_block+2*ptr_size) = sss->top;
+  *(a_byte**)(sss->curr_block+2*ptr_size) = sss->top; /*lint !e679*/
   next_block = *(a_byte**)(sss->curr_block+ptr_size);
   if (next_block == NULL) {
     /* The current block is the last block: Allocate a new one. */
@@ -1119,7 +1119,7 @@ Add a block of storage (to parcel out) to the given storage stack.
     /* Reuse a previously-allocated block. */
     sss->curr_block = next_block;
     /* Leave space for the bookkeeping information (three pointers). */
-    sss->top = sss->curr_block+3*ptr_size;
+    sss->top = sss->curr_block+3*ptr_size; /*lint !e679*/
   }  /* if */
 }  /* add_storage_stack_block */
 
@@ -1412,7 +1412,8 @@ Double the number of entries in the given map.  This requires rehashing.
   a_data_map_entry  *new_table, *old_table = map->table;
   a_map_index       mask = map->hash_mask;
   a_map_index       k, n_slots = mask+1;
-  a_byte_count      old_size = n_slots*sizeof(a_data_map_entry);
+  a_byte_count      old_size =
+                              (a_byte_count)(n_slots*sizeof(a_data_map_entry));
   a_byte_count      new_size = 2*old_size;
   unsigned long     new_width = count_ones(mask)+1, old_width;
 
@@ -3592,7 +3593,7 @@ interpreter storage.
         } else {
           /* Continue the check with the common element. */
           parent_type = etp;
-          parent_addr += idx1*esize;
+          parent_addr += idx1*esize; /*lint !e679*/
         }  /* if */
       } else if (is_immediate_class_type(parent_type)) {
         a_field_ptr  fp1, fp2;
@@ -3772,8 +3773,8 @@ Output the contents of the interpreted object of type tp stored at addr.
       { a_host_large_integer  val;
         a_boolean             ovflo;
         conv_integer_value_to_host_large_integer(
-                  (an_integer_value *)addr, is_signed_integral_type(tp), &val,
-                  &ovflo);
+                  (an_integer_value *)addr,
+                  is_signed_integral_type(tp)/*lint !e2666*/, &val, &ovflo);
         (void)fprintf(f_debug, "%ld%s\n", (long)val,
                       ovflo ? " (overflow!)" : "");
       }
@@ -4437,7 +4438,7 @@ variant path.
       a_type_ptr  con_addr_type = type_pointed_to(con->type);
       if (!identical_types(obj_type, con_addr_type)) {
         cap->flags |= CA_ARRAY_ELEMENT;
-        cap->length = num_array_elements(obj_type);
+        cap->length = (unsigned int)num_array_elements(obj_type);
         if (is_variant_path(cap)) {
           cap->variant.variant_path->base_address = cap->address;
         } else {
@@ -5561,7 +5562,7 @@ accordingly.
     /* Decay src_addr from the address of the array to the address of its
        first element. */
     src_addr->flags |= CA_ARRAY_ELEMENT;
-    src_addr->length = length;
+    src_addr->length = (unsigned int)length;
     if (is_variant_path(src_addr)) {
       src_addr->variant.variant_path->base_address = src_addr->address;
     } else {
@@ -8397,7 +8398,8 @@ See do_constexpr_std_allocator_allocate for the meaning of the parameters.
       }  /* if */
       while (pos<len) {
         conv_integer_value_to_host_large_integer(
-                p_val, is_signed_integral_type(elem_type), &char_val, &ovflo);
+                p_val, is_signed_integral_type(elem_type)/*lint !e2666*/,
+                &char_val, &ovflo);
         if (char_val == 0) break;
         fprintf(f_error, "%c", (char)char_val);
         ++pos;
@@ -8854,8 +8856,9 @@ otherwise, return FALSE and update *ips accordingly.
     for (arg = callee_node->next; arg != NULL; arg = arg->next) {
       n_args += 1;
     }  /* for */
-    alloc_stack_bytes(ips, n_args*sizeof(a_byte*), arg_ptrs);
-    alloc_stack_bytes(ips, n_args*sizeof(a_byte_count), arg_sizes);
+    alloc_stack_bytes(ips, (a_byte_count)(n_args*sizeof(a_byte*)), arg_ptrs);
+    alloc_stack_bytes(ips, (a_byte_count)(n_args*sizeof(a_byte_count)),
+                                                                    arg_sizes);
     /* Phase 1: Allocate and evaluate the arguments. */
     p_arg_ptr = (a_byte**)arg_ptrs;
     arg_size = (a_byte_count*)arg_sizes;
@@ -9270,8 +9273,9 @@ the body of the (constructor) function proper.
       n_args += 1;
     }  /* for */
     if (implied_src != NULL) n_args += 1;
-    alloc_stack_bytes(ips, n_args*sizeof(a_byte*), arg_ptrs);
-    alloc_stack_bytes(ips, n_args*sizeof(a_byte_count), arg_sizes);
+    alloc_stack_bytes(ips, (a_byte_count)(n_args*sizeof(a_byte*)), arg_ptrs);
+    alloc_stack_bytes(ips, (a_byte_count)(n_args*sizeof(a_byte_count)),
+                                                                    arg_sizes);
     /* Count the parameters (including "this") to make sure there are enough
        arguments for the parameters. */
     for (param = params; param != NULL; param = param->next) {
@@ -9350,7 +9354,7 @@ the body of the (constructor) function proper.
           arg2 = (a_constexpr_address*)p_arg_ptr[-1];
           *arg2 = *arg1;
           check_assertion(is_array_element(arg2));
-          arg2->address += arg2->length * elem_size;
+          arg2->address += arg2->length * elem_size; /*lint !e679*/
           arg2->flags |= CA_CANNOT_DEREFERENCE;
         } else if (!do_constexpr_expression(ips, arg, arg_bytes, arg_bytes)) {
           do_constexpr_fail(result);
@@ -12114,7 +12118,7 @@ the value representation of the integer value.
               /* Check that the array length fits in interpreter limits. */
               length = opnd1_type->variant.array.variant.number_of_elements;
               if (length <= MAX_ARRAY_LENGTH) {
-                result_addr->length = length;
+                result_addr->length = (unsigned int)length;
                 if (is_variant_path(result_addr)) {
                   result_addr->variant.variant_path->base_address =
                                                          result_addr->address;
@@ -13050,8 +13054,8 @@ the value representation of the integer value.
                   if (host_int_val > 0) {
                     info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
                                        &expr->position,
-                                       (unsigned long)(pos+host_int_val),
-                                       (unsigned long)len, ips);
+                                       (uint32_t)(pos+host_int_val),
+                                       (uint32_t)len, ips);
                   } else {
                     info_with_pos(ec_constexpr_pointer_ahead_of_array,
                                   &expr->position, ips);
@@ -13125,8 +13129,8 @@ the value representation of the integer value.
                   if (host_int_val < 0) {
                     info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
                                        &expr->position,
-                                       (unsigned long)(pos-host_int_val),
-                                       (unsigned long)len, ips);
+                                       (uint32_t)(pos-host_int_val),
+                                       (uint32_t)len, ips);
                   } else {
                     info_with_pos(ec_constexpr_pointer_ahead_of_array,
                                   &expr->position, ips);
@@ -14990,8 +14994,8 @@ the value representation of the integer value.
                         info_with_pos_num2(
                                       ec_constexpr_out_of_bounds_array_access,
                                       &expr->position,
-                                      (unsigned long)(pos+host_int_val),
-                                      (unsigned long)len, ips);
+                                      (uint32_t)(pos+host_int_val),
+                                      (uint32_t)len, ips);
                       } else {
                         info_with_pos(ec_constexpr_pointer_ahead_of_array,
                                       &expr->position, ips);
@@ -15068,8 +15072,8 @@ the value representation of the integer value.
                       info_with_pos_num2(
                                       ec_constexpr_out_of_bounds_array_access,
                                       &expr->position,
-                                      (unsigned long)(pos-host_int_val),
-                                      (unsigned long)len, ips);
+                                      (uint32_t)(pos-host_int_val),
+                                      (uint32_t)len, ips);
                     } else {
                       info_with_pos(ec_constexpr_pointer_ahead_of_array,
                                     &expr->position, ips);
@@ -15261,8 +15265,8 @@ the value representation of the integer value.
                     do_constexpr_fail(result);
                     info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
                                        &expr->position,
-                                       (unsigned long)(pos+host_int_val),
-                                       (unsigned long)len, ips);
+                                       (uint32_t)(pos+host_int_val),
+                                       (uint32_t)len, ips);
                   } else {
                     if (is_runtime_data_address(&result_addr)) {
                       if (!offset_runtime_address(
@@ -15805,7 +15809,8 @@ the value representation of the integer value.
           if (tp->kind == (a_type_kind)tk_array) {
             /* We are referring to the array as a whole; not just one element
                of it.  Record the length in case it is needed later on. */
-            cap->length = tp->variant.array.variant.number_of_elements;
+            cap->length =
+                    (unsigned int)tp->variant.array.variant.number_of_elements;
           }  /* if */
           tmp_complete_obj = tmp_bytes;
         } else {
@@ -16003,6 +16008,7 @@ subobject path.
           if (path == NULL) {
             path = path_entry;
           } else {
+            check_assertion(end_path != NULL);
             end_path->next = path_entry;
           }  /* if */
           end_path = path_entry;
@@ -16076,6 +16082,7 @@ subobject path.
           if (path == NULL) {
             path = path_entry;
           } else {
+            check_assertion(end_path != NULL);
             end_path->next = path_entry;
           }  /* if */
           end_path = path_entry;
@@ -17291,7 +17298,7 @@ Display memory use for entities in front end memory in this file (interpret.c).
         table = (a_data_map_entry*)table->ptr;
       }  /* if */
       sprintf(name, "data map table width %d", k);
-      table_size = sizeof(an_alloc_seq_number)*(unsigned long)(1<<k);
+      table_size = sizeof(an_alloc_seq_number)*((unsigned long)1<<k);
       db_space_used_nontype(name, cnt, table_size);
     }  /* if */
   }  /* for */
@@ -17306,7 +17313,7 @@ Display memory use for entities in front end memory in this file (interpret.c).
         table = *(an_alloc_seq_number**)table;
       }  /* if */
       sprintf(name, "live set table width %d", k);
-      table_size = sizeof(an_alloc_seq_number)*(unsigned long)(1<<k);
+      table_size = sizeof(an_alloc_seq_number)*((unsigned long)1<<k);
       db_space_used_nontype(name, cnt, table_size);
     }  /* if */
   }  /* for */
