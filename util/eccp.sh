@@ -596,6 +596,8 @@ check_abbreviation()
 --building_runtime
 --c
 --c11
+--c17
+--c18
 --c89
 --c99
 --c++
@@ -1318,6 +1320,7 @@ process_option()
          --c89 | \
          --c99 | \
          --c11 | \
+         --c18 | --c17 | \
          --no_c99 | \
          --no_c++0x | \
          --no_c++11 | \
@@ -1570,7 +1573,7 @@ process_option()
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
       case $arg in
-        -m | --c | --c89 | --c99 | --no_c99 | --c11 | \
+        -m | --c | --c89 | --c99 | --no_c99 | --c11 | --c18 | --c17 | \
 	-K | --old_c | --svr4 | --no_svr4 | \
 	--gcc | --no_gcc | --upc | --no_upc)
           c_mode=1

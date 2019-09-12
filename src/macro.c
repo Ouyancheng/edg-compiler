@@ -10612,7 +10612,8 @@ command line -D options.
       /* __STDC_VERSION__ is defined based on the version of C being used.
          The Microsoft compiler does not define this macro; the GNU and clang
          compilers do so only for C99 ("std=c99") and C11 ("std=c11"). */
-      a_const_char *stdc_version = c11_mode ? "201112L"
+      a_const_char *stdc_version = c18_mode ? "201710L"
+                                 : c11_mode ? "201112L"
                                  : c99_mode ? "199901L"
                                             : "199409L";
       (void)enter_predef_macro(stdc_version, "__STDC_VERSION__",

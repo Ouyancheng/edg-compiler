@@ -1,5 +1,29 @@
 Version 6.0
 
+9/12/19  [EDGcpfe/21755,EDGcpfe21756]
+C18 mode
+
+The front end now accepts the option "--c18" to enable C18 mode.  C18 is a
+"bug fix" version of the C11 standard, and, consequently, in C18 mode the
+front end currently only behaves differently from C11 mode in only a few ways:
+  - the macro __STDC_VERSION__ is predefined to 201710L,
+  - type qualifiers are completely ignored on function return types
+    (resolution of DR423), and
+  - the first operand of a _Generic construct undergoes the usual
+    conversions (resolution of DR481; this was already the case in GNU C11
+    mode).
+
+For example:
+
+  int f(void);
+  int const f(void);  // Error in C11 mode.  Okay in C18 mode because of
+                      // the resolution of DR423.
+
+C18 was originally meant to be C17 and various other implementations and
+documents refer to it under the "C17" name.  The front end therefore also
+accepts "--c17" as an option equivalent to "--c18".
+
+
 9/11/19  [EDGcpfe/21553]
 Abort due to missing rescan info in some uses of partial specializations
 

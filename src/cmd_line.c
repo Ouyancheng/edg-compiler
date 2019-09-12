@@ -1076,6 +1076,17 @@ Initialize the option information table.
                          "c11",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  /* C18 is similarly a successor of C99.  (C18 was planned to be "C17" and
+     it is sometimes referred to as such.  Therefore, we accept both "--c17"
+     and "--c18" to enable C18 mode.) */
+  add_option_description(optk_c18_mode,
+                         "c18",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_c18_mode,
+                         "c17",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   /* Usually, C89 is the default C mode.  However, in configurations that
      enable another ANSI-based dialect by default (e.g., C99 or SVR4 C), the
@@ -3928,7 +3939,8 @@ if C11 mode was enabled explicitly.
 {
   if (c99_mode) {
     if (option_kind_used[(int)optk_c99_mode] ||
-        option_kind_used[(int)optk_c11_mode]) {
+        option_kind_used[(int)optk_c11_mode] ||
+        option_kind_used[(int)optk_c18_mode]) {
       /* C99 mode was enabled by a command line option. */
       command_line_error(ec_cl_incompatible_language_modes);
     }  /* if */
@@ -10190,6 +10202,12 @@ enable_microsoft_mode:
       case optk_parse_nonclass_templates:
         /* Enable prototype instantiation of nonclass templates. */
         nonclass_prototype_instantiations = opt_value;
+        break;
+      case optk_c18_mode:
+        /* Enable C18 mode.  This option implies ANSI C mode. */
+        check_assertion(opt_value == TRUE);
+        std_version = 201710;
+        set_C_dialect(C_dialect_ANSI);
         break;
       case optk_c11_mode:
         /* Enable C11 mode.  This option implies ANSI C mode. */

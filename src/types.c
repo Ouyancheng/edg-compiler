@@ -6775,6 +6775,11 @@ check_typerefs:
               (flags & ITF_CHECKING_DEDUCTION_RESULT) != 0) {
             rt_flags |= ITF_CHECK_DEDUCED_PLACEHOLDER_MATCH;
           }  /* if */
+          if (c18_mode) {
+            /* DR423 clarifies that qualifiers in function return types are to
+               be ignored. */
+            rt_flags |= ITF_IGNORE_TOP_LEVEL_QUALIFIERS;
+          }  /* if */
           if (this_class_matches &&
               f_identical_types(type_1->variant.routine.return_type,
                                 type_2->variant.routine.return_type,
@@ -7678,6 +7683,11 @@ check_typerefs:
               flags &= ~TCF_CHECK_ENABLE_IF_ATTRIBUTES;
             } else {
               check_enable_if_attr = FALSE;
+            }  /* if */
+            if (c18_mode) {
+              /* DR423 clarifies that qualifiers in function return types are
+                 to be ignored. */
+              rt_flags |= TCF_IGNORE_TYPE_QUALIFIERS;
             }  /* if */
             if (f_types_are_compatible_full(
                                           type_1->variant.routine.return_type,

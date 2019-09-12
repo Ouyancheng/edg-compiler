@@ -319,6 +319,7 @@ typedef enum /*an_option_kind*/ {
   optk_nonstd_anonymous_unions,
   optk_cpp14_mode,
   optk_c11_mode,
+  optk_c18_mode,
   optk_digit_separators,
   optk_target,
   optk_cpp17_mode,
