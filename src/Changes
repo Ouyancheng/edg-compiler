@@ -1,5 +1,22 @@
 Version 6.0
 
+9/12/19  [EDGcpfe/21323]
+Incorrect declared type for explicit specialization of variable template
+
+An explicit specialization of a variable template sometimes had an incorrect
+declared_type.  This would occur if the declared type of the explicit
+specialization differed from the one produced by instantiating the declaration
+of the variable template.  In the example below the declared_type field of
+b<0> was B<0> when it should have been "auto"
+
+  struct A { };
+  constexpr A a{};
+  template<int N> struct B { };
+  template<int N> constexpr B<N> b{};
+  template<> constexpr auto b<0> = a;
+
+
+
 9/12/19  [EDGcpfe/21464]
 Performance with large number of function template explicit specializations
 
