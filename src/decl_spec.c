@@ -6302,7 +6302,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
     is_redeclaration = TRUE;
     dps->redeclares_tag = TRUE;
     if (scope_is(&scope_stack_top(), sck_class_struct_union) &&
-        locator.is_qualified_name && ((!gpp_mode &&
+        locator.is_qualified_name /*lint !e530*/ && ((!gpp_mode &&
         (dps->tag_def_or_forward_decl || is_opaque_enum_decl)) ||
         (gpp_mode && (is_definition || is_opaque_enum_decl))) &&
         !(dps->dso_flags & DSO_FRIEND)){
@@ -6449,7 +6449,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
   if ((tag_sym == NULL || !tag_sym->is_class_member ||
        !sym_parent_class(tag_sym)->
                      variant.class_struct_union.is_prototype_instantiation) &&
-      is_enum_template_definition && !locator.is_error) {
+      is_enum_template_definition && !locator.is_error /*lint !e530*/) {
     /* A template declaration must always refer to an enumeration declared
        in a class template. */
     pos_error(ec_nonmember_enum_template, &locator.source_position);

@@ -14048,7 +14048,7 @@ static void try_conversion_function_match_full(
                           a_type_ptr               dest_type,
                           a_type_ptr               requested_type,
                           a_builtin_type_kind_set  builtin_types_allowed,
-                          a_boolean                cppcli_atypical_case,
+                          ARG_UNUSED a_boolean     cppcli_atypical_case,
                           ARG_UNUSED a_boolean     only_std_funcs,
                           a_type_ptr               conv_funcs_class,
                           a_boolean                need_lvalue_result,

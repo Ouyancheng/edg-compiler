@@ -106,6 +106,7 @@ static an_error_code
 			/* An error code that specifies why a given
 			   precompiled header file could not be used. */
 
+/*lint -esym(728,il_header_from_pch)*/
 static an_il_header
 		il_header_from_pch;
 			/* Copy of the IL header from the compilation that
@@ -290,7 +291,7 @@ value passed by the caller.
 #if DEBUG
   if (section_in_file != section) {
     fprintf(f_debug, "Incorrect file section ID: expected %d, got %d\n",
-            section, section_in_file);
+            (int)section, (int)section_in_file);
     fprintf(f_debug, "  (expected name: %s, got name: %s\n",
             file_section_names[(int)section],
             file_section_names[(int)section_in_file]);
@@ -573,7 +574,7 @@ Display a PCH event for debugging purposes.
   fprintf(f_debug, "Event kind: %s", pch_event_kind_names[(int)pep->kind]);
   switch (pep->kind) {
     case pchek_command_line:
-      fprintf(f_debug, ", option kind: %d", pep->variant.cl_option.kind);
+      fprintf(f_debug, ", option kind: %d", (int)pep->variant.cl_option.kind);
       fprintf(f_debug, ", option value: %s",
               pep->variant.cl_option.opt_value ? "TRUE" : "FALSE");
       break;

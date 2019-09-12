@@ -798,6 +798,7 @@ template or a type, then it is created as a constant.
 In Microsoft mode, a tentative template lookup for a member of an unknown
 base results in the creations of a class template symbol.
 */
+/*lint -emacro(641,nonreal_member_symbol_kind)*/
 #define nonreal_member_symbol_kind(locator, options)		\
   ((a_symbol_kind)(((options & IDL_TREAT_AS_TEMPLATE_ID) ||	\
     (microsoft_mode && use_implicit_typename() &&		\

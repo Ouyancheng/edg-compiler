@@ -1941,7 +1941,7 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
                     long_double_has_no_implicit_bit ? 0 : 1;
     /* Compute the number of additional bits needed to represent the value
        in denormalized form. */
-    bits_needed = min_exp - *exponent;
+    bits_needed = (int)(min_exp - *exponent);
     if ((bits_needed + bits + implicit_bits) <= mant_dig) {
       /* We can denormalize the number without losing precision.  Do
          the first shift and make the implicit first bit of the mantissa
@@ -2171,7 +2171,7 @@ the long double kind will have already been mapped to double by the caller.
        with a zero mantissa because of the possible presence of an implicit
        bit. */
   } else if (kind == (a_float_kind)fk_float) {
-    val = (mp->parts[0] >> 9) | ((exponent + 127) << 23);
+    val = (an_fp_value_part)((mp->parts[0] >> 9) | ((exponent + 127) << 23));
     if (is_negative) val |= 0x80000000;
     memcpy((char*)float_value, (char*)&val, sizeof(val));
   } else if (kind_is_binary64(kind)) {
@@ -2183,7 +2183,7 @@ the long double kind will have already been mapped to double by the caller.
        either kind of system. */
     /* Update the pointer to refer to the last 32-bit word of the value. */
     if (host_little_endian) fp_ptr += 1;
-    val = ((exponent + 1023) << 20) | (mp->parts[0] >> 12);
+    val = (an_fp_value_part)(((exponent + 1023) << 20) | (mp->parts[0] >> 12));
     if (is_negative) val |= 0x80000000;
     *fp_ptr = val;
     val = (mp->parts[0] << 20) | (mp->parts[1] >> 12);
@@ -2199,7 +2199,7 @@ the long double kind will have already been mapped to double by the caller.
     /* 80-bit representation in a 96-bit container. */
     /* Update the pointer to refer to the last 32-bit word of the value. */
     if (host_little_endian) fp_ptr += 2;
-    val = (exponent + 16383);
+    val = (an_fp_value_part)((exponent + 16383));
     if (is_negative) val |= 0x8000;
     *fp_ptr = val;
     fp_ptr += offset;
@@ -2219,7 +2219,8 @@ the long double kind will have already been mapped to double by the caller.
     /* 128-bit representation. */
     /* Update the pointer to refer to the last 32-bit word of the value. */
     if (host_little_endian) fp_ptr += 3;
-    val = ((exponent + 16383) << 16) | (mp->parts[0] >> 16);
+    val = (an_fp_value_part)(((exponent + 16383) << 16) |
+                             (mp->parts[0] >> 16));
     if (is_negative) val |= 0x80000000;
     *fp_ptr = val;
     fp_ptr += offset;
@@ -2677,6 +2678,7 @@ space) will be unmodified if the routine returns FALSE.
       if (pos_infinity != NULL) *pos_infinity = TRUE;
     }  /* if */
   } else if (do_fp_eq_zero(*temp) &&
+             /*lint --e(2499)*/
              memcmp((char *)temp, (char *)&fp_zero,
                     size_t_arg(data_size_of_host_fp_value)) != 0) {
     /* Special handling to ensure that -0.0 comes out with the leading "-";

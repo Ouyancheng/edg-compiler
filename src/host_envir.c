@@ -2019,6 +2019,7 @@ not return.
 In C++, signal handlers must be extern "C".
 */
 BEGIN_EXTERN_C_BLOCK
+/*lint -e2761 -e2765*/
 
 static a_signal_handler_return_value term_on_signal(ARG_UNUSED int sig)
 /*
@@ -2109,6 +2110,7 @@ additional information for debugging purposes.
 }  /* set_segv_handler */
 
 #endif /* USE_SIGACTION_FOR_SEGV_FAULT_INFO */
+/*lint +e2761 +e2765*/
 
 static void set_signal_handlers(void)
 /*
@@ -3667,7 +3669,7 @@ Return "size" adjusted as needed to be a multiple of the system page size.
     check_assertion_str(HOST_ALLOCATION_INCREMENT % page_size == 0,
                         "invalid HOST_ALLOCATION_INCREMENT for page size");
   }  /* if */
-  size2 = (size / (sizeof_t)page_size) * page_size;
+  size2 = (size / (sizeof_t)(unsigned int)page_size) * page_size;
   if (size2 < size) size2 += page_size;
   return size2;
 }  /* do_page_alignment */
@@ -4523,7 +4525,7 @@ Add "dir_name" to the end of the directory name specified by "buf".
         add_char_to_text_buffer(buf, DIRECTORY_SEPARATOR);
       }  /* if */
       /* Add the directory name to the buffer. */
-      add_to_text_buffer(buf, dir_start, (sizeof_t)(length));
+      add_to_text_buffer(buf, dir_start, (sizeof_t)(unsigned int)length);
     }  /* if */
   }   /* while */
 }  /* append_dir_name */

@@ -3554,6 +3554,7 @@ representation is being used).
       &(step)->variant.qualifier->qualifier.namespace_ptr->source_corresp)) :\
     (step)->variant.scp_kind.scp)
 
+/*lint -emacro(641,kind_of_step)*/
 #define kind_of_step(step)                                                   \
   ((step)->uses_qualifiers ?                                                 \
     ((step)->variant.qualifier == NULL ?                                     \
@@ -11903,7 +11904,7 @@ determination is made by the callee.
   if (routine->special_kind == (a_special_function_kind)sfk_conversion) {
     conversion_type = routine_type->variant.routine.return_type;
   }  /* if */
-  num_operands = number_of_parameters(routine);
+  num_operands = (unsigned int)number_of_parameters(routine);
   if (routine->special_kind == (a_special_function_kind)sfk_operator) {
     opname_kind = routine->variant.opname_kind;
   }  /* if */

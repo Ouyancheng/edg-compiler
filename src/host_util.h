@@ -75,7 +75,7 @@ called again.
   max_len_without_suffix -= sizeof(OBJECT_FILE_SUFFIX);
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
   check_assertion(max_len_without_suffix > 0);
-  (void)strncpy(buffer, mangled_name, max_len_without_suffix);
+  (void)strncpy(buffer, mangled_name, max_len_without_suffix); /*lint !e669*/
   buffer[max_len_without_suffix] = '\0';
   (void)sprintf(buffer+strlen(buffer), "_%08lx",
                 crc_32(mangled_name, (unsigned long)0));
