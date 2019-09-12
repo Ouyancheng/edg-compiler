@@ -22298,6 +22298,10 @@ declaration of a partial specialization declared outside of its class.
   decl_state->defines_something = is_definition;
   /* Make sure this declaration is valid in this scope. */
   if (decl_state->is_template_friend) {
+    LINT_IS_INITIALIZED(locator.is_qualified_name);
+    LINT_IS_INITIALIZED(locator.is_template_id);
+    LINT_IS_INITIALIZED(locator.symbol_header);
+    LINT_IS_INITIALIZED(locator.is_class_member);
     if (decl_state->class_declared_in != NULL) {
       /* A friend declaration in a class scope -- okay (provided it is not
          a definition). */

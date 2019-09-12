@@ -23869,6 +23869,7 @@ be suppressed (i.e., SFINAE mode).
     if (arg_match != NULL) {
       /* We're checking for overload resolution.  The result is in
          local_arg_match. */
+      LINT_IS_INITIALIZED(local_arg_match.match_level);
       elem_icp->check_narrowing = saved_check_narrowing;
       if (local_arg_match.match_level == aml_none) {
         arg_match_err = TRUE;
@@ -25057,6 +25058,8 @@ will be an lvalue instead of the usual prvalue.
         }  /* if */
       } else {
         /* Not overload resolution. */
+        LINT_IS_INITIALIZED(operand.kind);
+        LINT_IS_INITIALIZED(operand.type);
         if (is_incomplete_array_type(underlying_type) &&
             !is_error_operand(&operand)) {
           /* If the entity initialized was an incomplete array, adjust

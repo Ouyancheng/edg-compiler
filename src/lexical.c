@@ -19251,6 +19251,7 @@ f_is_generalized_identifier_start needs to inspect and, if so, calls
 next_two_tokens;  Otherwise, second_token is set to tok_error and tok_error
 is returned.
 */
+/*lint -emacro(641,next_two_tokens_if_qualifier_delimiter)*/
 #define next_two_tokens_if_qualifier_delimiter(separator, second_token)	\
   ((a_token_kind)(qualifier_delimiter_does_not_follow_token() ?		\
     (*(second_token) = tok_error), tok_error :				\

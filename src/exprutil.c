@@ -1857,7 +1857,7 @@ is pushed regardless of any of the other factors.
     transfer_context_from_enclosing_expr_stack_entry(/*direct=*/TRUE,
                                                      expr_stack, new_entry);
   }  /* if */
-  expr_stack = new_entry;
+  expr_stack = new_entry; /*lint !e733 !e789*/
   /* Do special handling for constant expressions.  This is done late so that
      curr_expr_kind_is_const can be used. */
   if (curr_expr_kind_is_const()) {
@@ -8485,10 +8485,12 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
   if (!C_mode() && !reinterpret_semantics &&
       related_class_pointers_or_handles(old_type, new_type,
                                         &baseward_cast, &bcp)) {
+    LINT_IS_INITIALIZED(baseward_cast);
+    LINT_IS_INITIALIZED(bcp);
     /* C++ cast from a pointer to a class to a pointer to a related
        (base or derived) class. */
     new_type_pointed_to = type_pointed_to(new_type);
-    if (baseward_cast) { /*lint !e530*/
+    if (baseward_cast) {
       /* Derived --> base.  Valid unless the cast is ambiguous or
          the base class is inaccessible. */
       add_base_class_casts(bcp, new_type_pointed_to,
@@ -18014,6 +18016,8 @@ whether the call was folded or not.
         this_class_type = type_pointed_to(this_type);
         this_class_type = skip_typerefs(this_class_type);
       }  /* if */
+      LINT_IS_INITIALIZED(bound_function_selector->type);
+      LINT_IS_INITIALIZED(bound_function_selector->selector_is_object_pointer);
       selector_type = bound_function_selector->type,
       selector_is_object_pointer =
                            bound_function_selector->selector_is_object_pointer;
@@ -22517,7 +22521,7 @@ otherwise.
                 /* There's more than one matching function template, so leave
                    the operand as it is. */
                 matching_sym = NULL;
-                free_template_arg_list(matching_arg_list);
+                free_template_arg_list(matching_arg_list); /*lint !e530*/
                 break;
               } else {
                 matching_sym = proj_sym;

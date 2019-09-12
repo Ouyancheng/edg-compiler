@@ -7364,8 +7364,9 @@ comparisons are done.
       eq = (cp1->source_corresp.is_class_member ?
               identical_types_full(parent_class_of(cp1), parent_class_of(cp2),
                                    itf_options) :
-              corresponding_namespaces(parent_namespace_or_null(cp1),
-                                       parent_namespace_or_null(cp2)));
+              corresponding_namespaces(
+                                 /*lint !e666*/parent_namespace_or_null(cp1),
+                                 /*lint !e666*/parent_namespace_or_null(cp2)));
     }  /* if */
   } else {
     eq = FALSE;

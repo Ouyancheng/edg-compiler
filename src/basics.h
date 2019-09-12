@@ -1102,6 +1102,18 @@ another without an intervening "break" statement.
 #endif /* __has_cpp_attribute(maybe_unused) && defined(__cplusplus) */
 #endif /* defined(_lint) */
 
+/*
+In some cases, lint mistakenly determines that a value may be uninitialized
+and warns on every use of that variable.  This macro is used to convince lint
+that the value is indeed initialized.
+*/
+#ifdef _lint
+/*lint -emacro(530,LINT_IS_INITIALIZED)*/
+#define LINT_IS_INITIALIZED(x) ((x) = (x))
+#else /* !defined(_lint) */
+#define LINT_IS_INITIALIZED(x) /*nothing*/
+#endif /* defined(_lint) */
+
 #ifdef __cplusplus
 END_EXTERN_C_BLOCK_IN_CPP_FILE
 #endif /* ifdef __cplusplus */
