@@ -304,7 +304,6 @@ extern void decl_spec_one_time_init(void);
 			   declaration specifiers. */
 #define DSI_LAST DSI_STD_ATTRIBUTES_ALLOWED
 			/* Last bit in the bit vector that is in use. */
-			/*lint -esym(755,DSI_LAST)*/
 
 /* Constants defining bits in the output bit vector returned from
    decl_specifiers. */
@@ -402,7 +401,6 @@ extern void decl_spec_one_time_init(void);
 			   "local_thread" was found. */
 #define DSO_LAST DSO_THREAD_LOCAL
 			/* Last bit in the bit vector that is in use. */
-			/*lint -esym(755,DSO_LAST)*/
 
 #define DSO_STORAGE_CLASS_SPECIFIERS (DSO_MUTABLE | DSO_THREAD_LOCAL)
                         /* Set of bits that are lexically considered to

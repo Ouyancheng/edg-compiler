@@ -8726,6 +8726,7 @@ initialized.  These are addressed in the course of the processing.
           cib.virtual_list = cip;
         } else {
           /* Add to end of list. */
+          check_assertion(cib.end_of_virtual_list != NULL);
           cib.end_of_virtual_list->next = cip;
         }  /* if */
         cib.end_of_virtual_list = cip;
@@ -8735,6 +8736,7 @@ initialized.  These are addressed in the course of the processing.
           cib.direct_list = cip;
         } else {
           /* Add to end of list. */
+          check_assertion(cib.end_of_direct_list != NULL);
           cib.end_of_direct_list->next = cip;
         }  /* if */
         cib.end_of_direct_list = cip;
@@ -8833,6 +8835,7 @@ initialized.  These are addressed in the course of the processing.
       if (cib.cip_list == NULL) {
         cib.cip_list = cip;
       } else {
+        check_assertion(cib.end_of_cip_list != NULL);
         cib.end_of_cip_list->next = cip;
       }  /* if */
       cib.end_of_cip_list = cip;
@@ -9895,7 +9898,7 @@ declaration that has internal linkage because of the explicit presence of a
   }  /* if */
   if (is_any_reference_type(type)) {
     /* Note that a reference type object cannot be produced by new. */
-    /* coverity[var_deref_op] */
+    check_assertion(vp != NULL);
     if (vp->storage_class != (a_storage_class)sc_extern) {
       /* Non-extern reference variables must be initialized (ARM 8.4.3). */
       sym_error(ec_missing_initializer_on_reference, sym);

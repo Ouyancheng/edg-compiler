@@ -2751,6 +2751,7 @@ caller may have to set it directly.
       num_compares_for_symbols++;
 #endif /* DEBUG */
       if (length == hdr_ptr->identifier_length) {
+        /*lint -e{670}*/
         if (memcmp(identifier, hdr_ptr->identifier, size_t_arg(length)) == 0) {
 	  /* Have a match. */
 	  sym_ptr = hdr_ptr->symbol;
@@ -8592,10 +8593,10 @@ Many of these symbols will be accessible through the cli_symbols array.
 
 #if CHECKING
   /* Check that the a_cli_symbol_kind_tag enumeration is correctly defined. */
+  /*lint -e{506,1564}*/
   if ((int)csk_last_integer - (int)csk_first_integer !=
                                                  (int)ik_unsigned_long_long ||
-      (int)csk_last_float - (int)csk_first_float !=
-                                         (int)fk_long_double) /*lint !e506*/ {
+      (int)csk_last_float - (int)csk_first_float != (int)fk_long_double) {
     internal_error(
          "init_cli_symbols: incorrect a_cli_symbol_kind_tag");
   }  /* if */

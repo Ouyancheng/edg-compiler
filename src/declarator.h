@@ -132,7 +132,6 @@ abstract or real declarator.
 /* Constants defining bits in the input bit vector used in calls to
    declarator. */
 #define DI_NO_INPUT_FLAGS ((a_decl_flag_set)0x0)
-			/*lint -esym(755,DI_NO_INPUT_FLAGS)*/
 #define DI_REAL_DECLARATOR_ALLOWED ((a_decl_flag_set)0x1)
 			/* If this bit is set the entity may be scanned as an
 			   declarator (rather than an abstract declarator). */
@@ -218,7 +217,6 @@ abstract or real declarator.
 			   an enclosing template parameter. */
 #define DI_LAST DI_IS_TEMPLATE_PARAM_PACK_EXPANSION
 			/* Last bit in the bit vector that is in use. */
-			/*lint -esym(755,DI_LAST)*/
 /* Constants defining bits in the output bit vector used in calls to
    declarator. */
 #define DO_NO_OUTPUT_FLAGS ((a_decl_flag_set)0x0)
@@ -282,7 +280,6 @@ abstract or real declarator.
 			   bit may become set. */
 #define DO_LAST DO_IS_FINALIZER
 			/* Last bit in the bit vector that is in use. */
-			/*lint -esym(755,DO_LAST)*/
 
 /*
 Structure used to represent the information about a calling convention

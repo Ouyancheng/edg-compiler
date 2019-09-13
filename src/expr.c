@@ -555,6 +555,7 @@ error type.
     make_constant_operand(constant, &local_operand);
     p_operand = &local_operand;
   } else {
+    check_assertion(arg_operand != NULL);
     p_operand = &arg_operand->operand;
   }  /* if */
   /* Attempt to deduce the auto type from the argument type. */
@@ -2135,6 +2136,7 @@ constructs, in which case offsetof_case is TRUE.
           if (subsc_expr_list == NULL) {
             subsc_expr_list = subsc_expr;
           } else {
+            check_assertion(end_subsc_expr_list != NULL);
             end_subsc_expr_list->next = subsc_expr;
           }  /* if */
           end_subsc_expr_list = subsc_expr;
@@ -3493,7 +3495,6 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
     } else if (string_ctor_skip != NULL &&
                (f_identical_types(opnd->type, make_handle_to_system_string(),
                                   ITF_NO_FLAGS) ||
-                /*lint --e(820)*/
                 (literal_case = is_literal_convertible_to_cli_string(
                                             opnd, /*allow_complex=*/TRUE)))) {
       /* There's one argument, of type System::String^, and we've
@@ -3703,7 +3704,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
         an_operand *operand;
         check_assertion(is_expression_component(eff_arg_list));
         operand = operand_of_arg_list_elem(eff_arg_list);
-        check_assertion(overloaded_function_case);
+        check_assertion(overloaded_function_case && arg_match != NULL);
         if (is_null_user_conv_descr(&arg_match->conversion)) {
           arg_match->conversion.class_object_adjustment_required = TRUE;
         }  /* if */
@@ -6060,7 +6061,7 @@ are expected to be NULL in that case.
   } else if (!C_mode() &&
              (is_class_struct_union_type(operand->type)
 #if MICROSOFT_EXTENSIONS_ALLOWED
-              || (handle_case = (cli_or_cx_enabled && /*lint --e(820)*/
+              || (handle_case = (cli_or_cx_enabled &&
                                  is_overloadable_handle_type(operand->type)))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                                            )) {
@@ -7121,7 +7122,7 @@ operand, as a way to catch loops.
      deliberate: doing so could cause infinite loops. */
   if (is_class_struct_union_type(operand->type)
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      || (handle_case = (cli_or_cx_enabled &&  /*lint --e(820)*/
+      || (handle_case = (cli_or_cx_enabled &&
                          is_overloadable_handle_type(operand->type) &&
                          is_class_with_operator_arrow_for_cli(
                                               type_pointed_to(operand->type),
@@ -30461,8 +30462,9 @@ that case.
           pos = operand_2.position;
         }  /* if */
         expr_pos_warning(ptr_case ?     ec_ptr_conv_to_bool :
-                         nullptr_case ? ec_nullptr_conv_to_bool :
-                                        ec_ptr_to_member_conv_to_bool,
+                         (an_error_code)
+                         (nullptr_case ?ec_nullptr_conv_to_bool :
+                                        ec_ptr_to_member_conv_to_bool),
                          &pos);
       } else if (operand_2_is_handle || operand_3_is_handle) {
         /* At least one of the operands has a C++/CLI handle type.
@@ -47901,6 +47903,7 @@ or NULL if the argument list is empty.
       if (arg_list == NULL) {
         arg_list = arg;
       } else {
+        check_assertion(arg_tail != NULL);
         arg_tail->next = arg;
       }  /* if */
       arg_tail = arg;

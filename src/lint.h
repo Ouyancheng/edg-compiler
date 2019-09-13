@@ -1471,6 +1471,11 @@ extern int fileno(FILE *);
 /*lint -esym(750,is_finite)*/
 /*lint -esym(750,is_NaN)*/
 /*lint -esym(750,comment_numeric_valued_macro)*/
+/*lint -esym(755,DO_LAST)*/
+/*lint -esym(755,DI_LAST)*/
+/*lint -esym(755,DI_NO_INPUT_FLAGS)*/
+/*lint -esym(755,DSO_LAST)*/
+/*lint -esym(755,DSI_LAST)*/
 
 #endif /* ifndef LINT_H */
 

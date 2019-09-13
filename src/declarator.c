@@ -4067,7 +4067,7 @@ an error if a default argument expression is encountered.
   /* Pop the function prototype scope if needed. */
   if (must_pop_function_prototype_scope) pop_scope();
   if (!is_top_level_declarator) {
-    done_with_func_info(local_func_info_block);
+    done_with_func_info(local_func_info_block); /*lint !e530*/
   }  /* if */
   copy_source_position(start_pos, error_position);
   state->function_declarator_seen = TRUE;

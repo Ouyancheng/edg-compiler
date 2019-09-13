@@ -30875,6 +30875,7 @@ of the list.
       if (result_list == NULL) {
         result_list = gcp;
       } else {
+        check_assertion(list_tail != NULL);
         list_tail->next = gcp;
       }   /* if */
       list_tail = gcp;
@@ -31043,6 +31044,7 @@ clause, invalid forward references are avoided.
           gccp_list = clause;
           decl_state->template_decl->generic_constraint_clauses = gccp_list;
         } else {
+          check_assertion(gccp_tail != NULL);
           gccp_tail->next = clause;
         }  /* if */
         gccp_tail = clause;

@@ -901,6 +901,7 @@ entry that has already been created and linked in for this entity.
     }  /* if */
   }  /* if */
   if (force_alloc_in_filescope) {
+    LINT_IS_INITIALIZED(region_to_switch_back_to);
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
   /* Point the source sequence entry at the entity. */

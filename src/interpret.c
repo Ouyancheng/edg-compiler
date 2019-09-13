@@ -10806,6 +10806,7 @@ given complete object).
           path = addr_con->variant.address.subobject_path;
           for (; path != NULL; path = path->next) {
             if (path->is_offset) {
+              check_assertion(type != NULL);
               type = array_element_type(type);
             } else if (!path->is_base_class) {
               type = path->variant.field->type;

@@ -9143,7 +9143,7 @@ differ in the const/volatile qualifiers cvk, and n >= 1.
 
 #if UPC_EXTENSIONS_ALLOWED
 
-static a_boolean f_get_underlying_upc_block_size(a_type_ptr  type)
+static a_upc_block_size f_get_underlying_upc_block_size(a_type_ptr  type)
 /*
 Return the UPC block size of the given type if applicable, or 
 UPC_BLOCK_SIZE_NONE otherwise.  For arguments without side effect,
@@ -9806,6 +9806,7 @@ information is not needed.
       /* Array covariance conversion is applicable. */
       okay = TRUE;
       if (std_conv != NULL) {
+        LINT_IS_INITIALIZED(element_std_conv.cast_base_class);
         std_conv->cli_array_covariance_conversion = TRUE;
         std_conv->cast_base_class = element_std_conv.cast_base_class;
       }  /* if */

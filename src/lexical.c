@@ -22982,7 +22982,7 @@ the caller should copy the contents as needed.
   add_char_to_text_buffer(buffer, '\0');
 #if DEBUG
   if (db_flag_is_set("dump_metadata") || db_flag_is_set("dump_full_metadata")){
-    fprintf(f_debug, "Import types from %x: ", idx);
+    fprintf(f_debug, "Import types from %x: ", (unsigned int)idx);
     db_dump_metadata(buffer, db_flag_is_set("dump_metadata") ? 256 : 0);
   }  /* if */
 #endif /* DEBUG */

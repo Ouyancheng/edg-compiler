@@ -14545,6 +14545,7 @@ not_direct_binding_case:
               if (rcssp->has_deleted_copy_or_move_constructor) {
                 a_symbol_ptr  ctor_sym;
                 a_boolean     ambiguous, uncallable, bitwise_copy;
+                check_assertion(source_operand != NULL);
                 ctor_sym = select_overloaded_copy_constructor(
                                    unqual_return_type,
                                    get_type_qualifiers(return_type),
