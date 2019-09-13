@@ -13625,6 +13625,36 @@ by specific_template_template_param.
 }  /* ttt_contains_specific_template_template_param */
 
 
+static a_boolean is_deducible_template_param_constant(a_constant_ptr  cp)
+/*
+If cp represents a nontype template parameter, possibly under a compiler-
+generated cast, return TRUE.  Otherwise, return FALSE.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (constant_is(cp, ck_template_param)) {
+    if (tpck_is(cp, tpck_param)) {
+      result = TRUE;
+    } else if (tpck_is(cp, tpck_expression)) {
+      an_expr_node_ptr  expr = expr_node_from_tpck_expression(cp);
+      if (expr->compiler_generated && is_operation_node(expr) &&
+          (node_operator_is(expr, eok_cast) ||
+           node_operator_is(expr, eok_ref_cast))) {
+        an_expr_node_ptr  opnd = expr->variant.operation.operands;
+        if (is_constant_node(opnd)) {
+          cp = node_constant(opnd);
+          if (constant_is(cp, ck_template_param) && tpck_is(cp, tpck_param)) {
+            result = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_deducible_template_param_constant */
+
+
 static a_boolean ttt_is_or_contains_deduced_template_param(
                                        a_type_ptr  type_ptr,
                                        a_boolean   *force_end_of_traversal)
@@ -13644,7 +13674,7 @@ from which a template parameter value can be deduced.
                                      (a_template_param_type_kind)tptk_param) {
       *force_end_of_traversal = found = TRUE;
     }  /* if */
-  } else if (type_ptr->kind == (a_type_kind)tk_typeref &&
+  } else if (type_is(type_ptr, tk_typeref) &&
              typeref_is_type_operator(type_ptr)) {
     /* The type under a decltype or typeof is not deduced. */
     *force_end_of_traversal = TRUE;
@@ -13652,8 +13682,43 @@ from which a template parameter value can be deduced.
     /* We are not looking for a specific template param type, so any
        template constant (e.g., appearing as an array bound) will also
        serve. */
-    found = ttt_contains_template_param_constant(type_ptr,
-                                                 force_end_of_traversal);
+    if (type_is(type_ptr, tk_array)) {
+      if (type_ptr->variant.array.is_template_dependent_size_array) {
+        a_constant_ptr
+                  cp = type_ptr->variant.array.variant.element_count_constant;
+        if (is_deducible_template_param_constant(cp)) {
+          found = TRUE;
+          *force_end_of_traversal = TRUE;
+        }  /* if */
+      }  /* if*/
+    } else if (is_immediate_class_type(type_ptr)) {
+      if (type_ptr->variant.class_struct_union.is_nonreal_class ||
+          is_cli_type_to_treat_as_nonreal(type_ptr)) {
+        /* Examine each template argument, if any. */
+        a_template_arg_ptr  tap;
+        begin_template_arg_list_traversal_simple(
+                         class_type_supp(type_ptr)->template_arg_list, &tap);
+        for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
+          if (is_nontype_templ_arg(tap) &&
+              is_deducible_template_param_constant(tap->variant.constant)) {
+            found = TRUE;
+            *force_end_of_traversal = TRUE;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    } else if (type_is(type_ptr, tk_routine) && exc_spec_in_func_type) {
+      /* Check for something like "void f() noexcept(B)" where B is a nontype
+         template argument. */
+      an_exception_specification_ptr
+          esp = type_ptr->variant.routine.extra_info->exception_specification;
+      if (esp != NULL && esp->is_noexcept && !esp->arg_cached &&
+          !esp->copy_from_prototype && esp->variant.noexcept_arg != NULL) {
+        if (is_deducible_template_param_constant(esp->variant.noexcept_arg)) {
+          found = TRUE;
+          *force_end_of_traversal = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
     if (!found) {
       /* Check for a template template parameter used as a template
          argument. */
@@ -14858,16 +14923,20 @@ used in expression contexts.
   check_assertion(is_function_type(rout_type));
   ptp = skip_typerefs(rout_type)->variant.routine.extra_info->param_type_list;
   for (; ptp != NULL; ptp = ptp->next) {
+    a_type_ptr  tp = ptp->type;
+    if (is_array_type(tp)) {
+      tp = type_after_array_to_pointer_transformation(tp);
+    }  /* if */
     ptp->type_involves_template_param =
-                    is_template_dependent_type_or_cli_generic_param(ptp->type);
+                          is_template_dependent_type_or_cli_generic_param(tp);
     if (ptp->type_involves_template_param) {
       /* The type can only involve a deduced template parameter if it
          involves a template parameter in any context.  Parameter packs
          are nondeduced when they do not appear at the end of the parameter
          list. */
       ptp->type_involves_deduced_template_param =
-                              !(ptp->is_parameter_pack && ptp->next != NULL) &&
-                              is_or_contains_deduced_template_param(ptp->type);
+                             !(ptp->is_parameter_pack && ptp->next != NULL) &&
+                             is_or_contains_deduced_template_param(tp);
     }  /* if */
   }  /* for */
 }  /* set_parameter_list_template_param_flags */

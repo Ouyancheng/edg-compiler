@@ -5222,7 +5222,7 @@ a_boolean is_template_param_cast_constant(a_constant_ptr  con,
                                           a_boolean       *is_explicit)
 /*
 Return TRUE if the given constant is a ck_template_param/tpck_expression entry
-for an eok_cast/eok_ref_cast node on top of an eok_constant node.  If so, set
+for an eok_cast/eok_ref_cast node on top of an enk_constant node.  If so, set
 *p_base_con to the underlying constant entry of that node, and set *is_explicit
 to TRUE or FALSE depending on whether the cast was explicit or not.
 */

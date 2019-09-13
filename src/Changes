@@ -1,5 +1,21 @@
 Version 6.0
 
+9/13/19  [EDGcpfe/19555,EDGcpfe/21781]
+Spurious deduction failure for non-deducible use of nontype template parameter
+
+Consider:
+
+  template<typename T> int g(T, char(*)[sizeof(T)]);
+  int r = g(1.0, 0);  // Previously an error.  Now okay.
+
+This should be valid: The first argument in the call deduces T = double, and
+the second argument does not produce a deduction because T in the corresponding
+parameter is non-deducible.  The second argument is therefore treated like a
+null pointer constant.  However, previously, the front end erroneously
+considered T in the second parameter type to be deducible and therefore failed
+to match the argument 0 as a null pointer constant.  That is now fixed.
+
+
 9/12/19  [EDGcpfe/21705]
 Abort on recursive use of __is_constructible (and similar)
 
