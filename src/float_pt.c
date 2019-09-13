@@ -2961,7 +2961,7 @@ for the representation of floating-point values in mangled names.
   /* The long double format sometimes contains some unused bytes.
      Put out zeros for the padding space. */
   if (kind == (a_float_kind)fk_long_double) {
-    int	pad_size = sizeof(long double) - data_size;
+    int	pad_size = (int)(sizeof(long double) - data_size);
     for (j = 0; j < pad_size; j++, i++)  {
       (void)sprintf(&str[i*2], "00");
     }  /* for */
@@ -2976,7 +2976,7 @@ for the representation of floating-point values in mangled names.
     } else {
       byte = float_value->bytes[j];
     }  /* if */
-    (void)sprintf(&str[i*2], "%02x", byte);
+    (void)sprintf(&str[i*2], "%02x", (unsigned int)byte);
   }  /* for */
   /* Add the terminating null character. */
   str[i*2] = '\0';

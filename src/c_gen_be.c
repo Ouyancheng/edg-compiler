@@ -4043,7 +4043,7 @@ with a routine.
       (void)strcat(buffer0, buffer);
     }  /* if */
     (void)sprintf(buffer, "E%lu", (unsigned long)name_length);
-    (void)sprintf(buffer2, "_%lu", (unsigned long)scope_number);
+    (void)sprintf(buffer2, "_%lu", (unsigned long)(unsigned)scope_number);
     mangled_name_length = strlen(buffer0) +
                           routine_name_length + strlen(buffer) +
                           name_length + strlen(buffer2);

@@ -785,7 +785,6 @@ typedef unsigned int an_itf_flag_set;
 			   ignored while comparing the types. */
 #define ITF_LAST ITF_IGNORE_TOP_LEVEL_NOEXCEPT
 			/* Last bit in the bit vector that is in use. */
-			/*lint -esym(755,ITF_LAST)*/
 
 #define identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), ITF_NO_FLAGS))
@@ -952,7 +951,6 @@ Bit flags for calls of f_types_are_compatible et al.
 			   ignored while comparing the types. */
 #define TCF_LAST TCF_IGNORE_TOP_LEVEL_NOEXCEPT
 			/* Last bit in the bit vector that is in use. */
-			/*lint -esym(755,TCF_LAST)*/
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;
 

@@ -2321,7 +2321,7 @@ of a base class.  Either field or base (but not both) must be NULL.
 
   check_assertion((field != NULL && base == NULL) ||
                   (field == NULL && base != NULL));
-  offset = (field != NULL) ? field->offset : base->offset;
+  offset = (field != NULL) ? field->offset : base->offset; /*lint !e413*/
   for (; bcp != NULL; bcp = bcp->next) {
     if ((bcp->direct || bcp->is_virtual) && bcp->offset_is_set &&
         !is_empty_class_type(bcp->type)) {
@@ -2340,6 +2340,7 @@ of a base class.  Either field or base (but not both) must be NULL.
           pos_warning(ec_field_uses_tail_padding,
                       &field->source_corresp.decl_position);
         } else {
+          /*lint -e{413}*/
           pos_sy2_warning(ec_base_uses_tail_padding, &base->decl_position,
                           symbol_for(base->type), symbol_for(bcp->type));
         }  /* if */
@@ -2381,13 +2382,14 @@ base class ends with a bit field.
        last field. */
     a_field_ptr    last_field = trailing_nonclass_field(btp, &offset);
     if (last_field != NULL && last_field->is_bit_field &&
-        (last_field->offset_bit_remainder + last_field->bit_size) %
+        (unsigned)(last_field->offset_bit_remainder + last_field->bit_size) %
                                                          targ_char_bit != 0) {
       /* The trailing base ends with a bit field that leaves some unused
          bits in its last byte. */
       a_targ_size_t  last_field_byte = offset + 1;
       last_field_byte +=
-       (last_field->offset_bit_remainder+last_field->bit_size) / targ_char_bit;
+           (unsigned)(last_field->offset_bit_remainder+last_field->bit_size) /
+                                                                 targ_char_bit;
       if (last_field_byte + btp->alignment <= *end_of_object) {
         /* The trailing bit field actually triggered the GNU bit field
            overpadding bug.  In that case, more bytes are trimmed, but one

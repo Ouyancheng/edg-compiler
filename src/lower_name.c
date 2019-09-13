@@ -1326,7 +1326,7 @@ value to the mangled name.
   /* Scan from most significant to least significant digit. */
   do {
     /* Compute the most significant digit for the remaining value. */
-    unsigned int digit = value / power;  /*lint !e414*/
+    unsigned int digit = (unsigned int)(value / power);  /*lint !e414*/
     /* Emit the digit. */
     add_to_mangled_name(base_36_digits[digit], mctl);
     /* Subtract the value of the digit just emitted. */
@@ -10800,7 +10800,7 @@ returned string to an appropriate buffer before this routine is invoked again.
            operator mangling which imposes a limit that the number of operands
            must fit in a single digit (i.e., be no greater than 9). */
         static char buffer[50];
-        num_operands = number_of_operands_in_list(
+        num_operands = (unsigned int)number_of_operands_in_list(
                                              expr->variant.operation.operands);
         if (num_operands > 9) num_operands = 9;
         (void)sprintf(buffer, "v%u12clisubscript", num_operands);
@@ -12160,6 +12160,7 @@ is_variable is TRUE, a routine otherwise.
 }  /* start_externalized_name */
 
 
+/*lint -ecall(523,end_externalized_name)*/
 static void end_externalized_name(ARG_UNUSED a_source_correspondence  *scp,
                                   ARG_UNUSED a_mangling_control_block *mctl)
 /*

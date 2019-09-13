@@ -74,7 +74,6 @@ typedef enum a_pragma_binding_kind {
 		   scanned. */
   pbk_last
 		/* Must be last. */
-		/*lint -esym(769,a_pragma_binding_kind::pbk_last)*/
 } a_pragma_binding_kind;
 
 

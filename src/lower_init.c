@@ -8076,6 +8076,7 @@ location is the insert_location2 value (after the assignment statement).
                                         insert_location2);
 #else /* IA64_ABI */
   if (targ_ia64_abi_use_guard_acquire_release) {
+    LINT_IS_INITIALIZED(outer_then);
     if (is_effective_thread_local(guarded_var)) {
       /* No need to worry about multi-threading (this variable is
          local to the thread, so a simple flag will ensure that the guarded
@@ -8094,19 +8095,20 @@ location is the insert_location2 value (after the assignment statement).
          This is done as two "if"s so that once the variable is
          initialized one doesn't pay the cost of calling the runtime
          routine. */
-      an_expr_node_ptr acquire_node = /*lint -e(666)*/
+      an_expr_node_ptr test_var_expr = var_addr_expr(*test_var);
+      an_expr_node_ptr acquire_node =
               make_prototyped_runtime_call("__cxa_guard_acquire",
                                          &guard_acquire_routine,
                                          integer_type((an_integer_kind)ik_int),
                                          make_pointer_type((*test_var)->type),
-                                         NULL, var_addr_expr(*test_var));
+                                         NULL, test_var_expr);
       an_insert_location outer_block_insert_location,
                          release_insert_location;
-      an_expr_node_ptr release_node = /*lint -e(666)*/
+      an_expr_node_ptr release_node =
               make_prototyped_runtime_call("__cxa_guard_release",
                                           &guard_release_routine, void_type(),
                                           make_pointer_type((*test_var)->type),
-                                          NULL, var_addr_expr(*test_var));
+                                          NULL, test_var_expr);
       /* Make the acquire call a boolean controlling expression. */
       acquire_node = boolean_controlling_expr(acquire_node);
       set_block_start_insert_location(outer_then,

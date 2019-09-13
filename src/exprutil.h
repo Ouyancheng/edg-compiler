@@ -192,7 +192,6 @@ typedef enum a_type_class_kind {
   tck_void,             /* void */
   tck_integer,          /* short, int, long, long long */
   tck_char,             /* char (currently unused) */
-			/*lint -esym(769,a_type_class_kind::tck_char)*/
   tck_enum,             /* enumeration types */
   tck_bool,             /* bool */
   tck_pointer,          /* pointers */
@@ -203,12 +202,10 @@ typedef enum a_type_class_kind {
 			   complex */
   tck_routine,          /* functions */
   tck_method,           /* Unused in C or C++. */
-			/*lint -esym(769,a_type_class_kind::tck_method)*/
   tck_struct,           /* structs or classes */
   tck_union,            /* unions */
   tck_array,            /* arrays */
   tck_string            /* strings (currently unused) */
-			/*lint -esym(769,a_type_class_kind::tck_string)*/
 /* Unused type classes:
   tck_set
   tck_file

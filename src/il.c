@@ -6717,7 +6717,7 @@ Return the hash value for the indicated constant.
       /* String.  Hash all the characters. */
       hash_value = 100;
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
-      hash_value += cp->variant.string.sequence_number;
+      hash_value += (a_hash_value)cp->variant.string.sequence_number;
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
       for (length = cp->variant.string.length, p = cp->variant.string.value;
            length > 0;

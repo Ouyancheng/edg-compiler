@@ -180,7 +180,7 @@ MAKE_FRONT_END_CALLABLE is TRUE.
 }  /* cfe_main */
 
 
-int EDG_MAIN(int argc, char *argv[])
+int EDG_MAIN(int argc, char *argv[]) /*lint !e759*/
 /*
 The main routine for the front end.
 

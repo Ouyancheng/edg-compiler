@@ -1546,7 +1546,6 @@ enum an_element_position_kind_tag {
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   epk_noreturn,			/* C11 "_Noreturn" position. */
   epk_last
-	/*lint -esym(769,an_element_position_kind_tag::epk_last)*/
 };
 
 typedef a_byte an_element_position_kind;
@@ -2458,7 +2457,7 @@ typedef enum an_attribute_family_tag {
   af_ms_declspec,	/* An attribute specified using the Microsoft
 			   __declspec construct. */
   af_alignas,		/* The C++11 attribute-like construct "alignas". */
-  af_last		/*lint -esym(769,an_attribute_family_tag::af_last)*/
+  af_last
 } an_attribute_family;
 
 /* For storing an attribute family more compactly. */
@@ -3212,7 +3211,7 @@ enum a_constant_repr_kind_tag {
   ck_void,		/* In C++14, "void" is a literal type, and folding
 			   can produces "values" of that type.  This constant
 			   kind represents such cases. */
-  ck_last		/*lint -esym(769,a_constant_repr_kind_tag::ck_last)*/
+  ck_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_constant_repr_kind;
@@ -3495,7 +3494,6 @@ enum a_dynamic_init_kind_tag {
 			   statement expression that results in a class object
 			   produced via a constructor. */
   dik_call_returning_class_via_cctor = dik_class_result_via_ctor,
-/*lint -esym(769,a_dynamic_init_kind_tag::dik_call_returning_class_via_cctor)*/
 			/* Synonym for dik_class_result_via_ctor (for backward
 			   compatibility purposes). */
   dik_constructor,	/* Initial value of a simple object is established by
@@ -5491,7 +5489,6 @@ enum a_type_qualifier_tag {
 	(int)tqt_lsb_named_address_space + NUM_BITS_FOR_NAMED_ADDRESS_SPACE -1,
 			/* Most significant bit of named address space
 			   representation. */
-	/*lint -esym(769,a_type_qualifier_tag::tqt_msb_named_address_space)*/
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
   tqt_last		/* Must be last. */
 };
@@ -5778,7 +5775,7 @@ enum a_stdc_pragma_kind_tag {
   stdc_pk_fx_fract_overflow,
   stdc_pk_fx_accum_overflow,
 #endif /* FIXED_POINT_ALLOWED */
-  stdc_pk_last	/*lint -esym(769,a_stdc_pragma_kind_tag::stdc_pk_last)*/
+  stdc_pk_last
 };
 
 /* Storage size to be used to hold a STDC pragma kind. */
@@ -5826,7 +5823,7 @@ enum a_gcc_pragma_kind_tag {
   gcc_pk_push_options,          /* #pragma GCC push_options */
   gcc_pk_pop_options,           /* #pragma GCC pop_options */
   gcc_pk_reset_options,         /* #pragma GCC reset_options */
-  gcc_pk_last	/*lint -esym(769,a_gcc_pragma_kind_tag::gcc_pk_last)*/
+  gcc_pk_last
 };
 
 /* Storage size to be used to hold a GCC pragma kind. */
@@ -8695,7 +8692,7 @@ enum a_pointer_modifier_tag {
   pmt_sptr,		/* __sptr modifier ("signed pointer"). */
   pmt_uptr,		/* __uptr modifier ("unsigned pointer"). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  pmt_last		/*lint -esym(769,a_pointer_modifier_tag::pmt_last)*/
+  pmt_last
 };
 
 /*
@@ -11044,7 +11041,7 @@ enum a_ctor_or_dtor_kind_tag {
 			   destructor at run-time depending on the value
 			   of the VTT parameter. */
 #endif /* IA64_ABI */
-  cdk_last		/*lint -esym(769,a_ctor_or_dtor_kind_tag::cdk_last)*/
+  cdk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_ctor_or_dtor_kind;
@@ -12413,7 +12410,7 @@ enum an_expr_node_kind_tag {
   enk_initializer,	/* When a dynamic_initializer is folded to a constant,
 			   this represents the original initializer in the
 			   backing expression. */
-  enk_last		/*lint -esym(769,an_expr_node_kind_tag::enk_last)*/
+  enk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_expr_node_kind;
@@ -14254,7 +14251,7 @@ enum a_statement_kind_tag {
 			   the result value of that expression.  Always the
 			   last statement of its block. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  stmk_last		/*lint -esym(769,a_statement_kind_tag::stmk_last)*/
+  stmk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte  a_statement_kind;

@@ -19,7 +19,14 @@ Included from basic_hdrs.h in every compilation.
 #ifndef LINT_H
 #define LINT_H 1
 
-/* Options for FlexeLint. */
+/*
+A collection of lint -esym directives with no particular ordering.  These
+directives need to precede the declarations of the symbols they refer to so
+this header is the first to be #include'd by basic_hdrs.h.  As a result,
+configuration macro settings are not yet available so these directives are
+enabled in all configurations (though often they could be restricted to
+a smaller subset).
+*/
 /*lint -esym(767,fread_with_check)*/
 /*lint -esym(756,a*_dummy_typedef)*/
 /*lint -esym(755,size_of_type)*/
@@ -33,7 +40,6 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(755,cpp0x_mode)*/
 /*lint -esym(755,clangcpp_version_is)*/
 /*lint -esym(755,clangc_version_is)*/
-/* Entities not used in certain configurations: */
 /*lint -esym(755,EXTERN_C)*/
 /*lint -esym(769,ec_cannot_open_pch_input_file_reason)*/
 /*lint -esym(769,ec_cannot_open_temp_file_reason)*/
@@ -166,21 +172,12 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,is_decltype_auto_template_param_type)*/
 /*lint -esym(759,is_decltype_auto_template_param_type)*/
 /*lint -esym(765,is_decltype_auto_template_param_type)*/
-#if !RECORD_MACRO_INVOCATIONS
 /*lint -esym(755,copy_simple_position_to_full_position)*/
-#endif /* !RECORD_MACRO_INVOCATIONS */
-
-/* Used in the main programs for the standalone c_gen_be, cp_gen_be, and
-   il_display: */
 /*lint -esym(769,ec_cl_back_end_requires_il_file)*/
 /*lint -esym(769,ec_cl_could_not_open_il_file)*/
 /*lint -esym(769,ec_cl_il_display_requires_il_file_name)*/
-
-#if !C_ANACHRONISMS_ALLOWED
 /*lint -esym(769,ec_old_fashioned_assignment_operator)*/
 /*lint -esym(769,ec_old_fashioned_initializer)*/
-#endif /* !C_ANACHRONISMS_ALLOWED */
-#if !ASM_FUNCTION_ALLOWED
 /*lint -esym(755,DSI_ASM_ALLOWED)*/
 /*lint -esym(769,ec_asm_func_must_be_prototyped)*/
 /*lint -esym(769,ec_bad_asm_func_ellipsis)*/
@@ -188,74 +185,44 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(769,ec_bad_asm_function_def)*/
 /*lint -esym(769,ec_nonstd_asm_function)*/
 /*lint -esym(769,ec_nonstd_asm_decl_within_template)*/
-#endif /* !ASM_FUNCTION_ALLOWED */
-#ifndef HOSTID
 /*lint -esym(769,ec_cl_incorrect_host_id)*/
-#endif /* ifndef HOSTID */
-#if COMPILE_MULTIPLE_SOURCE_FILES || COMPILE_MULTIPLE_TRANSLATION_UNITS
 /*lint -esym(769,ec_cl_too_many_arguments)*/
-#endif /* COMPILE_MULTIPLE_SOURCE_FILES ||
-          COMPILE_MULTIPLE_TRANSLATION_UNITS */
-#if !COMPILE_MULTIPLE_SOURCE_FILES
 /*lint -esym(769,ec_cl_output_file_incompatible_with_multiple_inputs)*/
 /*lint -esym(769,ec_cl_pch_incompatible_with_multiple_inputs)*/
 /*lint -esym(769,ec_cl_ii_file_name_incompatible_with_multiple_inputs)*/
 /*lint -esym(769,
        ec_cl_one_instantiation_per_object_incompatible_with_multiple_inputs)*/
-#endif /* !COMPILE_MULTIPLE_SOURCE_FILES */
-#if USE_MMAP_FOR_MEMORY_REGIONS
 /*lint -esym(769,ec_cl_invalid_pch_size)*/
 /*lint -esym(769,ec_cl_pch_must_be_first)*/
 /*lint -esym(769,ec_out_of_memory_during_pch_allocation)*/
 /*lint -esym(769,ec_not_enough_preallocated_memory)*/
 /*lint -esym(769,ec_program_entity_too_large_for_pch)*/
-#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-#if !USE_FIXED_ADDRESS_FOR_MMAP
 /*lint -esym(759,get_page_size)*/
 /*lint -esym(765,get_page_size)*/
 /*lint -esym(769,ec_invalid_mmap_address)*/
-#endif /* !USE_FIXED_ADDRESS_FOR_MMAP */
-#if !BACK_END_IS_C_GEN_BE || !ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE
 /*lint -esym(769,ec_double_for_long_double)*/
-#endif /* !BACK_END_IS_C_GEN_BE || !ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE */
-#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
 /*lint -esym(769,ec_different_return_type_on_virtual_function_override)*/
-#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-#if !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 /*lint -esym(769,ec_bad_multibyte_char)*/
-#endif /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
-#if UNICODE_SOURCE_SUPPORTED
 /*lint -esym(755,mbc_length)*/
 /*lint -esym(755,mbc_scan_init)*/
-#else /*!UNICODE_SOURCE_SUPPORTED */
 /*lint -esym(769,a_unicode_source_kind_tag::usk_utf8)*/
 /*lint -esym(769,a_unicode_source_kind_tag::usk_utf16LE)*/
 /*lint -esym(769,a_unicode_source_kind_tag::usk_utf16BE)*/
 /*lint -esym(769,ec_cl_unrecognized_unicode_source_kind)*/
 /*lint -esym(769,ec_bad_unicode_char_in_pp_output)*/
-#endif /* UNICODE_SOURCE_SUPPORTED */
-#if !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 /*lint -esym(769,ec_non_unicode_char_in_ident)*/
 /*lint -esym(769,ec_non_unicode_char_in_header)*/
 /*lint -esym(769,ec_invalid_locale)*/
 /*lint -esym(769,ec_bad_unicode_char_in_string)*/
-#endif /* !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
-#if !BACK_END_IS_C_GEN_BE
 /*lint -esym(759,form_char)*/
 /*lint -esym(765,form_char)*/
 /*lint -esym(759,traverse_type_tree)*/
 /*lint -esym(765,traverse_type_tree)*/
 /*lint -esym(755,routine_is_builtin_function_kind)*/
-#endif /* !BACK_END_IS_C_GEN_BE */
-#if DO_IL_LOWERING && DO_FULL_PORTABLE_EH_LOWERING
 /*lint -esym(750,RDF_INDIRECT,RDF_THIS_PARAM_OFFSET)*/
-#endif /* DO_IL_LOWERING && DO_FULL_PORTABLE_EH_LOWERING */
-#if !(DO_IL_LOWERING && TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE)
 /*lint -esym(714,alloc_unshared_constant_in_region)*/
 /*lint -esym(759,alloc_unshared_constant_in_region)*/
 /*lint -esym(765,alloc_unshared_constant_in_region)*/
-#endif /* !(DO_IL_LOWERING && TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE) */
-#if !DO_IL_LOWERING
 /*lint -esym(552,virtual_function_table_definition)*/
 /*lint -esym(759,alloc_unshared_constant_full)*/
 /*lint -esym(765,alloc_unshared_constant_full)*/
@@ -343,8 +310,6 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(769,ec_compound_lvalue_as_asm_operand)*/
 /*lint -esym(552,inline_variables_in_comdat)*/
 /*lint -esym(769,ec_invalid_std_comparison_type)*/
-#endif /* !DO_IL_LOWERING */
-#if !BACK_END_IS_CP_GEN_BE
 /*lint -esym(714,clang_target_version_number)*/
 /*lint -esym(759,clang_target_version_number)*/
 /*lint -esym(765,clang_target_version_number)*/
@@ -364,7 +329,6 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(759,get_param_for_param_ref)*/
 /*lint -esym(765,get_param_for_param_ref)*/
 /*lint -esym(769,an_attribute_location_tag::al_id_equivalent_as_postfix)*/
-#if MICROSOFT_EXTENSIONS_ALLOWED
 /*lint -esym(759,form_calling_convention)*/
 /*lint -esym(765,form_calling_convention)*/
 /*lint -esym(759,form_pointer_modifiers)*/
@@ -374,33 +338,18 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,find_ms_attribute_for_entity)*/
 /*lint -esym(759,form_property_or_event_name_as_qualifier_if_needed)*/
 /*lint -esym(765,form_property_or_event_name_as_qualifier_if_needed)*/
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#else /* BACK_END_IS_CP_GEN_BE */
 /*lint -esym(755,next_non_empty_field)*/
 /*lint -esym(755,next_non_empty_initializable_field)*/
 /*lint -esym(759,conv_prvalue_expr_to_object_pointer)*/
 /*lint -esym(765,conv_prvalue_expr_to_object_pointer)*/
 /*lint -esym(714,conv_prvalue_expr_to_object_pointer)*/
-#endif /* !BACK_END_IS_CP_GEN_BE */
-#if !DEBUG
 /*lint -esym(749,pfs_last)*/
-#endif /* !DEBUG */
-#if !INCLUDE_EDG_TEST_PRAGMAS
 /*lint -esym(528,add_other_pragma_kind_description)*/
-#endif /* !INCLUDE_EDG_TEST_PRAGMAS */
-#ifdef __sun
-/* Solaris stdio.h doesn't define fileno in strict mode (fileno is not
-   ANSI/ISO C; it's in POSIX). */
-#ifndef __linux__
-extern int fileno(FILE *);
-#endif /* ifndef __linux__ */
 /*lint -esym(526,fileno)*/
 /*lint -esym(526,isnan)*/
 /*lint -esym(526,finite)*/
 /*lint -esym(752,finite)*/
 /*lint -esym(752,isnan)*/
-#endif /* ifdef __sun */
-#if !GNU_EXTENSIONS_ALLOWED
 /*lint -esym(769,ec_nonobject_pointer_arithmetic)*/
 /*lint -esym(769,ec_noreturn_function_does_return)*/
 /*lint -esym(769,ec_invalid_empty_initializer_list)*/
@@ -413,28 +362,17 @@ extern int fileno(FILE *);
 /*lint -esym(765,lower_c99_statement)*/
 /*lint -esym(759,field_alignment_for)*/
 /*lint -esym(765,field_alignment_for)*/
-#endif /* !GNU_EXTENSIONS_ALLOWED */
-#if !(GNU_EXTENSIONS_ALLOWED && GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED)
 /*lint -esym(769,ec_bad_variable_for_init_priority)*/
 /*lint -esym(769,ec_init_priority_reserved)*/
 /*lint -esym(769,ec_ctor_dtor_priority_reserved)*/
 /*lint -esym(769,ec_attribute_ignored_for_thread_local)*/
-#endif /* !(GNU_EXTENSIONS_ALLOWED && GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED) */
-#if CHECKING && DEBUG
 /*lint -esym(759,trace_entry)*/
-#endif /* CHECKING && DEBUG */
-#if CHECKING && DEBUG && ALTERNATE_IL_FILE_FORMAT
 /*lint -esym(765, trace_entry)*/
 /*lint -esym(714, trace_entry)*/
-#endif /* CHECKING && DEBUG && ALTERNATE_IL_FILE_FORMAT */
-#if ALTERNATE_IL_FILE_FORMAT
 /*lint -esym(769,ec_intermediate_language_7)*/
-#else /* !ALTERNATE_IL_FILE_FORMAT */
 /*lint -esym(756,an_il_entry_number)*/
 /*lint -esym(759,init_memory_region)*/
 /*lint -esym(765,init_memory_region)*/
-#endif /* ALTERNATE_IL_FILE_FORMAT */
-#if DEBUG
 /*lint -esym(765, db_sym_list)*/
 /*lint -esym(714, db_sym_list)*/
 /*lint -esym(714, db_scheduled_routine_moves)*/
@@ -468,8 +406,6 @@ extern int fileno(FILE *);
 /*lint -esym(714, db_dip)*/
 /*lint -esym(765, db_subobject_path)*/
 /*lint -esym(714, db_subobject_path)*/
-#endif /* DEBUG */
-#if !UPC_EXTENSIONS_ALLOWED
 /*lint -esym(769,ec_unrecognized_upc_pragma)*/
 /*lint -esym(769,ec_mismatched_shared_block_size)*/
 /*lint -esym(769,ec_ambiguous_block_size_spec)*/
@@ -492,25 +428,17 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_shared_affinity_type)*/
 /*lint -esym(769,ec_upc_shared_void_comparison)*/
 /*lint -esym(769,ec_cl_upc_requires_ansi_c_dialect)*/
-#endif /* !UPC_EXTENSIONS_ALLOWED */
 /*lint -esym(769,a_builtin_function_kind_tag::bfk_fsqrt)*/
-#if !CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
 /*lint -esym(759,find_progenitor_symbol)*/
 /*lint -esym(765,find_progenitor_symbol)*/
 /*lint -esym(769,ec_cfront_name_lookup_bug)*/
-#endif /* !CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
-#if !ASSIGNMENT_TO_THIS_ALLOWED
 /*lint -esym(759,add_constructor_wrapper_code)*/
 /*lint -esym(765,add_constructor_wrapper_code)*/
 /*lint -esym(769,ec_assignment_to_this)*/
 /*lint -esym(759,is_this_parameter_operand)*/
 /*lint -esym(765,is_this_parameter_operand)*/
-#endif /* !ASSIGNMENT_TO_THIS_ALLOWED */
-#if !NEW_CAN_BE_FOLDED_INTO_CTOR
 /*lint -esym(759,initial_processing_on_destructible_initialization)*/
 /*lint -esym(765,initial_processing_on_destructible_initialization)*/
-#endif /* !NEW_CAN_BE_FOLDED_INTO_CTOR */
-#if IA64_ABI
 /*lint -esym(755,first_derivation_is_direct)*/
 /*lint -esym(759,repr_for_ptr_to_data_member_constant)*/
 /*lint -esym(765,repr_for_ptr_to_data_member_constant)*/
@@ -537,7 +465,6 @@ extern int fileno(FILE *);
 /*lint -esym(755,TARG_ETS_FLAG_TYPE_INT_KIND_win32)*/
 /*lint -esym(755,TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS_win32)*/
 /*lint -esym(755,TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS_win32)*/
-#else /* !IA64_ABI */
 /*lint -esym(759,add_cast_to_char_star)*/
 /*lint -esym(765,add_cast_to_char_star)*/
 /*lint -esym(759,type_info_names)*/
@@ -575,27 +502,17 @@ extern int fileno(FILE *);
 /*lint -esym(755,TARG_IA64_VTABLE_ENTRY_INT_KIND_win32)*/
 /*lint -esym(755,TARG_REUSE_TAIL_PADDING_win64)*/
 /*lint -esym(755,TARG_REUSE_TAIL_PADDING_win32)*/
-#endif /* IA64_ABI */
-#if !INSTANTIATE_EXTERN_INLINE || !IA64_ABI
 /*lint -esym(759,get_mangled_function_name_full)*/
 /*lint -esym(765,get_mangled_function_name_full)*/
-#endif /* !INSTANTIATE_EXTERN_INLINE || !IA64_ABI */
-#if !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
 /*lint -esym(769,ec_cfront_multiple_nested_types)*/
 /*lint -esym(769,ec_cfront_global_defined_after_nested_type)*/
-#endif /* !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-#if !LOWER_EXTERN_INLINE
 /*lint -esym(759,make_file_scope_temporary)*/
 /*lint -esym(765,make_file_scope_temporary)*/
-#endif /* !LOWER_EXTERN_INLINE */
-#if !REDEFINE_EXTNAME_PRAGMA_ENABLED
 /*lint -esym(769,ec_bad_linkage_for_redefine_extname)*/
-#endif /* !REDEFINE_EXTNAME_PRAGMA_ENABLED */
 /*lint -esym(759,traverse_statement)*/
 /*lint -esym(765,traverse_statement)*/
 /*lint -esym(759,traverse_statement_list)*/
 /*lint -esym(765,traverse_statement_list)*/
-#if MICROSOFT_EXTENSIONS_ALLOWED
 /*lint -esym(769,an_ms_attribute_kind_tag::msak_last)*/
 /*lint -esym(769,a_microsoft_pragma_comment_type_tag::mpct_compiler)*/
 /*lint -esym(769,a_microsoft_pragma_comment_type_tag::mpct_exestr)*/
@@ -604,8 +521,6 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_microsoft_pragma_comment_type_tag::mpct_user)*/
 /*lint -esym(769,a_microsoft_pragma_comment_type_tag::mpct_last)*/
 /*lint -esym(552,ms_permissive)*/
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if !FIXED_POINT_ALLOWED
 /*lint -esym(759,fixed_point_enabled)*/
 /*lint -esym(765,fixed_point_enabled)*/
 /*lint -esym(769,ec_nonstd_fixed_point_suffix)*/
@@ -649,8 +564,6 @@ extern int fileno(FILE *);
 /*lint -esym(765,value_of_integer_value)*/
 /*lint -esym(769,tok_fract)*/
 /*lint -esym(769,tok_accum)*/
-#endif /* !FIXED_POINT_ALLOWED */
-#if !NAMED_ADDRESS_SPACES_ALLOWED
 /*lint -esym(759,named_address_spaces_enabled)*/
 /*lint -esym(765,named_address_spaces_enabled)*/
 /*lint -esym(769,ec_cl_named_address_spaces_option_only_in_C)*/
@@ -660,8 +573,6 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_named_address_space_on_function_type)*/
 /*lint -esym(769,ec_field_type_cannot_be_qualified_with_named_address_space)*/
 /*lint -esym(769,ec_named_address_space_not_allowed)*/
-#endif /* !NAMED_ADDRESS_SPACES_ALLOWED */
-#if !NAMED_REGISTERS_ALLOWED
 /*lint -esym(769,ec_cl_named_registers_option_only_in_C)*/
 /*lint -esym(769,ec_named_register_not_allowed)*/
 /*lint -esym(769,ec_register_storage_class_conflict)*/
@@ -671,62 +582,33 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_previous_decl_at)*/
 /*lint -esym(769,ec_register_too_small)*/
 /*lint -esym(769,ec_no_named_register_for_array)*/
-#endif /* !NAMED_REGISTERS_ALLOWED */
-#if !(FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && \
-      NAMED_REGISTERS_ALLOWED)
 /*lint -esym(769,
           ec_embedded_c_option_incompatible_with_individual_feature_options)*/
-#endif /* !(FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && ...) */
-#if DO_IL_LOWERING
 /*lint -esym(750,PFS_TRANSACTION_SAFE)*/
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
 /*lint -esym(759,add_to_end_of_pending_stmk_init_statements_list)*/
 /*lint -esym(765,add_to_end_of_pending_stmk_init_statements_list)*/
 /*lint -esym(759,assign_expr_to_temp)*/
 /*lint -esym(765,assign_expr_to_temp)*/
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
 /*lint -esym(759, fixed_point_type_used_in_primary_IL)*/
 /*lint -esym(765, fixed_point_type_used_in_primary_IL)*/
 /*lint -esym(759, make_lvalue_reusable_copy_full)*/
 /*lint -esym(765, make_lvalue_reusable_copy_full)*/
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
 /*lint -esym(714,function_scope_for_local_type)*/
 /*lint -esym(759,function_scope_for_local_type)*/
 /*lint -esym(765,function_scope_for_local_type)*/
-#endif /* DO_IL_LOWERING */
-#if DECL_MODIFIERS_IN_USE && \
-    !(MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED)
 /*lint -esym(759,update_extended_decl_info_for_class)*/
 /*lint -esym(765,update_extended_decl_info_for_class)*/
-#endif /* DECL_MODIFIERS_IN_USE && !(MICROSOFT_EXTENSIONS_ALLOWED || ...) */
-#if ABI_COMPATIBILITY_VERSION >= 306
 /*lint -esym(769,ec_cl_vla_option_only_in_C)*/
-#endif /* ABI_COMPATIBILITY_VERSION >= 306 */
-#if ABI_COMPATIBILITY_VERSION >= 402
 /*lint -esym(769,ec_sfinae_requires_newer_abi_version)*/
-#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
-#if ABI_COMPATIBILITY_VERSION >= 402 || !NEED_NAME_MANGLING
 /*lint -esym(769,ec_cppcli_requires_newer_abi_version)*/
-#endif /* ABI_COMPATIBILITY_VERSION >= 402 || !NEED_NAME_MANGLING */
-#if ABI_COMPATIBILITY_VERSION >= 407 || !DO_IL_LOWERING || \
-    !GENERATE_EH_TABLES || !IA64_ABI
 /*lint -esym(769,ec_delegating_constructor_requires_newer_abi_version)*/
-#endif /* ABI_COMPATIBILITY_VERSION >= 407 || !DO_IL_LOWERING ... */
-#if !FULLY_RESOLVED_MACRO_POSITIONS
 /*lint -esym(769,ec_in_macro_expansion_at)*/
-#endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
-#if !RECORD_MACRO_INVOCATIONS
 /*lint -esym(769,ec_name_of_unknown_macro)*/
 /*lint -esym(769,ec_in_expansion_of_macro)*/
 /*lint -esym(769,ec_macro_context_lines_skipped)*/
 /*lint -esym(769,ec_in_expansion_of_macro_last)*/
-#endif /* !RECORD_MACRO_INVOCATIONS */
-#if !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 /*lint -esym(769,ec_if_exists_not_allowed)*/
 /*lint -esym(769,ec_if_exists_not_closed)*/
-#endif /* !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-#if !GNU_EXTENSIONS_ALLOWED
 /*lint -esym(755,string_constants_are_the_same)*/
 /*lint -esym(769,a_builtin_operation_kind_tag::bok_types_compatible)*/
 /*lint -esym(769,ec_gnu_attr_on_template_redecl)*/
@@ -783,13 +665,11 @@ extern int fileno(FILE *);
 /*lint -esym(714,same_string_ignoring_underscores)*/
 /*lint -esym(759,put_str_to_f_debug)*/
 /*lint -esym(765,put_str_to_f_debug)*/
-#endif /* !GNU_EXTENSIONS_ALLOWED */
 /*lint -esym(759,is_wide_string_constant)*/
 /*lint -esym(765,is_wide_string_constant)*/
 /*lint -esym(714,is_wide_string_constant)*/
 /*lint -esym(755,extract_wide_char_from_string)*/
 /*lint -esym(755,wide_string_type)*/
-#if !MICROSOFT_EXTENSIONS_ALLOWED
 /*lint -esym(769,ec_microsoft_version_doesnt_support_cpp14_mode)*/
 /*lint -esym(769,ec_microsoft_version_doesnt_support_cpp17_mode)*/
 /*lint -esym(769,ec_microsoft_version_doesnt_support_cpp20_mode)*/
@@ -824,12 +704,8 @@ extern int fileno(FILE *);
 /*lint -esym(757,make_make_integer_seq_internal_template)*/
 /*lint -esym(755,GID_IS_CPPCLI_CONSTRAINT)*/
 /*lint -esym(769,ec_coclass_base_requirements_not_met)*/
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#if !(GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX)
 /*lint -esym(759, lower_c99_constant_expr)*/
 /*lint -esym(765, lower_c99_constant_expr)*/
-#endif /* !(GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX) */
-#if !(GNU_EXTENSIONS_ALLOWED && NEED_NAME_MANGLING)
 /*lint -esym(759, walk_parents)*/
 /*lint -esym(765, walk_parents)*/
 /*lint -esym(714, walk_parents)*/
@@ -839,28 +715,20 @@ extern int fileno(FILE *);
 /*lint -esym(759, free_list_of_constant_list_entries)*/
 /*lint -esym(765, free_list_of_constant_list_entries)*/
 /*lint -esym(714, free_list_of_constant_list_entries)*/
-#endif /* !(GNU_EXTENSIONS_ALLOWED && NEED_NAME_MANGLING) */
 /*lint -esym(768, a_walk_parents_control_block::ptr)*/
-#if !LOWER_COMPLEX
 /*lint -esym(759,set_complex_constant)*/
 /*lint -esym(765,set_complex_constant)*/
 /*lint -esym(714,set_complex_constant)*/
-#endif /* !LOWER_COMPLEX */
 /*lint -esym(759,alignment_of_variable)*/
 /*lint -esym(765,alignment_of_variable)*/
 /*lint -esym(714,alignment_of_variable)*/
-#if !(GNU_EXTENSIONS_ALLOWED && BUILTIN_FUNCTIONS_ENABLED)
 /*lint -esym(769,ec_bad_type_for_gnu_sync_function)*/
 /*lint -esym(769,ec_invalid_gnu_sync_size)*/
 /*lint -esym(769,ec_extra_arguments_ignored)*/
 /*lint -esym(769,ec_first_arg_must_be_integer_constant)*/
 /*lint -esym(769,ec_builtin_needs_128_bit_integers)*/
 /*lint -esym(769,ec_builtin_needs_128_bit_floats)*/
-#endif /* !(GNU_EXTENSIONS_ALLOWED && BUILTIN_FUNCTIONS_ENABLED) */
-#if GNU_VECTOR_TYPES_ALLOWED || !BUILTIN_FUNCTIONS_ENABLED
 /*lint -esym(769,ec_builtin_needs_vector_types)*/
-#endif /* GNU_VECTOR_TYPES_ALLOWED || !BUILTIN_FUNCTIONS_ENABLED */
-#if !GNU_EXTENSIONS_ALLOWED || RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
 /*lint -esym(769,ec_bad_asm_constraint_modifier)*/
 /*lint -esym(769,ec_bad_asm_constraint_letter)*/
 /*lint -esym(769,ec_missing_constraint_letter)*/
@@ -872,13 +740,9 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_match_limit_for_symbolic_asm_operand)*/
 /*lint -esym(769,ec_constraint_number_mismatch)*/
 /*lint -esym(769,ec_too_many_constraints)*/
-#endif /* !GNU_EXTENSIONS_ALLOWED || RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
-#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 /*lint -esym(759,conv_float_string_to_integer_value)*/
 /*lint -esym(765,conv_float_string_to_integer_value)*/
 /*lint -esym(714,conv_float_string_to_integer_value)*/
-#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-#if !GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 /*lint -esym(769,ec_unrecognized_gcc_pragma)*/
 /*lint -esym(769,ec_unrecognized_gcc_visibility_pragma)*/
 /*lint -esym(769,ec_gnu_visibility_conflict)*/
@@ -886,10 +750,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_attribute_does_not_apply_to_type)*/
 /*lint -esym(769,ec_ELF_visibility_pop_mismatch)*/
 /*lint -esym(769,ec_ELF_visibility_stack_empty)*/
-#endif /* !GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-#if !GNU_VECTOR_TYPES_ALLOWED
-/*lint -esym(
-  769,ec_vector_size_attribute_requires_integral_floating_or_enum_type)*/
+/*lint -esym(769,
+            ec_vector_size_attribute_requires_integral_floating_or_enum_type)*/
 /*lint -esym(769,ec_vector_size_too_large)*/
 /*lint -esym(769,ec_vector_size_must_be_power_of_two)*/
 /*lint -esym(769,ec_vector_size_must_be_multiple_of_element_size)*/
@@ -920,7 +782,6 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_ext_vector_type_invalid_size)*/
 /*lint -esym(769,ec_ext_vector_type_not_in_typedef)*/
 /*lint -esym(769,ec_ext_vector_type_requires_integral_floating_type)*/
-#endif /* !GNU_VECTOR_TYPES_ALLOWED */
 /*lint -esym(759,find_local_scope)*/
 /*lint -esym(765,find_local_scope)*/
 /*lint -esym(714,find_local_scope)*/
@@ -936,17 +797,13 @@ extern int fileno(FILE *);
 /*lint -esym(755,get_parent_scope_of)*/
 /*lint -esym(759,node_includes_glvalue_to_prvalue_conv)*/
 /*lint -esym(765,node_includes_glvalue_to_prvalue_conv)*/
-/* Suppress spurious data access warnings. */
 /*lint -efunc(670,macro_invocation)*/
 /*lint -efunc(690,macro_invocation)*/
-#if !(GNU_EXTENSIONS_ALLOWED && TARG_HAS_IEEE_FLOATING_POINT)
 /*lint -esym(769,ec_call_requires_one_argument)*/
 /*lint -esym(769,ec_call_requires_floating_point_argument)*/
-#endif /* !(GNU_EXTENSIONS_ALLOWED && TARG_HAS_IEEE_FLOATING_POINT) */
 /*lint -esym(759, node_is_pointer_with_restrict_semantics)*/
 /*lint -esym(765, node_is_pointer_with_restrict_semantics)*/
 /*lint -esym(714, node_is_pointer_with_restrict_semantics)*/
-
 /*lint -esym(769,an_attribute_arg_kind_tag::aak_last)*/
 /*lint -esym(769,an_attribute_family_tag::af_ms_declspec)*/
 /*lint -esym(769,an_attribute_location_tag::al_base_specifier)*/
@@ -954,17 +811,12 @@ extern int fileno(FILE *);
 /*lint -esym(769,an_attribute_location_tag::al_other)*/
 /*lint -esym(769,an_attribute_location_tag::al_last)*/
 /*lint -esym(769,an_expr_node_kind_tag::enk_runtime_sizeof)*/
-#if !(EDG_WIN32 && MICROSOFT_EXTENSIONS_ALLOWED)
 /*lint -esym(552,using_framework_directory)*/
 /*lint -esym(769,ec_win32_api_error)*/
-#endif /* !(EDG_WIN32 && MICROSOFT_EXTENSIONS_ALLOWED) */
 /*lint -esym(769,a_cpp_cli_feature_tag::*)*/
 /*lint -esym(769,a_cpp_cli_import_flag_tag::*)*/
-#if READ_CPPCLI_PORTABLE_ASSEMBLIES && !WRITE_CPPCLI_PORTABLE_ASSEMBLIES
 /*lint -esym(759,clear_portable_assembly_header)*/
 /*lint -esym(765,clear_portable_assembly_header)*/
-#endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES && !WRITE_CPPCLI_PORTABLE_ASSEM... */
-#if MICROSOFT_EXTENSIONS_ALLOWED
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_int16)*/
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_uint16)*/
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_int32)*/
@@ -1024,12 +876,9 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_cli_operator_kind_tag::cok_unsigned_right_shift)*/
 /*lint -esym(769,
              a_cli_operator_kind_tag::cok_unsigned_right_shift_assignment)*/
-#if !BACK_END_IS_CP_GEN_BE
 /*lint -esym(759,cli_managed_class_tag_keyword)*/
 /*lint -esym(765,cli_managed_class_tag_keyword)*/
 /*lint -esym(714,cli_managed_class_tag_keyword)*/
-#endif /* !BACK_END_IS_CP_GEN_BE */
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 /*lint -esym(759,is_class_struct_type)*/
 /*lint -esym(765,is_class_struct_type)*/
 /*lint -esym(714,is_class_struct_type)*/
@@ -1288,27 +1137,16 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_type_must_be_integral)*/
 /*lint -esym(552,internal_templates_enabled)*/
 /*lint -esym(552,scanning_generated_code)*/
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if !MINIMAL_INLINING
 /*lint -esym(769,ec_too_large_to_inline)*/
-#endif /* !MINIMAL_INLINING */
-#if GNU_EXTENSIONS_ALLOWED && !BACK_END_IS_CP_GEN_BE
 /*lint -esym(759,is_transparent_union_type)*/
 /*lint -esym(765,is_transparent_union_type)*/
-#endif /* GNU_EXTENSIONS_ALLOWED && !BACK_END_IS_CP_GEN_BE */
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*lint -esym(714,is_effective_diagnostic)*/
 /*lint -esym(759,is_effective_diagnostic)*/
 /*lint -esym(765,is_effective_diagnostic)*/
 /*lint -esym(769,ec_unsequenced_use_of_variable)*/
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-#if !USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE
 /*lint -esym(757,fp_to_hex_constant_string)*/
-#endif /* !USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE */
-#if !AUTOMATIC_TEMPLATE_INSTANTIATION
 /*lint -esym(759,add_to_def_undef_list)*/
 /*lint -esym(765,add_to_def_undef_list)*/
-#endif /*AUTOMATIC_TEMPLATE_INSTANTIATION*/
 /*lint -esym(714,find_literal_operator)*/
 /*lint -esym(759,find_literal_operator)*/
 /*lint -esym(765,find_literal_operator)*/
@@ -1322,10 +1160,7 @@ extern int fileno(FILE *);
 /*lint -esym(552,raw_string_literals_enabled)*/
 /*line -esym(552,digit_separators_enabled)*/
 /*lint -esym(755,ud_suffix_from_literal_operator_id)*/
-#if !THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
 /*lint -esym(755,var_has_static_storage_duration)*/
-#endif /* !THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
-#if !GNU_FUNCTION_MULTIVERSIONING
 /*lint -esym(769,ec_unrecognized_target_attribute)*/
 /*lint -esym(769,ec_gnu_mv_default_missing)*/
 /*lint -esym(769,ec_gnu_mv_only_one_arch)*/
@@ -1333,22 +1168,11 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_no_matching_target_attribute)*/
 /*lint -esym(769,ec_resolver_routine_required)*/
 /*lint -esym(769,ec_target_on_special_function)*/
-#endif /* !GNU_FUNCTION_MULTIVERSIONING */
-#if USE_X86_FUNCTION_MULTIVERSIONING
 /*lint -esym(769,ec_resolver_routine_required)*/
-#else /* !USE_X86_FUNCTION_MULTIVERSIONING */
 /*lint -esym(769,ec_invalid_target_attribute)*/
-#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
-#if IDENT_DIRECTIVE_AND_PRAGMA
 /*lint -esym(769,a_pragma_kind_tag::pk_ident)*/
-#endif /* IDENT_DIRECTIVE_AND_PRAGMA */
-#if !IL_SHOULD_BE_WRITTEN_TO_FILE
 /*lint -esym(755,il_entry_prefix_of_no_check)*/
-#endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
-#if !GNU_X86_ATTRIBUTES_ALLOWED
 /*lint -esym(769,ec_attribute_not_supported_in_x86_64)*/
-#endif /* !GNU_X86_ATTRIBUTES_ALLOWED */
-#if !INT128_EXTENSIONS_ALLOWED
 /*lint -esym(755,TARG_ALIGNOF_INT128_linux_i686)*/
 /*lint -esym(755,TARG_ALIGNOF_INT128_linux_x86_64)*/
 /*lint -esym(755,TARG_ALIGNOF_INT128_win64)*/
@@ -1361,15 +1185,11 @@ extern int fileno(FILE *);
 /*lint -esym(755,TARG_SIZEOF_INT128_linux_x86_64)*/
 /*lint -esym(755,TARG_SIZEOF_INT128_win64)*/
 /*lint -esym(755,TARG_SIZEOF_INT128_win32)*/
-#endif /* !INT128_EXTENSIONS_ALLOWED */
 /*lint -esym(759,temp_for_local_constant)*/
 /*lint -esym(765,temp_for_local_constant)*/
 /*lint -esym(714,temp_for_local_constant)*/
 /*lint -esym(755,concat)*/
-/* This should be conditional on !CPPCLI_ENABLING_POSSIBLE, but we don't
-   include *.cpp files when running lint, so make it unconditional. */
 /*lint -esym(769,ec_ms_metadata_init_failed)*/
-#if GNU_X86_ASM_EXTENSIONS_ALLOWED
 /*lint -esym(769,a_named_register_tag::anr_fpsr)*/
 /*lint -esym(769,a_named_register_tag::anr_dirflag)*/
 /*lint -esym(769,a_named_register_tag::anr_16)*/
@@ -1377,8 +1197,6 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_named_register_tag::anr_18)*/
 /*lint -esym(769,a_named_register_tag::anr_19)*/
 /*lint -esym(769,a_named_register_tag::anr_20)*/
-#endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
-#if BUILTIN_FUNCTIONS_ENABLED
 /*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_comugepd)*/
 /*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_comugeps)*/
 /*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_comugesd)*/
@@ -1403,16 +1221,10 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_roldi)*/
 /*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_rorsi)*/
 /*lint -esym(769,a_builtin_function_kind_tag::bfk_ia32_rordi)*/
-#else /* !BUILTIN_FUNCTIONS_ENABLED */
 /*lint -esym(769,ec_constexpr_string_not_null_terminated)*/
 /*lint -esym(769,ec_attempt_to_read_past_end_of_object)*/
 /*lint -esym(769,ec_must_be_atomic_qualified_type)*/
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
-#if REDEFINE_EXTNAME_PRAGMA_ENABLED
 /*lint -esym(755,gnu_routine_supp)*/
-#endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
-
-#if !USE_HOST_FP_CONVERSION_ROUTINES
 /*lint -esym(714,write_float_n)*/
 /*lint -esym(759,write_float_n)*/
 /*lint -esym(765,write_float_n)*/
@@ -1427,14 +1239,10 @@ extern int fileno(FILE *);
 /*lint -esym(714,db_dump_long_double)*/
 /*lint -esym(755,MAKE_FP_MIN_SUBNORMAL)*/
 /*lint -esym(755,MAKE_FP_MIN)*/
-#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
 /*lint -esym(757,write_long_double)*/
 /*lint -esym(757,write_long_double_n)*/
 /*lint -esym(757,read_long_double)*/
 /*lint -esym(757,db_binary_long_double)*/
-#endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
-
 /*lint -esym(714,load_matching_builtin_function_by_name)*/
 /*lint -esym(759,load_matching_builtin_function_by_name)*/
 /*lint -esym(765,load_matching_builtin_function_by_name)*/
@@ -1476,6 +1284,102 @@ extern int fileno(FILE *);
 /*lint -esym(755,DI_NO_INPUT_FLAGS)*/
 /*lint -esym(755,DSO_LAST)*/
 /*lint -esym(755,DSI_LAST)*/
+/*lint -esym(755,HOST_FP_TYPE_SELECTED)*/
+/*lint -esym(755,TCF_LAST)*/
+/*lint -esym(755,ITF_LAST)*/
+/*lint -esym(755,SPECIFIC_TARGET_DIALECT_SET)*/
+/*lint -esym(755,SUPPRESS_DEFINITION_OF_STDINT_TYPES)*/
+/*lint -esym(755,TARG_DBL_MAX)*/
+/*lint -esym(755,TARG_FLT_MAX)*/
+/*lint -esym(755,TARG_LDBL_MAX)*/
+/*lint -esym(758,a_based_type_kind_tag)*/
+/*lint -esym(758,a_builtin_function_condition_index)*/
+/*lint -esym(758,a_builtin_function_kind_tag)*/
+/*lint -esym(758,a_builtin_function_type_index)*/
+/*lint -esym(758,a_builtin_user_function_kind_tag)*/
+/*lint -esym(758,a_calling_convention_tag)*/
+/*lint -esym(758,a_character_kind_tag)*/
+/*lint -esym(758,a_cli_class_type_kind_tag)*/
+/*lint -esym(758,a_cli_operator_kind_tag)*/
+/*lint -esym(758,a_constant_repr_kind_tag)*/
+/*lint -esym(758,a_constructor_init_kind_tag)*/
+/*lint -esym(758,a_control_flow_descr_kind_tag)*/
+/*lint -esym(758,a_cpp_cli_import_flag_tag)*/
+/*lint -esym(758,a_ctor_or_dtor_kind_tag)*/
+/*lint -esym(758,a_decl_modifier_tag)*/
+/*lint -esym(758,a_dependent_type_fixup_kind_tag)*/
+/*lint -esym(758,a_dynamic_init_kind_tag)*/
+/*lint -esym(758,a_fixed_point_precision_tag)*/
+/*lint -esym(758,a_float_kind_tag)*/
+/*lint -esym(758,a_for_each_pattern_kind_tag)*/
+/*lint -esym(758,a_function_number_tag)*/
+/*lint -esym(758,a_gcc_pragma_kind_tag)*/
+/*lint -esym(758,a_generic_constraint_kind_tag)*/
+/*lint -esym(758,a_local_expr_node_ref_kind_tag)*/
+/*lint -esym(758,a_microsoft_pragma_comment_type_tag)*/
+/*lint -esym(758,a_microsoft_pragma_conform_kind_tag)*/
+/*lint -esym(758,a_multiversion_arch_kind_tag)*/
+/*lint -esym(758,a_name_linkage_kind_tag)*/
+/*lint -esym(758,a_named_register_tag)*/
+/*lint -esym(758,a_pointer_modifier_tag)*/
+/*lint -esym(758,a_pragma_kind_tag)*/
+/*lint -esym(758,a_property_or_event_kind_tag)*/
+/*lint -esym(758,a_ref_qualifier_kind_tag)*/
+/*lint -esym(758,a_rewritten_property_reference_kind_tag)*/
+/*lint -esym(758,a_scope_kind_tag)*/
+/*lint -esym(758,a_special_function_kind_tag)*/
+/*lint -esym(758,a_statement_kind_tag)*/
+/*lint -esym(758,a_stdc_pragma_kind_tag)*/
+/*lint -esym(758,a_stdc_pragma_value_tag)*/
+/*lint -esym(758,a_storage_class_tag)*/
+/*lint -esym(758,a_symbol_kind_tag)*/
+/*lint -esym(758,a_templ_arg_kind_tag)*/
+/*lint -esym(758,a_template_kind_tag)*/
+/*lint -esym(758,a_template_param_constant_kind_tag)*/
+/*lint -esym(758,a_template_param_type_kind_tag)*/
+/*lint -esym(758,a_template_parameter_kind_tag)*/
+/*lint -esym(758,a_token_extra_info_kind_tag)*/
+/*lint -esym(758,a_type_kind_tag)*/
+/*lint -esym(758,a_type_mode_kind_tag)*/
+/*lint -esym(758,a_type_qualifier_tag)*/
+/*lint -esym(758,a_upc_access_method_tag)*/
+/*lint -esym(758,a_upc_coherence_stack_operation_tag)*/
+/*lint -esym(758,a_upc_pragma_kind_tag)*/
+/*lint -esym(758,an_access_specifier_tag)*/
+/*lint -esym(758,an_address_base_kind_tag)*/
+/*lint -esym(758,an_anonymous_union_kind_tag)*/
+/*lint -esym(758,an_asm_operand_constraint_kind_tag)*/
+/*lint -esym(758,an_asm_operand_modifier_tag)*/
+/*lint -esym(758,an_assembly_visibility_tag)*/
+/*lint -esym(758,an_attribute_arg_kind_tag)*/
+/*lint -esym(758,an_element_position_kind_tag)*/
+/*lint -esym(758,an_expr_node_kind_tag)*/
+/*lint -esym(758,an_expr_operator_kind_tag)*/
+/*lint -esym(758,an_inheritance_kind_tag)*/
+/*lint -esym(758,an_init_component_kind_tag)*/
+/*lint -esym(758,an_init_kind_tag)*/
+/*lint -esym(758,an_integer_kind_tag)*/
+/*lint -esym(758,an_ms_attribute_arg_kind_tag)*/
+/*lint -esym(758,an_ms_attribute_kind_tag)*/
+/*lint -esym(758,an_object_lifetime_kind_tag)*/
+/*lint -esym(758,an_opname_kind_tag)*/
+/*lint -esym(758,an_expression_kind_tag)*/
+/*lint -esym(758,an_operand_kind_tag)*/
+/*lint -esym(758,an_operand_state_tag)*/
+/*lint -esym(769,a_ctor_or_dtor_kind_tag::cdk_last)*/
+/*lint -esym(769,a_dynamic_init_kind_tag::dik_call_returning_class_via_cctor)*/
+/*lint -esym(769,an_expr_node_kind_tag::enk_last)*/
+/*lint -esym(769,an_element_position_kind_tag::epk_last)*/
+/*lint -esym(769,a_gcc_pragma_kind_tag::gcc_pk_last)*/
+/*lint -esym(769,a_pragma_binding_kind::pbk_last)*/
+/*lint -esym(769,a_pointer_modifier_tag::pmt_last)*/
+/*lint -esym(769,a_stdc_pragma_kind_tag::stdc_pk_last)*/
+/*lint -esym(769,a_type_qualifier_tag::tqt_msb_named_address_space)*/
+/*lint -esym(769,an_expression_kind_tag)*/
+/*lint -esym(769,a_statement_kind_tag::stmk_last)*/
+/*lint -esym(769,a_type_class_kind::tck_char)*/
+/*lint -esym(769,a_type_class_kind::tck_method)*/
+/*lint -esym(769,a_type_class_kind::tck_string)*/
 
 #endif /* ifndef LINT_H */
 
