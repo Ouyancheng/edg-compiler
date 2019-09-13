@@ -6489,7 +6489,7 @@ FALSE is returned) for non-class objects.
         }  /* if */
       } else {
         /* The class has no user-declared constructors. */
-        if (is_const) {
+        if (is_const && !tp->variant.class_struct_union.is_empty_class) {
           /* Since this is a non-POD class, a user-declared default
              constructor should have been provided.  Leave def_init_performed
              set to FALSE so that a diagnostic will be issued later. */
@@ -6505,6 +6505,10 @@ FALSE is returned) for non-class objects.
                                                        /*check_access=*/TRUE,
                                                        (a_boolean *)NULL) &&
               !cssp->is_cpp03_POD) {
+            def_init_performed = TRUE;
+          } else if (tp->variant.class_struct_union.is_empty_class) {
+            /* Empty class types with a trivial default constructor are always
+               "initialized". */
             def_init_performed = TRUE;
           }  /* if */
         }  /* if */
