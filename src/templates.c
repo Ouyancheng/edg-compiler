@@ -18047,13 +18047,32 @@ are ignored even in modes where such specifiers are part of that type.
     }  /* if */
   }  /* if */
   if (match && instance_sym == NULL) {
-    a_symbol_ptr	*hash_table_sym = NULL;
-    /* Look for a previously created instantiation. */
-    hash_table_sym = find_instantiation(templ_sym, tssp, *templ_arg_list,
-                                        /*create=*/FALSE);
-    /* hash_table_sym will be NULL if no entry is found, otherwise it will
-       point to the symbol in the hash table. */
-    instance_sym = hash_table_sym == NULL ? NULL : *hash_table_sym;
+    /* Look for a previously created instance with a matching set of template
+       arguments. */
+    a_template_instance_ptr           tip;
+    a_symbol_ptr                      sym;
+    for (tip = tssp->variant.function.instantiations;
+         tip != NULL;
+         tip = tip->next) {
+      a_routine_ptr			rout;
+      an_equiv_templ_arg_options_set	eta_options;
+      /* We used to skip entries that represent specific declarations.
+         This is no longer done because these entries must be examined this
+         routine is called during instantiation pragma processing. */
+      sym = tip->instance_sym;
+      /* Ignore symbols for which instance_sym has not yet been set.  This
+         happens when verify_routine_type_matches_template is called. */
+      if (sym == NULL) continue;
+      rout = sym->variant.routine.ptr;
+      eta_options = tssp->is_variadic ? ETA_IS_VARIADIC : ETA_NO_OPTIONS;
+      if (equiv_template_arg_lists(*templ_arg_list, rout->template_arg_list,
+                                   eta_options)) {
+        /* The template argument lists match.  Return the symbol for this
+           template. */
+        instance_sym = sym;
+        break;
+      }  /* if */
+    }  /* for */
   } else if (!match) {
     instance_sym = NULL;
   }  /* if */
@@ -18325,10 +18344,8 @@ is the template entry for the template being declared.
       /* Mark this function as a "guiding declaration". */
       tip->is_guiding_decl = TRUE;
       tssp = templ_sym->variant.template_info;
-      /* Add the instance to the instantiation list and hash table. */
       tip->next = tssp->variant.function.instantiations;
       tssp->variant.function.instantiations = tip;
-      add_instantiation(templ_sym, tssp, rout_sym, templ_arg_list);
       /* Make the function instantiation entry and its associated symbol
          point at each other. */
       tip->instance_sym = rout_sym;

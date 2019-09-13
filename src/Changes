@@ -30,14 +30,6 @@ b<0> was B<0> when it should have been "auto"
 
 
 
-9/12/19  [EDGcpfe/21464]
-Performance with large number of function template explicit specializations
-
-The processing of explicit specializations of function templates could
-result in poor performance if a program contained a very large number of
-explicit specializations of a given function template.  Now fixed.
-
-
 9/12/19  [EDGcpfe/21755,EDGcpfe21756]
 C18 mode
 
