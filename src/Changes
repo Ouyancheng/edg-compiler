@@ -43,7 +43,7 @@ C18 mode
 
 The front end now accepts the option "--c18" to enable C18 mode.  C18 is a
 "bug fix" version of the C11 standard, and, consequently, in C18 mode the
-front end currently only behaves differently from C11 mode in only a few ways:
+front end currently behaves differently from C11 mode in only a few ways:
   - the macro __STDC_VERSION__ is predefined to 201710L,
   - type qualifiers are completely ignored on function return types
     (resolution of DR423), and
