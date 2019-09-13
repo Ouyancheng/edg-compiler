@@ -1782,7 +1782,8 @@ scanned.
   if (!is_error_constant(constant)) {
     a_boolean	err;
     value = value_of_integer_constant(constant, &err);
-    if (err || value > LONG_MAX || value < LONG_MIN) { /*lint !e685*/
+    /*lint --e{587,650,685}*/
+    if (err || value > LONG_MAX || value < LONG_MIN) {
       /* Attribute values should be small integers.  Issue an error on an
          attempt to use a very large integer. */
       pos_error(ec_integer_too_large, &error_position);
@@ -2121,6 +2122,7 @@ or NULL if the argument list is invalid.  If the argument list is invalid,
       if (arg_list == NULL) {
         arg_list = arg;
       } else {
+        check_assertion(arg_tail != NULL);
         arg_tail->next = arg;
       }  /* if */
       arg_tail = arg;
@@ -2162,7 +2164,7 @@ until the end of the attribute is found.
 }  /* scan_unrecognized_ms_attribute_arg_list */
 
 
-static an_ms_attribute_target scan_ms_attribute_target()
+static an_ms_attribute_target scan_ms_attribute_target(void)
 /*
 Look for an optional attribute target and return a value indicating which
 target, if any, was found.
@@ -2454,6 +2456,7 @@ to the attributes).
         attr_list = attr;
       } else {
         /* The list is linked on both the next and next_in_block pointers. */
+        check_assertion(attr_tail != NULL);
         attr_tail->next_in_block = attr;
         attr_tail->next = attr;
       }  /* if */
@@ -2705,7 +2708,8 @@ successful; otherwise, issue any appropriate diagnostics and return FALSE.
       } else {
         check_assertion(msap->variant.info.arg_list->kind ==
                                       (an_ms_attribute_arg_kind)msaak_boolean);
-        no_injected_text = msap->variant.info.arg_list->variant.integer_value;
+        no_injected_text =
+                 (a_boolean)msap->variant.info.arg_list->variant.integer_value;
       }  /* if */
       result = TRUE;
       break;
@@ -2756,7 +2760,7 @@ data member of a prototype instantiation.
 }  /* entity_is_prototype_instantiation */
 
 
-static an_ms_attribute_target standalone_ms_attribute_targets()
+static an_ms_attribute_target standalone_ms_attribute_targets(void)
 /*
 Return the kinds of targets a standalone attribute (like "[XXX];") can apply
 to in the current mode.
@@ -2894,7 +2898,8 @@ no attribute can be applied to the entity.
 #if DEBUG
          if (db_flag_is_set("msattr")) {
            fprintf(f_debug, "Attribute target: valid=%x, applicable=%x\n",
-                   (int)valid_targets, (int)applicable_targets);
+                   (unsigned int)valid_targets,
+                   (unsigned int)applicable_targets);
          }  /* if */
 #endif /* DEBUG */
       }  /* if */
@@ -2904,6 +2909,7 @@ no attribute can be applied to the entity.
       if (new_list == NULL) {
         new_list = msap;
       } else {
+        check_assertion(new_tail != NULL);
         new_tail->next = msap;
       }  /* if */
       new_tail = msap;

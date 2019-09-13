@@ -1603,7 +1603,7 @@ in the metadata file.
       if (db_flag_is_set("dump_metadata") ||
           db_flag_is_set("dump_full_metadata")) {
         fprintf(f_debug, "Importing metadata from '%s' returns %x.\n",
-                cmfp->full_name, cmfp->assembly_index);
+                cmfp->full_name, (unsigned int)cmfp->assembly_index);
       }  /* if */
 #endif /* DEBUG */
       /* Import the top level declarations. */
@@ -1626,7 +1626,7 @@ in the metadata file.
 }  /* import_metadata */
 
 
-static void entering_vccorlib()
+static void entering_vccorlib(void)
 /*
 Perform any necessary actions that must occur before vccorlib.h is parsed.
 */
@@ -1649,7 +1649,7 @@ Perform any necessary actions that must occur before vccorlib.h is parsed.
 }  /* entering_vccorlib */
 
 
-static void leaving_vccorlib()
+static void leaving_vccorlib(void)
 /*
 Perform any necessary actions that should occur after vccorlib.h is parsed.
 */
@@ -1664,7 +1664,7 @@ Perform any necessary actions that should occur after vccorlib.h is parsed.
 }  /* leaving_vccorlib */
 
 
-static void process_vccorlib_header()
+static void process_vccorlib_header(void)
 /*
 Push vccorlib.h onto the input stack and parse the file.  vccorlib.h is a
 unique preinclude file that is processed in the middle of preusing processing.

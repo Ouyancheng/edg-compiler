@@ -5488,7 +5488,7 @@ enum a_type_qualifier_tag {
 			/* Least significant bit of named address space
 			   representation. */
   tqt_msb_named_address_space =
-	tqt_lsb_named_address_space + NUM_BITS_FOR_NAMED_ADDRESS_SPACE -1,
+	(int)tqt_lsb_named_address_space + NUM_BITS_FOR_NAMED_ADDRESS_SPACE -1,
 			/* Most significant bit of named address space
 			   representation. */
 	/*lint -esym(769,a_type_qualifier_tag::tqt_msb_named_address_space)*/

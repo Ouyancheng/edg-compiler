@@ -1386,7 +1386,7 @@ warning.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_boolean in_cppcx_externally_visible_parameter_scope()
+static a_boolean in_cppcx_externally_visible_parameter_scope(void)
 /*
 Return TRUE if the current function prototype scope is that of a delegate
 definition or a class member with external visibility.

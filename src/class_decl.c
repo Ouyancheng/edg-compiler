@@ -5429,6 +5429,7 @@ appears on a linked list pointed to from base_class.
      between the current class and the class of which the primary function
      is a member), we can simply reuse that entry. */
   ovfp = base_class->overriding_virtual_functions;
+  /*lint --e{850}*/
   for (; ovfp != NULL; ovfp = ovfp->next) {
     if (ovfp->primary_function == primary_func) {
       /* Usually, this is an entry copied when base classes are added (by
@@ -17671,6 +17672,7 @@ template declaration and is NULL otherwise.
         if (decl_info->is_member_template) {
           /* For variable templates, the IL template will have been created
              by the template declaration processing. */
+          check_assertion(templ_state != NULL);
           templ = templ_state->il_template_entry;
         } else {
           /* Although this is not a template, it is an instantiatable variable
@@ -17710,6 +17712,7 @@ template declaration and is NULL otherwise.
       if (decl_info->is_member_template) {
         /* Record the cache information for the later instantiation of
            a variable template with an in-class initializer. */
+        check_assertion(var_templ_tssp != NULL && templ_state != NULL);
         set_template_cache_info(&var_templ_tssp->cache,
                                 initializer_cache,
                                 templ_state->decl_info);

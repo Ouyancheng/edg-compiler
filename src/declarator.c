@@ -7756,7 +7756,10 @@ past_postfix_declarator_operators:
     }  /* if */
     /* Return the left calling convention to the caller if it can't be
        handled at this level (i.e., in a nested declarator). */
-    if (specifiers_type == NULL) *p_left_call_conv = left_call_conv;
+    if (specifiers_type == NULL) {
+      check_assertion(p_left_call_conv != NULL);
+      *p_left_call_conv = left_call_conv;
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
@@ -7776,7 +7779,10 @@ past_postfix_declarator_operators:
     /* Return the left qualifiers to the caller if they can't be handled
        at this level by applying them to the specifiers type (i.e., in a
        nested declarator). */
-    if (specifiers_type == NULL) *p_left_qualifiers = left_qualifiers;
+    if (specifiers_type == NULL) {
+      check_assertion(p_left_qualifiers != NULL);
+      *p_left_qualifiers = left_qualifiers;
+    }  /* if */
   }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
   if (specifiers_type != NULL) {
@@ -7907,6 +7913,7 @@ past_postfix_declarator_operators:
         update_calling_convention(&complete_type, &unbound_call_conv, state,
                                   &declarator_pos);
       } else {
+        check_assertion(p_unbound_call_conv != NULL);
         *p_unbound_call_conv = unbound_call_conv;
       }  /* if */
     }  /* if */
@@ -7926,6 +7933,7 @@ past_postfix_declarator_operators:
 #endif  /* NEAR_AND_FAR_ALLOWED */
         complete_type = make_qualified_type(complete_type, unbound_qualifiers);
       } else {
+        check_assertion(p_unbound_qualifiers != NULL);
         *p_unbound_qualifiers = unbound_qualifiers;
       }  /* if */
     }  /* if */

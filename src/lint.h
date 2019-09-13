@@ -1470,6 +1470,7 @@ extern int fileno(FILE *);
 /*lint -esym(552,gnu_target_version_number)*/
 /*lint -esym(750,is_finite)*/
 /*lint -esym(750,is_NaN)*/
+/*lint -esym(750,comment_numeric_valued_macro)*/
 
 #endif /* ifndef LINT_H */
 

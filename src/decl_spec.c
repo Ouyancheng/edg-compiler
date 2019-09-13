@@ -4781,6 +4781,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
         if (is_friend_decl) {
           /* If this is a friend declaration, adjust the specifiers range to
              include "friend". */
+          check_assertion(decl_pos_block != NULL);
           dpsp->specifiers_range.start =
                                    decl_pos_block->specifiers_range.start;
         }  /* if */
@@ -7742,7 +7743,7 @@ _Sat was specified.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (ms_extensions && microsoft_version == 1200 &&
             (int)size >= (int)size_int8 &&
-            (int)size <= (int)size_int64) { /*lint !e685*/
+            (int)size <= (int)size_int64) { /*lint !e587 !e685 !e2650*/
           dps->specifiers_type = microsoft_sized_signed_integer_type(
                                                       (an_integer_kind)ikind);
         } else
@@ -7755,7 +7756,7 @@ _Sat was specified.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (ms_extensions && microsoft_version == 1200 &&
             (int)size >= (int)size_int8 &&
-            (int)size <= (int)size_int64) { /*lint !e685*/
+            (int)size <= (int)size_int64) { /*lint !e587 !e685 !e2650*/
           dps->specifiers_type =
                          microsoft_sized_integer_type((an_integer_kind)ikind);
         } else

@@ -8582,7 +8582,7 @@ return that entity).
 }  /* apply_restrict_attr */
 
 
-static char* apply_safebuffers_attr(an_attribute_ptr            ap,
+static char* apply_safebuffers_attr(ARG_UNUSED an_attribute_ptr ap,
                                     char                        *entity,
                                     ARG_UNUSED an_il_entry_kind entity_kind)
 /*

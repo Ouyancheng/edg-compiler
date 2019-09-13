@@ -514,7 +514,7 @@ Finish writing the IL file, if there is one.
     (void)fwrite((char *)&end_flag, sizeof(end_flag), 1, f_il_output);
     /* Write the file index table at the end of the file. */
     index_pos = ftell(f_il_output);
-    index_size = (sizeof_t)highest_used_region_number *
+    index_size = (sizeof_t)(unsigned)highest_used_region_number *
                  sizeof(a_file_position);
     (void)fwrite((char *)&index_for_il_file[FILE_SCOPE_REGION_NUMBER],
                  size_t_arg(index_size), 1, f_il_output);
@@ -728,7 +728,7 @@ Write the indicated memory region to the file f_il_output.
 #if DEBUG
     if (debug_level >= 2) {
       fprintf(f_debug, "Writing out memory region %lu\n",
-                       (unsigned long)region_number);
+                       (unsigned long)(unsigned)region_number);
     }  /* if */
 #endif /* DEBUG */
 #if ALTERNATE_IL_FILE_FORMAT

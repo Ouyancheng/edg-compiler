@@ -4891,9 +4891,10 @@ enum a_cli_symbol_kind_tag {
   csk_windows_foundation_metadata_namespace,
   csk_windows_foundation_collections_namespace,
   csk_first_type,
-  csk_last_namespace = csk_first_type - 1,
-  csk_first_integer = csk_first_type,
-  csk_system_byte_sign_unspecified = csk_first_integer, /* ik_char */
+  csk_last_namespace = (int)csk_first_type - 1, /*lint !e488*/
+  csk_first_integer = (int)csk_first_type, /*lint !e488*/
+  csk_system_byte_sign_unspecified = (int)csk_first_integer, /*lint !e488*/
+                                                /* ik_char */
   csk_system_sbyte,				/* ik_signed_char */
   csk_system_byte,				/* ik_unsigned_char */
   csk_system_int16,				/* ik_short */
@@ -4947,7 +4948,7 @@ enum a_cli_symbol_kind_tag {
   csk_windows_foundation_metadata_allow_multiple_attribute,
   csk_windows_foundation_metadata_deprecated_attribute,
   csk_last,
-  csk_last_type = csk_last - 1
+  csk_last_type = (int)csk_last - 1 /*lint !e488*/
 };
 
 /* Define as "a_byte" to explicitly control storage size. */

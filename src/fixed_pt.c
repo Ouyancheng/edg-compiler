@@ -144,7 +144,7 @@ sign bit.
   }  /* if */
   /* Shift the saturated value to just fill the portion of the integer
      value actually used to the representation. */
-  shift_count = BITS_IN_AN_INTEGER_VALUE - value_bits;
+  shift_count = (int)BITS_IN_AN_INTEGER_VALUE - value_bits;
   if (shift_count > 0) {
     shift_right_integer_value(value, shift_count,
                               /*is_signed=*/!fxp_descr->is_unsigned,
@@ -260,8 +260,8 @@ fxp_descr describes the format of the value being stored.
       int	source_part;
       int	source_byte;
       dest = &((char*)value)[byte_offset_in_integer_value(i)];
-      source_part = (parts_to_copy - 1) - (i / sizeof(an_fp_value_part));
-      source_byte = (i % sizeof(an_fp_value_part)) + part_offset;
+      source_part = (int)((parts_to_copy - 1) - (i/sizeof(an_fp_value_part)));
+      source_byte = (int)((i % sizeof(an_fp_value_part)) + part_offset);
       source = (char*)&(mp->parts[source_part]) + source_byte;
       *dest = *source;
 #if DEBUG
@@ -270,7 +270,8 @@ fxp_descr describes the format of the value being stored.
         source_offset = (long)(source - (char *)(&mp->parts[0]));
         dest_offset = (long)(dest - (char*)&value[0]);
         fprintf(f_debug, "fxp copy from %ld to %ld, value=%x\n",
-                source_offset, dest_offset, *dest);
+                source_offset, dest_offset,
+                (unsigned int)(unsigned char)*dest);
       }  /* if */
 #endif /* DEBUG */
     }  /* for */
@@ -329,8 +330,8 @@ Create mantissa (mp), exponent, and is_negative from a_fixed_point_value
       int	dest_part;
       int	dest_byte;
       source = &((char*)value)[byte_offset_in_integer_value(i)];
-      dest_part = (parts_to_copy - 1) - (i / sizeof(an_fp_value_part));
-      dest_byte = (i % sizeof(an_fp_value_part)) + part_offset;
+      dest_part = (int)((parts_to_copy - 1) - (i / sizeof(an_fp_value_part)));
+      dest_byte = (int)((i % sizeof(an_fp_value_part)) + part_offset);
       dest = (char*)&(mp->parts[dest_part]) + dest_byte;
       *dest = *source;
     }  /* for */
@@ -442,7 +443,7 @@ negative, is_negative will be TRUE.
   *err = FALSE;
   /* Compute the number of bits to shift the mantissa so that any fractional
      bits will be discarded. */
-  shift_count = BITS_IN_AN_INTEGER_VALUE - exponent;
+  shift_count = (int)(BITS_IN_AN_INTEGER_VALUE - exponent);
   if (shift_count >= 0) {
     if (shift_count > 0) shift_right_mantissa(mp, shift_count);
   } else {
@@ -554,7 +555,7 @@ the value is already known to be too large.  Set *err on overflow.  Set
        the right number of fractional and non-fractional bits. */
     nonfract_bits = non_fractional_bits_for_fixed_point(fxp_descr);
     value_bits = value_bits_for_fixed_point(fxp_descr);
-    shift_count = nonfract_bits - exponent;
+    shift_count = (int)(nonfract_bits - exponent);
     mantissa_bits = number_of_bits_in_mantissa(mp, /*normalize=*/FALSE);
     sign_bits = fxp_descr->is_unsigned ? 0 : 1;
     if (shift_count > 0) shift_right_mantissa(mp, shift_count);
@@ -569,7 +570,7 @@ the value is already known to be too large.  Set *err on overflow.  Set
        value. */
     clear_unused_mantissa_bits(mp, value_bits + sign_bits);
     /* Recompute the shift count and mantissa bits after rounding. */
-    shift_count = nonfract_bits - exponent;
+    shift_count = (int)(nonfract_bits - exponent);
     mantissa_bits = number_of_bits_in_mantissa(mp, /*normalize=*/TRUE);
     /* A shift count of zero represents an overflow for a signed value because
        the sign bit would be needed for the representation. */

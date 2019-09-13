@@ -18976,7 +18976,7 @@ allocated integer constant.
     shift_left_integer_value(&con->variant.integer_value, 4, &err);
     /* Or in digit. */
     set_unsigned_integer_value(&digit,
-                            (a_host_large_unsigned)intdigit /*lint --e(571)*/);
+                               (a_host_large_unsigned)(unsigned)intdigit);
     or_integer_values(&con->variant.integer_value, &digit);
   }  /* for */
   *ptr = local_ptr;

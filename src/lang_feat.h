@@ -728,6 +728,8 @@ MICROSOFT_EXTENSIONS_ALLOWED or to "else_text" otherwise.
 #if defined(_lint) && _lint > 1000
 /*lint -esym(2666,if_microsoft_extensions)*/
 /*lint -esym(2666,if_microsoft_extensions_else)*/
+/*lint -egrep(665,if_microsoft_extensions)*/
+/*lint -egrep(665,if_microsoft_extensions_else)*/
 #endif /* defined(_lint) && _lint > 1000 */
 
 /*

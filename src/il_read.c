@@ -202,7 +202,8 @@ number is encoded_number.
   } else {
     /* Function-scope entry numbers have a tag bit turned on. */
     is_in_file_scope = ((encoded_number & FUNC_ENTRY_NUMBER_BIT) == 0);
-    entry_number = encoded_number & ~FUNC_ENTRY_NUMBER_BIT;
+    entry_number =
+                 (an_il_entry_number)(encoded_number & ~FUNC_ENTRY_NUMBER_BIT);
     /* The macro does the real remapping work. */
     m_remap_entry_number();
   }  /* if */
@@ -231,7 +232,8 @@ to has kind entry_kind.
   } else {
     /* Function-scope entry numbers have a tag bit turned on. */
     is_in_file_scope = ((encoded_number & FUNC_ENTRY_NUMBER_BIT) == 0);
-    entry_number = encoded_number & ~FUNC_ENTRY_NUMBER_BIT;
+    entry_number =
+                 (an_il_entry_number)(encoded_number & ~FUNC_ENTRY_NUMBER_BIT);
     /* The macro does the real remapping work. */
     m_remap_entry_number();
   }  /* if */
@@ -464,7 +466,8 @@ necessary to make it directly accessible in memory.
       internal_error(
                    "read_memory_region: func scope bit wrong in entry number");
     }  /* if */
-    trimmed_entry_number = encoded_number & ~FUNC_ENTRY_NUMBER_BIT;
+    trimmed_entry_number =
+                 (an_il_entry_number)(encoded_number & ~FUNC_ENTRY_NUMBER_BIT);
     if (trimmed_entry_number == 0 ||
         trimmed_entry_number > entry_count_array_ptr[byte_entry_kind]) {
       internal_error("read_memory_region: bad entry number");

@@ -2510,7 +2510,8 @@ destination) to a runtime call).
     shift_amount = FXCONTROL_SIZE;
     if (is_fixed_point_type(src_type) || is_integral_or_enum_type(src_type)) {
       /* Add the mask for the source type. */
-      fxmask |= (fxtype_value_for_type(src_type) << shift_amount);
+      fxmask |= ((unsigned long)(unsigned)fxtype_value_for_type(src_type) <<
+                                                                 shift_amount);
       shift_amount += FXTYPE_SIZE;
       /* Convert the operand to the fxvalue type used to interface to the
          runtime. */
@@ -2542,7 +2543,8 @@ destination) to a runtime call).
     }  /* if */
     if (is_fixed_point_type(dst_type) || is_integral_or_enum_type(dst_type)) {
       /* Add the mask for the destination type. */
-      fxmask |= (fxtype_value_for_type(dst_type) << shift_amount);
+      fxmask |= ((unsigned long)(unsigned)fxtype_value_for_type(dst_type) <<
+                                                                 shift_amount);
       shift_amount += FXTYPE_SIZE;
     } else {
       /* Conversion from fixed point to floating or complex. */
@@ -2811,16 +2813,19 @@ Lower a fixed-point operation expression.
   fxmask = fxcontrol_value();
   shift_amount = FXCONTROL_SIZE;
   /* First operand fxtype. */
-  fxmask |= (fxtype_value_for_type(op1->type) << shift_amount);
+  fxmask |= ((unsigned long)(unsigned)fxtype_value_for_type(op1->type) <<
+                                                                 shift_amount);
   shift_amount += FXTYPE_SIZE;
   if (!is_shift && !is_unary) {
     /* Second operand fxtype. */
-    fxmask |= (fxtype_value_for_type(op2->type) << shift_amount);
+    fxmask |= ((unsigned long)(unsigned)fxtype_value_for_type(op2->type) <<
+                                                                 shift_amount);
     shift_amount += FXTYPE_SIZE;
   }  /* if */
   if (need_result_fxtype) {
     /* Result fxtype. */
-    fxmask |= (fxtype_value_for_type(expr->type) << shift_amount);
+    fxmask |= ((unsigned long)(unsigned)fxtype_value_for_type(expr->type) <<
+                                                                 shift_amount);
     /* Operations like "add" need the fxmask2 variant, which includes
        two operand types and a result type and is therefore bigger. */
     fxmask_int_kind = FXMASK2_INT_KIND;
@@ -2943,7 +2948,8 @@ Lower the indicated fixed-point increment or decrement operation.
   /* Build up the fxmask argument describing the operand and result types. */
   fxmask = fxcontrol_value();
   shift_amount = FXCONTROL_SIZE;
-  fxmask |= (fxtype_value_for_type(result_type) << shift_amount);
+  fxmask |= ((unsigned long)(unsigned)fxtype_value_for_type(result_type) <<
+                                                                 shift_amount);
   fxmask_expr = node_for_integer_constant((long)fxmask, FXMASK_INT_KIND);
   /* Make the call of the runtime cast routine. */
   fxmask_expr->next = op1_for_argument;
