@@ -5933,6 +5933,14 @@ do_argument_again:
             map->initial_raw_text_not_in_primary_source_line =
                                      (char *)arg_get_token_start_of_curr_token;
             scanning_text_not_in_primary_source_line = TRUE;
+            /* We will be rescanning the argument text for the expanded
+               form, so we don't want any of it to be deleted; if the macro
+               buffer is expanded during that rescan, the deleted text
+               would not be copied into the expanded buffer and
+               curr_char_loc would still point into the discarded
+               buffer. */
+            save_delete_source_from_loc = delete_source_from_loc;
+            delete_source_from_loc = NULL;
           }  /* if */
 #if FULLY_RESOLVED_MACRO_POSITIONS
           /* Initialize the position tracker for the raw text buffer.  Use
@@ -6219,12 +6227,14 @@ do_argument_again:
             saved_slm_lock = locked_slmp->locked;
             locked_slmp->locked = TRUE;
           }  /* if */
-          /* Suspend deletion of the characters of the macro invocation.  We
-             don't need to delete the characters of the raw argument during
-             rescan, and we need to save the current delete position for
-             later use. */
-          save_delete_source_from_loc = delete_source_from_loc;
-          delete_source_from_loc = NULL;
+          if (delete_source_from_loc != NULL) {
+            /* Suspend deletion of the characters of the macro invocation.
+               We don't need to delete the characters of the raw argument
+               during rescan, and we need to save the current delete
+               position for later use. */
+            save_delete_source_from_loc = delete_source_from_loc;
+            delete_source_from_loc = NULL;
+          }  /* if */
           if (arg_get_token(&any_white_space_skipped) == tok_end_of_source &&
               pp->next == NULL && mdp->variadic) {
             /* There are no tokens in the replacement for __VA_ARGS__. */
