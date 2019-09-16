@@ -29985,7 +29985,9 @@ that follows.
           check_assertion(vp != NULL);  /* For Coverity. */
           /* An explicit specialization should not inherit the declared type
              from the generated declaration of a variable template. */
-          if (first_decl) vp->declared_type = dps->declared_type;
+          if (first_decl || vp->declared_type == NULL) {
+            vp->declared_type = dps->declared_type;
+          }  /* if */
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         check_assertion(vp != NULL);
