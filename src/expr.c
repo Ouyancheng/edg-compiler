@@ -47401,7 +47401,7 @@ the corresponding __builtin_is_constructible operation.
              is_abstract_class_type(dst_type)) {
     result = FALSE;
   } else if (is_incomplete_type(dst_type)) {
-    if (!gpp_mode) {
+    if (!gpp_mode || clang_mode) {
       expr_pos_error(ec_incomplete_type_not_allowed, &arg0->position);
     }  /* if */
     result = FALSE;
@@ -47419,7 +47419,8 @@ the corresponding __builtin_is_constructible operation.
       if (alep == NULL) {
         /* The value creation expression is ill-formed: Return a "false"
            result. */
-        if (!gpp_mode && is_incomplete_type(typen) && !is_array_type(typen)) {
+        if ((!gpp_mode  || clang_mode) &&
+            is_incomplete_type(typen) && !is_array_type(typen)) {
           expr_pos_error(ec_incomplete_type_not_allowed, &argn->position);
         }  /* if */
         result = FALSE;
@@ -47511,8 +47512,8 @@ invoked destructor is trivial).
     if (is_array_type(type)) type = underlying_array_element_type(type);
     type = skip_typerefs(type);
     if (type->incomplete) {
-      if (!gpp_mode && (is_immediate_class_type(type) ||
-                        is_immediate_enum_type(type))) {
+      if ((!gpp_mode || clang_mode) && (is_immediate_class_type(type) ||
+                                        is_immediate_enum_type(type))) {
         expr_pos_error(ec_incomplete_type_not_allowed, &error_position);
       }  /* if */
       result = FALSE;
