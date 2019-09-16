@@ -1,5 +1,21 @@
 Version 6.0
 
+8/15/19  [EDGcpfe/21664]
+__is_constructible and incomplete types
+
+Previously, applying __is_constructible to an incomplete class or enumeration 
+type -- either the constructed type or an operand type -- was accepted and
+resulted in a "false" value.  Now such cases elicit a diagnostic in non-GNU
+modes (or a deduction failure it they occur during template argument
+deduction).  For example:
+
+  struct S;
+  bool r = __is_constructible(int, S);  // Previously okay (with FALSE value).
+                                        // Now an error in non-GNU modes.
+
+A similar change was made for __is_destructible.
+
+
 9/16/19  [EDGcpfe/21782]
 Abort on union designators in statement expression in GNU C mode
 
@@ -586,15 +602,6 @@ through a null pointer in Clang mode (in scan_expr_full).  For example:
   }
 
 That problem is now fixed.
-
-
-8/15/19  [EDGcpfe/21664]
-__builtin_is_constructible and incomplete types
-
-Previously, applying __builtin_is_constructible to an incomplete class or
-enumeration type was accepted and resulted in a "false" value.  Now such
-cases elicit a diagnostic in non-GNU modes (or a deduction failure it they
-occur during template argument deduction).
 
 
 8/15/19  [EDGcpfe/21632]

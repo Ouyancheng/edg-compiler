@@ -47419,6 +47419,9 @@ the corresponding __builtin_is_constructible operation.
       if (alep == NULL) {
         /* The value creation expression is ill-formed: Return a "false"
            result. */
+        if (!gpp_mode && is_incomplete_type(typen) && !is_array_type(typen)) {
+          expr_pos_error(ec_incomplete_type_not_allowed, &argn->position);
+        }  /* if */
         result = FALSE;
         goto have_result;
       }  /* if */
@@ -47502,12 +47505,18 @@ invoked destructor is trivial).
   an_expr_stack_entry_ptr saved_expr_stack;
 
   complete_type_is_needed(type);
-  if (is_function_type(type) || is_incomplete_type(type)) {
+  if (is_function_type(type)) {
     result = FALSE;
   } else {
     if (is_array_type(type)) type = underlying_array_element_type(type);
     type = skip_typerefs(type);
-    if (!is_immediate_class_type(type)) {
+    if (type->incomplete) {
+      if (!gpp_mode && (is_immediate_class_type(type) ||
+                        is_immediate_enum_type(type))) {
+        expr_pos_error(ec_incomplete_type_not_allowed, &error_position);
+      }  /* if */
+      result = FALSE;
+    } else if (!is_immediate_class_type(type)) {
       /* For non-class types, "destruction" semantics are always trivial. */
       result = TRUE;
     } else {
