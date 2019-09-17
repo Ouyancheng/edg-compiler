@@ -8094,6 +8094,44 @@ done:
 }  /* compare_enable_if_attributes */
 
 
+static int compare_for_using_declaration(a_candidate_function_ptr cfp1,
+                                         a_candidate_function_ptr cfp2)
+/*
+If cfp2 is found through a using-declaration and cfp2 is not, return +1.  If
+the converse is true, return -1.  Otherwise, return 0.  This is used in GNU
+C++ mode only, to handle the following case:
+  template<typename, typename> struct C;
+  template<typename T> struct C<T, T> {
+    using Type = T;
+  };
+  struct B {
+    template<typename T, typename = typename C<T, int>::Type>
+      int operator=(T);
+  };
+  struct D: B {
+    using B::operator=;
+    template<typename T, typename = typename C<T, float>::Type>
+      int& operator=(T);
+  } d;
+  int r = (d = 42);
+*/
+{
+  int          result = 0;
+  a_symbol_ptr csym1 = cfp1->function_symbol, csym2 = cfp2->function_symbol;
+
+  if (csym1 != NULL && csym2 != NULL &&
+      is_class_member_using_decl_symbol(csym1) !=
+                                  is_class_member_using_decl_symbol(csym2)) {
+    if (is_class_member_using_decl_symbol(csym2)) {
+      result = +1;
+    } else {
+      result = -1;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* compare_for_using_declaration */
+
+
 static int compare_function_templates_for_ovl_res(
                                                 a_candidate_function_ptr cfp1,
                                                 a_candidate_function_ptr cfp2)
@@ -8344,6 +8382,8 @@ other.  Return
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if ((cmp = compare_enable_if_attributes(cfp1, cfp2)) != 0) {
     /* Clang's enable_if attributes can distinguish candidates. */
+  } else if (gpp_mode && !clang_mode &&
+             (cmp = compare_for_using_declaration(cfp1, cfp2)) != 0) {
   }  /* if */
   return cmp;
 }  /* compare_candidate_functions */

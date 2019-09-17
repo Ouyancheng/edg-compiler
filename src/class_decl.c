@@ -16033,8 +16033,32 @@ decl_member_function, which handles in-class member function declarations.)
             an_error_code  error_code = ec_no_error;
             if (other_sym != fund_sym) {
               /* We found a matching using-declaration: Remove it from the
-                 symbol table. */
-              remove_member_using_decl(&other_sym, &sym);
+                 symbol table.  An exception is made of operator= in GNU C++
+                 mode, where the derived-class declaration returns a reference.
+                 That case is handled by overload resolution: see
+                 compare_for_using_declaration in overload.c.  For example:
+                    template<class, class> struct C;
+                    template<class T> struct C<T, T> { using Type = T; };
+                    struct B {
+                      template<class T, class = typename C<T, int>::Type>
+                        int operator=(T);
+                    };
+                    struct D: B {
+                      using B::operator=;
+                      template<class T, class = typename C<T, float>::Type>
+                        int& operator=(T);
+                    } d;
+                    int r = ((d = 42), 0);  // Accepted in GNU C++ mode.
+                                            // Selected the B::operator=
+              */
+              if (!((gpp_mode && !clang_mode) &&
+                    locator->is_operator_name &&
+                    locator->variant.opname ==  (an_opname_kind)onk_assign &&
+                    type_is(member_type, tk_routine) &&
+                    is_reference_type(
+                                 member_type->variant.routine.return_type))) {
+                remove_member_using_decl(&other_sym, &sym);
+              }  /* if */
               fund_sym = NULL;
             } else if (routine_type_is_nonstatic_member_function(tp) !=
                   routine_type_is_nonstatic_member_function(member_type)) {

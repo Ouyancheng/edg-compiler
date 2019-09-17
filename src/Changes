@@ -1,5 +1,32 @@
 Version 6.0
 
+8/16/19  [EDGcpfe/21627]
+GNU compatibility: using-declarations for assignment operator templates
+
+Consider:
+
+  template<typename, typename> struct C;
+  template<typename T> struct C<T, T> {
+    using Type = T;
+  };
+  struct B {
+    template<typename T, typename = typename C<T, int>::Type>
+      int operator=(T);
+  };
+  struct D: B {
+    using B::operator=;
+    template<typename T, typename = typename C<T, float>::Type>
+      int& operator=(T);
+  } d;
+  int r = (d = 42);  //  Now accepted in GNU C++ mode.
+
+The assignment in the last line is usually invalid because only the operator=
+template in D is found and if default template argument fails to instantiate.
+However, GCC accept the case and now do as well in GNU C++ mode: The base
+member is added to the overload set (instead of being hidden by the derived
+class member), but only if the derived-class member returns a reference type.
+
+
 8/16/19  [EDGcpfe/21664]
 __is_constructible and incomplete types
 
