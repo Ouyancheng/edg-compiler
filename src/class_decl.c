@@ -16033,10 +16033,11 @@ decl_member_function, which handles in-class member function declarations.)
             an_error_code  error_code = ec_no_error;
             if (other_sym != fund_sym) {
               /* We found a matching using-declaration: Remove it from the
-                 symbol table.  An exception is made of operator= in GNU C++
-                 mode, where the derived-class declaration returns a reference.
-                 That case is handled by overload resolution: see
-                 compare_for_using_declaration in overload.c.  For example:
+                 symbol table.  An exception is made GNU C++ mode, where the
+                 derived-class declaration has a different return type.  That
+                 case is handled by compare_for_using_declaration (in
+                 overload.c) as an overload resolution tie breaker.  For
+                 example:
                     template<class, class> struct C;
                     template<class T> struct C<T, T> { using Type = T; };
                     struct B {
@@ -16049,13 +16050,13 @@ decl_member_function, which handles in-class member function declarations.)
                         int& operator=(T);
                     } d;
                     int r = ((d = 42), 0);  // Accepted in GNU C++ mode.
-                                            // Selected the B::operator=
+                                            // Selects B::operator=.
               */
               if (!((gpp_mode && !clang_mode) &&
-                    locator->is_operator_name &&
-                    locator->variant.opname ==  (an_opname_kind)onk_assign &&
                     type_is(member_type, tk_routine) &&
-                    is_reference_type(
+                    type_is(tp, tk_routine) &&
+                    !identical_types(
+                                 tp->variant.routine.return_type,
                                  member_type->variant.routine.return_type))) {
                 remove_member_using_decl(&other_sym, &sym);
               }  /* if */

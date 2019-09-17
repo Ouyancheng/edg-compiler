@@ -8,7 +8,7 @@ unused so it is now removed (along with the
 DEFAULT_GNU_INIT_PRIORITY_ATTRIBUTE_ENABLED configuration macro).
 
 
-8/16/19  [EDGcpfe/21627]
+9/16/19  [EDGcpfe/21627]
 GNU compatibility: using-declarations for assignment operator templates
 
 Consider:
@@ -29,8 +29,8 @@ Consider:
   int r = (d = 42);  //  Now accepted in GNU C++ mode.
 
 The assignment in the last line is usually invalid because only the operator=
-template in D is found and if default template argument fails to instantiate.
-However, GCC accept the case and now do as well in GNU C++ mode: The base
+template in D is found and its default template argument fails to instantiate.
+However, GCC accept the case and now we do as well in GNU C++ mode: The base
 member is added to the overload set (instead of being hidden by the derived
 class member), but only if the derived-class member returns a reference type.
 

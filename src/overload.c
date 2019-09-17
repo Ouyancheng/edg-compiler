@@ -8097,7 +8097,7 @@ done:
 static int compare_for_using_declaration(a_candidate_function_ptr cfp1,
                                          a_candidate_function_ptr cfp2)
 /*
-If cfp2 is found through a using-declaration and cfp2 is not, return +1.  If
+If cfp2 is found through a using-declaration and cfp1 is not, return +1.  If
 the converse is true, return -1.  Otherwise, return 0.  This is used in GNU
 C++ mode only, to handle the following case:
   template<typename, typename> struct C;
@@ -8382,8 +8382,12 @@ other.  Return
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if ((cmp = compare_enable_if_attributes(cfp1, cfp2)) != 0) {
     /* Clang's enable_if attributes can distinguish candidates. */
-  } else if (gpp_mode && !clang_mode &&
+  } else if (gpp_mode && gnu_version >= 70000 && !clang_mode &&
              (cmp = compare_for_using_declaration(cfp1, cfp2)) != 0) {
+    /* GCC has a nonstandard behavior for member using-declarations that refer
+       to member function templates.  Instead of hiding the base member, it
+       considers both in some cases but will prefer the more derived one all
+       other things being equal. */
   }  /* if */
   return cmp;
 }  /* compare_candidate_functions */
