@@ -1,6 +1,6 @@
 Version 6.0
 
-8/15/19  [EDGcpfe/21664]
+8/16/19  [EDGcpfe/21664]
 __is_constructible and incomplete types
 
 Previously, applying __is_constructible to an incomplete class or enumeration 
