@@ -35,7 +35,7 @@ member is added to the overload set (instead of being hidden by the derived
 class member), but only if the derived-class member returns a reference type.
 
 
-8/16/19  [EDGcpfe/21664]
+9/16/19  [EDGcpfe/21664]
 __is_constructible and incomplete types
 
 Previously, applying __is_constructible to an incomplete class or enumeration 
