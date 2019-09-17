@@ -2276,13 +2276,6 @@ EXTERN a_host_large_integer
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
-#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-EXTERN a_boolean
-		gnu_init_priority_attribute_enabled;
-			/* TRUE if the GNU "init_priority" attribute should be
-			   accepted. */
-#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 EXTERN a_boolean
 		gnu_visibility_attribute_enabled;

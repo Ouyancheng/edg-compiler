@@ -6181,11 +6181,6 @@ file.
 #else /* !defined(DEFAULT_GNU_COMPATIBILITY) */
   comment_undefined_macro_name(DEFAULT_GNU_COMPATIBILITY);
 #endif /* defined(DEFAULT_GNU_COMPATIBILITY) */
-#if defined(DEFAULT_GNU_INIT_PRIORITY_ATTRIBUTE_ENABLED)
-  define_numeric_valued_macro(DEFAULT_GNU_INIT_PRIORITY_ATTRIBUTE_ENABLED);
-#else /* !defined(DEFAULT_GNU_INIT_PRIORITY_ATTRIBUTE_ENABLED) */
-  comment_undefined_macro_name(DEFAULT_GNU_INIT_PRIORITY_ATTRIBUTE_ENABLED);
-#endif /* defined(DEFAULT_GNU_INIT_PRIORITY_ATTRIBUTE_ENABLED) */
 #if defined(DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS)
   define_numeric_valued_macro(DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS);
 #else /* !defined(DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS) */
@@ -11902,10 +11897,6 @@ variables declared in cmd_line.h.
   upc_mode = DEFAULT_UPC_MODE;
   upc_num_threads = 0;
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-  gnu_init_priority_attribute_enabled =
-                                   DEFAULT_GNU_INIT_PRIORITY_ATTRIBUTE_ENABLED;
-#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   gnu_visibility_attribute_enabled = DEFAULT_GNU_VISIBILITY_ATTRIBUTE_ENABLED;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
