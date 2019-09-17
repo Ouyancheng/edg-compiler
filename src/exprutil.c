@@ -21796,11 +21796,32 @@ error.  The source position of the reference is given by pos.
   } else {
     /* C++/CLI property. */
     check_assertion(symbol_is(property_sym, sk_property_set));
-    if (put) {
-      getput_sym = property_sym->variant.property_info->set_accessors;
-    } else {
-      getput_sym = property_sym->variant.property_info->get_accessors;
-    }  /* if */
+    for (;;) {
+      if (put) {
+        getput_sym = property_sym->variant.property_info->set_accessors;
+      } else {
+        getput_sym = property_sym->variant.property_info->get_accessors;
+      }  /* if */
+      if (getput_sym != NULL) {
+        break;
+      } else {
+        /* Check if perhaps one is inherited. */
+        a_type_ptr        parent_class = sym_parent_class(property_sym);
+        a_symbol_locator  locator;
+        a_symbol_ptr      new_sym;
+        make_locator_for_symbol(property_sym, &locator);
+        clear_specific_symbol(locator);
+        property_sym->is_invisible = TRUE;
+        new_sym = class_qualified_id_lookup(&locator, parent_class,
+                                            IDL_NO_OPTIONS);
+        property_sym->is_invisible = FALSE;
+        if (new_sym == NULL || !symbol_is(property_sym, sk_property_set)) {
+          break;
+        } else {
+          property_sym = new_sym;
+        }  /* if */
+      }  /* if */
+    }  /* for */
     if (getput_sym == NULL) {
       if (must_be_present &&
           expr_error_should_be_issued()) {

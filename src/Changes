@@ -1,5 +1,32 @@
 Version 6.0
 
+9/17/19  [EDGcpfe/21513]
+C++/CLI: Properties and inheritance
+
+Consider the following C++/CLI code:
+
+  ref struct B {
+    property int v {
+      void set(int) {}
+      virtual int get() { return 0; }
+    }
+  };
+  ref struct D: B {
+    D(): B() {}
+    property int v {
+      virtual int get() override { return 0; }
+    }
+  };
+  void g() {
+    D^ d = gcnew D();
+    d->v = 42;  // (1) Previously an error.  Now okay.
+  }
+
+Line one previously triggered an error because it needs a writable property
+d->v and only found a read-only property definition in the definition of D.
+Now, the code is accepted because the inherited v::set member is found.
+
+
 9/17/19  [EDGcpfe/21791]
 IA-64 ABI: Incorrect mangled name for some constructors/destructors
 
