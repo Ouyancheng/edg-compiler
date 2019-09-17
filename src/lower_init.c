@@ -6795,32 +6795,6 @@ dealt with).
     }  /* if */
     /* Loop while there are more constants. */
   }  /* for */
-  if (array_aggr && prev_con == NULL &&
-      aggr_const->variant.aggregate.first_constant == NULL) {
-    /* An empty aggregate constant is being used to initialize an array.
-       If possible, keep the constant in the initializer, but that doesn't
-       work for cases where the initialization is taking place indirectly
-       (e.g., in a "new" operation), so in that case insert code to zero the
-       array elements at run time. */
-    if (ipd.indirect_through_variable) {
-      an_expr_node_ptr eff_num_elem_node = NULL;
-      if (ipdp->num_elem_node != NULL) {
-        eff_num_elem_node = make_reusable_copy(ipdp->num_elem_node,
-                                               /*vars_can_change=*/TRUE);
-      }  /* if */
-      insert_call_to_zero_entity(aggr_type->variant.array.element_type,
-                                 /*have_complete_object=*/FALSE,
-                                 make_address_of_init_entity_node(&ipd,
-                                                     /*using_as_dest=*/TRUE),
-                                 eff_num_elem_node,
-                                 eff_num_elem_node == NULL ?
-                                                num_array_elements(aggr_type) :
-                                                (a_targ_size_t) 0,
-                                 insert_location);
-    } else {
-      *keep_constant = TRUE;
-    }  /* if */
-  }  /* if */
   if (!array_or_vector) pop_aggregate_this();
 }  /* lower_dynamic_init_aggregate_constant */
 

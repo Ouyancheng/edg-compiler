@@ -1,5 +1,26 @@
 Version 6.0
 
+9/17/19  [EDGcpfe/21789]
+Incorrect lowered code for array initialization
+
+Lowering had mistakenly emitted code that could initialize past the end of
+an array in some cases, leading to undefined behavior at run time.  Now fixed.
+For example (with --c++14):
+
+  int main() {
+    struct A {
+      struct B {
+        struct C {
+          int x = *new int(29);
+        } vec[3];
+      };
+      B b{};
+    };
+    delete [] new A[2];   // Had written past end of array.
+    return 0;
+  }
+
+
 9/17/19  [EDGcpfe/21513]
 C++/CLI: Properties and inheritance
 
