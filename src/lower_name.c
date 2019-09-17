@@ -724,6 +724,9 @@ static a_boolean add_substitution_if_available_full(
                             a_boolean                test,
                             a_boolean                *is_standard_substitution,
                             a_mangling_control_block *mctl);
+static void overwrite_ctor_dtor_mangled_name_kind(char          *name,
+                                                  a_routine_ptr routine,
+                                                  char          ch);
 #endif /* IA64_ABI */
 static void mangled_template_arguments(
                                     a_template_arg_ptr       template_arg_list,
@@ -12410,7 +12413,7 @@ to the point where the base name appears.
       add_to_text_buffer(mangling_text_buffer, mangled_name,
                          strlen(mangled_name)+1);
       mangled_name = mangling_text_buffer->buffer;
-      mangled_name[routine->variant.ctor_dtor.base_name_offset+1] = '1';
+      overwrite_ctor_dtor_mangled_name_kind(mangled_name, routine, '1');
       pop_mangling_text_buffer();
     }  /* if */
 #endif /* IA64_ABI && DO_IL_LOWERING */
@@ -14227,31 +14230,17 @@ pointer, or performs the "this" adjustments.
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if IA64_ABI
 
-void set_ctor_dtor_mangled_name_kind(a_routine_ptr routine)
+static void overwrite_ctor_dtor_mangled_name_kind(char          *name,
+                                                  a_routine_ptr routine,
+                                                  char          ch)
 /*
-The constructor or destructor already has a mangled name (which has likely
-been copied from the mangled name of the primary routine).  Modify the name
-to reflect the type of constructor/destructor that has been assigned to
-the routine (e.g., complete, subobject, etc.).  This is done by changing
-a single character of the mangled name (as pointed to by base_name_offset).
+Overwrite a single character of the mangled name to indicate which type of
+constructor/destructor the routine is.  "ch" is the character that replaces
+the existing character (see set_ctor_dtor_mangled_name_kind for the mapping).
+Be careful in cases where the mangled name has been compressed not to overwrite
+past the end of the mangled name.
 */
 {
-  char ch, *name;
-
-  check_assertion(routine->source_corresp.name_has_been_mangled &&
-                  (routine->special_kind ==
-                                   (a_special_function_kind)sfk_constructor ||
-                   routine->special_kind ==
-                                   (a_special_function_kind)sfk_destructor) &&
-                  routine->variant.ctor_dtor.base_name_offset != 0);
-  switch (routine->ctor_dtor_kind) {
-    case cdk_complete:  ch = '1';               break;
-    case cdk_subobject: ch = '2';               break;
-    case cdk_deleting:  ch = '0';               break;
-    case cdk_delegation:ch = '9';               break;
-    default:            unexpected_condition();
-  }  /* switch */
-  name = (char *)routine->source_corresp.name;
   if (routine->source_corresp.mangled_name_cannot_be_included_in_other_name) {
     /* The mangled name has been truncated so the computed base_name_offset
        likely points past the end of the string.  We still need to make this
@@ -14268,6 +14257,35 @@ a single character of the mangled name (as pointed to by base_name_offset).
 #endif /* EXPENSIVE_CHECKING */
     name[routine->variant.ctor_dtor.base_name_offset + 1] = ch;
   }  /* if */
+}  /* overwrite_ctor_dtor_mangled_name_kind */
+
+
+void set_ctor_dtor_mangled_name_kind(a_routine_ptr routine)
+/*
+The constructor or destructor already has a mangled name (which has likely
+been copied from the mangled name of the primary routine).  Modify the name
+to reflect the type of constructor/destructor that has been assigned to
+the routine (e.g., complete, subobject, etc.).  This is done by changing
+a single character of the mangled name (as pointed to by base_name_offset).
+*/
+{
+  char ch;
+
+  check_assertion(routine->source_corresp.name_has_been_mangled &&
+                  (routine->special_kind ==
+                                   (a_special_function_kind)sfk_constructor ||
+                   routine->special_kind ==
+                                   (a_special_function_kind)sfk_destructor) &&
+                  routine->variant.ctor_dtor.base_name_offset != 0);
+  switch (routine->ctor_dtor_kind) {
+    case cdk_complete:  ch = '1';               break;
+    case cdk_subobject: ch = '2';               break;
+    case cdk_deleting:  ch = '0';               break;
+    case cdk_delegation:ch = '9';               break;
+    default:            unexpected_condition();
+  }  /* switch */
+  overwrite_ctor_dtor_mangled_name_kind((char *)routine->source_corresp.name,
+                                        routine, ch);
 }  /* set_ctor_dtor_mangled_name_kind */
 
 

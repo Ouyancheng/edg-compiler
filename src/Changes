@@ -1,5 +1,14 @@
 Version 6.0
 
+9/17/19  [EDGcpfe/21791]
+IA-64 ABI: Incorrect mangled name for some constructors/destructors
+
+Another case similar to that described in the Changes entry for EDGcpfe/20424
+has been fixed.  This only occurs in IA-64 ABI configurations that have
+DEFAULT_MAX_MANGLED_NAME_LENGTH set to a non-zero value when mangling a
+constructor or destructor name that exceeds that length.
+
+
 9/17/19  [EDGcpfe/21790]
 Remove unused gnu_init_priority_attribute_enabled
 
