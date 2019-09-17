@@ -47389,7 +47389,7 @@ the corresponding __builtin_is_constructible operation.
   complete_type_is_needed(dst_type);
   if (is_array_type(dst_type)) {
     /* Arrays can sometimes be default constructed. */
-    if (args != NULL) {
+    if (args != NULL || is_incomplete_array_type(dst_type)) {
       result = FALSE;
     } else {
       /* Check that the underlying element type is default constructible. */
