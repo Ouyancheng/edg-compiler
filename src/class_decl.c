@@ -16033,9 +16033,9 @@ decl_member_function, which handles in-class member function declarations.)
             an_error_code  error_code = ec_no_error;
             if (other_sym != fund_sym) {
               /* We found a matching using-declaration: Remove it from the
-                 symbol table.  An exception is made GNU C++ mode, where the
-                 derived-class declaration has a different return type.  That
-                 case is handled by compare_for_using_declaration (in
+                 symbol table.  An exception is made in GNU C++ mode, where
+                 the derived-class declaration has a different return type.
+                 That case is handled by compare_for_using_declaration (in
                  overload.c) as an overload resolution tie breaker.  For
                  example:
                     template<class, class> struct C;

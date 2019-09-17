@@ -30,7 +30,7 @@ Consider:
 
 The assignment in the last line is usually invalid because only the operator=
 template in D is found and its default template argument fails to instantiate.
-However, GCC accept the case and now we do as well in GNU C++ mode: The base
+However, GCC accepts the case and now we do as well in GNU C++ mode: The base
 member is added to the overload set (instead of being hidden by the derived
 class member), but only if the derived-class member returns a reference type.
 

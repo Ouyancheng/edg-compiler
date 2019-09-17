@@ -8386,7 +8386,7 @@ other.  Return
              (cmp = compare_for_using_declaration(cfp1, cfp2)) != 0) {
     /* GCC has a nonstandard behavior for member using-declarations that refer
        to member function templates.  Instead of hiding the base member, it
-       considers both in some cases but will prefer the more derived one all
+       considers both in some cases but will prefer the more derived one, all
        other things being equal. */
   }  /* if */
   return cmp;
