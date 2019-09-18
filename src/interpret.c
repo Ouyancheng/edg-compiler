@@ -5253,10 +5253,11 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             fp = next_alloc_field(fp);
           }  /* if */
           if (fp == NULL || elem_con == NULL || elem_con->next != NULL) {
-            /* Unions should have only one actual initializer constant
-               (possibly following a designator).  This can happen with
-               severe errors, however. */
-            expect_error();
+            /* Unions with multiple initializers are currently not interpreted
+               (that can happen in error cases or with C designators; either
+               way, successful interpretation is not required). */
+            info_with_pos(ec_constexpr_multiple_union_initializers,
+                          constant_pos(con, ips), ips);
             do_constexpr_fail(result);
             break;
           }  /* if */
