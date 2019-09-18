@@ -15884,14 +15884,7 @@ the value representation of the integer value.
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
-      /* Statement expression: GCC can fold these in C++ mode, but not in C
-         mode. */
-      if (C_mode()) {
-        do_constexpr_fail(result);
-        info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
-                      &expr->position, ips);
-      } else {
-        a_call_frame     frame;
+      { a_call_frame     frame;
         a_statement_ptr  stmt = expr->variant.statement;
         push_stmt_expr(ips, &frame, expr, result_storage, complete_object);
         result = do_constexpr_block_statement(
