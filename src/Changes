@@ -66,7 +66,7 @@ DEFAULT_GNU_INIT_PRIORITY_ATTRIBUTE_ENABLED configuration macro).
 
 
 9/16/19  [EDGcpfe/21627]
-GNU compatibility: using-declarations for assignment operator templates
+GNU compatibility: using-declarations for member function templates
 
 Consider:
 
@@ -89,7 +89,7 @@ The assignment in the last line is usually invalid because only the operator=
 template in D is found and its default template argument fails to instantiate.
 However, GCC accepts the case and now we do as well in GNU C++ mode: The base
 member is added to the overload set (instead of being hidden by the derived
-class member), but only if the derived-class member returns a reference type.
+class member), but only if the derived-class member returns a different type.
 
 
 9/16/19  [EDGcpfe/21664]

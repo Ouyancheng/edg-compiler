@@ -8122,10 +8122,16 @@ C++ mode only, to handle the following case:
   if (csym1 != NULL && csym2 != NULL &&
       is_class_member_using_decl_symbol(csym1) !=
                                   is_class_member_using_decl_symbol(csym2)) {
-    if (is_class_member_using_decl_symbol(csym2)) {
-      result = +1;
-    } else {
-      result = -1;
+
+    a_symbol_ptr   sym1 = fundamental_symbol_of(csym1);
+    a_symbol_ptr   sym2 = fundamental_symbol_of(csym2);
+    a_routine_ptr  rp1 = func_sym_routine(sym1), rp2 = func_sym_routine(sym2);
+    if (identical_types(rp1->type, rp2->type)) {
+      if (is_class_member_using_decl_symbol(csym2)) {
+        result = +1;
+      } else {
+        result = -1;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
