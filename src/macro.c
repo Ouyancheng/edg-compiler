@@ -5933,14 +5933,16 @@ do_argument_again:
             map->initial_raw_text_not_in_primary_source_line =
                                      (char *)arg_get_token_start_of_curr_token;
             scanning_text_not_in_primary_source_line = TRUE;
-            /* We will be rescanning the argument text for the expanded
-               form, so we don't want any of it to be deleted; if the macro
-               buffer is expanded during that rescan, the deleted text
-               would not be copied into the expanded buffer and
-               curr_char_loc would still point into the discarded
-               buffer. */
-            save_delete_source_from_loc = delete_source_from_loc;
-            delete_source_from_loc = NULL;
+            if (delete_source_from_loc != NULL) {
+              /* We will be rescanning the argument text for the expanded
+                 form, so we don't want any of it to be deleted; if the macro
+                 buffer is expanded during that rescan, the deleted text
+                 would not be copied into the expanded buffer and
+                 curr_char_loc would still point into the discarded
+                 buffer. */
+              save_delete_source_from_loc = delete_source_from_loc;
+              delete_source_from_loc = NULL;
+            }  /* if */
           }  /* if */
 #if FULLY_RESOLVED_MACRO_POSITIONS
           /* Initialize the position tracker for the raw text buffer.  Use
