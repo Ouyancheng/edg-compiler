@@ -1772,6 +1772,12 @@ a hard error in case of failure since it indicates something is wrong with the
   a_variable_ptr  vp = NULL;
   a_constant_ptr  cp = NULL;
 
+  if (!is_class_struct_union_type(class_type)) {
+    /* This can happen if class_type is an error type. */
+    expect_error();
+    cp = alloc_error_constant();
+    goto done;
+  }  /* if */
   sym = look_up_name_string_in_class(name, class_type,
                                      IDL_DO_NOT_ADD_TO_NONREAL_CLASS);
   if (sym != NULL && symbol_is(sym, sk_static_data_member)) {
@@ -1786,6 +1792,7 @@ a hard error in case of failure since it indicates something is wrong with the
                      class_type, name);
     cp = alloc_error_constant();
   }  /* if */
+done:
   return cp;
 }  /* get_constexpr_member_value */
 
