@@ -25606,12 +25606,18 @@ deduction purposes).
 {
   an_init_component_ptr icp;
   a_conv_context_set    conv_context = CCO_CAST;
-  a_boolean             error_on_narrowing = strict_ansi_mode;
+  a_boolean             error_on_narrowing;
   an_expr_node_ptr      expr;
   an_init_state         is, *p_is;
   an_operand            *result_opnd;
 
   check_assertion(list_init_enabled);
+  /* Issue an error on narrowing conversions in strict mode (just a warning
+     otherwise).  In deduction contexts, however, a narrowing conversion
+     should be treated as an error to ensure deduction failures (aka. SFINAE)
+     occur as intended. */
+  error_on_narrowing = strict_ansi_mode ||
+                       expr_stack->template_deduction_context;
   if (source_form == csf_functional) conv_context |= CCO_FUNC_NOTATION_CAST;
   if (rescan_icp != NULL) {
     icp = rescan_icp;

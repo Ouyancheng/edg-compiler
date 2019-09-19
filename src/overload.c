@@ -23633,7 +23633,7 @@ those narrowing conversions that would not get warnings in normal
 initialization processing.
 */
 {
-  a_boolean     is_narrowing;
+  a_boolean     is_narrowing, free_local_constant = FALSE;
   a_type_ptr    source_type = source_operand->type;
   a_constant    *con = NULL;
   an_error_code err_code;
@@ -23653,10 +23653,23 @@ initialization processing.
   } else if (is_an_lvalue(source_operand)) {
     /* Look also for cases where a const variable would become a constant
        when converted to a prvalue. */
-    con = value_of_constant_var_lvalue_operand(source_operand);
+      con = value_of_constant_var_lvalue_operand(source_operand);
+  } else if (is_expression_operand(source_operand)) {
+    con = local_constant();
+    if (fold_constexpr_expr(source_operand->variant.expression, con,
+                            /*is_constant_evaluated=*/FALSE,
+                            /*force_prvalue=*/FALSE)) {
+      free_local_constant = TRUE;
+    } else {
+      release_local_constant(&con);
+    }  /* if */
   }  /* if */
   is_narrowing = is_narrowing_conversion(source_type, con, dest_type,
-                                         check_enum_target, &err_code);
+                                         check_enum_target, &err_code) &&
+                 !operand_is_instantiation_dependent(source_operand);
+  if (free_local_constant) {
+    release_local_constant(&con);
+  }  /* if */
   if (warning_on_narrowing && is_narrowing &&
       err_code == ec_constant_narrowing_conversion &&
       is_integral_type(source_type) && is_integral_type(dest_type)) {

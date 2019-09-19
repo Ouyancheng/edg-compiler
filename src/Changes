@@ -1,5 +1,22 @@
 Version 6.0
 
+9/19/19  [EDGcpfe/21624]
+Narrowing conversion in deduction contexts
+
+The front end did not always correctly treat invalid narrowing conversions as
+deduction failures.  For example, in C++17 mode:
+
+  template<int (*p)()>
+    constexpr bool narrows(decltype(int{(p(), 0U)})) { return true; }
+                                          // Previously a spurious warning.
+  template<int (*p)()>
+    constexpr bool narrows(...) { return false; }
+  int g() { return 0; }
+  static_assert(!narrows<g>(0));  // Previously an error.  Now okay.
+
+That problem is now fixed.
+
+
 9/18/19  [EDGcpfe/21785]
 C++-generating back end: befriending base class members
 
