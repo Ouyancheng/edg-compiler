@@ -1598,7 +1598,7 @@ Macro to add a (pointer, byte-count) entry to a data map.
 }
 
 static void map_colliding_ptr(a_data_map        *map,
-                              a_data_map_entry  new_entry,
+                              a_data_map_entry  new_entry/*lint !e1746*/,
                               a_map_index       idx)
 /*
 The given map entry collides with an existing entry in the given map.  Move

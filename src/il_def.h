@@ -305,8 +305,9 @@ Obtain the assembly index from the assembly scope index.
 /*
 Create an assembly scope index from an assembly index and a scope index.
 */
+/*lint -emacro(835,make_assembly_scope_index)*/
 #define make_assembly_scope_index(assembly_index, scope_index)               \
-  ((an_assembly_scope_index)(/*lint -e(835)*/((scope_index) & 0xFFFF) |      \
+  ((an_assembly_scope_index)(((scope_index) & 0xFFFF) |                      \
                              (((assembly_index) & 0xFFFF) << 16)))
 
 /*
@@ -2338,7 +2339,7 @@ typedef struct a_name_reference {
 
 EXTERN a_name_reference null_name_reference
 #if VAR_INITIALIZERS
-= { NULL }
+= {}
 #endif /* VAR_INITIALIZERS */
 ;
 

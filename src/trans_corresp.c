@@ -1677,7 +1677,8 @@ entry into the primary IL.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if FIXED_POINT_ALLOWED
 
-a_type_ptr primary_fixed_point_type(a_fixed_point_type_descr descr)
+a_type_ptr primary_fixed_point_type(
+                                 a_fixed_point_type_descr descr/*lint !e1746*/)
 /*
 Return the fixed-point type entry of the given kind used in the primary
 translation unit IL, or NULL if the type hasn't been used in the primary IL.

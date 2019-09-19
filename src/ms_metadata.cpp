@@ -32,9 +32,9 @@ part of the Windows 8 (and newer) SDKs.  The file can be found in:
 where 8.x is currently either 8.0 or 8.1.
 */
 
-#include "basics.h"
+#include "basic_hdrs.h"
 
-#if CPPCLI_ENABLING_POSSIBLE
+#if CPPCLI_ENABLING_POSSIBLE && !defined(_lint)
 
 #include <windows.h>
 #include <metahost.h>
@@ -9833,7 +9833,7 @@ Cleanup.  Free all memory and release the interfaces.
 }  /* ms_metadata_cleanup */
 
 
-#endif /* CPPCLI_ENABLING_POSSIBLE */
+#endif /* CPPCLI_ENABLING_POSSIBLE && !defined(_lint) */
 
 /******************************************************************************
 *                                                             \  ___  /       *

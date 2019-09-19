@@ -235,7 +235,7 @@ static int getpid(void)
 #else /* __MICROSOFT_OS__ */
 /* Function definitions for non MS-DOS compilers. */
 #ifdef __cplusplus
-#include <time.h> /*lint !e451 some versions of time.h have bad guard test */
+#include <time.h>
 #else /* ifndef __cplusplus */
 #if __BSD__
 /* The SUN does not have the getpid(), unlink(), and time() calls defined 

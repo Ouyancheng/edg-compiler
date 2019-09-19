@@ -2311,7 +2311,7 @@ and a result type.
 #define FXMASK2_INT_KIND ((an_integer_kind)ik_unsigned_long)
 
 
-static int fxtype_value(a_fixed_point_type_descr descr)
+static int fxtype_value(a_fixed_point_type_descr descr/*lint !e1746*/)
 /*
 Return the "fxtype" value that describes the indicated fixed-point
 type description.  See the documentation above for the bit values.
@@ -4690,7 +4690,8 @@ fixed-point type.
 }  /* lowered_integer_type_for_fixed_point_type */
 
 
-static void lower_c99_fixed_point_type(a_fixed_point_type_descr descr)
+static void lower_c99_fixed_point_type(
+                                 a_fixed_point_type_descr descr/*lint !e1746*/)
 /*
 Lower the C99 fixed-point type whose precision is given by kind.
 The lowered form is a typedef to one of the integral types.

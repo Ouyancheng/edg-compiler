@@ -3957,7 +3957,7 @@ are not looking for a physical line).  This lookup uses the sequence number
 lookup table.
 */
 {
-  a_seq_number_lookup_entry	snle_to_find = {NULL};
+  a_seq_number_lookup_entry	snle_to_find = {};
   a_seq_number_lookup_entry_ptr	snlep_found;
   a_source_file_ptr		curr_file;
   long				line_offset;
@@ -10577,7 +10577,8 @@ it.
 
 #if FIXED_POINT_ALLOWED
 
-a_boolean fixed_point_type_used_in_primary_IL(a_fixed_point_type_descr descr)
+a_boolean fixed_point_type_used_in_primary_IL(
+                                 a_fixed_point_type_descr descr/*lint !e1746*/)
 /*
 Return TRUE if the fixed-point type with the indicated description was used
 in the primary IL so far.  This routine should be called to determine if a
@@ -10593,7 +10594,7 @@ fixed_point type should be lowered.
 }  /* fixed_point_type_used_in_primary_IL */
 
 
-a_type_ptr fixed_point_type(a_fixed_point_type_descr descr)
+a_type_ptr fixed_point_type(a_fixed_point_type_descr descr/*lint !e1746*/)
 /*
 Make or find a fixed-point type entry with the given attributes and
 return a pointer to it.

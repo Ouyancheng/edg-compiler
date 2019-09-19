@@ -21852,11 +21852,12 @@ that tokens should be fetched from the insertion string.
 }  /* pop_string_insert_cache_entry */
 
 
-void insert_string_into_token_stream(a_const_char	*string,
-				     a_boolean		insert_after,
-				     a_boolean		p_expand_macros,
-				     a_boolean		suspend_caching,
-				     a_source_position	position_for_tokens)
+void insert_string_into_token_stream(
+                     a_const_char	*string,
+                     a_boolean		insert_after,
+                     a_boolean		p_expand_macros,
+                     a_boolean		suspend_caching,
+                     a_source_position	position_for_tokens/*lint !e1746*/)
 /*
 Scan "string" as a sequence of tokens.  Build a token cache and insert it
 into the token stream at the current position.  "insert_after" is TRUE
