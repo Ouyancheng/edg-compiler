@@ -13636,19 +13636,29 @@ generated cast, return TRUE.  Otherwise, return FALSE.
   if (constant_is(cp, ck_template_param)) {
     if (tpck_is(cp, tpck_param)) {
       result = TRUE;
-    } else if (tpck_is(cp, tpck_expression)) {
-      an_expr_node_ptr  expr = expr_node_from_tpck_expression(cp);
-      if (expr->compiler_generated && is_operation_node(expr) &&
-          (node_operator_is(expr, eok_cast) ||
-           node_operator_is(expr, eok_ref_cast))) {
-        an_expr_node_ptr  opnd = expr->variant.operation.operands;
-        if (is_constant_node(opnd)) {
-          cp = node_constant(opnd);
-          if (constant_is(cp, ck_template_param) && tpck_is(cp, tpck_param)) {
-            result = TRUE;
+    } else {
+      while (tpck_is(cp, tpck_expression)) {
+        an_expr_node_ptr  expr = expr_node_from_tpck_expression(cp);
+        if (expr->compiler_generated && is_operation_node(expr) &&
+            (node_operator_is(expr, eok_cast) ||
+             node_operator_is(expr, eok_ref_cast))) {
+          an_expr_node_ptr  opnd = expr->variant.operation.operands;
+          if (is_constant_node(opnd)) {
+            cp = node_constant(opnd);
+            if (constant_is(cp, ck_template_param)) {
+              if (tpck_is(cp, tpck_param)) {
+                result = TRUE;
+              }  /* if */
+            } else {
+              break;
+            }  /* if */
+          } else {
+            break;
           }  /* if */
+        } else {
+          break;
         }  /* if */
-      }  /* if */
+      }  /* while */
     }  /* if */
   }  /* if */
   return result;
