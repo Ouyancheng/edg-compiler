@@ -1,5 +1,28 @@
 Version 6.0
 
+9/18/19  [EDGcpfe/21785]
+C++-generating back end: befriending base class members
+
+When a friend declaration in a derived class declares a base class member,
+the base class member name must be qualified; otherwise, the friend
+declaration declares a non-member function or class.  In configurations in
+which DEFAULT_RECORD_FORM_OF_NAME_REFERENCE is FALSE, the C++-generating
+back end previously failed to put out the class qualifier for such friend
+declarations.  This is now fixed.  For example:
+
+  struct A {
+    void foo();
+  };
+  struct B : A {
+    friend void A::foo(); // Previously generated as just "foo()"
+  protected:
+    B() : A() { }
+  };
+  void A::foo()   {
+    B *x = new B;         // Previously an access error in the generated code
+  }
+
+
 9/17/19  [EDGcpfe/21789]
 Incorrect lowered code for array initialization
 
