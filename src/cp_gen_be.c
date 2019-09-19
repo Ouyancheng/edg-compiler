@@ -4879,6 +4879,15 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           force_qualified_name = TRUE;
         }  /* if */
       }  /* if */
+      if ((options & GN_FRIEND_DECL) &&
+          class_is_in_name_context_stack(
+                                   scp_parent_class(scp),
+                                   /*include_base_classes=*/TRUE,
+                                   /*ignore_field_selection_contexts=*/TRUE)) {
+        /* Befriending a member of a base class requires a qualifier, even
+           if the name is otherwise visible. */
+        force_qualified_name = TRUE;
+      }  /* if */
       if ((options & GN_BASE_SPECIFIER) != 0 &&
           msvc_is_generated_code_target &&
           msvc_target_version_number < 1300) {
