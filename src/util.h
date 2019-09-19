@@ -1864,28 +1864,28 @@ if not found.
   return result;
 }  /* Ptr_map::get */
 
-#ifdef TRACE_INTERPRETER_MAP
+#ifdef TRACE_PTR_MAP
 static void	*traced_key_ptr = NULL;
 			/* Pointer that is checked for mapping activity.
 			   Intended to be set from within a debugger and
 			   watched by setting a breakpoint on function
-			   interpreter_map_intercept. */
+			   ptr_map_intercept. */
 
-inline void interpreter_map_intercept(a_const_char  *msg)
+inline void ptr_map_intercept(a_const_char  *msg)
 /*
 Function called when a map key equal to traced_key_ptr is entered into or
-removed from a map.
+removed from a Ptr_map instance.
 */
 {
   fprintf(f_debug, "\nMap activity for %p: %s\n", traced_key_ptr, msg);
-}  /* interpreter_map_intercept */
+}  /* ptr_map_intercept */
 
 #define check_traced_key_ptr(ptr, msg)                                        \
-  if ((a_byte*)(ptr) == traced_key_ptr) interpreter_map_intercept(msg);
+  if ((a_byte*)(ptr) == traced_key_ptr) ptr_map_intercept(msg);
 
-#else /* TRACE_INTERPRETER_MAP  */
+#else /* TRACE_PTR_MAP  */
 #define check_traced_key_ptr(ptr, msg) /* Nothing */
-#endif /* TRACE_INTERPRETER_MAP */
+#endif /* TRACE_PTR_MAP */
 
 template<typename a_Ptr_key, typename a_Value>
 inline void Ptr_map<a_Ptr_key, a_Value>::map(a_key          key,
@@ -2036,7 +2036,7 @@ new value at the given location.
 #if EXPENSIVE_CHECKING
   { a_value  old_val = this->get(new_key);
     if (old_val != a_value()) {
-      unexpected_condition_str("duplicate map key in interpreter");
+      unexpected_condition_str("duplicate map key in Ptr_map");
     }  /* if */
   }
 #endif /* EXPENSIVE_CHECKING */
