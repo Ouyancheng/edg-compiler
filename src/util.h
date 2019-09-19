@@ -1723,6 +1723,23 @@ Return a hash value for the given pointer value.
 }  /* hash_ptr */
 
 
+template<typename T> a_uintptr hash_ptr(T p)
+/*
+Generic version of hash_ptr for types that aren't native pointers.
+*/
+{
+  return (a_uintptr)p;
+}  /* hash_ptr */
+
+
+template<typename T> a_uintptr hash_ptr(T *p)
+/*
+Version of hash_ptr for native pointers.  This assumes IL-aligned pointers.
+*/
+{
+  return hash_ptr((void*)p);
+}  /* hash_ptr */
+
 
 #define MAX_WIDTH_REUSABLE_PTR_MAP_TABLE 10
 template<int  entry_size>
@@ -1743,17 +1760,25 @@ template<typename a_Ptr_key, typename a_Value>
 struct Ptr_map_entry {
   typedef a_Ptr_key a_key;
   typedef a_Value a_value;
-  a_key		ptr;
+  union {
+    a_key	ptr;
 			/* The pointer value mapped by this entry.  (A "key" in
 			   the hash table.) */
+    void	*next;
+			/* Pointer to the next free block when this is the
+			   leading entry in a table currently available for
+			   reuse. */
+  };
   a_value	value;
 			/* A value associated with ptr. */
 };
 
 
+// FIXME: Parameterize the hash function.
 template<typename a_Ptr_key, typename a_Value>
 struct Ptr_map {
-  /* A flat hash table whose keys are non-null pointer values.  This
+  /* A flat hash table whose keys are non-null scalar values (usually native
+     pointers, but integers can be used too).  This
      implementation is optimized for lookups that generally succeed and
      small associated values (i.e., the key and value are kept together). */
   typedef a_Ptr_key a_key;
@@ -1800,9 +1825,9 @@ Initialize the given pointer map with a capacity for 1<<mask_width slots.
     this->table = (an_entry*)alloc_general(size);
   } else {
     typedef Free_ptr_map_tables<(int)sizeof(an_entry)>  a_free_table_cache;
-    if (a_free_table_cache::list[mask_width] != NULL) {
+    if (a_free_table_cache::list[mask_width] != a_key()) {
     this->table = (an_entry*)a_free_table_cache::list[mask_width];
-    a_free_table_cache::list[mask_width] = (an_entry*)this->table->ptr;
+    a_free_table_cache::list[mask_width] = (an_entry*)this->table->next;
     } else {
       this->table = (an_entry*)alloc_general(size);
     }  /* if */
@@ -1825,13 +1850,13 @@ Release the storage for the map.
   an_index  mask_width = count_ones(mask);
 
   for (an_index k = 0; k<n_slots; ++k) {
-    if (table[k].ptr != NULL) table[k].value.~a_value();
+    if (table[k].ptr != a_key()) table[k].value.~a_value();
   }  /* for */
   if (mask_width > MAX_WIDTH_REUSABLE_PTR_MAP_TABLE) {
     free_general(this->table, size);
   } else {
     typedef Free_ptr_map_tables<(int)sizeof(an_entry)>  a_free_table_cache;
-    this->table[0].ptr = (a_key)a_free_table_cache::list[mask_width];
+    this->table[0].next = a_free_table_cache::list[mask_width];
     a_free_table_cache::list[mask_width] = this->table;
   }  /* if */
 }  /* Ptr_map::~Ptr_map */
@@ -1856,7 +1881,7 @@ if not found.
     if (tptr == key) {
       result = table[idx].value;
       break;
-    } else if (tptr == NULL) {
+    } else if (tptr == a_key()) {
       break;
     }  /* if */
     idx = (idx+1) & mask;
@@ -1865,7 +1890,7 @@ if not found.
 }  /* Ptr_map::get */
 
 #ifdef TRACE_PTR_MAP
-static void	*traced_key_ptr = NULL;
+static void	*traced_key_ptr = a_key();
 			/* Pointer that is checked for mapping activity.
 			   Intended to be set from within a debugger and
 			   watched by setting a breakpoint on function
@@ -1900,7 +1925,7 @@ Associate a copy of value with the given key.
   an_entry   *table = this->table;
 
   check_traced_key_ptr(key, "mapped");
-  if (table[idx].ptr == NULL) {
+  if (table[idx].ptr == a_key()) {
     table[idx].ptr = key;
     table[idx].value = value;
   } else {
@@ -1957,7 +1982,7 @@ associate it with the given value, an return a_value().
   a_value    old_value = a_value();
 
   check_traced_key_ptr(key, "mapped or replaced");
-  if (ptr == NULL) {
+  if (ptr == a_key()) {
     table[idx].ptr = key;
     table[idx].value = value;
     this->n_elements += 1;
@@ -1973,7 +1998,7 @@ associate it with the given value, an return a_value().
       } else {
         idx = (idx+1) & mask;
         ptr = table[idx].ptr;
-        if (ptr == NULL) {
+        if (ptr == a_key()) {
           table[idx] = table[idx0];
           table[idx].ptr = key;
           table[idx].value = value;
@@ -2007,11 +2032,11 @@ Remove the given key from the table (it must exist).
     idx = (idx+1) & mask;
   }  /* while */
   /* Delete the entry. */
-  table[idx].ptr = NULL;
+  table[idx].ptr = a_key();
   table[idx].value.~a_value();
   /* If the next slot is empty, we're done.  Otherwise, we may have to */
   /* move another element into the emptied slot. */
-  if (table[(idx+1) & mask].ptr != NULL) {
+  if (table[(idx+1) & mask].ptr != a_key()) {
     this->check_deleted_slot(idx);
   }  /* if */
   this->n_elements -= 1;                                                    
@@ -2043,7 +2068,7 @@ new value at the given location.
   /* Move the existing mapping to the next available spot. */
   for (;;) {
     idx = (idx+1) & mask;
-    if (table[idx].ptr == NULL) {
+    if (table[idx].ptr == a_key()) {
       table[idx].ptr = table[idx0].ptr;
       table[idx].value = move_from(&table[idx0].value);
       break;
@@ -2071,10 +2096,10 @@ Double the size of the hash table (and rehash entries as needed).
   typedef Free_ptr_map_tables<(int)sizeof(an_entry)>  a_free_table_cache;
   if (new_width > MAX_WIDTH_REUSABLE_PTR_MAP_TABLE) {
     new_table = (an_entry*)alloc_general(new_size);
-  } else if (a_free_table_cache::list[new_width] != NULL) {
+  } else if (a_free_table_cache::list[new_width] != a_key()) {
     new_table = (an_entry*)a_free_table_cache::list[new_width];
     a_free_table_cache::list[new_width] =
-                         ((an_entry*)a_free_table_cache::list[new_width])->ptr;
+                       ((an_entry*)a_free_table_cache::list[new_width])->next;
   } else {
     new_table = (an_entry*)alloc_general(new_size);
   }  /* if */
@@ -2082,9 +2107,9 @@ Double the size of the hash table (and rehash entries as needed).
   mask = mask*2+1;
   for (an_index k = 0; k<n_slots; ++k) {
     a_key  ptr = old_table[k].ptr;
-    if (ptr != NULL) {
+    if (ptr != a_key()) {
       an_index  idx = hash_ptr(ptr) & mask;
-      while (new_table[idx].ptr != NULL) {
+      while (new_table[idx].ptr != a_key()) {
         idx = (idx+1) & mask;
       }  /* while */
       new_table[idx] = old_table[k];
@@ -2096,7 +2121,7 @@ Double the size of the hash table (and rehash entries as needed).
   if (old_width > MAX_WIDTH_REUSABLE_PTR_MAP_TABLE) {
     free_general(old_table, old_size);
   } else {
-    old_table[0].ptr = (a_key)a_free_table_cache::list[old_width];
+    old_table[0].next = a_free_table_cache::list[old_width];
     a_free_table_cache::list[old_width] = old_table;
   }  /* if */
 }  /* Ptr_map::expand_table */
@@ -2105,7 +2130,7 @@ Double the size of the hash table (and rehash entries as needed).
 template<typename a_Ptr_key, typename a_Value>
 void Ptr_map<a_Ptr_key, a_Value>::check_deleted_slot(an_index  idx0)
 /*
-Slot idx has been cleared (i.e., this->table[idx].ptr has been set to NULL).
+Slot idx has been cleared (i.e., this->table[idx].ptr has been set to null).
 The next slot is not empty.  There may therefore exist entries that are
 associated with that slot (i.e., have the same hash index).  This function
 makes sure that such entries can be found, by moving up entries as needed.
@@ -2138,16 +2163,16 @@ we know that the subsequent slot is not empty.
       } else {
         idx = (idx+1) & mask;
         rptr = table[idx].ptr;
-        if (rptr == NULL) goto done;
+        if (rptr == a_key()) goto done;
       }  /* if */
     }  /* for */
     table[idx0].ptr = table[idx].ptr;
     table[idx0].value = move_from(&table[idx].value);
-    table[idx].ptr = NULL;
+    table[idx].ptr = a_key();
     idx0 = idx;
     idx = (idx0+1) & mask;
     rptr = table[idx].ptr;
-    if (rptr == NULL) goto done;
+    if (rptr == a_key()) goto done;
   }  /* for */
 done:;
 
@@ -2168,7 +2193,7 @@ Output some information about the map's key contents to f_debug.
   for (an_index k = 0; k<n_slots; ++k) {
     a_key  ptr = table[k].ptr;
     fprintf(f_debug, "[%2u] ", k);
-    if (ptr == NULL) {
+    if (ptr == a_key()) {
       fprintf(f_debug, "(empty)\n");
     } else {
       fprintf(f_debug, "h = %2u  %p\n",
