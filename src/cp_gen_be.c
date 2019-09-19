@@ -4886,7 +4886,19 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                                    /*ignore_field_selection_contexts=*/TRUE)) {
         /* Befriending a member of a base class requires a qualifier, even
            if the name is otherwise visible. */
-        force_qualified_name = TRUE;
+        a_type_ptr befriended_type =
+                      (entry_kind == iek_type) ? skip_typerefs((a_type_ptr)scp)
+                                               : NULL;
+        if (befriended_type != NULL &&
+            is_immediate_class_type(befriended_type) &&
+            befriended_type->variant.class_struct_union.is_nonreal_class &&
+            scp_parent_class(scp) == curr_name_context->class_type) {
+          /* Don't be fooled by nonreal types that appear to be class
+             members, even though the template to which they refer is not a
+             member. */
+        } else {
+          force_qualified_name = TRUE;
+        }  /* if */
       }  /* if */
       if ((options & GN_BASE_SPECIFIER) != 0 &&
           msvc_is_generated_code_target &&
