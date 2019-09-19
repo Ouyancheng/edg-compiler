@@ -655,7 +655,7 @@ private:
 
 
 template<typename an_Object, typename a_Deallocator>
-Owning_ptr<an_Object, a_Deallocator>::~Owning_ptr()
+inline Owning_ptr<an_Object, a_Deallocator>::~Owning_ptr()
 /*
 Destroy and deallocate the pointed-to object, if any.
 */
@@ -671,8 +671,8 @@ Destroy and deallocate the pointed-to object, if any.
 
 
 template<typename an_Object, typename a_Deallocator>
-auto Owning_ptr<an_Object, a_Deallocator>::operator=(a_nullptr)
-                                           -> Owning_ptr&
+inline auto Owning_ptr<an_Object, a_Deallocator>::operator=(a_nullptr)
+                                                  -> Owning_ptr&
 /*
 Destroy and deallocate the pointed-to object, if any.  Then, set the owning
 pointer to a nill value.
@@ -690,7 +690,7 @@ pointer to a nill value.
 
 
 template<typename an_Object, typename ...an_Arg_pack>
-Owning_ptr<an_Object> owning_ptr(an_Arg_pack ...args)
+inline Owning_ptr<an_Object> owning_ptr(an_Arg_pack ...args)
 /*
 Convenience function to create an owning pointer to an object allocated in
 front-end memory.
@@ -700,6 +700,8 @@ front-end memory.
   construct(p, forward<an_Arg_pack>(args)...);
   return Owning_ptr<an_Object>(p);
 }  /* owning_ptr */
+
+
 
 
 template<typename an_Object>
@@ -750,8 +752,8 @@ values are equal, return the first one.
 }  /* max_ref */
 
 
-template<typename an_integer>
-inline int log2(an_integer n)
+template<typename an_Integer>
+inline int log2(an_Integer n)
 /*
 Return floor(log2(n)), assuming n > 0.
 FIXME: Consider __builtin_clz.
@@ -762,6 +764,25 @@ FIXME: Consider __builtin_clz.
   while (n >>= 1) ++result;
   return result;
 }  /* log2 */
+
+
+template<typename an_Unsigned_integer>
+int count_ones(an_Unsigned_integer  n)
+/*
+Return the number of trailing "ones" in the binary representation of n.
+FIXME: Consider __builtin_popcount.
+*/
+{
+  int r = 0;
+
+  while (n != 0) {
+    if (n&1) {
+      ++r;
+    }  /* if */
+    n >>= 1;
+  }  /* while */
+  return r;
+}  /* count_ones */
 
 
 template<typename a_Ptr, typename a_Comparison>
@@ -1655,7 +1676,6 @@ the elements of the sequence.
   }  /* if */
 }  /* sort */
 
-}  /* namespace edg */
 
 template<typename a_Sequence, typename a_Comparison>
 inline void sort(a_Sequence    *p_seq,
@@ -1666,6 +1686,501 @@ Sort the elements of the given sequence.
 {
   sort(p_seq->begin(), p_seq->end(), cmp);
 }  /* sort */
+
+
+inline a_uintptr hash_ptr(void  *ptr)
+/*
+Return a hash value for the given pointer value.
+*/
+{
+#if HOST_ALIGNMENT_REQUIRED == 1
+#define HASH_PTR_SHIFT 0
+#else /* HOST_ALIGNMENT_REQUIRED > 1 */
+#if HOST_ALIGNMENT_REQUIRED == 2
+#define HASH_PTR_SHIFT 1
+#else /* HOST_ALIGNMENT_REQUIRED > 2 */
+#if HOST_ALIGNMENT_REQUIRED == 4
+#define HASH_PTR_SHIFT 2
+#else /* HOST_ALIGNMENT_REQUIRED > 4 */
+#if HOST_ALIGNMENT_REQUIRED == 8
+#define HASH_PTR_SHIFT 3
+#else /* HOST_ALIGNMENT_REQUIRED > 8 */
+#if HOST_ALIGNMENT_REQUIRED == 16
+#define HASH_PTR_SHIFT 4
+#else /* HOST_ALIGNMENT_REQUIRED > 16 */
+#if HOST_ALIGNMENT_REQUIRED == 32
+#define HASH_PTR_SHIFT 5
+#else /* HOST_ALIGNMENT_REQUIRED > 32 */
+#define HASH_PTR_SHIFT 6
+#endif /* == 32 */
+#endif /* == 16 */
+#endif /* == 8 */
+#endif /* == 4 */
+#endif /* == 2 */
+#endif /* == 1 */
+  return (a_uintptr)ptr >> HASH_PTR_SHIFT;
+#undef HASH_PTR_SHIFT
+}  /* hash_ptr */
+
+
+
+#define MAX_WIDTH_REUSABLE_PTR_MAP_TABLE 10
+template<int  entry_size>
+struct Free_ptr_map_tables {
+  static void	*list[MAX_WIDTH_REUSABLE_PTR_MAP_TABLE+1];
+			/* A array of pointers to map tables available for
+			   reuse.  list[n] points to a list of tables allocated
+			   for 1<<n entries of size entry_size.  Larger tables
+			   use alloc_general and free_general. */
+};
+
+template<int  entry_size>
+void *Free_ptr_map_tables<entry_size>::list[
+                                           MAX_WIDTH_REUSABLE_PTR_MAP_TABLE+1];
+
+
+template<typename a_Ptr_key, typename a_Value>
+struct Ptr_map_entry {
+  typedef a_Ptr_key a_key;
+  typedef a_Value a_value;
+  a_key		ptr;
+			/* The pointer value mapped by this entry.  (A "key" in
+			   the hash table.) */
+  a_value	value;
+			/* A value associated with ptr. */
+};
+
+
+template<typename a_Ptr_key, typename a_Value>
+struct Ptr_map {
+  /* A flat hash table whose keys are non-null pointer values.  This
+     implementation is optimized for lookups that generally succeed and
+     small associated values (i.e., the key and value are kept together). */
+  typedef a_Ptr_key a_key;
+  typedef a_Value a_value;
+  typedef unsigned int an_index;
+  inline Ptr_map(unsigned int mask_width);
+  inline ~Ptr_map();
+  inline auto get(a_key  key) const -> a_value;
+  inline void map(a_key  key, a_value const &value);
+  inline void replace(a_key  key, a_value const &value);
+  inline auto map_or_replace(a_key  key, a_value const &value) -> a_value;
+  inline void unmap(a_key  key);
+#if DEBUG
+  void db_ptrs() const;
+#endif /* DEBUG */
+private:
+  typedef Ptr_map_entry<a_key, a_value> an_entry;
+  an_entry	*table;
+			/* Pointer to the hash table. */
+  an_index	hash_mask;
+			/* The mask to apply to the hash value before indexing
+			   in the table.  This mask is increased as the table
+			   grows. */
+  an_index	n_elements;
+			/* The number of elements stored in the table. */
+  void map_colliding_key(a_key          new_key,
+                         a_value const  &new_value,
+                         an_index       idx);
+  void expand_table();
+  void check_deleted_slot(an_index  idx0);
+};
+
+
+template<typename a_Ptr_key, typename a_Value>
+inline Ptr_map<a_Ptr_key, a_Value>::Ptr_map(unsigned int mask_width)
+/*
+Initialize the given pointer map with a capacity for 1<<mask_width slots.
+*/
+{
+  unsigned  n_slots = (1<<mask_width);
+  an_index  size = (an_index)(n_slots*sizeof(an_entry));
+
+  if (mask_width > MAX_WIDTH_REUSABLE_PTR_MAP_TABLE) {
+    this->table = (an_entry*)alloc_general(size);
+  } else {
+    typedef Free_ptr_map_tables<(int)sizeof(an_entry)>  a_free_table_cache;
+    if (a_free_table_cache::list[mask_width] != NULL) {
+    this->table = (an_entry*)a_free_table_cache::list[mask_width];
+    a_free_table_cache::list[mask_width] = (an_entry*)this->table->ptr;
+    } else {
+      this->table = (an_entry*)alloc_general(size);
+    }  /* if */
+  }  /* if */
+  memzero((char*)this->table, size_t_arg(size));
+  this->hash_mask = n_slots-1;
+  this->n_elements = 0;
+}  /* Ptr_map::Ptr_map */
+
+
+template<typename a_Ptr_key, typename a_Value>
+inline Ptr_map<a_Ptr_key, a_Value>::~Ptr_map()
+/*
+Release the storage for the map.
+*/
+{
+  an_index  mask = this->hash_mask;
+  an_index  n_slots = mask+1;
+  an_index  size = (an_index)(n_slots*sizeof(an_entry));
+  an_index  mask_width = count_ones(mask);
+
+  for (an_index k = 0; k<n_slots; ++k) {
+    if (table[k].ptr != NULL) table[k].value.~a_value();
+  }  /* for */
+  if (mask_width > MAX_WIDTH_REUSABLE_PTR_MAP_TABLE) {
+    free_general(this->table, size);
+  } else {
+    typedef Free_ptr_map_tables<(int)sizeof(an_entry)>  a_free_table_cache;
+    this->table[0].ptr = (a_key)a_free_table_cache::list[mask_width];
+    a_free_table_cache::list[mask_width] = this->table;
+  }  /* if */
+}  /* Ptr_map::~Ptr_map */
+
+
+template<typename a_Ptr_key, typename a_Value>
+inline auto Ptr_map<a_Ptr_key, a_Value>::get(a_key  key) const -> a_value
+/*
+Look up key in the map and return the associated value if found, or a_value()
+if not found.
+*/
+{
+  a_uintptr  hash = hash_ptr(key);
+  an_index   mask = this->hash_mask;
+  an_index   idx = hash & mask;
+  an_entry   *table = this->table;
+  a_key      tptr;
+  a_value    result = a_value();
+
+  for (;;) {
+    tptr = table[idx].ptr;
+    if (tptr == key) {
+      result = table[idx].value;
+      break;
+    } else if (tptr == NULL) {
+      break;
+    }  /* if */
+    idx = (idx+1) & mask;
+  }  /* for */       
+  return result;
+}  /* Ptr_map::get */
+
+#ifdef TRACE_INTERPRETER_MAP
+static void	*traced_key_ptr = NULL;
+			/* Pointer that is checked for mapping activity.
+			   Intended to be set from within a debugger and
+			   watched by setting a breakpoint on function
+			   interpreter_map_intercept. */
+
+inline void interpreter_map_intercept(a_const_char  *msg)
+/*
+Function called when a map key equal to traced_key_ptr is entered into or
+removed from a map.
+*/
+{
+  fprintf(f_debug, "\nMap activity for %p: %s\n", traced_key_ptr, msg);
+}  /* interpreter_map_intercept */
+
+#define check_traced_key_ptr(ptr, msg)                                        \
+  if ((a_byte*)(ptr) == traced_key_ptr) interpreter_map_intercept(msg);
+
+#else /* TRACE_INTERPRETER_MAP  */
+#define check_traced_key_ptr(ptr, msg) /* Nothing */
+#endif /* TRACE_INTERPRETER_MAP */
+
+template<typename a_Ptr_key, typename a_Value>
+inline void Ptr_map<a_Ptr_key, a_Value>::map(a_key          key,
+                                             a_value const  &value)
+/*
+Associate a copy of value with the given key.
+*/
+{
+  a_uintptr  hash = hash_ptr(key);
+  an_index   mask = this->hash_mask;
+  an_index   idx = hash & mask;
+  an_entry   *table = this->table;
+
+  check_traced_key_ptr(key, "mapped");
+  if (table[idx].ptr == NULL) {
+    table[idx].ptr = key;
+    table[idx].value = value;
+  } else {
+    this->map_colliding_key(key, value, idx);
+  }  /* if */
+  this->n_elements += 1;
+  if (this->n_elements*2 > mask) {
+    this->expand_table();
+  }  /* if */ 
+}  /* Ptr_map::map */
+
+
+template<typename a_Ptr_key, typename a_Value>
+inline void Ptr_map<a_Ptr_key, a_Value>::replace(a_key          key,
+                                                 a_value const  &value)
+/*
+Replace the value associated with the given key by the given value.
+*/
+{
+  a_uintptr  hash = hash_ptr(key);
+  an_index   mask = this->hash_mask;
+  an_index   idx = hash & mask;
+  an_entry   *table = this->table;
+  a_key      ptr = table[idx].ptr;
+
+  check_traced_key_ptr(key, "replaced");
+  for (;;) {
+    if (ptr == key) {
+      table[idx].value = value;
+      break;
+    } else {
+      idx = (idx+1) & mask;
+      ptr = table[idx].ptr;
+    }  /* if */
+  }  /* for */                                                               
+}  /* Ptr_map::replace */
+
+
+template<typename a_Ptr_key, typename a_Value>
+inline auto Ptr_map<a_Ptr_key, a_Value>::map_or_replace(a_key          key,
+                                                        a_value const  &value)
+                                         -> a_value
+/*
+If the given key is already mapped, replace its associated value by the given
+value and return the previously associated value.  Otherwise, record a new key,
+associate it with the given value, an return a_value().
+*/
+{
+  a_uintptr  hash = hash_ptr(key);
+  an_index   mask = this->hash_mask;
+  an_index   idx = hash & mask, idx0 = idx;
+  an_entry   *table = this->table;
+  a_key      ptr = table[idx].ptr;
+  a_value    old_value = a_value();
+
+  check_traced_key_ptr(key, "mapped or replaced");
+  if (ptr == NULL) {
+    table[idx].ptr = key;
+    table[idx].value = value;
+    this->n_elements += 1;
+    if (this->n_elements*2 > mask) {
+      this->expand_table();
+    }  /* if */
+  } else {
+    for (;;) {
+      if (ptr == key) {
+        old_value = table[idx].value;
+        table[idx].value = value;
+        break;
+      } else {
+        idx = (idx+1) & mask;
+        ptr = table[idx].ptr;
+        if (ptr == NULL) {
+          table[idx] = table[idx0];
+          table[idx].ptr = key;
+          table[idx].value = value;
+          this->n_elements += 1;
+          if (this->n_elements*2 > mask) {
+            this->expand_table();
+          }  /* if */
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */ 
+  return old_value;
+}  /* Ptr_map::map_or_replace */
+
+
+template<typename a_Ptr_key, typename a_Value>
+inline void Ptr_map<a_Ptr_key, a_Value>::unmap(a_key  key)
+/*
+Remove the given key from the table (it must exist).
+*/
+{
+  a_uintptr  hash = hash_ptr(key);
+  an_index   mask = this->hash_mask;
+  an_index   idx = hash & mask, idx0 = idx;
+  an_entry   *table = this->table;
+
+  check_traced_key_ptr(key, "UNmapped");
+  /* Find the item to delete (we're assuming it exists). */
+  while (table[idx].ptr != key) {
+    idx = (idx+1) & mask;
+  }  /* while */
+  /* Delete the entry. */
+  table[idx].ptr = NULL;
+  table[idx].value.~a_value();
+  /* If the next slot is empty, we're done.  Otherwise, we may have to */
+  /* move another element into the emptied slot. */
+  if (table[(idx+1) & mask].ptr != NULL) {
+    this->check_deleted_slot(idx);
+  }  /* if */
+  this->n_elements -= 1;                                                    
+}  /* Ptr_map::unmap */
+
+
+template<typename a_Ptr_key, typename a_Value>
+void Ptr_map<a_Ptr_key, a_Value>::map_colliding_key(a_key          new_key,
+                                                    a_value const  &new_value,
+                                                    an_index       idx)
+/*
+The given key has a hash value that collides with an existing mapping.  Move
+that existing mapping to the next free entry, and record the given new key and
+new value at the given location.
+*/
+{
+  an_index  idx0 = idx;
+  an_index  mask = this->hash_mask;
+  an_entry  *table = this->table;
+  an_entry  saved_entry = table[idx];
+
+#if EXPENSIVE_CHECKING
+  { a_value  old_val = this->get(new_key);
+    if (old_val != a_value()) {
+      unexpected_condition_str("duplicate map key in interpreter");
+    }  /* if */
+  }
+#endif /* EXPENSIVE_CHECKING */
+  /* Move the existing mapping to the next available spot. */
+  for (;;) {
+    idx = (idx+1) & mask;
+    if (table[idx].ptr == NULL) {
+      table[idx].ptr = table[idx0].ptr;
+      table[idx].value = move_from(&table[idx0].value);
+      break;
+    }  /* if */
+  }  /* for */
+  /* Record the new mapping. */
+  table[idx0].ptr = new_key;
+  table[idx0].value = new_value;
+}  /* Ptr_map::map_colliding_key */
+
+
+template<typename a_Ptr_key, typename a_Value>
+void Ptr_map<a_Ptr_key, a_Value>::expand_table()
+/*
+Double the size of the hash table (and rehash entries as needed).
+*/
+{
+  an_entry  *new_table, *old_table = this->table;
+  an_index  mask = this->hash_mask;
+  an_index  n_slots = mask+1;
+  an_index  old_size = n_slots*(an_index)sizeof(an_entry);
+  an_index  new_size = 2*old_size;
+  int       new_width = count_ones(mask)+1, old_width;
+
+  typedef Free_ptr_map_tables<(int)sizeof(an_entry)>  a_free_table_cache;
+  if (new_width > MAX_WIDTH_REUSABLE_PTR_MAP_TABLE) {
+    new_table = (an_entry*)alloc_general(new_size);
+  } else if (a_free_table_cache::list[new_width] != NULL) {
+    new_table = (an_entry*)a_free_table_cache::list[new_width];
+    a_free_table_cache::list[new_width] =
+                         ((an_entry*)a_free_table_cache::list[new_width])->ptr;
+  } else {
+    new_table = (an_entry*)alloc_general(new_size);
+  }  /* if */
+  memzero((char*)new_table, size_t_arg(new_size));
+  mask = mask*2+1;
+  for (an_index k = 0; k<n_slots; ++k) {
+    a_key  ptr = old_table[k].ptr;
+    if (ptr != NULL) {
+      an_index  idx = hash_ptr(ptr) & mask;
+      while (new_table[idx].ptr != NULL) {
+        idx = (idx+1) & mask;
+      }  /* while */
+      new_table[idx] = old_table[k];
+    }  /* if */
+  }  /* for */
+  this->table = new_table;
+  this->hash_mask = mask;
+  old_width = new_width-1;
+  if (old_width > MAX_WIDTH_REUSABLE_PTR_MAP_TABLE) {
+    free_general(old_table, old_size);
+  } else {
+    old_table[0].ptr = (a_key)a_free_table_cache::list[old_width];
+    a_free_table_cache::list[old_width] = old_table;
+  }  /* if */
+}  /* Ptr_map::expand_table */
+
+
+template<typename a_Ptr_key, typename a_Value>
+void Ptr_map<a_Ptr_key, a_Value>::check_deleted_slot(an_index  idx0)
+/*
+Slot idx has been cleared (i.e., this->table[idx].ptr has been set to NULL).
+The next slot is not empty.  There may therefore exist entries that are
+associated with that slot (i.e., have the same hash index).  This function
+makes sure that such entries can be found, by moving up entries as needed.
+
+This corresponds to Algorithm R in section 6.4 of volume 3 of Donald E. Knuth's
+"The Art of Computer Programming" (Sorting and Searching -- Second Edition),
+with the assumption that step R1 has already been performed (idx0 is "j") and
+we know that the subsequent slot is not empty.
+*/
+{
+  an_entry  *table = this->table;
+  an_index  mask = this->hash_mask;
+  an_index  idx, ridx;
+  a_key     rptr;
+  
+  idx = (idx0+1) & mask;
+  rptr = table[idx].ptr;
+  for (;;) {
+    for (;;) {
+      ridx = hash_ptr(rptr) & mask;
+      /* See if we can move the entry at idx to idx0.  ridx is its "ideal"
+         slot: the place from where probing will start.  So we cannot move it
+         ahead of there.  I.e., if idx0 lies outside [ridx, idx-1] (considering
+         "wrap-around"), do not move the entry and try the next entry
+         instead. */
+      if ((ridx <= idx0 && idx0 < idx) ||
+          (idx0 >= ridx && idx < ridx) ||
+          (idx0 < idx && idx < ridx)) {
+        /* idx0 is in [ridx, idx-1]: Move the entry. */
+      } else {
+        idx = (idx+1) & mask;
+        rptr = table[idx].ptr;
+        if (rptr == NULL) goto done;
+      }  /* if */
+    }  /* for */
+    table[idx0].ptr = table[idx].ptr;
+    table[idx0].value = move_from(&table[idx].value);
+    table[idx].ptr = NULL;
+    idx0 = idx;
+    idx = (idx0+1) & mask;
+    rptr = table[idx].ptr;
+    if (rptr == NULL) goto done;
+  }  /* for */
+done:;
+
+}  /* Ptr_map::check_deleted_slot */
+
+#if DEBUG
+
+template<typename a_Ptr_key, typename a_Value>
+void Ptr_map<a_Ptr_key, a_Value>::db_ptrs() const
+/*
+Output some information about the map's key contents to f_debug.
+*/
+{
+  an_entry  *table = this->table;
+  an_index  mask = this->hash_mask;
+  an_index  n_slots = mask+1;
+
+  for (an_index k = 0; k<n_slots; ++k) {
+    a_key  ptr = table[k].ptr;
+    fprintf(f_debug, "[%2u] ", k);
+    if (ptr == NULL) {
+      fprintf(f_debug, "(empty)\n");
+    } else {
+      fprintf(f_debug, "h = %2u  %p\n",
+              (an_index)hash_ptr(ptr) & mask, ptr);
+    }  /* if */
+  }  /* for */
+}  /* Ptr_map::db_ptrs */
+
+#endif /* DEBUG */
+
+
+}  /* namespace edg */
 
 #endif /* ifndef EDG_UTIL_H */
 
