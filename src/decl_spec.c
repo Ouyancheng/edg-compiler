@@ -5279,7 +5279,7 @@ integer type and adjust the associated integer values if needed.
 
 void scan_enumerator_list(
                         a_type_ptr                     enum_type,
-                        a_decl_parse_state             *dps,
+                        ARG_UNUSED a_decl_parse_state  *dps,
                         a_decl_flag_set                dsi_flags,
                         ARG_UNUSED an_ms_attribute_ptr *p_ms_attributes,
                         a_type_ptr                     class_of_which_a_member,
