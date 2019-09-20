@@ -35,7 +35,7 @@ declarations.  This is now fixed.  For example:
   protected:
     B() : A() { }
   };
-  void A::foo()   {
+  void A::foo() {
     B *x = new B;         // Previously an access error in the generated code
   }
 
