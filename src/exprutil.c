@@ -15899,7 +15899,7 @@ be returned for a C mode const variable.
     tip = symbol_is(var_sym, sk_variable) ?
                              var_sym->variant.variable.instance_ptr :
                              var_sym->variant.static_data_member.instance_ptr;
-    if (!tip->instantiation_required ||
+    if (!(tip->instantiation_required || tip->on_instantiations_list) ||
         expr_stack == NULL || !expr_stack->suppress_diagnostics) {
       set_instance_required(var_sym, TRUE, SIR_NONE);
     } else {
