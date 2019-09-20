@@ -9765,6 +9765,10 @@ typedef struct a_type {
 			   "embedded".  In such cases, the embedded entries
 			   are followed by an a_src_seq_end_of_construct
 			   for the typeref entry. */
+      a_bit_field
+		added_to_record_name:1;
+			/* TRUE if this typeref was added to record the
+			   name used to name a class member. */
     } typeref;
     /* When kind == tk_ptr_to_member: */
     struct {

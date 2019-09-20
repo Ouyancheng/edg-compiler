@@ -9923,6 +9923,42 @@ attribute.
 }  /* conditional_explicit_specifier */
 
 
+static a_type_ptr insert_typeref_for_naming_if_needed(a_type_ptr	tp)
+/*
+If the current locator refers to a projection symbol, create a typeref
+that refers to tp and has the parent type of the projection symbol.
+This is only done when record_form_of_name_reference is TRUE for the
+current scope stack entry.
+*/
+{
+  a_symbol_ptr  orig_sym = locator_for_curr_id.specific_symbol;
+  a_type_ptr    naming_type = tp;
+
+  if (symbol_is(orig_sym, sk_projection) &&
+      locator_for_curr_id.is_qualified_name &&
+      record_name_references_in_context()) {
+    naming_type = orig_sym->variant.projection.extra_info->naming_type;
+    if (naming_type == NULL) {
+      a_type_ptr  parent_type = orig_sym->parent.class_type;
+      naming_type = alloc_type((a_type_kind)tk_typeref);
+      set_parent_scope(&naming_type->source_corresp, iek_type,
+                       class_type_supp(parent_type)->assoc_scope);
+      set_source_corresp(&naming_type->source_corresp, orig_sym);
+      set_class_membership(orig_sym, &naming_type->source_corresp,
+                           parent_type);
+      naming_type->variant.typeref.type = tp;
+      naming_type->variant.typeref.added_to_record_name = TRUE;
+      add_to_types_list(naming_type, DEPTH_OF_FILE_SCOPE);
+      orig_sym->variant.projection.extra_info->naming_type = naming_type;
+    } else {
+      /* The saved type should match the one we are looking for. */
+      check_assertion (naming_type->variant.typeref.type == tp);
+    }  /* if */
+  }  /* if */
+  return naming_type;
+}  /* insert_typeref_for_naming_if_needed */
+
+
 void decl_specifiers(a_decl_flag_set       input_flags,
                      a_decl_parse_state    *state,
                      a_decl_pos_block_ptr  decl_pos_block)
@@ -11557,6 +11593,7 @@ process_enum_specifier:
             decl_specifiers_seen |= DS_TYPE;
             *type_ptr = error_type();
           } else {
+            a_type_ptr    tp = type_symbol_type(curr_token_type_symbol);
             if (locator_for_curr_id.is_semivisible_nested_type) {
               /* The symbol in the locator is a nested class that is not
                  visible according to the ARM lookup rules but is returned
@@ -11588,9 +11625,8 @@ process_enum_specifier:
               } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               /* Do not insert code here. */
-              { a_type_ptr tp;
-                basic_type = bt_typedef;
-                *type_ptr = tp = type_symbol_type(curr_token_type_symbol);
+              { basic_type = bt_typedef;
+                *type_ptr = tp;
                 decl_specifiers_seen |= DS_TYPE;
                 state->type_is_injected_class_name = 
                               is_injected_class_symbol(curr_token_type_symbol);
@@ -11602,6 +11638,11 @@ process_enum_specifier:
                      will have been coalesced, so suppress this processing
                      if we have a template-id. */
                   process_class_template_placeholder(state, tp);
+                } else {
+                  /* In some cases, a typeref is added to record the
+                     class name used when the symbol was named using
+                     a qualified name. */
+                  *type_ptr = insert_typeref_for_naming_if_needed(tp);
                 }  /* if */
               }  /* if */
             }  /* if */

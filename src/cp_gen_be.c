@@ -4385,8 +4385,10 @@ been defined.
          parent_class_of(type)->variant.class_struct_union.is_specialized);
   }  /* if */
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-  if (!type->typedef_definition_has_been_put_out &&
-      !typedef_will_be_implicitly_instantiated_if_referenced) {
+  if (type->variant.typeref.added_to_record_name) {
+    /* These types are always usable. */
+  } else if (!type->typedef_definition_has_been_put_out &&
+             !typedef_will_be_implicitly_instantiated_if_referenced) {
     /* The typedef definition has not been put out yet, so the typedef
        name cannot be referenced. */
     unusable = TRUE;
