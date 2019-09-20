@@ -11361,10 +11361,11 @@ Evaluate the given new-expression.
     if (dip->kind == (a_dynamic_init_kind)dik_constant ||
         dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
       a_constant_ptr  init_cp = dip->variant.constant.ptr;
-      if (constant_is(init_cp, ck_aggregate)) {
+      if (constant_is(init_cp, ck_aggregate) ||
+          constant_is(init_cp, ck_string)) {
         a_type_ptr  init_tp = skip_typerefs(init_cp->type);
         if (type_is(init_tp, tk_array)) {
-          a_constant_ptr  elem_cp = init_cp->variant.aggregate.first_constant;
+          a_constant_ptr  elem_cp;
           /* In some cases the initializer is a braced list whose number of
              elements is potentially larger than the number of elements
              allocated.  For example, "new int[n]{1, 2, 3}" where n evaluates
@@ -11379,32 +11380,58 @@ Evaluate the given new-expression.
             goto done;
           }  /* if */
           /* Initialize element-by-element. */
-          for (; k<(int)alloc_length; ++k, elem += elem_size) {
-            if (elem_cp == NULL) {
-              init_subobject_to_zero(ips, elem, elem_type, complete_obj);
-              continue;
-            } else if (constant_is(elem_cp, ck_init_repeat) &&
-                elem_cp->variant.init_repeat.count == 0) {
-              /* A ck_init_repeat entry with zero count indicates that the
-                 remainder of the array should be filled with that
-                 initializer. */
-              if (!extract_value_from_constant(
+          if (constant_is(init_cp, ck_aggregate)) {
+            /* Aggregate list case. */
+            elem_cp = init_cp->variant.aggregate.first_constant;
+            for (; k<(int)alloc_length; ++k, elem += elem_size) {
+              if (elem_cp == NULL) {
+                init_subobject_to_zero(ips, elem, elem_type, complete_obj);
+                continue;
+              } else if (constant_is(elem_cp, ck_init_repeat) &&
+                  elem_cp->variant.init_repeat.count == 0) {
+                /* A ck_init_repeat entry with zero count indicates that the
+                   remainder of the array should be filled with that
+                   initializer. */
+                if (!extract_value_from_constant(
                                    ips, elem_cp->variant.init_repeat.constant,
                                    elem, complete_obj)) {
-                result = FALSE;
-                goto done;
+                  result = FALSE;
+                  goto done;
+                }  /* if */
+              } else {
+                /* A normal array element value to evaluate. */
+                if (!extract_value_from_constant(ips, elem_cp, elem,
+                                                 complete_obj)) {
+                  result = FALSE;
+                  goto done;
+                }  /* if */
+                elem_cp = elem_cp->next;
               }  /* if */
-            } else {
-              /* A normal array element value to evaluate. */
-              if (!extract_value_from_constant(ips, elem_cp, elem,
-                                               complete_obj)) {
-                result = FALSE;
-                goto done;
+              mark_subobject_initialized(elem, complete_obj);
+            }  /* for */
+          } else {
+            /* String literal case. */
+            a_type_ptr     etp = skip_typerefs(
+                                         init_tp->variant.array.element_type);
+            a_targ_size_t  char_size = etp->size;
+            a_targ_size_t  n_con_elems = init_cp->variant.string.length
+                                                                  / char_size;
+            a_const_char   *char_ptr = init_cp->variant.string.value;
+            for (; k<(int)alloc_length; ++k, elem += elem_size) {
+              if (k >= (int)n_con_elems) {
+                /* Not all elements are covered.  Zero the remainder. */
+                set_integer_value((an_integer_value*)elem,
+                                  (a_host_large_integer)0);
+              } else {
+                unsigned long char_val = extract_character_from_string(
+                                           char_ptr, (unsigned int)char_size);
+                set_integer_value((an_integer_value*)elem,
+                                  (a_host_large_integer)char_val);
+                char_ptr += char_size;
               }  /* if */
-              elem_cp = elem_cp->next;
-            }  /* if */
-            mark_subobject_initialized(elem, complete_obj);
-          }  /* for */
+              mark_subobject_initialized(elem, complete_obj);
+            }  /* for */
+          }  /* if */
           mark_complete_object_initialized(complete_obj);
           goto done;
         }  /* if */
