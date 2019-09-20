@@ -4454,11 +4454,12 @@ This routine may also diagnose certain invalid uses of special GNU functions
   a_routine_ptr rp = routine_from_function_operand(op);
 
 #if GNU_EXTENSIONS_ALLOWED
-  if (rp != NULL && rp->implicit_alias && gcc_mode && gnu_version < 40500) {
+  if (rp != NULL && rp->implicit_alias && gcc_mode &&
+      (gnu_version < 40500 || expr_stack->in_static_initializer)) {
     /* This is a user-defined routine that is implicitly assumed equivalent
        to a built-in function (recorded in
-       rp->gnu_extra_info->aliased_routine).  Versions of GNU C (but not GNU
-       C++) prior to 4.5 fold calls to such routines early. */
+       rp->gnu_extra_info->aliased_routine).  GCC folds calls to such routines
+       early. */
     rp = gnu_routine_supp(rp)->aliased_routine;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */

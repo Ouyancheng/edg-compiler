@@ -1,5 +1,25 @@
 Version 6.0
 
+9/20/19  [EDGcpfe/21786]
+GNU C compatibility: Folding of calls to implicitly aliased functions
+
+In GNU C mode, the front end sometimes implicitly aliases functions that match
+standard C library functions to their __builtin_... counterparts (see the
+entries for EDGcpfe/10179, EDGcpfe/10328, and EDGcpfe/14348).  Calls to such
+functions can appear in constant-expression context, but the changes for
+EDGcpfe/14569 (entry of 11/15/13) limited that feature to modes with
+gnu_version < 40500.  It now appears that GCC still does evaluate such calls
+at compile time if they appear in static-lifetime variable initializers, but
+not in other contexts requiring constant evaluation (like array dimensions).
+The front end now emulates that distinction.  For example:
+
+  typedef __EDG_SIZE_TYPE__ size_t;
+  extern size_t strlen (const char*);
+  int x = (int)strlen("abc");  // Accepted in all GNU C modes.
+  int y[(int)strlen("abc")];   // Accepted in GNU C modes with
+                               //   gnu_version < 40500
+
+
 9/20/19  [EDGcpfe/21761]
 C++-generating back end: class name in qualified name in declaration contexts
 
