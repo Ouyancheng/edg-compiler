@@ -3975,7 +3975,7 @@ state.
 #endif /* DEBUG */
         pdp->fundamental_symbol     = NULL;
         pdp->fundamental_base_class = NULL;
-        pdp->naming_type             = NULL;
+        pdp->naming_type            = NULL;
         sym_ptr->variant.projection.extra_info= pdp;
         sym_ptr->variant.projection.access    = (an_access_specifier)as_public;
         sym_ptr->variant.projection.is_using_decl = FALSE;
