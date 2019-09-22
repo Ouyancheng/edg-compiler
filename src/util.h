@@ -267,7 +267,7 @@ new allocation.
   }  /* for */
   // FIXME: Replace free_general by an actual front-end allocation
   // algorithm capable of reclaiming memory.
-  free_general(old_start, a.n_allocated);
+  free_general(old_start, a.n_allocated*sizeof(an_elem));
   return an_allocation{ new_start, (a_ptrdiff)new_capacity };
 }  /* FE_allocator::realloc */
 
@@ -280,7 +280,7 @@ The caller is responsible for ensuring the allocation contains no live
 objects.
 */
 {
-  free_general(a.start, a.n_allocated);
+  free_general(a.start, a.n_allocated*sizeof(an_elem));
 }  /* FE_allocator::dealloc */
 
 
