@@ -24,13 +24,14 @@ The front end now emulates that distinction.  For example:
 C++-generating back end: class name in qualified name in declaration contexts
 
 The front end uses name reference entries to record the form in which a name
-is specified in expression contexts, but such in information is not available
-for names used in declarations.  When record_form_of_name_reference is TRUE
-(i.e., in most C++-generating back end configurations) a typeref is inserted
-for declarations where the type was specified using a qualified name that
-refers to a base class member.  This allows the C++-generating back end
-to output the name using the correct qualifier, which can be important if
-the member is only accessible using the proper name.
+is specified in many contexts, but such information is not available
+for references to types.  When record_form_of_name_reference is TRUE
+(i.e., in most C++-generating back end configurations) a typeref is now
+inserted into types when the type was specified using a qualified name that
+refers to an inherited class member (and not a member of the class specified
+by the qualifier).  This allows the C++-generating back end to output the
+name using the correct qualifier, which can be important if the member is
+only accessible using the proper name.
 
   struct B {
   protected:
