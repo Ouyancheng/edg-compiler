@@ -18765,9 +18765,9 @@ processing should proceed after the call.
          followed by a string literal (e.g., "C++" or "C"). */
       if (state->prefix_attributes != NULL) {
         /* Attributes can normally not precede a linkage specification, but
-           Microsoft compilers appear to just ignore them instead of issuing
-           an error. */
-        if (microsoft_mode) {
+           Microsoft and clang compilers appear to just ignore them instead of
+           issuing an error. */
+        if (microsoft_mode || clang_mode) {
           pos_warning(ec_attributes_ignored,
                       &state->prefix_attributes->group->position);
         } else {
