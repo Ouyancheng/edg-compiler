@@ -167,10 +167,11 @@ template<typename a_Ptr>
 struct Ptr_with_flag {
   /* An iterator and boolean value combined.  This is meant to be returnable
      through registers and therefore does not include constructors or
-     destructors.  Instead, it's just a pair of data members.  A convenience
-     function ptr_with_flag can be used to construct an object of this type
-     (with type deduction).  The case where a_Ptr is a native pointer could
-     potentially be optimized by encoding the flag in the pointer value. */
+     destructors.  Instead, it's just a pair of data members.  The function
+     ptr_with_flag should be used to construct an object of this type (with
+     type deduction as a bonus).  The case where a_Ptr is a native pointer
+     could potentially be optimized by encoding the flag in the pointer
+     value. */
   typedef a_Ptr a_ptr;
   typedef Value_for_ptr<a_Ptr> a_value;
   auto operator->() const -> a_ptr
@@ -179,7 +180,7 @@ struct Ptr_with_flag {
     { return *this->ptr_value; }
   auto ptr() const -> a_ptr
     { return this->ptr_value; }
-  auto flag() const -> a_boolean
+  auto flagged() const -> a_boolean
     { return this->flag_value; }
 
   a_ptr		ptr_value;
@@ -1590,7 +1591,7 @@ is FALSE.
                     branchless ? partition_right_branchless(begin, end, cmp)
                                : partition_right(begin, end, cmp);
     a_Ptr pivot_pos = part_result.ptr();
-    bool already_partitioned = part_result.flag();
+    bool already_partitioned = part_result.flagged();
 
     /* If the partitions are highly unbalanced, shuffle some elements to break
        many patterns. */
