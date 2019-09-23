@@ -1091,7 +1091,7 @@ another without an intervening "break" statement.
 #define __has_cpp_attribute(x) 0
 #endif /* !defined(__has_cpp_attribute) */
 #if __has_cpp_attribute(fallthrough) && defined(__cplusplus)
-#define FALLTHROUGH [[fallthrough]]
+#define FALLTHROUGH [[fallthrough]];
 #else /* !(__has_cpp_attribute(fallthrough) && defined(__cplusplus) */
 #define FALLTHROUGH /*nothing*/
 #endif /* __has_cpp_attribute(fallthrough) */
