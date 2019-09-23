@@ -8,12 +8,12 @@ of clang 9.0.0.
 
 
 9/20/19  [EDGcpfe/21786]
-GNU C compatibility: Folding of calls to implicitly aliased functions
+GNU C compatibility: Folding of calls to implicitly-aliased functions
 
 In GNU C mode, the front end sometimes implicitly aliases functions that match
 standard C library functions to their __builtin_... counterparts (see the
 entries for EDGcpfe/10179, EDGcpfe/10328, and EDGcpfe/14348).  Calls to such
-functions can appear in constant-expression context, but the changes for
+functions can appear in constant-expression contexts, but the changes for
 EDGcpfe/14569 (entry of 11/15/13) limited that feature to modes with
 gnu_version < 40500.  It now appears that GCC still does evaluate such calls
 at compile time if they appear in static-lifetime variable initializers, but
