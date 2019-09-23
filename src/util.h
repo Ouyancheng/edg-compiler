@@ -1064,10 +1064,10 @@ is returned.
 
 
 template<typename a_Ptr, typename a_Comparison>
-inline a_ptrdiff heapify(a_Ptr        ptr,
-                         a_ptrdiff    len,
-                         a_ptrdiff    i,
-                         a_Comparison cmp)
+inline void heapify(a_Ptr        ptr,
+                    a_ptrdiff    len,
+                    a_ptrdiff    i,
+                    a_Comparison cmp)
 /*
 This is an adaptation of the "heapify" procedure as described in "Introduction
 To Algorithms" by Cormen, Leiserson, and Rivest (CLR, first edition).  Some
@@ -1081,7 +1081,7 @@ changes were made:
         operations.
 
 ptr (called "A" in CLR) is a random access iterator ("pointer") to the start of
-a sequence of length len, treated as a binary tree (the childen of an element
+a sequence of length len, treated as a binary tree (the children of an element
 at index k are at indices 2*k+1 and 2*k+2).  The tree rooted at index i
 satisfies the heap condition, except perhaps for the root element itself.  This
 function fixes the root element my moving it down the tree if needed.
