@@ -2439,6 +2439,9 @@ typedef struct a_template_instance {
 			/* TRUE if a default argument recursion was detected
 			   and subsequent default argument instantiations
 			   should be suppressed. */
+  a_bit_field	instantiation_requested_for_constant_value:1;
+			/* TRUE for a variable template that is being
+			   instantiated to establish its constant value. */
   a_source_position
 		explicit_instantiation_pos;
 			/* The position of the explicit instantiation directive

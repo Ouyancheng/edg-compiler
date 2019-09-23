@@ -16152,6 +16152,8 @@ Allocate a new function instantiation entry and return a pointer to it.
   tip->error_issued                = FALSE;
   tip->suppress_default_arg_instantiations
                                    = FALSE;
+  tip->instantiation_requested_for_constant_value
+				   = FALSE;
   tip->explicit_instantiation_pos  = null_source_position;
   tip->pos_of_first_reference      = null_source_position;
   tip->param_id_list               = NULL;
