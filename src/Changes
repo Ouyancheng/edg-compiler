@@ -1,5 +1,12 @@
 Version 6.0
 
+9/23/19  [EDGcpfe/21799]
+Clang compatibility: Updated builtins for clang 9.0.0
+
+Builtin functions definitions have been updated to reflect the recent release
+of clang 9.0.0.
+
+
 9/20/19  [EDGcpfe/21786]
 GNU C compatibility: Folding of calls to implicitly aliased functions
 
