@@ -1,5 +1,19 @@
 Version 6.0
 
+9/23/19  [EDGcpfe/21809]
+Const-qualified lowered constants
+
+A change in version 5.1 caused some lowering-generated constants not to be
+const-qualified (whereas previously they had been).  This change restores
+the previous behavior.  For example (with --c++11):
+
+  struct A {};
+  const A a;
+  A f() {
+    return a;
+  }
+
+
 9/23/19  [EDGcpfe/21799]
 Clang compatibility: Updated builtins for clang 9.0.0
 
