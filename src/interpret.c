@@ -11539,10 +11539,14 @@ otherwise, it need only be large enough for the type of the prvalue result.
   a_boolean            is_signed;
   a_host_large_integer host_int_val;
 
-  if (!result) goto done;
   if (type_is(tp, tk_template_param) || expr->do_not_interpret) {
     info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
                   &expr->position, ips);
+    do_constexpr_fail(result);
+    goto done;
+  } else if (type_is(tp, tk_error)) {
+    expect_error();
+    ips->input_error = TRUE;
     do_constexpr_fail(result);
     goto done;
   }  /* if */
