@@ -2959,16 +2959,24 @@ associated with the indicated sck_function scope.
          finding its non-defining declaration within the class or
          namespace definition. */
       /* Loop through the source sequence list, starting at the point
-         corresponding to the beginning of the class or namespace
-         definition, until a secondary declaration entry pointing to
-         the same routine is found. */
+         corresponding to the beginning of the class or namespace definition,
+         until a secondary declaration entry pointing to the same routine is
+         found.  For the class case, there might not be a matching entry if the
+         routine is implicitly declared and marked as trivial.  E.g.:
+            struct S {};
+            S::S() {}  // Error.  Causes the implicit generation of
+                       // constructor.
+         This is possible in error cases. */
       if (scp->is_class_member) {
         ssep = scp_parent_class(scp)->source_corresp.source_sequence_entry;
       } else {
         ssep = scp_parent_namespace(scp)->source_corresp.source_sequence_entry;
       }  /* if */
       ssep = find_src_seq_secondary_decl_entry(ssep, (char *)rp);
-      check_assertion_str2(ssep != NULL,
+      check_assertion_str2(ssep != NULL ||
+                           rp->is_trivial_default_constructor ||
+                           rp->is_trivial_copy_function ||
+                           rp->is_trivial_destructor,
                            "eliminate_function_body_source_sequence_entries:",
                            "source sequence secondary decl not found");
       /* Reset the source sequence entry pointer in the routine entry. */
