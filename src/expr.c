@@ -24679,8 +24679,10 @@ indication in *rcblock).
                                             /*reinterpret_semantics=*/TRUE);
           }  /* if */
         }  /* if */
-      } else if ((gpp_mode || sun_mode) &&
-                 identical_types(source_type, type_cast_to)) {
+      } else if ((gpp_mode &&
+                  identical_types_ignoring_qualifiers(source_type,
+                                                      type_cast_to)) ||
+                 (sun_mode && identical_types(source_type, type_cast_to))) {
         /* g++ (through 3.4 at least) allows a do-nothing reinterpret_cast,
            e.g., int --> int, class --> class.  No cast is actually added
            to the IL.  The result is an rvalue.  Likewise for Sun. */
