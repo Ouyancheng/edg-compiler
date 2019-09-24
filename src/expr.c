@@ -25428,6 +25428,7 @@ just an expression in parentheses.  Return the scanned expression in
            ellipsis.  Similarly, during a real instantiation, a pack
            expansion may be empty and therefore no expression is present
            to scan. */
+        make_error_operand(result);
       } else {
         /* Ordinarily, parentheses do affect whether an expression is the
            immediate operand of a "&" (because the syntax for a pointer-to-
