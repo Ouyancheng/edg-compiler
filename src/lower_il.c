@@ -2918,8 +2918,10 @@ not to contain any top level base class casts.
          constructor or function returns a class value, as well as other
          cases.  Return the temporary that has been created for this
          constant.  orig_lvalue_type is not set in this case (the expression
-         is known to be an rvalue). */
-      expr = var_addr_expr(temp);
+         is known to be an rvalue).  Make sure the type is maintained (the
+         type of the variable may be const-qualified). */
+      expr = add_cast_if_necessary(var_addr_expr(temp),
+                                   make_pointer_type(expr->type));
     } else {
       temp = assign_expr_to_temp(expr);
       expr = make_comma_node(expr, var_addr_expr(temp));
