@@ -1,3 +1,4 @@
+class not_compiled_in_cpp_yet {}; // FIXME
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
@@ -57,6 +58,9 @@ il.c -- Construction of intermediate language trees.
 #if GNU_FUNCTION_MULTIVERSIONING
 #include "sys_predef.h"
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
+
+/* Conditionally open the "edg" namespace. */
+//BEGIN_EDG_NAMESPACE
 
 
 /*
@@ -29313,6 +29317,9 @@ when the IL has been read back into memory.
   reset_seq_cache();
   okay_to_use_seq_number_lookup_table = FALSE;
 }  /* il_reset */
+
+/* Conditionally close the "edg" namespace. */
+//END_EDG_NAMESPACE
 
 
 /******************************************************************************
