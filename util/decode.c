@@ -5899,13 +5899,14 @@ be copied quickly.
                 ud_suffix_buffer_length = 128;
                 ud_suffix_buffer = (char *)malloc(
                                          (true_size_t)ud_suffix_buffer_length);
-              } else if (ud_suffix_len + 3 + 1 > ud_suffix_buffer_length) {
+              } else if ((unsigned long)ud_suffix_len + 3 + 1 >
+						     ud_suffix_buffer_length) {
                 ud_suffix_buffer_length = ud_suffix_len + 3 + 1;
                 ud_suffix_buffer = (char *)realloc(ud_suffix_buffer,
                                          (true_size_t)ud_suffix_buffer_length);
               }  /* if */
               if (ud_suffix_buffer != NULL) {
-                if (strlen(ud_suffix_ptr) < ud_suffix_len) {
+                if ((long)strlen(ud_suffix_ptr) < ud_suffix_len) {
                   bad_mangled_name(dctl);
                 } else {
                   strcpy(ud_suffix_buffer, "\"\"");
