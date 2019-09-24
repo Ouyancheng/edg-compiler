@@ -307,7 +307,7 @@ int main(int argc, char *argv[])
       /* If the name is the same as the last entry, skip this one.  Some
          systems put out duplicate entries for the sti and std routines. */
       if (last_entry != NULL &&
-          name_length == strlen(last_entry->name) &&
+          name_length == (int)strlen(last_entry->name) &&
           strncmp(last_entry->name, name_pos, name_length) == 0) continue;
       /* Make a copy of the routine name. */
       name_string = (char *)malloc_with_check(size_t_arg(name_length + 1));

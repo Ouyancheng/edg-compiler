@@ -2429,7 +2429,7 @@ template parameters.
            (possibly with special names that are checked for above); recurse
            to handle that case. */
         if (nchars != 0) {
-          if (nchars > (p - ptr)) {
+          if (nchars > (unsigned long)(p - ptr)) {
             nchars -= (unsigned long)(p - ptr);
           } else {
             bad_mangled_name(dctl);
@@ -2593,7 +2593,8 @@ template parameters.
     /* Return the count of characters not taken.  We're not required to
        end at the right place. */
     *nchars_left = nchars - (unsigned long)(end_ptr-ptr);
-  } else if (((nchars != 0) ? (end_ptr-ptr == nchars) : (*end_ptr == '\0')) ||
+  } else if (((nchars != 0) ? ((unsigned long)(end_ptr-ptr) == nchars) :
+                               (*end_ptr == '\0')) ||
              (stop_on_underscores &&
               get_char(end_ptr,   dctl) == '_' &&
               get_char(end_ptr+1, dctl) == '_')) {
@@ -4037,7 +4038,7 @@ address of the uncompressed name.
         src++;
       }  /* if */
     }  /* for */
-    if (dst - uncompressed_name != length) {
+    if ((unsigned long)(dst - uncompressed_name) != length) {
       /* The length didn't come out right. */
       bad_mangled_name(dctl);
     }  /* if */
