@@ -1937,10 +1937,12 @@ library.
 GNU target compiler configuration.  When not using a GNU compiler to compile
 the front end, set GNU_TARGET_VERSION_NUMBER to a reasonable default.
 */
+#ifndef GNU_TARGET_VERSION_NUMBER
 #if !defined(__GNUC__) || !defined(__GNUC_MINOR__) || \
     !defined(__GNUC_PATCHLEVEL__)
 #define GNU_TARGET_VERSION_NUMBER 30200
 #endif /* !defined(__GNUC__) || !defined(__GNUC_MINOR__) || ... */
+#endif /* defined(GNU_TARGET_VERSION_NUMBER) */
 
 /*
 Set ABI-related switches.  This is done late so that individual configurations
