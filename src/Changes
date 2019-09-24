@@ -1,7 +1,7 @@
 Version 6.0
 
 9/23/19  [EDGcpfe/21811]
-Abort after erroneous definition of implicitly declared special member
+Abort after erroneous definition of implicitly-declared special member
 
 The changes for EDGcpfe/19122 (see entry of 2/11/19) in version 5.1 introduced
 a regression in configurations with GENERATE_SOURCE_SEQUENCE_LISTS set to TRUE.
