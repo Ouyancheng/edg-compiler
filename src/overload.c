@@ -9655,6 +9655,7 @@ static an_error_code default_none_applies_code[(int)oc_last] = {
   ec_no_matching_function,                   /* oc_synthesized_member_call */
   ec_no_matching_constructor,                /* oc_ctad */
   ec_tuple_get_no_matching_overload,         /* oc_tuple_like_binding */
+  ec_no_matching_constructor,                /* oc_reversed_cmp_candidate */
 };
 
 /*
@@ -9676,6 +9677,7 @@ static an_error_code default_ambiguous_code[(int)oc_last] = {
   ec_ambiguous_overloaded_function,          /* oc_synthesized_member_call */
   ec_ambiguous_constructor,                  /* oc_ctad */
   ec_ambiguous_overloaded_function,          /* oc_tuple_like_binding */
+  ec_ambiguous_overloaded_function,          /* oc_reversed_cmp_candidate */
 };
 
 /*
@@ -9697,6 +9699,7 @@ static an_error_code default_undefined_code[(int)oc_last] = {
   ec_undefined_identifier,                   /* oc_synthesized_member_call */
   ec_undefined_identifier,                   /* oc_ctad */
   ec_struct_binding_undefined_identifier,    /* oc_tuple_like_binding */
+  ec_undefined_identifier,                   /* oc_reversed_cmp_candidate */
 };
 
 a_symbol_ptr select_overloaded_function(
