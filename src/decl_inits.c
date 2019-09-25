@@ -5613,11 +5613,6 @@ returned set to TRUE.
     vp->has_explicit_initializer = TRUE;
     /* Remember whether the initializer uses the "()" form or the "=" form. */
     vp->has_parenthesized_initializer = parenthesized_initializer;
-    if (init_con != NULL &&
-        is_const_qualified_type(vp_type) &&
-       !is_const_qualified_type(init_con->type)) {
-      init_con->type = make_qualified_type(init_con->type, TQ_CONST);
-    }  /* if */
     if (dps->init_state.initializer_must_be_constant && init_con != NULL &&
         constant_is(init_con, ck_address) &&
         init_con->variant.address.kind == (an_address_base_kind)abk_variable &&
