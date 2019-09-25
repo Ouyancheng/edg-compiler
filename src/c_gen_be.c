@@ -10906,13 +10906,13 @@ declare_routine:
       }  /* if */
 #if !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
       if (routine_is_init_routine(rout)) {
-#if SUNPRO_C_IS_C_GEN_BE_TARGET
+#if !USE_INIT_SECTION_IN_GENERATED_C && SUNPRO_C_IS_C_GEN_BE_TARGET
         /* The SunPro C compiler has a pragma that specifies that a routine
            should be called at program startup.  If this is an initialization
            routine, arrange for it to be called. */
         dump_sunpro_init_pragma(rout, (char*)NULL);
       } else {
-#endif /* SUNPRO_C_IS_C_GEN_BE_TARGET */
+#endif /* !USE_INIT_SECTION_IN_GENERATED_C && SUNPRO_C_IS_C_GEN_BE_TARGET */
         if (msvc_is_generated_code_target &&
             msvc_target_version_number >= 1300) {
           /* Generate a special code sequence that the Microsoft compiler uses
