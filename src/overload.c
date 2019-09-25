@@ -17696,9 +17696,7 @@ operand when initializer lists are enabled.
         if (!unary_operator &&
             (kind == (an_opname_kind)onk_assign ||
              kind == (an_opname_kind)onk_arrow_star ||
-             ((kind == (an_opname_kind)onk_eq ||
-               kind == (an_opname_kind)onk_ne) &&
-              is_handle_type(operand_2->type)))) {
+             (opname_is_eq_op(kind) && is_handle_type(operand_2->type)))) {
           /* This trick is not allowed for certain operators. */
         } else {
           a_type_ptr under_type = type_pointed_to(eff_operand_1_type);

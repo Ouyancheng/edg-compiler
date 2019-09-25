@@ -28106,8 +28106,7 @@ as "0 <=> operator<=>(y, x)".
     */
     expr_pos_error(ec_excessive_comparison_rewrites, &result->position);
     make_error_operand(result);
-  } else if (opname == (an_opname_kind)onk_eq ||
-             opname == (an_opname_kind)onk_ne) {
+  } else if (opname_is_eq_op(opname)) {
     if (opname == (an_opname_kind)onk_ne) {
       /* Invert the result. */
       an_operand  opnd = *result;
