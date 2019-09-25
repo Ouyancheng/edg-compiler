@@ -203,6 +203,40 @@ Output the comments that appear at the top of the generated files.
 }  /* me_write_file_header */
 
 
+static a_const_char *open_namespace[] =
+{
+  "#ifndef BEGIN_EDG_NAMESPACE",
+  "#define BEGIN_EDG_NAMESPACE /* nothing */",
+  "#endif  /* BEGIN_EDG_NAMESPACE */",
+  "#ifndef END_EDG_NAMESPACE",
+  "#define END_EDG_NAMESPACE /* nothing */",
+  "#endif  /* END_EDG_NAMESPACE */",
+  "BEGIN_EDG_NAMESPACE",
+  (char *)0
+};
+
+
+static void me_write_open_namespace(FILE* file)
+/*
+Output the code to open the edg namespace, if needed. 
+*/
+{
+  int	i;
+  for (i = 0; open_namespace[i] != NULL; ++i) {
+    fprintf(file, "%s\n", open_namespace[i]);
+  }  /* for */
+}  /* me_write_open_namespace */
+
+
+static void me_write_close_namespace(FILE* file)
+/*
+Output the code to close the edg namespace, if needed. 
+*/
+{
+  fprintf(file, "END_EDG_NAMESPACE\n");
+}  /* me_write_close_namespace */
+
+
 static void me_write_include_guard_test(FILE         *file,
                                         a_const_char *guard_name)
 /*
@@ -963,6 +997,9 @@ int main(int argc, char *argv[])
     /* Generate the include guard tests. */
     me_write_include_guard_test(codes_output_file, "ERR_CODES_H");
     me_write_include_guard_test(data_output_file, "ERR_DATA_H");
+    /* Open the edg namespace, if needed. */
+    me_write_open_namespace(codes_output_file);
+    me_write_open_namespace(data_output_file);
   }  /* if */
   /* Read the input file. */
   me_read_input_file();
@@ -986,6 +1023,9 @@ int main(int argc, char *argv[])
           (qsort_nmemb_type)sizeof(a_tag_info), compare_tag_info);
     /* Output the number of tags to the error code file. */
     me_write_tag_table();
+    /* Close the edg namespace, if needed. */
+    me_write_close_namespace(codes_output_file);
+    me_write_close_namespace(data_output_file);
     /* Generate the include guard end code. */
     me_write_include_guard_end(codes_output_file, "ERR_CODES_H");
     me_write_include_guard_end(data_output_file, "ERR_DATA_H");
