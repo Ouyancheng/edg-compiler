@@ -32,6 +32,9 @@ declarator.c -- Scanning of declarators.
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 static void scan_declarator_attributes(a_decl_parse_state  *dps,
                                        a_type_ptr          *p_type)
 /*
@@ -8183,6 +8186,8 @@ the parameters.
   }  /* if */
 }  /* declarator */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

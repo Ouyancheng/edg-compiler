@@ -28,6 +28,8 @@ lower_init.h -- Declarations related to lower_init.c (initializations and
 #include "lower_il.h"
 #endif /* ifndef LOWER_IL_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 typedef struct an_implied_copy_source {
   /* The description of the source for an implied copy operation. */
@@ -390,6 +392,9 @@ extern void initialize_vptrs_in_class(
                                      a_variable_ptr     construction_vtbls_var,
                                      a_constant_ptr     aggr_con,
                                      an_insert_location *insert_location);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* DO_IL_LOWERING */
 #endif /* ifndef LOWER_INIT_H */

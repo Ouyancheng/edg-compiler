@@ -30,6 +30,9 @@ Include the file that defines the enumeration an_error_code.
 */
 #include "err_codes.h"
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Diagnostic entries can be returned to routines in other files, but they
 can only use those as opaque types.
@@ -799,6 +802,9 @@ extern void syntax_error(an_error_code error_code);
 #if DEBUG
 unsigned long show_error_space_used(void);
 #endif /* DEBUG */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef ERROR_H */
 

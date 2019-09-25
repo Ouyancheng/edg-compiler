@@ -105,6 +105,9 @@ since attributes usually do not create new entries).
 
 #define MAX_ATTRIBUTE_NAME_LENGTH 100
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 typedef struct an_attr_descr *an_attr_descr_ptr;
 typedef struct an_attr_descr {
   /* Data structure describing the name and kind of an attribute, the form
@@ -9858,6 +9861,9 @@ entities.
 #endif /* DEBUG */
 
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -25,6 +25,9 @@ host_envir.h -- Declarations relating to host_envir.c (having to do with
 #endif /* ifndef lang_feat.h */
 #include <locale.h>
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /* Forward declaration of a_text_buffer_ptr. */
 typedef struct a_text_buffer *a_text_buffer_ptr;
 
@@ -2645,7 +2648,9 @@ extern int mbc_to_wide_char(a_const_char  *mb,
 
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include <wctype.h>
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 
 extern
 int unicode_to_multibyte_char(unsigned long uc,
@@ -2706,15 +2711,20 @@ Locale to set when multibyte characters are enabled in source code.
 
 #ifndef STDLIB_H_INCLUDED
 #define STDLIB_H_INCLUDED 1
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include <stdlib.h>
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 #endif /* STDLIB_H_INCLUDED */
 #ifndef MB_CUR_MAX
 /* We need setlocale, MB_CUR_MAX, and mblen to support multibyte
    characters. */
  #error -- multibyte character support requires C library multibyte support
 #endif /* ifndef MB_CUR_MAX */
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include <locale.h>
 #include <wctype.h>
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+
 /* Initialize for using mbc_length within one string of source characters. */
 #define mbc_scan_init() ((void)mblen(NULL, MB_CUR_MAX))
 #define mbc_scan_init_if_multibyte_chars_in_source_enabled() \
@@ -3065,7 +3075,10 @@ typedef struct an_open_file_result {
 
 
 #if MAKE_FRONT_END_CALLABLE
+
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include <setjmp.h> 
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 
 EXTERN int	exit_status;
 			/* The status value to be returned to the caller. */
@@ -3184,14 +3197,18 @@ extern char *read_line_from_file(FILE *f_file);
 extern void replace_file_name_suffix(a_const_char	*new_suffix,
 		                     a_text_buffer_ptr	file_name_buffer);
 
+
 /*
 Include the files needed to define the types used with the stat()
 function.  A declaration of stat() is provided in case the standard
 headers fail to define the prototype.
 */
 /* sys/types.h is needed, at least, on Unisys 2200 and Microsoft C 7.0. */
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include <sys/types.h>
 #include <sys/stat.h>
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+
 #ifdef STAT_DECLARATION_NEEDED
 /* "stat" isn't in ANSI C, but we assume it is available and is declared
    in one of the headers that has been included.  If it is not declared
@@ -3848,6 +3865,9 @@ extern void clear_portable_assembly_header(
 extern unsigned long strtoul_interface(a_const_char *str,
                                        a_boolean    *err);
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef HOST_ENVIR_H */
 

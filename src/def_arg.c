@@ -24,6 +24,8 @@ def_arg.c -- Processing of default arguments
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 /* Previously allocated fixup entries available for reuse. */
 static a_def_arg_expr_fixup_ptr avail_def_arg_expr_fixup;
@@ -479,6 +481,8 @@ Initializations for class declaration processing.
   return;
 }  /* def_arg_init */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

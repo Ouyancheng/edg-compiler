@@ -29,6 +29,9 @@ for a production version.
 
 #include "folding.h"
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 a_boolean fxp_value_is_zero(a_fixed_point_value  *value)
 /*
 Return TRUE if and only if the given fixed-point value is zero.
@@ -1472,6 +1475,9 @@ assumes a_fixed_point_value is a synonym for an_integer_value.)
 }  /* fxp_hash */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* FIXED_POINT_ALLOWED */
 

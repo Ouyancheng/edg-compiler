@@ -18,6 +18,9 @@ attribute.h -- Declarations related to attribute.c (having to do with
 #ifndef ATTRIBUTE_H
 #define ATTRIBUTE_H 1
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 #if DEBUG
 extern void db_attribute(an_attribute_ptr  ap);
 
@@ -341,6 +344,8 @@ extern void attribute_trans_unit_init(void);
 
 extern void attribute_init(void);
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ATTRIBUTE_H */
 

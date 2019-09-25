@@ -36,6 +36,9 @@ interpret.c -- IL interpreter for constexpr functions
 
 #include "templates.h"
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 This file implements an interpreter for a subset of the unlowered IL produced
 by the C++ front end.  Specifically, the subset corresponds to the constructs
@@ -404,22 +407,6 @@ static a_storage_stack_state
 			/* Data that persists across interpreter invocations.
 			   In particular, data describing the layout of data
 			   in the interpreter. */
-
-static unsigned long count_ones(unsigned long n)
-/*
-Return the number of trailing "ones" in the binary representation of n.
-*/
-{
-  unsigned long r = 0;
-
-  while (n != 0) {
-    if (n&1) {
-      ++r;
-    }  /* if */
-    n >>= 1;
-  }  /* while */
-  return r;
-}  /* count_ones */
 
 /*
 Type to use to index into a data map.
@@ -17405,6 +17392,9 @@ One-time initialization for interpret.c static variables.
   object_alloc_to_intercept = 0;
 #endif /* DEBUG && TRACK_INTERPRETER_ALLOCATIONS */
 }  /* interpret_one_time_init */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 
 /******************************************************************************

@@ -25,6 +25,9 @@ statements.h -- Declarations relating to statements.c (having to do with
 #include "pragma.h"
 #endif /* ifndef PRAGMA_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Indication of whether or not code is reachable from the code immediately
 preceding.
@@ -577,6 +580,9 @@ extern void statements_init(void);
 /* Show and return the amount of memory used by statements entries. */
 extern unsigned long show_statements_space_used(void);
 #endif /* DEBUG*/
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef STATEMENTS_H */
 

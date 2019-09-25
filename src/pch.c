@@ -40,6 +40,9 @@ pch.c -- Precompiled header processing.
 #include "ms_metadata.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 
 #define PCH_ID_STRING_LENGTH 128
 			/* Maximum length of the PCH id string. */
@@ -2481,6 +2484,9 @@ the point at which the compilation was terminated.
 }  /* pch_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

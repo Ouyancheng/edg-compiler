@@ -60,6 +60,8 @@ fe_wrapup.c - End of front end processing.
 #include "ms_metadata.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 #if DEBUG
 static void show_space_used(void)
@@ -894,6 +896,9 @@ memory used by the compilation.
 }  /* fe_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

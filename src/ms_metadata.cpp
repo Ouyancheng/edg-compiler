@@ -58,6 +58,9 @@ where 8.x is currently either 8.0 or 8.1.
 
 using namespace std;
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 
 /*
 Some versions of MSVC have std::make_unique, but others don't.  To enable
@@ -9832,6 +9835,8 @@ Cleanup.  Free all memory and release the interfaces.
   metadata_reader.reset();
 }  /* ms_metadata_cleanup */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* CPPCLI_ENABLING_POSSIBLE && !defined(_lint) */
 

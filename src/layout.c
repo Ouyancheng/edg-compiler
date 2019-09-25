@@ -146,6 +146,9 @@ B.  Layout options
 #include "pch.h"
 #include "pragma.h"
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Macro that returns TRUE if the specified field should be treated as an
 empty class for the purposes of layout.  That's the case when the
@@ -5307,6 +5310,9 @@ of the front end.
                        "layout_init: inconsistent configuration",
                        "for bit field allocation");
 }  /* layout_init */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

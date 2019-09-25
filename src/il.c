@@ -59,8 +59,7 @@ il.c -- Construction of intermediate language trees.
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
 
 /* Conditionally open the "edg" namespace. */
-//BEGIN_EDG_NAMESPACE
-
+BEGIN_EDG_NAMESPACE
 
 /*
 Pointers to shared types.  These are cleared by il_init.
@@ -93,7 +92,14 @@ static a_type_ptr il_bool_type;
 static a_type_ptr il_standard_nullptr_type;
 static a_type_ptr il_managed_nullptr_type;
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 #if DEBUG
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -29318,8 +29324,7 @@ when the IL has been read back into memory.
 }  /* il_reset */
 
 /* Conditionally close the "edg" namespace. */
-//END_EDG_NAMESPACE
-
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

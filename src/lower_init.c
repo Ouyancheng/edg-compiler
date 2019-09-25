@@ -39,6 +39,9 @@ lower_init.c -- IL lowering: initializations and new/delete.
 #include "sys_predef.h"
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 
 /* Declarations needed because of forward references: */
 static void lower_destructor_dynamic_init(
@@ -19803,6 +19806,9 @@ for each compilation.
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
   /* init_lower_trans_unit_init is called from il_lower_trans_unit_init. */
 }  /* init_lower_init */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* DO_IL_LOWERING */
 

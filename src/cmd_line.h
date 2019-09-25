@@ -28,6 +28,9 @@ cmd_line.h -- Declarations relating to cmd_line.c (relating
 #include "lang_feat.h"
 #endif /* ifndef LANG_FEAT_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 List of all command-line option kinds.
 */
@@ -2535,6 +2538,9 @@ extern void cmd_line_cleanup(void);
 extern a_boolean cmd_line_option_inhibits_gnu_cpp11_extension_warning(
                                                    an_error_code  error_code);
 #endif /* GNU_EXTENSIONS_ALLOWED */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef CMD_LINE_H */
 

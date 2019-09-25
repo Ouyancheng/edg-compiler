@@ -16,6 +16,9 @@ interpret.h -- Interface to IL interpreter for constexpr functions
 #ifndef INTERPRET_H
 #define INTERPRET_H 1
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 a_subobject_path_ptr* last_subobject_path_link(a_constant_ptr  con);
 
 a_subobject_path_ptr get_trailing_subobject_path_entry(
@@ -98,6 +101,9 @@ void interpret_trans_unit_init(void);
 void interpret_init(void);
 
 void interpret_one_time_init(void);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef INTERPRET_H */
 

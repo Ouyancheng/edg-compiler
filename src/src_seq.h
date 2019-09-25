@@ -19,6 +19,9 @@ src_seq.h -- Declarations for support for source sequence list management
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Macro to extract the kind from a source sequence entry or secondary
 declaration entry.
@@ -202,6 +205,10 @@ extern void eliminate_class_body_source_sequence_entries(a_type_ptr tp);
 extern void eliminate_unneeded_source_sequence_entries(a_scope_ptr sp);
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
+
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #endif /* ifndef SRC_SEQ_H */

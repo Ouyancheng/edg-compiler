@@ -41,6 +41,8 @@ trans_copy.c -- Copy IL from secondary translation units to the
  #error -- trans_copy.c requires scope orphaned list processing
 #endif /* !SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 /*
 Flag that is TRUE if we are in the setup phase for trans_copy.c.
@@ -3377,6 +3379,9 @@ One-time initialization for trans_copy.c static variables.
   in_trans_copy_setup = FALSE;
   in_primary_il_reference_rewrite = FALSE;
 }  /* trans_copy_one_time_init */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

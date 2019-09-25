@@ -30,6 +30,9 @@ trans_unit.c -- Translation unit management routines.
 #include "fe_init.h"
 #include "fe_wrapup.h"
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Structure used to keep track of variables that are specific to a
 given translation unit.
@@ -878,6 +881,8 @@ of the front end are called.
 #endif /* CHECKING */
 }  /* trans_unit_early_init */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

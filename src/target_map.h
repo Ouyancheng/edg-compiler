@@ -19,6 +19,9 @@ It must be possible to include this file more than once, so it intentionally
 does not have an include guard.
 */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /* Define a shorthand notation for TARGET_CONFIGURATION. */
 #define _TC TARGET_CONFIGURATION
 /*lint -esym(755,_TC)*/
@@ -415,6 +418,8 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
 #undef TARGET_MAP_ROUTINE_NAME
 #undef TARGET_MAP_MACRO
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

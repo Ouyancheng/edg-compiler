@@ -38,6 +38,9 @@ il_write.c -- Write the intermediate language to a file.
 #include "il_walk.h"
 #include "il_write.h"
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 static a_boolean
 		writing_file_scope_il;
 			/* TRUE if writing the file-scope IL, FALSE if writing
@@ -982,6 +985,9 @@ This is done before command line processing.
   il_file_name = NULL;
   il_header_pos = 0;
 }  /* il_write_early_init */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 

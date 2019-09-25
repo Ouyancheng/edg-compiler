@@ -38,6 +38,12 @@ This program looks for entries where "a" is "T" and "nnnn..." is "__sti__*" or
 #endif /* !__ANSI__ */
 
 /*
+If the EDG namespace is being used, make the names from the namespace
+visible.
+*/
+USING_NAMESPACE_EDG
+
+/*
 The getopt.h include file will provide either the declarations needed
 to use the system getopt routine or, if no system version is available,
 the body of our own version of the getopt routine.

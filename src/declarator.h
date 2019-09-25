@@ -22,6 +22,9 @@ declarator.h -- Declarations related to declarator.c (having to with
 #include "decls.h"
 #endif /* ifndef DECLS_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Macro that is TRUE if the current token is the start of a Microsoft
 calling convention.
@@ -423,6 +426,9 @@ extern void scan_lambda_declarator(a_decl_parse_state  *dps,
                                    a_decl_pos_block    *decl_pos_block);
 
 extern void make_param_syms_invisible(a_boolean  is_invisible);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* DECLARATOR_H */
 

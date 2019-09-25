@@ -37,6 +37,8 @@ lower_c99.c -- Routines to transform C99 IL constructs into constructs
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 a_boolean c99_il_lowering_needed(void)
 /*
@@ -5027,6 +5029,9 @@ initialized for each compilation.
   check_assertion(vla_deallocations_in_il || !C_mode());
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_c99_init */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* DO_IL_LOWERING */
 

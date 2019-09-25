@@ -25,6 +25,9 @@ lookup.c - Name lookup routines.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 
 static a_symbol_ptr find_nested_type_symbol(a_symbol_locator *locator)
 /*
@@ -6888,6 +6891,9 @@ of the front end.
 */
 {
 }  /* lookup_init */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 
 /******************************************************************************

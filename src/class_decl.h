@@ -31,6 +31,9 @@ class_decl.h -- Declarations related to class_decl.c (having to do with
 #include "decls.h"
 #endif /* ifndef DECLS_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 extern a_symbol_ptr find_corresp_prototype_tag_sym(a_symbol_ptr  curr_sym);
 
 extern a_boolean conflicts_with_previous_function_decl(
@@ -386,6 +389,9 @@ extern void db_base_class_list(a_type_ptr tp);
 
 extern void db_all_virtual_function_override_lists(a_type_ptr  class_type);
 #endif /* DEBUG */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* CLASS_DECL_H */
 

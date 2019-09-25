@@ -72,6 +72,11 @@ typedef size_t sizeof_t;
 typedef size_t true_size_t;
 #endif /* ifndef true_size_t */
 
+/*
+If the EDG namespace is being used, make the names there visible.
+*/
+USING_NAMESPACE_EDG
+
 #else /* !COMPILE_DECODE_FOR_LIB_SRC */
 
 #include "basics.h"   /* Includes version in src directory. */
@@ -79,6 +84,12 @@ typedef size_t true_size_t;
 #if IA64_ABI
 #include "targ_def.h" /* For DEFAULT_EMULATE_GNU_ABI_BUGS and others. */
 #endif /* IA64_ABI */
+
+/*
+If the EDG namespace is being used, make the names there visible.
+*/
+USING_NAMESPACE_EDG
+
 #include "decode.h"
 
 #endif /* COMPILE_DECODE_FOR_LIB_SRC */
@@ -6509,7 +6520,7 @@ to the terminating character.
     if (dctl->err_in_id) break;
     byte = byte<<4 | get_hex_digit(ptr+1, dctl);
     if (dctl->err_in_id) break;
-    if (host_little_endian) {
+    if (::host_little_endian) {
       ((unsigned char *)&x)[length-1-i] = byte;
     } else {
       ((unsigned char *)&x)[i] = byte;
@@ -8249,7 +8260,7 @@ length returned the second time will be correct).
   {
     /* Determine whether host is little-endian or big-endian. */
     int i = 1;
-    host_little_endian = (*(char *)&i) == 1;
+    ::host_little_endian = (*(char *)&i) == 1;
   }
   for (;;) {
     if (start_of_id_is("_Z", id)) {

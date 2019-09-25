@@ -29,6 +29,9 @@ expr.h -- Declarations related to expression parsing.
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /* Flag bits used to indicate scanning options that apply to one level
    of expression scanning.  These are localized options that indicate
    special handling for an expression because of the context. */
@@ -1092,6 +1095,9 @@ extern an_init_component_ptr cache_expression(void);
 typedef struct an_initializer_cache *an_initializer_cache_ptr;
 extern void prescan_parenthesized_mem_init_expr(
                                          an_initializer_cache_ptr  init_cache);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef EXPR_H */
 

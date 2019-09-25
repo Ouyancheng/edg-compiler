@@ -37,6 +37,8 @@ decl_inits.c -- Scanning of initializers in declarations.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && ... */
 #endif /* DO_IL_LOWERING */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 #define array_element_count(array_type, elem_type)                      \
   ((array_type)->variant.array.is_variable_size_array ? 0 :             \
@@ -10170,6 +10172,8 @@ the front end.
 #endif /* DEBUG */
 }  /* decl_inits_init */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

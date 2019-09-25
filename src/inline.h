@@ -26,6 +26,9 @@ inline.h -- Declarations related to inline.c (minimal inlining for IL
 #include "il.h"
 #endif /* ifndef IL_DEF_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 
 /*
 Entry used to record information about the remapping to be done on a variable
@@ -135,6 +138,9 @@ extern void mark_inlined_routines_as_unreferenced(void);
 extern void inline_one_time_init(void);
 
 extern void inline_init(void);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* MINIMAL_INLINING */
 #endif /* DO_IL_LOWERING */

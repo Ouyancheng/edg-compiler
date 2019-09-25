@@ -26,6 +26,9 @@ literals.c -- Literal constant conversion to and from internal form.
 #include "literals.h"
 #include "preproc.h"
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 
 static a_text_buffer_ptr
 		token_buffer;
@@ -2008,6 +2011,9 @@ mix of the given kind and chk_char.
   }  /* if */
   db_exit();
 }  /* concat_string_literals */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 
 /******************************************************************************

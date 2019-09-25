@@ -18,6 +18,8 @@ trans_unit.h -- Declarations related to translation unit management.
 #ifndef TRANS_UNIT_H
 #define TRANS_UNIT_H 1
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 /*
 Type declaration for a pointer to a list of fixups to be applied to based-type
@@ -297,6 +299,9 @@ extern void db_translation_unit(a_translation_unit_ptr tup);
 
 extern void db_translation_unit_stack(void);
 #endif /* DEBUG */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef TRANS_UNIT_H */
 

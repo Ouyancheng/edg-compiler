@@ -45,6 +45,9 @@ and not in a standalone utility program.
 #define STOP_TOKEN_CHECKSUM_TEST_NEEDED FALSE
 #endif /* CHECKING && !STANDALONE_UTILITY_PROGRAM */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 The structure defining the linked list of routines from which debug information
 has been requested.
@@ -808,6 +811,9 @@ must not make use of anything initialized there.
   depth_debug_stack = -1;
   debug_stack_size = 0;
 }  /* debug_early_init */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* DEBUG */
 

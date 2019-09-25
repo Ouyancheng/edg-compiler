@@ -35,6 +35,9 @@ decl_spec.c -- Scanning of declaration specifiers.
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #include "statements.h"
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 #if NEAR_AND_FAR_ALLOWED
 
 static void scan_near_or_far(a_type_qualifier_set  *qualifiers)
@@ -12334,6 +12337,9 @@ decl-specifiers.
   check_assertion(auto_storage_class_specifier_enabled ||
                   auto_type_specifier_enabled);
 }  /* decl_spec_one_time_init */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

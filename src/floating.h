@@ -18,6 +18,9 @@ floating.h -- Definitions related to floating-point conversions.
 
 #if !USE_HOST_FP_CONVERSION_ROUTINES
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 The value of the macro FP_USE_EMULATION determines whether the conversion code
 uses native floating-point math (when FP_USE_EMULATION is FALSE) or emulated
@@ -687,6 +690,9 @@ bigint_mult_pow5.
 #ifndef NUM_BIGINTS
 #define NUM_BIGINTS (5 + 3)
 #endif /* ifndef NUM_BIGINTS */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
 

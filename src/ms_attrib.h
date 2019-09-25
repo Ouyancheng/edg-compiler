@@ -21,6 +21,9 @@ ms_attrib.h -- Declarations related to ms_attrib.c (Microsoft attribute
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Entry used to represent a parameter description for a Microsoft attribute.
 */
@@ -144,6 +147,9 @@ EXTERN a_boolean
                         /* TRUE if "injected text" (i.e., code added by the
                            compiler) is currently enabled.  Set/reset by the
                            "no_injected_text" Microsoft attribute. */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

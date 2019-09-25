@@ -97,6 +97,9 @@ specifier.
   (curr_token == tok_inline   || curr_token == tok_virtual ||        \
    curr_token == tok_explicit || curr_token == tok_noreturn)
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 #if !NULL_POINTER_IS_ZERO
 
 static void clear_init_state_fields(an_init_state  *is)
@@ -20313,6 +20316,9 @@ entities.
 }  /* show_decl_space_used */
 
 #endif /* DEBUG */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

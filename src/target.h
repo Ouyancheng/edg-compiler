@@ -29,6 +29,9 @@ configuration values that are incorporated when the compiler is built
 #include "il.h"
 #endif /* ifndef IL_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 A flag that can mean that no target configuration was found or no target
 configuration was specified.
@@ -1589,6 +1592,9 @@ extern void target_init(void);
 extern void target_early_init(void);
 
 extern void target_one_time_init(void);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef TARGET_H */
 

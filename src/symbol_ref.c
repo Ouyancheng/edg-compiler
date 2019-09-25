@@ -29,6 +29,8 @@ symbol_ref.c - Routines to manage references to symbols.
 #include "statements.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 #if DEBUG
 
@@ -2933,6 +2935,9 @@ One-time initialization for symbol_ref.c static variables.
 {
   output_control_block_has_been_set_up = FALSE;
 }  /* symbol_ref_one_time_init */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 
 /******************************************************************************

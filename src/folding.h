@@ -21,6 +21,9 @@ folding.h -- Declarations relating to folding operations.
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 The following struct holds a pointer to a class aggregate constant
 currently being initialized.  That pointer is used to provide an assumed
@@ -285,6 +288,9 @@ extern void folding_one_time_init(void);
 extern void folding_trans_unit_init(void);
 
 extern void folding_init(void);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef FOLDING_H */
 

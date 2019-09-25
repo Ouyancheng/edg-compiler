@@ -63,6 +63,9 @@ incorporated:
 /* Front end version number. */
 #include "version.h"
 
+/* General utility components. */
+#include "util.h"
+
 /* Memory management data structures. */
 #include "mem_tables.h"
 

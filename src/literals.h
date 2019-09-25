@@ -28,6 +28,9 @@ literals.h -- Declarations relating to literals.c (having to do with
 #include "lexical.h"
 #endif /* ifndef LEXICAL_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 extern void conv_integer_literal(int           radix,
                                  an_error_code *err_code,
                                  a_const_char  **err_pos);
@@ -158,6 +161,9 @@ extern void conv_string_literal(
 extern void widen_string_literal(a_constant_ptr con);
 extern void concat_string_literals(a_token_cache_ptr cache,
                                    a_character_kind  kind);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef LITERALS_H */
 

@@ -20,6 +20,9 @@ trans_copy.h -- Declarations related to trans_copy.c (copying of IL
 #ifndef TRANS_COPY_H
 #define TRANS_COPY_H 1
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 extern void copy_secondary_trans_unit_IL_to_primary(void);
 
 extern
@@ -29,6 +32,9 @@ extern void switch_canonical_for_deleted_definition(
                                                  a_source_correspondence *scp);
 
 extern void trans_copy_one_time_init(void);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef TRANS_COPY_H */
 

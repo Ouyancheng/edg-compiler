@@ -22,6 +22,9 @@ float_pt.h -- Declarations for float_pt.c (having to do with manipulation of
 #include "il.h"
 #endif /* ifndef IL_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 The number of host longs requires to represent the largest possible
 mantissa.
@@ -296,6 +299,9 @@ a_boolean fp_same_representation(a_float_kind            kind,
 extern unsigned int fp_hash(an_internal_float_value *value);
 
 extern void float_pt_init(void);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef FLOAT_PT_H */
 

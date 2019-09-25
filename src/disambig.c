@@ -29,6 +29,9 @@ disambig.c -- Disambiguation of C++ declarations and expressions.
 #include "decls.h"
 #include "expr.h"
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 typedef struct a_disambig_state *a_disambig_state_ptr;
 typedef struct a_disambig_state {
   a_type_ptr	decl_class_type;
@@ -2096,6 +2099,9 @@ indicate that the lambda is a C++14 generic lambda.
   wrapup_disambig_state(&state);
   pop_scope();
 }  /* prescan_lambda_parameter_clause */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

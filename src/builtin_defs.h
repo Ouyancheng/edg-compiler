@@ -13,6 +13,9 @@ builtin_defs.h -- Declarations related to builtin declarations
 
 */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /* Do not add builtins here.  See sys_predef.h to add user-defined builtins. */
 /*lint -e641 */ /* Suppress lint messages about converting enums to int. */
 /*------------------Beginning of automatically generated code---------------*/
@@ -20840,6 +20843,9 @@ EXTERN size_t
                 = sizeof(builtin_type_strings)/sizeof(builtin_type_strings[0])
 #endif /* VAR_INITIALIZERS */
                                                                               ;
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -35,6 +35,9 @@ error.c -- Error reporting routines.
 #endif /* RECORD_MACRO_INVOCATIONS */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Static variable set when a catastrophe occurs, to catch catastrophe loops.
 */
@@ -6675,6 +6678,9 @@ the point at which the compilation was terminated.
 #endif /* MAKE_FRONT_END_CALLABLE */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

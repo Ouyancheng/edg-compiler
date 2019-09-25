@@ -25,6 +25,9 @@ layout.h -- Declarations related to layout.c (having to do with laying out
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 typedef a_host_large_unsigned an_unnormalized_bit_offset;
 
 EXTERN a_targ_alignment
@@ -79,6 +82,9 @@ extern void layout_one_time_init(void);
 extern void layout_trans_unit_init(void);
 
 extern void layout_init(void);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* LAYOUT_H */
 

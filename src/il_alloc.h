@@ -18,6 +18,9 @@ il_alloc.h -- Declarations related to allocation of intermediate language
 #ifndef IL_ALLOC_H
 #define IL_ALLOC_H 1
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 List of released local constants for reuse by local_constant.
 */
@@ -415,6 +418,9 @@ memory region.
 #define clear_tagged_ptr(tagged_ptr)                                        \
   (((tagged_ptr).kind = (a_byte_il_entry_kind)iek_none),                    \
    ((tagged_ptr).ptr = NULL))
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef IL_ALLOC_H */
 

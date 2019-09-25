@@ -31,6 +31,9 @@ sys_predef.c -- System dependent predefined macros and assertions.
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 #include "pch.h"
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 #ifdef __linux__
 
 static void enter_linux_predefined_macros(void)
@@ -1812,6 +1815,9 @@ Do one-time initialization for data structures used in this file.
          num_builtin_condition_entries * sizeof(a_builtin_function_condition));
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 }  /* sys_predef_one_time_init */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 
 /******************************************************************************

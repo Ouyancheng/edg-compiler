@@ -45,6 +45,18 @@ Placed in a separate file so they can be expanded several ways:
   
 */
 
+#if !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING
+/* We need pm_class_type_possibly_lowered. */
+#include "lower_il.h"
+#else /* !(!STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING) */
+/* No lowering, so use pm_class_type for pm_class_type_possibly_lowered. */
+#undef pm_class_type_possibly_lowered
+#define pm_class_type_possibly_lowered(x) pm_class_type(x)
+#endif /* !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING */
+
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Macro to remap a pointer from an "old" value to a "new" value.  ptr is
 the pointer, ptr_type the type of ptr, and entry_kind is the kind of entry
@@ -504,15 +516,6 @@ prototype instantiations in the IL.
   }  /* if */ \
 }
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
-
-#if !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING
-/* We need pm_class_type_possibly_lowered. */
-#include "lower_il.h"
-#else /* !(!STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING) */
-/* No lowering, so use pm_class_type for pm_class_type_possibly_lowered. */
-#undef pm_class_type_possibly_lowered
-#define pm_class_type_possibly_lowered(x) pm_class_type(x)
-#endif /* !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING */
 
 #undef remap_source_sequence_entry
 #if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
@@ -4183,6 +4186,8 @@ Get rid of the macros defined in this file so they aren't used accidentally.
 #undef clear_or_walk_name_reference_field
 #endif /* ifdef UNDEF_WALK_ENTRY_MACROS_AT_END */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

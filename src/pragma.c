@@ -27,6 +27,9 @@ pragma.c -- Routines to support #pragma directives
 /* Additional header files. */
 #include "layout.h"
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Macro used to get a pointer to the active pointer to the current construct
 pragma list.  The list pointer is stored in the scope stack entry.
@@ -2392,6 +2395,9 @@ Initialize the pragma description table.
 #endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
   db_exit();
 }  /* pragma_init */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

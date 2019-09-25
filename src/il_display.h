@@ -22,9 +22,15 @@ il_display.h -- Declarations related to il_display (display the IL
 #include "mem_tables.h"
 #endif /* ifndef MEM_TABLES_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 extern void disp_file_scope_il(void);
 
 extern void disp_routine_scope_il(a_memory_region_number region_number);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef IL_DISPLAY_H */
 

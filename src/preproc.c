@@ -33,6 +33,9 @@ preproc.c -- Preprocessing directives.
 #include "ms_metadata.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 typedef struct a_pp_if_stack_entry *a_pp_if_stack_entry_ptr;
 typedef struct a_pp_if_stack_entry {
   /* Entry on the stack for preprocessing #ifs (and #ifdefs, etc.). */
@@ -4775,6 +4778,8 @@ init_predefined_macros.)
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* preproc_init */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

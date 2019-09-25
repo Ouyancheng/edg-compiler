@@ -31,6 +31,9 @@ il_write.h -- Declarations relating to il_write.c (having to do with
 #include "il_file.h"
 #endif /* ifndef IL_FILE_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 EXTERN FILE	*f_il_output /* = NULL */;
 			/* File to which the intermediate language is 
 			   written.  NULL if file should not be written. */
@@ -56,6 +59,9 @@ extern void trace_entry(a_memory_region_number memory_region_number,
                         an_il_entry_kind       entry_kind,
                         an_il_entry_number     entry_number);
 #endif /* CHECKING && DEBUG && ALTERNATE_IL_FILE_FORMAT */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 

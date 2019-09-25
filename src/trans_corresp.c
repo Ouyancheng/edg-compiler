@@ -34,6 +34,9 @@ trans_corresp.c -- Routines related to matching entities across
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /* Forward declarations. */
 static void clear_scope_correspondence(a_scope_ptr  scope,
                                        a_boolean    visited);
@@ -7820,6 +7823,8 @@ for each compilation.
 #endif /* CHECKING */
 }  /* corresp_init */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -29,6 +29,8 @@ extasm.c -- Scanning and validation of GNU extended asm() statements.
 /* Header files used by files involved in declaration processing. */
 #include "decl_hdrs.h"
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 struct name_to_reg {
   /* Structure to hold a name-to-register mapping entry. */
@@ -1338,6 +1340,9 @@ extended asm statements.
 }  /* extasm_one_time_init */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

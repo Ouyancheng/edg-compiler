@@ -51,6 +51,12 @@ EXTERN_C char *malloc(unsigned size);
 #endif /* !STDLIB_H_INCLUDED */
 
 /*
+If the EDG namespace is being used, make the names from the namespace
+visible.
+*/
+USING_NAMESPACE_EDG
+
+/*
 Lines from "nm" are read into this buffer for analysis.
 */
 #define ME_INPUT_LINE_SIZE 32767

@@ -20,7 +20,8 @@ util.h -- General utility components (mostly templates).
 
 #include "mem_manage.h"
 
-namespace edg {
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 typedef uintptr_t a_uintptr;
 typedef decltype((int*)2-(int*)1) a_ptrdiff;
@@ -2205,8 +2206,8 @@ Output some information about the map's key contents to f_debug.
 
 #endif /* DEBUG */
 
-
-}  /* namespace edg */
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef EDG_UTIL_H */
 

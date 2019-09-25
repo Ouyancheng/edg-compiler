@@ -25,6 +25,9 @@ src_seq.c -- Support for source sequence list management
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if !STANDALONE_UTILITY_PROGRAM
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 #if DEBUG
 
 void db_source_sequence_entry(a_source_sequence_entry_ptr  ssep)
@@ -3520,6 +3523,10 @@ scope that are not really needed in the IL.
 
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 

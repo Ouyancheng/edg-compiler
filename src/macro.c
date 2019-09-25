@@ -34,6 +34,9 @@ macro.c -- Macro definition and expansion routines.
 #include "lower_eh.h"
 #endif /* DO_IL_LOWERING && GENERATE_EH_TABLES */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Buffer used to contain the characters of a macro being defined, and the
 characters of macro expansions.
@@ -11585,6 +11588,9 @@ the point at which the compilation was terminated.
 }  /* macro_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

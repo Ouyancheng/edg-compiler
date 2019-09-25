@@ -31,6 +31,8 @@ mem_manage.h -- Declarations relating to mem_manage.c (having to do with
 #include "il.h"
 #endif /* ifndef IL_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 /*
 Determine (if possible) the number of low-order zero bits required in
@@ -525,6 +527,9 @@ pointer of the appropriate type.
 #define index_to_function_pointer(index) \
   function_pointers[(unsigned int)index]
 #endif /* CHECKING */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef MEM_MANAGE_H */
 

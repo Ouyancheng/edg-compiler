@@ -19,6 +19,8 @@ trans_corresp.h -- Declarations related to matching entities across
 #ifndef TRANS_CORRESP_H
 #define TRANS_CORRESP_H 1
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 EXTERN a_boolean
 		correspondence_checking_underway;
@@ -280,6 +282,9 @@ extern void* db_corresp(void *ptr);
 
 extern void db_sym_list(a_symbol_list_entry_ptr entries);
 #endif /* DEBUG */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef TRANS_CORRESP_H */
 

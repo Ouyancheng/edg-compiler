@@ -18,6 +18,9 @@ lexical.h -- Declarations relating to lexical.c (having to do with source
 #ifndef LEXICAL_H
 #define LEXICAL_H 1
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /* Declare pointer types up front to minimize mutual recursion problems. */
 typedef struct an_orig_line_modif  *an_orig_line_modif_ptr;
 typedef struct a_source_line_modif *a_source_line_modif_ptr;
@@ -3028,7 +3031,8 @@ extern a_partial_class_body_ptr cache_partial_class_body(
 extern void replace_curr_token(a_token_kind  new_token);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef LEXICAL_H */
 

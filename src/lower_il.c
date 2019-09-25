@@ -50,6 +50,9 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 /* NEED_NAME_MANGLING is always TRUE if DO_IL_LOWERING is TRUE. */
 #if NEED_NAME_MANGLING
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 #if IA64_ABI || DO_IL_LOWERING
 
 a_type_ptr make_vtbl_entry_type(void)
@@ -22200,6 +22203,10 @@ for each compilation.
 }  /* il_lower_init */
 
 #endif /* DO_IL_LOWERING */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
+
 #endif /* NEED_NAME_MANGLING */
 
 /******************************************************************************

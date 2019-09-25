@@ -27,6 +27,9 @@ overload.h -- Declarations related to expression overload resolution.
 #include "exprutil.h"
 #endif /* ifndef EXPRUTIL_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /* Deal with forward reference: */
 typedef struct a_candidate_function *a_candidate_function_ptr;
 
@@ -1212,6 +1215,9 @@ extern void db_substitution_stack(void);
 
 extern void db_viability_stats(void);
 #endif /* DEBUG */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef OVERLOAD_H */
 

@@ -13,6 +13,9 @@
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 C++/CLI metadata import flags.
 */
@@ -123,6 +126,9 @@ of import_class_definition for portable assemblies.)
 
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES || WRITE_CPPCLI_PORTABLE_ASSEMBLIES*/
 #endif /* CPPCLI_ENABLING_POSSIBLE */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* MS_METADATA */

@@ -39,6 +39,8 @@ symbol_tbl.c - Symbol table management routines.
 #include "interpret.h"
 #endif /* DEBUG */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 /* The multiplier used in the hash algorithm that generates an index
    in the hash table from an identifier name string.  Do not change
@@ -17933,6 +17935,8 @@ of the front end.
   init_intrinsic_symbol_headers();
 }  /* symbol_tbl_init */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

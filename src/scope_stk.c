@@ -41,6 +41,9 @@ scope_stk.c - Management of the scope stack and related routines.
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Variables and constants related to the scope_stack:
 */
@@ -12995,6 +12998,8 @@ of the front end.
   function_body_processing_delayed_on_some_func_in_primary_il = FALSE;
 }  /* scope_stk_init */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -17,6 +17,9 @@ symbol_tbl.h - Declarations related to symbol table processing.
 #ifndef SYMBOL_TBL_H
 #define SYMBOL_TBL_H 1
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /* Type used for the options set for the name lookup routines.  This
    is declared here to prevent recursion problems. */
 typedef unsigned int an_id_lookup_options_set;
@@ -116,6 +119,9 @@ visible.  Also used as the starting value of decl_seq_counter.
 */
 #define FIRST_DECL_SEQUENCE_NUMBER ((a_decl_sequence_number)(1))
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
+
 /*
 The definition of a_symbol_locator refers to declarations from il_def.h,
 but lexical.h requires a_symbol_locator to be defined.  So the former is
@@ -128,6 +134,9 @@ declared.
 #ifndef IL_TO_STR_H
 #include "il_to_str.h"
 #endif /* ifndef IL_TO_STR_H */
+
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 /*
 The scope number for the file scope.  Equal to FILE_SCOPE_NUMBER (zero)
@@ -431,6 +440,9 @@ Clear a symbol locator.
    !locator_for_curr_id.parent.class_type->                             \
                    variant.class_struct_union.is_prototype_instantiation)
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
+
 #ifndef LEXICAL_H
 #include "lexical.h"
 #endif /* ifndef LEXICAL_H */
@@ -440,6 +452,9 @@ Clear a symbol locator.
 #ifndef SCOPE_STK_H
 #include "scope_stk.h"
 #endif /* ifndef SCOPE_STK_H */
+
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 /*
 Kinds of symbols in the symbol table.
@@ -7017,6 +7032,9 @@ extern a_symbol_ptr look_up_name_string_in_namespace(
                                         a_namespace_ptr          ns_ptr,
                                         an_id_lookup_options_set options);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef SYMBOL_TBL_H */
 

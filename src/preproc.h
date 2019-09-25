@@ -30,6 +30,9 @@ preproc.h -- Declarations related to preproc.c (having to do with
 #include "lexical.h"
 #endif /* ifndef LEXICAL_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 If this list is updated, be sure to change pp_directive_kind_names below.
 */
@@ -368,6 +371,9 @@ extern a_hash_value hash_include_alias(a_void_ptr	key);
 extern a_boolean compare_include_alias(a_void_ptr	entry,
                                        a_void_ptr	key);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef PREPROC_H */
 

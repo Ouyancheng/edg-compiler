@@ -38,6 +38,9 @@ lower_name.c -- Do name mangling for IL lowering.
 #include "sys_predef.h"
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 #if IA64_ABI
 /* IA-64 name mangling codes. */
 #define MANGLING_CODE_FOR_CONST 'K'
@@ -14681,6 +14684,9 @@ initialized for each compilation.
 #endif /* DEBUG */
 #endif /* !IA64_ABI */
 }  /* lower_name_init */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* NEED_NAME_MANGLING */
 

@@ -37,6 +37,9 @@ class_decl.c -- Scanning of class declarations.
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Structure for keeping track of fixup information for a particular function or
 member function, including both the cached tokens comprising default argument
@@ -33741,6 +33744,9 @@ Initializations for class declaration processing.
 #endif /* DEBUG */
   return;
 }  /* class_decl_init */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

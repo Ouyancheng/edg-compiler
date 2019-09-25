@@ -45,6 +45,9 @@ to handle C++ lowering, and from C99 IL lowering to handle C99 lowering.
  #error -- Inlining requires full portable lowering of exception handling.
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 
 static a_variable_remapping_for_inlining_ptr
 		variable_remappings_for_inlining;
@@ -2044,6 +2047,9 @@ for each compilation.
   variable_remappings_for_inlining = NULL;
   routine_scope_being_inlined = NULL;
 }  /* inline_init */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* MINIMAL_INLINING */
 #endif /* DO_IL_LOWERING */

@@ -24,6 +24,9 @@ structure and in the back end to understand it.
 #include "host_envir.h"
 #endif /* ifndef HOST_ENVIR_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /* Definition of numbers for memory regions. */
 typedef int a_memory_region_number;
 #define MAX_MEMORY_REGION_NUMBER ((a_memory_region_number)INT_MAX)
@@ -444,6 +447,8 @@ EXTERN a_function_def_number
 			/* The highest function definition number used so
 			   far. */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef MEM_TABLES_H */
 

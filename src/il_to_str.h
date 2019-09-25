@@ -22,6 +22,8 @@ il_to_str.h -- Declarations related to il_to_str.c (produce an external
 #include "il.h"
 #endif /* ifndef IL_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 /*
 Block describing how to do output from within the il_to_str routines.
@@ -559,6 +561,9 @@ EXTERN a_boolean
 			/* If TRUE, use the __edg_vector_type__ keyword to
 			   render vector types (instead of a GNU attribute). */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef IL_TO_STR_H */
 

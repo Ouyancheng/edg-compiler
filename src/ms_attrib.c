@@ -31,6 +31,9 @@ ms_attrib.c -- Microsoft attribute processing.
 
 #include "ms_attrib.h"
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 
 #if DEBUG
 /*
@@ -3488,6 +3491,9 @@ Microsoft attribute processing.
   if (ms_extensions) init_attribute_kinds();
   no_injected_text = FALSE;
 }  /* ms_attrib_init */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

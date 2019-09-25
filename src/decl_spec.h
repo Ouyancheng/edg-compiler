@@ -22,6 +22,9 @@ decl_spec.h -- Declarations related to decl_spec.c (having to with
 #include "decls.h"
 #endif /* ifndef DECLS_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 typedef struct an_extended_decl_info_block {
   a_type_qualifier_set
 		qualifiers;
@@ -405,6 +408,9 @@ extern void decl_spec_one_time_init(void);
 #define DSO_STORAGE_CLASS_SPECIFIERS (DSO_MUTABLE | DSO_THREAD_LOCAL)
                         /* Set of bits that are lexically considered to
                            be storage-class-specifiers. */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* DECL_SPEC_H */
 

@@ -27,6 +27,9 @@ lower_il.h -- Declarations related to lower_il.c (having to do with
 #include "il.h"
 #endif /* ifndef IL_DEF_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 #if IA64_ABI || DO_IL_LOWERING
 extern a_type_ptr make_vtbl_entry_type(void);
 #endif /* IA64_ABI || DO_IL_LOWERING */
@@ -1421,11 +1424,14 @@ Casts are not needed for pointer to member function types.
    !is_or_was_ptr_to_member_function_type(tp) &&                \
    type_has_param_passed_via_cctor(tp))                         \
 
+extern a_boolean expr1_could_affect_expr2(an_expr_node_ptr expr1,
+                                          an_expr_node_ptr expr2);
+
 #endif /* DO_IL_LOWERING */
 #endif /* NEED_NAME_MANGLING */
 
-extern a_boolean expr1_could_affect_expr2(an_expr_node_ptr expr1,
-                                          an_expr_node_ptr expr2);
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef LOWER_IL_H */
 

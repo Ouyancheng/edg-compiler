@@ -62,6 +62,8 @@ IL lowering itself is done).
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 /*
 This switch controls whether a destructor pointer is passed to the runtime
@@ -6693,6 +6695,9 @@ must be initialized for each compilation.
   /* eh_lower_trans_unit_init is called from il_lower_trans_unit_init. */
   ptr_to_const_typeinfo_type = NULL;
 }  /* eh_lower_init */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* DO_IL_LOWERING */
 

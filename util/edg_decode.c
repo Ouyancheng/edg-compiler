@@ -24,8 +24,14 @@ C-generating back end, that this program does not try to decode.
 #include "basics.h"
 #include "host_envir.h"
 #include "targ_def.h"
-#include "decode.h"
 #include "getopt.h"
+
+/*
+If the EDG namespace is being used, make the names there visible.
+*/
+USING_NAMESPACE_EDG
+
+#include "decode.h"
 
 /*
 TRUE if external names have an extra underscore prefix.  Can be

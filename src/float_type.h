@@ -47,6 +47,9 @@ macros accordingly:
 
 */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 #if defined(FPT_FLOAT) || defined(FPT_DOUBLE) || defined(FPT_LONG_DOUBLE) || \
     defined(FPT_FLOAT80) || defined(FPT_FLOAT128)
 #if defined(FPT_FLOAT)
@@ -1413,6 +1416,9 @@ zero).
 #undef GET_SIGN_BIT
 
 #endif /* !FP_STANDALONE_TEST */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

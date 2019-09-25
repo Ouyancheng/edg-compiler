@@ -45,6 +45,9 @@ cmd_line.c -- Command-line parsing.
 extern long gethostid(void);
 #endif /* HOSTID */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 
 static a_def_undef_string_ptr
 		last_defs_from_cmd_line;
@@ -12129,6 +12132,9 @@ indicate that no warning should be issued in that case.
 }  /* cmd_line_option_inhibits_gnu_cpp11_extension_warning */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

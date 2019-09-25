@@ -23,6 +23,9 @@ il.h -- Declarations related to the intermediate language.
 
 #include "il_def.h"
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /* Current memory region number for IL information. */
 EXTERN a_memory_region_number
 		curr_il_region_number;
@@ -3270,6 +3273,10 @@ extern void eval_order_for_binary_node_kind(
                                     an_expr_operator_kind kind,
                                     a_boolean             *eval_left_to_right,
                                     a_boolean             *eval_right_to_left);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
+
 #endif /* ifndef IL_H */
 
 /******************************************************************************

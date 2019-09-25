@@ -18,6 +18,9 @@ fixed_pt.h -- Declarations for fixed_pt.c (having to do with manipulation of
 #ifndef FIXED_PT_H
 #define FIXED_PT_H 1
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 #define cmp_fixed_point_constants(cp1, cp2)  \
   cmp_integer_constants((cp1), (cp2))
 
@@ -121,6 +124,9 @@ extern a_hash_value fxp_hash(a_fixed_point_value *value);
 
 extern int non_fractional_bits_for_fixed_point(
                                           a_fixed_point_type_descr *fxp_descr);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef FIXED_PT_H */
 

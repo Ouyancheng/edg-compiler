@@ -19,6 +19,9 @@ Included from basic_hdrs.h in every compilation.
 #ifndef LINT_H
 #define LINT_H 1
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 A collection of lint -esym directives with no particular ordering.  These
 directives need to precede the declarations of the symbols they refer to so
@@ -1381,6 +1384,9 @@ a smaller subset).
 /*lint -esym(769,a_type_class_kind::tck_method)*/
 /*lint -esym(769,a_type_class_kind::tck_string)*/
 /*lint -esym(755,__STDC_LIMIT_MACROS)*/
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef LINT_H */
 

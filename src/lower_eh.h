@@ -28,6 +28,9 @@ lower_eh.h -- Declarations related to lower_eh.c (having to do with IL
 #include "lower_il.h"
 #endif /* ifndef LOWER_IL_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 extern a_type_ptr make_runtime_typeinfo_type(void);
 
 extern a_type_ptr make_typeinfo_type(a_type_info_kind kind, 
@@ -167,6 +170,9 @@ extern void eh_lower_one_time_init(void);
 extern void eh_lower_trans_unit_init(void);
 
 extern void eh_lower_init(void);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* DO_IL_LOWERING */
 #endif /* ifndef LOWER_EH_H */

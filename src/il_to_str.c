@@ -63,6 +63,9 @@ il_to_str.c -- Produce an external string-form representation for various
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 /*lint -esym(750,use_sun_form)*/
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 
 /* Forward declarations. */
 static void form_qualifier(a_scope_ptr                            scope,
@@ -7015,6 +7018,8 @@ file is processed.
 #endif /* BACK_END_IS_CP_GEN_BE */
 }  /* il_to_str_init */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -19,6 +19,9 @@ debug.h -- Declarations related to debugging.
 
 #if DEBUG
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Externals for debugging.
 */
@@ -151,6 +154,9 @@ extern a_boolean f_db_sym_trace(a_const_char	*flag_name,
   db_space_used_other("Total", grand_total, "")
 
 #endif /* DEBUG */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef DEBUG_H */
 

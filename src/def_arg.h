@@ -30,6 +30,9 @@ def_arg.h -- Declarations related to def_arg.c (having to do with
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Structure for keeping track of token cache representing a default argument
 expression, prescanned during a member function declaration within a class
@@ -100,6 +103,9 @@ extern void def_arg_init(void);
 extern unsigned long db_show_def_arg_expr_fixups_used(
                                                    unsigned long  grand_total);
 #endif /* DEBUG */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* DEF_ARG_H */
 

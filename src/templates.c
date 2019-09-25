@@ -46,6 +46,8 @@ templates.c -- Support for C++ templates.
 #include "exprutil.h"
 #endif /* ifdef lint */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 static a_symbol_header
 		*initializer_list_sym_hdr;
@@ -39377,6 +39379,8 @@ corresponding symbol for a CLI array type and return it.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

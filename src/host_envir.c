@@ -158,6 +158,7 @@ EXTERN_C int errno;
 #endif /* __BSD__ */
 
 #ifndef STDLIB_H_INCLUDED
+/* FIXME: These should be removed. */
 EXTERN_C char *getenv(char *name);
 EXTERN_C int abort(void);
 EXTERN_C void exit(int status);
@@ -284,6 +285,9 @@ error -- unknown MS-DOS compiler.
 #endif /* __MSC__ */
 #endif /* __TURBOC__ */
 #endif /* __MICROSOFT_OS__ */
+
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 
@@ -2622,9 +2626,12 @@ and curr_dir_name is the current directory name.
 WIN32 (e.g., Windows-NT) version.
 */
 
+
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include <tchar.h>
 #include <dos.h>
 #include <io.h>
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 
 char *get_file_name_from_dir(a_boolean	  first,
 			     a_const_char *dir_name,
@@ -2678,7 +2685,9 @@ char *get_file_name_from_dir(a_boolean	  first,
 DOS version.
 */
 
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include <dos.h>
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 
 char *get_file_name_from_dir(a_boolean	first,
 			     char	*dir_name,
@@ -5996,6 +6005,9 @@ invocation of the front end.
 {
   dir_name_list_il = NULL;
 }  /* host_envir_init */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /*
 The host_util.h file is used to define functions that are used by both

@@ -35,6 +35,9 @@ the compiler is invoked.
 #include "lang_feat.h"
 #endif /* !defined(LANG_FEAT_H) */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Flag used to retain ABI (Application Binary Interface, i.e., runtime layout
 and calling sequence) compatibility with older versions.  The value is the
@@ -5544,6 +5547,9 @@ creating a link from one to the other).
 #ifndef LEGACY_TARGET_CONFIGURATION_NAME
 #define LEGACY_TARGET_CONFIGURATION_NAME (a_const_char *)NULL
 #endif /* defined(LEGACY_TARGET_CONFIGURATION_NAME) */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* !defined(TARG_DEF_H) */
 

@@ -22,6 +22,9 @@ const_ints.c -- Manipulation of target integer constants.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 
 #if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 #define INT_VALUE_PART_BASE ((a_host_large_unsigned)MAX_UINT_VALUE_PART + 1)
@@ -2208,6 +2211,8 @@ Initialize static variables related to const_ints.c.
   }  /* for */
 }  /* const_ints_init */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

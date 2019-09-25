@@ -34,6 +34,9 @@ il_read.h -- Declarations relating to il_read.c (having to do with
 #include "il_walk.h"
 #endif /* ifndef IL_WALK_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 #if ALTERNATE_IL_FILE_FORMAT
 EXTERN char	*entry_array_base_array[(int)iek_last],
 		*fs_entry_array_base_array[(int)iek_last];
@@ -61,6 +64,9 @@ EXTERN sizeof_t	length_of_entry_prefix[(int)iek_last],
 extern void il_read(FILE *f_il_input);
 /* Read the intermediate language for one memory region. */
 extern void read_memory_region(a_memory_region_number region_number);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 

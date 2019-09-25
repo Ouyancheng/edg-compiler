@@ -24,6 +24,9 @@ c_gen_be.h - Declarations related to c_gen_be.c (C-generating back end
 
 #if BACK_END_IS_C_GEN_BE
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 #if !C_GEN_BE_GENERATES_ANSI_C
 EXTERN a_const_char
 		*module_list_for_union_init /* = NULL */;
@@ -40,6 +43,9 @@ extern void back_end(void);
 #if MAKE_FRONT_END_CALLABLE
 extern void c_gen_be_cleanup(void);
 #endif /* MAKE_FRONT_END_CALLABLE */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* BACK_END_IS_C_GEN_BE */
 

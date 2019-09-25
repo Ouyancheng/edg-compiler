@@ -27,6 +27,9 @@ types.h -- Declarations related to types.c (having to do with types).
 #include "expr.h"
 #endif /* ifndef EXPR_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 EXTERN a_boolean
 		enum_type_is_integral;
 			/* TRUE if an enum type is considered an integral
@@ -1696,6 +1699,9 @@ extern a_boolean compatible_ms_bit_field_container_types(a_type_ptr tp1,
 extern a_targ_alignment check_explicit_enum_alignment(
                                               a_type_ptr       type,
                                               a_targ_alignment base_alignment);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef TYPES_H */
 

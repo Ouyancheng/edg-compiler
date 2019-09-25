@@ -24,6 +24,9 @@ decl_inits.h -- Declarations related to decl_inits.c (having to do with
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 extern void update_array_var_type_from_initializer_constant(
                                                          a_variable_ptr  var);
 
@@ -125,6 +128,9 @@ extern void decl_inits_one_time_init(void);
 extern void decl_inits_trans_unit_init(void);
 
 extern void decl_inits_init(void);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef DECL_INITS_H */
 

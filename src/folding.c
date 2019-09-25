@@ -32,6 +32,8 @@ folding.c -- Folding routines.
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 /*
 Determine the severity (error or warning) to be used for integer
@@ -10780,6 +10782,8 @@ of the front end.
 {
 }  /* folding_init */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

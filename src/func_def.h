@@ -22,6 +22,9 @@ func_def.h -- Declarations related to func_def.c (having to do with
 #include "decls.h"
 #endif /* ifndef DECLS_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /* Constants defining bits in the input bit vector used in calls to
    scan_function_body. */
 #define SFB_NO_FLAGS (a_decl_flag_set)(0x0)
@@ -83,6 +86,9 @@ extern void require_definitions_of_virtual_functions_in_class(
 							a_type_ptr class_type);
 
 extern a_coroutine_descr_ptr get_coroutine_descr(a_routine_ptr rp);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* FUNC_DEF_H */
 

@@ -26,6 +26,9 @@ pragma.h -- Declarations related to the #pragma directives
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 The pragma binding kinds indicate the ways in which a pragma may relate
 to the surrounding constructs.  The binding kinds differ in how they
@@ -436,6 +439,10 @@ extern void process_pragmas_at_end_of_source(void);
 extern void pragma_one_time_init(void);
 
 extern void pragma_init(void);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
+
 #endif /* ifndef PRAGMA_H */
 
 /******************************************************************************

@@ -19,6 +19,9 @@ target_cfg.h -- Generate target-specific routines
 
 */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Define a set_target_config_* function to initialize target-specific global
 variables to a particular set of target-specific values.
@@ -30,9 +33,11 @@ variables to a particular set of target-specific values.
 /*lint -estring(823,TARGET_MAP_MACRO)*/
 #define TARGET_MAP_MACRO(config_macro, global_var, config) \
   (global_var) = concat(config_macro ## _, config);
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 /*lint -e451*/
 #include "target_map.h"
 /*lint +e451*/
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 
 #if DUMP_CONFIG_ENABLED
 
@@ -50,12 +55,17 @@ configuration macros.
   fprintf(f_error, "#define %s %s\n", \
           #config_macro "_" stringize(config), \
           STRINGIZE_HELPER(concat(config_macro ## _, config)));
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 /*lint -e451*/
 #include "target_map.h"
 /*lint +e451*/
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 #undef STRINGIZE_HELPER
 
 #endif /* DUMP_CONFIG_ENABLED */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #undef TARGET_CONFIGURATION
 

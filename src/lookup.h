@@ -17,6 +17,9 @@ lookup.h - Declarations related to name lookup.
 #ifndef LOOKUP_H
 #define LOOKUP_H 1
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Options for normal_id_lookup, class_qualified_id_lookup, etc.,
 represented as a bit set:
@@ -363,6 +366,9 @@ a_symbol_ptr look_up_conversion_function(a_type_ptr		parent_class,
 extern void lookup_one_time_init(void);
 
 extern void lookup_init(void);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef LOOKUP_H */
 

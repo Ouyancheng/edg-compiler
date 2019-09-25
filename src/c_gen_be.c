@@ -64,6 +64,8 @@ instead of K&R C.
 #include "fe_init.h"
 #endif /* STANDALONE_C_GEN_BE */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 #if !LOWER_LVALUE_RETURNING_OPERATIONS
  #error -- The C-generating back end requires \
@@ -11743,8 +11745,16 @@ Generate C from the intermediate language.
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 }  /* c_gen_be */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #if STANDALONE_C_GEN_BE
+/*
+The "main" routine must be outside of the EDG namespace, so do a
+using-directive to make the EDG names visible.
+*/
+USING_NAMESPACE_EDG
+
 int main(int argc, char *argv[])
 /*
 Simple "back end" that generates C.  This version is for use as a
@@ -11812,6 +11822,9 @@ from the primary source file name in the IL information.
 
 #else /* !STANDALONE_C_GEN_BE */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 void back_end(void)
 /*
 Simple "back end" that generates C.  This version is for use as a
@@ -11851,17 +11864,23 @@ the point at which the compilation was terminated.
 
 #endif /* MAKE_FRONT_END_CALLABLE */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
+
 #else /* !BACK_END_IS_C_GEN_BE */
 
 #ifdef USING_QUANTIFY
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 /*
 Quantify has a bug that causes an error when an empty object file is used,
 so generate a dummy variable.
 */
 char quantify_dummy_in_c_gen_be;
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #endif /* ifndef USING_QUANTIFY */
 
 #endif /* BACK_END_IS_C_GEN_BE */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *

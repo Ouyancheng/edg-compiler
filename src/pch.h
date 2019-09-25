@@ -25,6 +25,9 @@ pch.h -- Precompiled header declarations
 #include "cmd_line.h"
 #endif /* ifndef CMD_LINE_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Enumeration used to specify the kinds of precompiled header events that
 can be recorded.  If this list is updated, be sure to change
@@ -304,6 +307,9 @@ match the header stop position.
    (!curr_ise->is_include_file &&					\
     curr_ise->actual_line == (a_line_number)header_stop_source_position.seq &&\
     (pos).column == header_stop_source_position.column))
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef PCH_H */
 

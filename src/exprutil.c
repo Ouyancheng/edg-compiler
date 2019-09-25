@@ -38,6 +38,9 @@ exprutil.c -- Expression scanning utility routines.
 #include "sys_predef.h"
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /* Declarations needed because of forward references: */
 static a_boolean is_bit_field_expr(an_expr_node_ptr node);
 static a_boolean check_for_taking_the_address_of_a_bit_field(
@@ -23452,6 +23455,8 @@ for each compilation.
   overload_init();
 }  /* expr_init */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

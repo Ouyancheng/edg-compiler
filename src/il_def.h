@@ -41,6 +41,9 @@ and protected by the ifndef there.
 #include "mem_tables.h"
 #endif /* ifndef MEM_TABLES_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Specify the version stamp of the IL being generated.
 */
@@ -17597,6 +17600,9 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 }
 #endif /* VAR_INITIALIZERS */
 ;
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef IL_DEF_H */
 

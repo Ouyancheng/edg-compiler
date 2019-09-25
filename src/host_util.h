@@ -18,6 +18,9 @@ host_util.h -- host environment utility routines that are shared by
 #ifndef HOST_UTIL_H
 #define HOST_UTIL_H 1
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 unsigned long crc_32(a_const_char	*str,
 		     unsigned long	prev_crc)
 /*
@@ -267,6 +270,9 @@ time.  Return TRUE if the file exists and is a regular file, FALSE otherwise.
   }
   return is_regular;
 }  /* get_file_modification_time */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef HOST_UTIL_H */
 

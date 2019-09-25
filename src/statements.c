@@ -36,6 +36,9 @@ statements.c -- Scanning of statements.
 #include "macro.h"
 #include "func_def.h"
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 static a_struct_stmt_stack_entry_ptr
 		struct_stmt_stack_container;
 			/* A dynamically allocated array of structured
@@ -8293,6 +8296,9 @@ of the front end.
   cfd_id_number = 0;
 #endif /* DEBUG */
 }  /* statements_init */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

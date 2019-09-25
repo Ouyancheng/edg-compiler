@@ -41,6 +41,8 @@ il_read.c -- Read the intermediate language.
 #include "il_walk.h"
 #include "fe_init.h"
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 static FILE	*f_il_input;
 			/* Intermediate language file. */
@@ -1038,6 +1040,9 @@ build the in-memory version.
   rebuild_structures_on_il_read();
   db_exit();
 }  /* il_read */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* BACK_END_SHOULD_BE_CALLED || STANDALONE_UTILITY_PROGRAM */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */

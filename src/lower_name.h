@@ -26,6 +26,9 @@ lower_name.h -- Declarations related to lower_name.c (name mangling for
 #include "il.h"
 #endif /* ifndef IL_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /* Define a macro that tells whether or not name mangling is needed. */
 #if DO_IL_LOWERING
 #define name_mangling_needed() (il_lowering_needed())
@@ -151,6 +154,10 @@ extern char *make_prefixed_object_name(a_const_char            *prefix,
                                        a_source_correspondence *scp,
                                        an_il_entry_kind        kind);
 #endif /* NEED_NAME_MANGLING */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
+
 #endif /* ifndef LOWER_NAME_H */
 
 /******************************************************************************

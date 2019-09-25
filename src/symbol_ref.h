@@ -27,6 +27,9 @@ symbol_ref.h - Declarations related to symbol reference processing.
 #include "templates.h"
 #endif /* ifndef TEMPLATES_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 A symbol-reference-set is a bit vector designed to describe the declarations
 and uses of symbols.  The bit positions are specified by the SRK_ values
@@ -268,6 +271,9 @@ instantiated.
     complete_template_variable_type_is_needed(vp);		\
   }  /* if */								\
 }  /* complete_variable_type_is_needed */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef SYMBOL_REF_H */
 

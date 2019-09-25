@@ -21,6 +21,9 @@ lower_c99.h -- Declarations related to lower_c99.c.
 
 #include "il.h"
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /* These macros are used for historical purposes. */
 #define lower_any_c99_expr(expr)  lower_c99_expr(expr)
 
@@ -173,6 +176,9 @@ extern void lower_c99_one_time_init(void);
 extern void lower_c99_trans_unit_init(void);
 
 extern void lower_c99_init(void);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* DO_IL_LOWERING */
 #endif /* #ifndef LOWER_C99_H */

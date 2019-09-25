@@ -22,6 +22,8 @@ const_ints.h -- Declarations related to manipulation of target integer
 #include "il.h"
 #endif /* ifndef IL_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 /* Do a signed right shift of an_integer_value.   If the operand is
@@ -308,6 +310,9 @@ extern a_boolean swap_bytes_in_unsigned_integer(unsigned int     bytes,
                                                 an_integer_value *value,
                                                 an_integer_value *swapped);
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef CONST_INTS_H */
 

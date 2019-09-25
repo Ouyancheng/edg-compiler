@@ -26,6 +26,9 @@ il_walk.h -- Declarations related to il_walk.c (walking the intermediate
 #include "il.h"
 #endif /* ifndef IL_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /* Type of function called to process each non-string entry.  First arg
    is the (new) pointer to the entry and second is the kind of entry. */
 typedef void an_entry_process_function(char *, an_il_entry_kind);
@@ -397,6 +400,9 @@ extern void traverse_statement(a_statement_ptr                     statement,
 extern void traverse_statement_list(
                             a_statement_ptr                     statement_list,
                             an_expr_or_stmt_traversal_block_ptr tblock);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef IL_WALK_H */
 

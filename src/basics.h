@@ -85,6 +85,32 @@ EXTERN_C_BLOCK_IN_CPP_FILE
 #endif /* ifdef __cplusplus */
 
 /*
+When the front end files are C++, the EDG code can either go into the global
+namespace or the "edg" namespace.
+*/
+#if FRONT_END_C_FILES_COMPILED_AS_CPP
+#ifndef USE_EDG_NAMESPACE
+#define USE_EDG_NAMESPACE 1
+#endif /* USE_EDG_NAMESPACE */
+#else /* !FRONT_END_C_FILES_COMPILED_AS_CPP */
+#define USE_EDG_NAMESPACE 0
+#endif /* !FRONT_END_C_FILES_COMPILED_AS_CPP */
+
+#if USE_EDG_NAMESPACE
+#define BEGIN_EDG_NAMESPACE namespace edg {
+#define END_EDG_NAMESPACE }  /* edg */
+#define USING_NAMESPACE_EDG namespace edg{} using namespace edg;
+#else /* !USE_EDG_NAMESPACE */
+#define BEGIN_EDG_NAMESPACE /* nothing */
+#define END_EDG_NAMESPACE /* nothing */
+#define USING_NAMESPACE_EDG /* nothing */
+#endif /* USE_EDG_NAMESPACE */
+
+
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
+/*
 Determine if this is a WIN32 (e.g., Windows NT or Windows 95) system.
 */
 #ifndef EDG_WIN32
@@ -343,10 +369,14 @@ no such header is available, provide typedefs for the selected fixed size
 integral types.
 */
 #if USE_STDINT_HEADER
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include <stdint.h>
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 #else /* !USE_STDINT_HEADER */
 #if USE_INT_TYPES_HEADER
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include <inttypes.h>
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 #else /* !USE_INT_TYPES_HEADER */
 #if !SUPPRESS_DEFINITION_OF_STDINT_TYPES
 #ifndef EDG_INT8_T
@@ -385,7 +415,9 @@ typedef EDG_UINT32_T uint32_t;
    of a pointer.  Furthermore, Microsoft defines the uintptr_t type in a header
    (vadefs.h) other than <stdint.h> or <inttypes.h>.  So we just include that
    header here to avoid conflicts. */
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include "vadefs.h"
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 #else /* !__MSC__ */
 #ifndef EDG_UINTPTR_T
 #define EDG_UINTPTR_T unsigned long
@@ -439,9 +471,11 @@ Type to be used for bit fields.
 typedef unsigned int a_bit_field;
 
 #if __ANSIC__
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include <limits.h>
 /*lint -e(451) */
 #include <stddef.h>
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 /* sizeof_t is used instead of size_t within the front end.  It is the same
    as size_t except on systems where that is too small, e.g., it's 16 bits.
    true_size_t is the true underlying size_t. 
@@ -489,6 +523,8 @@ typedef ptrdiff_t a_ptrdiff;
 #ifdef __GNUC__
 /* Using gcc without a conforming ANSI/ISO C library or headers.  Assume
    we have stddef.h anyway. */
+/* FIXME: the include needs to be removed or some other change made. */
+#error we should not get here when using C++
 #include <stddef.h>
 typedef size_t true_size_t;
 #else /* !defined(__GNUC__) */
@@ -510,7 +546,9 @@ typedef true_size_t
 typedef int     a_ptrdiff;
 #endif /* __ANSIC__ */
 
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include <stdio.h>
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 #if __BSD__
 /* Some stdio.h's do not define sprintf.  This declaration will be included
    if NEED_SPRINTF_DECL is TRUE. */
@@ -529,21 +567,29 @@ EXTERN_C char *sprintf(char *, const char *, ...);
 
 #if __ANSIC__ || defined(__cplusplus)
 #define STDLIB_H_INCLUDED TRUE
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include <stdlib.h>
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 #endif /* __ANSIC__ || defined(__cplusplus) */
 
 /* String and block routines: */
 #if __ANSIC__
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include <string.h>
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 #define memzero(dest, nbytes) memset(dest, 0, nbytes)
 #else /* !__ANSIC__ */
 #if __SYSV__
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include <string.h>
 #include <memory.h>
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 #define memzero(dest, nbytes) memset(dest, 0, nbytes)
 #else /* !__SYSV__ */
 #if __BSD__
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include <strings.h>
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 /* Remap string and block functions that do not appear in BSD C. */
 #if USING_ISO_C
 typedef void bcopy_bzero_return_type;
@@ -578,7 +624,9 @@ extern void * memcpy (void *, const void *, size_t);
 #ifdef __sun
 /* SunOS 4.1.x uses the __BSD__ flag, but should use the System V-like
 strchr and strrchr routines. */
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include <string.h>
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 #else /* ifndef __sun */
 #define strchr(str, c) index(str, c)
 #define strrchr(str, c) rindex(str, c)
@@ -587,8 +635,10 @@ strchr and strrchr routines. */
 #endif /* __SYSV__ */
 #endif /* __ANSIC__ */
 
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 /* Character classification. */
 #include <ctype.h>
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 
 /*
 EXTERN is defined usually as "extern"; in the translation unit that
@@ -1035,7 +1085,9 @@ define a version that will work for self-compilation.
    reset them here. */
 #ifdef __GNUC__
 #if __GNUC__ == 3 && __GNUC_MINOR__ <= 2
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include <float.h>
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 #if LDBL_MANT_DIG == 53
 #undef LDBL_MANT_DIG
 #undef LDBL_DENORM_MIN
@@ -1117,6 +1169,9 @@ that the value is indeed initialized.
 #ifdef __cplusplus
 END_EXTERN_C_BLOCK_IN_CPP_FILE
 #endif /* ifdef __cplusplus */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef BASICS_H */
 

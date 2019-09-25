@@ -154,6 +154,9 @@ a_host_fp_value isnan(a_host_fp_value x) { return isnan((long double)x); }
 #endif /* USE_SOFTFLOAT */
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 #ifdef _lint
 /*
 When using lint, just use versions of is_finite and is_NaN that won't cause
@@ -3797,6 +3800,9 @@ Initialize static variables related to float_pt.c.
   long_double_is_double = TRUE;
 #endif /* FP_HAS_LONG_DOUBLE */
 }  /* float_pt_init */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

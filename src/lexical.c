@@ -49,6 +49,9 @@ and parsing of them into tokens.
 #include "ms_metadata.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Macro that returns TRUE if tok is tok_uuid.
 */
@@ -23777,6 +23780,9 @@ the point at which the compilation was terminated.
 }  /* lexical_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

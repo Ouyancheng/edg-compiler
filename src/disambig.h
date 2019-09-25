@@ -18,6 +18,9 @@ disambig.h -- Declarations related to disambig.c (having to with
 #ifndef DISAMBIG_H
 #define DISAMBIG_H 1
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Type of the bit vector used to pass flags into the disambiguation routines.
 */
@@ -82,6 +85,10 @@ extern a_boolean elaborated_cli_typeid_next(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 
 extern void prescan_lambda_parameter_clause(struct a_decl_parse_state *dps);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
+
 #endif /* DISAMBIG_H */
 
 /******************************************************************************

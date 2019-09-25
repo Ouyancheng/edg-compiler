@@ -22,6 +22,9 @@ macro.h -- Declarations relating to macro.c (having to do with macro
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Data structure used to build a list of local variables that point into
 the curr_source_line data structure.  Such variables need to be updated if
@@ -197,6 +200,9 @@ extern void macro_cleanup(void);
              strncmp(buf, "__VA_OPT__", sizeof("__VA_OPT__")-1) == 0) { \
     pos_error(ec_VA_OPT_not_allowed, &error_position);                  \
   }  /* if */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* MACRO_H */
 

@@ -18,6 +18,9 @@ fe_init.h -- Declarations relating to fe_init.c (having to do with
 #ifndef FE_INIT_H
 #define FE_INIT_H 1
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 #if STANDALONE_UTILITY_PROGRAM
 extern void standalone_utility_early_init(void);
 extern void standalone_utility_late_init(void);
@@ -36,6 +39,9 @@ extern void fe_translation_unit_init(void);
 #endif /* STANDALONE_UTILITY_PROGRAM */
 
 extern void initialize_opname_names(void);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef FE_INIT_H */
 

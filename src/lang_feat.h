@@ -17,6 +17,9 @@ lang_feat.h -- Definition of source language features to be accepted.
 #ifndef LANG_FEAT_H
 #define LANG_FEAT_H 1
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Flag that is TRUE to allow the AT&T extensions to ANSI C preprocessing,
 i.e., #assert, #unassert, and the use of assertions in #if expressions.
@@ -2703,6 +2706,9 @@ enabled.
 #ifdef MULTIPLE_DEFAULT_DIALECTS_SET
  #error -- Cannot set multiple exclusive dialects as defaults
 #endif /* ifdef MULTIPLE_DEFAULT_DIALECTS_SET */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef LANG_FEAT_H */
 

@@ -18,6 +18,9 @@ scope_stk.h - Declarations related to management of the scope stack and
 #ifndef SCOPE_STK_H
 #define SCOPE_STK_H 1
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Forward declarations needed:
 */
@@ -2477,6 +2480,9 @@ Microsoft compilers fixed this.)
    microsoft_version < 1900 &&                                               \
    (scope_stack_top().is_rescan ||                                           \
     scope_stack_top().function_partial_instantiation))
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef SCOPE_STK_H */
 

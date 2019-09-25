@@ -29,6 +29,9 @@ overload.c -- Expression processing overload resolution.
 #include "decl_inits.h"
 #include "interpret.h"
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /* Forward declarations required because of out-of-order references. */
 static void free_candidate_function_list(a_candidate_function_ptr cfp);
 static void try_conversion_function_match(
@@ -27532,6 +27535,8 @@ These are initializations that must be redone for each compilation.
   avail_substitution_stack_entries = NULL;
 }  /* overload_init */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

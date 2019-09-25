@@ -20,6 +20,9 @@ extasm.h -- Declarations related to extasm.c (having to do with
 
 #if GNU_EXTENSIONS_ALLOWED
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 extern a_named_register name_to_register(a_const_char *name);
 
 extern an_asm_operand_ptr asm_operands_spec(a_boolean *seen_tok_colon_colon,
@@ -33,6 +36,9 @@ extern a_label_list_ptr asm_labels_spec(a_boolean *seen_tok_colon_colon);
 extern void validate_operands_and_clobbers(an_asm_entry_ptr  asm_entry);
 
 extern void extasm_one_time_init(void);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 

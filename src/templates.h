@@ -29,6 +29,9 @@ templates.h -- Declarations relating to templates.c (template support)
 #endif /* ifndef DECLS_H */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Flags used to specify options to the template declaration processing routines.
 */
@@ -1274,6 +1277,9 @@ extern a_hash_value hash_substitution(a_symbol_ptr        template_sym,
 
 extern a_boolean compare_substituted_type_list_entry(a_void_ptr	entry,
 						     a_void_ptr	key);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 #endif /* TEMPLATES_H */
 
 /******************************************************************************

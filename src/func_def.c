@@ -37,6 +37,9 @@ func_def.c -- Processing for function definitions (both user supplied and
 #include "statements.h"
 #include "layout.h"
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /* Forward declaration: */
 static void define_special_member_function(a_routine_ptr rout_ptr);
 
@@ -4267,6 +4270,8 @@ is set to TRUE.
   return cdp;
 }  /* get_coroutine_descr */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

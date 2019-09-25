@@ -18,6 +18,9 @@ decls.h -- Declarations related to decls.c (having to do with scanning
 #ifndef DECLS_H
 #define DECLS_H 1
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Kinds of linkage, meaning whether or not an identifier declared in
 a certain way is linked to (the same as) some other like-named identifier
@@ -1747,6 +1750,9 @@ extern void decls_init(void);
 #if DEBUG
 unsigned long show_decl_space_used(void);
 #endif /* DEBUG */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* DECLS_H */
 

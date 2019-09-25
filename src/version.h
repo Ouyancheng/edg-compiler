@@ -15,6 +15,9 @@ version.h -- Front end version number.
 #ifndef VERSION_H
 #define VERSION_H 1
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Definition of the version number of this version.  It is made a separate
 file to make updates easy.
@@ -53,6 +56,8 @@ EXTERN a_const_char
 #endif /* VAR_INITIALIZERS */
                                       ;
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef VERSION_H */
 

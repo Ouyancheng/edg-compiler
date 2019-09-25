@@ -21,10 +21,6 @@ Prelink utility for template instantiation.
 #endif /* STDLIB_H_INCLUDED */
 #include <stdio.h>
 #include <ctype.h>
-#include "host_envir.h"
-#include "targ_def.h"
-#include "edg_prelink.h"
-#include "decode.h"
 #include <errno.h>
 
 #if __MICROSOFT_OS__
@@ -40,11 +36,21 @@ Prelink utility for template instantiation.
 #include <unistd.h>
 #endif /* __MICROSOFT_OS__ */
 
-
 #if defined(__SUNPRO_CC) && __BSD__
 /* The SunOS 4.1.3 Sun CC header files do not define the system function. */
-extern "C" int system(const char *);
+EXTERN_C int system(const char *);
 #endif /* defined(__SUNPRO_CC) && __BSD__ */
+
+/*
+If the EDG namespace is being used, make the names from the namespace
+visible.
+*/
+USING_NAMESPACE_EDG
+
+#include "host_envir.h"
+#include "targ_def.h"
+#include "edg_prelink.h"
+#include "decode.h"
 
 /*
 The type of the pointer passed to realloc.  This is usually void* on ANSI

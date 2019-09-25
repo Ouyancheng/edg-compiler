@@ -27,6 +27,9 @@ il_alloc.c -- Allocation of intermediate language entries.
 #include "pch.h"
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 #if DEBUG
 #if !STANDALONE_UTILITY_PROGRAM
 /*
@@ -6401,6 +6404,8 @@ initializations that are done for each compilation.
 #endif /* CHECKING */
 }  /* il_alloc_init */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

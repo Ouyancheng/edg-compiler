@@ -26,6 +26,9 @@ il_file.h -- Definitions related to the intermediate language file.
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /* String written at the start of an il file.  This is checked on the
    reading end.  The current IL version number is inserted in place of the
    "%s". */
@@ -62,6 +65,9 @@ file-scope entry number in an encoded IL entry number.
 */
 #define FUNC_ENTRY_NUMBER_BIT ((unsigned long)LONG_MAX+1)
 #endif /* ALTERNATE_IL_FILE_FORMAT */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 

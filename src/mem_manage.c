@@ -23,6 +23,7 @@ mem_manage.c -- Memory management routines.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 #ifndef STDLIB_H_INCLUDED
+/* FIXME: These should be removed */
 #if __BSD__
 extern char *malloc(unsigned size);
 extern int free(char *); /* int to match old-style definition. */
@@ -42,6 +43,9 @@ extern char *realloc(char *ptr, unsigned size);
 #if !STANDALONE_UTILITY_PROGRAM
 #include "pch.h"
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
 
 /*
 Structure used to maintain a list of memory allocations.  This is used
@@ -2185,6 +2189,9 @@ very end of processing.
 }  /* mem_manage_wrapup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

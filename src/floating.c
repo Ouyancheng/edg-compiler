@@ -29,6 +29,9 @@ floating.c -- convert decimal strings to binary values and vice versa.
 #include <string.h>
 #include "floating.h"
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 The routines contained herein implement floating-point decimal-to-binary and
 binary-to-decimal conversions based on the techniques described in the
@@ -2681,28 +2684,38 @@ float_type.h with one of FPT_FLOAT, FPT_DOUBLE, or FPT_LONG_DOUBLE defined
 to indicate the desired floating-point routines.
 */
 #define FPT_FLOAT
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include "float_type.h"
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 #undef FPT_FLOAT
 
 #define FPT_DOUBLE
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include "float_type.h" /*lint !e451 included more than once. */
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 #undef FPT_DOUBLE
 
 #if FP_HAS_LONG_DOUBLE
 #define FPT_LONG_DOUBLE
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include "float_type.h" /*lint !e451 included more than once. */
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 #undef FPT_LONG_DOUBLE
 #endif /* FP_HAS_LONG_DOUBLE */
 
 #if FLOAT80_ENABLING_POSSIBLE
 #define FPT_FLOAT80
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include "float_type.h" /*lint !e451 included more than once. */
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 #undef FPT_FLOAT80
 #endif /* FLOAT80_ENABLING_POSSIBLE */
 
 #if FLOAT128_ENABLING_POSSIBLE
 #define FPT_FLOAT128
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include "float_type.h" /*lint !e451 included more than once. */
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 #undef FPT_FLOAT128
 #endif /* FLOAT128_ENABLING_POSSIBLE */
 
@@ -2730,6 +2743,9 @@ Do one-time initialization of variables related to floating-point.
 #endif /* FLOAT128_ENABLING_POSSIBLE */
   floating_init_called = TRUE;
 }  /* floating_one_time_init */
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
 

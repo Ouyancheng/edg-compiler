@@ -42,6 +42,9 @@ expr.c -- Expression scanning routines.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #include "statements.h"
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /* Forward declarations. */
 static void fix_up_dynamic_init_dtors(void);
 static a_boolean cast_type_pre_check(
@@ -48668,6 +48671,8 @@ cases the selector is returned via bound_function_selector).
   }  /* if */
 }  /* rescan_fold_expression */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -47,6 +47,12 @@ Changed to C++ front end and enhanced by
 #include "cp_gen_be.h"
 #endif /* BACK_END_IS_CP_GEN_BE */
 
+/*
+Note that the EDG namespace is not opened here.  Instead we do a
+using-directive if the EDG code is in the edg namespace
+*/
+USING_NAMESPACE_EDG
+
 
 static DOES_NOT_RETURN cfe_main(int argc, char *argv[])
 /*
@@ -202,7 +208,6 @@ status is returned to the caller.
   return exit_status;
 #endif /* !MAKE_FRONT_END_CALLABLE */
 }  /* EDG_MAIN */
-
 
 /******************************************************************************
 *                                                             \  ___  /       *

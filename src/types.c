@@ -38,6 +38,9 @@ types.c -- Utility routines that check types.
 #include "il_walk.h"
 #include "trans_corresp.h"
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /*
 Macros defining some basic classes of types (see 3.1.2.5).  Defined as
 macros to avoid many levels of function calls in evaluating these
@@ -16472,6 +16475,8 @@ conventions of Microsoft's bit-field allocation scheme.
   return compat;
 }  /* compatible_ms_bit_field_container_types */
 
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

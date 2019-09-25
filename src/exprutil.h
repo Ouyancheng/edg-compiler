@@ -27,6 +27,9 @@ exprutil.h -- Declarations related to expression parsing.
 #include "decls.h"
 #endif /* ifndef DECLS_H */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 /* Include of overload.h comes later. */
 
 /*
@@ -733,7 +736,9 @@ typedef int a_transformation_options_set;
 /* Include overload.h after an_operand has been defined to avoid circular
    reference problems. */
 #ifndef OVERLOAD_H
+END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include "overload.h"
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 #endif /* ifndef OVERLOAD_H */
 
 /*
@@ -3042,6 +3047,9 @@ extern void expr_one_time_init(void);
 extern void expr_trans_unit_init(void);
 
 extern void expr_init(void);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #endif /* ifndef EXPRUTIL_H */
 
