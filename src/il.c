@@ -1,5 +1,3 @@
-class not_compiled_in_cpp_yet {}; // FIXME
-void f(class not_compiled_in_cpp_yet){} // FIXME
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
