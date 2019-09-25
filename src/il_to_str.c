@@ -4908,6 +4908,7 @@ it represents a backing expression for the floating-point constant value.
         (rp = expr->variant.operation.operands->variant.routine.ptr,
          arg = expr->variant.operation.operands->next,
          is_gnu_builtin_function(rp) &&
+         arg != NULL &&
          is_constant_node(arg) &&
          node_constant(arg)->kind == (a_constant_repr_kind)ck_address &&
          (string_con = node_constant(arg)->variant.address.variant.constant,
