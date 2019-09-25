@@ -28307,7 +28307,8 @@ does not find a usable best candidate, or if that overload does not produce a
   } else {
     a_symbol_ptr   sym = candidates->function_symbol;
     check_assertion(sym != NULL);
-    if (!have_access_to_symbol_full(sym, /*ignore_func_templ=*/FALSE)) {
+    if (sym->is_class_member &&
+        !have_access_to_symbol_full(sym, /*ignore_func_templ=*/FALSE)) {
       result = TRUE;
     } else {
       a_routine_ptr  rp;

@@ -5139,17 +5139,20 @@ may be NULL.
 
 static a_boolean already_on_candidates_list(
                                   a_symbol_ptr             function_symbol,
-                                  a_candidate_function_ptr candidate_functions)
+                                  a_candidate_function_ptr candidate_functions,
+                                  a_boolean                reversed_candidate)
 /*
 Return TRUE if the indicated function already appears on the candidate
-functions list.
+functions list.  "reversed_candidate" is TRUE if we are considering a
+candidate (comparison) function with implicitly reversed argument lists.
 */
 {
   a_boolean                on_list = FALSE;
   a_candidate_function_ptr cfp;
 
   for (cfp = candidate_functions; cfp != NULL; cfp = cfp->next) {
-    if (same_function(cfp->function_symbol, function_symbol)) {
+    if (same_function(cfp->function_symbol, function_symbol) &&
+        cfp->supplemental_reversed_candidate == reversed_candidate) {
       on_list = TRUE;
       break;
     }  /* if */
@@ -5501,7 +5504,8 @@ in a new-expression).
     a_boolean invisible_because_explicit;
     a_boolean invisible_because_post_decl;
     if (already_on_candidates_list(proj_function_symbol,
-                                   *candidate_functions)) {
+                                   *candidate_functions,
+                                   ovl_context == oc_reversed_cmp_candidate)) {
       /* The function has already been found to be a viable candidate,
          so don't examine it again.  This is presumably because it shows
          up on the symbol list more than once, perhaps once for direct
@@ -6164,6 +6168,10 @@ accept_function:
     candidate->is_user_conversion = TRUE;
     /* coverity[uninit_use] */
     if (!function_template_case) candidate->conversion.routine = routine;
+  }  /* if */
+  if (ovl_context == oc_reversed_cmp_candidate) {
+    a_candidate_function_ptr candidate = *candidate_functions;
+    candidate->supplemental_reversed_candidate = TRUE;
   }  /* if */
 #if BACK_END_IS_CP_GEN_BE
   if (from_arg_dep_lookup) {
@@ -17283,8 +17291,7 @@ find_more_operator_candidates:
         instantiate_template_class(eff_operand_1_type);
       }  /* if */
       member_functions_symbol = opname_member_function_symbol(
-                                  kind,
-                                        skip_typerefs(eff_operand_1_type));
+                                  kind, skip_typerefs(eff_operand_1_type));
       if (member_functions_symbol != NULL) {
         /* There are member functions for this class type.  See how well
            they match up. */
@@ -17469,6 +17476,10 @@ find_more_operator_candidates:
           *p_defer_resolution = TRUE;
           break;
         } else {
+          an_overload_context  ovl_context = oc_default;
+          if (find_reversed_candidates) {
+            ovl_context = oc_reversed_cmp_candidate;
+          }  /* if */
           try_overloaded_function_match(
                                      nonmember_functions_symbol,
                                      /*is_template_id=*/FALSE,
@@ -17489,7 +17500,7 @@ find_more_operator_candidates:
                                      /*ignore_templates=*/FALSE,
                                      /*known_to_be_visible=*/FALSE,
                                      /*is_overloaded_operator=*/TRUE,
-                                     CCO_DEFAULT, oc_default,
+                                     CCO_DEFAULT, ovl_context,
                                      &candidate_functions,
                                      p_inaccessible_match,
                                      &matched_except_for_missing_selector,
