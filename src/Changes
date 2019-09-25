@@ -3,10 +3,10 @@ Version 6.0
 9/24/19  [EDGcpfe/21587]
 Minor changes to handling of comparison operators
 
-The C++ standardization made some changes to the way comparison operators are
-handled through its paper P1630R1.  The changes for EDGcpfe/20014 (see entry
-of 6/14/19) anticipated some of those changes, but not all.  The front end now
-more closely implements P1630R1.  For example:
+The C++ standardization committee made some changes to the way comparison
+operators are handled through its paper P1630R1.  The changes for EDGcpfe/20014
+(see entry of 6/14/19) anticipated some of those changes, but not all.  The
+front end now more closely implements P1630R1.  For example:
 
   #include <compare>
   struct S {

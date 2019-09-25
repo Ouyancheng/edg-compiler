@@ -28108,8 +28108,6 @@ as "0 <=> operator<=>(y, x)".
     make_error_operand(result);
   } else if (opname == (an_opname_kind)onk_eq ||
              opname == (an_opname_kind)onk_ne) {
-    /* Contextually convert *result to bool. */
-    process_boolean_controlling_expression(result);
     if (opname == (an_opname_kind)onk_ne) {
       /* Invert the result. */
       an_operand  opnd = *result;

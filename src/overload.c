@@ -17071,32 +17071,6 @@ a user-defined conversion.  This is used for a Sun-mode quirk.
 }  /* some_candidate_matches_without_user_defined_convs */
 
 
-static a_boolean drop_candidate_if_not_returning_bool(
-                                             a_candidate_function_ptr  *p_cfp)
-/*
-*p_cfp is a candidate associated with a function or function template (p_cfp
-is the address of the pointer to that candidate on the candidates list).  If
-the candidate does not have a "bool" return type, remove it from the candidates
-list and return TRUE.  Otherwise, return FALSE.
-*/
-{
-  a_boolean                 result = FALSE;
-  a_candidate_function_ptr  cfp = *p_cfp;
-  a_symbol_ptr              sym = fundamental_symbol_of(cfp->function_symbol);
-  a_routine_ptr             rp = func_sym_routine(sym);
-  a_type_ptr                rtp = skip_typerefs(rp->type);
-
-  if (!is_bool_type(rtp->variant.routine.return_type)) {
-    /* Discard this candidate. */
-    result = TRUE;
-    *p_cfp = cfp->next;
-    cfp->next = NULL;
-    free_candidate_function_list(cfp);
-  }  /* if */
-  return result;
-}  /* drop_candidate_if_not_returning_bool */
-
-
 a_candidate_function_ptr select_overloaded_operator(
                            an_opname_kind             kind,
                            a_boolean                  unary_operator,
@@ -17563,19 +17537,13 @@ find_more_operator_candidates:
         a_candidate_function_ptr  *p_cfp = &candidate_functions;
         while (*p_cfp != saved_candidate_functions) {
           a_candidate_function_ptr  cfp = *p_cfp;
-          if (kind != (an_opname_kind)onk_spaceship &&
-              cfp->function_symbol != NULL &&
-              drop_candidate_if_not_returning_bool(p_cfp)) {
-            /* The candidate was discarded. */
-          } else {
-            an_arg_match_summary_ptr  amsp = cfp->arg_matches;
-            cfp->arg_matches = amsp->next;
-            cfp->arg_matches->next = amsp;
-            amsp->next = NULL;
-            cfp->supplemental_comparison_candidate = TRUE;
-            cfp->supplemental_reversed_candidate = TRUE;
-            p_cfp = &cfp->next;
-          }  /* if */
+          an_arg_match_summary_ptr  amsp = cfp->arg_matches;
+          cfp->arg_matches = amsp->next;
+          cfp->arg_matches->next = amsp;
+          amsp->next = NULL;
+          cfp->supplemental_comparison_candidate = TRUE;
+          cfp->supplemental_reversed_candidate = TRUE;
+          p_cfp = &cfp->next;
         }  /* while */
         arg_list = reverse_init_component_list(arg_list);
         kind = orig_kind;
@@ -17589,14 +17557,8 @@ find_more_operator_candidates:
           a_candidate_function_ptr  *p_cfp = &candidate_functions;
           while (*p_cfp != saved_candidate_functions) {
             a_candidate_function_ptr  cfp = *p_cfp;
-            if (kind != (an_opname_kind)onk_spaceship &&
-                cfp->function_symbol != NULL &&
-                drop_candidate_if_not_returning_bool(p_cfp)) {
-              /* The candidate was discarded. */
-            } else {
-              cfp->supplemental_comparison_candidate = TRUE;
-              p_cfp = &cfp->next;
-            }  /* if */
+            cfp->supplemental_comparison_candidate = TRUE;
+            p_cfp = &cfp->next;
           }  /* while */
         }  /* if */
         arg_list = reverse_init_component_list(arg_list);
@@ -18315,11 +18277,24 @@ no_applicable_operator_function:
                 /* A candidate was selected that represents a rewrite of a
                    comparison operator.  Another operation has to be applied
                    to the result. */
-                a_boolean  reversed = candidate_functions
+                a_symbol_ptr   sym = fundamental_symbol_of(
+                                        candidate_functions->function_symbol);
+                a_routine_ptr  rp = func_sym_routine(sym);
+                a_type_ptr     rtp = skip_typerefs(rp->type);
+                if (!is_bool_type(rtp->variant.routine.return_type) &&
+                    (opname_is_eq_op(kind) || opname_is_rel_op(kind))) {
+                  if (expr_error_should_be_issued()) {
+                    pos_sy_error(ec_cmp_operator_does_not_return_bool,
+                                 operator_position, sym);
+                  }  /* if */
+                  conv_to_error_operand(result);
+                } else {
+                  a_boolean  reversed = candidate_functions
                                             ->supplemental_reversed_candidate;
-                complete_comparison_rewrite(orig_kind, call_node,
-                                            operator_tok_seq_number,
-                                            result, reversed);
+                  complete_comparison_rewrite(orig_kind, call_node,
+                                              operator_tok_seq_number,
+                                              result, reversed);
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */

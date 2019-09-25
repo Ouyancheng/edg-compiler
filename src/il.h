@@ -558,11 +558,20 @@ Macros to test for relational operators.
   (opname_is_rel_op((rp)->variant.opname_kind))
 
 /*
+Macros to test for equality operators.
+*/
+#define opname_is_eq_op(opkind)                                             \
+  ((opkind) == (an_opname_kind)onk_eq ||                                    \
+   (opkind) == (an_opname_kind)onk_ne)
+
+#define opname_kind_is_eq_op(rp)                                           \
+  (opname_is_eq_op((rp)->variant.opname_kind))
+
+/*
 Macro to test for comparison operators.
 */
 #define opname_is_comparison(opkind)                                        \
-  ((opkind) == (an_opname_kind)onk_eq ||                                    \
-   (opkind) == (an_opname_kind)onk_ne ||                                    \
+  (opname_is_eq_op(opkind) ||                                               \
    opname_is_rel_op(opkind) ||                                              \
    (opkind) == (an_opname_kind)onk_spaceship)
 

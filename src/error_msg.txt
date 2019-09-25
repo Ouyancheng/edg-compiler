@@ -3100,6 +3100,7 @@ ec_ext_vector_type_not_in_typedef;;"the \"ext_vector_type\" attribute may appear
 ec_ext_vector_type_requires_integral_floating_type;;"the \"ext_vector_type\" attribute applies only to integer or floating-point types"
 ec_feature_test_macro_ignored;;"this feature-test macro is ignored (and returns 0) in the current compilation mode"
 ec_constexpr_multiple_union_initializers;;"cannot evaluate an aggregate initializer with multiple elements for a union"
+ec_cmp_operator_does_not_return_bool;;"%nd selected for operator rewrite does not return type bool"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
