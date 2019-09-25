@@ -403,7 +403,7 @@ Copy constructor.
   this->n_allocated = (a_size)allocation.n_allocated;
   /* Copy-construct the elements from the source into the newly-allocated
      storage. */
-  an_elem  *dst_elems = this->elems, *src_elems = src.elems;
+  an_elem  *src_elems = src.elems;
   a_size   n = this->n_elems;
 
   for (a_size k = 0; k < n; ++k) {
@@ -677,7 +677,7 @@ inline auto Owning_ptr<an_Object, a_Deallocator>::operator=(a_nullptr)
                                                   -> Owning_ptr&
 /*
 Destroy and deallocate the pointed-to object, if any.  Then, set the owning
-pointer to a nill value.
+pointer to a null value.  Return *this.
 */
 {
   an_Object  *p = this->ptr;
@@ -688,6 +688,7 @@ pointer to a nill value.
     this->dealloc(an_allocation{ p, 1 });
     this->ptr = NULL;
   }  /* if */
+  return *this;
 }  /* Owning_ptr::operator= */
 
 
@@ -1236,7 +1237,8 @@ FIXME: Should move to namespace edg after CACHE_LINE_SIZE is moved to
        host_envir.h.
 */
 {
-  return (an_Object*)(((a_uintptr)p+CACHE_LINE_SIZE-1) & -CACHE_LINE_SIZE);
+  return (an_Object*)
+             (((a_uintptr)p+CACHE_LINE_SIZE-1) & (a_uintptr)-CACHE_LINE_SIZE);
 }  /* align_to_cache_line */
 
 
@@ -1852,7 +1854,7 @@ Release the storage for the map.
   an_index  mask_width = count_ones(mask);
 
   for (an_index k = 0; k<n_slots; ++k) {
-    if (table[k].ptr != a_key()) table[k].value.~a_value();
+    if (table[k].ptr != a_key()) destroy(&table[k].value);
   }  /* for */
   if (mask_width > MAX_WIDTH_REUSABLE_PTR_MAP_TABLE) {
     free_general(this->table, size);
@@ -2025,7 +2027,7 @@ Remove the given key from the table (it must exist).
 {
   a_uintptr  hash = hash_ptr(key);
   an_index   mask = this->hash_mask;
-  an_index   idx = hash & mask, idx0 = idx;
+  an_index   idx = hash & mask;
   an_entry   *table = this->table;
 
   check_traced_key_ptr(key, "UNmapped");
@@ -2035,7 +2037,7 @@ Remove the given key from the table (it must exist).
   }  /* while */
   /* Delete the entry. */
   table[idx].ptr = a_key();
-  table[idx].value.~a_value();
+  destroy(&table[idx].value);
   /* If the next slot is empty, we're done.  Otherwise, we may have to */
   /* move another element into the emptied slot. */
   if (table[(idx+1) & mask].ptr != a_key()) {
@@ -2162,6 +2164,7 @@ we know that the subsequent slot is not empty.
           (idx0 >= ridx && idx < ridx) ||
           (idx0 < idx && idx < ridx)) {
         /* idx0 is in [ridx, idx-1]: Move the entry. */
+        break;
       } else {
         idx = (idx+1) & mask;
         rptr = table[idx].ptr;
