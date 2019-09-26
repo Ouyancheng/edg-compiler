@@ -24,7 +24,6 @@ util.h -- General utility components (mostly templates).
 BEGIN_EDG_NAMESPACE
 
 typedef uintptr_t a_uintptr;
-typedef decltype((int*)2-(int*)1) a_ptrdiff;
 
 typedef decltype(nullptr) a_nullptr;
 
