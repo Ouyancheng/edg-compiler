@@ -1339,10 +1339,10 @@ extended asm statements.
   }  /* if */
 }  /* extasm_one_time_init */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
-
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 /******************************************************************************
 *                                                             \  ___  /       *
