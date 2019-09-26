@@ -2218,8 +2218,8 @@ properly (see floating.h).
 END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 BEGIN_EXTERN_C_BLOCK
 #include "softfloat.h"
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 END_EXTERN_C_BLOCK
+BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 
 /*
 Use SoftFloat's float128_t type as the host's floating-point internal
