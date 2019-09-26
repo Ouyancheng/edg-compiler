@@ -21473,10 +21473,11 @@ Initialize for the C++/C-generating back end.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 }  /* init_cp_gen_be */
 
+#if STANDALONE_CP_GEN_BE
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 
-#if STANDALONE_CP_GEN_BE
 /*
 The "main" routine must be outside of the EDG namespace, so do a
 using-directive to make the EDG names visible.
@@ -21546,10 +21547,10 @@ from the primary source file name in the IL information.
   return 0;  /* Not reached; here to make lint et al. happy. */
 }  /* main */
 
-#else /* !STANDALONE_CP_GEN_BE */
-
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
+
+#else /* !STANDALONE_CP_GEN_BE */
 
 void back_end(void)
 /*
