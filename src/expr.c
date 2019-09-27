@@ -7600,7 +7600,7 @@ qualified_name_check:
                                     /*update_il_entry=*/FALSE);
           }
         }  /* if */
-      } else if (constexpr_enabled &&
+      } else if (constexpr_enabled && !constexpr_dynamic_alloc_enabled &&
                  is_dtor_like_locator(locator_for_curr_id) &&
                  !locator_for_curr_id.is_vacuous_destructor_reference &&
                  construct_not_allowed_in_cpp11_constant_expr(

@@ -8712,8 +8712,15 @@ otherwise, return FALSE and update *ips accordingly.
       goto done;
     }  /* if */
     cap = (a_constexpr_address*)pre_evaluated_this_bytes;
-    result = do_constexpr_dtor(ips, callee, &call_node->position,
-                               cap->address, cap->complete_object);
+    if (is_runtime_data_address(cap)) {
+      info_with_pos(ec_constexpr_access_to_runtime_storage,
+                    &selector_arg->position, ips);
+      do_constexpr_fail(result);
+      goto done;
+    } else {
+      result = do_constexpr_dtor(ips, callee, &call_node->position,
+                                 cap->address, cap->complete_object);
+    }  /* if */
     mark_subobject_uninitialized(cap->address, cap->complete_object);
     unmark_complete_object_initialized(cap->complete_object);
     goto done;
