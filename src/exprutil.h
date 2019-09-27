@@ -2793,6 +2793,14 @@ extern void build_binary_result_operand(an_operand            *operand_1,
 				        a_type_ptr            type,
 	       			        an_operand            *result);
 
+extern void build_question_result_operand(an_operand  *operand_1,
+                                          an_operand  *operand_2,
+                                          an_operand  *operand_3,
+                                          a_type_ptr  result_type,
+                                          a_boolean   result_is_an_lvalue,
+                                          a_boolean   is_gnu_two_operand_form,
+                                          an_operand  *result);
+
 extern a_boolean check_integral_or_enum_operand(an_operand *operand);
 
 extern a_boolean check_integral_or_enum_or_fixed_point_operand(

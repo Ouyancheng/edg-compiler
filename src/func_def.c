@@ -3955,7 +3955,8 @@ its associated scope is also given.
            } while (++tmp < num_elements);
          Note that comparing multidimensional arrays is done as a single loop
          for all the elements, treating the array as a single-dimensional array
-         of the ultimate underlying element type. */
+         of the ultimate underlying element type.  Also, in some cases, the
+         <=> operator above may be implemented in terms of == and <. */
       a_variable_ptr    temp_var;
       an_expr_node_ptr  temp_node, temp_incr_node, compare_node;
       a_type_ptr        size_t_type = integer_type(targ_size_t_int_kind);
@@ -4006,11 +4007,11 @@ its associated scope is also given.
       }  /* if */
     }  /* if */
   }  /* for */
-  /* Make the final "return (R)std::strong_ordering::equal;" statement. */
+  /* Make the final return statement, which returns "equal" or "equivalent". */
   sp->next = alloc_statement((a_statement_kind)stmk_return);
   sp = sp->next;
   sp->parent = top_block;
-  make_std_strong_ordering_equal_return(rtp, sp);
+  make_defaulted_final_spaceship_return(rtp, sp);
   /* We now have a list of one or more statements hanging off the local
      variable head_of_statement_list.  The start of the list is pointed to
      by the next field.  Attach the list to the top-level block. */

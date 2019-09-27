@@ -20994,8 +20994,9 @@ static void mark_suppressed_defaulted_members_as_deleted(
                                a_type_ptr                          class_type,
                                a_generated_special_function_descr  *gsfd)
 /*
-Mark any defaulted members of the given class type as deleted if *gsfd
-indicates that they should be suppressed.
+Mark any defaulted special members of the given class type as deleted if *gsfd
+indicates that they should be suppressed.  Also, mark defaulted comparison
+operators as deleted if appropriate.
 */
 {
   a_class_type_supplement_ptr
@@ -23609,14 +23610,21 @@ declared, declare one that matches the spaceship operator.
   /* This function shouldn't be called if a defaulted spaceship operator was
      not declared in the class definition. */
   check_assertion(srp != NULL);
-  if (srp->has_deducible_return_type && !srp->has_deduced_return_type) {
-    a_type_ptr  tp = skip_typerefs(srp->type),
-                auto_tp = skip_typerefs(tp->variant.routine.return_type);
-    if (!is_auto_type(auto_tp) ||
-        auto_tp->variant.template_param.extra_info->coordinates.position
+  if (srp->has_deducible_return_type) {
+    if (!srp->has_deduced_return_type) {
+      a_type_ptr  tp = skip_typerefs(srp->type),
+                  auto_tp = skip_typerefs(tp->variant.routine.return_type);
+      if (!is_auto_type(auto_tp) ||
+          auto_tp->variant.template_param.extra_info->coordinates.position
                                               != PLAIN_AUTO_TYPE_POS_NUMBER) {
-    } else {
-      determine_defaulted_spaceship_return_type(srp, class_type);
+      } else {
+        determine_defaulted_spaceship_return_type(srp, class_type);
+      }  /* if */
+    }  /* if */
+  } else {
+    if (nondeduced_generated_spaceship_is_deleted(srp, class_type)) {
+      srp->is_deleted = TRUE;
+      srp->defined = TRUE;
     }  /* if */
   }  /* if */
   if (erp == NULL) {
@@ -30391,8 +30399,8 @@ wrap_up_class_definition.
                      &fp->source_corresp.decl_position);
       if (strict_ansi_error_severity == es_error) {
         fp->type = error_type();
-        class_type->variant.class_struct_union.
-                                    contains_flexible_array_member = FALSE;
+        class_type->variant.class_struct_union
+                           .contains_flexible_array_member = FALSE;
       }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     } else if (gnu_mode && !c99_mode) {
@@ -30473,14 +30481,14 @@ wrap_up_class_definition.
     if (!class_type->variant.class_struct_union
                             .is_ms_instantiated_nonreal_class &&
         !is_template_dependent_context()) {
+      if (class_state->defaulted_spaceship) {
+        check_implicit_comparison_operators(class_state);
+      }  /* if */
       /* Create compiler-generated default constructor, copy constructor,
          destructor, and assignment operator, if any is needed. */
       check_special_member_functions(class_type, class_state);
       if (class_state->has_inheriting_constructors) {
         generate_inheriting_constructors(class_state);
-      }  /* if */
-      if (class_state->defaulted_spaceship) {
-        check_implicit_comparison_operators(class_state);
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED

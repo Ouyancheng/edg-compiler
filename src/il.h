@@ -1120,6 +1120,27 @@ extern a_type_ptr strong_equality_type(void);
 
 extern a_type_ptr weak_equality_type(void);
 
+EXTERN a_constant_ptr
+		strong_ordering_equal,
+		strong_ordering_less,
+		strong_ordering_greater,
+		weak_ordering_equivalent,
+		weak_ordering_less,
+		weak_ordering_greater,
+		partial_ordering_equivalent,
+		partial_ordering_less,
+		partial_ordering_greater,
+		partial_ordering_unordered,
+		strong_equality_equal,
+		strong_equality_nonequal,
+		weak_equality_equivalent,
+		weak_equality_nonequivalent;
+			/* The constants that initialize the constexpr static
+			   members std::strong_ordering::equal, etc. */
+
+EXTERN void initialize_ordering_constants(void);
+
+
 extern void update_ptr_to_member_type(a_type_ptr  ptr_mem_type,
                                       a_type_ptr  member_type);
 

@@ -924,6 +924,7 @@ extern a_candidate_function_ptr select_overloaded_operator(
                            a_source_position          *operator_position,
                            a_token_sequence_number    operator_tok_seq_number,
                            a_nondependent_call_depth  call_depth,
+                           a_boolean                  *p_none_viable,
                            a_boolean                  *p_dependent_call,
                            a_boolean                  *p_defer_resolution,
                            a_boolean                  *p_undecidable,
@@ -931,7 +932,7 @@ extern a_candidate_function_ptr select_overloaded_operator(
                            an_arg_list_elem_ptr       *p_arg_list,
                            a_symbol_ptr               *p_inaccessible_match);
 
-extern void check_for_operator_overloading(
+extern void f_check_for_operator_overloading(
                              an_opname_kind            kind,
                              a_boolean                 unary_operator,
                              a_boolean                 must_be_member_function,
@@ -944,7 +945,21 @@ extern void check_for_operator_overloading(
                              a_nondependent_call_depth call_depth,
                              a_source_position         *operator_position_2,
                              an_operand                *result,
+                             a_boolean                 *p_none_viable,
                              a_boolean                 *processed);
+
+#define check_for_operator_overloading(                                       \
+                       kind, unary_operator, must_be_member_function,         \
+                       try_conversions, has_predef_meaning, operand_1,        \
+                       operand_2, operator_position, operator_tok_seq_number, \
+                       call_depth, operator_position_2, result, processed)    \
+  f_check_for_operator_overloading(                                           \
+                       kind, unary_operator, must_be_member_function,         \
+                       try_conversions, has_predef_meaning, operand_1,        \
+                       operand_2, operator_position, operator_tok_seq_number, \
+                       call_depth, operator_position_2, result,               \
+                       (a_boolean*)NULL, processed)
+    
 
 extern a_boolean conversion_to_class_possible(
                           an_operand               *source_operand,

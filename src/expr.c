@@ -27857,11 +27857,13 @@ static void process_spaceship_operator(an_operand               *opnd1,
                                        an_operand               *opnd2,
                                        a_source_position        *operator_pos,
                                        a_token_sequence_number  operator_tsn,
+                                       a_boolean                *p_none_viable,
                                        an_operand               *result)
 /*
 Perform semantic analysis of a spaceship operator with the given operands and
 construct the representation of the result in *result.  operator_pos and
-operator_tsn describe the location of the operator.
+operator_tsn describe the location of the operator.  If p_none_viable is non-
+NULL, return in *p_none_viable whether no viable spaceship operator was found.
 */
 {
   a_boolean  processed = FALSE;
@@ -27869,15 +27871,15 @@ operator_tsn describe the location of the operator.
   if (is_overloadable_type_operand(opnd1) ||
       is_overloadable_type_operand(opnd2)) {
     /* Look for C++ operator overloading cases. */
-    check_for_operator_overloading((an_opname_kind)onk_spaceship,
-                                   /*unary_operator=*/FALSE,
-                                   /*must_be_member_function=*/FALSE,
-                                   /*try_conversions=*/TRUE,
-                                   /*has_predef_meaning=*/FALSE,
-                                   opnd1, opnd2, operator_pos,
-                                   operator_tsn, (a_nondependent_call_depth)0,
-                                   (a_source_position*)NULL,
-                                   result, &processed);
+    f_check_for_operator_overloading((an_opname_kind)onk_spaceship,
+                                     /*unary_operator=*/FALSE,
+                                     /*must_be_member_function=*/FALSE,
+                                     /*try_conversions=*/TRUE,
+                                     /*has_predef_meaning=*/FALSE,
+                                     opnd1, opnd2, operator_pos, operator_tsn,
+                                     (a_nondependent_call_depth)0,
+                                     (a_source_position*)NULL, result,
+                                     p_none_viable, &processed);
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
@@ -28034,7 +28036,8 @@ the resulting expression.
     scan_expr(&opnd2, PREC_EQ_NE, EOPT_NO_OPTIONS);
   }  /* if */
   process_spaceship_operator(opnd1, &opnd2, &operator_pos,
-                             operator_tok_seq_number, result);
+                             operator_tok_seq_number, 
+                             /*p_none_viable=*/(a_boolean*)NULL, result);
 }  /* scan_spaceship_operator */
 
 
@@ -28136,7 +28139,8 @@ as "0 <=> operator<=>(y, x)".
          the order of side-effects), but changing it to "(x <=> y) <=> 0" would
          be redundant. */
       check_assertion(reversed);
-      process_spaceship_operator(opnd1, opnd2, pos, tsn, result);
+      process_spaceship_operator(opnd1, opnd2, pos, tsn,
+                                 /*p_none_viable=*/(a_boolean*)NULL, result);
     } else {
       process_rel_operator(opnd1, opnd2, token_for_rel_op(opname), pos, tsn,
                            result);
@@ -28295,6 +28299,7 @@ does not find a usable best candidate, or if that overload does not produce a
                                           &opnd1, &opnd2, &error_position,
                                           curr_token_sequence_number,
                                           (a_nondependent_call_depth)0,
+                                          /*p_none_viable=*/(a_boolean*)NULL,
                                           &dependent_call, &defer_resolution,
                                           &undecidable, &ambiguous,
                                           &arg_list, &inaccessible_match);
@@ -28334,37 +28339,42 @@ A type representing comparison categories (N4810 [cmp.categories]).
 */
 /*lint -esym(753,a_comparison_category_set_tag)*/
 enum a_comparison_category_set_tag {
-  cctk_none = 0x0,
-  cctk_strong_ordering = 0x1,
-  cctk_weak_ordering = 0x2,
-  cctk_partial_ordering = 0x4,
-  cctk_strong_equality = 0x8,
-  cctk_weak_equality = 0x10,
-  cctk_other = 0x20
+  ccs_none = 0x0,
+  ccs_strong_ordering = 0x1,
+  ccs_weak_ordering = 0x2,
+  ccs_partial_ordering = 0x4,
+  ccs_strong_equality = 0x8,
+  ccs_weak_equality = 0x10,
+  ccs_other = 0x20
 };
 
 typedef int a_comparison_category_set;
+
+#define is_ordering_category(ccs)                                            \
+ (ccs == (a_comparison_category_set)ccs_strong_ordering ||                   \
+  ccs == (a_comparison_category_set)ccs_weak_ordering ||                     \
+  ccs == (a_comparison_category_set)ccs_partial_ordering)
+ 
   
-  
-static void update_common_comparison_tag(a_type_ptr                   tp,
-                                         a_comparison_category_set  *p_cctk)
+static void update_common_comparison_tag(a_type_ptr                 tp,
+                                         a_comparison_category_set  *p_ccs)
 /*
-Set in *p_cctk a flag corresponding to the comparison category type represented
+Set in *p_ccs a flag corresponding to the comparison category type represented
 by tp.
 */
 {
   if (f_identical_types(tp, strong_ordering_type(), ITF_NO_FLAGS)) {
-    *p_cctk |= (a_comparison_category_set)cctk_strong_ordering;
+    *p_ccs |= (a_comparison_category_set)ccs_strong_ordering;
   } else if (f_identical_types(tp, strong_equality_type(), ITF_NO_FLAGS)) {
-    *p_cctk |= (a_comparison_category_set)cctk_strong_equality;
+    *p_ccs |= (a_comparison_category_set)ccs_strong_equality;
   } else if (f_identical_types(tp, partial_ordering_type(), ITF_NO_FLAGS)) {
-    *p_cctk |= (a_comparison_category_set)cctk_partial_ordering;
+    *p_ccs |= (a_comparison_category_set)ccs_partial_ordering;
   } else if (f_identical_types(tp, weak_ordering_type(), ITF_NO_FLAGS)) {
-    *p_cctk |= (a_comparison_category_set)cctk_weak_ordering;
+    *p_ccs |= (a_comparison_category_set)ccs_weak_ordering;
   } else if (f_identical_types(tp, weak_equality_type(), ITF_NO_FLAGS)) {
-    *p_cctk |= (a_comparison_category_set)cctk_weak_equality;
+    *p_ccs |= (a_comparison_category_set)ccs_weak_equality;
   } else {
-    *p_cctk |= (a_comparison_category_set)cctk_other;
+    *p_ccs |= (a_comparison_category_set)ccs_other;
   }  /* if */
 }  /* update_common_comparison_tag */
 
@@ -28385,11 +28395,11 @@ actual return type and mark the routine as deleted if appropriate.
   an_operand           opnd1, opnd2, cmp_opnd;
   an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
   a_comparison_category_set
-                       cctk = (a_comparison_category_set)cctk_none;
+                       ccs = (a_comparison_category_set)ccs_none;
 
   if (class_symbol_supp(class_sym)->any_ref_member ||
       class_type_supp(class_tp)->has_anonymous_union_member) {
-    cctk |= (a_comparison_category_set)cctk_other;
+    ccs |= (a_comparison_category_set)ccs_other;
     goto set_return_type;
   }  /* if */
   check_assertion(curr_il_region_number == file_scope_region_number);
@@ -28410,12 +28420,13 @@ actual return type and mark the routine as deleted if appropriate.
     make_glvalue_from_null_ptr_constant(zero_ptr, &opnd1);
     make_glvalue_from_null_ptr_constant(zero_ptr, &opnd2);
     process_spaceship_operator(&opnd1, &opnd2, &pos_curr_token,
-                               curr_token_sequence_number, &cmp_opnd);
-    update_common_comparison_tag(cmp_opnd.type, &cctk);
+                               curr_token_sequence_number, 
+                               /*p_none_viable=*/(a_boolean*)NULL, &cmp_opnd);
+    update_common_comparison_tag(cmp_opnd.type, &ccs);
     reclaim_fs_nodes_of_operand(&cmp_opnd);
     if (expr_stack->any_suppressed_error ||
-        (cctk & (a_comparison_category_set)cctk_other)) {
-      cctk |= (a_comparison_category_set)cctk_other;
+        (ccs & (a_comparison_category_set)ccs_other)) {
+      ccs |= (a_comparison_category_set)ccs_other;
       goto done_with_subobjects;
     }  /* if */
   }  /* for */
@@ -28437,38 +28448,40 @@ actual return type and mark the routine as deleted if appropriate.
       make_glvalue_from_null_ptr_constant(zero_ptr, &opnd1);
       make_glvalue_from_null_ptr_constant(zero_ptr, &opnd2);
       process_spaceship_operator(&opnd1, &opnd2, &pos_curr_token,
-                                 curr_token_sequence_number, &cmp_opnd);
-      update_common_comparison_tag(cmp_opnd.type, &cctk);
+                                 curr_token_sequence_number,
+                                 /*p_none_viable=*/(a_boolean*)NULL,
+                                 &cmp_opnd);
+      update_common_comparison_tag(cmp_opnd.type, &ccs);
       reclaim_fs_nodes_of_operand(&cmp_opnd);
     } else {
       /* A built-in type. */
       ftp = skip_typerefs(ftp);
       switch (ftp->kind) {
         case tk_integer:
-          cctk |= (a_comparison_category_set)cctk_strong_ordering;
+          ccs |= (a_comparison_category_set)ccs_strong_ordering;
           break;
         case tk_float:
-          cctk |= (a_comparison_category_set)cctk_partial_ordering;
+          ccs |= (a_comparison_category_set)ccs_partial_ordering;
           break;
         case tk_pointer:
           if (is_pointer_to_function_type(ftp)) {
-            cctk |= (a_comparison_category_set)cctk_strong_equality;
+            ccs |= (a_comparison_category_set)ccs_strong_equality;
           } else {
-            cctk |= (a_comparison_category_set)cctk_strong_ordering;
+            ccs |= (a_comparison_category_set)ccs_strong_ordering;
           }  /* if */
           break;
         case tk_ptr_to_member:
         case tk_nullptr:
-          cctk |= (a_comparison_category_set)cctk_strong_equality;
+          ccs |= (a_comparison_category_set)ccs_strong_equality;
           break;
         default:
-          cctk |= (a_comparison_category_set)cctk_other;
+          ccs |= (a_comparison_category_set)ccs_other;
           break;
       }  /* switch */
     }  /* if */
     if (expr_stack->any_suppressed_error ||
-        (cctk & (a_comparison_category_set)cctk_other)) {
-      cctk |= (a_comparison_category_set)cctk_other;
+        (ccs & (a_comparison_category_set)ccs_other)) {
+      ccs |= (a_comparison_category_set)ccs_other;
       goto done_with_subobjects;
     }  /* if */
   }  /* for */
@@ -28478,19 +28491,19 @@ done_with_subobjects:
   restore_expr_stack(saved_expr_stack);
 set_return_type:
   /* See N4810 [class.spaceship]/3 for the following logic tree. */
-  if (cctk & (a_comparison_category_set)cctk_other) {
+  if (ccs & (a_comparison_category_set)ccs_other) {
     return_tp = void_type();
     srp->is_deleted = TRUE;
-  } else if ((cctk & (a_comparison_category_set)cctk_weak_equality) ||
-             ((cctk & (a_comparison_category_set)cctk_strong_equality) &&
-              (cctk & ((a_comparison_category_set)cctk_partial_ordering |
-                       (a_comparison_category_set)cctk_weak_ordering)))) {
+  } else if ((ccs & (a_comparison_category_set)ccs_weak_equality) ||
+             ((ccs & (a_comparison_category_set)ccs_strong_equality) &&
+              (ccs & ((a_comparison_category_set)ccs_partial_ordering |
+                       (a_comparison_category_set)ccs_weak_ordering)))) {
     return_tp = weak_equality_type();
-  } else if (cctk & (a_comparison_category_set)cctk_strong_equality) {
+  } else if (ccs & (a_comparison_category_set)ccs_strong_equality) {
     return_tp = strong_equality_type();
-  } else if (cctk & (a_comparison_category_set)cctk_partial_ordering) {
+  } else if (ccs & (a_comparison_category_set)ccs_partial_ordering) {
     return_tp = partial_ordering_type();
-  } else if (cctk & (a_comparison_category_set)cctk_weak_ordering) {
+  } else if (ccs & (a_comparison_category_set)ccs_weak_ordering) {
     return_tp = weak_ordering_type();
   } else {
     return_tp = strong_ordering_type();
@@ -28541,6 +28554,7 @@ type does not find usable best candidate.
                                           &opnd1, &opnd2, &error_position,
                                           curr_token_sequence_number,
                                           (a_nondependent_call_depth)0,
+                                          /*p_none_viable=*/(a_boolean*)NULL,
                                           &dependent_call, &defer_resolution,
                                           &undecidable, &ambiguous,
                                           &arg_list, &inaccessible_match);
@@ -28653,21 +28667,62 @@ Set the initializer for the variable vp from the operand "operand".
 }  /* set_variable_initializer */
 
 
+static void make_two_dummy_glvalues(a_type_ptr      tp,
+                                    a_constant_ptr  null_ptr,
+                                    an_operand      *opnd1,
+                                    an_operand      *opnd2)
+/*
+Store in *opnd1 and *opnd2 two dummy glvalues of the given type.  The operands
+are created by adding an indirection operation on top of a null pointer stored
+(by this function) in *null_ptr.
+*/
+{
+  tp = make_qualified_type(tp, (a_type_qualifier_set)TQ_CONST);
+  tp = make_pointer_type(tp);
+  make_zero_of_proper_type(tp, null_ptr);
+  make_glvalue_from_null_ptr_constant(null_ptr, opnd1);
+  make_glvalue_from_null_ptr_constant(null_ptr, opnd2);
+}  /* make_two_dummy_glvalues */
+
+
 a_variable_ptr make_spaceship_cmp_variable(an_expr_node_ptr  arg1,
                                            an_expr_node_ptr  arg2,
                                            a_type_ptr        tp,
                                            an_expr_node_ptr  *p_ne_expr)
 /*
 The given expression nodes are lvalues x and y.  Return a variable v of type tp
-initialized with x <=> y.  Also return through *p_ne_expr the full-expression
-v != 0, contextually converted to bool.  This routine is used to synthesize
-operator<=>, and assumes the expressions are evaluated.
+initialized with x <=> y or an expression implementing the <=> operator using
+the == operator and maybe the < operator.  Also return through *p_ne_expr the
+full-expression v != 0, contextually converted to bool.  This routine is used
+to synthesize operator<=>, and assumes the expressions are evaluated.
 */
 {
   an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
   an_operand           opnd1, opnd2, result;
   a_variable_ptr       result_vp;
+  a_boolean            use_spaceship = TRUE;
+  a_constant_ptr       null_ptr = local_constant();
 
+  /* First check if we can actually call operator<=>. */
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  expr_stack->suppress_diagnostics = TRUE;
+  expr_stack->suppress_constexpr_call_folding = TRUE;
+  make_two_dummy_glvalues(arg1->type, null_ptr, &opnd1, &opnd2);
+  process_spaceship_operator(&opnd1, &opnd2, &pos_curr_token,
+                             curr_token_sequence_number,
+                             /*p_none_viable=*/(a_boolean*)NULL, &result);
+  if (is_error_operand(&result) || expr_stack->any_suppressed_error) {
+    use_spaceship = FALSE;
+  }  /* if */
+  reclaim_fs_nodes_of_operand(&result);
+  release_local_constant(&null_ptr);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+
+  /* Now implement the comparison. */
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
@@ -28676,8 +28731,129 @@ operator<=>, and assumes the expressions are evaluated.
   expr_stack_entry.potentially_evaluated = TRUE;
   make_glvalue_expression_operand(arg1, &opnd1);
   make_glvalue_expression_operand(arg2, &opnd2);
-  process_spaceship_operator(&opnd1, &opnd2, &error_position,
-                             curr_token_sequence_number, &result);
+  if (use_spaceship) {
+    /* The spaceship operator can be used.  This is the simple case. */
+    process_spaceship_operator(&opnd1, &opnd2, &error_position,
+                               curr_token_sequence_number,
+                               /*p_none_viable=*/(a_boolean*)NULL, &result);
+  } else {
+    /* Use the "==" operator for equality results, and a combination of the
+       "==" and "<" operators for ordering results.  See, e.g., N4830
+       [class.spaceship]/1. */
+    a_comparison_category_set
+                       ccs = (a_comparison_category_set)ccs_none;
+    a_boolean          is_ordering;
+    an_operand         cond, ne_result;
+    /* tp determines what kind or ordering or equality comparison is
+       requested. */
+    update_common_comparison_tag(tp, &ccs);
+    is_ordering = is_ordering_category(ccs);
+    check_assertion(ccs != (a_comparison_category_set)ccs_none &&
+                    ccs != (a_comparison_category_set)ccs_other);
+    /* If it wasn't done yet, ensure we have IL constant entries representing
+       the various possible comparison results.  Note that this requires the
+       <compare> header (or equivalent code) to have been included. */
+    initialize_ordering_constants();
+    if (is_ordering) {
+      /* Determine the result assuming non-equal operands.  There are three
+         possibilities:
+           strong:   x < y ? strong_ordering::less : strong_ordering::greater
+           weak:     x < y ? weak_ordering::less : weak_ordering::greater
+           partial:  x < y ? partial_ordering::less :
+                     y < x ? partial_ordering::greater :
+                             partial_ordering::unordered
+      */
+      an_operand  opnd1_c, opnd2_c;
+      a_boolean   temp_used;
+      /* Start by cloning the x and y operands so the originals remain usable
+         for the equality check later on.  */
+      clone_operand(&opnd1, &opnd1_c, /*vars_can_change=*/TRUE,
+                    &temp_used, /*treat_as_potential_prvalue=*/TRUE);
+      clone_operand(&opnd2, &opnd2_c, /*vars_can_change=*/TRUE,
+                    &temp_used, /*treat_as_potential_prvalue=*/TRUE);
+      /* Compute x < y, converted to bool. */
+      process_rel_operator(&opnd1_c, &opnd2_c, (a_token_kind)tok_lt,
+                           &error_position, curr_token_sequence_number,
+                           &cond);
+      process_boolean_controlling_expression(&cond);
+      /* Determine the two possible results.  In the partial ordering case,
+         the second result is itself the result of a comparison. */
+      switch (ccs) {
+        case ccs_strong_ordering:
+          make_constant_operand(strong_ordering_less, &opnd1_c);
+          make_constant_operand(strong_ordering_greater, &opnd2_c);
+          break;
+        case ccs_weak_ordering:
+          make_constant_operand(weak_ordering_less, &opnd1_c);
+          make_constant_operand(weak_ordering_greater, &opnd2_c);
+          break;
+        case ccs_partial_ordering:
+          { /* For a partial ordering, consider the reversed "<" comparison. */
+            an_operand  cond2;
+            /* Clone the original operands again, and compute y < x, converted
+               to bool: */
+            clone_operand(&opnd1, &opnd1_c, /*vars_can_change=*/TRUE,
+                          &temp_used, /*treat_as_potential_prvalue=*/TRUE);
+            clone_operand(&opnd2, &opnd2_c, /*vars_can_change=*/TRUE,
+                          &temp_used, /*treat_as_potential_prvalue=*/TRUE);
+            process_rel_operator(&opnd2_c, &opnd1_c, (a_token_kind)tok_lt,
+                                 &error_position, curr_token_sequence_number,
+                                 &cond2);
+            process_boolean_controlling_expression(&cond2);
+            /* Now build "y > x ? greater : unordered" in &opnd2_c. */
+            make_constant_operand(partial_ordering_greater, &opnd1_c);
+            make_constant_operand(partial_ordering_unordered, &result);
+            build_question_result_operand(&cond2, &opnd1_c, &result, tp,
+                                          /*result_is_an_lvalue=*/FALSE,
+                                          /*is_gnu_two_operand_form=*/FALSE,
+                                          &opnd2_c);
+            /* The "true" result of the "x < y" test is
+               "partial_ordering::less". */ 
+            make_constant_operand(partial_ordering_less, &opnd1_c);
+          }
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+      /* Build the "x < y ? ..." expression. */
+      build_question_result_operand(&cond, &opnd1_c, &opnd2_c, tp,
+                                    /*result_is_an_lvalue=*/FALSE,
+                                    /*is_gnu_two_operand_form=*/FALSE,
+                                    &ne_result);
+    }  /* if */
+    /* Build the "x == y ? ..." comparison.  For orderings, the "false" result
+       with be the ne_result expression build above.  For equality comparison,
+       the "false" result is simply a constant value selected below according
+       to the comparison category. */
+    process_eq_operator(&opnd1, &opnd2, (a_token_kind)tok_eq, &error_position,
+                        curr_token_sequence_number, &cond);
+    process_boolean_controlling_expression(&cond);
+    switch (ccs) {
+      case ccs_strong_ordering:
+        make_constant_operand(strong_ordering_equal, &opnd1);
+        break;
+      case ccs_weak_ordering:
+        make_constant_operand(weak_ordering_equivalent, &opnd1);
+        break;
+      case ccs_partial_ordering:
+        make_constant_operand(partial_ordering_equivalent, &opnd1);
+        break;
+      case ccs_strong_equality:
+        make_constant_operand(strong_equality_equal, &opnd1);
+        make_constant_operand(strong_equality_nonequal, &ne_result);
+        break;
+      case ccs_weak_equality:
+        make_constant_operand(weak_equality_equivalent, &opnd1);
+        make_constant_operand(weak_equality_nonequivalent, &ne_result);
+        break;
+      default:
+        unexpected_condition();
+    }  /* if */
+    build_question_result_operand(&cond, &opnd1, &ne_result, tp,
+                                  /*result_is_an_lvalue=*/FALSE,
+                                  /*is_gnu_two_operand_form=*/FALSE, &result);
+  }  /* if */
+  /* Initialize a generated variable with the result of the comparison. */
   result_vp = alloc_temporary_variable(tp, /*force_state=*/FALSE);
   set_variable_initializer(result_vp, &result);
   pop_expr_stack();
@@ -28701,62 +28877,235 @@ operator<=>, and assumes the expressions are evaluated.
 }  /* make_spaceship_cmp_variable */
 
 
-void make_std_strong_ordering_equal_return(a_type_ptr       func_tp,
-                                           a_statement_ptr  return_stmt)
+static a_boolean spaceship_synthesis_impossible(
+                                          a_type_ptr                 tp,
+                                          a_comparison_category_set  ccs)
 /*
-return_stmt is a return statement in a function of type func_tp.  Adjust that
-statement so that it represents
-    return std::strong_ordering::equal;
+Return FALSE if a subobject of type tp makes it impossible to define a
+synthesized operator<=> returning type of the given comparison category.
 */
 {
-  a_symbol_ptr  equal_sym;
+  a_boolean  impossible = FALSE;
 
-  equal_sym = look_up_name_string_in_class("equal", strong_ordering_type(),
-                                           IDL_DO_NOT_ADD_TO_NONREAL_CLASS);
-  if (equal_sym == NULL || !symbol_is(equal_sym, sk_static_data_member)) {
-    return_stmt->expr = error_node();
-  } else {
-    an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
-    a_conv_context_set   conv_context = CCO_INITIALIZING_RETURN_VALUE;
-    an_operand           result;
-    a_type_ptr           return_type = func_tp->variant.routine.return_type;
-    a_boolean            return_by_cctor = func_tp->variant.routine.extra_info
-                                                  ->value_returned_by_cctor;
-    save_expr_stack(&saved_expr_stack);
-    push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                    /*force_object_lifetime=*/FALSE,
-                    /*suppress_object_lifetime=*/FALSE);
-    expr_stack_entry.evaluated = TRUE;
-    expr_stack_entry.potentially_evaluated = TRUE;
-    make_lvalue_variable_operand(
-                               equal_sym->variant.static_data_member.variable,
-                               &error_position, &error_position,
-                               &result, (a_ref_entry_ptr)NULL);
-    if (return_by_cctor) {
-      a_dynamic_init_ptr  return_dip = NULL;
-      expr_stack->in_cctor_elision_initializer = TRUE;
-      /* Build a dynamic initialization entry for the return statement. */
-      prep_elision_initializer_operand(&result, return_type,
-                                       /*fill_in_dtor=*/FALSE,
-                                       conv_context, ec_bad_return_value_type,
-                                       /*elision_done=*/(a_boolean *)NULL,
-                                       &return_dip);
-      wrap_up_dynamic_init_full_expression(return_dip);
-      /* Fix up destructor references in the overall expression. */
-      fix_up_dynamic_init_dtors();
-      return_stmt->variant.return_dynamic_init = return_dip;
+  if (is_immediate_class_type(tp) || is_immediate_enum_type(tp)) {
+    an_operand      opnd1, opnd2, cmp_opnd;
+    a_constant_ptr  null_ptr = local_constant();
+    a_boolean       none_viable = FALSE;
+    an_expr_stack_entry
+                    saved_expr_stack_entry;
+    saved_expr_stack_entry = *expr_stack;
+    make_two_dummy_glvalues(tp, null_ptr, &opnd1, &opnd2);
+    process_spaceship_operator(&opnd1, &opnd2, &pos_curr_token,
+                               curr_token_sequence_number, &none_viable,
+                               &cmp_opnd);
+    if (!(is_error_operand(&cmp_opnd) || expr_stack->any_suppressed_error)) {
+      /* A usable operator<=> was found. */
+    } else if (!none_viable) {
+      /* There was at least one viable operator<=>.  Do not attempt to
+         implement the operator<=> for the whole object (i.e., the caller
+         should define it as deleted). */
+      impossible = TRUE;
     } else {
-      prep_initializer_operand(&result, return_type, (a_boolean *)NULL,
-                               (a_conv_descr_ptr)NULL,
-                               /*is_copy_initialization=*/TRUE, conv_context,
-                               ec_bad_return_value_type);
-      return_stmt->expr = wrap_up_full_expression(
-                                             make_node_from_operand(&result));
+      /* base_a <=> base_b failed.  Check if instead we can synthesize such an
+         operation using the "==" and "<" operators. */
+      *expr_stack = saved_expr_stack_entry;
+      make_two_dummy_glvalues(tp, null_ptr, &opnd1, &opnd2);
+      process_eq_operator(&opnd1, &opnd2, (a_token_kind)tok_eq,
+                          &error_position, curr_token_sequence_number,
+                          &cmp_opnd);
+      if (is_error_operand(&cmp_opnd) || expr_stack->any_suppressed_error) {
+        impossible = TRUE;
+      } else if (is_ordering_category(ccs)) {
+        /* For ordering relationship the "<" operator must also apply. */
+        reclaim_fs_nodes_of_operand(&cmp_opnd);
+        make_two_dummy_glvalues(tp, null_ptr, &opnd1, &opnd2);
+        process_rel_operator(&opnd1, &opnd2, (a_token_kind)tok_lt,
+                             &error_position, curr_token_sequence_number,
+                             &cmp_opnd);
+        if (is_error_operand(&cmp_opnd) || expr_stack->any_suppressed_error) {
+          impossible = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
-    pop_expr_stack();
-    restore_expr_stack(saved_expr_stack);
+    reclaim_fs_nodes_of_operand(&cmp_opnd);
+    release_local_constant(&null_ptr);
+  } else {
+    /* Not a user-defined type. */
+    switch (tp->kind) {
+      case tk_integer:
+        /* Integer comparison is never a problem. */
+        break;
+      case tk_float:
+        if (ccs == (a_comparison_category_set)ccs_strong_ordering ||
+            ccs == (a_comparison_category_set)ccs_weak_ordering) {
+          /* float types do not have a strong or weak ordering. */
+          impossible = TRUE;
+        }  /* if */
+        break;
+      case tk_pointer:
+        if (is_pointer_to_function_type(tp)) {
+          if (is_ordering_category(ccs)) {
+            /* Pointer-to-functions are not ordered. */
+            impossible = TRUE;
+          }  /* if */
+        } else {
+          /* Other pointer types are strongly ordered. */
+        }  /* if */
+        break;
+      case tk_ptr_to_member:
+      case tk_nullptr:
+        if (is_ordering_category(ccs)) {
+          /* These types are not ordered. */
+          impossible = TRUE;
+        }  /* if */
+        break;
+      default:
+        impossible = TRUE;
+        break;
+    }  /* switch */
   }  /* if */
-}  /* make_std_strong_ordering_equal_return */
+  return impossible;
+}  /* spaceship_synthesis_impossible */
+
+
+a_boolean nondeduced_generated_spaceship_is_deleted(a_routine_ptr  srp,
+                                                    a_type_ptr     class_tp)
+/*
+Return TRUE if the given defaulted operator<=> whose type is explicitly
+specified (i.e., not a deduced return type) should be deleted.  This is the
+case if a comparison of subobjects does not find a usable best candidate.
+*/
+{
+  a_boolean            is_deleted = FALSE;
+  a_type_ptr           rtp, return_tp;
+  a_base_class_ptr     bcp;
+  a_symbol_ptr         member_sym;
+  a_field_ptr          fp;
+  an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
+  a_comparison_category_set
+                       ccs = (a_comparison_category_set)ccs_none;
+
+  check_assertion(curr_il_region_number == file_scope_region_number);
+  rtp = skip_typerefs(srp->type);
+  return_tp = skip_typerefs(rtp->variant.routine.return_type);
+  update_common_comparison_tag(return_tp, &ccs);
+  if (ccs == (a_comparison_category_set)ccs_other) {
+    /* The return type is not a comparison category type. */
+    is_deleted = TRUE;
+    goto done;
+  }  /* if */
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  expr_stack->suppress_diagnostics = TRUE;
+  expr_stack->suppress_constexpr_call_folding = TRUE;
+  check_assertion(is_immediate_class_type(class_tp));
+  for (bcp = base_classes_of(class_tp); bcp != NULL; bcp = bcp->next) {
+    if (!bcp->direct) continue;
+    if (spaceship_synthesis_impossible(bcp->type, ccs)) {
+      is_deleted = TRUE;
+      goto done_with_subobjects;
+    }  /* if */
+  }  /* for */
+  /* For fields, use the symbol list to avoid generated members. */
+  member_sym = class_symbol_supp(symbol_for(class_tp))->symbols;
+  for (; member_sym != NULL; member_sym = member_sym->next_in_scope) {
+    a_type_ptr  ftp;
+    if (!symbol_is(member_sym, sk_field)) continue;
+    fp = member_sym->variant.field.ptr;
+    if (field_is_nontrivial_property_or_event(fp)) continue;
+    ftp = fp->type;
+    if (is_array_type(ftp)) {
+      ftp = underlying_array_element_type(ftp);
+    }  /* if */
+    ftp = skip_typerefs(ftp);
+    if (spaceship_synthesis_impossible(ftp, ccs)) {
+      is_deleted = TRUE;
+      goto done_with_subobjects;
+    }  /* if */
+  }  /* for */
+done_with_subobjects:
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+done:;
+  return is_deleted;
+}  /* nondeduced_generated_spaceship_is_deleted */
+
+
+void make_defaulted_final_spaceship_return(a_type_ptr       func_tp,
+                                           a_statement_ptr  return_stmt)
+/*
+return_stmt is a return statement in the definition of a defaulted spaceship
+operator body of type func_tp.  Adjust that statement so that it represents
+    return return_type::equal;
+or
+    return return_type::equivalent;
+(where return_type is the return type of func_tp).
+*/
+{
+  an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
+  a_conv_context_set   conv_context = CCO_INITIALIZING_RETURN_VALUE;
+  a_constant_ptr       result_con;
+  an_operand           result;
+  a_type_ptr           return_type = func_tp->variant.routine.return_type;
+  a_boolean            return_by_cctor = func_tp->variant.routine.extra_info
+                                                ->value_returned_by_cctor;
+  a_comparison_category_set
+                       ccs = (a_comparison_category_set)ccs_none;
+  update_common_comparison_tag(return_type, &ccs);
+  initialize_ordering_constants();
+  switch (ccs) {
+    case ccs_strong_ordering:
+      result_con = strong_ordering_equal;
+      break;
+    case ccs_weak_ordering:
+      result_con = weak_ordering_equivalent;
+      break;
+    case ccs_partial_ordering:
+      result_con = partial_ordering_equivalent;
+      break;
+    case ccs_strong_equality:
+      result_con = strong_equality_equal;
+      break;
+    case ccs_weak_equality:
+      result_con = weak_equality_equivalent;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  make_constant_operand(result_con, &result);
+  
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  expr_stack_entry.evaluated = TRUE;
+  expr_stack_entry.potentially_evaluated = TRUE;
+  if (return_by_cctor) {
+    a_dynamic_init_ptr  return_dip = NULL;
+    expr_stack->in_cctor_elision_initializer = TRUE;
+    /* Build a dynamic initialization entry for the return statement. */
+    prep_elision_initializer_operand(&result, return_type,
+                                     /*fill_in_dtor=*/FALSE,
+                                     conv_context, ec_bad_return_value_type,
+                                     /*elision_done=*/(a_boolean *)NULL,
+                                     &return_dip);
+    wrap_up_dynamic_init_full_expression(return_dip);
+    /* Fix up destructor references in the overall expression. */
+    fix_up_dynamic_init_dtors();
+    return_stmt->variant.return_dynamic_init = return_dip;
+  } else {
+    prep_initializer_operand(&result, return_type, (a_boolean *)NULL,
+                             (a_conv_descr_ptr)NULL,
+                             /*is_copy_initialization=*/TRUE, conv_context,
+                             ec_bad_return_value_type);
+    return_stmt->expr = wrap_up_full_expression(
+                                           make_node_from_operand(&result));
+  }  /* if */
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+}  /* make_defaulted_final_spaceship_return */
 
 
 an_expr_node_ptr make_synthesized_rel_op(a_token_kind      op_token,
@@ -28783,7 +29132,8 @@ assumes the expression is evaluated.
   make_glvalue_expression_operand(arg1, &opnd1);
   make_glvalue_expression_operand(arg2, &opnd2);
   process_spaceship_operator(&opnd1, &opnd2, &error_position,
-                             curr_token_sequence_number, &ss_result);
+                             curr_token_sequence_number,
+                             /*p_none_viable=*/(a_boolean*)NULL, &ss_result);
 
   process_eq_operator(&opnd1, &opnd2, (a_token_kind)tok_eq, &error_position,
                       curr_token_sequence_number, &result);

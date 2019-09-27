@@ -398,7 +398,11 @@ a_variable_ptr make_spaceship_cmp_variable(an_expr_node_ptr  arg1,
                                            an_expr_node_ptr  *p_ne_expr);
 
 extern
-void make_std_strong_ordering_equal_return(a_type_ptr       func_tp,
+a_boolean nondeduced_generated_spaceship_is_deleted(a_routine_ptr  srp,
+                                                    a_type_ptr     class_tp);
+
+extern
+void make_defaulted_final_spaceship_return(a_type_ptr       func_tp,
                                            a_statement_ptr  return_stmt);
 
 extern

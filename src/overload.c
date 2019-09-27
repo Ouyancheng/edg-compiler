@@ -17085,6 +17085,7 @@ a_candidate_function_ptr select_overloaded_operator(
                            a_source_position          *operator_position,
                            a_token_sequence_number    operator_tok_seq_number,
                            a_nondependent_call_depth  call_depth,
+                           a_boolean                  *p_none_viable,
                            a_boolean                  *p_dependent_call,
                            a_boolean                  *p_defer_resolution,
                            a_boolean                  *p_undecidable,
@@ -17107,16 +17108,17 @@ disambiguator for operator_tok_seq_number.  selector_is_handle for C++/CLI
 cases where the first operand is a handle.
 
 If overload resolution is successful, return a pointer to the selected
-candidate (which might represent a built-in operator).  If the call is
-dependent, set *p_dependent_call to TRUE.  If overload resolution should be
-deferred, set *p_defer_resolution to TRUE.  If the invocation is undecidable
-because of errors, set *p_undecidable to TRUE.  If the invocation is ambiguous,
-set *p_ambiguous to TRUE.  This function may create a list of an_arg_list_elem
-(representing the arguments to be passed to a selected candidate): If so, that
-list will be pointed to by *p_arg_list and the caller is responsible for
-freeing the list.  In C++/CLI mode, *p_inaccesible_match may be set to a symbol
-that would have been chosen except that it was inaccessible because of
-hide-by-sig lookup.
+candidate (which might represent a built-in operator).  If there is no
+potentially-viable candidate (ignoring dependent/deferred cases), set
+*p_none_viable to TRUE. If the call is dependent, set *p_dependent_call to
+TRUE.  If overload resolution should be deferred, set *p_defer_resolution to
+TRUE.  If the invocation is undecidable because of errors, set *p_undecidable
+to TRUE.  If the invocation is ambiguous, set *p_ambiguous to TRUE.  This
+function may create a list of an_arg_list_elem (representing the arguments to
+be passed to a selected candidate): If so, that list will be pointed to by
+*p_arg_list and the caller is responsible for freeing the list.  In C++/CLI
+mode, *p_inaccesible_match may be set to a symbol that would have been chosen
+except that it was inaccessible because of hide-by-sig lookup.
 */
 {
   a_candidate_function_ptr  candidate_functions = NULL,
@@ -17580,8 +17582,12 @@ find_more_operator_candidates:
       }  /* if */
     }  /* if */
 select_best_function:
-    /* The candidate_functions list now contains all the viable
-       functions.  Find the best. */
+    /* The candidate_functions list now contains all the viable functions.
+       Find the best. */
+    if (p_none_viable != NULL && candidate_functions == NULL &&
+        !dependent_call && !*p_defer_resolution) {
+      *p_none_viable = TRUE;
+    }  /* if */
     select_best_candidate_functions(&candidate_functions, operator_position,
                                     p_undecidable, p_ambiguous);
   }  /* if */
@@ -17591,7 +17597,7 @@ select_best_function:
 }  /* select_overloaded_operator */
 
 
-void check_for_operator_overloading(
+void f_check_for_operator_overloading(
                              an_opname_kind            kind,
                              a_boolean                 unary_operator,
                              a_boolean                 must_be_member_function,
@@ -17604,6 +17610,7 @@ void check_for_operator_overloading(
                              a_nondependent_call_depth call_depth,
                              a_source_position         *operator_position_2,
                              an_operand                *result,
+                             a_boolean                 *p_none_viable,
                              a_boolean                 *processed)
 /*
 operand_1 and operand_2 are the operands of an operator indicated by kind.
@@ -17636,7 +17643,10 @@ operator_tok_seq_number.  This routine also checks for
 template-dependent operands in a prototype instantiation, and builds a
 generic expression for such cases (where operator overloading might
 apply, but we can't tell).  operand_2 is allowed to be a braced-init-list
-operand when initializer lists are enabled.
+operand when initializer lists are enabled.  If p_none_viable is non-NULL,
+set *p_none_viable to TRUE if no viable candidate was found, the call is not
+dependent, and overload resolution should not be deferred; otherwise, set it
+to FALSE.
 */
 {
   an_arg_list_elem_ptr     arg_list, arg_list_elem;
@@ -17675,6 +17685,7 @@ operand when initializer lists are enabled.
   }  /* if */
 #endif /* DEBUG */
   *processed = FALSE;
+  if (p_none_viable != NULL) *p_none_viable = FALSE;
   /* Check for template-dependent operands in a prototype instantiation. */
   if (is_template_dependent_context() &&
       (operand_is_dependent(operand_1) ||
@@ -17764,6 +17775,7 @@ operand when initializer lists are enabled.
                                                 operator_position,
                                                 operator_tok_seq_number,
                                                 call_depth,
+                                                p_none_viable,
                                                 &dependent_call,
                                                 &defer_overload_resolution,
                                                 &undecidable_because_of_error,
@@ -18335,7 +18347,7 @@ no_applicable_operator_function:
   overload_level--;
 #endif /* DEBUG */
   db_exit();
-}  /* check_for_operator_overloading */
+}  /* f_check_for_operator_overloading */
 
 
 a_boolean conversion_to_class_possible(

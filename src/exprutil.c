@@ -10387,7 +10387,7 @@ a prvalue.
 }  /* build_binary_result_operand */
 
 
-static void build_question_result_operand(
+void build_question_result_operand(
                                   an_operand           *operand_1,
                                   an_operand           *operand_2,
                                   an_operand           *operand_3,

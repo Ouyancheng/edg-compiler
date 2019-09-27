@@ -10974,6 +10974,83 @@ call to this routine std::weak_equality is not appropriately declared).
   return il_weak_equality_type;
 }  /* weak_equality_type */
 
+
+static a_constant_ptr get_constexpr_member_value(a_type_ptr    class_type,
+                                                 a_const_char  *name)
+/*
+Look up the given name in the given class type.  It should find a constexpr
+static data member.  Return the constant that initializes that member.  Issue
+a hard error in case of failure since it indicates something is wrong with the
+<compare> header.
+*/
+{
+  a_symbol_ptr    sym;
+  a_variable_ptr  vp = NULL;
+  a_constant_ptr  cp = NULL;
+
+  if (!is_class_struct_union_type(class_type)) {
+    /* This can happen if class_type is an error type. */
+    expect_error();
+    cp = alloc_error_constant();
+    goto done;
+  }  /* if */
+  sym = look_up_name_string_in_class(name, class_type,
+                                     IDL_DO_NOT_ADD_TO_NONREAL_CLASS);
+  if (sym != NULL && symbol_is(sym, sk_static_data_member)) {
+    vp = sym->variant.static_data_member.variable;
+  }  /* if */
+  if (vp != NULL && vp->init_kind == (an_init_kind)initk_static &&
+      is_const_qualified_type(vp->type)) {
+    cp = vp->initializer.constant;
+  }  /* if */
+  if (cp == NULL) {
+    pos_ty_str_error(ec_invalid_std_comparison_value, &error_position,
+                     class_type, name);
+    cp = alloc_error_constant();
+  }  /* if */
+done:
+  return cp;
+}  /* get_constexpr_member_value */
+
+
+void initialize_ordering_constants(void)
+/*
+Initialize strong_ordering_equal, etc.  These are the constant initializing
+std::strong_ordering::equal, etc.
+*/
+{
+  if (strong_ordering_equal == NULL) {
+    strong_ordering_equal = get_constexpr_member_value(
+                                           strong_ordering_type(), "equal");
+    strong_ordering_less = get_constexpr_member_value(
+                                           strong_ordering_type(), "less");
+    strong_ordering_greater = get_constexpr_member_value(
+                                           strong_ordering_type(), "greater");
+    weak_ordering_equivalent = get_constexpr_member_value(
+                                          weak_ordering_type(), "equivalent");
+    weak_ordering_less = get_constexpr_member_value(
+                                          weak_ordering_type(), "less");
+    weak_ordering_greater = get_constexpr_member_value(
+                                          weak_ordering_type(), "greater");
+    partial_ordering_equivalent = get_constexpr_member_value(
+                                       partial_ordering_type(), "equivalent");
+    partial_ordering_less = get_constexpr_member_value(
+                                       partial_ordering_type(), "less");
+    partial_ordering_greater = get_constexpr_member_value(
+                                       partial_ordering_type(), "greater");
+    partial_ordering_unordered = get_constexpr_member_value(
+                                       partial_ordering_type(), "unordered");
+    strong_equality_equal = get_constexpr_member_value(
+                                          strong_equality_type(), "equal");
+    strong_equality_nonequal = get_constexpr_member_value(
+                                          strong_equality_type(), "nonequal");
+    weak_equality_equivalent = get_constexpr_member_value(
+                                       weak_equality_type(), "equivalent");
+    weak_equality_nonequivalent = get_constexpr_member_value(
+                                       weak_equality_type(), "nonequivalent");
+  }  /* if */
+}  /* initialize_ordering_constants */
+
 #if DEBUG
 
 void db_based_types(a_type_ptr  tp)
@@ -29078,6 +29155,20 @@ in il_init.)
       pch_saved_var_array_elem(module_id_kind),
 #endif /* MODULE_ID_NEEDED */
       pch_saved_var_array_elem(last_routine_scope_variable_node_found),
+      pch_saved_var_array_elem(strong_ordering_equal),
+      pch_saved_var_array_elem(strong_ordering_less),
+      pch_saved_var_array_elem(strong_ordering_greater),
+      pch_saved_var_array_elem(weak_ordering_equivalent),
+      pch_saved_var_array_elem(weak_ordering_less),
+      pch_saved_var_array_elem(weak_ordering_greater),
+      pch_saved_var_array_elem(partial_ordering_equivalent),
+      pch_saved_var_array_elem(partial_ordering_less),
+      pch_saved_var_array_elem(partial_ordering_greater),
+      pch_saved_var_array_elem(partial_ordering_unordered),
+      pch_saved_var_array_elem(strong_equality_equal),
+      pch_saved_var_array_elem(strong_equality_nonequal),
+      pch_saved_var_array_elem(weak_equality_equivalent),
+      pch_saved_var_array_elem(weak_equality_nonequivalent),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -29155,6 +29246,20 @@ in il_init.)
   register_trans_unit_variable(module_id_scp);
   register_trans_unit_variable(module_id_kind);
 #endif /* MODULE_ID_NEEDED */
+  register_trans_unit_variable(strong_ordering_equal);
+  register_trans_unit_variable(strong_ordering_less);
+  register_trans_unit_variable(strong_ordering_greater);
+  register_trans_unit_variable(weak_ordering_equivalent),
+  register_trans_unit_variable(weak_ordering_less),
+  register_trans_unit_variable(weak_ordering_greater),
+  register_trans_unit_variable(partial_ordering_equivalent);
+  register_trans_unit_variable(partial_ordering_less);
+  register_trans_unit_variable(partial_ordering_greater);
+  register_trans_unit_variable(partial_ordering_unordered);
+  register_trans_unit_variable(strong_equality_equal);
+  register_trans_unit_variable(strong_equality_nonequal);
+  register_trans_unit_variable(weak_equality_equivalent);
+  register_trans_unit_variable(weak_equality_nonequivalent);
 
   il_alloc_one_time_init();
 }  /* il_one_time_init */
@@ -29267,6 +29372,20 @@ need initialization for every (primary and secondary) translation unit.
 #endif /* MODULE_ID_NEEDED */
   internal_type_array = NULL;
   n_internal_types = 0;
+  strong_ordering_equal = NULL;
+  strong_ordering_less = NULL;
+  strong_ordering_greater = NULL;
+  weak_ordering_equivalent = NULL;
+  weak_ordering_less = NULL;
+  weak_ordering_greater = NULL;
+  partial_ordering_equivalent = NULL;
+  partial_ordering_less = NULL;
+  partial_ordering_greater = NULL;
+  partial_ordering_unordered = NULL;
+  strong_equality_equal = NULL;
+  strong_equality_nonequal = NULL;
+  weak_equality_equivalent = NULL;
+  weak_equality_nonequivalent = NULL;
 }  /* il_trans_unit_init */
 
 

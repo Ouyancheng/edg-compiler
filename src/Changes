@@ -1,5 +1,31 @@
 Version 6.0
 
+9/27/19  [EDGcpfe/21584]
+Defaulted operator<=>
+
+In C++20, it is possible to define a defaulted operator<=> for a given class.
+Previously, the generated definition for such a defaulted operator was
+specified entirely in terms of <=> being applied to its subobjects.  Recently,
+however, the C++ standardization committee made some changes to that approach
+through its paper P1186R3.  In particular, these changes allow an operator<=>
+to be synthesized for a class with a subobject that has no associated <=>
+operator, but instead has == and < operators, provided the return type of the
+defaulted operator<=> is not deduced.  For example:
+
+  #include <compare>
+  struct C {
+    bool operator==(C const&) const;
+    bool operator<(C const&) const;
+  };
+  struct S {
+    int i;
+    C c;
+    std::strong_ordering operator<=>(S const&) const = default;
+      // The c member is compared using == and <.
+  } x, y;
+  auto r = x <=> y;  // Previously an error.  Now accepted.
+
+
 9/27/19  [EDGcpfe/21812]
 Infinite loop rescanning certain built-in operations
 
