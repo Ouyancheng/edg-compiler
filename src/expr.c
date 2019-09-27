@@ -13108,8 +13108,8 @@ indication in *rcblock).
         a_pack_expansion_stack_entry_ptr pesep;
         if (rcblock != NULL) {
           /* Rescanning. */
-          while (rcblock->argument_list != NULL && !err) {
-            an_expr_node_ptr arg_expr = rcblock->argument_list;
+          an_expr_node_ptr arg_expr = rcblock->argument_list;
+          for (; arg_expr != NULL && !err; arg_expr = arg_expr->next) {
             if (arg_expr->is_pack_expansion) {
               eriep = get_expr_rescan_info(arg_expr,
                                            (an_expr_rescan_info_entry *)NULL);

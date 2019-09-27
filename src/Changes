@@ -1,5 +1,23 @@
 Version 6.0
 
+9/27/19  [EDGcpfe/21812]
+Infinite loop rescanning certain built-in operations
+
+An infinite loop could occur if certain built-in operations (such as
+__is_constructible) appeared in a variadic rescan context and was rescanned
+with an empty pack.  This problem potentially existed for a long time, but
+only began occurring with this test case in release 5.1 as a consequence
+of another change.
+
+  template <typename T, bool> using A = T;
+  struct B {
+    template <typename T, typename... b>
+    auto f() -> A<int, __is_constructible(T, b...)>;
+    template <typename T = B> decltype(&T::template f<int>) k(int);
+    operator bool() { return k(0); }
+  };
+
+
 9/27/19  [EDGcpfe/21839]
 C++-generating back end: new-expression with pointer-to-member-function typedef
 
