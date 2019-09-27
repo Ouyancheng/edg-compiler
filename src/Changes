@@ -1,7 +1,47 @@
 Version 6.0
 
-9/24/19  [EDGcpfe/21587]
-Minor changes to handling of comparison operators
+9/27/19  [EDGcpfe/21839]
+C++-generating back end: new-expression with pointer-to-member-function typedef
+
+In C++-generating back end configurations in which
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS or
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, the
+generated code contains explicit specializations for templates that are
+implicitly instantiated in the original source code.  Previously, if the
+source code contains a template with a new-expression where the type is
+dependent, and the template is instantiated from a reference in which that
+type is given as an inaccessible typedef designating a
+pointer-to-member-function type, the generated code emitted the
+new-expression in the corresponding generated explicit specialization in an
+incorrect form, using the underlying type of the typedef but failing to
+enclose the type in parentheses.  This is now fixed.  For example:
+
+  template<typename T> void* f() {
+    return new T;
+  }
+  class S {
+    typedef void (S::*mfp)() const;  // typedef is private
+    static void* p;
+  };
+  void *S::p = f<mfp>();
+
+The code generated for this example previously contained an explicit
+specialization for the function template f() as follows:
+
+  template<> void *f<void (S::*)(void) const> () {
+    return new void (S::*)(void) const;
+  }
+
+The new-expression in that generated explicit specialization contains a
+syntax error because the type should have been parenthesized.  The
+generated explicit specialization is now correct:
+
+  template<> void *f<void (S::*)(void) const> () {
+    return new (void (S::*)(void) const);
+  }
+
+
+9/24/19 [EDGcpfe/21587] Minor changes to handling of comparison operators
 
 The C++ standardization committee made some changes to the way comparison
 operators are handled through its paper P1630R1.  The changes for EDGcpfe/20014
