@@ -12064,11 +12064,17 @@ Generate code for a new or delete operation.
           if (temp_type->variant.typeref.qualifiers != TQ_NONE) {
             qualifiers_seen = TRUE;
             temp_type = temp_type->variant.typeref.type;
+          } else if (typeref_is_typedef(temp_type) &&
+                     is_typedef_invisible_in_cp_gen_be(temp_type)) {
+            qualifiers_seen = FALSE;
+            temp_type = temp_type->variant.typeref.type;
           } else {
             break;
           }  /* if */
         }  /* while */
         if (type_is(temp_type, tk_routine) ||
+            (type_is(temp_type, tk_ptr_to_member) &&
+             type_is(temp_type->variant.ptr_to_member.type, tk_routine)) ||
             type_is(temp_type, tk_array) ||
             (qualifiers_seen &&
              (type_is(temp_type, tk_pointer) ||
