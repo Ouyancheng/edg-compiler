@@ -128,6 +128,23 @@ static a_boolean
 			   mmap memory) is being used for memory region
 			   blocks. */
 
+typedef Dyn_array<a_void_ptr, General_allocator<a_void_ptr>>
+		a_dyn_array_of_void_ptrs;
+			/* A dynamic array of void* pointers. */
+
+typedef a_dyn_array_of_void_ptrs *a_dyn_array_of_void_ptrs_ptr;
+
+typedef Ptr_map<sizeof_t, a_dyn_array_of_void_ptrs_ptr>
+		a_size_to_ptr_map;
+			/* A map to an array of pointers to blocks of memory
+			   of a given size. */
+
+static a_size_to_ptr_map
+		*freed_fe_map;
+			/* Pointer to a map to freed front end memory entries
+			   of a given size.  This is NULL until it is first
+			   used. */
+
 
 /*
 Size of a_mem_block_header after adjustment so that the storage following
@@ -1890,6 +1907,58 @@ text can be added).
   }  /* if */
 }  /* remove_null_terminator_from_text_buffer */
 
+
+char* alloc_fe(sizeof_t     size)
+/*
+Allocate a block of front end memory of the specified size and return
+a pointer.   Look for a previously freed block.  If none is found allocate
+a new block.
+*/
+{
+  void  *ptr = NULL;
+
+  // If the freed map exists, look for an previously freed block.
+  if (freed_fe_map != NULL) {
+    a_dyn_array_of_void_ptrs_ptr   freed_blocks;
+    freed_blocks = freed_fe_map->get(size);
+    if (freed_blocks != NULL && freed_blocks->length() > 0) {
+      // Return the entry at the end of the array and remove it.
+      ptr = freed_blocks->back_elem();
+      freed_blocks->pop_back();
+    }  /* if */
+  }  /* if */
+  if (ptr == NULL) {
+    // Allocate a new block.
+    ptr = alloc_in_region(NULL_region_number, size);
+  }   /* if */
+  return (char*)ptr;
+}  /* alloc_fe */
+
+
+void free_fe(a_void_ptr   ptr,
+             sizeof_t     size)
+/*
+Free the block memory pointed to by ptr of the specified size.  The block
+is recorded for possible reuse later.
+*/
+{
+  // Create the map to the freed memory if it has not already been created. 
+  if (freed_fe_map == NULL) {
+    freed_fe_map = new_general<a_size_to_ptr_map>(1);
+    delete_general(freed_fe_map);
+    freed_fe_map = new_general<a_size_to_ptr_map>(1);
+  }  /* if */
+  a_dyn_array_of_void_ptrs_ptr   freed_blocks;
+  freed_blocks = freed_fe_map->get(size);
+  if (freed_blocks == NULL) {
+    // Create a new dynamic array and add it to the map.
+    freed_blocks = new_general<a_dyn_array_of_void_ptrs>();
+    freed_fe_map->map(size, freed_blocks);
+  }  /* if */
+  // Add the new entry to the array.
+  freed_blocks->push_back(ptr);
+}  /* free_fe */
+
 #if DEBUG
 
 void db_text_buffer(a_const_char	*prefix,
@@ -2051,6 +2120,7 @@ Do one-time initialization of variables related to the mem_manage routines.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   il_header.region_scope_entry = NULL;
   il_header.function_def_table = NULL;
+  freed_fe_map = NULL;
 }  /* mem_manage_one_time_init */
 
 

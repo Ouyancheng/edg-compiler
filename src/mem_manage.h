@@ -130,11 +130,18 @@ void ensure_mem_region_table_space(a_memory_region_number region_number);
 extern void ensure_function_def_table_space(
                                     a_function_def_number function_def_number);
 
+extern char* alloc_fe(sizeof_t     size);
+
+extern void free_fe(a_void_ptr   ptr,
+                    sizeof_t     size);
+
+template<typename a_Type> inline void free_fe(a_Type *ptr)
 /*
-Macro to allocate and return "size" bytes of storage that will last through
-execution of the front end.
+Free an entry in front end storage of type a_Type.
 */
-#define alloc_fe(size) alloc_in_region(NULL_region_number, size)
+{
+  free_fe((void*)ptr, sizeof(a_Type));
+}  /* free_fe */
 
 /*
 Macro that allocates an entry for the specified type in front end memory.
