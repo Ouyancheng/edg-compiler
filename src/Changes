@@ -41,7 +41,7 @@ generated explicit specialization is now correct:
   }
 
 
-9/24/19 [EDGcpfe/21587]
+9/24/19  [EDGcpfe/21587]
 Minor changes to handling of comparison operators
 
 The C++ standardization committee made some changes to the way comparison
