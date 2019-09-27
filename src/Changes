@@ -41,7 +41,8 @@ generated explicit specialization is now correct:
   }
 
 
-9/24/19 [EDGcpfe/21587] Minor changes to handling of comparison operators
+9/24/19 [EDGcpfe/21587]
+Minor changes to handling of comparison operators
 
 The C++ standardization committee made some changes to the way comparison
 operators are handled through its paper P1630R1.  The changes for EDGcpfe/20014
