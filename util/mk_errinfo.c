@@ -128,10 +128,10 @@ input is being returned.  Returns FALSE at end-of-file.  Sets "line_size"
 to the number of characters read not including the trailing null character.
 */
 {
-  register char*    buffer_pos = &me_input_line[0];
-  register int      size = 0;
-  register int      ch;
-  a_boolean         result;
+  char*     buffer_pos = &me_input_line[0];
+  int       size = 0;
+  int       ch;
+  a_boolean result;
 
   while ((ch = getc(input_file)), ch != EOF && ch != '\n') {
     if (++size > ME_INPUT_LINE_SIZE-1) {
