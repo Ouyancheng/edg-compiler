@@ -3713,11 +3713,12 @@ Output the contents of the interpreted object of type tp stored at addr.
                                  /*not_a_number=*/(a_boolean*)NULL));
       break;
     case tk_complex:
-      (void)fprintf(f_debug, "%s + %si\n",
+      (void)fprintf(f_debug, "%s + ",
                     fp_to_string(tp->variant.float_kind, &cx_value(addr)->real,
                                  /*pos_infinity=*/(a_boolean*)NULL,
                                  /*neg_infinity=*/(a_boolean*)NULL,
-                                 /*not_a_number=*/(a_boolean*)NULL),
+                                 /*not_a_number=*/(a_boolean*)NULL));
+      (void)fprintf(f_debug, "%si\n",
                     fp_to_string(tp->variant.float_kind, &cx_value(addr)->imag,
                                  /*pos_infinity=*/(a_boolean*)NULL,
                                  /*neg_infinity=*/(a_boolean*)NULL,
@@ -11702,13 +11703,13 @@ the value representation of the integer value.
                 a_boolean  depends_of_fp_mode;
                 fp_change_kind(&cx_value(opnd1_value)->real,
                                opnd1_type->variant.float_kind,
-                               fp_value(result_storage),
+                               &cx_value(result_storage)->real,
                                tp->variant.float_kind,
                                &err, &depends_of_fp_mode);
                 if (!err) {
                   fp_change_kind(&cx_value(opnd1_value)->imag,
                                  opnd1_type->variant.float_kind,
-                                 fp_value(result_storage),
+                                 &cx_value(result_storage)->imag,
                                  tp->variant.float_kind,
                                  &err, &depends_of_fp_mode);
                 }  /* if */

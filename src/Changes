@@ -1,5 +1,22 @@
 Version 6.0
 
+9/30/19  [EDGcpfe/21849]
+Constant-evaluation of complex floating-point conversions
+
+Previously, the front end did not correctly handle conversions between
+different complex floating-point precisions.  Incorrect complex constants were
+produced in the IL as a consequence of this defect.  For example, in GNU C++
+mode:
+
+  constexpr __complex float zf = { 1.0, 2.0 };
+  constexpr __complex double g(__complex float const &p) { return p; }
+  __complex double z = g(zf);
+      // Previously, the a_constant entry representing the initializer for z
+      // did not represent the correct value.
+
+That problem is now fixed.
+
+
 9/27/19  [EDGcpfe/21584]
 Defaulted operator<=>
 
