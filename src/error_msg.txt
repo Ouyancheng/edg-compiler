@@ -3101,6 +3101,8 @@ ec_ext_vector_type_requires_integral_floating_type;;"the \"ext_vector_type\" att
 ec_feature_test_macro_ignored;;"this feature-test macro is ignored (and returns 0) in the current compilation mode"
 ec_constexpr_multiple_union_initializers;;"cannot evaluate an aggregate initializer with multiple elements for a union"
 ec_cmp_operator_does_not_return_bool;;"%nd selected for operator rewrite does not return type bool"
+ec_constexpr_class_specific_new;;"a new-expression calling a class-specific allocation function cannot be constant-evaluated"
+ec_constexpr_placement_new;;"a placement new-expression cannot be constant-evaluated"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

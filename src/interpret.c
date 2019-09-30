@@ -11220,7 +11220,16 @@ Evaluate the given new-expression.
   }  /* if */
   orig_alloc_length = alloc_length;
   cap = (a_constexpr_address*)result_storage;
-  if (ndsp->placement_new) {
+  if (ndsp->routine != NULL && ndsp->routine->source_corresp.is_class_member) {
+    /* A class-specific new-expression cannot be evaluated as a constant. */
+    info_with_pos(ec_constexpr_class_specific_new, &expr->position, ips);
+    do_constexpr_fail(result);
+  } else if (ndsp->placement_new) {
+    /* A placement new-expression cannot be evaluated as a constant, except
+       if it is the new-expression implementing std::construct_at.  In the
+       latter case, we will have interpreted the call to std::construct_at
+       already and we will have recorded the specific address and type that
+       the placement-new can access. */
     an_expr_node_ptr  ptr_expr = ndsp->arg;
     a_type_ptr        ptr_tp = skip_typerefs(ptr_expr->type);
     if (type != valid_placement_new_type) {
@@ -11249,8 +11258,7 @@ Evaluate the given new-expression.
       }  /* if */
     }  /* if */
     if (!result) {
-      info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
-                    &expr->position, ips);
+      info_with_pos(ec_constexpr_placement_new, &expr->position, ips);
       goto done;
     }  /* if */
     if (type_is(elem_type, tk_array)) {
