@@ -11224,6 +11224,7 @@ Evaluate the given new-expression.
     /* A class-specific new-expression cannot be evaluated as a constant. */
     info_with_pos(ec_constexpr_class_specific_new, &expr->position, ips);
     do_constexpr_fail(result);
+    goto done;
   } else if (ndsp->placement_new) {
     /* A placement new-expression cannot be evaluated as a constant, except
        if it is the new-expression implementing std::construct_at.  In the
