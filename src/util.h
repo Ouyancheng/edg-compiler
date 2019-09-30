@@ -1913,9 +1913,9 @@ Initialize the given pointer map with a capacity for 1<<mask_width slots.
     this->table = (an_entry*)alloc_general(size);
   } else {
     typedef Free_ptr_map_tables<(int)sizeof(an_entry)>  a_free_table_cache;
-    if (a_free_table_cache::list[mask_width] != a_key()) {
+    if (a_free_table_cache::list[mask_width] != NULL) {
     this->table = (an_entry*)a_free_table_cache::list[mask_width];
-    a_free_table_cache::list[mask_width] = (an_entry*)this->table->next;
+    a_free_table_cache::list[mask_width] = this->table->next;
     } else {
       this->table = (an_entry*)alloc_general(size);
     }  /* if */
@@ -1978,7 +1978,7 @@ if not found.
 }  /* Ptr_map::get */
 
 #ifdef TRACE_PTR_MAP
-static void	*traced_key_ptr = a_key();
+static void	*traced_key_ptr = NULL;
 			/* Pointer that is checked for mapping activity.
 			   Intended to be set from within a debugger and
 			   watched by setting a breakpoint on function
@@ -2144,7 +2144,6 @@ new value at the given location.
   an_index  idx0 = idx;
   an_index  mask = this->hash_mask;
   an_entry  *table = this->table;
-  an_entry  saved_entry = table[idx];
 
 #if EXPENSIVE_CHECKING
   { a_value  old_val = this->get(new_key);
@@ -2184,7 +2183,7 @@ Double the size of the hash table (and rehash entries as needed).
   typedef Free_ptr_map_tables<(int)sizeof(an_entry)>  a_free_table_cache;
   if (new_width > MAX_WIDTH_REUSABLE_PTR_MAP_TABLE) {
     new_table = (an_entry*)alloc_general(new_size);
-  } else if (a_free_table_cache::list[new_width] != a_key()) {
+  } else if (a_free_table_cache::list[new_width] != NULL) {
     new_table = (an_entry*)a_free_table_cache::list[new_width];
     a_free_table_cache::list[new_width] =
                        ((an_entry*)a_free_table_cache::list[new_width])->next;
