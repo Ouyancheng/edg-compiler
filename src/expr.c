@@ -29046,7 +29046,7 @@ or
 {
   an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
   a_conv_context_set   conv_context = CCO_INITIALIZING_RETURN_VALUE;
-  a_constant_ptr       result_con;
+  a_constant_ptr       result_con = NULL;
   an_operand           result;
   a_type_ptr           return_type = func_tp->variant.routine.return_type;
   a_boolean            return_by_cctor = func_tp->variant.routine.extra_info
