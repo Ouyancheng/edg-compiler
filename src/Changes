@@ -1,5 +1,19 @@
 Version 6.0
 
+9/30/19  [EDGcpfe/20944]
+Using arrays as nontype template arguments
+
+Consider:
+
+  template<typename T, T> struct X {};
+  char arr[3];
+  X<const char(&)[3], arr> x;  // Previously an error.  Now accepted.
+
+This case previously elicited an error because the front end failed to
+correctly evaluate the conversion of arr to the nontype template parameter's
+type.  That is now fixed.
+
+
 9/30/19  [EDGcpfe/21849]
 Constant-evaluation of complex floating-point conversions
 

@@ -4626,12 +4626,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           break;
         }  /* if */
       }  /* if */
-      if (con->variant.address.subobject_path != NULL && con->expr != NULL) {
-        /* To reconstruct the offset in interpreter storage, interpret the
-           backing expression. */
-        do_constexpr_full_expression(
-                              ips, con->expr, value, complete_object, result);
-      } else {
+      {
         a_type_ptr  obj_type = NULL;
         if (con->is_reinterpret_like_cast) {
           /* A reinterpret-like cast (e.g., from pointer to integer). */
@@ -4784,7 +4779,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                 obj_type = vtp;
               } else {
                 clear_runtime_constant_address(value, con);
-                if (vtp->kind == (a_type_kind)tk_array) {
+                if (type_is(vtp, tk_array) &&
+                    (con->variant.address.subobject_path != NULL ||
+                     is_pointer_type(con->type))) {
                   ((a_constexpr_address*)value)->flags |= CA_ARRAY_ELEMENT;
                 }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
@@ -4844,7 +4841,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           check_assertion(con->variant.address.offset == 0 ||
                           is_runtime_data_address(value));
         }  /* if */
-      }  /* if */
+      }
       break;
     case ck_ptr_to_member:
       {
@@ -15507,8 +15504,8 @@ the value representation of the integer value.
       {
         a_constant_ptr  con = node_constant(expr);
         a_byte          *con_bytes;
-        if (tp->kind == (a_type_kind)tk_array &&
-            (expr->is_lvalue || expr->is_xvalue)) {
+        if (type_is(tp, tk_array) && (expr->is_lvalue || expr->is_xvalue) &&
+            !is_any_reference_type(con->type)) {
           /* An array lvalue (normally: a string literal).  Allocate the
              string statically and return its address.  Make sure that
              multiple uses of the constant produce the same address. */
