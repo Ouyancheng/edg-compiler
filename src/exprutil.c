@@ -14930,7 +14930,7 @@ token sequence number of the operator.
     }  /* if */
     if (did_not_fold) {
       if (!template_constant && curr_expr_kind_is_evaluated_const() &&
-          !relaxed_constexpr_enabled) {
+          !constexpr_enabled) {
         /* A constant operation could not be folded in a constant
            expression. */
         expr_pos_error(ec_expr_not_constant, start_position);

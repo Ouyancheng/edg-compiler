@@ -12072,6 +12072,7 @@ the value representation of the integer value.
                   new_con = make_interpreter_copy_of_constant(ips, orig_con);
                   new_con->type = tp;
                   result_addr->variant.addr_con = new_con;
+                  result_addr->flags |= CA_ARRAY_ELEMENT;
                   break;
                 }  /* if */
               } else {
