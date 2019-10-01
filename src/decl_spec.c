@@ -880,7 +880,9 @@ normal case, and tok_end_of_source during template prescanning.
       (void)get_token();
     }  /* if */
     for (; curr_token != tok_end_of_source; (void)get_token()) {
-      if (check_context_sensitive_keyword(tok_final, "final")) {
+      if (check_context_sensitive_keyword(tok_final, "final") ||
+          ((gpp_version_is(>= 40700) || clang_mode) &&
+           check_context_sensitive_keyword(tok_final, "__final"))) {
         cache_curr_token(&transformed_token_cache);
         /* If we found any context-sensitive keywords, we should use the
            transformed cache. */

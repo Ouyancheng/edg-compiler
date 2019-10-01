@@ -1,5 +1,19 @@
 Version 6.0
 
+10/1/19  [EDGcpfe/21854]
+GNU/Clang C++ compatibility: __final in class templates
+
+The changes for EDGcpfe/14942 (see entry of 10/13/16) meant to enable treating
+"__final" as a synonym for "final" in GNU C++ modes.  However, that change did
+not affect some template cases.  For example:
+
+  template<typename> struct X __final {};  // Previously always an error.
+                                           // Now accepted in GNU C++11 mode.
+
+That is now fixed.  Furthermore, this behavior now also applies to Clang C++
+modes.
+
+
 10/1/19  [EDGcpfe/20537]
 Spurious error on constexpr access to array first declared without bound
 

@@ -1106,9 +1106,6 @@ Install the keywords in the symbol table.
     if (gnu_version >= 40700) {
       enter_keyword((a_token_kind)tok_bases, "__bases");
       enter_keyword((a_token_kind)tok_direct_bases, "__direct_bases");
-      if (!C_mode()) {
-        enter_keyword((a_token_kind)tok_final, "__final");
-      }  /* if */
     }  /* if */
     if (gpp_version_is(>= 80000)) {
       enter_keyword((a_token_kind)tok_integer_pack, "__integer_pack");

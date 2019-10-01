@@ -1986,7 +1986,9 @@ accepted in C++/CLI mode.)  "final" is accepted in later Microsoft modes.
         }  /* if */
       } else if ((std_override_modifiers_enabled ||
                   accept_ms_final_modifier) &&
-                 check_context_sensitive_keyword(tok_final, "final")) {
+                 (check_context_sensitive_keyword(tok_final, "final") ||
+                  ((gnu_version_is(>= 40700) || clang_mode) &&
+                   check_context_sensitive_keyword(tok_final, "__final")))) {
         if (func_info->final) {
           pos_error(ec_duplicate_function_modifier, &dps->declarator_pos);
           err = TRUE;
