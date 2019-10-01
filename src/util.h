@@ -283,7 +283,8 @@ objects.
 
 template<typename an_Elem>
 struct General_allocator {
-  /* A general allocator for general end memory. */
+  /* A general allocator for general memory (i.e., as allocated by
+     alloc_general in mem_manage.c). */
   typedef an_Elem an_elem;
   typedef a_ptrdiff a_size;
   typedef Allocation<an_elem> an_allocation;
@@ -302,7 +303,7 @@ template<typename an_Elem>
 inline auto General_allocator<an_Elem>::alloc(a_size n) -> an_allocation
 /*
 Allocate at least n elements of type an_Elem and return the resulting
-allocation (which reflects the actual number of allocated elements.
+allocation (which reflects the actual number of allocated elements).
 */
 {
   return an_allocation{ (an_elem*)alloc_general(n*sizeof(an_elem)),
@@ -312,8 +313,8 @@ allocation (which reflects the actual number of allocated elements.
 
 template<typename an_Elem>
 inline auto General_allocator<an_Elem>::realloc(an_allocation a,
-                                           a_size        new_capacity,
-                                           a_size        n_to_move)
+                                                a_size        new_capacity,
+                                                a_size        n_to_move)
             -> an_allocation
 /*
 Replace the given allocation -- which was allocated by the same allocator -- by
@@ -346,7 +347,7 @@ objects.
 
 
 template<typename an_Object, typename ...an_Arg_pack>
-inline an_Object* new_general(an_Arg_pack ...args)
+inline an_Object *new_general(an_Arg_pack ...args)
 /*
 Allocate in general memory and construct an object of type an_Object with
 the constructor arguments specified by args.  Return a pointer to the object.
@@ -359,7 +360,7 @@ the constructor arguments specified by args.  Return a pointer to the object.
 
 
 template<typename an_Object>
-inline void delete_general(an_Object* p)
+inline void delete_general(an_Object *p)
 /*
 Destroy and delete an object of type an_Object that was allocated in
 general memory.

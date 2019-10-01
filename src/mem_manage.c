@@ -1908,16 +1908,16 @@ text can be added).
 }  /* remove_null_terminator_from_text_buffer */
 
 
-char* alloc_fe(sizeof_t     size)
+char *alloc_fe(sizeof_t     size)
 /*
 Allocate a block of front end memory of the specified size and return
-a pointer.   Look for a previously freed block.  If none is found allocate
+a pointer.  Look for a previously freed block.  If none is found allocate
 a new block.
 */
 {
   void  *ptr = NULL;
 
-  // If the freed map exists, look for an previously freed block.
+  // If the freed map exists, look for a previously freed block.
   if (freed_fe_map != NULL) {
     a_dyn_array_of_void_ptrs_ptr   freed_blocks;
     freed_blocks = freed_fe_map->get(size);
@@ -1938,14 +1938,12 @@ a new block.
 void free_fe(a_void_ptr   ptr,
              sizeof_t     size)
 /*
-Free the block memory pointed to by ptr of the specified size.  The block
+Free the block of memory pointed to by ptr of the specified size.  The block
 is recorded for possible reuse later.
 */
 {
   // Create the map to the freed memory if it has not already been created. 
   if (freed_fe_map == NULL) {
-    freed_fe_map = new_general<a_size_to_ptr_map>(1);
-    delete_general(freed_fe_map);
     freed_fe_map = new_general<a_size_to_ptr_map>(1);
   }  /* if */
   a_dyn_array_of_void_ptrs_ptr   freed_blocks;

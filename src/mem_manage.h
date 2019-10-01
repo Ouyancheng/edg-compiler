@@ -130,7 +130,7 @@ void ensure_mem_region_table_space(a_memory_region_number region_number);
 extern void ensure_function_def_table_space(
                                     a_function_def_number function_def_number);
 
-extern char* alloc_fe(sizeof_t     size);
+extern char *alloc_fe(sizeof_t     size);
 
 extern void free_fe(a_void_ptr   ptr,
                     sizeof_t     size);
