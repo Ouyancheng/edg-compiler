@@ -1,5 +1,21 @@
 Version 6.0
 
+10/1/19  [EDGcpfe/20537]
+Spurious error on constexpr access to array first declared without bound
+
+Consider:
+
+  extern const int arr[];
+  constexpr auto p = arr;
+  constexpr int f(int i) {return p[i];}  // (X)
+  constexpr int arr[] {1, 2, 3};
+  constexpr int x = f(2);  // Previously an error.  Now okay.
+
+Previously, the call f(2) failed to evaluate as a constant because the
+expression p[i] on line (X) does not reflect the array length determined
+later on.  That is now fixed.
+
+
 9/30/19  [EDGcpfe/20944]
 Using arrays as nontype template arguments
 
