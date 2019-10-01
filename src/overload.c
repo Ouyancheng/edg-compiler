@@ -17110,7 +17110,7 @@ cases where the first operand is a handle.
 If overload resolution is successful, return a pointer to the selected
 candidate (which might represent a built-in operator).  If there is no
 potentially-viable candidate (ignoring dependent/deferred cases), set
-*p_none_viable to TRUE. If the call is dependent, set *p_dependent_call to
+*p_none_viable to TRUE.  If the call is dependent, set *p_dependent_call to
 TRUE.  If overload resolution should be deferred, set *p_defer_resolution to
 TRUE.  If the invocation is undecidable because of errors, set *p_undecidable
 to TRUE.  If the invocation is ambiguous, set *p_ambiguous to TRUE.  This

@@ -28721,7 +28721,6 @@ to synthesize operator<=>, and assumes the expressions are evaluated.
   release_local_constant(&null_ptr);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
-
   /* Now implement the comparison. */
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
@@ -28744,7 +28743,7 @@ to synthesize operator<=>, and assumes the expressions are evaluated.
                        ccs = (a_comparison_category_set)ccs_none;
     a_boolean          is_ordering;
     an_operand         cond, ne_result;
-    /* tp determines what kind or ordering or equality comparison is
+    /* tp determines what kind of ordering or equality comparison is
        requested. */
     update_common_comparison_tag(tp, &ccs);
     is_ordering = is_ordering_category(ccs);
@@ -28822,7 +28821,7 @@ to synthesize operator<=>, and assumes the expressions are evaluated.
                                     &ne_result);
     }  /* if */
     /* Build the "x == y ? ..." comparison.  For orderings, the "false" result
-       with be the ne_result expression build above.  For equality comparison,
+       will be the ne_result expression build above.  For equality comparison,
        the "false" result is simply a constant value selected below according
        to the comparison category. */
     process_eq_operator(&opnd1, &opnd2, (a_token_kind)tok_eq, &error_position,
@@ -28882,7 +28881,7 @@ static a_boolean spaceship_synthesis_impossible(
                                           a_comparison_category_set  ccs)
 /*
 Return FALSE if a subobject of type tp makes it impossible to define a
-synthesized operator<=> returning type of the given comparison category.
+synthesized operator<=> returning the type of the given comparison category.
 */
 {
   a_boolean  impossible = FALSE;
@@ -28916,7 +28915,7 @@ synthesized operator<=> returning type of the given comparison category.
       if (is_error_operand(&cmp_opnd) || expr_stack->any_suppressed_error) {
         impossible = TRUE;
       } else if (is_ordering_category(ccs)) {
-        /* For ordering relationship the "<" operator must also apply. */
+        /* For an ordering comparison the "<" operator must also apply. */
         reclaim_fs_nodes_of_operand(&cmp_opnd);
         make_two_dummy_glvalues(tp, null_ptr, &opnd1, &opnd2);
         process_rel_operator(&opnd1, &opnd2, (a_token_kind)tok_lt,
@@ -28938,7 +28937,7 @@ synthesized operator<=> returning type of the given comparison category.
       case tk_float:
         if (ccs == (a_comparison_category_set)ccs_strong_ordering ||
             ccs == (a_comparison_category_set)ccs_weak_ordering) {
-          /* float types do not have a strong or weak ordering. */
+          /* Floating-point types do not have a strong or weak ordering. */
           impossible = TRUE;
         }  /* if */
         break;
@@ -29053,6 +29052,7 @@ or
                                                 ->value_returned_by_cctor;
   a_comparison_category_set
                        ccs = (a_comparison_category_set)ccs_none;
+
   update_common_comparison_tag(return_type, &ccs);
   initialize_ordering_constants();
   switch (ccs) {
@@ -29075,7 +29075,6 @@ or
       unexpected_condition();
   }  /* switch */
   make_constant_operand(result_con, &result);
-  
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,

@@ -11015,7 +11015,7 @@ done:
 
 void initialize_ordering_constants(void)
 /*
-Initialize strong_ordering_equal, etc.  These are the constant initializing
+Initialize strong_ordering_equal, etc.  These are the constants initializing
 std::strong_ordering::equal, etc.
 */
 {
