@@ -15506,9 +15506,9 @@ the value representation of the integer value.
         a_byte          *con_bytes;
         if (type_is(tp, tk_array) && (expr->is_lvalue || expr->is_xvalue) &&
             !is_any_reference_type(con->type)) {
-          /* An array lvalue (normally: a string literal).  Allocate the
-             string statically and return its address.  Make sure that
-             multiple uses of the constant produce the same address. */
+          /* An array glvalue (most commonly a string literal).  Allocate the
+             array statically and return its address.  Make sure that multiple
+             uses of the constant produce the same address. */
           get_mapped_ptr(&ips->map, con, con_bytes);
           if (con_bytes == NULL) {
             alloc_static_object(ips, tp, con_bytes, &result);
