@@ -3209,33 +3209,6 @@ END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include <sys/stat.h>
 BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 
-#ifdef STAT_DECLARATION_NEEDED
-/* "stat" isn't in ANSI C, but we assume it is available and is declared
-   in one of the headers that has been included.  If it is not declared
-   in one of these headers, STAT_DECLARATION_NEEDED should be defined
-   so that a declaration will be provided here.  It must be declared in
-   a header file when compiling using C++.  By default, the first argument
-   is assumed to be const.  If this is not the case, the preprocessor macro
-   STAT_FIRST_PARAM_IS_CONST must be set to the value 0 (FALSE). */
-#ifndef __cplusplus
-#ifndef STAT_FIRST_PARAM_IS_CONST
-/* If not set otherwise, the first parameter of stat is assumed to be
-   const, except on VMS. */
-#if __VMS__
-#define STAT_FIRST_PARAM_IS_CONST FALSE
-#else /* !__VMS__ */
-#define STAT_FIRST_PARAM_IS_CONST TRUE
-#endif /* !__VMS__ */
-#endif /* !defined(STAT_FIRST_PARAM_IS_CONST) */
-/*lint -esym(762,stat)*/
-#if STAT_FIRST_PARAM_IS_CONST
-EXTERN_C int stat(const char *path, struct stat *buf);
-#else /* !defined(STAT_FIRST_PARAM_IS_CONST) */
-EXTERN_C int stat(char *path, struct stat *buf);
-#endif /* defined(STAT_FIRST_PARAM_IS_CONST) */
-#endif /* !__cplusplus */
-#endif /* ifdef STAT_DECLARATION_NEEDED */
-
 /* See if a file exists, if it does, return the modification time. */
 extern a_boolean get_file_modification_time(a_const_char *file_name,
 					    time_t       *time);
@@ -3404,11 +3377,11 @@ The type of the buffer argument in fread/fwrite calls, and the type
 of the pointer passed to realloc.  This is usually void* on ANSI compilers
 and char* on pcc compilers.  Sun C++ uses char* for some reason though.
 */
-#if defined(__cplusplus) && defined(__SUNPRO_CC)
+#if defined(__SUNPRO_CC)
 typedef char *a_stdio_arg;
-#else /* !(defined(__cplusplus) && __defined(__SUNPRO_CC)) */
+#else /* !defined(__SUNPRO_CC) */
 typedef a_void_ptr a_stdio_arg;
-#endif /* defined(__cplusplus) && __defined(__SUNPRO_CC) */
+#endif /* defined(__SUNPRO_CC) */
 
 /*
 Determine whether the template lookup mechanism is needed.  This is
@@ -3650,25 +3623,25 @@ extern int compare_dir_names(a_const_char *dir1,
 /*
 When stdlib.h is not used, provide a declaration for bsearch and qsort.
 */
-EXTERN_C a_void_ptr bsearch(a_const_void_ptr key,
-                            a_const_void_ptr base,
-                            sizeof_t         nmemb,
-                            sizeof_t         size,
-                            int(*compar)(a_const_void_ptr,
-                                         a_const_void_ptr));
+extern "C" a_void_ptr bsearch(a_const_void_ptr key,
+                              a_const_void_ptr base,
+                              sizeof_t         nmemb,
+                              sizeof_t         size,
+                              int(*compar)(a_const_void_ptr,
+                                           a_const_void_ptr));
 
 #if __BSD__
-EXTERN_C int qsort(a_void_ptr       base,
-                   int              nmemb,
-                   int              size,
-                   int(*compar)(a_const_void_ptr,
-                                a_const_void_ptr));
+extern "C" int qsort(a_void_ptr       base,
+                     int              nmemb,
+                     int              size,
+                     int(*compar)(a_const_void_ptr,
+                                  a_const_void_ptr));
 #else /* !__BSD__ */
-EXTERN_C void qsort(a_void_ptr       base,
-                    sizeof_t         nmemb,
-                    sizeof_t         size,
-                    int(*compar)(a_const_void_ptr,
-                                 a_const_void_ptr));
+extern "C" void qsort(a_void_ptr       base,
+                      sizeof_t         nmemb,
+                      sizeof_t         size,
+                      int(*compar)(a_const_void_ptr,
+                                   a_const_void_ptr));
 #endif /* __BSD__ */
 
 #endif /* ifndef STDLIB_H_INCLUDED */
@@ -3699,17 +3672,8 @@ functions that are passed to bsearch and qsort to be declared as
 extern "C".  This flag must not be TRUE when compiling in C mode.
 */
 #ifndef BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-#ifdef __cplusplus
 #define BSEARCH_QSORT_FUNCTION_IS_EXTERN_C TRUE
-#else /* ifndef __cplusplus */
-#define BSEARCH_QSORT_FUNCTION_IS_EXTERN_C FALSE
-#endif /* ifdef __cplusplus */
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-
-#if !defined(__cplusplus) && BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
- #error -- BSEARCH_QSORT_FUNCTION_IS_EXTERN_C must be FALSE when compiling as C
-#endif /* !defined(__cplusplus) && BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-
 
 #if EDG_WIN32
 extern void open_mapped_input_file(a_const_char *file_name);

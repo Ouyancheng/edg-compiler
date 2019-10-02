@@ -4640,7 +4640,7 @@ static a_feature_support feature_support_list[] = {
 #define NUM_FEATURES (sizeof(feature_support_list) / sizeof(a_feature_support))
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-BEGIN_EXTERN_C_BLOCK
+extern "C" {
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 static int compare_feature_names(a_const_void_ptr id_ptr,
@@ -4656,7 +4656,7 @@ with the clang_name of the feature to which feature_ptr points.
 }  /* compare_feature_names */
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-END_EXTERN_C_BLOCK
+}  /* extern "C" */
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 /*
@@ -4717,7 +4717,7 @@ null character.
 #define MAX_CLANG_FEATURE_NAME_LEN 64
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-BEGIN_EXTERN_C_BLOCK
+extern "C" {
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 static int compare_type_traits_helper_names(a_const_void_ptr id_ptr,
@@ -4732,7 +4732,7 @@ with the type traits helper name to which helper_ptr points.
 }  /* compare_type_traits_helper_names */
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-END_EXTERN_C_BLOCK
+}  /* extern "C" */
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 /*
@@ -4779,7 +4779,7 @@ static a_cpp_attribute_support attribute_support_list[] = {
                             sizeof(a_cpp_attribute_support))
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-BEGIN_EXTERN_C_BLOCK
+extern "C" {
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 static int compare_attribute_names(a_const_void_ptr id_ptr,
@@ -4796,7 +4796,7 @@ which attr_supp_ptr points.
 }  /* compare_attribute_names */
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-END_EXTERN_C_BLOCK
+}  /* extern "C" */
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 static a_const_char *clang_feature_test_id(a_macro_arg_ptr   macro_arg,

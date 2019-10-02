@@ -1266,7 +1266,7 @@ get_token_with_colon_separation for a description of seen_tok_colon_colon.
 
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-BEGIN_EXTERN_C_BLOCK
+extern "C" {
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 static int compare_n2r(const void *a,
@@ -1283,7 +1283,7 @@ by their name strings.
 }  /* compare_n2r */
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-END_EXTERN_C_BLOCK
+}  /* extern "C" */
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 

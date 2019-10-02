@@ -2342,13 +2342,13 @@ extern a_token_kind get_token_with_colon_separation(
                                               a_boolean *seen_tok_colon_colon);
 #if FULLY_RESOLVED_MACRO_POSITIONS
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-BEGIN_EXTERN_C_BLOCK
+extern "C" {
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 extern int compare_macro_text_map_entry_with_offset(
                                                    a_const_void_ptr offset_ptr,
                                                    a_const_void_ptr entry_ptr);
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-END_EXTERN_C_BLOCK
+}  /* extern "C" */
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 extern void add_concatenation_record(a_concatenation_record_ptr *headp,

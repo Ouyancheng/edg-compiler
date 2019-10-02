@@ -254,21 +254,9 @@ compilation time.
 /*
 Macros for building function names.
 */
-#if defined(__STDC__) || defined(__cplusplus) || defined(__CENTERLINE__) || \
-    (defined(_lint) && !defined(SUNOS)) || defined(_MSC_VER)
-  /* Use the standard "##" preprocessor operator. */
 #define CONCATX(a, b)       a##b
 #define CONCAT(a, b)        CONCATX(a, b)
 #define CONCAT3(a, b, c)    CONCAT(a, CONCAT(b, c))
-#else /* !(defined(__STDC__) || defined(__cplusplus) || ...) */
-  /* We cannot count on the "##" preprocessor operator being implemented.
-     Use the old (and nonstandard) comment-trick to paste tokens. */
-#define CONCAT(a, b)        a/**/b
-  /* Nested invocations of the macros with old-style preprocessors may not
-     work.  Define a corresponding macro to perform the double concatenation
-     in such cases. */
-#define CONCAT3(a, b, c)    a/**/b/**/c
-#endif /* defined(__STDC__) || defined(__cplusplus) || ... */
 
 /*
 Function names.  Each routine defined in this header file must have a

@@ -46,8 +46,6 @@ FALSE in this header file.
 #endif /* ifndef CP_GEN_BE_VERSION */
 #endif /* ifdef DEMO_VERSION */
 
-#define FRONT_END_C_FILES_COMPILED_AS_CPP 0
-
 /*
 __float80 is usually a synonym for "long double" on Unix-like platforms.
 On Microsoft platforms, however, "long double" is a 64-bit type just like

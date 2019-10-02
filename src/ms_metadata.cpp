@@ -108,9 +108,7 @@ make_unique_ptr(P1&& p1, P2&& p2, P3&& p3, P4&& p4, P5&& p5) {
 
 
 
-EXTERN_C_BLOCK_IN_CPP_FILE
 #include "fe_common.h"
-END_EXTERN_C_BLOCK_IN_CPP_FILE
 
 static bool is_cppcx_metadata = false;
 
@@ -9690,7 +9688,7 @@ assembly_name determines the file name for the generated portable assembly.
 
 #endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */
 
-EXTERN_C_IN_CPP_FILE
+extern
 an_assembly_index import_metadata_file(
                                 a_const_char              *full_assembly_path,
                                 a_cpp_cli_import_flag_set import_flags,
@@ -9722,7 +9720,7 @@ assembly will be returned.
 }  /* import_metadata_file */
 
 
-EXTERN_C_IN_CPP_FILE
+extern
 void import_all_types(an_assembly_index assembly_index,
                       char              *buffer,
                       size_t            *buffer_size)
@@ -9767,7 +9765,7 @@ size.
 }  /* an_assembly::import_all_types */
 
 
-EXTERN_C_IN_CPP_FILE
+extern
 void import_class_definition(an_assembly_scope_index assembly_scope_index,
                              a_cpp_cli_token         typedef_token,
                              char                    *buffer,
@@ -9800,7 +9798,7 @@ list.  The namespace scopes and class head are omitted.
 }  /* import_class_definition */
 
 
-EXTERN_C_IN_CPP_FILE
+extern
 void ms_metadata_trans_unit_init(a_const_char *tu_file_name)
 /*
 Reset the metadata reader for reading metadata for the next translation unit.
@@ -9814,7 +9812,7 @@ Reset the metadata reader for reading metadata for the next translation unit.
 }  /* ms_metadata_trans_unit_init */
 
 
-EXTERN_C_IN_CPP_FILE
+extern
 void ms_metadata_trans_unit_wrapup()
 /*
 Reset the metadata reader for the next translation unit.  This clears all
@@ -9827,7 +9825,7 @@ imported assemblies.
 }  /* ms_metadata_trans_unit_wrapup */
 
 
-EXTERN_C_IN_CPP_FILE void ms_metadata_cleanup()
+extern void ms_metadata_cleanup()
 /*
 Cleanup.  Free all memory and release the interfaces.
 */

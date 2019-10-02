@@ -27,23 +27,6 @@ parameters for this version.
 #include "defines.h"
 
 /*
-EXTERN_C is used to declare an external function with C linkage.  When
-compiling with a C compiler this is just set to ``extern'', but when
-compiling with a C++ compiler it is set to ``extern "C"''.  The extern
-C block macros are used to begin and end an extern "C" block.  In C
-mode, these expand to nothing.
-*/
-#ifdef __cplusplus
-#define EXTERN_C extern "C"
-#define BEGIN_EXTERN_C_BLOCK extern "C" {
-#define END_EXTERN_C_BLOCK }  /* extern "C" */
-#else /* !defined(__cplusplus) */
-#define EXTERN_C extern
-#define BEGIN_EXTERN_C_BLOCK /* nothing */
-#define END_EXTERN_C_BLOCK /* nothing */
-#endif /* __cplusplus */
-
-/*
 Define concat and stringize macros that use the preprocessor to concatenate
 and turn an argument into a string.
 */
@@ -53,48 +36,11 @@ and turn an argument into a string.
 #define stringize(X) #X
 
 /*
-In some environments, some files linked with the front end are C++ files.
-This occurs, for example, with the ms_metadata.cpp file that is used
-in configurations that support C++/CLI.  In such cases, the C++ files need
-to know whether or not the C files are being compiled as C or C++ code.
+The EDG code can either go into the global namespace or the "edg" namespace.
 */
-#ifndef FRONT_END_C_FILES_COMPILED_AS_CPP
-#ifdef __cplusplus
-#define FRONT_END_C_FILES_COMPILED_AS_CPP 1
-#else /* ifndef __cplusplus */
-#define FRONT_END_C_FILES_COMPILED_AS_CPP 0
-#endif /* ifdef __cplusplus */
-#endif /* ifndef FRONT_END_C_FILES_COMPILED_AS_CPP */
-
-#if !defined(__cplusplus) && FRONT_END_C_FILES_COMPILED_AS_CPP
- #error -- FRONT_END_C_FILES_COMPILED_AS_CPP is TRUE but file is compiled as C.
-#endif /* !defined(__cplusplus) && FRONT_END_C_FILES_COMPILED_AS_CPP */
-
-#if FRONT_END_C_FILES_COMPILED_AS_CPP
-#define EXTERN_C_IN_CPP_FILE extern
-#define EXTERN_C_BLOCK_IN_CPP_FILE /* nothing */
-#define END_EXTERN_C_BLOCK_IN_CPP_FILE /* nothing */
-#else /* !FRONT_END_C_FILES_COMPILED_AS_CPP */
-#define EXTERN_C_IN_CPP_FILE extern "C"
-#define EXTERN_C_BLOCK_IN_CPP_FILE extern "C" {
-#define END_EXTERN_C_BLOCK_IN_CPP_FILE }
-#endif /* FRONT_END_C_FILES_COMPILED_AS_CPP */
-
-#ifdef __cplusplus
-EXTERN_C_BLOCK_IN_CPP_FILE
-#endif /* ifdef __cplusplus */
-
-/*
-When the front end files are C++, the EDG code can either go into the global
-namespace or the "edg" namespace.
-*/
-#if FRONT_END_C_FILES_COMPILED_AS_CPP
 #ifndef USE_EDG_NAMESPACE
 #define USE_EDG_NAMESPACE 1
 #endif /* USE_EDG_NAMESPACE */
-#else /* !FRONT_END_C_FILES_COMPILED_AS_CPP */
-#define USE_EDG_NAMESPACE 0
-#endif /* !FRONT_END_C_FILES_COMPILED_AS_CPP */
 
 #if USE_EDG_NAMESPACE
 #define BEGIN_EDG_NAMESPACE namespace edg {
@@ -260,11 +206,6 @@ appropriately.
 #define USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS 0
 #endif /* USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS */
 
-#if !defined(__cplusplus) && USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS
- #error -- USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS must be FALSE when not \
-           compiling the front end as C++ code.
-#endif /* !defined(__cplusplus) && USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS */
-
 /* Simple boolean type: */
 #if USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS
 typedef bool a_boolean;
@@ -287,15 +228,7 @@ certain language features and preprocessing features are available.
 #ifdef __STDC__
 #define USING_ISO_C TRUE
 #else /* !defined(__STDC__) */
-#ifdef __cplusplus
 #define USING_ISO_C TRUE
-#else /* !defined(__cplusplus) */
-#if __MSC__
-#define USING_ISO_C TRUE
-#else /* !__MSC__ */
-#define USING_ISO_C FALSE
-#endif /* __MSC__ */
-#endif /* ifdef __cplusplus */
 #endif /* ifdef __STDC__ */
 #endif /* ifndef USING_ISO_C */
 
@@ -357,11 +290,11 @@ When compiling C++ code on some common platforms, the <stdint.h> and/or
 <inttypes.h> headers do not define the macro UINT32_MAX (and other similar
 macros) unless __STDC_LIMIT_MACROS is defined before inclusion.
 */
-#if defined(__cplusplus) && (USE_STDINT_HEADER || USE_INT_TYPES_HEADER)
+#if USE_STDINT_HEADER || USE_INT_TYPES_HEADER
 #ifndef __STDC_LIMIT_MACROS
 #define __STDC_LIMIT_MACROS
 #endif /* ifndef __STDC_LIMIT_MACROS */
-#endif /* defined(__cplusplus) && ... */
+#endif /* USE_STDINT_HEADER || USE_INT_TYPES_HEADER */
 
 /*
 Include a header to provide typedefs for integer types of specific sizes.  If
@@ -556,7 +489,7 @@ BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 #define NEED_SPRINTF_DECL FALSE
 #endif /* defined(NEED_SPRINTF_DECL) */
 #if NEED_SPRINTF_DECL
-EXTERN_C char *sprintf(char *, const char *, ...);
+extern "C" char *sprintf(char *, const char *, ...);
 #endif /* NEED_SPRINTF_DECL */
 #endif /* __BSD__ */
 /* Some stdio.h's do not define SEEK_SET. */
@@ -565,12 +498,10 @@ EXTERN_C char *sprintf(char *, const char *, ...);
 #define SEEK_SET 0 /* Normal Unix value. */
 #endif /* ifndef SEEK_SET */
 
-#if __ANSIC__ || defined(__cplusplus)
 #define STDLIB_H_INCLUDED TRUE
 END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include <stdlib.h>
 BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
-#endif /* __ANSIC__ || defined(__cplusplus) */
 
 /* String and block routines: */
 #if __ANSIC__
@@ -596,10 +527,10 @@ typedef void bcopy_bzero_return_type;
 #else /* !USING_ISO_C */
 typedef int bcopy_bzero_return_type;
 #endif /* !USING_ISO_C */
-EXTERN_C bcopy_bzero_return_type bcopy(a_const_void_ptr src,
-                                       a_void_ptr dest, int nbytes);
-EXTERN_C int bcmp(a_const_void_ptr src1, a_const_void_ptr src2, int nbytes);
-EXTERN_C bcopy_bzero_return_type bzero(a_void_ptr dest, int nbytes);
+extern "C" bcopy_bzero_return_type bcopy(a_const_void_ptr src,
+                                         a_void_ptr dest, int nbytes);
+extern "C" int bcmp(a_const_void_ptr src1, a_const_void_ptr src2, int nbytes);
+extern "C" bcopy_bzero_return_type bzero(a_void_ptr dest, int nbytes);
 #if USING_ISO_C
 /* When compiling with an ISO C compiler, the standard header files are
    expected to define memcpy and memcmp.  Define a macro for memzero
@@ -1142,16 +1073,16 @@ another without an intervening "break" statement.
 #ifndef __has_cpp_attribute
 #define __has_cpp_attribute(x) 0
 #endif /* !defined(__has_cpp_attribute) */
-#if __has_cpp_attribute(fallthrough) && defined(__cplusplus)
+#if __has_cpp_attribute(fallthrough)
 #define FALLTHROUGH [[fallthrough]];
-#else /* !(__has_cpp_attribute(fallthrough) && defined(__cplusplus) */
+#else /* !(__has_cpp_attribute(fallthrough)) */
 #define FALLTHROUGH /*nothing*/
 #endif /* __has_cpp_attribute(fallthrough) */
-#if __has_cpp_attribute(maybe_unused) && defined(__cplusplus)
+#if __has_cpp_attribute(maybe_unused)
 #define ARG_UNUSED [[maybe_unused]]
-#else /* !(__has_cpp_attribute(maybe_unused) && defined(__cplusplus)) */
+#else /* !(__has_cpp_attribute(maybe_unused)) */
 #define ARG_UNUSED /*nothing*/
-#endif /* __has_cpp_attribute(maybe_unused) && defined(__cplusplus) */
+#endif /* __has_cpp_attribute(maybe_unused) */
 #endif /* defined(_lint) */
 
 /*
@@ -1165,10 +1096,6 @@ that the value is indeed initialized.
 #else /* !defined(_lint) */
 #define LINT_IS_INITIALIZED(x) /*nothing*/
 #endif /* defined(_lint) */
-
-#ifdef __cplusplus
-END_EXTERN_C_BLOCK_IN_CPP_FILE
-#endif /* ifdef __cplusplus */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

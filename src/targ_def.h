@@ -2216,9 +2216,9 @@ properly (see floating.h).
 
 #if USE_SOFTFLOAT
 END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
-BEGIN_EXTERN_C_BLOCK
+extern "C" {
 #include "softfloat.h"
-END_EXTERN_C_BLOCK
+}  /* extern "C" */
 BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
 
 /*

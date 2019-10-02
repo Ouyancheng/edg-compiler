@@ -3893,7 +3893,7 @@ number conversions.
 
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-BEGIN_EXTERN_C_BLOCK
+extern "C" {
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 
@@ -3949,7 +3949,7 @@ pointer points into the lookup array.
 }  /* compare_seq_info */
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-END_EXTERN_C_BLOCK
+}  /* extern "C" */
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 static a_source_file_ptr find_seq_in_lookup_table(
@@ -15838,7 +15838,7 @@ Display the current list of moves to perform.
 #endif /* DEBUG */
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-BEGIN_EXTERN_C_BLOCK
+extern "C" {
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 static int compare_routine_move(const void *r1,
@@ -15867,7 +15867,7 @@ moved.
 }  /* compare_routine_move */
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-END_EXTERN_C_BLOCK
+}  /* extern "C" */
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 void perform_scheduled_routine_moves(void)

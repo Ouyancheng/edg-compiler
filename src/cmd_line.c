@@ -6930,11 +6930,6 @@ file.
   comment_undefined_macro_name(
                       FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS);
 #endif /* defined(FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS) */
-#if defined(FRONT_END_C_FILES_COMPILED_AS_CPP)
-  define_numeric_valued_macro(FRONT_END_C_FILES_COMPILED_AS_CPP);
-#else /* !defined(FRONT_END_C_FILES_COMPILED_AS_CPP) */
-  comment_undefined_macro_name(FRONT_END_C_FILES_COMPILED_AS_CPP);
-#endif /* defined(FRONT_END_C_FILES_COMPILED_AS_CPP) */
 #if defined(FULLY_RESOLVED_MACRO_POSITIONS)
   define_numeric_valued_macro(FULLY_RESOLVED_MACRO_POSITIONS);
 #else /* !defined(FULLY_RESOLVED_MACRO_POSITIONS) */

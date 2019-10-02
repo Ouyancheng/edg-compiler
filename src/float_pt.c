@@ -31,10 +31,7 @@ for a production version.
 
 /* Additional header files. */
 #include "folding.h"
-#if __ANSIC__ || defined(__cplusplus)
-/* For FLT_MAX: */
 #include <float.h>
-#endif /* __ANSIC__ || defined(__cplusplus) */
 #if USE_HOST_FP_CONVERSION_ROUTINES
 #include <errno.h>
 #endif /* USE_HOST_FP_CONVERSION_ROUTINES */
@@ -114,11 +111,10 @@ EXTERN_C int finite(double x);
 #define is_NaN(x) (__isnan((x)))
 #else /* !__linux__ */
 #define is_NaN(x) (isnan((x)))
-#if USE_FLOAT128_FOR_HOST_FP_VALUE && defined(__CYGWIN__) && \
-    defined(__cplusplus)
+#if USE_FLOAT128_FOR_HOST_FP_VALUE && defined(__CYGWIN__)
 /*  <math.h> doesn't have a __float128 version, so use our own. */
 a_host_fp_value isnan(a_host_fp_value x) { return isnan((long double)x); }
-#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE && defined(__CYGWIN__) */
 #endif /* __linux__ */
 #endif /* ifdef isnan */
 #if USE_FLOAT128_FOR_HOST_FP_VALUE

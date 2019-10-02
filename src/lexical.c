@@ -3084,7 +3084,7 @@ original source line because of trigraphs and line splices.
 
 #if FULLY_RESOLVED_MACRO_POSITIONS
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-BEGIN_EXTERN_C_BLOCK
+extern "C" {
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 int compare_macro_text_map_entry_with_offset(a_const_void_ptr offset_ptr,
@@ -3121,7 +3121,7 @@ higher than any actual offset.
 
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-END_EXTERN_C_BLOCK
+}  /* extern "C" */
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 
@@ -9672,7 +9672,7 @@ pp tokens).
 }  /* scan_boolean_constant */
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-BEGIN_EXTERN_C_BLOCK
+extern "C" {
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 static int UCN_char_is_in_range(const void* char_ptr,
@@ -9693,7 +9693,7 @@ or +1 if the character follows the range.
 }  /* UCN_char_is_in_range */
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-END_EXTERN_C_BLOCK
+}  /* extern "C" */
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 #if !(CPPCLI_ENABLING_POSSIBLE && EDG_WIN32)

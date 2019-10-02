@@ -213,9 +213,6 @@ directory.  getwd is used on BSD, getcwd on other systems.
 #else /* !__MICROSOFT_OS___ */
 #if __BSD__
 #include <sys/param.h>
-#if !defined(__cplusplus)
-EXTERN_C char* getwd(char *pathname);
-#endif /* !defined(__cplusplus) */
 #define USE_GETCWD 0
 #else /* !__BSD__ */
 #include <unistd.h>
@@ -235,20 +232,7 @@ static int getpid(void)
 #endif /* __TURBOC__ */
 #else /* __MICROSOFT_OS__ */
 /* Function definitions for non MS-DOS compilers. */
-#ifdef __cplusplus
 #include <time.h>
-#else /* ifndef __cplusplus */
-#if __BSD__
-/* The SUN does not have the getpid(), unlink(), and time() calls defined 
-   in include files. This is only done when not using a C++ compiler.
-   In C++ we assume these are supplied by unistd.h, which is included
-   above. */
-EXTERN_C int getpid(void);
-/* Unlink (delete) a file. */
-EXTERN_C int unlink(const char *path);
-EXTERN_C time_t time(time_t* tloc);
-#endif /* __BSD__ */
-#endif /* ifdef __cplusplus */
 #endif /* __MICROSOFT_OS__ */
 
 /*
@@ -2022,7 +2006,7 @@ not return.
 /*
 In C++, signal handlers must be extern "C".
 */
-BEGIN_EXTERN_C_BLOCK
+extern "C" {
 /*lint -e2761 -e2765*/
 
 static a_signal_handler_return_value term_on_signal(ARG_UNUSED int sig)
@@ -2073,11 +2057,11 @@ typedef a_signal_handler_return_value a_signal_handler(int p, ...);
 typedef a_signal_handler_return_value a_signal_handler(int p);
 #endif /* defined(__SUNPRO_CC) && __BSD__ */
 
-END_EXTERN_C_BLOCK
+}  /* extern "C" */
 
 #if USE_SIGACTION_FOR_SEGV_FAULT_INFO
 
-BEGIN_EXTERN_C_BLOCK
+extern "C" {
 
 static void segv_handler(int        num,
                          siginfo_t* info,
@@ -2094,7 +2078,7 @@ only works on 32-bit x86 Linux systems.
   term_compilation(es_internal_error);
 }  /* segv_handler */
 
-END_EXTERN_C_BLOCK
+}  /* extern "C" */
 
 static void set_segv_handler(void)
 /*
@@ -3609,14 +3593,6 @@ to be used if a diagnostic is issued.
                           errno);
   }  /* if */
 }  /* map_input_file_to_region */
-
-
-#if __BSD__
-#if !defined(__cplusplus)
-/* Some BSD systems (e.g., SunOS 4.1.3) don't declare munmap. */
-EXTERN_C int munmap(caddr_t addr, sizeof_t size);
-#endif /* !defined(__cplusplus) */
-#endif /* __BSD__ */
 
 
 void unmap_memory(a_void_ptr	addr,
@@ -5167,7 +5143,6 @@ is the length of the dir_name buffer.
     wcscpy_s(dir_name, *dir_name_size, runtime_directory);
     goto end_of_routine;
   }  /* if */
-#if defined(__cplusplus)
   /* Get the ICLRMetaHostPolicy interface to query for the preferred CLR
      runtime version based on the available versions that are installed or
      loaded. */
@@ -5214,53 +5189,6 @@ is the length of the dir_name buffer.
   }  /* if */
   crip->Release();
   cmhpp->Release();
-#else /* ifndef __cplusplus */
-  /* Get the ICLRMetaHostPolicy interface to query for the preferred CLR
-     runtime version based on the available versions that are installed or
-     loaded. */
-  hr = CLRCreateInstance(&CLSID_CLRMetaHostPolicy, &IID_ICLRMetaHostPolicy, 
-                         (LPVOID*)(&cmhpp));
-  if (FAILED(hr)) {
-    hresult_catastrophe("CLRCreateInstance");
-  }  /* if */
-  check_assertion(cmhpp != NULL);
-  /* First try to get the version of the runtime specified by the application
-     config file (app.exe.config). */
-  cmhpp->lpVtbl->GetRequestedRuntime(cmhpp, 
-                          METAHOST_POLICY_USE_PROCESS_IMAGE_PATH,
-                          /*pwzBinary=*/NULL, /*pCfgStream=*/NULL, 
-                          /*pwzVersion=*/NULL, /*pcchVersion=*/NULL, 
-                          /*pwzImageVersion=*/NULL, /*pcchImageVersion=*/NULL,
-                          /*pdwConfigFlags=*/NULL, &IID_ICLRRuntimeInfo, 
-                          (LPVOID*)(&crip));
-  if (FAILED(hr) || crip == NULL) {
-#define CLR_VERSION_BUFFER_SIZE 128
-    wchar_t            version_buffer[CLR_VERSION_BUFFER_SIZE];
-    DWORD              version_size = CLR_VERSION_BUFFER_SIZE;
-#undef CLR_VERSION_BUFFER_SIZE
-    
-    wcscpy(version_buffer, CLR_FALLBACK_VERSION);
-    /* Fall back on the version of the runtime specified by CLR_VERSION. */
-    cmhpp->lpVtbl->GetRequestedRuntime(cmhpp, 
-                          (METAHOST_POLICY_USE_PROCESS_IMAGE_PATH | 
-                           METAHOST_POLICY_APPLY_UPGRADE_POLICY),
-                          /*pwzBinary=*/NULL, /*pCfgStream=*/NULL, 
-                          version_buffer, &version_size, 
-                          /*pwzImageVersion=*/NULL, /*pcchImageVersion=*/NULL,
-                          /*pdwConfigFlags=*/NULL, &IID_ICLRRuntimeInfo, 
-                          (LPVOID*)(&crip));
-    if (FAILED(hr) || crip == NULL) {
-      hresult_catastrophe("ICLRMetaHostPolicy::GetRequestedRuntime");
-    }  /* if */
-  }  /* if */
-  check_assertion(crip != NULL);
-  hr = crip->lpVtbl->GetRuntimeDirectory(crip, dir_name, &dword_dir_name_size);
-  if (FAILED(hr)) {
-    hresult_catastrophe("ICLRRuntimeInfo::GetRuntimeDirectory");
-  }  /* if */
-  crip->lpVtbl->Release(crip);
-  cmhpp->lpVtbl->Release(cmhpp);
-#endif /* defined(__cplusplus) */
   /* Cache the value for next time. */
   wcscpy_s(runtime_directory, _MAX_DIR, dir_name);
 end_of_routine:
@@ -5285,22 +5213,14 @@ must be used before the buffer (temp_text_buffer) is overwritten.
   /* According to MSDN, GetErrorInfo returns either S_OK or S_FALSE. */
   check_assertion(hr == S_OK || hr == S_FALSE);
   if (hr == S_OK) {
-#if defined(__cplusplus)
     hr = error_info->GetDescription(&description);
-#else /* ifndef __cplusplus */
-    hr = (error_info->lpVtbl->GetDescription)(error_info, &description);
-#endif /* defined(__cplusplus) */
     if (SUCCEEDED(hr)) {
       /* "description" may contain embedded NULLs, but those are ignored
          because we wouldn't know how to format the text anyway. */
       result = conv_wide_to_utf8(description);
       SysFreeString(description);
     }  /* if */
-#if defined(__cplusplus)
     error_info->Release();
-#else /* ifndef __cplusplus */
-    (error_info->lpVtbl->Release)(error_info);
-#endif /* defined(__cplusplus) */
   }  /* if */
   if (result == NULL) {
     /* Either the API didn't set the error info, or some other error

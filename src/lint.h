@@ -40,7 +40,6 @@ a smaller subset).
 /*lint -esym(755,cpp0x_mode)*/
 /*lint -esym(755,clangcpp_version_is)*/
 /*lint -esym(755,clangc_version_is)*/
-/*lint -esym(755,EXTERN_C)*/
 /*lint -esym(769,ec_cannot_open_pch_input_file_reason)*/
 /*lint -esym(769,ec_cannot_open_temp_file_reason)*/
 /*lint -esym(759,change_non_id_characters)*/
@@ -136,9 +135,6 @@ a smaller subset).
 /*lint -esym(769,ec_bad_multibyte_char_locale)*/
 /*lint -esym(759,clear_type)*/
 /*lint -esym(765,clear_type)*/
-/*lint -esym(755,END_EXTERN_C_BLOCK_IN_CPP_FILE)*/
-/*lint -esym(755,EXTERN_C_BLOCK_IN_CPP_FILE)*/
-/*lint -esym(755,EXTERN_C_IN_CPP_FILE)*/
 /*lint -esym(755,is_cli_generic_instance_type)*/
 /*lint -esym(759,put_str_into_text_buffer)*/
 /*lint -esym(765,put_str_into_text_buffer)*/
