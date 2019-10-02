@@ -1,5 +1,20 @@
 Version 6.0
 
+10/2/19  [EDGcpfe/21819]
+Segfault in form_float_constant
+
+When compiling the front end with g++ and using lib_gcc < 7.0.0, converting
+a long double positive infinity floating-point constant to __float128
+erroneously results in a NaN value (rather than positive infinity).  That
+difference could cause a segfault in form_float_constant in configurations
+where HOST_FP_VALUE_IS_128BIT is TRUE and USE_SOFTFLOAT is FALSE.  A change has
+been made to address the segfault, but it is recommended that lib_gcc >= 7.0.0
+be used to avoid these floating-point conversion issues.  For example, with
+--gcc:
+
+  long double infl = __builtin_infl();
+
+
 10/2/19  [EDGcpfe/18786,EDGcpfe/21191]
 Deduction failures due to missing definitions
 
