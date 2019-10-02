@@ -529,6 +529,7 @@ Destructor.
 }  /* Dyn_array::Dyn_array */
 
 
+/*lint -esym(1529,Dyn_array::operator=)*/
 template<typename an_Elem, typename an_Allocator>
 inline auto Dyn_array<an_Elem, an_Allocator>::operator=(Dyn_array const &b)
             -> Dyn_array&
