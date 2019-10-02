@@ -15654,7 +15654,7 @@ the value representation of the integer value.
             if (type_is(tp, tk_array) && tp->incomplete) {
               /* The variable was an array of unknown bound when parsed.
                  However, in the current evaluation context its bound may now
-                 be know.  For example:
+                 be known.  For example:
                    extern const int arr[];
                    constexpr auto p = arr;
                    constexpr int f(int i) { return p[i]; }  // (X)
