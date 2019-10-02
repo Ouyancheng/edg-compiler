@@ -1,5 +1,22 @@
 Version 6.0
 
+10/2/19  [EDGcpfe/18786,EDGcpfe/21191]
+Deduction failures due to missing definitions
+
+Consider:
+
+  struct X { };
+  auto g(X);  // No definition.
+  template<typename T> constexpr auto f(T p) -> decltype(g(p)) { return 1; }
+  template<typename T> constexpr auto f(T p) -> int { return 2; }
+  static_assert(f(X{}) == 2, "Unexpected");  // Now accepted.
+
+Previously, the attempt to call f(X{}) triggered an error about not being able
+to deduce the type of g(p) because g has no definition.  Now that error is
+treated as a deduction failure ("SFINAE"), and overload resolution selects the
+second declaration of f without issuing an error.
+
+
 10/1/19  [EDGcpfe/21854]
 GNU/Clang C++ compatibility: __final in class templates
 

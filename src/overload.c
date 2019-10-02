@@ -10850,7 +10850,7 @@ compiler_generated is TRUE if the function reference is compiler-generated.
 #if MICROSOFT_EXTENSIONS_ALLOWED
           operand->allow_addr_of_managed_member = allow_addr_of_managed_member;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          if (!result_is_lvalue) {
+          if (!result_is_lvalue && !is_error_operand(operand)) {
             /* Convert the operand to a function pointer.  Note the use of
                a special routine that will convert a nonstatic member
                function designator to a pointer rather than a pointer to

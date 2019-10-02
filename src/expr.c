@@ -5628,21 +5628,25 @@ indicated type.
                                        &orig_operand.position,
                                        end_position_of_operand(&orig_operand),
                                        target->ref_entries_list, target);
-      check_assertion(is_expression_operand(target) &&
-                      is_routine_node(target->variant.expression));
-      target->variant.expression->variant.routine.name_reference = nrp;
-      if (bcap->has_trailing_n) {
-        nrp->special_kind =
+      if (is_error_operand(target)) {
+        err = TRUE;
+      } else {
+        check_assertion(is_expression_operand(target) &&
+                        is_routine_node(target->variant.expression));
+        target->variant.expression->variant.routine.name_reference = nrp;
+        if (bcap->has_trailing_n) {
+          nrp->special_kind =
                    (a_special_function_kind)sfk_gnu_atomic_nongeneric_function;
-      } else if (is_sync_or_atomic) {
-        nrp->special_kind =
+        } else if (is_sync_or_atomic) {
+          nrp->special_kind =
                        (a_special_function_kind)sfk_gnu_sync_concrete_function;
+        }  /* if */
+        conv_function_designator_to_ptr_to_function(target,
+                                                    (a_source_position *)NULL,
+                                                    /*allow_ctor=*/FALSE,
+                                                    /*will_call=*/TRUE);
+        rout = sym->variant.routine.ptr;
       }  /* if */
-      conv_function_designator_to_ptr_to_function(target,
-                                                  (a_source_position *)NULL,
-                                                  /*allow_ctor=*/FALSE,
-                                                  /*will_call=*/TRUE);
-      rout = sym->variant.routine.ptr;
     }  /* if */
     if (!err) {
       an_arg_list_elem_ptr ap;
@@ -6279,10 +6283,11 @@ are expected to be NULL in that case.
                                                        &end_function_position),
                                          operand->ref_entries_list,
                                          operand);
-        conv_function_designator_to_ptr_to_function(operand,
-                                                    (a_source_position *)NULL,
-                                                    /*allow_ctor=*/FALSE,
-                                                    /*will_call=*/TRUE);
+        if (!is_error_operand(operand)) {
+          conv_function_designator_to_ptr_to_function(
+                                    operand, (a_source_position *)NULL,
+                                    /*allow_ctor=*/FALSE, /*will_call=*/TRUE);
+        }  /* if */
         routine = func_sym->variant.routine.ptr;
         routine_type = routine_symbol_type(func_sym);
       }  /* if */
@@ -23562,16 +23567,18 @@ indicates which.
                                              start_position, end_position,
                                              (a_ref_entry_ptr)NULL,
                                              operand);
-            conv_expr_function_designator_to_ptr_to_function(
+            if (!is_error_operand(operand)) {
+              conv_expr_function_designator_to_ptr_to_function(
                                                     operand,
                                                     /*will_call=*/FALSE,
                                                     (a_source_position *)NULL);
-            cast_operand_full(type_cast_to, operand, type_position,
-                              /*check_cast_access=*/FALSE,
-                              /*check_ambiguity=*/FALSE,
-                              /*is_implicit_cast=*/FALSE, 
-                              /*is_reinterpret_cast=*/FALSE,
-                              reinterpret_semantics);
+              cast_operand_full(type_cast_to, operand, type_position,
+                                /*check_cast_access=*/FALSE,
+                                /*check_ambiguity=*/FALSE,
+                                /*is_implicit_cast=*/FALSE, 
+                                /*is_reinterpret_cast=*/FALSE,
+                                reinterpret_semantics);
+            }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
           } else if (gcc_mode && is_union_type(type_cast_to)) {
             /* It may be possible to convert *operand to the type of one of

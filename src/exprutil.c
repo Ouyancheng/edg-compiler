@@ -16358,14 +16358,37 @@ reference entry, or is NULL if none is needed.
   if (C_dialect == C_dialect_cplusplus &&
       curr_expr_is_potentially_evaluated()) {
     if (routine == il_header.main_routine) {
-      /* In C++, "main" cannot be called and cannot have its address
-         taken (ARM 3.4). */
+      /* In C++, "main" cannot be called and cannot have its address taken. */
       if (microsoft_mode || gpp_mode) {
         /* MSVC++ (up to 8.0 at least) and g++ (up to 3.4 at least) allow
            this. */
       } else {
         expr_pos_error(ec_bad_use_of_main, position);
       }  /* if */
+    }  /* if */
+  }  /* if */
+  if (routine->has_deducible_return_type &&
+      !routine->has_deduced_return_type &&
+      !routine->is_prototype_instantiation &&
+      !routine->defined &&
+      expr_stack->suppress_diagnostics) {
+    /* A function with a deducible return type that has not (yet) been deduced.
+       If we are in a context where diagnostics are suppressed, treat the
+       absence of a definition as a (suppressed) expression diagnostic rather
+       than letting it be handled as an error "outside the immediate context"
+       later on. */
+    a_boolean                could_be_instantiated = FALSE;
+    a_template_instance_ptr  tip = routine_sym->variant.routine.instance_ptr;
+    if (tip != NULL) {
+      a_symbol_ptr  tsym = prototype_template_of(tip->template_sym);
+      if (tsym->defined) {
+        could_be_instantiated = TRUE;
+      }  /* if */
+    }  /* if */
+    if (!could_be_instantiated) {
+      record_suppressed_error();
+      make_error_operand(result);
+      goto done;
     }  /* if */
   }  /* if */
   /* Make an expression for the function. */
@@ -16409,6 +16432,7 @@ reference entry, or is NULL if none is needed.
     reference_to_mv_routine(routine, position);
   }  /* if */
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
+done:;
 }  /* make_function_designator_operand */
 
 
