@@ -21,8 +21,8 @@ Consider:
 
   extern const int arr[];
   constexpr auto p = arr;
-  constexpr int f(int i) {return p[i];}  // (X)
-  constexpr int arr[] {1, 2, 3};
+  constexpr int f(int i) { return p[i]; }  // (X)
+  constexpr int arr[] = { 1, 2, 3 };
   constexpr int x = f(2);  // Previously an error.  Now okay.
 
 Previously, the call f(2) failed to evaluate as a constant because the

@@ -15651,6 +15651,24 @@ the value representation of the integer value.
               break;
             }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+            if (type_is(tp, tk_array) && tp->incomplete) {
+              /* The variable was an array of unknown bound when parsed.
+                 However, in the current evaluation context its bound may now
+                 be know.  For example:
+                   extern const int arr[];
+                   constexpr auto p = arr;
+                   constexpr int f(int i) { return p[i]; }  // (X)
+                   constexpr int arr[] = { 1, 2, 3 };
+                   constexpr int x = f(2);  // (Y)
+                 At point (X), the bound of arr was unknown, but by the time
+                 it is evaluated (point (Y)), the type has been completed.
+                 Update the node type so a parent node can correctly record
+                 the array bound.  */
+              a_type_ptr  vtp = skip_typerefs(var->type);
+              if (type_is(vtp, tk_array) && !vtp->incomplete) {
+                expr->type = var->type;
+              }  /* if */
+            }  /* if */
             get_mapped_ptr(&ips->map, &var->initializer, con_ptr);
             con = (a_constant_ptr)con_ptr;
             if (con == NULL) {
