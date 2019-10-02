@@ -8051,18 +8051,8 @@ position.
       a_param_type_ptr  ptp = rtp->variant.routine.extra_info->param_type_list;
       a_boolean         diagnose = (rp->is_declared_constexpr ||
                                     rp->is_consteval) &&
+                                   !rp->is_inheriting_ctor &&
                                    !rout_is_real_template_instance(rp);
-      if (diagnose && rp->is_inheriting_ctor) {
-        /* An inheriting constructor not generated from a base constructor
-           template is never marked as a template instance, but if it is
-           generated for a class template instance, it should be considered
-           a template instance in this context. */
-        a_type_ptr  parent = parent_class_of(rp);
-        if (parent->variant.class_struct_union.is_template_class &&
-            !parent->variant.class_struct_union.is_specialized) {
-          diagnose = FALSE;
-        }  /* if */
-      }  /* if */
       for (; ptp != NULL; ptp = ptp->next) {
         if (!could_be_literal_type(ptp->type)) {
           okay = FALSE;

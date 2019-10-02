@@ -1,5 +1,27 @@
 Version 6.0
 
+10/2/19  [EDGcpfe/21353]
+Spurious constexpr-constraint error on inheriting constructor
+
+Consider:
+
+  struct X { X(int) {} };
+  template<typename T> struct B {
+    T val;
+    constexpr explicit B(T p): val(p) {}
+  };
+  struct D: B<X> {
+    using B::B;  // Previously a spurious error.  Now okay.
+  };
+  int main() { D d(X{42}); }
+
+The instantiation of the constructor B<X>::B(X) is not constexpr because X is
+not a literal type.  That is not an error because the constructor is the result
+of template instantiation.  However, the front end previously (erroneously)
+issued an error about the generated inheriting constructor being constexpr but
+involving a non-literal type X.  That is now fixed.
+
+
 10/2/19  [EDGcpfe/21819]
 Segfault in form_float_constant
 
