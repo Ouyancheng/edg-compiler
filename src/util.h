@@ -729,8 +729,7 @@ struct Owning_ptr: private a_Deallocator {
     : a_deallocator(move_from(&src)), ptr(src.ptr) { src.ptr = NULL; }
   inline ~Owning_ptr();
   inline auto operator=(const Owning_ptr&) -> Owning_ptr& = delete;
-  inline auto operator=(Owning_ptr&& src) -> Owning_ptr&
-    { this->ptr = src.ptr; src.ptr = NULL; return *this; }
+  inline auto operator=(Owning_ptr&& src) -> Owning_ptr&;
   inline auto operator=(a_nullptr) -> Owning_ptr&;
   inline auto operator->() const -> an_object*
     { return this->ptr; }
@@ -755,6 +754,21 @@ Destroy and deallocate the pointed-to object, if any.
     this->dealloc(an_allocation{ p, 1 });
   }  /* if */
 }  /* Owning_ptr::~Owning_ptr */
+
+
+template<typename an_Object, typename a_Deallocator>
+inline auto Owning_ptr<an_Object, a_Deallocator>::operator=(Owning_ptr &&src)
+                                                  -> Owning_ptr&
+/*
+Move src to *this, then return *this.
+*/
+{
+  if (this != &src) {
+    this->ptr = src.ptr;
+    src.ptr = NULL;
+  }  /* if */
+  return *this;
+}  /* Owning_ptr::operator= */
 
 
 template<typename an_Object, typename a_Deallocator>

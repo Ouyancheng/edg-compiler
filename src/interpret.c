@@ -1277,36 +1277,6 @@ call frame).
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 
-#if HOST_ALIGNMENT_REQUIRED == 1
-#define HASH_PTR_SHIFT 0
-#else /* HOST_ALIGNMENT_REQUIRED > 1 */
-#if HOST_ALIGNMENT_REQUIRED == 2
-#define HASH_PTR_SHIFT 1
-#else /* HOST_ALIGNMENT_REQUIRED > 2 */
-#if HOST_ALIGNMENT_REQUIRED == 4
-#define HASH_PTR_SHIFT 2
-#else /* HOST_ALIGNMENT_REQUIRED > 4 */
-#if HOST_ALIGNMENT_REQUIRED == 8
-#define HASH_PTR_SHIFT 3
-#else /* HOST_ALIGNMENT_REQUIRED > 8 */
-#if HOST_ALIGNMENT_REQUIRED == 16
-#define HASH_PTR_SHIFT 4
-#else /* HOST_ALIGNMENT_REQUIRED > 16 */
-#if HOST_ALIGNMENT_REQUIRED == 32
-#define HASH_PTR_SHIFT 5
-#else /* HOST_ALIGNMENT_REQUIRED > 32 */
-#define HASH_PTR_SHIFT 6
-#endif /* == 32 */
-#endif /* == 16 */
-#endif /* == 8 */
-#endif /* == 4 */
-#endif /* == 2 */
-#endif /* == 1 */
-
-#define hash_ptr(ptr)                                                        \
-   ((uintptr_t)ptr >> HASH_PTR_SHIFT)
-
-
 /*
 Macro to retrieve a pointer (dptr) associated with a pointer (iptr) from a
 given data map.
