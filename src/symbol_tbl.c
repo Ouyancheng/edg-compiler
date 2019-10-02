@@ -12391,29 +12391,25 @@ for a description of virtual_step_stack.
          the path in case it is a using declaration.  It's okay not to find
          such a projection symbol since the using declaration might not be
          at the current level. */
-      /* Run two loops -- first over the inactive list and then (if needed)
-         over the active list. */
-      int iter;
-      for (iter = 1; iter <= 2; ++iter) {
-        step_proj_sym = (iter == 1) ? proj_sym->header->inactive_symbols :
-                                      proj_sym->header->symbol;
-        for (; step_proj_sym != NULL; step_proj_sym = step_proj_sym->next) {
-          if (same_entities(sym_parent_class(step_proj_sym),
-                            viewpoint_class) &&
-              step_proj_sym->kind == (a_symbol_kind)sk_projection &&
-              step_proj_sym->variant.projection.extra_info->
+      step_proj_sym = find_symbol_list_in_table(
+                           &symbol_supplement_for_class(viewpoint_class)
+                                                              ->pointers_block,
+                           proj_sym->header);
+      for (; step_proj_sym != NULL; step_proj_sym = step_proj_sym->next) {
+        if (same_entities(sym_parent_class(step_proj_sym),
+                          viewpoint_class) &&
+            step_proj_sym->kind == (a_symbol_kind)sk_projection &&
+            step_proj_sym->variant.projection.extra_info->
                                          fundamental_symbol == fund_proj_sym) {
-            /* Replace the projection symbol we have by the new one.  Note
-               that it will get passed down in the recursive call below,
-               which is good, because once we get past the using declarations
-               we can use the faster technique. */
-            proj_sym = step_proj_sym;
-            access = proj_sym->variant.projection.access;
-            need_to_compute_access = FALSE;
-            break;
-          }  /* if */
-        }  /* for */
-        if (!need_to_compute_access) break;
+          /* Replace the projection symbol we have by the new one.  Note
+             that it will get passed down in the recursive call below,
+             which is good, because once we get past the using declarations
+             we can use the faster technique. */
+          proj_sym = step_proj_sym;
+          access = proj_sym->variant.projection.access;
+          need_to_compute_access = FALSE;
+          break;
+        }  /* if */
       }  /* for */
     }  /* if */
     if (!need_to_compute_access) {
@@ -12519,14 +12515,17 @@ this one.
        additional checking in the expression routines is needed to enforce
        that restriction. */
     have_access = TRUE;
-  } else if (!(strict_ansi_mode || (gpp_mode && gnu_version < 30400)) &&
-             proj_sym->kind == (a_symbol_kind)sk_projection &&
-             proj_sym->variant.projection.is_using_decl) {
+  } else if (proj_sym->kind == (a_symbol_kind)sk_projection &&
+             ((proj_sym->variant.projection.is_using_decl &&
+	       !(strict_ansi_mode || (gpp_mode && gnu_version < 30400))) ||
+	      proj_sym->variant.projection.any_intervening_using_decl)) {
     /* We do not have access to the member in this class, and the symbol
        here is a using-declaration.  Core Issue 360 suggests that we should
        not look for access in a base class.  Since that issue is still
        open (January 2012), the standard still requires the base class
-       access check, so we do it in strict mode. */
+       access check, so we do it in strict mode.  If the projection symbol
+       results from an inherited using-declaration we do the access check
+       on that using-declaration. */
     /* have_access = FALSE;  -- already set. */
   } else {
     /* We do not have access to the member in this class, but perhaps we

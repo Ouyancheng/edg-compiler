@@ -1,5 +1,22 @@
 Version 6.0
 
+10/2/19  [EDGcpfe/21180]
+Missing access error on use of inherited using-declaration
+
+If a reference was made to an inherited inaccessible using-declaration,
+the access error was not detected in some cases.  This could cause incorrect
+behavior if the access affected SFINAE.  Now fixed.
+
+  struct A {
+    int f() { return 0; }
+  };
+  class B : public A {
+    using A::f;
+  };
+  struct C : public B {};
+  typedef decltype(C().f()) f_type;;  // An error is now issued
+
+
 10/2/19  [EDGcpfe/21869]
 Assertion failure in builtin_function_type
 
