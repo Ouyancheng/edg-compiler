@@ -154,15 +154,15 @@ typedef int a_signal_handler_return_value;
 #include <errno.h>
 #if __BSD__
 /* BSD errno.h doesn't define "errno". */
-EXTERN_C int errno;
+extern "C" int errno;
 #endif /* __BSD__ */
 
 #ifndef STDLIB_H_INCLUDED
 /* FIXME: These should be removed. */
-EXTERN_C char *getenv(char *name);
-EXTERN_C int abort(void);
-EXTERN_C void exit(int status);
-EXTERN_C unsigned long strtoul(const char *str, char **endptr, int base);
+extern "C" char *getenv(char *name);
+extern "C" int abort(void);
+extern "C" void exit(int status);
+extern "C" unsigned long strtoul(const char *str, char **endptr, int base);
 #endif /* ifndef STDLIB_H_INCLUDED */
 
 /*
@@ -1624,7 +1624,7 @@ reason for the failure.
 
 
 #if __VMS__
-EXTERN_C int delete(char *file_name);
+extern "C" int delete(char *file_name);
 #endif /* __VMS__ */
 
 void delete_file(a_const_char *file_name)
@@ -3459,7 +3459,7 @@ incremental_size must be a multiple of the page size.
 #include <sys/mman.h>
 
 #if __BSD__
-EXTERN_C int getpagesize(void);
+extern "C" int getpagesize(void);
 #endif /* __BSD__ */
 
 #if defined(__hpux) || defined(__AIX__)

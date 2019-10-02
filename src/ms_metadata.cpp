@@ -9147,7 +9147,7 @@ CPPMetadataDispenser;
 
 /* Linker-provided pseudo variable that represents the DOS header of the
    module. */
-EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+extern "C" IMAGE_DOS_HEADER __ImageBase;
 
 HINSTANCE relative_load_library(wchar_t *relative_path)
 /*

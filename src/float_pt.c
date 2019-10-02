@@ -42,10 +42,10 @@ for a production version.
 
 #if __BSD__
 /* BSD errno.h doesn't define "errno". */
-EXTERN_C int errno;
+extern "C" int errno;
 #endif /* __BSD__ */
 #ifndef STDLIB_H_INCLUDED
-EXTERN_C double strtod(char *, char **);
+extern "C" double strtod(char *, char **);
 #endif /* ifndef STDLIB_H_INCLUDED */
 #if TARG_HAS_IEEE_FLOATING_POINT
 /* Define is_NaN and is_finite.  They must work on an argument of type
@@ -87,14 +87,14 @@ EXTERN_C double strtod(char *, char **);
 isnan is a macro in some Solaris versions.  Don't provide an extern
 declaration in such cases.
 */
-EXTERN_C int isnan(double x);
+extern "C" int isnan(double x);
 #endif /* isnan */
 #define is_NaN(x) (isnan((x)))
 #if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
 /* The "finite" function takes a double argument, so it doesn't work
    for long double (the conversion to double could produce an infinity
    for a too-large value). */
-EXTERN_C int finite(double x);
+extern "C" int finite(double x);
 #define is_finite(x) (finite(x))
 #else /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 /* See definition of host_fp_value_is_finite below. */

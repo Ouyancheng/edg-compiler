@@ -29,9 +29,9 @@ debug.c -- Debug routines.
 #include "fe_common.h"
 
 #ifndef STDLIB_H_INCLUDED
-EXTERN_C int atoi(char *);
+extern "C" int atoi(char *);
 #if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
-EXTERN_C long atol(char *);
+extern "C" long atol(char *);
 #endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 #endif /* ifndef STDLIB_H_INCLUDED */
 
