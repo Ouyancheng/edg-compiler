@@ -256,7 +256,7 @@ EXTERN a_builtin_user_descr builtin_user_table[]
      __builtin_is_constexpr_evaluated.  We accept it in all modes, but the front
      end also recognizes std::is_constexpr_evaluated directly. */
   { "__builtin_is_constant_evaluated", "g+(90000-)L+(90000)s+(202000)",
-    "bool () noexcept", bufk_is_constant_evaluated },
+    "bool () __edg_throw__()", bufk_is_constant_evaluated },
 
   /* __builtin_launder is "magical" in that it implicitly produces a return
      type matching the argument type. */
