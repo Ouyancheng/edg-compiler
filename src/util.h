@@ -492,7 +492,7 @@ Copy constructor.
   a_size   n = this->n_elems;
 
   for (a_size k = 0; k < n; ++k) {
-    construct(elems+k, src.elems[k]);
+    construct(elems+k, src_elems[k]);
   }  /* for */
 }  /* Dyn_array::Dyn_array */
 
@@ -902,8 +902,8 @@ number of comparisons (2 or 3) and moves (0, 3, or 4).
 
   if (cmp(*p_a, *p_b)) {
     if (cmp(*p_c, *p_b)) {
-      bool     a_lt_c = cmp(*p_a, *p_c);
-      a_value  tmp = move_from(a_lt_c ? p_c : p_a);
+      a_boolean  a_lt_c = cmp(*p_a, *p_c);
+      a_value    tmp = move_from(a_lt_c ? p_c : p_a);
       if (a_lt_c) {
         /* a < c < b: */
         /* Finish swap_at(c, b) below. */
@@ -1106,11 +1106,11 @@ number of comparisons (2 or 3) and moves (0, 3, or 4).
 }  /* sort_args */
 
 
-template<bool unguarded = FALSE, int moves_limit = 0,
+template<a_boolean unguarded = FALSE, int moves_limit = 0,
          typename a_Ptr, typename a_Comparison>
-inline bool insertion_sort(a_Ptr        first,
-                           a_Ptr        last,
-                           a_Comparison cmp)
+inline a_boolean insertion_sort(a_Ptr        first,
+                                a_Ptr        last,
+                                a_Comparison cmp)
 /*
 Sort the given sequence using insertion sort.  If unguarded is TRUE, assume
 *(first-1) is valid and already in a valid position for the sorted version of
@@ -1391,13 +1391,13 @@ Uses branchless partitioning.
 
   /* Find the first element greater than or equal than the pivot (the median
      of 3 guarantees this exists). */
-  while (cmp(*++first, pivot));
+  while (cmp(*++first, pivot)) {}
   /* Find the first element strictly smaller than the pivot. We have to guard
      this search if there was no element before *first. */
   if (first-1 == begin) {
-    while (first < last && !cmp(*--last, pivot));
+    while (first < last && !cmp(*--last, pivot)) {}
   } else {
-    while (!cmp(*--last, pivot));
+    while (!cmp(*--last, pivot)) {}
   }  /* if */
 
   /* If the first pair of elements that should be swapped to partition are
@@ -1546,13 +1546,13 @@ MAX_INSERTION_SORT_LENGTH+1 long.
 
   /* Find the first element greater than or equal than the pivot (the median
      of 3 guarantees this exists). */
-  while (cmp(*++first, pivot));
+  while (cmp(*++first, pivot)) {}
   /* Find the first element strictly smaller than the pivot. We have to guard
      this search if there was no element before *first. */
   if (first-1 == begin) {
-    while (first < last && !cmp(*--last, pivot));
+    while (first < last && !cmp(*--last, pivot)) {}
   } else {
-    while (!cmp(*--last, pivot));
+    while (!cmp(*--last, pivot)) {}
   }  /* if */
 
   /* If the first pair of elements that should be swapped to partition are
@@ -1565,8 +1565,8 @@ MAX_INSERTION_SORT_LENGTH+1 long.
      iteration is special-cased above. */
   while (first < last) {
     swap_at(first, last);
-    while (cmp(*++first, pivot));
-    while (!cmp(*--last, pivot));
+    while (cmp(*++first, pivot)) {}
+    while (!cmp(*--last, pivot)) {}
   }  /* while */
 
   /* Put the pivot in the right place. */
@@ -1596,17 +1596,17 @@ simplicity.
   a_value pivot = move_from(begin);
   a_Ptr first = begin, last = end;
 
-  while (cmp(pivot, *--last));
+  while (cmp(pivot, *--last)) {}
 
   if (last+1 == end) {
-    while (first < last && !cmp(pivot, *++first));
+    while (first < last && !cmp(pivot, *++first)) {}
   } else {
-    while (!cmp(pivot, *++first));
+    while (!cmp(pivot, *++first)) {}
   }  /* if */
   while (first < last) {
     swap_at(first, last);
-    while (cmp(pivot, *--last));
-    while (!cmp(pivot, *++first));
+    while (cmp(pivot, *--last)) {}
+    while (!cmp(pivot, *++first)) {}
   }  /* while */
 
   a_Ptr pivot_pos = last;
@@ -1678,14 +1678,14 @@ is FALSE.
     Ptr_with_flag<a_Ptr> part_result =
                     branchless ? partition_right_branchless(begin, end, cmp)
                                : partition_right(begin, end, cmp);
-    a_Ptr pivot_pos = part_result.ptr();
-    bool already_partitioned = part_result.flagged();
+    a_Ptr      pivot_pos = part_result.ptr();
+    a_boolean  already_partitioned = part_result.flagged();
 
     /* If the partitions are highly unbalanced, shuffle some elements to break
        many patterns. */
-    a_ptrdiff l_size = pivot_pos-begin;
-    a_ptrdiff r_size = end-(pivot_pos+1);
-    bool      highly_unbalanced = (l_size < length/8) || (r_size < length/8);
+    a_ptrdiff  l_size = pivot_pos-begin;
+    a_ptrdiff  r_size = end-(pivot_pos+1);
+    a_boolean  highly_unbalanced = (l_size < length/8) || (r_size < length/8);
     if (highly_unbalanced) {
       /* If we have seen too many highly-unbalanced partitions, switch to
          heapsort to guarantee O(n log n). */
@@ -1915,8 +1915,8 @@ Initialize the given pointer map with a capacity for 1<<mask_width slots.
   } else {
     typedef Free_ptr_map_tables<(int)sizeof(an_entry)>  a_free_table_cache;
     if (a_free_table_cache::list[mask_width] != NULL) {
-    this->table = (an_entry*)a_free_table_cache::list[mask_width];
-    a_free_table_cache::list[mask_width] = this->table->next;
+      this->table = (an_entry*)a_free_table_cache::list[mask_width];
+      a_free_table_cache::list[mask_width] = this->table->next;
     } else {
       this->table = (an_entry*)alloc_general(size);
     }  /* if */
