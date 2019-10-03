@@ -1865,6 +1865,7 @@ void *Free_ptr_map_tables<entry_size>::list[
                                            MAX_WIDTH_REUSABLE_PTR_MAP_TABLE+1];
 
 
+/*lint -esym(758,Ptr_map_entry<*, *>::(anonymous))*/
 template<typename a_Ptr_key, typename a_Value>
 struct Ptr_map_entry {
   typedef a_Ptr_key a_key;
