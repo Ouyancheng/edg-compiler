@@ -743,7 +743,7 @@ at idx.
   a_live_set_index     idx = hash & mask;                                    \
   an_alloc_seq_number  *table = (set)->table;                                \
   /* Find the item to delete (we're assuming it exists). */                  \
-  while (table[idx] != alloc_seq) {                                          \
+  while (table[idx] != (alloc_seq)) {                                        \
     idx = (idx+1) & mask;                                                    \
   }  /* while */                                                             \
   table[idx] = 0;                                                            \
