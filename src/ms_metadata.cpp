@@ -32,10 +32,10 @@ part of the Windows 8 (and newer) SDKs.  The file can be found in:
 where 8.x is currently either 8.0 or 8.1.
 */
 
+#include "basic_hdrs.h"
 
 #if CPPCLI_ENABLING_POSSIBLE && !defined(_lint)
 
-#include "basic_hdrs.h"
 #include "fe_common.h"
 
 #include <windows.h>
