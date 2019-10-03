@@ -9266,7 +9266,6 @@ the body of the (constructor) function proper.
     }  /* for */
     /* Phase 2: Map the parameters to the arguments. */
     /* First map the "this" pointer. */
-    alloc_seq_number = ips->curr_alloc_seq_number++;
     this_var = callee_scope->variant.routine.this_param_variable;
     if (this_var == NULL) {
       /* A constructor should always have a "this" parameter, but in some
@@ -9282,6 +9281,8 @@ the body of the (constructor) function proper.
       a_byte_count   with_postfix_bytes;
       a_var_postfix  *postfix;
       do_host_alignment(this_n_bytes);
+      alloc_seq_number = ips->curr_alloc_seq_number++;
+      add_to_live_set(&ips->live_set, alloc_seq_number);
       with_postfix_bytes = this_n_bytes+sizeof(a_var_postfix);
       alloc_complete_object(ips, with_postfix_bytes, this_type, this_bytes);
       clear_address(this_bytes, result_storage);
@@ -9506,6 +9507,7 @@ the body of the (constructor) function proper.
       } else {
         replace_mapped_ptr(&ips->map, this_var, postfix->prev_storage);
       }  /* if */
+      remove_from_live_set(&ips->live_set, alloc_seq_number-1);
     }
     remove_from_live_set(&ips->live_set, alloc_seq_number);
     /* Reduce the cost of the call to just 2. */
@@ -9586,7 +9588,6 @@ This is similar to do_constexpr_ctor.
     /* Phase 1: Allocate and evaluate the "this" argument. */
     /* Create the "this" argument and map it to the "this" parameter
        variable. */
-    alloc_seq_number = ips->curr_alloc_seq_number++;
     this_var = callee_scope->variant.routine.this_param_variable;
     if (this_var == NULL) {
       /* A destructor should always have a "this" parameter, but in some
@@ -9601,6 +9602,8 @@ This is similar to do_constexpr_ctor.
       a_byte_count   this_n_bytes = sizeof(a_constexpr_address);
       a_byte_count   with_postfix_bytes;
       a_var_postfix  *postfix;
+      alloc_seq_number = ips->curr_alloc_seq_number++;
+      add_to_live_set(&ips->live_set, alloc_seq_number);
       do_host_alignment(this_n_bytes);
       with_postfix_bytes = this_n_bytes+sizeof(a_var_postfix);
       alloc_complete_object(ips, with_postfix_bytes, this_type, this_bytes);
@@ -9670,6 +9673,7 @@ This is similar to do_constexpr_ctor.
       } else {
         replace_mapped_ptr(&ips->map, this_var, postfix->prev_storage);
       }  /* if */
+      remove_from_live_set(&ips->live_set, alloc_seq_number);
     }
     /* Reduce the cost of the call to just 2. */
     ips->cost -= up_front_cost-2;
@@ -10171,7 +10175,7 @@ This is used to compare pointer values (null pointer values in particular).
     }  /* if */
   }  /* if */
   return compat;
-}  /* normalize_runtime_addresses_if_possible */
+}  /* normalize_runtime_address_if_possible */
 
 
 #define compatible_address_kinds(addr1, addr2)                               \
