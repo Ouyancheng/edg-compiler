@@ -8313,10 +8313,10 @@ Result status codes used by __cxa_demangle.
 namespace __cxxabiv1 {
 #endif /* COMPILE_DECODE_FOR_LIB_SRC&&defined(__EDG_RUNTIME_USES_NAMESPACES) */
 
-EXTERN_C char *__cxa_demangle(char		*mangled_name,
-			      char		*user_buffer,
-			      true_size_t	*user_buffer_size,
-			      int		*status)
+extern "C" char *__cxa_demangle(char		*mangled_name,
+			        char		*user_buffer,
+			        true_size_t	*user_buffer_size,
+			        int		*status)
 /*
 Demangling library interface specified by the IA-64 ABI. "mangled_name"
 is the name to be demangled.  "user_buffer" is the buffer into which the
