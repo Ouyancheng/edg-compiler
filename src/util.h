@@ -35,6 +35,7 @@ Otherwise, it produces T.
 template<a_boolean cond, typename a_Thing>
 struct Enable_if_helper;
 
+/*lint -esym(758,Enable_if_helper)*/
 template<typename a_Thing>
 struct Enable_if_helper<true, a_Thing> {
   typedef a_Thing a_thing;
@@ -48,16 +49,19 @@ using Enable_if = typename Enable_if_helper<cond, a_Thing>::a_thing;
 Remove_ref<T> produces T if T is not a reference type, or the type underlying
 the reference type otherwise.
 */
+/*lint -esym(758,Enable_if_helper)*/
 template<typename an_Object>
 struct Remove_ref_helper {
   typedef an_Object an_object;
 };
 
+/*lint -esym(758,Remove_ref_helper)*/
 template<typename an_Object>
 struct Remove_ref_helper<an_Object&> {
   typedef an_Object an_object;
 };
 
+/*lint -esym(758,Remove_ref_helper)*/
 template<typename an_Object>
 struct Remove_ref_helper<an_Object&&> {
   typedef an_Object an_object;
@@ -371,6 +375,7 @@ general memory.
 }  /* delete_general */
 
 
+/*lint -esym(1510,Dyn_array)*/
 template<typename an_Elem, typename an_Allocator = FE_allocator<an_Elem>>
 struct Dyn_array: private an_Allocator {
   /* A dynamically growable array-like class type. */
