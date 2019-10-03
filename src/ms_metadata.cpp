@@ -32,9 +32,11 @@ part of the Windows 8 (and newer) SDKs.  The file can be found in:
 where 8.x is currently either 8.0 or 8.1.
 */
 
-#include "basic_hdrs.h"
 
 #if CPPCLI_ENABLING_POSSIBLE && !defined(_lint)
+
+#include "basic_hdrs.h"
+#include "fe_common.h"
 
 #include <windows.h>
 #include <metahost.h>
@@ -107,8 +109,6 @@ make_unique_ptr(P1&& p1, P2&& p2, P3&& p3, P4&& p4, P5&& p5) {
 }  /* make_unique_ptr(P1&&, P2&&, P3&&, p4&&, P5&&) */
 
 
-
-#include "fe_common.h"
 
 static bool is_cppcx_metadata = false;
 
