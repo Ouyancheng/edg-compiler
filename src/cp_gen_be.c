@@ -7032,8 +7032,7 @@ al_tag_name attributes (if any).
       if (type_is_prototype_instantiation(type)) {
         /* No template arguments on a prototype instantiation. */
         gen_bare_name(&type->source_corresp, iek_type);
-      } else
-      {
+      } else {
         gen_unqualified_name(&type->source_corresp, iek_type);
       }  /* if */
       if (curr_name_context != NULL &&
@@ -10149,13 +10148,35 @@ instantiations are only permitted in namespace scope).
         a_source_correspondence_ptr arg_scp = NULL;
         switch (tap->kind) {
           case tak_type:
-            if (is_or_uses_unnameable_class_type(tap->variant.type)) {
-              /* The specialization would use an undeclared temporary name
-                 and thus be invalid. */
-              result = TRUE;
-            } else {
-              arg_scp = &skip_typerefs(tap->variant.type)->source_corresp;
-            }  /* if */
+            { a_type_ptr tp = skip_typerefs(tap->variant.type);
+              if (is_or_uses_unnameable_class_type(tap->variant.type)) {
+                /* The specialization would use an undeclared temporary
+                   name and thus be invalid. */
+                result = TRUE;
+              } else if (is_immediate_class_type(tp) && tp->incomplete &&
+                         !tp->has_been_declared &&
+                         !tp->variant.class_struct_union.is_template_class &&
+                         tp->source_corresp.parent_scope !=
+                                                           scp->parent_scope &&
+                         tp->source_corresp.enclosing_routine == NULL) {
+                /* This argument consisted of an elaborated-type-specifier
+                   that introduced the class type into the nearest
+                   namespace scope, but that is not the scope in which the
+                   explicit specialization will be put out.  Put out a
+                   declaration of the class type now, in the correct scope,
+                   so that the explicit specialization can refer to it
+                   instead of declaring it.  This avoids a situation like
+                     typedef N::A<struct S> AS;
+                   producing an explicit specialization like
+                     namespace N { template<> struct A<struct S>; }
+                   which declares N::S instead of ::S. */
+                gen_tag_reference(tp, GN_DECLARATION,
+                                  tp->source_corresp.attributes);
+                write_tok_str("; ");
+              } else {
+                arg_scp = &tp->source_corresp;
+              }  /* if */
+            }
             break;
           case tak_nontype:
             if (!tap->is_array_bound_of_unknown_type) {

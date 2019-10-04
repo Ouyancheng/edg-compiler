@@ -1,5 +1,43 @@
 Version 6.0
 
+10/4/19  [EDGcpfe/21871]
+C++-generating back end: class types declared in template arguments
+
+In C++-generating back end configurations in which
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS or
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, if the
+source declares a class type in the template argument list of a template
+defined in a different namespace from the one where the reference occurs, the
+generated explicit specialization for the implicitly-instantiated class
+template was incorrect.  In particular, the explicit instantiation was
+correctly placed into the proper namespace but the class type was declared
+in that namespace; as a result, when the class from the template argument was
+later referred to, omitting the class/struct/union keyword, the name was not
+found and the generated code could not be compiled.  This has now been
+addressed by explicitly declaring such class types before the generated
+explicit specialization is emitted.  For example:
+
+  namespace N {
+  template<typename> struct S { };
+  }
+  struct A {
+    typedef N::S<struct U> NSU;
+    NSU nsu;
+  };
+
+The generated output for this example previously contained the explicit
+specialization
+
+  namespace N { template<> struct S<struct U> { }; }
+
+which declared N::U instead of ::U.  This is now put out as
+
+  struct U;
+  namespace N { template<> struct S<U> { }; }
+
+so that subsequent references to "U" refer to the correct type.
+
+
 10/3/19  [EDGcpfe/19146,EDGcpfe/19818,EDGcpfe/20689,EDGcpfe/21875]
 Spurious failure to constant-evaluate constexpr constructor call
 
