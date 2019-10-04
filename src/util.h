@@ -88,23 +88,23 @@ using Value_for_ptr = Remove_ref<decltype(*dummy_val<a_Ptr>())>;
 
 
 template<typename an_Object>
-an_Object&& forward(Remove_ref<an_Object>&  arg) noexcept
+an_Object&& fwd(Remove_ref<an_Object>&  arg) noexcept
 /*
 This function should only be applied to "forwarding references".  It is used
 to forward parameters.  For example:
 
     template<a_Thing> void f(a_Thing &&p) {
-      g(forward<a_Thing>(p));
+      g(fwd<a_Thing>(p));
     }
 
 If f is called with an rvalue, a_Thing will be deduced to a non-reference type
-and forward<a_Thing>(p) will produce an xvalue.  If f is called with an lvalue,
-a_Thing will be deduced to an lvalue reference type, and forward<a_Thing>(p)
-will pass through the lvalue.
+and fwd<a_Thing>(p) will produce an xvalue.  If f is called with an lvalue,
+a_Thing will be deduced to an lvalue reference type, and fwd<a_Thing>(p) will
+pass through the lvalue.
 */
 {
   return (an_Object&&)arg;
-}  /* forward */
+}  /* fwd */
 
 
 template<typename a_Ptr>
@@ -125,7 +125,7 @@ Construct *p_object with the given arguments.
 */
 {
   typedef Value_for_ptr<a_Ptr> an_object;
-  ::new((void*)p_object) an_object(forward<an_Arg_pack>(args)...);
+  ::new((void*)p_object) an_object(fwd<an_Arg_pack>(args)...);
 }  /* construct */
 
 
@@ -358,7 +358,7 @@ the constructor arguments specified by args.  Return a pointer to the object.
 */
 {
   an_Object  *p = General_allocator<an_Object>::alloc(1).start;
-  construct(p, forward<an_Arg_pack>(args)...);
+  construct(p, fwd<an_Arg_pack>(args)...);
   return p;
 }  /* new_general */
 
@@ -805,7 +805,7 @@ front-end memory.
 */
 {
   an_Object  *p = FE_allocator<an_Object>::alloc(1).start;
-  construct(p, forward<an_Arg_pack>(args)...);
+  construct(p, fwd<an_Arg_pack>(args)...);
   return Owning_ptr<an_Object>(p);
 }  /* owning_ptr */
 
