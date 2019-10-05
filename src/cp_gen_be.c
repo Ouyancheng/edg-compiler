@@ -18721,17 +18721,22 @@ and the output of the type name.
     case dik_expression:
     case dik_class_result_via_ctor:
     case dik_bitwise_copy:
-      /* Expression. */
-      if (is_var_init && paren_form &&
-          expr_may_look_like_type(dip->variant.expression)) {
-        /* We need an extra level of parentheses to avoid the
-           declaration/expression ambiguity. */
-        write_tok_ch('(');
-        need_disambiguation_close_paren = TRUE;
-      }  /* if */
-      gen_dynamic_init(dip, init_entity_type, (an_expr_node_ptr)NULL,
-                       /*avoid_top_level_comma=*/TRUE,
-                       /*obj_expr_of_mfunc_operator=*/FALSE);
+      { an_expr_node_ptr expr;
+        expr = (dip->kind == (a_dynamic_init_kind)dik_bitwise_copy)
+                                             ? dip->variant.bitwise_copy.source
+                                             : dip->variant.expression;
+        /* Expression. */
+        if (expr != NULL && is_var_init && paren_form &&
+            expr_may_look_like_type(expr)) {
+          /* We need an extra level of parentheses to avoid the
+             declaration/expression ambiguity. */
+          write_tok_ch('(');
+          need_disambiguation_close_paren = TRUE;
+        }  /* if */
+        gen_dynamic_init(dip, init_entity_type, (an_expr_node_ptr)NULL,
+                         /*avoid_top_level_comma=*/TRUE,
+                         /*obj_expr_of_mfunc_operator=*/FALSE);
+      }
       break;
     case dik_constructor:
       /* Initialization by constructor.  Put out the argument list
