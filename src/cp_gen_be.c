@@ -18720,6 +18720,7 @@ and the output of the type name.
       break;
     case dik_expression:
     case dik_class_result_via_ctor:
+    case dik_bitwise_copy:
       /* Expression. */
       if (is_var_init && paren_form &&
           expr_may_look_like_type(dip->variant.expression)) {

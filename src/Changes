@@ -1,5 +1,19 @@
 Version 6.0
 
+10/4/19  [EDGcpfe/21877]
+C++-generating back end: direct-initialized structured binding from array
+
+The C++-generating back end previously aborted with an assertion failure
+(in gen_paren_or_brace_dynamic_init) with source containing a structured
+binding direct-initialized from an array object.  This is now fixed.  For
+example:
+
+  int f(int (&a)[3]){
+    auto [ e, f, g ] (a);  // Previously aborted, now okay
+    return g;
+  }
+
+
 10/4/19  [EDGcpfe/21871]
 C++-generating back end: class types declared in template arguments
 
