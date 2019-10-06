@@ -4019,14 +4019,11 @@ currently active selector class.
 }  /* is_direct_base_or_member_of_selector */
 
 
-static a_boolean synthesize_decltype_specifier(a_type_ptr type,
-                                               a_boolean  as_qualifier)
+static a_boolean synthesize_decltype_specifier(a_type_ptr type)
 /*
 If type can be represented as a decltype-specifier using one of the
 entities in the entities_for_decltype list, put out the decltype-specifier
-and return TRUE; otherwise, return FALSE.  If as_qualifier is TRUE, the
-specifier is part of a nested-name-specifier and thus should not add its
-own qualification.
+and return TRUE; otherwise, return FALSE.
 */
 {
   an_entity_for_decltype_ptr entry = entity_for_decltype(type);
@@ -4052,11 +4049,7 @@ own qualification.
     if (scp != NULL) {
       a_boolean need_closing_paren = FALSE;
       write_tok_str("decltype(");
-      if (as_qualifier) {
-        gen_unqualified_name(scp, kind);
-      } else {
-        gen_name(scp, kind, GN_NO_OPTIONS, &need_closing_paren);
-      }  /* if */
+      gen_name(scp, kind, GN_NO_OPTIONS, &need_closing_paren);
       write_tok_ch(')');
       result = TRUE;
     }  /* if */
@@ -4170,7 +4163,7 @@ gen_name.  See gen_name for the meaning of need_closing_paren.
       gen_unqualified_name(&class_type->source_corresp, iek_type);
     } else {
       if (!has_name_before_mangling(class_type) &&
-          synthesize_decltype_specifier(class_type, /*as_qualifier=*/TRUE)) {
+          synthesize_decltype_specifier(class_type)) {
         /* Created a decltype-specifier for the nameless type. */
       } else {
         /* Use recursion to handle multiple levels of nesting. */
@@ -7317,7 +7310,7 @@ A reference is not the definition.
       if (scope != NULL) pop_name_context();
     }  /* if */
     if (!has_name_before_mangling(orig_type) &&
-        synthesize_decltype_specifier(orig_type, /*as_qualifier=*/FALSE)) {
+        synthesize_decltype_specifier(orig_type)) {
       /* Created a decltype-specifier for the nameless type. */
     } else if (!use_elab_type_spec) {
       /* Use just the type name. */
