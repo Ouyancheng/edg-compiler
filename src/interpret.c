@@ -12076,18 +12076,21 @@ the value representation of the integer value.
           case eok_points_to_vacuous_destructor_call:
             if (constexpr_dynamic_alloc_enabled) {
               a_constexpr_address  *cap = (a_constexpr_address*)opnd1_value;
-              if (is_array_element(cap) ||
-                  cap->address != cap->complete_object) {
-                a_type_ptr  obj_type;
-                if (type_is(opnd1_type, tk_pointer)) {
-                  obj_type = skip_typerefs(opnd1_type->variant.pointer.type);
-                } else {
-                  obj_type = opnd1_type;
+              if (!is_runtime_data_address(cap)) {
+                if (is_array_element(cap) ||
+                    cap->address != cap->complete_object) {
+                  a_type_ptr  obj_type;
+                  if (type_is(opnd1_type, tk_pointer)) {
+                    obj_type = skip_typerefs(opnd1_type->variant.pointer.type);
+                  } else {
+                    obj_type = opnd1_type;
+                  }  /* if */
+                  mark_whole_subobject_uninitialized(
+                                                  ips, cap->address, obj_type,
+                                                  cap->complete_object);
                 }  /* if */
-                mark_whole_subobject_uninitialized(ips, cap->address, obj_type,
-                                                   cap->complete_object);
+                unmark_complete_object_initialized(cap->complete_object);
               }  /* if */
-              unmark_complete_object_initialized(cap->complete_object);
             } else {
               a_type_ptr  otp;
               if (node_operator_is(expr, eok_dot_vacuous_destructor_call)) {
