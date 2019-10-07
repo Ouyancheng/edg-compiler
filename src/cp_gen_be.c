@@ -18714,11 +18714,11 @@ and the output of the type name.
     case dik_expression:
     case dik_class_result_via_ctor:
     case dik_bitwise_copy:
+      /* Expression. */
       { an_expr_node_ptr expr;
         expr = (dip->kind == (a_dynamic_init_kind)dik_bitwise_copy)
                                              ? dip->variant.bitwise_copy.source
                                              : dip->variant.expression;
-        /* Expression. */
         if (expr != NULL && is_var_init && paren_form &&
             expr_may_look_like_type(expr)) {
           /* We need an extra level of parentheses to avoid the
