@@ -52,6 +52,17 @@ The EDG code can either go into the global namespace or the "edg" namespace.
 #define USING_NAMESPACE_EDG /* nothing */
 #endif /* USE_EDG_NAMESPACE */
 
+/*
+Make sure EDG front end does not warn when --no_exceptions is used.
+*/
+#if defined(__EDG__) && !defined(MACRO_DEFINED_WHEN_EXCEPTIONS_ENABLED)
+#define EDG_NOEXCEPT /* nothing */
+#else /* !(defined(__EDG__) && \
+           !defined(MACRO_DEFINED_WHEN_EXCEPTIONS_ENABLED) */
+#define EDG_NOEXCEPT noexcept
+#endif /* defined(__EDG__) && \
+          !defined(MACRO_DEFINED_WHEN_EXCEPTIONS_ENABLED) */
+
 
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE

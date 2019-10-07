@@ -88,7 +88,7 @@ using Value_for_ptr = Remove_ref<decltype(*dummy_val<a_Ptr>())>;
 
 
 template<typename an_Object>
-an_Object&& fwd(Remove_ref<an_Object>&  arg) noexcept
+an_Object&& fwd(Remove_ref<an_Object>&  arg) EDG_NOEXCEPT
 /*
 This function should only be applied to "forwarding references".  It is used
 to forward parameters.  For example:
