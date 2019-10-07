@@ -3103,6 +3103,7 @@ ec_constexpr_multiple_union_initializers;;"cannot evaluate an aggregate initiali
 ec_cmp_operator_does_not_return_bool;;"%nd selected for operator rewrite does not return type bool"
 ec_constexpr_class_specific_new;;"a new-expression calling a class-specific allocation function cannot be constant-evaluated"
 ec_constexpr_placement_new;;"a placement new-expression cannot be constant-evaluated"
+ec_constexpr_nonvirtual_subobject_delete;;"deleting through a subobject pointer requires a virtual destructor"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

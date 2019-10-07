@@ -7967,22 +7967,21 @@ done:
 
 static a_constexpr_allocation_ptr find_constexpr_allocation(
                                              an_interpreter_state  *ips,
-                                             a_byte                *ptr_bytes,
+                                             a_byte                *obj_bytes,
                                              a_source_position     *diag_pos)
 /*
-The given bytes hold a constexpr address, presumably representing the address
-of a constexpr allocation.  Find the associated allocation and return it.  If
+obj_bytes is presumed to be a pointer to the top-level object allocated with
+do_constexpr_dynamic_alloc.  Find the associated allocation and return it.  If
 there is none, record a diagnostic in ips for the given position and return
 NULL.
 */
 {
   a_constexpr_allocation  *allocation;
-  a_constexpr_address     *ptr_val = (a_constexpr_address*)ptr_bytes;
 
   for (allocation = ips->dyn_allocations;
        allocation != NULL;
        allocation = allocation->next) {
-    if (ptr_val->address == (a_byte*)allocation+allocation->prefix_size) {
+    if (obj_bytes == (a_byte*)allocation+allocation->prefix_size) {
       break;
     }  /* if */
   }  /* for */
@@ -8036,6 +8035,7 @@ already-evaluated arguments of the call.
   a_host_large_integer  alloc_length;
   a_boolean             ovflo;
   a_byte_count          elem_size, total_size, orig_data_size;
+  a_constexpr_address   *cap;
   a_constexpr_allocation_ptr
                         allocation;
 
@@ -8056,7 +8056,8 @@ already-evaluated arguments of the call.
                            callee->type, ips);
     goto done;
   }  /* if */
-  allocation = find_constexpr_allocation(ips, p_arg_bytes[1],
+  cap = (a_constexpr_address*)p_arg_bytes[1];
+  allocation = find_constexpr_allocation(ips, cap->address,
                                          &call_node->position);
   if (allocation == NULL) {
     result = FALSE;
@@ -11363,7 +11364,8 @@ Evaluate the given delete-expression.
   a_byte_count                 opnd_n_bytes;
   an_expr_node_ptr             ptr_expr = ndsp->arg;
   a_type_ptr                   ptr_tp = skip_typerefs(ptr_expr->type);
-  a_byte                       *ptr_bytes;
+  a_byte                       *ptr_bytes, *obj_bytes;
+  a_constexpr_address          *cap;
   a_constexpr_allocation       *allocation;
 
   if (!ips->is_constant_evaluated || !constexpr_dynamic_alloc_enabled) {
@@ -11383,7 +11385,56 @@ Evaluate the given delete-expression.
     result = FALSE;
     goto done;
   }  /* if */
-  allocation = find_constexpr_allocation(ips, ptr_bytes, &expr->position);
+  cap = (a_constexpr_address*)ptr_bytes;
+  if (is_runtime_data_address(cap)) {
+    if (is_null_pointer_value(cap->variant.addr_con)) {
+      /* Deleting a null pointer has no effect. */
+      goto done;
+    } else {
+      /* Search the allocations with a null pointer.  That will trigger the
+         appropriate diagnostic. */
+      obj_bytes = NULL;
+    }  /* if */
+  } else if (cap->address == NULL) {
+    /* Deleting a null pointer has no effect. */
+    goto done;
+  } else if (ndsp->array_delete) {
+    obj_bytes = cap->address;
+  } else {
+    /* For the non-array form of "delete ptr" find the most derived object
+       pointed to. */
+    a_byte  *complete_obj = cap->complete_object;
+    obj_bytes = cap->address;
+    if (obj_bytes != complete_obj) {
+      a_base_class_ptr  bcp = *(a_base_class_ptr*)obj_bytes;
+      if (ndsp->dynamic_init == NULL ||
+          ndsp->dynamic_init->destructor == NULL ||
+          !ndsp->dynamic_init->destructor->is_virtual) {
+        info_with_pos(ec_constexpr_nonvirtual_subobject_delete,
+                      &expr->position, ips);
+        do_constexpr_fail(result);
+        goto done;
+      }  /* if */
+      for (;;) {
+        if (bcp == NULL) {
+          /* This is the most-derived class in the object layout. */
+          break;
+        } else {
+          a_byte_count  offset;
+          /* Determine the next-more-derived subobject. */
+          get_mapped_byte_count(&persistent_map, bcp, offset);
+          obj_bytes -= offset;
+          if (!subobject_is_initialized(obj_bytes, complete_obj)) {
+            /* The next-more-derived subobject is not constructed: So we're
+               done. */
+            break;
+          }  /* if */
+        }  /* if */
+        bcp = *(a_base_class_ptr*)obj_bytes;
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  allocation = find_constexpr_allocation(ips, obj_bytes, &expr->position);
   if (allocation == NULL) {
     result = FALSE;
     goto done;
