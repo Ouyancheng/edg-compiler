@@ -113,7 +113,10 @@ extern "C" int finite(double x);
 #define is_NaN(x) (isnan((x)))
 #if USE_FLOAT128_FOR_HOST_FP_VALUE && defined(__CYGWIN__)
 /*  <math.h> doesn't have a __float128 version, so use our own. */
-a_host_fp_value isnan(a_host_fp_value x) { return isnan((long double)x); }
+EDG::a_host_fp_value isnan(EDG::a_host_fp_value x)
+{
+  return isnan((long double)x);
+}  /* isnan */
 #endif /* USE_FLOAT128_FOR_HOST_FP_VALUE && defined(__CYGWIN__) */
 #endif /* __linux__ */
 #endif /* ifdef isnan */
