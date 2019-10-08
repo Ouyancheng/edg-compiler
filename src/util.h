@@ -39,7 +39,7 @@ struct Enable_if_helper;
 template<typename a_Thing>
 struct Enable_if_helper<true, a_Thing> {
   typedef a_Thing a_thing;
-};
+};  /* Enable_if_helper<true, a_Thing> */
 
 template<a_boolean cond, typename a_Thing>
 using Enable_if = typename Enable_if_helper<cond, a_Thing>::a_thing;
@@ -53,19 +53,19 @@ the reference type otherwise.
 template<typename an_Object>
 struct Remove_ref_helper {
   typedef an_Object an_object;
-};
+};  /* Remove_ref_helper */
 
 /*lint -esym(758,Remove_ref_helper)*/
 template<typename an_Object>
 struct Remove_ref_helper<an_Object&> {
   typedef an_Object an_object;
-};
+};  /* Remove_ref_helper<an_Object&> */
 
 /*lint -esym(758,Remove_ref_helper)*/
 template<typename an_Object>
 struct Remove_ref_helper<an_Object&&> {
   typedef an_Object an_object;
-};
+};  /* Remove_ref_helper<an_Object&&> */
 
 template<typename an_Object>
 using Remove_ref = typename Remove_ref_helper<an_Object>::an_object;
@@ -81,7 +81,7 @@ an_Object dummy_val();
 
 
 /*
-Value_ptr<T> for a pointer-like type T produces the type pointed to.
+Value_for_ptr<T> for a pointer-like type T produces the type pointed to.
 */
 template<typename a_Ptr>
 using Value_for_ptr = Remove_ref<decltype(*dummy_val<a_Ptr>())>;
@@ -177,7 +177,7 @@ struct Ptr_with_flag {
      could potentially be optimized by encoding the flag in the pointer
      value. */
   typedef a_Ptr a_ptr;
-  typedef Value_for_ptr<a_Ptr> a_value;
+  typedef Value_for_ptr<a_ptr> a_value;
   auto operator->() const -> a_ptr
     { return this->ptr_value; }
   auto  operator*() const -> a_value&
@@ -191,7 +191,7 @@ struct Ptr_with_flag {
 			/* Embedded pointer. */
   a_boolean	flag_value;
 			/* Embedded flag. */
-};
+};  /* Ptr_with_flag */
 
 template<typename a_Ptr>
 inline Ptr_with_flag<a_Ptr> ptr_with_flag(a_Ptr      ptr,
@@ -215,10 +215,10 @@ struct Allocation {
 			/* Pointer to the first allocated element.  This should
 			   never be NULL: An allocator should abort the front
 			   end's execution if no storage can be allocated. */
-  a_ptrdiff const
+  const a_ptrdiff
 		n_allocated;
 			/* Number of allocated elements. */
-};
+};  /* Allocation */
 
 
 template<typename an_Elem>
@@ -235,14 +235,14 @@ struct FE_allocator {
                              a_size         n_to_move)
                      -> an_allocation;
   inline static void dealloc(an_allocation allocation);
-};
+};  /* FE_allocator */
 
 
 template<typename an_Elem>
 inline auto FE_allocator<an_Elem>::alloc(a_size n) -> an_allocation
 /*
 Allocate at least n elements of type an_Elem and return the resulting
-allocation (which reflects the actual number of allocated elements.
+allocation (which reflects the actual number of allocated elements).
 */
 {
   return an_allocation{ (an_elem*)alloc_fe(n*sizeof(an_elem)),
@@ -300,7 +300,7 @@ struct General_allocator {
                              a_size         n_to_move)
                      -> an_allocation;
   inline static void dealloc(an_allocation allocation);
-};
+};  /* General_allocator */
 
 
 template<typename an_Elem>
@@ -391,7 +391,7 @@ struct Dyn_array: private an_Allocator {
   inline Dyn_array(const Dyn_array&);
   inline Dyn_array(Dyn_array&&);
   inline ~Dyn_array();
-  inline auto operator=(Dyn_array const&) -> Dyn_array&;
+  inline auto operator=(const Dyn_array&) -> Dyn_array&;
   inline auto operator=(Dyn_array&&) -> Dyn_array&;
   inline auto operator[](an_index i) -> an_elem&
     { return this->elems[i]; }
@@ -415,13 +415,13 @@ struct Dyn_array: private an_Allocator {
   void reserve(a_size);
   void shrink_wrap();
   /* Interfaces to allow range-based for loop. */
-  inline auto begin() -> an_Elem*
+  inline auto begin() -> an_elem*
     { return this->elems; }
-  inline auto begin() const -> an_Elem const*
+  inline auto begin() const -> const an_elem*
     { return this->elems; }
-  inline auto end() -> an_Elem*
+  inline auto end() -> an_elem*
     { return this->elems+this->n_elems; }
-  inline auto end() const -> an_Elem const*
+  inline auto end() const -> const an_elem*
     { return this->elems+this->n_elems; }
 private:
   an_elem	*elems;
@@ -536,7 +536,7 @@ Destructor.
 
 /*lint -esym(1529,Dyn_array::operator=)*/
 template<typename an_Elem, typename an_Allocator>
-inline auto Dyn_array<an_Elem, an_Allocator>::operator=(Dyn_array const &b)
+inline auto Dyn_array<an_Elem, an_Allocator>::operator=(const Dyn_array &b)
             -> Dyn_array&
 /*
 Copy assignment operator.  
@@ -743,7 +743,7 @@ struct Owning_ptr: private a_Deallocator {
     { return *this->ptr; }
 private:
   an_object	*ptr;	/* Pointer to the owned object. */
-};
+};  /* Owning_ptr */
 
 
 template<typename an_Object, typename a_Deallocator>
@@ -813,8 +813,8 @@ front-end memory.
 
 
 template<typename an_Object>
-inline an_Object min(an_Object const &x,
-                     an_Object const &y)
+inline an_Object min(const an_Object &x,
+                     const an_Object &y)
 /*
 Return the smaller of the given values.  If the values are equal, return the
 first one.
@@ -825,8 +825,8 @@ first one.
 
 
 template<typename an_Object>
-inline an_Object max(an_Object const &x,
-                     an_Object const &y)
+inline an_Object max(const an_Object &x,
+                     const an_Object &y)
 /*
 Return the larger of the given values.  If the values are equal, return the
 first one.
@@ -1858,7 +1858,7 @@ struct Free_ptr_map_tables {
 			   reuse.  list[n] points to a list of tables allocated
 			   for 1<<n entries of size entry_size.  Larger tables
 			   use alloc_general and free_general. */
-};
+};  /* Free_ptr_map_tables */
 
 template<int  entry_size>
 void *Free_ptr_map_tables<entry_size>::list[
@@ -1881,7 +1881,7 @@ struct Ptr_map_entry {
   };
   a_value	value;
 			/* A value associated with ptr. */
-};
+};  /* Ptr_map_entry */
 
 
 // FIXME: Parameterize the hash function.
@@ -1897,9 +1897,9 @@ struct Ptr_map {
   inline Ptr_map(unsigned int mask_width);
   inline ~Ptr_map();
   inline auto get(a_key  key) const -> a_value;
-  inline void map(a_key  key, a_value const &value);
-  inline void replace(a_key  key, a_value const &value);
-  inline auto map_or_replace(a_key  key, a_value const &value) -> a_value;
+  inline void map(a_key  key, const a_value &value);
+  inline void replace(a_key  key, const a_value  &value);
+  inline auto map_or_replace(a_key  key, const a_value  &value) -> a_value;
   inline void unmap(a_key  key);
 #if DEBUG
   void db_ptrs() const;
@@ -1915,15 +1915,15 @@ private:
   an_index	n_elements;
 			/* The number of elements stored in the table. */
   void map_colliding_key(a_key          new_key,
-                         a_value const  &new_value,
+                         const a_value  &new_value,
                          an_index       idx);
   void expand_table();
   void check_deleted_slot(an_index  idx0);
-};
+};  /* Ptr_map */
 
 
 template<typename a_Ptr_key, typename a_Value>
-inline Ptr_map<a_Ptr_key, a_Value>::Ptr_map(unsigned int mask_width)
+inline Ptr_map<a_Ptr_key, a_Value>::Ptr_map(unsigned int  mask_width)
 /*
 Initialize the given pointer map with a capacity for 1<<mask_width slots.
 */
@@ -2024,7 +2024,7 @@ removed from a Ptr_map instance.
 
 template<typename a_Ptr_key, typename a_Value>
 inline void Ptr_map<a_Ptr_key, a_Value>::map(a_key          key,
-                                             a_value const  &value)
+                                             const a_value  &value)
 /*
 Associate a copy of value with the given key.
 */
@@ -2050,7 +2050,7 @@ Associate a copy of value with the given key.
 
 template<typename a_Ptr_key, typename a_Value>
 inline void Ptr_map<a_Ptr_key, a_Value>::replace(a_key          key,
-                                                 a_value const  &value)
+                                                 const a_value  &value)
 /*
 Replace the value associated with the given key by the given value.
 */
@@ -2076,7 +2076,7 @@ Replace the value associated with the given key by the given value.
 
 template<typename a_Ptr_key, typename a_Value>
 inline auto Ptr_map<a_Ptr_key, a_Value>::map_or_replace(a_key          key,
-                                                        a_value const  &value)
+                                                        const a_value  &value)
                                          -> a_value
 /*
 If the given key is already mapped, replace its associated value by the given
@@ -2155,7 +2155,7 @@ Remove the given key from the table (it must exist).
 
 template<typename a_Ptr_key, typename a_Value>
 void Ptr_map<a_Ptr_key, a_Value>::map_colliding_key(a_key          new_key,
-                                                    a_value const  &new_value,
+                                                    const a_value  &new_value,
                                                     an_index       idx)
 /*
 The given key has a hash value that collides with an existing mapping.  Move
