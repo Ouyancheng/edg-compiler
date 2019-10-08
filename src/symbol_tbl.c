@@ -5570,7 +5570,11 @@ table.
 
   /* The hash table is stored in the a_template_decl entry for the
      current template. */
-  tdip = get_curr_template_decl_info();
+  if (depth_template_declaration_scope != NO_SCOPE_DEPTH) {
+    tdip = scope_stack[depth_template_declaration_scope].template_decl_info;
+  } else {
+    tdip = get_curr_template_decl_info();
+  }  /* if */
   if (tdip->constexpr_if_hash_table == NULL) {
     tdip->constexpr_if_hash_table =
                 alloc_hash_table(FRONT_END_REGION_NUMBER, 1,
