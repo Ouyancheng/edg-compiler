@@ -25643,29 +25643,36 @@ deduction purposes).
     check_assertion(result != NULL);  /* For lint. */
     result_opnd = result;
   }  /* if */
-  prep_list_initializer(icp, type_cast_to,
-                        /*is_direct_init=*/TRUE,
-                        error_on_narrowing,
-                        /*warning_on_narrowing=*/!error_on_narrowing,
-                        conv_context,
-                        /*fill_in_dtor=*/TRUE,
-                        /*force_temp=*/
-                                      is_class_struct_union_type(type_cast_to),
-                        /*make_lvalue_temp=*/FALSE,
-                        result_opnd, p_is, (an_arg_match_summary *)NULL);
-  if (result_opnd == NULL) {
-    if (is.init_error) {
-      make_error_operand(result);
-    } else if (is.init_con != NULL) {
-      is.init_con->explicit_cast_applied = TRUE;
-      is.init_con->explicit_braces_on_aggregate = TRUE;
-      make_constant_operand(is.init_con, result);
-    } else {
-      an_expr_node_ptr  node;
-      node = alloc_temp_init_node(type_cast_to, is.init_dip,
-                                  /*make_lvalue_temp=*/FALSE,
-                                  /*is_explicit_cast=*/TRUE);
-      make_lvalue_or_rvalue_expression_operand(node, result);
+  if (is_void_type(type_cast_to) && is_braced_init_component(icp) &&
+      icp->variant.braced.list == NULL) {
+    /* "void{}" is handled like "void()" (Core issue 2351). */
+    make_integer_constant_operand(result, (a_host_large_integer)0L);
+    cast_operand_to_void(result, type_cast_to);
+  } else {
+    prep_list_initializer(icp, type_cast_to,
+                          /*is_direct_init=*/TRUE,
+                          error_on_narrowing,
+                          /*warning_on_narrowing=*/!error_on_narrowing,
+                          conv_context,
+                          /*fill_in_dtor=*/TRUE,
+                          /*force_temp=*/
+                                     is_class_struct_union_type(type_cast_to),
+                          /*make_lvalue_temp=*/FALSE,
+                          result_opnd, p_is, (an_arg_match_summary *)NULL);
+    if (result_opnd == NULL) {
+      if (is.init_error) {
+        make_error_operand(result);
+      } else if (is.init_con != NULL) {
+        is.init_con->explicit_cast_applied = TRUE;
+        is.init_con->explicit_braces_on_aggregate = TRUE;
+        make_constant_operand(is.init_con, result);
+      } else {
+        an_expr_node_ptr  node;
+        node = alloc_temp_init_node(type_cast_to, is.init_dip,
+                                    /*make_lvalue_temp=*/FALSE,
+                                    /*is_explicit_cast=*/TRUE);
+        make_lvalue_or_rvalue_expression_operand(node, result);
+      }  /* if */
     }  /* if */
   }  /* if */
   expr = expr_node_from_operand(result);
