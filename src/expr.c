@@ -42928,7 +42928,7 @@ done for a move optimization.
 }  /* variable_eligible_for_copy_optimization */
 
 
-static void check_return_value_optimization(an_operand *operand)
+static void check_named_return_value_optimization(an_operand *operand)
 /*
 A return statement is returning the indicated operand in a function that
 returns its value via a copy constructor.  Check to see if return value
@@ -43012,7 +43012,7 @@ lowering or a back end to do the rewriting.
       func_scope->variant.routine.return_value_variable = NULL;
     }  /* if */
   }  /* if */
-}  /* check_return_value_optimization */
+}  /* check_named_return_value_optimization */
 
 
 static void check_for_return_of_address_of_local_variable(
@@ -43529,10 +43529,13 @@ handle_deduced_return_type:
          known. */
       prep_generic_operand(&result);
       expression = make_node_from_operand(&result);
-    } else if (return_by_cctor_case) {
+    } else if (return_by_cctor_case ||
+               (!C_mode() && is_class_struct_union_type(required_type) &&
+                identical_types_ignoring_qualifiers(required_type,
+                                                    result.type))) {
       /* The current routine returns its value via a copy constructor. */
-      /* Check for the possibility of the return value optimization. */
-      check_return_value_optimization(&result);
+      /* Check for the possibility of the named return value optimization. */
+      check_named_return_value_optimization(&result);
       /* Build a dynamic initialization entry for the return statement. */
       prep_elision_initializer_operand(&result, required_type,
                                        /*fill_in_dtor=*/FALSE,

@@ -21211,6 +21211,7 @@ happen only in C++ mode.
   a_routine_ptr      conversion_routine;
   an_expr_node_ptr   arg_expr_list, temp_init_node;
   a_boolean          class_bitwise_copy, elision_applies = FALSE;
+  a_boolean          check_dtor = FALSE;
   a_routine_ptr      elided_cctor = NULL;
   a_type_ptr         class_type = skip_typerefs(dest_type);
   a_type_ptr         elision_source_type = NULL;
@@ -21220,7 +21221,12 @@ happen only in C++ mode.
 
   temp_init_node = NULL;
   conversion_routine = conversion->routine;
-  class_bitwise_copy = conversion->class_identity_or_bitwise_copy;
+  class_bitwise_copy = conversion->class_identity_or_bitwise_copy ||
+                       (conversion_routine != NULL &&
+                        conversion_routine->is_trivial_copy_function &&
+                        !routine_is_move_constructor(conversion_routine) &&
+                        identical_types_ignoring_qualifiers(
+                                            source_operand->type, dest_type));
   if (class_bitwise_copy) {
     /* The operation is a class bitwise copy (of the simplest kind, where
        the copy constructor is implicit and not user-declared). */
@@ -21247,6 +21253,8 @@ happen only in C++ mode.
         elision_applies = TRUE;
         elision_source_type = source_operand->type;
         class_bitwise_copy = FALSE;
+      } else {
+        check_dtor = TRUE;
       }  /* if */
     }  /* if */
     if (class_bitwise_copy) {
@@ -21273,8 +21281,7 @@ happen only in C++ mode.
     }  /* if */
   } else {
     /* There is a conversion routine. */
-    if (conversion_routine->special_kind ==
-                                    (a_special_function_kind)sfk_constructor) {
+    if (special_kind_is(conversion_routine, sfk_constructor)) {
       /* The routine is a constructor (copy or not). */
       if (identical_types_ignoring_qualifiers(source_operand->type,
                                               class_type) &&
@@ -21367,12 +21374,22 @@ happen only in C++ mode.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (elision_applies && check_elided_cctor) {
-    /* Copy constructor elision is being done.  Check access to the elided
-       copy constructor. */
-    handle_elided_copy_constructor(elision_source_type,
-                                   elided_cctor,
-                                   &source_operand->position);
+  if (check_elided_cctor) {
+    if (elision_applies) {
+      /* Copy constructor elision is being done.  Check access to the elided
+         copy constructor. */
+      handle_elided_copy_constructor(elision_source_type,
+                                     elided_cctor,
+                                     &source_operand->position);
+    } else if (check_dtor) {
+      /* A class that is bitwise copyable but has a destructor and yet no
+         enk_temp_init was elided.  That can happen in the Cfront ABI.  E.g.:
+           struct S { ~S() = delete; };
+           S g();
+           S f() { return g(); }
+         Check that the destructor is usable. */
+      handle_elided_destructor(class_type, &source_operand->position);
+    }  /* if */
   }  /* if */
   /* Allocate the dynamic initialization entry. */
   if (dip != NULL) {

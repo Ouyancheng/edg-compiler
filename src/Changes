@@ -1,5 +1,30 @@
 Version 6.0
 
+10/7/19  [EDGcpfe/21366]
+Copy elision with the Cfront ABI
+
+Consider:
+
+  struct S {
+    S() = default;
+    S(const S&) = default;
+    ~S();
+  };
+  S foo(S *p) {
+    return static_cast<S>(*p);
+  }
+
+The static_cast conceptually creates a copy of the lvalue *p, and that copy is
+then copied as the return value.  With the IA-64 ABI, the presence of the
+nontrivial destructor causes S to be returned through a hidden pointer
+parameter, and the copy for the static_cast is made directly through that
+pointer, thereby eliding the second copy.  In the Cfront ABI, however, the
+value is returned using the traditional C-like mechanism and the additional
+copy was not elided.  The front end has been updated to elide the copy even
+in the Cfront ABI.  The ABI itself has not changed: I.e., the value is still
+not returned through a hidden pointer parameter.
+
+
 10/4/19  [EDGcpfe/21877]
 C++-generating back end: direct-initialized structured binding from array
 
