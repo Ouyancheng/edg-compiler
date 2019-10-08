@@ -112,11 +112,8 @@ extern "C" int finite(double x);
 #else /* !__linux__ */
 #define is_NaN(x) (isnan((x)))
 #if USE_FLOAT128_FOR_HOST_FP_VALUE && defined(__CYGWIN__)
-/*  <math.h> doesn't have a __float128 version, so use our own. */
-EDG::a_host_fp_value isnan(EDG::a_host_fp_value x)
-{
-  return isnan((long double)x);
-}  /* isnan */
+/* Cygwin does not have a __float128 version of isnan, so provide our own. */
+#define NEED_HOST_FP_VALUE_ISNAN 1
 #endif /* USE_FLOAT128_FOR_HOST_FP_VALUE && defined(__CYGWIN__) */
 #endif /* __linux__ */
 #endif /* ifdef isnan */
@@ -164,6 +161,7 @@ diagnostics.
 #undef is_finite /*lint !e750*/
 #undef is_NaN /*lint !e750*/
 #undef NEED_HOST_FP_VALUE_IS_FINITE  /*lint !e750*/
+#undef NEED_HOST_FP_VALUE_ISNAN  /*lint !e750*/
 #define is_finite(x) lint_is_finite((long double)x)
 #define is_NaN(x) lint_is_NaN((long double)x)
 static a_boolean lint_is_finite(long double x) /*lint !e528*/
@@ -459,6 +457,18 @@ C99 macro isfinite are not available.
 }  /* host_fp_value_is_finite */
 
 #endif /* ifdef NEED_HOST_FP_VALUE_IS_FINITE */
+#ifdef NEED_HOST_FP_VALUE_ISNAN
+
+a_host_fp_value isnan(a_host_fp_value x)
+/*
+The host does not provide an isnan overload for 128-bit floating-point values
+so convert the value to long double and use that.
+*/
+{
+  return isnan((long double)x);
+}  /* isnan */
+
+#endif /* ifdef NEED_HOST_FP_VALUE_ISNAN */
 
 #if USE_DOUBLE_FOR_HOST_FP_VALUE && USE_HOST_FP_CONVERSION_ROUTINES
 #ifdef SUNOS_STRTOD_BUG
