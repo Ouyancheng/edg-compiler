@@ -214,20 +214,92 @@ Output an unsigned number in hexadecimal form, as indicated by octl.
 
 #endif /* DEBUG */
 
+static void form_attribute_arguments(
+                                    an_attribute_ptr                      ap,
+                                    an_il_to_str_output_control_block_ptr octl)
+/*
+Emit the attribute arguments, if any, associated with ap.
+*/
+{
+  if (ap->arguments != NULL) {
+    /* An attribute with arguments: Render them. */
+    an_attribute_arg_ptr  aap = ap->arguments;
+    octl->output_str("(", octl);
+    for (; aap != NULL; aap = aap->next) {
+      /* Emit the attribute argument. */
+      switch (aap->kind) {
+        case aak_empty:
+          /* Nothing to emit. */
+          break;
+        case aak_token:
+        case aak_raw_token:
+          octl->output_str(aap->variant.token, octl);
+          break;
+        case aak_constant:
+          form_constant(aap->variant.constant, /*need_parens=*/FALSE, octl);
+          break;
+        case aak_type:
+          form_type(aap->variant.type, octl);
+          break;
+        default:
+          unexpected_condition();
+      }  /* for */
+      /* Check if a separator must be issued. */
+      if (aap->next != NULL) {
+        if (aap->kind != (an_attribute_arg_kind)aak_raw_token) {
+          octl->output_str(", ", octl);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    octl->output_str(")", octl);
+  }  /* if */
+}  /* form_attribute_arguments */
+
+
+a_boolean form_alignas_attributes(
+                      an_attribute_ptr                      ap,
+                      a_boolean                             need_leading_space,
+                      an_il_to_str_output_control_block_ptr octl)
+/*
+Output any _Alignas attributes in the list.  If need_leading_space is TRUE,
+precede the first attribute with a leading space.  If an attribute is output or
+if need_leading_space is TRUE, return TRUE (this allows the caller to determine
+if a leading space is still needed).  Do the output in the way described by
+octl.
+*/
+{
+  for (; ap != NULL; ap = ap->next) {
+    if (ap->family == (a_byte_attribute_family)af_alignas) {
+      if (need_leading_space) {
+        octl->output_str(" ", octl);
+      }  /* if */
+      octl->output_str("_Alignas", octl);
+      form_attribute_arguments(ap, octl);
+      need_leading_space = TRUE;
+    }  /* if */
+  }  /* for */
+  return need_leading_space;
+}  /* form_alignas_attributes */
+
+
 static void form_attributes_for_type(
-                         ARG_UNUSED a_type_ptr                            type,
-                         ARG_UNUSED an_il_to_str_output_control_block_ptr octl)
+                                    a_type_ptr                            type,
+                                    an_il_to_str_output_control_block_ptr octl)
 /*
 Render type attributes associated with the given type, unless they are
 rendered elsewhere.  Do the output in the way described by octl.
 */
 {
 #if GNU_EXTENSIONS_ALLOWED
-  /* Currently, only the GNU may_alias attribute is rendered here. */
   if (type->may_alias) {
     octl->output_str(" __attribute((__may_alias__))", octl);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  if (c18_mode) {
+    /* _Alignas attributes can be part of a C18 compound literal. */
+    (void)form_alignas_attributes(type->source_corresp.attributes,
+                                  /*need_leading_space=*/TRUE, octl);
+  }  /* if */
 }  /* form_attributes_for_type */
 
 
@@ -248,7 +320,6 @@ is a tk_routine entry, attributes on that routine type entry are rendered.
   while (type != stop_type) {
     check_assertion(type->kind == (a_type_kind)tk_typeref);
     if (type->variant.typeref.for_type_attributes) {
-      check_assertion(type->source_corresp.attributes != NULL);
       if (octl->output_attributes != NULL) {
         octl->output_attributes(type->source_corresp.attributes,
                                 al_explicit, /*primary_only=*/FALSE);
@@ -6239,38 +6310,7 @@ the attribute.  Do the output in the way described by octl.
     }  /* if */
     octl->output_str("__attribute__((", octl);
     octl->output_str(ap->name, octl);
-    if (ap->arguments != NULL) {
-      /* An attribute with arguments: Render them. */
-      an_attribute_arg_ptr  aap = ap->arguments;
-      octl->output_str("(", octl);
-      for (; aap != NULL; aap = aap->next) {
-        /* Emit the attribute argument. */
-        switch (aap->kind) {
-          case aak_empty:
-            /* Nothing to emit. */
-            break;
-          case aak_token:
-          case aak_raw_token:
-            octl->output_str(aap->variant.token, octl);
-            break;
-          case aak_constant:
-            form_constant(aap->variant.constant, /*need_parens=*/FALSE, octl);
-            break;
-          case aak_type:
-            form_type(aap->variant.type, octl);
-            break;
-          default:
-            unexpected_condition();
-        }  /* for */
-        /* Check if a separator must be issued. */
-        if (aap->next != NULL) {
-          if (aap->kind != (an_attribute_arg_kind)aak_raw_token) {
-            octl->output_str(", ", octl);
-          }  /* if */
-        }  /* if */
-      }  /* for */
-      octl->output_str(")", octl);
-    }  /*if */
+    form_attribute_arguments(ap, octl);
     octl->output_str("))", octl);
     *need_leading_space = TRUE;
   }  /* if */

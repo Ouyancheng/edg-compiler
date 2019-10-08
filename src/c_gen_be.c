@@ -8649,6 +8649,12 @@ parameters.
         dump_variable_name(variable);
       } else {
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
+        /* Emit any _Alignas attributes that may be present in declaration
+           for a compound literal temporary. */
+        if (form_alignas_attributes(variable->source_corresp.attributes,
+                                    /*need_leading_space=*/TRUE, &octl)) {
+          write_space();
+        }  /* if */
         dump_general_declaration_using_type(var_type,
                                             &variable->source_corresp,
                                             variable, NO_ROUTINE, NO_FIELD,

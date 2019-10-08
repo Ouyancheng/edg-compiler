@@ -1074,6 +1074,14 @@ typedef struct a_decl_parse_state {
 			/* A list of non-type-transforming attributes scanned
 			   at the start of the declaration. */
   an_attribute_ptr
+		*deferred_alignas_attributes;
+			/* A pointer to a list of deferred _Alignas attributes.
+			   These attributes had been on the prefix_attributes
+			   list but are moved to this list when scanning a
+			   type name that may end up being part of a C18
+			   compound literal (in which case the _Alignas
+			   attribute is valid), otherwise an error is given. */
+  an_attribute_ptr
 		id_attributes;
 			/* A list of attributes scanned right after the
 			   declarator-id. */
@@ -1442,10 +1450,11 @@ extern void check_type_definition_in_type_name(a_decl_parse_state  *dps);
 
 extern void type_name(a_type_ptr  *type);
 
-extern a_type_ptr scan_type_for_cast(a_boolean  const_expr_context,
-                                     a_boolean  is_new_style,
-                                     a_boolean  *explicit_cv_qualifiers,
-                                     a_boolean  *type_definition);
+extern a_type_ptr scan_type_for_cast(a_boolean        const_expr_context,
+                                     a_boolean        is_new_style,
+                                     a_boolean        *explicit_cv_qualifiers,
+                                     a_boolean        *type_definition,
+                                     an_attribute_ptr *alignas_attributes);
 
 extern a_type_ptr scan_type_for_sizeof(a_boolean  evaluated_context);
 
@@ -1740,6 +1749,8 @@ extern void f_record_strongest_alignment_attr(
  
 extern void mark_inline_variable(a_variable_ptr var,
                                  a_boolean      is_definition);
+
+extern void diagnose_unattached_attributes(an_attribute_ptr  attributes);
 
 extern void decls_one_time_init(void);
 

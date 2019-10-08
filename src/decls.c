@@ -234,6 +234,7 @@ be restored).
     dps->type_is_injected_class_name = FALSE;
     dps->is_implicit_type_context = FALSE;
     dps->prefix_attributes = NULL;
+    dps->deferred_alignas_attributes = NULL;
     dps->specifier_attributes = NULL;
     dps->tag_attributes = NULL;
     clear_decl_modifiers_block(&dps->decl_modifiers);
@@ -595,7 +596,7 @@ locally based on the emulation mode and attribute.
 }  /* disallow_attributes */
 
 
-static void diagnose_unattached_attributes(an_attribute_ptr  attributes)
+void diagnose_unattached_attributes(an_attribute_ptr  attributes)
 /*
 Attributes is a list (possibly NULL) of attributes that do not apply to any
 entity.  Issue diagnostics as appropriate.
@@ -12503,6 +12504,24 @@ Other attributes are invalid and are diagnosed.
     attach_attributes(gnu_list, (char*)dps->type, iek_type);
     for (ap = gnu_list; ap != NULL; ap = ap->next) ap->assoc_info = NULL;
   }  /* if */
+  if (dps->prefix_attributes != NULL &&
+      dps->deferred_alignas_attributes != NULL) {
+    /* The type name being scanned may be a C18 compound literal in which
+       case _Alignas attributes are valid.  Move these attributes to a list
+       to be processed once it is known whether a compound literal is
+       being scanned or not. */
+    an_attribute_ptr *prev_link = &dps->prefix_attributes, ap_next;
+    for (ap = dps->prefix_attributes; ap != NULL; ap = ap_next) {
+      ap_next = ap->next;
+      if (ap->family == (a_byte_attribute_family)af_alignas) {
+        ap->next = NULL;
+        *f_last_attribute_link(dps->deferred_alignas_attributes) = ap;
+        *prev_link = ap_next;
+      } else {
+        prev_link = &(ap->next);
+      }  /* if */
+    }  /* if */
+  }  /* if */
   if (dps->prefix_attributes != NULL || dps->id_attributes != NULL) {
     diagnose_unattached_attributes(dps->prefix_attributes);
     diagnose_unattached_attributes(dps->id_attributes);
@@ -12542,7 +12561,7 @@ common cases.
     dsi_flags |= DSI_NO_TAG_DEFINITION;
   }  /* if */
   /* Allow specifier attributes. */
-  if (std_attributes_enabled)  dsi_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
+  if (std_attributes_enabled) dsi_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
   if (gnu_attributes_enabled) dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
   decl_specifiers(dsi_flags, dps, (a_decl_pos_block_ptr)NULL);
   check_assertion(dps->type != NULL);
@@ -12636,10 +12655,11 @@ if the type-name includes a class or enum definition.
 }  /* type_name */
 
 
-a_type_ptr scan_type_for_cast(a_boolean  const_expr_context,
-                              a_boolean  is_new_style,
-                              a_boolean  *explicit_cv_qualifiers,
-                              a_boolean  *type_definition)
+a_type_ptr scan_type_for_cast(a_boolean        const_expr_context,
+                              a_boolean        is_new_style,
+                              a_boolean        *explicit_cv_qualifiers,
+                              a_boolean        *type_definition,
+                              an_attribute_ptr *alignas_attributes)
 /*
 Scan a type for a cast or the cast-like construct of a compound literal and
 return a pointer to its representation.  If explicit_cv_qualifiers is non-NULL,
@@ -12649,7 +12669,9 @@ whether the scanned type specifiers included a class or enum definition;
 otherwise, issue a diagnostic on such a definition if appropriate.
 const_expr_context is TRUE if the cast appears in a context that requires a
 constant-expression.  is_new_style is TRUE for a C++ keyword-style cast
-(e.g., static_cast) and FALSE for a C-style cast.
+(e.g., static_cast) and FALSE for a C-style cast.  If alignas_attributes is
+non-NULL, any _Alignas attributes that precede the type are returned in
+*alignas_attributes (and are not attached to any entity).
 */
 {
   a_decl_parse_state  dps;
@@ -12657,6 +12679,7 @@ constant-expression.  is_new_style is TRUE for a C++ keyword-style cast
   init_decl_parse_state(&dps);
   dps.disallow_variably_modified_type = const_expr_context;
   dps.not_possible_implicit_type_context = !is_new_style;
+  dps.deferred_alignas_attributes = alignas_attributes;
   type_name_full(&dps);
   if (type_definition != NULL) {
     /* Return whether a type was defined in the type specifiers. */

@@ -17269,7 +17269,8 @@ indication in *rcblock).
     *type_position = pos_curr_token;
     *cast_type = scan_type_for_cast(curr_expr_kind_is_const(),
                                     /*is_new_style=*/TRUE,
-                                    &explicit_cv_qualifiers, (a_boolean*)NULL);
+                                    &explicit_cv_qualifiers, (a_boolean*)NULL,
+                                    (an_attribute_ptr*)NULL);
   }  /* if */
   /* New-style casts are outside the "Embedded C++" subset. */
   feature_is_not_part_of_embedded_cplusplus_subset(
@@ -25316,6 +25317,7 @@ just an expression in parentheses.  Return the scanned expression in
   {
     a_pack_expansion_stack_entry_ptr  pesep = NULL;
     a_boolean                         expr_present = TRUE;
+    an_attribute_ptr                  alignas_attributes = NULL;
     if (is_variadic_template_context() && fold_expressions_enabled &&
         curr_token != tok_ellipsis) {
       expr_present = begin_potential_pack_expansion_context(&pesep);
@@ -25339,7 +25341,8 @@ just an expression in parentheses.  Return the scanned expression in
       type_cast_to = scan_type_for_cast(curr_expr_kind_is_const(),
                                         /*is_new_style=*/FALSE,
                                         &explicit_cv_qualifiers,
-                                        &type_defined);
+                                        &type_defined,
+                                        &alignas_attributes);
       /* The next token should be the closing rparen. */
       (void)required_token(tok_rparen, ec_exp_rparen);
       remove_matching_stop_token(tok_rparen);
@@ -25350,6 +25353,26 @@ just an expression in parentheses.  Return the scanned expression in
           /* All g++ versions allow type definitions as part of compound
              literals. */
           expr_pos_error(ec_type_definition_not_allowed, &pos_curr_token);
+        }  /* if */
+        if (alignas_attributes != NULL) {
+          /* In C18, compound literals can have alignment, e.g.,
+             "(_Alignas(32) int){1}".  The alignment appertains to the
+             compound literal object, but there is no IL entry for that
+             (typically just an enk_temp_init node), so create a typeref
+             with for_type_attributes set to indicate to the back end that
+             the temporary object should have the appropriate alignment. */
+          if (c18_mode) {
+            a_decl_parse_state  dummy_dps;
+            /* Use a dummy dps with a non-NULL deferred_alignas_attributes
+               field to signal to apply_align_attr that this is a type-
+               transforming attribute. */
+            init_decl_parse_state(&dummy_dps);
+            dummy_dps.deferred_alignas_attributes = &alignas_attributes;
+            attach_type_attributes(&type_cast_to, alignas_attributes,
+                                   &dummy_dps);
+          } else {
+            diagnose_unattached_attributes(alignas_attributes);
+          }  /* if */
         }  /* if */
         scan_compound_literal(&type_cast_to,
                               &start_position,
@@ -25364,6 +25387,11 @@ just an expression in parentheses.  Return the scanned expression in
       } else {
         /* Normal cast (not a compound literal). */
         a_boolean allow_array = microsoft_bugs && !C_mode();
+        if (alignas_attributes != NULL) {
+          /* If there were any _Alignas attributes in the type, they are
+             ill-formed in the non-compound literal case. */
+          diagnose_unattached_attributes(alignas_attributes);
+        }  /* if */
         /* Check the type to see if it is valid in general terms. */
         err = cast_type_pre_check(&type_cast_to, &type_position,
                                   explicit_cv_qualifiers, allow_array,

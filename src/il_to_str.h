@@ -518,6 +518,11 @@ extern a_boolean form_variable_attributes(
                    a_boolean                              need_leading_space,
                    an_il_to_str_output_control_block_ptr  octl);
 
+extern a_boolean form_alignas_attributes(
+                      an_attribute_ptr                      ap,
+                      a_boolean                             need_leading_space,
+                      an_il_to_str_output_control_block_ptr octl);
+
 extern a_boolean form_field_attributes(
                    a_field_ptr                            field,
                    a_boolean                              need_leading_space,

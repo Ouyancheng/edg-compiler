@@ -4227,6 +4227,8 @@ and C11 _Alignas specifiers.
                                     (gnu_version < 40800 ||
                                      entity_kind == iek_type);
   a_boolean    attribute_discarded = FALSE;
+  a_decl_parse_state
+               *dps = (a_decl_parse_state*)ap->assoc_info;
 
   if (is_gcc_attribute(ap)) {
     /* GCC allows types, parameters, and bit fields to have a user-specified
@@ -4241,6 +4243,14 @@ and C11 _Alignas specifiers.
     if (gpp_mode && !clang_mode) {
       /* g++ allows alignas on a typedef. */
       constr = "c|e|t|v:-r!-h!|d:-b!";
+    } else if (dps != NULL && dps->deferred_alignas_attributes) {
+      /* In C18 mode, an _Alignas attribute is allowed in a compound literal,
+         e.g., "(_Alignas(32) int){1}".  In such cases, there is no IL
+         entity to attach the attribute to, so this is treated as a
+         type-transforming type (which will have a typeref with
+         for_type_attributes set to TRUE). */
+      check_assertion(c18_mode);
+      constr = "T";
     } else {
       constr = "c|e|v:-r!-h!|d:-b!";
     }  /* if */
@@ -4266,7 +4276,6 @@ and C11 _Alignas specifiers.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (check_target_entity_match(constr, ap, entity, entity_kind) &&
       !is_unrecognized_attr(ap)) {
-    a_decl_parse_state    *dps = (a_decl_parse_state*)ap->assoc_info;
     an_attribute_arg_ptr  aap = ap->arguments;
     do {
       a_targ_alignment  alignment = 0;

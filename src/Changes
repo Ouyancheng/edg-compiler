@@ -1,5 +1,19 @@
 Version 6.0
 
+10/8/19  [EDGcpfe/21770]
+C18: Allow _Alignas in compound literals
+
+Defect report 444 makes clarifies that compound literals can have _Alignas
+attributes.  That construct is now accepted in --c17/--c18 mode.  Note that
+the _Alignas attribute is attached to the type for the compound literal as
+a typeref with variant.typeref.for_type_attributes set to TRUE.  For example:
+
+  void f() {
+    int x;
+    x = (_Alignas(32) int){1};
+  }
+
+
 10/8/19  [EDGcpfe/21862]
 Core issue 2351: void{}
 
