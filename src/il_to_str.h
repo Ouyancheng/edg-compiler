@@ -498,6 +498,11 @@ extern a_source_correspondence_ptr source_corresp_for_template_param(
                                         a_template_param_coordinate_ptr coord);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
+extern a_boolean form_alignas_attributes(
+                      an_attribute_ptr                      ap,
+                      a_boolean                             need_leading_space,
+                      an_il_to_str_output_control_block_ptr octl);
+
 #if GNU_EXTENSIONS_ALLOWED
 
 #if BACK_END_IS_C_GEN_BE
@@ -517,11 +522,6 @@ extern a_boolean form_variable_attributes(
                    a_variable_ptr                         var,
                    a_boolean                              need_leading_space,
                    an_il_to_str_output_control_block_ptr  octl);
-
-extern a_boolean form_alignas_attributes(
-                      an_attribute_ptr                      ap,
-                      a_boolean                             need_leading_space,
-                      an_il_to_str_output_control_block_ptr octl);
 
 extern a_boolean form_field_attributes(
                    a_field_ptr                            field,
@@ -545,6 +545,7 @@ extern void form_asm_name(a_const_char                           *asm_name,
 
 extern void form_var_reg_name(a_named_register                       reg,
                               an_il_to_str_output_control_block_ptr  octl);
+
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
