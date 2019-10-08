@@ -8651,7 +8651,8 @@ parameters.
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
         /* Emit any _Alignas attributes that may be present in declaration
            for a compound literal temporary. */
-        if (form_alignas_attributes(variable->source_corresp.attributes,
+        if (c18_mode &&
+            form_alignas_attributes(variable->source_corresp.attributes,
                                     /*need_leading_space=*/TRUE, &octl)) {
           write_space();
         }  /* if */
