@@ -21193,15 +21193,15 @@ initialization, i.e.,
 
   dest_type var = source_operand;
 
-This routine does copy constructor elision, i.e., it checks for cases
-where a constructor or other routine can be called to generate its
-result directly in the entity to be initialized.  If that can be
-done, we have in effect optimized out a call of a copy constructor
-(i.e., we have elided it).  The language requires that we still check
-to see that the copy constructor we would have used exists and is
-callable, but that check is not done if check_elided_cctor is FALSE or
-if the current mode disables that check.  If elision_done is non-NULL,
-*elision_done is set to indicate whether or not elision was done.
+This routine does copy constructor elision, i.e., it checks for cases where a
+constructor or other routine can be called to generate its result directly in
+the entity to be initialized.  If that can be done, we have in effect optimized
+out a call of a copy constructor (i.e., we have elided it).  Prior to C++17,
+the language required that we still check to see that the copy constructor we
+would have used exists and is callable, but that check is not done if
+check_elided_cctor is FALSE or if the current mode disables that check.  If
+elision_done is non-NULL, *elision_done is set to indicate whether or not
+elision was done.
 
 This routine is used in both C and C++ mode, although the fancier cases
 happen only in C++ mode.
@@ -21221,9 +21221,15 @@ happen only in C++ mode.
 
   temp_init_node = NULL;
   conversion_routine = conversion->routine;
+  /* Consider a bitwise copy if (a) overload resolution already identified
+     this as a "bitwise copy", or (b) the selected conversion constructor is
+     a trivial copy function and we should consider "eliding" it.  For
+     trivial (bitwise) copies that amounts to eliding the corresponding
+     destructor call. */
   class_bitwise_copy = conversion->class_identity_or_bitwise_copy ||
                        (conversion_routine != NULL &&
                         conversion_routine->is_trivial_copy_function &&
+                        conversion->should_elide_ctor &&
                         !routine_is_move_constructor(conversion_routine) &&
                         identical_types_ignoring_qualifiers(
                                             source_operand->type, dest_type));

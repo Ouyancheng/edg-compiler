@@ -42967,7 +42967,7 @@ static void check_named_return_value_optimization(an_operand *operand)
 /*
 A return statement is returning the indicated operand in a function that
 returns its value via a copy constructor.  Check to see if return value
-optimization is or continues to be possible.  Return value optimization
+optimization is or continues to be possible.  Named return value optimization
 is possible when all return statements in a function return the same nonstatic
 local variable; the optimization is to rewrite all references to the local
 variable as references to the return-value address passed by the caller,
