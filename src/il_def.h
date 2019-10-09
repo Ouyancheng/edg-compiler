@@ -16772,13 +16772,13 @@ typedef struct a_scope {
 			   parameter.  It is NULL in all other cases. */
       a_variable_ptr
 		return_value_variable;
-			/* If non-NULL, return value optimization is possible
-			   in this routine.  That is, the routine returns a
-			   class value via a copy constructor, and all return
-			   statements return a single nonstatic local variable,
-			   namely the variable pointed to by this field.
-			   Note that the variable is also on the local
-			   variables list of this scope. */
+			/* If non-NULL, named return value optimization (NRVO)
+			   is possible in this routine.  That is, the routine
+			   returns a class value via a copy constructor, and
+			   all return statements return a single nonstatic
+			   local variable, namely the variable pointed to by
+			   this field.  Note that the variable is also on the
+			   local variables list of this scope. */
     } routine;
   } variant;
   a_statement_ptr

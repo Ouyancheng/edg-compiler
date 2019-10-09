@@ -42966,7 +42966,7 @@ done for a move optimization.
 static void check_named_return_value_optimization(an_operand *operand)
 /*
 A return statement is returning the indicated operand in a function that
-returns its value via a copy constructor.  Check to see if return value
+returns its value via a copy constructor.  Check to see if named return value
 optimization is or continues to be possible.  Named return value optimization
 is possible when all return statements in a function return the same nonstatic
 local variable; the optimization is to rewrite all references to the local
@@ -42982,10 +42982,10 @@ lowering or a back end to do the rewriting.
   if (ssep->return_value_optimization_possible) {
     a_boolean      possible = FALSE;
     a_variable_ptr return_var;
-    /* If return value optimization is possible for this routine, see
-       if this return expression invalidates it.  Return value optimization
-       is possible if all return statements in the function return the
-       same nonstatic local variable. */
+    /* If named return value optimization (NRVO) is possible for this routine,
+       see if this return expression invalidates it.  NRVO is possible if all
+       return statements in the function return the same nonstatic local
+       variable. */
     if (!operand_is_lvalue_for_variable(operand, &return_var) &&
         !(cpp20_mode &&
           operand_is_lvalue_for_rref_variable(operand, &return_var))) {
@@ -43012,7 +43012,8 @@ lowering or a back end to do the rewriting.
                                                     /*move_case=*/FALSE)
 #if DO_IL_LOWERING
             /* Rule out a case IL lowering can't handle: returning an
-               optimized class rvalue "?" via the return value optimization. */
+               optimized class rvalue "?" via the named return value
+               optimization. */
             && (return_var->init_kind != (an_init_kind)initk_dynamic ||
                 !return_var->initializer.dynamic->
                                     is_optimized_class_rvalue_question_mark)
@@ -43023,12 +43024,12 @@ lowering or a back end to do the rewriting.
           /* Check that the variable is in the top scope of the function. */
           if (sym->decl_scope == ssep->number) {
             /* This variable is okay.  Record it as the variable for the
-               return value optimization. */
+               named return value optimization. */
             possible = TRUE;
             func_scope->variant.routine.return_value_variable = return_var;
 #if DEBUG
             if (debug_level >= 3) {
-              fprintf(f_debug, "Return value optimization variable = %s\n",
+              fprintf(f_debug, "NRVO variable = %s\n",
                       return_var->source_corresp.name);
             }  /* if */
 #endif /* DEBUG */
@@ -43040,7 +43041,7 @@ lowering or a back end to do the rewriting.
       /* The return value optimization has been ruled out. */
 #if DEBUG
       if (debug_level >= 3) {
-        fprintf(f_debug, "Return value optimization ruled out.\n");
+        fprintf(f_debug, "NRVO ruled out.\n");
       }  /* if */
 #endif /* DEBUG */
       ssep->return_value_optimization_possible = FALSE;

@@ -9663,13 +9663,12 @@ Do IL lowering of the indicated variable and everything under it.
     }  /* if */
 #if DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING
     if (var_is_return_value_variable(variable)) {
-      /* The variable is the return value optimization variable for the
+      /* The variable is the named return value optimization variable for the
          function.  All references to it will be rewritten to refer instead
-         to the implicit parameter that gives the return-copy address.
-         Mark the variable as unreferenced.  Also turn off any initialization.
-         If there is initialization, the initialization will be put out as
-         an assignment when the stmk_init for this initialization is
-         processed. */
+         to the implicit parameter that gives the return-copy address.  Mark
+         the variable as unreferenced.  Also turn off any initialization.  If
+         there is initialization, the initialization will be put out as an
+         assignment when the stmk_init for this initialization is processed. */
       variable->source_corresp.referenced = FALSE;
       variable->init_kind = (an_init_kind)initk_none;
       variable->modified_within_try_block = FALSE;
@@ -15630,8 +15629,8 @@ cast.  See lower_expr for typical invocation.
           overwrite_node(expr, new_expr);
 #if DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING
         } else if (var_is_return_value_variable(var)) {
-          /* The variable is the return value optimization variable for the
-             current function, so rewrite it as an indirection through the
+          /* The variable is the named return value optimization variable for
+             the current function, so rewrite it as an indirection through the
              implicit parameter through which the return address is passed by
              the caller. */
           a_boolean expr_is_lvalue = expr->is_lvalue;
@@ -17616,8 +17615,8 @@ code.
                    dip->destructible_entity_descr->init_pos_descr.variable ==
                                                return_value_pointer_variable) {
           /* This is the initialization of the parameter substituted for the
-             return value optimization variable.  The destruction doesn't get
-             done on exit from the routine (the caller does it). */
+             named return value optimization variable.  The destruction doesn't
+             get done on exit from the routine (the caller does it). */
 #endif /* DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING */
 #if VLA_DEALLOCATION_REQUIRED
         } else if (dip->is_vla_deallocation) {
@@ -18143,15 +18142,14 @@ Lower an stmk_return statement.
   dip = statement->variant.return_dynamic_init;
   statement->variant.return_dynamic_init = NULL;
   rtsp = routine_type->variant.routine.extra_info;
-  /* If the routine returns its value via a copy constructor, generate
-     code for the dynamic initialization.  However, if return value
-     optimization applies, just skip the copy constructor call
-     altogether. */
+  /* If the routine returns its value via a copy constructor, generate code for
+     the dynamic initialization.  However, if named return value optimization
+     applies, just skip the copy constructor call altogether. */
   if (dip != NULL) {
 #if DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING
     if (innermost_function_scope->variant.routine.
                                                return_value_variable != NULL) {
-      /* Return value optimization was done. */
+      /* The named return value optimization applies. */
       if (dip->init_expr_lifetime != NULL) {
         unbind_object_lifetime(dip->init_expr_lifetime);
       }  /* if */

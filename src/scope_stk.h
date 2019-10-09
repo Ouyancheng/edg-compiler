@@ -735,10 +735,10 @@ typedef struct a_scope_stack_entry {
 			   scope in which certain symbols on the active list
 			   must not be visible. */
   a_bit_field	return_value_optimization_possible:1;
-			/* TRUE if this scope is a function scope and return
-			   value optimization is possible for the routine.
-			   That is, the routine returns a class value via
-			   a copy constructor, and all return statements
+			/* TRUE if this scope is a function scope and named
+			   return value optimization (NRVO) is possible for the
+			   routine.  That is, the routine returns a class value
+			   via a copy constructor, and all return statements
 			   return a single local variable. */
   a_bit_field	in_prototype_instantiation:1;
 			/* TRUE if kind is sck_template_instantiation and
