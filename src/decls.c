@@ -12506,7 +12506,7 @@ Other attributes are invalid and are diagnosed.
   }  /* if */
   if (dps->prefix_attributes != NULL &&
       dps->deferred_alignas_attributes != NULL) {
-    /* The type name being scanned may be a C18 compound literal in which
+    /* The type name being scanned may be a compound literal in which
        case _Alignas attributes are valid.  Move these attributes to a list
        to be processed once it is known whether a compound literal is
        being scanned or not. */

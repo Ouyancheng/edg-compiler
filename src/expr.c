@@ -25355,13 +25355,13 @@ just an expression in parentheses.  Return the scanned expression in
           expr_pos_error(ec_type_definition_not_allowed, &pos_curr_token);
         }  /* if */
         if (alignas_attributes != NULL) {
-          /* In C18, compound literals can have alignment, e.g.,
+          /* DR444 says that compound literals can have alignment, e.g.,
              "(_Alignas(32) int){1}".  The alignment appertains to the
              compound literal object, but there is no IL entry for that
              (typically just an enk_temp_init node), so create a typeref
              with for_type_attributes set to indicate to the back end that
              the temporary object should have the appropriate alignment. */
-          if (c18_mode) {
+          if (c11_mode) {
             a_decl_parse_state  dummy_dps;
             /* Use a dummy dps with a non-NULL deferred_alignas_attributes
                field to signal to apply_align_attr that this is a type-

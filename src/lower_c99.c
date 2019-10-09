@@ -3709,7 +3709,7 @@ in C99 mode to represent a compound literal.
      for them). */
   check_assertion(!dip->static_temp);
   dip->variable = var = make_lowered_temporary(temp_type);
-  if (c18_mode && temp_type->kind == (a_type_kind)tk_typeref &&
+  if (c11_mode && temp_type->kind == (a_type_kind)tk_typeref &&
       temp_type->variant.typeref.for_type_attributes) {
     /* A compound literal may have alignment, in which case the _Alignas
        attributes have been attached to the enk_temp_init type.  Move those

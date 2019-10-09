@@ -295,8 +295,8 @@ rendered elsewhere.  Do the output in the way described by octl.
     octl->output_str(" __attribute((__may_alias__))", octl);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  if (c18_mode) {
-    /* _Alignas attributes can be part of a C18 compound literal. */
+  if (c11_mode) {
+    /* _Alignas attributes can be part of a compound literal. */
     (void)form_alignas_attributes(type->source_corresp.attributes,
                                   /*need_leading_space=*/TRUE, octl);
   }  /* if */

@@ -4244,12 +4244,12 @@ and C11 _Alignas specifiers.
       /* g++ allows alignas on a typedef. */
       constr = "c|e|t|v:-r!-h!|d:-b!";
     } else if (dps != NULL && dps->deferred_alignas_attributes) {
-      /* In C18 mode, an _Alignas attribute is allowed in a compound literal,
-         e.g., "(_Alignas(32) int){1}".  In such cases, there is no IL
+      /* DR444 says that an _Alignas attribute is allowed in a compound
+         literal, e.g., "(_Alignas(32) int){1}".  In such cases, there is no IL
          entity to attach the attribute to, so this is treated as a
-         type-transforming type (which will have a typeref with
+         type-transforming attribute (which will have a typeref with
          for_type_attributes set to TRUE). */
-      check_assertion(c18_mode);
+      check_assertion(c11_mode);
       constr = "T";
     } else {
       constr = "c|e|v:-r!-h!|d:-b!";

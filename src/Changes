@@ -3,9 +3,9 @@ Version 6.0
 10/8/19  [EDGcpfe/21770]
 C18: Allow _Alignas in compound literals
 
-Defect report 444 makes clarifies that compound literals can have _Alignas
-attributes.  That construct is now accepted in --c17/--c18 mode.  Note that
-the _Alignas attribute is attached to the type for the compound literal as
+The ISO defect report 444 clarifies that compound literals can have _Alignas
+attributes.  That construct is now accepted in --c11 and later modes.  Note
+that the _Alignas attribute is attached to the type for the compound literal as
 a typeref with variant.typeref.for_type_attributes set to TRUE.  For example:
 
   void f() {

@@ -8649,8 +8649,8 @@ parameters.
         dump_variable_name(variable);
       } else {
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
-        /* Emit any _Alignas attributes that may be present in declaration
-           for a compound literal temporary. */
+        /* Emit any _Alignas attributes that may be present in the type of
+           a compound literal temporary. */
         if (c18_mode &&
             form_alignas_attributes(variable->source_corresp.attributes,
                                     /*need_leading_space=*/TRUE, &octl)) {

@@ -1078,7 +1078,7 @@ typedef struct a_decl_parse_state {
 			/* A pointer to a list of deferred _Alignas attributes.
 			   These attributes had been on the prefix_attributes
 			   list but are moved to this list when scanning a
-			   type name that may end up being part of a C18
+			   type name that may end up being part of a
 			   compound literal (in which case the _Alignas
 			   attribute is valid), otherwise an error is given. */
   an_attribute_ptr
