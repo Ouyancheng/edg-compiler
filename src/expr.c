@@ -8061,6 +8061,23 @@ a left parenthesis in the source.
                                                          eriep,
                                                          &is_template_id,
                                                          &expl_templ_arg_list);
+        if (is_conversion_func && sym->is_unknown_function &&
+            symbol_is(sym, sk_constant)) {
+          a_constant_ptr  conv_con = sym->variant.constant;
+          if (constant_is(conv_con, ck_template_param) &&
+              tpck_is(conv_con, tpck_unknown_function)) {
+            /* If con represents a conversion function that is a member of an
+               unknown type, we may have substituted the conversion type but
+               the unknown parent type is still unknown.  Now that we have a
+               concrete conversion type, we can look up the conversion
+               operator in class_struc_union_type. */
+            a_type_ptr
+               conv_type = conv_con->variant.template_param
+                                    .variant.unknown_function.conversion_type;
+            sym = look_up_conversion_function(class_struct_union_type,
+                                              conv_type, &expr->position);
+          }  /* if */
+        }  /* if */
       } else if (is_variable_node(member_op)) {
         /* Static data member. */
         sym = symbol_for(node_variable(member_op));
