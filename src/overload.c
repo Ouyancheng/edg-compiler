@@ -21225,11 +21225,13 @@ happen only in C++ mode.
      this as a "bitwise copy", or (b) the selected conversion constructor is
      a trivial copy function and we should consider "eliding" it.  For
      trivial (bitwise) copies that amounts to eliding the corresponding
-     destructor call. */
+     destructor call.  (If the source operand is constant, handle that
+     later on.) */
   class_bitwise_copy = conversion->class_identity_or_bitwise_copy ||
                        (conversion_routine != NULL &&
                         conversion_routine->is_trivial_copy_function &&
                         conversion->should_elide_ctor &&
+                        !is_constant_operand(source_operand) &&
                         !routine_is_move_constructor(conversion_routine) &&
                         identical_types_ignoring_qualifiers(
                                             source_operand->type, dest_type));
