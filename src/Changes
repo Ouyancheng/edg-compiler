@@ -1,5 +1,30 @@
 Version 6.0
 
+10/10/19 [EDGcpfe/20266,EDGcpfe/21689]
+Right-to-left expression evaluation and destructors for temporaries
+
+In C++17 mode, some operations (like assignments) have their operands
+evaluated in "right-to-left" order (see also the entry of 9/19/17 for
+EDGcpfe/17701).  Previously, however, the front end did not adjust the
+destructor invocations for temporaries constructed in such operands.
+For example:
+
+  extern "C" int printf(char const*, ...);
+  struct X {
+    X(char const *str) : str(str) { printf("C[%s]", str); }
+    ~X() { printf("D[%s]", this->str); }
+    char const *str;
+  };
+  void operator+=(X const&, X const&) {}
+  int main() {
+    X{"L"} += X{"R"};
+    printf("\n");
+  }
+
+Previously, this printed "C[R]C[L]D[R]D[L]".  Now, "C[R]C[L]D[L]D[R]" is
+output instead.
+
+
 10/9/19  [EDGcpfe/21893]
 Template substitution of explicit conversion function invocation
 
