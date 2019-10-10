@@ -1,7 +1,7 @@
 Version 6.0
 
 10/9/19  [EDGcpfe/21893]
-Template substitution of explicitly conversion function invocation
+Template substitution of explicit conversion function invocation
 
 The front end previously did not correctly handle the substitution of an
 explicit conversion function invocation.  For example:
