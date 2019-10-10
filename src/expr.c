@@ -8070,7 +8070,7 @@ a left parenthesis in the source.
                unknown type, we may have substituted the conversion type but
                the unknown parent type is still unknown.  Now that we have a
                concrete conversion type, we can look up the conversion
-               operator in class_struc_union_type. */
+               operator in class_struct_union_type. */
             a_type_ptr
                conv_type = conv_con->variant.template_param
                                     .variant.unknown_function.conversion_type;

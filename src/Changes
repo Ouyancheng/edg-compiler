@@ -1,5 +1,25 @@
 Version 6.0
 
+10/9/19  [EDGcpfe/21893]
+Template substitution of explicitly conversion function invocation
+
+The front end previously did not correctly handle the substitution of an
+explicit conversion function invocation.  For example:
+
+  template<typename T> auto f()->decltype(g(T{}).operator T*());
+  struct S {
+    operator S*() const;
+  };
+  S g(S);
+  int r = f<S>();  // Previously triggered a spurious error.
+
+In this example, during template argument deduction, S must be substituted for
+T in the expression g(T{}).operator T*(), but the front end failed to do so.
+As a result, a spurious error was issued for the call (in this case about the
+instantiation and substitution not producing identical types).  That is now
+fixed.
+
+
 10/8/19  [EDGcpfe/21770]
 C18: Allow _Alignas in compound literals
 
