@@ -44,6 +44,10 @@ For example:
 Previously, this printed "C[R]C[L]D[R]D[L]".  Now, "C[R]C[L]D[L]D[R]" is
 output instead.
 
+Also, the lowering of expression nodes has been modified to lower expression
+nodes in the same order as they would be executed so that any temporaries
+the may be created or destroyed are performed in the correct order.
+
 
 10/9/19  [EDGcpfe/21893]
 Template substitution of explicit conversion function invocation
