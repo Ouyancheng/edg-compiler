@@ -1,5 +1,25 @@
 Version 6.0
 
+10/10/19 [EDGcpfe/21879]
+Abort on nested generic lambdas
+
+The front end sometimes aborted (in scope_depth_for_capture, defined in expr.c)
+when trying to resolve a variable requiring capture in a nested generic lambda.
+For example:
+
+  struct S { static constexpr int b = 0; };
+  template<typename F> void g(F &&f) { f(S{}); }
+  int main() {
+    int r = 0;
+    g([&](auto id1) {
+      g([&](auto id2) { [&]{ r = 1; }(); });  // Previously triggered an
+    });                                       // internal error.  Now okay.
+    return r;
+  }
+
+That is now fixed.
+
+
 10/10/19 [EDGcpfe/20266,EDGcpfe/21689]
 Right-to-left expression evaluation and destructors for temporaries
 

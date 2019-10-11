@@ -4284,6 +4284,7 @@ for information about the parameters.
   a_scope_ptr			parent = NULL;
   a_boolean			is_template = FALSE;
   a_template_decl_info_ptr	parent_tdip = decl_info;
+  a_symbol_ptr                  rout_template_sym;
 
   /* If the parent scope is not a file or namespace scope, reactivate it
      first. */
@@ -4315,7 +4316,6 @@ for information about the parameters.
     /* For a function template, push the instantiation scope for the
        template arguments. */
     a_symbol_ptr	rout_sym;
-    a_symbol_ptr	rout_template_sym;
     rout_sym = symbol_for(rp);
     check_assertion(rout_sym != NULL &&
                     (symbol_is(rout_sym, sk_routine) ||
@@ -4333,6 +4333,12 @@ for information about the parameters.
                         (an_object_lifetime_ptr)NULL,
                         scope, (a_scope_pointers_block_ptr)NULL,
                         PS_IS_REACTIVATION);
+  if (is_template) {
+    a_func_info_block  *func_info;
+    func_info = &rout_template_sym->variant.template_info
+                                  ->variant.function.func_info;
+    scope_stack_top().lambda = func_info->lambda;
+  }  /* if */
 }  /* reactivate_local_context */
 
 
