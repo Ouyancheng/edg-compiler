@@ -12775,7 +12775,7 @@ detached from the IL tree; otherwise it is set to FALSE.
   an_expr_node_ptr              prev_arg_node, arg_node, temp_node, first_arg;
   an_expr_operator_kind         op = expr->variant.operation.kind;
   a_routine_ptr                 routine = NULL;
-  an_expr_node_ptr              call_expr = expr;
+  an_expr_node_ptr              call_expr = expr, this_node = NULL;
 
   if (expr_has_been_detached != NULL) *expr_has_been_detached = FALSE;
   /* If this call takes a class selector object as an operand, convert the
@@ -12825,11 +12825,20 @@ detached from the IL tree; otherwise it is set to FALSE.
     check_assertion(is_pointer_type(arg_node->type) &&
                     is_class_struct_union_type(type_pointed_to(
                                                              arg_node->type)));
-    /* Don't bother adding NULL-preservation code for the "this" parameter.
-       If "this" is NULL, dereferencing it is going to cause an error
-       whether or not the NULL-preservation test is added, so generate
-       slightly optimized code. */
-    lower_expr_full(arg_node, /*assume_expr_is_non_null=*/TRUE);
+    if (expr->variant.operation.eval_right_to_left &&
+        expr->variant.operation.call_uses_operator_syntax) {
+      /* For a member call with right-to-left expression evaluation, if
+         the call used operator syntax, the arguments should be evaluated
+         before the expression for the "this" node, so defer lowering of
+         this node until after the arguments have been lowered. */
+      this_node = arg_node;
+    } else {
+      /* Don't bother adding NULL-preservation code for the "this" parameter.
+         If "this" is NULL, dereferencing it is going to cause an error
+         whether or not the NULL-preservation test is added, so generate
+         slightly optimized code. */
+      lower_expr_full(arg_node, /*assume_expr_is_non_null=*/TRUE);
+    }  /* if */
     if (rtsp->return_value_parameter_follows_this) {
       /* If a return value address argument will be added below, make sure
          it follows the "this" argument. */
@@ -12877,6 +12886,10 @@ detached from the IL tree; otherwise it is set to FALSE.
                       /*maintain_sequencing=*/FALSE,
 		      expr->variant.operation.eval_right_to_left,
                       (an_insert_location *)NULL);
+  if (this_node != NULL) {
+    /* Perform lowering of the "this" node (deferred from above). */
+    lower_expr_full(this_node, /*assume_expr_is_non_null=*/TRUE);
+  }  /* if */
   if (routine != NULL) {
 #if IA64_ABI
     if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
