@@ -10248,7 +10248,7 @@ Do IL lowering of the indicated asm entry and everything under it.
 }  /* lower_asm_entry */
 
 
-void lower_expr_list(an_expr_node_ptr expr,
+void lower_expr_list(an_expr_node_ptr expr_list,
                      unsigned int     is_bool_controlling_expr_mask,
                      unsigned int     assume_expr_is_non_null_mask,
                      a_boolean        eval_right_to_left)
@@ -10262,28 +10262,23 @@ in the list.  If eval_right_to_left is TRUE, expressions are lowered in
 right-to-left order rather than the typical left-to-right order.
 */
 {
-  if (expr != NULL) {
-    if (eval_right_to_left && expr->next != NULL) {
-      /* If evaluating right-to-left, recurse before lowering this node. */
-      lower_expr_list(expr->next,
-                      is_bool_controlling_expr_mask >> 1,
-                      assume_expr_is_non_null_mask >> 1,
-                      eval_right_to_left);
-    }  /* if */
+  an_expr_node_ptr expr;
+
+  /* Re-order the expression list if necessary. */
+  reverse_expr_list_if(eval_right_to_left, expr_list);
+  for(expr = expr_list; expr != NULL; expr = expr->next) {
     /* Lower the expression on the list. */
     if (is_bool_controlling_expr_mask & 1) {
       lower_boolean_controlling_expr(expr, /*is_full_expr=*/FALSE);
     } else {
       lower_expr_full(expr, assume_expr_is_non_null_mask & 1);
     }  /* if */
-    if (!eval_right_to_left && expr->next != NULL) {
-      /* If evaluating left-to-right, recurse after lowering this node. */
-      lower_expr_list(expr->next,
-                      is_bool_controlling_expr_mask >> 1,
-                      assume_expr_is_non_null_mask >> 1,
-                      eval_right_to_left);
-    }  /* if */
-  }  /* if */
+    /* Move to the next bit in the masks. */
+    is_bool_controlling_expr_mask >>= 1;
+    assume_expr_is_non_null_mask >>= 1;
+  }  /* for */
+  /* Re-order the expression list if necessary. */
+  reverse_expr_list_if(eval_right_to_left, expr_list);
 }  /* lower_expr_list */
 
 
@@ -10479,6 +10474,7 @@ void lower_arg_expr_list(an_expr_node_ptr   expr_list,
                          a_routine_ptr      called_rout,
                          a_param_type_ptr   param,
                          a_boolean          maintain_sequencing,
+                         a_boolean          eval_right_to_left,
                          an_insert_location *insert_location)
 /*
 Do IL lowering of the indicated list of expressions and everything under it.
@@ -10489,9 +10485,9 @@ that if the routine requires control arguments like a "this" pointer, such
 arguments are *not* in expr_list.  If param is non-NULL, start at that
 parameter (this is used when the called routine is a copy constructor,
 to skip the input parameter).  If maintain_sequencing is TRUE, the order
-of execution of the arguments is maintained (for C and C++ function calls
-the order of execution is unspecified, but when initializing a constructor
-from an initializer-list the order must be maintained).  insert_location
+of execution of the arguments is maintained.  eval_right_to_left should
+be set if the arguments are to be executed (and thus lowered) in right-to-left
+order (otherwise left-to-right order is used).  insert_location
 points to a location to insert code prior to the execution of the call
 (and can be NULL in cases where maintain_sequencing is also NULL).
 */
@@ -10499,6 +10495,8 @@ points to a location to insert code prior to the execution of the call
   an_expr_node_ptr              expr;
 
   check_assertion(!(maintain_sequencing && insert_location == NULL));
+  /* Re-order the expression list if necessary. */
+  reverse_expr_list_if(eval_right_to_left, expr_list);
   called_rout_type = skip_typerefs(called_rout_type);
   /* Get the first parameter type. */
   if (param != NULL) {
@@ -10589,6 +10587,8 @@ points to a location to insert code prior to the execution of the call
       overwrite_node(expr, var_rvalue_expr(temp));
     }  /* if */
   }  /* for */
+  /* Re-order the expression list if necessary. */
+  reverse_expr_list_if(eval_right_to_left, expr_list);
 }  /* lower_arg_expr_list */
 
 
@@ -12875,6 +12875,7 @@ detached from the IL tree; otherwise it is set to FALSE.
   /* Lower the rest of the arguments. */
   lower_arg_expr_list(arg_node, rout_type, routine, (a_param_type_ptr)NULL,
                       /*maintain_sequencing=*/FALSE,
+		      expr->variant.operation.eval_right_to_left,
                       (an_insert_location *)NULL);
   if (routine != NULL) {
 #if IA64_ABI

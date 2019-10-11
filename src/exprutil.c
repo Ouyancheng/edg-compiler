@@ -2796,24 +2796,6 @@ unsequenced side-effects.
 }  /* examine_dynamic_init_for_unordered_issues */
 
 
-static an_expr_node_ptr reverse_expr_list(an_expr_node_ptr  list)
-/*
-Reverse the given list of initializer components, and return a pointer to the
-new start of the list.  list can be NULL.
-*/
-{
-  an_expr_node_ptr  new_list = NULL, next;
-
-  while (list) {
-    next = list->next;
-    list->next = new_list;
-    new_list = list;
-    list = next;
-  }
-  return new_list;
-}  /* reverse_expr_list */
-
-
 static void examine_expr_for_unordered_issues(
                                     an_expr_node_ptr                    expr,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
@@ -2878,18 +2860,16 @@ as part of looking for unordered temp inits or unsequenced side-effects.
       /* The operands of an operation can be unordered or ordered
          right-to-left, so handle them specially. */
       opnd_list = expr->variant.operation.operands;
-      if (expr->variant.operation.eval_right_to_left) {
-        /* For operations that evaluated right-to-left, temporarily reverse
-           the order of the list so that destructors will be handled in the
-           correct order. */
-        opnd_list = reverse_expr_list(opnd_list);
-      }  /* if */
+      /* For operations that evaluated right-to-left, temporarily reverse
+	 the order of the list so that destructors will be handled in the
+	 correct order. */
+      reverse_expr_list_if(expr->variant.operation.eval_right_to_left,
+			   opnd_list);
       (void)examine_expr_list_for_unordered_issues(opnd_list, sequenced,
                                                    tblock);
-      if (expr->variant.operation.eval_right_to_left) {
-        /* Restore the list order. */
-        opnd_list = reverse_expr_list(opnd_list);
-      }  /* if */
+      /* Restore the list order if necessary. */
+      reverse_expr_list_if(expr->variant.operation.eval_right_to_left,
+			   opnd_list);
 #if SEQUENCING_DIAGNOSTICS_ENABLED
       if (sequencing_diagnostics_enabled &&
           !tblock->set_unordered_on_dynamic_inits) {

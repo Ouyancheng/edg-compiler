@@ -1288,6 +1288,7 @@ extern void lower_arg_expr_list(an_expr_node_ptr   expr_list,
                                 a_routine_ptr      called_rout,
                                 a_param_type_ptr   param,
                                 a_boolean          maintain_sequencing,
+			        a_boolean          eval_right_to_left,
                                 an_insert_location *insert_location);
 
 extern void lower_dynamic_cast(an_expr_node_ptr expr);
