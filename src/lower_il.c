@@ -10248,31 +10248,42 @@ Do IL lowering of the indicated asm entry and everything under it.
 }  /* lower_asm_entry */
 
 
-void lower_expr_list(an_expr_node_ptr expr_list,
+void lower_expr_list(an_expr_node_ptr expr,
                      unsigned int     is_bool_controlling_expr_mask,
-                     unsigned int     assume_expr_is_non_null_mask)
+                     unsigned int     assume_expr_is_non_null_mask,
+                     a_boolean        eval_right_to_left)
 /*
 Do IL lowering of the indicated list of expressions and everything under it.
 is_bool_controlling_expr_mask is a bit mask indicating operands
 that are boolean controlling expressions.  assume_expr_is_non_null_mask is a
 bit mask that indicates which operands can safely be assumed to be non-NULL.
 The least significant bit of these masks corresponds to the first expression
-in the list.
+in the list.  If eval_right_to_left is TRUE, expressions are lowered in
+right-to-left order rather than the typical left-to-right order.
 */
 {
-  an_expr_node_ptr expr;
-
-  for (expr = expr_list; expr != NULL; expr = expr->next) {
+  if (expr != NULL) {
+    if (eval_right_to_left && expr->next != NULL) {
+      /* If evaluating right-to-left, recurse before lowering this node. */
+      lower_expr_list(expr->next,
+                      is_bool_controlling_expr_mask >> 1,
+                      assume_expr_is_non_null_mask >> 1,
+                      eval_right_to_left);
+    }  /* if */
     /* Lower the expression on the list. */
     if (is_bool_controlling_expr_mask & 1) {
       lower_boolean_controlling_expr(expr, /*is_full_expr=*/FALSE);
     } else {
       lower_expr_full(expr, assume_expr_is_non_null_mask & 1);
     }  /* if */
-    /* Move to the next bit in the masks. */
-    is_bool_controlling_expr_mask >>= 1;
-    assume_expr_is_non_null_mask >>= 1;
-  }  /* for */
+    if (!eval_right_to_left && expr->next != NULL) {
+      /* If evaluating left-to-right, recurse after lowering this node. */
+      lower_expr_list(expr->next,
+                      is_bool_controlling_expr_mask >> 1,
+                      assume_expr_is_non_null_mask >> 1,
+                      eval_right_to_left);
+    }  /* if */
+  }  /* if */
 }  /* lower_expr_list */
 
 
@@ -14307,7 +14318,8 @@ bok_offsetof, which can include nonconstant subscripts.
       /* For __builtin_shuffle, etc., just lower the operands. */
       lower_expr_list(expr->variant.builtin_operation.operands,
                       /*is_bool_controlling_expr_mask=*/0,
-                      /*assume_expr_is_non_null_mask=*/0);
+                      /*assume_expr_is_non_null_mask=*/0,
+                      /*eval_right_to_left=*/FALSE);
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -15834,7 +15846,8 @@ cast.  See lower_expr for typical invocation.
         lower_expr_list(operand_node,
                         expr_boolean_controlling_expr_mask(expr),
                         assume_operand_non_null_mask(expr,
-                                                     assume_expr_is_non_null));
+                                                     assume_expr_is_non_null),
+                        expr->variant.operation.eval_right_to_left);
         /* Do any special lowering required for this operator after the
            operands have been lowered. */
         switch (op) {
@@ -16301,7 +16314,8 @@ cast.  See lower_expr for typical invocation.
          the expressions in the list. */
       lower_expr_list(expr->variant.braced_init_list,
                       /*is_bool_controlling_expr_mask=*/0,
-                      /*assume_expr_is_non_null_mask=*/0);
+                      /*assume_expr_is_non_null_mask=*/0,
+                      /*eval_right_to_left=*/FALSE);
       break;
 #if BUILTIN_FUNCTIONS_ENABLED
     case enk_builtin_choose_expr:

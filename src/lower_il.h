@@ -1227,7 +1227,8 @@ extern void lower_os_constant(a_constant_ptr constant);
 
 extern void lower_expr_list(an_expr_node_ptr expr_list,
                             unsigned int     is_bool_controlling_expr_mask,
-                            unsigned int     assume_expr_is_non_null_mask);
+                            unsigned int     assume_expr_is_non_null_mask,
+                            a_boolean        eval_right_to_left);
 
 extern unsigned int expr_boolean_controlling_expr_mask(an_expr_node_ptr expr);
 

@@ -12646,7 +12646,7 @@ The subtree of the node has not yet been lowered.
        may be handled by the destructor itself. */
     /* Lower "arg"; do it as a list in case the delete routine is the
        two-argument version.  Drop the second argument if present. */
-    lower_expr_list(ptr_node, 0, 0);
+    lower_expr_list(ptr_node, 0, 0, /*eval_right_to_left=*/FALSE);
     ptr_node->next = NULL;
     dtor_call_node = make_dtor_call_for_delete(dip, ptr_node, delete_routine);
     /* Overwrite the enk_new_delete node with the call. */
