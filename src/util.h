@@ -878,16 +878,19 @@ template<typename an_Unsigned_integer>
 int count_ones(an_Unsigned_integer  n)
 /*
 Return the number of trailing "ones" in the binary representation of n.
-FIXME: Consider __builtin_popcount.
+Note: Recent versions of Clang and GCC optimize this function to just a popcnt
+instruction when targeting x86-64 with SSE4 extensions (option -msse4).
 */
 {
   int r = 0;
 
   while (n != 0) {
-    if (n&1) {
-      ++r;
-    }  /* if */
+    ++r;
     n >>= 1;
+    /* If the bit representation of n is ...10...0 (all trailing zeroes), then
+       n-1 is ...01...1 (all trailing ones), and the line below has the net
+       effect of clearing the least significant "1". */
+    n &= n-1;
   }  /* while */
   return r;
 }  /* count_ones */
