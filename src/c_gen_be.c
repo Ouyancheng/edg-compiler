@@ -6994,15 +6994,20 @@ parentheses should not be added to the output.
 }  /* dump_expression_for_il_to_str */
 
 
-static a_boolean is_typedef_invisible_in_c_gen_be(a_type_ptr type)
+static a_boolean is_typedef_invisible_in_c_gen_be(a_type_ptr type,
+                                                  a_type_ptr *resolved_type)
 /*
 Routine called from the il_to_str routines to determine whether a typedef's
 name or its underlying type should be put out.  The typedef will be
 considered "invisible" if its declaration has not yet been put out (for
 example, if it has been deferred pending the definition of a struct to
-which it refers).
+which it refers).  resolved_type is not needed for the C-generating back end
+and, if it is not NULL, *resolved_type is set to NULL.
 */
 {
+  if (resolved_type != NULL) {
+    *resolved_type = NULL;
+  }  /* if */
   return !type->typedef_definition_has_been_put_out;
 }  /* is_typedef_invisible_in_c_gen_be */
 

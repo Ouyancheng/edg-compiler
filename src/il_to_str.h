@@ -58,7 +58,9 @@ typedef an_output_name_reference_function
                                         *an_output_name_reference_function_ptr;
 typedef void an_output_temp_name_function(char *entry);
 typedef an_output_temp_name_function *an_output_temp_name_function_ptr;
-typedef a_boolean a_typedef_visibility_test_function(a_type_ptr type);
+typedef a_boolean a_typedef_visibility_test_function(
+                                                    a_type_ptr type,
+                                                    a_type_ptr *resolved_type);
 typedef a_typedef_visibility_test_function
                                        *a_typedef_visibility_test_function_ptr;
 typedef void an_output_attributes_function(

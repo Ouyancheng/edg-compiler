@@ -4451,18 +4451,27 @@ from being treated as invisible in a template-id like
 }  /* typedef_uses_unnamed_tag */
 
 
-static a_boolean is_typedef_invisible_in_cp_gen_be(a_type_ptr type)
+static a_boolean is_typedef_invisible_in_cp_gen_be(a_type_ptr type,
+                                                   a_type_ptr *resolved_type)
 /*
 Called from the il_to_str routines.  Returns TRUE if the indicated typedef
 type should be considered to be invisible, i.e., the type under it should
-be put out instead of the typedef name.  Note that certain basic
-visibility tests are done in the il_to_str routines before this routine
-is called.
+be put out instead of the typedef name.  Inside a template argument list,
+typedefs are normally considered to be invisible unless the underlying type
+is inaccessible.  In that case, this routine scans over multiple layers of
+typedefs and if the ultimate, non-typedef type is accessible and
+resolved_type is non-NULL, *resolved_type is set to point to that type and
+the result is TRUE; otherwise, the result if FALSE, indicating that the
+current typedef should be used.  Note that certain basic visibility tests
+are done in the il_to_str routines before this routine is called.
 */
 {
   a_boolean invisible;
 
   invisible = typedef_is_unusable(type);
+  if (resolved_type != NULL) {
+    *resolved_type = NULL;
+  }  /* if */
   if (!invisible && gcc_is_generated_code_target &&
       gnu_target_version_number >= 40200 &&
       gnu_target_version_number < 40400 &&
@@ -4530,9 +4539,32 @@ is called.
                                           iek_type,
                                           /*ignore_context=*/FALSE,
                                           &for_all_scopes)) {
-      /* The underlying type may be inaccessible, so we have to use the
-         typedef. */
-      invisible = FALSE;
+      /* The underlying type is inaccessible.  That's okay if it's a
+         typedef and its underlying type, skipping over other "invisible"
+         typedefs, is accessible, as we'll eventually end up with an
+         accessible name.  Otherwise, we need to use this typedef to avoid
+         possible access problems. */
+      a_type_ptr orig_underlying_type = underlying_type;
+      while (resolved_type != NULL &&
+             underlying_type->kind == (a_type_kind)tk_typeref) {
+        underlying_type =
+             skip_typerefs_not_typedefs(underlying_type->variant.typeref.type);
+      }  /* while */
+      if (underlying_type != orig_underlying_type &&
+          entity_name_is_accessible(&underlying_type->source_corresp,
+                                    iek_type, /*ignore_context=*/FALSE,
+                                    &for_all_scopes)) {
+        /* We found an eventual underlying type that is accessible.  Mark
+           this typedef as invisible and set *resolved_type. */
+        invisible = TRUE;
+        if (resolved_type != NULL) {
+          *resolved_type = underlying_type;
+        }  /* if */
+      } else {
+        /* Both the immediate and ultimate underlying types are inaccessible,
+           so use this typedef. */
+        invisible = FALSE;
+      }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
     } else if (underlying_type->kind == (a_type_kind)tk_vector) {
       /* The typedef refers to a vector type and should be used. */
@@ -12079,7 +12111,7 @@ Generate code for a new or delete operation.
             qualifiers_seen = TRUE;
             temp_type = temp_type->variant.typeref.type;
           } else if (typeref_is_typedef(temp_type) &&
-                     is_typedef_invisible_in_cp_gen_be(temp_type)) {
+                     is_typedef_invisible_in_cp_gen_be(temp_type, NULL)) {
             qualifiers_seen = FALSE;
             temp_type = temp_type->variant.typeref.type;
           } else {
@@ -15044,7 +15076,8 @@ gen_expr that might end up generating this expr as a temporary.
               type = skip_typerefs_not_typedefs(type);
               prev_type = type;
               if (type_is_typedef(type) &&
-                  (is_typedef_invisible_in_cp_gen_be(type) ||
+                  (is_typedef_invisible_in_cp_gen_be(type,
+                                                     /*resolved_type=*/NULL) ||
                    !type->typedef_definition_has_been_put_out ||
                    (clang_is_generated_code_target &&
                     has_name_before_mangling(type->variant.typeref.type) &&
