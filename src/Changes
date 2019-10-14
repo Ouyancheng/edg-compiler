@@ -17,7 +17,7 @@ However, the front end previously accidentally dropped that second candidate
 when it is a nonstatic member function.  That is now fixed.
 
 
-10/10/19 [EDGcpfe/18881,EDGcpfe/21224,EDGcpfe/21879]
+10/10/19 [EDGcpfe/16652,EDGcpfe/18881,EDGcpfe/21224,EDGcpfe/21879]
 Abort on nested generic lambdas
 
 The front end sometimes aborted (in scope_depth_for_capture, defined in expr.c)
