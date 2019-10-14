@@ -886,7 +886,6 @@ instruction when targeting x86-64 with SSE4 extensions (option -msse4).
 
   while (n != 0) {
     ++r;
-    n >>= 1;
     /* If the bit representation of n is ...10...0 (all trailing zeroes), then
        n-1 is ...01...1 (all trailing ones), and the line below has the net
        effect of clearing the least significant "1". */
