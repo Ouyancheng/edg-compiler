@@ -3104,6 +3104,7 @@ ec_cmp_operator_does_not_return_bool;;"%nd selected for operator rewrite does no
 ec_constexpr_class_specific_new;;"a new-expression calling a class-specific allocation function cannot be constant-evaluated"
 ec_constexpr_placement_new;;"a placement new-expression cannot be constant-evaluated"
 ec_constexpr_nonvirtual_subobject_delete;;"deleting through a subobject pointer requires a virtual destructor"
+ec_ambiguous_reversed_function_add_on;INTERNAL;"%npT (with reversed arguments)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

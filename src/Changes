@@ -1,5 +1,22 @@
 Version 6.0
 
+10/14/19 [EDGcpfe/21912]
+Incorrect overload resolution for C++20 comparison operators
+
+Consider:
+
+  struct X { bool operator==(const X &b); };
+  bool b = X() == X();  // Previously always okay.
+                        //  Now an error in C++20 mode.
+
+In C++20 mode (per the working paper) this should be ambiguous because two
+candidates are considered for the equality operator: (1) the declared member
+operator==, and (2) a synthesized operator obtained by reversing the *this and
+b parameters (which is a "const" member function with a "X&" parameter).
+However, the front end previously accidentally dropped that second candidate
+when it is a nonstatic member function.  That is now fixed.
+
+
 10/10/19 [EDGcpfe/21879]
 Abort on nested generic lambdas
 

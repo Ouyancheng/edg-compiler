@@ -2310,7 +2310,11 @@ call.
         err_code = ec_ambiguous_by_inheritance_add_on;
       } else {
         /* Normal case. */
-        err_code = ec_ambiguous_function_add_on;
+        if (cfp->supplemental_reversed_candidate) {
+          err_code = ec_ambiguous_reversed_function_add_on;
+        } else {
+          err_code = ec_ambiguous_function_add_on;
+        }  /* if */
         reduce_projection_symbol_to_fundamental_symbol(function_sym);
       }  /* if */
       sym_add_diag_info(dp, err_code, function_sym);
@@ -17277,6 +17281,10 @@ find_more_operator_candidates:
       if (member_functions_symbol != NULL) {
         /* There are member functions for this class type.  See how well
            they match up. */
+        an_overload_context  ovl_context = oc_default;
+        if (find_reversed_candidates) {
+          ovl_context = oc_reversed_cmp_candidate;
+        }  /* if */
 #if CHECKING
         if (!member_functions_symbol->is_class_member) {
           internal_error(
@@ -17303,7 +17311,7 @@ find_more_operator_candidates:
                                      /*ignore_templates=*/FALSE,
                                      /*known_to_be_visible=*/TRUE,
                                      /*is_overloaded_operator=*/TRUE,
-                                     CCO_DEFAULT, oc_default,
+                                     CCO_DEFAULT, ovl_context,
                                      &candidate_functions,
                                      p_inaccessible_match,
                                      &matched_except_for_missing_selector,
@@ -17567,6 +17575,7 @@ find_more_operator_candidates:
           }  /* while */
         }  /* if */
         arg_list = reverse_init_component_list(arg_list);
+        arg_list2 = arg_list->next;
         find_reversed_candidates = TRUE;
         goto find_more_operator_candidates;
       } else if (opname_is_comparison(kind)) {
