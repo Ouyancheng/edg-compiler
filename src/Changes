@@ -10,7 +10,7 @@ This caused the specifier to be omitted from the output of the C++-generating
 back end.  For example:
 
   template<typename T> struct S {
-    friend constexpr bool operator=(S, S) { return true; }
+    friend constexpr bool operator==(S, S) { return true; }
       // Previously, the "constexpr" specifier was not rendered by the
   };  // C++-generating back end.
 
