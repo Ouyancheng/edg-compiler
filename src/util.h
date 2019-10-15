@@ -452,7 +452,7 @@ managed by the given allocator.
   an_allocation  allocation = this->alloc(cap);
   this->elems = allocation.start;
   this->n_allocated = (a_size)allocation.n_allocated;
-}  /* Dyn_array */
+}  /* Dyn_array::Dyn_array */
 
 
 template<typename an_Elem, typename an_Allocator>
@@ -461,7 +461,7 @@ inline Dyn_array<an_Elem, an_Allocator>::Dyn_array(a_size         cap,
                                                    an_allocator   a)
 /*
 Initialize a Dyn_array with a minimum of cap elements whose allocation is
-managed by the given allocator.  Initialize the first cap element to v.
+managed by the given allocator.  Initialize the first cap elements to v.
 */
   : an_allocator(a)
   , elems()
@@ -474,7 +474,7 @@ managed by the given allocator.  Initialize the first cap element to v.
   for (a_size k = 0; k<cap; ++k) {
     construct(this->elems+k, v);
   }  /* for */
-}  /* Dyn_array */
+}  /* Dyn_array::Dyn_array */
 
 
 template<typename an_Elem, typename an_Allocator>
@@ -487,7 +487,7 @@ Copy constructor.
   , n_allocated()
   , n_elems(src.n_elems)
 {
-  /* ALlocate new storage. */
+  /* Allocate new storage. */
   an_allocation  allocation = this->alloc(src.n_allocated);
   this->elems = allocation.start;
   this->n_allocated = (a_size)allocation.n_allocated;
@@ -531,7 +531,7 @@ Destructor.
     destroy(elems+k);
   }  /* for */
   this->dealloc(an_allocation{ this->elems, this->n_allocated });
-}  /* Dyn_array::Dyn_array */
+}  /* Dyn_array::~Dyn_array */
 
 
 /*lint -esym(1529,Dyn_array::operator=)*/
@@ -691,7 +691,7 @@ template<typename an_Elem, typename an_Allocator>
 void Dyn_array<an_Elem, an_Allocator>::reserve(a_size  new_cap)
 /*
 Increase the capacity to the given value (which must be larger than the
-current capacity.
+current capacity).
 */
 {
   a_size  old_cap = this->n_allocated;
@@ -967,7 +967,7 @@ inline void sort_args(a_Comparison cmp,
 /*
 Sort the sequence [*p_a, *p_b, *p_c, *p_d] according to the given comparison
 function.  This implementation uses a decision tree to achieve an optimal
-number of comparisons (2 or 3) and moves (0, 3, or 4).
+number of comparisons (4 or 5) and moves (at most 6).
 */
 {
   typedef Value_for_ptr<a_Ptr> a_value;
@@ -1136,7 +1136,7 @@ inline a_boolean insertion_sort(a_Ptr        first,
 /*
 Sort the given sequence using insertion sort.  If unguarded is TRUE, assume
 *(first-1) is valid and already in a valid position for the sorted version of
-[first-1, last).  If moves_limit is nonzero and move than moves_limit moves
+[first-1, last).  If moves_limit is nonzero and more than moves_limit moves
 are performed, the sort may be abandoned and FALSE returned.  Otherwise, TRUE
 is returned.
 */
@@ -1331,7 +1331,7 @@ Length in bytes of a cache line (must be a power of 2).
 The input is split up in blocks of the following length.  This follows the
 approach of "BlockQuicksort: How Branch Mispredictions don't affect Quicksort"
 by Stefan Edelkamp and Armin Weiss.  The block size should be a multiple of 8,
-an no more than 248 (it must fit in a byte).
+and no more than 248 (it must fit in a byte).
 */
 #define BLOCK_SIZE ((a_byte)64)
 
@@ -1411,8 +1411,8 @@ Uses branchless partitioning.
   a_value pivot = move_from(begin);
   a_Ptr first = begin, last = end;
 
-  /* Find the first element greater than or equal than the pivot (the median
-     of 3 guarantees this exists). */
+  /* Find the first element greater than or equal to the pivot (the median of
+     3 guarantees this exists). */
   while (cmp(*++first, pivot)) {}
   /* Find the first element strictly smaller than the pivot. We have to guard
      this search if there was no element before *first. */
@@ -1439,7 +1439,6 @@ Uses branchless partitioning.
   a_byte* offsets_l = align_to_cache_line(offsets_l_storage);
   a_byte* offsets_r = align_to_cache_line(offsets_r_storage);
   int     num_l = 0, num_r = 0, start_l = 0, start_r = 0;
-      
   while (last-first > 2*BLOCK_SIZE) {
     /* Fill up offset blocks with elements that are on the wrong side. */
     if (num_l == 0) {
@@ -1539,6 +1538,7 @@ Uses branchless partitioning.
     }  /* while */
     last = first;
   }  /* if */
+
   /* Put the pivot in the right place. */
   a_Ptr pivot_pos = first-1;
   *begin = move_from(pivot_pos);
@@ -1553,7 +1553,7 @@ inline Ptr_with_flag<a_Ptr> partition_right(a_Ptr        begin,
                                             a_Comparison cmp)
 /*
 Partition [begin, end) around pivot *begin using comparison function cmp.
-Elements equal to the pivot are put in the right-hand partition. Return the
+Elements equal to the pivot are put in the right-hand partition.  Return the
 position of the pivot after partitioning and whether the passed sequence
 already was correctly partitioned.  This function assumes the pivot is a
 median of at least 3 elements and that [begin, end) is at least
@@ -1566,10 +1566,10 @@ MAX_INSERTION_SORT_LENGTH+1 long.
   a_value pivot = move_from(begin);
   a_Ptr first = begin, last = end;
 
-  /* Find the first element greater than or equal than the pivot (the median
-     of 3 guarantees this exists). */
+  /* Find the first element greater than or equal to the pivot (the median of
+     3 guarantees this exists). */
   while (cmp(*++first, pivot)) {}
-  /* Find the first element strictly smaller than the pivot. We have to guard
+  /* Find the first element strictly smaller than the pivot.  We have to guard
      this search if there was no element before *first. */
   if (first-1 == begin) {
     while (first < last && !cmp(*--last, pivot)) {}
@@ -1578,7 +1578,7 @@ MAX_INSERTION_SORT_LENGTH+1 long.
   }  /* if */
 
   /* If the first pair of elements that should be swapped to partition are
-     the same element, the passed in sequence already was correctly
+     the same element, the passed-in sequence already was correctly
      partitioned. */
   a_boolean already_partitioned = first >= last;
     
@@ -1686,7 +1686,7 @@ is FALSE.
 
     /* If *(begin-1) is the end of the right partition of a previous partition
        operation there is no element in [begin, end) that is smaller than
-       *(begin-1). Then if our pivot compares equal to *(begin-1) we change
+       *(begin-1).  Then if our pivot compares equal to *(begin-1) we change
        strategy, putting equal elements in the left partition and greater
        elements in the right partition.  In that case, we do not have to
        process the left partition any further because all its values are equal
@@ -1890,9 +1890,9 @@ struct Ptr_map_entry {
 template<typename a_Ptr_key, typename a_Value>
 struct Ptr_map {
   /* A flat hash table whose keys are non-null scalar values (usually native
-     pointers, but integers can be used too).  This
-     implementation is optimized for lookups that generally succeed and
-     small associated values (i.e., the key and value are kept together). */
+     pointers, but integers can be used too).  This implementation is optimized
+     for lookups that generally succeed and small associated values (i.e., the
+     key and value are kept together). */
   typedef a_Ptr_key a_key;
   typedef a_Value a_value;
   typedef unsigned int an_index;
@@ -2083,7 +2083,7 @@ inline auto Ptr_map<a_Ptr_key, a_Value>::map_or_replace(a_key          key,
 /*
 If the given key is already mapped, replace its associated value by the given
 value and return the previously associated value.  Otherwise, record a new key,
-associate it with the given value, an return a_value().
+associate it with the given value, and return a_value().
 */
 {
   a_uintptr  hash = hash_ptr(key);
@@ -2146,8 +2146,8 @@ Remove the given key from the table (it must exist).
   /* Delete the entry. */
   table[idx].ptr = a_key();
   destroy(&table[idx].value);
-  /* If the next slot is empty, we're done.  Otherwise, we may have to */
-  /* move another element into the emptied slot. */
+  /* If the next slot is empty, we're done.  Otherwise, we may have to move
+     another element into the emptied slot. */
   if (table[(idx+1) & mask].ptr != a_key()) {
     this->check_deleted_slot(idx);
   }  /* if */
@@ -2241,7 +2241,7 @@ Double the size of the hash table (and rehash entries as needed).
 template<typename a_Ptr_key, typename a_Value>
 void Ptr_map<a_Ptr_key, a_Value>::check_deleted_slot(an_index  idx0)
 /*
-Slot idx has been cleared (i.e., this->table[idx].ptr has been set to null).
+Slot idx0 has been cleared (i.e., this->table[idx0].ptr has been set to null).
 The next slot is not empty.  There may therefore exist entries that are
 associated with that slot (i.e., have the same hash index).  This function
 makes sure that such entries can be found, by moving up entries as needed.
@@ -2287,7 +2287,6 @@ we know that the subsequent slot is not empty.
     if (rptr == a_key()) goto done;
   }  /* for */
 done:;
-
 }  /* Ptr_map::check_deleted_slot */
 
 #if DEBUG
