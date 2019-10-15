@@ -2860,7 +2860,7 @@ as part of looking for unordered temp inits or unsequenced side-effects.
       /* The operands of an operation can be unordered or ordered
          right-to-left, so handle them specially. */
       opnd_list = expr->variant.operation.operands;
-      /* For operations that evaluated right-to-left, temporarily reverse
+      /* For operations that are evaluated right-to-left, temporarily reverse
 	 the order of the list so that destructors will be handled in the
 	 correct order. */
       reverse_expr_list_if(expr->variant.operation.eval_right_to_left,
