@@ -11017,6 +11017,13 @@ linked into the IL only if prototype instantiations are recorded in the IL.
       rp->is_in_class_specialization = TRUE;
     }  /* if */
   }  /* if */
+  if (dps->dso_flags & DSO_CONSTEVAL) {
+    rp->is_consteval = TRUE;
+    rp->is_constexpr = TRUE;
+  } else if (dps->dso_flags & DSO_CONSTEXPR) {
+    rp->is_declared_constexpr = TRUE;
+    rp->is_constexpr = TRUE;
+  }  /* if */
   sym->variant.routine.ptr = rp;
   set_source_corresp(&rp->source_corresp, sym);
 #if BACK_END_IS_CP_GEN_BE

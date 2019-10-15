@@ -1,5 +1,22 @@
 Version 6.0
 
+10/15/19 [EDGcpfe/21775]
+C++-generating back end: "constexpr" on friend functions in class templates
+
+The front end previously failed to record the presence of a "constexpr" (or
+"consteval") specifier in a friend function declaration appearing in a class
+template (at least, in the prototype instantiation of that class template).
+This caused the specifier to be omitted from the output of the C++-generating
+back end.  For example:
+
+  template<typename T> struct S {
+    friend constexpr bool operator=(S, S) { return true; }
+      // Previously, the "constexpr" specifier was not rendered by the
+  };  // C++-generating back end.
+
+That is now fixed.
+
+
 10/14/19 [EDGcpfe/21912]
 Incorrect overload resolution for C++20 comparison operators
 
