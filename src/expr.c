@@ -28238,14 +28238,17 @@ contextually convertible to bool.
   a_boolean            result = FALSE;
   a_type_ptr           ptr_class_tp;
   a_base_class_ptr     bcp;
-  a_symbol_ptr         class_sym = symbol_for(class_tp), member_sym;
+  a_symbol_ptr         member_sym;
   a_field_ptr          fp;
   a_constant_ptr       zero_ptr;
   an_operand           opnd1, opnd2, cmp_opnd;
   an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
 
-  if (class_symbol_supp(class_sym)->any_ref_member ||
-      class_type_supp(class_tp)->has_anonymous_union_member) {
+  if (type_is(class_tp, tk_union) ||
+      class_type_supp(class_tp)->has_anonymous_union_member ||
+      class_symbol_supp(symbol_for(class_tp))->any_ref_member) {
+    /* Unions, union-like classes, and classes with reference members generate
+       deleted comparison operators. */
     result = TRUE;
     goto done;
   }  /* if */
@@ -28336,6 +28339,14 @@ does not find a usable best candidate, or if that overload does not produce a
   a_symbol_ptr          inaccessible_match = NULL;
 
   check_assertion(curr_il_region_number == file_scope_region_number);
+  if (type_is(class_tp, tk_union) ||
+      class_type_supp(class_tp)->has_anonymous_union_member ||
+      class_symbol_supp(symbol_for(class_tp))->any_ref_member) {
+    /* Unions, union-like classes, and classes with reference members generate
+       deleted comparison operators. */
+    result = TRUE;
+    goto done;
+  }  /* if */
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
@@ -28389,6 +28400,7 @@ does not find a usable best candidate, or if that overload does not produce a
     }  /* if */
   }  /* if */
   release_local_constant(&zero_ptr);
+done:
   return result;
 }  /* generated_ne_is_deleted */
 
@@ -28590,6 +28602,14 @@ type does not find usable best candidate.
                         undecidable = FALSE, ambiguous = FALSE;
   a_symbol_ptr          inaccessible_match = NULL;
 
+  if (type_is(class_tp, tk_union) ||
+      class_type_supp(class_tp)->has_anonymous_union_member ||
+      class_symbol_supp(symbol_for(class_tp))->any_ref_member) {
+    /* Unions, union-like classes, and classes with reference members generate
+       deleted comparison operators. */
+    result = TRUE;
+    goto done;
+  }  /* if */
   check_assertion(curr_il_region_number == file_scope_region_number);
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
@@ -28640,6 +28660,7 @@ type does not find usable best candidate.
   release_local_constant(&zero_ptr);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
+done:
   return result;
 }  /* generated_rel_op_is_deleted */
 
@@ -29043,6 +29064,14 @@ case if a comparison of subobjects does not find a usable best candidate.
   a_comparison_category_set
                        ccs = (a_comparison_category_set)ccs_none;
 
+  if (type_is(class_tp, tk_union) ||
+      class_type_supp(class_tp)->has_anonymous_union_member ||
+      class_symbol_supp(symbol_for(class_tp))->any_ref_member) {
+    /* Unions, union-like classes, and classes with reference members generate
+       deleted comparison operators. */
+    is_deleted = TRUE;
+    goto done;
+  }  /* if */
   check_assertion(curr_il_region_number == file_scope_region_number);
   rtp = skip_typerefs(srp->type);
   return_tp = skip_typerefs(rtp->variant.routine.return_type);

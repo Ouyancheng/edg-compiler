@@ -13482,7 +13482,7 @@ IL entry accordingly.  def_pos is the position of the "= default;" or
     if (sym->kind == (a_symbol_kind)sk_function_template) {
       /* Templates (and member templates) cannot be defaulted. */
       err_code = ec_function_template_cannot_be_defaulted;
-    } else if (special_kind_is(rp, sfk_operator) &&
+    } else if (special_kind_is(rp, sfk_operator) && spaceship_enabled &&
                opname_is_comparison(rp->variant.opname_kind)) {
       check_defaulted_comparison(dps, func_info, def_pos);
     } else if ((dps->dso_flags & DSO_FRIEND) != 0) {
