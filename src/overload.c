@@ -4892,6 +4892,15 @@ deduction failed.
           }  /* if */
         } /* if */
       }  /* if */
+    } else if (special_kind_is(routine, sfk_operator)) {
+      /* Ensure overloaded operator template instances have valid types. */
+      an_opname_kind  opname = routine->variant.opname_kind;
+      a_type_ptr      class_type = parent_class_or_null(routine);
+      if (operator_type_is_invalid(opname, updated_routine_type, class_type,
+                                   (a_source_position*)NULL)) {
+        /* The substitution is not valid for this operator: Deduction fails. */
+        updated_routine_type = NULL;
+      }  /* if */
     }  /* if */
   }  /* if */
 done:

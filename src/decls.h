@@ -1491,6 +1491,11 @@ extern a_boolean valid_static_conversion_class_type(a_type_ptr  tp,
                                                     a_type_ptr  class_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern a_boolean operator_type_is_invalid(an_opname_kind   opname,
+                                          a_type_ptr         rout_type,
+                                          a_type_ptr         class_type,
+                                          a_source_position  *diag_pos);
+
 extern void check_operator_function_params(a_type_ptr        rout_type,
                                            a_type_ptr        class_type,
                                            a_symbol_locator  *locator);

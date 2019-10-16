@@ -1521,6 +1521,290 @@ rvalue, or tracking) to such a type.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+a_boolean operator_type_is_invalid(an_opname_kind   opname,
+                                 a_type_ptr         rout_type,
+                                 a_type_ptr         class_type,
+                                 a_source_position  *diag_pos)
+/*
+An operator of kind opname and type rout_type is being declared.  If the
+declaration is a class member, the enclosing class is class_type.  The
+declaration is possibly the result of a template substitution, in which case
+diag_pos is NULL.  Return whether the routine type is invalid for this
+operator and, if diag_pos is non-NULL, issue a corresponding diagnostic at
+the position indicated by diag_pos.
+*/
+{
+  int                            param_count;
+  a_param_type_ptr               ptp;
+  a_boolean                      any_class_or_enum_type_params = FALSE;
+  a_boolean                      any_template_param_type_params = FALSE;
+  a_boolean                      this_equivalent_seen = FALSE;
+  a_type_ptr                     tp;
+  a_boolean                      is_nonstatic_member_function;
+  an_error_code                  error_code = ec_no_error;
+  a_boolean                      err = FALSE;
+  a_routine_type_supplement_ptr  rtsp;
+
+  rtsp = rout_type->variant.routine.extra_info;
+  is_nonstatic_member_function = (rtsp->this_class != NULL);
+#if CHECKING
+  if (is_new_operator(opname) || is_delete_operator(opname)) {
+    /* Operator new/delete cannot be a nonstatic member function. */
+    check_assertion_str2(!is_nonstatic_member_function,
+                         "check_operator_function_params:",
+                         "new or delete is nonstatic member function");
+  }  /* if */
+#endif /* CHECKING */
+  /* Make a pass over the param types list to count the number of
+     arguments to see if there are any parameters that are of class type
+     or reference-to-class type.  Note that param_count is initialized to
+     0 except in the case of nonstatic member functions, for which it is
+     initialized to 1. This is because the implicit "this" parameter is
+     counted in the latter case. */
+  param_count = is_nonstatic_member_function ? 1 : 0;
+  ptp = rtsp->param_type_list;
+  for (; ptp != NULL; ptp = ptp->next) {
+    param_count++;
+    tp = ptp->type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cli_or_cx_enabled && class_type != NULL &&
+        !is_nonstatic_member_function &&
+        cli_class_type_kind_is(class_type, cctk_value)) {
+      /* For special value class types (like System::Double) that correspond
+         to fundamental types, static member operators will have those
+         fundamental types as parameter types.  This satisfies the
+         requirement of a parameter matching class_type. */
+      a_type_ptr  fund = fundamental_type_from_system_type(class_type);
+      if (fund != NULL &&
+          types_are_compatible_ignoring_qualifiers(tp, fund)) {
+         this_equivalent_seen = TRUE;
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (is_any_reference_type(tp)) {
+      tp = type_pointed_to(tp);
+    }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cli_or_cx_enabled && is_handle_type(tp)) {
+      /* Parameters of the form T^, T^%, and T^& are also acceptable in
+         C++/CLI mode. */
+      tp = type_pointed_to(tp);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (is_class_struct_union_type(tp) ||
+        (operator_overloading_on_enums_enabled && is_enum_type(tp))) {
+      any_class_or_enum_type_params = TRUE;
+      if (cli_or_cx_enabled && class_type != NULL &&
+          !is_nonstatic_member_function &&
+          types_are_compatible_ignoring_qualifiers(tp, class_type)) {
+        /* For static C++/CLI member operators, at least one parameter must
+           T, T&, T&&, T%, or T^, with T the type indicated by class_type
+           (a template parameter is not sufficient); i.e., a parameter
+           similar to "this" in a nonstatic member version of the operator.
+           We record here that such a parameter was seen. */
+        this_equivalent_seen = TRUE;
+      }  /* if */
+    } else if (is_template_param_type(tp)) {
+      any_template_param_type_params = TRUE;
+    }  /* if */
+  }  /* for */
+  if (is_new_operator(opname) ||
+      is_delete_operator(opname) ||
+      opname == (an_opname_kind)onk_function_call) {
+    /* Function call and new must have one or more arguments. */
+    if (param_count == 0) {
+      if (rtsp->has_ellipsis) {
+        /* operator()(...) and operator new(...) are errors, but we do
+           allow operator()(T, ...) and operator new(size_t, ...). */
+        error_code = ec_ellipsis_on_operator_function;
+      } else {
+        error_code = ec_too_few_args_for_operator;
+      }  /* if */
+    } else if (opname != (an_opname_kind)onk_function_call) {
+      ptp = rtsp->param_type_list;
+      tp = ptp->type;
+      if (!is_error_type(tp)) {
+        if (is_new_operator(opname)) {
+          /* operator new or operator new[]. */
+          if (!is_integral_type(tp) ||
+              skip_typerefs(tp)->variant.integer.int_kind !=
+                                                    targ_size_t_int_kind) {
+            error_code = ec_bad_arg_type_for_operator_new;
+            ptp->type = error_type();
+          }  /* if */
+        } else {
+          /* operator delete or operator delete[]. */
+          if (!is_void_star_type(tp)) {
+            /* Error. */
+            an_error_severity  severity;
+            if (cfront_2_1_mode && is_pointer_to_void_type(tp)) {
+              /* In cfront 2.1 "const void *" is allowed.   Issue a warning
+                 and ignore the qualifier on the type. */
+              severity = es_warning;
+              ptp->type = make_pointer_type(void_type());
+            } else {
+              /* Error case. */
+              severity = es_error;
+              ptp->type = error_type();
+              err = TRUE;
+            }  /* if */
+            if (diag_pos != NULL) {
+              pos_diagnostic(severity,
+                             ec_bad_first_arg_type_for_operator_delete,
+                             diag_pos);
+            }  /* if */
+          }  /* if */
+          /* Actually using placement delete only occurs when exception
+             handling is enabled, and only with newer ABIs.  If EH support
+             is disabled or an old ABI is used, issue a diagnostic if this
+             turns out to be a placement delete declaration. */
+          if (!err
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
+                   && !exceptions_enabled
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
+                                         ) {
+            ptp = ptp->next;
+            if (ptp != NULL) {
+              /* There is a second argument.  Except for the case in which
+                 a class member operator delete has a second parameter type
+                 of size_t, issue a diagnostic. */
+              tp = skip_typerefs(ptp->type);
+              if (!is_error_type(tp)) {
+                if (is_integral_type(tp) &&
+                    tp->variant.integer.int_kind == targ_size_t_int_kind &&
+                    (class_type != NULL || sized_deallocation_enabled)) {
+                  /* No warning for X::operator delete(void *, size_t) or
+                     when sized deallocation is enabled. */
+                } else if (diag_pos != NULL) {
+                  pos_diagnostic(exceptions_enabled ? es_warning : es_remark,
+                                 ec_useless_placement_delete, diag_pos);
+                }  /* if */
+              }  /* if */
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled && is_cli_param_array_routine_type(rout_type)) {
+    /* All overloaded operators (except "call" and "new", which are handled
+       above) require a specific number of arguments.  A C++/CLI parameter
+       array is therefore not allowed here. */
+    error_code = ec_parameter_array_on_operator_function;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else if (rtsp->has_ellipsis) {
+    /* All overloaded operators (except function call and new, handled
+       above) require a specific number of arguments, so ellipsis is not
+       allowed. */
+    error_code = ec_ellipsis_on_operator_function;
+  } else if (opname == (an_opname_kind)onk_compl ||
+             opname == (an_opname_kind)onk_not ||
+             opname == (an_opname_kind)onk_await ||
+             opname == (an_opname_kind)onk_arrow) {
+    /* Unary operator must have exactly one argument. */
+    if (param_count > 1) {
+      error_code = ec_too_many_args_for_operator;
+    } else if (param_count < 1) {
+      error_code = ec_too_few_args_for_operator;
+    }  /* if */
+  } else if (param_count == 1 &&
+             (opname == (an_opname_kind)onk_plus ||
+              opname == (an_opname_kind)onk_minus ||
+              opname == (an_opname_kind)onk_star ||
+              opname == (an_opname_kind)onk_ampersand ||
+              opname == (an_opname_kind)onk_plus_plus ||
+              opname == (an_opname_kind)onk_minus_minus)) {
+     /* These operators can be either unary or binary.  It is legal for
+        them to have exactly one argument. */
+  } else if (param_count == 2 &&
+             (opname == (an_opname_kind)onk_plus_plus ||
+              opname == (an_opname_kind)onk_minus_minus)) {
+    /* Extra argument on postfix operator must be of type "int".  (This
+       variant is not allowed as a C++/CLI static member operator.) */
+    if (cli_or_cx_enabled && class_type != NULL &&
+        !is_nonstatic_member_function) {
+      error_code = ec_too_many_args_for_operator;
+    } else {
+      ptp = rtsp->param_type_list;
+      if (!is_nonstatic_member_function) ptp = ptp->next;
+      tp = skip_typerefs(ptp->type);
+      if (!is_error_type(tp) && !is_template_dependent_type(tp)) {
+        if (!is_integral_type(tp) ||
+            tp->variant.integer.int_kind != (an_integer_kind)ik_int) {
+          if (diag_pos != NULL) {
+            pos_st_error(ec_bad_extra_arg_for_postfix_operator, diag_pos,
+                         (char *)(opname == (an_opname_kind)onk_plus_plus
+                                                              ? "++" : "--"));
+          }  /* if */
+          ptp->type = error_type();
+          err = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else {
+    /* Binary operator must have exactly two arguments. */
+    if (param_count > 2) {
+      error_code = ec_too_many_args_for_operator;
+    } else if (param_count < 2) {
+      error_code = ec_too_few_args_for_operator;
+    }  /* if */
+  }  /* if */
+  if (error_code != ec_no_error) {
+    if (diag_pos != NULL) pos_error(error_code, diag_pos);
+    err = TRUE;
+  }  /* if */
+  if (is_new_operator(opname) || is_delete_operator(opname)) {
+    /* Check return type. */
+    tp = rout_type->variant.routine.return_type;
+    if (!is_error_type(tp)) {
+      if (is_new_operator(opname)) {
+        /* operator new or operator new[]: return type must be "void *". */
+        if (!is_void_star_type(tp) || is_qualified_type(tp)) {
+          if (diag_pos != NULL) {
+            pos_error(ec_bad_return_type_for_op_new, diag_pos);
+          }  /* if */
+          err = TRUE;
+        }  /* if */
+      } else {
+        /* operator delete or operator delete[]: return type must be
+           "void". */
+        if (!is_void_type(tp) || is_qualified_type(tp)) {
+          if (diag_pos != NULL) {
+            pos_error(ec_bad_return_type_for_op_delete, diag_pos);
+          }  /* if */
+          err = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else {
+    /* If operator function is not a nonstatic member and does not have
+       operands of class or enum type (or reference to class or enum type),
+       issue an error.  This restriction does not apply to new and delete,
+       however.  Also, in C++/CLI mode, static member operators of special
+       value class types (like System::Double) that correspond to fundamental
+       types can have those fundamental types as the only parameter types. */
+    if (!is_nonstatic_member_function && !any_class_or_enum_type_params &&
+        !any_template_param_type_params && !this_equivalent_seen) {
+      if (diag_pos != NULL) {
+        pos_error(operator_overloading_on_enums_enabled ?
+                        ec_no_params_with_class_or_enum_type :
+                        ec_no_params_with_class_type,
+                  diag_pos);
+      }  /* if */
+      err = TRUE;
+    } else if (cli_or_cx_enabled && class_type != NULL &&
+               !is_nonstatic_member_function && !this_equivalent_seen) {
+      if (diag_pos != NULL) {
+        pos_ty_error(ec_bad_parameter_type_for_static_member_operator,
+                     diag_pos, class_type);
+      }  /* if */
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  return err;
+}  /* operator_type_is_invalid */
+
+
 void check_operator_function_params(a_type_ptr        rout_type,
                                     a_type_ptr        class_type,
                                     a_symbol_locator  *locator)
@@ -1540,22 +1824,15 @@ new fields are set properly.
 */
 {
   an_opname_kind                 opname;
-  int                            param_count;
-  a_param_type_ptr               ptp;
-  a_boolean                      any_class_or_enum_type_params = FALSE;
-  a_boolean                      any_template_param_type_params = FALSE;
-  a_type_ptr                     tp;
-  a_boolean                      is_nonstatic_member_function;
-  an_error_code                  error_code = ec_no_error;
   a_boolean                      err = FALSE;
   a_routine_type_supplement_ptr  rtsp;
 
   db_enter(4, "check_operator_function_params");
   rout_type = skip_typerefs(rout_type);
-  rtsp = rout_type->variant.routine.extra_info;
   if (is_error_locator(*locator)) {
     /* Nothing to do. */
   } else if (locator->is_conversion_name) {
+    rtsp = rout_type->variant.routine.extra_info;
     check_assertion(class_type != NULL);
     if (cli_or_cx_enabled && rtsp->this_class == NULL) {
       /* A C++/CLI static conversion function. */
@@ -1598,256 +1875,10 @@ new fields are set properly.
     }  /* if */
   } else if (locator->is_operator_name) {
     /* It's an operator. */
-    a_boolean  this_equivalent_seen = FALSE;
     opname = locator->variant.opname;
     check_assertion(opname != (an_opname_kind)onk_none);
-    is_nonstatic_member_function = (rtsp->this_class != NULL);
-#if CHECKING
-    if (is_new_operator(opname) || is_delete_operator(opname)) {
-      /* Operator new/delete cannot be a nonstatic member function. */
-      check_assertion_str2(!is_nonstatic_member_function,
-                           "check_operator_function_params:",
-                           "new or delete is nonstatic member function");
-    }  /* if */
-#endif /* CHECKING */
-    /* Make a pass over the param types list to count the number of
-       arguments to see if there are any parameters that are of class type
-       or reference-to-class type.  Note that param_count is initialized to
-       0 except in the case of nonstatic member functions, for which it is
-       initialized to 1. This is because the implicit "this" parameter is
-       counted in the latter case. */
-    param_count = is_nonstatic_member_function ? 1 : 0;
-    ptp = rout_type->variant.routine.extra_info->param_type_list;
-    for (; ptp != NULL; ptp = ptp->next) {
-      param_count++;
-      tp = ptp->type;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cli_or_cx_enabled && class_type != NULL &&
-          !is_nonstatic_member_function &&
-          cli_class_type_kind_is(class_type, cctk_value)) {
-        /* For special value class types (like System::Double) that correspond
-           to fundamental types, static member operators will have those
-           fundamental types as parameter types.  This satisfies the
-           requirement of a parameter matching class_type. */
-        a_type_ptr  fund = fundamental_type_from_system_type(class_type);
-        if (fund != NULL &&
-            types_are_compatible_ignoring_qualifiers(tp, fund)) {
-           this_equivalent_seen = TRUE;
-        }  /* if */
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      if (is_any_reference_type(tp)) {
-        tp = type_pointed_to(tp);
-      }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cli_or_cx_enabled && is_handle_type(tp)) {
-        /* Parameters of the form T^, T^%, and T^& are also acceptable in
-           C++/CLI mode. */
-        tp = type_pointed_to(tp);
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      if (is_class_struct_union_type(tp) ||
-          (operator_overloading_on_enums_enabled && is_enum_type(tp))) {
-        any_class_or_enum_type_params = TRUE;
-        if (cli_or_cx_enabled && class_type != NULL &&
-            !is_nonstatic_member_function &&
-            types_are_compatible_ignoring_qualifiers(tp, class_type)) {
-          /* For static C++/CLI member operators, at least one parameter must
-             T, T&, T&&, T%, or T^, with T the type indicated by class_type
-             (a template parameter is not sufficient); i.e., a parameter
-             similar to "this" in a nonstatic member version of the operator.
-             We record here that such a parameter was seen. */
-          this_equivalent_seen = TRUE;
-        }  /* if */
-      } else if (is_template_param_type(tp)) {
-        any_template_param_type_params = TRUE;
-      }  /* if */
-    }  /* for */
-    if (is_new_operator(opname) ||
-        is_delete_operator(opname) ||
-        opname == (an_opname_kind)onk_function_call) {
-      /* Function call and new must have one or more arguments. */
-      if (param_count == 0) {
-        if (rtsp->has_ellipsis) {
-          /* operator()(...) and operator new(...) are errors, but we do
-             allow operator()(T, ...) and operator new(size_t, ...). */
-          error_code = ec_ellipsis_on_operator_function;
-        } else {
-          error_code = ec_too_few_args_for_operator;
-        }  /* if */
-      } else if (opname != (an_opname_kind)onk_function_call) {
-        ptp = rout_type->variant.routine.extra_info->param_type_list;
-        tp = ptp->type;
-        if (!is_error_type(tp)) {
-          if (is_new_operator(opname)) {
-            /* operator new or operator new[]. */
-            if (!is_integral_type(tp) ||
-                skip_typerefs(tp)->variant.integer.int_kind !=
-                                                      targ_size_t_int_kind) {
-              error_code = ec_bad_arg_type_for_operator_new;
-              ptp->type = error_type();
-            }  /* if */
-          } else {
-            /* operator delete or operator delete[]. */
-            if (!is_void_star_type(tp)) {
-              /* Error. */
-              an_error_severity  severity;
-              if (cfront_2_1_mode && is_pointer_to_void_type(tp)) {
-                /* In cfront 2.1 "const void *" is allowed.   Issue a warning
-                   and ignore the qualifier on the type. */
-                severity = es_warning;
-                ptp->type = make_pointer_type(void_type());
-              } else {
-                /* Error case. */
-                severity = es_error;
-                ptp->type = error_type();
-                err = TRUE;
-              }  /* if */
-              pos_diagnostic(severity,
-                             ec_bad_first_arg_type_for_operator_delete,
-                             &locator->source_position);
-            }  /* if */
-            /* Actually using placement delete only occurs when exception
-               handling is enabled, and only with newer ABIs.  If EH support
-               is disabled or an old ABI is used, issue a diagnostic if this
-               turns out to be a placement delete declaration. */
-            if (!err
-#if ABI_CHANGES_FOR_PLACEMENT_DELETE
-                     && !exceptions_enabled
-#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
-                                           ) {
-              ptp = ptp->next;
-              if (ptp != NULL) {
-                /* There is a second argument.  Except for the case in which
-                   a class member operator delete has a second parameter type
-                   of size_t, issue a diagnostic. */
-                tp = skip_typerefs(ptp->type);
-                if (!is_error_type(tp)) {
-                  if (is_integral_type(tp) &&
-                      tp->variant.integer.int_kind == targ_size_t_int_kind &&
-                      (class_type != NULL || sized_deallocation_enabled)) {
-                    /* No warning for X::operator delete(void *, size_t) or
-                       when sized deallocation is enabled. */
-                  } else {
-                    pos_diagnostic(exceptions_enabled ? es_warning : es_remark,
-                                   ec_useless_placement_delete,
+    err = operator_type_is_invalid(opname, rout_type, class_type,
                                    &locator->source_position);
-                  }  /* if */
-                }  /* if */
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled && is_cli_param_array_routine_type(rout_type)) {
-      /* All overloaded operators (except "call" and "new", which are handled
-         above) require a specific number of arguments.  A C++/CLI parameter
-         array is therefore not allowed here. */
-      error_code = ec_parameter_array_on_operator_function;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else if (rtsp->has_ellipsis) {
-      /* All overloaded operators (except function call and new, handled
-         above) require a specific number of arguments, so ellipsis is not
-         allowed. */
-      error_code = ec_ellipsis_on_operator_function;
-    } else if (opname == (an_opname_kind)onk_compl ||
-               opname == (an_opname_kind)onk_not ||
-               opname == (an_opname_kind)onk_await ||
-               opname == (an_opname_kind)onk_arrow) {
-      /* Unary operator must have exactly one argument. */
-      if (param_count > 1) {
-        error_code = ec_too_many_args_for_operator;
-      } else if (param_count < 1) {
-        error_code = ec_too_few_args_for_operator;
-      }  /* if */
-    } else if (param_count == 1 &&
-               (opname == (an_opname_kind)onk_plus ||
-                opname == (an_opname_kind)onk_minus ||
-                opname == (an_opname_kind)onk_star ||
-                opname == (an_opname_kind)onk_ampersand ||
-                opname == (an_opname_kind)onk_plus_plus ||
-                opname == (an_opname_kind)onk_minus_minus)) {
-       /* These operators can be either unary or binary.  It is legal for
-          them to have exactly one argument. */
-    } else if (param_count == 2 &&
-               (opname == (an_opname_kind)onk_plus_plus ||
-                opname == (an_opname_kind)onk_minus_minus)) {
-      /* Extra argument on postfix operator must be of type "int".  (This
-         variant is not allowed as a C++/CLI static member operator.) */
-      if (cli_or_cx_enabled && class_type != NULL &&
-          !is_nonstatic_member_function) {
-        error_code = ec_too_many_args_for_operator;
-      } else {
-        ptp = rout_type->variant.routine.extra_info->param_type_list;
-        if (!is_nonstatic_member_function) ptp = ptp->next;
-        tp = skip_typerefs(ptp->type);
-        if (!is_error_type(tp) && !is_template_dependent_type(tp)) {
-          if (!is_integral_type(tp) ||
-              tp->variant.integer.int_kind != (an_integer_kind)ik_int) {
-            pos_st_error(ec_bad_extra_arg_for_postfix_operator,
-                         &locator->source_position,
-                         (char *)(opname == (an_opname_kind)onk_plus_plus
-                                                              ? "++" : "--"));
-            ptp->type = error_type();
-            err = TRUE;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    } else {
-      /* Binary operator must have exactly two arguments. */
-      if (param_count > 2) {
-        error_code = ec_too_many_args_for_operator;
-      } else if (param_count < 2) {
-        error_code = ec_too_few_args_for_operator;
-      }  /* if */
-    }  /* if */
-    if (error_code != ec_no_error) {
-      pos_error(error_code, &locator->source_position);
-      err = TRUE;
-    }  /* if */
-    if (is_new_operator(opname) || is_delete_operator(opname)) {
-      /* Check return type. */
-      tp = rout_type->variant.routine.return_type;
-      if (!is_error_type(tp)) {
-        if (is_new_operator(opname)) {
-          /* operator new or operator new[]: return type must be "void *". */
-          if (!is_void_star_type(tp) || is_qualified_type(tp)) {
-            pos_error(ec_bad_return_type_for_op_new,
-                      &locator->source_position);
-            err = TRUE;
-          }  /* if */
-        } else {
-          /* operator delete or operator delete[]: return type must be
-             "void". */
-          if (!is_void_type(tp) || is_qualified_type(tp)) {
-            pos_error(ec_bad_return_type_for_op_delete,
-                      &locator->source_position);
-            err = TRUE;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    } else {
-      /* If operator function is not a nonstatic member and does not have
-         operands of class or enum type (or reference to class or enum type),
-         issue an error.  This restriction does not apply to new and delete,
-         however.  Also, in C++/CLI mode, static member operators of special
-         value class types (like System::Double) that correspond to fundamental
-         types can have those fundamental types as the only parameter types. */
-      if (!is_nonstatic_member_function && !any_class_or_enum_type_params &&
-          !any_template_param_type_params && !this_equivalent_seen) {
-        pos_error(operator_overloading_on_enums_enabled ?
-                        ec_no_params_with_class_or_enum_type :
-                        ec_no_params_with_class_type,
-                  &locator->source_position);
-        err = TRUE;
-      } else if (cli_or_cx_enabled && class_type != NULL &&
-                 !is_nonstatic_member_function && !this_equivalent_seen) {
-        pos_ty_error(ec_bad_parameter_type_for_static_member_operator,
-                     &locator->source_position, class_type);
-        err = TRUE;
-      }  /* if */
-    }  /* if */
   }  /* if */
   if (err) set_to_error_locator(*locator);
   db_exit();
