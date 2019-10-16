@@ -4284,7 +4284,7 @@ for information about the parameters.
   a_scope_ptr			parent = NULL;
   a_boolean			is_template = FALSE;
   a_template_decl_info_ptr	parent_tdip = decl_info;
-  a_symbol_ptr                  rout_template_sym;
+  a_symbol_ptr			rout_template_sym;
 
   /* If the parent scope is not a file or namespace scope, reactivate it
      first. */
