@@ -1643,7 +1643,8 @@ source file's compilation.
   /* curr_date_time will be like "Sun Sep 16 01:03:52 1973\n". */
   (void)time(&timer);
   time_str = ctime(&timer);
-  check_assertion(strlen(time_str) < sizeof(curr_date_time));
+  check_assertion(time_str != NULL &&
+                  strlen(time_str) < sizeof(curr_date_time));
   (void)strcpy(curr_date_time, time_str);
 
   in_front_end = TRUE;
