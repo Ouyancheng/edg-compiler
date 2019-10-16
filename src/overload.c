@@ -6103,6 +6103,10 @@ next_argument:
         } else {
           /* See how the selector expression matches the "this" parameter
              type. */
+          if (ovl_context == oc_reversed_cmp_candidate &&
+              !is_class_struct_union_type(bound_function_selector->type)) {
+            goto reject_function;
+          }  /* if */
           selector_match_with_this_param(bound_function_selector,
                                          routine, routine_type,
                                          this_param_type, this_match);
@@ -17281,19 +17285,24 @@ find_more_operator_candidates:
       if (member_functions_symbol != NULL) {
         /* There are member functions for this class type.  See how well
            they match up. */
+        an_operand_ptr       selector;
         an_overload_context  ovl_context = oc_default;
-        if (find_reversed_candidates) {
-          ovl_context = oc_reversed_cmp_candidate;
-        }  /* if */
 #if CHECKING
         if (!member_functions_symbol->is_class_member) {
           internal_error(
                         "check_for_operator_overloading: func not member");
         }  /* if */
 #endif /* CHECKING */
-        /* Use the first operand as the selector expression, and
-           the second operand as the first actual argument . */
-        operand_1->selector_is_object_pointer = selector_is_handle;
+        if (!find_reversed_candidates) {
+          selector = operand_1;
+        } else {
+          selector = operand_2;
+          ovl_context = oc_reversed_cmp_candidate;
+        }  /* if */
+        /* Use the first operand as the selector expression, and the second
+           operand as the first actual argument (except if the arguments are
+           reversed). */
+        selector->selector_is_object_pointer = selector_is_handle;
         try_overloaded_function_match(
                                      member_functions_symbol,
                                      /*is_template_id=*/FALSE,
@@ -17301,7 +17310,7 @@ find_more_operator_candidates:
                                      arg_list2,
                                      (an_arg_list_elem *)NULL,
                                      /*have_selector=*/TRUE,
-                                     operand_1,
+                                     selector,
                                      /*ctor_conversion_case=*/FALSE,
                                      /*effects_copy_initialization=*/FALSE,
                                      /*allow_udc_on_arguments=*/TRUE,
@@ -17316,7 +17325,7 @@ find_more_operator_candidates:
                                      p_inaccessible_match,
                                      &matched_except_for_missing_selector,
                                      &matched_except_for_selector);
-        operand_1->selector_is_object_pointer =
+        selector->selector_is_object_pointer =
                                           saved_selector_is_object_pointer;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (cli_or_cx_enabled) {
