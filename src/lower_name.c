@@ -574,6 +574,16 @@ typedef struct a_mangling_control_block {
                            is TRUE -- in which case auto and decltype(auto)
                            typerefs should be mangled explicitly (otherwise
                            the underlying type is used). */
+#if IA64_ABI
+  char          ctor_dtor_char;
+                        /* When mangling a constructor or destructor, this
+                           represents the type of alternate entry point
+                           for the constructor/destructor.  This is only used
+                           when the mangled name is truncated (as a way to
+                           differentiate between alternate entry points
+                           that would otherwise have the same mangled name).
+                           See truncate_mangled_name. */
+#endif /* IA64_ABI */
 } a_mangling_control_block;
 
 
@@ -727,6 +737,7 @@ static a_boolean add_substitution_if_available_full(
                             a_boolean                test,
                             a_boolean                *is_standard_substitution,
                             a_mangling_control_block *mctl);
+static char ctor_dtor_kind_char(a_ctor_or_dtor_kind ctor_dtor_kind);
 static void overwrite_ctor_dtor_mangled_name_kind(char          *name,
                                                   a_routine_ptr routine,
                                                   char          ch);
@@ -864,6 +875,9 @@ Set the fields of the indicated mangling control block to default values.
 #endif /* !IA64_ABI */
   mctl->lacking_module_id = FALSE;
   mctl->mangle_auto_placeholder = FALSE;
+#if IA64_ABI
+  mctl->ctor_dtor_char = '\0';
+#endif /* IA64_ABI */
 }  /* clear_mangling_control_block */
 
 #if IA64_ABI
@@ -12363,8 +12377,7 @@ externalized, use the encoding for the externalized form.
 
 char *get_mangled_function_name_full(a_routine_ptr routine,
                                      a_boolean     force_primary_name,
-                                     a_boolean     externalize_if_necessary,
-                                     sizeof_t      *base_name_offset)
+                                     a_boolean     externalize_if_necessary)
 /*
 Get the mangled name for the indicated routine, and return a pointer
 to it.  If the routine name has not been mangled yet, create a copy
@@ -12373,9 +12386,7 @@ name in the routine entry.  In the IA-64 ABI, if force_primary_name
 is TRUE the routine is a constructor or destructor and the primary
 entry point name should be returned.  If externalize_if_necessary is
 TRUE, externalize the name (give it the name a static gets when
-made into an external) if necessary.  If base_name_offset is not NULL,
-*base_name_offset is set to the offset from the start of the mangling
-to the point where the base name appears.
+made into an external) if necessary.
 */
 {
   a_mangling_control_block mctl;
@@ -12416,7 +12427,8 @@ to the point where the base name appears.
       add_to_text_buffer(mangling_text_buffer, mangled_name,
                          strlen(mangled_name)+1);
       mangled_name = mangling_text_buffer->buffer;
-      overwrite_ctor_dtor_mangled_name_kind(mangled_name, routine, '1');
+      overwrite_ctor_dtor_mangled_name_kind(mangled_name, routine,
+                                            ctor_dtor_kind_char(cdk_complete));
       pop_mangling_text_buffer();
     }  /* if */
 #endif /* IA64_ABI && DO_IL_LOWERING */
@@ -12427,22 +12439,31 @@ to the point where the base name appears.
     /* Create the name. */
     if (externalize_if_necessary) {
       mangled_function_name_externalized_if_necessary(
-                                            routine,
-                                            suppress_param_encoding,
-                                            /*suppress_parent_encoding=*/FALSE,
-                                            force_primary_name,
-                                            base_name_offset,
-                                            &mctl);
+                                           routine,
+                                           suppress_param_encoding,
+                                           /*suppress_parent_encoding=*/FALSE,
+                                           force_primary_name,
+                                           /*base_name_offset=*/(size_t *)NULL,
+                                           &mctl);
     } else {
       mangled_function_name(
-                                            routine,
-                                            suppress_param_encoding,
-                                            /*suppress_parent_encoding=*/FALSE,
-                                            force_primary_name,
-                                            /*force_individuation=*/FALSE,
-                                            base_name_offset,
-                                            &mctl);
+                                           routine,
+                                           suppress_param_encoding,
+                                           /*suppress_parent_encoding=*/FALSE,
+                                           force_primary_name,
+                                           /*force_individuation=*/FALSE,
+                                           /*base_name_offset=*/(size_t *)NULL,
+                                           &mctl);
     }  /* if */
+#if IA64_ABI
+    if (special_kind_is(routine, sfk_constructor) ||
+        special_kind_is(routine, sfk_destructor)) {
+      /* For a constructor or destructor, save the unique mangling character
+         in case it needs to be used for differentiating alternate entry points
+         if the mangled name is truncated. */
+      mctl.ctor_dtor_char = ctor_dtor_kind_char(routine->ctor_dtor_kind);
+    }  /* if */
+#endif /* IA64_ABI */
     mangled_name = end_mangling(/*final=*/TRUE, &mctl);
   }  /* if */
   return mangled_name;
@@ -12473,8 +12494,7 @@ a constructor or destructor, return the primary entry point name.
   } /* if */
 #endif /* IA64_ABI */
   mangled_name = get_mangled_function_name_full(routine, force_primary_name,
-                                          /*externalize_if_necessary=*/TRUE,
-                                          /*base_name_offset=*/(size_t *)NULL);
+                                          /*externalize_if_necessary=*/TRUE);
   return mangled_name;
 }  /* get_mangled_function_name */
 
@@ -13113,6 +13133,13 @@ encoding if suppress_parent_encoding is TRUE.
 #else /* IA64_ABI */
     /* In the IA64 ABI, the final mangled name should be computed
        immediately. */
+    if (special_kind_is(routine, sfk_constructor) ||
+        special_kind_is(routine, sfk_destructor)) {
+      /* For a constructor or destructor, save the unique mangling character
+         in case it needs to be used for differentiating alternate entry points
+         if the mangled name is truncated. */
+      mctl.ctor_dtor_char = ctor_dtor_kind_char(routine->ctor_dtor_kind);
+    }  /* if */
     (void)end_mangling_full(&routine->source_corresp, /*final=*/TRUE, &mctl);
 #endif /* IA64_ABI */
   }  /* if */
@@ -14247,12 +14274,12 @@ past the end of the mangled name.
   if (routine->source_corresp.mangled_name_cannot_be_included_in_other_name) {
     /* The mangled name has been truncated so the computed base_name_offset
        likely points past the end of the string.  We still need to make this
-       mangled name different than the primary routine, so overwrite one of
-       the underscores that separates the truncated name from the CRC
+       mangled name different than the primary routine, so overwrite the
+       second underscore that separates the truncated name from the CRC
        (a truncated mangled name cannot be demangled anyway). */
     sizeof_t len = strlen(name);
     len -= SIZE_OF_TRUNCATED_SUFFIX;
-    check_assertion(name[len] == '_' && name[len + 1] == '_');
+    check_assertion(name[len] == '_');
     name[len + 1] = ch;
   } else {
 #if EXPENSIVE_CHECKING
@@ -14261,6 +14288,27 @@ past the end of the mangled name.
     name[routine->variant.ctor_dtor.base_name_offset + 1] = ch;
   }  /* if */
 }  /* overwrite_ctor_dtor_mangled_name_kind */
+
+
+static char ctor_dtor_kind_char(a_ctor_or_dtor_kind ctor_dtor_kind)
+/*
+Returns the character to be used in mangling to identify the type of
+constructor/destructor alternate entry point specified by ctor_dtor_kind.
+E.g., "C1" is used for a complete constructor/destructor, so '1' is returned
+when ctor_dtor_kind is cdk_complete.
+*/
+{
+  char ch;
+
+  switch (ctor_dtor_kind) {
+    case cdk_complete:  ch = '1';               break;
+    case cdk_subobject: ch = '2';               break;
+    case cdk_deleting:  ch = '0';               break;
+    case cdk_delegation:ch = '9';               break;
+    default:            unexpected_condition();
+  }  /* switch */
+  return ch;
+}  /* ctor_dtor_kind_char */
 
 
 void set_ctor_dtor_mangled_name_kind(a_routine_ptr routine)
@@ -14272,23 +14320,16 @@ the routine (e.g., complete, subobject, etc.).  This is done by changing
 a single character of the mangled name (as pointed to by base_name_offset).
 */
 {
-  char ch;
-
   check_assertion(routine->source_corresp.name_has_been_mangled &&
                   (routine->special_kind ==
                                    (a_special_function_kind)sfk_constructor ||
                    routine->special_kind ==
                                    (a_special_function_kind)sfk_destructor) &&
                   routine->variant.ctor_dtor.base_name_offset != 0);
-  switch (routine->ctor_dtor_kind) {
-    case cdk_complete:  ch = '1';               break;
-    case cdk_subobject: ch = '2';               break;
-    case cdk_deleting:  ch = '0';               break;
-    case cdk_delegation:ch = '9';               break;
-    default:            unexpected_condition();
-  }  /* switch */
   overwrite_ctor_dtor_mangled_name_kind((char *)routine->source_corresp.name,
-                                        routine, ch);
+                                        routine,
+                                        ctor_dtor_kind_char(
+                                                     routine->ctor_dtor_kind));
 }  /* set_ctor_dtor_mangled_name_kind */
 
 
@@ -14616,10 +14657,21 @@ correspondence entry for the entity whose name this is.
     /* The name must be truncated. */
     /* The suffix is of the form "__abcdabcd", i.e., one needs 10 characters
        for it. */
+    char ctor_dtor_char = '_';
     sizeof_t max_allowed_length =
                             max_mangled_name_length - SIZE_OF_TRUNCATED_SUFFIX;
-    (void)sprintf(mangled_name+max_allowed_length, "__%08lx",
-                  crc_32(mangled_name, (unsigned long)0));
+#if IA64_ABI && ABI_COMPATIBILITY_VERSION >= 520
+    if (mctl->ctor_dtor_char != '\0') {
+      /* If we're truncating a mangled name for a constructor or destructor,
+         the differentiation between alternate entry points (e.g.,
+         "C0" vs "C1") may be past the point of truncation, which would result
+         in the same mangled name.  To prevent that, replace the second
+         underscore (just before the CRC) with the distinguishing character. */
+      ctor_dtor_char = mctl->ctor_dtor_char;
+    }  /* if */
+#endif /* IA64_ABI && ABI_COMPATIBILITY_VERSION >= 520 */
+    (void)sprintf(mangled_name+max_allowed_length, "_%c%08lx",
+                  ctor_dtor_char, crc_32(mangled_name, (unsigned long)0));
     mctl->length = max_mangled_name_length+1;
     if (scp != NULL) {
       /* A truncated name cannot be used as part of another mangled name. */
