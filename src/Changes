@@ -5304,7 +5304,7 @@ that refer to their own elements.  For example:
   constexpr S s = { 42, g(s.rr) };  // Previously an error.  Now okay.
 
 Previously, this elicited an error because the evaluation of s.rr was not
-considered constant while s is being initializer.  That is now fixed.
+considered constant while s is being initialized.  That is now fixed.
 
 
 3/19/19  [EDGcpfe/20926]
