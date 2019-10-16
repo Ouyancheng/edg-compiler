@@ -6567,7 +6567,8 @@ field designator.
          done with this aggregate. */
       check_assertion(array_case);
     } else {
-      for (; sub_con != NULL;) {
+      a_boolean  first_elem = TRUE;
+      while (sub_con != NULL) {
         a_constant_ptr eff_sub_con = sub_con;
         a_boolean      local_suppress_braces = FALSE;
         a_boolean      need_close_paren = FALSE;
@@ -6576,6 +6577,11 @@ field designator.
             (sub_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
              is_default_dynamic_init(sub_con->variant.dynamic_init.ptr))) {
           break;
+        }  /* if */
+        if (!first_elem) {
+          write_tok_str(", ");
+        } else {
+          first_elem = FALSE;
         }  /* if */
         if (sub_con->kind == (a_constant_repr_kind)ck_designator) {
           if (!transparent_case) {
@@ -6649,7 +6655,6 @@ field designator.
           check_assertion(array_case);
           break;
         }  /* if */
-        write_tok_str(", ");
       }  /* for */
     }  /* if */
     if (!suppress_braces && !transparent_case) {

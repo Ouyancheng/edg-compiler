@@ -1,5 +1,24 @@
 Version 6.0
 
+10/16/19 [EDGcpfe/21914]
+C++-generating back end: Spurious commas generated for implicit initializers
+
+Version 5.1 of the front end introduced a regression in the C++-generating
+back end, which caused spurious extraneous commas to sometimes be emitted in
+braced initializers that have associated implicit initializers.  For example:
+
+  struct S {
+    int i;
+    struct N { N() {} } n;
+  };
+  struct X {
+    S s;
+    double d = 1.0;
+  } x = { 42 };  // Previously renders as "... { 42, , };"
+
+That is now fixed.
+
+
 10/16/19 [EDGcpfe/21916]
 Deduction of operator templates
 
