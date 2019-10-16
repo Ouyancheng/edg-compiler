@@ -12428,7 +12428,7 @@ made into an external) if necessary.
                          strlen(mangled_name)+1);
       mangled_name = mangling_text_buffer->buffer;
       overwrite_ctor_dtor_mangled_name_kind(mangled_name, routine,
-                                            ctor_dtor_kind_char(cdk_complete));
+                       ctor_dtor_kind_char((a_ctor_or_dtor_kind)cdk_complete));
       pop_mangling_text_buffer();
     }  /* if */
 #endif /* IA64_ABI && DO_IL_LOWERING */
