@@ -3685,15 +3685,15 @@ Display the indicated routine.
   if (ptr->inline_in_class_definition) {
     disp_boolean("inline_in_class_definition", TRUE);
   }  /* if */
-#endif /* IA64_ABI */
-#if DO_IL_LOWERING && IA64_ABI
-  if (ptr->use_comdat) {
-    disp_boolean("use_comdat", TRUE);
-  }  /* if */
   if (ptr->ctor_dtor_kind != (a_ctor_or_dtor_kind)cdk_none) {
     disp_name("ctor_dtor_kind");
     disp_ctor_or_dtor_kind_name(ptr->ctor_dtor_kind);
     (void)printf("\n");
+  }  /* if */
+#endif /* IA64_ABI */
+#if DO_IL_LOWERING && IA64_ABI
+  if (ptr->use_comdat) {
+    disp_boolean("use_comdat", TRUE);
   }  /* if */
   if (ptr->is_alias_entry) {
     disp_boolean("is_alias_entry", TRUE);
