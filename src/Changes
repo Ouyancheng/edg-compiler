@@ -1,5 +1,18 @@
 Version 6.0
 
+10/17/19 [EDGcpfe/21923]
+Microsoft C++ compatibility: Extraneous qualifier on template declaration
+
+In Microsoft C++ modes with microsoft_version <= 1910, the front end now
+accepts an extraneous namespace scope qualifier on a template declaration:
+
+  namespace N {
+    template<typename> void N::f();  // Now accepted in some Microsoft modes.
+  }
+
+See also the changes entries of 11/2/03 and 11/3/03.
+
+
 10/16/19 [EDGcpfe/21914]
 C++-generating back end: Spurious commas generated for implicit initializers
 

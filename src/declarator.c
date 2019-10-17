@@ -6083,7 +6083,7 @@ declared entity is known to not be a function.
           a_boolean          keep_qualifier = FALSE;
           /* The declarator name is qualified by the current namespace. */
           if (is_template_decl && !do_dependent_name_processing &&
-              !gpp_mode &&
+              !(gpp_mode || ms_version_is(<=1910)) &&
               qualifier_namespace_ptr(locator_for_curr_id) != NULL) {
             severity = es_error;
           } else if (is_specialization_or_instantiation && !strict_ansi_mode) {
@@ -6104,11 +6104,14 @@ declared entity is known to not be a function.
                 ssep == &scope_stack[depth_scope_stack]) {
               severity = strict_ansi_mode ? es_discretionary_error : es_remark;
               keep_qualifier = TRUE;
-            } else if (gpp_mode || sun_mode) {
+            } else if (gpp_mode || sun_mode ||
+                       (is_template_decl && ms_version_is(<=1910))) {
               /* GNU and Sun compilers accept the superfluous qualifier and
                  ignore it.  As explained above, we cannot always emulate this
                  behavior for templates (unless dependent name processing is
-                 enabled, which is the default for gnu_version >= 30400). */
+                 enabled, which is the default for gnu_version >= 30400).
+                 Some versions of the Microsoft compiler similarly ignore the
+                 superfluous qualifier, but only for the template case. */
               severity = es_warning;
             }  /* if */
           }  /* if */
