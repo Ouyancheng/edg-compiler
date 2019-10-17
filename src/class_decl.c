@@ -22008,12 +22008,13 @@ deleted, disable bitwise copying.
             tqs &= ~(a_type_qualifier_set)TQ_FAR;
           }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
-          if (!cli_class &&
+          if (!cli_class && !rp->is_deleted &&
               tqs != (is_move ? TQ_NONE : gsfd->copy_ctor_qualifiers)) {
             /* If the declared parameter type doesn't match what would have
                been generated, the function is not trivial.  (Exclude managed
-               classes from this because they follow different copy
-               semantics.) */
+               classes from this - because they follow different copy
+               semantics - as well as deleted functions as these cannot be
+               called). */
             rp->is_trivial_copy_function = FALSE;
             cssp->makes_copy_construction_nontrivial = TRUE;
           } else {
