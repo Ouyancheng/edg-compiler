@@ -2384,6 +2384,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
               upc_block_size = UPC_BLOCK_SIZE_NONE;
   a_type_ptr  orig_type = type;
   a_type_ptr  attrib_stop_type = type;
+  a_type_ptr  resolved_type = NULL;
 
   if (type == NULL) {
     /* NULL type pointer. */
@@ -2410,18 +2411,19 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
   /* Remove type qualifiers but not typedefs.  Also drop typedefs
      that aren't visible here.  Accumulate the type qualifier set. */
   while (type->kind == (a_type_kind)tk_typeref) {
-    a_type_ptr resolved_type = NULL;
-    if (typeref_is_typedef(type)) {
+    /* If resolved_type is non-NULL, the call to typedef_is_invisible in a
+       previous iteration determined the non-typeref type that should
+       ultimately be used, so we skip over any typedef and type operator
+       typerefs and just accumulate qualifiers and attributes. */
+    if (resolved_type == NULL && typeref_is_typedef(type)) {
       /* Typedef.  Stop unless it's invisible, or if it is a typedef that
          should be dropped in diagnostic output. */
       if (!typedef_is_invisible(type, &resolved_type, suppress_const, octl) &&
           !is_member_typedef_that_should_be_ignored(type, octl)) {
         break;
-      } else if (resolved_type != NULL) {
-        type = resolved_type;
-        break;
       }  /* if */
-    } else if (is_type_operator_to_be_rendered(type, octl)) {
+    } else if (resolved_type == NULL &&
+               is_type_operator_to_be_rendered(type, octl)) {
       /* A decltype or typeof operator that should be rendered in its
          original form (instead of rendering the underlying type). */
       break;
@@ -3025,6 +3027,7 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
               qualifiers = TQ_NONE;
   a_type_ptr  orig_type = type;
   a_type_ptr  attrib_stop_type = type;
+  a_type_ptr  resolved_type = NULL;
 
   if (type == NULL
 #if BACK_END_IS_CP_GEN_BE
@@ -3048,18 +3051,19 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
      visible here.  The decltype and GNU typeof operators are like visible
      typedefs.  Accumulate the type qualifier set. */
   while (type->kind == (a_type_kind)tk_typeref) {
-    if (typeref_is_typedef(type)) {
-      a_type_ptr resolved_type = NULL;
+    /* If resolved_type is non-NULL, the call to typedef_is_invisible in a
+       previous iteration determined the non-typeref type that should
+       ultimately be used, so we skip over any typedef and type operator
+       typerefs and just accumulate qualifiers and attributes. */
+    if (resolved_type == NULL && typeref_is_typedef(type)) {
       /* Typedef.  Stop unless it's invisible, or if it is a typedef that
          should be dropped in diagnostic output. */
       if (!typedef_is_invisible(type, &resolved_type, suppress_const, octl) &&
           !is_member_typedef_that_should_be_ignored(type, octl)) {
-        if (resolved_type != NULL) {
-          type = resolved_type;
-        }  /* if */
         break;
       }  /* if */
-    } else if (is_type_operator_to_be_rendered(type, octl)) {
+    } else if (resolved_type == NULL &&
+               is_type_operator_to_be_rendered(type, octl)) {
       /* A decltype or typeof operator that should be rendered in its
          original form (instead of rendering the underlying type). */
       break;
