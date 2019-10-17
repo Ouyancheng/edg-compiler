@@ -1996,8 +1996,11 @@ Return TRUE if the given type is trivially copyable.
           - it has no nontrivial move/copy assignment operators, and
           - it has a trivial destructor.
       */
-      a_class_symbol_supplement_ptr  cssp = class_symbol_supp(symbol_for(tp));
-      if (!has_nontrivial_destructor(cssp) &&
+      a_symbol_ptr                  sym = symbol_for(tp);
+      a_class_symbol_supplement_ptr cssp=sym == NULL ? NULL :
+                                                       class_symbol_supp(sym);
+      if (cssp != NULL &&
+          !has_nontrivial_destructor(cssp) &&
           !cssp->has_user_provided_copy_constructor &&
           !cssp->has_user_provided_move_constructor &&
           !cssp->has_user_provided_move_assign_operator &&
