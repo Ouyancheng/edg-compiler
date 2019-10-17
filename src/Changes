@@ -1,5 +1,20 @@
 Version 6.0
 
+10/17/19 [EDGcpfe/21921]
+Microsoft-mode abort on use of "enum class" in generic lambda parameter
+
+Consider:
+
+  enum class E {};
+  auto r = [](enum class E) {};  // Previously triggered an internal error
+                                 // in Microsoft mode.  Now okay.
+
+That is ordinarily an error because "enum class E" is not permitted as an
+elaborated type specifier.  However, Microsoft compilers do accept that form
+and the front end previously aborted on the case above because it failed an
+assertion test while prescanning the lambda declarator.  That is now fixed.
+
+
 10/17/19 [EDGcpfe/21923]
 Microsoft C++ compatibility: Extraneous qualifier on template declaration
 

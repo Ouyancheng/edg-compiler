@@ -846,10 +846,19 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_microsoft_w64:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         break;
+      case tok_enum:
+        /* If "enum" is followed by "class" or "struct", treat the combination
+           as if it were just "enum" for disambiguation purposes. */
+        { a_token_kind  next_tok = next_token();
+          if (next_tok == tok_class || next_tok == tok_struct) {
+            (void)get_token();
+            curr_token = tok_enum;
+          }  /* if */
+        }
+        FALLTHROUGH
       case tok_class:
       case tok_struct:
       case tok_union:
-      case tok_enum:
       case tok_typename:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_interface:
