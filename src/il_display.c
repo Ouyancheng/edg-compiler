@@ -3324,7 +3324,7 @@ Display the indicated name and template arg list.
   }  /* if */
 }  /* disp_template_arg_list */
 
-#if DO_IL_LOWERING && IA64_ABI
+#if IA64_ABI
 
 static void disp_ctor_or_dtor_kind_name(a_ctor_or_dtor_kind kind)
 /*
@@ -3344,7 +3344,7 @@ Display the name of the indicated constructor or destructor kind.
   (void)printf("%s", s);
 }  /* disp_ctor_or_dtor_kind_name */
 
-#endif /* DO_IL_LOWERING && IA64_ABI */
+#endif /* IA64_ABI */
 
 
 static void disp_routine(a_routine_ptr ptr)
@@ -3685,15 +3685,15 @@ Display the indicated routine.
   if (ptr->inline_in_class_definition) {
     disp_boolean("inline_in_class_definition", TRUE);
   }  /* if */
-  if (ptr->ctor_dtor_kind != (a_ctor_or_dtor_kind)cdk_none) {
-    disp_name("ctor_dtor_kind");
-    disp_ctor_or_dtor_kind_name(ptr->ctor_dtor_kind);
-    (void)printf("\n");
-  }  /* if */
 #endif /* IA64_ABI */
 #if DO_IL_LOWERING && IA64_ABI
   if (ptr->use_comdat) {
     disp_boolean("use_comdat", TRUE);
+  }  /* if */
+  if (ptr->ctor_dtor_kind != (a_ctor_or_dtor_kind)cdk_none) {
+    disp_name("ctor_dtor_kind");
+    disp_ctor_or_dtor_kind_name(ptr->ctor_dtor_kind);
+    (void)printf("\n");
   }  /* if */
   if (ptr->is_alias_entry) {
     disp_boolean("is_alias_entry", TRUE);

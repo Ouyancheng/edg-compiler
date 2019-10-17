@@ -737,10 +737,12 @@ static a_boolean add_substitution_if_available_full(
                             a_boolean                test,
                             a_boolean                *is_standard_substitution,
                             a_mangling_control_block *mctl);
+#if DO_IL_LOWERING
 static char ctor_dtor_kind_char(a_ctor_or_dtor_kind ctor_dtor_kind);
 static void overwrite_ctor_dtor_mangled_name_kind(char          *name,
                                                   a_routine_ptr routine,
                                                   char          ch);
+#endif /* DO_IL_LOWERING */
 #endif /* IA64_ABI */
 static void mangled_template_arguments(
                                     a_template_arg_ptr       template_arg_list,
@@ -12455,7 +12457,7 @@ made into an external) if necessary.
                                            /*base_name_offset=*/(size_t *)NULL,
                                            &mctl);
     }  /* if */
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
     if (special_kind_is(routine, sfk_constructor) ||
         special_kind_is(routine, sfk_destructor)) {
       /* For a constructor or destructor, save the unique mangling character
@@ -12463,7 +12465,7 @@ made into an external) if necessary.
          if the mangled name is truncated. */
       mctl.ctor_dtor_char = ctor_dtor_kind_char(routine->ctor_dtor_kind);
     }  /* if */
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
     mangled_name = end_mangling(/*final=*/TRUE, &mctl);
   }  /* if */
   return mangled_name;
@@ -13131,6 +13133,7 @@ encoding if suppress_parent_encoding is TRUE.
        will do the compression or truncation if necessary. */
     (void)end_mangling_full(&routine->source_corresp, /*final=*/FALSE, &mctl);
 #else /* IA64_ABI */
+#if DO_IL_LOWERING
     /* In the IA64 ABI, the final mangled name should be computed
        immediately. */
     if (special_kind_is(routine, sfk_constructor) ||
@@ -13141,6 +13144,7 @@ encoding if suppress_parent_encoding is TRUE.
       mctl.ctor_dtor_char = ctor_dtor_kind_char(routine->ctor_dtor_kind);
     }  /* if */
     (void)end_mangling_full(&routine->source_corresp, /*final=*/TRUE, &mctl);
+#endif /* DO_IL_LOWERING */
 #endif /* IA64_ABI */
   }  /* if */
 }  /* mangle_function_name */
