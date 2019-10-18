@@ -1556,11 +1556,11 @@ the position indicated by diag_pos.
   }  /* if */
 #endif /* CHECKING */
   /* Make a pass over the param types list to count the number of arguments
-     and to see if there are any parameters that are of class type or
-     reference-to-class type.  Note that param_count is initialized to 0
-     except in the case of nonstatic member functions, for which it is
-     initialized to 1. This is because the implicit "this" parameter is
-     counted in the latter case. */
+     and to see if there are any parameters that are of class or enumeration
+     type, or a reference-to-class-or-enumeration type.  Note that param_count
+     is initialized to 0 except in the case of nonstatic member functions, for
+     which it is initialized to 1. This is because the implicit "this"
+     parameter is counted in the latter case. */
   param_count = is_nonstatic_member_function ? 1 : 0;
   ptp = rtsp->param_type_list;
   for (; ptp != NULL; ptp = ptp->next) {
