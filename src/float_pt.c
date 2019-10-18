@@ -469,7 +469,7 @@ so convert the value to long double and use that.
 */
 {
   return isnan((long double)x);
-}  /* edg_isnan(__float128 x) */
+}  /* edg_isnan(__float128) */
 
 
 a_boolean edg_isnan(long double x)
@@ -479,7 +479,7 @@ conversions.
 */
 {
   return isnan(x);
-}  /* edg_isnan(long double x) */
+}  /* edg_isnan(long double) */
 
 
 a_boolean edg_isnan(double x)
@@ -488,7 +488,7 @@ Wrapper for the double overload of isnan to prevent unnecessary conversions.
 */
 {
   return isnan(x);
-}  /* edg_isnan(double x) */
+}  /* edg_isnan(double) */
 
 
 a_boolean edg_isnan(float x)
@@ -497,7 +497,7 @@ Wrapper for the float overload of isnan to prevent unnecessary conversions.
 */
 {
   return isnan(x);
-}  /* edg_isnan(float x) */
+}  /* edg_isnan(float) */
 
 #endif /* NEED_EDG_ISNAN */
 
