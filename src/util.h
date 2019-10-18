@@ -813,19 +813,19 @@ front-end memory.
 
 
 template<typename an_Object>
-inline an_Object min(const an_Object &x,
-                     const an_Object &y)
+inline an_Object min_val(const an_Object &x,
+                         const an_Object &y)
 /*
 Return the smaller of the given values.  If the values are equal, return the
 first one.
 */
 {
   return y < x ? y : x;
-}  /* min */
+}  /* min_val */
 
 
 template<typename an_Object>
-inline an_Object max(const an_Object &x,
+inline an_Object max_val(const an_Object &x,
                      const an_Object &y)
 /*
 Return the larger of the given values.  If the values are equal, return the
@@ -833,7 +833,7 @@ first one.
 */
 {
   return x < y ? y : x;
-}  /* max */
+}  /* max_val */
 
 
 template<typename an_Object>
@@ -1472,7 +1472,7 @@ Uses branchless partitioning.
 
     /* Move the misplaced elements to the other side and update block sizes
        and first/last boundaries. */
-    int num = min(num_l, num_r);
+    int num = min_val(num_l, num_r);
     move_using_offsets(first, last, offsets_l+start_l, offsets_r+start_r,
                        num, num_l == num_r);
     num_l -= num; num_r -= num;
@@ -1513,7 +1513,7 @@ Uses branchless partitioning.
     }  /* for */
   }  /* if */
 
-  int num = min(num_l, num_r);
+  int num = min_val(num_l, num_r);
   move_using_offsets(first, last, offsets_l+start_l, offsets_r+start_r,
                      num, num_l == num_r);
   num_l -= num; num_r -= num;
