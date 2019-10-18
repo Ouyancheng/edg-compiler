@@ -6033,6 +6033,16 @@ given expression.
     }  /* if */
     restore_operand_details(operand, &orig_operand);
     result = TRUE;
+  } else if ((is_prototype_instantiation_context() ||
+             (microsoft_mode && in_ms_nonreal_class_instantiation()) ||
+              scope_stack_top().alias_in_template_decl ||
+              (scope_stack_top().in_nonreal_instantiation &&
+               !scope_stack_top().is_rescan)) &&
+               operand_is_instantiation_dependent(operand)) {
+    /* In template-dependent contexts, assume the expression might become
+       constant after instantiation. */
+    make_template_param_constant_from_operand(operand, constant,
+                                              (a_type_ptr)NULL);
   } else {
     result = FALSE;
     if (must_be_constant) {

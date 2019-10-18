@@ -17853,7 +17853,7 @@ Microsoft, Sun) allow extended forms of integer constants.
   push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  expr_stack->traditional_const_expr_required = TRUE;
+  expr_stack->traditional_const_expr_required = !constexpr_enabled;
   if (top_level) transfer_expr_context_if_applicable(saved_expr_stack);
   /* Scan the expression. */
   if (is_expr_list) {
@@ -17917,8 +17917,6 @@ indication in *rcblock).
   an_expr_node_ptr  expr = NULL;
   a_type_ptr        result_type;
   an_operand        operand;
-  a_boolean         template_constant = FALSE;
-  a_boolean         need_expr;
 
   db_enter(4, "scan_intaddr_operator");
   if (rcblock != NULL) {
@@ -17938,19 +17936,19 @@ indication in *rcblock).
     make_rescan_operand(expr->variant.builtin_operation.operands,
                         rcblock, &operand);
     do_operand_transformations(&operand, TOPT_NO_OPTIONS);
-    force_operand_to_constant_if_possible(&operand);
     /* Check that the operand we got has an acceptable type.
        (scan_extended_integral_constant_expression does this check in the
        non-rescan case.) */
-    if (is_constant_operand(&operand) &&
-        is_okay_integral_constant_expression_result(&operand.variant.constant,
-                                                   /*will_cast=*/TRUE)) {
-      /* Okay. */
-    } else if (!is_error_operand(&operand)) {
+    if (!is_integral_or_enum_type(operand.type) &&
+        !is_pointer_type(operand.type)) {
       error_in_operand(ec_expr_not_integral_constant, &operand);
     }  /* if */
   } else {
     /* Normal, non-rescan, processing. */
+    an_expr_stack_entry     expr_stack_entry;
+    push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/FALSE);
     /* Save the position of the __INTADDR__ keyword. */
     start_position = pos_curr_token;
     /* Check for and pass over the left parenthesis. */
@@ -17958,53 +17956,25 @@ indication in *rcblock).
     (void)required_token(tok_lparen, ec_exp_lparen);
     add_matching_stop_token(tok_rparen);
     /* Scan the address expression. */
-    scan_extended_integral_constant_expression(/*allow_comma=*/TRUE,
-                                               /*is_expr_list=*/FALSE,
-                                               /*will_cast=*/TRUE,
-                                               /*top_level=*/FALSE,
-                                               PREC_LOWEST,
-                                               &operand, (a_constant_ptr)NULL,
-                                               (a_boolean *)NULL);
+    scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+    do_operand_transformations(&operand, TOPT_NO_OPTIONS);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    pop_expr_stack();
   }  /* if */
   result_type = integer_type(targ_size_t_int_kind);
-  need_expr = FALSE;
-  if (is_constant_operand(&operand) &&
-      operand.variant.constant.kind ==
-                                     (a_constant_repr_kind)ck_template_param) {
-    /* A template-dependent case. */
-    template_constant = TRUE;
-    need_expr = TRUE;
-  } else if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
-    need_expr = TRUE;
-  }  /* if */
-  if (need_expr) {
-    /* Build an expression using a bok_intaddr builtin operation. */
-    expr = alloc_expr_node((an_expr_node_kind)enk_builtin_operation);
-    expr->type = result_type;
-    expr->variant.builtin_operation.kind =
-                                       (a_builtin_operation_kind)bok_intaddr;
-    expr->variant.builtin_operation.operands= make_node_from_operand(&operand);
-    record_position_in_expr_for_rescan(expr, 
-                                       &start_position,
-                                       end_position_or_null(&end_position));
-  }  /* if */
-  if (template_constant) {
-    /* Template-dependent case.  The result is a tpck_expression constant
-       for the __INTADDR__ expression. */
-    make_expression_operand(expr, result);
-    /* More is done below. */
-  } else {
-    /* Not a template-dependent case.  Cast the constant to type size_t. */
-    copy_operand(&operand, result);
-    cast_operand(result_type, result, /*is_implicit_cast=*/TRUE);
-    if (need_expr && is_constant_operand(result)) {
-      /* Record the backing expression for the constant. */
-      result->variant.constant.expr = expr;
-    }  /* if */
-  }  /* if */
+  /* Build an expression using a bok_intaddr builtin operation. */
+  expr = alloc_expr_node((an_expr_node_kind)enk_builtin_operation);
+  expr->type = result_type;
+  expr->variant.builtin_operation.kind = (a_builtin_operation_kind)bok_intaddr;
+  expr->variant.builtin_operation.operands = make_node_from_operand(&operand);
+  expr->position = start_position;
+  record_position_in_expr_for_rescan(expr, &start_position,
+                                     end_position_or_null(&end_position));
+  make_expression_operand(expr, result);
+  (void)expr_interpret_expression_operand(result, /*must_be_constant=*/TRUE,
+                                          /*is_constant_evaluated=*/TRUE);
   if (rcblock == NULL) {
     /* Check for and pass over the right parenthesis. */
     (void)required_token(tok_rparen, ec_exp_rparen);
@@ -18012,11 +17982,6 @@ indication in *rcblock).
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
-  if (template_constant) {
-    /* Turn the expression into a tpck_expression.  Done late so we get
-       the position recorded on the underlying expression. */
-    make_template_param_expr_constant_operand(result);
-  }  /* if */
   db_exit();
 }  /* scan_intaddr_operator */
 

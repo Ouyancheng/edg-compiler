@@ -949,6 +949,12 @@ typedef struct an_interpreter_state {
 			   temporary object (used for local static
 			   initializer_list objects). */
   a_bit_field
+		permit_null_pointer_offsets:1;
+			/* TRUE if adding an offset to a null pointer is
+			   permitted in a constant expression.  This is TRUE
+			   in GNU C++ mode and within an __INTADDR__
+			   construct. */
+  a_bit_field
 		static_lifetime_init:1;
 			/* TRUE when interpreting the initializer for a static
 			   lifetime variable. */
@@ -1942,10 +1948,11 @@ typedef struct a_constexpr_address {
   (is_variant_path(cap) ? (cap)->variant.variant_path->base_address          \
                         : (cap)->variant.base_address)
 
-static void get_runtime_array_pos(a_constexpr_address  *cap,
-                                  a_byte_count         elem_size,
-                                  a_byte_count         *a_len,
-                                  a_byte_count         *p_pos)
+static void get_runtime_array_pos(an_interpreter_state  *ips,
+                                  a_constexpr_address   *cap,
+                                  a_byte_count          elem_size,
+                                  a_byte_count          *a_len,
+                                  a_byte_count          *p_pos)
 /*
 cap represents a run-time address constant or null pointer and elem_size the
 size of the element type being addressed.  For null pointers, set *a_len and
@@ -1966,10 +1973,9 @@ addressed (with non-array objects treated as arrays of one element).
                            /*op_1_signed=*/FALSE,
                            (an_integer_value *)&zero_int,
                            /*op_2_signed=*/FALSE) == 0 &&
-        !gpp_mode) {
-      /* A null pointer value.  (GCC permits arbitrary offsetting of addresses
-         based on null pointer values.  So in that case we treat null pointers
-         as zero address.) */
+        !ips->permit_null_pointer_offsets) {
+      /* A null pointer value in a context that does not permit null pointer
+         offsets in constant-expressions. */
       length = 0;
       pos = 0;
     } else {
@@ -2048,7 +2054,7 @@ occurs.
 {                                                                            \
   if (is_runtime_data_address(cap)) {                                        \
     *(e_size) = (a_byte_count)elem_type->size;                               \
-    get_runtime_array_pos(cap, *(e_size), a_len, pos);                       \
+    get_runtime_array_pos(ips, cap, *(e_size), a_len, pos);                  \
   } else {                                                                   \
     *(e_size) = value_bytes_for_type(ips, elem_type, p_result);              \
     if (*p_result) {                                                         \
@@ -2250,6 +2256,8 @@ result of calls to std::is_constant_evaluated().
   ips->input_error = FALSE;
   ips->call_seen = FALSE;
   ips->permit_address_of_local_temporary = FALSE;
+  ips->permit_null_pointer_offsets = (gpp_mode && !clang_mode) ||
+                                     microsoft_mode;
   ips->static_lifetime_init = FALSE;
   ips->disallow_mutable_field_load = FALSE;
   ips->allow_consteval_routine_node = FALSE;
@@ -2706,7 +2714,6 @@ redo:
       info_with_pos_type(ec_constexpr_type_invalid, &ips->position, tp, ips);
       do_constexpr_fail(*p_result);
       result = MAX_CONSTEXPR_TYPE_SIZE+1;
-      do_constexpr_fail(*p_result);
       break;
     default:
       /* These types should never be encountered by the interpreter. */
@@ -9783,6 +9790,55 @@ constant null pointer).  If successful, return TRUE and store the result in
 }  /* do_constexpr_offsetof */
 
 
+static a_boolean do_constexpr_intaddr(an_interpreter_state  *ips,
+                                      an_expr_node_ptr      expr,
+                                      a_byte                *result_storage,
+                                      ARG_UNUSED a_byte     *complete_object)
+/*
+Evaluate, if possible, the given __INTADDR__ expression.  If successful,
+return TRUE and store the (integer) result in *result_storage.  Otherwise,
+return FALSE and record a diagnostic in *ips.
+*/
+{
+  a_boolean         result = TRUE, saved_permit_null_pointer_offsets ;
+  an_expr_node_ptr  opnd1 = expr->variant.builtin_operation.operands;
+  a_type_ptr        tp = skip_typerefs(opnd1->type);
+  a_byte_count      n_bytes = expr_result_size(ips, opnd1, tp, &result);
+  a_byte            *opnd_bytes;
+
+  if (!result) goto done;
+  saved_permit_null_pointer_offsets = ips->permit_null_pointer_offsets;
+  ips->permit_null_pointer_offsets = TRUE;
+  do_host_alignment(n_bytes);
+  alloc_complete_object(ips, n_bytes, tp, opnd_bytes);
+  if (do_constexpr_expression(ips, opnd1, opnd_bytes, opnd_bytes)) {
+    if (type_is(tp, tk_pointer)) {
+      /* Do not accept run-time constants that aren't based on a null
+         pointer address. */
+      a_constexpr_address  *cap = (a_constexpr_address*)opnd_bytes;
+      if (!is_runtime_data_address(cap) ||
+          !constant_is(cap->variant.addr_con, ck_integer)) {
+        info_with_pos(ec_invalid_intaddr_address, &opnd1->position, ips);
+        do_constexpr_fail(result);
+      } else {
+        *(an_integer_value*)result_storage = cap->variant.addr_con
+                                                ->variant.integer_value;
+      }  /* if */
+    } else if (type_is(tp, tk_integer)) {
+      *(an_integer_value*)result_storage = *(an_integer_value*)opnd_bytes;
+    } else {
+      result = FALSE;
+      expect_error();
+    }  /* if */
+  } else {
+    result = FALSE;
+  }  /* if */
+  ips->permit_null_pointer_offsets = saved_permit_null_pointer_offsets;
+done:
+  return result;
+}  /* do_constexpr_intaddr */
+
+
 static a_boolean do_constexpr_builtin_operation(
                                        an_interpreter_state  *ips,
                                        an_expr_node_ptr      orig_expr,
@@ -9802,6 +9858,11 @@ storage within the given complete object).  Otherwise, return FALSE and update
     case bok_offsetof:
       if (!do_constexpr_offsetof(ips, expr,
                                  result_storage, complete_object)) {
+        do_constexpr_fail(result);
+      }  /* if */
+      break;
+    case bok_intaddr:
+      if (!do_constexpr_intaddr(ips, expr, result_storage, complete_object)) {
         do_constexpr_fail(result);
       }  /* if */
       break;
@@ -11824,12 +11885,12 @@ the value representation of the integer value.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
             } else if (tp->kind == (a_type_kind)tk_integer &&
                        opnd1_type->kind == (a_type_kind)tk_pointer &&
-                       ((gpp_mode && !clang_mode) || microsoft_mode) &&
+                       ips->permit_null_pointer_offsets &&
                        is_integer_address((a_constexpr_address*)opnd1_value,
                                           (an_integer_value*)result_storage)) {
-              /* These kinds of casts are generally invalid, but GCC and MSVC
-                 appear to allow them on null-based addresses to permit
-                 traditional offsetof implementations. */
+              /* These kinds of casts are generally invalid, but are sometimes
+                 needed to permit traditional offsetof implementations (e.g.,
+                 in GCC and MSVC modes). */
             } else {
               do_constexpr_fail(result);
               info_with_pos_type2(ec_constexpr_invalid_type_conversion,
