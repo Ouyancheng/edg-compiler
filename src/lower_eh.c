@@ -953,6 +953,8 @@ static a_type_ptr
                         /* A "cached" version of a pointer to a const-qualified
                            (tik_implementation) typeinfo type. */
 
+#if DO_FULL_PORTABLE_EH_LOWERING || !IA64_ABI
+
 static a_type_ptr make_ptr_to_const_typeinfo_type(void)
 /*
 Return a pointer-to-const typeinfo (tik_implementation) type.
@@ -968,6 +970,7 @@ Return a pointer-to-const typeinfo (tik_implementation) type.
   return ptr_to_const_typeinfo_type;
 }  /* make_ptr_to_const_typeinfo_type */
 
+#endif /* DO_FULL_PORTABLE_EH_LOWERING || !IA64_ABI */
 
 static a_type_ptr make_base_class_spec_type(void)
 /*
@@ -2305,6 +2308,16 @@ pointers-to-members).
            are not generated here. */
         define_now = FALSE;
         storage_class = (a_storage_class)sc_extern;
+#if !GENERATE_EH_TABLES
+      } else if (is_pointer_type(type) &&
+                 is_class_struct_type(type_pointed_to(type))) {
+        /* When not generating EH tables, it's possible that pointer-to-class
+           typeinfo is emitted without the underlying class typeinfo; in that
+           case, suppress the definition of the pointer-to-class typeinfo
+           (it would cause unresolved references to the class typeinfo). */
+        storage_class = (a_storage_class)sc_extern;
+        define_now = FALSE;
+#endif /* !GENERATE_EH_TABLES */
       } else {
         define_now = TRUE;
         storage_class = (a_storage_class)sc_unspecified;
@@ -2743,8 +2756,7 @@ is returned NULL.  If ptr_flags_var is NULL, the array is not built
 because the caller does not need it.
 
 In modes with GENERATE_EH_TABLES set to FALSE, this routine just strips
-the cv-qualifiers and returns the resulting type, or, for pointer and reference
-types, returns the underlying type.
+the cv-qualifiers and passes the type through.
 */
 {
   a_type_ptr            eff_type;
@@ -2827,15 +2839,6 @@ types, returns the underlying type.
      exception handling may or may not want this code. */
   if (is_reference_type(eff_type)) {
     eff_type = type_pointed_to(eff_type);
-  } else {
-    /* For pointer types, return the underlying type.  Not doing so can cause
-       issues with needed flag processing.  The typeinfo variable for a pointer
-       is created with the sc_unspecified storage class, which is assumed to be
-       needed in the translation unit; the typeinfo variable for a class is
-       tentatively created with the sc_extern storage class, which is not. */
-    while (is_pointer_type(eff_type) && !is_or_was_nullptr_type(eff_type)) {
-      eff_type = type_pointed_to(eff_type);
-    }  /* while */
   }  /* if */
 #endif /* IA64_ABI */
 #endif /* GENERATE_EH_TABLES */

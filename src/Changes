@@ -1,5 +1,25 @@
 Version 6.0
 
+10/18/19   [EDGcpfe/19140]
+IA-64 ABI: Eliminate unneeded typeinfo reference in configs where
+GENERATE_EH_TABLES is FALSE
+
+A change has been made to eliminate an unresolved typeinfo reference in certain
+cases in configurations that do lowering but have GENERATE_EH_TABLES set to
+FALSE.  For example:
+
+  struct A {
+    virtual void f();
+  };
+  struct B : A {
+    A a;
+    virtual ~B();
+    void f() {
+      dynamic_cast<B *>(&a);
+    }
+  };
+
+
 10/17/19 [EDGcpfe/21855]
 Deleted copy constructors causing classes to be marked as non-trivally copyable
 
@@ -1036,26 +1056,6 @@ to diagnose.  For example:
                                          // definition is parsed.
 
 That is now fixed.
-
-
-9/5/19   [EDGcpfe/19140]
-Eliminate unneeded typeinfo reference in configs where GENERATE_EH_TABLES is
-FALSE
-
-A change has been made to eliminate an unneeded typeinfo reference in certain
-cases in configurations that do lowering but have GENERATE_EH_TABLES set to
-FALSE.  For example:
-
-  struct A {
-    virtual void f();
-  };
-  struct B : A {
-    A a;
-    virtual ~B();
-    void f() {
-      dynamic_cast<B *>(&a);
-    }
-  };
 
 
 9/4/19   [EDGcpfe/21732]
