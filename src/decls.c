@@ -1521,10 +1521,10 @@ rvalue, or tracking) to such a type.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-a_boolean operator_type_is_invalid(an_opname_kind   opname,
-                                 a_type_ptr         rout_type,
-                                 a_type_ptr         class_type,
-                                 a_source_position  *diag_pos)
+a_boolean operator_type_is_invalid(an_opname_kind     opname,
+                                   a_type_ptr         rout_type,
+                                   a_type_ptr         class_type,
+                                   a_source_position  *diag_pos)
 /*
 An operator of kind opname and type rout_type is being declared.  If the
 declaration is a class member, the enclosing class is class_type.  The
@@ -1551,14 +1551,14 @@ the position indicated by diag_pos.
   if (is_new_operator(opname) || is_delete_operator(opname)) {
     /* Operator new/delete cannot be a nonstatic member function. */
     check_assertion_str2(!is_nonstatic_member_function,
-                         "check_operator_function_params:",
+                         "operator_type_is_invalid:",
                          "new or delete is nonstatic member function");
   }  /* if */
 #endif /* CHECKING */
-  /* Make a pass over the param types list to count the number of
-     arguments to see if there are any parameters that are of class type
-     or reference-to-class type.  Note that param_count is initialized to
-     0 except in the case of nonstatic member functions, for which it is
+  /* Make a pass over the param types list to count the number of arguments
+     and to see if there are any parameters that are of class type or
+     reference-to-class type.  Note that param_count is initialized to 0
+     except in the case of nonstatic member functions, for which it is
      initialized to 1. This is because the implicit "this" parameter is
      counted in the latter case. */
   param_count = is_nonstatic_member_function ? 1 : 0;
@@ -1577,7 +1577,7 @@ the position indicated by diag_pos.
       a_type_ptr  fund = fundamental_type_from_system_type(class_type);
       if (fund != NULL &&
           types_are_compatible_ignoring_qualifiers(tp, fund)) {
-         this_equivalent_seen = TRUE;
+        this_equivalent_seen = TRUE;
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1638,8 +1638,8 @@ the position indicated by diag_pos.
             /* Error. */
             an_error_severity  severity;
             if (cfront_2_1_mode && is_pointer_to_void_type(tp)) {
-              /* In cfront 2.1 "const void *" is allowed.   Issue a warning
-                 and ignore the qualifier on the type. */
+              /* In cfront 2.1 "const void *" is allowed.  Issue a warning and
+                 ignore the qualifier on the type. */
               severity = es_warning;
               ptp->type = make_pointer_type(void_type());
             } else {
@@ -1665,9 +1665,9 @@ the position indicated by diag_pos.
                                          ) {
             ptp = ptp->next;
             if (ptp != NULL) {
-              /* There is a second argument.  Except for the case in which
-                 a class member operator delete has a second parameter type
-                 of size_t, issue a diagnostic. */
+              /* There is a second argument.  Issue a diagnostic, unless the
+                 parameter is of type size_t and (a) sized deallocation is
+                 enabled or (b) this is a class member operator delete. */
               tp = skip_typerefs(ptp->type);
               if (!is_error_type(tp)) {
                 if (is_integral_type(tp) &&
@@ -1777,7 +1777,7 @@ the position indicated by diag_pos.
       }  /* if */
     }  /* if */
   } else {
-    /* If operator function is not a nonstatic member and does not have
+    /* If the operator function is not a nonstatic member and does not have
        operands of class or enum type (or reference to class or enum type),
        issue an error.  This restriction does not apply to new and delete,
        however.  Also, in C++/CLI mode, static member operators of special
