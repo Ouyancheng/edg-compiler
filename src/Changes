@@ -43,7 +43,7 @@ accepts an extraneous namespace scope qualifier on a template declaration:
     template<typename> void N::f();  // Now accepted in some Microsoft modes.
   }
 
-See also the changes entries of 11/2/03 and 11/3/03.
+See also the Changes entries of 11/2/03 and 11/3/03.
 
 
 10/16/19 [EDGcpfe/21914]
