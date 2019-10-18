@@ -60,7 +60,7 @@ braced initializers that have associated implicit initializers.  For example:
   struct X {
     S s;
     double d = 1.0;
-  } x = { 42 };  // Previously renders as "... { 42, , };"
+  } x = { 42 };  // Previously rendered as "... { 42, , };"
 
 That is now fixed.
 
