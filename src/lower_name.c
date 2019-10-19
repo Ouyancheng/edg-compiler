@@ -12441,21 +12441,21 @@ made into an external) if necessary.
     /* Create the name. */
     if (externalize_if_necessary) {
       mangled_function_name_externalized_if_necessary(
-                                           routine,
-                                           suppress_param_encoding,
-                                           /*suppress_parent_encoding=*/FALSE,
-                                           force_primary_name,
-                                           /*base_name_offset=*/(size_t *)NULL,
-                                           &mctl);
+                                            routine,
+                                            suppress_param_encoding,
+                                            /*suppress_parent_encoding=*/FALSE,
+                                            force_primary_name,
+                                            /*base_name_offset=*/(size_t*)NULL,
+                                            &mctl);
     } else {
       mangled_function_name(
-                                           routine,
-                                           suppress_param_encoding,
-                                           /*suppress_parent_encoding=*/FALSE,
-                                           force_primary_name,
-                                           /*force_individuation=*/FALSE,
-                                           /*base_name_offset=*/(size_t *)NULL,
-                                           &mctl);
+                                            routine,
+                                            suppress_param_encoding,
+                                            /*suppress_parent_encoding=*/FALSE,
+                                            force_primary_name,
+                                            /*force_individuation=*/FALSE,
+                                            /*base_name_offset=*/(size_t*)NULL,
+                                            &mctl);
     }  /* if */
 #if IA64_ABI && DO_IL_LOWERING
     if (special_kind_is(routine, sfk_constructor) ||
@@ -13143,8 +13143,8 @@ encoding if suppress_parent_encoding is TRUE.
          if the mangled name is truncated. */
       mctl.ctor_dtor_char = ctor_dtor_kind_char(routine->ctor_dtor_kind);
     }  /* if */
-    (void)end_mangling_full(&routine->source_corresp, /*final=*/TRUE, &mctl);
 #endif /* DO_IL_LOWERING */
+    (void)end_mangling_full(&routine->source_corresp, /*final=*/TRUE, &mctl);
 #endif /* IA64_ABI */
   }  /* if */
 }  /* mangle_function_name */
@@ -14271,7 +14271,7 @@ static void overwrite_ctor_dtor_mangled_name_kind(char          *name,
 Overwrite a single character of the mangled name to indicate which type of
 constructor/destructor the routine is.  "ch" is the character that replaces
 the existing character (see set_ctor_dtor_mangled_name_kind for the mapping).
-Be careful in cases where the mangled name has been compressed not to overwrite
+Be careful in cases where the mangled name has been truncated not to overwrite
 past the end of the mangled name.
 */
 {

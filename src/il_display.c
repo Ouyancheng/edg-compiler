@@ -3324,7 +3324,7 @@ Display the indicated name and template arg list.
   }  /* if */
 }  /* disp_template_arg_list */
 
-#if IA64_ABI
+#if DO_IL_LOWERING && IA64_ABI
 
 static void disp_ctor_or_dtor_kind_name(a_ctor_or_dtor_kind kind)
 /*
@@ -3344,7 +3344,7 @@ Display the name of the indicated constructor or destructor kind.
   (void)printf("%s", s);
 }  /* disp_ctor_or_dtor_kind_name */
 
-#endif /* IA64_ABI */
+#endif /* DO_IL_LOWERING && IA64_ABI */
 
 
 static void disp_routine(a_routine_ptr ptr)
