@@ -2462,6 +2462,18 @@ remapping routines.  list_remap_function is used for start-of-list
 pointers.  The subtree is not processed.
 */
 {
+#define remap_ptr(ptr, ptr_type, entry_kind) \
+{ if (walk_remap_func != NULL) { \
+    (ptr) = (ptr_type)walk_remap_func((char *)(ptr), (entry_kind)); \
+  }  /* if */ \
+}  /* remap_ptr */
+
+#define remap_list_ptr(ptr, ptr_type, entry_kind) \
+{ if (walk_list_remap_func != NULL) { \
+    (ptr) = (ptr_type)walk_list_remap_func((char *)(ptr), (entry_kind)); \
+  }  /* if */ \
+}  /* remap_list_ptr */
+
   a_remap_function_ptr saved_walk_remap_func = walk_remap_func;
   a_remap_function_ptr saved_walk_list_remap_func = walk_list_remap_func;
 
@@ -2503,6 +2515,9 @@ pointers.  The subtree is not processed.
      IL memory in the usual way.  It's changed explicitly as needed. */
   walk_remap_func = saved_walk_remap_func;
   walk_list_remap_func = saved_walk_list_remap_func;
+
+#undef remap_ptr
+#undef remap_list_ptr
 }  /* remap_il_header_pointers. */
 
 #endif /* REMAP_ONLY_ROUTINES_NEEDED */
