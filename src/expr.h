@@ -532,7 +532,6 @@ extern void check_range_based_for_statement(
                           a_statement_ptr            statement,
                           a_source_position          *expr_position,
                           a_token_sequence_number    tok_seq_number,
-                          a_scope_pointers_block_ptr begin_end_pointers_block,
                           a_scope_pointers_block_ptr iterator_pointers_block);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

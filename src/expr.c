@@ -40477,7 +40477,7 @@ FALSE otherwise.
   an_expr_stack_entry expr_stack_entry;
   a_boolean           use_await = FALSE;
 
-  check_assertion(rbflp->begin_end_scope == scope_stack_top().il_scope);
+  check_assertion(rbflp->range_based_for_scope == scope_stack_top().il_scope);
   /* Generate the "__begin != __end" and "++__begin" expressions. */
   if (rbflp->use_await) {
     use_await = TRUE;
@@ -42226,8 +42226,8 @@ an error and returns FALSE.
   an_expr_stack_entry expr_stack_entry;
   a_boolean           need_expr_stack_pop = FALSE, passed = TRUE;
 
-  /* We should be in the begin_end_scope at this point. */
-  check_assertion(rbflp->begin_end_scope == scope_stack_top().il_scope);
+  /* We should be in the range_based_for_scope at this point. */
+  check_assertion(rbflp->range_based_for_scope == scope_stack_top().il_scope);
   /* Make an expression operand early so we can get its type and position. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
@@ -42477,26 +42477,25 @@ void check_range_based_for_statement(
                            a_statement_ptr            statement,
                            a_source_position          *expr_position,
                            a_token_sequence_number    tok_seq_number,
-                           a_scope_pointers_block_ptr begin_end_pointers_block,
                            a_scope_pointers_block_ptr iterator_pointers_block)
 /*
 Perform semantic checks on the range-based-for statement pointed to by
 "statement".  *expr_position is the source position for the range expression.
 tok_seq_number is the sequence number of the first token of the expression.
-begin_end_pointers_block and iterator_pointers_block are the
-pointer blocks for the begin_end_scope and iterator_scope which have been
-previously created, needed to reactivate those scopes.
+iterator_pointers_block is the pointer block for the iterator_scope which has
+been previously created, needed to reactivate that scope.
 
 The range-based-for statement takes the form:
 
-  for ( for-range-declaration : expression ) statement
+  for ( for-range-declaration : for-range-initializer ) statement
 
 which is implemented as:
 
   {
-    auto && __range = (expression);
-    for ( auto __begin = begin-expr,
-               __end = end-expr;
+    auto && __range = for-range-initializer;
+    auto __begin = begin-expr;
+    auto __end = end-expr;
+    for ( ;
           __begin != __end;
           ++__begin ) {
       for-range-declaration = *__begin;
@@ -42530,10 +42529,6 @@ and can have the following forms (see [stmt.ranged] for specifics):
     expr_type = type_pointed_to(expr_type);
   }  /* if */
   complete_type_is_needed(expr_type);
-  /* Re-activate the block where the __begin and __end variables are
-     defined. */
-  push_block_reactivation_scope(rbflp->begin_end_scope,
-                                begin_end_pointers_block);
   /* Determine which of the three types of range-based-for we have here.
      Each of these routines (when successful) sets the "__begin" and "__end"
      variables as appropriate.  If an error is encountered, an error message
@@ -42573,7 +42568,8 @@ and can have the following forms (see [stmt.ranged] for specifics):
     /* Fill in the remainder of the IL required for the range-based-for,
        i.e., the iterator variable, the "__begin != __end" expression,
        and the "++__begin" expression.  The expressions are built in the
-       begin_end scope and the iterator is built in the iterator scope. */
+       range_based_for scope and the iterator is built in the iterator
+       scope. */
     passed = fill_in_range_based_for_loop_constructs(
                                             rbflp,
                                             expr_position,
@@ -42597,8 +42593,6 @@ and can have the following forms (see [stmt.ranged] for specifics):
     mark_referenced(symbol_for(rbflp->iterator),
                     &rbflp->iterator->source_corresp.decl_position);
   }  /* if */
-  /* Return to the outermost scope. */
-  pop_block_scope(/*is_final=*/FALSE);
   restore_expr_stack(saved_expr_stack);
   db_exit();
 }  /* check_range_based_for_statement */
@@ -42607,9 +42601,10 @@ and can have the following forms (see [stmt.ranged] for specifics):
 void scan_range_based_for_expression(a_statement_ptr   statement,
                                      a_source_position *expr_position)
 /*
-Scan the expression of a range-based-for statement and put information
-about it in the range-based-for statement IL entry pointed to by statement.
-Sets *expr_position to the beginning position of the range expression.
+Scan the expression or braced-init-list of a range-based-for statement and put
+information about it in the range-based-for statement IL entry pointed to by
+statement.  Sets *expr_position to the beginning position of the range
+expression.
 */
 {
   a_range_based_for_loop_ptr

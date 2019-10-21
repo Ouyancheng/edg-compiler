@@ -1916,7 +1916,6 @@ do_set_proper_definition_needed_flag:
         remap_ptr(eptr->iterator, a_variable_ptr, iek_variable);
         remap_ptr(eptr->range, a_variable_ptr, iek_variable);
         walk_ptr(eptr->range_based_for_scope, a_scope_ptr, iek_scope);
-        walk_ptr(eptr->begin_end_scope, a_scope_ptr, iek_scope);
         walk_ptr(eptr->iterator_scope, a_scope_ptr, iek_scope);
         remap_ptr(eptr->begin, a_variable_ptr, iek_variable);
         remap_ptr(eptr->end, a_variable_ptr, iek_variable);

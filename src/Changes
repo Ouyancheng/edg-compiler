@@ -1,5 +1,17 @@
 Version 6.0
 
+10/21/19 [EDGcpfe/21947]
+Implement scoping changes for P0184R0
+
+The changes for EDGcpfe/17338 relaxed some of the requirements for range-based
+for statements, but neglected to implement the scope changes.  Previously
+the re-written __begin and __end variables for a range-based for statement had
+been in a separate scope (a_range_based_for_loop::begin_end_scope) and now they
+are in the same scope as the __range expression (i.e.,
+a_range_based_for_loop::range_based_for_scope).  As this change removes
+a_range_based_for_loop::begin_end_scope, it is a slight IL CHANGE.
+
+
 10/21/19 [EDGcpfe/21930]
 Interpreter accesses uninitialized memory in do_constexpr_condition
 

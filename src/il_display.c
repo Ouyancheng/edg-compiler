@@ -4897,8 +4897,6 @@ Display a range-based-for statement.
            iek_variable);
   disp_ptr("range_based_for_scope", (char *)extra_info->range_based_for_scope,
            iek_scope);
-  disp_ptr("begin_end_scope", (char *)extra_info->begin_end_scope,
-           iek_scope);
   disp_ptr("iterator_scope", (char *)extra_info->iterator_scope,
            iek_scope);
   disp_ptr("begin", (char *)extra_info->begin,

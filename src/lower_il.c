@@ -18850,24 +18850,20 @@ the following lowered C code is generated:
 
 Notes:
   - The blocks listed above don't exist in the un-lowered IL -- they are
-    created here to match the range_based_for_scope, begin_end_scope, and
-    iterator_scope in the range-based-for IL.  Note that the begin_end_scope
-    block is implied above (it includes the for-init portion of the for loop).
+    created here to match the range_based_for_scope and iterator_scope in the
+    range-based-for IL.
 */
 {
   a_range_based_for_loop_ptr rbflp =
                             statement->variant.range_based_for_loop.extra_info;
   a_statement_ptr    range_based_for_stmt = statement;
-  a_statement_ptr    outer_block, middle_block, inner_block;
+  a_statement_ptr    outer_block, inner_block;
   a_statement_ptr    sub_statement =
                              statement->variant.range_based_for_loop.statement;
   a_scope_ptr        range_based_for_scope = rbflp->range_based_for_scope;
-  a_scope_ptr        begin_end_scope = rbflp->begin_end_scope;
   a_scope_ptr        iterator_scope = rbflp->iterator_scope;
-  a_context          range_based_for_context, begin_end_context,
-                     iterator_context;
-  an_insert_location outer_insert_location, middle_insert_location,
-                     inner_insert_location;
+  a_context          range_based_for_context, iterator_context;
+  an_insert_location outer_insert_location, inner_insert_location;
   an_expr_node_ptr   ne_call_expr, incr_call_expr;
   a_for_loop_ptr     flip;
 
@@ -18893,35 +18889,18 @@ Notes:
      associated with them, so they must be explicitly lowered here. */
   /* Lower variables in the outermost scope. */
   lower_variable_with_initializer(rbflp->range, &outer_insert_location);
-  /* If lowering of expressions in the outer scope created any stmk_init
-     statements, make sure they are inserted in the proper block. */
-  insert_pending_stmk_init_statements(outer_block);
-  /* Push a context for the "begin" and "end" variables. */
-  push_context(&begin_end_context, rbflp->begin_end_scope,
-               (an_object_lifetime_ptr)NULL);
-  /* Put another block statement around the range-based-for and attach the
-     begin_end_scope to that block.  There are no pragmas in this case
-     (they are now associated with the outer block if there were any). */
-  middle_block = range_based_for_stmt;
-  turn_statement_into_block(range_based_for_stmt, &middle_insert_location,
-                            &range_based_for_stmt);
-  middle_block->variant.block.extra_info->assoc_scope = begin_end_scope;
-  begin_end_scope->assoc_block = middle_block;
-  if (begin_end_scope->lifetime != NULL) {
-    begin_object_lifetime(begin_end_scope->lifetime, &middle_insert_location);
-  }  /* if */
-  /* Lower variables in the middle scope. */
-  lower_variable_with_initializer(rbflp->begin, &middle_insert_location);
-  lower_variable_with_initializer(rbflp->end, &middle_insert_location);
+  /* Lower the __begin and __end variables. */
+  lower_variable_with_initializer(rbflp->begin, &outer_insert_location);
+  lower_variable_with_initializer(rbflp->end, &outer_insert_location);
   /* Lower the expressions used in this pattern. */
   ne_call_expr = rbflp->ne_call_expr;
   incr_call_expr = rbflp->incr_call_expr;
   check_assertion(ne_call_expr != NULL && incr_call_expr != NULL);
   lower_boolean_controlling_expr(ne_call_expr, /*is_full_expr=*/TRUE);
   lower_full_expr(incr_call_expr, (a_statement_ptr)NULL);
-  /* If lowering of expressions in the middle scope created any stmk_init
+  /* If lowering of expressions in the outer scope created any stmk_init
      statements, make sure they are inserted in the proper block. */
-  insert_pending_stmk_init_statements(middle_block);
+  insert_pending_stmk_init_statements(outer_block);
   /* Now push the iterator scope (which contains the iterator and the
      dependent statement). */
   push_context(&iterator_context, iterator_scope,
@@ -18960,19 +18939,10 @@ Notes:
   range_based_for_stmt->expr = ne_call_expr;
   range_based_for_stmt->variant.for_loop.statement = inner_block;
   set_expr_result_not_used(incr_call_expr);
-  /* Perform cleanup for the middle scope. */
-  if (begin_end_scope->lifetime != NULL) {
-    /* Insert any needed destructions for the middle scope after the
-       lowered range-based-for (now a "for"). */
-    set_insert_location(range_based_for_stmt, &middle_insert_location);
-    gen_cleanup_actions(begin_end_scope->lifetime, &middle_insert_location);
-  }  /* if */
-  /* Pop the context pushed for the middle scope. */
-  pop_context();
   /* Perform cleanup for the outer scope. */
   if (range_based_for_scope->lifetime != NULL) {
-    /* Insert any needed destructions after the middle block. */
-    set_insert_location(middle_block, &outer_insert_location);
+    /* Insert any needed destructions after the lowered for loop. */
+    set_insert_location(range_based_for_stmt, &outer_insert_location);
     gen_cleanup_actions(range_based_for_scope->lifetime,
                         &outer_insert_location);
   }  /* if */

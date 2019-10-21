@@ -14348,20 +14348,19 @@ Information about a range-based-for statement ([stmt.ranged]), pointed to from
 a stmk_range_based_for statement.  The range-based-for statement takes the
 form:
 
-  for ( for-range-declaration : expression ) statement
+  for ( for-range-declaration : for-range-initializer ) statement
 
 which is implemented as:
 
   {  // range_based_for_scope:
-    auto && __range = (expression);
-    {  // begin_end_scope:
-      for ( auto __begin = begin-expr,
-                 __end = end-expr;
-            __begin != __end;
-            ++__begin ) {  // iterator_scope:
-        for-range-declaration = *__begin;
-        statement
-      }
+    auto && __range = for-range-initializer;
+    auto __begin = begin-expr;
+    auto __end = end-expr;
+    for ( ;
+	  __begin != __end;
+	  ++__begin ) {  // iterator_scope:
+      for-range-declaration = *__begin;
+      statement
     }
   }
 
@@ -14394,9 +14393,6 @@ typedef struct a_range_based_for_loop {
                            outermost set of braces shown above, and the
                            __range variable is declared in this scope.
                            The expression is also evaluated in this scope. */
-  a_scope_ptr   begin_end_scope;
-                        /* An sck_block scope added to surround the
-                           __begin and __end variables. */
   a_scope_ptr   iterator_scope;
                         /* An sck_block scope added immediately inside the
                            loop, in which the iterator variable is declared.

@@ -3777,7 +3777,6 @@ Clear the indicated range-based-for loop entry.
   rbflp->iterator = NULL;
   rbflp->range = NULL;
   rbflp->range_based_for_scope = NULL;
-  rbflp->begin_end_scope = NULL;
   rbflp->iterator_scope = NULL;
   rbflp->begin = NULL;
   rbflp->end = NULL;

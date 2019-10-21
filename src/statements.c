@@ -5199,7 +5199,7 @@ either an expression statement or a declaration statement.
 
 The range-based-for syntax ([stmt.ranged]) is:
 
-  for ( for-range-declaration : expression ) statement
+  for ( for-range-declaration : for-range-initializer ) statement
 
 In UPC mode, the "upc_forall" construct is also accepted.  It looks much
 like the standard "for" statement, except for the fourth expression.
@@ -5222,7 +5222,7 @@ The affinity can be an expression or the keyword "continue".
   a_source_position          stmt_pos, range_pos;
   a_token_sequence_number    expr_tok_seq_number;
   a_range_based_for_loop_ptr rbflp = NULL;
-  a_scope_pointers_block     iterator_pointers_block, middle_pointers_block;
+  a_scope_pointers_block     iterator_pointers_block;
 
   db_enter(3, "for_statement");
 
@@ -5279,8 +5279,6 @@ The affinity can be an expression or the keyword "continue".
     rbflp->range_based_for_scope =
                              start_fabricated_block_scope_for_enhanced_for(
                                              (a_scope_pointers_block_ptr)NULL);
-    rbflp->begin_end_scope = start_fabricated_block_scope_for_enhanced_for(
-                                                       &middle_pointers_block);
     rbflp->iterator_scope = start_fabricated_block_scope_for_enhanced_for(
                                                      &iterator_pointers_block);
     /* Add a control flow entry to represent the range-based-for block. */
@@ -5297,25 +5295,21 @@ The affinity can be an expression or the keyword "continue".
         rbflp->iterator->is_enhanced_for_iterator = TRUE;
       }  /* if */
     }  /* if */
-    /* Pop two scopes to get back to the scope where the expression needs to
-       be scanned.  The scopes will be re-activated after the expression
+    /* Pop scope to get back to the scope where the expression needs to
+       be scanned.  The scope will be re-activated after the expression
        is scanned. */
-    pop_block_scope(/*is_final_pop=*/FALSE);
     pop_block_scope(/*is_final_pop=*/FALSE);
     (void)required_token(tok_colon, ec_exp_colon);
     remove_stop_token(tok_colon);
-    /* Scan the expression. */
+    /* Scan the expression or braced-init-list. */
     expr_tok_seq_number = curr_token_sequence_number;
     scan_range_based_for_expression(sp, &range_pos);
     /* Perform the semantic checks and build the IL. */
     check_range_based_for_statement(sp,
                                     &range_pos,
                                     expr_tok_seq_number,
-                                    &middle_pointers_block,
                                     &iterator_pointers_block);
     /* Return to the iterator scope for the dependent statement. */
-    push_block_reactivation_scope(rbflp->begin_end_scope,
-                                  &middle_pointers_block);
     push_block_reactivation_scope(rbflp->iterator_scope,
                                   &iterator_pointers_block);
     if (dps.is_struct_binding_decl) {
@@ -5422,7 +5416,6 @@ The affinity can be an expression or the keyword "continue".
     add_to_control_flow_descr_list(
        alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
     /* Pop the scopes that have been pushed. */
-    finish_block_scope_for_enhanced_for();
     finish_block_scope_for_enhanced_for();
     finish_block_scope_for_enhanced_for();
   } else {
