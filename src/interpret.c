@@ -5831,12 +5831,14 @@ skip_typerefs(expr->type).
     result = TRUE;
     expr_to_evaluate = expr;
   }  /* if */
-  if (result &&
-      !do_constexpr_expression(ips, expr_to_evaluate, value, value)) {
-    result = FALSE;
+  if (result) {
+    if (do_constexpr_expression(ips, expr_to_evaluate, value, value)) {
+      release_address_structures(expr, expr_type, value);
+      restore_storage_stack(ips, saved_stack_for_full_expr, result);
+    } else {
+      result = FALSE;
+    }  /* if */
   }  /* if */
-  release_address_structures(expr, expr_type, value);
-  restore_storage_stack(ips, saved_stack_for_full_expr, result);
   return result;
 }  /* do_constexpr_condition */
 

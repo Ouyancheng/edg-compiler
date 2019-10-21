@@ -1,5 +1,13 @@
 Version 6.0
 
+10/21/19 [EDGcpfe/21930]
+Interpreter accesses uninitialized memory in do_constexpr_condition
+
+In some situations the front end previously accessed uninitialized memory after
+it failed to evaluate a condition expression (e.g., for an if- or switch-
+statement) in do_constexpr_condition (interpret.c).  That problem is now fixed.
+
+
 10/21/19 [EDGcpfe/21902]
 C++-generating back end: block-scope lambda closure types in template arguments
 
