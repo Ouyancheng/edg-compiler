@@ -1291,7 +1291,7 @@ void db_icp_list(an_init_component_ptr icp)
 Output a list of initializer components for debugging purposes.
 */
 {
-  unsigned long  n = 0;
+  long  n = 0;
 
   while (icp != NULL) {
     (void)fprintf(f_debug, "#%ld:\n", ++n);
