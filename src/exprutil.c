@@ -1276,6 +1276,30 @@ Display an init component for debugging purposes.
 end_of_routine:;
 }  /* db_init_component */
 
+
+static void db_icp(an_init_component_ptr icp)
+/*
+Shorthand for db_init_component.
+*/
+{
+  db_init_component(icp);
+}  /* db_icp */
+
+
+void db_icp_list(an_init_component_ptr icp)
+/*
+Output a list of initializer components for debugging purposes.
+*/
+{
+  unsigned long  n = 0;
+
+  while (icp != NULL) {
+    (void)fprintf(f_debug, "#%ld:\n", ++n);
+    db_icp(icp);
+    icp = icp->next;
+  }  /* if */
+}  /* db_icp_list */
+
 #endif /* DEBUG */
 
 an_arg_list_elem_ptr reverse_init_component_list(an_arg_list_elem_ptr  list)

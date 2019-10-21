@@ -17091,6 +17091,23 @@ a user-defined conversion.  This is used for a Sun-mode quirk.
 }  /* some_candidate_matches_without_user_defined_convs */
 
 
+static void reverse_binary_match_descriptions(a_candidate_function_ptr  cfp)
+/*
+Reverse the argument match descriptions for the given candidate function.
+This function is called to deal with "reversed" candidates for comparison
+operators.
+*/
+{
+  an_arg_match_summary_ptr  amsp = cfp->arg_matches;
+
+  if (amsp-> next != NULL) {
+    cfp->arg_matches = amsp->next;
+    cfp->arg_matches->next = amsp;
+    amsp->next = NULL;
+  }  /* if */
+}  /* reverse_binary_match_descriptions */
+
+
 a_candidate_function_ptr select_overloaded_operator(
                            an_opname_kind             kind,
                            a_boolean                  unary_operator,
@@ -17568,10 +17585,7 @@ find_more_operator_candidates:
         a_candidate_function_ptr  *p_cfp = &candidate_functions;
         while (*p_cfp != saved_candidate_functions) {
           a_candidate_function_ptr  cfp = *p_cfp;
-          an_arg_match_summary_ptr  amsp = cfp->arg_matches;
-          cfp->arg_matches = amsp->next;
-          cfp->arg_matches->next = amsp;
-          amsp->next = NULL;
+          reverse_binary_match_descriptions(cfp);
           cfp->supplemental_comparison_candidate = TRUE;
           cfp->supplemental_reversed_candidate = TRUE;
           p_cfp = &cfp->next;
@@ -18028,7 +18042,10 @@ no_applicable_operator_function:
               check_assertion(kind != (an_opname_kind)onk_none);
             }  /* if */
             if (candidate_functions->supplemental_reversed_candidate) {
+              /* Reverse the argument list and the corresponding match
+                 descriptions. */
               arg_list = reverse_init_component_list(arg_list);
+              reverse_binary_match_descriptions(candidate_functions);
             }  /* if */
           }  /* if */
 #if BACK_END_IS_CP_GEN_BE
