@@ -17,7 +17,16 @@ does not have an include guard.
 
 walk_entry.h -- Routines used by il_walk.c to walk IL entries.
 
-Placed in a separate file so they can be expanded several ways:
+When #include'd, this file produces definitions for one or two functions.
+The first (non-optional) function will be defined with a declarator-id that is
+the expansion of the macro WALK_ENTRY_ROUTINE_NAME.  The second is always a
+"static" function and declared with a declarator-id that is the expansion of
+the macro WALK_ORPHANED_ENTRY_ROUTINE_NAME (but if that macro is not defined,
+no such function is produced).  Note that if the macros specifying the names
+are qualified names (e.g., "edg::some_name"), a declaration must have been
+provided earlier in the appropriate scope.
+
+Various macros control how the routines traverse a given IL entry:
 
 1)  With DO_SUBTREE_WALK TRUE, the routines walk not only the entry itself
     but also its subtree.
@@ -53,9 +62,6 @@ Placed in a separate file so they can be expanded several ways:
 #undef pm_class_type_possibly_lowered
 #define pm_class_type_possibly_lowered(x) pm_class_type(x)
 #endif /* !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING */
-
-/* Conditionally open the "edg" namespace. */
-BEGIN_EDG_NAMESPACE
 
 /*
 Macro to remap a pointer from an "old" value to a "new" value.  ptr is
@@ -4091,63 +4097,6 @@ of each kind.
 
 #endif /* ifdef WALK_ORPHANED_ENTRY_ROUTINE_NAME */
 
-#if !DO_SUBTREE_WALK
-#if REMAP_ONLY_ROUTINES_NEEDED
-
-void remap_il_header_pointers(a_remap_function_ptr remap_function,
-                              a_remap_function_ptr list_remap_function)
-/*
-Remap the pointers in il_header by running them through the indicated
-remapping routines.  list_remap_function is used for start-of-list
-pointers.  The subtree is not processed.
-*/
-{
-  a_remap_function_ptr saved_walk_remap_func = walk_remap_func;
-  a_remap_function_ptr saved_walk_list_remap_func = walk_list_remap_func;
-
-  walk_remap_func = remap_function;
-  walk_list_remap_func = list_remap_function;
-  remap_list_ptr(il_header.primary_source_file, a_source_file_ptr,
-                 iek_source_file);
-  remap_ptr(il_header.primary_scope, a_scope_ptr, iek_scope);
-  remap_ptr(il_header.main_routine, a_routine_ptr, iek_routine);
-  remap_ptr(il_header.compiler_version, a_char_ptr, iek_other_text);
-  remap_ptr(il_header.time_of_compilation, a_char_ptr, iek_other_text);
-  remap_list_ptr(il_header.scope_orphaned_list_headers,
-                 a_scope_orphaned_list_header_ptr,
-                 iek_scope_orphaned_list_header);
-#if RECORD_MACROS_IN_IL
-  remap_list_ptr(il_header.macros, a_macro_ptr, iek_macro);
-#endif /* RECORD_MACROS_IN_IL */
-#if ONE_INSTANTIATION_PER_OBJECT
-  remap_ptr(il_header.instantiation_dir_name, a_char_ptr, iek_other_text);
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
-  remap_list_ptr(il_header.nontag_types_used_in_exception_or_rtti, a_type_ptr,
-                 iek_type);
-  remap_list_ptr(il_header.seq_number_lookup_entries,
-                 a_seq_number_lookup_entry_ptr, iek_seq_number_lookup_entry);
-#if MACRO_INVOCATION_TREE_IN_IL
-  remap_ptr(il_header.root_macro_invocation_record_block,
-            a_macro_invocation_record_block_ptr,
-            iek_macro_invocation_record_block);
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
-#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
-  remap_list_ptr(il_header.file_scope_dynamic_init_routines,
-                 a_routine_list_entry_ptr, iek_routine_list_entry);
-#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  remap_list_ptr(il_header.cli_metadata_files,
-                 a_cli_metadata_file_ptr, iek_cli_metadata_file);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* region_scope_entry should not be changed; it's not a pointer into
-     IL memory in the usual way.  It's changed explicitly as needed. */
-  walk_remap_func = saved_walk_remap_func;
-  walk_list_remap_func = saved_walk_list_remap_func;
-}  /* remap_il_header_pointers. */
-
-#endif /* REMAP_ONLY_ROUTINES_NEEDED */
-#endif /* !DO_SUBTREE_WALK */
-
 #ifdef UNDEF_WALK_ENTRY_MACROS_AT_END
 /*
 Get rid of the macros defined in this file so they aren't used accidentally.
@@ -4184,9 +4133,6 @@ Get rid of the macros defined in this file so they aren't used accidentally.
 #undef walk_orphan_entry_list_for_entry_kind
 #undef clear_or_walk_name_reference_field
 #endif /* ifdef UNDEF_WALK_ENTRY_MACROS_AT_END */
-
-/* Conditionally close the "edg" namespace. */
-END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

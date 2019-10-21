@@ -144,13 +144,19 @@ static void walk_string_entry(char             *entry_ptr,
                               an_il_entry_kind entry_kind,
                               sizeof_t         entry_length);
 
-/* Build a routine to walk entries and their subtrees. */
+/* Build routines to walk entries and their subtrees. */
+static void walk_entry_and_subtree(char             *entry_ptr,
+                                   an_il_entry_kind entry_kind);
+
+static void walk_orphaned_file_scope_il_entries(void);
+
 #define DO_SUBTREE_WALK TRUE
 #define NEEDED_FLAG_WALK FALSE
 #define KEEP_IN_IL_WALK FALSE
 #define WALK_ENTRY_ROUTINE_STATIC static
-#define WALK_ENTRY_ROUTINE_NAME walk_entry_and_subtree
-#define WALK_ORPHANED_ENTRY_ROUTINE_NAME walk_orphaned_file_scope_il_entries
+#define WALK_ENTRY_ROUTINE_NAME EDG_QUAL walk_entry_and_subtree
+#define WALK_ORPHANED_ENTRY_ROUTINE_NAME \
+   EDG_QUAL walk_orphaned_file_scope_il_entries
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
 END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 /*lint -e451 included more than once. */
@@ -512,6 +518,9 @@ cases (anonymous unions containing types).
     
 /* "needed" flag section: */
 /* Generate walk_tree_and_set_needed from the walk_entry.h source. */
+static void walk_tree_and_set_needed(char             *entry_ptr,
+                                     an_il_entry_kind entry_kind);
+
 #undef DO_SUBTREE_WALK
 #define DO_SUBTREE_WALK TRUE
 #undef NEEDED_FLAG_WALK
@@ -521,7 +530,7 @@ cases (anonymous unions containing types).
 #undef WALK_ENTRY_ROUTINE_STATIC
 #define WALK_ENTRY_ROUTINE_STATIC static
 #undef WALK_ENTRY_ROUTINE_NAME
-#define WALK_ENTRY_ROUTINE_NAME walk_tree_and_set_needed
+#define WALK_ENTRY_ROUTINE_NAME EDG_QUAL walk_tree_and_set_needed
 #undef WALK_ORPHANED_ENTRY_ROUTINE_NAME
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
 END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
@@ -1327,6 +1336,11 @@ static void set_keep_in_il_on_source_sequence_entries(a_scope_ptr scope);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 /* Generate walk_tree_and_set_keep_in_il from the walk_entry.h source. */
+static void walk_tree_and_set_keep_in_il(char             *entry_ptr,
+                                         an_il_entry_kind entry_kind);
+
+static void walk_orphaned_entries_set_keep_in_il(void);
+
 #undef DO_SUBTREE_WALK
 #define DO_SUBTREE_WALK TRUE
 #undef NEEDED_FLAG_WALK
@@ -1336,9 +1350,10 @@ static void set_keep_in_il_on_source_sequence_entries(a_scope_ptr scope);
 #undef WALK_ENTRY_ROUTINE_STATIC
 #define WALK_ENTRY_ROUTINE_STATIC static
 #undef WALK_ENTRY_ROUTINE_NAME
-#define WALK_ENTRY_ROUTINE_NAME walk_tree_and_set_keep_in_il
+#define WALK_ENTRY_ROUTINE_NAME EDG_QUAL walk_tree_and_set_keep_in_il
 #undef WALK_ORPHANED_ENTRY_ROUTINE_NAME
-#define WALK_ORPHANED_ENTRY_ROUTINE_NAME walk_orphaned_entries_set_keep_in_il
+#define WALK_ORPHANED_ENTRY_ROUTINE_NAME \
+  EDG_QUAL walk_orphaned_entries_set_keep_in_il
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
 END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 /*lint -e451 included more than once. */
@@ -2412,9 +2427,12 @@ running them through the indicated remapping function.
 
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
-/* Build a routine to walk entries in isolation (i.e., not as part
-   of a tree walk).  This is built from the walk_entry.h source
-   using special macro settings. */
+/* Build a routine to walk entries in isolation (i.e., not as part of a tree
+   walk).  This is built from the walk_entry.h source using special macro
+   settings. */
+static void remap_pointers_in_entry(char             *entry_ptr,
+                                    an_il_entry_kind entry_kind);
+
 #undef DO_SUBTREE_WALK
 #define DO_SUBTREE_WALK FALSE
 #undef NEEDED_FLAG_WALK
@@ -2424,7 +2442,7 @@ running them through the indicated remapping function.
 #undef WALK_ENTRY_ROUTINE_STATIC
 #define WALK_ENTRY_ROUTINE_STATIC static
 #undef WALK_ENTRY_ROUTINE_NAME
-#define WALK_ENTRY_ROUTINE_NAME remap_pointers_in_entry
+#define WALK_ENTRY_ROUTINE_NAME EDG_QUAL remap_pointers_in_entry
 #undef WALK_ORPHANED_ENTRY_ROUTINE_NAME
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
 #define UNDEF_WALK_ENTRY_MACROS_AT_END
@@ -2433,6 +2451,61 @@ END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 #include "walk_entry.h"
 /*lint +e451*/
 BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+
+#if REMAP_ONLY_ROUTINES_NEEDED
+
+void remap_il_header_pointers(a_remap_function_ptr remap_function,
+                              a_remap_function_ptr list_remap_function)
+/*
+Remap the pointers in il_header by running them through the indicated
+remapping routines.  list_remap_function is used for start-of-list
+pointers.  The subtree is not processed.
+*/
+{
+  a_remap_function_ptr saved_walk_remap_func = walk_remap_func;
+  a_remap_function_ptr saved_walk_list_remap_func = walk_list_remap_func;
+
+  walk_remap_func = remap_function;
+  walk_list_remap_func = list_remap_function;
+  remap_list_ptr(il_header.primary_source_file, a_source_file_ptr,
+                 iek_source_file);
+  remap_ptr(il_header.primary_scope, a_scope_ptr, iek_scope);
+  remap_ptr(il_header.main_routine, a_routine_ptr, iek_routine);
+  remap_ptr(il_header.compiler_version, a_char_ptr, iek_other_text);
+  remap_ptr(il_header.time_of_compilation, a_char_ptr, iek_other_text);
+  remap_list_ptr(il_header.scope_orphaned_list_headers,
+                 a_scope_orphaned_list_header_ptr,
+                 iek_scope_orphaned_list_header);
+#if RECORD_MACROS_IN_IL
+  remap_list_ptr(il_header.macros, a_macro_ptr, iek_macro);
+#endif /* RECORD_MACROS_IN_IL */
+#if ONE_INSTANTIATION_PER_OBJECT
+  remap_ptr(il_header.instantiation_dir_name, a_char_ptr, iek_other_text);
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+  remap_list_ptr(il_header.nontag_types_used_in_exception_or_rtti, a_type_ptr,
+                 iek_type);
+  remap_list_ptr(il_header.seq_number_lookup_entries,
+                 a_seq_number_lookup_entry_ptr, iek_seq_number_lookup_entry);
+#if MACRO_INVOCATION_TREE_IN_IL
+  remap_ptr(il_header.root_macro_invocation_record_block,
+            a_macro_invocation_record_block_ptr,
+            iek_macro_invocation_record_block);
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+  remap_list_ptr(il_header.file_scope_dynamic_init_routines,
+                 a_routine_list_entry_ptr, iek_routine_list_entry);
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  remap_list_ptr(il_header.cli_metadata_files,
+                 a_cli_metadata_file_ptr, iek_cli_metadata_file);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* region_scope_entry should not be changed; it's not a pointer into
+     IL memory in the usual way.  It's changed explicitly as needed. */
+  walk_remap_func = saved_walk_remap_func;
+  walk_list_remap_func = saved_walk_list_remap_func;
+}  /* remap_il_header_pointers. */
+
+#endif /* REMAP_ONLY_ROUTINES_NEEDED */
 
 
 void remap_pointers_in_il_entry(char                 *entry_ptr,
