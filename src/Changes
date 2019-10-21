@@ -37,7 +37,7 @@ front end will no longer abort, but the values of the __DATE__ and __TIME__
 macros will be incorrect (though properly formatted).
 
 
-10/18/19   [EDGcpfe/19140]
+10/18/19  [EDGcpfe/19140]
 IA-64 ABI: Eliminate unneeded typeinfo reference in configs where
 GENERATE_EH_TABLES is FALSE
 
