@@ -1,5 +1,15 @@
 Version 6.0
 
+10/21/19 [EDGcpfe/21902]
+C++-generating back end: block-scope lambda closure types in template arguments
+
+In certain complex cases involving long chains of member typedefs of class
+templates, some of which are inaccessible, and the closure type of a
+block-scope lambda, the C++-generating back end could put out a template
+argument in a form that referred to the closure type using an undeclared
+temporary name (of the form __T12345678).  This is now fixed.
+
+
 10/19/19 [EDGcpfe/21926]
 __INTADDR__ and constexpr evaluation
 
