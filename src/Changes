@@ -27,7 +27,7 @@ constexpr.  For example:
                                       // Now okay.
 
 
-10/18/19  [EDGcpfe/21920]
+10/18/19 [EDGcpfe/21920]
 NULL return from ctime
 
 The front end determines the time of compilation by calling the ctime
