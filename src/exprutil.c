@@ -6043,6 +6043,7 @@ given expression.
        constant after instantiation. */
     make_template_param_constant_from_operand(operand, constant,
                                               (a_type_ptr)NULL);
+    result = TRUE;
   } else {
     result = FALSE;
     if (must_be_constant) {
