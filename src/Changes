@@ -1,5 +1,20 @@
 Version 6.0
 
+10/22/19 [EDGcpfe/21896]
+GNU compatibility: constant folding of vector operations
+
+In configurations that support GNU vector types, the front end would abort
+with an assertion failure (in unary_operation or binary_operation) when
+certain operators are applied in a constant-expression context; these
+include !, ==, !=, <, >, <=, >=, &&, and ||.  This is now fixed.  For
+example, with --g++ --c++14:
+
+  typedef int V __attribute__ ((vector_size (16)));
+  constexpr V b1 = { 0, 1, 10, 20 };
+  constexpr V b2 = { 0, 2, 10, 0 };
+  constexpr V b3 = b1 == b2;  // Previously aborted, now okay
+
+
 10/21/19 [EDGcpfe/21934]
 Default member initializers for bit fields in GNU and Microsoft modes
 

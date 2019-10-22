@@ -3005,6 +3005,9 @@ description of the parameters.
                   constant->kind == (a_constant_repr_kind)ck_aggregate);
   result_elem_type = result_type->variant.vector.element_type;
   num_result_elements = result_type->size / result_elem_type->size;
+  if (op == (an_expr_operator_kind) eok_vector_not) {
+    op = eok_not;
+  }  /* if */
   /* Clone the operand constant and remove the operand elements to form the
      basis for the result. */
   copy_constant(constant, result);
@@ -5519,17 +5522,18 @@ then converting the result back to being THREADS-based if appropriate.
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
 #if GNU_VECTOR_TYPES_ALLOWED
-static void decompose_vector_binary_operation(an_expr_operator_kind op,
-                                          a_constant        *constant_1,
-                                          a_constant        *constant_2,
-                                          a_type_ptr        result_type,
-                                          a_constant        *result,
-                                          a_boolean         constant_context,
-                                          a_boolean         evaluated_context,
-                                          a_boolean         *did_not_fold,
-                                          a_boolean         *template_constant,
-                                          an_error_code     *error_detected,
-                                          a_source_position *err_pos)
+static void decompose_vector_binary_operation(
+                                      an_expr_operator_kind op,
+                                      a_constant            *constant_1,
+                                      a_constant            *constant_2,
+                                      a_type_ptr            result_type,
+                                      a_constant            *result,
+                                      a_boolean             constant_context,
+                                      a_boolean             evaluated_context,
+                                      a_boolean             *did_not_fold,
+                                      a_boolean             *template_constant,
+                                      an_error_code         *error_detected,
+                                      a_source_position     *err_pos)
 /*
 Called by binary_operation when the result type is a GNU vector type to
 recursively perform the specified operation on each of the vector's
@@ -5553,6 +5557,18 @@ description of the parameters.
   check_assertion(result_type->kind == (a_type_kind)tk_vector);
   result_elem_type = result_type->variant.vector.element_type;
   num_result_elements = result_type->size / result_elem_type->size;
+  /* Change vector operators into their corresponding scalar operators. */
+  switch (op) {
+    case eok_vector_eq:    op = eok_eq;      break;
+    case eok_vector_ne:    op = eok_ne;      break;
+    case eok_vector_lt:    op = eok_lt;      break;
+    case eok_vector_gt:    op = eok_gt;      break;
+    case eok_vector_le:    op = eok_le;      break;
+    case eok_vector_ge:    op = eok_ge;      break;
+    case eok_vector_land:  op = eok_land;    break;
+    case eok_vector_lor:   op = eok_lor;     break;
+    default:               /* No change. */  break;
+  }  /* switch */
   /* Either of the operands may be a scalar or a vector.  If the operand
      is an aggregate (vector), use the first element constant as the
      operand; otherwise, use the constant itself. */
