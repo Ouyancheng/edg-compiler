@@ -4511,8 +4511,7 @@ are done in the il_to_str routines before this routine is called.
     /* We want to preserve the original form of prototype instantiations
        when possible, and this typedef appears in a prototype
        instantiation, so leave it as visible. */
-  } else if (in_template_argument_list && !invisible &&
-      !type->variant.typeref.is_dependent
+  } else if (in_template_argument_list && !type->variant.typeref.is_dependent
 #if GCC_BUILTIN_VARARGS
       && !type->is_builtin_va_list
 #endif /* GCC_BUILTIN_VARARGS */
@@ -4529,12 +4528,13 @@ are done in the il_to_str routines before this routine is called.
     a_type_ptr underlying_type =
       skip_typerefs_not_typedefs_or_type_operators(type->variant.typeref.type);
     a_boolean  for_all_scopes = TRUE;
+    a_boolean  saved_invisible = invisible;
     invisible = TRUE;
     if (type_involves_non_cplusplus_function(underlying_type)) {
       /* The type is or points to a function with non-C++ linkage, so we need
          to keep the typedef (linkage specifications in types can only be
          represented via typedefs). */
-      invisible = FALSE;
+      invisible = saved_invisible;
     } else if (!entity_name_is_accessible(&underlying_type->source_corresp,
                                           iek_type,
                                           /*ignore_context=*/FALSE,
@@ -4562,17 +4562,19 @@ are done in the il_to_str routines before this routine is called.
         }  /* if */
       } else {
         /* Both the immediate and ultimate underlying types are inaccessible,
-           so use this typedef. */
-        invisible = FALSE;
+           so use this typedef if it is otherwise visible. */
+        invisible = saved_invisible;
       }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
     } else if (underlying_type->kind == (a_type_kind)tk_vector) {
-      /* The typedef refers to a vector type and should be used. */
-      invisible = FALSE;
+      /* The typedef refers to a vector type and should be used if it is
+         otherwise visible. */
+      invisible = saved_invisible;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     } else if (typedef_uses_unnamed_tag(type)) {
-      /* We must preserve a typedef that refers to an unnamed tag type. */
-      invisible = FALSE;
+      /* We must preserve a typedef that refers to an unnamed tag type if it
+         is otherwise visible. */
+      invisible = saved_invisible;
     }  /* if */
   }  /* if */
   return invisible;
