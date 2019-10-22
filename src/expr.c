@@ -43887,7 +43887,7 @@ The value of the constant is returned in *constant.
      initializers were added for bit fields:
        struct S { int i: 2 = 2; };
      which required further adjustments to GNU and Microsoft modes. */
-  if ((gnu_mode || microsoft_mode) &&
+  if ((gnu_version_is(<80000) || ms_version_is(<1923)) &&
       !scope_is(&scope_stack_top(), sck_class_struct_union)) {
     prec_level = PREC_LOWEST;
   } else {
