@@ -22655,7 +22655,8 @@ appropriate.
         source_operand->type = type_pointed_to(source_operand->type);
       }  /* if */
       invalid = !is_valid_constant_for_nontype_ref_arg(
-                                           &source_operand->variant.constant);
+                                         &source_operand->variant.constant) &&
+                !operand_is_instantiation_dependent(source_operand);
       goto done;
     }  /* if */
     expr = skip_parens(source_operand->variant.expression);
