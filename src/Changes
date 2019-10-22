@@ -1,5 +1,13 @@
 Version 6.0
 
+10/21/19 [EDGcpfe/21934]
+Default member initializers for bit fields in GNU and Microsoft modes
+
+The front end now accepts default member initializers for bit fields in GNU and
+Microsoft C++20 modes.  Such constructs were previously already accepted in
+other C++20 modes (see entry for EDGcpfe/19998).
+
+
 10/21/19 [EDGcpfe/21947]
 Implement scoping changes for P0184R0
 

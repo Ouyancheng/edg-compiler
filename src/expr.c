@@ -43883,8 +43883,16 @@ The value of the constant is returned in *constant.
        };
        constexpr N n{};
        int x[n = 42];  // "n = 42" is not grammatically a constant-expression.
-     MSVC and GCC still allow such cases, however. */
-  prec_level = (gnu_mode || microsoft_mode) ? PREC_LOWEST : PREC_QUEST_MARK;
+     MSVC and GCC still allow such cases, however.  In C++20, default
+     initializers were added for bit fields:
+       struct S { int i: 2 = 2; };
+     which required further adjustments to GNU and Microsoft modes. */
+  if ((gnu_mode || microsoft_mode) &&
+      !scope_is(&scope_stack_top(), sck_class_struct_union)) {
+    prec_level = PREC_LOWEST;
+  } else {
+    prec_level = PREC_QUEST_MARK;
+  }  /* if */
   if ((gcc_mode ||
        (gpp_mode && gnu_version < 40000) ||
        sun_mode ||
