@@ -13215,6 +13215,50 @@ scalar type.  If there is an error, change "operand" to an error operand.
 }  /* check_scalar_operand */
 
 
+a_boolean operand_is_lvalue_for_variable(an_operand      *operand,
+                                         a_variable_ptr  *var)
+/*
+If the given operand represents an lvalue for a variable, return TRUE and
+make *var point to the IL entry for that variable.  Otherwise, return FALSE.
+A variable surrounded by parentheses still counts as the simple variable.
+*/
+{
+  a_boolean  result = FALSE;
+
+  *var = NULL;
+  if (is_expression_operand(operand)) {
+    an_expr_node_ptr expr = skip_parens(operand->variant.expression);
+    if (is_variable_node(expr) && expr->is_lvalue) {
+      result = TRUE;
+      *var = node_variable(expr);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* operand_is_lvalue_for_variable */
+
+
+static a_boolean operand_is_prvalue_for_variable(an_operand      *operand,
+                                                 a_variable_ptr  *var)
+/*
+If the given operand represents an prvalue for a variable, return TRUE and
+make *var point to the IL entry for that variable.  Otherwise, return FALSE.
+A variable surrounded by parentheses still counts as the simple variable.
+*/
+{
+  a_boolean  result = FALSE;
+
+  *var = NULL;
+  if (is_expression_operand(operand)) {
+    an_expr_node_ptr expr = skip_parens(operand->variant.expression);
+    if (is_variable_node(expr) && !expr->is_lvalue && !expr->is_xvalue) {
+      result = TRUE;
+      *var = node_variable(expr);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* operand_is_prvalue_for_variable */
+
+
 a_boolean op_is_zero_constant(an_operand *operand)
 /*
 Return TRUE if the operand contains a constant zero value (of integral
@@ -14014,6 +14058,7 @@ of a subscript operation).
   if (is_error_operand(operand_1) || is_error_operand(operand_2)) {
     make_error_operand(result);
   } else {
+    a_variable_ptr  vp1, vp2;
     template_constant = expr_stack->prefer_template_constant;
     /* Some addressing operations should not be folded in some nonconstant
        contexts, because the expression form provides more explicit
@@ -14116,6 +14161,23 @@ of a subscript operation).
                             result_type, &result->variant.constant,
                             &did_not_fold, &template_constant,
                             operator_position);
+    } else if (gnu_mode &&
+               (op == (an_expr_operator_kind)eok_eq ||
+                op == (an_expr_operator_kind)eok_ne) &&
+               operand_is_prvalue_for_variable(operand_1, &vp1) &&
+               operand_is_prvalue_for_variable(operand_2, &vp2) &&
+               vp1 == vp2 &&
+               !is_volatile_qualified_type(vp1->type)) {
+      /* Similarly GCC folds x==x and x!=x, for identical variables. */
+      clear_operand((an_operand_kind)ok_constant, result);
+      result->type = result_type;
+      result->state = (an_operand_state)os_prvalue;
+      if (op != (an_expr_operator_kind)eok_eq) {
+        make_zero_of_proper_type(result_type, &result->variant.constant);
+      } else {
+        make_one_of_proper_type(result_type, &result->variant.constant);
+      }  /* if */
+      did_not_fold = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     if (did_not_fold) {
@@ -15768,28 +15830,6 @@ or thread_local variable does not.
   }  /* if */
   return const_addr;
 }  /* variable_has_constant_address */
-
-
-a_boolean operand_is_lvalue_for_variable(an_operand      *operand,
-                                         a_variable_ptr  *var)
-/*
-If the given operand represents an lvalue for a variable, return TRUE and
-make *var point to the IL entry for that variable.  Otherwise, return FALSE.
-A variable surrounded by parentheses still counts as the simple variable.
-*/
-{
-  a_boolean  result = FALSE;
-
-  *var = NULL;
-  if (is_expression_operand(operand)) {
-    an_expr_node_ptr expr = skip_parens(operand->variant.expression);
-    if (is_variable_node(expr) && expr->is_lvalue) {
-      result = TRUE;
-      *var = node_variable(expr);
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* operand_is_lvalue_for_variable */
 
 
 a_boolean operand_is_lvalue_for_rref_variable(an_operand      *operand,

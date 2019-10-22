@@ -1,5 +1,22 @@
 Version 6.0
 
+10/22/19 [EDGcpfe/21031,EDGcpfe/21904]
+GNU compatibility: Nonstandard folding
+
+The front end now emulates a few additional cases where GCC treats as constant
+expressions that are not constant according to the relevant standards.  First,
+comparing a variable with itself produce a constant true value with "==" or
+constant false value with "!=".  For example:
+
+  int x;
+  struct S { int i: 1+(x == x); }; // Now accepted in GNU modes.
+
+Second, certain casts of null pointers are now treated as constants in GNU C
+mode.  For example, in GNU C11 mode:
+
+  _Static_assert((int*)(void*)0 == (int*)0, "");  // Accepted in GNU C mode.
+
+
 10/22/19 [EDGcpfe/21896]
 GNU compatibility: constant folding of vector operations
 

@@ -22182,7 +22182,8 @@ contains something not valid in a constant expression.
       }  /* if */
     }  /* if */
   } else if (((local_options & EOPT_OPERAND_OF_CAST) ||
-              (gcc_mode && (local_options & EOPT_LOGICAL_NOT_OPERAND))) &&
+              (gcc_mode && ((local_options & EOPT_LOGICAL_NOT_OPERAND) ||
+                            op_is_zero_constant(operand)))) &&
              is_pointer_type(dest_type) &&
              (is_integral_or_enum_type(source_type) ||
               is_template_param_type(source_type))) {
@@ -22197,6 +22198,10 @@ contains something not valid in a constant expression.
       use_type_position_in_diag = TRUE;
       if (err_severity == es_error) valid_in_integral_const_expr = FALSE;
     }  /* if */
+  } else if (gcc_mode && op_is_null_pointer_value(operand) &&
+             is_pointer_type(dest_type)) {
+    /* GCC allows casting null pointer constants in C constant-expressions. */
+    valid_in_integral_const_expr = TRUE;
   } else if (is_standard_nullptr_type(dest_type)) {
     /* Okay: casting to std::nullptr_t.  (Restrictions on the operand of
        such a cast are the same in all contexts and are enforced
@@ -27820,6 +27825,7 @@ that case.
   a_source_position     operator_position;
   a_token_sequence_number
                         operator_tok_seq_number;
+  a_boolean             restore_traditional_const_expr_context = FALSE;
 
   db_enter(4, "scan_eq_operator");
 
@@ -27827,6 +27833,11 @@ that case.
     /* gcc and clang permit operations like x==x, where x is an automatic
        array, to appear in constant expressions. */
     expr_stack->allow_array_decay_in_constant_expr = TRUE;
+  }  /* if */
+  if (gnu_mode && !clang_mode && expr_stack->traditional_const_expr_required) {
+    /* GCC more generally folds x==x. */
+    restore_traditional_const_expr_context = TRUE;
+    expr_stack->traditional_const_expr_required = FALSE;
   }  /* if */
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
@@ -27847,6 +27858,13 @@ that case.
   }  /* if */
   process_eq_operator(operand_1, &operand_2, operator_token,
                       &operator_position, operator_tok_seq_number, result);
+  if (restore_traditional_const_expr_context) {
+    if (!is_constant_operand(result) && !is_error_operand(result)) {
+      expr_interpret_expression_operand(result, /*must_be_constant=*/TRUE,
+                                        /*is_constant_evaluated=*/TRUE);
+    }  /* if */
+    expr_stack->traditional_const_expr_required = TRUE;
+  }  /* if */
   db_exit();
 }  /* scan_eq_operator */
 

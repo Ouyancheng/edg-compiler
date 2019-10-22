@@ -1731,6 +1731,9 @@ extern void make_zero_of_proper_type(a_type_ptr desired_type,
 
 extern an_expr_node_ptr make_zero_expr(a_type_ptr  tp);
 
+extern void make_one_of_proper_type(a_type_ptr desired_type,
+                                    a_constant *one_constant);
+
 extern an_expr_node_ptr make_one_expr(a_type_ptr  tp);
 
 extern a_boolean make_value_initialized_constant(a_type_ptr type,

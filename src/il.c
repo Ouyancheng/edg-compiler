@@ -8795,8 +8795,8 @@ Return a node representing a "zero" constant of the given type.
 }  /* make_zero_expr */
 
 
-static void make_one_of_proper_type(a_type_ptr desired_type,
-                                    a_constant *one_constant)
+void make_one_of_proper_type(a_type_ptr desired_type,
+                             a_constant *one_constant)
 /*
 Make a "one" constant of type desired_type (a scalar type) and put it in
 *one_constant.  No IL allocation is done.  This routine is also handy for
