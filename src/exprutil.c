@@ -13236,6 +13236,7 @@ A variable surrounded by parentheses still counts as the simple variable.
   return result;
 }  /* operand_is_lvalue_for_variable */
 
+#if GNU_EXTENSIONS_ALLOWED
 
 static a_boolean operand_is_prvalue_for_variable(an_operand      *operand,
                                                  a_variable_ptr  *var)
@@ -13258,6 +13259,7 @@ A variable surrounded by parentheses still counts as the simple variable.
   return result;
 }  /* operand_is_prvalue_for_variable */
 
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 a_boolean op_is_zero_constant(an_operand *operand)
 /*
@@ -14053,12 +14055,12 @@ of a subscript operation).
   a_boolean      try_folding;
 #if GNU_EXTENSIONS_ALLOWED
   a_constant_ptr con_1 = local_constant(), con_2 = local_constant();
+  a_variable_ptr vp1, vp2;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
   if (is_error_operand(operand_1) || is_error_operand(operand_2)) {
     make_error_operand(result);
   } else {
-    a_variable_ptr  vp1, vp2;
     template_constant = expr_stack->prefer_template_constant;
     /* Some addressing operations should not be folded in some nonconstant
        contexts, because the expression form provides more explicit
