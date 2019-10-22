@@ -402,6 +402,8 @@ a smaller subset).
 /*lint -esym(714, db_dip)*/
 /*lint -esym(765, db_subobject_path)*/
 /*lint -esym(714, db_subobject_path)*/
+/*lint -esym(765, db_icp_list)*/
+/*lint -esym(714, db_icp_list)*/
 /*lint -esym(769,ec_unrecognized_upc_pragma)*/
 /*lint -esym(769,ec_mismatched_shared_block_size)*/
 /*lint -esym(769,ec_ambiguous_block_size_spec)*/
