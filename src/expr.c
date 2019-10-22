@@ -43883,11 +43883,11 @@ The value of the constant is returned in *constant.
        };
        constexpr N n{};
        int x[n = 42];  // "n = 42" is not grammatically a constant-expression.
-     MSVC and GCC still allow such cases, however.  In C++20, default
-     initializers were added for bit fields:
+     Earlier versions of MSVC and GCC still allow such cases, in C++11 and some
+     later modes.  In C++20, default initializers were added for bit fields:
        struct S { int i: 2 = 2; };
      which required further adjustments to GNU and Microsoft modes. */
-  if (gnu_version_is(<80000) || ms_version_is(<1923)) {
+  if (gnu_version_is(<80000) || ms_version_is(<1925)) {
     prec_level = PREC_LOWEST;
   } else {
     prec_level = PREC_QUEST_MARK;
