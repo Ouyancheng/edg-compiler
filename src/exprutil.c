@@ -14168,8 +14168,8 @@ of a subscript operation).
                 op == (an_expr_operator_kind)eok_ne) &&
                operand_is_prvalue_for_variable(operand_1, &vp1) &&
                operand_is_prvalue_for_variable(operand_2, &vp2) &&
-               vp1 == vp2 &&  /*line --e(413)*/
-               !is_volatile_qualified_type(vp1->type)) {
+               vp1 == vp2 &&
+               !is_volatile_qualified_type(/*line --e(413)*/vp1->type)) {
       /* Similarly GCC folds x==x and x!=x, for identical variables. */
       clear_operand((an_operand_kind)ok_constant, result);
       result->type = result_type;
