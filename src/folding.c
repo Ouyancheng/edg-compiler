@@ -9204,6 +9204,7 @@ constant is set as well.
                                                /*force_prvalue=*/FALSE);
         break;
       case bok_is_same:
+      case bok_is_same_as:
         fold_is_same(expr, constant, maintain_expression);
         break;
       default:

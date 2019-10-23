@@ -13436,8 +13436,10 @@ previously-scanned construct of this kind.  Either way, return the result in
   } else {
     switch (curr_token) {
       case tok_is_same:
-      case tok_is_same_as:
         bok = bok_is_same;
+        break;
+      case tok_is_same_as:
+        bok = bok_is_same_as;
         break;
       case tok_is_base_of:
         bok = bok_is_base_of;
@@ -45327,6 +45329,9 @@ set accordingly.
         break;
       case bok_is_same:
         operator_token = tok_is_same;
+        break;
+      case bok_is_same_as:
+        operator_token = tok_is_same_as;
         break;
       case bok_is_base_of:
         operator_token = tok_is_base_of;
