@@ -1307,6 +1307,8 @@ typedef enum /*a_token_kind*/ {
   tok_is_aggregate,
   tok_integer_pack,
   tok_reference_binds_to_temporary,
+  tok_is_same,
+  tok_is_same_as,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1499,6 +1501,7 @@ EXTERN a_const_char
    "__is_aggregate",
    "__integer_pack",
    "__reference_binds_to_temporary",
+   "__is_same", "__is_same_as",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -13113,6 +13116,7 @@ typedef enum a_builtin_operation_kind_tag {
   bok_reference_binds_to_temporary,
 			/* Clang's __reference_binds_to_temporary.  Two type
 			   operands. */
+  bok_is_same,          /* __is_same.  Two type operands. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */

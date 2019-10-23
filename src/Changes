@@ -1,5 +1,19 @@
 Version 6.0
 
+10/23/19 [EDGcpfe/21327,EDGcpfe/21944,EDGcpfe/21951]
+__is_same and __is_same_as
+
+In Clang C++ mode, the front end now accepts the type trait helper __is_same,
+which takes two types and produces true if the types are identical (ignoring
+aliases) and false otherwise.  In GNU C++ mode with gnu_version >= 70000, the
+equivalent type trait helper __is_same_as is accepted instead.  For example:
+
+  static_assert(__is_same(int*, int*), "Test 1 failed");
+    // Now accepted in Clang C++ mode.
+  static_assert(!__is_same_as(int, int*), "Test 2 failed");
+    // Now accepted in some GNU C++ modes.
+
+
 10/22/19 [EDGcpfe/21031,EDGcpfe/21904]
 GNU compatibility: Nonstandard folding
 

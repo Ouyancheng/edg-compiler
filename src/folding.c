@@ -9026,6 +9026,47 @@ constant will be set as well.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+static void fold_is_same(an_expr_node_ptr   expr,
+                         a_constant_ptr     constant,
+                         a_boolean          maintain_expression)
+/*
+expr is an enk_builtin_operation node for an __is_same (or __is_same_as)
+operation.  If the operand types are nondependent, store a boolean constant in
+*constant.  The boolean constant will have value "true" if the operand types
+are identical; otherwise, the constant will have value "false".  If either of
+the operand types is dependent, store a ck_template_param constant in
+*constant.  The constant will be of the tpck_expression variant and will point
+to the given expression.  If maintain_expression is TRUE, the backing
+expression for the returned constant will be set as well.
+*/
+{
+  an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
+                    arg2 = arg1->next;
+  a_type_ptr        type1, type2;
+
+  /* eok_parens shouldn't appear here, since the construct is generated. */
+  check_assertion(arg1 != NULL && arg2 != NULL && arg2->next == NULL &&
+                  arg1->kind == (an_expr_node_kind)enk_type_operand &&
+                  arg2->kind == (an_expr_node_kind)enk_type_operand);
+  type1 = arg1->variant.type_operand.type;
+  type2 = arg2->variant.type_operand.type;
+  if (is_template_dependent_type(type1) ||
+      is_template_dependent_type(type2)) {
+    clear_constant(constant, (a_constant_repr_kind)ck_template_param);
+    set_template_param_constant_kind(
+                   constant, (a_template_param_constant_kind)tpck_expression);
+    constant->variant.template_param.variant.expr = expr;
+  } else {
+    a_boolean  result = identical_types(type1, type2);
+    clear_constant(constant, (a_constant_repr_kind)ck_integer);
+    set_integer_value(&constant->variant.integer_value,
+                      (a_host_large_integer)result);
+    if (maintain_expression) constant->expr = expr;
+  }  /* if */
+  constant->type = expr->type;
+}  /* fold_is_same */
+
+
 void fold_builtin_operation_if_possible(
                               an_expr_node_ptr             expr,
                               a_constant_ptr               constant,
@@ -9161,6 +9202,9 @@ constant is set as well.
         *not_a_constant = !fold_constexpr_expr(expr, constant,
                                                /*is_constant_evaluated=*/FALSE,
                                                /*force_prvalue=*/FALSE);
+        break;
+      case bok_is_same:
+        fold_is_same(expr, constant, maintain_expression);
         break;
       default:
         unexpected_condition();

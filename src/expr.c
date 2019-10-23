@@ -13435,6 +13435,10 @@ previously-scanned construct of this kind.  Either way, return the result in
     bok = (a_builtin_operation_kind_tag)expr->variant.builtin_operation.kind;
   } else {
     switch (curr_token) {
+      case tok_is_same:
+      case tok_is_same_as:
+        bok = bok_is_same;
+        break;
       case tok_is_base_of:
         bok = bok_is_base_of;
         break;
@@ -32100,7 +32104,12 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_cli_typeid:
     case tok_safe_cast:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_is_valid_winrt_type:
     case tok_has_unique_object_representations:
+    case tok_is_aggregate:
+    case tok_reference_binds_to_temporary:
+    case tok_is_same:
+    case tok_is_same_as:
       is_expr_start = TRUE;
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -37263,6 +37272,8 @@ handle_identifier:
                          (a_rescan_control_block *)NULL, &local_result);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_is_same:
+    case tok_is_same_as:
     case tok_is_base_of:
     case tok_is_convertible_to:
     case tok_reference_binds_to_temporary:
@@ -45314,6 +45325,9 @@ set accordingly.
       case bok_offsetof:
         operator_token = tok_builtin_offsetof;
         break;
+      case bok_is_same:
+        operator_token = tok_is_same;
+        break;
       case bok_is_base_of:
         operator_token = tok_is_base_of;
         break;
@@ -45671,6 +45685,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
         /* __is_trivially_assignable construct: */
         scan_is_assignable(bok_is_trivially_assignable, rcblock, result);
         break;
+      case tok_is_same:
       case tok_is_base_of:
       case tok_is_convertible_to:
       case tok_reference_binds_to_temporary:

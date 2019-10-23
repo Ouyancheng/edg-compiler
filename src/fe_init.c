@@ -1107,8 +1107,11 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_bases, "__bases");
       enter_keyword((a_token_kind)tok_direct_bases, "__direct_bases");
     }  /* if */
-    if (gpp_version_is(>= 80000)) {
-      enter_keyword((a_token_kind)tok_integer_pack, "__integer_pack");
+    if (gpp_version_is(>= 70000)) {
+      enter_keyword((a_token_kind)tok_is_same_as, "__is_same_as");
+      if (gpp_version_is(>= 80000)) {
+        enter_keyword((a_token_kind)tok_integer_pack, "__integer_pack");
+      }  /* if */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* Enable alternative token spellings. */
@@ -1302,6 +1305,7 @@ Install the keywords in the symbol table.
     if (clang_mode) {
       /* clang allows _Static_assert in all C++ modes. */
       enter_keyword((a_token_kind)tok_static_assert, "_Static_assert");
+      enter_keyword((a_token_kind)tok_is_same, "__is_same");
       if (clang_version_is(>=70000)) {
         enter_keyword((a_token_kind)tok_reference_binds_to_temporary,
                       "__reference_binds_to_temporary");
