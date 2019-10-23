@@ -27866,8 +27866,9 @@ that case.
                       &operator_position, operator_tok_seq_number, result);
   if (restore_traditional_const_expr_context) {
     if (!is_constant_operand(result) && !is_error_operand(result)) {
-      expr_interpret_expression_operand(result, /*must_be_constant=*/TRUE,
-                                        /*is_constant_evaluated=*/TRUE);
+      (void)expr_interpret_expression_operand(result,
+                                              /*must_be_constant=*/TRUE,
+                                              /*is_constant_evaluated=*/TRUE);
     }  /* if */
     expr_stack->traditional_const_expr_required = TRUE;
   }  /* if */
