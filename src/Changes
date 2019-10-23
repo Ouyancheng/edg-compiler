@@ -4,8 +4,8 @@ Version 6.0
 GNU compatibility: Nonstandard folding
 
 The front end now emulates a few additional cases where GCC treats as constant
-expressions that are not constant according to the relevant standards.  First,
-comparing a variable with itself produce a constant true value with "==" or
+an expression that is not constant according to the relevant standards.  First,
+comparing a variable with itself produces a constant true value with "==" or
 constant false value with "!=".  For example:
 
   int x;
