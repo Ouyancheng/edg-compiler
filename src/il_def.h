@@ -17435,6 +17435,7 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__is_aggregate",
   "__reference_binds_to_temporary",
   "__is_same",
+  "__is_same_as",
   "last"
 }
 #endif /* VAR_INITIALIZERS */
