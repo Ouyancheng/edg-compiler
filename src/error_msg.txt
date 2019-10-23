@@ -3106,6 +3106,8 @@ ec_constexpr_placement_new;;"a placement new-expression cannot be constant-evalu
 ec_constexpr_nonvirtual_subobject_delete;;"deleting through a subobject pointer requires a virtual destructor"
 ec_ambiguous_reversed_function_add_on;INTERNAL;"%npT (with reversed arguments)"
 ec_invalid_intaddr_address;;"operand of __INTADDR__ must be offset from null pointer"
+ec_ambiguous_c11_generic;;"_Generic construct matches multiple types"
+ec_ambiguous_c11_generic_previous_match;;"the other match is %t"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

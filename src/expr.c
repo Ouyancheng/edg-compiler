@@ -15988,8 +15988,25 @@ where <typename-or-default> is either a type name or the keyword "default".
             /* We already had a match, which is presumably for a "default:"
                case.  This specific match supersedes the default one: scan the
                previously cached tokens as an unevaluated expression. */
-            check_assertion(default_seen);
-            process_cached_generic_selection_arg(&cache, match_type_arg);
+            if (match_type_arg->variant.type_operand.type != NULL) {
+              /* It wasn't the default case after all: Issue an error. */
+              a_diagnostic_ptr  dp;
+              a_diag_list       diag_list;
+              clear_diag_list(&diag_list);
+              err = TRUE;
+              dp = pos_start_error(ec_ambiguous_c11_generic, &type_pos);
+              more_info_type_diagnostic(
+                                    ec_ambiguous_c11_generic_previous_match,
+                                    &match_type_arg->position,
+                                    match_type_arg->variant.type_operand.type,
+                                    &diag_list);
+              add_more_info_list(dp, &diag_list);
+              end_diagnostic(dp);
+              discard_more_info_list(&diag_list);
+            } else {
+              check_assertion(default_seen);
+              process_cached_generic_selection_arg(&cache, match_type_arg);
+            }  /* if */
             if (*p_end != NULL) {
               /* If the default case was the previous case, an element has
                  been appended to the list. */
@@ -16006,6 +16023,7 @@ where <typename-or-default> is either a type name or the keyword "default".
     type_arg = alloc_expr_node((an_expr_node_kind)enk_type_operand);
     type_arg->type = void_type();
     type_arg->variant.type_operand.type = type;
+    type_arg->position = type_pos;  
     *p_end = type_arg;
     p_end = &type_arg->next;
     /* Check for and skip over the required colon token. */
