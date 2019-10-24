@@ -1,5 +1,20 @@
 Version 6.0
 
+10/24/19 [EDGcpfe/21961]
+Spurious error on C++17 aggregate initialization of C++/CLI value class
+
+In a Microsoft mode combining C++/CLI with C++17, the front end previously
+issued a spurious error when attempting to use aggregate initialization for
+a C++/CLI value class.  For example:
+
+  value class V {};
+  void f() {
+    V v{};  // Previously an error in "C++17/CLI" mode.  Now okay.
+  }
+
+That is now fixed.
+
+
 10/24/19 [EDGcpfe/20609,EDGcpfe/21897]
 Aborts and spurious errors with string literal operator templates
 
