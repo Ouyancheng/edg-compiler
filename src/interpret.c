@@ -17224,9 +17224,11 @@ position associated with the call.
                          &ips.diag_list);
     do_constexpr_fail(result);
   }  /* if */
-  ctor = dip->variant.constructor.ptr;
-  result_type = parent_class_of(ctor);
-  n_bytes = value_bytes_for_type(&ips, result_type, &result); 
+  if (result) {
+    ctor = dip->variant.constructor.ptr;
+    result_type = parent_class_of(ctor);
+    n_bytes = value_bytes_for_type(&ips, result_type, &result); 
+  }  /* if */
   if (!result) {
     if (ips.input_error) {
       /* Interpretation failed due to an error node in the IL.  Continue
