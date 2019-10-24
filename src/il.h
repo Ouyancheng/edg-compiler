@@ -1151,7 +1151,7 @@ extern a_type_ptr ptr_to_member_type_full(a_type_ptr              member_type,
                                           a_pointer_modifier_set  modifiers);
 
 #define ptr_to_member_type(tp, cp)                                           \
-  (ptr_to_member_type_full((tp), (cp), PM_NONE))
+  (EDG_QUAL ptr_to_member_type_full((tp), (cp), PM_NONE))
 
 extern a_type_ptr related_ptr_to_member_type(a_type_ptr member_type,
                                              a_type_ptr class_type);
@@ -1161,7 +1161,7 @@ extern a_type_ptr make_pointer_type_full(
                                       a_pointer_modifier_set  modifiers);
 
 #define make_pointer_type(tp)                                                \
-  (make_pointer_type_full((tp), PM_NONE))
+  (EDG_QUAL make_pointer_type_full((tp), PM_NONE))
 
 extern a_type_ptr make_reference_type(a_type_ptr type_pointed_to);
 
@@ -1220,7 +1220,7 @@ extern a_type_ptr f_make_qualified_type(a_type_ptr            old_type,
                                         a_upc_block_size      upc_block_size);
 
 #define make_qualified_type(old_type, qualifier)    \
-  f_make_qualified_type(old_type, qualifier, UPC_BLOCK_SIZE_NONE)
+  EDG_QUAL f_make_qualified_type(old_type, qualifier, UPC_BLOCK_SIZE_NONE)
 
 /*
 Make a version of type that has the same qualifiers as model_type, and return
@@ -1229,7 +1229,7 @@ Note that type and model_type need not be the same (or even similar) types
 under the qualifiers.
 */
 #define make_identically_qualified_type(type, model_type)             \
-  (make_qualified_type(f_skip_typerefs(type), get_type_qualifiers(model_type)))
+  (make_qualified_type(skip_typerefs(type), get_type_qualifiers(model_type)))
 
 
 extern a_type_ptr type_plus_qualifiers_from_second_type(a_type_ptr type,

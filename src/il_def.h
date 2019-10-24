@@ -8472,7 +8472,7 @@ typedef struct a_template_param_type_supplement {
 
 /* Type used for the internal representation of UPC block sizes. */
 typedef long a_upc_block_size;
-#define UPC_BLOCK_SIZE_NONE ((a_upc_block_size)(-1))
+#define UPC_BLOCK_SIZE_NONE ((EDG_QUAL a_upc_block_size)(-1))
 
 #if UPC_EXTENSIONS_ALLOWED
 
@@ -8705,7 +8705,7 @@ enum a_pointer_modifier_tag {
 /*
 Definitions of the bits in bit sets of type a_pointer_modifier_set.
 */
-#define PM_NONE		((a_pointer_modifier_set)0x0)
+#define PM_NONE		((EDG_QUAL a_pointer_modifier_set)0x0)
 			/* No pointer modifiers. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define PM_PTR32	((a_pointer_modifier_set)(1 << (int)pmt_ptr32))

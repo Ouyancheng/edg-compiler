@@ -266,29 +266,6 @@ predicates.
 
 #endif /* FIXED_POINT_ALLOWED */
 
-a_type_ptr f_skip_typerefs(a_type_ptr type_ptr)
-/*
-Strip any typeref entries off the given type to get to the real type, and
-return a pointer to that.  Note that the typeref may have some type
-qualifiers (const, volatile), and they will be dropped here.  Therefore,
-this routine should not be used when checking type qualifiers.  Note
-that ordinarily this routine should not be called directly; use the macro
-"skip_typerefs".  However, it does make sense to call this routine instead
-of the macro to avoid multiple evaluations of the argument.
-*/
-{
-  while (type_ptr->kind == (a_type_kind)tk_typeref) {
-    type_ptr = type_ptr->variant.typeref.type;
-#if CHECKING
-    if (type_ptr == NULL) {
-      internal_error("f_skip_typerefs: NULL referenced type");
-    }  /* if */
-#endif /* CHECKING */
-  }  /* while */
-  return type_ptr;
-}  /* f_skip_typerefs */
-
-
 a_type_ptr skip_typedefs(a_type_ptr type_ptr)
 /*
 Strip any typedef entries off the given type to get to the real type, and
@@ -413,16 +390,6 @@ aliases.
   }  /* while */
   return type_ptr;
 }  /* skip_nontemplate_typerefs */
-
-
-a_boolean is_error_type(a_type_ptr tp)
-/*
-Return TRUE if the given type is an error type.
-*/
-{
-  tp = skip_typerefs(tp);
-  return(is_error(tp));
-}  /* is_error_type */
 
 
 a_boolean is_function_type(a_type_ptr tp)

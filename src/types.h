@@ -17,6 +17,7 @@ types.h -- Declarations related to types.c (having to do with types).
 #ifndef TYPES_H
 #define TYPES_H 1
 
+#include "error.h"
 #ifndef IL_H
 #include "il.h"
 #endif /* ifndef IL_H */
@@ -36,14 +37,6 @@ EXTERN a_boolean
 			   type.  Typically TRUE in C mode and FALSE in C++
 			   mode. */
 
-/* Strip typerefs off a type. */
-#define skip_typerefs(tp)                                             \
-  ((tp)->kind != (a_type_kind)tk_typeref ? (tp) : f_skip_typerefs(tp))
-
-/* Fast macro version of is_error_type. */
-#define m_is_error_type(tp)                                           \
-  (skip_typerefs(tp)->kind == (a_type_kind)tk_error)
-
 /* Return the size of a type.  Internally the size of a tk_void or tk_routine
    type is 0, but in GCC emulation mode the size of a void or function
    type is 1.  This macro hides the internal representation.  Typerefs
@@ -57,7 +50,30 @@ EXTERN a_boolean
 #define size_of_type(tp) ((tp)->size)
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-extern a_type_ptr f_skip_typerefs(a_type_ptr type_ptr);
+inline a_type_ptr skip_typerefs(a_type_ptr type_ptr)
+/*
+Strip any typeref entries off the given type to get to the real type, and
+return a pointer to that.  Note that the typeref may have some type
+qualifiers (const, volatile), and they will be dropped here.  Therefore,
+this routine should not be used when checking type qualifiers.
+*/
+{
+  while (type_is(type_ptr, tk_typeref)) {
+    type_ptr = type_ptr->variant.typeref.type;
+    check_assertion_str(type_ptr != NULL,
+                        "skip_typerefs: NULL referenced type");
+  }  /* while */
+  return type_ptr;
+}  /* skip_typerefs */
+
+
+/*
+This macro is equivalent to skip_typerefs.  It exists for compatibility
+purposes because skip_typerefs previously was a macro making using of
+f_skip_typerefs, and f_skip_typerefs is sometimes called directly.
+*/
+#define f_skip_typerefs skip_typerefs
+
 extern a_type_ptr skip_typedefs(a_type_ptr type_ptr);
 extern a_type_ptr skip_typerefs_not_typedefs(a_type_ptr type_ptr);
 extern a_type_ptr skip_typerefs_not_dependent_decltypes(a_type_ptr type_ptr);
@@ -68,7 +84,29 @@ extern a_type_ptr skip_typerefs_not_typedefs_or_type_operators(
                                                          a_type_ptr type_ptr);
 extern a_type_ptr skip_nontemplate_typerefs(a_type_ptr type_ptr);
 
-extern a_boolean is_error_type(a_type_ptr tp);
+inline a_boolean is_error_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is an error type.
+*/
+{
+  return type_is(skip_typerefs(tp), tk_error);
+}  /* is_error_type */
+
+/*
+m_is_error_type was a function-like macro in older versions of the front end.
+It is now defined as a synonym of is_error_type for compatibility purposes.
+*/
+#define m_is_error_type is_error_type
+
+inline a_boolean is_immediate_error_type(a_type_ptr tp)
+/*
+Return TRUE if a type is a direct error type (i.e., not a typeref on
+top of such a type).
+*/
+{
+  return type_is(tp, tk_error);
+}  /* is_immediate_error_type */
+
 extern a_boolean is_function_type(a_type_ptr tp);
 extern a_boolean is_pointer_to_function_type(a_type_ptr tp);
 extern a_boolean is_incomplete_type(a_type_ptr tp);
@@ -309,21 +347,23 @@ extern a_boolean check_for_vla_in_pointer_to_member(a_type_ptr         type,
 
 extern a_type_ptr type_specifier_of_type(a_type_ptr type);
 
+inline a_boolean is_immediate_class_type(a_type_ptr  type)
 /*
 Return TRUE if a type is a direct class type (i.e., not a typeref on
 top of a class type).
 */
-#define is_immediate_class_type(type)                                 \
-  ((type)->kind == (a_type_kind)tk_class  ||                          \
-   (type)->kind == (a_type_kind)tk_struct ||                          \
-   (type)->kind == (a_type_kind)tk_union)
+{
+  return type_is(type, tk_class) || type_is(type, tk_struct) ||
+         type_is(type, tk_union);
+}  /* is_immediate_class_type */
 
+inline a_boolean is_class_or_struct(a_type_ptr  type)
 /*
 Return TRUE if a type is a direct non-union class type.
 */
-#define is_class_or_struct(tp)                                        \
-  ((tp)->kind == (a_type_kind)tk_class ||                             \
-   (tp)->kind == (a_type_kind)tk_struct)
+{
+  return type_is(type, tk_class) || type_is(type, tk_struct);
+}  /* is_class_or_struct */
 
 /*
 Return a pointer to the associated class type supplement.
@@ -345,12 +385,6 @@ Return a pointer to the associated integer type supplement.
 */
 #define integer_type_supp(tp)                                        \
   ((tp)->variant.integer.extra_info)
-
-/*
-Return TRUE if a type is a direct error type (i.e., not a typeref on
-top of such a type).
-*/
-#define is_immediate_error_type(type) ((type)->kind == (a_type_kind)tk_error)
 
 /*
 Return TRUE if a type is a direct enum type (i.e., not a typeref on top of
@@ -406,6 +440,7 @@ not been specialized.
    (tp)->variant.class_struct_union.is_template_class &&		\
    !(tp)->variant.class_struct_union.is_specialized)
 
+inline a_boolean typeref_is_typedef(a_type_ptr  tp)
 /*
 Return TRUE if a tk_typeref type represents a typedef name.  Note that this
 is not identical to !typeref_is_qualified -- though typeref_is_qualified
@@ -413,8 +448,9 @@ and typeref_is_typedef can never be true at the same time -- since there
 are cases in which typerefs are produced that are empty, with neither name
 nor qualifier.
 */
-#define typeref_is_typedef(tp)                                        \
-  ((tp)->source_corresp.name != NULL)
+{
+  return tp->source_corresp.name != NULL;
+}  /* typeref_is_typedef */
 
 /*
 Return TRUE if a tk_typeref type represents a C++11 decltype,
@@ -433,11 +469,13 @@ __underlying_type, or GNU typeof construct.
    (tp)->variant.typeref.is_underlying_type)
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+inline a_boolean type_is_typedef(a_type_ptr  tp)
 /*
 Return TRUE if the given type represents a typedef.
 */
-#define type_is_typedef(tp)                                           \
-  ((tp)->kind == (a_type_kind)tk_typeref && typeref_is_typedef((tp)))
+{
+  return type_is(tp, tk_typeref) && typeref_is_typedef((tp));
+}  /* type_is_typedef */
 
 extern a_boolean is_possibly_qualified_typedef(a_type_ptr  tp);
 
