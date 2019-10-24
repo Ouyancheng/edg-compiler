@@ -1,5 +1,21 @@
 Version 6.0
 
+10/24/19 [EDGcpfe/20609,EDGcpfe/21897]
+Aborts and spurious errors with string literal operator templates
+
+The front end could abort with a segfault (in array_element_type) or issue
+a spurious "invalid literal operator name" error when compiling an
+invocation of a string literal operator template (see the entry for
+EDGcpfe/15168,EDGcpfe/20235 for a description).  This is now fixed.  For
+example, with --c++14 --gnu_version=90100:
+
+  template<class C, C... S>
+  int operator""_suf() {
+     return 0;
+  }
+  template<class X = decltype("0x"_suf)>  // Previously aborted, now okay
+  int f() { return 1; }
+
 10/24/19 [EDGcpfe/21942]
 Abort in insert_call_to_initialize_entity for multi-translation-unit case
 

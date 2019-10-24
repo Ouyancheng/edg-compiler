@@ -16376,6 +16376,10 @@ const_for_curr_token.
   a_symbol_list_entry_ptr operators = NULL;
   a_symbol_list_entry_ptr raw_and_template_operators = NULL;
 
+  if (!from_cache) {
+    clear_constant(&const_with_curr_tok_spelling,
+                   (a_constant_repr_kind)ck_error);
+  }  /* if */
   /* Find the required first parameter type and other literal operator
      characteristics based on the type of the literal. */
   if (literal_type->kind == (a_type_kind)tk_integer) {
@@ -16415,12 +16419,22 @@ const_for_curr_token.
     req_param1_type = make_pointer_type(array_element_type(literal_type));
   }  /* if */
   make_literal_opname_locator(name, name_len, &locator_for_curr_id, pos);
-  if (caching_tokens && allow_raw_and_template && !from_cache) {
+  if (caching_tokens &&
+      (allow_raw_and_template || string_literal_operator_template_allowed) &&
+      !from_cache) {
     /* We may need the token spelling when we do the lookup of the cached
        token; if this token isn't already in a cache, save the token
        spelling in const_with_curr_tok_spelling so the value can be
        cached. */
-    create_constant_from_token_spelling(&const_with_curr_tok_spelling);
+    if (is_string) {
+      /* const_for_curr_token contains the string value, but the
+         current token pointer is not yet set (because concatenation
+         of adjacent string literals is not yet complete).  Set the
+         spelling from const_for_curr_token. */
+      copy_constant(&const_for_curr_token, &const_with_curr_tok_spelling);
+    } else {
+      create_constant_from_token_spelling(&const_with_curr_tok_spelling);
+    }  /* if */
   }  /* if */
   /* Look up the symbol(s) for the specified literal operator. */
   orig_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
@@ -16595,13 +16609,21 @@ const_for_curr_token.
       if (token_string_needed) {
         if (from_cache) {
           if (!ambiguous) {
-            /* The current token is being extracted from a cache, so both
-               const_for_curr_token and const_with_curr_tok_spelling are
-               valid.  We need the "raw" version for a raw literal operator
-               or literal operator template, so copy the token spelling
-               into const_for_curr_token. */
-            copy_constant(&const_with_curr_tok_spelling,
-                          &const_for_curr_token);
+            if (const_with_curr_tok_spelling.kind ==
+                                              (a_constant_repr_kind)ck_error) {
+              /* The constant with the current token spelling is not set,
+                 which occurs when we are instantiating a string literal
+                 operator template.  Leave const_for_curr_token
+                 untouched. */
+            } else {
+              /* The current token is being extracted from a cache, so both
+                 const_for_curr_token and const_with_curr_tok_spelling are
+                 valid.  We need the "raw" version for a raw literal operator
+                 or literal operator template, so copy the token spelling
+                 into const_for_curr_token. */
+              copy_constant(&const_with_curr_tok_spelling,
+                            &const_for_curr_token);
+            }  /* if */
           } else {
             /* Leave const_for_curr_token unchanged in case of ambiguity. */
           }  /* if */
