@@ -22008,15 +22008,19 @@ deleted, disable bitwise copying.
             tqs &= ~(a_type_qualifier_set)TQ_FAR;
           }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
-          if (!cli_class && !rp->is_deleted &&
+          if (!cli_class &&
               tqs != (is_move ? TQ_NONE : gsfd->copy_ctor_qualifiers)) {
             /* If the declared parameter type doesn't match what would have
                been generated, the function is not trivial.  (Exclude managed
-               classes from this - because they follow different copy
-               semantics - as well as deleted functions as these cannot be
-               called). */
+               classes from this because they follow different copy
+               semantics). */
             rp->is_trivial_copy_function = FALSE;
             cssp->makes_copy_construction_nontrivial = TRUE;
+            if (!(is_move && rp->is_deleted)) {
+              /* A deleted move constructor doesn't in and of itself disallow
+                 construction by bitwise copy. */
+              cssp->construction_by_bitwise_copy_allowed = FALSE;
+            }
           } else {
             rp->is_trivial_copy_function =
                           is_move ? !cssp->makes_move_construction_nontrivial
@@ -23092,12 +23096,10 @@ The routine body is not generated until it is known to be needed.
      functions. */
   if (cssp->has_user_provided_copy_constructor) {
     cssp->makes_copy_construction_nontrivial = TRUE;
+    cssp->construction_by_bitwise_copy_allowed = FALSE;
   }  /* if */
   if (cssp->has_user_provided_move_constructor) {
     cssp->makes_move_construction_nontrivial = TRUE;
-  }  /* if */
-  if (cssp->makes_copy_construction_nontrivial ||
-      cssp->has_user_provided_move_constructor) {
     cssp->construction_by_bitwise_copy_allowed = FALSE;
   }  /* if */
   if (user_provided_copy_assignment_op) {
