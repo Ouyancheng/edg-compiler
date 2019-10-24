@@ -1,5 +1,28 @@
 Version 6.0
 
+10/24/19 [EDGcpfe/21942]
+Abort in insert_call_to_initialize_entity for multi-translation-unit case
+
+When simultaneously compiling multiple translation units with a secondary
+translation unit containing a mem-initializer for a flexible array member
+(possible, e.g., in some Microsoft modes), the front end could abort during
+lowering in insert_call_to_initialize_entity (due to invalid IL).  For example,
+the problem manifested itself with an empty primary translation unit and the
+following secondary translation unit compiled in Microsoft mode:
+
+  struct S { char c; };
+  struct X {
+    X(): n(42), as() {}  // Previously triggered an abort in Microsoft mode.
+    int n;               // Now okay.
+    S as[];
+  };
+  X* g() {
+    return new X();
+  }
+
+That is now fixed.
+
+
 10/23/19 [EDGcpfe/16509,EDGcpfe/21952]
 C11-mode abort on _Generic construct that can match multiple types
 

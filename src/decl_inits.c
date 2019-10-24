@@ -7717,19 +7717,26 @@ cases, array_type is NULL).
   a_type_ptr                     class_type = parent_class_of(ctor);
   a_source_position              lparen_pos;
   a_class_symbol_supplement_ptr  cssp;
-  a_boolean                      dependent_class_init;
+  a_boolean                      dependent_class_init, flex_array_init;
   a_dynamic_init_ptr             dip;
 
   lparen_pos = pos_curr_token;
   /* Skip the left parenthesis. */
   check_assertion(curr_token == tok_lparen);
   (void)get_token();
-  dependent_class_init = array_type == NULL &&
-                         could_be_dependent_class_type(init_type);
+  if (array_type != NULL) {
+    flex_array_init = is_incomplete_array_type(array_type);
+    dependent_class_init = FALSE;
+  } else {
+    flex_array_init = FALSE;
+    dependent_class_init = could_be_dependent_class_type(init_type);
+  }  /* if */
   if (is_class_struct_union_type(init_type) &&
-      (array_type == NULL || curr_token == tok_rparen)) {
+      (array_type == NULL || curr_token == tok_rparen) && !flex_array_init) {
     /* The type of the base or member is class or array-of-class -- the latter
-       only if the expression-list is empty. */
+       only if the expression-list is empty.  For a flexible array initializer,
+       not initialization should be performed and that class is therefore
+       ignored. */
     cssp = symbol_supplement_for_class(init_type);
   } else {
     cssp = NULL;
@@ -7859,7 +7866,7 @@ cases, array_type is NULL).
              emulate_msvc_value_initialization_bugs) ||
             (gpp_mode && emulate_gnu_value_initialization_bugs &&
              cip != NULL && cip->kind != (a_constructor_init_kind)cik_field) ||
-            (array_type != NULL && is_incomplete_array_type(array_type))) {
+            flex_array_init) {
           /* MSVC++ up to version 7.0 never initializes the entity in this
              case.  g++ up to 3.4 does not initialize base classes.  The
              flexible array member case cannot be initialized since the array
