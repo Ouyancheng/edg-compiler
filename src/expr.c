@@ -36434,9 +36434,9 @@ issue an error; otherwise, return TRUE.
     switch_to_file_scope_region(&region_to_switch_back_to);
     if (is_string_literal_operator_template) {
       /* The template parameter list is <typename T, T ...>. */
+      a_type_ptr tp = array_element_type(const_with_curr_tok_spelling.type);
       templ_arg_list = alloc_template_arg((a_templ_arg_kind)tak_type);
-      templ_arg_list->variant.type =
-                        array_element_type(const_with_curr_tok_spelling.type);
+      templ_arg_list->variant.type = skip_typerefs(tp);
       tap = alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
       templ_arg_list->next = tap;
     } else {

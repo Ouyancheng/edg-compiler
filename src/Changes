@@ -1,5 +1,21 @@
 Version 6.0
 
+10/25/19 [EDGcpfe/21965]
+GNU/clang compatibility: string literal operator template character type
+
+As noted in the entry for EDGcpfe/15168,EDGcpfe/20235, the proposed
+Standard wording in C++ Committee document P0424R0 specifies that the
+character type deduced for an invocation of a string literal operator
+template is the element type of the literal array; for example, given a
+user-defined literal like L"ab"_x, the elements of the array have type
+"const wchar_t".  However, the implementation of this feature in g++ and
+clang drops the "const", and the front end has now been changed to do the
+same.  For example, with --c++14 --gnu_version=90200:
+
+  template<typename T, T ...chars> int operator"" _x();
+  int i = L"ab"_x;  // calls operator""_x<wchar_t, L'a', L'b'>()
+
+
 10/24/19 [EDGcpfe/21961]
 Spurious error on C++17 aggregate initialization of C++/CLI value class
 
