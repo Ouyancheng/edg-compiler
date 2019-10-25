@@ -60,8 +60,10 @@ this routine should not be used when checking type qualifiers.
 {
   while (type_is(type_ptr, tk_typeref)) {
     type_ptr = type_ptr->variant.typeref.type;
+#if EXPENSIVE_CHECKING
     check_assertion_str(type_ptr != NULL,
                         "skip_typerefs: NULL referenced type");
+#endif /* EXPENSIVE_CHECKING */
   }  /* while */
   return type_ptr;
 }  /* skip_typerefs */
