@@ -1071,7 +1071,6 @@ number of comparisons (4 or 5) and moves (at most 6).
           *p_b = move_from(p_c);
           *p_c = move_from(&tmp);
         } else {
-          // b <= c <= a, b < d <= a, 
           if (cmp(*p_c, *p_d)) {
             /* b <= c < d <= a: */
             *p_b = move_from(p_c);
