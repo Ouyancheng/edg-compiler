@@ -7739,7 +7739,7 @@ cases, array_type is NULL).
       (array_type == NULL || curr_token == tok_rparen) && !flex_array_init) {
     /* The type of the base or member is class or array-of-class -- the latter
        only if the expression-list is empty.  For a flexible array initializer,
-       not initialization should be performed and that class is therefore
+       no initialization should be performed and that class is therefore
        ignored. */
     cssp = symbol_supplement_for_class(init_type);
   } else {
