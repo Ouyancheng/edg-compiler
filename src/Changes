@@ -26,10 +26,11 @@ example, with --c++14 --gnu_version=90100:
 
   template<class C, C... S>
   int operator""_suf() {
-     return 0;
+    return 0;
   }
   template<class X = decltype("0x"_suf)>  // Previously aborted, now okay
   int f() { return 1; }
+
 
 10/24/19 [EDGcpfe/21942]
 Abort in insert_call_to_initialize_entity for multi-translation-unit case
