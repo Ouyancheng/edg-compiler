@@ -268,6 +268,7 @@ extern a_boolean class_is_instance_of_generic_from_metadata(
 extern a_boolean is_cli_open_constructed_type(a_type_ptr  tp);
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_immediate_managed_class_type(tp) /*lint --e(506)*/FALSE
+#define is_value_class_type(tp) /*lint --e(506)*/FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 extern a_boolean is_scalar_type(a_type_ptr tp);
 extern a_boolean is_simple_scalar_type(a_type_ptr tp);
