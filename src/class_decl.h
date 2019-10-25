@@ -133,9 +133,9 @@ extern a_boolean is_valid_static_member_constant_type(
 					a_boolean	nonreal_context);
 
 extern
-a_type_ptr check_for_invalid_member_constant(a_decl_parse_state_ptr	dps,
-					     a_type_ptr			type,
-					     a_source_position_ptr	pos);
+a_type_ptr report_invalid_member_constant(a_decl_parse_state_ptr  dps,
+                                          a_type_ptr              type,
+                                          a_source_position_ptr   pos);
 
 extern a_symbol_ptr decl_dependent_class_scope_function(
                                         a_boolean               friend_decl,

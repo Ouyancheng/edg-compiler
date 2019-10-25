@@ -1,5 +1,19 @@
 Version 6.0
 
+10/25/19 [EDGcpfe/20058,EDGcpfe/21530,EDGcpfe/21795,EDGcpfe/21848]
+Spurious errors on inline static data member template instance
+
+The front end previously issued spurious errors on certain inline static
+data member template declarations.  For example:
+
+  struct S {
+    template<int N> static inline int m = N;  // Previously triggered a
+  };                                          // spurious error when
+  int i = S::m<42>;                           // instantiated.
+
+That is now fixed.
+
+
 10/25/19 [EDGcpfe/21965]
 GNU/clang compatibility: string literal operator template character type
 

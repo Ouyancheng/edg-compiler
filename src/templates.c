@@ -6055,17 +6055,17 @@ user later during real instantiations.
       /* Advance past the "=". */
       (void)get_token();
     }  /* if */
-    if (var_ptr->initializer_in_class &&
+    if (var_ptr->initializer_in_class && !var_ptr->is_inline &&
         !is_valid_static_member_constant_type(
                                  var_ptr->type, var_ptr, is_constant_member,
                                  is_variable_template,
                                  var_ptr->is_prototype_instantiation)) {
       /* Issue a diagnostic for an invalid member constant type. */
-      var_ptr->type = check_for_invalid_member_constant(
+      var_ptr->type = report_invalid_member_constant(
                                           dps, var_ptr->type, &pos_curr_token);
       scan_and_discard_init_component(dps);
     } else {
-      if (!var_ptr->initializer_in_class || var_ptr->is_constexpr) {
+      if (!var_ptr->initializer_in_class || var_ptr->is_inline) {
         /* Temporarily clear the has_deduced_type flag to avoid having the
            call to "initializer" attempt to prescan the expression again. */
         dps->has_deduced_type = FALSE;
@@ -7107,13 +7107,13 @@ expression context) rather than a declaration.
       dps.has_deduced_type = FALSE;
       reset_has_deduced_type = TRUE;
     }  /* if */
-    if (var_ptr->initializer_in_class &&
+    if (var_ptr->initializer_in_class && !var_ptr->is_inline &&
         !is_valid_static_member_constant_type(
                                  var_ptr->type, var_ptr, is_constant_member,
                                  is_var_templ_instance,
                                  /*nonreal_context=*/FALSE)) {
       /* Issue a diagnostic for an invalid member constant type. */
-      var_ptr->type = check_for_invalid_member_constant(
+      var_ptr->type = report_invalid_member_constant(
                                     &dps, var_ptr->type, &pos_curr_token);
       scan_and_discard_init_component(&dps);
     } else {
@@ -7123,7 +7123,7 @@ expression context) rather than a declaration.
         (void)get_token();
       }  /* if */
       if (!is_var_templ_instance ||
-          !proto_var->initializer_in_class || var_ptr->is_constexpr) {
+          !proto_var->initializer_in_class || var_ptr->is_inline) {
         initializer(&dps, &template_sym->decl_position, idl_external,
                     has_parenthesized_initializer,
                     &incomplete_type_error_reported,
@@ -16974,6 +16974,14 @@ by this routine.
   } else {
     (void)reconcile_static_data_member_types(sym, dps->type,
                                              &locator.source_position);
+  }  /* if */
+  if (dps->dso_flags & DSO_INLINE) {
+    if (inline_variables_allowed) {
+      var->is_inline = TRUE;
+    } else {
+      /* Inline may not be specified. */
+      pos_error(ec_inline_and_nonfunction, &dps->specifiers_pos);
+    }  /* if */
   }  /* if */
   attach_decl_attributes(dps, /*primary_decl=*/TRUE);
 }  /* scan_template_variable_declaration */

@@ -17103,7 +17103,7 @@ prototype instantiation context.
 }  /* is_valid_static_member_constant_type */
 
 
-a_type_ptr check_for_invalid_member_constant(a_decl_parse_state_ptr	dps,
+a_type_ptr report_invalid_member_constant(a_decl_parse_state_ptr	dps,
 					     a_type_ptr			type,
 					     a_source_position_ptr	pos)
 /*
@@ -17128,7 +17128,7 @@ if an error is detected.
     }  /* if */
   }  /* if */
   return type;
-}  /* check_for_invalid_member_constant */
+}  /* report_invalid_member_constant */
 
 
 static void decl_static_data_member(a_symbol_locator        *locator,
@@ -17522,8 +17522,8 @@ template declaration and is NULL otherwise.
       }  /* if */
     } else {
       /* Issue a diagnostic for an invalid member constant type. */
-      member_type = check_for_invalid_member_constant(decl_state, member_type,
-                                                      &init_pos);
+      member_type = report_invalid_member_constant(decl_state, member_type,
+                                                   &init_pos);
       scan_and_discard_init_component(decl_state);
     }  /* if */
     if (restore_member_visibility) {
