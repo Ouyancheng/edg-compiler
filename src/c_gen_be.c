@@ -11883,13 +11883,13 @@ END_EDG_NAMESPACE
 #else /* !BACK_END_IS_C_GEN_BE */
 
 #ifdef USING_QUANTIFY
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 /*
 Quantify has a bug that causes an error when an empty object file is used,
 so generate a dummy variable.
 */
 char quantify_dummy_in_c_gen_be;
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #endif /* ifndef USING_QUANTIFY */
 
 #endif /* BACK_END_IS_C_GEN_BE */

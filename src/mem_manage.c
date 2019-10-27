@@ -1917,18 +1917,18 @@ a new block.
 {
   void  *ptr = NULL;
 
-  // If the freed map exists, look for a previously freed block.
+  /* If the freed map exists, look for a previously freed block. */
   if (freed_fe_map != NULL) {
     a_dyn_array_of_void_ptrs_ptr   freed_blocks;
     freed_blocks = freed_fe_map->get(size);
     if (freed_blocks != NULL && freed_blocks->length() > 0) {
-      // Return the entry at the end of the array and remove it.
+      /* Return the entry at the end of the array and remove it. */
       ptr = freed_blocks->back_elem();
       freed_blocks->pop_back();
     }  /* if */
   }  /* if */
   if (ptr == NULL) {
-    // Allocate a new block.
+    /* Allocate a new block. */
     ptr = alloc_in_region(NULL_region_number, size);
   }   /* if */
   return (char*)ptr;
@@ -1942,18 +1942,18 @@ Free the block of memory pointed to by ptr of the specified size.  The block
 is recorded for possible reuse later.
 */
 {
-  // Create the map to the freed memory if it has not already been created. 
+  /* Create the map to the freed memory if it has not already been created. */
   if (freed_fe_map == NULL) {
     freed_fe_map = new_general<a_size_to_ptr_map>(1);
   }  /* if */
   a_dyn_array_of_void_ptrs_ptr   freed_blocks;
   freed_blocks = freed_fe_map->get(size);
   if (freed_blocks == NULL) {
-    // Create a new dynamic array and add it to the map.
+    /* Create a new dynamic array and add it to the map. */
     freed_blocks = new_general<a_dyn_array_of_void_ptrs>();
     freed_fe_map->map(size, freed_blocks);
   }  /* if */
-  // Add the new entry to the array.
+  /* Add the new entry to the array. */
   freed_blocks->push_back(ptr);
 }  /* free_fe */
 

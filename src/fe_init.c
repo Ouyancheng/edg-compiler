@@ -43,14 +43,14 @@ BEGIN_EDG_NAMESPACE
 
 #if STANDALONE_UTILITY_PROGRAM
 
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 /* Header files used by standalone utility programs. */
 #include "il_walk.h"
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_file.h"
 #include "il_read.h"
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
 void standalone_utility_early_init(void)
 /*
@@ -93,23 +93,23 @@ called (and init_flags_and_types has parsed the information in il_header).
 #else /* !STANDALONE_UTILITY_PROGRAM */
 
 #if __BSD__
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include <sys/time.h>
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 #else  /* !__BSD__ */
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 /*lint -e451*/ /* Some versions of time.h have a bad guard test. */
 #include <time.h>
 /*lint +e451*/
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 #endif  /* __BSD__ */
 #if __SYSV__ || __BSD__
 EXTERN_C time_t time(time_t *timer);
 #endif /* __SYSV__ || __BSD__ */
 
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include <errno.h>
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
 /*
 Note: EVERY .h file that includes an external variable must be included in
@@ -119,7 +119,7 @@ declarations in the include files will become external definitions for the
 symbols.  il.h, symbol_tbl.h, lexical.h, and types.h will already have
 been included by the inclusion of fe_common.h.
 */
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 /*lint --e{766}*/ /* <-- No warning in this file on unneeded includes. */
 #include "class_decl.h"
 #include "decl_inits.h"
@@ -183,7 +183,7 @@ END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
 /* Internal floating point conversion routines. */
 #include "floating.h"
 #endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
 static void last(void)
 /*

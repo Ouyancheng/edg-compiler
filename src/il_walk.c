@@ -158,11 +158,11 @@ static void walk_orphaned_file_scope_il_entries(void);
 #define WALK_ORPHANED_ENTRY_ROUTINE_NAME \
    EDG_QUAL walk_orphaned_file_scope_il_entries
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 /*lint -e451 included more than once. */
 #include "walk_entry.h"
 /*lint +e451*/
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
 
 static void walk_string_entry(char             *entry_ptr,
@@ -533,11 +533,11 @@ static void walk_tree_and_set_needed(char             *entry_ptr,
 #define WALK_ENTRY_ROUTINE_NAME EDG_QUAL walk_tree_and_set_needed
 #undef WALK_ORPHANED_ENTRY_ROUTINE_NAME
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 /*lint -e451 included more than once. */
 #include "walk_entry.h"
 /*lint +e451*/
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
 
 static void set_canonical_routine_definition_needed(a_routine_ptr rout)
@@ -1355,11 +1355,11 @@ static void walk_orphaned_entries_set_keep_in_il(void);
 #define WALK_ORPHANED_ENTRY_ROUTINE_NAME \
   EDG_QUAL walk_orphaned_entries_set_keep_in_il
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 /*lint -e451 included more than once. */
 #include "walk_entry.h"
 /*lint +e451*/
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
 
 static void clear_keep_in_il_to_allow_subtree_walk(char             *entry_ptr,
@@ -2446,11 +2446,11 @@ static void remap_pointers_in_entry(char             *entry_ptr,
 #undef WALK_ORPHANED_ENTRY_ROUTINE_NAME
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
 #define UNDEF_WALK_ENTRY_MACROS_AT_END
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 /*lint -e451 included more than once. */
 #include "walk_entry.h"
 /*lint +e451*/
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
 #if REMAP_ONLY_ROUTINES_NEEDED
 

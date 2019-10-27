@@ -50,38 +50,38 @@ necessary (also add entries to target_configurations below).
 */
 #ifdef TARGET_CONFIGURATION_1
 #define TARGET_CONFIGURATION TARGET_CONFIGURATION_1
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 /*lint -e451*/
 #include "target_cfg.h"
 /*lint +e451*/
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 #endif /* TARGET_CONFIGURATION_1 */
 
 #ifdef TARGET_CONFIGURATION_2
 #define TARGET_CONFIGURATION TARGET_CONFIGURATION_2
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 /*lint -e451*/
 #include "target_cfg.h"
 /*lint +e451*/
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 #endif /* TARGET_CONFIGURATION_2 */
 
 #ifdef TARGET_CONFIGURATION_3
 #define TARGET_CONFIGURATION TARGET_CONFIGURATION_3
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 /*lint -e451*/
 #include "target_cfg.h"
 /*lint +e451*/
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 #endif /* TARGET_CONFIGURATION_3 */
 
 #ifdef TARGET_CONFIGURATION_4
 #define TARGET_CONFIGURATION TARGET_CONFIGURATION_4
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 /*lint -e451*/
 #include "target_cfg.h"
 /*lint +e451*/
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 #endif /* TARGET_CONFIGURATION_4 */
 
 #ifdef TARGET_CONFIGURATION_5
@@ -118,11 +118,11 @@ global variables to the values given by the legacy configuration macros
 /* Assign the legacy macro value to the associated global variable. */
 #define TARGET_MAP_MACRO(config_macro, global_var, config) \
   (global_var) = (config_macro);
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 /*lint -e451 header file included more than once. */
 #include "target_map.h"
 /*lint +e451*/
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
 
 /*
@@ -189,11 +189,11 @@ configuration macro).
 #define TARGET_MAP_MACRO(config_macro, global_var, config) \
   fprintf(f_error, "#define %s_%s %s\n", #config_macro, \
           suffix, stringize(config_macro));
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 /*lint -e451 header file included more than once. */
 #include "target_map.h"
 /*lint +e451*/
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
 
 void dump_legacy_config_as_target_config(a_const_char *config)

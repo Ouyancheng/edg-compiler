@@ -2611,11 +2611,11 @@ WIN32 (e.g., Windows-NT) version.
 */
 
 
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include <tchar.h>
 #include <dos.h>
 #include <io.h>
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
 char *get_file_name_from_dir(a_boolean	  first,
 			     a_const_char *dir_name,
@@ -2669,9 +2669,9 @@ char *get_file_name_from_dir(a_boolean	  first,
 DOS version.
 */
 
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include <dos.h>
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
 char *get_file_name_from_dir(a_boolean	first,
 			     char	*dir_name,

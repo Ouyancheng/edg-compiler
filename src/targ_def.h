@@ -2215,11 +2215,11 @@ properly (see floating.h).
 #endif /* USE_SOFTFLOAT && USE_HOST_FP_CONVERSION_ROUTINES */
 
 #if USE_SOFTFLOAT
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 extern "C" {
 #include "softfloat.h"
 }  /* extern "C" */
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
 /*
 Use SoftFloat's float128_t type as the host's floating-point internal
@@ -2385,9 +2385,9 @@ default float_pt.c support uses the host floating point.
 #define TARG_HAS_IEEE_FLOATING_POINT TRUE
 #else /* !defined(__sparc) || ... */
 /* Include <math.h> to see if the C99 NAN macro is defined. */
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include <math.h>
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 #ifdef NAN
 /* Systems with NAN defined support IEEE floating point. */
 #define TARG_HAS_IEEE_FLOATING_POINT TRUE

@@ -8024,9 +8024,9 @@ where file.cil specifies the IL file.  Output is to stdout.
 Quantify has a bug that causes an error when an empty object file is used.
 When using quantify, generate a dummy variable.
 */
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 char quantify_dummy_in_il_display;
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #endif /* defined(USING_QUANTIFY) */
 
 

@@ -2648,9 +2648,9 @@ extern int mbc_to_wide_char(a_const_char  *mb,
 
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include <wctype.h>
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
 extern
 int unicode_to_multibyte_char(unsigned long uc,
@@ -2711,19 +2711,19 @@ Locale to set when multibyte characters are enabled in source code.
 
 #ifndef STDLIB_H_INCLUDED
 #define STDLIB_H_INCLUDED 1
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include <stdlib.h>
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 #endif /* STDLIB_H_INCLUDED */
 #ifndef MB_CUR_MAX
 /* We need setlocale, MB_CUR_MAX, and mblen to support multibyte
    characters. */
  #error -- multibyte character support requires C library multibyte support
 #endif /* ifndef MB_CUR_MAX */
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include <locale.h>
 #include <wctype.h>
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
 /* Initialize for using mbc_length within one string of source characters. */
 #define mbc_scan_init() ((void)mblen(NULL, MB_CUR_MAX))
@@ -3076,9 +3076,9 @@ typedef struct an_open_file_result {
 
 #if MAKE_FRONT_END_CALLABLE
 
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include <setjmp.h> 
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
 EXTERN int	exit_status;
 			/* The status value to be returned to the caller. */
@@ -3204,10 +3204,10 @@ function.  A declaration of stat() is provided in case the standard
 headers fail to define the prototype.
 */
 /* sys/types.h is needed, at least, on Unisys 2200 and Microsoft C 7.0. */
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include <sys/types.h>
 #include <sys/stat.h>
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
 /* See if a file exists, if it does, return the modification time. */
 extern a_boolean get_file_modification_time(a_const_char *file_name,

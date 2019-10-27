@@ -736,9 +736,9 @@ typedef int a_transformation_options_set;
 /* Include overload.h after an_operand has been defined to avoid circular
    reference problems. */
 #ifndef OVERLOAD_H
-END_EDG_NAMESPACE  // Conditionally close the "edg" namespace.
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include "overload.h"
-BEGIN_EDG_NAMESPACE  // Conditionally open the "edg" namespace.
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 #endif /* ifndef OVERLOAD_H */
 
 /*
