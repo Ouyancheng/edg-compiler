@@ -22013,7 +22013,7 @@ deleted, disable bitwise copying.
             /* If the declared parameter type doesn't match what would have
                been generated, the function is not trivial.  (Exclude managed
                classes from this because they follow different copy
-               semantics). */
+               semantics.) */
             rp->is_trivial_copy_function = FALSE;
             cssp->makes_copy_construction_nontrivial = TRUE;
             if (!(is_move && rp->is_deleted)) {

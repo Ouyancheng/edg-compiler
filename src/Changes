@@ -237,7 +237,7 @@ When a copy or move constructor is declared with a signature that does not
 match that which would be implicitly generated, and this constructor is marked
 as deleted, the front end would still mark these classes as non-trivially
 copyable because of the mismatched function signature.  This resulted in
-unexpected behaviour in certain cases, such as copy elision.  For example:
+unexpected behavior in certain cases, such as copy elision.  For example:
 
   struct S
   {
