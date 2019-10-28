@@ -7107,6 +7107,14 @@ expression context) rather than a declaration.
       dps.has_deduced_type = FALSE;
       reset_has_deduced_type = TRUE;
     }  /* if */
+    if (dps.dso_flags & DSO_INLINE) {
+      if (inline_variables_allowed) {
+        var_ptr->is_inline = TRUE;
+      } else {
+        /* Inline may not be specified. */
+        pos_error(ec_inline_and_nonfunction, &dps.specifiers_pos);
+      }  /* if */
+    }  /* if */
     if (var_ptr->initializer_in_class && !var_ptr->is_inline &&
         !is_valid_static_member_constant_type(
                                  var_ptr->type, var_ptr, is_constant_member,
@@ -16974,14 +16982,6 @@ by this routine.
   } else {
     (void)reconcile_static_data_member_types(sym, dps->type,
                                              &locator.source_position);
-  }  /* if */
-  if (dps->dso_flags & DSO_INLINE) {
-    if (inline_variables_allowed) {
-      var->is_inline = TRUE;
-    } else {
-      /* Inline may not be specified. */
-      pos_error(ec_inline_and_nonfunction, &dps->specifiers_pos);
-    }  /* if */
   }  /* if */
   attach_decl_attributes(dps, /*primary_decl=*/TRUE);
 }  /* scan_template_variable_declaration */
