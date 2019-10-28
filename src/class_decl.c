@@ -17103,9 +17103,9 @@ prototype instantiation context.
 }  /* is_valid_static_member_constant_type */
 
 
-a_type_ptr report_invalid_member_constant(a_decl_parse_state_ptr	dps,
-					     a_type_ptr			type,
-					     a_source_position_ptr	pos)
+a_type_ptr report_invalid_member_constant(a_decl_parse_state_ptr  dps,
+                                          a_type_ptr              type,
+                                          a_source_position_ptr   pos)
 /*
 Check whether type is a valid type for a const static data member or
 variable template.  Issue an error, if appropriate.  *dps tracks general
