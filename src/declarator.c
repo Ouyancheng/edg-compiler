@@ -6083,7 +6083,8 @@ declared entity is known to not be a function.
           a_boolean          keep_qualifier = FALSE;
           /* The declarator name is qualified by the current namespace. */
           if (is_template_decl && !do_dependent_name_processing &&
-              !(gpp_mode || ms_version_is(<=1910)) &&
+              !(gpp_mode ||
+                (ms_version_is(<=1910) && ms_version_is(>=1900))) &&
               qualifier_namespace_ptr(locator_for_curr_id) != NULL) {
             severity = es_error;
           } else if (is_specialization_or_instantiation && !strict_ansi_mode) {
@@ -6105,7 +6106,8 @@ declared entity is known to not be a function.
               severity = strict_ansi_mode ? es_discretionary_error : es_remark;
               keep_qualifier = TRUE;
             } else if (gpp_mode || sun_mode ||
-                       (is_template_decl && ms_version_is(<=1910))) {
+                       (is_template_decl &&
+                        (ms_version_is(<=1910) && ms_version_is(>=1900)))) {
               /* GNU and Sun compilers accept the superfluous qualifier and
                  ignore it.  As explained above, we cannot always emulate this
                  behavior for templates (unless dependent name processing is

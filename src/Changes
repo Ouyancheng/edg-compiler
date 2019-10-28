@@ -266,8 +266,8 @@ assertion test while prescanning the lambda declarator.  That is now fixed.
 10/17/19 [EDGcpfe/21923]
 Microsoft C++ compatibility: Extraneous qualifier on template declaration
 
-In Microsoft C++ modes with microsoft_version <= 1910, the front end now
-accepts an extraneous namespace scope qualifier on a template declaration:
+In Microsoft C++ modes with 1900 <= microsoft_version <= 1910, the front end
+now accepts an extraneous namespace scope qualifier on a template declaration:
 
   namespace N {
     template<typename> void N::f();  // Now accepted in some Microsoft modes.
