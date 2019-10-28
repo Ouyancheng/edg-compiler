@@ -10119,6 +10119,31 @@ i_is_or_uses_unnameable_class_type returns TRUE; FALSE otherwise.
 }  /* is_or_uses_unnameable_class_type */
 
 
+static a_boolean ttt_is_type_operator_for_local_type(a_type_ptr type,
+                                                     a_boolean  *end_traversal)
+/*
+This function is called via traverse_type_tree from
+suppress_invalid_explicit_specialization.  If type is a type operator
+typeref and the associated expression is NULL, indicating a reference to a
+block-scope expression, set *end_traversal to TRUE and return TRUE;
+otherwise, return FALSE.  (A reference to a block-scope expression cannot
+be rendered correctly in a generated explicit specialization, since such
+specializations appear in namespace scope.)
+*/
+{
+  a_boolean result = FALSE;
+
+  if (type->kind == (a_type_kind)tk_typeref &&
+      typeref_is_type_operator(type) &&
+      type->variant.typeref.extra_info->expr == NULL) {
+    /* End the traversal and return TRUE. */
+    result = TRUE;
+    *end_traversal = TRUE;
+  }  /* if */
+  return result;
+}  /* ttt_is_type_operator_for_local_type */
+
+
 static a_boolean suppress_invalid_explicit_specialization(
                                               a_source_correspondence_ptr scp,
                                               an_il_entry_kind            kind,
@@ -10276,6 +10301,22 @@ instantiations are only permitted in namespace scope).
         }  /* if */
       }  /* if */
     }  /* for */
+  }  /* if */
+  if (!result && kind == iek_routine) {
+    /* We need to make sure that none of the parameters or return type
+       refer to a local type via a type operator. */
+    a_type_tree_traversal_flag_set ttt_flags;
+    ttt_flags = (TTT_PARENT_CLASSES |
+                 TTT_RETURN_TYPE |
+                 TTT_PARAM_TYPES |
+                 TTT_EXCEPTION_SPECS |
+                 TTT_DECLTYPE_AND_TYPEOF_EXPRS |
+                 TTT_TEMPLATE_ARGS |
+                 TTT_NONREAL_TEMPLATE_ARGS |
+                 TTT_THIS_PARAM_TYPE);
+    result = traverse_type_tree(((a_routine_ptr)scp)->type,
+                                ttt_is_type_operator_for_local_type,
+                                ttt_flags);
   }  /* if */
   return result;
 }  /* suppress_invalid_explicit_specialization */
