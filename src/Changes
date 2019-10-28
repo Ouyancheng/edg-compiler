@@ -1,5 +1,16 @@
 Version 6.0
 
+10/28/19 [EDGcpfe/21962]
+C++-generating back end: block-scope lambda closure types in template arguments
+
+For certain complex cases in which the closure type of a block-scope lambda
+is used as a template argument and in C++-generating back end configurations
+in which CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS or
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, the front
+end could abort with an assertion failure in gen_type_operator.  This is now
+fixed.
+
+
 10/25/19 [EDGcpfe/20058,EDGcpfe/21530,EDGcpfe/21795,EDGcpfe/21848]
 Spurious errors on inline static data member template instance
 
