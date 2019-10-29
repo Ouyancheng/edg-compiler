@@ -1,5 +1,33 @@
 Version 6.0
 
+10/29/19 [EDGcpfe/21750]
+Spurious substitution failure calling function template
+
+In some cases involving the deferral of instantiations (which is done when
+one or more class definitions is still in process), the front end could
+incorrectly consider a substitution loop to be encountered causing substitution
+to fail.  Now fixed.
+
+  template <class T> void f(T) { }
+  template <class T> struct A {
+    T t;
+    void begin() { f(t); }
+    void end()   { f(t); }
+  };
+  template <class T> struct B {
+    A<int> *a;
+    void begin() { a->begin(); }
+    void end()   { a->end();   }
+  };
+  B<int> b;
+  struct C {
+    inline static int I = (b.begin(), 1);
+    void g() { b.end(); }
+  };
+  int main() { }
+
+
+
 10/28/19 [EDGcpfe/21962]
 C++-generating back end: block-scope lambda closure types in template arguments
 

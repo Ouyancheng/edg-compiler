@@ -17325,6 +17325,8 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
   a_type_ptr	      		    parent_class;
   a_boolean			    trans_unit_pushed;
   a_boolean			    is_deduction_guide;
+  a_symbol_list_entry_ptr	    saved_deferred_instantiations;
+  a_symbol_list_entry_ptr	    saved_deferred_instantiations_tail;
 
   db_enter(4, "make_template_function");
 #if CHECKING
@@ -17348,6 +17350,10 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
      instance.  This is done to make sure a second reference to this routine
      is not attempted before the routine is completed. */
   defer_instantiations++;
+  saved_deferred_instantiations = deferred_instantiations;
+  saved_deferred_instantiations_tail = deferred_instantiations_tail;
+  deferred_instantiations = NULL;
+  deferred_instantiations_tail = NULL;
   parent_class = templ_sym->is_class_member ? sym_parent_class(templ_sym)
                                             : (a_type_ptr)NULL;
   rp = alloc_routine();
@@ -17818,6 +17824,8 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
   /* Do any instantiations that were deferred while this routine was being
      created. */
   process_deferred_class_fixups_and_instantiations(/*for_instantiation=*/TRUE);
+  deferred_instantiations = saved_deferred_instantiations;
+  deferred_instantiations_tail = saved_deferred_instantiations_tail;
   if ((microsoft_mode || !rp->source_corresp.is_class_member) &&
       !exc_spec_in_func_type && !special_kind_is(rp, sfk_deduction_guide)) {
     /* Consider:
