@@ -1,5 +1,30 @@
 Version 6.0
 
+10/29/19 [EDGcpfe/21910]
+Wrong end position on single-argument dynamic initialization
+
+The change for C++20 parenthesized aggregate initialization (EDGcpfe/20913)
+made in version 5.1 inadvertently caused the end position of some initializers
+that used a template constructor to be incorrect, in C++11 mode or later.  For
+example:
+
+  template <class T> struct S1 {
+    static const bool mem;
+  };
+  template <class T> const bool S1<T>::mem = true;
+  template <bool> struct S2 { typedef int type; };
+  struct S3
+  {
+    template<typename T1,
+             typename T2 = typename S2<S1<T1>::mem == 0>::type>
+      S3(T1);
+  };
+  S3 v1(1); // Previously used the location of '::mem' in the
+            // defaulted 'typename T2'.  Now uses the closing ')' for 'v1(1)'
+
+This is now fixed.
+
+
 10/29/19 [EDGcpfe/21925]
 Clang compatibility: "availability" attribute
 
