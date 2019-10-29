@@ -32351,6 +32351,7 @@ template entities.
   a_boolean		specialization_defined;
   a_boolean		template_def;
   a_master_instance_ptr	mip;
+  a_boolean		instantiation_not_needed = FALSE;
 
   mip = master_instance_of(tip);
   if (!mip->already_instantiated && !tip->explicit_do_not_instantiate &&
@@ -32379,6 +32380,9 @@ template entities.
       template_def = !vp->is_inline &&
                      (template_sym->defined ||
                       exported_definition_is_available(tip));
+      /* Inline variables that are initialized in the class do not need
+         (and cannot be) separately instantiated. */
+      instantiation_not_needed = vp->is_inline && vp->initializer_in_class;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
       if (!template_def && !specialized && !tip->suppress_instantiation &&
           implicit_inclusion_okay && implicit_template_inclusion_mode) {
@@ -32424,7 +32428,8 @@ template entities.
          should be instantiated).  The error is also suppressed for exported
          templates under the assumption that the file containing the
          definition has not yet been compiled. */
-      if (tip->explicit_instantiation && !tip->class_explicitly_instantiated &&
+      if (!instantiation_not_needed &&
+          tip->explicit_instantiation && !tip->class_explicitly_instantiated &&
           !template_is_exported(tip->template_sym) && !tip->error_issued) {
         pos_sy_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
                           ec_instantiation_requested_no_definition_supplied,
@@ -32524,6 +32529,10 @@ this overrides an "extern template" directive.
     vp = variable_for_symbol(tip->instance_sym);
     if (vp->is_nonreal) {
       /* Nonreal instances can't be instantiated. */
+      result = FALSE;
+    } else if (vp->is_inline && vp->initializer_in_class) {
+      /* Inline variables that are initialized in-class are not separately
+         instantiated. */
       result = FALSE;
     } else {
       specialized = vp->is_specialized;
