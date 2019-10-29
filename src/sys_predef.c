@@ -1779,7 +1779,7 @@ The default version of this routine does not parse the arguments and issues a
 warning that the attribute is effectively being ignored.
 */
 {
-  check_assertion(ap->kind == ak_availability);
+  check_assertion(ap->kind == (an_attribute_kind)ak_availability);
   pos_warning(ec_availability_attribute_ignored, &ap->position);
   return TRUE;
 }  /* if */

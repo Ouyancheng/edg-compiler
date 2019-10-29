@@ -8747,9 +8747,9 @@ scope (it has no other effect).
 
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
 
-static char* apply_availability_attr(an_attribute_ptr  ap,
-                                     char              *entity,
-                                     an_il_entry_kind  entity_kind)
+static char* apply_availability_attr(an_attribute_ptr            ap,
+                                     ARG_UNUSED char             *entity,
+                                     ARG_UNUSED an_il_entry_kind entity_kind)
 /*
 Apply the "availability" attribute to a declared entity and return that entity.
 Full support of this attribute requires knowledge about the target operating
