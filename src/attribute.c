@@ -392,6 +392,9 @@ static an_attr_descr known_attr_table[] = {
   { "e1", "(*)", "c+[edg]", ak_edg_e1 },
   { "n1", "(*)", "c+[edg]", ak_edg_n1 },
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
+
+  { "availability", "(*)", "lx", ak_availability },
+
   { NULL, NULL, NULL, ak_last }
 };
 
@@ -621,6 +624,8 @@ static an_attr_application_fn apply_edg_e1_attr;
 static an_attr_application_fn apply_edg_n1_attr;
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
 
+static an_attr_application_fn apply_availability_attr;
+
 /*
 Table of entries describing how to apply a specific attribute kind to an IL
 entity.  See the description of an_attr_appl_descr for the meaning and form
@@ -769,6 +774,8 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_edg_e1, "", apply_edg_e1_attr },
   { ak_edg_n1, "", apply_edg_n1_attr },
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
+
+  { ak_availability, "", apply_availability_attr },
 
   /* Internal attributes. */
   { ak_conditional_explicit, "", apply_conditional_explicit },
@@ -8739,6 +8746,32 @@ scope (it has no other effect).
 }  /* apply_edg_n1_attr */
 
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
+
+static char* apply_availability_attr(an_attribute_ptr  ap,
+                                     char              *entity,
+                                     an_il_entry_kind  entity_kind)
+/*
+Apply the "availability" attribute to a declared entity and return that entity.
+Full support of this attribute requires knowledge about the target operating
+system which the front end does not possess.  Invoke the
+check_availability_attr routine (intended to be replaced by customers) to
+determine whether the corresponding declaration should be made invisible.
+See https://clang.llvm.org/docs/AttributeReference.html#availability for
+entire attribute syntax (not parsed here).
+*/
+{
+  if (!check_availability_attr(ap)) {
+    /* The current mode deactivates the annotated declaration: Mark the symbol
+       as invisible. */
+    a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
+    check_assertion(dps != NULL);
+    if (dps->sym != NULL) {
+      dps->sym->is_invisible = TRUE;
+    }  /* if */
+  }  /* if */
+  return entity;
+}  /* apply_availability_attr */
+
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
 /*
 The "alias" and "weakref" attributes can refer to entities that are declared

@@ -1757,6 +1757,34 @@ str_len should be used to determine the end of the argument.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+a_boolean check_availability_attr(an_attribute_ptr ap)
+/*
+Clang's "availability" attribute can be placed on declarations to describe the
+lifecycle of that declaration relative to operating system versions.  The
+attribute syntax is Clang-specific and describes the various operating systems
+and versions that the declaration applies to.  See
+https://clang.llvm.org/docs/AttributeReference.html#availability.  The front
+end has no explicit knowledge of the operating system or version for the
+compilation so a customer will likely need to replace this function with an
+implementation that is appropriate for their system.
+
+The "availability" attribute is passed in, and the routine should return TRUE
+if the attached declaration should be enabled in the current mode.  A return of
+FALSE will make the attached declaration "invisible".  If a syntax (or other)
+error is found, a diagnostic should be issued here and the attribute should be
+changed to ak_unrecognized.  Due to the nature of the argument syntax, the
+argument parameters are parsed as a sequence of tokens (i.e., aak_raw_token).
+
+The default version of this routine does not parse the arguments and issues a
+warning that the attribute is effectively being ignored.
+*/
+{
+  check_assertion(ap->kind == ak_availability);
+  pos_warning(ec_availability_attribute_ignored, &ap->position);
+  return TRUE;
+}  /* if */
+
+
 void sys_predef_trans_unit_init(void)
 /*
 Do initialization for each source file.

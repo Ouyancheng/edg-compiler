@@ -2711,6 +2711,8 @@ typedef enum an_attribute_kind_tag {
   ak_edg_n1,		/* "edg::n1" (must appear in namespace scope). */
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
 
+  ak_availability,      /* "availability" */
+
   /* Other attributes. */
   ak_conditional_explicit,
 			/* An internal attribute representing a C++20

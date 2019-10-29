@@ -571,6 +571,8 @@ extern void validate_target_argument(a_const_char         *str,
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+extern a_boolean check_availability_attr(an_attribute_ptr ap);
+
 extern void sys_predef_trans_unit_init(void);
 
 extern void sys_predef_one_time_init(void);

@@ -1,5 +1,24 @@
 Version 6.0
 
+10/29/19 [EDGcpfe/21925]
+Clang compatibility: "availability" attribute
+
+Clang accepts an "availability" attribute that can be placed on declarations to
+describe the lifecycle of that declaration relative to operating system
+versions.  The attribute and its syntax are very specific to Apple products
+and assume that the compiler knows about the target operating system and
+versions.  See https://clang.llvm.org/docs/AttributeReference.html#availability
+for details.
+
+Since the front end does not know about target operating systems, a change
+has been made to parse the "availability" attribute and invoke the new
+check_availability_attr function for further processing.  Presumably a customer
+would replace this function with an implementation that understands the
+target operating system and versions to achieve the desired results.
+
+At this time, the related "clang availability" pragma is not supported.
+
+
 10/29/19 [EDGcpfe/21750]
 Spurious substitution failure calling function template
 
