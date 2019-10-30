@@ -14398,13 +14398,14 @@ typedef struct a_range_based_for_loop {
                         /* An sck_block scope added to surround the
                            range-based-for statement.  It corresponds to the
                            outermost set of braces shown above, and the
-                           __range variable is declared in this scope.
-                           The expression is also evaluated in this scope. */
+                           __range, __begin, and __end variables are declared
+                           in this scope.  Their initializations are also
+                           evaluated in this scope. */
   a_scope_ptr   iterator_scope;
-                        /* An sck_block scope added immediately inside the
-                           loop, in which the iterator variable is declared.
-                           The dependent statement of the loop is enclosed by
-                           this scope. */
+                        /* An sck_block scope that corresponds to the
+                           body of the rewritten loop.  It contains the
+                           for-range-declaration as well as the dependent
+                           statement of the loop. */
   a_variable_ptr
                 begin;
                         /* Pointer to the variable representing the temporary

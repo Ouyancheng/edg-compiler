@@ -5273,7 +5273,7 @@ The affinity can be an expression or the keyword "continue".
   add_stop_token(tok_rparen);
   if (is_range_based_for) {
     a_control_flow_descr_ptr  cfdp;
-    /* A range-based-for has three scopes, all of which are pushed in
+    /* A range-based-for has two scopes, both of which are pushed in
        preparation for scanning the for-range-declaration. */
     a_decl_parse_state dps;
     rbflp->range_based_for_scope =
@@ -5287,7 +5287,7 @@ The affinity can be an expression or the keyword "continue".
     cfdp->variant.block.object_lifetime = curr_object_lifetime;
     add_to_control_flow_descr_list(cfdp);
     add_stop_token(tok_colon);
-    /* Scan the for-range-declaration. */
+    /* Scan the for-range-declaration (in the iterator_scope). */
     for_range_declaration(&dps);
     if (dps.sym != NULL && symbol_is(dps.sym, sk_variable)) {
       rbflp->iterator = dps.sym->variant.variable.ptr;

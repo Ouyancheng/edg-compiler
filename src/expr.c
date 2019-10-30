@@ -40543,7 +40543,8 @@ FALSE otherwise.
                                                 &rbflp->incr_call_expr);
   if (!passed) goto end_of_routine;
   /* Re-push the iterator scope because the initialization of the iterator
-     variable has to be handled in that scope. */
+     variable (i.e., the for-range-declaration) has to be handled in that
+     scope. */
   push_block_reactivation_scope(rbflp->iterator_scope, pointers_block);
   /* Make the "*__begin" expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
@@ -42541,17 +42542,23 @@ The range-based-for statement takes the form:
 
 which is implemented as:
 
-  {
+  { // range_based_for_scope
     auto && __range = for-range-initializer;
     auto __begin = begin-expr;
     auto __end = end-expr;
     for ( ;
           __begin != __end;
-          ++__begin ) {
+          ++__begin ) { // iterator_scope
       for-range-declaration = *__begin;
       statement
     }
   }
+
+Note that the "plain old for statement" in the rewritten code above
+technically is itself rewritten as a block statement that encloses an
+initialization statement and a "while" statement, but since the rewritten
+range-based-for has no initialization statement, that block scope is
+superfluous and thus is not included in the IL.
 
 The expressions for begin-expr and end-expr depend on the type of "expression",
 and can have the following forms (see [stmt.ranged] for specifics):
