@@ -5691,7 +5691,6 @@ make_inert_macro:
            named header file would be found by #include or #include_next,
            respectively, and 0 otherwise. */
         a_boolean    file_found;
-        a_seq_number org_seq = curr_seq_number;
         if (macro_symbol == has_include_symbol && cpp17_mode &&
             strict_ansi_mode && !in_pp_if_expression) {
           /* The C++17 Standard requires that __has_include appear only
