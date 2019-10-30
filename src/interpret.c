@@ -1428,7 +1428,9 @@ Function called when a map key equal to traced_iptr is entered into or removed
 from a map.
 */
 {
+#if DEBUG
   fprintf(f_debug, "\nMap activity for %p: %s\n", traced_iptr, msg);
+#endif /* DEBUG */
 }  /* interpreter_map_intercept */
 
 #define check_traced_iptr(ptr, msg)                                          \
