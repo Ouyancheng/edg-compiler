@@ -1,5 +1,18 @@
 Version 6.0
 
+10/30/19 [EDGcpfe/21966]
+Abort with __has_include invoked from a macro expansion
+
+Defining an object-like macro to replace the name of the __has_include
+feature-test macro and then invoking __has_include via that replacement
+name could result in an abort (in adjust_deletion_counts).  This is now
+fixed.  For example, with --c++17:
+
+  #define M __has_include
+  #if  M(<donthave>)  // Previously sometimes aborted, now okay
+  #endif
+
+
 10/29/19 [EDGcpfe/21910]
 Wrong end position on single-argument dynamic initialization
 

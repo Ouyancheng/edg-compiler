@@ -5704,19 +5704,8 @@ make_inert_macro:
         } else {
           /* Process the __has_include operator. */
           ++macro_depth;
-          save_delete_source_from_loc = delete_source_from_loc;
-          delete_source_from_loc = NULL;
           file_found =
                      scan_has_include(macro_symbol == has_include_next_symbol);
-          if (curr_seq_number != org_seq) {
-            /* We moved to a new source line while scanning the macro
-               invocation; delete from the beginning of the current source
-               line and not from the now-obsolete position of the macro
-               name. */
-            delete_source_from_loc = curr_source_line;
-          } else {
-            delete_source_from_loc = save_delete_source_from_loc;
-          }  /* if */
           --macro_depth;
           strcpy(repl_text, file_found ? "1" : "0");
         }  /* if */
