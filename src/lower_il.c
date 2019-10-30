@@ -18838,6 +18838,7 @@ source:
 the following lowered C code is generated:
 
   {
+    init-statement;
     auto && __range = (expression);
     for ( auto __begin = begin-expr,
                __end = end-expr;
@@ -18884,6 +18885,11 @@ Notes:
   if (range_based_for_scope->lifetime != NULL) {
     begin_object_lifetime(range_based_for_scope->lifetime,
                           &outer_insert_location);
+  }  /* if */
+  if (rbflp->initialization != NULL) {
+    /* Lower the init-statement. */
+    lower_statement(rbflp->initialization);
+    insert_statement(rbflp->initialization, &outer_insert_location);
   }  /* if */
   /* The variables in the range-based-for IL don't have stmk-init statements
      associated with them, so they must be explicitly lowered here. */

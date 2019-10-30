@@ -1923,43 +1923,56 @@ cache passed by the caller are flushed.
 }  /* prescan_and_find_declarator */
 
 
-a_boolean is_start_of_range_based_for(void)
+a_token_kind find_for_loop_separator(void)
 /*
-This routine is called when the current token is tok_for of a for statement.
-Return TRUE if it is a ranged-based-for, FALSE if it is not.
+A helper routine for is_start_of_range_based_for that returns tok_colon or
+tok_semicolon according to which is found first in the token stream (skipping
+over any tok_colon tokens that are paired with tok_quest_mark).
 */
 {
+  a_token_set_array	stop_token_array;
+  unsigned int          question_count = 0;
+  a_token_kind          result;
   a_disambig_state	state;
-  a_boolean		result = FALSE;
 
   /* Initialize the disambiguation state block. */
   init_disambig_state(&state, /*check_if_is_decl=*/FALSE,
                       /*suppress_packs=*/FALSE,
                       /*cache_tokens=*/TRUE);
-  check_assertion(curr_token == tok_for);
-  (void)get_token();
-  if (curr_token == tok_coroutine_await) {
-    /* The await token actually implies a range-based-for statement, but it
-       doesn't hurt to just ignore it for disambiguation purposes. */
-    (void)get_token();
-  }  /* if */
-  if (curr_token == tok_lparen) {
-    a_token_set_array	stop_token_array;
-    (void)get_token();
-    /* Look for a "?", ":", or ";".  If we first find a ":", this is a
-       range-based-for. */
-    clear_token_set_array(stop_token_array);
-    incr_token_set_array_element(stop_token_array, tok_quest_mark);
-    incr_token_set_array_element(stop_token_array, tok_colon);
-    incr_token_set_array_element(stop_token_array, tok_semicolon);
+  clear_token_set_array(stop_token_array);
+  incr_token_set_array_element(stop_token_array, tok_quest_mark);
+  incr_token_set_array_element(stop_token_array, tok_colon);
+  incr_token_set_array_element(stop_token_array, tok_semicolon);
+  for (;;) {
     cache_token_stream_coalesce_identifiers((a_token_cache_ptr)NULL,
                                             stop_token_array);
-    result = curr_token == tok_colon;
-  }  /* if */
+    if (curr_token == tok_quest_mark) {
+      question_count++;
+    } else if (curr_token == tok_colon) {
+      if (question_count > 0) {
+        question_count--;
+      } else {
+        result = tok_colon;
+        break;
+      }  /* if */
+    } else if (curr_token == tok_end_of_source) {
+      result = tok_end_of_source;
+      break;
+    } else {
+      check_assertion(curr_token == tok_semicolon);
+      if (question_count == 0) {
+        result = tok_semicolon;
+        break;
+      } else {
+        result = tok_error;
+        break;
+      }  /* if */
+    }  /* if */
+    (void)get_token();
+  }  /* for */
   wrapup_disambig_state(&state);
   return result;
-}  /* is_start_of_range_based_for */
-
+}  /* find_for_loop_separator */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
 

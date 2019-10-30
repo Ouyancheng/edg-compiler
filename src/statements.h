@@ -283,9 +283,11 @@ typedef struct a_struct_stmt_stack_entry {
 			   of the scope stack in_discarded_statement flag
 			   at the beginning of processing the constexpr if. */
   a_bit_field	for_init:1;
-			/* TRUE if the structured statement is a for loop and
-			   the statement currently being processed is a
-			   for-init statement; FALSE otherwise. */
+			/* TRUE if the structured statement is a for loop
+			   or range-based for loop (it is not known yet which
+			   -- ssk_for is on the stack) and the statement
+			   currently being processed is an init-statement;
+			   FALSE otherwise. */
   a_bit_field	is_catch_clause:1;
 			/* TRUE if kind == ssk_compound and this structured
 			   statement represents the top level block of a

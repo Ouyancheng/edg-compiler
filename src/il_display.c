@@ -4891,6 +4891,8 @@ Display a range-based-for statement.
   disp_ptr("statement",
            (char *)ptr->variant.range_based_for_loop.statement,
            iek_statement);
+  disp_ptr("initialization", (char *)extra_info->initialization,
+           iek_statement);
   disp_ptr("iterator", (char *)extra_info->iterator,
            iek_variable);
   disp_ptr("range", (char *)extra_info->range,

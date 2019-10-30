@@ -2775,6 +2775,12 @@ option values if they were not already set by a command line option.
           nested_inline_namespace_definitions_enabled = TRUE;
         }  /* if */
       }  /* if */
+      if (microsoft_version >= 1925) {
+        /* Visual Studio 2019 version 16.5. */
+        if (ms_cpp20_mode) {
+          init_statement_allowed_in_range_based_for = TRUE;
+        }  /* if */
+      }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
          member functions "deleted", whereas Microsoft compilers prior to 1900
@@ -3610,6 +3616,7 @@ default mode (e.g., exception handling).
         va_opt_enabled = TRUE;
         nested_inline_namespace_definitions_enabled = TRUE;
         allow_parenthesized_aggregate_init = TRUE;
+        init_statement_allowed_in_range_based_for = TRUE;
         if (!option_kind_used[(int)optk_char8_t]) {
           char8_t_enabled = TRUE;
         }  /* if */
@@ -5023,6 +5030,8 @@ before this routine is called.
     operator_bool_increment_allowed = TRUE;
     if (gnu_version >= 90000) {
       nested_inline_namespace_definitions_enabled = TRUE;
+      /* Accepted with a warning in pre-C++20 modes. */
+      init_statement_allowed_in_range_based_for = TRUE;
     }  /* if */
     if (gnu_version >= 60000) {
       /* g++ allows specializations to use inaccessible members. */
@@ -12060,6 +12069,7 @@ variables declared in cmd_line.h.
   rvalue_allowed_with_const_qual_memptr = FALSE;
   va_opt_enabled = FALSE;
   char8_t_enabled = FALSE;
+  init_statement_allowed_in_range_based_for = FALSE;
 }  /* cmd_line_static_var_init */
 
 

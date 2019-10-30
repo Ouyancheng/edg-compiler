@@ -1919,6 +1919,7 @@ do_set_proper_definition_needed_flag:
     case iek_range_based_for_loop:
       {
 #define eptr ((a_range_based_for_loop_ptr)entry_ptr)
+        walk_ptr(eptr->initialization, a_statement_ptr, iek_statement);
         remap_ptr(eptr->iterator, a_variable_ptr, iek_variable);
         remap_ptr(eptr->range, a_variable_ptr, iek_variable);
         walk_ptr(eptr->range_based_for_scope, a_scope_ptr, iek_scope);

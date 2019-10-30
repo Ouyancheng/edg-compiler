@@ -3109,6 +3109,8 @@ ec_invalid_intaddr_address;;"operand of __INTADDR__ must be offset from null poi
 ec_ambiguous_c11_generic;;"_Generic construct matches multiple types"
 ec_ambiguous_c11_generic_previous_match;;"the other match is %t"
 ec_availability_attribute_ignored;;"the \"availability\" attribute used here is ignored"
+ec_init_stmt_in_range_for_nonstandard;;"C++20-style initializer statement in a range-based \"for\" statement is nonstandard in this mode"
+ec_co_await_on_non_range_based_for;;"co_await can only apply to a range-based for statement"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

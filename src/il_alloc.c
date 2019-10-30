@@ -3774,6 +3774,7 @@ static void clear_range_based_for_loop(a_range_based_for_loop_ptr rbflp)
 Clear the indicated range-based-for loop entry.
 */
 {
+  rbflp->initialization = NULL;
   rbflp->iterator = NULL;
   rbflp->range = NULL;
   rbflp->range_based_for_scope = NULL;

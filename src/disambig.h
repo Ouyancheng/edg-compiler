@@ -74,7 +74,7 @@ extern a_boolean is_func_declarator_start(void);
 extern
 a_type_ptr prescan_and_find_declarator(a_boolean     *is_friend_decl);
 
-extern a_boolean is_start_of_range_based_for(void);
+extern a_token_kind find_for_loop_separator(void);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
 extern void prescan_decl_modifiers(void);

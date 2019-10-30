@@ -14355,11 +14355,14 @@ Information about a range-based-for statement ([stmt.ranged]), pointed to from
 a stmk_range_based_for statement.  The range-based-for statement takes the
 form:
 
-  for ( for-range-declaration : for-range-initializer ) statement
+  for ( init-statement   for-range-declaration : for-range-initializer )
+                      opt
+    statement
 
 which is implemented as:
 
   {  // range_based_for_scope:
+    init-statement
     auto && __range = for-range-initializer;
     auto __begin = begin-expr;
     auto __end = end-expr;
@@ -14385,6 +14388,10 @@ stmk_init statements because there is no block yet for those statements.
 */
 typedef struct a_range_based_for_loop *a_range_based_for_loop_ptr;
 typedef struct a_range_based_for_loop {
+  a_statement_ptr
+                initialization;
+                        /* Pointer to an init-statement if the range-based
+                           for has one (C++20 and later), NULL otherwise. */
   a_variable_ptr
                 iterator;
                         /* Pointer to the iteration variable declared in

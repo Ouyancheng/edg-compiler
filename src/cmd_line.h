@@ -2512,6 +2512,11 @@ EXTERN a_boolean
 			/* TRUE if support for the C++20 char8_t type is
 			   enabled. */
 
+EXTERN a_boolean
+		init_statement_allowed_in_range_based_for;
+			/* TRUE if the range-based for statement can have
+			   an optional init-statement (C++20). */
+
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

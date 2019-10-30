@@ -1570,12 +1570,16 @@ should be set to TRUE.
 #endif /* UPC_EXTENSIONS_ALLOWED */
       case stmk_for:
         if (sssep->for_init) {
+          /* This "for" statement may end up being a range-based "for"
+             statement, in which case this initializer statement will be
+             moved to the proper variant. */
           head_ptr = &ssp->variant.for_loop.extra_info->initialization;
         } else {
           head_ptr = &ssp->variant.for_loop.statement;
         }  /* if */
         break;
       case stmk_range_based_for:
+        check_assertion(!sssep->for_init);
         head_ptr = &ssp->variant.range_based_for_loop.statement;
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5127,7 +5131,8 @@ Terminate the for-init block scope.
 static void for_init_statement(a_scope_pointers_block_ptr pointers_block)
 /*
 Scan the initializing expression or, in C++ or C99, declaration of a for
-statement.  A scope stack pointers block can be specified for cases where
+statement, or in C++20 for a range-based for statement with an optional
+init-statement.  A scope stack pointers block can be specified for cases where
 an iterator scope is pushed and needs to be reactivated.  pointers_block
 can be NULL.
 */
@@ -5199,7 +5204,9 @@ either an expression statement or a declaration statement.
 
 The range-based-for syntax ([stmt.ranged]) is:
 
-  for ( for-range-declaration : for-range-initializer ) statement
+  for ( init-statement   for-range-declaration : for-range-initializer )
+                      opt
+    statement
 
 In UPC mode, the "upc_forall" construct is also accepted.  It looks much
 like the standard "for" statement, except for the fourth expression.
@@ -5219,10 +5226,11 @@ The affinity can be an expression or the keyword "continue".
   an_expr_node_ptr           affinity_expr = NULL;
   a_statement_ptr            saved_innermost_forall_loop = NULL;
 #endif /* UPC_EXTENSIONS_ALLOWED */
-  a_source_position          stmt_pos, range_pos;
+  a_source_position          stmt_pos, range_pos, await_pos;
   a_token_sequence_number    expr_tok_seq_number;
   a_range_based_for_loop_ptr rbflp = NULL;
-  a_scope_pointers_block     iterator_pointers_block;
+  a_scope_pointers_block     iterator_pointers_block, rbf_pointers_block;
+  a_boolean                  use_await = FALSE;
 
   db_enter(3, "for_statement");
 
@@ -5244,43 +5252,100 @@ The affinity can be an expression or the keyword "continue".
 #endif /* UPC_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
   {
-    /* Disambiguate between a range-based-for and a plain-old-for statement. */
-    if (range_based_for_enabled && is_start_of_range_based_for()) {
-      sp = add_statement((a_statement_kind)stmk_range_based_for);
-      rbflp = sp->variant.range_based_for_loop.extra_info;
-      is_range_based_for = TRUE;
-    } else {
-      sp = add_statement((a_statement_kind)stmk_for);
-    }  /* if */
+    /* We don't know yet whether we have a "plain old" for loop or a range-
+       based for loop and they have different statement kinds.  Assume it's
+       a "plain old" for statement for now and fix it later if we find that
+       it's a range-based for. */
+    sp = add_statement((a_statement_kind)stmk_for);
   }  /* if */
   stmt_update_source_sequence_list(sp);
   /* Do processing required for any pragmas that are bound to the current
      statement. */
   process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Push an entry on the structured statement stack. */
-  push_stmt_stack(is_range_based_for ? ssk_range_based_for : ssk_for,
-                  sp, (an_object_lifetime_ptr)NULL);
-  /* Ignore the initial "for". */
+  push_stmt_stack(ssk_for, sp, (an_object_lifetime_ptr)NULL);
   check_assertion_str(processing_upc_forall || curr_token == tok_for,
                       "for_statement: expected for");
+  /* Consume the "for" token. */
   (void)get_token();
-  if (is_range_based_for && curr_token == tok_coroutine_await) {
-    rbflp->use_await = TRUE;
+  if (curr_token == tok_coroutine_await) {
+    use_await = TRUE;
+    await_pos = pos_curr_token;
     (void)get_token();
   }  /* if */
   /* Check for and skip the opening parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
+  if (!range_based_for_enabled ||
+      find_for_loop_separator() == tok_semicolon) {
+    /* This code is for "plain old" for statements (i.e., C, pre-C++11, UPC C)
+       as well as C++20 range-based for statements that can have an optional
+       init-statement.  Scan an initializing expression or declaration if it is
+       present.  It will be added to the correct place in the stmk_for entry.
+       */
+    add_stop_token(tok_semicolon);
+    for_init_statement(&iterator_pointers_block);
+    remove_stop_token(tok_semicolon);
+  }  /* if */
+  if (range_based_for_enabled && find_for_loop_separator() == tok_colon) {
+    /* Now that it is known that we're scanning a range-based for statement,
+       we need to go back and fix up the current statement and statement stack
+       to reflect this. */
+    a_for_loop_ptr       flip = sp->variant.for_loop.extra_info;
+    is_range_based_for = TRUE;
+    struct_stmt_stack[depth_stmt_stack].kind = ssk_range_based_for;
+    scope_stack_top().is_for_init_block = FALSE;
+    set_statement_kind(sp, stmk_range_based_for);
+    rbflp = sp->variant.range_based_for_loop.extra_info;
+    /* Copy any initialized items from flip to rbflp (flip will not be part
+       of the IL). */
+    rbflp->initialization = flip->initialization;
+    rbflp->range_based_for_scope = flip->for_init_scope;
+    rbflp->use_await = use_await;
+    if (rbflp->initialization != NULL) {
+      /* We scanned an initialization statement. */
+      a_source_position pos;
+      /* If the initialization statement has been turned into a block, use
+         the position information from the first statement in the block. */
+      if (rbflp->initialization->kind == (a_statement_kind)stmk_block &&
+          rbflp->initialization->position.seq == 0) {
+        pos = rbflp->initialization->variant.block.statements->position;
+      } else {
+        pos = rbflp->initialization->position;
+      }  /* if */
+      if (!init_statement_allowed_in_range_based_for) {
+        pos_error(ec_init_stmt_in_range_for_nonstandard, &pos);
+      } else if (gpp_mode && !cpp20_mode) {
+        /* GNU 9.0 and later allow an init-statement in pre-C++20 modes with a
+           warning. */
+        static a_boolean already_diagnosed = FALSE;
+        if (!already_diagnosed && !in_system_header()) {
+          pos_warning(ec_init_stmt_in_range_for_nonstandard, &pos);
+          already_diagnosed = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else if (use_await) {
+    /* co_await may only be applied to a range-based for. */
+    pos_error(ec_co_await_on_non_range_based_for, &await_pos);
+  }  /* if */
   if (is_range_based_for) {
     a_control_flow_descr_ptr  cfdp;
     /* A range-based-for has two scopes, both of which are pushed in
-       preparation for scanning the for-range-declaration. */
+       preparation for scanning the for-range-declaration (if an init-statement
+       was present, one of the scopes has already been pushed). */
     a_decl_parse_state dps;
-    rbflp->range_based_for_scope =
+    check_assertion(rbflp != NULL);
+    if (rbflp->range_based_for_scope == NULL) {
+      /* No optional initialization statement was present, so no scope has
+         been created for this statement yet; create the outermost scope. */
+      rbflp->range_based_for_scope =
                              start_fabricated_block_scope_for_enhanced_for(
-                                             (a_scope_pointers_block_ptr)NULL);
-    rbflp->iterator_scope = start_fabricated_block_scope_for_enhanced_for(
                                                      &iterator_pointers_block);
+    }  /* if */
+    /* Push the inner scope before scanning the declaration. */
+    rbflp->iterator_scope = start_fabricated_block_scope_for_enhanced_for(
+                                                          &rbf_pointers_block);
     /* Add a control flow entry to represent the range-based-for block. */
     cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
     cfdp->source_pos = pos_curr_token;
@@ -5308,19 +5373,16 @@ The affinity can be an expression or the keyword "continue".
     check_range_based_for_statement(sp,
                                     &range_pos,
                                     expr_tok_seq_number,
-                                    &iterator_pointers_block);
+                                    &rbf_pointers_block);
     /* Return to the iterator scope for the dependent statement. */
     push_block_reactivation_scope(rbflp->iterator_scope,
-                                  &iterator_pointers_block);
+                                  &rbf_pointers_block);
     if (dps.is_struct_binding_decl) {
       define_struct_bindings(&dps);
     }  /* if */
   } else {
     /* A plain-old-for loop (or a UPC forall). */
-    /* Scan the initializing expression or declaration if it is present.  It
-       will be added to the correct place in the stmk_for entry. */
     add_stop_token(tok_semicolon);
-    for_init_statement(&iterator_pointers_block);
     if (curr_token == tok_semicolon) {
       /* Controlling expression was omitted. */
     } else {
