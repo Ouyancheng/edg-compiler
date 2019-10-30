@@ -5295,7 +5295,7 @@ The affinity can be an expression or the keyword "continue".
     is_range_based_for = TRUE;
     struct_stmt_stack[depth_stmt_stack].kind = ssk_range_based_for;
     scope_stack_top().is_for_init_block = FALSE;
-    set_statement_kind(sp, stmk_range_based_for);
+    set_statement_kind(sp, (a_statement_kind)stmk_range_based_for);
     rbflp = sp->variant.range_based_for_loop.extra_info;
     /* Copy any initialized items from flip to rbflp (flip will not be part
        of the IL). */
