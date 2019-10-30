@@ -8756,7 +8756,7 @@ Full support of this attribute requires knowledge about the target operating
 system which the front end does not possess.  Invoke the
 check_availability_attr routine (intended to be replaced by customers) to
 determine whether the corresponding declaration should be made invisible.
-See https://clang.llvm.org/docs/AttributeReference.html#availability for
+See https://clang.llvm.org/docs/AttributeReference.html#availability for the
 entire attribute syntax (not parsed here).
 */
 {
