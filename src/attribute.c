@@ -4233,7 +4233,7 @@ and C11 _Alignas specifiers.
   a_boolean    use_last_attribute = !C_mode() && gnu_mode && !clang_mode &&
                                     (gnu_version < 40800 ||
                                      entity_kind == iek_type);
-  a_boolean    attribute_discarded = FALSE;
+  a_boolean    attribute_discarded = FALSE, err = FALSE;
   a_decl_parse_state
                *dps = (a_decl_parse_state*)ap->assoc_info;
 
@@ -4256,8 +4256,14 @@ and C11 _Alignas specifiers.
          entity to attach the attribute to, so this is treated as a
          type-transforming attribute (which will have a typeref with
          for_type_attributes set to TRUE). */
-      check_assertion(c11_mode);
-      constr = "T";
+      if (c11_mode) {
+        constr = "T";
+      } else {
+        /* This attribute should not appear here. */
+        pos_error(ec_attribute_not_allowed, &ap->position);
+        make_attr_unrecognized(ap);
+        err = TRUE;
+      }  /* if */
     } else {
       constr = "c|e|v:-r!-h!|d:-b!";
     }  /* if */
@@ -4281,7 +4287,8 @@ and C11 _Alignas specifiers.
     exclude_prior_attribute_kind(ak_appdomain, ap, entity, entity_kind);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (check_target_entity_match(constr, ap, entity, entity_kind) &&
+  if (!err &&
+      check_target_entity_match(constr, ap, entity, entity_kind) &&
       !is_unrecognized_attr(ap)) {
     an_attribute_arg_ptr  aap = ap->arguments;
     do {
