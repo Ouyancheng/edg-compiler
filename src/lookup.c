@@ -3259,6 +3259,14 @@ that do normal id lookup processing.
     a_scope_kind	kind;
     a_boolean		is_inline_namespace_to_skip;
     ssep = &scope_stack[curr_depth];
+    if (curr_scope_skipped && lookup_state->skip_curr_scope &&
+        lookup_state->hidden_name_lookup &&
+        ssep->kind == (a_scope_kind)sck_template_instantiation) {
+      /* If we skipped the current scope for a hidden name lookup and this
+         is a template instantiation scope immediately containing the one
+         we skipped, skip it, too. */
+      continue;
+    }  /* if */
     kind = ssep->kind;
 #if DEBUG
     if (debug_level >= 5 || db_flag_is_set("scope_stack_lookup")) {

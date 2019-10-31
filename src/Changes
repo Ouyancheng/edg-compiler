@@ -1,5 +1,19 @@
 Version 6.0
 
+10/31/19 [EDGcpfe/21927]
+C++-generating back end: missing qualification with template parameter hiding
+
+The C++-generating back end failed to use a qualified name to refer to an
+entity in a scope containing a template definition when the name of the
+entity is hidden by the name of a template parameter.  This is now fixed.
+For example:
+
+  int I;
+  template<int I> int f() { // Template parameter I hides ::I
+    return ::I;             // Previously generated as "return I;"
+  }
+
+
 10/30/19 [EDGcpfe/20007,EDGcpfe/21948]
 C++20: Range-based-for statements with initializer
 
