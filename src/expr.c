@@ -42700,7 +42700,7 @@ expression.
       if (rbflp->iterator != NULL) {
         expr_pos_error(rbflp->iterator->declared_with_decltype_auto ?
                          ec_cannot_deduce_decltype_auto_type :
-                         ec_cannot_deduce_auto_type,
+                         ec_cannot_deduce_type_in_range_based_for,
                        init_component_pos(alep));
       } else {
         expect_error();
