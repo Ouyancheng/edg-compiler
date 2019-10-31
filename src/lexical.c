@@ -18186,6 +18186,8 @@ it is a name that is part of a class member access (i.e., it follows a
                                                       options,
                                                       next_tok, err);
   } else if ((adl_for_non_visible_templates && is_name_start &&
+	      !(template_sym == NULL &&
+                caching_tokens && scope_stack_top().in_disambiguation) &&
               (options & GID_IS_EXPR_CONTEXT) != 0 &&
               (template_sym == NULL ||
                (is_function_symbol(template_sym) &&
@@ -18196,7 +18198,9 @@ it is a name that is part of a class member access (i.e., it follows a
     /* A function template symbol or overload set containing a function
        template symbol.  In C++20 (adl_for_non_visible_templates is TRUE)
        an undefined name or function name followed by "<" is treated
-       as a template name to cause ADL to be performed. */
+       as a template name to cause ADL to be performed.  Don't consider this
+       to be a not-yet-visible template during caching for disambiguation
+       purposes. */
     result_sym = coalesce_template_function_reference(template_sym,
                                                       next_tok, err);
   } else {
