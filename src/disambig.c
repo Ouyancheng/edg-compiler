@@ -1931,8 +1931,8 @@ over any tok_colon tokens that are paired with tok_quest_mark).
 */
 {
   a_token_set_array	stop_token_array;
-  unsigned int          question_count = 0;
-  a_token_kind          result;
+  unsigned int		question_count = 0;
+  a_token_kind		result;
   a_disambig_state	state;
 
   /* Initialize the disambiguation state block. */

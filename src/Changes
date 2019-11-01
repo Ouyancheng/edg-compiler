@@ -34,8 +34,7 @@ For example:
 C++20: Range-based-for statements with initializer
 
 An optional initializer statement is now allowed in a range-based-for
-statement in C++20 mode (or when microsoft_mode >= 1925).  See P0614R1
-for details.  For example (with --c++20):
+statement in C++20 mode.  See P0614R1 for details.  For example (with --c++20):
 
   void f() {
     int sum;

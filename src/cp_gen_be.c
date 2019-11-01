@@ -15676,7 +15676,7 @@ initializer).
 static void gen_init_statement_or_statement(a_statement_ptr  init_stmt)
 /*
 Utility to generate the appropriate type of statement for initializer
-statements in for statements, range-based for, selection statements, etc.
+statements in for statements, range-based for, and selection statements.
 */
 {
   if (init_stmt->kind == (a_statement_kind)stmk_decl) {
