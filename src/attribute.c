@@ -4225,7 +4225,7 @@ return that entity.  This is also the function called for the C++11 "alignas"
 and C11 _Alignas specifiers.
 */
 {
-  a_const_char *constr;
+  a_const_char *constr = NULL;
   a_boolean    std_specifier = is_std_attribute(ap) &&
                                !ap->is_std_gcc_attribute;
   /* g++ appears to use the last attribute in the declaration in earlier
@@ -4233,7 +4233,7 @@ and C11 _Alignas specifiers.
   a_boolean    use_last_attribute = !C_mode() && gnu_mode && !clang_mode &&
                                     (gnu_version < 40800 ||
                                      entity_kind == iek_type);
-  a_boolean    attribute_discarded = FALSE, err = FALSE;
+  a_boolean    attribute_discarded = FALSE;
   a_decl_parse_state
                *dps = (a_decl_parse_state*)ap->assoc_info;
 
@@ -4262,7 +4262,6 @@ and C11 _Alignas specifiers.
         /* This attribute should not appear here. */
         pos_error(ec_attribute_not_allowed, &ap->position);
         make_attr_unrecognized(ap);
-        err = TRUE;
       }  /* if */
     } else {
       constr = "c|e|v:-r!-h!|d:-b!";
@@ -4287,7 +4286,7 @@ and C11 _Alignas specifiers.
     exclude_prior_attribute_kind(ak_appdomain, ap, entity, entity_kind);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (!err &&
+  if (constr != NULL &&
       check_target_entity_match(constr, ap, entity, entity_kind) &&
       !is_unrecognized_attr(ap)) {
     an_attribute_arg_ptr  aap = ap->arguments;
