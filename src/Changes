@@ -60,10 +60,8 @@ fixed.  For example, with --c++17:
 10/29/19 [EDGcpfe/21910]
 Wrong end position on single-argument dynamic initialization
 
-The change for C++20 parenthesized aggregate initialization (EDGcpfe/20913)
-made in version 5.1 inadvertently caused the end position of some initializers
-that used a template constructor to be incorrect, in C++11 mode or later.  For
-example:
+The end position of some initializers that used a template constructor were
+incorrect in C++11 mode or later.  For example:
 
   template <class T> struct S1 {
     static const bool mem;
