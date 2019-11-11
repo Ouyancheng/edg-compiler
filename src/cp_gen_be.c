@@ -8212,6 +8212,21 @@ default arguments should be suppressed (needed for template specializations).
                                            param->declared_type : param->type;
           a_type_qualifier_set  extra_qual = param->declared_type != NULL ?
                                                   TQ_NONE : param->qualifiers;
+          if (is_generated_explicit_specialization &&
+              msvc_is_generated_code_target &&
+              msvc_target_version_number >= 1400) {
+            /* MSVC has a bug that prevents matching an explicit
+               specialization with a use of the corresponding instance if a
+               function parameter is not declared with the adjusted
+               parameter type.  For example,
+                 template<> void f(void (X::*)(int * const));
+               will not match but
+                 template<> void f(void (X::*)(int *));
+               will.  Use the actual (adjusted) type instead of the declared
+               type. */
+            param_type = param->type;
+            extra_qual = TQ_NONE;
+          }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
           gen_ms_attribute_block(param->ms_attributes);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

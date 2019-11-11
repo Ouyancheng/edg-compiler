@@ -1,5 +1,41 @@
 Version 6.0
 
+11/11/19 [EDGcpfe/21981]
+C++-generating back end: top-level pointer qualification in generated explicit
+specializations
+
+Recent versions of MSVC have a bug that prevents it from matching a use of
+a function template to an explicit specialization if the specialization has
+a parameter that is a function pointer or a member function pointer that
+has a pointer parameter with a cv-qualifier at the top level.  For example,
+given
+
+  template <typename T> void f(T) { }
+  void g(int * const) { }
+  void h() {
+    f(g);
+  }
+
+In a C++-generating back end configuration with
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS, the call "f(g)"
+resulted in an explicit specialization
+
+  template<> void f(void (*)(int * const)) { }
+
+The presence of the const qualifier on the parameter in the explicit
+specialization in the generated code prevented MSVC from matching the call
+"f(g)" to the explicit specialization; instead, MSVC implicitly
+instantiated f<void (*)(int *)>(void (*)(int *)) (which has the same type
+as the explicit specialization, since top-level cv-qualification of
+function parameters is dropped in determining the function type) and called
+that instance instead of the explicit specialization.
+
+To work around this MSVC bug, the C++-generating back end now drops
+top-level cv-qualification in parameters of generated explicit
+specializations of function templates when msvc_is_generated_code_target is
+TRUE and msvc_target_version_number is 1400 or greater.
+
+
 10/31/19 [EDGcpfe/21810]
 Clang compatibility: __builtin_operator_new and __builtin_operator_delete
 
