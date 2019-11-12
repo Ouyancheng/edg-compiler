@@ -716,6 +716,7 @@ static void gen_variable_name(a_variable_ptr var);
 static a_boolean template_should_be_generated_from_prototype_instantiation(
                                                 a_template_ptr  tp,
                                                 a_boolean       is_definition);
+static a_boolean in_prototype_instantiation_context(void);
 
 /*
 Macro that returns TRUE for a cast (eok_cast, eok_base_class_cast, etc.) if
@@ -1153,11 +1154,14 @@ This routine can be called for both C and C++.
   a_scope_ptr scope = NULL;
 
   check_assertion(is_immediate_class_type(class_type));
-  /* Watch out for nonreal classes, which do not have an associated scope. */
-  if (!C_mode() &&
-      !class_type->variant.class_struct_union.is_nonreal_class) {
+  if (!C_mode()) {
     scope = class_type->variant.class_struct_union.extra_info->assoc_scope;
-    check_assertion(scope != NULL);
+    /* Watch out for nonreal classes, which do not have an associated
+       scope.  Also, uses of members of incomplete class types can appear
+       in template definitions. */
+    check_assertion(scope != NULL ||
+                    class_type->variant.class_struct_union.is_nonreal_class ||
+                    in_prototype_instantiation_context());
   }  /* if */
   push_name_context_full(scope, class_type,
                          /*restrict_to_class_base_list=*/FALSE);
