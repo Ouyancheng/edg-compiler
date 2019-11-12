@@ -7108,11 +7108,11 @@ expression context) rather than a declaration.
       reset_has_deduced_type = TRUE;
     }  /* if */
     if (dps.dso_flags & DSO_INLINE) {
-      if (inline_variables_allowed) {
-        var_ptr->is_inline = TRUE;
+      if (accept_inline_variables(&dps.inline_pos)) {
+        mark_inline_variable(var_ptr, /*is_definition=*/TRUE);
       } else {
         /* Inline may not be specified. */
-        pos_error(ec_inline_and_nonfunction, &dps.specifiers_pos);
+        pos_error(ec_inline_and_nonfunction, &dps.inline_pos);
       }  /* if */
     }  /* if */
     if (var_ptr->initializer_in_class && !var_ptr->is_inline &&
@@ -30011,11 +30011,11 @@ that follows.
         check_assertion(vp != NULL);
         vp->is_specialized = TRUE;
         if (dso_flags & DSO_INLINE) {
-          if (inline_variables_allowed) {
+          if (accept_inline_variables(&dps->inline_pos)) {
             vp->is_inline = TRUE;
           } else {
             /* Inline may not be specified. */
-            pos_error(ec_inline_and_nonfunction, &dps->specifiers_pos);
+            pos_error(ec_inline_and_nonfunction, &dps->inline_pos);
           }  /* if */
         }  /* if */
         attach_decl_attributes(dps, dps->is_definition);

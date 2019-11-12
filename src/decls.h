@@ -1752,6 +1752,12 @@ extern void f_record_strongest_alignment_attr(
                                         a_boolean               is_defined,
                                         a_boolean               is_definition);
  
+extern a_boolean check_nonstd_inline_variables(a_source_position  *pos);
+
+#define accept_inline_variables(pos)                                          \
+  (inline_variables_allowed ||                                                \
+   (gpp_mode && check_nonstd_inline_variables(pos)))
+
 extern void mark_inline_variable(a_variable_ptr var,
                                  a_boolean      is_definition);
 

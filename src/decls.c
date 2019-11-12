@@ -17131,7 +17131,7 @@ is_variable_decl is TRUE if a variable declaration is being processed.
   /* The "inline" specifier should only appear on function declarations,
      except in C++17 where it can also appear on some variable declarations. */
   if (state->dso_flags & DSO_INLINE) {
-    if (is_variable_decl && inline_variables_allowed) {
+    if (is_variable_decl && accept_inline_variables(&state->inline_pos)) {
       /* Allowed in some locations. */
     } else {
       pos_diagnostic(gcc_mode ? es_warning : es_error,
@@ -18134,6 +18134,31 @@ reference was applied on top of the type we're looking for.
 }  /* decltype_for_struct_binding */
 
 
+a_boolean check_nonstd_inline_variables(a_source_position  *pos)
+/*
+Return TRUE if this is a GCC or Clang mode that should accept inline variables
+even though they are not a feature of the current mode (e.g., in a pre-C++17
+mode).  In system headers, no diagnostic is issued.  Otherwise, a warning might
+be issued, after which inline variable support is enabled "as if" it were part
+of the current mode (to avoid further warnings).  pos is the position for which
+to issue a diagnostic (if any).
+*/
+{
+  a_boolean  result;
+
+  if (gpp_version_is(>= 70000) || clangcpp_version_is(>= 30900)) {
+    if (!seq_is_in_system_header(pos->seq)) {
+      pos_warning(ec_inline_variables_nonstandard, pos);
+      inline_variables_allowed = TRUE;
+    }  /* if */
+    result = TRUE;
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* check_nonstd_inline_variables */
+
+
 void mark_inline_variable(a_variable_ptr var,
                           a_boolean      is_definition)
 /*
@@ -18445,9 +18470,11 @@ if one is present.
     } else if (state->has_deducible_class_templ_args) {
       var_ptr->declared_with_class_template_placeholder = TRUE;
     }  /* if */
-    if (inline_variables_allowed && (state->dso_flags & DSO_INLINE) != 0) {
+    if ((state->dso_flags & DSO_INLINE) != 0) {
       /* An inline variable. */
-      mark_inline_variable(var_ptr, is_variable_def);
+      if (accept_inline_variables(&state->inline_pos)) {
+        mark_inline_variable(var_ptr, is_variable_def);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (is_variable_def || is_tentative_def) {

@@ -28867,7 +28867,7 @@ that is provided if this is a member template declaration.
       discard_curr_construct_pragmas();
       break;
     } else if (dso_flags & DSO_INLINE &&
-               !(inline_variables_allowed &&
+               !(accept_inline_variables(&dps->inline_pos) &&
                  dps->storage_class == (a_storage_class)sc_static)) {
       /* The "inline" keyword is allowed on static data members when inline
          variables are enabled.  For an attempt to declare an inline

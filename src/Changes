@@ -1,5 +1,17 @@
 Version 6.0
 
+11/12/19 [EDGcpfe/21982]
+GCC & Clang compatibility: inline variables in pre-C++17 modes
+
+In GNU and Clang modes the front end now accepts inline variable declarations
+in pre-C++17 modes when, gnu_version >= 70000 or clang_version >= 30900,
+respectively.  A warning is issued the first time such nonstandard code is
+encountered outside a system header.  For example:
+
+  inline int x = 32;  // Now accepted with a warning in some GNU and Clang
+                      // C++14 modes.
+
+
 11/12/19 [EDGcpfe/21918]
 C++-generating back end: abort with non-dependent reference to incomplete class
 
