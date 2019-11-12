@@ -9724,6 +9724,7 @@ Do IL lowering of the indicated variable and everything under it.
 #endif /* IA64_ABI */
 #if LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS
     if (variable->is_inline &&
+        variable->storage_class != (a_storage_class)sc_extern &&
         variable->source_corresp.name_linkage !=
                                           (a_name_linkage_kind)nlk_internal &&
         inline_variables_in_comdat) {

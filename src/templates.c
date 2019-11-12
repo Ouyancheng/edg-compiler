@@ -7011,6 +7011,7 @@ expression context) rather than a declaration.
     add_to_variables_list(var_ptr, NO_SCOPE_DEPTH);
     /* Copy the in-class initializer flag from the prototype instantiation. */
     var_ptr->initializer_in_class = proto_var->initializer_in_class;
+    var_ptr->is_inline = proto_var->is_inline;
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (is_var_templ_instance && var_ptr->declared_type == NULL &&
@@ -7052,6 +7053,10 @@ expression context) rather than a declaration.
     a_boolean	has_parenthesized_initializer;
     a_boolean	is_constant_member;
     a_boolean	reset_has_deduced_type = FALSE;
+    if (var_ptr->storage_class == (a_storage_class)sc_extern &&
+        is_definition) {
+      var_ptr->storage_class = (a_storage_class)sc_unspecified;
+    }  /* if */
     is_constant_member = var_ptr->initializer_in_class &&
                          is_const_qualified_type(var_ptr->type);
     rescan_reusable_cache(&body_cache->tokens);
