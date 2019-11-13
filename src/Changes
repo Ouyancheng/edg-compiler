@@ -29,7 +29,7 @@ utilities, like the IL display program.  That problem is now fixed.
 GCC & Clang compatibility: inline variables in pre-C++17 modes
 
 In GNU and Clang modes the front end now accepts inline variable declarations
-in pre-C++17 modes when, gnu_version >= 70000 or clang_version >= 30900,
+in pre-C++17 modes when gnu_version >= 70000 or clang_version >= 30900,
 respectively.  A warning is issued the first time such nonstandard code is
 encountered outside a system header.  For example:
 
