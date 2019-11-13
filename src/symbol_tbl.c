@@ -12522,14 +12522,15 @@ this one.
   } else if (proj_sym->kind == (a_symbol_kind)sk_projection &&
              ((proj_sym->variant.projection.is_using_decl &&
 	       !(strict_ansi_mode || (gpp_mode && gnu_version < 30400))) ||
-	      proj_sym->variant.projection.any_intervening_using_decl)) {
+	      (symbol_is(sym, sk_projection) && sym == proj_sym))) {
     /* We do not have access to the member in this class, and the symbol
        here is a using-declaration.  Core Issue 360 suggests that we should
        not look for access in a base class.  Since that issue is still
        open (January 2012), the standard still requires the base class
        access check, so we do it in strict mode.  If the projection symbol
-       results from an inherited using-declaration we do the access check
-       on that using-declaration. */
+       is the same as the fundamental symbol, we got here from a recursive
+       call using the adjusted symbol from the any_intevening_using_decl
+       test below. */
     /* have_access = FALSE;  -- already set. */
   } else {
     /* We do not have access to the member in this class, but perhaps we
@@ -12539,6 +12540,13 @@ this one.
        to the fundamental base class, continuing as long as the base
        class at each step is accessible from the original class, and we
        check for special access at each step. */
+    if (proj_sym->variant.projection.any_intervening_using_decl &&
+        proj_sym->parent.class_type == viewpoint_class) {
+      /* If there is an intervening using-declaration, do the remaining part
+         of the access check on the using-declaration in place of the original
+         symbol. */
+      sym = proj_sym;
+    }  /* if */
     if (path == NULL) {
       /* If sym is the specific symbol chosen from an overload set
          designated by proj_sym, it might be a projection symbol itself.
