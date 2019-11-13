@@ -5610,7 +5610,8 @@ returned set to TRUE.
   if (!var_err) {
     /* There was no error that precludes initialization, so update the
        variable entry with the initializer. */
-    a_routine_ptr  dtor = NULL;
+    a_routine_ptr    dtor = NULL;
+    a_statement_ptr  init_stmt = NULL;
     vp->has_explicit_initializer = TRUE;
     /* Remember whether the initializer uses the "()" form or the "=" form. */
     vp->has_parenthesized_initializer = parenthesized_initializer;
@@ -5721,7 +5722,6 @@ returned set to TRUE.
     if (init_dip != NULL) {
       /* Generate a dynamic initialization entry, attach it to the variable,
          and generate an stmk_init statement. */
-      a_statement_ptr init_stmt;
       gen_dynamic_initialization(vp, init_dip, &local_static_var_init,
                                  source_pos, decl_pos_block, &init_stmt);
 #if MICROSOFT_EXTENSIONS_ALLOWED && DO_IL_LOWERING
@@ -5785,6 +5785,24 @@ returned set to TRUE.
       vp->initializer.constant = init_con;
     }  /* if */
     check_constant_valued_variable(dps);
+    if (init_stmt != NULL) {
+      /* The call to check_constant_valued_variable may have folded the dynamic
+         initializer of vp into a new dik_constant entry.  If that is the case,
+         init_stmt must be updated to point to the corresponding initialization
+         entry. */
+      an_init_kind       init_kind;
+      an_initializer_ptr init;
+      if (local_static_var_init != NULL) {
+        init_kind = local_static_var_init->init_kind;
+        init = &local_static_var_init->initializer;
+      } else {
+        init_kind = vp->init_kind;
+        init = &vp->initializer;
+      }  /* if */
+      if (init_kind == (an_init_kind)initk_dynamic) {
+        init_stmt->variant.dynamic_init = init->dynamic;
+      }  /* if */
+    }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     if (decl_pos_block != NULL) {
       vp->initializer_range = decl_pos_block->var_init_range;
