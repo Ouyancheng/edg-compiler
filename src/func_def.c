@@ -611,7 +611,7 @@ associated with a variadic parameter, but not the initial one.
 {
   a_symbol_ptr      sym;
   a_variable_ptr    vp;
-  a_type_ptr        tp;
+  a_type_ptr        tp, utp;
   a_symbol_locator  locator;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean         is_real_instantiation = function_instantiation &&
@@ -654,8 +654,18 @@ associated with a variadic parameter, but not the initial one.
     }  /* if */
 #endif /* CHECKING */
   }  /* if */
-  complete_type_is_needed(tp);
-  if (is_incomplete_type(tp)) {
+  utp = skip_typerefs(tp);
+  if (is_immediate_class_type(utp)) {
+    complete_type_is_needed(utp);
+#if REQUIRE_DESTRUCTORS_FOR_PARAMETER_VARIABLES
+    if (class_symbol_supp(symbol_for(utp))->destructor != NULL) {
+      a_symbol_ptr   dtor_sym = class_symbol_supp(symbol_for(utp))->destructor;
+      a_routine_ptr  dtor = dtor_sym->variant.routine.ptr;
+      mark_routine_referenced(dtor);
+    }  /* if */
+#endif /* REQUIRE_DESTRUCTORS_FOR_PARAMETER_VARIABLES */
+  }  /* if */
+  if (utp->incomplete) {
     /* Incomplete type is not allowed. */
     pos_error(incomplete_type_err_code(tp), &param_id->type_pos);
     tp = ptp->type = error_type();

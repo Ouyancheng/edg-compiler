@@ -3512,6 +3512,17 @@ sun_target_version_number.
 #endif /* SUN_TARGET_VERSION_NUMBER */
 
 /*
+Macro that is TRUE if a function definition with a parameter of a class type
+with a destructor should cause that destructor to be marked as referenced.
+This can affect whether the destructor definition is instantiated, and reflects
+certain ABIs (e.g., by Microsoft) that have the callee destroy parameter
+variables.
+*/
+#ifndef REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES
+#define REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES FALSE
+#endif /* REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES */
+
+/*
 Switch that is TRUE if bugs in some versions of MSVC++ regarding
 value-initialization should be emulated.  This is desirable in products
 that are trying to detect uninitialized values, but not in general.

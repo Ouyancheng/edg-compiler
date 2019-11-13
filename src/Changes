@@ -1,5 +1,33 @@
 Version 6.0
 
+11/13/19 [EDGcpfe/21289]
+Parameter variables with destructors
+
+Consider the following program:
+
+  template<typename T> struct D { ~D(); };
+  template<typename T> inline D<T>::~D() {}
+  template<typename T> X: D<T> {};
+  void g(D<int>) {}
+  int main() { return 0; }
+
+With the ABIs supported by the front end (IA64 and Cfront), parameter variables
+are destroyed by the caller of a function.  As a result, this program does not
+reference the destructor of D<int> because g(D<int>) is never called.  However,
+in Microsoft's nonstandard ABI (not implemented in the front end), the callee
+is responsible for destroying its parameter variables, and so the Microsoft
+compiler would instantiate the destructor of D<int> when it processes the
+definition of g(D<int>).  In C++-generating back end configurations with
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS, the destructor
+definition of D<int> will normally not be emitted (since it is not referenced),
+and when that output is passed to the Microsoft compiler a linker error will
+ensue.  To compensate for this, a few configuration macro
+REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES can not be set to TRUE to force the
+destructors for parameter variables to be marked as referenced when a function
+is defined.  With that macro set to TRUE, the C++-generating back end will then
+emit the destructor definition of D<int> in the above example.
+
+
 11/12/19 [EDGcpfe/21949]
 IL write-read abort after folding local variable initializer
 
