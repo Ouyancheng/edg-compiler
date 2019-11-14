@@ -27858,11 +27858,6 @@ that case.
        array, to appear in constant expressions. */
     expr_stack->allow_array_decay_in_constant_expr = TRUE;
   }  /* if */
-  if (gnu_mode && !clang_mode && expr_stack->traditional_const_expr_required) {
-    /* GCC more generally folds x==x. */
-    restore_traditional_const_expr_context = TRUE;
-    expr_stack->traditional_const_expr_required = FALSE;
-  }  /* if */
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
     operator_token = rcblock->operator_token;
@@ -27879,6 +27874,11 @@ that case.
     /* Scan the second operand. */
     (void)get_token();
     scan_expr(&operand_2, PREC_EQ_NE, EOPT_NO_OPTIONS);
+  }  /* if */
+  if (gnu_mode && !clang_mode && expr_stack->traditional_const_expr_required) {
+    /* GCC more generally folds x==x. */
+    restore_traditional_const_expr_context = TRUE;
+    expr_stack->traditional_const_expr_required = FALSE;
   }  /* if */
   process_eq_operator(operand_1, &operand_2, operator_token,
                       &operator_position, operator_tok_seq_number, result);
