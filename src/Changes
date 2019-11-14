@@ -1,5 +1,25 @@
 Version 6.0
 
+11/14/19 [EDGcpfe/22019]
+Microsoft compatibility: spurious error on dependent virtual function
+
+When Microsoft nonreal base class lookup is enabled, a spurious error
+could be produced during the nonreal instantiation of such a base class
+if it included a pure specifier but did not include the "virtual" keyword.
+Now fixed.
+
+  template <typename T> struct A {
+    virtual int f(T x) = 0;
+  };
+  template <typename T> struct B : public A<T> {
+    int f(T x) override = 0;
+  };
+  template <typename T> struct C : public B<T> {
+    int f(T){return 0;}
+  };
+  C<int> ci;
+
+
 11/13/19 [EDGcpfe/21289]
 Parameter variables with destructors
 

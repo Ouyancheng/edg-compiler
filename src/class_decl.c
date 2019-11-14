@@ -16462,7 +16462,9 @@ func_info describe the current member function declaration.
                    rout_sym->variant.routine.ptr;
     pure_specifier_allowed = rout->is_virtual;
     if (!pure_specifier_allowed &&
-        class_type->variant.class_struct_union.is_prototype_instantiation) {
+        (class_type->variant.class_struct_union.is_prototype_instantiation ||
+         class_type->variant.class_struct_union.
+                                           is_ms_instantiated_nonreal_class)) {
       /* If class_type has a template-dependent base, the routine might be an
          overrider of a virtual function in that base, which means the routine
          would be virtual too.  In such cases we must also allow the pure
