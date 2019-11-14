@@ -17451,6 +17451,10 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
       /* Skip past the tok_end_of_source. */
       (void)get_token();
     } else if (parent_class != NULL || is_deduction_guide) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      /* Set the declared type. */
+      tip->declared_type = templ_rout->declared_type;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       if (is_deduction_guide ||
           (templ_rout->compiler_generated &&
            (templ_rout->is_inheriting_ctor ||

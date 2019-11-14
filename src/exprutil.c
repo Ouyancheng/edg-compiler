@@ -21059,7 +21059,7 @@ cases so we don't do it here.
     } else {
       using_lvalue(operand);
       check_assertion(is_expression_operand(operand));
-      node = operand->variant.expression;
+      node = make_node_from_operand(operand);
       check_assertion(is_glvalue_node(node));
       if (gcc_mode && gcc_const_variables_allowed) {
         /* GCC allows const variables to be used in constant expressions in

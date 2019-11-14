@@ -1,5 +1,26 @@
 Version 6.0
 
+11/14/19 [EDGcpfe/22021]
+Abort while substituting nontype template parameter during deduction
+
+In some situations where a constexpr variable initialized with a nontype
+template parameter needs substitution during template argument deduction, the
+front end could abort in get_expr_rescan_info ("missing default rescan info",
+in exprutil.c).  For example:
+
+  template<typename T> struct W { using Type = T; };
+  template<typename, int N = 42> struct X {
+    static constexpr int num = N;
+    template <int = num> constexpr X() {}
+  };
+  template<typename C> X(C &) -> X<typename C::Type>;
+  void g(W<char> x) {
+    X{ x };
+  }
+
+That is now fixed.
+
+
 11/14/19 [EDGcpfe/22019]
 Microsoft compatibility: spurious error on dependent virtual function
 
