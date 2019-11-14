@@ -41,8 +41,8 @@ definition of g(D<int>).  In C++-generating back end configurations with
 NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS, the destructor
 definition of D<int> will normally not be emitted (since it is not referenced),
 and when that output is passed to the Microsoft compiler a linker error will
-ensue.  To compensate for this, a few configuration macro
-REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES can not be set to TRUE to force the
+ensue.  To compensate for this, a new configuration macro
+REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES can now be set to TRUE to force the
 destructors for parameter variables to be marked as referenced when a function
 is defined.  With that macro set to TRUE, the C++-generating back end will then
 emit the destructor definition of D<int> in the above example.
