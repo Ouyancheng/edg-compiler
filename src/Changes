@@ -1,5 +1,20 @@
 Version 6.0
 
+11/14/19 [EDGcpfe/22024]
+Issue with inline variables when using INSTANTIATE_INLINE_VARIABLES
+
+INSTANTIATE_INLINE_VARIABLES is used in environments that do not have COMDAT
+support to use the prelinker to provide a single definition of inline
+variables.  This did not work properly in some cases involving dynamic
+initialization.  This could result in a prelinker loop.  Now fixed.
+
+  int f() { return 1; }
+  struct A {
+    inline static int I = f();
+  };
+  int main() { }
+
+
 11/14/19 [EDGcpfe/22021]
 Abort while substituting nontype template parameter during deduction
 

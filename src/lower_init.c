@@ -18155,6 +18155,10 @@ enough to cause the back end to invoke the routine at initialization.
         /* If we're processing thread_local initializations and this isn't
            one of them, skip it. */
         process_dip = FALSE;
+      } else if (var->suppress_inline_definition) {
+        /* Skip inline variables whose definition should be suppressed.  This
+           is used when instantiate_inline_variables is TRUE. */
+        process_dip = FALSE;
       }  /* if */
 #if ONE_INSTANTIATION_PER_OBJECT
       if (one_instantiation_per_object &&
@@ -18281,6 +18285,11 @@ enough to cause the back end to invoke the routine at initialization.
       var = dip->variable;
       if (ignore_variable_in_back_end(var)) {
         /* Don't lower prototype instantiations of static data members. */
+        continue;
+      }  /* if */
+      if (var->suppress_inline_definition) {
+        /* Skip inline variables whose definition should be suppressed.  This
+           is used when instantiate_inline_variables is TRUE. */
         continue;
       }  /* if */
       if (var->is_inline
