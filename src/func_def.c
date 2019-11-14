@@ -657,13 +657,13 @@ associated with a variadic parameter, but not the initial one.
   utp = skip_typerefs(tp);
   if (is_immediate_class_type(utp)) {
     complete_type_is_needed(utp);
-#if REQUIRE_DESTRUCTORS_FOR_PARAMETER_VARIABLES
+#if REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES
     if (class_symbol_supp(symbol_for(utp))->destructor != NULL) {
       a_symbol_ptr   dtor_sym = class_symbol_supp(symbol_for(utp))->destructor;
       a_routine_ptr  dtor = dtor_sym->variant.routine.ptr;
       mark_routine_referenced(dtor);
     }  /* if */
-#endif /* REQUIRE_DESTRUCTORS_FOR_PARAMETER_VARIABLES */
+#endif /* REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES */
   }  /* if */
   if (utp->incomplete) {
     /* Incomplete type is not allowed. */
