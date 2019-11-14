@@ -15,7 +15,7 @@ in exprutil.c).  For example:
   };
   template<typename C> X(C &) -> X<typename C::Type>;
   void g(W<char> x) {
-    X{ x };
+    X{ x };  // Previously triggered an abort.  Now a normal error.
   }
 
 That is now fixed.
