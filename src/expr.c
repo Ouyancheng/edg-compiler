@@ -35621,7 +35621,7 @@ which of the various keywords was used.
     name_var->source_corresp.is_local_to_function = TRUE;
     name_var->init_kind = (an_init_kind)initk_static;
     name_var->initializer.constant = name_string;
-    if (clang_mode) {
+    if (gpp_mode || clang_mode) {
       /* Clang appears to declare these variables "constexpr".  That enables
          code like "int main() { constexpr char p = __func__[0]; }". */
       name_var->is_constexpr = TRUE;

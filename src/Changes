@@ -1,5 +1,13 @@
 Version 6.0
 
+11/14/19 [EDGcpfe/21971]
+GNU C++ compatibility: __func__, __FUNCTION__, and __PRETTY_FUNCTION__
+
+In GNU C++ mode, the static variables corresponding to __func__, __FUNCTION__,
+and __PRETTY_FUNCTION__ are now declared "constexpr".  This just extends the
+changes for EDGcpfe/20207 (see entry of 9/27/18) to GNU C++ mode.
+
+
 11/14/19 [EDGcpfe/21986]
 Direct-initialization in explicit variable template specializations
 
