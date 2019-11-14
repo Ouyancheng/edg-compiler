@@ -1,5 +1,20 @@
 Version 6.0
 
+11/14/19 [EDGcpfe/21986]
+Direct-initialization in explicit variable template specializations
+
+The front end previously treated direct-initialization in explicit variable
+template specializations as if it were copy-initialization.  That, for example,
+caused erroneous type deduction in some cases.  For example:
+
+  #include <initializer_list>
+  template<typename> constexpr auto &v{"x"};
+  template<> inline constexpr auto &v<bool>{"y"};  // Previously an error.
+                                                   // Now okay.
+
+That is now fixed.
+
+
 11/14/19 [EDGcpfe/22024]
 Issue with inline variables when using INSTANTIATE_INLINE_VARIABLES
 

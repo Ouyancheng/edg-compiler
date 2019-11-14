@@ -30059,8 +30059,12 @@ that follows.
              a definition). */
           complete_type_is_needed(vp->type);
           if (curr_token != tok_semicolon) {
-            /* Advance past "=". */
-            if (curr_token == tok_assign) (void)get_token();
+            if (!has_parenthesized_initializer && curr_token == tok_assign) {
+              /* Advance past the "=". */
+              (void)get_token();
+            } else {
+              dps->has_direct_initializer = TRUE;
+            }  /* if */
             initializer(dps, &locator.source_position, idl_external,
                         has_parenthesized_initializer,
                         &incomplete_type_error_reported, &decl_pos_block);
