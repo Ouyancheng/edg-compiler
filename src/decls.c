@@ -14696,6 +14696,7 @@ it's a definition and NULL otherwise).
   a_boolean		      initial_decl_of_namespace_std = FALSE;
   an_attribute_ptr            attributes = NULL;
   a_boolean	              nested_namespace_is_inline = FALSE;
+  a_source_position           attr_token_pos = null_source_position;
 
   db_enter(3, "namespace_declaration");
   *ns_definition_sym = NULL;
@@ -14723,6 +14724,10 @@ it's a definition and NULL otherwise).
     /* Bypass "namespace". */
     (void)get_token();
     if (namespace_attributes_enabled) {
+      if (std_attribute_tokens_next()) {
+        /* Save attribute position in case we need to give an error later. */
+        attr_token_pos = pos_curr_token;
+      }  /* if */
       /* Scan any standard attributes. */
       attributes = scan_attributes(al_namespace);
     }  /* if */
@@ -14877,11 +14882,16 @@ it's a definition and NULL otherwise).
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   def_start_pos = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (attributes != NULL &&
-      (is_namespace_alias || is_enclosing_namespace_specifier)) {
+  if ((is_namespace_alias || is_enclosing_namespace_specifier)) {
     /* Attributes aren't allowed on namespace aliases or nested namespaces. */
-    pos_error(ec_attribute_not_allowed, &attributes->position);
-    attributes = NULL;
+    if (attributes != NULL) {
+      pos_error(ec_attribute_not_allowed, &attributes->position);
+      attributes = NULL;
+    } else if (attr_token_pos.seq != 0) {
+      /* An attribute had been present, but was removed by attribute processing
+         (e.g., because it was an unknown attribute).  Issue an error. */
+      pos_error(ec_attribute_not_allowed, &attr_token_pos);
+    }  /* if */
   }  /* if */
   if (depth_scope_stack != depth_innermost_namespace_scope) {
     /* The current scope is not the file scope or a namespace scope. */

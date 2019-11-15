@@ -1,5 +1,16 @@
 Version 6.0
 
+11/15/19 [EDGcpfe/20890]
+Attributes on nested namespace declarations
+
+Attributes are not allowed on nested namespace declarations and the front
+end had diagnosed such cases, but if the attribute had been an attribute
+that was not known to the front end, a warning rather than an error had
+been given.
+
+  namespace [[foo]] A::B {}   // Now an error as well as a warning.
+
+
 11/15/19 [EDGcpfe/20677,EDGcpfe/20882,EDGcpfe/21204,EDGcpfe/21213]
 GNU/clang compatibility: diagnostics for incorrectly applied attributes
 
