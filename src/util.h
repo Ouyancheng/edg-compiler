@@ -524,13 +524,13 @@ inline Dyn_array<an_Elem, an_Allocator>::~Dyn_array()
 Destructor.
 */
 {
-  an_elem  *elems = this->elems;
+  an_elem  *arr_elems = this->elems;
   a_size   n = this->n_elems;
 
   for (a_size k = 0; k < n; ++k) {
-    destroy(elems+k);
+    destroy(arr_elems+k);
   }  /* for */
-  this->dealloc(an_allocation{ this->elems, this->n_allocated });
+  this->dealloc(an_allocation{ arr_elems, this->n_allocated });
 }  /* Dyn_array::~Dyn_array */
 
 
@@ -595,14 +595,14 @@ Copy the given value into the position after the currently-last element.
 Allocate new storage if needed.
 */
 {
-  a_size  n_elems = this->n_elems;
+  a_size  n = this->n_elems;
 
-  if (n_elems == this->n_allocated) {
+  if (n == this->n_allocated) {
     this->grow();
-    n_elems = this->n_elems;
+    n = this->n_elems;
   }  /* if */
-  construct(this->elems+n_elems, value);
-  this->n_elems = n_elems+1;
+  construct(this->elems+n, value);
+  this->n_elems = n+1;
 }  /* Dyn_array::push_back */
 
 
@@ -613,13 +613,13 @@ Move the given value into the position after the currently-last element.
 Allocate new storage if needed.
 */
 {
-  a_size  n_elems = this->n_elems;
+  a_size  n = this->n_elems;
 
-  if (n_elems == this->n_allocated) {
+  if (n == this->n_allocated) {
     this->grow();
   }  /* if */
-  construct(this->elems+n_elems, move_from(&value));
-  this->n_elems = n_elems+1;
+  construct(this->elems+n, move_from(&value));
+  this->n_elems = n+1;
 }  /* Dyn_array::push_back */
 
 
@@ -631,18 +631,18 @@ Copy-insert the given value at the given index.  All subsequent values (if any)
 are first moved one position up.
 */
 {
-  a_size  n_elems = this->n_elems;
+  a_size  n = this->n_elems;
 
   if (n_elems == this->n_allocated) {
     this->grow();
   }  /* if */
-  an_elem  *elems = this->elems;
-  for (an_index k = n_elems; k>i; --k) {
-    construct(elems+k, move_from(elems+k-1));
-    destroy(elems+k-1);
+  an_elem  *arr_elems = this->elems;
+  for (an_index k = n; k>i; --k) {
+    construct(arr_elems+k, move_from(arr_elems+k-1));
+    destroy(arr_elems+k-1);
   }  /* for */
-  construct(elems+i, value);
-  this->n_elems = n_elems+1;
+  construct(arr_elems+i, value);
+  this->n_elems = n+1;
 }  /* Dyn_array::insert */
 
 
@@ -654,18 +654,18 @@ Move-insert the given value at the given index.  All subsequent values (if any)
 are first moved one position up.
 */
 {
-  a_size  n_elems = this->n_elems;
+  a_size  n = this->n_elems;
 
-  if (n_elems == this->n_allocated) {
+  if (n == this->n_allocated) {
     this->grow();
   }  /* if */
-  an_elem  *elems = this->elems;
-  for (an_index k = n_elems; k>i; --k) {
-    construct(elems+k, move_from(elems+k-1));
-    destroy(elems+k-1);
+  an_elem  *arr_elems = this->elems;
+  for (an_index k = n; k>i; --k) {
+    construct(arr_elems+k, move_from(arr_elems+k-1));
+    destroy(arr_elems+k-1);
   }  /* for */
-  construct(elems+i, move_from(&value));
-  this->n_elems = n_elems+1;
+  construct(arr_elems+i, move_from(&value));
+  this->n_elems = n+1;
 }  /* Dyn_array::insert */
 
 
@@ -676,13 +676,13 @@ Destroy the entry at the given index.  All subsequent values (if any) are moved
 one position down.
 */
 {
-  an_elem  *elems = this->elems;
+  an_elem  *arr_elems = this->elems;
 
-  destroy(elems+i);
-  a_size  n_elems = --this->n_elems;
-  for (an_index k = i; k<n_elems; ++k) {
-    construct(elems+k, move_from(elems+k+1));
-    destroy(elems+k+1);
+  destroy(arr_elems+i);
+  a_size  n = --this->n_elems;
+  for (an_index k = i; k<n; ++k) {
+    construct(arr_elems+k, move_from(arr_elems+k+1));
+    destroy(arr_elems+k+1);
   }  /* for */
 }  /* Dyn_array::remove */
 
@@ -726,8 +726,8 @@ struct Owning_ptr: private a_Deallocator {
   typedef a_Deallocator a_deallocator;
   inline Owning_ptr()
     : ptr(NULL) {}
-  inline Owning_ptr(an_object *ptr, const a_deallocator &d = a_deallocator())
-    : a_deallocator(d), ptr(ptr) {}
+  inline Owning_ptr(an_object *p, const a_deallocator &d = a_deallocator())
+    : a_deallocator(d), ptr(p) {}
   inline Owning_ptr(a_nullptr, const a_deallocator &d = a_deallocator())
     : a_deallocator(d), ptr(NULL) {}
   inline Owning_ptr(const Owning_ptr&) = delete;
@@ -1983,14 +1983,14 @@ if not found.
   a_uintptr  hash = hash_ptr(key);
   an_index   mask = this->hash_mask;
   an_index   idx = hash & mask;
-  an_entry   *table = this->table;
+  an_entry   *tbl = this->table;
   a_key      tptr;
   a_value    result = a_value();
 
   for (;;) {
-    tptr = table[idx].ptr;
+    tptr = tbl[idx].ptr;
     if (tptr == key) {
-      result = table[idx].value;
+      result = tbl[idx].value;
       break;
     } else if (tptr == a_key()) {
       break;
@@ -2033,12 +2033,12 @@ Associate a copy of value with the given key.
   a_uintptr  hash = hash_ptr(key);
   an_index   mask = this->hash_mask;
   an_index   idx = hash & mask;
-  an_entry   *table = this->table;
+  an_entry   *tbl = this->table;
 
   check_traced_key_ptr(key, "mapped");
-  if (table[idx].ptr == a_key()) {
-    table[idx].ptr = key;
-    table[idx].value = value;
+  if (tbl[idx].ptr == a_key()) {
+    tbl[idx].ptr = key;
+    tbl[idx].value = value;
   } else {
     this->map_colliding_key(key, value, idx);
   }  /* if */
@@ -2059,17 +2059,17 @@ Replace the value associated with the given key by the given value.
   a_uintptr  hash = hash_ptr(key);
   an_index   mask = this->hash_mask;
   an_index   idx = hash & mask;
-  an_entry   *table = this->table;
-  a_key      ptr = table[idx].ptr;
+  an_entry   *tbl = this->table;
+  a_key      ptr = tbl[idx].ptr;
 
   check_traced_key_ptr(key, "replaced");
   for (;;) {
     if (ptr == key) {
-      table[idx].value = value;
+      tbl[idx].value = value;
       break;
     } else {
       idx = (idx+1) & mask;
-      ptr = table[idx].ptr;
+      ptr = tbl[idx].ptr;
     }  /* if */
   }  /* for */                                                               
 }  /* Ptr_map::replace */
@@ -2088,14 +2088,14 @@ associate it with the given value, and return a_value().
   a_uintptr  hash = hash_ptr(key);
   an_index   mask = this->hash_mask;
   an_index   idx = hash & mask, idx0 = idx;
-  an_entry   *table = this->table;
-  a_key      ptr = table[idx].ptr;
+  an_entry   *tbl = this->table;
+  a_key      ptr = tbl[idx].ptr;
   a_value    old_value = a_value();
 
   check_traced_key_ptr(key, "mapped or replaced");
   if (ptr == a_key()) {
-    table[idx].ptr = key;
-    table[idx].value = value;
+    tbl[idx].ptr = key;
+    tbl[idx].value = value;
     this->n_elements += 1;
     if (this->n_elements*2 > mask) {
       this->expand_table();
@@ -2103,16 +2103,16 @@ associate it with the given value, and return a_value().
   } else {
     for (;;) {
       if (ptr == key) {
-        old_value = table[idx].value;
-        table[idx].value = value;
+        old_value = tbl[idx].value;
+        tbl[idx].value = value;
         break;
       } else {
         idx = (idx+1) & mask;
-        ptr = table[idx].ptr;
+        ptr = tbl[idx].ptr;
         if (ptr == a_key()) {
-          table[idx] = table[idx0];
-          table[idx].ptr = key;
-          table[idx].value = value;
+          tbl[idx] = tbl[idx0];
+          tbl[idx].ptr = key;
+          tbl[idx].value = value;
           this->n_elements += 1;
           if (this->n_elements*2 > mask) {
             this->expand_table();
@@ -2135,19 +2135,19 @@ Remove the given key from the table (it must exist).
   a_uintptr  hash = hash_ptr(key);
   an_index   mask = this->hash_mask;
   an_index   idx = hash & mask;
-  an_entry   *table = this->table;
+  an_entry   *tbl = this->table;
 
   check_traced_key_ptr(key, "UNmapped");
   /* Find the item to delete (we're assuming it exists). */
-  while (table[idx].ptr != key) {
+  while (tbl[idx].ptr != key) {
     idx = (idx+1) & mask;
   }  /* while */
   /* Delete the entry. */
-  table[idx].ptr = a_key();
-  destroy(&table[idx].value);
+  tbl[idx].ptr = a_key();
+  destroy(&tbl[idx].value);
   /* If the next slot is empty, we're done.  Otherwise, we may have to move
      another element into the emptied slot. */
-  if (table[(idx+1) & mask].ptr != a_key()) {
+  if (tbl[(idx+1) & mask].ptr != a_key()) {
     this->check_deleted_slot(idx);
   }  /* if */
   this->n_elements -= 1;                                                    
@@ -2166,7 +2166,7 @@ new value at the given location.
 {
   an_index  idx0 = idx;
   an_index  mask = this->hash_mask;
-  an_entry  *table = this->table;
+  an_entry  *tbl = this->table;
 
 #if EXPENSIVE_CHECKING
   { a_value  old_val = this->get(new_key);
@@ -2178,15 +2178,15 @@ new value at the given location.
   /* Move the existing mapping to the next available spot. */
   for (;;) {
     idx = (idx+1) & mask;
-    if (table[idx].ptr == a_key()) {
-      table[idx].ptr = table[idx0].ptr;
-      table[idx].value = move_from(&table[idx0].value);
+    if (tbl[idx].ptr == a_key()) {
+      tbl[idx].ptr = tbl[idx0].ptr;
+      tbl[idx].value = move_from(&tbl[idx0].value);
       break;
     }  /* if */
   }  /* for */
   /* Record the new mapping. */
-  table[idx0].ptr = new_key;
-  table[idx0].value = new_value;
+  tbl[idx0].ptr = new_key;
+  tbl[idx0].value = new_value;
 }  /* Ptr_map::map_colliding_key */
 
 
@@ -2251,13 +2251,13 @@ with the assumption that step R1 has already been performed (idx0 is "j") and
 we know that the subsequent slot is not empty.
 */
 {
-  an_entry  *table = this->table;
+  an_entry  *tbl = this->table;
   an_index  mask = this->hash_mask;
   an_index  idx, ridx;
   a_key     rptr;
   
   idx = (idx0+1) & mask;
-  rptr = table[idx].ptr;
+  rptr = tbl[idx].ptr;
   for (;;) {
     for (;;) {
       ridx = hash_ptr(rptr) & mask;
@@ -2273,16 +2273,16 @@ we know that the subsequent slot is not empty.
         break;
       } else {
         idx = (idx+1) & mask;
-        rptr = table[idx].ptr;
+        rptr = tbl[idx].ptr;
         if (rptr == a_key()) goto done;
       }  /* if */
     }  /* for */
-    table[idx0].ptr = table[idx].ptr;
-    table[idx0].value = move_from(&table[idx].value);
-    table[idx].ptr = a_key();
+    tbl[idx0].ptr = tbl[idx].ptr;
+    tbl[idx0].value = move_from(&tbl[idx].value);
+    tbl[idx].ptr = a_key();
     idx0 = idx;
     idx = (idx0+1) & mask;
-    rptr = table[idx].ptr;
+    rptr = tbl[idx].ptr;
     if (rptr == a_key()) goto done;
   }  /* for */
 done:;
@@ -2296,12 +2296,12 @@ void Ptr_map<a_Ptr_key, a_Value>::db_ptrs() const
 Output some information about the map's key contents to f_debug.
 */
 {
-  an_entry  *table = this->table;
+  an_entry  *tbl = this->table;
   an_index  mask = this->hash_mask;
   an_index  n_slots = mask+1;
 
   for (an_index k = 0; k<n_slots; ++k) {
-    a_key  ptr = table[k].ptr;
+    a_key  ptr = tbl[k].ptr;
     fprintf(f_debug, "[%2u] ", k);
     if (ptr == a_key()) {
       fprintf(f_debug, "(empty)\n");

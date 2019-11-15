@@ -1291,19 +1291,19 @@ given data map.
 #define get_mapped_ptr(map, iptr, dptr)                                      \
 {                                                                            \
   uintptr_t         hash = hash_ptr(iptr);                                   \
-  a_map_index       mask = (map)->hash_mask;                                 \
-  a_map_index       idx = hash & mask;                                       \
-  a_data_map_entry  *table = (map)->table;                                   \
+  a_map_index       msk = (map)->hash_mask;                                  \
+  a_map_index       i = hash & msk;                                          \
+  a_data_map_entry  *tbl = (map)->table;                                     \
   for (;;) {                                                                 \
-    a_byte  *tptr = table[idx].ptr;                                          \
+    a_byte  *tptr = tbl[i].ptr;                                              \
     if (tptr == (a_byte*)(iptr)) {                                           \
-      (dptr) = table[idx].data.ptr;                                          \
+      (dptr) = tbl[i].data.ptr;                                              \
       break;                                                                 \
     } else if (tptr == NULL) {                                               \
       (dptr) = NULL;                                                         \
       break;                                                                 \
     }  /* if */                                                              \
-    idx = (idx+1) & mask;                                                    \
+    i = (i+1) & msk;                                                         \
   }  /* for */                                                               \
 }
 

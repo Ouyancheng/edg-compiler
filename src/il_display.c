@@ -118,8 +118,8 @@ Display the NULL-terminated string at string_ptr.
 
 
 static void put_str_to_stdout(
-                         a_const_char                                     *str,
-                         ARG_UNUSED an_il_to_str_output_control_block_ptr octl)
+                       a_const_char                                     *str,
+                       ARG_UNUSED an_il_to_str_output_control_block_ptr dummy)
 /*
 Output the indicated string to stdout.  This is used as an output routine
 when using the il_to_str routines.
