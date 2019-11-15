@@ -15300,7 +15300,14 @@ expression).  This routine is used in lowering both C and C++.
   last = last_statement_in_block(block);
   if (last != NULL && last->kind == (a_statement_kind)stmk_stmt_expr_result) {
     /* The GNU statement expression produces a value. */
-    result_stmt = last;
+    if (last->expr != NULL && is_void_type(last->expr->type)) {
+      /* The "value" produced by this statement is "void", so there's no
+         reason to treat this statement specially; turn it into a stmk_expr. */
+      check_assertion(last->variant.stmt_expr_result.dynamic_init == NULL);
+      last->kind = (a_statement_kind)stmk_expr;
+    } else {
+      result_stmt = last;
+    }  /* if */
   }  /* if */
 #if MINIMAL_INLINING
   saved_inlining_enabled = inlining_enabled;

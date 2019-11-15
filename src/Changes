@@ -1,5 +1,24 @@
 Version 6.0
 
+11/15/19 [EDGcpfe/22029]
+GNU compatibility: incorrect lowered code for some GNU statement expressions
+
+In cases where a GNU statement expression's last statement is a void expression
+that, when lowered, creates additional lowered expressions (e.g., because of
+destructions) a temporary variable of "void" type had been created.  Now
+fixed.  For example (with --g++):
+
+  struct A {
+    ~A();
+  };
+  void g() {
+    ({
+      A a;
+      g();
+    });
+  }
+
+
 11/15/19 [EDGcpfe/20890]
 Attributes on nested namespace declarations
 
