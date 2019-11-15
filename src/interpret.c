@@ -7870,8 +7870,8 @@ elements in *p_elem_size.
     do_constexpr_fail(result);
     goto done;
   }  /* if */
-  /* Clear the bitmap and the "completely initialized" flag. */
-  memzero(block+header_size, size_t_arg(bitmap_size+1));
+  /* Clear the bookkeeping prefix. */
+  memzero(block+header_size, prefix_size-header_size);
   allocation = (a_constexpr_allocation_ptr)block;
   alloc_seq_number = ++ips->curr_alloc_seq_number;
   allocation->alloc_seq_number = alloc_seq_number;
