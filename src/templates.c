@@ -17836,12 +17836,14 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
   if (saved_deferred_instantiations == NULL) {
     /* The current values should be used as the list was previously empty. */
   } else {
-    if (saved_deferred_instantiations != NULL) {
-      /* Add the new list to the end of the previous list. */
-      saved_deferred_instantiations_tail->next = deferred_instantiations;
-    }  /* if */
+    /* Add the new list to the end of the previous list. */
+    saved_deferred_instantiations_tail->next = deferred_instantiations;
     deferred_instantiations = saved_deferred_instantiations;
-    deferred_instantiations_tail = saved_deferred_instantiations_tail;
+    if (deferred_instantiations_tail == NULL) {
+      /* If the new list is non-NULL, it now already points to the list to be
+         used. */
+      deferred_instantiations_tail = saved_deferred_instantiations_tail;
+    }  /* if */
   }  /* if */
   if ((microsoft_mode || !rp->source_corresp.is_class_member) &&
       !exc_spec_in_func_type && !special_kind_is(rp, sfk_deduction_guide)) {
