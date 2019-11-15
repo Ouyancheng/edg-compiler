@@ -3299,6 +3299,12 @@ appropriate and set ap->kind to ak_unrecognized).
          applied to types.  (However, a hard error is still issued on a type-
          transforming attribute applied to a class or enumeration type.) */
       sev = es_warning;
+    } else if (ap->family != (a_byte_attribute_family)af_alignas &&
+               entity != NULL &&
+               (clang_mode || gnu_version_is(>=40300))) {
+      /* Clang and recent versions of GNU are more forgiving about most
+         attributes not applying to the proper entity. */
+      sev = es_warning;
     }  /* if */
     report_bad_attribute_target(sev, ap);
   }  /* if */

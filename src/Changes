@@ -1,5 +1,15 @@
 Version 6.0
 
+11/15/19 [EDGcpfe/20677,EDGcpfe/20882,EDGcpfe/21204,EDGcpfe/21213]
+GNU/clang compatibility: diagnostics for incorrectly applied attributes
+
+Attributes that are incorrectly applied to entities had elicited an error
+in most instances and now elicit a warning in clang and GNU (when
+gnu_version >= 40300) emulation modes.  For example:
+
+  namespace [[maybe_unused]] A {}   // Now a warning in some modes.
+
+
 11/14/19 [EDGcpfe/21971]
 GNU C++ compatibility: __func__, __FUNCTION__, and __PRETTY_FUNCTION__
 
