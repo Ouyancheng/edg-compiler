@@ -35157,14 +35157,43 @@ octl describes the output method.
 {
   begin_template_arg_list_traversal(tpp, tap, &tpp, &tap);
   for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
+    a_type_ptr    param_constant_type = NULL;
+    a_const_char  *param_name = tpp->param_symbol->header->identifier;
+    char          buf[100];
+    if (gpp_mode && strcmp(param_name, "<unnamed>") == 0) {
+      /* Clang skips unnamed template parameters.  GCC renders them as
+         "<anonymous>". */
+      if (clang_mode) continue;
+      if (symbol_is(tpp->param_symbol, sk_constant)) {
+        param_name = "<anonymous>";
+      } else {
+        a_template_param_coordinate_ptr  coord;
+        coord = coordinates_of_template_param(tpp);
+        sprintf(buf, "<template-parameter-%d-%d>",
+                (int)coord->depth, (int)coord->position);
+        param_name = buf;
+      }  /* if */
+    }  /* if */
     if (*first) {
       put_str_to_temp_text_buffer(" [with ");
       *first = FALSE;
     } else {
-      put_str_to_temp_text_buffer(", ");
+      put_str_to_temp_text_buffer((gpp_mode && !clang_mode) ? "; " : ", ");
     }  /* if */
-    /* Put out "<param-name> = <template-arg>". */
-    put_str_to_temp_text_buffer(tpp->param_symbol->header->identifier);
+    /* Put out "<param-name> = <template-arg>".  In GNU mode, include the
+       type of nontype template parameters. */
+    if (gpp_mode && !clang_mode && symbol_is(tpp->param_symbol, sk_constant)) {
+      param_constant_type = tpp->param_symbol->variant.constant->type;
+      form_type_first_part(param_constant_type,
+                           /*under_lhs_declarator=*/FALSE,
+                           /*need_trailing_space=*/TRUE,
+                           TQ_NONE, FTO_NO_OPTIONS, octl);
+    }  /* if */
+    put_str_to_temp_text_buffer(param_name);
+    if (param_constant_type != NULL) {
+      form_type_second_part_simple(param_constant_type,
+                                   /*under_lhs_declarator=*/FALSE, octl);
+    }  /* if */
     put_str_to_temp_text_buffer(" = ");
     form_a_template_arg(tap, octl);
   }  /* for */
@@ -35188,11 +35217,16 @@ for the __PRETTY_FUNCTION__ keyword.
   octl.output_str = put_str_to_temp_text_buffer_octl;
   octl.suppress_typedefs = TRUE;
   pos_in_temp_text_buffer = 0;
-  if (gpp_mode &&
-      rp->source_corresp.is_class_member &&
-      rp->type->variant.routine.extra_info->this_class == NULL) {
-    /* A static member function: Display the "static" prefix in g++ mode. */
-    put_str_to_temp_text_buffer("static ");
+  if (gpp_mode && !clang_mode) {
+    /* GCC includes specifiers reflecting whether a function is a static
+       member function and/or a constexpr function (in that order). */
+    if (rp->source_corresp.is_class_member &&
+        rp->type->variant.routine.extra_info->this_class == NULL) {
+      put_str_to_temp_text_buffer("static ");
+    }  /* if */
+    if (rp->is_declared_constexpr) {
+      put_str_to_temp_text_buffer("constexpr ");
+    }  /* if */
   }  /* if */
   if (!microsoft_mode &&
       rp->is_template_function && rp->assoc_template != NULL) {
@@ -35622,8 +35656,8 @@ which of the various keywords was used.
     name_var->init_kind = (an_init_kind)initk_static;
     name_var->initializer.constant = name_string;
     if (gpp_mode || clang_mode) {
-      /* Clang appears to declare these variables "constexpr".  That enables
-         code like "int main() { constexpr char p = __func__[0]; }". */
+      /* Clang and GCC appear to declare these variables "constexpr".  That
+         enables code like "int main() { constexpr char p = __func__[0]; }". */
       name_var->is_constexpr = TRUE;
     }  /* if */
     /* To be sure, always consider the variable's address has been taken. */

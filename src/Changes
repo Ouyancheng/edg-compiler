@@ -21,12 +21,16 @@ gnu_version >= 40300) emulation modes.  For example:
   namespace [[maybe_unused]] A {}   // Now a warning in some modes.
 
 
-11/14/19 [EDGcpfe/21971]
-GNU C++ compatibility: __func__, __FUNCTION__, and __PRETTY_FUNCTION__
+11/14/19 [EDGcpfe/17973,EDGcpfe/17974,EDGcpfe/20619,EDGcpfe/21971]
+GNU/Clang C++ compatibility: __func__, __FUNCTION__, and __PRETTY_FUNCTION__
 
 In GNU C++ mode, the static variables corresponding to __func__, __FUNCTION__,
-and __PRETTY_FUNCTION__ are now declared "constexpr".  This just extends the
-changes for EDGcpfe/20207 (see entry of 9/27/18) to GNU C++ mode.
+and __PRETTY_FUNCTION__ are now declared "constexpr".  This extends the changes
+for EDGcpfe/20207 (see entry of 9/27/18) to GNU C++ mode.  In addition, in
+GNU C++ mode, the value of __PRETTY_FUNCTION__ now also includes a "constexpr "
+prefix for functions declared constexpr.  Finally, various changes were made to
+the output of template parameter values for __PRETTY_FUNCTION__ to bring them
+closer to the behavior of Clang and GCC in the corresponding C++ modes.
 
 
 11/14/19 [EDGcpfe/21986]
