@@ -14692,10 +14692,10 @@ it's a definition and NULL otherwise).
   a_symbol_reference_kind     srk_flags = SRK_DECLARATION;
   a_boolean                   bad_scope_for_namespace_def = FALSE;
   a_source_sequence_entry_ptr namespace_ssep = NULL;
-  a_boolean		      namespace_scope_pushed = FALSE;
-  a_boolean		      initial_decl_of_namespace_std = FALSE;
+  a_boolean                   namespace_scope_pushed = FALSE;
+  a_boolean                   initial_decl_of_namespace_std = FALSE;
   an_attribute_ptr            attributes = NULL;
-  a_boolean	              nested_namespace_is_inline = FALSE;
+  a_boolean                   nested_namespace_is_inline = FALSE;
   a_source_position           attr_token_pos = null_source_position;
 
   db_enter(3, "namespace_declaration");
