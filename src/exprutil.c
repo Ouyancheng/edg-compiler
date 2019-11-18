@@ -14169,8 +14169,11 @@ of a subscript operation).
                operand_is_prvalue_for_variable(operand_1, &vp1) &&
                operand_is_prvalue_for_variable(operand_2, &vp2) &&
                vp1 == vp2 &&
+               !is_floating_type(vp1->type) &&
                !is_volatile_qualified_type(/*lint !e413*/vp1->type)) {
-      /* Similarly GCC folds x==x and x!=x, for identical variables. */
+      /* Similarly GCC folds x==x and x!=x, for identical variables, except
+         for floating-point type variables (since NaN != NaN) and volatile
+         variables (since different reads can produce different values). */
       clear_operand((an_operand_kind)ok_constant, result);
       result->type = result_type;
       result->state = (an_operand_state)os_prvalue;
