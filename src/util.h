@@ -86,9 +86,12 @@ Value_for_ptr<T> for a pointer-like type T produces the type pointed to.
 template<typename a_Ptr>
 using Value_for_ptr = Remove_ref<decltype(*dummy_val<a_Ptr>())>;
 
-
+#ifdef __EDG__
+/* Don't warn on noexcept if exceptions are disabled. */
+#pragma diag_suppress 540
+#endif /* ifdef __EDG__ */
 template<typename an_Object>
-an_Object&& fwd(Remove_ref<an_Object>&  arg) EDG_NOEXCEPT
+an_Object&& fwd(Remove_ref<an_Object>&  arg) noexcept
 /*
 This function should only be applied to "forwarding references".  It is used
 to forward parameters.  For example:
