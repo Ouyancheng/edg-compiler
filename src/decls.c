@@ -8041,7 +8041,7 @@ C++ mode, even exception specifications on definitions are ignored.)
 {
   if (!(func_info->is_inline || gpp_mode) && 
       func_info->throw_position.seq != 0) {
-    pos_warning(ec_no_exception_support, &func_info->throw_position);
+    pos_remark(ec_no_exception_support, &func_info->throw_position);
   }  /* if */
 }  /* issue_no_exception_support_diag_on_throw_spec */
 

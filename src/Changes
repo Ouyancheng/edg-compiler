@@ -1,5 +1,14 @@
 Version 6.0
 
+11/19/19 [EDGcpfe/22044]
+Severity of diagnostic for noexcept with exceptions disabled
+
+The severity of the diagnostic that is issued when a noexcept specification
+is used in a function declaration has been reduced from a warning to a
+remark.
+
+  void f() noexcept {}
+
 11/19/19 [EDGcpfe/22023]
 GNU C++ compatibility: "template" keyword ignored for overload resolution
 
