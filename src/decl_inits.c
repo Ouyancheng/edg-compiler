@@ -5429,11 +5429,6 @@ returned set to TRUE.
                                         arg_list, /*to_front=*/TRUE,
                                         &dps->prescanned_initializer_cache);
     }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    if (decl_pos_block != NULL) {
-      decl_pos_block->var_init_range.end = pos_curr_token;
-    }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (use_ctor) {
       /* It's a class type and there's a constructor or we're dealing with a
          dependent type that could be such a class. */
@@ -5452,6 +5447,11 @@ returned set to TRUE.
                                              (an_arg_list_elem_ptr)NULL,
                                              &dps->init_state);
       }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      if (decl_pos_block != NULL) {
+        decl_pos_block->var_init_range.end = curr_construct_end_position;
+      }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       init_err = dps->init_state.init_error;
       init_con = dps->init_state.init_con;
       init_dip = dps->init_state.init_dip;
@@ -5471,6 +5471,11 @@ returned set to TRUE.
       /* The closing right paren will not have been consumed, as it is
          the arg list for a constructor call is scanned, so bypass it
          explicitly. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      if (curr_token == tok_rparen && decl_pos_block != NULL) {
+        decl_pos_block->var_init_range.end = end_pos_curr_token;
+      }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       remove_stop_token(tok_rparen);
       check_closing_paren_after_expr_list();
       /* Although the entity has no constructor, it may have a destructor that

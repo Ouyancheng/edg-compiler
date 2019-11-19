@@ -14821,6 +14821,10 @@ typedef struct a_saved_expr_rescan_context {
 		curr_object_lifetime;
   a_memory_region_number
 		curr_il_region_number;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_template_decl_info_ptr
 		tdip;
 			/* Pointer to a template declaration information
@@ -14845,10 +14849,16 @@ by pop_expr_rescan_context_if_necessary.
   saved_context->expr_stack = NULL;
   saved_context->curr_object_lifetime = NULL;
   saved_context->curr_il_region_number = NULL_region_number;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  saved_context->curr_construct_end_position = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (!(rcblock->options & CTWS_INSIDE_EXPR_RESCAN)) {
     rcblock->options |= CTWS_INSIDE_EXPR_RESCAN;
     save_expr_stack(&saved_context->expr_stack);
     saved_context->curr_object_lifetime = curr_object_lifetime;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    saved_context->curr_construct_end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     curr_object_lifetime =
                    scope_stack[DEPTH_OF_FILE_SCOPE].curr_scope_object_lifetime;
     saved_context->tdip = alloc_template_decl_info();
@@ -14873,6 +14883,9 @@ information saved at the time of the context push.
     free_template_decl_info(saved_context->tdip);
     restore_expr_stack(saved_context->expr_stack);
     curr_object_lifetime = saved_context->curr_object_lifetime;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = saved_context->curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     switch_back_to_original_region(saved_context->curr_il_region_number);
   }  /* if */
 }  /* pop_expr_rescan_context_if_necessary */
