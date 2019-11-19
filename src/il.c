@@ -17346,65 +17346,54 @@ nullptr type, set *copy_error to TRUE.  (No checking is needed or done if
 }  /* check_template_nullptr_operation */
 
 
-a_boolean is_valid_ptr_or_ptr_to_member_templ_arg_constant(
-                                                          a_constant_ptr  con)
+a_boolean is_valid_ptr_or_ptr_to_member_templ_arg_constant(a_constant_ptr  con)
 /*
 Return TRUE if the given constant represents a valid pointer or pointer-to-
-member template argument.  In pre-C++17 modes, we assume that con is not an
-id-expression or an id-expression prefixed with "&" (see also
-check_nontype_template_argument_type, which checks for those cases).  In C++17
-mode (i.e., when generalized_nontype_arguments is TRUE), we have to check that
-a pointer or reference doesn't refer to a proper subobject.  The most common
-valid other cases are null-pointer-like constants and (in some emulations)
-folded cast expressions.
+member template argument.
 */
 {
   a_boolean  result = FALSE;
-  a_boolean  null_value_okay = cpp11_mode || generalized_nontype_arguments ||
+  a_boolean  null_value_okay = !strict_ansi_mode || cpp11_mode ||
+                               generalized_nontype_arguments ||
                                (ms_extensions && microsoft_version >= 1800);
-  a_boolean  cast_okay = (ms_extensions ||
-                          (cpp11_mode && gpp_mode && !clang_mode));
+
   /* The C++11 standard allows not only "null pointer constants", but, more
      generally, "null pointer values" (which can result from casting a null
      pointer constant to a pointer type).  Microsoft compilers also allow
-     things like "&typeid(X)" and "&__uuidof(X)".  Microsoft compilers, as
-     well as g++ (but not clang) in C++11 mode, accept casts on pointers
-     and pointers to members. */
-  if (null_value_okay && is_null_pointer_constant(con)) {
+     things like "&typeid(X)" and "&__uuidof(X)". */
+  if (constant_is(con, ck_template_param)) {
     result = TRUE;
+  } else if (is_null_pointer_constant(con)) {
+    result = null_value_okay;
   } else if (constant_is(con, ck_address)) {
     if (ms_extensions &&
              (con->variant.address.kind == (an_address_base_kind)abk_typeid ||
               con->variant.address.kind == (an_address_base_kind)abk_uuidof)) {
       result = TRUE;
-    } else if (!null_value_okay) {
-      /* The remaining clauses test null pointer value, cast cases, and
-         C++17 cases. */
     } else if (con->variant.address.kind ==
                                           (an_address_base_kind)abk_routine) {
-      result = generalized_nontype_arguments ||
-               con->variant.address.variant.routine == NULL || cast_okay;
+      result = con->variant.address.variant.routine == NULL ? null_value_okay
+                                                            : TRUE;
     } else if (con->variant.address.kind ==
                                          (an_address_base_kind)abk_variable) {
       if (con->variant.address.variant.variable == NULL) {
-        result = TRUE;
-      } else if (generalized_nontype_arguments) {
-        /* Check that this is not the address of a proper subobject. */
-        result = con->variant.address.subobject_path == NULL;
+        result = null_value_okay;
       } else {
-        result = cast_okay;
+        /* Check that this is not the address of a proper subobject.  Some
+           modes accept subobject addresses, however. */
+        result = con->variant.address.subobject_path == NULL ||
+                 (con->variant.address.offset == 0 &&
+                  (gnu_version_is(<30400)));
       }  /* if */
     }  /* if */
-  } else if (null_value_okay && constant_is(con, ck_ptr_to_member)) {
-    /* A null pointer value or cast for a pointer-to-member constant, or, in
-       C++17-like modes, a general pointer-to-member value . */
-    result = generalized_nontype_arguments ||
-             ((con->variant.ptr_to_member.is_function_ptr
+  } else if (constant_is(con, ck_ptr_to_member)) {
+    result = (con->variant.ptr_to_member.is_function_ptr
                          ? con->variant.ptr_to_member.variant.routine == NULL
-                         : con->variant.ptr_to_member.variant.field == NULL) ||
-              (cast_okay && con->explicit_cast_applied));
+                         : con->variant.ptr_to_member.variant.field == NULL) ?
+                 null_value_okay
+               : TRUE;
   } else if (null_value_okay && constant_is(con, ck_integer) &&
-             (is_pointer_type(con->type) ||
+             (is_pointer_or_handle_type(con->type) ||
               is_ptr_to_member_type(con->type)) &&
              cmplit_integer_constant(con, (a_host_large_integer)0) == 0) {
     /* A "zero" constant converted to a pointer or pointer-to-member type. */

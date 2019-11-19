@@ -44411,7 +44411,7 @@ memory region).  Do various error checks.
      saved, even if they cause template instantiations of their own. */
   need_backing_expr = (depth_template_declaration_scope != NO_SCOPE_DEPTH ||
                        operand->caused_template_instantiation);
-  if (microsoft_mode && microsoft_version < 1310 &&
+  if (ms_version_is(<1310) &&
       is_pointer_type(param_type) &&
       is_an_lvalue(operand) && is_expression_operand(operand) &&
       identical_types(operand->type, param_type) &&
@@ -44455,31 +44455,10 @@ sure that some cases allowed within template argument expressions don't
 escape at the end of the expression.)
 */
 {
-  a_type_ptr  type = operand->type;
-
   if (gpp_mode && is_floating_type(operand->type) && !is_an_lvalue(operand)) {
     /* g++ allows floating-point constants and operations in template
        arguments.  Make sure the final result is not floating. */
     error_in_operand(expr_not_integral_or_any_enum_code(), operand);
-  } else if (!expr_stack->traditional_const_expr_required &&
-             !is_template_dependent_context()) {
-    a_type_ptr  ftp = skip_typerefs(type);
-    if (ftp->kind == (a_type_kind)tk_pointer ||
-        ftp->kind == (a_type_kind)tk_ptr_to_member) {
-      if ((generalized_nontype_arguments ||
-           (!operand->is_id_expression &&
-            !operand->is_address_of_id_expression)) &&
-          !is_a_glvalue(operand) &&
-          !(is_constant_operand(operand) &&
-            is_valid_ptr_or_ptr_to_member_templ_arg_constant(
-                                               &operand->variant.constant))) {
-        if (expr_error_should_be_issued()) {
-          pos_ty_error(ec_invalid_nontype_template_argument,
-                       &operand->position, type);
-          conv_to_error_operand(operand);
-        }  /* if */
-      }  /* if */
-    }  /* if */
   }  /* if */
   if (is_indefinite_function_operand(operand) && operand->is_template_id) {
     /* Converting a function template-id to a single specialization avoids
@@ -44519,7 +44498,10 @@ memory region).  If param_type is NULL, the parameter type is not known.
   a_decl_sequence_number inst_seq_on_entry =
                                            class_instantiation_sequence_number;
   a_boolean              relaxed_ms_case = FALSE;
+  a_boolean              id_expr, id_expr_address;
   a_source_position      start_pos = pos_curr_token;
+  a_variable_ptr         var = NULL;
+  a_routine_ptr          rout = NULL;
 
   db_enter(3, "scan_template_argument_constant_expression");
   check_assertion(constant != NULL && in_file_scope(constant));
@@ -44530,6 +44512,16 @@ memory region).  If param_type is NULL, the parameter type is not known.
   switch_to_file_scope_region(&region_to_switch_back_to);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  id_expr = result.is_id_expression;
+  id_expr_address = result.is_address_of_id_expression;
+  if ((id_expr || id_expr_address) && is_expression_operand(&result)) {
+    an_expr_node_ptr  node = result.variant.expression;
+    if (is_variable_node(node)) {
+      var = node_variable(node);
+    } else if (is_routine_node(node)) {
+      rout = node_routine(node);
+    }  /* if */
+  }  /* if */
   check_nontype_template_argument_type(&result);
   if (param_type != NULL) {
     /* Check for an "auto" or "decltype(auto)" parameter. */
@@ -44597,6 +44589,85 @@ memory region).  If param_type is NULL, the parameter type is not known.
       prep_nontype_template_argument_initializer(&result, param_type,
                                                  constant);
     }  /* if */
+    { a_type_ptr  ftp = skip_typerefs(param_type);
+      if ((ftp->kind == (a_type_kind)tk_pointer ||
+           ftp->kind == (a_type_kind)tk_ptr_to_member) &&
+          !is_template_dependent_type(ftp) &&
+          !is_error_operand(&result)) {
+        bool  err = FALSE, microsoft_oddity = FALSE;
+        if (!generalized_nontype_arguments) {
+          if (is_any_reference_type(ftp)) {
+            err = !id_expr && !microsoft_mode;
+          } else if (ms_version_is(<1310) && id_expr &&
+                     is_any_reference_type(constant->type)) {
+            microsoft_oddity = TRUE;
+          } else if (is_constant_operand(&result)) {
+            a_constant_ptr  cp = &result.variant.constant;
+            if (constant_is(cp, ck_address)) {
+              /* Pre-C++11 the constant should have been expressed as either
+                 id or &id where id is an identifier, where the identifier
+                 actually denotes the routine (as opposed to a const pointer
+                 to a routine or variable).  Exceptions are GNU mode, which
+                 permits a const variable referring to a routine or variable,
+                 and Microsoft mode, which allows casts.  In those modes,
+                 the restraints are relaxed. */
+              if (cp->variant.address.kind ==
+                                         (an_address_base_kind)abk_variable) {
+                if (cp->variant.address.variant.variable != NULL) {
+                  if ((microsoft_mode || gpp_version_is(<30400)) &&
+                      !(id_expr || id_expr_address)) {
+                    /* Accept forms that are not just an identifier in
+                       Microsoft mode (in particular, permit casts). */
+                  } else if ((gpp_mode && !clang_mode) && var != NULL &&
+                             (id_expr || id_expr_address) &&
+                              cp->variant.address.variant.variable != var) {
+                    /* Okay: GCC accepts a const variable pointing to a
+                       variable. */
+                  } else if (!(id_expr || id_expr_address) ||
+                             (var != NULL &&
+                              cp->variant.address.variant.variable != var)) {
+                    err = TRUE;
+                  }  /* if */
+                }  /* if */
+              } else if (cp->variant.address.kind ==
+                                          (an_address_base_kind)abk_routine) {
+                if (cp->variant.address.variant.routine != NULL) {
+                  if ((microsoft_mode || gpp_version_is(<30400)) &&
+                      !(id_expr || id_expr_address)) {
+                    /* Accept forms that are not just an identifier in
+                       Microsoft mode (in particular, permit casts). */
+                  } else if ((gpp_mode && !clang_mode) && rout != NULL &&
+                             (id_expr || id_expr_address) &&
+                             cp->variant.address.variant.routine != rout) {
+                    /* Okay: GCC accepts a const variable pointing to a
+                       function. */
+                  } else if (!(id_expr || id_expr_address) ||
+                             (rout != NULL &&
+                              cp->variant.address.variant.routine != rout)) {
+                    err = TRUE;
+                  }  /* if */
+                }  /* if */
+              }  /* if */
+            }  /* if */
+          } else {
+            expect_error();
+          }  /* if */
+        }  /* if */
+        if (!microsoft_oddity &&
+            !(is_constant_operand(&result) &&
+              is_valid_ptr_or_ptr_to_member_templ_arg_constant(
+                                                 &result.variant.constant))) {
+          err = TRUE;
+        }  /* if */
+        if (err) {
+          if (expr_error_should_be_issued()) {
+            pos_ty_error(ec_invalid_nontype_template_argument,
+                         &result.position, result.type);
+            conv_to_error_operand(&result);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }
   } else {
     /* No destination type (or a Microsoft-mode dependent context).  Make a
        constant from the operand.  This comes up for errors and for nonreal
@@ -44649,6 +44720,7 @@ free_arg_operand_list to free the entry.
   an_expr_stack_entry    expr_stack_entry;
   an_object_lifetime     *saved_curr_object_lifetime = curr_object_lifetime;
   a_memory_region_number region_to_switch_back_to;
+  an_operand             *opnd;
 
   db_enter(3, "scan_nontype_template_argument");
 
@@ -44661,25 +44733,26 @@ free_arg_operand_list to free the entry.
   curr_object_lifetime = il_header.primary_scope->lifetime;
   /* Scan the constant expression. */
   arg_operand = alloc_arg_operand();
-  scan_expr(&arg_operand->operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  check_nontype_template_argument_type(&arg_operand->operand);
+  opnd = &arg_operand->operand;
+  scan_expr(opnd, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  check_nontype_template_argument_type(opnd);
   /* Don't do final processing on the attached cross-reference entries.
      They are given to the caller. */
   curr_expr_ref_entries = NULL;
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  curr_construct_end_position = arg_operand->operand.end_position;
+  curr_construct_end_position = opnd->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 #if DEBUG
   if (debug_level >= 3) {
-    db_operand(&arg_operand->operand);
+    db_operand(opnd);
   }  /* if */
 #endif /* DEBUG */
   switch_back_to_original_region(region_to_switch_back_to);
   curr_object_lifetime = saved_curr_object_lifetime;
   if (class_instantiation_sequence_number != initial_inst_seq_num) {
-    arg_operand->operand.caused_template_instantiation = TRUE;
+    opnd->caused_template_instantiation = TRUE;
   }  /* if */
   db_exit();
   return arg_operand;
