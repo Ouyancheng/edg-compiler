@@ -24878,8 +24878,7 @@ will be an lvalue instead of the usual prvalue.
           }  /* if */
         }  /* if */
       }  /* if */
-    } else if (scope_stack_top().in_disambiguation ||
-               could_be_dependent_class_type(dest_type) ||
+    } else if (could_be_dependent_class_type(dest_type) ||
                any_pack_expansion_components_in_list(list)) {
       /* Either the destination type is dependent, or we're not currently able
          to know the exact number of parameters there are in the list.  Pretend
