@@ -12020,8 +12020,12 @@ emitted; otherwise returns FALSE.
 
   if (rout_type != NULL) {
     rout_type = skip_typerefs(rout_type);
-    rtsp = rout_type->variant.routine.extra_info;
-    param = rtsp->param_type_list;
+    if (type_is(rout_type, tk_routine)) {
+      /* In a prototype instantiation, the "routine type" might be a
+         template parameter type and not an actual routine type. */
+      rtsp = rout_type->variant.routine.extra_info;
+      param = rtsp->param_type_list;
+    }  /* if */
   } else {
     /* Routine type is not known. */
     param = NULL;

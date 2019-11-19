@@ -1,5 +1,18 @@
 Version 6.0
 
+11/18/19 [EDGcpfe/22037]
+C++-generating back end: call to function pointer with dependent type
+
+In configurations in which function template definitions are generated from
+the prototype instantiation IL, the C++-generating back end could abort with
+a segfault in gen_argument_list_no_parens if a call is made to a function
+pointer with a dependent type.  This is now fixed.  For example:
+
+   template<typename T> void tf(T *f) {
+     f();  // Previously might abort, now okay
+   }
+
+
 11/15/19 [EDGcpfe/22029]
 GNU compatibility: incorrect lowered code for some GNU statement expressions
 
