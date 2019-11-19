@@ -20122,7 +20122,7 @@ selection operator, in which case it points to the type of the left operand.
              clang_mode) &&
             (options & (GID_IS_UNKNOWN_TEMPLATE_ARG |
                         GID_CLASS_TEMPLATE_REQUIRED)) == 0 &&
-            is_template_dependent_context() &&
+            (is_template_dependent_context() || gpp_version_is(>= 30400)) &&
             !locator_for_curr_id.is_template_id &&
             next_token() != tok_lt) {
           /* g++, Clang and Microsoft allow usage like "p->A::template f()",
@@ -20133,7 +20133,9 @@ selection operator, in which case it points to the type of the left operand.
              in dependent template argument lists (indicated in this case by
              the unknown template arg flag), so suppress the special processing
              in such contexts.  Note that this only occurs in Microsoft mode if
-             parsing of nonclass templates has been enabled.*/
+             parsing of nonclass templates has been enabled.  g++ also
+             incorrectly accepts "p->template f()" as a call to a non-template
+             member function if the overload set includes a template. */
           is_template = FALSE;
         }  /* if */
         next_tok = next_two_tokens_if_qualifier_delimiter

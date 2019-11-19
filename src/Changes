@@ -1,5 +1,23 @@
 Version 6.0
 
+11/19/19 [EDGcpfe/22023]
+GNU C++ compatibility: "template" keyword ignored for overload resolution
+
+When the "template" keyword is followed by a function or overload set name,
+g++ includes non-template functions in the overload set.  This causes them
+to call the normal function rather than attempt to call the deleted template
+in the example below.  We now emulate this behavior in g++ mode.
+
+  template <typename T> struct A {
+    static void f(T){}
+    template <typename U> static void f(U) = delete;
+  };
+
+  int main() {
+    A<int>::template f(1);
+  }
+
+
 11/18/19 [EDGcpfe/22037]
 C++-generating back end: call to function pointer with dependent type
 
