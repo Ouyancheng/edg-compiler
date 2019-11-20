@@ -753,6 +753,13 @@ EXTERN a_boolean
 			   are allowed (which is nonstandard). */
 
 EXTERN a_boolean
+		null_template_ptr_arg_enabled;
+			/* TRUE when null pointer and pointer-to-member values
+			   should be accepted as nontype template arguments
+			   in modes (like strict C++03 mode) that do not
+			   normally permit them. */
+
+EXTERN a_boolean
 		vla_enabled;
 			/* TRUE if support for variable length arrays (VLAs)
 			   is enabled.  Controlled by command-line options

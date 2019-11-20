@@ -17354,7 +17354,7 @@ member template argument.
 {
   a_boolean  result = FALSE;
   a_boolean  null_value_okay = !strict_ansi_mode || cpp11_mode ||
-                               generalized_nontype_arguments ||
+                               null_template_ptr_arg_enabled ||
                                (ms_extensions && microsoft_version >= 1800);
 
   /* The C++11 standard allows not only "null pointer constants", but, more

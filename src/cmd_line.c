@@ -2131,6 +2131,7 @@ static a_flag_name
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   { "lazy_field_initializers", &always_delay_field_initializer_processing },
   { "core_constant_expr_is_noexcept", &core_constant_expr_is_noexcept },
+  { "null_template_ptr_arg_enabled", &null_template_ptr_arg_enabled },
   { NULL, NULL }  /* must be last */
 };
 
