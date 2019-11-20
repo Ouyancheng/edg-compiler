@@ -23016,6 +23016,10 @@ the conversion.
         pos_ty2_diagnostic(es_discretionary_error, incompatible_err,
                            &source_operand->position, orig_source_type,
                            dest_type);
+        if (is_effective_error(incompatible_err, es_discretionary_error)) {
+          /* Avoid duplicate errors. */
+          make_error_operand(source_operand);
+        }  /* if */
       }  /* if */
     }  /* if */
     /* Do any base-class or cv-qualifier adjustment. */
