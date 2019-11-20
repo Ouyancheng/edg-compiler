@@ -22988,6 +22988,11 @@ the conversion.
         pos_diagnostic(es_discretionary_error,
                        ec_template_arg_cannot_point_to_subobject,
                        &source_operand->position);
+        if (is_effective_error(ec_template_arg_cannot_point_to_subobject,
+                               es_discretionary_error)) {
+          /* Avoid duplicate errors. */
+          make_error_operand(source_operand);
+        }  /* if */
       }  /* if */
     } else if (op_is_null_address_lvalue(source_operand)) {
       /* Initializing a reference to NULL, which is not allowed:
