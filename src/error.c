@@ -2975,7 +2975,7 @@ and pos would be issued.  Return TRUE if it would be issued as an error.
   if ((int)severity >= (int)es_error) {
     result = TRUE;
   } else if (severity == es_discretionary_error &&
-             !seq_is_in_system_header(pos->seq)) {
+             !seq_is_in_system_header(pos->seq /*lint !e413*/)) {
     result = TRUE;
   } else {
     result = FALSE;
