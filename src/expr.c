@@ -44594,7 +44594,7 @@ memory region).  If param_type is NULL, the parameter type is not known.
            ftp->kind == (a_type_kind)tk_ptr_to_member) &&
           !is_template_dependent_type(ftp) &&
           !is_error_operand(&result)) {
-        bool  err = FALSE, microsoft_oddity = FALSE;
+        a_boolean  err = FALSE, microsoft_oddity = FALSE;
         if (!generalized_nontype_arguments) {
           if (is_any_reference_type(ftp)) {
             err = !id_expr && !microsoft_mode;
