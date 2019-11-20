@@ -1,5 +1,31 @@
 Version 6.0
 
+11/19/19 [EDGcpfe/21806,EDGcpfe/21853]
+Regressions resulting from changes in handling large, complex macro expansions
+
+The changes for EDGcpfe/21772, not part of a release but widely
+disseminated as a patch for version 5.1, caused regressions in cases where
+the name and closing parenthesis of a function-like macro invocation appear
+in different macro expansions.  The effects of the regression range from
+incorrect macro expansions to aborts accessing nonexistent memory.  For
+example, with -E, the result of
+
+  #define a(x,y) test macro: x + y
+  #define f g , green)
+  #define g a ( keith
+  f
+
+should be
+
+  test macro: keith + green
+
+but after the regression it was
+
+  test macro: keith + green , green)
+
+This is now fixed.
+
+
 11/19/19  [EDGcpfe/22015]
 Invalid nontype template arguments
 
