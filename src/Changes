@@ -1,5 +1,27 @@
 Version 6.0
 
+11/20/19 [EDGcpfe/21979]
+Spurious error on deleted copy constructor with conditional comma expressions
+
+When both operands to the conditional operator were comma expressions, the
+front end was failing to recognize when these comma expressions were
+optimizable.  This led to a spurious copy constructor call.  For example:
+
+  struct S
+  {
+    S(int);
+    S(const S&) = delete;
+    S(S&&);
+  };
+  void f()
+  {
+    1 ? (1,S(1)) : (1,S(2)); // Previously emitted an error due to the deleted
+                             // copy ctor being called, now accepted
+  }
+
+This is now fixed.
+
+
 11/19/19 [EDGcpfe/21806,EDGcpfe/21853]
 Regressions resulting from changes in handling large, complex macro expansions
 

@@ -15182,6 +15182,23 @@ it happens in prototype instantiations.  op is the operator to be used.
 }  /* template_unary_operation */
 
 
+static void temp_init_from_comma_operand(an_operand *operand)
+/*
+If operand represents a comma operation and the second operand is a temp-init
+node, convert the operand into a temp init from that node.
+*/
+{
+  if (is_expression_operand(operand)) {
+    an_expr_node_ptr node = skip_parens(operand->variant.expression);
+    if (is_operation_node(node) && node_operator_is(node, eok_comma) &&
+        is_temp_node(node->variant.operation.operands->next)) {
+      temp_init_from_operand_full(operand, operand->type,
+                                  /*result_is_lvalue=*/FALSE);
+    }  /* if */
+  }  /* if */
+}  /* temp_init_from_comma_operand */
+
+
 static a_boolean optimizable_class_rvalue_question(
                                                  an_operand         *operand_2,
                                                  an_operand         *operand_3,
@@ -15200,6 +15217,9 @@ entries for the operands.
   an_expr_node_ptr  op_2 = NULL, op_3 = NULL;
 
   *dip_2 = *dip_3 = NULL;
+  /* If an operand is a comma operand, attempt to turn it into a temp-init. */
+  temp_init_from_comma_operand(operand_2);
+  temp_init_from_comma_operand(operand_3);
   op2_is_temp_init = operand_is_temp_init_full(operand_2, &op_2);
   op3_is_temp_init = operand_is_temp_init_full(operand_3, &op_3);
   /* If only one of the operands is a temp-init, make a copy of the
