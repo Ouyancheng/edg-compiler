@@ -6164,8 +6164,8 @@ do_argument_again:
           }  /* if */
           /* The raw form of the argument has been scanned.  Now scan it
              again with macro expansion. */
-         scanning_raw_argument = FALSE;
-         if (!need_expanded_form) goto end_arg_expansion;
+          scanning_raw_argument = FALSE;
+          if (!need_expanded_form) goto end_arg_expansion;
           /* We do the rescan by reinserting the raw argument text
              temporarily and rescanning it with macro expansion on
              (but still fetching pp-tokens).  Note that the standard
