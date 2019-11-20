@@ -1605,11 +1605,15 @@ ensure_macro_buffer_space.
                choice between the raw and expanded versions of a macro
                argument; in that case, the deleted text might still be used
                and cannot be skipped.  (See choose_raw_or_expanded_arg for
-               details.) */
+               details.)  A deletion that was added while scanning the raw
+               text of a macro argument for which the scan for the expanded
+               version has not yet completed can also not be compacted,
+               since there may be pointers into the deleted text. */
             rem_source_line_modif_from_hash_table(nested_slmp);
             nested_slmp->line_loc = dst - 1;
             add_source_line_modif_to_hash_table(nested_slmp);
-            if (!nested_slmp->is_raw_or_expanded_arg) {
+            if (!nested_slmp->is_raw_or_expanded_arg &&
+                !nested_slmp->in_pending_raw_arg) {
               src += nested_slmp->num_chars_to_delete - 1;
               nested_slmp->num_chars_to_delete = 1;
             }  /* if */
@@ -5113,6 +5117,7 @@ associated global variables will also have been set).
   a_source_line_modif_ptr
                   slmp,
                   slmp2;
+  unsigned long   i;
   unsigned long   sequence_id;
   a_boolean       need_end_of_token_marker;
   a_boolean       is_macro_call = TRUE;  /* Assume. */
@@ -5183,6 +5188,7 @@ associated global variables will also have been set).
   a_boolean       saved_single_param_macro = single_param_macro;
   a_boolean       pragma_operator_seen = FALSE;
   a_boolean       empty_variadic_arg = FALSE;
+  unsigned long   init_modif_seq_no = sequence_id_for_source_line_modifs;
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
@@ -5843,6 +5849,9 @@ make_inert_macro:
       pp = param_list;
       /* Check for empty argument list. */
       if (curr_token != tok_rparen || pp != NULL) {
+        unsigned long saved_num_deletion_modifs =
+                                              num_deletion_modifications_added;
+        num_deletion_modifications_added = 0;
         add_stop_token(tok_comma);
         do {
           sizeof_t                token_text_len;
@@ -5858,6 +5867,7 @@ make_inert_macro:
              characters of each token (and any white space preceding it)
              are deleted as the token is scanned.  Also, white space at
              the beginning and end of the argument is ignored. */
+          scanning_raw_argument = TRUE;
           map = alloc_macro_arg();
           add_to_arg_values(map);
           arg_position = pos_curr_token;
@@ -5924,16 +5934,6 @@ do_argument_again:
             map->initial_raw_text_not_in_primary_source_line =
                                      (char *)arg_get_token_start_of_curr_token;
             scanning_text_not_in_primary_source_line = TRUE;
-            if (delete_source_from_loc != NULL) {
-              /* We will be rescanning the argument text for the expanded
-                 form, so we don't want any of it to be deleted; if the macro
-                 buffer is expanded during that rescan, the deleted text
-                 would not be copied into the expanded buffer and
-                 curr_char_loc would still point into the discarded
-                 buffer. */
-              save_delete_source_from_loc = delete_source_from_loc;
-              delete_source_from_loc = NULL;
-            }  /* if */
           }  /* if */
 #if FULLY_RESOLVED_MACRO_POSITIONS
           /* Initialize the position tracker for the raw text buffer.  Use
@@ -6164,7 +6164,8 @@ do_argument_again:
           }  /* if */
           /* The raw form of the argument has been scanned.  Now scan it
              again with macro expansion. */
-          if (!need_expanded_form) goto end_arg_expansion;
+         scanning_raw_argument = FALSE;
+         if (!need_expanded_form) goto end_arg_expansion;
           /* We do the rescan by reinserting the raw argument text
              temporarily and rescanning it with macro expansion on
              (but still fetching pp-tokens).  Note that the standard
@@ -6220,14 +6221,12 @@ do_argument_again:
             saved_slm_lock = locked_slmp->locked;
             locked_slmp->locked = TRUE;
           }  /* if */
-          if (delete_source_from_loc != NULL) {
-            /* Suspend deletion of the characters of the macro invocation.
-               We don't need to delete the characters of the raw argument
-               during rescan, and we need to save the current delete
-               position for later use. */
-            save_delete_source_from_loc = delete_source_from_loc;
-            delete_source_from_loc = NULL;
-          }  /* if */
+          /* Suspend deletion of the characters of the macro invocation.  We
+             don't need to delete the characters of the raw argument during
+             rescan, and we need to save the current delete position for
+             later use. */
+          save_delete_source_from_loc = delete_source_from_loc;
+          delete_source_from_loc = NULL;
           if (arg_get_token(&any_white_space_skipped) == tok_end_of_source &&
               pp->next == NULL && mdp->variadic) {
             /* There are no tokens in the replacement for __VA_ARGS__. */
@@ -6432,6 +6431,22 @@ scan_expanded_tokens:
           /* Re-get the "," or ")" that is next. */
           (void)arg_get_token(&any_white_space_skipped);
 end_arg_expansion:;
+          for (i = 0, slmp = source_line_modif_list;
+               i < num_deletion_modifications_added && slmp != NULL;
+               slmp = slmp->next) {
+            if (slmp->in_pending_raw_arg &&
+                slmp->sequence_id > init_modif_seq_no) {
+              /* This is a deletion source line modification that was added
+                 during the scan for the raw form of the argument.  The
+                 deleted text needed to be protected from compaction in the
+                 event that macro_buffer was expanded so text in the
+                 deletion could be referenced during the scan for the expanded
+                 form, but it is no longer needed. */
+              slmp->in_pending_raw_arg = FALSE;
+              ++i;
+            }  /* if */
+          }  /* for */
+          num_deletion_modifications_added = saved_num_deletion_modifs;
           /* Advance to the next argument (unless we've given an error about
              too many arguments). */
           if (pp != NULL) {
@@ -11536,6 +11551,7 @@ after this function.
   contextual_conversions = FALSE;
   use_raw_version_of_arg = FALSE;
   top_microsoft_slmp = NULL;
+  scanning_raw_argument = FALSE;
 }  /* macro_trans_unit_init */
 
 

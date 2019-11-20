@@ -73,6 +73,11 @@ EXTERN a_boolean
 			/* TRUE when reading the tokens of a macro argument
 			   list, FALSE at all other times. */
 
+EXTERN a_boolean
+		scanning_raw_argument;
+			/* TRUE when reading the raw form of a macro
+			   argument, FALSE at all other times. */
+
 EXTERN a_symbol_ptr
 	       	line_macro_symbol,
 		file_macro_symbol,
