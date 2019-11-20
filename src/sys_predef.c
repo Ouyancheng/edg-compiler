@@ -1720,7 +1720,8 @@ str_len should be used to determine the end of the argument.
       an_error_severity es = C_mode() ? es_warning : es_discretionary_error;
       pos_diagnostic(es, ec_unrecognized_target_attribute,
                      &aap->position);
-      if (is_effective_error(ec_unrecognized_target_attribute, es)) {
+      if (is_effective_error(ec_unrecognized_target_attribute, es,
+                             &aap->position)) {
         err = TRUE;
       }  /* if */
     }  /* if */

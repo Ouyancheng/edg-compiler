@@ -24570,7 +24570,7 @@ declaration from a using-declaration.)
                                                        es_discretionary_error);
           an_error_code      ec = ec_no_ctor_or_dtor_using_declaration;
           pos_diagnostic(sev, ec, &decl_pos);
-          if (is_effective_error(ec, sev)) {
+          if (is_effective_error(ec, sev, &decl_pos)) {
             err = TRUE;
           } else {
             /* Continue validity checks, but do not generate IL. */

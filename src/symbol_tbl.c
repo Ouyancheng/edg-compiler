@@ -11512,7 +11512,7 @@ and do not issue any diagnostics (including warnings).
            destructor was suppressed. */
         if (error_detected != NULL) {
           if (is_effective_error(ec_inaccessible_dtor_not_invoked,
-                                 es_warning)) {
+                                 es_warning, position)) {
             *error_detected = TRUE;
           }  /* if */
         } else {
@@ -11545,7 +11545,7 @@ and do not issue any diagnostics (including warnings).
          been called. */
       if (error_detected != NULL) {
         if (is_effective_sfinae_error(ec_suppressed_dtor_needed,
-                                      es_discretionary_error)) {
+                                      es_discretionary_error, position)) {
           *error_detected = TRUE;
         }  /* if */
       } else {
@@ -13033,7 +13033,7 @@ diagnostic would actually be an error.
     /* In some modes, is_effective_sfinae_error will ignore diagnostic
        overrides in making the error determination. */
     check_assertion(error_detected != NULL);
-    *error_detected = is_effective_sfinae_error(error_code, severity);
+    *error_detected = is_effective_sfinae_error(error_code, severity, err_pos);
   }  /* if */
 }  /* issue_access_error */
 
@@ -13242,7 +13242,8 @@ locator, and return TRUE.  If the symbol is not ambiguous, return FALSE.
                            fundamental_symbol_of(sym));
       }  /* if */
       if (is_effective_error(ec_ambiguous_injected_template_name,
-                             es_discretionary_error)) {
+                             es_discretionary_error,
+                             &locator->source_position)) {
         err = TRUE;
       }  /* if */
     } else {

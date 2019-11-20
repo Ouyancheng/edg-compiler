@@ -4232,11 +4232,8 @@ been scanned: builtin_func represents the reference to the builtin function
     a_type_ptr  promoted_type = default_argument_promotion(type);
     if (!identical_types(type, promoted_type)) {
       /* The type must possibly be obtained after default promotion. */
-      if (expr_diagnostic_should_be_issued(es_warning,
-                                         ec_va_arg_would_have_been_promoted)) {
-        pos_ty2_warning(ec_va_arg_would_have_been_promoted,
-                        &type_position, type, promoted_type);
-      }  /* if */
+      expr_pos_ty2_diagnostic(es_warning, ec_va_arg_would_have_been_promoted,
+                              &type_position, type, promoted_type);
       type_to_cast_to = type;
       type = promoted_type;
     }  /* if */
@@ -6269,11 +6266,9 @@ are expected to be NULL in that case.
           }  /* if */
         } else {
           an_error_severity sev = c99_mode ? es_warning : es_remark;
-          if (expr_diagnostic_should_be_issued(sev,
-                                               ec_implicit_func_decl)) {
-            pos_st_diagnostic(sev, ec_implicit_func_decl, &operand->position,
-                              func_sym->header->identifier);
-          }  /* if */
+          expr_pos_st_diagnostic(sev, ec_implicit_func_decl,
+                                 &operand->position,
+                                 func_sym->header->identifier);
         }  /* if */
         make_function_designator_operand(func_sym,
                                          /*is_qualified_name=*/FALSE,
@@ -10001,14 +9996,10 @@ case.
             an_error_severity sev = allow_anachronisms ?
                                                    anachronism_error_severity :
                                                    es_warning;
-            if (expr_diagnostic_should_be_issued(
-                                sev,
-                                ec_single_arg_postfix_incr_decr_anachronism)) {
-              pos_st_diagnostic(sev,
-                                ec_single_arg_postfix_incr_decr_anachronism,
-                                &operator_position,
-                                token_names[(int)operator_token]);
-            }  /* if */
+            expr_pos_st_diagnostic(sev,
+                                   ec_single_arg_postfix_incr_decr_anachronism,
+                                   &operator_position,
+                                   token_names[(int)operator_token]);
           }  /* if */
         } else {
           /* The anachronism does not apply, so try finding a conversion
@@ -12582,11 +12573,8 @@ standard headers (e.g., to implement <stdarg.h>).
   }  /* if */
   if (is_std_syntax) {
     if (is_function_type(alignof_type) && !(gnu_mode && !clang_mode)) {
-      if (expr_diagnostic_should_be_issued(es_discretionary_error,
-                                           ec_alignof_function_type)) {
-        pos_ty_diagnostic(es_discretionary_error, ec_alignof_function_type,
-                          &type_position, alignof_type);
-      }  /* if */
+      expr_pos_ty_diagnostic(es_discretionary_error, ec_alignof_function_type,
+                             &type_position, alignof_type);
     } else if (c11_mode && is_incomplete_array_type(alignof_type)) {
       an_error_severity  sev = strict_ansi_mode ?
                                             strict_ansi_discretionary_severity
@@ -17713,11 +17701,9 @@ indication in *rcblock).
           pos_ty_error(ec_ambiguous_base_class, &operand.position, bcp->type);
         }  /* if */
       } else if (!is_accessible_base_class(bcp)) {
-        if (expr_diagnostic_should_be_issued(es_discretionary_error,
-                                             ec_inaccessible_base_class)) {
-          pos_ty_diagnostic(es_discretionary_error, ec_inaccessible_base_class,
-                            &operand.position, bcp->type);
-        }  /* if */
+        expr_pos_ty_diagnostic(es_discretionary_error,
+                               ec_inaccessible_base_class, &operand.position,
+                               bcp->type);
       }  /* if */
     }  /* if */
     if (rvalue_reference_case) {
@@ -18270,7 +18256,8 @@ this macro does nothing as function_symbol will always be NULL.
 { if ((nps)->delete_routine == NULL && exceptions_enabled &&                 \
       !(nps)->delete_ambiguous && (nps)->function_symbol != NULL) {          \
     if (expr_diagnostic_should_be_issued(es_warning,                         \
-                                         ec_no_corresponding_delete)) {      \
+                                         ec_no_corresponding_delete,         \
+                                         &(nps)->new_position)) {            \
       pos_stsy_warning(ec_no_corresponding_delete, &(nps)->new_position,     \
                        (char *)((nps)->array_new ? "[]" : ""),               \
                        (nps)->function_symbol);                              \
@@ -22102,9 +22089,8 @@ C++ functional-notation type conversions, and C++ new-style casts.
          a pointer to. */
       *p_type_cast_to = type_cast_to =
                       type_after_array_to_pointer_transformation(type_cast_to);
-      if (expr_diagnostic_should_be_issued(es_warning, ec_nonstd_array_cast)) {
-        pos_ty_warning(ec_nonstd_array_cast, type_position, type_cast_to);
-      }  /* if */
+      expr_pos_ty_diagnostic(es_warning, ec_nonstd_array_cast, type_position,
+                             type_cast_to);
     } else {
       /* Normal case.  Casting to an array type is an error. */
       if (expr_error_should_be_issued()) {
@@ -24149,13 +24135,10 @@ if it's not valid).
             /* A conversion from pointer-to-member of derived to
                pointer-to-member of a private base should not be
                allowed.  See core issue 54. */
-            if (expr_diagnostic_should_be_issued(es_discretionary_error,
-                                                 ec_inaccessible_base_class)) {
-              pos_ty_diagnostic(es_discretionary_error,
-                                ec_inaccessible_base_class,
-                                start_position,
-                                /*lint -e(530)*/bcp->type);
-            }  /* if */
+            expr_pos_ty_diagnostic(es_discretionary_error,
+                                   ec_inaccessible_base_class,
+                                   start_position,
+                                   /*lint -e(530)*/bcp->type);
           } else if (expr_access_checking_should_be_done() &&
                      related_class_pointers_or_handles(adj_source_type,
                                                        adj_type_cast_to,
@@ -24172,14 +24155,10 @@ if it's not valid).
                 (gpp_mode && gnu_version < 30400)) {
               /* Okay. */
             } else {
-              if (expr_diagnostic_should_be_issued(
-                                      es_discretionary_error,
-                                      ec_conv_from_inaccessible_base_class)) {
-                pos_ty_diagnostic(es_discretionary_error,
-                                  ec_conv_from_inaccessible_base_class,
-                                  start_position,
-                                  bcp->type);
-              }  /* if */
+              expr_pos_ty_diagnostic(es_discretionary_error,
+                                     ec_conv_from_inaccessible_base_class,
+                                     start_position,
+                                     bcp->type);
             }  /* if */
           }  /* if */
           /* Do the actual cast. */
@@ -25215,7 +25194,8 @@ indication in *rcblock).  rescan_icp is not freed.
   } else {
     if (gnu_mode && !c99_mode &&
         expr_diagnostic_should_be_issued(es_warning,
-                                         ec_compound_literal_is_nonstandard)) {
+                                         ec_compound_literal_is_nonstandard,
+                                         &error_position)) {
       report_gnu_extension_if_needed(&error_position,
                                      ec_compound_literal_is_nonstandard);
     }  /* if */
@@ -26906,13 +26886,10 @@ that case.
              second (but not the first) operand.  Issue a warning if
              appropriate and cast the second operand to the type of the
              first. */
-          if (expr_diagnostic_should_be_issued(es_warning,
-                                               ec_nonstandard_ptr_minus_ptr)) {
-            pos_ty2_diagnostic(es_warning,
-                               ec_nonstandard_ptr_minus_ptr,
-                               &operator_position,
-                               operand_1->type, operand_2.type);
-          }  /* if */
+          expr_pos_ty2_diagnostic(es_warning,
+                                  ec_nonstandard_ptr_minus_ptr,
+                                  &operator_position,
+                                  operand_1->type, operand_2.type);
           operation_type = operand_1->type;
           nonstd_ptr_diff = TRUE;
         } else if (!check_object_pointer_operand(
@@ -26928,13 +26905,10 @@ that case.
             an_error_severity sev = strict_ansi_mode ?
                                           strict_ansi_error_severity :
                                           es_warning;
-            if (expr_diagnostic_should_be_issued(sev,
-                                               ec_nonstandard_ptr_minus_ptr)) {
-              pos_ty2_diagnostic(sev,
-                                 ec_nonstandard_ptr_minus_ptr,
-                                 &operator_position,
-                                 operand_1->type, operand_2.type);
-            }  /* if */
+            expr_pos_ty2_diagnostic(sev,
+                                    ec_nonstandard_ptr_minus_ptr,
+                                    &operator_position,
+                                    operand_1->type, operand_2.type);
           }  /* if */
         }  /* if */
         result_type = integer_type(targ_ptrdiff_t_int_kind);
@@ -27312,11 +27286,8 @@ different enum types (or, in C, have different affiliated enum types).
         !same_entities(type_1, type_2)) {
       /* Issue a remark if comparing two different enum types (which is
          rarely intentional). */
-      if (expr_diagnostic_should_be_issued(
-                                         sev, ec_different_enum_comparison)) {
-        pos_ty2_diagnostic(sev, ec_different_enum_comparison, pos,
-                           type_1, type_2);
-      }  /* if */
+      expr_pos_ty2_diagnostic(sev, ec_different_enum_comparison, pos,
+                              type_1, type_2);
     }  /* if */
   }  /* if */
 }  /* diagnose_comparison_if_different_enum_types */
@@ -27622,10 +27593,7 @@ right pointer type).
     pos = &operand_2->position;
   }  /* if */
   if (ops_not_equal) {
-    if (expr_diagnostic_should_be_issued(es_remark,
-                                         ec_known_comparison_with_null)) {
-      pos_remark(ec_known_comparison_with_null, pos);
-    }  /* if */
+    expr_pos_diagnostic(es_remark, ec_known_comparison_with_null, pos);
   }  /* if */
 }  /* check_for_pointer_comparison_to_null_with_known_result */
 
@@ -30839,11 +30807,8 @@ that case.
          (because if they both were, they would have the same types),
          so use the type of the third. */
       result_type = operand_3.type;
-      if (expr_diagnostic_should_be_issued(es_warning,
-                                           ec_incompatible_operands)) {
-        pos_ty2_warning(ec_incompatible_operands, &colon_position,
-                        operand_2.type, operand_3.type);
-      }  /* if */
+      expr_pos_ty2_diagnostic(es_remark, ec_incompatible_operands,
+                              &colon_position, operand_2.type, operand_3.type);
       adjust_void_operand_for_microsoft_void_vs_scalar_conditional(&operand_2,
                                                                   result_type);
     } else if (microsoft_mode && C_mode() && microsoft_version <= 1200 &&
@@ -30856,11 +30821,8 @@ that case.
          The third operand is a void expression and the second is not,
          so use the type of the second. */
       /* result_type = operand_2.type; -- already set. */
-      if (expr_diagnostic_should_be_issued(es_warning,
-                                           ec_incompatible_operands)) {
-        pos_ty2_warning(ec_incompatible_operands, &colon_position,
-                        operand_2.type, operand_3.type);
-      }  /* if */
+      expr_pos_ty2_diagnostic(es_remark, ec_incompatible_operands,
+                              &colon_position, operand_2.type, operand_3.type);
       adjust_void_operand_for_microsoft_void_vs_scalar_conditional(&operand_3,
                                                                   result_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -31217,11 +31179,9 @@ accepted as a null pointer constant.
           orig_operand = *operand;
           make_constant_operand(node_constant(expr), operand);
           restore_operand_details(operand, &orig_operand);
-          if (expr_diagnostic_should_be_issued(es_warning,
-                                               ec_bad_initializer_type)) {
-            pos_ty2_warning(ec_bad_initializer_type, &operand->position,
-                            orig_operand.type, dest_type);
-          }  /* if */
+          expr_pos_ty2_diagnostic(es_warning, ec_bad_initializer_type,
+                                  &operand->position, orig_operand.type,
+                                  dest_type);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -34120,7 +34080,8 @@ if rescan_is_template_id is TRUE, and return the result in *operand
        nested class anachronism (ARM 18.3.5).  Issue an anachronism
        diagnostic. */
     if (expr_diagnostic_should_be_issued(anachronism_error_severity,
-                                         ec_nested_class_anachronism)) {
+                                         ec_nested_class_anachronism,
+                                         &error_position)) {
       sym_diagnostic(anachronism_error_severity, ec_nested_class_anachronism,
                      locator.specific_symbol);
     }  /* if */
@@ -37134,11 +37095,8 @@ handle_identifier:
           ensure_temp_text_buffer_space(len_of_curr_token + 1);
           strncpy(temp_text_buffer, start_of_curr_token, len_of_curr_token);
           temp_text_buffer[len_of_curr_token] = 0;
-          if (expr_diagnostic_should_be_issued(es_remark,
-                                               ec_undefined_preproc_id)) {
-            pos_st_remark(ec_undefined_preproc_id, &pos_curr_token,
-                          temp_text_buffer);
-          }  /* if */
+          expr_pos_st_diagnostic(es_remark, ec_undefined_preproc_id,
+                                 &pos_curr_token, temp_text_buffer);
         }  /* if */
         const_for_curr_token.from_undefined_preproc_id = FALSE;
       }  /* if */
@@ -47250,10 +47208,8 @@ integer expression for the thread number.
     }  /* if */
   } else {
     if (is_shared_qualified_type(operand.type)) {
-      if (expr_diagnostic_should_be_issued(es_remark,
-                                           ec_shared_affinity_type)) {
-        pos_remark(ec_shared_affinity_type, &operator_position);
-      }  /* if */
+      expr_pos_diagnostic(es_remark, ec_shared_affinity_type,
+                          &operator_position);
     }  /* if */
     /* Handle as an integer expression */
     process_integer_expression(&operand, /*is_switch_expr=*/FALSE);

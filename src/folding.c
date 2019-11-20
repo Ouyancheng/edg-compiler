@@ -1076,7 +1076,7 @@ is (successfully) folded to another error constant.
           /* The base class is inaccessible. */
           if (error_detected != NULL) {
             if (is_effective_sfinae_error(ec_inaccessible_base_class,
-                                          es_discretionary_error)) {
+                                          es_discretionary_error, err_pos)) {
               *error_detected = ec_inaccessible_base_class;
             }  /* if */
           } else {
@@ -1697,7 +1697,7 @@ the diagnostic, or set it to ec_no_error if there was no error.
           /* The base class is inaccessible. */
           if (error_detected != NULL) {
             if (is_effective_sfinae_error(ec_conv_from_inaccessible_base_class,
-                                          es_discretionary_error)) {
+                                          es_discretionary_error, err_pos)) {
               *error_detected = ec_conv_from_inaccessible_base_class;
             }  /* if */
           } else {
@@ -1959,7 +1959,7 @@ diagnostic is issued, do so with source position *err_pos.  Set
     /* Constant context, so errors can be issued.  Check for a requested
        increase of severity on a warning. */
     if (err_severity != es_error &&
-        is_effective_sfinae_error(err_code, err_severity)) {
+        is_effective_sfinae_error(err_code, err_severity, err_pos)) {
       err_severity = es_error;
     }  /* if */
   }  /* if */

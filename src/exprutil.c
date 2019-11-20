@@ -2354,11 +2354,11 @@ Typically, the same diagnostic is issued multiple times in the same expression
 */
 {
   if (!spiep->diagnostic_issued) {
-    if (expr_diagnostic_should_be_issued(es_remark,
-                                         ec_unsequenced_use_of_variable)) {
+    a_source_position  *pos = &spiep->expr->expr_range.start;
+    if (expr_diagnostic_should_be_issued(
+                            es_remark, ec_unsequenced_use_of_variable, pos)) {
       check_assertion(is_variable_node(spiep->expr));
-      pos_sy_diagnostic(es_remark, ec_unsequenced_use_of_variable,
-                        &spiep->expr->expr_range.start,
+      pos_sy_diagnostic(es_remark, ec_unsequenced_use_of_variable, pos,
                         symbol_for(node_variable(spiep->expr)));
     }  /* if */
     spiep->diagnostic_issued = TRUE;
@@ -6824,11 +6824,12 @@ errors.
 
 
 a_boolean expr_diagnostic_should_be_issued(an_error_severity sev,
-                                           an_error_code     err_code)
+                                           an_error_code     err_code,
+                                           a_source_position *pos)
 /*
-Return TRUE if a diagnostic with the indicated severity and error code
-should be issued.  More precisely, return FALSE if the diagnostic should
-not be issued because we are in a template deduction context.  In that
+Return TRUE if a diagnostic with the indicated severity, error code, and
+position should be issued.  More precisely, return FALSE if the diagnostic
+should not be issued because we are in a template deduction context.  In that
 case, if the effective level of the diagnostic (after possible adjustment
 because of command-line options or pragmas) is an error of some kind, set the
 any_suppressed_error flag in the expression stack.
@@ -6839,7 +6840,7 @@ any_suppressed_error flag in the expression stack.
   if (expr_stack != NULL) {
     if (expr_stack->suppress_diagnostics) {
       should_issue = FALSE;
-      if (is_effective_sfinae_error(err_code, sev)) {
+      if (is_effective_sfinae_error(err_code, sev, pos)) {
         record_suppressed_error();
       }  /* if */
     }  /* if */
@@ -6890,7 +6891,7 @@ if we're in a context where diagnostics should be suppressed, e.g.,
 a template deduction context.
 */
 {
-  if (expr_diagnostic_should_be_issued(es_warning, error_code)) {
+  if (expr_diagnostic_should_be_issued(es_warning, error_code, error_pos)) {
     pos_warning(error_code, error_pos);
   }  /* if */
 }  /* expr_pos_warning */
@@ -6905,7 +6906,7 @@ if we're in a context where diagnostics should be suppressed, e.g.,
 a template deduction context.
 */
 {
-  if (expr_diagnostic_should_be_issued(es_warning, error_code)) {
+  if (expr_diagnostic_should_be_issued(es_warning, error_code, error_pos)) {
     pos_st_warning(error_code, error_pos, str);
   }  /* if */
 }  /* expr_pos_st_warning */
@@ -6920,10 +6921,43 @@ position.  Suppress the diagnostic if we're in a context where diagnostics
 should be suppressed, e.g., a template deduction context.
 */
 {
-  if (expr_diagnostic_should_be_issued(sev, error_code)) {
+  if (expr_diagnostic_should_be_issued(sev, error_code, error_pos)) {
     pos_diagnostic(sev, error_code, error_pos);
   }  /* if */
 }  /* expr_pos_diagnostic */
+
+
+void expr_pos_ty_diagnostic(an_error_severity sev,
+                            an_error_code     error_code,
+                            a_source_position *error_pos,
+                            a_type_ptr        tp)
+/*
+Report the indicated diagnostic with the indicated severity at the indicated
+position.  Suppress the diagnostic if we're in a context where diagnostics
+should be suppressed, e.g., a template deduction context.
+*/
+{
+  if (expr_diagnostic_should_be_issued(sev, error_code, error_pos)) {
+    pos_ty_diagnostic(sev, error_code, error_pos, tp);
+  }  /* if */
+}  /* expr_pos_ty_diagnostic */
+
+
+void expr_pos_ty2_diagnostic(an_error_severity sev,
+                             an_error_code     error_code,
+                             a_source_position *error_pos,
+                             a_type_ptr        tp1,
+                             a_type_ptr        tp2)
+/*
+Report the indicated diagnostic with the indicated severity at the indicated
+position.  Suppress the diagnostic if we're in a context where diagnostics
+should be suppressed, e.g., a template deduction context.
+*/
+{
+  if (expr_diagnostic_should_be_issued(sev, error_code, error_pos)) {
+    pos_ty2_diagnostic(sev, error_code, error_pos, tp1, tp2);
+  }  /* if */
+}  /* expr_pos_ty2_diagnostic */
 
 
 void expr_pos_st_diagnostic(an_error_severity sev,
@@ -6937,7 +6971,7 @@ in a context where diagnostics should be suppressed, e.g., a template deduction
 context.
 */
 {
-  if (expr_diagnostic_should_be_issued(sev, error_code)) {
+  if (expr_diagnostic_should_be_issued(sev, error_code, error_pos)) {
     pos_st_diagnostic(sev, error_code, error_pos, str);
   }  /* if */
 }  /* expr_pos_st_diagnostic */
@@ -7880,7 +7914,8 @@ appropriately and error_detected can be NULL.
             *error_detected = TRUE;
           } else if (expr_diagnostic_should_be_issued(
                                                  es_discretionary_error,
-                                                 ec_inaccessible_base_class)) {
+                                                 ec_inaccessible_base_class,
+                                                 err_pos)) {
             pos_ty_diagnostic(es_discretionary_error,
                               ec_inaccessible_base_class, err_pos,
                               base_class->type);
@@ -8178,7 +8213,8 @@ source position to be used for errors.  This routine is only used in C++ mode.
         if (!is_accessible_imm_base_class(base_class, curr_type, bcp)) {
           if (expr_diagnostic_should_be_issued(
                                        es_discretionary_error,
-                                       ec_conv_from_inaccessible_base_class)) {
+                                       ec_conv_from_inaccessible_base_class,
+                                       err_pos)) {
             pos_ty_diagnostic(es_discretionary_error,
                               ec_conv_from_inaccessible_base_class,
                               err_pos, base_class->type);
@@ -9445,7 +9481,8 @@ is called only in those contexts that allow this special laxity.
         baseward_cast && bcp->ambiguous && bcp->direct) {
       if (expr_diagnostic_should_be_issued(
                                       es_warning,
-                                      ec_ambiguous_cast_selects_direct_base)) {
+                                      ec_ambiguous_cast_selects_direct_base,
+                                      &operand->position)) {
         pos_ty_warning(ec_ambiguous_cast_selects_direct_base,
                        &operand->position, bcp->type);
       }  /* if */
@@ -11762,7 +11799,8 @@ strict ANSI mode.  Return FALSE if there is an error.
       if (nonstd_case) {
         /* A nonstandard case. */
         if (expr_diagnostic_should_be_issued(strict_ansi_error_severity,
-                                             ec_incompatible_operands)) {
+                                             ec_incompatible_operands,
+                                             operator_position)) {
           pos_ty2_diagnostic(strict_ansi_error_severity,
                              ec_incompatible_operands, operator_position,
                              operand_1_type, operand_2_type);
@@ -11773,7 +11811,8 @@ strict ANSI mode.  Return FALSE if there is an error.
       /* Oddball cases call for a warning.  Suppress this if we issued a
          diagnostic about nonstandard use. */
       if (expr_diagnostic_should_be_issued(es_warning,
-                                           std_conv.warning_suggested)) {
+                                           std_conv.warning_suggested,
+                                           operator_position)) {
         pos_opt_ty2_warning(std_conv.warning_suggested, operator_position,
                             operand_1_type, operand_2_type);
       }  /* if */
@@ -13160,7 +13199,8 @@ array case in strict ANSI mode.
          combined with the pointer) is a constant zero, issue a remark
          (that's a case like p[0]); otherwise, issue a warning. */
       if (op_is_zero_constant(otherop) && !strict_ansi_mode) {
-        if (expr_diagnostic_should_be_issued(es_remark, err_code)) {
+        if (expr_diagnostic_should_be_issued(es_remark, err_code,
+                                             &operand->position)) {
           pos_remark(err_code, &operand->position);
         }  /* if */
       } else {
@@ -23534,7 +23574,7 @@ Do one-time initialization of variables related to expression processing.
 #if SEQUENCING_DIAGNOSTICS_ENABLED
   sequencing_diagnostics_enabled = is_effective_diagnostic(
                                                 ec_unsequenced_use_of_variable,
-                                                es_remark);
+                                                es_remark, &error_position);
 #else /* !SEQUENCING_DIAGNOSTICS_ENABLED */
   sequencing_diagnostics_enabled = FALSE;
 #endif /* SEQUENCING_DIAGNOSTICS_ENABLED */

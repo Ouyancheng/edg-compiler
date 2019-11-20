@@ -2962,30 +2962,37 @@ with the threshold setting to see if this diagnostic should be issued.
 
 
 a_boolean is_effective_error(an_error_code	error_code,
-                             an_error_severity	severity)
+                             an_error_severity	severity,
+                             a_source_position  *pos)
 /*
-Determine the severity at which a diagnostic specified by error_code and
-severity would be issued.  Return TRUE if the diagnostic would be issued
-at a severity of discretionary error or above.
+Determine the severity at which a diagnostic specified by error_code, severity,
+and pos would be issued.  Return TRUE if it would be issued as an error.
 */
 {
   a_boolean	result;
 
   check_for_overridden_severity(error_code, &severity);
-  result = (int)severity >= (int)es_discretionary_error;
+  if ((int)severity >= (int)es_error) {
+    result = TRUE;
+  } else if (severity == es_discretionary_error &&
+             !seq_is_in_system_header(pos->seq)) {
+    result = TRUE;
+  } else {
+    result = FALSE;
+  }  /* if */
   return result;
 }  /* is_effective_error */
 
 
 a_boolean is_effective_sfinae_error(an_error_code	error_code,
-                                    an_error_severity	severity)
+                                    an_error_severity	severity,
+                                    a_source_position  *pos)
 /*
-This routine is similar to is_effective_error but is called when a
-SFINAE error is detected.  If diag_override_does_not_affect_sfinae is
-FALSE, it simply calls is_effective_error.  But if it is TRUE then
-the determination is based on the severity passed in (ignoring any
-overridden severities).  Return TRUE if the diagnostic would be issued
-at a severity of discretionary error or above.
+This routine is similar to is_effective_error but is called when a SFINAE
+error is detected.  If diag_override_does_not_affect_sfinae is FALSE, it is
+equivalent to a call to is_effective_error.  But if it is TRUE then the
+determination is based on the severity passed in (ignoring any overridden
+severities).  Return TRUE if the diagnostic would be issued as an error.
 */
 {
   a_boolean	result;
@@ -2993,13 +3000,21 @@ at a severity of discretionary error or above.
   if (!diag_override_does_not_affect_sfinae) {
     check_for_overridden_severity(error_code, &severity);
   }  /* if */
-  result = (int)severity >= (int)es_discretionary_error;
+  if ((int)severity >= (int)es_error) {
+    result = TRUE;
+  } else if (severity == es_discretionary_error &&
+             !seq_is_in_system_header(pos->seq)) {
+    result = TRUE;
+  } else {
+    result = FALSE;
+  }  /* if */
   return result;
 }  /* is_effective_sfinae_error */
 
 
 a_boolean is_effective_diagnostic(an_error_code     error_code,
-                                  an_error_severity severity)
+                                  an_error_severity severity,
+                                  a_source_position *pos)
 /*
 Returns TRUE if a diagnostic with the specified error_code would be emitted
 at the current error threshold, taking into account any overridden
@@ -3009,7 +3024,14 @@ severities.
   a_boolean	result;
 
   check_for_overridden_severity(error_code, &severity);
-  result = (int)severity >= (int)error_threshold;
+  if ((int)severity >= (int)es_error) {
+    result = TRUE;
+  } else if (severity == es_discretionary_error &&
+             !seq_is_in_system_header(pos->seq)) {
+    result = TRUE;
+  } else {
+    result = (int)severity >= (int)error_threshold;
+  }  /* if */
   return result;
 }  /* is_effective_diagnostic */
 
@@ -3296,7 +3318,7 @@ report_gnu_cpp11_extension_if_needed.)
 */
 {
   if (!diagnostic_issued_for_error_code[(int)error_code] &&
-      is_effective_diagnostic(error_code, es_warning) &&
+      is_effective_diagnostic(error_code, es_warning, pos) &&
       !cmd_line_option_inhibits_gnu_cpp11_extension_warning(error_code) &&
       !seq_is_in_system_header(pos->seq)) {
     pos_warning(error_code, pos);

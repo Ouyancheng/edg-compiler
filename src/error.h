@@ -315,13 +315,16 @@ a_boolean set_severity_for_error_number(int		  error_number,
 				        a_boolean	  make_default);
 
 extern a_boolean is_effective_error(an_error_code	error_code,
-                                    an_error_severity	severity);
+                                    an_error_severity	severity,
+                                    a_source_position	*pos);
 
 extern a_boolean is_effective_sfinae_error(an_error_code	error_code,
-                                           an_error_severity	severity);
+                                           an_error_severity	severity,
+                                           a_source_position	*pos);
 
 extern a_boolean is_effective_diagnostic(an_error_code     error_code,
-                                         an_error_severity severity);
+                                         an_error_severity severity,
+                                         a_source_position *pos);
 
 /*lint -sem(command_line_error, r_no)*/
 extern DOES_NOT_RETURN command_line_error(an_error_code error_code);

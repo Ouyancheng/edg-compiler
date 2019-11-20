@@ -12621,9 +12621,8 @@ for the "%s" specifier).
        lots of code that prints pointers using %lx. */
   } else if (interchangeable_types(eff_required_type, eff_argument_type)) {
     /* The types are not exactly the same, but they are interchangeable. */
-    if (expr_diagnostic_should_be_issued(es_remark, ec_printf_arg_mismatch)) {
-      pos_remark(ec_printf_arg_mismatch, &argument_operand->position);
-    }  /* if */
+    expr_pos_diagnostic(es_remark, ec_printf_arg_mismatch,
+                          &argument_operand->position);
   } else {
     /* The argument type does not match the required type. */
 mismatch:
@@ -19733,8 +19732,8 @@ source_type to dest_type.
   if (std_conv->warning_suggested != ec_no_error) {
     /* The "opt_ty2" routine puts in the types if the specific error
        message has fill-ins for them, and otherwise ignores the types. */
-    if (expr_diagnostic_should_be_issued(es_warning,
-                                         std_conv->warning_suggested)) {
+    if (expr_diagnostic_should_be_issued(
+                          es_warning, std_conv->warning_suggested, err_pos)) {
       pos_opt_ty2_warning(std_conv->warning_suggested, err_pos,
                           source_type, dest_type);
     }  /* if */
@@ -20710,10 +20709,10 @@ is_transparent.  conv_context describes the context of the conversion.
                                            dest_type,
                                            &err_code)) {
         if (expr_diagnostic_should_be_issued(es_discretionary_error,
-                                             err_code)) {
+                                             err_code, err_pos)) {
           pos_ty2_diagnostic(es_discretionary_error, err_code, err_pos,
                              src_type, dest_type);
-          if (is_effective_error(err_code, es_discretionary_error)) {
+          if (is_effective_error(err_code, es_discretionary_error, err_pos)) {
             /* Avoid duplicate errors. */
             make_error_operand(source_operand);
           }  /* if */
@@ -20956,28 +20955,24 @@ cases.
                                                  /*elided_reference=*/TRUE);
     } else if (ambiguous) {
       /* More than one applicable copy constructor. */
-      if (expr_diagnostic_should_be_issued(strict_ansi_discretionary_severity,
-                                           ec_ambiguous_copy_constructor)) {
-        pos_ty_diagnostic(strict_ansi_discretionary_severity,
-                          ec_ambiguous_copy_constructor, err_pos, class_type);
-      }  /* if */
+      expr_pos_ty_diagnostic(strict_ansi_discretionary_severity,
+                             ec_ambiguous_copy_constructor, err_pos,
+                             class_type);
     } else if (uncallable) {
       /* The copy constructor that might have been used is uncallable,
          e.g., because its input parameter cannot be bound to an rvalue. */
       if (expr_diagnostic_should_be_issued(strict_ansi_discretionary_severity,
-                                           ec_uncallable_elided_cctor)) {
+                                           ec_uncallable_elided_cctor,
+                                           err_pos)) {
         pos_sy_diagnostic(strict_ansi_discretionary_severity,
                           ec_uncallable_elided_cctor,
                           err_pos, cctor_sym);
       }  /* if */
     } else if (cctor_sym == NULL) {
       /* No applicable copy constructor. */
-      if (expr_diagnostic_should_be_issued(strict_ansi_discretionary_severity,
-                                           ec_no_suitable_copy_constructor)) {
-        pos_ty_diagnostic(strict_ansi_discretionary_severity,
-                          ec_no_suitable_copy_constructor, err_pos,
-                          class_type);
-      }  /* if */
+      expr_pos_ty_diagnostic(strict_ansi_discretionary_severity,
+                             ec_no_suitable_copy_constructor, err_pos,
+                             class_type);
     } else if (expr_access_checking_should_be_done() &&
                !have_access_to_symbol(cctor_sym)) {
       /* The copy constructor is inaccessible. */
@@ -22984,12 +22979,14 @@ the conversion.
         is_invalid_nontype_arg_object(source_operand)) {
       /* An expression that doesn't simply designate a variable is invalid. */
       if (expr_diagnostic_should_be_issued(es_discretionary_error,
-                                           incompatible_err)) {
+                                           incompatible_err,
+                                           &source_operand->position)) {
         pos_diagnostic(es_discretionary_error,
                        ec_template_arg_cannot_point_to_subobject,
                        &source_operand->position);
         if (is_effective_error(ec_template_arg_cannot_point_to_subobject,
-                               es_discretionary_error)) {
+                               es_discretionary_error,
+                               &source_operand->position)) {
           /* Avoid duplicate errors. */
           make_error_operand(source_operand);
         }  /* if */
@@ -23012,11 +23009,13 @@ the conversion.
       /* A derived-base binding is not allowed in a nontype template
          argument. */
       if (expr_diagnostic_should_be_issued(es_discretionary_error,
-                                           incompatible_err)) {
+                                           incompatible_err,
+                                           &source_operand->position)) {
         pos_ty2_diagnostic(es_discretionary_error, incompatible_err,
                            &source_operand->position, orig_source_type,
                            dest_type);
-        if (is_effective_error(incompatible_err, es_discretionary_error)) {
+        if (is_effective_error(incompatible_err, es_discretionary_error,
+                               &source_operand->position)) {
           /* Avoid duplicate errors. */
           make_error_operand(source_operand);
         }  /* if */
@@ -23072,7 +23071,8 @@ the conversion.
         /* An expression that doesn't simply designate a function is
            invalid. */
         if (expr_diagnostic_should_be_issued(es_discretionary_error,
-                                             incompatible_err)) {
+                                             incompatible_err,
+                                             &source_operand->position)) {
           pos_diagnostic(es_discretionary_error,
                          ec_template_arg_cannot_point_to_subobject,
                          &source_operand->position);
@@ -23389,10 +23389,8 @@ the conversion.
       }  /* if */
       if (!err && !warn) {
         /* Let the user know a temp was used. */
-        if (expr_diagnostic_should_be_issued(es_remark,
-                                             ec_temp_used_for_ref_init)) {
-          pos_remark(ec_temp_used_for_ref_init, &source_operand->position);
-        }  /* if */
+        expr_pos_diagnostic(es_remark, ec_temp_used_for_ref_init,
+                            &source_operand->position);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -23767,15 +23765,16 @@ initialization processing.
       (error_on_narrowing || warning_on_narrowing)) {
     an_error_severity sev = (error_on_narrowing ? es_discretionary_error :
                                                   es_warning);
-    if (error_on_narrowing && !is_effective_error(err_code, sev)) {
+    if (error_on_narrowing &&
+        !is_effective_error(err_code, sev, &source_operand->position)) {
       /* The error has been given a non-error severity by the user.
          call this case not a narrowing error, and we'll come back again
          later to issue the warning. */
       is_narrowing = FALSE;
       *treat_as_warning = TRUE;
-    } else if (expr_diagnostic_should_be_issued(sev, err_code)) {
-      pos_ty2_diagnostic(sev, err_code, &source_operand->position,
-                         source_type, dest_type);
+    } else {
+      expr_pos_ty2_diagnostic(sev, err_code, &source_operand->position,
+                              source_type, dest_type);
     }  /* if */
   } /* if */
   return is_narrowing;
@@ -24771,7 +24770,8 @@ will be an lvalue instead of the usual prvalue.
                                     strict_ansi_discretionary_severity :
                                     es_warning;
         if (arg_match != NULL) {
-          if (is_effective_sfinae_error(ec_braced_init_in_paren_init, sev)) {
+          if (is_effective_sfinae_error(ec_braced_init_in_paren_init, sev,
+                                        start_position)) {
             arg_match_err = TRUE;
           }  /* if */
         } else if (is == NULL ||
@@ -25119,12 +25119,11 @@ will be an lvalue instead of the usual prvalue.
            is allowed. */
         if (arg_match != NULL) {
           arg_match_err = TRUE;
-        } else if (expr_diagnostic_should_be_issued(es_discretionary_error,
-                                             ec_extra_braces_on_simple_init)) {
-          pos_ty_diagnostic(es_discretionary_error,
-                            ec_extra_braces_on_simple_init,
-                            init_component_pos(list),
-                            dest_type);
+        } else {
+          expr_pos_ty_diagnostic(es_discretionary_error,
+                                 ec_extra_braces_on_simple_init,
+                                 init_component_pos(list),
+                                 dest_type);
         }  /* if */
         while (is_braced_init_component(list)) {
           /* Drop the extra braces as long as they contain a single

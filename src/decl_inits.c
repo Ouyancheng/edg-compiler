@@ -846,7 +846,8 @@ remove_any_extraneous_braces:
       }  /* if */
       if (diagnose_extra_braces) {
         if (is->no_diagnostics) {
-          is->init_error = is_effective_sfinae_error(ec_nonstd_braces, sev);
+          is->init_error = is_effective_sfinae_error(ec_nonstd_braces, sev,
+                                                     brace_pos);
         } else {
           pos_diagnostic(sev, ec_nonstd_braces, brace_pos);
         }  /* if */
@@ -10050,7 +10051,7 @@ declaration that has internal linkage because of the explicit presence of a
           if (err != NULL) {
             if (is_effective_sfinae_error(
                               ec_missing_default_constructor_on_unnamed_const,
-                              es_discretionary_error)) {
+                              es_discretionary_error, &error_position)) {
               *err = TRUE;
             }  /* if */
           } else {
@@ -10062,7 +10063,7 @@ declaration that has internal linkage because of the explicit presence of a
           if (err != NULL) {
             if (is_effective_sfinae_error(
                                    ec_missing_initializer_on_unnamed_const,
-                                   es_discretionary_error)) {
+                                   es_discretionary_error, &error_position)) {
               *err = TRUE;
             }  /* if */
           } else {
@@ -10128,7 +10129,7 @@ declaration that has internal linkage because of the explicit presence of a
           if (err != NULL) {
             if (is_effective_sfinae_error(
                                    ec_missing_initializer_on_unnamed_const,
-                                   es_discretionary_error)) {
+                                   es_discretionary_error, &error_position)) {
               *err = TRUE;
             }  /* if */
           } else {

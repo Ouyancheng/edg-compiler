@@ -2162,9 +2162,9 @@ elided copy constructor.
       /* If we are not issuing an error, call the "sfinae" version of the
          routine that can potentially ignore overridden severities. */
       if (pos == NULL) {
-        err = is_effective_sfinae_error(err_code, sev);
+        err = is_effective_sfinae_error(err_code, sev, pos);
       } else {
-        err = is_effective_error(err_code, sev);
+        err = is_effective_error(err_code, sev, pos);
         pos_ty_diagnostic(sev, err_code, pos, parent_class_of(rout));
       }  /* if */
     } else {
@@ -2172,9 +2172,9 @@ elided copy constructor.
       /* If we are not issuing an error, call the "sfinae" version of the
          routine that can potentially ignore overridden severities. */
       if (pos == NULL) {
-        err = is_effective_sfinae_error(err_code, sev);
+        err = is_effective_sfinae_error(err_code, sev, pos);
       } else {
-        err = is_effective_error(err_code, sev);
+        err = is_effective_error(err_code, sev, pos);
         pos_sy_diagnostic(sev, err_code, pos, rout_sym);
       }  /* if */
     }  /* if */

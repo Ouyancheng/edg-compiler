@@ -2689,7 +2689,8 @@ extern a_boolean is_a_cplusplus_lvalue(an_operand *operand);
 extern void record_suppressed_error(void);
 
 extern a_boolean expr_diagnostic_should_be_issued(an_error_severity sev,
-                                                  an_error_code     err_code);
+                                                  an_error_code     err_code,
+                                                  a_source_position *pos);
 
 extern a_boolean expr_error_should_be_issued(void);
 
@@ -2706,6 +2707,17 @@ extern void expr_pos_st_warning(an_error_code     error_code,
 extern void expr_pos_diagnostic(an_error_severity sev,
                                 an_error_code     error_code,
                                 a_source_position *error_pos);
+
+extern void expr_pos_ty_diagnostic(an_error_severity sev,
+                                   an_error_code     error_code,
+                                   a_source_position *error_pos,
+                                   a_type_ptr        tp);
+
+extern void expr_pos_ty2_diagnostic(an_error_severity sev,
+                                    an_error_code     error_code,
+                                    a_source_position *error_pos,
+                                    a_type_ptr        tp1,
+                                    a_type_ptr        tp2);
 
 extern void expr_pos_st_diagnostic(an_error_severity sev,
                                    an_error_code     error_code,
