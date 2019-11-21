@@ -44547,6 +44547,7 @@ memory region).  If param_type is NULL, the parameter type is not known.
       prep_nontype_template_argument_initializer(&result, param_type,
                                                  constant);
     }  /* if */
+    // FIXME: Use "constant" instead of "result" below.
     { a_type_ptr  ftp = skip_typerefs(param_type);
       if ((ftp->kind == (a_type_kind)tk_pointer ||
            ftp->kind == (a_type_kind)tk_ptr_to_member) &&
@@ -44621,7 +44622,7 @@ memory region).  If param_type is NULL, the parameter type is not known.
           if (expr_error_should_be_issued()) {
             pos_ty_error(ec_invalid_nontype_template_argument,
                          &result.position, result.type);
-            conv_to_error_operand(&result);
+            set_error_constant(constant);
           }  /* if */
         }  /* if */
       }  /* if */
