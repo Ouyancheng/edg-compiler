@@ -2963,7 +2963,7 @@ with the threshold setting to see if this diagnostic should be issued.
 
 a_boolean is_effective_error(an_error_code	error_code,
                              an_error_severity	severity,
-                             a_source_position  *pos)
+                             a_source_position	*pos)
 /*
 Determine the severity at which a diagnostic specified by error_code, severity,
 and pos would be issued.  Return TRUE if it would be issued as an error.
@@ -2986,7 +2986,7 @@ and pos would be issued.  Return TRUE if it would be issued as an error.
 
 a_boolean is_effective_sfinae_error(an_error_code	error_code,
                                     an_error_severity	severity,
-                                    a_source_position  *pos)
+                                    a_source_position	*pos)
 /*
 This routine is similar to is_effective_error but is called when a SFINAE
 error is detected.  If diag_override_does_not_affect_sfinae is FALSE, it is
