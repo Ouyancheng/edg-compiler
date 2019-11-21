@@ -2308,16 +2308,6 @@ pointers-to-members).
            are not generated here. */
         define_now = FALSE;
         storage_class = (a_storage_class)sc_extern;
-#if !GENERATE_EH_TABLES
-      } else if (is_pointer_type(type) &&
-                 is_class_struct_type(type_pointed_to(type))) {
-        /* When not generating EH tables, it's possible that pointer-to-class
-           typeinfo is emitted without the underlying class typeinfo; in that
-           case, suppress the definition of the pointer-to-class typeinfo
-           (it would cause unresolved references to the class typeinfo). */
-        storage_class = (a_storage_class)sc_extern;
-        define_now = FALSE;
-#endif /* !GENERATE_EH_TABLES */
       } else {
         define_now = TRUE;
         storage_class = (a_storage_class)sc_unspecified;
@@ -2927,6 +2917,16 @@ Also define it if necessary.
     if (is_immediate_class_type(type)) {
       generate_class_typeinfo_var_definition(type);
     }  /* if */
+#if MAINTAIN_NEEDED_FLAGS && !GENERATE_EH_TABLES
+    if (is_pointer_type(type) &&
+        is_class_struct_union_type(type_pointed_to(type))) {
+      /* Save a pointer to the class typeinfo variable so we can determine if
+         this typeinfo variable is indeed "needed" during the "needed walk". */
+      a_type_ptr class_type = skip_typerefs(type_pointed_to(type));
+      check_assertion(class_type->typeinfo_var != NULL);
+      type->typeinfo_var->eff_class_typeinfo_var = class_type->typeinfo_var;
+    }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS && !GENERATE_EH_TABLES */
   }  /* if */
 }  /* generate_type_typeinfo_var_if_needed */
 

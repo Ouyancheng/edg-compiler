@@ -7363,12 +7363,28 @@ it is an external definition).
 #endif /* DO_IL_LOWERING */
                                        ) ||
          var->init_kind == (an_init_kind)initk_dynamic) {
-      /* This is an externally linked variable that has been defined, or
-         it is a variable local to this translation unit but with
-         dynamic initialization, in which case it is treated as "needed"
-         because the initialization may have side effects.  Mark it as
-         needed now. */
-      is_needed = TRUE;
+#if !GENERATE_EH_TABLES
+      if (var->eff_class_typeinfo_var != NULL &&
+          var->eff_class_typeinfo_var->storage_class ==
+                                                  (a_storage_class)sc_extern) {
+        /* This is a typeinfo variable for a pointer to a class type.  Such
+           variables are always created with sc_unspecified storage while the
+           typeinfo variables for the class are created with sc_extern
+           storage and are only changed to sc_unspecified if it has been
+           determined that the typeinfo for the class should be defined.
+           In this case, the typeinfo for the class is not defined, so suppress
+           the typeinfo for the pointer to the class (otherwise there would be
+           undefined references at link time). */
+      } else
+#endif /* !GENERATE_EH_TABLES */
+      {
+        /* This is an externally linked variable that has been defined, or
+           it is a variable local to this translation unit but with
+           dynamic initialization, in which case it is treated as "needed"
+           because the initialization may have side effects.  Mark it as
+           needed now. */
+        is_needed = TRUE;
+      }  /* if */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
     } else if (var->section != NULL) {
       /* GNU C concatenates all variables in the same named section.

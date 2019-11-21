@@ -10740,6 +10740,13 @@ typedef struct a_variable {
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
   } init_routine;
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS || USE_LAZY_... */
+#if MAINTAIN_NEEDED_FLAGS && !GENERATE_EH_TABLES
+  a_variable_ptr
+                eff_class_typeinfo_var;
+                        /* If non-NULL, a pointer to type typeinfo variable
+                           for the pointed-to class type.  Only set for
+                           typeinfo variables of pointer-to-class type. */
+#endif /* MAINTAIN_NEEDED_FLAGS && !GENERATE_EH_TABLES */
 } a_variable;
 
 /*

@@ -2653,6 +2653,9 @@ Clear the fields of the given variable to default values.
   vp->init_routine.thread.init_routine = NULL;
   vp->init_routine.thread.wrapper = NULL;
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
+#if MAINTAIN_NEEDED_FLAGS && !GENERATE_EH_TABLES
+  vp->eff_class_typeinfo_var = NULL;
+#endif /* MAINTAIN_NEEDED_FLAGS && !GENERATE_EH_TABLES */
 }  /* clear_variable */
 
 
