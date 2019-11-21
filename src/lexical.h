@@ -1632,7 +1632,6 @@ EXTERN a_source_line_modif_ptr
 		last_source_line_modif_exited_while_skipping_white_space;
 			/* Set by skip_white_space whenever a source line
 			   modification is exited. */
-
 EXTERN unsigned long
 		num_deletion_modifications_added;
 			/* Incremented whenever a deletion source line
