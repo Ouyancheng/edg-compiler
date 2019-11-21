@@ -2827,15 +2827,14 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
     /* A template template parameter. */
     coordinates = &expr->variant.sizeof_pack.variant.templ->coordinates;
   } else if (expr->variant.sizeof_pack.is_type) {
-    /* A type (template parameter). */
     a_type_ptr type = skip_typerefs(expr->variant.sizeof_pack.variant.type);
-    check_assertion(type->kind == (a_type_kind)tk_template_param);
-    if (type->variant.template_param.kind ==
+    if (type->kind == (a_type_kind)tk_template_param &&
+        type->variant.template_param.kind ==
                                   (a_template_param_constant_kind)tptk_param) {
+      /* A type (template parameter). */
       coordinates = &type->variant.template_param.extra_info->coordinates;
     } else {
-      /* A tptk_member or tptk_unknown template parameter.  These can occur
-         in prototype instantiations. */
+      /* Presumably a nonreal type. */
       no_mangling = TRUE;
     }  /* if */
   } else {

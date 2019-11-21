@@ -1,5 +1,22 @@
 Version 6.0
 
+11/21/19 [EDGcpfe/19645]
+Assertion failure in mangled_encoding_for_sizeof_pack
+
+In non-lowering configurations that have MANGLE_ALL_NAMES set to TRUE, an
+assertion failure (in mangled_encoding_for_sizeof_pack) had occurred during
+mangling of some nonreal non-prototype instantiations.  For example
+(with --c++11):
+
+  template <class T> struct A;
+  template <class T, int n> using B = class A<T>;
+  template <class T, class... U>
+  using D = class B<T, sizeof...(U)>::template f<U...>;
+  template <class T> struct C {
+    template <class... Ts> using f = D<T, int, Ts...>;
+  };
+
+
 11/20/19 [EDGcpfe/21979]
 Spurious error on deleted copy constructor with conditional comma expressions
 
