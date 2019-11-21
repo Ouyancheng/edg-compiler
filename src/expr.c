@@ -44508,15 +44508,15 @@ memory region).  If param_type is NULL, the parameter type is not known.
        as template arguments some expressions that couldn't be constant without
        the constexpr feature.  Handle those cases as if the parameter type were
        not known. */
-    a_variable_ptr  var;
+    a_variable_ptr  vp;
     a_type_ptr      tp = skip_typerefs(param_type);
     if (tp->kind == (a_type_kind)tk_pointer ||
         tp->kind == (a_type_kind)tk_ptr_to_member) {
       /* This kind of nontype parameter does not take a traditional
          constant value. */
     } else if (!is_constant_operand(&result) &&
-               !(operand_is_lvalue_for_variable(&result, &var) &&
-                 is_potentially_constant_valued_variable(var))) {
+               !(operand_is_lvalue_for_variable(&result, &vp) &&
+                 is_potentially_constant_valued_variable(vp))) {
       relaxed_ms_case = TRUE;
     }  /* if */
   }  /* if */
@@ -44547,12 +44547,11 @@ memory region).  If param_type is NULL, the parameter type is not known.
       prep_nontype_template_argument_initializer(&result, param_type,
                                                  constant);
     }  /* if */
-    // FIXME: Use "constant" instead of "result" below.
     { a_type_ptr  ftp = skip_typerefs(param_type);
       if ((ftp->kind == (a_type_kind)tk_pointer ||
            ftp->kind == (a_type_kind)tk_ptr_to_member) &&
           !is_template_dependent_type(ftp) &&
-          !is_error_operand(&result) && !is_error_constant(constant)) {
+          !is_error_constant(constant)) {
         a_boolean  err = FALSE, microsoft_oddity = FALSE;
         if (!generalized_nontype_arguments) {
           if (is_any_reference_type(ftp)) {
@@ -44560,9 +44559,8 @@ memory region).  If param_type is NULL, the parameter type is not known.
           } else if (ms_version_is(<1310) && id_expr &&
                      is_any_reference_type(constant->type)) {
             microsoft_oddity = TRUE;
-          } else if (is_constant_operand(&result)) {
-            a_constant_ptr  cp = &result.variant.constant;
-            if (constant_is(cp, ck_address)) {
+          } else {
+            if (constant_is(constant, ck_address)) {
               /* Pre-C++11 the constant should have been expressed as either
                  id or &id where id is an identifier, where the identifier
                  actually denotes the routine (as opposed to a const pointer
@@ -44570,52 +44568,49 @@ memory region).  If param_type is NULL, the parameter type is not known.
                  permits a const variable referring to a routine or variable,
                  and Microsoft mode, which allows casts.  In those modes,
                  the restraints are relaxed. */
-              if (cp->variant.address.kind ==
+              if (constant->variant.address.kind ==
                                          (an_address_base_kind)abk_variable) {
-                if (cp->variant.address.variant.variable != NULL) {
+                a_variable_ptr  vp = constant->variant.address
+                                              .variant.variable;
+                if (vp != NULL) {
                   if ((microsoft_mode || gpp_version_is(<30400)) &&
                       !(id_expr || id_expr_address)) {
                     /* Accept forms that are not just an identifier in
                        Microsoft mode (in particular, permit casts). */
                   } else if ((gpp_mode && !clang_mode) && var != NULL &&
                              (id_expr || id_expr_address) &&
-                              cp->variant.address.variant.variable != var) {
+                             vp != var) {
                     /* Okay: GCC accepts a const variable pointing to a
                        variable. */
                   } else if (!(id_expr || id_expr_address) ||
-                             (var != NULL &&
-                              cp->variant.address.variant.variable != var)) {
+                             (var != NULL && vp != var)) {
                     err = TRUE;
                   }  /* if */
                 }  /* if */
-              } else if (cp->variant.address.kind ==
+              } else if (constant->variant.address.kind ==
                                           (an_address_base_kind)abk_routine) {
-                if (cp->variant.address.variant.routine != NULL) {
+                a_routine_ptr  rp = constant->variant.address.variant.routine;
+                if (rp != NULL) {
                   if ((microsoft_mode || gpp_version_is(<30400)) &&
                       !(id_expr || id_expr_address)) {
                     /* Accept forms that are not just an identifier in
                        Microsoft mode (in particular, permit casts). */
                   } else if ((gpp_mode && !clang_mode) && rout != NULL &&
                              (id_expr || id_expr_address) &&
-                             cp->variant.address.variant.routine != rout) {
+                             rp != rout) {
                     /* Okay: GCC accepts a const variable pointing to a
                        function. */
                   } else if (!(id_expr || id_expr_address) ||
-                             (rout != NULL &&
-                              cp->variant.address.variant.routine != rout)) {
+                             (rout != NULL && rp != rout)) {
                     err = TRUE;
                   }  /* if */
                 }  /* if */
               }  /* if */
             }  /* if */
-          } else {
-            expect_error();
           }  /* if */
         }  /* if */
         if (!microsoft_oddity &&
-            !(is_constant_operand(&result) &&
-              is_valid_ptr_or_ptr_to_member_templ_arg_constant(
-                                                 &result.variant.constant))) {
+            !is_valid_ptr_or_ptr_to_member_templ_arg_constant(constant)) {
           err = TRUE;
         }  /* if */
         if (err) {

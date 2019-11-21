@@ -65,7 +65,7 @@ but after the regression it was
 This is now fixed.
 
 
-11/19/19  [EDGcpfe/22015]
+11/19/19 [EDGcpfe/22015]
 Invalid nontype template arguments
 
 A number of changes were made to more consistently diagnose invalid nontype
@@ -78,7 +78,7 @@ template arguments.  For example, in GNU C++ mode:
   }                      // Now an error.
 
 
-11/19/19  [EDGcpfe/20944]
+11/19/19 [EDGcpfe/20944]
 Using arrays as nontype template arguments
 
 Consider:
