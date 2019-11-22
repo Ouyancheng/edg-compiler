@@ -30821,7 +30821,7 @@ that case.
          The third operand is a void expression and the second is not,
          so use the type of the second. */
       /* result_type = operand_2.type; -- already set. */
-      expr_pos_ty2_diagnostic(es_remark, ec_incompatible_operands,
+      expr_pos_ty2_diagnostic(es_warning, ec_incompatible_operands,
                               &colon_position, operand_2.type, operand_3.type);
       adjust_void_operand_for_microsoft_void_vs_scalar_conditional(&operand_3,
                                                                   result_type);
