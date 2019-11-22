@@ -7377,8 +7377,9 @@ it is an external definition).
            undefined references at link time). */
       } else
 #endif /* !GENERATE_EH_TABLES */
+      /* Do not insert code here. */
       {
-        /* This is an externally linked variable that has been defined, or
+        /* This is an externally-linked variable that has been defined, or
            it is a variable local to this translation unit but with
            dynamic initialization, in which case it is treated as "needed"
            because the initialization may have side effects.  Mark it as

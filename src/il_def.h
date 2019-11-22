@@ -10743,7 +10743,7 @@ typedef struct a_variable {
 #if MAINTAIN_NEEDED_FLAGS && !GENERATE_EH_TABLES
   a_variable_ptr
                 eff_class_typeinfo_var;
-                        /* If non-NULL, a pointer to type typeinfo variable
+                        /* If non-NULL, a pointer to the type typeinfo variable
                            for the pointed-to class type.  Only set for
                            typeinfo variables of pointer-to-class type. */
 #endif /* MAINTAIN_NEEDED_FLAGS && !GENERATE_EH_TABLES */
