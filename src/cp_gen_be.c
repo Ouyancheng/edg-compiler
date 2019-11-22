@@ -18198,6 +18198,7 @@ to add extra parentheses to disambiguate.
   expr = assoc_expr_if_constant(expr);
   if (expr->kind == (an_expr_node_kind)enk_temp_init) {
     a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
+    dip = skip_constexpr_init_folding(dip);
     if (dip->is_explicit_cast) {
       /* Cast cases are the ones that are ambiguous. */
       if (dip->is_braced_initializer) {

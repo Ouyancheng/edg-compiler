@@ -1,5 +1,29 @@
 Version 6.0
 
+11/21/19 [EDGcpfe/22045]
+C++-generating back end: missing parentheses around constexpr initializer
+
+In cases where the source code contains an initializer explicitly invoking
+a constexpr default constructor in a parenthesized direct initialization,
+the C++-generating back end failed to emit the extra set of parentheses
+needed to disambiguate the declaration from a function declaration.  This
+was a regression introduced in version 5.1 by the changes for
+EDGcpfe/20976.  This is now fixed.  For example, with --c++11:
+
+  struct S {
+    constexpr S() {}
+    S(S&&) {}
+  };
+  struct T {
+    int i = 0;
+    T(S) { }
+  };
+  int main() {
+    T a((S()));  // Previously generated as T a(S()), a function declaration
+    return a.i;
+  }
+
+
 11/21/19 [EDGcpfe/19140]
 IA-64 ABI: Eliminate unneeded typeinfo reference in configs where
 GENERATE_EH_TABLES is FALSE
