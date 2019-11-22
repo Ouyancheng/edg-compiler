@@ -1455,6 +1455,15 @@ Display a template parameter list, for debugging purposes.
   }  /* for */
 }  /* db_template_param_list */
 
+
+void db_tpp(a_template_param_ptr  tpp)
+/*
+Short-hand for db_template_param_list.
+*/
+{
+  db_template_param_list(tpp);
+}  /* db_tpp */
+
 #endif /* DEBUG */
 
 void set_source_corresp_name(a_source_correspondence	*sc,

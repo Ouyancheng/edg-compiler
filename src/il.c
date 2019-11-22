@@ -285,6 +285,15 @@ Dump a list of template arguments, enclosed by angle brackets.
 }  /* db_template_arg_list */
 
 
+void db_tap(a_template_arg_ptr tap)
+/*
+Short-hand for db_template_arg_list.
+*/
+{
+  db_template_arg_list(tap);
+}  /* db_tap */
+
+
 void db_template_name(a_template_ptr	tp)
 /*
 Dump the name of a template.

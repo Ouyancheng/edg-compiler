@@ -14282,6 +14282,8 @@ parameters should also be substituted, or NULL if there is no parent class
 */
 {
   if (parent_class != NULL &&
+      (parent_class->variant.class_struct_union.is_nonreal_class ||
+       is_cli_open_constructed_instance(parent_class)) &&
       parent_class->variant.class_struct_union.is_template_class &&
       !parent_class->variant.class_struct_union.is_specialized) {
     /* If the parent class is itself a template instance (but not an explicit
@@ -14395,24 +14397,26 @@ a pointer over a reference type or creating an array of references.
   if (type->source_corresp.is_class_member) {
     a_symbol_ptr	sym;
     a_type_ptr		parent_type;
-    sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-    parent_type = parent_class_of(type);
+    sym = symbol_for(type);
     check_assertion(sym != NULL);
-    sym = copy_parent_type_with_substitution(sym, parent_type,
+    parent_type = parent_class_of(type);
+    if (parent_type->variant.class_struct_union.is_nonreal_class ||
+        is_cli_open_constructed_instance(parent_type)) {
+      sym = copy_parent_type_with_substitution(
+                                             sym, parent_type,
                                              templ_arg_list, templ_param_list,
-                                             source_pos,
-                                             /*is_type=*/TRUE,
-                                             options,
-                                             copy_error, ctws_state);
-    if (sym != NULL) sym = fundamental_symbol_of(sym);
-    if (sym == NULL || !is_type_symbol(sym)) {
-      /* The type was specified as something like A<T>::B, but the
-         substituted "A<T>" does not contain a B, or the B found is not
-         a type. */
-      subst_fail(*copy_error);
-      type = error_type();
-    } else {
-      type = type_symbol_type(sym);
+                                             source_pos, /*is_type=*/TRUE,
+                                             options, copy_error, ctws_state);
+      if (sym != NULL) sym = fundamental_symbol_of(sym);
+      if (sym == NULL || !is_type_symbol(sym)) {
+        /* The type was specified as something like A<T>::B, but the
+           substituted "A<T>" does not contain a B, or the B found is not
+           a type. */
+        subst_fail(*copy_error);
+        type = error_type();
+      } else {
+        type = type_symbol_type(sym);
+      }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else {
