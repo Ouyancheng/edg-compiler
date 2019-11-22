@@ -171,7 +171,7 @@ remark.
 GNU C++ compatibility: "template" keyword ignored for overload resolution
 
 When the "template" keyword is followed by a function or overload set name,
-g++ includes non-template functions in the overload set.  This causes them
+g++ includes non-template functions in the overload set.  This causes it
 to call the normal function rather than attempt to call the deleted template
 in the example below.  We now emulate this behavior in g++ mode.
 
