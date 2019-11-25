@@ -16538,7 +16538,8 @@ reference entry, or is NULL if none is needed.
     a_boolean                could_be_instantiated = FALSE;
     a_template_instance_ptr  tip = routine_sym->variant.routine.instance_ptr;
     if (tip != NULL) {
-      a_symbol_ptr  tsym = prototype_template_of(tip->template_sym);
+      a_symbol_ptr  tsym;
+      tsym = prototype_template_if_template_symbol(tip->template_sym);
       if (tsym->defined) {
         could_be_instantiated = TRUE;
       }  /* if */
