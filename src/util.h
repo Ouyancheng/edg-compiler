@@ -49,7 +49,6 @@ using Enable_if = typename Enable_if_helper<cond, a_Thing>::a_thing;
 Remove_ref<T> produces T if T is not a reference type, or the type underlying
 the reference type otherwise.
 */
-/*lint -esym(758,Enable_if_helper)*/
 template<typename an_Object>
 struct Remove_ref_helper {
   typedef an_Object an_object;
@@ -204,7 +203,7 @@ Return a Ptr_with_flag initialized with the given values.
 */
 {
   return Ptr_with_flag<a_Ptr>{ ptr, flag };
-}  /* ptr_with_flag  */
+}  /* ptr_with_flag */
 
 
 template<typename an_Elem>
@@ -469,7 +468,7 @@ managed by the given allocator.  Initialize the first cap elements to v.
   : an_allocator(a)
   , elems()
   , n_allocated()
-  , n_elems(0)
+  , n_elems(cap)
 {
   an_allocation  allocation = this->alloc(cap);
   this->elems = allocation.start;
@@ -602,7 +601,6 @@ Allocate new storage if needed.
 
   if (n == this->n_allocated) {
     this->grow();
-    n = this->n_elems;
   }  /* if */
   construct(this->elems+n, value);
   this->n_elems = n+1;
@@ -728,14 +726,14 @@ struct Owning_ptr: private a_Deallocator {
   typedef an_Object an_object;
   typedef a_Deallocator a_deallocator;
   inline Owning_ptr()
-    : ptr(NULL) {}
+    : a_Deallocator(), ptr(NULL) {}
   inline Owning_ptr(an_object *p, const a_deallocator &d = a_deallocator())
-    : a_deallocator(d), ptr(p) {}
+    : a_Deallocator(d), ptr(p) {}
   inline Owning_ptr(a_nullptr, const a_deallocator &d = a_deallocator())
-    : a_deallocator(d), ptr(NULL) {}
+    : a_Deallocator(d), ptr(NULL) {}
   inline Owning_ptr(const Owning_ptr&) = delete;
   inline Owning_ptr(Owning_ptr&& src)
-    : a_deallocator(move_from(&src)), ptr(src.ptr) { src.ptr = NULL; }
+    : a_Deallocator(move_from(&src)), ptr(src.ptr) { src.ptr = NULL; }
   inline ~Owning_ptr();
   inline auto operator=(const Owning_ptr&) -> Owning_ptr& = delete;
   inline auto operator=(Owning_ptr&& src) -> Owning_ptr&;
