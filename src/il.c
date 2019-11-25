@@ -287,7 +287,7 @@ Dump a list of template arguments, enclosed by angle brackets.
 
 void db_tap(a_template_arg_ptr tap)
 /*
-Short-hand for db_template_arg_list.
+Shorthand for db_template_arg_list.
 */
 {
   db_template_arg_list(tap);
