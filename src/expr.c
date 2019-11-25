@@ -44530,6 +44530,8 @@ memory region).  If param_type is NULL, the parameter type is not known.
        lvalue argument to an rvalue even though a future substitution might
        turn this into a reference binding); instead, just record a generic
        cast on the operand. */
+    a_boolean   err = FALSE;
+    a_type_ptr  tp;
     if (expr_stack->possible_rescan_context &&
         is_template_param_type(param_type)) {
       prep_generic_nontype_template_argument(&result);
@@ -44547,81 +44549,83 @@ memory region).  If param_type is NULL, the parameter type is not known.
       prep_nontype_template_argument_initializer(&result, param_type,
                                                  constant);
     }  /* if */
-    { a_type_ptr  ftp = skip_typerefs(param_type);
-      if ((ftp->kind == (a_type_kind)tk_pointer ||
-           ftp->kind == (a_type_kind)tk_ptr_to_member) &&
-          !is_template_dependent_type(ftp) &&
-          !is_error_constant(constant)) {
-        a_boolean  err = FALSE, microsoft_oddity = FALSE;
-        if (!generalized_nontype_arguments) {
-          if (is_any_reference_type(ftp)) {
-            err = !id_expr && !microsoft_mode;
-          } else if (ms_version_is(<1310) && id_expr &&
-                     is_any_reference_type(constant->type)) {
-            microsoft_oddity = TRUE;
-          } else {
-            if (constant_is(constant, ck_address)) {
-              /* Pre-C++11 the constant should have been expressed as either
-                 id or &id where id is an identifier, where the identifier
-                 actually denotes the routine (as opposed to a const pointer
-                 to a routine or variable).  Exceptions are GNU mode, which
-                 permits a const variable referring to a routine or variable,
-                 and Microsoft mode, which allows casts.  In those modes,
-                 the restraints are relaxed. */
-              if (constant->variant.address.kind ==
-                                         (an_address_base_kind)abk_variable) {
-                a_variable_ptr  vp = constant->variant.address
-                                              .variant.variable;
-                if (vp != NULL) {
-                  if ((microsoft_mode || gpp_version_is(<30400)) &&
-                      !(id_expr || id_expr_address)) {
-                    /* Accept forms that are not just an identifier in
-                       Microsoft mode (in particular, permit casts). */
-                  } else if ((gpp_mode && !clang_mode) && var != NULL &&
-                             (id_expr || id_expr_address) &&
-                             vp != var) {
-                    /* Okay: GCC accepts a const variable pointing to a
-                       variable. */
-                  } else if (!(id_expr || id_expr_address) ||
-                             (var != NULL && vp != var)) {
-                    err = TRUE;
-                  }  /* if */
+    tp = skip_typerefs(param_type);
+    if ((type_is(tp, tk_pointer) || type_is(tp, tk_ptr_to_member)) &&
+        !is_template_dependent_type(tp) &&
+        !is_error_constant(constant)) {
+      a_boolean  microsoft_oddity = FALSE;
+      if (!generalized_nontype_arguments) {
+        if (is_any_reference_type(tp)) {
+          err = !id_expr && !microsoft_mode;
+        } else if (ms_version_is(<1310) && id_expr &&
+                   is_any_reference_type(constant->type)) {
+          microsoft_oddity = TRUE;
+        } else if (is_constant_operand(&result)) {
+          if (constant_is(constant, ck_address)) {
+            /* Pre-C++11 the constant should have been expressed as either
+               id or &id where id is an identifier, where the identifier
+               actually denotes the routine (as opposed to a const pointer
+               to a routine or variable).  Exceptions are GNU mode, which
+               permits a const variable referring to a routine or variable,
+               and Microsoft mode, which allows casts.  In those modes,
+               the restraints are relaxed. */
+            if (constant->variant.address.kind ==
+                                       (an_address_base_kind)abk_variable) {
+              a_variable_ptr  vp = constant->variant.address
+                                            .variant.variable;
+              if (vp != NULL) {
+                if ((microsoft_mode || gpp_version_is(<30400)) &&
+                    !(id_expr || id_expr_address)) {
+                  /* Accept forms that are not just an identifier in
+                     Microsoft mode (in particular, permit casts). */
+                } else if ((gpp_mode && !clang_mode) && var != NULL &&
+                           (id_expr || id_expr_address) &&
+                           vp != var) {
+                  /* Okay: GCC accepts a const variable pointing to a
+                     variable. */
+                } else if (!(id_expr || id_expr_address) ||
+                           (var != NULL && vp != var)) {
+                  err = TRUE;
                 }  /* if */
-              } else if (constant->variant.address.kind ==
-                                          (an_address_base_kind)abk_routine) {
-                a_routine_ptr  rp = constant->variant.address.variant.routine;
-                if (rp != NULL) {
-                  if ((microsoft_mode || gpp_version_is(<30400)) &&
-                      !(id_expr || id_expr_address)) {
-                    /* Accept forms that are not just an identifier in
-                       Microsoft mode (in particular, permit casts). */
-                  } else if ((gpp_mode && !clang_mode) && rout != NULL &&
-                             (id_expr || id_expr_address) &&
-                             rp != rout) {
-                    /* Okay: GCC accepts a const variable pointing to a
-                       function. */
-                  } else if (!(id_expr || id_expr_address) ||
-                             (rout != NULL && rp != rout)) {
-                    err = TRUE;
-                  }  /* if */
+              }  /* if */
+            } else if (constant->variant.address.kind ==
+                                        (an_address_base_kind)abk_routine) {
+              a_routine_ptr  rp = constant->variant.address.variant.routine;
+              if (rp != NULL) {
+                if ((microsoft_mode || gpp_version_is(<30400)) &&
+                    !(id_expr || id_expr_address)) {
+                  /* Accept forms that are not just an identifier in
+                     Microsoft mode (in particular, permit casts). */
+                } else if ((gpp_mode && !clang_mode) && rout != NULL &&
+                           (id_expr || id_expr_address) &&
+                           rp != rout) {
+                  /* Okay: GCC accepts a const variable pointing to a
+                     function. */
+                } else if (!(id_expr || id_expr_address) ||
+                           (rout != NULL && rp != rout)) {
+                  err = TRUE;
                 }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
-        }  /* if */
-        if (!microsoft_oddity &&
-            !is_valid_ptr_or_ptr_to_member_templ_arg_constant(constant)) {
+        } else {
           err = TRUE;
         }  /* if */
-        if (err) {
-          if (expr_error_should_be_issued()) {
-            pos_ty_error(ec_invalid_nontype_template_argument,
-                         &result.position, result.type);
-            set_error_constant(constant);
-          }  /* if */
-        }  /* if */
+      } else if (!is_constant_operand(&result)) {
+        err = TRUE;
       }  /* if */
-    }
+      if (!microsoft_oddity &&
+          !is_valid_ptr_or_ptr_to_member_templ_arg_constant(constant)) {
+        err = TRUE;
+      }  /* if */
+      if (err) {
+        if (expr_error_should_be_issued()) {
+          pos_ty_error(ec_invalid_nontype_template_argument,
+                       &result.position, result.type);
+        }  /* if */
+        set_error_constant(constant);
+      }  /* if */
+    }  /* if */
   } else {
     /* No destination type (or a Microsoft-mode dependent context).  Make a
        constant from the operand.  This comes up for errors and for nonreal
