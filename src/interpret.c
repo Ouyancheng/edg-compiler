@@ -11335,14 +11335,22 @@ Evaluate the given new-expression.
              elements is potentially larger than the number of elements
              allocated.  For example, "new int[n]{1, 2, 3}" where n evaluates
              to 2.  Check for that (non-constant) case. */
-          if (length_expr != NULL &&
-              init_tp->variant.array.variant.number_of_elements >
-                                                          orig_alloc_length) {
-            info_with_pos_num(ec_constexpr_alloc_too_small,
-                              &length_expr->position,
-                              (a_byte_count)orig_alloc_length, ips);
-            do_constexpr_fail(result);
-            goto done;
+          if (length_expr != NULL) {
+            a_targ_size_t  n_init_elems = 0;
+            if (constant_is(init_cp, ck_aggregate)) {
+              a_constant_ptr  cp = init_cp->variant.aggregate.first_constant;
+              for (; cp != NULL; cp = cp->next) ++n_init_elems;
+            } else {
+              /* ck_string case. */
+              n_init_elems = init_cp->variant.string.length;
+            }  /* if */
+            if (n_init_elems > orig_alloc_length) {
+              info_with_pos_num(ec_constexpr_alloc_too_small,
+                                &length_expr->position,
+                                (a_byte_count)orig_alloc_length, ips);
+              do_constexpr_fail(result);
+              goto done;
+            }  /* if */
           }  /* if */
           /* Initialize element-by-element. */
           if (constant_is(init_cp, ck_aggregate)) {
