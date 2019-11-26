@@ -5781,6 +5781,14 @@ instead.
       /* Create a constant node and copy the constant in the operand to the
          node. */
       node = alloc_node_for_constant_operand(operand);
+      if (is_any_reference_type(operand->variant.constant.type) &&
+          node->type) {
+        node->type = operand->variant.constant.type;
+        node->is_lvalue = FALSE;
+        node = make_lvalue_operator_node(
+                                      (an_expr_operator_kind)eok_ref_indirect,
+                                      operand->type, node);
+      }  /* if */
       break;
     case ok_braced_init_list:
       node = make_braced_init_expr_from_arg_list_elem(
