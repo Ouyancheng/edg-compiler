@@ -24633,6 +24633,13 @@ indication in *rcblock).
     }  /* if */
     /* Check for different types of casts and do the cast. */
     if (!err && !processed) {
+      if (expr_stack->favor_constant_result && constexpr_enabled &&
+          is_expression_operand(result)) {
+        (void)expr_interpret_expression_operand(
+                                             result,
+                                             /*must_be_constant=*/FALSE,
+                                             /*is_constant_evaluated=*/FALSE);
+      }  /* if */
       if (reinterpret_cast_conversion_possible(adj_source_type,
                                                adj_type_cast_to,
                                                &warning_suggested)) {

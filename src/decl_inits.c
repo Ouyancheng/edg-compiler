@@ -5607,6 +5607,47 @@ returned set to TRUE.
     init_con = dps->init_state.init_con;
     init_dip = dps->init_state.init_dip;
   }  /* if */
+  if (init_dip != NULL && dyn_init_is(init_dip, dik_expression) &&
+      constexpr_enabled) {
+    /* Some expressions are constant-expressions in C++03 but not in C++11.
+       For example:
+          struct X { int x; };
+          static union {
+            char buf[sizeof(X)];
+            int aligner;
+          } u;
+          X &r = reinterpret_cast<X&>(u.buf); // (1)
+       Here, the initializer expression (1) is not a constant-expression in
+       C++11.  Nonetheless, many implementations treat (1) as a constant
+       (static) initialization.  We emulate that behavior by temporarily
+       disabling constexpr folding, and attempting to fold the address using
+       the C++03 mechanism.  The scanning of reinterpret_cast will already
+       have folded its operand in that case. */
+    an_expr_node_ptr  expr = init_dip->variant.expression;
+    if (is_operation_node(expr) && node_operator_is(expr, eok_reference_to)) {
+      /* An eok_reference_to node is placed on top of the eok_ref_cast that
+         represents the reinterpret_cast operation.  Skip it to check if the
+         underlying expression has a "constant address". */
+      expr = expr->variant.operation.operands;
+      if (expr->is_lvalue || expr->is_xvalue) {
+        a_constant_ptr  con = local_constant();
+        a_boolean       saved_relaxed_constexpr_enabled =
+                                                    relaxed_constexpr_enabled;
+        relaxed_constexpr_enabled = FALSE;
+        constexpr_enabled = FALSE;
+        if (constant_glvalue_address(expr, con,
+                                     /*address_escapes=*/TRUE)) {
+          init_con = move_local_constant_to_il(&con);
+          init_con->type = init_dip->variant.expression->type;
+          init_dip = NULL;
+        } else {
+          release_local_constant(&con);
+        }  /* if */
+        constexpr_enabled = TRUE;
+        relaxed_constexpr_enabled = saved_relaxed_constexpr_enabled;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   if (anything_cached(&dps->prescanned_initializer_cache)) {
     /* Normally, prescanned components should have been consumed by now.
        Only in error cases can it be otherwise. */

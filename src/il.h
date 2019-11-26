@@ -442,6 +442,12 @@ member, and NULL otherwise.
                                          : (a_type_ptr)NULL)
 
 /*
+Return TRUE if a dynamic_initializer is of a given kind.
+*/
+#define dyn_init_is(dip, dik)                                               \
+  ((dip)->kind == (a_dynamic_init_kind)(dik))
+
+/*
 Return TRUE if a constant is of a given kind.
 */
 #define constant_is(con, con_kind)                                          \
