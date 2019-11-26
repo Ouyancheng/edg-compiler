@@ -16786,6 +16786,7 @@ next_integer_pack_element:
                                                               NO_SCOPE_DEPTH &&
                          scope_stack[depth_innermost_instantiation_scope].
                                                       alias_in_template_decl &&
+	                 is_type_templ_arg(arg_ptr) &&
                          (!type_is(arg_ptr->variant.type, tk_template_param) ||
                           arg_ptr->variant.type->
                                              variant.template_param.is_pack) &&
