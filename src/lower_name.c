@@ -12589,9 +12589,10 @@ to the mangled name.
     if (sym != NULL &&
         (scp->is_local_to_function
 #if DO_IL_LOWERING
-         || sym->variant.variable.ptr->promoted_local_static
+         || (sym->kind == (a_symbol_kind)sk_variable &&
+             sym->variant.variable.ptr->promoted_local_static)
 #endif /* DO_IL_LOWERING */
-                                                            )) {
+                                                              )) {
       /* Add an indication that the variable is local to a function
          (in some error cases, no enclosing_routine is set). */
       if (scp->enclosing_routine != NULL) {
