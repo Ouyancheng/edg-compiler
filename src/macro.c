@@ -1311,7 +1311,7 @@ macro_invocation_records list, and set the appropriate fields in il_header.
 #endif /* RECORD_MACRO_INVOCATIONS */
 
 
-void adjust_curr_source_line_structure_after_realloc(
+a_boolean adjust_curr_source_line_structure_after_realloc(
                                         a_const_char *old_ptr,
                                         a_const_char *old_after_end_ptr,
                                         a_const_char *new_ptr,
@@ -1325,6 +1325,8 @@ at old_ptr has been realloc'd (to change its size), and new_ptr is the
 new address for the area.  A caller that needs special processing of source
 line modifications can pass adjust_source_line_modifs as FALSE; otherwise,
 the pointers in all source line modifications will be adjusted as needed.
+Return TRUE if any pointers were adjusted, FALSE if there were no pointers
+into the affected text.
 */
 {
   an_orig_line_modif_ptr       olmp;
@@ -1332,6 +1334,7 @@ the pointers in all source line modifications will be adjusted as needed.
   a_macro_arg_ptr              map;
   a_pointer_registration_ptr   prp;
   a_const_char                 *old_after_end_plus_1;
+  a_boolean                    pointer_changed = FALSE;
 
 /* Macro to adjust a single pointer if it needs it.  Include the address
    just past the end of the area moved, since a pointer to there should be
@@ -1339,11 +1342,9 @@ the pointers in all source line modifications will be adjusted as needed.
    area so that that address will not be the same as the start address of
    the area following it in memory. */
 #define fix_ptr(ptr)                                                         \
-{ /* Suppress the warning on use of the expired pointer value in CodeCenter. \
-     Version 3.1.1 warning number. */                                        \
-  /*SUPPRESS 29*/                                                            \
-  if (ptr != NULL && ptr_in_range(ptr, old_ptr, old_after_end_plus_1)) {     \
+{ if (ptr != NULL && ptr_in_range(ptr, old_ptr, old_after_end_plus_1)) {     \
     *(a_const_char **)&ptr = ptr - old_ptr + new_ptr;                        \
+    pointer_changed = TRUE;                                                  \
   }  /* if */                                                                \
 }  /* fix_ptr */
 
@@ -1351,9 +1352,6 @@ the pointers in all source line modifications will be adjusted as needed.
 
   check_assertion(old_ptr != NULL);  
   /* If the area didn't move, it's not necessary to walk the structure. */
-  /* Suppress the warning on use of the expired pointer value in CodeCenter.
-     Version 3.1.1 warning number. */
-  /*SUPPRESS 29*/
   if (old_ptr != new_ptr) {
     old_after_end_plus_1 = old_after_end_ptr + 1;
     /* Walk the original line modif list (which represents trigraphs and
@@ -1414,6 +1412,7 @@ the pointers in all source line modifications will be adjusted as needed.
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   }  /* if */
   db_exit();
+  return pointer_changed;
 }  /* adjust_curr_source_line_structure_after_realloc */
 
 
@@ -1520,7 +1519,8 @@ ensure_macro_buffer_space.
        saved makes this a good tradeoff. */
     (void)memcpy(new_macro_buffer, macro_buffer,
                  size_t_arg(num_compacted_macro_buffer_chars));
-    adjust_curr_source_line_structure_after_realloc(macro_buffer,
+    (void)adjust_curr_source_line_structure_after_realloc(
+                           macro_buffer,
                            macro_buffer + num_compacted_macro_buffer_chars - 1,
                            new_macro_buffer,
                            /*adjust_source_line_modifs=*/FALSE);
@@ -1579,7 +1579,7 @@ ensure_macro_buffer_space.
            movement. */
         is_lexical_escape = (src > old_start_for_remapping + 1 &&
                              src[-LE_ESCAPE_LEN] == LE_ESCAPE);
-        adjust_curr_source_line_structure_after_realloc(
+        (void)adjust_curr_source_line_structure_after_realloc(
                                           old_start_for_remapping, src,
                                           new_start_for_remapping,
                                           /*adjust_source_line_modifs=*/FALSE);
@@ -1599,21 +1599,37 @@ ensure_macro_buffer_space.
           sizeof_t orig_deletion_len;
           nested_slmp = nested_source_line_modif(src - 1);
           if (nested_slmp->inserted_text == nested_slmp->inserted_chars) {
-            /* This is a deletion source line modification.  Just update
-               the location of the deletion and skip over the deleted
-               characters, unless they are part of a not-yet-resolved
-               choice between the raw and expanded versions of a macro
-               argument; in that case, the deleted text might still be used
-               and cannot be skipped.  (See choose_raw_or_expanded_arg for
-               details.)  A deletion that was added while scanning the raw
-               text of a macro argument for which the scan for the expanded
-               version has not yet completed can also not be compacted,
-               since there may be pointers into the deleted text. */
+            /* This is a deletion source line modification. */
+            a_boolean skip_over_deleted_chars;
             rem_source_line_modif_from_hash_table(nested_slmp);
             nested_slmp->line_loc = dst - 1;
             add_source_line_modif_to_hash_table(nested_slmp);
-            if (!nested_slmp->is_raw_or_expanded_arg &&
-                !nested_slmp->in_pending_raw_arg) {
+            if (adjust_curr_source_line_structure_after_realloc(
+                                    old_start_for_remapping,
+                                    src + nested_slmp->num_chars_to_delete - 1,
+                                    new_start_for_remapping,
+                                    /*adjust_source_line_modifs=*/FALSE)) {
+              /* There are pointers into the deleted text, so we cannot
+                 compact the deletion down into just the ATTENTION_MARKER.
+                 (This can happen when skip_white_space adds a deletion
+                 source line modification during the scan for the raw
+                 version of macro arguments; the rescan for the expanded
+                 version might well start within the deleted text.)  Note
+                 that this call will be repeated when the deleted text is
+                 actually copied during the next iteration of this loop,
+                 but it will be innocuous since the pointers will have
+                 already been relocated. */
+              skip_over_deleted_chars = FALSE;
+            } else {
+              /* We can also not discard the deleted characters if the
+                 "deletion" is part of a not-yet-resolved choice between
+                 the raw and expanded versions of a macro argument.  (See
+                 choose_raw_or_expanded_arg for details.)  Otherwise, the
+                 deleted text is no longer needed and can be discarded by
+                 skipping over it in the old buffer. */
+              skip_over_deleted_chars = !nested_slmp->is_raw_or_expanded_arg;
+            }  /* if */
+            if (skip_over_deleted_chars) {
               src += nested_slmp->num_chars_to_delete - 1;
               nested_slmp->num_chars_to_delete = 1;
             }  /* if */
@@ -1659,7 +1675,7 @@ ensure_macro_buffer_space.
                   next_avail_in_macro_buffer - macro_buffer_region_in_progress;
     (void)memcpy(dst, macro_buffer_region_in_progress,
                  size_t_arg(num_chars_to_copy));
-    adjust_curr_source_line_structure_after_realloc(
+    (void)adjust_curr_source_line_structure_after_realloc(
                                           macro_buffer_region_in_progress,
                                           next_avail_in_macro_buffer, dst,
                                           /*adjust_source_line_modifs=*/FALSE);
@@ -1785,7 +1801,8 @@ the pointer to the next available position in that buffer.
   /* Update any pointers to the old aux_buffer_for_pcc_macros in the
      curr_source_line data structure.  This is only needed for any registered
      local pointers that might point into the aux. buffer. */
-  adjust_curr_source_line_structure_after_realloc(aux_buffer_for_pcc_macros,
+  (void)adjust_curr_source_line_structure_after_realloc(
+                                        aux_buffer_for_pcc_macros,
                                         after_end_of_aux_buffer_for_pcc_macros,
                                         new_aux_buffer_for_pcc_macros,
                                         /*adjust_source_line_modifs=*/TRUE);
@@ -1876,7 +1893,8 @@ ensure_arg_raw_text_space.
 have_space:
   /* Update any pointers to the old raw_text in the curr_source_line
      data structure. */
-  adjust_curr_source_line_structure_after_realloc(map->raw_text,
+  (void)adjust_curr_source_line_structure_after_realloc(
+                                           map->raw_text,
                                            map->raw_text+old_size,
                                            new_raw_text,
                                            /*adjust_source_line_modifs=*/TRUE);
@@ -1963,7 +1981,8 @@ ensure_arg_expanded_text_space.
 have_space:
   /* Update any pointers to the old expanded_text in the curr_source_line
      data structure. */
-  adjust_curr_source_line_structure_after_realloc(map->expanded_text,
+  (void)adjust_curr_source_line_structure_after_realloc(
+                                           map->expanded_text,
                                            map->expanded_text+old_size,
                                            new_expanded_text,
                                            /*adjust_source_line_modifs=*/TRUE);
@@ -5117,7 +5136,6 @@ associated global variables will also have been set).
   a_source_line_modif_ptr
                   slmp,
                   slmp2;
-  unsigned long   i;
   unsigned long   sequence_id;
   a_boolean       need_end_of_token_marker;
   a_boolean       is_macro_call = TRUE;  /* Assume. */
@@ -5188,7 +5206,6 @@ associated global variables will also have been set).
   a_boolean       saved_single_param_macro = single_param_macro;
   a_boolean       pragma_operator_seen = FALSE;
   a_boolean       empty_variadic_arg = FALSE;
-  unsigned long   init_modif_seq_no = sequence_id_for_source_line_modifs;
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
@@ -5849,9 +5866,6 @@ make_inert_macro:
       pp = param_list;
       /* Check for empty argument list. */
       if (curr_token != tok_rparen || pp != NULL) {
-        unsigned long saved_num_deletion_modifs =
-                                              num_deletion_modifications_added;
-        num_deletion_modifications_added = 0;
         add_stop_token(tok_comma);
         do {
           sizeof_t                token_text_len;
@@ -5867,7 +5881,6 @@ make_inert_macro:
              characters of each token (and any white space preceding it)
              are deleted as the token is scanned.  Also, white space at
              the beginning and end of the argument is ignored. */
-          scanning_raw_argument = TRUE;
           map = alloc_macro_arg();
           add_to_arg_values(map);
           arg_position = pos_curr_token;
@@ -6164,7 +6177,6 @@ do_argument_again:
           }  /* if */
           /* The raw form of the argument has been scanned.  Now scan it
              again with macro expansion. */
-          scanning_raw_argument = FALSE;
           if (!need_expanded_form) goto end_arg_expansion;
           /* We do the rescan by reinserting the raw argument text
              temporarily and rescanning it with macro expansion on
@@ -6431,22 +6443,6 @@ scan_expanded_tokens:
           /* Re-get the "," or ")" that is next. */
           (void)arg_get_token(&any_white_space_skipped);
 end_arg_expansion:;
-          for (i = 0, slmp = source_line_modif_list;
-               i < num_deletion_modifications_added && slmp != NULL;
-               slmp = slmp->next) {
-            if (slmp->in_pending_raw_arg &&
-                slmp->sequence_id > init_modif_seq_no) {
-              /* This is a deletion source line modification that was added
-                 during the scan for the raw form of the argument.  The
-                 deleted text needed to be protected from compaction in the
-                 event that macro_buffer was expanded so text in the
-                 deletion could be referenced during the scan for the expanded
-                 form, but it is no longer needed. */
-              slmp->in_pending_raw_arg = FALSE;
-              ++i;
-            }  /* if */
-          }  /* for */
-          num_deletion_modifications_added = saved_num_deletion_modifs;
           /* Advance to the next argument (unless we've given an error about
              too many arguments). */
           if (pp != NULL) {
@@ -11551,7 +11547,6 @@ after this function.
   contextual_conversions = FALSE;
   use_raw_version_of_arg = FALSE;
   top_microsoft_slmp = NULL;
-  scanning_raw_argument = FALSE;
 }  /* macro_trans_unit_init */
 
 

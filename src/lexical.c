@@ -3353,7 +3353,6 @@ invocations.
   slmp->is_whitespace_kwd   = FALSE;
   slmp->is_raw_or_expanded_arg
                             = FALSE;
-  slmp->in_pending_raw_arg  = FALSE;
   slmp->inserted_text       = inserted_text;
   slmp->end_inserted_text   = end_inserted_text;
   slmp->assoc_macro         = (a_symbol_ptr)NULL;
@@ -6569,7 +6568,8 @@ reallocate curr_source_line to make it bigger.
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   /* Update any pointers to the old curr_source_line in the
      curr_source_line data structure. */
-  adjust_curr_source_line_structure_after_realloc(curr_source_line,
+  (void)adjust_curr_source_line_structure_after_realloc(
+                                           curr_source_line,
                                            after_end_of_curr_source_line,
                                            new_curr_source_line,
                                            /*adjust_source_line_modifs=*/TRUE);
@@ -23624,7 +23624,6 @@ done to determine whether a precompiled header may be used.
 #endif /* ASM_SUPPORT_NEEDED */
   pending_nonsplice_backslash = FALSE;
   offset_of_nonsplice_backslash = 0;
-  num_deletion_modifications_added = 0;
   (void)memzero((char *)source_line_modif_hash_table,
                 sizeof(source_line_modif_hash_table));
 }  /* lexical_reset */

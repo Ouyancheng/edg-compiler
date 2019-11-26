@@ -73,11 +73,6 @@ EXTERN a_boolean
 			/* TRUE when reading the tokens of a macro argument
 			   list, FALSE at all other times. */
 
-EXTERN a_boolean
-		scanning_raw_argument;
-			/* TRUE when reading the raw form of a macro
-			   argument, FALSE at all other times. */
-
 EXTERN a_symbol_ptr
 	       	line_macro_symbol,
 		file_macro_symbol,
@@ -118,7 +113,7 @@ extern a_symbol_ptr find_defined_macro(a_symbol_header_ptr sym_hdr);
 
 /* Adjust addresses in the curr_source_line structure after something
    has been realloc'd. */
-extern void adjust_curr_source_line_structure_after_realloc(
+extern a_boolean adjust_curr_source_line_structure_after_realloc(
                                        a_const_char *old_ptr,
                                        a_const_char *old_after_end_ptr,
                                        a_const_char *new_ptr,

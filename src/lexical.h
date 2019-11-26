@@ -1417,19 +1417,6 @@ typedef struct a_source_line_modif {
 			   nested macro invocation.  See the comments on
 			   choose_raw_or_expanded_arg in macro.c for
 			   details. */
-  a_bit_field	in_pending_raw_arg:1;
-			/* TRUE if this modification is a deletion that was
-			   added while scanning the raw form of a macro
-			   argument and for which the corresponding scan
-			   for the expanded form has not yet completed.
-			   The deleted text of such modifications cannot be
-			   compacted during the expansion of macro_buffer
-			   because there may be pointers into it, even
-			   though the text was deleted.  The flag is
-			   cleared after the scan for the expanded form has
-			   completed so that the space occupied by the
-			   deleted text can be reclaimed if macro_buffer is
-			   subsequently expanded. */
   char		orig_char;
 			/* The character that was in the source line at
 			   position line_loc (provided so that the original
@@ -1632,10 +1619,6 @@ EXTERN a_source_line_modif_ptr
 		last_source_line_modif_exited_while_skipping_white_space;
 			/* Set by skip_white_space whenever a source line
 			   modification is exited. */
-EXTERN unsigned long
-		num_deletion_modifications_added;
-			/* Incremented whenever a deletion source line
-			   modification is added. */
 EXTERN a_constant
 		const_for_curr_token;
 			/* If the current token is a literal constant,
@@ -2388,8 +2371,7 @@ zero-length replacement string.  for_comment is TRUE if the modification is
 due to a comment.  raw_or_exp is TRUE if the modification is for the raw or
 expanded version of a macro argument; see choose_raw_or_expanded_arg in
 macro.c for details.  If no text is to be deleted, nothing is done (there
-is no room for the ATTENTION_MARKER); otherwise,
-num_deletion_modifications_added is incremented.
+is no room for the ATTENTION_MARKER).
 */
 #define add_deletion_source_line_modif(line_loc, num_chars, for_comment,     \
                                        raw_or_exp)                           \
@@ -2403,8 +2385,6 @@ num_deletion_modifications_added is incremented.
     dslmp->inserted_text = dslmp->end_inserted_text = dslmp->inserted_chars; \
     dslmp->is_for_comment = for_comment;                                     \
     dslmp->is_raw_or_expanded_arg = raw_or_exp;                              \
-    dslmp->in_pending_raw_arg = scanning_raw_argument;                       \
-    ++num_deletion_modifications_added;                                      \
   }  /* if */                                                                \
 }  /* add_deletion_source_line_modif */
 
