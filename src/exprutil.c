@@ -8621,7 +8621,10 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
     /* Cast to bool.  Use eok_bool_cast. */
     *p_node = make_operator_node((an_expr_operator_kind)eok_bool_cast,
                                  new_type, *p_node);
-    (*p_node)->compiler_generated = is_implicit_cast;
+    if (is_implicit_cast) {
+      (*p_node)->compiler_generated = TRUE;
+      (*p_node)->position = *err_pos;
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cli_or_cx_enabled &&
              boxing_conversion_possible(old_type, new_type,
