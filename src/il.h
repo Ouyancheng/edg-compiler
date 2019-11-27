@@ -1162,6 +1162,9 @@ extern a_type_ptr ptr_to_member_type_full(a_type_ptr              member_type,
 extern a_type_ptr related_ptr_to_member_type(a_type_ptr member_type,
                                              a_type_ptr class_type);
 
+extern a_type_ptr function_type_without_noexcept_exception_spec(
+                                                              a_type_ptr type);
+
 extern a_type_ptr make_pointer_type_full(
                                       a_type_ptr              pointed_to_type,
                                       a_pointer_modifier_set  modifiers);

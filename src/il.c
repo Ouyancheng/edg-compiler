@@ -11549,6 +11549,78 @@ class_type.
 }  /* related_ptr_to_member_type */
 
 
+a_type_ptr function_type_without_noexcept_exception_spec(a_type_ptr type)
+/*
+Given a function or pointer-to-member-function type, if the associated
+exception specification is a noexcept type, return an equivalent type
+that has no exception specification, otherwise return the type itself.
+This is currently used only for typeinfo (where nothrow exception types are
+stripped and a typeinfo flag is added).
+*/
+{
+  a_type_ptr ptr = type;
+
+  if (!exc_spec_in_func_type || !exceptions_enabled) {
+    /* There are no exception specifications in function types or exceptions
+       are disabled; return the input. */
+  } else {
+    /* See if the type has a noexcept exception specification. */
+    if (is_nothrow_type(type)) {
+      /* See if we've already created the requested type; if so, return it. */
+      ptr = get_based_type(type,
+                           (a_based_type_kind)btk_no_noexcept_exception_spec,
+                           TQ_NONE, PM_NONE, /*expl_mem_attr_implicit=*/FALSE,
+                           (a_type_ptr)NULL, UPC_BLOCK_SIZE_NONE);
+      if (ptr == NULL) {
+        /* Create a copy of the type without the exception specification. */
+        a_type_ptr                      base_type;
+        a_type_ptr                      orig_type = NULL;
+        a_boolean                       is_ptr_to_member = FALSE;
+        an_exception_specification_ptr  save_esp;
+        base_type = skip_typerefs(type);
+        if (is_ptr_to_member_type(base_type)) {
+          orig_type = base_type;
+          base_type = pm_member_type(base_type);
+          is_ptr_to_member = TRUE;
+        }  /* if */
+        check_assertion(is_function_type(base_type));
+        save_esp =
+                base_type->variant.routine.extra_info->exception_specification;
+        /* Create a copy of the function type without the exception
+           specification (and ensure the lowering flag is set properly). */
+        base_type->variant.routine.extra_info->exception_specification = NULL;
+        ptr = alloc_type(base_type->kind);
+        copy_type(base_type, ptr);
+        base_type->variant.routine.extra_info->exception_specification =
+                                                                      save_esp;
+#if DO_IL_LOWERING
+        il_lowering_flag_of(ptr) = visited_yet(type);
+        ptr->typeinfo_var = NULL;
+#endif /* DO_IL_LOWERING */
+        if (is_ptr_to_member) {
+          /* Copy the original (pointer-to-member) type and replace the
+             member portion with the copied function type from above. */
+          a_type_ptr save_copied_type = ptr;
+          ptr = alloc_type(orig_type->kind);
+          copy_type(orig_type, ptr);
+          ptr->variant.ptr_to_member.type = save_copied_type;
+#if DO_IL_LOWERING
+          il_lowering_flag_of(ptr) = visited_yet(type);
+          ptr->typeinfo_var = NULL;
+#endif /* DO_IL_LOWERING */
+        }  /* if */
+        /* Remember the existence of this type by putting a pointer to it in
+           the based_types list. */
+        add_based_type_list_member(type,
+                             (a_based_type_kind)btk_no_noexcept_exception_spec,
+                             ptr);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return ptr;
+}  /* function_type_without_noexcept_exception_spec */
+
+
 a_type_ptr make_pointer_type_full(a_type_ptr              pointed_to_type,
                                   a_pointer_modifier_set  modifiers)
 /*

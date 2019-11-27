@@ -8458,16 +8458,20 @@ Return TRUE if the given exception specification is of the form "noexcept",
 
 a_boolean is_nothrow_type(a_type_ptr  type)
 /*
-The given type is a routine type.  Return TRUE if it has an associated
-"throw()" or "noexcept" specification or if exceptions are disabled (in which
-case the function is not expected to throw an exception either).
-The caller is responsible for ensuring that the type has no cached exception
-specification and no indeterminate specification.
+The given type is a routine type or pointer-to-member function type.  Return
+TRUE if it has an associated "throw()" or "noexcept" specification or if
+exceptions are disabled (in which case the function is not expected to throw an
+exception either).  The caller is responsible for ensuring that the type has no
+cached exception specification and no indeterminate specification.
 */
 {
   a_boolean  result;
 
   if (exceptions_enabled) {
+    if (type->kind == (a_type_kind)tk_ptr_to_member) {
+      type = pm_member_type(type);
+    }  /* if */
+    check_assertion(is_function_type(type));
     a_routine_type_supplement_ptr   rtsp = type->variant.routine.extra_info;
     an_exception_specification_ptr  esp = rtsp->exception_specification;
     if (esp != NULL && esp->indeterminate) {

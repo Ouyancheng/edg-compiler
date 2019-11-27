@@ -1,5 +1,18 @@
 Version 6.0
 
+11/27/19 [EDGcpfe/20437,EDGcpfe/21093]
+Assertion failure in get_typeinfo_var
+
+In configurations that do lowering, an assertion failure (in get_typeinfo_var)
+had occurred when using typeinfo for some pointer-to-member functions in modes
+where exception specifications are considered part of a function type.
+For example (with --c++17):
+
+  #include <typeinfo>
+  struct A {};
+  auto &x = typeid(void (A::*)() noexcept);
+
+
 11/27/19 [EDGcpfe/22013]
 __is_function type trait helper
 

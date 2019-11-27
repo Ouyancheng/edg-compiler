@@ -8661,7 +8661,10 @@ enum a_based_type_kind_tag {
   btk_pin_ptr,		/* C++/CLI pin_ptr. */
   btk_cppcx_box,	/* C++/CX boxed value type; Platform::Box<T>. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  btk_pointer		/* Pointer to the type. */
+  btk_pointer,		/* Pointer to the type. */
+  btk_no_noexcept_exception_spec
+			/* A function type without its noexcept exception spec
+			   (C++ only). */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_based_type_kind;

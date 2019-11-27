@@ -1407,63 +1407,6 @@ flag set value is returned.
 }  /* vmi_flags_for_type */
 
 #endif /* IA64_ABI */
-#if IA64_ABI || GENERATE_EH_TABLES
-
-static a_boolean is_type_with_exc_spec(a_type_ptr type,
-                                       a_type_ptr *non_throw_type)
-/*
-If type is a function or pointer-to-member-function type that is a noexcept
-type (and exception specifications are part of function types), then return
-TRUE and set *non_throw_type to a copy of type that has the exception
-specification removed.
-*/
-{
-  a_boolean                       result = FALSE;
-  a_type_ptr                      base_type;
-  a_type_ptr                      copied_type;
-  a_type_ptr                      orig_type = NULL;
-  a_boolean                       is_ptr_to_member = FALSE;
-  an_exception_specification_ptr  save_esp;
-
-  if (exc_spec_in_func_type) {
-    base_type = skip_typerefs(type);
-    if (is_ptr_to_member_type(base_type)) {
-      orig_type = base_type;
-      base_type = pm_member_type(base_type);
-      is_ptr_to_member = TRUE;
-    }  /* if */
-    if (is_function_type(base_type)) {
-      a_boolean lowered_yet = visited_yet(type);
-      save_esp =base_type->variant.routine.extra_info->exception_specification;
-      if (is_nothrow_spec(save_esp)) {
-        /* Create a copy of the function type without the exception
-           specification (and ensure it's not lowered). */
-        base_type->variant.routine.extra_info->exception_specification = NULL;
-        copied_type = alloc_type(base_type->kind);
-        copy_type(base_type, copied_type);
-        base_type->variant.routine.extra_info->exception_specification =
-                                                                      save_esp;
-        il_lowering_flag_of(copied_type) = lowered_yet;
-        copied_type->typeinfo_var = NULL;
-        if (is_ptr_to_member) {
-          /* Copy the original (pointer-to-member) type and replace the
-             member portion with the copied function type from above. */
-          a_type_ptr save_copied_type = copied_type;
-          copied_type = alloc_type(orig_type->kind);
-          copy_type(orig_type, copied_type);
-          copied_type->variant.ptr_to_member.type = save_copied_type;
-          il_lowering_flag_of(copied_type) = lowered_yet;
-          copied_type->typeinfo_var = NULL;
-        }  /* if */
-        *non_throw_type = copied_type;
-        result = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_type_with_exc_spec */
-
-#endif /* IA64_ABI || GENERATE_EH_TABLES */
 
 static void define_typeinfo_var(a_type_ptr            type,
                                 a_boolean             force_static,
@@ -1862,13 +1805,15 @@ typeinfo variable in a COMDAT group.
             flags_value |= PFS_INCOMPLETE_CLASS;
           }  /* if */
           if (is_function_type(pointed_to_type) &&
-              is_type_with_exc_spec(pointed_to_type, &pointed_to_type)) {
+              is_nothrow_type(skip_typerefs(pointed_to_type))) {
             /* Exception specifications are part of the type system and the
                pointed-to function has a noexcept exception specification.
                The IA-64 ABI represents this in the pointer typeinfo (not
                the function typeinfo), so add a flag here and make sure the
                pointed-to function type does not include the exception
                specification. */
+            pointed_to_type = function_type_without_noexcept_exception_spec(
+                                               skip_typerefs(pointed_to_type));
             flags_value |= PFS_NOEXCEPT;
           }  /* if */
           flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
@@ -2700,14 +2645,20 @@ Return a pointer to the variable and set *type to the underlying type.
       flags_value |= ETS_IS_POINTER_TO_DATA_MEMBER;
     } else if (is_or_was_ptr_to_member_function_type(*type)) {
       flags_value |= ETS_IS_POINTER_TO_MEMBER_FUNCTION;
-      if (is_type_with_exc_spec(*type, type)) {
+      if (is_ptr_to_member_type(*type) &&
+          is_nothrow_type(skip_typerefs(*type))) {
         /* A noexcept exception specification is part of the pointer-to-member-
            function's type. */
+        *type = function_type_without_noexcept_exception_spec(
+                                                         skip_typerefs(*type));
         flags_value |= ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION;
       }  /* if */
-    } else if (is_function_type(*type) && is_type_with_exc_spec(*type, type)) {
+    } else if (is_function_type(*type) &&
+               is_nothrow_type(skip_typerefs(*type))) {
       /* A noexcept exception specification is part of the function's
          type. */
+      *type = function_type_without_noexcept_exception_spec(
+                                                         skip_typerefs(*type));
       flags_value |= ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION | ETS_IS_POINTER;
     }  /* if */
     if (done) {
@@ -2767,11 +2718,14 @@ the cv-qualifiers and passes the type through.
     *flags_value |= ETS_IS_POINTER_TO_DATA_MEMBER;
   } else if (is_or_was_ptr_to_member_function_type(eff_type)) {
     *flags_value |= ETS_IS_POINTER_TO_MEMBER_FUNCTION;
-    if (is_type_with_exc_spec(eff_type, &eff_type)) {
+    if (is_ptr_to_member_type(eff_type) &&
+        is_nothrow_type(skip_typerefs(eff_type))) {
       /* A noexcept exception specification is part of the pointer-to-member-
          function type.  Include a flag to that effect, then strip the
          exception specification from the effective type (as if the exception
          specification was a type qualifier). */
+      eff_type =
+        function_type_without_noexcept_exception_spec(skip_typerefs(eff_type));
       *flags_value |= ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION;
     }  /* if */
   }  /* if */
@@ -2810,11 +2764,13 @@ the cv-qualifiers and passes the type through.
       } else if (is_or_was_ptr_to_member_function_type(eff_type)) {
         *flags_value |= ETS_IS_POINTER_TO_MEMBER_FUNCTION;
       }  /* if */
-      if (is_type_with_exc_spec(eff_type, &eff_type)) {
+      if (is_function_type(eff_type) &&
+          is_nothrow_type(skip_typerefs(eff_type))) {
         /* A noexcept exception specification is part of the function or
            pointer-to-member-function type.  Include a flag to that effect,
            then strip the exception specification from the effective type (as
            if the exception specification was a type qualifier). */
+        eff_type = function_type_without_noexcept_exception_spec(eff_type);
         *flags_value |= ETS_IS_POINTER_TO_NOEXCEPT_FUNCTION;
       }  /* if */
     }  /* if */
