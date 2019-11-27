@@ -16212,7 +16212,7 @@ cast.  See lower_expr for typical invocation.
           check_assertion(con->variant.address.subobject_path == NULL);
           set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
           node_variable(expr) = con->variant.address.variant.variable;
-          con = NULL;
+          break;
 #if GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX
         } else if (constant_is(con, ck_complex))  {
           /* The lowering of a complex constant results in an aggregate
