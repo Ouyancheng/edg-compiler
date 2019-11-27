@@ -1309,6 +1309,7 @@ typedef enum /*a_token_kind*/ {
   tok_reference_binds_to_temporary,
   tok_is_same,
   tok_is_same_as,
+  tok_is_function,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1502,6 +1503,7 @@ EXTERN a_const_char
    "__integer_pack",
    "__reference_binds_to_temporary",
    "__is_same", "__is_same_as",
+   "__is_function",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -13127,6 +13129,7 @@ typedef enum a_builtin_operation_kind_tag {
 			   operands. */
   bok_is_same,          /* __is_same (Clang).  Two type operands. */
   bok_is_same_as,       /* __is_same_as (GCC).  Two type operands. */
+  bok_is_function,      /* __is_function.  One type operand. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */
@@ -17453,6 +17456,7 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__reference_binds_to_temporary",
   "__is_same",
   "__is_same_as",
+  "__is_function",
   "last"
 }
 #endif /* VAR_INITIALIZERS */

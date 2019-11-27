@@ -1,5 +1,11 @@
 Version 6.0
 
+11/27/19 [EDGcpfe/22013]
+__is_function type trait helper
+
+The __is_function type trait helper has been implemented (in all modes).
+
+
 11/26/19 [EDGcpfe/22057]
 Initialization with reinterpret_cast result
 

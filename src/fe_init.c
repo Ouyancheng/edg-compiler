@@ -734,6 +734,7 @@ modes.
                 "__is_convertible_to");
   enter_keyword((a_token_kind)tok_is_empty, "__is_empty");
   enter_keyword((a_token_kind)tok_is_enum, "__is_enum");
+  enter_keyword((a_token_kind)tok_is_function, "__is_function");
   enter_keyword((a_token_kind)tok_is_pod, "__is_pod");
   enter_keyword((a_token_kind)tok_is_polymorphic, "__is_polymorphic");
   enter_keyword((a_token_kind)tok_is_union, "__is_union");

@@ -8653,6 +8653,9 @@ and, if pos is not NULL, an error will be reported.
         case bok_is_enum:
           result = is_immediate_enum_type(type);
           break;
+        case bok_is_function:
+          result = is_function_type(type);
+          break;
         case bok_is_trivial:
         case bok_is_standard_layout:
           result = is_object_type(type);
@@ -8834,6 +8837,9 @@ and, if pos is not NULL, an error will be reported.
                  is_empty_class_type(type);
         break;
       case bok_is_enum:
+        result = FALSE;
+        break;
+      case bok_is_function:
         result = FALSE;
         break;
       case bok_is_pod:
@@ -9158,6 +9164,7 @@ constant is set as well.
         break;
       case bok_is_class:
       case bok_is_enum:
+      case bok_is_function:
       case bok_is_union:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case bok_is_delegate:
