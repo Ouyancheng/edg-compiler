@@ -11565,19 +11565,18 @@ stripped and a typeinfo flag is added).
        are disabled; return the input. */
   } else {
     /* See if the type has a noexcept exception specification. */
-    if (is_nothrow_type(type)) {
+    a_type_ptr base_type = skip_typerefs(type);
+    if (is_nothrow_type(base_type)) {
       /* See if we've already created the requested type; if so, return it. */
-      ptr = get_based_type(type,
+      ptr = get_based_type(base_type,
                            (a_based_type_kind)btk_no_noexcept_exception_spec,
                            TQ_NONE, PM_NONE, /*expl_mem_attr_implicit=*/FALSE,
                            (a_type_ptr)NULL, UPC_BLOCK_SIZE_NONE);
       if (ptr == NULL) {
         /* Create a copy of the type without the exception specification. */
-        a_type_ptr                      base_type;
         a_type_ptr                      orig_type = NULL;
         a_boolean                       is_ptr_to_member = FALSE;
         an_exception_specification_ptr  save_esp;
-        base_type = skip_typerefs(type);
         if (is_ptr_to_member_type(base_type)) {
           orig_type = base_type;
           base_type = pm_member_type(base_type);
