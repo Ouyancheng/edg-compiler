@@ -255,6 +255,8 @@ extern void establish_function_instantiation_corresp(a_routine_ptr  routine);
 
 extern void establish_variable_instantiation_corresp(a_variable_ptr  var);
 
+extern void establish_enum_instantiation_corresp(a_type_ptr  enum_type);
+
 extern void establish_block_extern_function_correspondence(
                                                       a_routine_ptr  routine);
 

@@ -1,5 +1,43 @@
 Version 6.0
 
+12/2/19  [EDGcpfe/21866]
+Multiple translation units: Failure to update canonical entry for a nested
+enumeration
+
+When a template class contains a scoped enumeration and an enumerator is used
+(causing the enumeration to be instantiated), the front end failed to update
+the canonical source correspondence.  This caused an abort in configurations
+that have IL_SHOULD_BE_WRITTEN_TO_FILE set and compiling multiple translation
+units when both the primary and a secondary TU contain instantiations of the
+class template, but only the secondary TU contains a usage of the enumerator
+(and therefore only the secondary TU had the enumeration instantiated).  For
+example, if a.cpp contains:
+
+  template<typename>
+  struct B {
+    enum class ENUM { i };
+    virtual ENUM func();
+  };
+  B<int> a;
+
+and b.cpp contains:
+
+  template<typename>
+  struct B {
+    enum class ENUM { i };
+    virtual ENUM func();
+  };
+  B<int> b;
+
+  template<typename T>
+  B<T>::ENUM B<T>::func() {
+    return ENUM::i; // Previously triggered an abort, now fixed.
+  }
+
+then compiling a.cpp b.cpp would trigger an abort in 'read_memory_region'.
+This is now fixed.
+
+
 12/2/19  [EDGcpfe/21625]
 Lowered compound assignment expressions and strict evaluation ordering
 

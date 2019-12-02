@@ -9771,6 +9771,9 @@ template.
 #endif /* DEBUG */
   /* If the translation unit stack was pushed above, pop it now. */
   if (trans_unit_pushed) pop_translation_unit_stack();
+  /* Notify the correspondence routines that a definition of this enum is now
+     present. */
+  establish_enum_instantiation_corresp(enum_type);
 }  /* instantiate_template_enum */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

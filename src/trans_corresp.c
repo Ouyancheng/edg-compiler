@@ -4974,6 +4974,30 @@ the canonical entry.
 }  /* establish_variable_instantiation_corresp */
 
 
+void establish_enum_instantiation_corresp(a_type_ptr  enum_type)
+/*
+This routine is called when the definition of the given enumerator has been
+instantiated.  Such an event may cause type to become the canonical entry.
+*/
+{
+  if (trans_unit_corresp_of(enum_type) == NULL) {
+    /* Nothing to be done: correspondences are not being processed yet. */
+  } else if (any_noncorresp_errors()) {
+    /* Correspondence checking is inhibited after errors are encountered. */
+  } else {
+    a_type_ptr  canon = (a_type_ptr)canonical_il_entry_of(enum_type);
+    if (canon->variant.integer.is_specialized) {
+      /* The canonical entry is specialized, but we're instantiating a
+         matching generic version. */
+      f_report_bad_trans_unit_corresp(
+                                     (char*)canon,
+                                     &enum_type->source_corresp.decl_position);
+    }  /* if */
+    update_canonical_entry(iek_type, (char*)enum_type);
+  }  /* if */
+}  /* establish_enum_instantiation_corresp */
+
+
 static a_boolean make_type_correspond(a_type_ptr  type_1,
                                       a_type_ptr  type_2,
                                       a_boolean   *canonical_changed)
