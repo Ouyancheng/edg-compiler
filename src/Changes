@@ -36,26 +36,6 @@ __is_function type trait helper
 The __is_function type trait helper has been implemented (in all modes).
 
 
-11/26/19 [EDGcpfe/22057]
-Initialization with reinterpret_cast result
-
-In C++11 (and later), reinterpret_cast is not allowed in constant expressions.
-That implies that in the following example:
-
-  struct X { int x; };
-  static union {
-    char buf[sizeof(X)];
-    int aligner;
-  } u;
-  X &r = reinterpret_cast<X&>(u.buf); // (1)
-
-the initialization (1) is a "dynamic initialization" according to the standard.
-However, implementations are permitted to implement this initialization as a
-static ("constant") initialization, and many implementations do.  The front end
-now handles this reinterpret_cast specially in this context to produce a
-constant initializer even in C++11 (and later) modes.
-
-
 11/25/19 [EDGcpfe/18786,EDGcpfe/21191]
 Deduction failures due to missing definitions
 

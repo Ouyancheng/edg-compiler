@@ -6694,7 +6694,7 @@ handle_pm_field_selection:
           case eok_ref_cast:
           case eok_lvalue_adjust:
             /* These operations are used to adjust the type of a glvalue. */
-            if ((!(constexpr_enabled &&
+            if ((!(cpp11_mode &&
                    expr->variant.operation.is_reinterpret_cast) ||
                  (microsoft_mode ||(gpp_mode && gnu_version >= 40600))) &&
                 constant_glvalue_address_full(op1, conaddr1, address_escapes,
