@@ -691,16 +691,18 @@ one position down.
 template<typename an_Elem, typename an_Allocator>
 void Dyn_array<an_Elem, an_Allocator>::reserve(a_size  new_cap)
 /*
-Increase the capacity to the given value (which must be larger than the
-current capacity).
+Increase the capacity to the given value if that given value is larger than
+the current capacity.
 */
 {
   a_size  old_cap = this->n_allocated;
-  check_assertion(new_cap > old_cap);
-  an_allocation  a = this->realloc(an_allocation{ this->elems, old_cap },
-                                   new_cap, this->n_elems);
-  this->elems = a.start;
-  this->n_allocated = (a_size)a.n_allocated;
+  
+  if (new_cap > old_cap) {
+    an_allocation  a = this->realloc(an_allocation{ this->elems, old_cap },
+                                     new_cap, this->n_elems);
+    this->elems = a.start;
+    this->n_allocated = (a_size)a.n_allocated;
+  }  /* if */
 }  /* Dyn_array::reserve */
 
 
@@ -865,7 +867,6 @@ template<typename an_Integer>
 inline int log2(an_Integer n)
 /*
 Return floor(log2(n)), assuming n > 0.
-FIXME: Consider __builtin_clz.
 */
 {
   int result = 0;
@@ -1340,8 +1341,6 @@ template<typename an_Object>
 inline an_Object* align_to_cache_line(an_Object *p)
 /*
 Return p minimally advanced to be aligned to a cache line.
-FIXME: Should move to namespace edg after CACHE_LINE_SIZE is moved to
-       host_envir.h.
 */
 {
   return (an_Object*)
@@ -1764,7 +1763,6 @@ is FALSE.
 
 #undef BLOCK_SIZE
 #undef CACHE_LINE_SIZE
-// FIXME: CACHE_LINE_SIZE should move to host_envir.h (and not be undef'd)
 #undef MIN_NINTHER_PIVOT_LENGTH
 #undef MAX_INSERTION_SORT_LENGTH
 
@@ -1886,7 +1884,6 @@ struct Ptr_map_entry {
 };  /* Ptr_map_entry */
 
 
-// FIXME: Parameterize the hash function.
 template<typename a_Ptr_key, typename a_Value>
 struct Ptr_map {
   /* A flat hash table whose keys are non-null scalar values (usually native
