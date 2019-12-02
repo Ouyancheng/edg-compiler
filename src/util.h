@@ -829,7 +829,7 @@ first one.
 
 template<typename an_Object>
 inline an_Object max_val(const an_Object &x,
-                     const an_Object &y)
+                         const an_Object &y)
 /*
 Return the larger of the given values.  If the values are equal, return the
 first one.
@@ -2017,9 +2017,9 @@ removed from a Ptr_map instance.
 #define check_traced_key_ptr(ptr, msg)                                        \
   if ((a_byte*)(ptr) == traced_key_ptr) ptr_map_intercept(msg);
 
-#else /* TRACE_PTR_MAP  */
+#else /* !defined(TRACE_PTR_MAP) */
 #define check_traced_key_ptr(ptr, msg) /* Nothing */
-#endif /* TRACE_PTR_MAP */
+#endif /* ifdef TRACE_PTR_MAP */
 
 template<typename a_Ptr_key, typename a_Value>
 inline void Ptr_map<a_Ptr_key, a_Value>::map(a_key          key,
