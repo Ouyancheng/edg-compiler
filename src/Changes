@@ -1,5 +1,22 @@
 Version 6.0
 
+12/2/19  [EDGcpfe/21625]
+Lowered compound assignment expressions and strict evaluation ordering
+
+When lowering a compound assignment expression, strict expression ordering
+had not been properly maintained, resulting in expressions that had been
+executed in the incorrect order.  For example, with --c++17:
+
+  extern "C" int printf(const char *format, ...);
+  bool  b;
+  bool& lhs() { printf("lhs\n"); return b; }
+  bool  rhs() { printf("rhs\n"); return b; }
+  int main() {
+    lhs() += rhs();  // Now executes rhs() first.
+    return 0;
+  }
+
+
 11/27/19 [EDGcpfe/20437,EDGcpfe/21093]
 Assertion failure in get_typeinfo_var
 

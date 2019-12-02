@@ -393,6 +393,11 @@ extern void initialize_vptrs_in_class(
                                      a_constant_ptr     aggr_con,
                                      an_insert_location *insert_location);
 
+extern an_expr_node_ptr pre_execute_expression(
+                                           an_expr_node_ptr  pre_execute,
+                                           an_expr_node_ptr  *prev,
+                                           an_expr_node_ptr  *var_assignments);
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 

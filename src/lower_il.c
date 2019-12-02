@@ -11778,11 +11778,21 @@ a temporary will be used, and the code will be something like
   a_boolean             swap_operands = FALSE;
   a_boolean             result_is_lvalue = expr->variant.operation.
                                         returns_lvalue_instead_of_usual_rvalue;
+  an_expr_node_ptr      temp_assignment = NULL;
 
   check_assertion(result_is_lvalue == expr->is_lvalue);
   /* Determine the operation type, which is usually the second operand
      type. */
   operation_type = compound_assignment_operation_type(expr);
+  if (strict_cpp17_eval_order &&
+      expr->variant.operation.eval_right_to_left &&
+      (expr1_could_affect_expr2(op1, op2) ||
+       expr1_could_affect_expr2(op2, op1))) {
+    /* If strict order of expression evaluation is in effect, this assignment
+       must evaluate op2 before op1.  Execute op2 first and assign its value
+       to a temporary. */
+    op2 = pre_execute_expression(op2, &op1->next, &temp_assignment);
+  }  /* if */
   /* Make a copy of op1 to be used as the left operand of the underlying
      operation.  op1 itself will be used as the left operand of the
      assignment. */ 
@@ -11907,7 +11917,11 @@ a temporary will be used, and the code will be something like
     op_node->variant.operation.returns_lvalue_instead_of_usual_rvalue =
                                                               result_is_lvalue;
   }  /* if */
-  overwrite_node(expr, op_node);
+  if (temp_assignment != NULL) {
+    overwrite_node(expr, make_comma_node(temp_assignment, op_node));
+  } else {
+    overwrite_node(expr, op_node);
+  }  /* if */
 }  /* rewrite_compound_assignment */
 
 #if GNU_EXTENSIONS_ALLOWED

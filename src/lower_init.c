@@ -8338,10 +8338,9 @@ insert_location is an insert location for any code that has to be generated.
 }  /* adjust_cleanup_state_for_aggregate_init */
 
 
-static an_expr_node_ptr pre_execute_expression(
-                                           an_expr_node_ptr  pre_execute,
-                                           an_expr_node_ptr  *prev,
-                                           an_expr_node_ptr  *var_assignments)
+an_expr_node_ptr pre_execute_expression(an_expr_node_ptr  pre_execute,
+                                        an_expr_node_ptr  *prev,
+                                        an_expr_node_ptr  *var_assignments)
 /*
 This routine assigns the value of pre_execute to a temporary variable,
 returning the assignment in *var_assignments, and modifies *prev (which points
