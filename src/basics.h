@@ -458,7 +458,6 @@ typedef ptrdiff_t a_ptrdiff;
 #ifdef __GNUC__
 /* Using gcc without a conforming ANSI/ISO C library or headers.  Assume
    we have stddef.h anyway. */
-/* FIXME: the include needs to be removed or some other change made. */
 #error we should not get here when using C++
 #include <stddef.h>
 typedef size_t true_size_t;
