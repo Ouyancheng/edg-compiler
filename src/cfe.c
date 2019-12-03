@@ -49,7 +49,7 @@ Changed to C++ front end and enhanced by
 
 /*
 Note that the EDG namespace is not opened here.  Instead we do a
-using-directive if the EDG code is in the edg namespace
+using-directive if the EDG code is in the edg namespace.
 */
 USING_NAMESPACE_EDG
 
