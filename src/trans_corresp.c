@@ -4976,8 +4976,8 @@ the canonical entry.
 
 void establish_enum_instantiation_corresp(a_type_ptr  enum_type)
 /*
-This routine is called when the definition of the given enumerator has been
-instantiated.  Such an event may cause type to become the canonical entry.
+This routine is called when the definition of the given enumeration has been
+instantiated.  Such an event may cause enum_type to become the canonical entry.
 */
 {
   if (trans_unit_corresp_of(enum_type) == NULL) {
