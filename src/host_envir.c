@@ -157,14 +157,6 @@ typedef int a_signal_handler_return_value;
 extern "C" int errno;
 #endif /* __BSD__ */
 
-#ifndef STDLIB_H_INCLUDED
-/* FIXME: These should be removed. */
-extern "C" char *getenv(char *name);
-extern "C" int abort(void);
-extern "C" void exit(int status);
-extern "C" unsigned long strtoul(const char *str, char **endptr, int base);
-#endif /* ifndef STDLIB_H_INCLUDED */
-
 /*
 Included to define ctime, etc.
 */
