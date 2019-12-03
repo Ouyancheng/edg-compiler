@@ -71,7 +71,7 @@ this routine should not be used when checking type qualifiers.
 
 /*
 This macro is equivalent to skip_typerefs.  It exists for compatibility
-purposes because skip_typerefs previously was a macro making using of
+purposes because skip_typerefs previously was a macro making use of
 f_skip_typerefs, and f_skip_typerefs is sometimes called directly.
 */
 #define f_skip_typerefs skip_typerefs
