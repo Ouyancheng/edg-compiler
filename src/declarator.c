@@ -2346,7 +2346,7 @@ routine is also called for the trailing return type of a lambda declarator.
 
 
 static void cplusplus_function_declarator_trailer(
-                         ARG_UNUSED a_decl_parse_state  *state,
+                         ARG_UNUSED a_decl_parse_state *state,
                          a_type_ptr                    rout_type,
                          a_func_info_block             *func_info,
                          a_symbol_locator              *locator,
@@ -6764,7 +6764,7 @@ and record it in *dps.  Also update positions in decl_pos_block.
 
 
 static void r_declarator(
-		  a_decl_flag_set                  input_flags,
+                  a_decl_flag_set                  input_flags,
                   a_decl_flag_set                  *output_flags,
                   a_decl_parse_state               *state,
                   a_type_ptr                       specifiers_type,

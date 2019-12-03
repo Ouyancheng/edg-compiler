@@ -1563,7 +1563,7 @@ time the cached token is freed.
 
 
 static void free_cached_token_from_reusable_cache(
-			       ARG_UNUSED a_token_cache_ptr token_cache,
+                               ARG_UNUSED a_token_cache_ptr token_cache,
                                a_cached_token_ptr           ctp,
                                a_boolean                    keep_pragma_tokens)
 /*
@@ -2565,10 +2565,10 @@ scanned.
 }  /* get_token_cache_being_scanned */
 
 
-void split_token_cache(a_token_cache	       *cache1,
-                       a_token_cache	       *cache2,
+void split_token_cache(a_token_cache           *cache1,
+                       a_token_cache           *cache2,
                        a_token_sequence_number split_location,
-                       a_boolean	       include_prev_token,
+                       a_boolean               include_prev_token,
                        ARG_UNUSED a_boolean    okay_if_not_found,
                        a_boolean               update_cache_being_scanned)
 /*

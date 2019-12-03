@@ -2725,9 +2725,9 @@ VMS version.  A VMS specific version is not supplied in the standard
 distribution.
 */
 char *get_file_name_from_dir(ARG_UNUSED a_boolean first,
-			     ARG_UNUSED char      *dir_name,
-			     ARG_UNUSED char      *suffix,
-			     ARG_UNUSED char      *curr_dir_name)
+                             ARG_UNUSED char      *dir_name,
+                             ARG_UNUSED char      *suffix,
+                             ARG_UNUSED char      *curr_dir_name)
 /*
 See comment above.
 
@@ -2756,9 +2756,9 @@ UNIX Version.
 #endif /* ifndef __AIX__ */
 
 char *get_file_name_from_dir(a_boolean	             first,
-			     a_const_char            *dir_name,
-			     a_const_char            *suffix,
-			     ARG_UNUSED a_const_char *curr_dir_name)
+                             a_const_char            *dir_name,
+                             a_const_char            *suffix,
+                             ARG_UNUSED a_const_char *curr_dir_name)
 /*
 See comment above.
 */
@@ -3294,8 +3294,8 @@ Close the mapped input file and the associated map object.
 
 
 a_void_ptr map_file_region(ARG_UNUSED sizeof_t curr_size,
-		           sizeof_t            incremental_size,
-			   sizeof_t            file_offset)
+                           sizeof_t            incremental_size,
+                           sizeof_t            file_offset)
 /*
 Expand a memory mapped file.  This routine assumes that curr_size bytes
 have already been allocated and mapped, and that incremental_size bytes
@@ -3393,11 +3393,11 @@ page size.
 }  /* map_file_region */
 
 
-void map_input_file_to_region(ARG_UNUSED FILE	*file,
-                              sizeof_t		offset,
-			      sizeof_t		size,
-			      a_void_ptr	address,
-			      a_const_char	*file_name)
+void map_input_file_to_region(ARG_UNUSED FILE   *file,
+                              sizeof_t          offset,
+                              sizeof_t          size,
+                              a_void_ptr        address,
+                              a_const_char      *file_name)
 /*
 Map the data pointed to by "file", starting at "offset" bytes,
 for "size" bytes to the address specified by "address".
@@ -3432,7 +3432,7 @@ to be used if a diagnostic is issued.
 
 
 void unmap_memory(a_void_ptr          addr,
-	          ARG_UNUSED sizeof_t size)
+                  ARG_UNUSED sizeof_t size)
 /*
 Unmap a block of previously mapped memory.
 */
@@ -3493,8 +3493,8 @@ incremental_size must be a multiple of the page size.
 
 
 a_void_ptr map_file_region(ARG_UNUSED sizeof_t curr_size,
-		           sizeof_t            incremental_size,
-			   sizeof_t            file_offset)
+                           sizeof_t            incremental_size,
+                           sizeof_t            file_offset)
 /*
 Expand a memory mapped file.  This routine assumes that curr_size bytes
 have already been allocated and mapped, and that incremental_size bytes

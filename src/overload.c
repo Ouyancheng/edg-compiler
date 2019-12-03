@@ -10514,9 +10514,9 @@ can be a handle.
 #endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
 
 void bind_member_function_operand_to_selector(
-                                ARG_UNUSED an_operand *bound_function_selector,
-                                a_boolean  selector_is_object_pointer,
-                                an_operand *function_operand)
+                              ARG_UNUSED an_operand *bound_function_selector,
+                              a_boolean             selector_is_object_pointer,
+                              an_operand            *function_operand)
 /*
 Bind the operand for a function to an associated selector object.  If the
 complete object type can be determined, convert a virtual function call

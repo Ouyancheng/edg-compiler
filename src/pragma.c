@@ -1614,8 +1614,8 @@ by EDG for testing purposes.
 
 
 void test_next_construct_pragma(ARG_UNUSED a_pending_pragma_ptr ppp,
-				ARG_UNUSED a_symbol_ptr	        sym_ptr,
-				ARG_UNUSED a_statement_ptr      stmt_ptr)
+                                ARG_UNUSED a_symbol_ptr         sym_ptr,
+                                ARG_UNUSED a_statement_ptr      stmt_ptr)
 /*
 Routine called by the test_next_decl and test_next_statement pragmas that
 are included by EDG for testing purposes.

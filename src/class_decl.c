@@ -15956,8 +15956,8 @@ The nesting depth of the parameters is ignored for this compatibility checking.
 
 
 static void decl_member_function_template(
-				a_symbol_locator          *locator,
-				a_template_param_ptr	  templ_param_list,
+                                a_symbol_locator          *locator,
+                                a_template_param_ptr      templ_param_list,
                                 ARG_UNUSED a_template_ptr il_template_entry,
                                 a_func_info_block         *func_info,
                                 a_class_def_state_ptr     class_state,

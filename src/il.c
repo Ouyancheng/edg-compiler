@@ -3585,19 +3585,19 @@ is used.
 
 
 void record_start_of_source_file(a_source_file_ptr parent_file,
-			         a_seq_number         seq_number,
-				 a_line_number        line_number,
-			         a_const_char         *file_name,
-			         a_const_char         *full_name,
+                                 a_seq_number         seq_number,
+                                 a_line_number        line_number,
+                                 a_const_char         *file_name,
+                                 a_const_char         *full_name,
                                  a_const_char         *name_as_written,
-			         a_source_file_ptr    *new_file,
+                                 a_source_file_ptr    *new_file,
                                  a_boolean            is_include_file,
-				 a_boolean            is_system_include,
+                                 a_boolean            is_system_include,
                                  a_boolean            is_preinclude,
-				 a_boolean            preinclude_macros_only,
-				 ARG_UNUSED a_boolean is_implicit_include,
-				 a_boolean            from_system_include_dir,
-				 ARG_UNUSED a_boolean is_assembly_file)
+                                 a_boolean            preinclude_macros_only,
+                                 ARG_UNUSED a_boolean is_implicit_include,
+                                 a_boolean            from_system_include_dir,
+                                 ARG_UNUSED a_boolean is_assembly_file)
 /*
 Create a source file entry in the intermediate language, to record the
 start of a new source file (either the primary source file, an include file,

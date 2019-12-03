@@ -11498,14 +11498,12 @@ will be NULL outside of template dependent contexts.
 
 
 void begin_prescan_context(
-	a_boolean		suppress_packs,
-	a_boolean		*packs_suppressed,
-	a_pack_expansion_stack_entry_ptr
-				*pack_expansion_stack_entry,
-	a_boolean		*saved_in_disambiguation,
-	a_boolean		*saved_in_auto_prescan,
-	ARG_UNUSED a_boolean
-				*saved_source_sequence_entries_disallowed)
+    a_boolean                        suppress_packs,
+    a_boolean                        *packs_suppressed,
+    a_pack_expansion_stack_entry_ptr *pack_expansion_stack_entry,
+    a_boolean                        *saved_in_disambiguation,
+    a_boolean                        *saved_in_auto_prescan,
+    ARG_UNUSED a_boolean             *saved_source_sequence_entries_disallowed)
 /*
 Update the scope stack to indicate that we are in a prescan or
 disambiguation context.  suppress_packs is TRUE if a pack suppression
@@ -11545,13 +11543,11 @@ suppress_packs is FALSE.
 
 
 void end_prescan_context(
-	a_boolean		packs_suppressed,
-	a_pack_expansion_stack_entry_ptr
-				pack_expansion_stack_entry,
-	a_boolean		saved_in_disambiguation,
-	a_boolean		saved_in_auto_prescan,
-	ARG_UNUSED a_boolean
-				saved_source_sequence_entries_disallowed)
+     a_boolean                        packs_suppressed,
+     a_pack_expansion_stack_entry_ptr pack_expansion_stack_entry,
+     a_boolean                        saved_in_disambiguation,
+     a_boolean                        saved_in_auto_prescan,
+     ARG_UNUSED a_boolean             saved_source_sequence_entries_disallowed)
 /*
 Update the scope stack to indicate that we are no longer in a prescan or
 disambiguation context.  packs_suppressed, pack_expansion_stack_entry,

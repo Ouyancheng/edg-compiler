@@ -14541,11 +14541,11 @@ namespace scope specified by ssep.
 
 
 void make_using_directive(a_namespace_ptr             nsp,
-			  a_scope_depth	              depth,
+                          a_scope_depth               depth,
                           a_source_position           *pos,
-			  a_boolean	              compiler_generated,
-			  a_boolean	              inline_namespace,
-			  ARG_UNUSED an_attribute_ptr attributes)
+                          a_boolean                   compiler_generated,
+                          a_boolean                   inline_namespace,
+                          ARG_UNUSED an_attribute_ptr attributes)
 /*
 Create a using-decl entry for a using-directive that specifies the indicated
 namespace, add it to the list of using-decl entries for the scope specified

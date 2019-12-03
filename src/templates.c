@@ -5786,10 +5786,10 @@ done:;
 
 
 void default_arg_prototype_instantiation(
-	a_symbol_ptr				template_sym,
-	a_def_arg_expr_fixup_ptr		def_arg_list,
-	a_symbol_ptr				prototype_scope_symbols,
-        ARG_UNUSED a_boolean                    update_declared_type)
+                              a_symbol_ptr             template_sym,
+                              a_def_arg_expr_fixup_ptr def_arg_list,
+                              a_symbol_ptr             prototype_scope_symbols,
+                              ARG_UNUSED a_boolean     update_declared_type)
 /*
 This routine is called to do a "prototype instantiation" of a default
 argument expression of a function template or a member function
