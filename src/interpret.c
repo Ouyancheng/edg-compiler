@@ -17385,7 +17385,7 @@ Display memory use for entities in front end memory in this file (interpret.c).
         table = (a_data_map_entry*)table->ptr;
       }  /* if */
       sprintf(name, "data map table width %d", k);
-      table_size = sizeof(an_alloc_seq_number)*((unsigned long)1<<k);
+      table_size = sizeof(an_alloc_seq_number)*((sizeof_t)1<<k);
       db_space_used_nontype(name, cnt, table_size);
     }  /* if */
   }  /* for */
@@ -17400,7 +17400,7 @@ Display memory use for entities in front end memory in this file (interpret.c).
         table = *(an_alloc_seq_number**)table;
       }  /* if */
       sprintf(name, "live set table width %d", k);
-      table_size = sizeof(an_alloc_seq_number)*((unsigned long)1<<k);
+      table_size = sizeof(an_alloc_seq_number)*((sizeof_t)1<<k);
       db_space_used_nontype(name, cnt, table_size);
     }  /* if */
   }  /* for */
