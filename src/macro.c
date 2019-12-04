@@ -4210,8 +4210,8 @@ feature strings and WG21 SG10 feature-test macros (type trait helpers can
 also be tested by the clang macros, but those are represented by a separate
 table).  It is sorted by the clang __has_feature string so it can be used
 with bsearch when the __has_feature or __has_extension macro is
-encountered.  The current contents reflect WG21 P0941R2 (2018-06-08) and
-the clang 6 documentation at clang.llvm.org/docs/LanguageExtensions.html.
+encountered.  The current contents reflect WG21 N4842 and the clang 6
+documentation at clang.llvm.org/docs/LanguageExtensions.html.
 */
 static a_feature_support feature_support_list[] = {
   { "",
@@ -4246,6 +4246,11 @@ static a_feature_support feature_support_list[] = {
     "201806L" },
   { "",
     0,
+    &consteval_enabled,
+    "__cpp_consteval",
+    "201811L" },
+  { "",
+    0,
     &constexpr_dynamic_alloc_enabled,
     "__cpp_constexpr_dynamic_alloc",
     "201907L" },
@@ -4259,6 +4264,11 @@ static a_feature_support feature_support_list[] = {
     &class_template_arg_deduction_enabled,
     "__cpp_deduction_guides",
     "201703L" },
+  { "",
+    0,
+    &designators_allowed,
+    "__cpp_designated_initializers",
+    "201707L" },
   { "",
     0,
     &conditional_explicit_enabled,
@@ -4296,7 +4306,7 @@ static a_feature_support feature_support_list[] = {
     0,
     &spaceship_enabled,
     "__cpp_impl_three_way_comparison",
-    "201711L" },
+    "201907L" },
   { "",
     0,
     &initializer_lists_enabled,
@@ -4507,8 +4517,11 @@ static a_feature_support feature_support_list[] = {
   { "cxx_generic_lambda",
     201402,
     &generic_lambdas_enabled,
-    "__cpp_generic_lambdas",
-    "201304L" },
+    NULL,		/* __cpp_generic_lambdas must be handled specially,
+			   as a single macro name takes on different values
+			   depending on the level of generic lambda
+			   support. */
+    NULL },
   { "cxx_implicit_moves",
     201103,
     &generate_move_operations,
@@ -10948,6 +10961,18 @@ command line -D options.
           value = terse_static_assert_enabled ? "201411L" : "200410L";
         }  /* if */
         (void)enter_predef_macro(value, "__cpp_static_assert",
+                                 /*cannot_be_redefined=*/TRUE,
+                                 /*ref_suppresses_pch_file=*/FALSE);
+      }  /* if */
+      /* __cpp_generic_lambdas must be handled specially, as it will have
+         different values depending on whether the C++14 or C++20 features
+         are supported. */
+      if (lambda_template_param_list_enabled) {
+        (void)enter_predef_macro("201707L", "__cpp_generic_lambdas",
+                                 /*cannot_be_redefined=*/TRUE,
+                                 /*ref_suppresses_pch_file=*/FALSE);
+      } else if (generic_lambdas_enabled) {
+        (void)enter_predef_macro("201304L", "__cpp_generic_lambdas",
                                  /*cannot_be_redefined=*/TRUE,
                                  /*ref_suppresses_pch_file=*/FALSE);
       }  /* if */
