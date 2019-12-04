@@ -30,6 +30,7 @@ func_def.c -- Processing for function definitions (both user supplied and
 #include "exprutil.h"
 #if DO_IL_LOWERING
 #include "il_walk.h"
+#include "lower_il.h"
 #endif /* DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ms_attrib.h"
