@@ -6913,7 +6913,6 @@ al_tag_name attributes (if any).
   if (type->definition_delayed) {
     /* Put out the definition if it is needed and was delayed because a
        non-autonomous definition appeared. */
-    type->definition_delayed = FALSE;
     /* Save the current position in the source sequence stream and change it
        to the source sequence entry for the type. */
     save_source_sequence_scan_state(&saved_state);
@@ -6933,6 +6932,7 @@ al_tag_name attributes (if any).
     } else {
       gen_class_definition(type);
     }  /* if */
+    type->definition_delayed = FALSE;
     /* Restore the source sequence list position. */
     restore_source_sequence_scan_state(&saved_state);
   } else {
@@ -9471,12 +9471,22 @@ is the one associated with the definition of the class.
   } else if (type->variant.class_struct_union.is_nonstd_anonymous_union_type) {
     /* The type is a nonstandard anonymous union or struct, so suppress
        the name. */
-  } else if (type->variant.class_struct_union.originally_unnamed) {
-    /* The type was unnamed, so suppress the name here.  This includes
-       the case where an unnamed class gets a name from a typedef.
+  } else if (type->variant.class_struct_union.originally_unnamed &&
+             !(gcc_mode && type->definition_delayed)) {
+    /* The type was unnamed, so suppress the name here.  This normally
+       includes the case where an unnamed class gets a name from a typedef.
        For example:
          typedef struct { int A; } A;
-    */
+       In gcc mode, however, under some circumstances the IL can refer
+       directly to an unnamed struct rather than to the typedef name for
+       it.  This can occur in an example like the following (assuming the
+       preceding typedef):
+         volatile A f();
+       In such a case in gcc mode, the volatile qualifier is dropped and
+       the return type of f() is the unnamed struct type, not the typedef,
+       resulting in use of a temporary name.  We therefore generate the
+       originally-unnamed struct type with the temporary name as its tag so
+       the generated return type of f() will not be undeclared. */
   } else {
     a_boolean  gen_sealed = FALSE;
     /* Put out the name. */

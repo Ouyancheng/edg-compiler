@@ -1,5 +1,24 @@
 Version 6.1
 
+12/4/19  [EDGcpfe/22074]
+C++-generating back end: gcc mode, typedefs, and volatile return types
+
+In cases where a function is declared to return a volatile-qualified struct
+type, where the struct is unnamed and referred to via a typedef, the
+C++-generating back end put out the return type using an undeclared
+temporary name (of the form __T12345678).  This is now fixed; in gcc mode,
+unnamed structs defined in typedef declarations are now put out with a
+temporary name as the tag so that a later reference can use that tag.  For
+example, with --gcc:
+
+  typedef struct { int i; } S;
+  volatile S f(void);  // generated as "struct __T12345678 f(void);"
+
+The typedef declaration will now appear in the generated code as:
+
+  typedef struct __T12345678 { int i; } S;
+
+
 12/5/19  [EDGcpfe/21898]
 Digit separators in skipped conditional compilation text
 
