@@ -8933,9 +8933,8 @@ following position.
 */
 /*lint -emacro(835,skip_digit_separator)*/
 #define skip_digit_separator(N)                                               \
-  if (*(curr_char_loc + (N)) == '\'') {                                       \
-    if (!digit_separators_enabled && !C_mode() &&                             \
-        !currently_in_pp_if_skip) {                                           \
+  if (!currently_in_pp_if_skip && *(curr_char_loc + (N)) == '\'') {           \
+    if (!digit_separators_enabled && !C_mode()) {                             \
       warning_at_line_pos(ec_digit_separators_not_enabled,                    \
                           curr_char_loc + (N));                               \
     } else {                                                                  \

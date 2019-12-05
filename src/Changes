@@ -1,3 +1,18 @@
+Version 6.1
+
+12/5/19  [EDGcpfe/21898]
+Digit separators in skipped conditional compilation text
+
+The front end previously could issue an error reporting a misplaced digit
+separator appearing in text that is skipped by conditional compilation.
+This is now fixed.  For example, with --c++11:
+
+  #if 0
+  0x'  // Previously an error, "digit separator cannot appear here", now okay
+  #endif
+
+
+-------------------------------------------------------------------------------
 Version 6.0, December 5, 2019
 
 12/2/19  [EDGcpfe/21866]
