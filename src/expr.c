@@ -8568,16 +8568,20 @@ make_proxy_type_if_needed:
         object_type = type_pointed_to(object_type);
       }  /* if */
       /* The object expression of a vacuous destructor call must be a scalar
-         type. */
-      if (!is_error_type(object_type) && !is_scalar_type(object_type)) {
-        if (microsoft_mode && ms_permissive) {
-          /* This is allowed in permissive Microsoft mode. */
-        } else if (gpp_version_is(<= 40200) && is_array_type(object_type)) {
-          /* g++ accepts array types through version 4.2. */
-        } else if (expr_error_should_be_issued()) {
-          pos_ty_error(ec_non_scalar_vacuous_dtor_call, &operand_1->position,
-                       object_type);
-        }  /* if */
+         type (or a GNU vector type). */
+      if (is_error_type(object_type) || is_scalar_type(object_type)) {
+        /* Okay. */
+#if GNU_VECTOR_TYPES_ALLOWED
+      } else if (is_vector_type(object_type)) {
+        /* Okay. */
+      } else if (gpp_version_is(<= 40200) && is_array_type(object_type)) {
+        /* g++ accepts array types through version 4.2. */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+      } else if (microsoft_mode && ms_permissive) {
+        /* Microsoft's permissive mode allows all non-class types. */
+      } else if (expr_error_should_be_issued()) {
+        pos_ty_error(ec_non_scalar_vacuous_dtor_call, &operand_1->position,
+                     object_type);
       }  /* if */
       orig_operand = *operand_1;
       node = make_node_from_operand(operand_1);
