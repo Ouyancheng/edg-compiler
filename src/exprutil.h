@@ -332,6 +332,12 @@ typedef a_byte an_operand_state;
 /* Data structure used to represent an expression within the expression
    routines: */
 typedef struct an_operand {
+  an_operand() = default;
+  inline an_operand(const an_operand  &src) { this->copy_from(&src); }
+  inline an_operand& operator=(const an_operand  &src)
+    { this->copy_from(&src); return *this; }
+  inline void copy_from(an_operand const  *src);
+
   a_type_ptr    type;
 			/* Type of this operand.  A tk_unknown type if not
 			   applicable (ok_indefinite_function,
@@ -527,6 +533,8 @@ typedef struct an_operand {
 			/* Pointer to the symbol.  May be a projection
 			   symbol for ok_indefinite_function,
 			   ok_sym_for_member, or ok_expression/enk_field. */
+  /* The following "variant" union must be the last member of an_operand.
+     The member function an_operand::copy_from relies on it. */
   union {
     /* When kind == ok_error, ok_indefinite_function, ok_sym_for_member, or
        ok_undefined_symbol: No variant fields. */
@@ -579,6 +587,41 @@ typedef struct an_operand {
 } an_operand;
 
 
+inline void an_operand::copy_from(an_operand const  *src)
+/*
+Shallowly copy the given operand to *this.  (For a "deep copy", see
+clone_operand.)  This function is used by the copy constructor and the
+copy assignment operator.
+*/
+{
+  /* Copy everything but the variant. */
+  memcpy((char*)this, (char*)src, offsetof(an_operand, variant));
+  /* For the variant, only copy the active field. */
+  switch (src->kind) {
+    case ok_expression:
+      this->variant.expression = src->variant.expression;
+      break;
+    case ok_constant:
+      this->variant.constant = src->variant.constant;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case ok_property_ref:
+      this->variant.property_ref = src->variant.property_ref;
+      break;
+    case ok_event_ref:
+      this->variant.event_ref = src->variant.event_ref;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case ok_braced_init_list:
+      this->variant.braced_init_list = src->variant.braced_init_list;
+      break;
+    default:
+      /* Nothing to do. */
+      break;
+  }  /* switch */
+}  /* copy_from */
+
+
 EXTERN an_operand_ptr
 		*internal_opnd_array;
 			/* Pointer to an array of operands available when
@@ -612,7 +655,9 @@ typedef struct an_expr_rescan_info_entry {
   an_operand	saved_operand;
 			/* A copy of the operand, which contains the position
 			   information and all the extra flags.  Not used for
-			   the basic type/expression/constant values. */
+			   the basic type/expression/constant values.  This
+                           must be the first field (relied up by function
+			   record_cast_position_in_expr_rescan_info). */
   an_expression_kind
 		expression_kind;
 			/* Kind of expression we are in, e.g., template

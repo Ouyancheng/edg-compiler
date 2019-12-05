@@ -4540,10 +4540,9 @@ type within the cast; and cast_type is the type cast to.
              it records a braced-init-list, keep the saved_operand but
              copy the rest of the fields, so the type and positions are
              recorded. */
-          an_operand orig_operand;
-          orig_operand = dip->rescan_info->saved_operand;
-          *dip->rescan_info  = *expr->extra.rescan_info;
-          dip->rescan_info->saved_operand = orig_operand;
+          memcpy((char*)dip->rescan_info+sizeof(an_operand),
+                 (char*)expr->extra.rescan_info+sizeof(an_operand),
+                 sizeof(an_expr_rescan_info_entry)-sizeof(an_operand));
         }  /* if */
       }  /* if */
     }  /* if */
