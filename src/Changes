@@ -1,5 +1,19 @@
 Version 6.1
 
+12/5/19  [EDGcpfe/22076]
+Address of parenthesized id-expression as template argument
+
+The changes for EDGcpfe/20944 introduced a regression in pre-C++17 modes,
+causing the front end to erroneously rejecting the address of a parenthesized
+id-expression as a template argument.  For example:
+
+  template<int*> struct S {};
+  int i = 42;
+  S<&(i)> sai = {};  // Error in version 6.0 in pre-C++17 modes.  Now okay.
+
+That is now fixed.
+
+
 12/4/19  [EDGcpfe/22074]
 C++-generating back end: gcc mode, typedefs, and volatile return types
 

@@ -6768,6 +6768,7 @@ longer an id-expression.
   operand->is_id_expression = orig_operand->is_id_expression;
   operand->is_address_of_id_expression =
                                      orig_operand->is_address_of_id_expression;
+  operand->is_parenthesized = orig_operand->is_parenthesized;
   operand->is_name_followed_by_left_paren =
                                   orig_operand->is_name_followed_by_left_paren;
 }  /* restore_operand_id_details */
@@ -21588,7 +21589,8 @@ by an "&" in the source, and *ampersand_position gives its position.
   a_symbol_ptr member_sym, fund_sym;
   a_boolean    has_required_ampersand = (ampersand_position != NULL &&
                                          /* Watch out for &(A::f). */
-                                         operand->is_id_expression);
+                                         operand->is_id_expression &&
+                                         !operand->is_parenthesized);
   a_boolean    allow_addr_of_managed_member = FALSE, force_node = FALSE;
 
   orig_operand = *operand;
@@ -21884,7 +21886,7 @@ used in generating the function-identifying operand in a call.
       check_assertion(is_indefinite_function_operand(operand));
       operand->is_operand_of_address_of = TRUE;
       operand->ampersand_position = *ampersand_position;
-      if (operand->is_id_expression) {
+      if (operand->is_id_expression && !operand->is_parenthesized) {
         /* Remember that the operand has the right form for a pointer to
            member (no parentheses around the identifier). */
         operand->has_required_ptr_to_member_form = TRUE;

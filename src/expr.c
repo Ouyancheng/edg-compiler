@@ -25508,9 +25508,6 @@ just an expression in parentheses.  Return the scanned expression in
         /* Set the "is_parenthesized" flag early so that it may be saved to
            the rescan information if we extract a node in what follows. */
         result->is_parenthesized = TRUE;
-        /* Something like "(i)" is not an id-expression; clear the flag that
-           was recorded for the "i" subexpression in such cases. */
-        result->is_id_expression = FALSE;
         /* Record the fact that the expression is parenthesized in the node
            (if there is any). */
         if (is_expression) {
@@ -25578,7 +25575,6 @@ just an expression in parentheses.  Return the scanned expression in
       if (!is_fold_expression) {
         /* Re-set the following flags in case we have re-built the operand
            since we set those flags earlier. */
-        result->is_id_expression = FALSE;
         result->is_parenthesized = TRUE;
         if (is_expression) {
           result->variant.expression->is_parenthesized = TRUE;
