@@ -604,7 +604,8 @@ static void gen_constant(a_constant_ptr constant,
 static void gen_type(a_type_ptr type);
 static void gen_type_reference(a_type_ptr type);
 static void gen_enum_definition(a_type_ptr type);
-static void gen_class_definition(a_type_ptr type);
+static void gen_class_definition(a_type_ptr type,
+                                 a_boolean use_temp_tag_name);
 static a_boolean process_preprocessing_directives(void);
 static void gen_pragma(void);
 static void gen_pragma_start(a_pragma_ptr pp);
@@ -6913,6 +6914,7 @@ al_tag_name attributes (if any).
   if (type->definition_delayed) {
     /* Put out the definition if it is needed and was delayed because a
        non-autonomous definition appeared. */
+    type->definition_delayed = FALSE;
     /* Save the current position in the source sequence stream and change it
        to the source sequence entry for the type. */
     save_source_sequence_scan_state(&saved_state);
@@ -6930,9 +6932,8 @@ al_tag_name attributes (if any).
     if (type->kind == (a_type_kind)tk_enum) {
       gen_enum_definition(type);
     } else {
-      gen_class_definition(type);
+      gen_class_definition(type, /*use_temp_tag_name=*/TRUE);
     }  /* if */
-    type->definition_delayed = FALSE;
     /* Restore the source sequence list position. */
     restore_source_sequence_scan_state(&saved_state);
   } else {
@@ -9421,11 +9422,14 @@ Render the given delegate type as a C++/CLI delegate definition.  E.g.:
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void gen_class_definition(a_type_ptr type)
+static void gen_class_definition(a_type_ptr type,
+                                 a_boolean  use_temp_tag_name)
 /*
 Output the definition of the indicated class type.  This is in the form of
 a type specifier (no trailing ";").  The current source sequence entry
-is the one associated with the definition of the class.
+is the one associated with the definition of the class.  If use_temp_tag_name
+is TRUE, in gcc mode put out a temporary name as the tag for an unnamed
+struct.
 */
 {
   a_class_type_supplement_ptr
@@ -9472,7 +9476,7 @@ is the one associated with the definition of the class.
     /* The type is a nonstandard anonymous union or struct, so suppress
        the name. */
   } else if (type->variant.class_struct_union.originally_unnamed &&
-             !(gcc_mode && type->definition_delayed)) {
+             !(gcc_mode && use_temp_tag_name)) {
     /* The type was unnamed, so suppress the name here.  This normally
        includes the case where an unnamed class gets a name from a typedef.
        For example:
@@ -10762,7 +10766,7 @@ this one is such a continuation.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */
       {
-        gen_class_definition(type);
+        gen_class_definition(type, /*use_temp_tag_name=*/FALSE);
       }  /* if */
     }  /* if */
     if (!suppress_closing_punct) {
