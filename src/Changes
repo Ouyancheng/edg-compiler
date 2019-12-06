@@ -1,5 +1,36 @@
 Version 6.1
 
+12/5/19  [EDGcpfe/22075]
+C++-generating back end, Microsoft compatibility: generated explicit
+specializations and dependent array bounds in parameters
+
+In configurations with
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE, the
+C++-generating back end represents implicit instantiations of function
+templates as explicit specializations.  When the type of a function
+parameter of a function template is a (possibly multi-dimensioned) array
+type with a dependent bound, a generated explicit specialization for it
+triggered a bug in versions of MSVC prior to 19.12, causing them to issue a
+spurious error C2912, "not a specialization of a function template".  In
+order to avoid this bug, the C++-generating back end now suppresses such
+generated explicit specializations when msvc_is_generated_code_target is
+TRUE and msvc_target_version_number is less than 1912.  For example, with
+--microsoft --msvc_target_version=1911:
+
+  template<int N> void f(int a[2][N]) { }
+  void g() {
+    int a[2][4];
+    f<4>(a);
+  }
+
+The generated code previously contained an explicit specialization,
+
+  template<> void f<4>(int a[2][4]) { }
+
+which triggered the MSVC bug.  This explicit specialization is now
+suppressed in the affected modes.
+
+
 12/5/19  [EDGcpfe/22084]
 GNU C++ compatibility: Vacuous destructor calls and vector types
 
