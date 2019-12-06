@@ -3621,6 +3621,7 @@ default mode (e.g., exception handling).
         if (!option_kind_used[(int)optk_char8_t]) {
           char8_t_enabled = TRUE;
         }  /* if */
+        destroying_operator_delete_enabled = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5033,6 +5034,7 @@ before this routine is called.
       nested_inline_namespace_definitions_enabled = TRUE;
       /* Accepted with a warning in pre-C++20 modes. */
       init_statement_allowed_in_range_based_for = TRUE;
+      destroying_operator_delete_enabled = TRUE;
     }  /* if */
     if (gnu_version >= 60000) {
       /* g++ allows specializations to use inaccessible members. */
@@ -11608,6 +11610,7 @@ variables declared in cmd_line.h.
   inline_variables_in_comdat = LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS ||
                                IA64_ABI; /*lint !e506*/
   overaligned_allocation_enabled = FALSE;
+  destroying_operator_delete_enabled = FALSE;
   floating_point_template_parameters_allowed =
                             DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED;
   vla_enabled = DEFAULT_VLA_ENABLED;

@@ -18115,7 +18115,7 @@ have been issued).
     /* There is an appropriate operator delete. */
     a_symbol_ptr fund_delete_sym = fundamental_symbol_of(delete_sym);
     a_boolean    delete_ambiguous;
-    a_boolean    is_aligned_delete;
+    a_boolean    is_aligned_delete, is_destroying_delete;
     check_assertion(fund_delete_sym->kind == (a_symbol_kind)sk_routine ||
                     fund_delete_sym->kind ==
                                             (a_symbol_kind)sk_member_function);
@@ -18123,7 +18123,8 @@ have been issued).
     if (nps->placement_new &&
         /* Is two-operand delete: */
         is_default_operator_delete(delete_routine,
-                                   &is_sized_ver, &is_aligned_delete) &&
+                                   &is_sized_ver, &is_aligned_delete,
+                                   &is_destroying_delete) &&
         is_sized_ver &&
         /* Is not a "usual deallocation function" (because the routine is a
            member of a class that has another delete as its default delete): */
@@ -21597,7 +21598,7 @@ in *rcblock).
 #if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
   a_boolean          is_sized_ver;
 #endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
-  a_boolean          is_aligned_delete = FALSE;
+  a_boolean          is_aligned_delete = FALSE, is_destroying_delete;
 
   db_enter(4, "scan_delete_operator");
 
@@ -21771,6 +21772,15 @@ in *rcblock).
         base_delete_type = array_element_type(base_delete_type);
         base_delete_type = skip_typerefs(base_delete_type);
       }  /* if */
+      /* Select the proper "delete" routine.  If the type is a class type and
+         the class has a "delete" operator, use it.  However, if "::" preceded
+         the keyword "delete", always use the global ::delete. */
+      if (!template_case) {
+        delete_routine = select_delete_routine(base_delete_type,
+                                               use_global_delete,
+                                               array_delete,
+                                               &delete_position);
+      }  /* if */
       /* See if the object needs destruction. */
       if (is_class_struct_union_type(base_delete_type)) {
         /* Instantiate the class if it is a template class. */
@@ -21785,8 +21795,16 @@ in *rcblock).
                                               base_delete_type,
                                               &operand.position,
                                               /*honor_virtual=*/TRUE);
-        if (dtor_routine != NULL) {
-          /* Class with destructor.  Destruction is required. */
+        if (dtor_routine != NULL &&
+            (delete_routine == NULL ||
+            !(destroying_operator_delete_enabled &&
+              is_default_operator_delete(delete_routine,
+                                         &is_sized_ver,
+                                         &is_aligned_delete,
+                                         &is_destroying_delete) &&
+              is_destroying_delete))) {
+          /* Class with destructor.  Destruction is required unless the
+             delete routine is a destroying operator delete. */
           dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
           if (array_delete) {
             /* For a delete of an array of classes, generate a dynamic init
@@ -21803,15 +21821,6 @@ in *rcblock).
                                       curr_expr_is_potentially_unevaluated());
           ndsp->dynamic_init = dip;
         }  /* if */
-      }  /* if */
-      /* Select the proper "delete" routine.  If the type is a class type and
-         the class has a "delete" operator, use it.  However, if "::" preceded
-         the keyword "delete", always use the global ::delete. */
-      if (!template_case) {
-        delete_routine = select_delete_routine(base_delete_type,
-                                               use_global_delete,
-                                               array_delete,
-                                               &delete_position);
       }  /* if */
       /* Note that delete_routine will be NULL if an ambiguity was found or
          when template_case is TRUE. */
@@ -21847,7 +21856,8 @@ in *rcblock).
             if (sized_deallocation_enabled &&
                 is_default_operator_delete(delete_routine,
                                            &is_sized_ver,
-                                           &is_aligned_delete) &&
+                                           &is_aligned_delete,
+                                           &is_destroying_delete) &&
                 (is_sized_ver || is_aligned_delete)) {
               /* If a sized or aligned deallocation routine has been found,
                  use that. */

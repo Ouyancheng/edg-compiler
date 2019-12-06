@@ -1634,7 +1634,20 @@ the position indicated by diag_pos.
           }  /* if */
         } else {
           /* operator delete or operator delete[]. */
-          if (!is_void_star_type(tp)) {
+          a_boolean destroying_operator_delete = FALSE;
+          if (destroying_operator_delete_enabled &&
+              opname == (an_opname_kind)onk_delete &&
+              class_type != NULL &&
+              ptp->next != NULL &&
+              f_identical_types(tp, make_pointer_type(class_type),
+                                ITF_NO_FLAGS) &&
+              is_std_destroying_delete_t(ptp->next->type)) {
+            /* A potential C++20 destroying operator delete; skip to next
+               parameter (to look for a possible size_t/align_val_t third
+               parameter). */
+            destroying_operator_delete = TRUE;
+            ptp = ptp->next;
+          } else if (!is_void_star_type(tp)) {
             /* Error. */
             an_error_severity  severity;
             if (cfront_2_1_mode && is_pointer_to_void_type(tp)) {
@@ -1653,32 +1666,75 @@ the position indicated by diag_pos.
                              ec_bad_first_arg_type_for_operator_delete,
                              diag_pos);
             }  /* if */
+          } else if (destroying_operator_delete_enabled &&
+                     class_type != NULL &&
+                     ptp->next != NULL &&
+                     is_std_destroying_delete_t(ptp->next->type)) {
+            /* Diagnose operator delete(void*, std::destroying_delete_t) in
+               a class as an error on the user's part. */
+            if (diag_pos != NULL) {
+              pos_ty_error(ec_destroying_delete_wrong_type,
+                           diag_pos, make_pointer_type(class_type));
+              err = TRUE;
+            }  /* if */
           }  /* if */
-          /* Actually using placement delete only occurs when exception
-             handling is enabled, and only with newer ABIs.  If EH support
-             is disabled or an old ABI is used, issue a diagnostic if this
-             turns out to be a placement delete declaration. */
-          if (!err
+          if (!err) {
+            /* Actually using placement delete only occurs when exception
+               handling is enabled, and only with newer ABIs.  If EH support
+               is disabled or an old ABI is used, issue a diagnostic if this
+               turns out to be a placement delete declaration. */
+            a_boolean issue_error = TRUE;
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
-                   && !exceptions_enabled
+            issue_error = !exceptions_enabled;
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
-                                         ) {
             ptp = ptp->next;
-            if (ptp != NULL) {
-              /* There is a second argument.  Issue a diagnostic, unless the
-                 parameter is of type size_t and (a) sized deallocation is
-                 enabled or (b) this is a class member operator delete. */
-              tp = skip_typerefs(ptp->type);
-              if (!is_error_type(tp)) {
-                if (is_integral_type(tp) &&
-                    tp->variant.integer.int_kind == targ_size_t_int_kind &&
-                    (class_type != NULL || sized_deallocation_enabled)) {
-                  /* No warning for X::operator delete(void *, size_t) or
-                     when sized deallocation is enabled. */
-                } else if (diag_pos != NULL) {
-                  pos_diagnostic(exceptions_enabled ? es_warning : es_remark,
-                                 ec_useless_placement_delete, diag_pos);
+            if (ptp == NULL) {
+              goto no_parameters_left;
+            }  /* if */
+            /* There is a second (or third for destroying operator delete)
+               parameter.  This could be a placement delete (in which case
+               any parameter types are fine) or a usual deallocation function
+               in which case an optional std::size_t parameter can follow,
+               followed by an optional std::align_val_t parameter (in modes
+               where those are enabled). */
+            tp = skip_typerefs(ptp->type);
+            if (!is_error_type(tp) &&
+                is_integral_type(tp) &&
+                tp->variant.integer.int_kind == targ_size_t_int_kind) {
+              if (class_type != NULL || sized_deallocation_enabled) {
+                /* An optional std::size_t parameter was found; this is a
+                   sized operator delete. */
+                ptp = ptp->next;
+                if (ptp == NULL) {
+                  goto no_parameters_left;
                 }  /* if */
+                tp = skip_typerefs(ptp->type);
+              } else if (issue_error && diag_pos != NULL) {
+                pos_diagnostic(exceptions_enabled ? es_warning : es_remark,
+                               ec_useless_placement_delete, diag_pos);
+              }  /* if */
+            }  /* if */
+            if (overaligned_allocation_enabled &&
+                identical_types(tp, type_of_align_val_t)) {
+              /* An optional std::align_val_t type was found; this is an
+                 aligned operator delete. */
+              ptp = ptp->next;
+            }  /* if */
+no_parameters_left:
+            if (ptp == NULL) {
+              /* No more parameters (other than the optional one(s) checked
+                 for above).  This is a usual deallocation function.  Note
+                 that it would be nice to cache this information somewhere,
+                 but it should be attached to a routine and that isn't
+                 readily available (and attaching it to the routine's type
+                 causes problems during routine type reconciliation). */
+            } else {
+              /* Presumably a placement delete function. */
+              if (destroying_operator_delete && diag_pos != NULL) {
+                /* If this is a destroying operator delete, it can have only
+                   optional size_t and align_val_t parameters. */
+                pos_error(ec_destroying_delete_with_extra_params, diag_pos);
+                err = TRUE;
               }  /* if */
             }  /* if */
           }  /* if */

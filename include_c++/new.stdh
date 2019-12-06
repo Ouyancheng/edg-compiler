@@ -63,6 +63,11 @@ namespace std {
   enum class align_val_t : size_t {};
 #endif /* ifdef __STDCPP_DEFAULT_NEW_ALIGNMENT__ */
  
+  struct destroying_delete_t {
+    explicit destroying_delete_t() = default;
+  };
+  inline constexpr destroying_delete_t destroying_delete{};
+
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
 }  /* namespace std */
 

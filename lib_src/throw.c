@@ -869,7 +869,8 @@ requires cleanup.
 #ifndef __EDG_IA64_ABI
         /* Not an array and not an object that requires special construction
            vtable information.  Just destroy the object.  If the object is a
-           complete object, pass in the value "2" to indicate that the
+           complete object, pass in the value "2" (which corresponds to
+           DT_COMPLETE in the front end) to indicate that the
 	   object and any subobjects should be destroyed.  If the object
            is itself a base class subobject, pass in the value "0"
 	   indicating that only the object (and not any subobjects)

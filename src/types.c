@@ -2700,9 +2700,11 @@ TRUE for the prototype instantiation.)
 }  /* is_std_initializer_list_type */
 
 
-a_boolean is_std_nothrow_type(a_type_ptr tp)
+static a_boolean is_std_class(a_type_ptr   tp,
+                              a_const_char *name)
 /*
-Return TRUE if the given type is the std::nothrow_t type.
+Return TRUE if the given type refers to a class with the specified name in
+the std namespace.
 */
 {
   a_boolean  result = FALSE;
@@ -2713,14 +2715,32 @@ Return TRUE if the given type is the std::nothrow_t type.
         sym->parent.namespace_ptr == 
                         symbol_for_namespace_std->variant.namespace_info.ptr) {
       /* We know tp is a class type that is a member of namespace std.  Now
-         check whether its name is "nothrow_t". */
-      if (strcmp(sym->header->identifier, "nothrow_t") == 0) {
+         check whether it has the proper name. */
+      if (strcmp(sym->header->identifier, name) == 0) {
         result = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
   return result;
+}  /* is_std_class */
+
+
+a_boolean is_std_nothrow_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is the std::nothrow_t type.
+*/
+{
+  return is_std_class(tp, "nothrow_t");
 }  /* is_std_nothrow_type */
+
+
+a_boolean is_std_destroying_delete_t(a_type_ptr tp)
+/*
+Return TRUE if the given type is the std::destroying_delete_t type.
+*/
+{
+  return is_std_class(tp, "destroying_delete_t");
+}  /* is_std_destroying_delete_t */
 
 
 a_boolean is_ptr_to_member_type(a_type_ptr tp)

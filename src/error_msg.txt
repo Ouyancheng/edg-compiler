@@ -3113,6 +3113,8 @@ ec_init_stmt_in_range_for_nonstandard;;"C++20-style initializer statement in a r
 ec_co_await_on_non_range_based_for;;"co_await can only apply to a range-based for statement"
 ec_cannot_deduce_type_in_range_based_for;;"cannot deduce type of range in range-based \"for\" loop"
 ec_inline_variables_nonstandard;;"inline variables are a C++17 feature"
+ec_destroying_delete_wrong_type;;"destroying operator delete requires %t as first parameter"
+ec_destroying_delete_with_extra_params;;"a destroying operator delete cannot have parameters other than std::size_t and std::align_val_t"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

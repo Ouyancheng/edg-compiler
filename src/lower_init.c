@@ -159,6 +159,10 @@ static void lower_dynamic_init_aggregate_constant(
                           a_lower_dynamic_init_options_set
                                                  options);
 
+static an_expr_node_ptr make_delete_call_node(a_routine_ptr    delete_routine,
+                                              a_type_ptr       delete_type,
+                                              an_expr_node_ptr arg_node);
+
 static a_type_ptr make_function_type(a_type_ptr return_type,
                                      a_type_ptr param_1_type,
                                      a_type_ptr param_2_type)
@@ -908,16 +912,16 @@ moved out of the block.
 }  /* move_final_return_out_of_block */
 
 
-static void enclose_routine_in_if(a_scope_ptr      scope,
+static void enclose_scope_in_if(a_scope_ptr      scope,
                                   an_expr_node_ptr if_node,
                                   a_variable_ptr   return_var)
 /*
-Add an "if" statement around the entire body of the routine (a constructor,
-destructor, or generated thread_local initialization routine) whose scope is
-pointed to by scope.  if_node is the expression to be tested in the "if".
-return_var is the variable to be returned if a "return" statement must be
-generated, or NULL if no value needs to be returned.  This routine should only
-be used when adding boilerplate code to constructors or destructors.
+Add an "if" statement around the entire body of the scope (a constructor,
+destructor, generated thread_local initialization routine, or block) whose
+scope is pointed to by scope.  if_node is the expression to be tested in the
+"if".  return_var is the variable to be returned if a "return" statement must
+be generated, or NULL if no value needs to be returned.  This routine should
+only be used when adding boilerplate code to constructors or destructors.
 */
 {
   a_statement_ptr if_stmt, block_stmt, stmt;
@@ -929,7 +933,7 @@ be used when adding boilerplate code to constructors or destructors.
   /* Make the "if" the top-level statement in the routine, and put the
      original code under the "if". */
   check_assertion_str(scope->assoc_block->kind == (a_statement_kind)stmk_block,
-                      "enclose_routine_in_if: top stmt not block");
+                      "enclose_scope_in_if: top stmt not block");
   block_stmt->variant.block.statements =
                                   scope->assoc_block->variant.block.statements;
   block_stmt->variant.block.extra_info->end_of_block_reachable = FALSE;
@@ -958,7 +962,7 @@ be used when adding boilerplate code to constructors or destructors.
      whether this routine has an effect. */
   if_stmt->is_lowering_boilerplate = TRUE;
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
-}  /* enclose_routine_in_if */
+}  /* enclose_scope_in_if */
 
 
 static a_scope_ptr make_routine_definition(
@@ -2232,22 +2236,31 @@ There is an implied argument for the VTT.
 
 #if !IA64_ABI
 
-static an_expr_node_ptr dtor_control_argument(a_boolean have_complete_object,
-                                              a_boolean free_storage)
 /*
-Build a node passed to a destructor to control the kind of processing
-done.  have_complete_object is TRUE if the destruction is of a
-complete object.  free_storage is TRUE if the destructor should
-free the object's storage.
+Flags used to control the behavior of Cfront destructors.  These are passed
+as the second argument (after the "this" parameter) to a destructor.
+Note that these values are known by the runtime library so any changes must
+also be reflected there.
+*/
+#define DT_NONE         0x0L /* No options. */
+#define DT_FREEING      0x1L /* The destruction is a "freeing" destruction
+                                (i.e., operator delete will be called at the
+                                conclusion of the destructor). */
+#define DT_COMPLETE_OBJECT 0x2L
+                             /* A complete object is being destroyed. */
+#define DT_CALLED_FROM_DESTROYING_DELETE 0x4L
+                             /* A call from a "destroying delete" operator.
+                                This is used to prevent race conditions since
+                                the destructor calls operator delete and
+                                vice versa. */
+
+static an_expr_node_ptr dtor_control_argument(long flags)
+/*
+Build a node passed to a destructor to control the kind of processing to be
+done.  flags is a bit mask of DT_* macros for the desired actions.
 */
 {
-  an_expr_node_ptr node;
-
-  /* 0x2 bit means "have complete object".  0x1 bit means "free storage". */
-  node = node_for_integer_constant(
-                    (have_complete_object? 2L : 0L) | (free_storage ? 1L : 0L),
-                    (an_integer_kind)ik_int);
-  return node;
+  return node_for_integer_constant((long)flags, (an_integer_kind)ik_int);
 }  /* dtor_control_argument */
 
 #endif /* !IA64_ABI */
@@ -2272,9 +2285,25 @@ destructor for a complete object (that must be TRUE for the IA-64 ABI).
   class_type = parent_class_of(dtor_routine);
   prelower_class_type(class_type);
 #if !IA64_ABI
-  /* The first argument indicates whether we have a complete object. */
-  implied_arg_node = dtor_control_argument(have_complete_object,
-                                           /*free_storage=*/FALSE);
+  /* The argument after "this" is used to pass flags to the destructor. */
+  a_boolean is_sized_ver, is_aligned_delete, is_destroying_delete;
+  long flags = DT_NONE;
+  if (have_complete_object) {
+    /* A complete object is being destroyed. */
+    flags |= DT_COMPLETE_OBJECT;
+  }  /* if */
+  check_assertion(innermost_function_scope != NULL);
+  a_routine_ptr rp = innermost_function_scope->variant.routine.ptr;
+  if (rp->special_kind == (a_special_function_kind)sfk_operator &&
+      rp->variant.opname_kind == (an_opname_kind)onk_delete &&
+      is_default_operator_delete(rp, &is_sized_ver, &is_aligned_delete,
+                                 &is_destroying_delete) &&
+      is_destroying_delete) {
+    /* The destructor is being called from a destroying operator delete
+       (in which case the object should be destroyed). */
+    flags |= DT_CALLED_FROM_DESTROYING_DELETE;
+  }  /* if */
+  implied_arg_node = dtor_control_argument(flags);
   *implied_arg_list = implied_arg_node;
   *end_implied_arg_list = implied_arg_node;
 #else /* IA64_ABI */
@@ -4381,7 +4410,7 @@ Add "if (this)" around the whole routine whose top scope is given by "scope".
   this_param_node = var_rvalue_expr(this_param_var);
   if_node = boolean_controlling_expr(this_param_node);
   /* Add the "if" statement. */
-  enclose_routine_in_if(scope, if_node, (a_variable_ptr)NULL);
+  enclose_scope_in_if(scope, if_node, (a_variable_ptr)NULL);
 }  /* add_null_test_around_routine */
 
 #if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
@@ -4750,7 +4779,7 @@ operator of a no-capture lambda.
 */
 {
   an_expr_node_ptr implied_arg_list = NULL, end_implied_arg_list = NULL;
-  an_expr_node_ptr call_node;
+  an_expr_node_ptr call_node = NULL;
   a_scope_ptr      new_routine_scope;
   a_type_ptr       routine_type = skip_typerefs(routine->type);
   a_type_ptr       this_param_type;
@@ -5076,7 +5105,29 @@ operator of a no-capture lambda.
       this_arg->next = default_arg_list;
     }  /* if */
 #if IA64_ABI
-    if (new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_delegation) {
+    a_boolean is_deleting = (special_kind_is(new_routine, sfk_destructor) &&
+                             new_routine->ctor_dtor_kind ==
+                                            (a_ctor_or_dtor_kind)cdk_deleting);
+    a_routine_ptr delete_routine = NULL;
+    if (is_deleting) {
+      delete_routine = class_type_supp(parent_class_of(new_routine))->
+                                                 assoc_operator_delete_routine;
+      check_assertion(delete_routine != NULL);
+    }  /* if */
+    a_boolean is_sized_ver, is_aligned_delete, is_destroying_delete;
+    if (is_deleting &&
+        is_default_operator_delete(delete_routine, &is_sized_ver,
+                                   &is_aligned_delete,
+                                   &is_destroying_delete) &&
+        is_destroying_delete) {
+      /* A deleting destructor typically invokes the destructor followed by
+         calling the appropriate operator delete, but in the case where
+         the operator delete is a "destroying operator delete", the destruction
+         will typically occur during the delete operation and should be
+         suppressed in the deleting destructor.  The net result is that
+         the destructor is not invoked here. */
+    } else if (new_routine->ctor_dtor_kind ==
+                                        (a_ctor_or_dtor_kind)cdk_delegation) {
       /* Create a cdk_delegation destructor alternate entry point that
          invokes the complete or subobject destructor depending on the
          value of the VTT parameter.  That is:
@@ -5153,22 +5204,24 @@ operator of a no-capture lambda.
       if (init_expr_lifetime != NULL) insert_as_statement = TRUE;
     }  /* if */
     if (insert_as_statement) {
-      /* The call will be inserted as a separate statement. */
-      a_variable_ptr temp_var = NULL;
-      /* If the routine has a non-void return, put the value in a temporary
-         and then return the temporary later. */
-      if (!void_return) {
-        temp_var = make_lowered_temporary(call_node->type);
-        call_node = make_var_assignment_expr(temp_var, call_node);
-      }  /* if */
-      /* Insert the call as a statement. */
-      (void)insert_expr_statement(call_node, &insert_location);
-      /* Set up the expression to be used in the return statement (the value
-         of the temporary). */
-      if (void_return) {
-        call_node = NULL;
-      } else {
-        call_node = var_rvalue_expr(temp_var);
+      if (call_node != NULL) {
+        /* The call will be inserted as a separate statement. */
+        a_variable_ptr temp_var = NULL;
+        /* If the routine has a non-void return, put the value in a temporary
+           and then return the temporary later. */
+        if (!void_return) {
+          temp_var = make_lowered_temporary(call_node->type);
+          call_node = make_var_assignment_expr(temp_var, call_node);
+        }  /* if */
+        /* Insert the call as a statement. */
+        (void)insert_expr_statement(call_node, &insert_location);
+        /* Set up the expression to be used in the return statement (the value
+           of the temporary). */
+        if (void_return) {
+          call_node = NULL;
+        } else {
+          call_node = var_rvalue_expr(temp_var);
+        }  /* if */
       }  /* if */
 #if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
       if (destroy_virtual_bases &&
@@ -5203,16 +5256,11 @@ operator of a no-capture lambda.
       }  /* if */
 #endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
 #if IA64_ABI
-      if (new_routine->special_kind ==
-                                     (a_special_function_kind)sfk_destructor &&
-          new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_deleting) {
+      if (is_deleting) {
         /* Add the deletion code for the IA-64 ABI deleting destructor. */
-        a_type_ptr    new_class_type = parent_class_of(new_routine);
-        a_routine_ptr delete_routine = class_type_supp(new_class_type)->
-                                                 assoc_operator_delete_routine;
-        check_assertion(delete_routine != NULL);
         this_arg = var_rvalue_expr(this_param_var);
-        make_delete_call_statement(delete_routine, new_class_type, this_arg,
+        make_delete_call_statement(delete_routine,
+                                   parent_class_of(new_routine), this_arg,
                                    &insert_location);
       }  /* if */
 #endif /* IA64_ABI */
@@ -11313,6 +11361,19 @@ no temporary is needed; a copy is made.)
 }  /* copy_arg_list_for_placement_delete */
 
 
+static a_type_ptr std_destroying_delete_t(void)
+/*
+Return the type associated with std::destroying_delete_t (which must exist
+in the symbol table because it is referenced in a destroying delete).
+*/
+{
+  a_symbol_ptr sym = look_up_name_string_in_std("destroying_delete_t");
+  check_assertion(sym != NULL && sym->next == NULL &&
+                  sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
+  return sym->variant.class_struct_union.type;
+}  /* std_destroying_delete_t */
+
+
 static an_expr_node_ptr extra_args_for_operator_delete(
                                    a_new_delete_supplement_ptr ndsp,
                                    an_expr_node_ptr            allocation_args,
@@ -11339,12 +11400,30 @@ the new-expression (a pointer type).
         delete_args =
                      copy_arg_list_for_placement_delete(allocation_args->next);
       } else {
-        /* The extra arguments will consist of an optional size and/or an
-           alignment, as required by the selected deallocation function. */
-        a_boolean        sized_delete;
-        a_boolean        aligned_delete;
-        an_expr_node_ptr alignment_arg = NULL;
-        sized_delete = is_sized_delete(delete_routine, &aligned_delete);
+        /* Add extra arguments as required by the selected deallocation
+           function. */
+        a_boolean        sized_delete, aligned_delete, destroying_delete;
+        an_expr_node_ptr alignment_arg = NULL, last_arg;
+        (void)is_default_operator_delete(delete_routine, &sized_delete,
+                                         &aligned_delete, &destroying_delete);
+        if (destroying_delete) {
+          /* Add a dummy argument of type std::destroying_delete_t. */
+          a_variable_ptr temp =
+                               make_local_temporary(std_destroying_delete_t());
+          delete_args = var_rvalue_expr(temp);
+          last_arg = delete_args;
+        }  /* if */
+        if (sized_delete) {
+          /* Add a size_t argument. */
+          an_expr_node_ptr size_arg = make_reusable_copy(allocation_args,
+                                                     /*vars_can_change=*/TRUE);
+          if (delete_args == NULL) {
+            delete_args = size_arg;
+          } else {
+            last_arg->next = size_arg;
+          }  /* if */
+          last_arg = size_arg;
+        }  /* if */
         if (aligned_delete) {
           if (allocation_args->next != NULL) {
             /* The call to the allocation routine included an alignment
@@ -11358,13 +11437,11 @@ the new-expression (a pointer type).
             alignment_arg = add_cast_if_necessary(alignment_arg,
                                                   type_of_align_val_t);
           }  /* if */
-        }  /* if */
-        if (sized_delete) {
-          delete_args = make_reusable_copy(allocation_args,
-                                           /*vars_can_change=*/TRUE);
-          delete_args->next = alignment_arg;
-        } else {
-          delete_args = alignment_arg;
+          if (delete_args == NULL) {
+            delete_args = alignment_arg;
+          } else {
+            last_arg->next = alignment_arg;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -11873,7 +11950,7 @@ inserted at *insert_location.
 {
   a_dynamic_init_ptr dyn_init_to_free_storage =
                                          ndsp->freeing_of_storage_on_exception;
-  a_boolean          aligned_delete = FALSE;
+  a_boolean is_sized_ver, aligned_delete = FALSE, is_destroying_delete = FALSE;
 
   if (dyn_init_to_free_storage != NULL) {
     /* The storage for this "new" is supposed to be freed if an exception
@@ -11882,12 +11959,14 @@ inserted at *insert_location.
     a_routine_ptr delete_routine =
                              ndsp->freeing_of_storage_on_exception->destructor;
     if (delete_routine != NULL) {
-      (void)is_sized_delete(delete_routine, &aligned_delete);
+      (void)is_default_operator_delete(delete_routine, &is_sized_ver,
+                                       &aligned_delete, &is_destroying_delete);
     }  /* if */
-    if (ndsp->placement_new || dyn_init_to_free_storage->is_array_freeing ||
-        aligned_delete) {
+    if (ndsp->placement_new || aligned_delete || is_destroying_delete ||
+        dyn_init_to_free_storage->is_array_freeing) {
       /* These cases can't be handled by the runtime library; instead they
-         are handled later, by inserting an internal "try" block. */
+         are handled later, by inserting an internal "try" block (see
+         turn_off_freeing_of_storage_on_exception). */
     } else {
       /* For a default operator delete, the cleanup can be done through a
          cleanup region table entry. */
@@ -11937,20 +12016,23 @@ as well as any additional code needed to process the deletion.
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
   a_dynamic_init_ptr dyn_init_to_free_storage =
                                          ndsp->freeing_of_storage_on_exception;
-  a_boolean          aligned_delete = FALSE;
+  a_boolean is_sized_ver, aligned_delete = FALSE, is_destroying_delete = FALSE;
 
   check_assertion(is_expr_insert_location(insert_location));
   if (dyn_init_to_free_storage != NULL) {
     if (dyn_init_to_free_storage->destructor != NULL) {
-      (void)is_sized_delete(dyn_init_to_free_storage->destructor,
-                            &aligned_delete);
+      (void)is_default_operator_delete(dyn_init_to_free_storage->destructor,
+                                       &is_sized_ver, &aligned_delete,
+                                       &is_destroying_delete);
     }  /* if */
     alloc_expr = insert_location->variant.expr;
-    if (ndsp->placement_new || aligned_delete ||
+    if (ndsp->placement_new || aligned_delete || is_destroying_delete ||
         dyn_init_to_free_storage->is_array_freeing) {
       /* Generally speaking, deletion is handled through region table entries
-         but there are three cases that are handled here that use an internal
-         "try" block with a "catch" to do the requisite deletion. */
+         but there are cases that are handled here that use an internal
+         "try" block with a "catch" to do the requisite deletion.  See also
+         set_up_freeing_of_storage_on_exception (where those region table
+         entries are suppressed). */
       if (alloc_expr == NULL && init_expr == NULL) {
         /* If neither allocation nor initialization generated any code,
            there's nothing to do. */
@@ -11984,16 +12066,19 @@ as well as any additional code needed to process the deletion.
            argument list for the delete routine.  Add any size, alignment,
            or placement delete args if necessary. */
         entity_node->next = delete_args;
-        /* Make a call of the appropriate delete routine. */
+        /* Make a call of the appropriate delete routine.  Note that
+           make_delete_call_node is not called here as the arguments to the
+           delete routine have already been modified as needed (by
+           extra_args_for_operator_delete). */
         delete_call = make_call_node(dyn_init_to_free_storage->destructor,
                                      entity_node);
-        if (ndsp->placement_new || aligned_delete) {
-          /* Placement or aligned delete.  In this case, code must be
-             generated to delete the entity if a failure occurs anywhere
-             during the allocation or initialization process (the runtime
-             library does not do any deletion during a throw -- because it
-             doesn't know the arguments that need to be passed to the
-             delete routine). */
+        if (ndsp->placement_new || aligned_delete || is_destroying_delete) {
+          /* Placement delete, aligned delete, or destroying delete.  In these
+             cases, code must be generated to delete the entity if a failure
+             occurs anywhere during the allocation or initialization process
+             (the runtime library does not do any deletion during a throw --
+             because it doesn't know the arguments that need to be passed to
+             the delete routine). */
           try_expr = make_comma_node_if_necessary(alloc_expr, init_expr);
           try_expr = make_internal_try_expr(try_expr, delete_call);
         } else {
@@ -12346,46 +12431,51 @@ static an_expr_node_ptr modify_delete_call_args(
                                          an_expr_node_ptr   arg_node)
 /*
 Returns the modified argument list for a delete call to routine delete_routine.
-A modification is necessary if the delete routine is one with two arguments
-(in which case a size argument is added).  delete_type is the type of the
+Modifications are necessary if the delete routine is a "sized delete" or an
+"aligned delete" or a "destroying delete".  delete_type is the type of the
 object being deleted.  arg_node is the argument list being passed to the
 delete routine.
 */
 {
-  an_expr_node_ptr second_arg_node;
-  an_expr_node_ptr third_arg_node;
-  a_boolean        aligned_delete;
+  an_expr_node_ptr first_node;
+  a_boolean is_sized_ver, is_aligned_delete, is_destroying_delete;
 
   delete_type = skip_typerefs(delete_type);
-  /* Cast the argument to "void *", which is what the delete routine
-     expects. */
-  arg_node = add_cast_if_necessary(arg_node, void_star_type());
-  /* If the delete routine is sized, pass the size of the entity as the
-     second argument. */
-  if (is_sized_delete(delete_routine, &aligned_delete)) {
-    /* Sized form.  Add a second argument of type size_t that indicates the
+  check_assertion(arg_node != NULL && arg_node->next == NULL);
+  (void)is_default_operator_delete(delete_routine, &is_sized_ver,
+                                   &is_aligned_delete, &is_destroying_delete);
+  if (is_destroying_delete) {
+    /* The first argument to a destroying operator delete is a pointer to
+       the class itself.  The second argument is a dummy argument of type
+       std::destroying_delete_t. */
+    a_variable_ptr temp = make_local_temporary(std_destroying_delete_t());
+    a_type_ptr     class_type = parent_class_of(delete_routine);
+    arg_node = add_cast_if_necessary(arg_node, make_pointer_type(class_type));
+    first_node = arg_node;
+    arg_node->next = var_rvalue_expr(temp);
+    arg_node = arg_node->next;
+  } else {
+    /* Cast the argument to "void *", which is what the delete routine
+       expects. */
+    arg_node = add_cast_if_necessary(arg_node, void_star_type());
+    first_node = arg_node;
+  }  /* if */
+  if (is_sized_ver) {
+    /* Sized form.  Add an argument of type size_t that indicates the
        (static) size of the object. */
-    second_arg_node = node_for_host_large_integer(
+    arg_node->next = node_for_host_large_integer(
                                        (a_host_large_integer)delete_type->size,
                                        targ_size_t_int_kind);
-    arg_node->next = second_arg_node;
-    if (aligned_delete) {
-      /* Aligned form.  Add a third argument of type size_t that indicates
-         the alignment of the argument. */
-      third_arg_node = node_for_host_large_integer(
-                                  (a_host_large_integer)delete_type->alignment,
-                                  targ_size_t_int_kind);
-      second_arg_node->next = third_arg_node;
-    }  /* if */
-  } else if (aligned_delete) {
-    /* Aligned form.  Add a second argument of type size_t that indicates
-       the alignment of the argument. */
-    second_arg_node = node_for_host_large_integer(
-                                  (a_host_large_integer)delete_type->alignment,
-                                  targ_size_t_int_kind);
-    arg_node->next = second_arg_node;
+    arg_node = arg_node->next;
   }  /* if */
-  return arg_node;
+  if (is_aligned_delete) {
+    /* Aligned form.  Add an argument of type std::align_val_t
+       (aka std::size_t) that indicates the alignment of the argument. */
+    arg_node->next = node_for_host_large_integer(
+                                  (a_host_large_integer)delete_type->alignment,
+                                  targ_size_t_int_kind);
+  }  /* if */
+  return first_node;
 }  /* modify_delete_call_args */
 
 
@@ -12446,9 +12536,6 @@ tricks.
   a_type_ptr       class_type;
   a_routine_ptr    dtor_routine = dip->destructor;
   a_boolean        need_null_ptr_test = FALSE;
-#if !IA64_ABI
-  long             bit_mask;
-#endif /* !IA64_ABI */
 
   check_assertion(dtor_routine != NULL &&
                   dtor_routine->source_corresp.is_class_member);
@@ -12530,12 +12617,11 @@ tricks.
   }  /* if */
 #endif /* ABI_CHANGES_FOR_RTTI */
 #if !IA64_ABI
-  /* Add an implicit parameter to the destructor call with bits
-     0x2 (whole object) + 0x1 (free storage, if deallocate is TRUE). */
-  bit_mask = 2L;
-  if (delete_routine == NULL) bit_mask |= 1L;
-  ptr_node->next = node_for_integer_constant(bit_mask,
-                                             (an_integer_kind)ik_int);
+  /* Add an implicit parameter to the destructor call with the appropriate
+     bits set. */
+  long bit_mask = DT_COMPLETE_OBJECT;
+  if (delete_routine == NULL) bit_mask |= DT_FREEING;
+  ptr_node->next = dtor_control_argument(bit_mask);
 #endif /* !IA64 */
   /* Make a call of the destructor. */
   call_node = make_call_node_full(dtor_routine, ptr_node,
@@ -12658,6 +12744,11 @@ The subtree of the node has not yet been lowered.
   } else {
     /* Non-array case, or array case that does not require special handling,
        and not a case that requires calling a destructor. */
+    if (delete_routine == NULL) {
+      /* If not explicitly specified, use the delete operator for the class. */
+      delete_routine =
+                     class_type_supp(base_type)->assoc_operator_delete_routine;
+    }  /* if */
     check_assertion(delete_routine != NULL);
     /* Lower "arg". */
     lower_expr(ptr_node);
@@ -15275,11 +15366,8 @@ in define_default_version_of_routine (as an alternate entry point).
      a subobject and complete object cases. */
   question_node = var_rvalue_expr(delegation_dtor_param);
   question_node = boolean_controlling_expr(question_node);
-  question_node->next = dtor_control_argument(/*have_complete_object=*/FALSE,
-                                              /*free_storage=*/FALSE);
-  question_node->next->next =
-                        dtor_control_argument(/*have_complete_object=*/TRUE,
-                                              /*free_storage=*/FALSE);
+  question_node->next = dtor_control_argument(DT_NONE);
+  question_node->next->next = dtor_control_argument(DT_COMPLETE_OBJECT);
   question_node = make_operator_node((an_expr_operator_kind)eok_question,
                                      question_node->next->type, question_node);
   args = var_rvalue_expr(this_param_var);
@@ -16583,13 +16671,13 @@ constructor scope, and also lower the user code.
            "if (this || (this = new_rout(size)))".
            As mentioned above, this must be done after the user code is
            lowered. */
-        enclose_routine_in_if(scope, if_node, this_param_var);
+        enclose_scope_in_if(scope, if_node, this_param_var);
 #if GENERATE_EH_TABLES
         if (exceptions_enabled &&
             /* dedp is NULL if the operator delete is ambiguous. */
             dedp != NULL && dedp->conditional_flag_var != NULL) {
           /* Initialize the conditional flag to zero.  This must be done after
-             enclose_routine_in_if is called so that the initialization is
+             enclose_scope_in_if is called so that the initialization is
              done at the right place (i.e., outside the "if"). */
           set_block_start_insert_location(top_stmt, &insert_location);
           init_conditional_flag_var(dedp, &insert_location);
@@ -17314,7 +17402,6 @@ destructor scope, and also lower the user code.
 #if !IA64_ABI
   an_insert_location     insert_location3;
   a_source_position      closing_brace_pos;
-  a_routine_ptr          delete_routine;
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
   an_insert_location     else_insert_location;
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
@@ -17333,7 +17420,12 @@ destructor scope, and also lower the user code.
 
 #if !IA64_ABI
      [If a delete can be folded into the destructor:]
-       If this != NULL test around entire routine.
+       If this != NULL test around entire routine (added at the end).
+     [endif]
+     [If destructor calls a destroying delete:]
+       If (added parameter & DT_CALLED_FROM_DESTROYING_DELETE) around all
+           "destruction" code below but not the delete portion.  [This is done
+           near the end of the routine by calling enclose_scope_in_if.]
      [endif]
 #endif // !IA64_ABI
 #if HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
@@ -17373,7 +17465,7 @@ destructor scope, and also lower the user code.
      Member and base destruction code (see
          gen_dtor_member_and_base_destructions).
 #if !IA64_ABI
-     If (added parameter & 0x1) != 0:
+     If (added parameter & DT_FREEING) != 0:
        delete((void*)this)
      endif
 #endif // !IA64_ABI
@@ -17642,29 +17734,60 @@ destructor scope, and also lower the user code.
   }  /* if */
 #if !IA64_ABI
   /* Set the current position to the closing brace of the destructor. */
+  a_routine_ptr    delete_routine = ctsp->assoc_operator_delete_routine;
+  an_expr_node_ptr test_node;
   code_pos_for_lowering = error_position = closing_brace_pos;
-  /* Add code to free the storage if the "free" bit (0x1) is on in the
-     added parameter:
-       if (param & 0x1) delete-routine((void *)this);
-     Watch out for the case where the delete routine pointer is NULL; this
-     happens if a derived class inherits more than one delete routine, and
-     therefore they're ambiguous.
-  */
-  /* In the IA-64 ABI, this code is in the deleting destructor. */
-  delete_routine = ctsp->assoc_operator_delete_routine;
+  an_insert_location new_insert_loc, *delete_insert_loc = &insert_location;
   if (delete_routine != NULL) {
+    /* This destructor will also (optionally) call a delete routine. */
+    a_boolean is_sized_ver, aligned_delete, is_destroying_delete;
+    (void)is_default_operator_delete(delete_routine, &is_sized_ver,
+                                     &aligned_delete, &is_destroying_delete);
+    if (is_destroying_delete) {
+      /* For an object with a destroying delete operator, the destruction of
+         the object cannot be performed before the operator delete is called.
+         This creates a potential race condition (since the destructor calls
+         the operator delete and the operator delete calls the destructor).
+         To avoid the race, enclose the object destruction portion (i.e.,
+         everything this routine has done so far) in an
+         "if (param & DT_CALLED_FROM_DESTROYING_DELETE)" and then have the
+         destroying operator delete set DT_CALLED_FROM_DESTROYING_DELETE when
+         it invokes the destructor.  We only need to add this code if the
+         destruction has an effect (so skip it if there is only a return
+         statement). */
+      if (scope->assoc_block->variant.block.statements->kind != stmk_return) {
+        /* Make "param & DT_CALLED_FROM_DESTROYING_DELETE". */
+        test_node = var_rvalue_expr(this_param_var->next);
+        test_node->next =
+                       dtor_control_argument(DT_CALLED_FROM_DESTROYING_DELETE);
+        test_node = make_operator_node((an_expr_operator_kind)eok_and,
+                                       integer_type((an_integer_kind)ik_int),
+                                       test_node);
+        test_node = boolean_controlling_expr(test_node);
+        /* Enclose the entire routine scope in an "if" statement. */
+        enclose_scope_in_if(scope, test_node, (a_variable_ptr)NULL);
+        /* The code below should be inserted after this "if" statement. */
+        set_insert_location(scope->assoc_block->variant.block.statements,
+                            &new_insert_loc);
+        delete_insert_loc = &new_insert_loc;
+      }  /* if */
+    }  /* if */
+    /* Add code to free the storage if the DT_FREEING bit is on in the
+       added parameter:
+         if (param & DT_FREEING) delete-routine((void *)this);
+       Watch out for the case where the delete routine pointer is NULL; this
+       happens if a derived class inherits more than one delete routine, and
+       therefore they're ambiguous.  */
+    /* In the IA-64 ABI, this code is in the deleting destructor. */
     an_expr_node_ptr this_param_node;
-    an_expr_node_ptr and_node, two_constant_node, if_node;
     a_type_ptr       int_type = integer_type((an_integer_kind)ik_int);
-    an_expr_node_ptr complete_obj_param_node;
 
-    /* Make "param & 0x1". */
-    complete_obj_param_node = var_rvalue_expr(this_param_var->next);
-    two_constant_node = node_for_integer_constant(1L, (an_integer_kind)ik_int);
-    complete_obj_param_node->next = two_constant_node;
-    and_node = make_operator_node((an_expr_operator_kind)eok_and,
-                                  int_type, complete_obj_param_node);
-    if_node = boolean_controlling_expr(and_node);
+    /* Make "param & DT_FREEING". */
+    test_node = var_rvalue_expr(this_param_var->next);
+    test_node->next = dtor_control_argument(DT_FREEING);
+    test_node = make_operator_node((an_expr_operator_kind)eok_and,
+                                   int_type, test_node);
+    test_node = boolean_controlling_expr(test_node);
 #if ASSIGNMENT_TO_THIS_ALLOWED
     /* If an assignment to "this" was done in the body of the destructor,
        also test that "this" isn't NULL. */
@@ -17672,15 +17795,15 @@ destructor scope, and also lower the user code.
       an_expr_node_ptr this_test_node;
       this_param_node = var_rvalue_expr(this_param_var);
       this_test_node = boolean_controlling_expr(this_param_node);
-      /* Make "this && (param & 0x1)". */
+      /* Make "this && (param & DT_FREEING)". */
       this_test_node->next = if_node;
       if_node = make_operator_node((an_expr_operator_kind)eok_land,
                                    int_type, this_test_node);
     }  /* if */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-    /* Make "if (param & 0x1)". */
-    insert_if_statement(if_node, /*is_initialization_guard=*/FALSE,
-                        &insert_location, (a_statement_ptr *)NULL,
+    /* Make "if (param & DT_FREEING)". */
+    insert_if_statement(test_node, /*is_initialization_guard=*/FALSE,
+                        delete_insert_loc, (a_statement_ptr *)NULL,
                         &insert_location3, (an_insert_location *)NULL);
     /* Make "delete-routine((void *)this);" under the "if". */
     this_param_node = var_rvalue_expr(this_param_var);
@@ -17688,9 +17811,9 @@ destructor scope, and also lower the user code.
                                &insert_location3);
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
     /* Mark the "if" statement and the "delete" call. */
-    check_assertion(insert_location.kind == ilk_after_statement &&
+    check_assertion(delete_insert_loc->kind == ilk_after_statement &&
                     insert_location3.kind == ilk_after_statement);
-    insert_location.variant.statement.stmt->is_lowering_boilerplate = TRUE;
+    delete_insert_loc->variant.statement.stmt->is_lowering_boilerplate = TRUE;
     insert_location3.variant.statement.stmt->is_lowering_boilerplate = TRUE;
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
   }  /* if */
@@ -17736,7 +17859,7 @@ can access them simultaneously).
   compare_node = make_operator_node((an_expr_operator_kind)eok_eq,
                                     integer_type((an_integer_kind)ik_int),
                                     test_var_node);
-  enclose_routine_in_if(scope, compare_node, (a_variable_ptr)NULL);
+  enclose_scope_in_if(scope, compare_node, (a_variable_ptr)NULL);
 }  /* add_guard_code_to_thread_local_init */
 
 

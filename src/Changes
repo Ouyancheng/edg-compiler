@@ -1,5 +1,12 @@
 Version 6.1
 
+12/6/19  [EDGcpfe/20036]
+C++20: Efficient sized delete for variable sized classes
+
+The front end now implements a destroying operator delete as described
+in P0722R3.
+
+
 12/6/19  [EDGcpfe/22086]
 Microsoft C++ compatibility: __is_standard_layout and function types
 

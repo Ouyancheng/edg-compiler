@@ -29187,34 +29187,9 @@ argument, i.e., of type std::align_val_t, following or in place of the size
 argument and FALSE otherwise..
 */
 {
-  a_boolean                     has_size = FALSE;
-  a_routine_type_supplement_ptr delete_routine_rtsp =
-                                        f_skip_typerefs(delete_routine->type)->
-                                                    variant.routine.extra_info;
-  a_param_type_ptr              param1 = delete_routine_rtsp->param_type_list;
-  a_type_ptr                    param_type;
-
-  check_assertion(param1 != NULL);
-  *is_aligned_delete = FALSE;
-  if (param1->next != NULL) {
-    param_type = skip_typerefs(param1->next->type);
-    if (type_of_align_val_t != NULL &&
-        identical_types(param_type, type_of_align_val_t)) {
-      /* Aligned but not sized. */
-      *is_aligned_delete = TRUE;
-    } else if (is_integral_type(param_type) &&
-               param_type->variant.integer.int_kind == targ_size_t_int_kind) {
-      has_size = TRUE;
-      if (param1->next->next != NULL) {
-        a_type_ptr param3_type = skip_typerefs(param1->next->next->type);
-        if (type_of_align_val_t != NULL &&
-            identical_types(param3_type, type_of_align_val_t)) {
-          /* Sized and aligned. */
-          *is_aligned_delete = TRUE;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
+  a_boolean  is_destroying_delete, has_size;
+  (void)is_default_operator_delete(delete_routine, &has_size,
+                                   is_aligned_delete, &is_destroying_delete);
   return has_size;
 }  /* is_sized_delete */
 

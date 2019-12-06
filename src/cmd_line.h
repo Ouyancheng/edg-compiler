@@ -728,6 +728,11 @@ EXTERN a_boolean
 			   with fundamental alignment (a C++17 feature). */
 
 EXTERN a_boolean
+		destroying_operator_delete_enabled;
+			/* TRUE if destroying operator delete (a C++20 feature)
+			   is enabled. */
+
+EXTERN a_boolean
 		strict_cpp17_eval_order;
 			/* TRUE if the C++17 rules for operand evaluation order
 			   are in effect. */
