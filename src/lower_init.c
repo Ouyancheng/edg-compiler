@@ -17797,9 +17797,9 @@ destructor scope, and also lower the user code.
       this_param_node = var_rvalue_expr(this_param_var);
       this_test_node = boolean_controlling_expr(this_param_node);
       /* Make "this && (param & DT_FREEING)". */
-      this_test_node->next = if_node;
-      if_node = make_operator_node((an_expr_operator_kind)eok_land,
-                                   int_type, this_test_node);
+      this_test_node->next = test_node;
+      test_node = make_operator_node((an_expr_operator_kind)eok_land,
+                                     int_type, this_test_node);
     }  /* if */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
     /* Make "if (param & DT_FREEING)". */
