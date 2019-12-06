@@ -19,7 +19,7 @@ for these comparison functions.)
 
 
 12/6/19  [EDGcpfe/22087]
-Microsoft C++ compatibility: __is_constructible (et al.) and destructors
+Microsoft C++ compatibility: __is_constructible (etc.) and destructors
 
 The changes for EDGcpfe/17852 made __is_constructible produce a false value if
 __is_destructible produced a false value for the given type.  However, an
