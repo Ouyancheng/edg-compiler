@@ -7668,7 +7668,7 @@ constant will be set as well.
     constant->variant.template_param.variant.expr = expr;
   } else {
     result = compute_is_constructible(kind, type1, expr);
-    if (result && !microsoft_mode) {
+    if (result && !ms_version_is(<=1910)) {
       a_builtin_operation_kind  dtor_kind;
       if (kind == (a_builtin_operation_kind)bok_is_trivially_constructible) {
         dtor_kind = (a_builtin_operation_kind)bok_is_trivially_destructible;
