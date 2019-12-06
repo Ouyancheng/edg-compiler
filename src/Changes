@@ -1,5 +1,23 @@
 Version 6.1
 
+12/6/19  [EDGcpfe/22088]
+Interpreter evaluation of __builtin_memcmp, etc.
+
+If __builtin_memcmp and similar built-in comparison functions are interpreted
+with a zero length argument, the front end now treats the operation as
+successful and producing a zero value.  In particular, it does not check the
+validity of the pointer arguments in that case.  For example (in Clang and
+Microsoft modes):
+
+  constexpr int v = __builtin_wmemcmp(nullptr, nullptr, 0);
+                         // Previously elicited an error because the
+                         // interpreter considered this a case of null
+                         // pointer indirection.  Now okay.
+
+(See also the changes for EDGcpfe/18000, which introduced interpreter support
+for these comparison functions.)
+
+
 12/6/19  [EDGcpfe/22087]
 Microsoft C++ compatibility: __is_constructible (et al.) and destructors
 

@@ -7196,116 +7196,125 @@ null-terminated string) and record a potential diagnostic for the given
 expression node and interpreter state.
 */
 {
-  a_boolean  result = TRUE;
+  a_boolean            result = TRUE;
+  a_constexpr_address  *addr1 = (a_constexpr_address*)arg1_bytes;
+  a_constexpr_address  *addr2 = (a_constexpr_address*)arg2_bytes;
+  a_type_ptr           tp;
+  int                  ret_val;
 
-  if (arg1_tp->kind == (a_type_kind)tk_pointer &&
-      arg2_tp->kind == (a_type_kind)tk_pointer) {
-    a_constexpr_address  *addr1 = (a_constexpr_address*)arg1_bytes;
-    a_constexpr_address  *addr2 = (a_constexpr_address*)arg2_bytes;
-    a_type_ptr           tp = skip_typerefs(arg1_tp->variant.pointer.type);
-    if (addr1->address == NULL) {
-      do_constexpr_fail(result);
-      info_with_pos((is_runtime_data_address(addr1) &&
-                     constant_is(addr1->variant.addr_con, ck_integer)) ?
-                                        ec_constexpr_null_dereference :
-                                        ec_constexpr_access_to_runtime_storage,
-                    &call_node->variant.operation.operands->next->position,
-                    ips);
-    } else if (addr2->address == NULL) {
-      do_constexpr_fail(result);
-      info_with_pos((is_runtime_data_address(addr2) &&
-                     constant_is(addr2->variant.addr_con, ck_integer)) ?
-                                        ec_constexpr_null_dereference :
-                                        ec_constexpr_access_to_runtime_storage,
-                  &call_node->variant.operation.operands->next->next->position,
+  check_assertion(type_is(arg1_tp, tk_pointer) &&
+                  type_is(arg2_tp, tk_pointer));
+  if (arg3_bytes != NULL) {
+    /* If the "length" argument is zero, do nothing.  In particular, skip
+       the check for null pointer arguments. */
+    check_assertion(arg3_tp != NULL &&
+                    type_is(skip_typerefs(arg3_tp), tk_integer));
+    if (cmp_integer_values((an_integer_value*)arg3_bytes,
+                           /*op_1_signed=*/FALSE,
+                           &zero_int, /*op_2_signed=*/FALSE) == 0) {
+      goto return_result;
+    }  /* if */
+  }  /* if */
+  tp = skip_typerefs(arg1_tp->variant.pointer.type);
+  if (addr1->address == NULL) {
+    do_constexpr_fail(result);
+    info_with_pos((is_runtime_data_address(addr1) &&
+                   constant_is(addr1->variant.addr_con, ck_integer)) ?
+                                      ec_constexpr_null_dereference :
+                                      ec_constexpr_access_to_runtime_storage,
+                  &call_node->variant.operation.operands->next->position,
                   ips);
-    } else if (is_array_element(addr1) && is_array_element(addr2)) {
-      an_integer_value  *ptr1 = (an_integer_value*)addr1->address;
-      an_integer_value  *ptr2 = (an_integer_value*)addr2->address;
-      an_integer_value  len, max_len, *eff_max;
-      a_byte_count      elem_size1, pos1, max1;
-      a_byte_count      elem_size2, pos2, max2;
-      int               ret_val;
-      if (tp == void_type()) {
-        /* In the memcmp case, the arguments are "void *"; treat them as
-           "char *". */
-        tp = integer_type(plain_char_int_kind);
+  } else if (addr2->address == NULL) {
+    do_constexpr_fail(result);
+    info_with_pos((is_runtime_data_address(addr2) &&
+                   constant_is(addr2->variant.addr_con, ck_integer)) ?
+                                      ec_constexpr_null_dereference :
+                                      ec_constexpr_access_to_runtime_storage,
+                &call_node->variant.operation.operands->next->next->position,
+                ips);
+  } else if (is_array_element(addr1) && is_array_element(addr2)) {
+    an_integer_value  *ptr1 = (an_integer_value*)addr1->address;
+    an_integer_value  *ptr2 = (an_integer_value*)addr2->address;
+    an_integer_value  len, max_len, *eff_max;
+    a_byte_count      elem_size1, pos1, max1;
+    a_byte_count      elem_size2, pos2, max2;
+    a_boolean         check_for_read_past_operand = FALSE;
+    if (tp == void_type()) {
+      /* In the memcmp case, the arguments are "void *"; treat them as
+         "char *". */
+      tp = integer_type(plain_char_int_kind);
+    } else {
+      check_assertion(tp->kind == (a_type_kind)tk_integer);
+    }  /* if */
+    get_array_pos(ips, addr1, tp, &max1, &pos1, &elem_size1, &result);
+    get_array_pos(ips, addr2, tp, &max2, &pos2, &elem_size2, &result);
+    if (!result) goto done;
+    max1 -= pos1;
+    max2 -= pos2;
+    /* Use the minimum of the two object sizes for the loop below. */
+    set_integer_value(&max_len,
+                      (a_host_large_integer)(max1 > max2) ? max2 : max1);
+    set_integer_value(&len, (a_host_large_integer)0);
+    eff_max = &max_len;
+    if (arg3_bytes != NULL) {
+      check_assertion(arg3_tp != NULL &&
+                      type_is(skip_typerefs(arg3_tp), tk_integer));
+      if (cmp_integer_values(&max_len, /*op_1_signed=*/FALSE,
+                             (an_integer_value *)arg3_bytes,
+                             /*op_2_signed=*/FALSE) >= 0) {
+        /* The user-specified count is less than the array count so use
+           that. */
+        eff_max = (an_integer_value *)arg3_bytes;
       } else {
-        check_assertion(tp->kind == (a_type_kind)tk_integer);
-      }  /* if */
-      get_array_pos(ips, addr1, tp, &max1, &pos1, &elem_size1, &result);
-      get_array_pos(ips, addr2, tp, &max2, &pos2, &elem_size2, &result);
-      if (result) {
-        a_boolean     check_for_read_past_operand = FALSE;
-        max1 -= pos1;
-        max2 -= pos2;
-        /* Use the minimum of the two object sizes for the loop below. */
-        set_integer_value(&max_len,
-                          (a_host_large_integer)(max1 > max2) ? max2 : max1);
-        set_integer_value(&len, (a_host_large_integer)0);
-        eff_max = &max_len;
-        if (arg3_bytes != NULL) {
-          check_assertion(arg3_tp != NULL &&
-                          f_skip_typerefs(arg3_tp)->kind ==
-                                                      (a_type_kind)tk_integer);
-          if (cmp_integer_values(&max_len, /*op_1_signed=*/FALSE,
-                                 (an_integer_value *)arg3_bytes,
-                                 /*op_2_signed=*/FALSE) >= 0) {
-            /* The user-specified count is less than the array count so use
-               that. */
-            eff_max = (an_integer_value *)arg3_bytes;
-          } else {
-            /* The user-specified count is more than the array count, so if
-               a difference isn't found, we've gone past the array. */
-            check_for_read_past_operand = TRUE;
-          }  /* if */
-        }  /* if */
-        for (;cmp_integer_values(&len, /*op_1_signed=*/FALSE, eff_max,
-                                 /*op_2_signed=*/FALSE);
-             ptr1++, ptr2++, incr_integer_value(&len)) {
-          ret_val = cmp_integer_values(ptr1, /*op_1_signed=*/FALSE, ptr2,
-                                       /*op_2_signed=*/FALSE);
-          if (ret_val != 0) {
-            /* The comparison is finished. */
-            goto return_result;
-          }  /* if */
-          if (!is_memcmp &&
-              (cmp_integer_values(ptr1, /*op_1_signed=*/FALSE,
-                                  (an_integer_value *)&zero_int,
-                                  /*op_2_signed=*/FALSE) == 0 ||
-               cmp_integer_values(ptr2, /*op_1_signed=*/FALSE,
-                                  (an_integer_value *)&zero_int,
-                                  /*op_2_signed=*/FALSE) == 0)) {
-            /* In the string case, one of the strings has reached the NULL
-               terminating character (but not both). */
-            ret_val = 0;
-            goto return_result;
-          }  /* if */
-        }  /* for */
-        /* No difference has been found. */
-        ret_val = 0;
-        if (check_for_read_past_operand) {
-          /* If the user-specified length is greater than the sizes of the
-             objects, this is an attempt to read past the end of the object. */
-          an_expr_node_ptr  arg = call_node->variant.operation.operands;
-          arg = arg->next;
-          if (max2 < max1) {
-            arg = arg->next;
-          }  /* if */
-          do_constexpr_fail(result);
-          info_with_pos(ec_attempt_to_read_past_end_of_object, &arg->position,
-                        ips);
-        }  /* if */
-return_result:
-        if (result) {
-          set_integer_value((an_integer_value*)result_storage,
-                            (a_host_large_integer)ret_val);
-        }  /* if */
+        /* The user-specified count is more than the array count, so if
+           a difference isn't found, we've gone past the array. */
+        check_for_read_past_operand = TRUE;
       }  /* if */
     }  /* if */
-  } else {
-    unexpected_condition();
+    for (;cmp_integer_values(&len, /*op_1_signed=*/FALSE, eff_max,
+                             /*op_2_signed=*/FALSE);
+         ptr1++, ptr2++, incr_integer_value(&len)) {
+      ret_val = cmp_integer_values(ptr1, /*op_1_signed=*/FALSE, ptr2,
+                                   /*op_2_signed=*/FALSE);
+      if (ret_val != 0) {
+        /* The comparison is finished. */
+        goto return_result;
+      }  /* if */
+      if (!is_memcmp &&
+          (cmp_integer_values(ptr1, /*op_1_signed=*/FALSE,
+                              (an_integer_value *)&zero_int,
+                              /*op_2_signed=*/FALSE) == 0 ||
+           cmp_integer_values(ptr2, /*op_1_signed=*/FALSE,
+                              (an_integer_value *)&zero_int,
+                              /*op_2_signed=*/FALSE) == 0)) {
+        /* In the string case, one of the strings has reached the NULL
+           terminating character (but not both). */
+        ret_val = 0;
+        goto return_result;
+      }  /* if */
+    }  /* for */
+    /* No difference has been found. */
+    ret_val = 0;
+    if (check_for_read_past_operand) {
+      /* If the user-specified length is greater than the sizes of the
+         objects, this is an attempt to read past the end of the object. */
+      an_expr_node_ptr  arg = call_node->variant.operation.operands;
+      arg = arg->next;
+      if (max2 < max1) {
+        arg = arg->next;
+      }  /* if */
+      do_constexpr_fail(result);
+      info_with_pos(ec_attempt_to_read_past_end_of_object, &arg->position,
+                    ips);
+      goto done;
+    }  /* if */
   }  /* if */
+return_result:
+  if (result) {
+    set_integer_value((an_integer_value*)result_storage,
+                      (a_host_large_integer)ret_val);
+  }  /* if */
+done:
   return result;
 }  /* do_constexpr_builtin_strcmp */
 
