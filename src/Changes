@@ -1,5 +1,15 @@
 Version 6.1
 
+12/6/19  [EDGcpfe/22086]
+Microsoft C++ compatibility: __is_standard_layout and function types
+
+In Microsoft C++ modes, the front end now produces a true value for
+__is_standard_layout applied to a function type.  For example:
+
+  static_assert(__is_standard_layout(int (int)), "");
+    // Normally an error, but now accepted in Microsoft C++ modes.
+
+
 12/5/19  [EDGcpfe/22075]
 C++-generating back end, Microsoft compatibility: generated explicit
 specializations and dependent array bounds in parameters
