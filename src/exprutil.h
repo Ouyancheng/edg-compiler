@@ -333,7 +333,7 @@ typedef a_byte an_operand_state;
    routines: */
 typedef struct an_operand {
   /*lint -esym(1401,an_operand::an_operand)*/
-  an_operand() = default;
+  inline an_operand() {}
   inline an_operand(const an_operand  &src) { this->copy_from(&src); }
   /*lint -esym(1529,an_operand::operator=)*/
   inline an_operand& operator=(const an_operand  &src)
