@@ -10218,6 +10218,28 @@ instantiations are only permitted in namespace scope).
              template<typename T> auto g(T) -> decltype(f<T>())
            which triggers the MSVC bug.  Suppress the specialization. */
         result = TRUE;
+      } else if (msvc_target_version_number < 1912 &&
+                 proto_rp->declared_type != NULL) {
+        /* MSVC versions before 19.12 have a bug that prevents associating
+           an explicit specialization with its template if any of the
+           function parameters is a (possibly multi-dimensioned) array type
+           with a dependent bound.  Check for that case.  (Note that we
+           must use the declared_type of the prototype instantiation for
+           this check, as the plain type is normalized to convert a
+           top-level array type to a pointer type.) */
+        a_param_type_ptr ptp;
+        for (ptp = skip_typerefs(proto_rp->declared_type)->
+                                   variant.routine.extra_info->param_type_list;
+             !result && ptp != NULL; ptp = ptp->next) {
+          a_type_ptr tp = skip_typerefs(ptp->type);
+          while (!result && is_array_type(tp)) {
+            if (tp->variant.array.is_template_dependent_size_array) {
+              result = TRUE;
+            } else {
+              tp = skip_typerefs(tp->variant.array.element_type);
+            }  /* if */
+          }  /* while */
+        }  /* for */
       }  /* if */
     }  /* if */
   }  /* if */
