@@ -8574,9 +8574,9 @@ make_proxy_type_if_needed:
 #if GNU_VECTOR_TYPES_ALLOWED
       } else if (is_vector_type(object_type)) {
         /* Okay. */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       } else if (gpp_version_is(<= 40200) && is_array_type(object_type)) {
         /* g++ accepts array types through version 4.2. */
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
       } else if (microsoft_mode && ms_permissive) {
         /* Microsoft's permissive mode allows all non-class types. */
       } else if (expr_error_should_be_issued()) {
