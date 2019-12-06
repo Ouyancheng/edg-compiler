@@ -17755,7 +17755,8 @@ destructor scope, and also lower the user code.
          it invokes the destructor.  We only need to add this code if the
          destruction has an effect (so skip it if there is only a return
          statement). */
-      if (scope->assoc_block->variant.block.statements->kind != stmk_return) {
+      if (scope->assoc_block->variant.block.statements->kind !=
+                                               (a_statement_kind)stmk_return) {
         /* Make "param & DT_CALLED_FROM_DESTROYING_DELETE". */
         test_node = var_rvalue_expr(this_param_var->next);
         test_node->next =

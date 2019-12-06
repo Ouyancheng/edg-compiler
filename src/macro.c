@@ -4299,7 +4299,7 @@ static a_feature_support feature_support_list[] = {
     "201606L" },
   { "",
     0,
-    NULL,
+    &destroying_operator_delete_enabled,
     "__cpp_impl_destroying_delete",
     "201806L" },
   { "",
