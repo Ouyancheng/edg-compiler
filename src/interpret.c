@@ -7212,6 +7212,7 @@ expression node and interpreter state.
     if (cmp_integer_values((an_integer_value*)arg3_bytes,
                            /*op_1_signed=*/FALSE,
                            &zero_int, /*op_2_signed=*/FALSE) == 0) {
+      ret_cal = 0;
       goto return_result;
     }  /* if */
   }  /* if */
