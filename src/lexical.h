@@ -2621,6 +2621,7 @@ Unified Parallel C adds several new type qualifiers.
 #define or_is_upc_qual_token(tok)                                             \
   || (tok) == tok_upc_shared                                                  \
   || (tok) == tok_upc_strict || (tok) == tok_upc_relaxed
+/*lint -restore*/
 #else /* !UPC_EXTENSIONS_ALLOWED */
 #define or_is_upc_qual_token(tok) /* Nothing */
 #endif /* UPC_EXTENSIONS_ALLOWED */
