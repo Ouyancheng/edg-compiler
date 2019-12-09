@@ -7255,7 +7255,6 @@ expression node and interpreter state.
     /* Use the minimum of the two object sizes for the loop below. */
     set_integer_value(&max_len,
                       (a_host_large_integer)(max1 > max2) ? max2 : max1);
-    set_integer_value(&len, (a_host_large_integer)0);
     eff_max = &max_len;
     if (arg3_bytes != NULL) {
       check_assertion(arg3_tp != NULL &&
@@ -7272,8 +7271,9 @@ expression node and interpreter state.
         check_for_read_past_operand = TRUE;
       }  /* if */
     }  /* if */
-    for (;cmp_integer_values(&len, /*op_1_signed=*/FALSE, eff_max,
-                             /*op_2_signed=*/FALSE);
+    for (set_integer_value(&len, (a_host_large_integer)0);
+         cmp_integer_values(&len, /*op_1_signed=*/FALSE, eff_max,
+                            /*op_2_signed=*/FALSE);
          ptr1++, ptr2++, incr_integer_value(&len)) {
       ret_val = cmp_integer_values(ptr1, /*op_1_signed=*/FALSE, ptr2,
                                    /*op_2_signed=*/FALSE);
@@ -7281,16 +7281,13 @@ expression node and interpreter state.
         /* The comparison is finished. */
         goto return_result;
       }  /* if */
+      /* *ptr1 and *ptr2 have the same value. */
       if (!is_memcmp &&
-          (cmp_integer_values(ptr1, /*op_1_signed=*/FALSE,
-                              (an_integer_value *)&zero_int,
-                              /*op_2_signed=*/FALSE) == 0 ||
-           cmp_integer_values(ptr2, /*op_1_signed=*/FALSE,
-                              (an_integer_value *)&zero_int,
-                              /*op_2_signed=*/FALSE) == 0)) {
-        /* In the string case, one of the strings has reached the NULL
-           terminating character (but not both). */
-        ret_val = 0;
+          cmp_integer_values(ptr1, /*op_1_signed=*/FALSE,
+                             (an_integer_value *)&zero_int,
+                             /*op_2_signed=*/FALSE) == 0) {
+        /* In the string case, both strings have reached the null terminating
+           character (and ret_val == 0). */
         goto return_result;
       }  /* if */
     }  /* for */
