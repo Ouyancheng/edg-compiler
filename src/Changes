@@ -1,5 +1,22 @@
 Version 6.1
 
+12/9/19  [EDGcpfe/22092]
+Abort when reading the IL for a coroutine
+
+In configurations where IL_SHOULD_BE_WRITTEN_TO_FILE is set and
+ALTERNATE_IL_FILE_FORMAT is not, the front end would abort in
+'ptr_remap_function' when reading the IL associated with a coroutine.  For
+example:
+
+  #include <coroutine>
+  std::generator<int> f(int arg0) { // Abort in 'ptr_remap_function'
+    co_yield arg0;
+    co_return arg0;
+  }
+
+This is now fixed.
+
+
 12/6/19  [EDGcpfe/22088]
 Interpreter evaluation of __builtin_memcmp, etc.
 
