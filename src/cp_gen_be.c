@@ -605,7 +605,7 @@ static void gen_type(a_type_ptr type);
 static void gen_type_reference(a_type_ptr type);
 static void gen_enum_definition(a_type_ptr type);
 static void gen_class_definition(a_type_ptr type,
-                                 a_boolean use_temp_tag_name);
+                                 a_boolean  use_temp_tag_name);
 static a_boolean process_preprocessing_directives(void);
 static void gen_pragma(void);
 static void gen_pragma_start(a_pragma_ptr pp);
