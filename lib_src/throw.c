@@ -871,10 +871,10 @@ requires cleanup.
            vtable information.  Just destroy the object.  If the object is a
            complete object, pass in the value "2" (which corresponds to
            DT_COMPLETE in the front end) to indicate that the
-	   object and any subobjects should be destroyed.  If the object
+           object and any subobjects should be destroyed.  If the object
            is itself a base class subobject, pass in the value "0"
-	   indicating that only the object (and not any subobjects)
-	   should be destroyed. */
+           indicating that only the object (and not any subobjects)
+           should be destroyed. */
         (dtor_ptr)(obj_addr, is_base_class_subobject(flags) ? 0 : 2);
 #else /* ifdef __EDG_IA64_ABI */
         (dtor_ptr)(obj_addr);

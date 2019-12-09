@@ -913,8 +913,8 @@ moved out of the block.
 
 
 static void enclose_scope_in_if(a_scope_ptr      scope,
-                                  an_expr_node_ptr if_node,
-                                  a_variable_ptr   return_var)
+                                an_expr_node_ptr if_node,
+                                a_variable_ptr   return_var)
 /*
 Add an "if" statement around the entire body of the scope (a constructor,
 destructor, generated thread_local initialization routine, or block) whose
@@ -12431,8 +12431,8 @@ static an_expr_node_ptr modify_delete_call_args(
                                          an_expr_node_ptr   arg_node)
 /*
 Returns the modified argument list for a delete call to routine delete_routine.
-Modifications are necessary if the delete routine is a "sized delete" or an
-"aligned delete" or a "destroying delete".  delete_type is the type of the
+Modifications are necessary if the delete routine is a "sized delete",
+an "aligned delete", or a "destroying delete".  delete_type is the type of the
 object being deleted.  arg_node is the argument list being passed to the
 delete routine.
 */
