@@ -658,7 +658,7 @@ typedef struct an_expr_rescan_info_entry {
 			/* A copy of the operand, which contains the position
 			   information and all the extra flags.  Not used for
 			   the basic type/expression/constant values.  This
-                           must be the first field (relied up by function
+			   must be the first field (relied upon by function
 			   record_cast_position_in_expr_rescan_info). */
   an_expression_kind
 		expression_kind;
