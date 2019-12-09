@@ -383,14 +383,17 @@ typedef struct an_operand {
 			/* TRUE if this operand was generated from an
 			   id-expression (a qualified or unqualified name).
 			   TRUE even if the id-expression is parenthesized;
-			   use the is_parenthesized flag to exclude that
-			   case. */
+			   use the id_expression_was_parenthesized flag to
+			   exclude that case. */
   a_bit_field   is_address_of_id_expression:1;
 			/* TRUE if this operand was generated from an
 			   id-expression prefixed with an ampersand ("&").
 			   TRUE even if the id-expression is parenthesized;
-			   use the is_parenthesized flag to exclude that
-			   case. */
+			   use the id_expression_was_parenthesized flag to
+			   exclude that case. */
+  a_bit_field   id_expression_was_parenthesized:1;
+			/* TRUE if this operand was generated from a
+			   parenthesized id-expression. */
   a_bit_field	is_qualified_name:1;
 			/* TRUE if the operand was generated from a qualified
 			   name. */

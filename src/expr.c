@@ -14436,7 +14436,8 @@ expression (i.e., id-expression or member access).
       default:
         unexpected_condition();
     }  /* switch */
-  } else if (operand->is_id_expression && !operand->is_parenthesized) {
+  } else if (operand->is_id_expression &&
+             !operand->id_expression_was_parenthesized) {
     /* Produce the type of the entity referenced by the id-expression.
        Note that some id-expressions are represented as class member access
        operations, so this case must appear after the class member access
@@ -23655,6 +23656,7 @@ indicates which.
   operand->end_position = *end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   operand->is_id_expression = FALSE;
+  operand->id_expression_was_parenthesized = FALSE;
   rule_out_expr_kinds(ruled_out_expr_kinds, operand);
 }  /* do_cast */
 
@@ -25530,6 +25532,9 @@ just an expression in parentheses.  Return the scanned expression in
           /* If the constant has a backing expression, set the flag there. */
           result->variant.constant.expr->is_parenthesized = TRUE;
         }  /* if */
+        if (result->is_id_expression) {
+          result->id_expression_was_parenthesized = TRUE;
+        }  /* if */
       }  /* if */
       if (!parens_in_il) {
         /* eok_parens nodes are not being recorded. */
@@ -25595,6 +25600,9 @@ just an expression in parentheses.  Return the scanned expression in
         } else if (is_constant && result->variant.constant.expr != NULL) {
           /* If the constant has a backing expression, set the flag there. */
           result->variant.constant.expr->is_parenthesized = TRUE;
+        }  /* if */
+        if (result->is_id_expression) {
+          result->id_expression_was_parenthesized = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */

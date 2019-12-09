@@ -3372,6 +3372,7 @@ values.
   operand->virtual_function = FALSE;
   operand->is_id_expression = FALSE;
   operand->is_address_of_id_expression = FALSE;
+  operand->id_expression_was_parenthesized = FALSE;
   operand->is_qualified_name = FALSE;
   operand->access_control_error_reported = FALSE;
   operand->is_operand_of_address_of = FALSE;
@@ -6766,10 +6767,12 @@ longer an id-expression.
 {
   operand->is_id_expression = orig_operand->is_id_expression;
   operand->is_address_of_id_expression =
-                                     orig_operand->is_address_of_id_expression;
+                                    orig_operand->is_address_of_id_expression;
+  operand->id_expression_was_parenthesized =
+                                orig_operand->id_expression_was_parenthesized;
   operand->is_parenthesized = orig_operand->is_parenthesized;
   operand->is_name_followed_by_left_paren =
-                                  orig_operand->is_name_followed_by_left_paren;
+                                 orig_operand->is_name_followed_by_left_paren;
 }  /* restore_operand_id_details */
 
 
@@ -7302,6 +7305,7 @@ See conv_to_error_operand for the usual case.
   operand->is_simple_string_literal = FALSE;
   operand->is_id_expression = FALSE;
   operand->is_address_of_id_expression = FALSE;
+  operand->id_expression_was_parenthesized = FALSE;
   /* bound_function is not cleared on purpose. */
   operand->selector_is_object_pointer = FALSE;
   operand->is_operand_of_address_of = FALSE;
@@ -12387,6 +12391,8 @@ as an lvalue.
     if (is_function) operand->state = (an_operand_state)os_function_designator;
     restore_operand_details(operand, &orig_operand);
     operand->is_id_expression = orig_operand.is_id_expression;
+    operand->id_expression_was_parenthesized =
+                                 orig_operand.id_expression_was_parenthesized;
   }  /* if */
 }  /* change_template_param_constant_operand_to_lvalue */
 
@@ -14738,6 +14744,7 @@ e.g., if the source operand is an lvalue.
   restore_operand_details_for_cast(operand, &orig_operand, is_implicit_cast,
                                    /*incl_ref=*/TRUE);
   operand->is_id_expression = FALSE;
+  operand->id_expression_was_parenthesized = FALSE;
 }  /* generic_cast_operand */
 
 
@@ -15490,6 +15497,7 @@ position of the "?" and ":".
     result->is_simple_string_literal = FALSE;
     result->is_cfront_null_pointer_constant = FALSE;
     result->is_id_expression = FALSE;
+    result->id_expression_was_parenthesized = FALSE;
     /* In C and C++03, the unevaluated part of the operation can still
        disqualify it from being a constant-expression or a null pointer
        constant.  The constant-expression part is only done in strict mode,
@@ -19206,6 +19214,7 @@ in the source (and *operator_position gives its position).
   }  /* if */
   operand->is_simple_string_literal = FALSE;
   operand->is_id_expression = FALSE;
+  operand->id_expression_was_parenthesized = FALSE;
 }  /* take_address_of_or_reference_to_lvalue */
 
 
@@ -21475,6 +21484,7 @@ current mode -- just do it.
   change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
   operand->is_simple_string_literal = orig_operand.is_simple_string_literal;
   operand->is_id_expression = FALSE;
+  operand->id_expression_was_parenthesized = FALSE;
   restore_operand_form_of_name_reference(operand, &orig_operand);
   release_local_constant(&conaddr);
 }  /* do_array_to_pointer_conversion */
@@ -21586,12 +21596,13 @@ by an "&" in the source, and *ampersand_position gives its position.
 {
   an_operand   orig_operand;
   a_symbol_ptr member_sym, fund_sym;
-  a_boolean    has_required_ampersand = (ampersand_position != NULL &&
-                                         /* Watch out for &(A::f). */
-                                         operand->is_id_expression &&
-                                         !operand->is_parenthesized);
+  a_boolean    has_required_ampersand;
   a_boolean    allow_addr_of_managed_member = FALSE, force_node = FALSE;
 
+  has_required_ampersand = (ampersand_position != NULL &&
+                            /* Watch out for &(A::f). */
+                            operand->is_id_expression &&
+                            !operand->id_expression_was_parenthesized);
   orig_operand = *operand;
   check_assertion(is_sym_for_member_operand(operand));
   member_sym = operand->symbol;
@@ -21885,7 +21896,8 @@ used in generating the function-identifying operand in a call.
       check_assertion(is_indefinite_function_operand(operand));
       operand->is_operand_of_address_of = TRUE;
       operand->ampersand_position = *ampersand_position;
-      if (operand->is_id_expression && !operand->is_parenthesized) {
+      if (operand->is_id_expression &&
+          !operand->id_expression_was_parenthesized) {
         /* Remember that the operand has the right form for a pointer to
            member (no parentheses around the identifier). */
         operand->has_required_ptr_to_member_form = TRUE;
