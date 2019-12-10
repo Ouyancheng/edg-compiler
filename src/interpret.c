@@ -7200,7 +7200,7 @@ expression node and interpreter state.
   a_constexpr_address  *addr1 = (a_constexpr_address*)arg1_bytes;
   a_constexpr_address  *addr2 = (a_constexpr_address*)arg2_bytes;
   a_type_ptr           tp;
-  int                  ret_val;
+  int                  ret_val = 0;
 
   check_assertion(type_is(arg1_tp, tk_pointer) &&
                   type_is(arg2_tp, tk_pointer));
@@ -7212,7 +7212,6 @@ expression node and interpreter state.
     if (cmp_integer_values((an_integer_value*)arg3_bytes,
                            /*op_1_signed=*/FALSE,
                            &zero_int, /*op_2_signed=*/FALSE) == 0) {
-      ret_val = 0;
       goto return_result;
     }  /* if */
   }  /* if */
@@ -7292,7 +7291,6 @@ expression node and interpreter state.
       }  /* if */
     }  /* for */
     /* No difference has been found. */
-    ret_val = 0;
     if (check_for_read_past_operand) {
       /* If the user-specified length is greater than the sizes of the
          objects, this is an attempt to read past the end of the object. */
