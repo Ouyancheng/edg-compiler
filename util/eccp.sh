@@ -12,6 +12,24 @@
 # Run the EDG C++ front end into the system cc to compile C++.
 # Interface and command-line options are similar to CC.
 
+# -o isn't supported on all platforms - but we don't need to adjust paths there
+platform=`uname -o 2> /dev/null`
+native_path()
+#
+# Function that takes a single argument (a path) and returns the native path
+# for that argument.  On *nix systems, this is a nop, however on Windows
+# systems this attempts to convert the path to a Windows style path.
+# Currently only Cygwin path conversions are supported.
+#
+{
+  path=$1
+  if [ "$platform" = "Cygwin" ] ; then
+    path=`cygpath -m $path`
+  fi
+  echo "$path"
+}
+
+
 #
 # Initialize EDG_BASE.  This needs to be done before looking for the
 # config file below.
@@ -156,6 +174,7 @@ mkdir $eccp_tmpdir
 if [ $? -ne 0 ] ; then
   echo eccp: could not create temporary directory $eccp_tmpdir.
 fi
+eccp_tmpdir=`native_path $eccp_tmpdir`
 #
 # Suffix to be applied to the standard C++ library (libC.a) to select a
 # special version.
@@ -462,6 +481,7 @@ trap_function()
 {
   eccp_exit $1
 }
+
 
 #
 # Function that takes a single argument, and returns that argument suitably
@@ -1038,18 +1058,21 @@ process_option()
 #     Explicitly name the executable.
       used_two_params=1
       executable=$curr_param
+      executable=`native_path $executable`
       output_file_specified=1
       add_to_instantiation_command=0
       ;;
     -o*)
 #     Explicitly name the executable.
       executable=`expr $arg : '-o\(.*\)'`    # Get the string after the -o
+      executable=`native_path $executable`
       output_file_specified=1
       add_to_instantiation_command=0
       ;;
     --output=*)
 #     Explicitly name the executable.
       executable=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
+      executable=`native_path $executable`
       output_file_specified=1
       add_to_instantiation_command=0
       ;;
@@ -1177,12 +1200,14 @@ process_option()
 #     front end, but that option controls where the .int.c files are
 #     written, while this option controls where the .o files are written.
       instantiation_dir=$curr_param
+      instantiation_dir=`native_path $instantiation_dir`
       use_default_instantiation_dir=0
       used_two_params=1
       ;;
     --instantiation_dir=*)
       arg_value=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
       instantiation_dir=$arg_value
+      instantiation_dir=`native_path $instantiation_dir`
       use_default_instantiation_dir=0
       ;;
     --multi_trans_unit)
@@ -1256,6 +1281,7 @@ process_option()
       ;;
     *\.c | *\.C | *\.cc | *\.cpp | *\.CPP | *\.cxx | *\.CXX | *\.s)
 #     Collect a list of .c files.
+      arg=`native_path $arg`
       if [ "$cfiles" ]; then more_than_one_c_file=1; fi;
       if [ $multi_trans_unit -eq 0 -o $any_c_files -eq 0 ] ; then
         # In --multi_trans_unit mode only include the first object file
@@ -1276,6 +1302,7 @@ process_option()
       ;;
     *\.o)
 #     Collect a list of .o files.
+      arg=`native_path $arg`
       object_files=$object_files" "$arg
       any_l_or_o_files=1
       add_to_instantiation_command=0
@@ -1570,7 +1597,6 @@ process_option()
          --char8_t | \
          --no_char8_t | \
          --force_vtbl)
-      feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
       case $arg in
         -m | --c | --c89 | --c99 | --no_c99 | --c11 | --c18 | --c17 | \
@@ -1610,6 +1636,7 @@ process_option()
           source_file_name_optional=1
           ;;
       esac
+      feoptions=$feoptions" $curr_arg"
       ;;
 ###############################################################################
 # Options passed to the front end that take no arguments and must appear at
@@ -1680,7 +1707,6 @@ process_option()
          --default_calling_convention | \
          --dump_legacy_as_target | \
          --target)
-      feoptions=$feoptions" $curr_arg `escape_if_needed "$curr_param"`"
       used_two_params=1
 #     See if an instantiation mode was specified
       case $arg in
@@ -1703,12 +1729,14 @@ process_option()
               curr_param=$curr_dir/$curr_param
             fi
           fi
+          curr_param=`native_path $curr_param`
           ;;
         --target)
           # Capture the specified target configuration.
           target="$curr_param"
           ;;
       esac
+      feoptions=$feoptions" $curr_arg `escape_if_needed "$curr_param"`"
       ;;
 ###############################################################################
 # Same as above, except these options must appear at the beginning of the
@@ -1718,6 +1746,7 @@ process_option()
          --pch_dir | \
          --create_pch | \
          --use_pch)
+      curr_param=`native_path $curr_param`
       feoptions=$curr_arg" `escape_if_needed "$curr_param"` $feoptions"
       used_two_params=1
      ;;
@@ -1771,7 +1800,6 @@ process_option()
           --default_calling_convention=* | \
           --dump_legacy_as_target=* | \
           --target=*)
-      feoptions=$feoptions" `escape_if_needed "$curr_arg"`"
 #     See if an instantiation mode was specified
       case $arg in
         --definition_list_file=*)
@@ -1784,34 +1812,36 @@ process_option()
           ;;
         -I*)
           # Convert relative -I paths to absolute ones, if necessary.
+          dir_name=`expr $arg : '-I\(.*\)'`    # Get the string after the -I
           if [ $EDG_USE_ABSOLUTE_INCL_DIR_PATHS -eq 1 ] ; then
-            dir_name=`expr $arg : '-I\(.*\)'`    # Get the string after the -I
             if [ "$dir_name" != "-" ] ; then
               absolute_path=`expr $dir_name : '/.*'`
               if [ $absolute_path -eq 0 ] ; then
                 # The directory is a relative path.  Add the current directory
                 # to convert it to an absolute path
-                curr_arg=-I$curr_dir/$dir_name
+                dir_name=$curr_dir/$dir_name
               fi
             fi
           fi
+          curr_arg=-I`native_path $dir_name`
           ;;
         --sys_include=* | \
         --include_directory=*)
           # Convert relative --include_directory  paths to absolute ones,
           # if necessary.
+          dir_name=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
+          opt_name=`expr $arg : '\(.*\)=.*'`    # Get the before the =
           if [ $EDG_USE_ABSOLUTE_INCL_DIR_PATHS -eq 1 ] ; then
-            dir_name=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
-            opt_name=`expr $arg : '\(.*\)=.*'`    # Get the before the =
             if [ "$dir_name" != "-" ] ; then
               absolute_path=`expr $dir_name : '/.*'`
               if [ $absolute_path -eq 0 ] ; then
                 # The directory is a relative path.  Add the current directory
                 # to convert it to an absolute path
-                curr_arg=$opt_name=$curr_dir/$dir_name
+                dir_name=$curr_dir/$dir_name
               fi
             fi
           fi
+          curr_arg=$opt_name=`native_path $dir_name`
           ;;
         --target=*)
           # Capture the specified target configuration.
@@ -1819,6 +1849,7 @@ process_option()
           target=$arg_value
           ;;
       esac
+      feoptions=$feoptions" `escape_if_needed "$curr_arg"`"
       ;;
 ###############################################################################
 # Same as above, except these options must appear at the beginning of the
@@ -1828,7 +1859,10 @@ process_option()
          --pch_dir=* | \
          --create_pch=* | \
          --use_pch=*)
-      feoptions=`escape_if_needed "$curr_arg"`" $feoptions"
+      opt_value=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
+      opt_name=`expr $arg : '\(.*\)=.*'`    # Get the before the =
+      opt_value=`native_path $opt_value`
+      feoptions=$opt_name=`escape_if_needed "$opt_value"`" $feoptions"
       ;;
 ###############################################################################
 # Preprocessing options
@@ -2020,11 +2054,18 @@ fi
 # an empty list element is converted to a ".".
 #
 if [ "$default_include_dirs" != "" ] ; then
-  default_include_dirs=`echo $default_include_dirs | \
-                        sed -e "s/::/:.:/g" \
-                            -e "s/::/:.:/g" \
-                            -e 's/:$//' -e s"/^:/.:/" \
-                            -e "s/^/:/" -e "s/:/ $include_option/g"`
+  raw_default_include_dirs=`echo $default_include_dirs | \
+                            sed -e "s/::/:.:/g" \
+                                -e "s/::/:.:/g" \
+                                -e 's/:$//' -e s"/^:/.:/" \
+                                -e 's/:/" "/g' \
+                                -e 's/^/"/' -e 's/$/"/'`
+  default_include_dirs=
+  for include in $raw_default_include_dirs ; do
+    include=`echo $include | sed -e 's/^"//' -e 's/"$//'`
+    include=`native_path $include`
+    default_include_dirs="$default_include_dirs "$include_option\"$include\"
+  done
 fi
 #
 # Add the proper include directory.
