@@ -50,6 +50,10 @@ defined.
 #endif /* !IA64_ABI */
 #endif /* ifndef IA64_ABI */
 
+/* Some target configurations do not support IA64 - ensure we don't trigger
+   complaints just because we've defined IA64_ABI to be TRUE above. */
+#define INCLUDE_ADDITIONAL_TARGET_CONFIGURATION 0
+
 #ifndef DEFAULT_EMULATE_GNU_ABI_BUGS
  #error DEFAULT_EMULATE_GNU_ABI_BUGS macro must be set when \
         COMPILE_DECODE_FOR_LIB_SRC is TRUE

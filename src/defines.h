@@ -55,6 +55,11 @@ High level EDG macros used solely in this file for easy configuration:
                         a Mac OS X hosted compiler.  Defined to 1 by default
                         when '__APPLE__' and '__MACH__' are defined.
 
+  MSVC_IDE_VERSION      Define a set of 'standard' language features for
+                        an MSVC compiler from within the IDE.  Several subsets
+                        exist to facilitate easily turning on/off related
+                        feature macros.
+
   EDG_TEST_VERSION      Define a set of 'standard' language features that
                         can be used on a variety of hosts.  This set is
                         meant to include many of the major language features.
@@ -83,6 +88,102 @@ of the host system.
 #ifdef UNION_AS_STRUCT
 #define union struct
 #endif /* UNION_AS_STRUCT */
+
+
+#ifdef MSVC_IDE_VERSION
+
+#ifndef MSVC_INT128_CONFIG
+#define MSVC_INT128_CONFIG 1
+#endif /* ifndef MSVC_INT128_CONFIG */
+#ifndef MSVC_FLOAT128_CONFIG
+#define MSVC_FLOAT128_CONFIG 0
+#endif /* ifndef MSVC_FLOAT128_CONFIG */
+#ifndef MSVC_FIXED_POINT_CONFIG
+#define MSVC_FIXED_POINT_CONFIG 1
+#endif /* ifndef MSVC_FIXED_POINT_CONFIG */
+#ifndef MSVC_IL_DEBUGGING_CONFIG
+#define MSVC_IL_DEBUGGING_CONFIG 0
+#endif /* ifndef MSVC_IL_DEBUGGING_CONFIG */
+#ifndef MSVC_SSL_CONFIG
+#define MSVC_SSL_CONFIG 1
+#endif /* ifndef MSVC_SSL_CONFIG */
+#ifndef MSVC_CP_GEN_CONFIG
+#define MSVC_CP_GEN_CONFIG 0
+#endif /* ifndef MSVC_CP_GEN_CONFIG */
+#ifndef MSVC_GNU_CONFIG
+#define MSVC_GNU_CONFIG 1
+#endif /* ifndef MSVC_GNU_CONFIG */
+#ifndef MSVC_SUN_CONFIG
+#define MSVC_SUN_CONFIG 1
+#endif /* ifndef MSVC_SUN_CONFIG */
+
+/* Base configuration. */
+#define OPTIMIZED_VERSION 0
+
+#define ASM_FUNCTION_ALLOWED 1
+#define COMPILE_MULTIPLE_SOURCE_FILES 0
+#define COMPILE_MULTIPLE_TRANSLATION_UNITS 1
+#define DEFAULT_GNU_COMPATIBILITY 0
+#define DEFAULT_INSTANTIATION_MODE tim_none
+#define DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS 1
+#define DEFAULT_MICROSOFT_MODE 0
+#define EXPENSIVE_CHECKING 1
+#define EXTRA_SOURCE_POSITIONS_IN_IL 1
+#define IL_SHOULD_BE_WRITTEN_TO_FILE 1
+#define MACRO_INVOCATION_TREE_IN_IL 0
+
+#define GCC_IS_GENERATED_CODE_TARGET 0
+#define MSVC_IS_GENERATED_CODE_TARGET 1
+#define MSVC_TARGET_VERSION_NUMBER 1923
+
+#if MSVC_INT128_CONFIG
+#define INT128_EXTENSIONS_ALLOWED 1
+#endif /* MSVC_INT128_CONFIG */
+
+#if MSVC_FLOAT128_CONFIG
+#define FLOAT128_ENABLING_POSSIBLE 1
+#define APPROXIMATE_QUADMATH 1
+#define USE_SOFTFLOAT 1
+#endif /* MSVC_FLOAT128_CONFIG */
+
+#if MSVC_FIXED_POINT_CONFIG
+#define FIXED_POINT_ALLOWED 1
+#define ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE 1
+#define DEFAULT_FIXED_POINT_ENABLED 1
+#endif /* MSVC_FIXED_POINT_CONFIG */
+
+#if MSVC_IL_DEBUGGING_CONFIG
+#define IL_SHOULD_BE_WRITTEN_TO_FILE 1
+#define ALTERNATE_IL_FILE_FORMAT 1
+#define OVERWRITE_FREED_MEM_BLOCKS 0
+#endif /* MSVC_IL_DEBUGGING_CONFIG */
+
+#if MSVC_SSL_CONFIG
+#define GENERATE_SOURCE_SEQUENCE_LISTS 1
+#define ALLOW_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING 1
+#endif /* MSVC_SSL_CONFIG */
+
+#if MSVC_CP_GEN_CONFIG
+#define CP_GEN_BE_VERSION 1
+#define SSI_VERSION 1
+#endif /* MSVC_CP_GEN_CONFIG */
+
+#if MSVC_GNU_CONFIG
+#define GNU_EXTENSIONS_ALLOWED 1
+#define GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED 1
+#define GNU_TARGET_VERSION_NUMBER 70400
+#define GNU_VECTOR_TYPES_ALLOWED 1
+#define GNU_X86_ASM_EXTENSIONS_ALLOWED 1
+#define GNU_X86_ATTRIBUTES_ALLOWED 1
+#endif /* MSVC_GNU_CONFIG */
+
+#if MSVC_SUN_CONFIG
+#define SUN_EXTENSIONS_ALLOWED 1
+#define DEFAULT_SUN_COMPATIBILITY 0
+#define DEFAULT_SUN_LINKER_SCOPE_ALLOWED 0
+#endif /* MSVC_SUN_CONFIG */
+
+#endif /* MSVC_IDE_VERSION */
 
 /*
 Enable target-specific configurations for all but demo versions (we don't
