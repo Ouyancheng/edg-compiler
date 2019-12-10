@@ -550,10 +550,14 @@ compile_int_c()
   unimportant_output=0
   int_c_basename=`basename $int_c_file`
   basename_size=`echo $int_c_basename | wc -c`
-  tmp_file_size=`du -b $cc_tmp_file | cut -f1`
+  tmp_file_size=`du -b $cc_tmp_file 2> /dev/null | cut -f1`
+  if [ -z "$tmp_file_size" ]; then
+    # Some error getting file size - make it a large number
+    tmp_file_size=400000
+  fi
   # Account for newlines
   if [ `expr $tmp_file_size - $basename_size` -lt 2 -a \
-       "`cat $cc_tmp_file | tr -d \"\n\r\"`" == $int_c_basename ] ; then
+       "`cat $cc_tmp_file | tr -d \"\n\r\"`" = $int_c_basename ] ; then
     unimportant_output=1
   fi
 #
@@ -1136,7 +1140,7 @@ process_option()
       ;;
     -g*)
 #     Generate debugging information
-      if [ $arg == "-g" ] ; then
+      if [ $arg = "-g" ] ; then
         arg=$EDG_C_TO_OBJ_COMPILER_DEBUG_FLAG
       fi
       c_to_obj_options="$c_to_obj_options $arg"
