@@ -2090,12 +2090,12 @@ if [ "$default_include_dirs" != "" ] ; then
                                 -e "s/::/:.:/g" \
                                 -e 's/:$//' -e s"/^:/.:/" \
                                 -e "s/:/\n/g"`
-  default_include_dirs=$(echo "$raw_default_include_dirs" | \
+  default_include_dirs=`echo "$raw_default_include_dirs" | \
                         while IFS= read -r include ; do
-    include=`echo "$include" | sed -e 's/^"//' -e 's/"$//'`
-    include=`native_path "$include"`
+    include=\`echo "$include" | sed -e 's/^"//' -e 's/"$//'\`
+    include=\`native_path "$include"\`
     echo -n "$include_option\"$include\" "
-  done)
+  done`
 fi
 #
 # Add the proper include directory.
