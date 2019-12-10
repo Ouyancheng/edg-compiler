@@ -8977,6 +8977,7 @@ known.
                                                              is_qualified_name,
                                           operand);
   restore_operand_details(operand, &orig_operand);
+  restore_operand_id_details(operand, &orig_operand);
   if (!force_to_rvalue && was_lvalue) {
     change_template_param_constant_operand_to_lvalue(operand);
   }  /* if */
