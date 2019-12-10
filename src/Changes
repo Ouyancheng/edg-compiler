@@ -3,8 +3,8 @@ Version 6.1
 12/9/19  [EDGcpfe/22092]
 Abort when reading the IL for a coroutine
 
-In configurations where IL_SHOULD_BE_WRITTEN_TO_FILE is set and
-ALTERNATE_IL_FILE_FORMAT is not, the front end would abort in
+In configurations where IL_SHOULD_BE_WRITTEN_TO_FILE is TRUE and
+ALTERNATE_IL_FILE_FORMAT is FALSE, the front end would abort in
 'ptr_remap_function' when reading the IL associated with a coroutine.  For
 example:
 
