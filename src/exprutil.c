@@ -22815,9 +22815,7 @@ otherwise.
                                            orig_operand.ref_entries_list,
                                            operand);
           restore_operand_details(operand, &orig_operand);
-          if (orig_operand.is_id_expression) {
-            operand->is_id_expression = TRUE;
-          }  /* if */
+          restore_operand_id_details(operand, &orig_operand);
           if (is_a_prvalue(&orig_operand)) {
             conv_function_designator_to_ptr_to_function(operand,
                                                         ampersand_pos,
