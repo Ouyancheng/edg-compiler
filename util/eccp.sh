@@ -549,7 +549,7 @@ compile_int_c()
   # just the filename given back.
   unimportant_output=0
   int_c_basename=`basename $int_c_file`
-  basename_size=$(echo $int_c_basename | wc -c)
+  basename_size=`echo $int_c_basename | wc -c`
   tmp_file_size=`du -b $cc_tmp_file | cut -f1`
   # Account for newlines
   if [ `expr $tmp_file_size - $basename_size` -lt 2 -a \
@@ -2630,7 +2630,10 @@ then
 		       $EDG_STARTUP_FILE_2 \
                        $EDG_STD_LIBS \
 		       $EDG_C_TO_OBJ_LIBRARIES"
-      link_command_suffix=" $lib_file_opt$EDG_RUNTIME_LIB$EDG_LIB_SUFFIX"
+      link_command_suffix=
+      if [ ! -z $EDG_RUNTIME_LIB ]; then
+        link_command_suffix=" $lib_file_opt$EDG_RUNTIME_LIB$EDG_LIB_SUFFIX"
+      fi
       if [ $link_using_purify -eq 1 ] ; then
         link_command="purify $link_command"
       fi
