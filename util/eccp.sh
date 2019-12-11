@@ -2093,7 +2093,7 @@ if [ "$default_include_dirs" != "" ] ; then
                             sed -e "s/::/:.:/g" \
                                 -e "s/::/:.:/g" \
                                 -e 's/:$//' -e s"/^:/.:/" \
-                                -e "s/:/\n/g"`
+                            | tr ':' '\n'`
   default_include_dirs=`echo "$raw_default_include_dirs" | \
                         while IFS= read include ; do
     include=\`echo "$include" | sed -e 's/^"//' -e 's/"$//'\`
