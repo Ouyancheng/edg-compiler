@@ -2098,7 +2098,7 @@ if [ "$default_include_dirs" != "" ] ; then
                         while IFS= read include ; do
     include=\`echo "$include" | sed -e 's/^"//' -e 's/"$//'\`
     include=\`native_path "$include"\`
-    echo -n "$include_option\"$include\" "
+    echo "$include_option\"$include\" "
   done`
 fi
 #
