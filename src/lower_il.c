@@ -16216,18 +16216,26 @@ cast.  See lower_expr for typical invocation.
       }  /* if */
       break;
     case enk_constant:
-#if GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX
-      if (node_constant_is(expr,ck_complex))  {
-        /* The lowering of a complex constant results in an aggregate constant,
-           which needs special treatment (much like the pointer-to-member case
-           below). */
-        lower_c99_constant_expr(expr);
-      } else
-#endif /* GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX */
-      /* Do not insert code here. */
       {
         a_constant_ptr con = node_constant(expr);
-        if (con->kind == (a_constant_repr_kind)ck_string && expr->is_lvalue) {
+        if (is_glvalue_node(expr) && constant_is(con, ck_address) &&
+            con->variant.address.kind == (an_address_base_kind)abk_variable &&
+            is_any_reference_type(con->type)) {
+          /* Folding can turn an enk_variable node into a reference constant.
+             Normalize it back to an enk_variable. */
+          check_assertion(con->variant.address.subobject_path == NULL);
+          set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
+          node_variable(expr) = con->variant.address.variant.variable;
+          break;
+#if GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX
+        } else if (constant_is(con, ck_complex))  {
+          /* The lowering of a complex constant results in an aggregate
+             constant, which needs special treatment (much like the
+             pointer-to-member case below). */
+          lower_c99_constant_expr(expr);
+          break;
+#endif /* GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX */
+        } else if (constant_is(con, ck_string) && expr->is_lvalue) {
 #if ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
           if (con->variant.string.sequence_number != 0) {
             /* This string must be the same across multiple translation
@@ -16252,37 +16260,37 @@ cast.  See lower_expr for typical invocation.
                                                      orig_type));
           }  /* if */
 #endif /* LOWER_STRING_LITERALS_TO_NON_CONST */
+#if ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
+          if (con == NULL) break;
+#endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
         }  /* if */
-        if (con != NULL) {
-          /* If the constant hasn't been rewritten as a variable, lower it. */
-          lower_os_constant(con);
-          if (check_for_troublesome_aggregate_constant(con,
-                                                       &temp_var)) {
-            /* This expression node is loading the value of a pointer-to-
-               member-function, which has or will become a struct represented
-               by a ck_aggregate constant, or an aggregate constant itself.
-               Since a ck_aggregate constant is not allowed here, use the value
-               of a temporary variable initialized with the ck_aggregate
-               constant. */
-            set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
-            node_variable(expr) = temp_var;
-            /* Note that the type will be lowered to the proper struct type.
-               The const on the variable type won't be there, but that's
-               correct; it should be dropped because the reference is an
-               rvalue. */
-            if (!identical_types(expr->type, temp_var->type)) {
-              expr->orig_lvalue_type = temp_var->type;
-            }  /* if */
-            check_assertion(f_identical_types(expr->type,
-                                              make_unqualified_type(con->type),
-                                              ITF_NO_FLAGS) &&
-                            f_identical_types(expr->type,
-                                              make_unqualified_type(
-                                                               temp_var->type),
-                                              ITF_NO_FLAGS));
+        /* If the constant hasn't been rewritten as a variable, lower it. */
+        lower_os_constant(con);
+        if (check_for_troublesome_aggregate_constant(con, &temp_var)) {
+          /* This expression node is loading the value of a pointer-to-
+             member-function, which has or will become a struct represented
+             by a ck_aggregate constant, or an aggregate constant itself.
+             Since a ck_aggregate constant is not allowed here, use the value
+             of a temporary variable initialized with the ck_aggregate
+             constant. */
+          set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
+          node_variable(expr) = temp_var;
+          /* Note that the type will be lowered to the proper struct type.
+             The const on the variable type won't be there, but that's
+             correct; it should be dropped because the reference is an
+             rvalue. */
+          if (!identical_types(expr->type, temp_var->type)) {
+            expr->orig_lvalue_type = temp_var->type;
           }  /* if */
+          check_assertion(f_identical_types(expr->type,
+                                            make_unqualified_type(con->type),
+                                            ITF_NO_FLAGS) &&
+                          f_identical_types(expr->type,
+                                            make_unqualified_type(
+                                                               temp_var->type),
+                                            ITF_NO_FLAGS));
         }  /* if */
-      }  /* if */
+      }
       break;
     case enk_temp_init:
       lower_temp_init(expr);

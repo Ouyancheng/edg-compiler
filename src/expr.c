@@ -24650,6 +24650,22 @@ indication in *rcblock).
     }  /* if */
     /* Check for different types of casts and do the cast. */
     if (!err && !processed) {
+      if (expr_stack->favor_constant_result && constexpr_enabled &&
+          is_expression_operand(result)) {
+        a_decl_parse_state_ptr  dps = scope_stack_top().decl_parse_state;
+        if (dps != NULL && (symbol_is(dps->sym, sk_variable) ||
+                            symbol_is(dps->sym, sk_static_data_member))) {
+          /* Although reinterpret_cast cannot be evaluated in a C++11 constant
+             expression, most compilers do fold them sometimes for the
+             initializers of static-lifetime variables.  That is handled in
+             initializer(), but to enable successful folding of such a cast
+             later on we fold its operand here (if possible). */
+          (void)expr_interpret_expression_operand(
+                                             result,
+                                             /*must_be_constant=*/FALSE,
+                                             /*is_constant_evaluated=*/FALSE);
+        }  /* if */
+      }  /* if */
       if (reinterpret_cast_conversion_possible(adj_source_type,
                                                adj_type_cast_to,
                                                &warning_suggested)) {
