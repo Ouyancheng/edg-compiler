@@ -1,5 +1,18 @@
 Version 6.1
 
+12/11/19 [EDGcpfe/22097]
+Explicit conversion operator spuriously ignored for static_cast operation
+
+Consider:
+
+  struct X { explicit operator int&&(); };
+  int r = static_cast<int const&>(X{});
+
+Previously, this failed because the static_cast conversion was treated as a
+copy-initialization context, which in turn caused the explicit conversion
+operator to be erroneously ignored.  That is now fixed.
+
+
 12/9/19  [EDGcpfe/22092]
 Abort when reading the IL for a coroutine
 

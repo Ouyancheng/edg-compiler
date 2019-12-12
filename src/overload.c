@@ -2534,9 +2534,10 @@ can be called with source_operand having a handle type.  Use
 is_potential_conv_function_source as the appropriate guard function.
 */
 {
-  a_boolean          okay = FALSE;
-  a_type_ptr         base_dest_type;
-  a_boolean          do_ms_quirk;
+  a_boolean   okay = FALSE;
+  a_type_ptr  base_dest_type;
+  a_boolean   do_ms_quirk;
+  a_boolean   is_copy_init = !(conv_context & CCO_DIRECT_INITIALIZATION);
 
   *ambiguous = FALSE;
   check_assertion(is_any_reference_type(dest_type));
@@ -2571,7 +2572,6 @@ is_potential_conv_function_source as the appropriate guard function.
     /* For lvalue references, we first try conversions that produce
        an lvalue.  If we find none, we will try all conversions, including
        those that produce rvalues. */
-    a_boolean  is_copy_init = !(conv_context & CCO_DIRECT_INITIALIZATION);
     okay = conversion_from_class_possible(source_operand,
                                           base_dest_type,
                                           (a_builtin_type_kind_set)BTK_NONE,
@@ -2658,8 +2658,7 @@ is_potential_conv_function_source as the appropriate guard function.
                                           base_dest_type,
                                           (a_builtin_type_kind_set)BTK_NONE,
                                           need_lvalue_result,
-                                          /*is_copy_initialization=*/TRUE,
-                                          /*orig_is_copy_initialization=*/TRUE,
+                                          is_copy_init, is_copy_init,
                                           /*ref_binding_type=*/dest_type,
                                           /*is_direct_binding=*/TRUE,
                                           conv_context,
@@ -2674,8 +2673,7 @@ is_potential_conv_function_source as the appropriate guard function.
                                          base_dest_type,
                                          (a_builtin_type_kind_set)BTK_NONE,
                                          /*need_lvalue_result=*/FALSE,
-                                         /*is_copy_initialization=*/TRUE,
-                                         /*orig_is_copy_initialization=*/TRUE,
+                                         is_copy_init, is_copy_init,
                                          /*ref_binding_type=*/(a_type*)NULL,
                                          /*is_direct_binding=*/FALSE,
                                          conv_context,
