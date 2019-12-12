@@ -1493,7 +1493,7 @@ the actual number of converted characters may be less than num_chars.  */
       case chk_char16_t:
         conv_single_wide_char(&conv_state, /*process_escapes=*/TRUE, &ch,
                               centity_mask);
-        if (i != 0 && !C_mode()) {
+        if (i != 0 && !C_mode() && !gpp_mode) {
           too_many_chars = TRUE;
         } else {
           unsigned short char16_t_vals[MAX_CHAR16_T_ENCODING_LENGTH];
@@ -1511,7 +1511,7 @@ the actual number of converted characters may be less than num_chars.  */
       case chk_char32_t:
         conv_single_wide_char(&conv_state, /*process_escapes=*/TRUE, &ch,
                               centity_mask);
-        if (i != 0 && !C_mode()) {
+        if (i != 0 && !C_mode() && !gpp_mode) {
           too_many_chars = TRUE;
         }  /* if */
         break;
