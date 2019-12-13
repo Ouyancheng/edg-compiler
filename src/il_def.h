@@ -12948,14 +12948,20 @@ enum an_expr_operator_kind_tag {
 			   The first operand is the pointer to member
 			   function; the second is the selector object
 			   (class lvalue or class rvalue); the remaining
-			   operands are the arguments. */
+			   operands are the arguments.  Note that the selector
+			   object is always evaluated first (even though
+			   eval_left_to_right is set).  Also, arguments are
+			   always evaluated after the first two operands. */
   eok_points_to_pm_call,
 			/* A call of a function identified by a pointer
 			   to member, with the source form (p->*pmf)(args).
 			   The first operand is the pointer to member
 			   function; the second is an rvalue pointer to
 			   class that identifies the selector object;
-			   the remaining operands are the arguments. */
+			   the remaining operands are the arguments.  Note that
+			   the selector object is always evaluated first (even
+			   though eval_left_to_right is set).  Also, arguments
+			   are always evaluated after the first two operands.*/
   eok_cli_subscript,	/* C++/CLI array subscripting operation.  The first
 			   operand is a handle to a CLI array object (a ref
 			   class type), and following arguments are the

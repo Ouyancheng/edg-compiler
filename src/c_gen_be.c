@@ -5495,6 +5495,10 @@ eval_right_to_left and eval_left_to_right flags.
        so there is little checking that can be done here. */
     check_assertion(!(expr->variant.operation.eval_left_to_right &&
                       expr->variant.operation.eval_right_to_left));
+    /* Having a right-to-left comma operator typically indicates a bug in
+       lowering. */
+    check_assertion(!(node_operator_is(expr, eok_comma) &&
+                      expr->variant.operation.eval_right_to_left));
   }  /* if */
 }  /* check_expression_evaluation_order */
 

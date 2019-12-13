@@ -10476,6 +10476,7 @@ void lower_arg_expr_list(an_expr_node_ptr   expr_list,
                          a_param_type_ptr   param,
                          a_boolean          maintain_sequencing,
                          a_boolean          eval_right_to_left,
+                         an_expr_node_ptr   conflict_node,
                          an_insert_location *insert_location)
 /*
 Do IL lowering of the indicated list of expressions and everything under it.
@@ -10488,15 +10489,23 @@ parameter (this is used when the called routine is a copy constructor,
 to skip the input parameter).  If maintain_sequencing is TRUE, the order
 of execution of the arguments is maintained.  eval_right_to_left should
 be set if the arguments are to be executed (and thus lowered) in right-to-left
-order (otherwise left-to-right order is used).  insert_location
-points to a location to insert code prior to the execution of the call
-(and can be NULL in cases where maintain_sequencing is also NULL).
+order (otherwise left-to-right order is used).  When non-NULL, conflict_node
+is an expression that, due to strict expression sequencing, should be evaluated
+*after* the arguments are evaluated, but will in fact be evaluated *before*
+the arguments (this happens during a right-to-left eok_dot_member_call where
+the selector object has side-effects but must be evaluated before the call).
+In such cases, any arguments whose evaluation may affect the value of
+conflict_node are assigned to temporaries so they can be evaluated first.
+insert_location points to a location to insert code prior to the execution of
+the call (and can be NULL in cases where maintain_sequencing is FALSE).
 */
 {
   an_expr_node_ptr              expr;
 
   check_assertion(!(maintain_sequencing && insert_location == NULL));
-  /* Re-order the expression list if necessary. */
+  /* Re-order the expression list to match the order in which the expressions
+     should be evaluated (lowering them in that order is necessary so
+     that any side-effects happen in the correct order). */
   reverse_expr_list_if(eval_right_to_left, expr_list);
   called_rout_type = skip_typerefs(called_rout_type);
   /* Get the first parameter type. */
@@ -10569,21 +10578,23 @@ points to a location to insert code prior to the execution of the call
         do_ptr_to_data_member_arg_promotion_on_node(expr);
       }  /* if */
     }  /* if */
-    if (maintain_sequencing &&
-        !is_invariant_expr(expr, /*vars_can_change=*/TRUE,
-                           /*treat_as_potential_prvalue=*/FALSE)) {
+    if ((maintain_sequencing &&
+         !is_invariant_expr(expr, /*vars_can_change=*/TRUE,
+                           /*treat_as_potential_prvalue=*/FALSE)) ||
+        (conflict_node != NULL &&
+         (expr1_could_affect_expr2(conflict_node, expr) ||
+          expr1_could_affect_expr2(expr, conflict_node)))) {
       /* If the caller requests that argument sequencing be maintained
          (i.e., when an initializer list is used as arguments for a
-         constructor call), create a temporary for any argument that
+         constructor call or evaluation of the argument may affect the value
+         of conflit_node), create a temporary for any argument that
          has side-effects and ensure that it is evaluated prior to the call,
          e.g., "A{i++, i++}" becomes: "t1 = i++; t2 = i++; A(t1, t2)". */
       a_variable_ptr   temp;
       an_expr_node_ptr temp_node;
       check_assertion(!expr->is_lvalue);
       temp = make_lowered_temporary(expr->type);
-      temp_node = make_assignment_expr(var_lvalue_expr(temp),
-                                      (an_expr_operator_kind)eok_assign,
-                                      copy_node(expr));
+      temp_node = make_var_assignment_expr(temp, copy_node(expr));
       (void)insert_expr_statement(temp_node, insert_location);
       overwrite_node(expr, var_rvalue_expr(temp));
     }  /* if */
@@ -12696,7 +12707,7 @@ the expression have already been lowered.
   an_expr_node_ptr return_node = NULL;
   a_routine_type_supplement_ptr
                    rtsp;
-  an_expr_node_ptr func_addr_node;
+  an_expr_node_ptr func_addr_node, temp_assignment = NULL;
   a_variable_ptr   this_temp_var, func_temp_var;
   a_type_ptr       routine_type;
 
@@ -12708,13 +12719,27 @@ the expression have already been lowered.
        (3..n) optional additional arguments.
      Or, in C notation,
        pm_call(pmf, object, additional_args ...)
+
+     Note that the order of evaluation (when strict evaluation order is in
+     effect) is (2), (1), (3..n) even though eval_left_to_right is set
+     (this is a special case in the IL).
   */
   pmf_node = expr->variant.operation.operands;
-  check_assertion(!pmf_node->is_lvalue);
+  check_assertion(!pmf_node->is_lvalue &&
+                  (expr->variant.operation.eval_left_to_right ||
+                   !strict_cpp17_eval_order));
   routine_type = pm_member_type_possibly_lowered(pmf_node->type);
   rtsp = routine_type->variant.routine.extra_info;
   object_node = pmf_node->next;
   additional_args = object_node->next;
+  if (strict_cpp17_eval_order &&
+      (expr1_could_affect_expr2(object_node, pmf_node) ||
+       expr1_could_affect_expr2(pmf_node, object_node))) {
+    /* If strict order of expression evaluation is in effect, object_node
+       must be evaluated before pmf_node. */
+    object_node = pre_execute_expression(object_node, &pmf_node->next,
+                                         &temp_assignment);
+  }  /* if */
   if (rtsp->value_returned_as_parameter) {
     /* The function returns its value via an added return value address
        parameter. */
@@ -12763,6 +12788,12 @@ the expression have already been lowered.
   /* Assemble the call node. */
   call_node = make_operator_node((an_expr_operator_kind)eok_call,
                                  expr->type, func_addr_node);
+  if (temp_assignment != NULL) {
+    /* If, for strict evaluation order purposes, a temporary was created,
+       initialize that temporary first. */
+    this_temp_assign_node = make_comma_node(temp_assignment,
+                                            this_temp_assign_node);
+  }  /* if */
   /* Replace the original node by a comma node with the assignment to
      this_temp (and perhaps also func_temp) and the call under it. */
   this_temp_assign_node->next = call_node;
@@ -12791,6 +12822,7 @@ detached from the IL tree; otherwise it is set to FALSE.
   an_expr_operator_kind         op = expr->variant.operation.kind;
   a_routine_ptr                 routine = NULL;
   an_expr_node_ptr              call_expr = expr, this_node = NULL;
+  an_insert_location            insert_location;
 
   if (expr_has_been_detached != NULL) *expr_has_been_detached = FALSE;
   /* If this call takes a class selector object as an operand, convert the
@@ -12896,14 +12928,20 @@ detached from the IL tree; otherwise it is set to FALSE.
   }  /* if */
   /* See if we know the specific routine being called. */
   routine = routine_from_function_expr(first_arg);
+  /* In preparation for lowering the arguments, create an insert location
+     in case any temporaries are needed. */
+  set_expr_creation_insert_location(&insert_location);
   /* Lower the rest of the arguments. */
   lower_arg_expr_list(arg_node, rout_type, routine, (a_param_type_ptr)NULL,
-                      /*maintain_sequencing=*/FALSE,
+                      /*maintain_sequencing=*/strict_cpp17_eval_order,
 		      expr->variant.operation.eval_right_to_left,
-                      (an_insert_location *)NULL);
+                      this_node,
+                      &insert_location);
   if (this_node != NULL) {
     /* Perform lowering of the "this" node (deferred from above). */
     lower_expr_full(this_node, /*assume_expr_is_non_null=*/TRUE);
+    /* Reset the flag on the call node. */
+    call_expr->variant.operation.eval_right_to_left = FALSE;
   }  /* if */
   if (routine != NULL) {
 #if IA64_ABI
@@ -12940,10 +12978,18 @@ detached from the IL tree; otherwise it is set to FALSE.
     /* Normal member or non-member call. */
     expr->variant.operation.kind = (an_expr_operator_kind)eok_call;
 #if MINIMAL_INLINING
-    if (inlining_enabled) {
+    if (inlining_enabled &&
+        insert_location.kind == ilk_expr_creation) {
+      /* Inline the call (if no temporaries were created). */
       do_inlining_of_call(call_expr, statement, expr_has_been_detached);
     }  /* if */
 #endif /* MINIMAL_INLINING */
+  }  /* if */
+  if (insert_location.kind != ilk_expr_creation) {
+    /* Some temporaries were created during the lowering of the arguments;
+       make sure those are executed before the call. */
+    overwrite_node(expr, make_comma_node(insert_location.variant.expr,
+                                         copy_node(expr)));
   }  /* if */
 }  /* lower_call */
 

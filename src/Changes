@@ -1,5 +1,36 @@
 Version 6.1
 
+12/13/19 [EDGcpfe/21559]
+Lowered expression evaluation order for eok_dot_member_call and virtual calls
+
+Strict expression evaluation ordering (see the Changes entry for EDGcpfe/17701)
+had not been properly maintained in lowered code for some eok_dot_member_call
+and virtual function calls.  That is now fixed.  For example (with --c++17):
+
+  extern "C" int printf(const char *format, ...);
+  struct A {
+    void f(int) { }
+    virtual A& operator=(const A& other) { return *this; }
+  } a;
+  A& get_selector()          { printf("get_selector\n"); return a; }
+  decltype(&A::f) get_ptmf() { printf("get_ptmf\n");     return &A::f; }
+  int get_arg()              { printf("get_arg\n");      return 0; }
+  A& get_lhs()               { printf("lhs\n");          return a; }
+  A& get_rhs()               { printf("rhs\n");          return a; }
+  int main() {
+    (get_selector().*get_ptmf())(get_arg());
+    get_lhs() = get_rhs();  
+  }
+
+The example above should print:
+
+get_selector
+get_ptmf
+get_arg
+rhs
+lhs
+
+
 12/12/19 [EDGcpfe/22090]
 Spurious error on pragma in constexpr if between the condition being tested
 and the dependent statement
