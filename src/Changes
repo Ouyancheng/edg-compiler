@@ -1,5 +1,26 @@
 Version 6.1
 
+12/12/19 [EDGcpfe/22090]
+Spurious error on pragma in constexpr if between the condition being tested
+and the dependent statement
+
+If an "if constexpr" had a next-construct pragma after the condition being
+tested but before the dependent statement a spurious "this pragma must
+immediately precede a statement" error could be issued.  Now fixed.
+
+  struct A {
+    static constexpr int v = 0;
+  };
+  template <typename T> inline void f() {
+    if constexpr(T::v)
+  #pragma test_next_statement
+                       for (int i = 0; i < 1; i++);
+  }
+  int main() {
+    f<A>();
+  }
+
+
 12/12/19 [EDGcpfe/22014]
 GNU C++ compatibility: multi-character Unicode character literals
 

@@ -74,10 +74,12 @@ Return TRUE if tok is a token kind that is a literal constant.
 /*
 Macro that returns TRUE if the curr_token_pragma list should not be
 processed because we are currently processing tokens as part of a
-preprocessing operation.
+preprocessing operation or are in the process of flushing tokens to
+discard them.
 */
 #define suppress_pragma_processing					\
-  (fetch_pp_tokens || in_preprocessing_directive)
+  (fetch_pp_tokens || in_preprocessing_directive ||			\
+   curr_lexical_state_stack_entry->flushing_tokens)
 
 
 /*
@@ -2931,11 +2933,13 @@ an equivalent change.
     if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_pragma){
       break;
     }  /* if */
-    /* Set the current token pragma list to point to the pragmas associated
-       with the cached token. */
-    check_assertion_str(!suppress_pragma_processing,
-                  "get_token_from...: pragma found in suppress_pragma mode");
-    curr_token_pragmas = make_copy_of_pragma_list(ctp->variant.pragmas);
+    if (!curr_lexical_state_stack_entry->flushing_tokens) {
+      /* Set the current token pragma list to point to the pragmas associated
+         with the cached token. */
+      check_assertion_str(!suppress_pragma_processing,
+                    "get_token_from...: pragma found in suppress_pragma mode");
+      curr_token_pragmas = make_copy_of_pragma_list(ctp->variant.pragmas);
+    }  /* if */
   }  /* for */
   /* When fetch_pp_tokens is FALSE, make sure that the token being retrieved
      is not a cached pp-token.  If it is, flush any cached pp-tokens and
@@ -14477,6 +14481,7 @@ to it.
   clear_token_cache(&lssep->cache, /*is_reusable=*/FALSE);
   lssep->caching_tokens = FALSE;
   lssep->suspend_caching_tokens = FALSE;
+  lssep->flushing_tokens = FALSE;
   return lssep;
 }  /* alloc_lexical_state_stack_entry */
 
@@ -14829,6 +14834,8 @@ The current token is the token after the "if" or "else" keyword.
     incr_token_set_array_element(stop_tokens, tok_rbrace);
     incr_token_set_array_element(stop_tokens, tok_lbrace);
     incr_token_set_array_element(stop_tokens, tok_semicolon);
+    push_lexical_state_stack();
+    curr_lexical_state_stack_entry->flushing_tokens = TRUE;
     /* If we are not already at a left brace skip over tokens (e.g., of the
        "if" expression) to find the end of the statement or a left brace. */
     if (curr_token != tok_lbrace) {
@@ -14840,6 +14847,7 @@ The current token is the token after the "if" or "else" keyword.
       flush_until_matching_token_full(/*limit_flush=*/FALSE);
     }  /* if */
     if (curr_token != tok_end_of_source) (void)get_token();
+    pop_lexical_state_stack();
   }  /* if */
 }  /* flush_if_or_else_statement */
 

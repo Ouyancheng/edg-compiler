@@ -3651,6 +3651,10 @@ routine is called to flush the tokens of the discarded branch.
   /* In a template instantiation, skip the tokens if the statement is
      to be discarded, otherwise process it normally. */
   if (is_real_instantiation_context() && sssep->in_discarded_statement) {
+    /* Get rid of any pragmas that would bind to this statement if it were not
+       being discarded. */
+    select_curr_construct_pragmas(/*add_to_list=*/FALSE);
+    discard_curr_construct_pragmas();
     flush_if_or_else_statement();
     empty_statement();
   } else {

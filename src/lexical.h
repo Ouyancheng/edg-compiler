@@ -1858,6 +1858,10 @@ typedef struct a_lexical_state_stack_entry {
 		suspend_caching_tokens;
 			/* TRUE if, when we are caching tokens, we should
 			   temporarily suspend that caching. */
+  a_byte_boolean
+		flushing_tokens;
+			/* TRUE if we are flushing tokens that are being
+			   ignored. */
 } a_lexical_state_stack_entry;
 
 EXTERN a_lexical_state_stack_entry_ptr
