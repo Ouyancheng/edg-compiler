@@ -921,6 +921,13 @@ typedef struct an_interpreter_state {
 			/* The value returned by std::is_constant_evaluated in
 			   this interpretation. */
   a_bit_field
+		allow_reinterpret_cast:1;
+			/* TRUE if reinterpret_cast should be permitted when
+			   possible.  This is used to optimize certain variable
+			   initializations, which can then be implemented as
+			   static initialization instead of dynamic
+			   initialization. */
+  a_bit_field
 		static_storage_ready:1;
 			/* TRUE if static_storage has been initialized. */
   a_bit_field
@@ -2252,6 +2259,7 @@ result of calls to std::is_constant_evaluated().
   ips->cost = 0;
   ips->curr_alloc_seq_number = 1;
   ips->is_constant_evaluated = is_constant_evaluated;
+  ips->allow_reinterpret_cast = FALSE;
   ips->static_storage_ready = FALSE;
   ips->side_effects_disabled = !relaxed_constexpr_enabled;
   ips->suspend_diag_list = FALSE;
@@ -4544,7 +4552,6 @@ formats as necessary.  Return FALSE if the constant is an error constant.
     if (con->is_reinterpret_cast) {
       info_with_pos(ec_constexpr_reinterpret_cast, &ips->position, ips);
       do_constexpr_fail(result);
-      goto done;
     } else if (con->expr != NULL && !con->is_reinterpret_like_cast &&
                !(constant_is(con, ck_integer) ||
                  (constant_is(con, ck_address) &&
@@ -4685,7 +4692,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                       cp = vp->initializer.constant;
                     } else if (vp->init_kind == (an_init_kind)initk_dynamic) {
                       a_dynamic_init_ptr  dip = vp->initializer.dynamic;
-                      if (dip->kind == (a_dynamic_init_kind)dik_constant) {
+                      if (dyn_init_is(dip, dik_constant)) {
                         cp = dip->variant.constant.ptr;
                       } else {
                         result = do_constexpr_dynamic_init(
@@ -4701,7 +4708,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                         cp = initializer->constant;
                       } else if (init_kind == (an_init_kind)initk_dynamic) {
                         a_dynamic_init_ptr  dip = initializer->dynamic;
-                        if (dip->kind == (a_dynamic_init_kind)dik_constant) {
+                        if (dyn_init_is(dip, dik_constant)) {
                           cp = dip->variant.constant.ptr;
                         } else {
                           result = do_constexpr_dynamic_init(
@@ -5255,8 +5262,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       {
         a_constant_ptr  elem_con = con->variant.init_repeat.constant;
         if (constant_is(elem_con, ck_dynamic_init) &&
-            elem_con->variant.dynamic_init.ptr->kind ==
-                                       (a_dynamic_init_kind)dik_constructor &&
+            dyn_init_is(elem_con->variant.dynamic_init.ptr, dik_constructor) &&
             elem_con->variant.dynamic_init.ptr
                     ->variant.constructor.is_array_copy) {
           /* A ck_init_repeat on top of a special dik_constructor entry that
@@ -5657,7 +5663,7 @@ otherwise, this routine will look up that storage in ips->map.
   if (storage == NULL) {
     get_stack_bytes(ips, vp, storage);
   }  /* if */
-  if (dip->kind == (a_dynamic_init_kind)dik_zero) {
+  if (dyn_init_is(dip, dik_zero)) {
     init_subobject_to_zero(ips, storage, tp, storage);
   } else {
     a_boolean  saved_is_constant_evaluated = ips->is_constant_evaluated;
@@ -6682,7 +6688,7 @@ successfully interpreted, FALSE otherwise.
         } else if (stmt->variant.return_dynamic_init != NULL) {
           /* Handle return_dynamic_init case. */
           a_dynamic_init_ptr  dip = stmt->variant.return_dynamic_init;
-          if (dip->kind == (a_dynamic_init_kind)dik_zero) {
+          if (dyn_init_is(dip, dik_zero)) {
             a_type_ptr  fn_type = frame->routine->type;
             fn_type = skip_typerefs(fn_type);
             tp = skip_typerefs(fn_type->variant.routine.return_type);
@@ -6732,7 +6738,7 @@ done_with_return_statement:
           /* Handle return_dynamic_init case. */
           a_dynamic_init_ptr  dip;
           dip = stmt->variant.stmt_expr_result.dynamic_init;
-          if (dip->kind == (a_dynamic_init_kind)dik_zero) {
+          if (dyn_init_is(dip, dik_zero)) {
             tp = skip_typerefs(frame->variant.expr->type);
             init_subobject_to_zero(ips, result_storage, tp, complete_obj);
           } else {
@@ -9386,7 +9392,7 @@ the body of the (constructor) function proper.
         record_subobject_derivation(result_storage+offset, bcp);
         sub_dip = ctor_init->initializer;
       }  /* if */
-      if (sub_dip->kind == (a_dynamic_init_kind)dik_bitwise_copy &&
+      if (dyn_init_is(sub_dip, dik_bitwise_copy) &&
           sub_dip->variant.bitwise_copy.source == NULL) {
         /* An implicit member copy in a copy constructor.  arg_ptrs[1] points
            to the first argument of the copy constructor, which is a reference
@@ -9406,7 +9412,7 @@ the body of the (constructor) function proper.
           }  /* if */
         }  /* if */
       } else {
-        if (sub_dip->kind == (a_dynamic_init_kind)dik_constructor &&
+        if (dyn_init_is(sub_dip, dik_constructor) &&
             sub_dip->variant.constructor
                             .is_copy_constructor_with_implied_source) {
           /* Constructor invocations for the mem-initializers of copy
@@ -9435,8 +9441,8 @@ the body of the (constructor) function proper.
                                          complete_object);
             }  /* if */
           }  /* if */
-        } else if (sub_dip->kind == (a_dynamic_init_kind)dik_zero ||
-                   sub_dip->kind == (a_dynamic_init_kind)dik_none) {
+        } else if (dyn_init_is(sub_dip, dik_zero) ||
+                   dyn_init_is(sub_dip, dik_none)) {
           /* Just zero the storage (for the dik_zero case) and record the
              derivation structure (which is needed even for the dik_none
              case). */
@@ -10360,7 +10366,7 @@ is within the given complete_object.
   a_constant_ptr        field_con;
   a_boolean             result = TRUE;
 
-  check_assertion(dip->kind == (a_dynamic_init_kind)dik_lambda);
+  check_assertion(dyn_init_is(dip, dik_lambda));
   lambda = dip->variant.constant.lambda;
   if (!dip->variant.constant.non_constant) {
     /* Simple constant initializer. */
@@ -10386,8 +10392,7 @@ is within the given complete_object.
       if (cap->is_init_capture) {
         /* Interpret the initializer for the capture. */
         sub_dip = cap->captured.initializer;
-        if (sub_dip->kind == (a_dynamic_init_kind)dik_zero ||
-            sub_dip->kind == (a_dynamic_init_kind)dik_none) {
+        if (dyn_init_is(sub_dip, dik_zero) || dyn_init_is(sub_dip, dik_none)) {
           /* Just zero the storage (for the dik_zero case) and record the
              derivation structure (which is needed even for the dik_none
              case). */
@@ -10408,7 +10413,7 @@ is within the given complete_object.
            capture of an enclosing lambda's capture. */
         check_assertion(constant_is(field_con, ck_dynamic_init));
         sub_dip = field_con->variant.dynamic_init.ptr;
-        if (sub_dip->kind == (a_dynamic_init_kind)dik_bitwise_copy &&
+        if (dyn_init_is(sub_dip, dik_bitwise_copy) &&
             sub_dip->variant.bitwise_copy.source == NULL) {
           /* An implicit bitwise copy from a field of the closure associated
              with the enclosing call (which is of a lambda call operator). */
@@ -10521,24 +10526,24 @@ is within the given complete_object.
           } else {
             clear_address(&var_addr, var_storage);
           }  /* if */
-          if (sub_dip->kind == (a_dynamic_init_kind)dik_bitwise_copy) {
+          if (dyn_init_is(sub_dip, dik_bitwise_copy)) {
             check_assertion(sub_dip->variant.bitwise_copy.source == NULL);
             if (!constexpr_copy_object(ips, fp->type, var_storage, dst_bytes,
                                        complete_object)) {
               do_constexpr_fail(result);
             }  /* if */
-          } else if (sub_dip->kind == (a_dynamic_init_kind)dik_constructor) {
+          } else if (dyn_init_is(sub_dip, dik_constructor)) {
             if (!do_constexpr_ctor(ips, sub_dip, pos, dst_bytes,
                                    complete_object, &var_addr)) {
               do_constexpr_fail(result);
             }  /* if */
-          } else if (sub_dip->kind == (a_dynamic_init_kind)dik_expression) {
+          } else if (dyn_init_is(sub_dip, dik_expression)) {
             if (!do_constexpr_expression(ips, sub_dip->variant.expression,
                                          dst_bytes, complete_object)) {
               do_constexpr_fail(result);
             }  /* if */
-          } else if (sub_dip->kind == (a_dynamic_init_kind)dik_none ||
-                     (sub_dip->kind == (a_dynamic_init_kind)dik_constant &&
+          } else if (dyn_init_is(sub_dip, dik_none) ||
+                     (dyn_init_is(sub_dip, dik_constant) &&
                       is_error_constant(sub_dip->variant.constant.ptr))) {
             /* This can happen in error cases. */
             expect_error();
@@ -11329,8 +11334,8 @@ Evaluate the given new-expression.
     int                 k = 0;
     a_byte              *elem = cap->address,
                         *complete_obj = cap->complete_object;
-    if (dip->kind == (a_dynamic_init_kind)dik_constant ||
-        dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+    if (dyn_init_is(dip, dik_constant) ||
+        dyn_init_is(dip, dik_nonconstant_aggregate)) {
       a_constant_ptr  init_cp = dip->variant.constant.ptr;
       if (constant_is(init_cp, ck_aggregate) ||
           constant_is(init_cp, ck_string)) {
@@ -11923,9 +11928,16 @@ the value representation of the integer value.
                 /* reinterpret_cast expressions are generally invalid, but GCC
                    and MSVC appear to allow them on null-based addresses to
                    permit traditional offsetof implementations. */
+                a_constexpr_address  *cap = (a_constexpr_address*)opnd1_value;
                 if (((gpp_mode && !clang_mode) || microsoft_mode) &&
-                    is_integer_address((a_constexpr_address*)opnd1_value,
-                                       (an_integer_value*)NULL)) {
+                    is_integer_address(cap, (an_integer_value*)NULL)) {
+                  valid_cast = TRUE;
+                } else if (ips->allow_reinterpret_cast &&
+                           is_runtime_data_address(cap)) {
+                  /* Allow reinterpret_cast on run-time data addresses.  This
+                     allows some variable initializers that otherwise would
+                     require "dynamic initialization" to be implemented as
+                     "static initialization". */
                   valid_cast = TRUE;
                 } else {
                   valid_cast = FALSE;
@@ -15911,7 +15923,7 @@ the value representation of the integer value.
           tmp_complete_obj = complete_object;
           temp_lifetime = TRUE;
         }  /* if */
-        if (dip->kind == (a_dynamic_init_kind)dik_zero) {
+        if (dyn_init_is(dip, dik_zero)) {
           init_subobject_to_zero(ips, tmp_bytes, tp, tmp_complete_obj);
         } else if (!do_constexpr_dynamic_init(
                     ips, dip, &expr->position, tmp_bytes, tmp_complete_obj)) {
@@ -17094,6 +17106,20 @@ value produced by std::is_constant_evaluated().
     result_storage = do_constexpr_alloc_variable(&ips, vp, &result);
     if (var_has_static_storage_duration(vp)) {
       ips.static_lifetime_init = TRUE;
+      if (!vp->is_constexpr) {
+        /* For non-constexpr variables, allow some reinterpret_cast constructs
+           in "constant expressions".  That causes us to sometimes promote to
+           "static initialization" what would otherwise be a "dynamic
+           initialization".  For example:
+               struct X { int x; };
+               static union {
+                 char buf[sizeof(X)];
+                 int aligner;
+               } u;
+               X &r = reinterpret_cast<X&>(u.buf); // (1)
+           Initialization (1) will be treated as a static initialization. */
+        ips.allow_reinterpret_cast = TRUE;
+      }  /* if */
     }  /* if */
   } else {
     a_byte_count  n_bytes;
@@ -17112,7 +17138,7 @@ value produced by std::is_constant_evaluated().
     /* Nothing more to be done. */
   } else {
     result_con->type = result_type;
-    if (dip->kind == (a_dynamic_init_kind)dik_zero) {
+    if (dyn_init_is(dip, dik_zero)) {
       init_subobject_to_zero(&ips, result_storage, result_type,
                              result_storage);
     } else if (!do_constexpr_dynamic_init(&ips, dip, pos, result_storage,
@@ -17160,8 +17186,8 @@ value produced by std::is_constant_evaluated().
            back to dip (which therefore cannot be dropped).  For other cases,
            create an enk_initializer node to represent the initialization as
            an expression. */
-        if ((dip->kind == (a_dynamic_init_kind)dik_expression ||
-             dip->kind == (a_dynamic_init_kind)dik_class_result_via_ctor) &&
+        if ((dyn_init_is(dip, dik_expression) ||
+             dyn_init_is(dip, dik_class_result_via_ctor)) &&
             !(dip->is_result_for_class_rvalue_question_mark ||
               dip->is_result_for_comma_operator) &&
             (curr_il_region_number == file_scope_region_number) ==
