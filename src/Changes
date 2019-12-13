@@ -15,7 +15,7 @@ That implies that in the following example:
 
 the initialization (1) is a "dynamic initialization" according to the standard.
 However, implementations are permitted to implement this initialization as a
-static ("constant") initialization, and many implementations do.  The front end 
+static ("constant") initialization, and many implementations do.  The front end
 now handles this reinterpret_cast specially in this context to produce a
 constant initializer even in C++11 (and later) modes.
 
