@@ -194,8 +194,12 @@ Flags to be set for any version that uses the C++ generating back end.
 #define NEW_CAN_BE_FOLDED_INTO_CTOR 0
 #define DELETE_CAN_BE_FOLDED_INTO_DTOR 0
 #define ASSIGNMENT_TO_THIS_ALLOWED 0
+#ifndef PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED
 #define PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED 0
+#endif /* ifndef PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED */
+#ifndef DEFAULT_TYPE_INFO_IN_NAMESPACE_STD
 #define DEFAULT_TYPE_INFO_IN_NAMESPACE_STD 0
+#endif /* ifndef DEFAULT_TYPE_INFO_IN_NAMESPACE_STD */
 #endif /* ifdef CP_GEN_BE_VERSION */
 
 /* Suppress Microsoft 8.0 warnings about deprecated C library functions. */
