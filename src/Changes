@@ -5,11 +5,12 @@ GNU C++ compatibility: multi-character Unicode character literals
 
 According to the C++ Standard, UTF-16 and UTF-32 character literals must
 have exactly one character between the apostrophes.  G++, however, accepts
-(with a warning) such literals containing multiple characters.  The front
-end has now been modified to do the same in g++ mode.  For example, with
---g++ --c++11:
+(with a warning) such literals containing multiple characters, discarding
+all but the last.  The front end has now been modified to do the same in
+g++ mode.  For example, with --g++ --c++11:
 
-  char32_t c = U'abc';  // Previously an error, now a warning in g++ mode
+  char32_t c = U'abc';  // Previously an error, now a warning in g++ mode;
+                        // c is initialized as if by U'c'
 
 
 12/11/19 [EDGcpfe/22097]
