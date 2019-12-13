@@ -39,11 +39,13 @@ namespace std {
     iterator __array;
     size_type __length;
 #ifdef _MSC_VER
-    /* Microsoft's compiler uses a different internal constructor.  The
-       front end can handle either one.  Define a Microsoft-like constructor
-       when compiling in Microsoft mode. */
+    /* Microsoft's compiler uses a different internal constructor and makes it
+       public.  The front end can handle either one.  Define a Microsoft-like
+       constructor when compiling in Microsoft mode. */
+  public:
     __EDG_CONSTEXPR initializer_list(iterator __b, iterator __e)
                                     : __array(__b), __length(__e - __b) {}
+  private:
 #else /* !defined(_MSC_VER) */
     __EDG_CONSTEXPR initializer_list(_E const __a[], std::size_t __l)
                                     : __array(__a), __length(__l) {}
