@@ -15190,7 +15190,7 @@ gen_expr that might end up generating this expr as a temporary.
                    (clang_is_generated_code_target &&
                     has_name_before_mangling(type->variant.typeref.type) &&
                     !scope_is_in_name_context_stack(
-                                        type->source_corresp.parent_scope)))) {
+                                                get_parent_scope_of(type))))) {
                 /* The type is unusable: it's either invisible
                    (inaccessible, etc.) or it hasn't been declared yet
                    (which can occur with generated template instances).  In
