@@ -10215,27 +10215,26 @@ instantiations are only permitted in namespace scope).
     a_routine_ptr proto_rp =
          ((a_routine_ptr)scp)->assoc_template->prototype_instantiation.routine;
     if (proto_rp != NULL) {
-      a_type_ptr ret_type = proto_rp->type->variant.routine.return_type;
+      a_type_ptr func_type = skip_typerefs(proto_rp->type);
+      a_type_ptr ret_type = func_type->variant.routine.return_type;
       if (ret_type->kind == (a_type_kind)tk_typeref &&
           ret_type->variant.typeref.is_dependent_type_operator) {
         /* This would be a specialization of a template like
              template<typename T> auto g(T) -> decltype(f<T>())
            which triggers the MSVC bug.  Suppress the specialization. */
         result = TRUE;
-      } else if (msvc_target_version_number < 1912 &&
-                 proto_rp->declared_type != NULL) {
+      } else if (msvc_target_version_number < 1912) {
         /* MSVC versions before 19.12 have a bug that prevents associating
            an explicit specialization with its template if any of the
            function parameters is a (possibly multi-dimensioned) array type
            with a dependent bound.  Check for that case.  (Note that we
-           must use the declared_type of the prototype instantiation for
-           this check, as the plain type is normalized to convert a
-           top-level array type to a pointer type.) */
+           must use the declared_type of the parameter for this check, as
+           the plain type is normalized to convert a top-level array type
+           to a pointer type.) */
         a_param_type_ptr ptp;
-        for (ptp = skip_typerefs(proto_rp->declared_type)->
-                                   variant.routine.extra_info->param_type_list;
+        for (ptp = func_type->variant.routine.extra_info->param_type_list;
              !result && ptp != NULL; ptp = ptp->next) {
-          a_type_ptr tp = skip_typerefs(ptp->type);
+          a_type_ptr tp = skip_typerefs(ptp->declared_type);
           while (!result && is_array_type(tp)) {
             if (tp->variant.array.is_template_dependent_size_array) {
               result = TRUE;
