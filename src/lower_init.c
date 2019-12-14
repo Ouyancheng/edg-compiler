@@ -10355,7 +10355,7 @@ do_assignment:;
         lower_arg_expr_list(dip->variant.constructor.args, ctor_routine_type,
                             ctor_routine, param,
                             dip->variant.constructor.has_sequenced_arguments,
-			    /*eval_right_to_left=*/FALSE,
+                            /*eval_right_to_left=*/FALSE,
                             (an_expr_node_ptr)NULL, eff_insert_location);
 #if ABI_COMPATIBILITY_VERSION >= 233
         if (exceptions_enabled && (options & LDIO_THROW) &&
@@ -11549,7 +11549,7 @@ arrays with class elements.
                        "lower_array_new: placement new with null new_routine");
     lower_arg_expr_list(args, new_routine->type, new_routine,
                         (a_param_type_ptr)NULL, /*maintain_sequencing=*/FALSE,
-			/*eval_right_to_left=*/FALSE,
+                        /*eval_right_to_left=*/FALSE,
                         (an_expr_node_ptr)NULL, (an_insert_location *)NULL);
     size_node = args;
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
@@ -12239,7 +12239,7 @@ The subtree of the node has not yet been lowered.
                           ctor_routine->type, ctor_routine,
                           (a_param_type_ptr)NULL,
                           /*maintain_sequencing=*/FALSE,
-			  /*eval_right_to_left=*/FALSE,
+                          /*eval_right_to_left=*/FALSE,
                           (an_expr_node_ptr)NULL,
                           (an_insert_location *)NULL);
       end_implied_arg_list->next = dip->variant.constructor.args;
@@ -12264,7 +12264,7 @@ The subtree of the node has not yet been lowered.
        sequencing, that'll be handled later when the dip is lowered. */
     lower_arg_expr_list(ndsp->arg, ndsp->routine->type, ndsp->routine,
                         (a_param_type_ptr)NULL, /*maintain_sequencing=*/FALSE,
-			/*eval_right_to_left=*/FALSE, (an_expr_node_ptr)NULL,
+                        /*eval_right_to_left=*/FALSE, (an_expr_node_ptr)NULL,
                         (an_insert_location *)NULL);
     set_expr_creation_insert_location(&pre_call_insert_location);
     if (dip != NULL && is_incomplete_array_type(ndsp->type)) {

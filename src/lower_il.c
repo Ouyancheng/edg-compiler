@@ -10265,7 +10265,7 @@ right-to-left order rather than the typical left-to-right order.
 {
   an_expr_node_ptr expr;
 
-  /* Re-order the expression list if necessary. */
+  /* Reorder the expression list if necessary. */
   reverse_expr_list_if(eval_right_to_left, expr_list);
   for(expr = expr_list; expr != NULL; expr = expr->next) {
     /* Lower the expression on the list. */
@@ -10278,7 +10278,7 @@ right-to-left order rather than the typical left-to-right order.
     is_bool_controlling_expr_mask >>= 1;
     assume_expr_is_non_null_mask >>= 1;
   }  /* for */
-  /* Re-order the expression list if necessary. */
+  /* Reorder the expression list if necessary. */
   reverse_expr_list_if(eval_right_to_left, expr_list);
 }  /* lower_expr_list */
 
@@ -10503,7 +10503,7 @@ the call (and can be NULL in cases where maintain_sequencing is FALSE).
   an_expr_node_ptr              expr;
 
   check_assertion(!(maintain_sequencing && insert_location == NULL));
-  /* Re-order the expression list to match the order in which the expressions
+  /* Reorder the expression list to match the order in which the expressions
      should be evaluated (lowering them in that order is necessary so
      that any side-effects happen in the correct order). */
   reverse_expr_list_if(eval_right_to_left, expr_list);
@@ -10587,7 +10587,7 @@ the call (and can be NULL in cases where maintain_sequencing is FALSE).
       /* If the caller requests that argument sequencing be maintained
          (i.e., when an initializer list is used as arguments for a
          constructor call or evaluation of the argument may affect the value
-         of conflit_node), create a temporary for any argument that
+         of conflict_node), create a temporary for any argument that
          has side-effects and ensure that it is evaluated prior to the call,
          e.g., "A{i++, i++}" becomes: "t1 = i++; t2 = i++; A(t1, t2)". */
       a_variable_ptr   temp;
@@ -10599,7 +10599,7 @@ the call (and can be NULL in cases where maintain_sequencing is FALSE).
       overwrite_node(expr, var_rvalue_expr(temp));
     }  /* if */
   }  /* for */
-  /* Re-order the expression list if necessary. */
+  /* Reorder the expression list if necessary. */
   reverse_expr_list_if(eval_right_to_left, expr_list);
 }  /* lower_arg_expr_list */
 
@@ -12934,7 +12934,7 @@ detached from the IL tree; otherwise it is set to FALSE.
   /* Lower the rest of the arguments. */
   lower_arg_expr_list(arg_node, rout_type, routine, (a_param_type_ptr)NULL,
                       /*maintain_sequencing=*/strict_cpp17_eval_order,
-		      expr->variant.operation.eval_right_to_left,
+                      expr->variant.operation.eval_right_to_left,
                       this_node,
                       &insert_location);
   if (this_node != NULL) {
