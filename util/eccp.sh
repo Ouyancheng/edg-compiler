@@ -880,6 +880,7 @@ check_abbreviation()
 --no_pch_verbose
 --no_preproc_only
 --no_preserve_lvalues_with_same_type_casts
+--no_relaxed_abstract_checking
 --no_remove_unneeded_entities
 --no_restrict
 --no_rtti
@@ -951,6 +952,7 @@ check_abbreviation()
 --promote_warnings
 --purify
 --quantify
+--relaxed_abstract_checking
 --remarks
 --remove_instantiation_flags
 --remove_unneeded_entities
@@ -1631,6 +1633,8 @@ process_option()
          --no_aligned_new | \
          --char8_t | \
          --no_char8_t | \
+         --relaxed_abstract_checking | \
+         --no_relaxed_abstract_checking | \
          --force_vtbl)
 #     Options that require additional processing
       case $arg in
