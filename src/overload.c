@@ -25691,28 +25691,16 @@ found to be acceptable, and *conversion describes it.
                                     &local_conversion)) {
     an_operand orig_operand;
     orig_operand = *source_operand;
-    if (is_abstract_class_type(param_type)) {
-      /* The type is an abstract class type, so a parameter of the type
-         cannot be passed.  This is usually caught when the parameter
-         declaration is handled, but some modes allow such declarations
-         by with a warning. */
-      if (expr_error_should_be_issued()) {
-        abstract_class_diagnostic(es_error, ec_abstract_class_param_type,
-                                  param_type, &source_operand->position);
-      }  /* if */
-      conv_to_error_operand(source_operand);
-    } else {
-      /* Build an enk_temp_init node and a dynamic init entry that
-         will initialize the temporary.  The temporary's address is passed
-         to the called routine. */
-      determine_dynamic_init_for_class_init(source_operand, param_type,
-                                            conversion, (a_conv_descr *)NULL,
-                                            /*fill_in_dtor=*/TRUE,
-                                            /*check_elided_cctor=*/TRUE,
-                                            /*elision_done=*/(a_boolean *)NULL,
-                                            &dip, &temp_init_node);
-        make_glvalue_expression_operand(temp_init_node, source_operand);
-    }  /* if */
+    /* Build an enk_temp_init node and a dynamic init entry that
+       will initialize the temporary.  The temporary's address is passed
+       to the called routine. */
+    determine_dynamic_init_for_class_init(source_operand, param_type,
+                                          conversion, (a_conv_descr *)NULL,
+                                          /*fill_in_dtor=*/TRUE,
+                                          /*check_elided_cctor=*/TRUE,
+                                          /*elision_done=*/(a_boolean *)NULL,
+                                          &dip, &temp_init_node);
+    make_glvalue_expression_operand(temp_init_node, source_operand);
     restore_operand_details(source_operand, &orig_operand);
     rule_out_expr_kinds(ROEK_CONSTANT, source_operand);
   }  /* if */

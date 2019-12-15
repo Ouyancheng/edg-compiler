@@ -17801,6 +17801,7 @@ error cases.
                                                                     : pos;
     a_boolean          allow_incomplete_return_type =
                            expr_stack->allow_call_with_incomplete_return_type;
+    a_boolean          function_type_error = FALSE;
     
     if (allow_incomplete_return_type &&
         !expr_stack->template_deduction_context) {
@@ -17817,8 +17818,27 @@ error cases.
                                     /*is_expr_use=*/TRUE,
                                     curr_expr_is_evaluated(),
                                     allow_incomplete_return_type, rout)) {
-      /* There was some error in the return type.  A diagnostic was issued in
-         non-SFINAE contexts. */
+      function_type_error = TRUE;
+    }  /* if */
+    if (relaxed_abstract_checking) {
+      /* With relaxed abstract checking (P0929R2), parameter types are not
+         checked in non-defining function declarations, so they must be
+         checked in call expressions. */
+      a_param_type_ptr ptp;
+      for (ptp = function_type->variant.routine.extra_info->param_type_list;
+           ptp != NULL; ptp = ptp->next) {
+        if (is_abstract_class_type(ptp->type)) {
+          function_type_error = TRUE;
+          if (expr_error_should_be_issued()) {
+            abstract_class_diagnostic(es_error, ec_abstract_class_param_type,
+                                      ptp->type, diag_pos);
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+    if (function_type_error) {
+      /* There was some error in the return type or parameter types.  A
+         diagnostic was issued in non-SFINAE contexts. */
       call_node = error_node();
       if (expr_stack->suppress_diagnostics) {
         record_suppressed_error();
