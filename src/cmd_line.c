@@ -1573,6 +1573,12 @@ Initialize the option information table.
                          /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_char8_t, "no_char8_t", '\0', /*value=*/FALSE,
                          /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_relaxed_abstract_checking,
+                         "relaxed_abstract_checking", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_relaxed_abstract_checking,
+                         "no_relaxed_abstract_checking", '\0', /*value=*/FALSE,
+                         /*arg_required=*/FALSE, pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -2857,6 +2863,10 @@ option values if they were not already set by a command line option.
   if (ms_std_preproc) {
     pragma_operator_allowed = TRUE;
   }  /* if */
+  if (!option_kind_used[(int)optk_relaxed_abstract_checking]) {
+    /* Support for P0929R2 began in version 19.25. */
+    relaxed_abstract_checking = microsoft_version >= 1925;
+  }  /* if */
 }  /* set_microsoft_mode_flags */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3182,6 +3192,7 @@ process.
        scopes.  Microsoft C mode will override this. */
     func_prototype_tags_enabled = TRUE;
   }  /* if */
+  relaxed_abstract_checking = FALSE;
 }  /* set_c_mode_flags */
 
 
@@ -3371,6 +3382,9 @@ setting is used, and to set various unmentioned settings as needed.
 #endif /* DEFAULT_SUN_LINKER_SCOPE_ALLOWED && DEFAULT_SUN_COMPATIBILITY */
   }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
+  if (option_kind_used[(int)optk_relaxed_abstract_checking]) {
+    command_line_error(ec_cl_relaxed_abstract_checking_only_in_cplusplus);
+  }  /* if */
   set_c_mode_flags();
 }  /* check_and_set_c_mode_options */
 
@@ -3827,6 +3841,9 @@ setting is used, and to set various unmentioned settings as needed.
       command_line_error(ec_cl_func_prototype_tags_option_only_in_C);
     }  /* if */
     func_prototype_tags_enabled = FALSE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_relaxed_abstract_checking]) {
+    relaxed_abstract_checking = TRUE;
   }  /* if */
 }  /* check_and_set_cplusplus_mode_options */
 
@@ -5040,6 +5057,10 @@ before this routine is called.
       /* g++ allows specializations to use inaccessible members. */
       relaxed_specialization_access_checking = TRUE;
     }  /* if */
+  }  /* if */
+  if (!option_kind_used[(int)optk_relaxed_abstract_checking]) {
+    /* g++ (9.2) and clang (9.0) do not yet implement P0929R2. */
+    relaxed_abstract_checking = FALSE;
   }  /* if */
 }  /* check_and_set_gpp_mode_options */
 
@@ -10670,6 +10691,9 @@ enable_microsoft_mode:
       case optk_char8_t:
         char8_t_enabled = opt_value;
         break;
+      case optk_relaxed_abstract_checking:
+        relaxed_abstract_checking = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -12079,6 +12103,7 @@ variables declared in cmd_line.h.
   va_opt_enabled = FALSE;
   char8_t_enabled = FALSE;
   init_statement_allowed_in_range_based_for = FALSE;
+  relaxed_abstract_checking = FALSE;
 }  /* cmd_line_static_var_init */
 
 

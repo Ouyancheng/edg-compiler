@@ -9114,11 +9114,13 @@ diagnostic if the parameter type is an abstract class.
               if (level > 1) sev = es_warning;
             }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-            if (err_pos->seq == 0) {
+            if (err_pos->seq == 0 || relaxed_abstract_checking) {
               /* A null error position indicates a parameter type for which
                  there is no corresponding source position -- e.g., a type
                  is being copied for some reason.  Issue no diagnostic in
-                 such cases. */
+                 such cases or when relaxed abstract checking (P0929R2) is
+                 in effect (in the latter case, the parameter type will be
+                 checked when the function is defined or called). */
             } else {
               abstract_class_diagnostic(sev, ec_abstract_class_param_type,
                                         param_type, err_pos);
@@ -23288,15 +23290,15 @@ the case if the return type was incomplete at the point of definition.
            for abstract classes.  Also note that this logic assumes that
            value_returned_by_cctor will never be set elsewhere. */
         if (return_type->variant.class_struct_union.abstract) {
-          if (err_pos->seq == 0 || gpp_mode) {
+          if (err_pos->seq == 0 || relaxed_abstract_checking) {
             /* A null error position indicates a routine type for which
                there is no corresponding source position -- e.g., a type
                is being copied for some reason.  Issue no diagnostic in
                such cases. */
-            /* GNU C++ compilers only check for abstract class return types
-               on function definitions.  We don't know at this point whether
-               we're dealing with a definition.  So a separate test will be
-               performed when parsing the definition. */
+            /* If relaxed abstract checking (P0929R2) checking is in effect,
+               we only diagnose abstract class return types when the
+               function is defined or called, not, as here, when it is
+               merely declared. */
           } else {
             abstract_class_diagnostic(
                                es_error, ec_function_returning_abstract_class,

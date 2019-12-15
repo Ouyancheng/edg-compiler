@@ -1,5 +1,34 @@
 Version 6.1
 
+12/14/19 [EDGcpfe/20032,EDGcpfe/21890]
+C++20: relaxed checking for abstract class types
+
+Because there can be no objects of an abstract class type (i.e., a class
+with one or more pure virtual member functions), an abstract class type
+cannot be used as a a function return type or parameter type.  C++
+Committee document P0929R2 changed the contexts in which this restriction
+is enforced.  Previously, it was ill-formed to declare such a function; the
+new rules specify that a function's return and parameter types are checked
+for abstractness only when the function is defined or called.  Because the
+paper was adopted as a defect report, the new rules apply to C++17 and
+earlier versions, not just in C++20.
+
+The front end has now been changed to apply the new rules for all standard
+versions in both strict and default modes, as well as in Microsoft mode
+when microsoft_version is at least 1925.  The most recent versions of g++
+and clang do not yet implement this rule, so the earlier rules are still
+enforced for all GNU and clang version emulations.  The default behavior can
+be overridden using the new --[no_]relaxed_abstract_checking command-line
+option.  For example, with --relaxed_abstract_checking:
+
+  struct A { virtual void f() = 0; };
+  A f0(A);     // Previously an error for return and parameter, now okay
+  A f1(A a) {  // Previously and still an error for return and parameter
+    f0(a);     // Now an error for return and parameter
+    return a;
+  }
+
+
 12/14/19 [EDGcpfe/22123]
 C++-generating back end: segfault for trivial destructor call via local typedef
 

@@ -333,6 +333,7 @@ typedef enum /*an_option_kind*/ {
   optk_cpp20_mode,
   optk_ms_std_preproc,
   optk_char8_t,
+  optk_relaxed_abstract_checking,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -2528,6 +2529,15 @@ EXTERN a_boolean
 		init_statement_allowed_in_range_based_for;
 			/* TRUE if the range-based for statement can have
 			   an optional init-statement (C++20). */
+
+EXTERN a_boolean
+		relaxed_abstract_checking;
+			/* TRUE if function parameters and return types are
+			   only checked for abstract class types when the
+			   function is defined or called, not when it is
+			   merely declared.  This behavior corresponds to
+			   the change introduced as a defect report by C++
+			   Committee document P0929R2. */
 
 
 /* Process the command line arguments. */

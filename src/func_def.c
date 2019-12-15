@@ -498,6 +498,18 @@ NULL.
              is actually issued. */
           err = TRUE;
         }  /* if */
+      } else if (relaxed_abstract_checking &&
+                 is_immediate_class_type(return_type) &&
+                 return_type->variant.class_struct_union.abstract) {
+        /* In relaxed abstract checking (P0929R2) mode, we do not check
+           for abstract return types on non-defining declarations, so we
+           must do so on calls. */
+        if (diag_pos != NULL) {
+          abstract_class_diagnostic(
+                             es_error, ec_function_returning_abstract_class,
+                             orig_return_type, diag_pos);
+        }  /* if */
+        err = TRUE;
       }  /* if */
     } else {
       /* Declaration case. */
@@ -505,11 +517,13 @@ NULL.
            !is_array_type(return_type)) ||
           is_any_reference_type(return_type)) {
         /* err = FALSE; */
-        if (gpp_mode && is_immediate_class_type(return_type) &&
+        if (relaxed_abstract_checking &&
+            is_immediate_class_type(return_type) &&
             return_type->variant.class_struct_union.abstract) {
-          /* In GNU C++ mode, we only check for abstract return types on
-             function definitions.  In other C++ modes, this is done whenever
-             a function type is created. */
+          /* In relaxed abstract checking (P0929R2) mode, we only check for
+             abstract return types on function definitions and calls.  In
+             other C++ modes, this is done whenever a function type is
+             created and thus should not be repeated here. */
           if (diag_pos != NULL) {
             abstract_class_diagnostic(
                                es_error, ec_function_returning_abstract_class,
@@ -2884,6 +2898,19 @@ member declaration (allowed in Microsoft mode only).
     /* Create the symbol entry and routine entry for the routine. */
     decl_routine(locator, dps, func_info, (SRK_DECLARATION | SRK_DEFINITION),
                  &linkage, &old_type, &ext_sym, decl_pos_block);
+  }  /* if */
+  if (relaxed_abstract_checking && !func_info->is_deleted) {
+    /* With relaxed abstract checking (P0929R2), parameter types are only
+       checked in definitions and calls, not in non-defining declarations. */
+    for (param_id = func_info->param_id_list; param_id != NULL;
+         param_id = param_id->next) {
+      a_type_ptr tp = skip_typerefs(param_id->type);
+      if (is_immediate_class_type(tp) &&
+          tp->variant.class_struct_union.abstract) {
+        abstract_class_diagnostic(es_error, ec_abstract_class_param_type,
+                                  param_id->type, &param_id->type_pos);
+      }  /* if */
+    }  /* for */
   }  /* if */
   routine_ptr = dps->sym->variant.routine.ptr;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
