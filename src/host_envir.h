@@ -618,7 +618,7 @@ the macro to FALSE, since the corresponding behavior is no longer supported.
 */
 #ifdef ALL_TEMPLATE_INFO_IN_IL
 #if !ALL_TEMPLATE_INFO_IN_IL
- #error PROTOTYPE_INSTANTIATIONS_IN_IL can no longer be set to FALSE
+ #error ALL_TEMPLATE_INFO_IN_IL can no longer be set to FALSE
 #endif /* !ALL_TEMPLATE_INFO_IN_IL */
 #endif /* ifdef ALL_TEMPLATE_INFO_IN_IL */
 
