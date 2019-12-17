@@ -503,6 +503,11 @@ selected by default or via command-line options.
 #define DEFAULT_CLANG_COMPATIBILITY FALSE
 #endif /* ifndef DEFAULT_CLANG_COMPATIBILITY */
 
+#if DEFAULT_CLANG_COMPATIBILITY && !GNU_EXTENSIONS_ALLOWED
+ #error -- GNU_EXTENSIONS_ALLOWED must be TRUE if DEFAULT_CLANG_COMPATIBILITY \
+           is TRUE
+#endif /* DEFAULT_CLANG_COMPATIBILITY && !GNU_EXTENSIONS_ALLOWED */
+
 /*
 The configuration macros GCC_VERSION and GCC_MINOR_VERSION are now obsolete.
 If they were defined, the newer macro DEFAULT_GNU_VERSION should not also be
