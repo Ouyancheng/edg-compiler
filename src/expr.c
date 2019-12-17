@@ -1925,7 +1925,8 @@ constructs, in which case offsetof_case is TRUE.
           is_operation_node(operand_2.variant.expression) &&
           node_operator_is(operand_2.variant.expression, eok_comma) &&
           !operand_2.variant.expression->is_parenthesized) {
-        an_error_severity sev = cpp20_mode ? es_warning : es_remark;
+        an_error_severity sev = (cpp20_mode || ms_version_is(>=1925)) ?
+                                                        es_warning : es_remark;
         expr_pos_diagnostic(sev,
                             ec_comma_operator_in_array_subscript_deprecated,
                             &operand_2.position);

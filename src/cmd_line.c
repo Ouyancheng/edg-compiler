@@ -2786,6 +2786,7 @@ option values if they were not already set by a command line option.
         /* Visual Studio 2019 version 16.5. */
         if (ms_cpp20_mode) {
           init_statement_allowed_in_range_based_for = TRUE;
+          constexpr_try_enabled = TRUE;
         }  /* if */
       }  /* if */
     } else {

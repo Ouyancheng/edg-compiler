@@ -1,5 +1,15 @@
 Version 6.1
 
+12/17/19 [EDGcpfe/22104,EDGcpfe/22105,EDGcpfe/22106]
+Microsoft compatibility: Enabling C++20 features
+
+Changes have been made to enable some C++20 features in Microsoft emulation
+mode when microsoft_version >= 1925.  Those features correspond to committee
+papers P1161R3, P1002R1, and P0595R2 which correspond to EDGcpfe/21580,
+EDGcpfe/20645, and EDGcpfe/20647 respectively.  See their descriptions earlier
+in the Changes file for more information.
+
+
 12/14/19 [EDGcpfe/20032,EDGcpfe/21890]
 C++20: relaxed checking for abstract class types
 
