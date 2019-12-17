@@ -24367,11 +24367,8 @@ depends on a another template parameter.
     add_to_templates_list(templ_ptr, depth_scope_stack);
   }  /* if */
   templ_ptr->kind = (a_template_kind)templk_template_template_param;
-  if (all_template_info_in_il) {
-    /* Keep a record of the parameterization structure.  (Needed, e.g., in the
-       C++-generating back end.) */
-    templ_ptr->template_decl = local_decl_state.template_decl;
-  }  /* if */
+  /* Keep a record of the parameterization structure in the IL. */
+  templ_ptr->template_decl = local_decl_state.template_decl;
   if (!is_named) {
     /* Reset the name in the source correspondence entry.  An unnamed
        parameter is represented by NULL, not "<unnamed>" as indicated
@@ -27825,9 +27822,7 @@ information).  See the definition of a_tmpl_decl_state for details.
         /* Record that a template parameter list has been seen.  A
            subsequent missing parameter list is an error. */
         param_list_seen = TRUE;
-        if (all_template_info_in_il) {
-          create_template_decl(decl_state, &template_pos);
-        }  /* if */
+        create_template_decl(decl_state, &template_pos);
       } else if (is_template_param || decl_state->is_generic) {
         /* A template or generic parameter declaration with a missing template
            parameter list. */
@@ -27847,9 +27842,7 @@ information).  See the definition of a_tmpl_decl_state for details.
         }  /* if */
         /* Bypass the ">". */
         (void)get_token();
-        if (all_template_info_in_il) {
-          create_template_decl(decl_state, &template_pos);
-        }  /* if */
+        create_template_decl(decl_state, &template_pos);
       }  /* if */
     } else {
       pos_error(ec_missing_template_param_list, &error_position);
@@ -31017,9 +31010,9 @@ See scan_generic_constraint_clauses for syntax details.
     param_type->variant.template_param.extra_info->
                                   generic_constraints = constraint_item_list;
   }  /* if */
-  /* If a valid type was specified and prototype instantiations are recorded
-     in the IL, create an IL entry representing the clause. */
-  if (all_template_info_in_il && param_type != NULL) {
+  /* If a valid type was specified, create an IL entry representing the
+     clause. */
+  if (param_type != NULL) {
     il_entry = alloc_generic_constraint_clause();
     /* Copy the entry constructed above. */
     *il_entry = gcc;
@@ -31414,10 +31407,8 @@ to TRUE.
     }  /* if */
     tpp->param_symbol->is_invisible = FALSE;
   }  /* for */
-  if (all_template_info_in_il) {
-    /* Fill in the information in the IL template declaration structures. */
-    complete_template_decl(decl_info->template_decl, decl_info->parameters);
-  }  /* if */
+  /* Fill in the information in the IL template declaration structures. */
+  complete_template_decl(decl_info->template_decl, decl_info->parameters);
 }  /* update_param_depth_and_default_args */
 
 
@@ -31790,9 +31781,7 @@ update *templ_state accordingly.  Then scan the template parameter list.
   scan_template_param_list(templ_state);
   templ_state->decl_info->declaration_scope =
                                          scope_stack[decl_scope_level].number;
-  if (all_template_info_in_il) {
-    create_template_decl(templ_state, &pos);
-  }  /* if */
+  create_template_decl(templ_state, &pos);
   templ_state->last_token_sequence_number_of_params =
                                                    curr_token_sequence_number;
   extract_template_parameter_cache(templ_state);
@@ -31873,15 +31862,11 @@ parameters described by dps->auto_params.  Update *templ_state accordingly.
     end_template_param_list = template_param;
   }  /* if */
   template_decl_info->declaration_scope = scope_stack_top().number;
-  if (all_template_info_in_il) {
-    create_template_decl(templ_state, &null_source_position);
-  }  /* if */
+  create_template_decl(templ_state, &null_source_position);
   /* Cache the declarator part of the lambda. */
   cache_template_declaration(templ_state);
-  if (all_template_info_in_il) {
-    complete_template_decl(template_decl_info->template_decl,
-                           template_decl_info->parameters);
-  }  /* if */
+  complete_template_decl(template_decl_info->template_decl,
+                         template_decl_info->parameters);
 }  /* set_up_generic_lambda_declarator_scan */
 
 
@@ -38528,6 +38513,7 @@ the function template, and decl_state tracks its declaration.
 {
   a_template_symbol_supplement_ptr  tssp;
   a_def_arg_expr_fixup_ptr          saved_curr_default_args;
+  a_template_decl_info_ptr          tdip;
 
   check_assertion(symbol_is(sym, sk_function_template));
   tssp = sym->variant.template_info;
@@ -38540,13 +38526,10 @@ the function template, and decl_state tracks its declaration.
   }  /* if */
   complete_function_template_decl(decl_state, sym, func_info, &tssp,
                                   &sym->decl_position);
-  if (all_template_info_in_il) {
-    a_template_decl_info_ptr tdip;
-    create_template_decl(decl_state, &null_source_position);
-    tdip = decl_state->decl_info;
-    complete_template_decl(tdip->template_decl, tdip->parameters);
-    decl_state->il_template_entry->template_decl = decl_state->template_decl;
-  }  /* if */
+  create_template_decl(decl_state, &null_source_position);
+  tdip = decl_state->decl_info;
+  complete_template_decl(tdip->template_decl, tdip->parameters);
+  decl_state->il_template_entry->template_decl = decl_state->template_decl;
   complete_il_template_entry(decl_state, sym);
   curr_default_args = saved_curr_default_args;
 #if RECORD_TEMPLATE_STRINGS

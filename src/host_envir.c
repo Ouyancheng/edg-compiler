@@ -5855,11 +5855,6 @@ This is done before command line processing.
   end_assembly_search_path = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   prototype_instantiations_in_il = PROTOTYPE_INSTANTIATIONS_IN_IL;
-#if DO_IL_LOWERING
-   all_template_info_in_il = prototype_instantiations_in_il;
-#else /* !DO_IL_LOWERING */
-  all_template_info_in_il = ALL_TEMPLATE_INFO_IN_IL;
-#endif /* DO_IL_LOWERING */
   in_front_end = FALSE;
   pragma_define_type_info_is_required = PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED;
   use_predefined_macro_file = DEFAULT_USE_PREDEFINED_MACRO_FILE;
