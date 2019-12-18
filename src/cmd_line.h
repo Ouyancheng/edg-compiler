@@ -1401,6 +1401,10 @@ EXTERN a_boolean
 			   destructor is not available. */
 
 EXTERN a_boolean
+		modules_enabled;
+			/* TRUE if modules should be enabled. */
+
+EXTERN a_boolean
 		local_types_as_template_args_enabled;
 			/* TRUE if local and unnamed types are allowed as
 			   template arguments. */

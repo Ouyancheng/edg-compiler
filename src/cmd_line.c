@@ -3644,6 +3644,15 @@ default mode (e.g., exception handling).
         }  /* if */
         destroying_operator_delete_enabled = TRUE;
         concepts_enabled = TRUE;
+        modules_enabled = TRUE;
+        export_keyword_enabled = FALSE;
+        if (export_template_allowed) {
+          /* This should not be enabled unless someone explicitly enabled it
+             via the command line. */
+          check_assertion(option_kind_used[(int)optk_export_template]);
+          command_line_error(
+                       ec_cl_export_template_option_incompatible_with_modules);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -12116,6 +12125,7 @@ variables declared in cmd_line.h.
   char8_t_enabled = FALSE;
   init_statement_allowed_in_range_based_for = FALSE;
   relaxed_abstract_checking = FALSE;
+  modules_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 

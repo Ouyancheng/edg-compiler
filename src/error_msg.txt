@@ -3141,6 +3141,7 @@ ec_is_constant_evaluated_in_constant_expression;;"call to %s appearing in a cons
 ec_is_constant_evaluated_in_consteval_context;;"call to %s appearing in a consteval context always produces \"true\""
 ec_is_constant_evaluated_in_nonconstexpr_context;;"call to %s appearing in a non-constexpr function always produces \"false\""
 ec_type_constraint_failed;;"type constraint failed for %t"
+ec_cl_export_template_option_incompatible_with_modules;;"option \"export\" cannot be used in modes where C++ modules are enabled"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
