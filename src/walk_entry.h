@@ -2613,6 +2613,10 @@ do_set_proper_definition_needed_flag:
       case iek_generic_constraint:
         {
 #define eptr ((a_generic_constraint_ptr)entry_ptr)
+          /* Walk the next pointer because the constraint clause is not in
+             the IL if all_template_info_in_il is not set. */
+          walk_ptr(eptr->next, a_generic_constraint_ptr,
+                   iek_generic_constraint);
           remap_ptr(eptr->type, a_type_ptr, iek_type);
 #undef eptr
         }
@@ -2620,9 +2624,11 @@ do_set_proper_definition_needed_flag:
       case iek_generic_constraint_clause:
         {
 #define eptr ((a_generic_constraint_clause_ptr)entry_ptr)
+          /* The next pointer is handled by the walk_list for the
+             a_template_decl entry. */
           remap_ptr(eptr->type, a_type_ptr, iek_type);
-          walk_list(eptr->constraints, a_generic_constraint_ptr,
-                    iek_generic_constraint);
+          walk_ptr(eptr->constraints, a_generic_constraint_ptr,
+                   iek_generic_constraint);
 #undef eptr
         }
         break;
@@ -3337,8 +3343,13 @@ after_entry_from_class:
         remap_ptr(eptr->orig_nested_type, a_type_ptr, iek_type);
         conditionally_clear_fe_pointer(eptr->template_symbol);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        remap_ptr(eptr->generic_constraints, a_generic_constraint_ptr,
-                  iek_generic_constraint);
+        if (all_template_info_in_il) {
+          remap_ptr(eptr->generic_constraints, a_generic_constraint_ptr,
+                    iek_generic_constraint);
+        } else {
+          walk_ptr(eptr->generic_constraints, a_generic_constraint_ptr,
+                   iek_generic_constraint);
+        }  /*if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         conditionally_clear_fe_pointer(eptr->class_template_symbol);
 #undef eptr
