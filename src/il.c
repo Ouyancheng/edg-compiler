@@ -23290,15 +23290,22 @@ the case if the return type was incomplete at the point of definition.
            for abstract classes.  Also note that this logic assumes that
            value_returned_by_cctor will never be set elsewhere. */
         if (return_type->variant.class_struct_union.abstract) {
-          if (err_pos->seq == 0 || relaxed_abstract_checking) {
+          if (err_pos->seq == 0 || relaxed_abstract_checking ||
+              gpp_version_is(<50000) || clang_mode) {
             /* A null error position indicates a routine type for which
-               there is no corresponding source position -- e.g., a type
-               is being copied for some reason.  Issue no diagnostic in
-               such cases. */
-            /* If relaxed abstract checking (P0929R2) checking is in effect,
-               we only diagnose abstract class return types when the
-               function is defined or called, not, as here, when it is
-               merely declared. */
+               there is no corresponding source position -- e.g., a type is
+               being copied for some reason.  Issue no diagnostic in such
+               cases.  If relaxed abstract checking (P0929R2) checking is
+               in effect, we only diagnose abstract class return types when
+               the function is defined or called, not, as here, when it is
+               merely declared.  Early versions of g++ did not check for
+               abstract return types at all.  Clang does not check for
+               abstract return types on member functions, including static
+               member functions, although it does do so for nonmember
+               functions.  We cannot tell here whether a function type is
+               from a static member function or a nonmember function, so we
+               defer the check in clang mode to
+               scan_nonmember_declaration. */
           } else {
             abstract_class_diagnostic(
                                es_error, ec_function_returning_abstract_class,

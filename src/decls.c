@@ -20006,6 +20006,25 @@ parameters are scanned by scan_a_template_parameter_declaration.
                                                 (a_storage_class)sc_typedef &&
                    !is_old_style_param_decl &&
                    is_function_type(dps->type));
+    if (is_function && clang_mode) {
+      /* In most modes, checking for an abstract class return type is done
+         when the function type is validated.  Clang, however, only reports
+         abstract class return types for nonmember functions.  In
+         particular, it does not report an error for a static member
+         function with an abstract return type.  The code responsible for
+         overall function type validation, however, only has access to the
+         function type, not the full a_routine entry, and thus cannot
+         distinguish between a static member function and a nonmember
+         function.  Consequently, checking for an abstract class return
+         type must be done here. */
+      a_type_ptr ret_type =
+                         skip_typerefs(dps->type)->variant.routine.return_type;
+      if (is_abstract_class_type(ret_type)) {
+        abstract_class_diagnostic(es_error,
+                                  ec_function_returning_abstract_class,
+                                  ret_type, &dps->declarator_pos);
+      }  /* if */
+    }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     scan_gnu_asm_name(dps);
     scan_gnu_declarator_attributes(dps);

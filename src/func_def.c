@@ -498,12 +498,12 @@ NULL.
              is actually issued. */
           err = TRUE;
         }  /* if */
-      } else if (relaxed_abstract_checking &&
+      } else if ((relaxed_abstract_checking || gpp_version_is(< 50000)) &&
                  is_immediate_class_type(return_type) &&
                  return_type->variant.class_struct_union.abstract) {
-        /* In relaxed abstract checking (P0929R2) mode, we do not check
-           for abstract return types on non-defining declarations, so we
-           must do so on calls. */
+        /* In relaxed abstract checking (P0929R2) mode, as well as in older
+           g++ modes, we do not check for abstract return types on
+           non-defining declarations, so we must do so on calls. */
         if (diag_pos != NULL) {
           abstract_class_diagnostic(
                              es_error, ec_function_returning_abstract_class,

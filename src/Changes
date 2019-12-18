@@ -35,15 +35,22 @@ earlier versions, not just in C++20.
 
 The front end has now been changed to apply the new rules for all standard
 versions in both strict and default modes, as well as in Microsoft mode
-when microsoft_version is at least 1925.  The most recent versions of g++
-and clang do not yet implement this rule, so the earlier rules are still
-enforced for all GNU and clang version emulations.  The default behavior can
-be overridden using the new --[no_]relaxed_abstract_checking command-line
-option.  For example, with --relaxed_abstract_checking:
+when microsoft_version is at least 1925.  In addition, the front end's
+behavior in g++ and clang modes has been updated to reflect that of those
+compilers more closely.  In particular, the front end previously did not
+check function return types for abstractness in g++ mode, but g++ began
+doing so in versions 5.x and later.  Clang only checks return types for
+abstractness for nonmember functions.  The front end now follows suit in
+both g++ and clang modes.  (Neither of those compilers yet implements the
+new rules.)
+
+The default behavior can be overridden using the new
+--[no_]relaxed_abstract_checking command-line option.  For example, with
+--relaxed_abstract_checking:
 
   struct A { virtual void f() = 0; };
   A f0(A);     // Previously an error for return and parameter, now okay
-  A f1(A a) {  // Previously and still an error for return and parameter
+  A f1(A a) {  // Previously and still an error for return and parameter types
     f0(a);     // Now an error for return and parameter
     return a;
   }
