@@ -1,15 +1,5 @@
 Version 6.1
 
-12/17/19 [EDGcpfe/22128]
-ALL_TEMPLATE_INFO_IN_IL removed
-
-The configuration macro ALL_TEMPLATE_INFO_IN_IL (see the changes of 1/3/16 for
-EDGcpfe/15902 etc.) has been removed and the front end now always behaves as if
-the macro were TRUE.  Configurations that set the macro to FALSE will now fail
-to build (to avoid a silent change in the IL produced).  The corresponding
-global variable all_template_info_in_il has also been removed.
-
-
 12/17/19 [EDGcpfe/22104,EDGcpfe/22105,EDGcpfe/22106]
 Microsoft compatibility: Enabling C++20 features
 
