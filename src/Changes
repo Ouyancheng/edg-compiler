@@ -15,9 +15,9 @@ C++20: relaxed checking for abstract class types
 
 Because there can be no objects of an abstract class type (i.e., a class
 with one or more pure virtual member functions), an abstract class type
-cannot be used as a a function return type or parameter type.  C++
-Committee document P0929R2 changed the contexts in which this restriction
-is enforced.  Previously, it was ill-formed to declare such a function; the
+cannot be used as a function return type or parameter type.  C++ Committee
+document P0929R2 changed the contexts in which this restriction is
+enforced.  Previously, it was ill-formed to declare such a function; the
 new rules specify that a function's return and parameter types are checked
 for abstractness only when the function is defined or called.  Because the
 paper was adopted as a defect report, the new rules apply to C++17 and
