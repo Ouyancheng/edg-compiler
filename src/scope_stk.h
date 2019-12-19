@@ -1004,6 +1004,9 @@ typedef struct a_scope_stack_entry {
   a_bit_field	is_rescan:1;
 			/* TRUE if the scope being pushed is an instantiation
 			   scope for template rescan purposes. */
+  a_bit_field	error_detected:1;
+			/* TRUE in some cases where is_rescan is TRUE and an
+			   error was suppressed. */
   a_bit_field	rescan_depth_exceeded:1;
 			/* TRUE for a chain of instantiation scopes for which
 			   is_rescan is TRUE and for which excessive recursion

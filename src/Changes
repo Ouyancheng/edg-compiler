@@ -1,5 +1,30 @@
 Version 6.1
 
+12/19/19 [EDGcpfe/18516,EDGcpfe/21398]
+Microsoft C++ compatibility: SFINAE and default template arguments
+
+Consider:
+
+  void g();
+  template<typename T> struct S { 
+    template<typename = decltype(g(T{}))> int f(int);
+    int f(double);
+  };
+  int r = S<int>{}.f(42);  // Previously always an error.
+                           // Now okay in Microsoft bugs mode.
+
+This example is invalid, because when S<int> is instantiated (for the
+sub-expression "S<int>{}"), the substitution of the default template argument
+"decltype(g(T{}))" is invalid since g() doesn't accept an argument.  Note that
+this is not a SFINAE error because the error occurs during a class template
+instantiation and not during the deduction process.  The Microsoft compiler,
+however, has a bug that causes it to essentially treat that failure as a
+deduction failure (the substitution is delayed until the call to S<int>::f,
+and in that context it is treated as a SFINAE error).  In Microsoft bugs mode,
+the front end now emulates this in some situations (specifically, in decltype
+constructs appearing in default template arguments).
+
+
 12/18/19 [EDGcpfe/22011,EDGcpfe/22134]
 C++20: Allow defaulting comparisons by value
 

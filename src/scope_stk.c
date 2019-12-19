@@ -2850,6 +2850,7 @@ the scope being pushed.
     }  /* if */
   }  /* if */
   ssep->is_rescan = (options & PS_IS_RESCAN) != 0;
+  ssep->error_detected = FALSE;
   ssep->is_reactivation          = (options & PS_IS_REACTIVATION) != 0;
   ssep->il_scope                 = sp;
   ssep->assoc_type               = assoc_type;

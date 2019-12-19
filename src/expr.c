@@ -14674,10 +14674,16 @@ name.  We do not advance to the token after the decltype in this case.
   saved_in_decltype_context = scope_stack_top().in_decltype_context;
   saved_suppress_diagnostics = expr_stack->suppress_diagnostics;
   scope_stack_top().in_decltype_context = TRUE;
-  if (scope_stack_top().in_auto_prescan) {
+  if (scope_stack_top().in_auto_prescan || scope_stack_top().is_rescan) {
     /* During the prescan of what could be a generic lambda declarator,
-       suppress diagnostics because some constructs (such as references
-       to earlier parameters) cannot be properly processed yet. */
+       suppress diagnostics because some constructs (such as references to
+       earlier parameters) cannot be properly processed yet.  Similarly,
+       suppress diagnostics if we're in a rescan context.  The latter is
+       usually not needed here because in most cases, rcblock will be non-NULL
+       and this will be taken care of by make_rescan_operand below.  However,
+       in Microsoft bugs mode default template arguments are sometimes
+       rescanned from tokens with scope_stack_top().is_rescan set to TRUE (see
+       rescan_template_type_default_arg). */
     expr_stack->suppress_diagnostics = TRUE;
   }  /* if */
   if (rcblock != NULL) {
@@ -14716,6 +14722,9 @@ name.  We do not advance to the token after the decltype in this case.
     /* We'll just return the error type. */
     /* The expression is discarded. */
     expr_stack->unevaluated_expr_will_be_kept_in_il = FALSE;
+    if (scope_stack_top().is_rescan) {
+      scope_stack_top().error_detected = TRUE;
+    }  /* if */
   } else if (rcblock != NULL &&
              (rcblock->options & (CTWS_PRESERVE_DEDUCED_PACKS |
                                   CTWS_PARTIAL_ARG_LIST_OKAY |

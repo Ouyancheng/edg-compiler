@@ -25018,6 +25018,9 @@ existing type is simply used.
            instantiation. */
         ps_options |= PS_NONREAL_INSTANTIATION | PS_DEDUCTION_CONTEXT;
       }  /* if */
+      if (microsoft_bugs && scope_stack_top().is_rescan) {
+        ps_options |= PS_IS_RESCAN;
+      }  /* if */
       /* Push the template instantiation scope.  Note that the instance symbol
          passed to push_scope is NULL because we don't yet know which instance
          is being instantiated.  Also note that a class type is not being
@@ -25037,6 +25040,10 @@ existing type is simply used.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       rescan_reusable_cache(&tcp->tokens);
       tp = delayed_scan_of_template_default_type_arg();
+      if (microsoft_bugs &&
+          scope_stack_top().is_rescan && scope_stack_top().error_detected) {
+        tp = NULL;
+      }  /* if */
       error_position = saved_error_position;
       pos_curr_token = saved_pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -25167,11 +25174,16 @@ the template parameter list of which tpp is an element.
   if (arg_list != NULL) {
     switch (tpp->param_symbol->kind) {
       case sk_type:
-        tpp->default_arg.type = rescan_template_type_default_arg(
-                                                  template_sym, tpp, arg_list);
-        /* Determine whether the default depends on a template parameter. */
-        tpp->def_arg_involves_template_param =
-                        is_instantiation_dependent_type(tpp->default_arg.type);
+        { a_type_ptr  tp = rescan_template_type_default_arg(
+                                                 template_sym, tpp, arg_list);
+          if (tp != NULL) {
+            tpp->default_arg.type = tp;
+            /* Determine whether the default depends on a template
+               parameter. */
+            tpp->def_arg_involves_template_param =
+                                          is_instantiation_dependent_type(tp);
+          }  /* if */
+        }
         break;
       case sk_constant:
         { a_constant_ptr	cp;
