@@ -13360,34 +13360,22 @@ the position of the "= default" construct.
     a_type_ptr        rtp = skip_typerefs(rp->type);
     a_type_ptr        class_type = scope_stack_top().assoc_type;
     a_param_type_ptr  ptp = function_type_params(rtp);
-    a_boolean         is_member =
-                           rtp->variant.routine.extra_info->this_class != NULL;
-    if (is_member && rtp->variant.routine.extra_info->qualifiers != TQ_CONST) {
+    if (rtp->variant.routine.extra_info->this_class != NULL &&
+        rtp->variant.routine.extra_info->qualifiers != TQ_CONST) {
       pos_error(ec_nonconst_defaulted_member_comparison, def_pos);
       err = TRUE;
     }  /* if */
-    check_assertion(ptp != NULL &&
-                    ((is_member && ptp->next == NULL) ||
-                     (!is_member && ptp->next != NULL &&
-                                                    ptp->next->next == NULL)));
-    if (!is_member && identical_types(ptp->type, ptp->next->type) &&
-        identical_types(class_type, ptp->type)) {
-      /* A defaulted friend comparison operator can have two parameters of
-         the type of the containing class.  Otherwise, each parameter must
-         be a reference to the const-qualified containing class. */
-    } else {
-      for (; ptp != NULL; ptp = ptp->next) {
-        a_type_ptr  utp;
-        if (!may_be_lvalue_ref_to_const_type(ptp->type, &utp) ||
-            !(identical_types(class_type, utp) ||
-              could_be_dependent_class_type(utp))) {
-          pos_ty_error(ec_bad_param_type_for_defaulted_comparison, def_pos,
-                       ptp->type);
-          err = TRUE;
-          break;
-        }  /* if */
-      }  /* for */
-    }  /* if */
+    for (; ptp != NULL; ptp = ptp->next) {
+      a_type_ptr  utp;
+      if (!may_be_lvalue_ref_to_const_type(ptp->type, &utp) ||
+          !(identical_types(class_type, utp) ||
+            could_be_dependent_class_type(utp))) {
+        pos_ty_error(ec_bad_param_type_for_defaulted_comparison, def_pos,
+                     ptp->type);
+        err = TRUE;
+        break;
+      }  /* if */
+    }  /* while */
     if (opname_kind_is(rp, onk_spaceship)) {
       a_type_ptr  auto_tp = skip_typerefs(rtp->variant.routine.return_type);
       a_class_def_state 
