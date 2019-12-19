@@ -1287,6 +1287,8 @@ do_variable:
       break;
     case sk_namespace_projection:
       break;
+    case sk_module:
+      break;
 #if NAMED_ADDRESS_SPACES_ALLOWED
     case sk_named_address_space:
       fprintf(f_debug, " (id = %d)", (int)sym->variant.named_address_space.id);
@@ -4025,6 +4027,10 @@ state.
       break;
     case sk_namespace_projection:
       sym_ptr->variant.namespace_projection.fundamental_symbol = NULL;
+      break;
+    case sk_module:
+      sym_ptr->variant.module_info.primary_name = NULL;
+      sym_ptr->variant.module_info.partition_name = NULL;
       break;
 #if NAMED_ADDRESS_SPACES_ALLOWED
     case sk_named_address_space:
@@ -7749,6 +7755,96 @@ into the symbol table.  Each unnamed symbol is given a unique symbol header.
   sym->decl_scope = scope_stack[decl_scope_level].number;
   return sym;
 }  /* make_unnamed_symbol */
+
+
+static sizeof_t module_name_length(a_symbol_ptr name,
+                                   a_boolean    is_partition)
+/*
+Return the length of the given qualified module name portion.  is_partition is
+TRUE when the name portion is the module partition name.
+*/
+{
+  sizeof_t len = 0;
+
+  if (name != NULL && is_partition) ++len; /* Count the ":". */
+  for (; name != NULL; name = name->next) {
+    len += name->header->identifier_length;
+    if (name->next != NULL) ++len; /* Count the ".". */
+  }  /* for */
+  return len;
+}  /* module_name_length */
+
+
+static sizeof_t copy_module_name_into_string(char         *str,
+                                             a_symbol_ptr name,
+                                             a_boolean    is_partition,
+                                             sizeof_t     max_length)
+/*
+Fill the provided string with the given qualified module name portion.
+is_partition is TRUE when the name portion is the module partition name.
+max_length is the maximum number of characters (counting the terminating
+NULL) that can fit in the string.
+*/
+{
+  sizeof_t n_written = 0;
+
+  /* Write the leading ":" if this is the partition name. */
+  if (is_partition && name != NULL && max_length > 1) {
+    str[0] = ':';
+    ++n_written;
+  }  /* if */
+  for (; name != NULL && n_written < max_length - 1; name = name->next) {
+    n_written += snprintf(str + n_written, max_length - n_written,
+                          name->next == NULL ? "%s" : "%s.",
+                          name->header->identifier);
+  }  /* for */
+  return n_written;
+}  /* copy_module_name_into_string */
+
+
+a_symbol_ptr make_module_symbol(a_symbol_ptr      primary_name,
+                                     a_symbol_ptr      partition_name,
+                                     a_source_position *pos)
+/*
+Create a symbol to represent a module.  Synthesize the identifier in the
+symbol header from the primary and partition names.  primary_name is the
+primary name of the module and partition_name is the partition name of the
+module.  pos is the position where the module name started.
+*/
+{
+  a_symbol_ptr        sym;
+  a_symbol_header_ptr sym_hdr;
+  sizeof_t            id_len;
+
+  id_len = module_name_length(primary_name, /*is_partition=*/FALSE) +
+           module_name_length(partition_name, /*is_partition=*/TRUE);
+  if (id_len == 0) {
+    /* No names found. */
+    sym_hdr = make_unnamed_symbol_header();
+  } else {
+    char     *str;
+    sizeof_t n_written;
+    sym_hdr = alloc_symbol_header();
+    sym_hdr->identifier = str =
+                             alloc_primary_file_scope_il((sizeof_t)id_len + 1);
+    n_written = copy_module_name_into_string(str, primary_name,
+                                             /*is_partition=*/FALSE,
+                                             id_len + 1);
+    n_written += copy_module_name_into_string(str + n_written, partition_name,
+                                              /*is_partition=*/TRUE,
+                                              id_len + 1 - n_written);
+    /* The number of characters written should equal the length we calculated
+       earlier. */
+    check_assertion(n_written == id_len);
+    /* Add a NULL terminator just in case it somehow didn't get added. */
+    str[id_len] = '\0';
+    sym_hdr->identifier_length = id_len;
+  }  /* if */
+  sym = alloc_symbol(sk_module, sym_hdr, pos);
+  sym->variant.module_info.primary_name = primary_name;
+  sym->variant.module_info.partition_name = partition_name;
+  return sym;
+}  /* make_module_symbol */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -17566,6 +17662,7 @@ are handled in symbol_tbl_init.)
   name_space_for_symbol_kind[(int)sk_concept_template]    = nsk_other;
   name_space_for_symbol_kind[(int)sk_namespace]           = nsk_other;
   name_space_for_symbol_kind[(int)sk_namespace_projection] = nsk_other;
+  name_space_for_symbol_kind[(int)sk_module]              = nsk_other;
 #if NAMED_ADDRESS_SPACES_ALLOWED
   name_space_for_symbol_kind[(int)sk_named_address_space] = nsk_other;
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */

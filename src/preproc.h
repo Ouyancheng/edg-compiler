@@ -50,8 +50,9 @@ typedef enum /*a_pp_directive_kind*/ {
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
   ppd_assert, ppd_unassert,
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   ppd_import,
+  ppd_export_import,
+#if MICROSOFT_EXTENSIONS_ALLOWED
   ppd_using,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ppd_include_next,
@@ -92,8 +93,9 @@ EXTERN a_const_char
     "assert",
     "unassert",
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
     "import",
+    "export import"
+#if MICROSOFT_EXTENSIONS_ALLOWED
     "using",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     "include_next",
@@ -285,6 +287,7 @@ EXTERN a_gcc_pragma_options_entry_ptr
 			   values). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+extern void proc_modules_import(a_pp_directive_kind ppd);
 /* Scan a preprocessing directive. */
 extern void pp_directive(void);
 /* Verify that all #ifs are closed at end of source. */

@@ -497,6 +497,7 @@ enum a_symbol_kind_tag {
 		        /* Projection of a member of a namespace into another
 			   scope (either through a using-declaration or as a
 			   by-product of a lookup). */
+  sk_module,            /* A C++ module. */
 #if NAMED_ADDRESS_SPACES_ALLOWED
   sk_named_address_space,
                         /* Embedded C (TR 18037) named address space. */
@@ -528,7 +529,7 @@ EXTERN a_const_char
    "routine", "label", "undefined", "extern variable", "extern routine",
    "projection", "overloaded function", "parameter", "class template",
    "function template", "variable template", "concept",
-   "namespace", "namespace projection",
+   "namespace", "namespace projection", "module",
 #if NAMED_ADDRESS_SPACES_ALLOWED
    "named address space",
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
@@ -3906,6 +3907,28 @@ typedef struct a_symbol {
 			   created for members of the fundamental namespace's
 			   overload set. */
     } namespace_projection;
+    /* When kind == sk_module: */
+    struct {
+      a_symbol_ptr
+		primary_name;
+			/* Pointer to a list of sk_undefined symbols that
+			   represent the qualified module name.  For example,
+			   given a module declaration "module A.B.C", "A" and
+			   "B" are qualifiers of the name, and the symbol list
+			   would be sym_for_A -> sym_for_B -> sym_for_C.  Can
+			   be NULL if no name preceded the partition (see
+			   partition_name below). */
+      a_symbol_ptr
+		partition_name;
+			/* Pointer to a list of sk_undefined symbols that
+			   represent the qualified partition name, in the same
+			   manner as primary_name above.  A module partition
+			   may follow a module name and is indicated with a
+			   ":".  For example, given a module declaration
+			   "module A.B.C:D.E.F", "A.B.C" is the qualified
+			   module name and "D.E.F" is the qualified partition
+			   name. */
+    } module_info;
 #if NAMED_ADDRESS_SPACES_ALLOWED
     /* When kind == sk_named_address_space: */
     struct {
@@ -4811,6 +4834,10 @@ extern a_symbol_ptr make_unnamed_namespace_symbol(a_source_position  *pos);
 extern
 a_symbol_ptr make_unnamed_symbol(a_symbol_kind		kind,
 				 a_source_position	*pos);
+
+extern a_symbol_ptr make_module_symbol(a_symbol_ptr      primary_name,
+                                            a_symbol_ptr      partition_name,
+                                            a_source_position *pos);
 
 extern a_symbol_ptr unnamed_field_symbol(void);
 

@@ -1164,8 +1164,11 @@ of declarations that are permitted.
   if (is_storage_class()) {
     /* A storage-class-specifier. */
     is_start = TRUE;
-  } else if (curr_token == tok_template || curr_token == tok_export) {
+  } else if (curr_token == tok_template || curr_token == tok_cpp98_export) {
     /* Probably an error. */
+    is_start = TRUE;
+  } else if (curr_token == tok_export) {
+    /* A modules export declaration. */
     is_start = TRUE;
   } else if (curr_token == tok_static_assert) {
     /* static_assert is (syntactically) a declarative construct. */
@@ -18907,6 +18910,172 @@ decl_pos_block.
 }  /* typedef_declaration */
 
 
+static void decl_global_module_fragment(a_source_position_ptr module_pos)
+/*
+Declare a global module fragment and set the translation unit stage
+accordingly.  module_pos is the position of the "module" keyword.
+
+A global module fragment declaration must be the first declaration in the
+translation unit - if it is not, an error is issued and the translation unit
+stage is left unchanged.
+*/
+{
+  if (!tu_stage_is(tud_none)) {
+    if (tu_stage_is(tud_global_module_fgmt)) {
+      pos_st_error(ec_more_than_one_fgmt_decl, module_pos, "global");
+    } else {
+      pos_error(ec_glb_mod_fgmt_decl_must_come_first, module_pos);
+    }  /* if */
+  } else {
+    set_tu_stage(tud_global_module_fgmt);
+  }  /* if */
+}  /* decl_global_module_fragment */
+
+
+static void decl_private_module_fragment()
+/*
+Declare a private module fragment and set the translation unit stage
+accordingly.
+
+A private module fragment must follow a module declaration.  If it does not, an
+error is issued and the translation unit stage is left unchanged.
+*/
+{
+  check_assertion(curr_token == tok_private);
+  if (!tu_stage_is(tud_module_unit)) {
+    if (tu_stage_is(tud_private_module_fgmt)) {
+      pos_st_error(ec_more_than_one_fgmt_decl, &pos_curr_token, "private");
+    } else {
+      pos_error(ec_pvt_mod_fgmt_only_after_module, &pos_curr_token);
+    }  /* if */
+  } else {
+    set_tu_stage(tud_private_module_fgmt);
+  }  /* if */
+  (void)get_token(); /* Advance past the tok_private. */
+}  /* decl_private_module_fragment */
+
+
+static a_symbol_ptr scan_module_qualified_name()
+/*
+Scan a qualified module name portion (either the primary name or the partition
+name) and return the head of the symbol list, or NULL if the list is empty.
+curr_token refers to the first qualifier in the module name portion being
+scanned (a tok_identifier if the name is non-empty).
+*/
+{
+  a_symbol_ptr result = NULL, *next_sym = &result;
+
+  while (curr_token == tok_identifier) {
+    (*next_sym) = alloc_symbol(sk_undefined, locator_for_curr_id.symbol_header,
+                               &pos_curr_token);
+    next_sym = &(*next_sym)->next;
+    (void)get_token(); /* Advance past the identifier. */
+    if (curr_token == tok_period) {
+      /* This was a qualifier - we expect a tok_identifier to come next. */
+      (void)get_token();
+      (void)required_token_no_advance(tok_identifier, ec_exp_identifier);
+    }  /* if */
+  }  /* while */
+  return result;
+}  /* scan_module_qualified_name */
+
+
+void scan_module_name(a_symbol_ptr *primary_name,
+                      a_symbol_ptr *partition_name)
+/*
+Scan a module name, including its partition (if present) into the provided
+symbol pointers.  A module or partition name can have any number of qualifiers,
+e.g., "A.B.C:D.E.F".
+*/
+{
+  *partition_name = NULL;
+  add_stop_token(tok_semicolon);
+  add_stop_token(tok_colon);
+  if (curr_token != tok_colon) {
+    required_token_no_advance(tok_identifier, ec_exp_identifier);
+  }  /* if */
+  *primary_name = scan_module_qualified_name();
+  remove_stop_token(tok_colon);
+  if (curr_token == tok_colon) {
+    (void)get_token();
+    (void)required_token_no_advance(tok_identifier, ec_exp_identifier);
+    *partition_name = scan_module_qualified_name();
+  }  /* if */
+  remove_stop_token(tok_semicolon);
+}  /* scan_module_name */
+
+
+static void decl_module(a_boolean is_interface)
+/*
+Declare a module and set the translation stage accordingly.
+
+A module declaration can be preceded only by a global module fragment.  If it's
+preceded by anything else, an error is issued and the translation unit stage is
+left unchanged.
+*/
+{
+  a_source_position module_pos = pos_curr_token;
+  a_symbol_ptr      primary_name, partition_name;
+  
+  scan_module_name(&primary_name, &partition_name);
+  if (primary_name == NULL) {
+    pos_error(ec_module_req_primary_name, &module_pos);
+  }  /* if */
+  if (!(tu_stage_is(tud_none) || tu_stage_is(tud_global_module_fgmt))) {
+    an_error_code err_code = tu_stage_is(tud_module_unit) ?
+                                             ec_more_than_one_module_decl :
+                                             ec_module_decl_only_after_glb_mod;
+    pos_error(err_code, &module_pos);
+  } else {
+    a_symbol_ptr mod = make_module_symbol(primary_name, partition_name,
+                                          &module_pos);
+    set_tu_stage(tud_module_unit);
+  }  /* if */
+}  /* decl_module */
+
+
+static void module_declaration()
+/*
+Scan a module declaration.  A module declaration can take the following forms:
+        module;                            // Global module fragment
+        [export] module A[.B]*[:PA[.PB]*]; // Module unit
+        module : private;                  // Private module fragment
+
+A well formed module declaration will change the translation unit stage to
+match what has been declared.
+*/
+{
+  a_boolean         exported = FALSE;
+  a_source_position export_pos, module_pos;
+
+  if (curr_token == tok_export) {
+    exported = TRUE;
+    export_pos = pos_curr_token;
+    (void)get_token();
+  }  /* if */
+  check_assertion(curr_token == tok_module);
+  module_pos = pos_curr_token;
+  (void)get_token();
+  if (curr_token == tok_semicolon) {
+    /* A global module fragment. */
+    if (exported) {
+      pos_st_error(ec_cannot_export_fgmt, &export_pos, "global");
+    }  /* if */
+    decl_global_module_fragment(&module_pos);
+  } else if (curr_token == tok_colon && next_token() == tok_private) {
+    /* A private module fragment. */
+    (void)get_token(); /* Advance to tok_private. */
+    if (exported) {
+      pos_st_error(ec_cannot_export_fgmt, &export_pos, "private");
+    }  /* if */
+    decl_private_module_fragment();
+  } else {
+    /* A module unit (primary or partition) */
+    decl_module(exported);
+  }  /* if */
+}  /* module_declaration */
+
+
 static an_end_of_decl_action
               check_special_declaration_form(a_decl_parse_state  *state,
                                              a_token_kind        *final_token)
@@ -18963,7 +19132,7 @@ processing should proceed after the call.
       linkage_specification(state);
       end_of_decl_action = eoda_done;
     } else if (curr_token == tok_template ||
-               curr_token == tok_export ||
+               curr_token == tok_cpp98_export ||
                (((extern_template_allowed && curr_token == tok_extern) ||
                  (inline_template_allowed && curr_token == tok_inline)) &&
                 next_token() == tok_template) ||
@@ -19056,6 +19225,16 @@ processing should proceed after the call.
       }  /* if */
       cannot_bind_to_curr_construct();
       end_of_decl_action = eoda_check_semicolon;
+    } else if (modules_enabled &&
+               (curr_token == tok_module ||
+                (curr_token == tok_export && next_token() == tok_module))) {
+      /* A module declaration (global module fragment, module unit, private
+         module fragment). */
+      disallow_attributes(&state->prefix_attributes, es_error);
+      module_declaration();
+      cannot_bind_to_curr_construct();
+      end_of_decl_action = eoda_check_semicolon;
+      goto done;
     } else if (cpp11_mode && curr_token == tok_semicolon) {
       /* C++11 allows empty declarations. */
       cannot_bind_to_curr_construct();
@@ -19078,6 +19257,8 @@ processing should proceed after the call.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
+  if (!any_decls_seen_this_stage) any_decls_seen_this_stage = TRUE;
+  if (tu_stage_is(tud_none)) set_tu_stage(tud_basic_tu);
   if (end_of_decl_action != eoda_not_at_end) {
     /* Nothing more to do in this routine. */
   } else if (curr_token == tok_asm || curr_token == tok_microsoft_asm) {
@@ -20437,6 +20618,8 @@ void decls_trans_unit_init(void)
 Initialize variables that are specific to a given translation unit.
 */
 {
+  set_tu_stage(tud_none);
+  any_decls_seen_this_stage = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   scanning_generated_code_from_metadata = FALSE;
   scanning_generated_code = FALSE;

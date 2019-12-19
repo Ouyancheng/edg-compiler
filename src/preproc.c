@@ -261,8 +261,7 @@ Macro that compares the current token (an identifier) against a constant
 string, and returns true if the two match.
 */
 #define curr_id_is(str)                                               \
-  (len_of_curr_token == sizeof(str)-1 &&                              \
-   strncmp(str, start_of_curr_token, size_t_arg(sizeof(str)-1)) == 0)
+  string_is(start_of_curr_token, len_of_curr_token, (str))
 
 /*
 Macro that compares the current token (an identifier) with the pragma
@@ -1392,6 +1391,43 @@ pass_stdarg_references_to_generated_code.
     }  /* if */
   }  /* if */
 }  /* proc_include */
+
+
+void proc_modules_import(a_pp_directive_kind ppd)
+/*
+Process an import directive for a module.  ppd can be either ppd_import or
+ppd_export_import (if the import is exported).  Module imports can take the
+following forms:
+
+  import <module-name>;            // Named module import
+  import :<module-partition-name>; // Module partition import
+  import <header-name>             // Header import
+
+A named module import imports the primary module interface, whereas the module
+partition import imports just that module partition.  The latter can only be
+done from within a module unit.
+
+A header import is similar to a #include directive but does not insert the
+header into the source.  Instead it behaves as if the header is a module with
+somewhat different rules (notably it does introduce macros).  A header import
+can only occur inside a global module fragment.
+*/
+{
+  if (get_header_name()) {
+    check_assertion(curr_token == tok_header_name);
+    // Import of a header module
+  } else {
+    a_symbol_ptr      primary_name, partition_name;
+    a_source_position pos = pos_curr_token;
+
+    scan_module_name(&primary_name, &partition_name);
+    if (primary_name == NULL) {
+      // Import of module partition
+    } else {
+      // Import of another module entirely
+    }  /* if */
+  }  /* if */
+}  /* proc_modules_import */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 

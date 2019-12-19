@@ -8237,6 +8237,8 @@ typedef unsigned long a_decl_specifiers_set;
 			/* "thread_local/_Thread_local" was scanned. */
 #define DS_NORETURN (a_decl_specifiers_set)(0x4000)
 			/* "_Noreturn" was scanned. */
+#define DS_EXPORT (a_decl_specifiers_set)(0x8000)
+			/* "export" has been scanned (C++ modules only). */
 
 
 static void report_bad_type_name(a_decl_flag_set  input_flags)
@@ -11929,6 +11931,10 @@ finalizer_name:
         /* A finalizer is not expected. */
         goto something_unexpected;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      case tok_export:
+        decl_specifiers_seen |= DS_EXPORT;
+        *output_flags |= DSO_EXPORT;
+        break;
       case tok_compl:
 destructor_name:
         if (!C_mode() && is_member_decl) {

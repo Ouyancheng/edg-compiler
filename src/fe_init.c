@@ -1300,9 +1300,15 @@ Install the keywords in the symbol table.
     if (explicit_keyword_enabled) {
       enter_keyword((a_token_kind)tok_explicit, "explicit");
     }  /* if */
-    /* Recognition of "export" as a keyword is disabled in certain modes. */
-    if (export_keyword_enabled) {
+    /* Recognition of C++98 exported templates "export" as a keyword is
+       disabled in certain modes and incompatible with C++20 modules "export".
+    */
+    check_assertion(!(export_keyword_enabled && modules_enabled));
+    if (modules_enabled) {
       enter_keyword((a_token_kind)tok_export, "export");
+      enter_keyword((a_token_kind)tok_module, "module");
+    } else if (export_keyword_enabled) {
+      enter_keyword((a_token_kind)tok_cpp98_export, "export");
     }  /* if */
     if (static_assert_enabled) {
       enter_keyword((a_token_kind)tok_static_assert, "static_assert");

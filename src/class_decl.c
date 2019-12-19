@@ -31473,7 +31473,7 @@ classes.
             goto next_declaration;
           }  /* if */
           /* Check for template declaration. */
-          if (curr_token == tok_template || curr_token == tok_export ||
+          if (curr_token == tok_template || curr_token == tok_cpp98_export ||
               (extern_template_allowed && curr_token == tok_extern &&
                next_token() == tok_template) ||
                (cli_or_cx_enabled &&

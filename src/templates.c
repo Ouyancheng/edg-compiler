@@ -38106,7 +38106,8 @@ directive_start_pos points to the beginning of the directive or declaration
 
   db_enter(3, "template_directive_or_declaration");
   export_pos = null_source_position;
-  check_assertion(curr_token == tok_template || curr_token == tok_export ||
+  check_assertion(curr_token == tok_template ||
+                  curr_token == tok_cpp98_export ||
                   (curr_token == tok_identifier && is_generic));
   /* Templates are outside the "Embedded C++" subset. */
   feature_is_not_part_of_embedded_cplusplus_subset(
@@ -38116,7 +38117,7 @@ directive_start_pos points to the beginning of the directive or declaration
      if appropriate. */
   check_assertion(*final_token == tok_semicolon);
   /* Check for the presence of the "export" keyword. */
-  if (curr_token == tok_export) {
+  if (curr_token == tok_cpp98_export) {
     if (!export_template_allowed) {
       /* Export processing is disabled.  Issue a diagnostic. */
       if (cpp11_mode) {

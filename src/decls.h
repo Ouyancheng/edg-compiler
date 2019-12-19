@@ -21,6 +21,30 @@ decls.h -- Declarations related to decls.c (having to do with scanning
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+enum class a_tu_decl_stage {
+  tud_none,			/* No declarations of any kind have been seen
+				   for this translation unit. */
+  tud_basic_tu,			/* The translation unit doesn't fall into any
+				   of the below categories. */
+/* Module units */
+  tud_global_module_fgmt,	/* The translation unit is in the global module
+				   fragment stage. */
+  tud_module_unit,		/* The translation unit is in the main stage of
+				   the module unit. */
+  tud_private_module_fgmt	/* The translation unit is in the private
+				   module fragment stage. */
+};
+
+EXTERN a_tu_decl_stage tu_stage;
+EXTERN a_boolean       any_decls_seen_this_stage;
+
+#define tu_stage_is(stage)                                                    \
+  (tu_stage == a_tu_decl_stage::stage)
+
+#define set_tu_stage(stage)                                                   \
+  tu_stage = a_tu_decl_stage::stage;                                          \
+  any_decls_seen_this_stage = FALSE /* User-provided semi-colon. */
+
 /*
 Kinds of linkage, meaning whether or not an identifier declared in
 a certain way is linked to (the same as) some other like-named identifier
@@ -1738,6 +1762,9 @@ extern void check_nonfunction_declaration_errors(
                                          a_decl_parse_state  *state,
                                          a_symbol_locator    *locator,
                                          a_boolean           is_variable_decl);
+
+extern void scan_module_name(a_symbol_ptr *primary_name,
+                             a_symbol_ptr *partition_name);
 
 /*
 Utility macro to avoid a function call in the common case where an entity

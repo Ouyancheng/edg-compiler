@@ -12904,6 +12904,43 @@ returns TRUE.  On input symbol points to the symbol for the first token.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_pp_directive_kind get_modules_pp_directive()
+/*
+Scan modules preprocessing directives "import" and "export import".  Note that
+"export" by itself is not a preprocessing directive.  Return the kind of
+directive scanned or ppd_not_valid if neither was found.
+*/
+{
+  a_pp_directive_kind result = ppd_not_valid;
+
+  if (!any_tokens_gotten_from_curr_source_line && modules_enabled) {
+    if (strncmp(curr_char_loc, "import", 6) == 0 &&
+        !isalpha(curr_char_loc[6])) {
+      result = ppd_import;
+      curr_char_loc += 6;
+    } else if (strncmp(curr_char_loc, "export", 6) == 0 &&
+               !isalpha(curr_char_loc[6])) {
+      a_const_char *saved_curr_char_loc = curr_char_loc;
+      check_assertion(start_of_curr_token == curr_char_loc);
+      curr_char_loc += 6;
+      in_preprocessing_directive = TRUE;
+      skip_white_space();
+      in_preprocessing_directive = FALSE;
+      if (strncmp(curr_char_loc, "import", 6) == 0 &&
+          !isalpha(curr_char_loc[6])) {
+        result = ppd_export_import;
+        curr_char_loc += 6;
+      } else {
+        curr_char_loc = saved_curr_char_loc;
+      }  /* if */
+      /* skip_white_space sets start_of_curr_token to NULL - re-set it here. */
+      start_of_curr_token = saved_curr_char_loc;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* get_modules_pp_directive */
+
+
 a_token_kind get_token(void)
 /*
 Scan the next token of input, and return its kind.  The kind of token is
@@ -13609,8 +13646,25 @@ literal_prefix_scan:
         goto concatenate_adjacent_string_literals;
       }  /* if */
       /* This can't fall through into the next case. */
-    case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g':
-    case 'h': case 'i': case 'j': case 'k': case 'l': case 'm': case 'n':
+    case 'i':
+    case 'e':
+      { a_pp_directive_kind ppd;
+        /* Probably an identifier, but check for import/export import
+           preprocessing directives. */
+        ppd = get_modules_pp_directive();
+        if (ppd == ppd_not_valid) {
+          goto id_scan;
+        } else {
+          proc_modules_import(ppd);
+	  /* After the directive has been processed, go skip white space and
+	     scan another token. */
+	  skip_white_space();
+	  goto start_of_token_scan;
+        }  /* if */
+      }
+      /* This can't fall through into the next case. */
+    case 'a': case 'b': case 'c': case 'd': /*above*/ case 'f': case 'g':
+    case 'h': /*above*/ case 'j': case 'k': case 'l': case 'm': case 'n':
     case 'o': case 'p': case 'q': case 'r': case 's': case 't': /*above*/
     case 'v': case 'w': case 'x': case 'y': case 'z':
     case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G':

@@ -521,7 +521,9 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_const_cast */
    (an_opname_kind)onk_none,          /* tok_dynamic_cast */
    (an_opname_kind)onk_none,          /* tok_explicit */
+   (an_opname_kind)onk_none,          /* tok_cpp98_export */
    (an_opname_kind)onk_none,          /* tok_export */
+   (an_opname_kind)onk_none,          /* tok_module */
    (an_opname_kind)onk_none,          /* tok_mutable */
    (an_opname_kind)onk_none,          /* tok_namespace */
    (an_opname_kind)onk_none,          /* tok_reinterpret_cast */
@@ -2569,6 +2571,14 @@ extern a_boolean is_valid_GUID_string(a_const_char  *str,
 extern void setlocale_pragma(a_pending_pragma_ptr	ppp);
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Macro that compares the current token (an identifier) against a constant
+string, and returns true if the two match.
+*/
+#define string_is(str, len, cmp)                                      \
+  ((len) == sizeof(cmp)-1 &&                                          \
+   strncmp(cmp, str, size_t_arg(sizeof(cmp)-1)) == 0)
 
 /* Macro that tests whether f_is_generalized_identifier_start needs
    to be called.  We don't need to call it in C mode, or if we have an
