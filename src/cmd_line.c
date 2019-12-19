@@ -3637,6 +3637,7 @@ default mode (e.g., exception handling).
           char8_t_enabled = TRUE;
         }  /* if */
         destroying_operator_delete_enabled = TRUE;
+        concepts_enabled = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -12080,6 +12081,7 @@ variables declared in cmd_line.h.
   selection_initializers_enabled = FALSE;
   mangle_had_been_implicitly_const = FALSE;
   coroutines_enabled = FALSE;
+  concepts_enabled = FALSE;
 #if BUILTIN_FUNCTIONS_ENABLED
   builtin_functions_enabled = FALSE;
   preload_builtin_functions = FALSE;

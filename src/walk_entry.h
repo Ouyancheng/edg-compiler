@@ -2323,6 +2323,11 @@ do_set_proper_definition_needed_flag:
 #undef eptr
       }
       break;
+    case iek_requires_clause:
+#define eptr ((a_requires_clause_ptr)entry_ptr)
+      walk_ptr(eptr->constraint, an_expr_node_ptr, iek_expr_node);
+#undef eptr
+      break;
     case iek_template_decl:
       {
 #define eptr ((a_template_decl_ptr)entry_ptr)
@@ -2330,10 +2335,17 @@ do_set_proper_definition_needed_flag:
         walk_list(eptr->param_list, a_template_parameter_ptr,
                   iek_template_parameter);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        walk_list(eptr->generic_constraint_clauses,
-                  a_generic_constraint_clause_ptr,
-                  iek_generic_constraint_clause);
+        if (eptr->is_generic) {
+          walk_list(eptr->constraint.where_clauses,
+                    a_generic_constraint_clause_ptr,
+                    iek_generic_constraint_clause);
+        } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          walk_ptr(eptr->constraint.requires_clause, a_requires_clause_ptr,
+                   iek_requires_clause);
+        }  /* if */
         walk_ptr(eptr->scope, a_scope_ptr, iek_scope);
 #undef eptr
       }

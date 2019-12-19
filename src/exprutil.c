@@ -14134,6 +14134,12 @@ of a subscript operation).
       /* Don't fold if we prefer a ck_template_param/tpck_expression
          constant. */
       try_folding = FALSE;
+    } else if (curr_expr_kind_is(ek_sizeof) &&
+               !expr_stack->favor_constant_result) {
+      /* No need to fold in an unevaluated expression.  The exception is
+         the operand of __builtin_constant_p (which also sets the
+         expr_stack->favor_constant_result flag). */
+      try_folding = FALSE;
     } else if (op == (an_expr_operator_kind)eok_psubtract ||
                op == (an_expr_operator_kind)eok_padd) {
       /* Try folding only if that's desirable in the current expression. */
@@ -23488,6 +23494,85 @@ user-defined conversions (see also process_boolean_controlling_expression).
   restore_operand_details(operand, &orig_operand);
   return okay;
 }  /* check_boolean_controlling_expr */
+
+
+a_boolean requires_clause_satisfied(an_expr_node_ptr      constraint,
+                                    a_template_arg_ptr    template_arg_list,
+                                    a_template_param_ptr  template_param_list,
+                                    a_diag_list_ptr       diag_list)
+/*
+Return TRUE if the given constraint expression, built on the given template
+parameter list, is satisfied by the given template argument list.  If not,
+update diag_list with notes describing the reason for the failure.
+*/
+{
+  a_boolean  result = TRUE;
+
+/* FIXME: Cache results. */
+  if (node_is_operator(constraint, eok_land)) {
+    /* Check the two underlying constraints separately.  If the first
+       determines the outcome, the second is neither substituted not
+       evaluated. */
+    an_expr_node_ptr  opnds = constraint->variant.operation.operands;
+    result = requires_clause_satisfied(opnds, template_arg_list,
+                                       template_param_list, diag_list) &&
+             requires_clause_satisfied(opnds->next, template_arg_list,
+                                       template_param_list, diag_list);
+  } else if (node_is_operator(constraint, eok_lor)) {
+    /* Check the two underlying constraints separately.  If the first
+       determines the outcome, the second is neither substituted not
+       evaluated. */
+    an_expr_node_ptr  opnds = constraint->variant.operation.operands;
+    result = requires_clause_satisfied(opnds, template_arg_list,
+                                       template_param_list, diag_list) ||
+             requires_clause_satisfied(opnds->next, template_arg_list,
+                                       template_param_list, diag_list);
+/* FIXME: Concept case. */
+  } else {
+    /* An atomic constraint.  First perform substitution; then evaluate the
+       expression. */
+    a_ctws_state            ctws_state;
+    a_rescan_control_block  rcblock;
+    an_expr_node_ptr        expr;
+    a_constant_ptr          cp = local_constant();
+    init_ctws_state(&ctws_state);
+    clear_rescan_control_block(&rcblock);
+    rcblock.template_arg_list = template_arg_list;
+    rcblock.template_param_list = template_param_list;
+    rcblock.options = CTWS_NO_OPTIONS;
+    rcblock.ctws_state = &ctws_state;
+    expr = rescan_expr_with_substitution(skip_parens(constraint),
+                                         (a_type_ptr)NULL, &rcblock, cp);
+    if (rcblock.error_detected) {
+      /* Substitution failed. */
+      more_info_diagnostic(ec_atomic_constraint_substitution_failed,
+                           &constraint->position, diag_list);
+      result = FALSE;
+    } else if (expr != NULL) {
+      if (interpret_expr(expr, /*is_constant_evaluated=*/TRUE,
+                         /*force_prvalue=*/TRUE, cp, diag_list)) {
+        result = !is_false_constant(cp);
+        if (!result) {
+          more_info_diagnostic(ec_atomic_constraint_false,
+                               &constraint->position, diag_list);
+        }  /* if */
+      } else {
+        more_info_diagnostic(ec_atomic_constraint_evaluation_failed,
+                             &expr->position, diag_list);
+        result = FALSE;
+      }  /* if */
+    } else {
+      result = !is_false_constant(cp);
+      if (!result) {
+        more_info_diagnostic(ec_atomic_constraint_false,
+                             &constraint->position, diag_list);
+      }  /* if */
+    }  /* if */
+    release_local_constant(&cp);
+    if (expr != NULL) reclaim_fs_nodes_of_expr_tree(expr);
+  }  /* if */
+  return result;
+}  /* requires_clause_satisfied */
 
 
 #if DEBUG

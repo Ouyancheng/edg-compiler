@@ -25356,6 +25356,10 @@ just an expression in parentheses.  Return the scanned expression in
       /* This is a cast operation. */
       a_boolean explicit_cv_qualifiers, type_defined;
       abandon_potential_pack_expansion_context(pesep);
+      if ((local_options & EOPT_REQUIRES_CLAUSE) != 0) {
+        pos_error(ec_cast_in_requires_clause, &start_position);
+        local_options &= ~EOPT_REQUIRES_CLAUSE;
+      }  /* if */
       /* Don't permit a call with incomplete type to be cast. */
       expr_stack->allow_call_with_incomplete_return_type = FALSE;
       /* Get the type to cast to. */
@@ -25472,7 +25476,8 @@ just an expression in parentheses.  Return the scanned expression in
                                                 (EOPT_OPERAND_OF_CAST |
                                                  EOPT_OPERAND_OF_ADDRESS_OF |
                                                  EOPT_LOGICAL_NOT_OPERAND |
-                                                 EOPT_DELEGATE_INITIALIZER)) |
+                                                 EOPT_DELEGATE_INITIALIZER |
+                                                 EOPT_CONSTRAINT_EXPR)) |
                                   EOPT_ALLOW_BOUND_FUNCTION |
                                   EOPT_PRESERVE_PROPERTY_REF;
       if (fold_expressions_enabled) {
@@ -29580,9 +29585,97 @@ is one of the valid interpretations, so it's okay.
 }  /* potential_sequence_point_after_operand */
 
 
-static void scan_logical_operator(an_operand             *operand_1,
-                                  a_rescan_control_block *rcblock,
-                                  an_operand             *result)
+static a_boolean token_starts_primary_expression(a_token_kind  tok)
+/*
+Return TRUE if the given token kind starts a primary-expression, which is one
+of:
+  - a literal
+  - this
+  - a parenthesized expression
+  - an id-expression (including operator names, etc.)
+  - a lambda-expression
+  - a fold-expression
+  - a requires-expression
+*/
+{
+  a_boolean  result;
+
+  switch (tok) {
+    case tok_int_constant:
+    case tok_char_constant:
+    case tok_true:
+    case tok_false:
+#if TARG_HAS_IEEE_FLOATING_POINT
+    case tok_nan:
+      /* The EDG-specific token "__NAN__" representing a Not-a-Number
+         constant. */
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tok_imaginary_unit:
+      /* The EDG-specific token "__I__" representing an imaginary value such
+         that __I__*__I__ == -1. */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case tok_fixed_point_constant:
+    case tok_float_constant:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_microsoft_lprefix:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_string_literal:
+#if GNU_EXTENSIONS_ALLOWED
+    case tok_null:
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    case tok_nullptr:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_native_nullptr:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_this:
+    case tok_lparen:
+    case tok_colon_colon:
+    case tok_operator:               /* Start of "operator+" and the like. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_super:                  /* Microsoft __super qualifier. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_identifier:
+    case tok_func_name:
+    case tok_function_name:
+    case tok_pretty_function_name:
+    case tok_decorated_function_name:
+      result = TRUE;
+      break;
+
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* token_starts_primary_expression */
+
+
+inline static void check_bool_constraint(
+                                      an_operand                *opnd,
+                                      a_local_expr_options_set  local_options)
+/*
+opnd is the operand of a logical operator.  If local_options has the flag
+EOPT_CONSTRAINT_EXPR set but the operand does not have type bool, issue an
+error.  Note that this function is called for both atomic and non-atomic
+constraints, but it the atomic constraints produce a bool result, the non-
+atomic constraints satisfy the constraint automatically (since logical
+operators applied to bool operands produce bool results).  
+*/
+{
+  if ((local_options & EOPT_CONSTRAINT_EXPR) != 0) {
+    if (!is_bool_type(opnd->type) && !is_template_param_type(opnd->type) &&
+        !is_error_type(opnd->type)) {
+      error_in_operand(ec_nonbool_atomic_constraint, opnd);
+    }  /* if */
+  }  /* if */
+}  /* check_bool_constraint */
+
+
+static void scan_logical_operator(an_operand               *operand_1,
+                                  a_rescan_control_block   *rcblock,
+                                  a_local_expr_options_set local_options,
+                                  an_operand               *result)
 /*
 Scan the "&&" and "||" operators.  *operand_1 is the left operand.
 The current token is the operator.  Scan the second operand, combine
@@ -29590,7 +29683,9 @@ the two operands into an expression, and return an operand for that in
 *result.  If rcblock is non-NULL, redo semantic analysis on a
 previously-scanned expression, and return the result in *result (or an
 error indication in *rcblock).  operand_1 is expected to be NULL in
-that case.
+that case.  local_options is used to indicate whether this operator
+appears for the conjunction/disjunction of C++20 template constraints,
+and whether the operator appears at the top level of a requires clause.
 */
 {
   an_expr_operator_kind op;
@@ -29629,6 +29724,8 @@ that case.
     operator_token = curr_token;
     operator_position = pos_curr_token;
     operator_tok_seq_number = curr_token_sequence_number;
+    local_options &= EOPT_CONSTRAINT_EXPR | EOPT_REQUIRES_CLAUSE;
+    check_bool_constraint(operand_1, local_options);
   }  /* if */
 
   /* There is a potential sequence point after the first operand. */
@@ -29684,7 +29781,7 @@ that case.
 
   if (rcblock == NULL) {
     /* Scan the second operand. */
-    int prec_level;
+    int                       prec_level;
     if (operator_token == tok_and_and) {
       prec_level = PREC_AND_AND;
     } else {
@@ -29699,7 +29796,15 @@ that case.
     }  /* if */
     saved_cpp11_constant_expr_ruled_out = expr_stack->constant_expr_ruled_out;
     expr_stack->inside_conditional_expression = TRUE;
-    scan_expr(&operand_2, prec_level, EOPT_NO_OPTIONS);
+    if ((local_options & EOPT_REQUIRES_CLAUSE) != 0) {
+      if (!token_starts_primary_expression(curr_token)) {
+        pos_error(ec_invalid_start_of_requires_clause_expr, &pos_curr_token);
+      } else {
+        local_options |= EOPT_REQUIRES_CLAUSE;
+      }  /* if */
+    }  /* if */
+    scan_expr(&operand_2, prec_level, local_options);
+    check_bool_constraint(&operand_2, local_options);
     expr_stack->inside_conditional_expression =
                                            saved_inside_conditional_expression;
     /* Restore the evaluated flag as it was on entry. */
@@ -34808,6 +34913,10 @@ type_identifier_case:
                  valid after typename. */
               okay_after_typename = TRUE;
             }  /* if */
+            if ((local_options & EOPT_REQUIRES_CLAUSE) != 0) {
+              pos_error(ec_cast_in_requires_clause, &pos_curr_token);
+              local_options &= ~EOPT_REQUIRES_CLAUSE;
+            }  /* if */
             (void)get_token();
             scan_functional_notation_type_conversion(
                                                   rcblock,
@@ -36816,7 +36925,8 @@ see expr.h).
      1)  A leaf operand, like an identifier or literal constant.
      2)  An expression in parentheses or a cast.
      3)  A unary operator followed by an expression.
-     4)  A sizeof expression.
+     4)  An expression construct introduced by a keyword (like sizeof,
+         const_cast, etc.).
   */
   /* If a left parenthesis was trapped by the caller, go to the code that
      handles a left parenthesis. */
@@ -37708,6 +37818,15 @@ bad_start_of_primary:
     /* See if the current token is an operator, and if so, whether it ends
        the current expression given its precedence and associativity. */
     if (token_ends_expr(curr_token, prec_level, local_options)) break;
+    if ((local_options & EOPT_CONSTRAINT_EXPR) != 0 &&
+        curr_token != tok_and_and && curr_token != tok_or_or) {
+      if ((local_options & EOPT_REQUIRES_CLAUSE) != 0) {
+        /* Only && and || are permitted at the top level of a requires
+           clause. */
+        pos_error(ec_invalid_operator_in_requires_clause, &pos_curr_token);
+      }  /* if */
+      local_options &= ~EOPT_CONSTRAINT_EXPR;
+    }  /* if */
     /* The operator is to be taken at this level.  Do any necessary
        transformations and error checks on it.  Do NOT obey the options
        flags passed in to this routine in local_options, because
@@ -37881,6 +38000,8 @@ bad_start_of_primary:
       case tok_and_and:
       case tok_or_or:
         scan_logical_operator(&operand, (a_rescan_control_block *)NULL,
+                              (local_options & (EOPT_CONSTRAINT_EXPR |
+                                                EOPT_REQUIRES_CLAUSE)),
                               &local_result);
         break;
       case tok_quest_mark:
@@ -44846,6 +44967,42 @@ type will be obtained from the arg_operand.
 }  /* conv_nontype_template_arg_to_param_type */
 
 
+a_requires_clause_ptr scan_requires_clause(void)
+/*
+Scan a C++20-style requires-clause, of the form:
+
+	requires <limited-expr>
+
+where <limited-expr> is an expression that is composed only of primary
+expressions (in the standard sense) and logical "or" and "and" operators.
+*/
+{
+  an_expr_stack_entry_ptr saved_expr_stack;
+  an_expr_stack_entry     expr_stack_entry;
+  an_operand              opnd;
+  a_requires_clause_ptr   rcp = alloc_requires_clause();
+
+  check_assertion(curr_token == tok_requires);
+  rcp->requires_pos = pos_curr_token;
+  (void)get_token();
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  expr_stack_entry.possible_rescan_context = TRUE;
+  if (!token_starts_primary_expression(curr_token)) {
+    pos_error(ec_invalid_start_of_requires_clause_expr, &pos_curr_token);
+  }  /* if */
+  scan_expr(&opnd, PREC_QUEST_MARK,
+            EOPT_CONSTRAINT_EXPR | EOPT_REQUIRES_CLAUSE);
+  check_bool_constraint(&opnd, EOPT_CONSTRAINT_EXPR | EOPT_REQUIRES_CLAUSE);
+  rcp->constraint = make_node_from_operand(&opnd);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  return rcp;
+}  /* scan_requires_clause */
+
+
 static void rescan_braced_init_list(an_expr_node_ptr       expr,
                                     a_rescan_control_block *rcblock,
                                     an_operand             *result)
@@ -45930,7 +46087,8 @@ alternative callable from outside, see rescan_expr_with_substitution.
         break;
       case tok_and_and:
       case tok_or_or:
-        scan_logical_operator((an_operand *)NULL, rcblock, result);
+        scan_logical_operator((an_operand *)NULL, rcblock,
+                              /*for_requires_clause=*/FALSE, result);
         break;
       case tok_comma:
         scan_comma_operator((an_operand *)NULL, rcblock, result);
@@ -48743,7 +48901,9 @@ This is used to implement the expansion of fold expressions
       break;
     case tok_and_and:
     case tok_or_or:
-      scan_logical_operator(opnd1, (a_rescan_control_block *)NULL, result);
+      /* FIXME: Pass EOPT_CONSTRAINT_EXPR in some cases? */
+      scan_logical_operator(opnd1, (a_rescan_control_block *)NULL, 
+                            EOPT_NO_OPTIONS, result);
       break;
     case tok_comma:
       scan_comma_operator(opnd1, (a_rescan_control_block *)NULL, result);

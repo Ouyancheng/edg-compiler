@@ -3116,6 +3116,14 @@ ec_inline_variables_nonstandard;;"inline variables are a C++17 feature"
 ec_destroying_delete_wrong_type;;"destroying operator delete requires %t as first parameter"
 ec_destroying_delete_with_extra_params;;"a destroying operator delete cannot have parameters other than std::size_t and std::align_val_t"
 ec_cl_relaxed_abstract_checking_only_in_cplusplus;;"relaxed abstract class options can be used only when compiling C++"
+ec_invalid_start_of_requires_clause_expr;;"invalid start of expression in requires clause"
+ec_cast_in_requires_clause;;"a cast expression in a requires-clause must be parenthesized"
+ec_invalid_operator_in_requires_clause;;"this operator cannot appear at the top level (without parentheses) in a requires-clause"
+ec_nonbool_atomic_constraint;;"atomic constraint must have type bool"
+ec_atomic_constraint_substitution_failed;;"atomic constraint failed substitution"
+ec_atomic_constraint_evaluation_failed;;"atomic constraint not constant"
+ec_atomic_constraint_false;;"atomic constraint evaluates to false"
+ec_template_constraint_not_satisfied;;"template constraint not satisfied"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

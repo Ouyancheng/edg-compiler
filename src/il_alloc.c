@@ -146,6 +146,8 @@ static unsigned long
 static unsigned long
 		num_template_decls_allocated;
 static unsigned long
+		num_requires_clauses_allocated;
+static unsigned long
 		num_template_parameters_allocated;
 static unsigned long
 		num_templates_allocated;
@@ -4930,6 +4932,24 @@ initialize its fields, and return a pointer to it.
 }  /* alloc_template_parameter */
 
 
+a_requires_clause_ptr alloc_requires_clause(void)
+/*
+Allocate a requires clause entry in the file-scope memory region,
+initialize its fields, and return a pointer to it.
+*/
+{
+  a_requires_clause_ptr  rcp;
+
+  rcp = (a_requires_clause_ptr)alloc_il(sizeof(a_requires_clause));
+#if DEBUG
+  ++num_requires_clauses_allocated;
+#endif /* DEBUG */
+  rcp->constraint = NULL;
+  rcp->requires_pos = null_source_position;
+  return rcp; 
+}  /* alloc_requires_clause */
+
+
 a_template_decl_ptr alloc_template_decl(void)
 /*
 Allocate a template declaration entry in the file-scope memory region,
@@ -4944,13 +4964,14 @@ initialize its fields, and return a pointer to it.
 #endif /* DEBUG */
   tdp->parent = NULL;
   tdp->param_list = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  tdp->generic_constraint_clauses = NULL;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  tdp->constraint.requires_clause = NULL;
   tdp->scope = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   tdp->template_pos = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  tdp->is_generic = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   return tdp; 
 }  /* alloc_template_decl */
@@ -5836,6 +5857,8 @@ Display and return the amount of space used for various IL tables.
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   db_space_used("template_parameters", num_template_parameters_allocated,
                 a_template_parameter);
+  db_space_used("requires_clauses", num_requires_clauses_allocated,
+                a_requires_clause);
   db_space_used("template_decls", num_template_decls_allocated,
                 a_template_decl);
   db_space_used("templates", num_templates_allocated, a_template);
@@ -6165,6 +6188,7 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_hidden_names_allocated),
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
       pch_saved_var_array_elem(num_template_parameters_allocated),
+      pch_saved_var_array_elem(num_requires_clauses_allocated),
       pch_saved_var_array_elem(num_template_decls_allocated),
       pch_saved_var_array_elem(num_templates_allocated),
       pch_saved_var_array_elem(num_name_references_allocated),
@@ -6377,6 +6401,7 @@ initializations that are done for each compilation.
   num_hidden_names_allocated             = 0;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   num_template_parameters_allocated      = 0;
+  num_requires_clauses_allocated         = 0;
   num_template_decls_allocated           = 0;
   num_templates_allocated                = 0;
   num_name_references_allocated          = 0;

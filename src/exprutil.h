@@ -3109,6 +3109,12 @@ extern void make_upc_thread_operand(an_operand            *operand,
 extern a_boolean type_has_nodiscard_attribute(a_type_ptr   type,
                                               a_const_char **reason);
 
+extern 
+a_boolean requires_clause_satisfied(an_expr_node_ptr      constraint,
+                                    a_template_arg_ptr    template_arg_list,
+                                    a_template_param_ptr  template_param_list,
+                                    a_diag_list_ptr       diag_list);
+
 #if DEBUG
 extern void count_rescan_fs_expr_nodes(unsigned long *p_count);
 

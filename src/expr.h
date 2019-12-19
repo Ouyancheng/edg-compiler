@@ -81,6 +81,17 @@ BEGIN_EDG_NAMESPACE
 #define EOPT_CALL_RESCAN 0x800
 			/* Flag set when calling make_rescan_operand_full from
 			   make_call_rescan_oprands. */
+#define EOPT_CONSTRAINT_EXPR 0x1000
+			/* Flag set when parsing a constraint expression (in a
+			   "requires" clause or in a concept definition).  This
+			    causes logical and/or to be handled specially. */
+#define EOPT_REQUIRES_CLAUSE 0x2000
+			/* Flag set when parsing the expression for a
+			   "requires" clause (which only permit primary
+			   expressions and logical and/or operators at the top
+			   level).  This flag is cleared while scanning primary
+			   sub-expressions. */
+			
 #define EOPT_NO_OPTIONS 0
 
 typedef int a_local_expr_options_set;
@@ -706,6 +717,8 @@ extern void conv_nontype_template_arg_to_param_type(
                                             a_type_ptr         param_type,
                                             a_constant         *constant);
 
+extern a_requires_clause_ptr scan_requires_clause(void);
+
 #if !STANDALONE_UTILITY_PROGRAM
 extern
 an_init_component_ptr get_braced_init_list(a_boolean          is_full_expr,
@@ -1021,6 +1034,18 @@ node) is "op".
 */
 #define node_operator_is(node, op)                                      \
   ((node)->variant.operation.kind == (an_expr_operator_kind)(op))
+
+
+inline a_boolean node_is_operator(an_expr_node_ptr           node,
+                                  an_expr_operator_kind_tag  kind)
+/*
+Return TRUE if (and only if) the given node is an enk_operator node for the
+given operator kind.
+*/
+{
+  return is_operation_node(node) && node_operator_is(node, kind);
+}  /* node_is_operator */
+
 
 /*
 Return TRUE if the given node (which must be an operation node) has its

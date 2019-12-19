@@ -1882,7 +1882,7 @@ typedef struct a_template_decl_info {
 		template_decl;
 			/* When prototype_instantiations_in_il is TRUE,
 			   this points to the IL template declaration
-			   information. */
+			   information.  FIXME? */
   a_name_linkage_kind
 		name_linkage;
 			/* The default name linkage at the point of the

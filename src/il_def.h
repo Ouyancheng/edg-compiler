@@ -645,6 +645,7 @@ typedef enum /*an_il_entry_kind*/ {
 			/* a_decl_position_supplement */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   iek_template_decl,	/* a_template_decl */
+  iek_requires_clause,	/* a_requires_clause */
   iek_template_parameter,
 			/* a_template_parameter */
   iek_name_reference,	/* a_name_reference */
@@ -829,6 +830,7 @@ EXTERN a_const_char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_decl_position_supplement */	"decl-position-supplement",
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 /* iek_template_decl */			"template-decl",
+/* iek_requires_clause */		"requires-clause",
 /* iek_template_parameter */		"template-parameter",
 /* iek_name_reference */		"name-reference",
 /* iek_name_qualifier */		"name-qualifier",
@@ -1310,6 +1312,7 @@ typedef enum /*a_token_kind*/ {
   tok_is_same,
   tok_is_same_as,
   tok_is_function,
+  tok_requires,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1504,6 +1507,7 @@ EXTERN a_const_char
    "__reference_binds_to_temporary",
    "__is_same", "__is_same_as",
    "__is_function",
+   "requires",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -15659,6 +15663,17 @@ typedef struct a_template_parameter {
 } a_template_parameter;
 
 
+typedef struct a_requires_clause *a_requires_clause_ptr;
+typedef struct a_requires_clause {
+  an_expr_node_ptr
+		constraint;
+			/* The expression describing the constraint. */
+  a_source_position
+		requires_pos;
+			/* The position of the "requires" keyword. */
+} a_requires_clause;
+
+
 typedef struct a_template_decl {
   /* The description of the "header" of a template or C++/CLI generic
      declaration.  The template entity (a_template) points to an entry of
@@ -15676,12 +15691,18 @@ typedef struct a_template_decl {
 		param_list;
 			/* The list of template parameters for this template
 			   entity (not including enclosing parameters). */
+  union {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_generic_constraint_clause_ptr
-		generic_constraint_clauses;
+    a_generic_constraint_clause_ptr
+		where_clauses;
 			/* For C++/CLI generics, this points to the list of
 			   constraints specified, and can be NULL. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    a_requires_clause_ptr
+		requires_clause;
+			/* The C++20-style requires-clause.  NULL if there is
+			   none. */
+  } constraint;
   a_scope_ptr	scope;
 			/* The template declaration scope containing the
 			   template parameter declarations.  NULL for an
@@ -15690,6 +15711,10 @@ typedef struct a_template_decl {
   a_source_position
 		template_pos;
 			/* The position of the "template" keyword. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	is_generic:1;
+			/* TRUE if this is for a C++/CLI "generic". */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_template_decl;
 
 
@@ -17581,6 +17606,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_decl_position_supplement),
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   sizeof(a_template_decl),
+  sizeof(a_requires_clause),
   sizeof(a_template_parameter),
   sizeof(a_name_reference),
   sizeof(a_name_qualifier),

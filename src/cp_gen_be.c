@@ -16378,10 +16378,10 @@ parameter lists). */
   }  /* for */
   write_tok_str("> ");
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (tdp->generic_constraint_clauses != NULL) {
+  if (tdp->is_generic && tdp->constraint.where_clauses != NULL) {
     /* Put out the list of constraints. */
     a_generic_constraint_clause_ptr gccp;
-    for (gccp = tdp->generic_constraint_clauses; gccp != NULL;
+    for (gccp = tdp->constraint.where_clauses; gccp != NULL;
          gccp = gccp->next) {
       a_generic_constraint_ptr gcp;
 #if EXTRA_SOURCE_POSITIONS_IN_IL

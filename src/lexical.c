@@ -18076,6 +18076,10 @@ indicated by the template argument list.
       prototype_allowed = (options & GID_USE_PROTOTYPE_NOT_NONREAL) != 0;
       new_sym = find_template_variable(template_sym, &arg_list,
                                        prototype_allowed, is_use);
+      if (new_sym == NULL) {
+        expect_error();
+        any_errors = TRUE;
+      }  /* if */
       locator_for_curr_id = orig_locator;
     }  /* if */
     curr_token = tok_identifier;

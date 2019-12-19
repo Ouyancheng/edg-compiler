@@ -1347,6 +1347,9 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_coroutine_return, "co_return");
       enter_keyword((a_token_kind)tok_coroutine_await, "co_await");
     }  /* if */
+    if (concepts_enabled) {
+      enter_keyword((a_token_kind)tok_requires, "requires");
+    }  /* if */
   }  /* if */
   if (ms_extensions && microsoft_version >= 1300) {
     /* The __wchar_t keyword is entered even when wchar_t_is_keyword is FALSE.

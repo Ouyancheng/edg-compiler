@@ -26,6 +26,7 @@ templates.c -- Support for C++ templates.
 
 /* Additional header files. */
 #include "disambig.h"
+#include "exprutil.h"
 #include "folding.h"
 #include "trans_corresp.h"
 #if TEMPLATE_LOOKUP_NEEDED || DO_IL_LOWERING
@@ -9923,6 +9924,40 @@ is the template of which sym is an instance.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_boolean check_template_constraints(
+                                       a_template_symbol_supplement_ptr  tssp,
+                                       a_template_arg_ptr                args)
+/*
+Return TRUE if the constraints on the template described by tssp is satisfied
+by the give template arguments.  Otherwise, return FALSE and issue a diagnostic
+explaining the failure.
+*/
+{
+  a_boolean            result = TRUE;
+  a_template_ptr       il_entry = tssp->il_template_entry;
+  a_template_decl_ptr  tdp = il_entry->template_decl;
+
+
+  if (if_microsoft_extensions(!tdp->is_generic &&)
+      tdp->constraint.requires_clause != NULL) {
+    an_expr_node_ptr      constraint =
+                                  tdp->constraint.requires_clause->constraint;
+    a_template_param_ptr  params = tssp->cache.decl_info->parameters;
+    a_diag_list           diag_list;
+    a_source_position     diag_pos = error_position;
+    clear_diag_list(&diag_list);
+    if (!requires_clause_satisfied(constraint, args, params, &diag_list)) {
+      a_diagnostic_ptr  dp;
+      dp = pos_start_error(ec_template_constraint_not_satisfied, &diag_pos);
+      add_more_info_list(dp, &diag_list);
+      end_diagnostic(dp);
+      result = FALSE;
+    }  /* if */
+    discard_more_info_list(&diag_list);
+  }  /* if */
+  return result;
+}  /* check_template_constraints */
+
 
 static void determine_templ_arg_lists_to_use(
 		a_boolean		is_alias_template,
@@ -10399,7 +10434,7 @@ Update var with a dependent type.
   var->is_nonreal = TRUE;
   var->type = type_of_unknown_templ_param_nontype;
   add_to_variables_list(var, NO_SCOPE_DEPTH);
-}  /* make_noreal_variable_instance */
+}  /* make_nonreal_variable_instance */
 
 
 static a_symbol_ptr find_variable_template_partial_specialization(
@@ -10457,6 +10492,8 @@ attached to that new instance.  If an existing instance is found, the
 template argument list passed by the caller is discarded.  In either case,
 the pointer provided by the caller is set to NULL to prevent subsequent
 use of the argument list in case it has been freed.
+
+If template constraints are not satisfied, return NULL.
 */
 {
   a_symbol_ptr				sym = NULL;
@@ -10500,6 +10537,14 @@ use of the argument list in case it has been freed.
     /* hash_table_sym will be NULL if no entry is found, otherwise it will
        point to the symbol in the hash table. */
     sym = hash_table_sym == NULL ? NULL : *hash_table_sym;
+  }  /* if */
+  if (sym == NULL && !is_nonreal &&
+      !check_template_constraints(tssp, list_for_instantiation)) {
+    if (list_copied) {
+      free_template_arg_list(new_list_without_local_types);
+    }  /* if */
+    free_template_arg_list(*new_templ_arg_list);
+    goto done;
   }  /* if */
   if (sym != NULL) {
     tip = template_instance_for_symbol(sym);
@@ -10550,6 +10595,7 @@ use of the argument list in case it has been freed.
     }  /* if */
     free_template_arg_list(*new_templ_arg_list);
   }  /* if */
+done:
   /* The list is cleared in all cases.  The caller cannot use the list
      after we return because it may have been freed. */
   *new_templ_arg_list = NULL;
@@ -27816,18 +27862,20 @@ information).  See the definition of a_tmpl_decl_state for details.
             template_decl_info, decl_state->is_template_template_param_rescan);
         check_assertion(!decl_state->is_full_specialization);
         decl_state->number_of_template_decl_scopes++;
+        create_template_decl(decl_state, &template_pos);
         /* Save a pointer to the template declaration information in the
            scope stack entry. */
         scope_stack[depth_scope_stack].tmpl_decl_state = decl_state;
         scan_template_param_list(decl_state);
         template_decl_info->declaration_scope =
                                          scope_stack[decl_scope_level].number;
+        if (curr_token == tok_requires && !decl_state->is_generic) {
+          decl_state->template_decl->constraint.requires_clause =
+                                                       scan_requires_clause();
+        }  /* if */
         /* Record that a template parameter list has been seen.  A
            subsequent missing parameter list is an error. */
         param_list_seen = TRUE;
-        if (all_template_info_in_il) {
-          create_template_decl(decl_state, &template_pos);
-        }  /* if */
       } else if (is_template_param || decl_state->is_generic) {
         /* A template or generic parameter declaration with a missing template
            parameter list. */
@@ -27847,9 +27895,7 @@ information).  See the definition of a_tmpl_decl_state for details.
         }  /* if */
         /* Bypass the ">". */
         (void)get_token();
-        if (all_template_info_in_il) {
-          create_template_decl(decl_state, &template_pos);
-        }  /* if */
+        create_template_decl(decl_state, &template_pos);
       }  /* if */
     } else {
       pos_error(ec_missing_template_param_list, &error_position);
@@ -31092,7 +31138,8 @@ clause, invalid forward references are avoided.
       if (clause != NULL) {
         if (gccp_list == NULL) {
           gccp_list = clause;
-          decl_state->template_decl->generic_constraint_clauses = gccp_list;
+          decl_state->template_decl->is_generic = TRUE;
+          decl_state->template_decl->constraint.where_clauses = gccp_list;
         } else {
           check_assertion(gccp_tail != NULL);
           gccp_tail->next = clause;
@@ -31414,10 +31461,8 @@ to TRUE.
     }  /* if */
     tpp->param_symbol->is_invisible = FALSE;
   }  /* for */
-  if (all_template_info_in_il) {
-    /* Fill in the information in the IL template declaration structures. */
-    complete_template_decl(decl_info->template_decl, decl_info->parameters);
-  }  /* if */
+  /* Fill in the information in the IL template declaration structures. */
+  complete_template_decl(decl_info->template_decl, decl_info->parameters);
 }  /* update_param_depth_and_default_args */
 
 
@@ -31790,9 +31835,7 @@ update *templ_state accordingly.  Then scan the template parameter list.
   scan_template_param_list(templ_state);
   templ_state->decl_info->declaration_scope =
                                          scope_stack[decl_scope_level].number;
-  if (all_template_info_in_il) {
-    create_template_decl(templ_state, &pos);
-  }  /* if */
+  create_template_decl(templ_state, &pos);
   templ_state->last_token_sequence_number_of_params =
                                                    curr_token_sequence_number;
   extract_template_parameter_cache(templ_state);
@@ -31873,15 +31916,11 @@ parameters described by dps->auto_params.  Update *templ_state accordingly.
     end_template_param_list = template_param;
   }  /* if */
   template_decl_info->declaration_scope = scope_stack_top().number;
-  if (all_template_info_in_il) {
-    create_template_decl(templ_state, &null_source_position);
-  }  /* if */
+  create_template_decl(templ_state, &null_source_position);
   /* Cache the declarator part of the lambda. */
   cache_template_declaration(templ_state);
-  if (all_template_info_in_il) {
-    complete_template_decl(template_decl_info->template_decl,
-                           template_decl_info->parameters);
-  }  /* if */
+  complete_template_decl(template_decl_info->template_decl,
+                         template_decl_info->parameters);
 }  /* set_up_generic_lambda_declarator_scan */
 
 
@@ -38528,6 +38567,7 @@ the function template, and decl_state tracks its declaration.
 {
   a_template_symbol_supplement_ptr  tssp;
   a_def_arg_expr_fixup_ptr          saved_curr_default_args;
+  a_template_decl_info_ptr          tdip;
 
   check_assertion(symbol_is(sym, sk_function_template));
   tssp = sym->variant.template_info;
@@ -38540,13 +38580,10 @@ the function template, and decl_state tracks its declaration.
   }  /* if */
   complete_function_template_decl(decl_state, sym, func_info, &tssp,
                                   &sym->decl_position);
-  if (all_template_info_in_il) {
-    a_template_decl_info_ptr tdip;
-    create_template_decl(decl_state, &null_source_position);
-    tdip = decl_state->decl_info;
-    complete_template_decl(tdip->template_decl, tdip->parameters);
-    decl_state->il_template_entry->template_decl = decl_state->template_decl;
-  }  /* if */
+  create_template_decl(decl_state, &null_source_position);
+  tdip = decl_state->decl_info;
+  complete_template_decl(tdip->template_decl, tdip->parameters);
+  decl_state->il_template_entry->template_decl = decl_state->template_decl;
   complete_il_template_entry(decl_state, sym);
   curr_default_args = saved_curr_default_args;
 #if RECORD_TEMPLATE_STRINGS
