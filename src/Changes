@@ -1,5 +1,21 @@
 Version 6.1
 
+12/18/19 [EDGcpfe/22011,EDGcpfe/22134]
+C++20: Allow defaulting comparisons by value
+
+The initial specification of defaulted comparison operators required that
+each parameter be a reference to the const-qualified type of the class
+being compared.  C++ Committee document P1946R0 extended that rule to allow
+defaulted friend comparison functions to take both arguments either by
+value or by const reference.  The front end has now been modified to
+support this extension.  For example, with --c++20:
+
+  struct C {
+    int i;
+    friend bool operator==(C, C) = default;  // Previously an error, now okay
+  };
+
+
 12/17/19 [EDGcpfe/22104,EDGcpfe/22105,EDGcpfe/22106]
 Microsoft compatibility: Enabling C++20 features
 

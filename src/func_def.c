@@ -4094,12 +4094,16 @@ definition for it.
   /* Identify the associated class C from the first parameter type (which
      should be "C const&" whether the function is declared as a member or as a
      friend). */
-  check_assertion(ptp != NULL && is_reference_type(ptp->type));
-  class_type = type_pointed_to(ptp->type);
-  class_type = skip_typerefs(class_type);
+  check_assertion(ptp != NULL);
+  if (is_reference_type(ptp->type)) {
+    class_type = type_pointed_to(ptp->type);
+    class_type = skip_typerefs(class_type);
+  } else {
+    class_type = skip_typerefs(ptp->type);
+  }  /* if */
   check_assertion(is_immediate_class_type(class_type));
   if (class_type->variant.class_struct_union.is_nonreal_class) {
-    /* Don't bother generating the definition for a member of an nonreal
+    /* Don't bother generating the definition for a member of a nonreal
        instantiation of a template class. */
   } else {
     a_scope_ptr  scope;
