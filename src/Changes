@@ -1,5 +1,30 @@
 Version 6.1
 
+12/19/19 [EDGcpfe/21697,EDGcpfe/21846]
+Microsoft compatibility: short-circuiting dependent nontype template arguments
+
+A change made in version 5.1 (EDGcpfe/20756) added emulation of a bug in
+the Microsoft compiler that caused certain expressions to be considered
+non-dependent if the dependent portion of a logical operation could be
+determined to not affect the result.
+
+The Microsoft compiler, however, only exhibited that behavior in certain
+contexts.  Our earlier change applied the behavior too widely and had
+the effect of producing errors in other cases that the Microsoft compiler
+accepted.  We have revised the change to more closely model the behavior
+of the Microsoft compiler.
+
+  template <bool b, class T = void> struct A {};
+  template <class T> struct A<true, T> {
+    typedef T type;
+  };
+  template <bool b, class T = void> using A_t = typename A<b, T>::type;
+  template <class T, bool b = false> struct C {
+    template <bool E, typename = A_t<b && E, T>> void f() { }
+  };
+  C<int> m;
+
+
 12/19/19 [EDGcpfe/18516,EDGcpfe/21398]
 Microsoft C++ compatibility: SFINAE and default template arguments
 

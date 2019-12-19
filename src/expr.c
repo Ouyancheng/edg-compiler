@@ -29919,9 +29919,9 @@ and whether the operator appears at the top level of a requires clause.
        operand is non-constant.  The fully-constant case is always sent to
        do_binary_operation, which folds it to a constant but also does other
        useful things.  An exception to that occurs in Microsoft mode, where
-       cases where the second operand is a template-dependent constant are
-       reduced to eliminate the template dependency (because that is how the
-       Microsoft compiler apparently behaves).  For example:
+       cases where the second operand is a type-dependent operand are reduced
+       to eliminate the template dependency (because that is how the Microsoft
+       compiler apparently behaves).  For example:
          template<bool, typename T> struct enable_if;
          template<int A, typename enable_if<(!0 || A < 16), int>::type = 0>
            int f();
@@ -29931,8 +29931,7 @@ and whether the operator appears at the top level of a requires clause.
     reduce = FALSE;
     if (known_result && 
         (!is_constant_operand(&operand_2) ||
-         (microsoft_mode &&
-          constant_is(&operand_2.variant.constant, ck_template_param)))) {
+         (microsoft_mode && operand_is_dependent(&operand_2)))) {
       if (curr_expr_kind_is_const()) {
         /* In constant expressions we must always reduce, so that
            1 || 2/0, for example, comes out as a constant. */
