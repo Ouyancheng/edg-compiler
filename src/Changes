@@ -41,7 +41,7 @@ The default behavior can be overridden using the new
   struct A { virtual void f() = 0; };
   A f0(A);     // Previously an error for return and parameter, now okay
   A f1(A a) {  // Previously and still an error for return and parameter types
-    f0(a);     // Now an error for return and parameter
+    f0(a);     // Now an error for return and parameter types
     return a;
   }
 
