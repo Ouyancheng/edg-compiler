@@ -1,5 +1,19 @@
 Version 6.1
 
+12/20/19 [EDGcpfe/19565,EDGcpfe/19659,EDGcpfe/21650]
+Spurious failure of old-style rvalue-reference cast in deduction context
+
+Consider:
+
+  struct X {};
+  X const g();
+  template<typename T> auto f()->decltype((T&&)g(), 42) { return 42; }
+  int r = f<X>();  // Previously an error.  Now okay.
+
+Previously this example triggered an error because the substitution of
+"(T&&)g()" with T = X failed spuriously.  That is now fixed.
+
+
 12/20/19 [EDGcpfe/18623,EDGcpfe/22073]
 Spurious error on value-initialization of union
 
