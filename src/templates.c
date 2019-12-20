@@ -17804,7 +17804,8 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Add a secondary source sequence entry to represent the partial
-       instantiation -- it will take the form of an explicit specialization. */
+       instantiation -- it is rendered as an explicit specialization by the
+       C++-generating back end. */
     a_type_ptr  declared_type = tip->declared_type;
     check_assertion(declared_type != NULL);
     if (!is_error_type(declared_type)) {

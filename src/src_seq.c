@@ -1577,14 +1577,17 @@ template is defined.
 
 
 static a_scope_depth find_instantiation_insert_scope(
-                                     a_scope_stack_entry_ptr      curr_sse_ptr,
-                                     a_source_sequence_entry_ptr  ssep)
+                                   a_scope_stack_entry_ptr      curr_sse_ptr,
+                                   a_source_sequence_entry_ptr  ssep,
+                                   a_source_sequence_entry_ptr  *insert_before)
 /*
 Find the scope stack entry in which a template instantiation (represented by
 a list of source sequence entries) should be inserted.  curr_sse_ptr is a
 pointer to the current scope stack entry, and ssep represents the template
 instantiation that is to be added.  Return the scope depth in which the
-insertion should occur.
+insertion should occur.  If the insertion should occur before a specific
+source sequence entry, return that entry through *insert_before; otherwise,
+set *insert_before to NULL.
 
 Ordinarily, the insert point is in a namespace scope at a location preceding
 the reference that triggered the instantiation.  For instance,
@@ -1644,6 +1647,7 @@ innermost such class.
   a_source_correspondence       *scp;
   a_template_arg_ptr            template_arg_list;
   a_boolean                     members_only;
+  a_source_sequence_entry_ptr   insert_point = NULL;
 
   db_enter(4, "find_instantiation_insert_scope");
 #if DEBUG
@@ -1723,14 +1727,29 @@ innermost such class.
   for (ref_scope_depth = depth_scope_stack;
        ref_scope_depth > NO_SCOPE_DEPTH;
        ref_scope_depth--) {
+    a_scope_stack_entry_ptr  rssep = &scope_stack[ref_scope_depth];
     if (parent_scope_depth != NO_SCOPE_DEPTH &&
         ref_scope_depth <= parent_scope_depth) {
       insert_scope_depth = parent_scope_depth;
       break;
     }  /* if */
-    if (scope_stack[ref_scope_depth].kind ==
-                            (a_scope_kind)sck_class_struct_union) {
+    if (scope_is(rssep, sck_class_struct_union)) {
       break;
+    } else if (scope_is(rssep, sck_class_reactivation) &&
+               is_unnamed_or_originally_unnamed_tag(rssep->assoc_type)) {
+      /* A a reference was made in a member of an unnamed class, then that
+         member cannot be moved out of the class definition (because there is
+         no valid qualified name for that member).  The entry must therefore
+         be emitted before the source sequence entry for the unnamed class.
+         For example:
+           template<typename T> T max(T x, T y) { return x<y ? y : x; }
+           typedef struct {
+             void f(int i) { return max(i, 42); }
+           } X;
+         Here, the entry for max<int> has to be emitted before the entry for
+         the unnamed struct.
+      */
+      insert_point = rssep->assoc_type->source_corresp.source_sequence_entry;
     }  /* if */
   }  /* for */
   if (insert_scope_depth == NO_SCOPE_DEPTH &&
@@ -1764,8 +1783,7 @@ innermost such class.
         insert_scope_depth = parent_scope_depth;
         break;
       }  /* if */
-      if (scope_stack[ref_scope_depth].kind ==
-                              (a_scope_kind)sck_class_struct_union) {
+      if (scope_is(&scope_stack[ref_scope_depth], sck_class_struct_union)) {
         a_type_ptr  class_type = scope_stack[ref_scope_depth].assoc_type;
 
         if (!class_type->source_corresp.is_class_member) {
@@ -1800,11 +1818,11 @@ innermost such class.
     a_scope_stack_entry_ptr  sse_ptr = curr_sse_ptr;
 
     for (; sse_ptr != NULL; sse_ptr = previous_scope_of(sse_ptr)) {
-      if (sse_ptr->kind == (a_scope_kind)sck_file) {
+      if (scope_is(sse_ptr, sck_file)) {
         /* Insert it into the file scope. */
         insert_scope_depth = DEPTH_OF_FILE_SCOPE;
-      } else if (sse_ptr->kind == (a_scope_kind)sck_namespace ||
-                 (sse_ptr->kind == (a_scope_kind)sck_namespace_extension &&
+      } else if (scope_is(sse_ptr, sck_namespace) ||
+                 (scope_is(sse_ptr, sck_namespace_extension) &&
                   sse_ptr->explicitly_declared_namespace_extension)) {
         /* This is the file scope or a namespace scope that corresponds to an
            actual source construct. */
@@ -1821,12 +1839,11 @@ innermost such class.
       }  /* if */
     }  /* for */
   }  /* if */
+  *insert_before = insert_point != NULL ? insert_point
+                                        : scope_stack[insert_scope_depth]
+                                          .ss_list_instantiation_insert_point;
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
-    a_source_sequence_entry_ptr  insert_point;
-
-    insert_point = scope_stack[insert_scope_depth].
-                                  ss_list_instantiation_insert_point;
     fprintf(f_debug, "insert point found: %s list for ",
                      insert_point == NULL ? "at end of" : "in");
     db_scope_stack_entry_at_depth(insert_scope_depth);
@@ -1897,8 +1914,8 @@ insert it at the appropriate place in another scope.
   /* Find the list to insert into. */
   scp = source_corresp_entry_for_symbol(scope_stack_ptr->instance_sym);
   ssep = scp->source_sequence_entry;
-  depth = find_instantiation_insert_scope(scope_stack_ptr, ssep);
-  insert_before = scope_stack[depth].ss_list_instantiation_insert_point;
+  depth = find_instantiation_insert_scope(scope_stack_ptr, ssep,
+                                          &insert_before);
   if (insert_before != NULL) {
     insert_after = insert_before->prev;
   } else {
@@ -1996,9 +2013,8 @@ declared_type points to a type that should be recorded in the entry.
     ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
     ssep->entity.ptr  = (char *)sssdp;
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    if (kind == (an_il_entry_kind)iek_routine &&
-        is_or_contains_member_of_uncompleted_class(
-                                         ((a_routine_ptr)ptr)->type)) {
+    if (kind == iek_routine && is_or_contains_member_of_uncompleted_class(
+                                                 ((a_routine_ptr)ptr)->type)) {
       /* This appears to be an instantiation triggered by a friend
          declaration.  The source sequence entry specifying the explicit
          specialization (by which the instantiation is represented) has to
@@ -2018,14 +2034,12 @@ declared_type points to a type that should be recorded in the entry.
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     /* Do not insert code here. */
     {
-      a_scope_depth  depth;
-
+      a_scope_depth                depth;
+      a_source_sequence_entry_ptr  insert_before;
       /* Add the entry to the appropriate source sequence list. */
       depth = find_instantiation_insert_scope(&scope_stack[depth_scope_stack],
-                                              ssep);
-      insert_src_seq_list(ssep, ssep, depth,
-                          scope_stack[depth].
-                                   ss_list_instantiation_insert_point);
+                                              ssep, &insert_before);
+      insert_src_seq_list(ssep, ssep, depth, insert_before);
       if (scp->source_sequence_entry == NULL) {
         scp->source_sequence_entry = ssep;
       }  /* if */
