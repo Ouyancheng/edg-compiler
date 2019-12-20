@@ -2776,19 +2776,9 @@ members up to end_field, but not including end_field, should be initialized.
                                     (a_field_ptr)NULL);
         }  /* if */
       } else if (end_field == NULL) {
-        a_field_ptr  field2 =
-                            next_proper_initializable_field(next_field->next);
-        if (field2 != NULL) {
-          /* A value-initialized union that has multiple fields, at least one
-             of which requires nontrivial initialization: Issue an error since
-             it isn't clear which should be the initialized field. */
-          if (!is->no_diagnostics) {
-            pos_error(ec_ambiguous_union_value_init, diag_pos);
-          }  /* if */
-          is->init_error = TRUE;
-          /* For recovery purposes, just initialize the first field. */
-          end_fp = field2;
-        }  /* if */
+        /* A union with no member that is initialized by a field initializer.
+           Just initialize the first field. */
+        end_field = next_field;
       }  /* if */
     }  /* if */
     for (fp = next_field;
