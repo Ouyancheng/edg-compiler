@@ -1744,7 +1744,7 @@ innermost such class.
          For example:
            template<typename T> T max(T x, T y) { return x<y ? y : x; }
            typedef struct {
-             void f(int i) { return max(i, 42); }
+             int f(int i) { return max(i, 42); }
            } X;
          Here, the entry for max<int> has to be emitted before the entry for
          the unnamed struct.
