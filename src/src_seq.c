@@ -1737,7 +1737,7 @@ innermost such class.
       break;
     } else if (scope_is(rssep, sck_class_reactivation) &&
                is_unnamed_or_originally_unnamed_tag(rssep->assoc_type)) {
-      /* A a reference was made in a member of an unnamed class, then that
+      /* If a reference was made in a member of an unnamed class, then that
          member cannot be moved out of the class definition (because there is
          no valid qualified name for that member).  The entry must therefore
          be emitted before the source sequence entry for the unnamed class.
