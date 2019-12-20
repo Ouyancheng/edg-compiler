@@ -22610,7 +22610,8 @@ called only in C++ mode.
                                        &function_symbol) ||
            /* Okay to drop qualifiers in an old-style cast (the function
               of const_cast is allowed in there). */
-           (dropping_qualifiers && source_form == csf_old_style)) {
+           (dropping_qualifiers &&
+            (source_form == csf_old_style || source_form == csf_functional))) {
         /* The operand can be cast directly to the reference type,
            so don't look for a way to do the cast using a conversion
            function. */
