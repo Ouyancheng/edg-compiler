@@ -2778,7 +2778,7 @@ members up to end_field, but not including end_field, should be initialized.
       } else if (end_field == NULL) {
         /* A union with no member that is initialized by a field initializer.
            Just initialize the first field. */
-        end_field = next_field;
+        end_fp = next_field;
       }  /* if */
     }  /* if */
     for (fp = next_field;
