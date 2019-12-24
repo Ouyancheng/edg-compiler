@@ -1349,6 +1349,7 @@ Install the keywords in the symbol table.
     }  /* if */
     if (concepts_enabled) {
       enter_keyword((a_token_kind)tok_requires, "requires");
+      enter_keyword((a_token_kind)tok_concept, "concept");
     }  /* if */
   }  /* if */
   if (ms_extensions && microsoft_version >= 1300) {

@@ -669,6 +669,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_is_same_as */
    (an_opname_kind)onk_none,          /* tok_is_function */
    (an_opname_kind)onk_none,          /* tok_requires */
+   (an_opname_kind)onk_none,          /* tok_concept */
    (an_opname_kind)onk_last           /* tok_last */
   }
 #endif /* VAR_INITIALIZERS */
@@ -2776,6 +2777,9 @@ extern a_template_ptr scan_template_template_argument(
 				a_source_position	*err_pos,
                                 a_boolean		is_default,
                                 a_boolean		dependent_default);
+
+extern a_template_arg_ptr scan_concept_arg_list(a_symbol_ptr template_sym,
+                                                a_boolean    *any_errors);
 
 extern void insert_string_into_token_stream(
                                         a_const_char      *string,

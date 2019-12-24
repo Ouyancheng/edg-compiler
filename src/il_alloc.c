@@ -3595,6 +3595,10 @@ fields to default values.
     case enk_initializer:
       node->variant.initializer.dyn_init = NULL;
       break;
+    case enk_concept_id:
+      node->variant.concept_id.concept_template = NULL;
+      node->variant.concept_id.args = NULL;
+      break;
     default:
       unexpected_condition_str("set_expr_node_kind: bad kind");
   }  /* switch */

@@ -1097,6 +1097,7 @@ do_variable:
     case sk_class_template:
     case sk_function_template:
     case sk_variable_template:
+    case sk_concept_template:
       {
         a_template_symbol_supplement_ptr  tssp;
         a_template_param_ptr              tplep;
@@ -1276,6 +1277,7 @@ do_variable:
             tip = tip->next;
           }  /* while */
         } else if (sym->kind == (a_symbol_kind)sk_variable_template) {
+        } else if (sym->kind == (a_symbol_kind)sk_concept_template) {
         }  /* if */
         col = 0;
         suppress_newline = TRUE;
@@ -3652,6 +3654,9 @@ and return a pointer to it.
                           /*reusable=*/TRUE);
       tssp->variant.variable.declarator_name_tsn = NO_TOKEN_SEQUENCE_NUMBER;
      break;
+    case sk_concept_template:
+     /* No variant fields. */
+     break;
     default:
       unexpected_condition_str(
                           "alloc_template_symbol_supplement: bad symbol kind");
@@ -4006,6 +4011,7 @@ state.
     case sk_class_template:
     case sk_function_template:
     case sk_variable_template:
+    case sk_concept_template:
       sym_ptr->variant.template_info =
                              alloc_template_symbol_supplement(sym_ptr->kind);
       break;
@@ -11830,6 +11836,7 @@ set to iek_none.
     case sk_function_template:
     case sk_class_template:
     case sk_variable_template:
+    case sk_concept_template:
       entry_ptr = (char *)sym->variant.template_info->il_template_entry;
       lkind = iek_template;
       break;
@@ -17552,6 +17559,7 @@ are handled in symbol_tbl_init.)
   name_space_for_symbol_kind[(int)sk_class_template]      = nsk_other;
   name_space_for_symbol_kind[(int)sk_function_template]   = nsk_other;
   name_space_for_symbol_kind[(int)sk_variable_template]   = nsk_other;
+  name_space_for_symbol_kind[(int)sk_concept_template]    = nsk_other;
   name_space_for_symbol_kind[(int)sk_namespace]           = nsk_other;
   name_space_for_symbol_kind[(int)sk_namespace_projection] = nsk_other;
 #if NAMED_ADDRESS_SPACES_ALLOWED

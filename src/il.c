@@ -2237,6 +2237,17 @@ sizeof_cases:
       fputs("initializer\n", f_debug);
       db_dynamic_initializer(node->variant.initializer.dyn_init, level+2);
       break;
+    case enk_concept_id:
+      fputs("concept-id ", f_debug);
+      db_name_full(&node->variant.concept_id.concept_template->source_corresp,
+                   iek_template);
+      if (node->variant.concept_id.args != NULL) {
+        db_template_arg_list(node->variant.concept_id.args);
+        fputs("\n", f_debug);
+      } else {
+        fputs("<null-list>\n", f_debug);
+      }  /* if */
+      break;
     case enk_error:
       fputs("error node\n", f_debug);
       break;

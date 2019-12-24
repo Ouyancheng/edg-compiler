@@ -1897,6 +1897,12 @@ do_set_proper_definition_needed_flag:
             walk_ptr(eptr->variant.initializer.dyn_init,
                      a_dynamic_init_ptr, iek_dynamic_init);
             break;
+          case enk_concept_id:
+            walk_ptr(eptr->variant.concept_id.concept_template, a_template_ptr,
+                     iek_template);
+            walk_list(eptr->variant.concept_id.args, a_template_arg_ptr,
+                      iek_template_arg);
+            break;
           default:
             unexpected_condition_str(
                                  "walk_entry_and_subtree: bad expr node kind");
@@ -2385,6 +2391,10 @@ do_set_proper_definition_needed_flag:
             break;
           case templk_template_template_param:
             /* No active variant field. */
+            break;
+          case templk_concept:
+            walk_ptr(eptr->prototype_instantiation.constraint,
+                     an_expr_node_ptr, iek_expr_node);
             break;
           default:
             unexpected_condition_str(

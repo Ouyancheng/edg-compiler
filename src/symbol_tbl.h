@@ -491,6 +491,7 @@ enum a_symbol_kind_tag {
   sk_class_template,    /* Definition of a C++ class template. */
   sk_function_template, /* Definition of a C++ function template. */
   sk_variable_template, /* Definition of a C++ variable template. */
+  sk_concept_template,  /* Definition of a C++ concept template. */
   sk_namespace,         /* Definition of a C++ namespace. */
   sk_namespace_projection,
 		        /* Projection of a member of a namespace into another
@@ -526,8 +527,8 @@ EXTERN a_const_char
    "enum", "variable", "field", "static data member", "member function",
    "routine", "label", "undefined", "extern variable", "extern routine",
    "projection", "overloaded function", "parameter", "class template",
-   "function template", "variable template", "namespace",
-   "namespace projection",
+   "function template", "variable template", "concept",
+   "namespace", "namespace projection",
 #if NAMED_ADDRESS_SPACES_ALLOWED
    "named address space",
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
@@ -2751,6 +2752,7 @@ typedef struct a_template_symbol_supplement {
 			   processed.) */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   union {
+    /* For concept templates (sk_concept_template): No variant field. */
     /* For class templates, nested classes of class templates, member
        enumerations of those, and for alias templates. */
     struct {

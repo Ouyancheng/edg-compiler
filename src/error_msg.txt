@@ -3124,6 +3124,10 @@ ec_atomic_constraint_substitution_failed;;"atomic constraint failed substitution
 ec_atomic_constraint_evaluation_failed;;"atomic constraint not constant"
 ec_atomic_constraint_false;;"atomic constraint evaluates to false"
 ec_template_constraint_not_satisfied;;"template constraint not satisfied"
+ec_bad_scope_for_concept;;"concept definition cannot appear in this scope"
+ec_invalid_concept_redecl;;"invalid redeclaration of %nd"
+ec_concept_arg_list_substitution_failed;;"substitution of arguments for concept-id failed"
+ec_concept_failed;;"concept failed substitution"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

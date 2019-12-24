@@ -1313,6 +1313,7 @@ typedef enum /*a_token_kind*/ {
   tok_is_same_as,
   tok_is_function,
   tok_requires,
+  tok_concept,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1507,7 +1508,7 @@ EXTERN a_const_char
    "__reference_binds_to_temporary",
    "__is_same", "__is_same_as",
    "__is_function",
-   "requires",
+   "requires", "concept",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -12439,6 +12440,7 @@ enum an_expr_node_kind_tag {
   enk_initializer,	/* When a dynamic_initializer is folded to a constant,
 			   this represents the original initializer in the
 			   backing expression. */
+  enk_concept_id,	/* A concept-id expression. */
   enk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -14217,6 +14219,15 @@ typedef struct an_expr_node {
 		dyn_init;
 			/* The dynamic initializer that was folded. */
     } initializer;
+    /* When kind == enk_concept_id: */
+    struct {
+      a_template_ptr
+		concept_template;
+			/* The concept template this concept-id refers to. */
+      a_template_arg_ptr
+		args;
+			/* The template arguments passed to the concept. */
+    } concept_id;
   } variant;
   union {
     an_expr_rescan_info_entry_ptr
@@ -15735,9 +15746,11 @@ enum a_template_kind_tag {
 			/* A class nested within a class template. */
   templk_member_enum,
 			/* Enumeration member template. */
-  templk_template_template_param
+  templk_template_template_param,
 			/* The template associated with a template template
 			   parameter. */
+  templk_concept
+			/* A concept template. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_template_kind;
@@ -15866,6 +15879,11 @@ typedef struct a_template {
 			/* A pointer to the prototype instantiation of the
 			   static data member definition of a class template
 			   or a variable template. */
+    /* When kind == templk_concept: */
+    an_expr_node_ptr
+		constraint;
+			/* A pointer to the boolean expression describing the
+			   constraint imposed by the concept. */
   } prototype_instantiation;
   a_template_ptr
 		canonical_template;

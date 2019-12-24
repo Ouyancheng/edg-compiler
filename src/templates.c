@@ -25627,6 +25627,9 @@ set, and its source sequence entry, if any, has been put out.)
                                                             il_template_entry;
           }  /* if */
           break;
+        case sk_concept_template:
+          il_template_entry->kind = (a_template_kind)templk_concept;
+          break;
         default:
           /* There must have been an error.  Do the check because we don't
              want an incomplete IL entry to be handed to the back end. */
@@ -26178,7 +26181,8 @@ supplement for this template should be returned to the caller.
 #if CHECKING
     if (!is_variable_template &&
         sym->variant.static_data_member.instance_ptr->template_sym != sym) {
-      internal_error("template_declaration: bad instance for static mem");
+      internal_error(
+                "variable_template_declaration: bad instance for static mem");
     } /* if */
 #endif /* CHECKING */
     /* Make sure the declaration did not use features only valid for
@@ -28484,27 +28488,19 @@ instantiation of the containing class.
 static
 void template_declaration(a_tmpl_decl_state_ptr	decl_state)
 /*
-Scan a C++ template declaration.  Syntax:
+Scan a C++ template declaration.  This includes standard class template
+declarations, function template declarations, (C++11) alias template
+declarations, (C++14) variable template declarations, and out-of-class
+definitions of members of class templates.  It also includes C++/CLI generics,
+including generic delegate declarations.  Concept-definitions are not handled
+here, however (see scan_concept_definition).
 
-  template-declaration:
-
-    template < template-argument-list > declaration
-
-  template-argument:
-
-    type-argument
-    argument-declaration
-
-  type-argument:
-
-    class identifier
-
-When this routine is called, the template parameter clauses will already
-have been scanned and the current token will be the first token of the
-declaration that follows the template parameter list.  In addition, the
-declaration will have been prescanned to determine whether it is a friend
-declaration.  Template declaration scopes will have been pushed for
-any non-empty template parameter lists that were scanned.
+When this routine is called, the template parameter clauses will already have
+been scanned and the current token will be the first token of the declaration
+that follows the template parameter list.  In addition, the declaration will
+have been prescanned to determine whether it is a friend declaration.
+Template declaration scopes will have been pushed for any non-empty template
+parameter lists that were scanned.
 */
 {
   a_symbol_ptr                      sym = NULL;
@@ -31544,6 +31540,99 @@ instantiations of any template default arguments now.
 }  /* complete_template_parameter_clauses */
 
 
+static
+void scan_concept_definition(a_tmpl_decl_state_ptr  decl_state)
+/*
+The current token is the leading "concept" token in a concept-definition
+following a template parameter clause.  Parse and record the concept.
+*/
+{
+  a_source_position  concept_pos = pos_curr_token;
+  a_symbol_locator   loc;
+  a_symbol_ptr       sym;
+  an_expr_node_ptr   expr;
+
+  add_stop_token(tok_semicolon);
+  check_assertion(curr_token == tok_concept);
+  (void)get_token();
+  add_stop_token(tok_assign);
+  loc = locator_for_curr_id;
+  if (!required_token(tok_identifier, ec_exp_identifier)) {
+    set_to_error_locator(loc);
+  } else if (loc.is_operator_name || loc.is_udl_operator_name ||
+             loc.is_conversion_name) {
+    /* Issue an error for something like "operator+" or "operator int". */
+    pos_error(ec_operator_name_not_allowed, &loc.source_position);
+    set_to_error_locator(loc);
+  } else if (loc.is_qualified_name) {
+    pos_error(ec_qualified_name_not_allowed, &loc.source_position);
+    set_to_error_locator(loc);
+  } else {
+    /* Look up the identifier. */
+    a_scope_depth	saved_decl_scope_level = decl_scope_level;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    decl_state->decl_pos_block.identifier_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    /* Look up the symbol in the current scope.  To do this we must
+       temporarily change the decl_scope_level to the effective level for this
+       declaration because decl_scope_level currently points to the template
+       declaration scope. */
+    decl_scope_level = decl_state->orig_decl_level;
+    sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
+    if (sym != NULL &&
+        sym->decl_scope == scope_stack[decl_scope_level].number) {
+      pos_sy_error(ec_invalid_concept_redecl, &loc.source_position, sym);
+      set_to_error_locator(loc);
+    }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    decl_state->decl_pos_block.identifier_range.end = end_pos_curr_token;
+    decl_state->decl_pos_block.specifiers_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    decl_scope_level = saved_decl_scope_level;
+  }  /* if */
+  (void)required_token_no_advance(tok_assign, ec_exp_assign);
+  if (curr_token == tok_assign) (void)get_token();
+  remove_stop_token(tok_assign);
+  expr = scan_concept_expression();
+  remove_stop_token(tok_semicolon);
+  if (is_error_locator(loc)) {
+    /* Don't attempt to create a concept representation for a concept for
+       which we don't have a reliable "name". */
+  } else if (!is_file_or_namespace_scope(
+                                 &scope_stack[decl_state->orig_decl_level])) {
+    /* Concepts have to appear in namespace scope.  Don't create a
+       representation for a concept that appear in an invalid scope. */
+    pos_error(ec_bad_scope_for_concept, &concept_pos);
+  } else {
+    a_template_ptr  il_template;
+    a_template_symbol_supplement_ptr
+                    tssp;
+    il_template = decl_state->il_template_entry;
+    il_template->prototype_instantiation.constraint = expr;
+    sym = enter_symbol((a_symbol_kind)sk_concept_template, &loc,
+                       decl_state->effective_decl_level,
+                       /*suppress_error=*/FALSE);
+    set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                             scope_stack[decl_state->effective_decl_level]
+                                        .il_scope->variant.assoc_namespace);
+    tssp = sym->variant.template_info;
+    tssp->cache.decl_info = decl_state->decl_info;
+    tssp->is_variadic = decl_state->is_variadic;
+    tssp->has_variadic_template_params =
+                                     decl_state->has_variadic_template_params;
+    tssp->il_template_entry = il_template;
+    set_il_template_entry(decl_state, sym, tssp);
+    tssp->il_template_entry->canonical_template = tssp->il_template_entry;
+    complete_il_template_entry(decl_state, sym);
+  }  /* if */
+  /* Pop the template declaration scopes. */
+  for (; decl_state->number_of_template_decl_scopes != 0;
+         decl_state->number_of_template_decl_scopes--) {
+    pop_scope();
+  }  /* for */
+  wrapup_templ_decl_state(decl_state);
+}  /* scan_concept_definition */
+
 
 static void template_or_specialization_declaration(
 				a_token_kind		*final_token,
@@ -31723,8 +31812,6 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Stop caching fetched tokens.  This will be restarted in some cases
-     in template_declaration. */
   if (decl_state.is_full_specialization) {
     /* The entity being declared is a full specialization. */
     if (export_present) {
@@ -31738,6 +31825,13 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
     /* The background cache is not needed for a full specialization. */
     end_caching_template_decl(&decl_state);
     full_specialization(&decl_state);
+  } else if (curr_token == tok_concept) {
+    /* A C++20 concept definition. */
+    /* Concepts are parsed generically and "instantiated" by semantic
+       substitution rather than by replaying tokens.  There is therefore no
+       need to cache their tokens. */
+    end_caching_template_decl(&decl_state);
+    scan_concept_definition(&decl_state);
   } else {
     /* The entity being declared is a template. */
 #if BACK_END_IS_CP_GEN_BE

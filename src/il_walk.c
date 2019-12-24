@@ -3527,6 +3527,8 @@ as specified in the control block.
     case enk_initializer:
       traverse_dynamic_init(expr->variant.initializer.dyn_init, tblock);
       break;
+    case enk_concept_id:
+      break;
     default:
       unexpected_condition_str("traverse_expr: bad expr kind");
   }  /* switch */

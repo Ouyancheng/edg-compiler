@@ -720,6 +720,9 @@ extern void more_info_num2_diagnostic(an_error_code     error_code,
 extern void add_more_info_list(a_diagnostic_ptr		dp,
 			       a_diag_list_ptr		dlp);
 
+extern void splice_diag_list(a_diag_list_ptr   src,
+                             a_diag_list_ptr   dst,
+                             a_diagnostic_ptr  insert_after);
 
 extern void discard_more_info_list(a_diag_list_ptr		dlp);
 

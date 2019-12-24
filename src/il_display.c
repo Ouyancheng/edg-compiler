@@ -4702,6 +4702,13 @@ cleanup_state_common:
       disp_ptr("initializer.dyn_init",
                (char *)ptr->variant.initializer.dyn_init, iek_dynamic_init);
       break;
+    case enk_concept_id:
+      (void)printf("enk_concept_id\n");
+      disp_ptr("concept_id.concept_template",
+               (char *)ptr->variant.concept_id.concept_template, iek_template);
+      disp_template_arg_list("concept_id.args", ptr->variant.concept_id.args);
+      break;
+      break;
     default:
       (void)printf("**BAD EXPR NODE KIND**\n");
   }  /* switch */

@@ -23509,7 +23509,49 @@ update diag_list with notes describing the reason for the failure.
   a_boolean  result = TRUE;
 
 /* FIXME: Cache results. */
-  if (node_is_operator(constraint, eok_land)) {
+  if (constraint->kind == (an_expr_node_kind)enk_concept_id) {
+    /* Substitute the template argument list of the concept, and then check
+       the satisfaction of the concept's constraint expression with that
+       substituted argument list. */
+    a_template_ptr        templ;
+    a_symbol_ptr          sym;
+    a_template_arg_ptr    old_args, new_args;
+    a_template_param_ptr  params;
+    a_ctws_state          ctws_state;
+    a_boolean             copy_error = FALSE;
+    init_ctws_state(&ctws_state);
+    templ = constraint->variant.concept_id.concept_template;
+    sym = symbol_for(templ);
+    old_args = constraint->variant.concept_id.args;
+    params = sym->variant.template_info->cache.decl_info->parameters;
+    new_args = copy_template_arg_list_with_substitution(
+                                                  sym, old_args, params,
+                                                  (a_template_param_ptr)NULL,
+                                                  template_arg_list,
+                                                  template_param_list, 
+                                                  &constraint->position,
+                                                  CTWS_NO_OPTIONS,
+                                                  &copy_error, &ctws_state);
+    if (copy_error) {
+      more_info_diagnostic(ec_concept_arg_list_substitution_failed,
+                           &constraint->position, diag_list);
+      result = FALSE;
+    } else {
+      a_diagnostic_ptr  prev_diags = diag_list->tail;
+      an_expr_node_ptr  expr = templ->prototype_instantiation.constraint;
+      result = requires_clause_satisfied(expr, new_args, params, diag_list);
+      if (!result) {
+        /* Insert a diagnostic before the ones detailing the constraint
+           failure. */
+        a_diag_list  new_diags;
+        clear_diag_list(&new_diags);
+        more_info_diagnostic(ec_concept_failed, &constraint->position,
+                             &new_diags);
+        splice_diag_list(&new_diags, diag_list, prev_diags);
+      }  /* if */
+    }  /* if */
+    free_template_arg_list(new_args);
+  } else if (node_is_operator(constraint, eok_land)) {
     /* Check the two underlying constraints separately.  If the first
        determines the outcome, the second is neither substituted not
        evaluated. */
@@ -23527,7 +23569,6 @@ update diag_list with notes describing the reason for the failure.
                                        template_param_list, diag_list) ||
              requires_clause_satisfied(opnds->next, template_arg_list,
                                        template_param_list, diag_list);
-/* FIXME: Concept case. */
   } else {
     /* An atomic constraint.  First perform substitution; then evaluate the
        expression. */

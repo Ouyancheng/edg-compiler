@@ -719,6 +719,8 @@ extern void conv_nontype_template_arg_to_param_type(
 
 extern a_requires_clause_ptr scan_requires_clause(void);
 
+extern an_expr_node_ptr scan_concept_expression(void);
+
 #if !STANDALONE_UTILITY_PROGRAM
 extern
 an_init_component_ptr get_braced_init_list(a_boolean          is_full_expr,

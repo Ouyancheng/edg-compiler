@@ -6184,6 +6184,29 @@ primary diagnostic dp.
 }  /* add_more_info_list */
 
 
+void splice_diag_list(a_diag_list_ptr   src,
+                      a_diag_list_ptr   dst,
+                      a_diagnostic_ptr  insert_after)
+/*
+Splice the diagnostic list src into the list dst, either after the diagnostic
+pointed to by insert_after (if non-NULL), or at the front of the list if
+insert_after is NULL.
+*/
+{
+  if (insert_after != NULL) {
+    if (insert_after == dst->tail) {
+      dst->tail = src->tail;
+    } else {
+      src->tail->next = insert_after->next;
+    }  /* if */
+    insert_after->next = src->head;
+  } else {
+    src->tail->next = dst->head;
+    dst->head = src->head;
+  }  /* if */
+}  /* insert_diag_list */
+
+
 void discard_more_info_list(a_diag_list_ptr		dlp)
 /*
 Discard the list of "more information" diagnostics specified by dlp.  The

@@ -29668,7 +29668,7 @@ inline static void check_bool_constraint(
 opnd is the operand of a logical operator.  If local_options has the flag
 EOPT_CONSTRAINT_EXPR set but the operand does not have type bool, issue an
 error.  Note that this function is called for both atomic and non-atomic
-constraints, but it the atomic constraints produce a bool result, the non-
+constraints, but if the atomic constraints produce a bool result, the non-
 atomic constraints satisfy the constraint automatically (since logical
 operators applied to bool operands produce bool results).  
 */
@@ -35012,6 +35012,39 @@ type_identifier_case:
                Create an enk_param_ref operand to represent the use. */
             make_param_ref_operand(result, sym_ptr);
           }  /* if */
+          break;
+        case sk_concept_template:
+          {
+            a_boolean           err = FALSE;
+            a_template_arg_ptr  tap;
+            (void)get_token();
+            if (required_token_no_advance(tok_lt, ec_exp_lt)) {
+              (void)get_token();
+              add_stop_token(tok_gt);
+              tap = scan_concept_arg_list(sym_ptr, &err);
+              remove_stop_token(tok_gt);
+              if (!required_token_no_advance(tok_gt, ec_exp_gt)) {
+                err = TRUE;
+              }  /* if */
+            } else {
+              err = TRUE;
+            }  /* if */
+            if (err) {
+              make_error_operand(result);
+              goto after_advance_past_id;
+            } else {
+              an_expr_node_ptr  node;
+              node = alloc_expr_node((an_expr_node_kind)enk_concept_id);
+              node->type = bool_type();
+              node->position = start_position;
+              node->variant.concept_id.concept_template =
+                            sym_ptr->variant.template_info->il_template_entry;
+              node->variant.concept_id.args = tap;
+              make_expression_operand(node, result);
+// FIXME: Fold if not EOPT_CONSTRAINT_EXPR
+// FIXME: Handle rescanning (probably not via scan_identifier)
+            }  /* if */
+          }
           break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         case sk_property_set:
@@ -45010,6 +45043,32 @@ expressions (in the standard sense) and logical "or" and "and" operators.
   restore_expr_stack(saved_expr_stack);
   return rcp;
 }  /* scan_requires_clause */
+
+
+an_expr_node_ptr scan_concept_expression(void)
+/*
+Scan a (unevaluated but rescannable) expression that is the right-hand side of
+the "=" token in a concept-definition.  Return a node representing that
+expression.
+*/
+{
+  an_expr_stack_entry_ptr saved_expr_stack;
+  an_expr_stack_entry     expr_stack_entry;
+  an_operand              opnd;
+  an_expr_node_ptr        result_node;
+
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  expr_stack_entry.possible_rescan_context = TRUE;
+  scan_expr(&opnd, PREC_QUEST_MARK, EOPT_CONSTRAINT_EXPR);
+  check_bool_constraint(&opnd, EOPT_CONSTRAINT_EXPR);
+  result_node = make_node_from_operand(&opnd);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  return result_node;
+}  /* scan_concept_expression */
 
 
 static void rescan_braced_init_list(an_expr_node_ptr       expr,
