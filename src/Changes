@@ -1,5 +1,23 @@
 Version 6.1
 
+12/2719 [EDGcpfe/22143]
+C++-generating back end: hidden enumerator names
+
+When an enumerator of an unscoped enumeration is used in a scope in which
+its name is hidden by another declaration, the C++-generating back end
+failed to use a qualified name, causing the generated code to refer to the
+hiding name rather than to the enumerator.  This is now fixed.  For
+example:
+
+  enum E { zero };
+  namespace N {
+    struct zero {                 // Hides the enumerator "zero"
+      static const E v = ::zero;  // Previously omitted "::"
+    };
+    E x = ::zero;                 // Previously omitted "::"
+  }
+
+
 12/20/19 [EDGcpfe/19565,EDGcpfe/19659,EDGcpfe/21650]
 Spurious failure of old-style rvalue-reference cast in deduction context
 

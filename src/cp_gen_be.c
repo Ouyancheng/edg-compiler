@@ -4722,6 +4722,25 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
            for this case. */
         is_unknown_function_operator = TRUE;
       }  /* if */
+    } else if (is_enum_constant(con) && !con->is_named_constant_definition &&
+               !force_qualified_name &&
+               con->source_corresp.parent_scope !=
+                                              curr_name_context->assoc_scope) {
+      /* This constant is a copy of an enumerator constant, not the
+         original enumerator constant itself.  Since the enumerator was not
+         defined in the current scope, it might be hidden by another
+         declaration; however, the hidden name processing would have marked
+         the original enumerator constant and not this copy, so we need to
+         find that constant to see if the name must be qualified. */
+      a_constant_ptr cp;
+      check_assertion(con->type->kind == (a_type_kind)tk_integer);
+      for (cp = con->type->variant.integer.enum_info.constant_list;
+           cp != NULL; cp = cp->next) {
+        if (unmangled_name_of(&cp->source_corresp) == unmangled_name_of(scp)) {
+          force_qualified_name = cp->source_corresp.qualification_needed;
+          break;
+        }  /* if */
+      }  /* for */
     }  /* if */
   } else if (in_class_scope_with_dependent_base &&
              !(options & GN_DECLARATION) && entry_kind != iek_namespace &&
