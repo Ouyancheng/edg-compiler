@@ -7371,7 +7371,9 @@ copy_done:
   slmp = add_source_line_modif((delete_source_from_loc == curr_char_loc)
                                                       ? NULL
                                                       : delete_source_from_loc,
-                               (sizeof_t)(curr_char_loc -
+			       (delete_source_from_loc == NULL)
+                                 ? 0
+                                 : (sizeof_t)(curr_char_loc -
                                                        delete_source_from_loc),
                                rescan_loc, rescan_loc + repl_text_len +
                                space_for_end_of_top_level_expansion_escape);
