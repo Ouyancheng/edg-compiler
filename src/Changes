@@ -3,10 +3,11 @@ Version 6.1
 12/31/19 [EDGcpfe/22146]
 Abort when __has_include is the last token of a file
 
-The change for EDGcpfe/21966 caused a regression in which a file containing
-__has_include as the last token of the file, when compiled in a mode that
-enables feature-test macros, resulted in an abort due to a segfault (in
-skip_white_space).  This is now fixed.  For example, with --microsoft:
+The change for EDGcpfe/21966 (in version 6.0) caused a regression in which
+a file containing __has_include as the last token of the file, when
+compiled in a mode that enables feature-test macros, resulted in an abort
+due to a segfault (in skip_white_space).  This is now fixed.  For example,
+with --microsoft:
 
   __has_include   // Last token of file, previously a segfault, now okay
 
