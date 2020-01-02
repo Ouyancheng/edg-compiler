@@ -3610,6 +3610,7 @@ and return a pointer to it.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       tssp->variant.class_template.implicit_deduction_guides_added = FALSE;
       tssp->variant.class_template.interim_implicit_deduction_guides = FALSE;
+      tssp->variant.class_template.has_alias_params_not_in_type = FALSE;
       tssp->variant.class_template.invented_template = FALSE;
       tssp->variant.class_template.argument_template = NULL;
       tssp->variant.class_template.substituted_param_template = NULL;

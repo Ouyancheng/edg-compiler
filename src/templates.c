@@ -14636,16 +14636,27 @@ a pointer over a reference type or creating an array of references.
                  that type may not be a typeref. */
               a_typeref_type_supplement_ptr	ttsp;
               a_symbol_ptr			template_sym;
+              a_template_symbol_supplement_ptr	tssp = NULL;
               ttsp = type->variant.typeref.extra_info;
               template_sym = symbol_for(ttsp->assoc_template);
-              type = copy_template_alias_reference_with_substitution(
+              if (template_sym != NULL) {
+                tssp = template_supplement_for_symbol(template_sym);
+              }  /* if */
+              /* If we don't have a template symbol, or if the alias has
+                 template parameters that are not used in the resulting type,
+                 we need to do substitution into the actual alias template
+                 parameter list to check things like default arguments. */
+              if (tssp == NULL ||
+                  tssp->variant.class_template.has_alias_params_not_in_type) {
+                type = copy_template_alias_reference_with_substitution(
                               template_sym, type, templ_arg_list,
                               templ_param_list, source_pos, options,
                               copy_error,
                               ctws_state);
-              new_type = type;
-              if (template_sym->is_class_member) {
-                parent_class_for_subst = template_sym->parent.class_type;
+                new_type = type;
+                if (template_sym->is_class_member) {
+                  parent_class_for_subst = template_sym->parent.class_type;
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
@@ -27930,18 +27941,21 @@ information).  See the definition of a_tmpl_decl_state for details.
 
 
 static void check_alias_template_param_usage(
-					a_tmpl_decl_state_ptr	decl_state,
-					a_type_ptr		alias_type)
+			a_tmpl_decl_state_ptr			decl_state,
+			a_template_symbol_supplement_ptr	tssp,
+			a_type_ptr				alias_type)
 /*
 Determine which of the template parameters of an alias template are used
-in the prototype instantiation type specified by alias_type.  The parameter
-information is obtained from decl_state.
+in the prototype instantiation type specified by alias_type.  tssp is the
+supplement associated with the alias template.  The parameter information is
+obtained from decl_state.
 */
 {
   a_template_param_ptr	template_param_list =
                                              decl_state->decl_info->parameters;
   a_template_param_ptr	tpp;
   a_boolean		any_used = FALSE;
+  a_boolean		any_unused = FALSE;
 
   for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
     a_symbol_ptr param_sym = tpp->param_symbol;
@@ -27952,7 +27966,11 @@ information is obtained from decl_state.
                                              alias_type,
                                              /*deduced_only=*/FALSE);
     tpp->used_in_alias = param_used;
-    if (param_used) any_used = TRUE;
+    if (param_used) {
+      any_used = TRUE;
+    } else {
+      any_unused = TRUE;
+    }  /* if */
   } /* for */
   if (!any_used) {
     /* If none of the parameters were used in the type, check for an error
@@ -27962,6 +27980,11 @@ information is obtained from decl_state.
         tpp->used_in_alias = TRUE;
       }  /* for */
     }  /* if */
+  }  /* if */
+  if (any_unused) {
+    /* Record the fact that one or more of the template parameters was not
+       used in the aliased type. */
+    tssp->variant.class_template.has_alias_params_not_in_type = TRUE;
   }  /* if */
 }  /* check_alias_template_param_usage */
 
@@ -28049,7 +28072,7 @@ can be diagnosed at template definition time.
   tssp->variant.class_template.prototype_instantiation_complete = TRUE;
   /* Determine which of the template parameters is used in the resulting
      type. */
-  check_alias_template_param_usage(decl_state, tp);
+  check_alias_template_param_usage(decl_state, tssp, tp);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (prototype_instantiations_in_il && decl_state->is_alias_redecl &&
       !source_sequence_entries_disallowed) {

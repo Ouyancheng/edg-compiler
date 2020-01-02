@@ -1,5 +1,13 @@
 Version 6.1
 
+1/2/20   [EDGcpfe/21870]
+Performance issue with Ranges library
+
+The way in which the substitution of alias template references is handled
+resulted in poor performance in some cases.  This issue created particularly
+poor performance for the Ranges library.  Now fixed.
+
+
 12/31/19 [EDGcpfe/22146]
 Abort when __has_include is the last token of a file
 

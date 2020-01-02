@@ -2960,6 +2960,10 @@ typedef struct a_template_symbol_supplement {
 			/* TRUE if implicit_deduction_guides_added is TRUE but
 			   the generated guides were generated when the class
 			   template was not defined. */
+      a_bit_field
+		has_alias_params_not_in_type:1;
+			/* TRUE for an alias template if it has template
+			   parameters that are not used in the aliased type. */
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       a_source_sequence_entry_ptr
 		source_sequence_list;
