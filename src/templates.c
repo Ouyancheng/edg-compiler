@@ -14647,7 +14647,9 @@ a pointer over a reference type or creating an array of references.
                  we need to do substitution into the actual alias template
                  parameter list to check things like default arguments. */
               if (tssp == NULL ||
-                  tssp->variant.class_template.has_alias_params_not_in_type) {
+                  tssp->variant.class_template.has_alias_params_not_in_type ||
+                  ((options & (CTWS_IS_PARTIAL_ORDER_CHECK |
+                               CTWS_IS_PARTIAL_SPECIALIZATION_CHECK)) != 0)) {
                 type = copy_template_alias_reference_with_substitution(
                               template_sym, type, templ_arg_list,
                               templ_param_list, source_pos, options,
