@@ -725,7 +725,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_vector_size, "T", apply_vector_size_attr },
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  { ak_visibility, "r:+x|v:+x|c|n", apply_visibility_attr },
+  { ak_visibility, "r:+x|v:+x|c|n|e", apply_visibility_attr },
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   { ak_warn_unused_result, "t|r|v|d", apply_warn_unused_result_attr },
   { ak_warning, "r", NO_APPL_FN },
@@ -7696,9 +7696,12 @@ entity.
         break;
       case iek_type:
         tp = (a_type_ptr)entity;
-        check_assertion(is_immediate_class_type(tp));
-        if (!C_mode() && gnu_version >= 40000 && !class_type_has_body(tp)) {
+        if (!C_mode() && gnu_version >= 40000 &&
+            is_immediate_class_type(tp) && !class_type_has_body(tp)) {
           class_type_supp(tp)->ELF_visibility = evk;
+        } else if ((clang_mode || gnu_version_is(>=60000)) &&
+                   is_immediate_enum_type(tp)) {
+          tp->variant.integer.ELF_visibility = evk;
         } else {
           pos_ty_warning(ec_attribute_does_not_apply_to_type, &ap->position,
                          tp);
@@ -8298,15 +8301,19 @@ The given entity is returned.
   if (entity_kind == iek_type) {
     check_assertion(ap->syntactic_location ==
                                       (a_byte_attribute_location)al_tag_name);
-    /* When applied to tag types, dllimport/dllexport is accepted on C++ class
-       types only. */
-    if (C_mode() && is_immediate_class_type((a_type_ptr)entity)) {
-      pos_st_warning(ec_struct_declspec_ignored_in_C_mode,
-                     &ap->position, attribute_display_name(ap));
-      make_attr_unrecognized(ap);
-    } else if (is_immediate_enum_type((a_type_ptr)entity)) {
-      pos_warning(ec_extended_modifier_ignored_on_enum, &ap->position);
-      make_attr_unrecognized(ap);
+    /* The warnings generated here appear to be generated only by earlier
+       versions of Microsoft Visual Studio. */
+    if (microsoft_version < 1200) {
+      /* When applied to tag types, dllimport/dllexport is accepted on C++
+         class types only. */
+      if (C_mode() && is_immediate_class_type((a_type_ptr)entity)) {
+        pos_st_warning(ec_struct_declspec_ignored_in_C_mode,
+                       &ap->position, attribute_display_name(ap));
+        make_attr_unrecognized(ap);
+      } else if (is_immediate_enum_type((a_type_ptr)entity)) {
+        pos_warning(ec_extended_modifier_ignored_on_enum, &ap->position);
+        make_attr_unrecognized(ap);
+      }  /* if */
     }  /* if */
   }  /* if */
   return entity;

@@ -1927,6 +1927,10 @@ to default values.
       pte->variant.integer.is_prototype_instantiation = FALSE;
       pte->variant.integer.is_nonreal = FALSE;
       pte->variant.integer.is_specialized = FALSE;
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+      pte->variant.integer.ELF_visibility =
+                                       (an_ELF_visibility_kind)evk_unspecified;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pte->variant.integer.microsoft_sized_int_type = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

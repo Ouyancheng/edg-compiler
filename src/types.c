@@ -15435,13 +15435,16 @@ of the given type if that type is a class type with a stricter ELF visibility
 than recorded so far.
 */
 {
+  an_ELF_visibility_kind  curr_visibility = evk_unspecified;
+
   if (is_immediate_class_type(type)) {
-    an_ELF_visibility_kind  curr_visibility =
-                                        class_type_supp(type)->ELF_visibility;
-    if (ELF_visibility_strictness(curr_visibility) >
-           ELF_visibility_strictness(strictest_ELF_visibility_in_traversal)) {
-      strictest_ELF_visibility_in_traversal = curr_visibility;
-    }  /* if */
+    curr_visibility = class_type_supp(type)->ELF_visibility;
+  } else if (is_immediate_enum_type(type)) {
+    curr_visibility = type->variant.integer.ELF_visibility;
+  }  /* if */
+  if (ELF_visibility_strictness(curr_visibility) >
+         ELF_visibility_strictness(strictest_ELF_visibility_in_traversal)) {
+    strictest_ELF_visibility_in_traversal = curr_visibility;
   }  /* if */
   return FALSE;
 }  /* ttt_check_ELF_visibility_of_type */

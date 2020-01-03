@@ -9065,6 +9065,11 @@ typedef struct a_type {
 		is_specialized:1;
 			/* TRUE for enum instances that were explicitly
 			   specialized. */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+      a_bit_field
+		ELF_visibility:3;
+			/* The visibility of the enum type. */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       union {
         /* When enum_type is TRUE, but is_scoped_enum is FALSE: */
         a_constant_ptr

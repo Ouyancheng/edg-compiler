@@ -1900,6 +1900,28 @@ Return a string corresponding to the indicated type kind.
   return str;
 }  /* type_kind_string */
 
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+
+static void disp_ELF_visibility_kind(an_ELF_visibility_kind  ELF_visibility)
+/*
+Display an ELF_visibility field.
+*/
+{
+  a_const_char  *str;
+
+  disp_name("ELF_visibility");
+  switch (ELF_visibility) {
+    case evk_unspecified: str = "evk_unspecified";             break;
+    case evk_hidden:      str = "evk_hidden";                  break;
+    case evk_protected:   str = "evk_protected";               break;
+    case evk_internal:    str = "evk_internal";                break;
+    case evk_default:     str = "evk_default";                 break;
+    default:              str = "**BAD ELF VISIBILITY KIND**";
+  }  /* switch */
+  (void)printf("%s\n", str);
+}  /* disp_ELF_visibility_kind */
+
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
 static void disp_type(a_type_ptr ptr)
 /*
@@ -2038,6 +2060,12 @@ Display the indicated type entry.
         if (ptr->variant.integer.is_specialized) {
           disp_boolean("is_specialized", TRUE);
         }  /* if */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+        if (ptr->variant.integer.ELF_visibility !=
+                                     (an_ELF_visibility_kind)evk_unspecified) {
+          disp_ELF_visibility_kind(ptr->variant.integer.ELF_visibility);
+        }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
         if (integer_type_is_scoped_enum(ptr)) {
           disp_ptr("enum_info.assoc_scope",
                    (char*)ptr->variant.integer.enum_info.assoc_scope,
@@ -2658,28 +2686,6 @@ field storing the register.
   (void)printf("%s\n", s);
 }  /* disp_named_register */
 
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-
-static void disp_ELF_visibility_kind(an_ELF_visibility_kind  ELF_visibility)
-/*
-Display an ELF_visibility field.
-*/
-{
-  a_const_char  *str;
-
-  disp_name("ELF_visibility");
-  switch (ELF_visibility) {
-    case evk_unspecified: str = "evk_unspecified";             break;
-    case evk_hidden:      str = "evk_hidden";                  break;
-    case evk_protected:   str = "evk_protected";               break;
-    case evk_internal:    str = "evk_internal";                break;
-    case evk_default:     str = "evk_default";                 break;
-    default:              str = "**BAD ELF VISIBILITY KIND**";
-  }  /* switch */
-  (void)printf("%s\n", str);
-}  /* disp_ELF_visibility_kind */
-
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
                                 
 static void disp_variable_template_info(a_variable_template_info_ptr ptr)

@@ -6515,6 +6515,9 @@ described by octl.
     if (is_immediate_class_type(type) && !octl->c_generating_back_end) {
       form_ELF_visibility_attribute(class_type_supp(type)->ELF_visibility,
                                     &need_leading_space, octl);
+    } else if (is_immediate_enum_type(type) && !octl->c_generating_back_end) {
+      form_ELF_visibility_attribute(type->variant.integer.ELF_visibility,
+                                    &need_leading_space, octl);
     }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     if (type->variables_are_implicitly_referenced) {

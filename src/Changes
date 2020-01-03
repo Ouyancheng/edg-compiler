@@ -1,5 +1,23 @@
 Version 6.1
 
+1/3/20   [EDGcpfe/22063]
+GNU compatibility: "visibility" attribute on enumeration types
+
+A change has been made to accept the GNU "visibility" attribute on enumeration
+types when gnu_version >= 60000 or in clang mode.  Additionally, a warning
+is no longer given in Microsoft emulation mode when microsoft_version < 1200
+for dllimport/dllexport attributes attached to an enumeration declaration
+or a struct (in C mode).  Those changes allow this code to be accepted in
+most emulation modes:
+
+  #if defined(_MSC_VER)
+  #define EXPORT __declspec(dllexport)
+  #else
+  #define EXPORT __attribute__((visibility("default")))
+  #endif
+  enum class EXPORT E { e };
+
+
 1/2/20   [EDGcpfe/21870]
 Performance issue with Ranges library
 
