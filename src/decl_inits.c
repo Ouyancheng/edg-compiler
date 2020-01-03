@@ -2673,7 +2673,7 @@ members up to end_field, but not including end_field, should be initialized.
   a_field_ptr           fp, last_dyn_field = NULL;
   a_base_class_ptr      bcp;
   an_aggr_init_con_elem aggr_init_con;
-  a_boolean             union_case = aggr_type->kind == (a_type_kind)tk_union;
+  a_boolean             union_case = type_is(aggr_type, tk_union);
 
   /* Register aggr_con as currently being initialized, in case a member
      initializer refers to a previously-initialized member.  That is
@@ -2778,7 +2778,9 @@ members up to end_field, but not including end_field, should be initialized.
       } else if (end_field == NULL) {
         /* A union with no member that is initialized by a field initializer.
            Just initialize the first field. */
-        end_fp = next_field;
+        next_field = next_proper_initializable_field(
+                            aggr_type->variant.class_struct_union.field_list);
+        end_fp = next_proper_initializable_field(next_field->next);
       }  /* if */
     }  /* if */
     for (fp = next_field;
