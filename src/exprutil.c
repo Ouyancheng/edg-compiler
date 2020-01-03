@@ -4323,7 +4323,12 @@ Return TRUE if the given node is one with a specific specified type (e.g.,
 representing a cast or a new-expression).
 */
 {
-  
+  if (is_constant_node(node)) {
+    a_constant_ptr con = node_constant(node);
+    if (constant_is(con, ck_template_param) && tpck_is(con, tpck_expression)) {
+      node = expr_node_from_tpck_expression(con);
+    }  /* if */
+  }  /* if */
   return is_operation_node(node) ?
              is_cast_operation_node(node)
            : (node->kind == (an_expr_node_kind)enk_temp_init ||
