@@ -35015,7 +35015,6 @@ type_identifier_case:
           break;
         case sk_concept_template:
           {
-            a_boolean           err = FALSE;
             a_template_arg_ptr  tap;
             (void)get_token();
             if (required_token_no_advance(tok_lt, ec_exp_lt)) {
