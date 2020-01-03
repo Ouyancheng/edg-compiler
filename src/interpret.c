@@ -4549,7 +4549,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
   a_boolean  result = TRUE;
 
   if (con->implicit_cast) {
-    if (con->is_reinterpret_cast) {
+    if (con->is_reinterpret_cast &&
+        !(ips->allow_reinterpret_cast && constant_is(con, ck_integer) &&
+          is_pointer_type(con->type))) {
       info_with_pos(ec_constexpr_reinterpret_cast, &ips->position, ips);
       do_constexpr_fail(result);
     } else if (con->expr != NULL && !con->is_reinterpret_like_cast &&
