@@ -2602,6 +2602,9 @@ additional ones over the basic ones implied for this case.
     } else {
       scan_expr_full(&local_operand, &local_bound_function_selector,
                      PREC_LOWEST, options);
+      if (!local_operand.bound_function) {
+        bound_function_selector = NULL;
+      }  /* if */
     }  /* if */
     if (first_time) {
       copy_operand(&local_operand, operand);
