@@ -17051,22 +17051,6 @@ next_integer_pack_element:
   return arg_list;
 }  /* scan_template_argument_list */
 
-
-a_template_arg_ptr scan_concept_arg_list(a_symbol_ptr template_sym,
-                                         a_boolean    *any_errors)
-/*
-Scan a template argument list for the give concept template.
-FIXME: Option to skip first parameter.
-*/
-{
-  a_template_arg_ptr  templ_arg_list;
-  long                first_defaulted_arg = -1;
-
-  templ_arg_list = scan_template_argument_list(template_sym, any_errors, 
-                                               &first_defaulted_arg);
-  return templ_arg_list;
-}  /* scan_concept_arg_list */
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean is_valid_generic_argument(a_type_ptr	argument_type)
@@ -17280,6 +17264,23 @@ modes.
   if (curr_token != tok_gt) {                                                \
     f_check_closing_angle_bracket((p_any_errors));                           \
   }  /* if */
+
+
+a_template_arg_ptr scan_concept_arg_list(a_symbol_ptr template_sym,
+                                         a_boolean    *any_errors)
+/*
+Scan a template argument list for the give concept template.
+FIXME: Option to skip first parameter.
+*/
+{
+  a_template_arg_ptr  templ_arg_list;
+  long                first_defaulted_arg = -1;
+
+  templ_arg_list = scan_template_argument_list(template_sym, any_errors, 
+                                               &first_defaulted_arg);
+  check_closing_angle_bracket(any_errors);
+  return templ_arg_list;
+}  /* scan_concept_arg_list */
 
 
 a_symbol_ptr coalesce_template_class_reference(

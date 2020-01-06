@@ -35044,28 +35044,31 @@ type_identifier_case:
               node->variant.concept_id.concept_template =
                                                       tssp->il_template_entry;
               node->variant.concept_id.args = tap;
-              if (!is_template_dependent_context()) {
-                /* In a non-template-dependent context, just fold the node.
-                   Note that this excludes requires clauses and concept
-                   definitions. */
-                a_constant_ptr        con = local_constant();
-                a_boolean             val;
-                a_diag_list           diag_list;
-                a_template_param_ptr  param_list = tssp->cache.decl_info
-                                                       ->parameters;
-                check_assertion((local_options & EOPT_REQUIRES_CLAUSE) == 0);
-                clear_diag_list(&diag_list);
-                val = requires_clause_satisfied(node, tap, param_list,
-                                                &diag_list);
-                make_bool_constant_value(val, con);
-                con->expr = node;
-                make_constant_operand(con, result);
-                discard_more_info_list(&diag_list);
-                release_local_constant(&con);
-              } else {
+              if ((local_options & EOPT_CONSTRAINT_EXPR) != 0) {
+                /* In a constraint expression, just keep the expression
+                   itself. */
                 make_expression_operand(node, result);
+              } else {
+                /* In contexts that aren't constraint expressions, produce a
+                   constant entry. */
+                a_constant_ptr        con = local_constant();
+                if (template_arg_list_is_dependent(tap)) {
+                  make_template_param_expr_constant(node, con);
+                } else {
+                  a_boolean             val;
+                  a_diag_list           diag_list;
+                  a_template_param_ptr  param_list = tssp->cache.decl_info
+                                                         ->parameters;
+                  clear_diag_list(&diag_list);
+                  val = requires_clause_satisfied(node, tap, param_list,
+                                                  &diag_list);
+                  make_bool_constant_value(val, con);
+                  con->expr = node;
+                  discard_more_info_list(&diag_list);
+                }  /* if */
+                make_constant_operand(con, result);
+                release_local_constant(&con);
               }  /* if */
-// FIXME: Handle rescanning (probably not via scan_identifier)
             }  /* if */
           }
           break;

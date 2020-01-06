@@ -18088,6 +18088,21 @@ options is a set of name lookup options.
         }  /* if */
       }
       break;
+    case enk_concept_id:
+      if (template_arg_list_is_dependent(template_arg_list)) {
+        /* Don't attempt to substitute concept-ids with dependent parameter
+           lists. */
+        subst_fail(*copy_error);
+      } else {
+        a_boolean             val;
+        a_diag_list           diag_list;
+        clear_diag_list(&diag_list);
+        val = requires_clause_satisfied(expr, template_arg_list,
+                                        template_param_list, &diag_list);
+        make_bool_constant_value(val, constant);
+        discard_more_info_list(&diag_list);
+      }  /* if */
+      break;
     case enk_lambda:
     case enk_error:
       subst_fail(*copy_error);
@@ -19761,6 +19776,7 @@ be called to start a copy.
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_type_operand:
     case enk_param_ref:
+    case enk_concept_id:
       /* Nothing more to copy. */
       break;
     case enk_constant:
