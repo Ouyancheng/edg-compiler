@@ -632,21 +632,18 @@ initializer lists can have their braces ignored.
     icp = icp->variant.braced.list;
     if (!dps->has_deducible_class_templ_args) {
       result = TRUE;
-    } else {
-      a_type_ptr dtp = skip_typerefs_not_typedefs_or_type_operators(dps->type);
-      if (!parenthesized_init && icp != NULL && icp->next == NULL &&
-          is_expression_component(icp) &&
-          is_class_template_placeholder_type(dtp)) {
-        a_template_arg_ptr args;
-        a_type_ptr         operand_type = operand_of_arg_list_elem(icp)->type;
-        a_symbol_ptr       class_tmpl_sym =
-                                         dtp->variant.template_param.extra_info
-                                            ->class_template_symbol;
+    } else if (!parenthesized_init &&
+               icp != NULL && icp->next == NULL &&
+               is_expression_component(icp) &&
+               is_class_template_placeholder_type(dps->type)) {
+      a_template_arg_ptr args;
+      a_type_ptr         operand_type = operand_of_arg_list_elem(icp)->type;
+      a_symbol_ptr       class_tmpl_sym =
+          dps->type->variant.template_param.extra_info->class_template_symbol;
 
-        result = is_or_derived_from_instance_of_class_template(operand_type,
-                                                               class_tmpl_sym,
-                                                               &args);
-      }  /* if */
+      result = is_or_derived_from_instance_of_class_template(operand_type,
+                                                             class_tmpl_sym,
+                                                             &args);
     }  /* if */
   }  /* if */
   return result;
@@ -35039,14 +35036,35 @@ type_identifier_case:
               goto after_advance_past_id;
             } else {
               an_expr_node_ptr  node;
+              a_template_symbol_supplement_ptr
+                                tssp = sym_ptr->variant.template_info;
               node = alloc_expr_node((an_expr_node_kind)enk_concept_id);
               node->type = bool_type();
               node->position = start_position;
               node->variant.concept_id.concept_template =
-                            sym_ptr->variant.template_info->il_template_entry;
+                                                      tssp->il_template_entry;
               node->variant.concept_id.args = tap;
-              make_expression_operand(node, result);
-// FIXME: Fold if not EOPT_CONSTRAINT_EXPR
+              if (!is_template_dependent_context()) {
+                /* In a non-template-dependent context, just fold the node.
+                   Note that this excludes requires clauses and concept
+                   definitions. */
+                a_constant_ptr        con = local_constant();
+                a_boolean             val;
+                a_diag_list           diag_list;
+                a_template_param_ptr  param_list = tssp->cache.decl_info
+                                                       ->parameters;
+                check_assertion((local_options & EOPT_REQUIRES_CLAUSE) == 0);
+                clear_diag_list(&diag_list);
+                val = requires_clause_satisfied(node, tap, param_list,
+                                                &diag_list);
+                make_bool_constant_value(val, con);
+                con->expr = node;
+                make_constant_operand(con, result);
+                discard_more_info_list(&diag_list);
+                release_local_constant(&con);
+              } else {
+                make_expression_operand(node, result);
+              }  /* if */
 // FIXME: Handle rescanning (probably not via scan_identifier)
             }  /* if */
           }

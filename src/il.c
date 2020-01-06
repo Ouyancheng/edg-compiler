@@ -8850,6 +8850,17 @@ Return a node representing a "one" constant of the given type.
 }  /* make_one_expr */
 
 
+void make_bool_constant_value(a_boolean       val,
+                              a_constant_ptr  con)
+/*
+Set the given constant to the given boolean value and to type bool.
+*/
+{
+  set_integer_constant(con, (a_host_large_integer)val, BOOL_INT_KIND);
+  con->type = bool_type();
+}  /* make_bool_constant */
+
+
 a_boolean make_value_initialized_constant(a_type_ptr type,
                                           a_constant *con)
 /*
