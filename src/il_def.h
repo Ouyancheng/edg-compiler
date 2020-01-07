@@ -14200,7 +14200,7 @@ typedef struct an_expr_node {
 			   yield_value member of the promise type in the case
 			   of a "co_yield" operation.) */
       an_expr_node_ptr
-		resume_ready_suspend;
+		ready_resume_suspend;
 			/* A list of three expressions representing the calls
 			   to await_resume, await_ready, and await_suspend
 			   needed to implement the "co_await" operation. */

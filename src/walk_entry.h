@@ -1886,7 +1886,7 @@ do_set_proper_definition_needed_flag:
           case enk_yield:
             walk_ptr(eptr->variant.await_info.operand, an_expr_node_ptr,
                      iek_expr_node);
-            walk_list(eptr->variant.await_info.resume_ready_suspend,
+            walk_list(eptr->variant.await_info.ready_resume_suspend,
                       an_expr_node_ptr, iek_expr_node);
             break;
           case enk_fold:

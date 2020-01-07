@@ -3518,7 +3518,7 @@ as specified in the control block.
       if (expr->variant.await_info.operand != NULL) {
         traverse_expr(expr->variant.await_info.operand, tblock);
       }  /* if */
-      traverse_expr_list(expr->variant.await_info.resume_ready_suspend,
+      traverse_expr_list(expr->variant.await_info.ready_resume_suspend,
                          tblock);
       break;
     case enk_fold:

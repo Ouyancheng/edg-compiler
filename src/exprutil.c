@@ -2738,11 +2738,7 @@ destructions preceding the first destruction from the expression).
      current lifetime list */
   if (tblock->relink_dynamic_inits &&
       dip->lifetime != NULL && dip->lifetime == curr_object_lifetime) {
-    /* In some cases (such cloned expressions) the same initializer can appear
-       in multiple locations.  Be sure to handle the case where these
-       expressions are processed one immediately after the other. */
     if (tblock->last_relinked_dynamic_init != NULL &&
-        tblock->last_relinked_dynamic_init != dip &&
         dip->next_in_destruction_list != tblock->last_relinked_dynamic_init) {
       /* The destruction is not at the right place on the list.  Move it. */
       a_dynamic_init_ptr tdip = curr_object_lifetime->destructions;

@@ -3589,7 +3589,7 @@ fields to default values.
     case enk_await:
     case enk_yield:
       node->variant.await_info.operand = NULL;
-      node->variant.await_info.resume_ready_suspend = NULL;
+      node->variant.await_info.ready_resume_suspend = NULL;
       break;
     case enk_fold:
       node->variant.fold.operands = NULL;

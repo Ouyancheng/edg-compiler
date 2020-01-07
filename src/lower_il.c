@@ -16416,9 +16416,9 @@ cast.  See lower_expr for typical invocation.
     case enk_await:
     case enk_yield:
       lower_expr(expr->variant.await_info.operand);
-      lower_expr(expr->variant.await_info.resume_ready_suspend->next);
-      lower_expr(expr->variant.await_info.resume_ready_suspend);
-      lower_expr(expr->variant.await_info.resume_ready_suspend->next->next);
+      lower_expr(expr->variant.await_info.ready_resume_suspend);
+      lower_expr(expr->variant.await_info.ready_resume_suspend->next);
+      lower_expr(expr->variant.await_info.ready_resume_suspend->next->next);
       break;
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:

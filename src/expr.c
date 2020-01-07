@@ -40452,25 +40452,26 @@ is called to implement the generated suspend points implied by the coroutine.
      a glvalue, that glvalue is used as an argument in those calls.  If it
      produces a prvalue, a temporary lvalue is initialized from that prvalue
      and the temporary is used in the calls. */
+  /* Clone the operand and use the clone, so that the original operand isn't
+     affected by any subsequent transformations. */
+  clone_operand(operand, &ready_operand, /*vars_can_change=*/TRUE,
+                &temp_init_used, /*treat_as_potential_prvalue=*/TRUE);
   /* Call p.await_transform, if it exists. */
   if (!for_yield && !generated_suspend_point &&
       look_up_named_member_function(cdp->promise->type, "await_transform",
                                     &loc) != NULL) {
     make_lvalue_variable_operand(cdp->promise, pos, pos, &var_operand,
                                  (a_ref_entry *)NULL);
-    alep = alloc_arg_list_elem_for_operand(operand);
+    alep = alloc_arg_list_elem_for_operand(&ready_operand);
     call_named_member_function(&var_operand, "await_transform",
                                (a_template_arg_ptr)NULL, alep,
-                               &var_operand, &resume_operand);
+                               &var_operand, &ready_operand);
     free_arg_list(alep);
-    if (is_error_operand(&resume_operand)) {
+    if (is_error_operand(&ready_operand)) {
       expect_error();
       make_error_operand(result);
       goto done;
     }  /* if */
-  } else {
-    clone_operand(operand, &resume_operand, /*vars_can_change=*/TRUE,
-                  &temp_init_used, /*treat_as_potential_prvalue=*/TRUE);
   }  /* if */
   /* Transform through operator co_await, if there is one. */
   check_for_operator_overloading((an_opname_kind)onk_await,
@@ -40478,22 +40479,22 @@ is called to implement the generated suspend points implied by the coroutine.
                                  /*must_be_member_function=*/FALSE,
                                  /*try_conversions=*/FALSE,
                                  /*has_predef_meaning=*/TRUE,
-                                 &resume_operand, (an_operand*)NULL,
+                                 &ready_operand, (an_operand*)NULL,
                                  pos, tok_seq_number,
                                  (a_nondependent_call_depth)0,
                                  (a_source_position *)NULL,
-                                 &resume_operand, &processed);
+                                 &ready_operand, &processed);
   /* Prepare the calls to await_ready and friends. */
-  if (is_a_prvalue(&resume_operand) && !is_void_type(operand->type)) {
-    temp_init_from_operand(&resume_operand, /*result_is_lvalue*/TRUE);
+  if (is_a_prvalue(&ready_operand) && !is_void_type(operand->type)) {
+    temp_init_from_operand(&ready_operand, /*result_is_lvalue*/TRUE);
   }  /* if */
-  utp = skip_typerefs(resume_operand.type);
+  utp = skip_typerefs(ready_operand.type);
   if (is_immediate_class_type(utp)) {
     /* Create clones of this operand for the calls to await_ready and
        await_suspend. */
-    clone_operand(&resume_operand, &ready_operand, /*vars_can_change=*/TRUE,
+    clone_operand(&ready_operand, &resume_operand, /*vars_can_change=*/TRUE,
                   &temp_init_used, /*treat_as_potential_prvalue=*/TRUE);
-    clone_operand(&resume_operand, &suspend_operand, /*vars_can_change=*/TRUE,
+    clone_operand(&ready_operand, &suspend_operand, /*vars_can_change=*/TRUE,
                   &temp_init_used, /*treat_as_potential_prvalue=*/TRUE);
     /* Call the await_ready, await_suspend, and await_resume member
        functions. */
@@ -40521,11 +40522,11 @@ is called to implement the generated suspend points implied by the coroutine.
   }  /* if */
   node->type = resume_call.type;
   node->variant.await_info.operand = make_node_from_operand(operand);
-  node->variant.await_info.resume_ready_suspend =
+  node->variant.await_info.ready_resume_suspend =
                                           make_node_from_operand(&ready_call);
-  node->variant.await_info.resume_ready_suspend->next =
+  node->variant.await_info.ready_resume_suspend->next =
                                          make_node_from_operand(&resume_call);
-  node->variant.await_info.resume_ready_suspend->next->next =
+  node->variant.await_info.ready_resume_suspend->next->next =
                                         make_node_from_operand(&suspend_call);
   make_expression_operand(node, result);
 done:;
