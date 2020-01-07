@@ -59,6 +59,14 @@ Initialize the fields of the given diagnostic list entry.
 #define clear_diag_list(dlp) \
   { (dlp)->head = NULL; (dlp)->tail = NULL; }
 
+inline a_boolean is_empty_diag_list(a_diag_list_ptr  dlp)
+/*
+Return TRUE if the given diagnostic list is empty.
+*/
+{
+  return dlp->head == NULL;
+}  /* is_empty_diag_list */
+
 
 /*
 Structure used to map error tags into error codes.  An array of these

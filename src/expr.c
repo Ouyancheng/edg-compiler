@@ -45216,13 +45216,21 @@ is TRUE if the expression is the immediate operand of an "&" operator.
                   &rcblock->expr->position, rcblock->options,
                   &copy_error, rcblock->ctws_state);
           if (copy_error) {
-            subst_fail(rcblock->error_detected);
-            make_error_operand(result);
-            copy_operand_position(&eriep->saved_operand, result);
+            /* Don't attempts to find a matching instance. */
           } else {
             sym = find_template_variable(t_sym, &t_args,
                                          /*prototype_allowed=*/FALSE,
-                                         /*is_use=*/TRUE);
+                                         /*is_use=*/TRUE, /*diagnose=*/FALSE);
+            if (sym == NULL) {
+              /* Substitution failed (presumably because the constraints were
+                 not satisfied). */
+              copy_error = TRUE;
+            }  /* if */
+          }  /* if */
+          if (copy_error) {
+            subst_fail(rcblock->error_detected);
+            make_error_operand(result);
+            copy_operand_position(&eriep->saved_operand, result);
           }  /* if */
         } else {
           sym = symbol_for(var);

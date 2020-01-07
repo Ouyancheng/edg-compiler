@@ -18092,7 +18092,8 @@ indicated by the template argument list.
       a_boolean	is_use = (options & GID_IS_EXPR_CONTEXT) != 0;
       prototype_allowed = (options & GID_USE_PROTOTYPE_NOT_NONREAL) != 0;
       new_sym = find_template_variable(template_sym, &arg_list,
-                                       prototype_allowed, is_use);
+                                       prototype_allowed, is_use,
+                                       /*diagnose=*/TRUE);
       if (new_sym == NULL) {
         expect_error();
         any_errors = TRUE;

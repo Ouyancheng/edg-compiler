@@ -18094,8 +18094,8 @@ options is a set of name lookup options.
            lists. */
         subst_fail(*copy_error);
       } else {
-        a_boolean             val;
-        a_diag_list           diag_list;
+        a_boolean    val;
+        a_diag_list  diag_list;
         clear_diag_list(&diag_list);
         val = requires_clause_satisfied(expr, template_arg_list,
                                         template_param_list, &diag_list);

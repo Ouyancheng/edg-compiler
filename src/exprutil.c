@@ -23508,16 +23508,26 @@ user-defined conversions (see also process_boolean_controlling_expression).
 a_boolean requires_clause_satisfied(an_expr_node_ptr      constraint,
                                     a_template_arg_ptr    template_arg_list,
                                     a_template_param_ptr  template_param_list,
-                                    a_diag_list_ptr       diag_list)
+                                    a_diag_list_ptr       diag_list,
+                                    a_boolean             *p_fatal)
 /*
 Return TRUE if the given constraint expression, built on the given template
-parameter list, is satisfied by the given template argument list.  If not,
-update diag_list with notes describing the reason for the failure.
+parameter list, is satisfied by the given template argument list.  Otherwise,
+return FALSE and:
+  - update diag_list with notes describing the reason for the failure if
+    that failure is a "SFINAE" failure,
+  - if p_fatal is non-NULL and the failure is not subject to SFINAE, set
+    *p_fatal to TRUE and update diag_list with a corresponding note, or
+  - if p_fatal is NULL and the failure is not subject to SFINAE, issue an
+    error with any notes record in diag_list and clear diag_list.
 */
 {
-  a_boolean  result = TRUE;
+  a_boolean  result = TRUE, fatal = FALSE, diagnose_here = (p_fatal == NULL);
 
 /* FIXME: Cache results. */
+  if (diagnose_here) {
+    p_fatal = &fatal;
+  }  /* if */
   if (constraint->kind == (an_expr_node_kind)enk_concept_id) {
     /* Substitute the template argument list of the concept, and then check
        the satisfaction of the concept's constraint expression with that
@@ -23542,13 +23552,24 @@ update diag_list with notes describing the reason for the failure.
                                                   CTWS_NO_OPTIONS,
                                                   &copy_error, &ctws_state);
     if (copy_error) {
+      /* Substitution errors during parameter mappings are not SFINAE-like.
+         For example:
+           template<typename T> concept X = sizeof(T) == 1;
+           template<typename T> concept Y = X<T[1]>;
+           template<typename T> requires Y<T&> void f(T) {}
+           void f(...);
+           void g() { f(0); }
+         fails at this stage when forming the invalid type T = "int &[1]" in
+         the parameter mapping for concept X. */
+      *p_fatal = TRUE;
       more_info_diagnostic(ec_concept_arg_list_substitution_failed,
                            &constraint->position, diag_list);
       result = FALSE;
     } else {
       a_diagnostic_ptr  prev_diags = diag_list->tail;
       an_expr_node_ptr  expr = templ->prototype_instantiation.constraint;
-      result = requires_clause_satisfied(expr, new_args, params, diag_list);
+      result = requires_clause_satisfied(expr, new_args, params, diag_list,
+                                         p_fatal);
       if (!result) {
         /* Insert a diagnostic before the ones detailing the constraint
            failure. */
@@ -23566,18 +23587,22 @@ update diag_list with notes describing the reason for the failure.
        evaluated. */
     an_expr_node_ptr  opnds = constraint->variant.operation.operands;
     result = requires_clause_satisfied(opnds, template_arg_list,
-                                       template_param_list, diag_list) &&
+                                       template_param_list, diag_list,
+                                       p_fatal) &&
              requires_clause_satisfied(opnds->next, template_arg_list,
-                                       template_param_list, diag_list);
+                                       template_param_list, diag_list,
+                                       p_fatal);
   } else if (node_is_operator(constraint, eok_lor)) {
     /* Check the two underlying constraints separately.  If the first
        determines the outcome, the second is neither substituted not
        evaluated. */
     an_expr_node_ptr  opnds = constraint->variant.operation.operands;
     result = requires_clause_satisfied(opnds, template_arg_list,
-                                       template_param_list, diag_list) ||
+                                       template_param_list, diag_list,
+                                       p_fatal) ||
              requires_clause_satisfied(opnds->next, template_arg_list,
-                                       template_param_list, diag_list);
+                                       template_param_list, diag_list,
+                                       p_fatal);
   } else {
     /* An atomic constraint.  First perform substitution; then evaluate the
        expression. */
@@ -23599,14 +23624,24 @@ update diag_list with notes describing the reason for the failure.
                            &constraint->position, diag_list);
       result = FALSE;
     } else if (expr != NULL) {
-      if (interpret_expr(expr, /*is_constant_evaluated=*/TRUE,
-                         /*force_prvalue=*/TRUE, cp, diag_list)) {
+      if (!is_bool_type(expr->type)) {
+        /* If the type is not a boolean after substitution, the failure is
+           not SFINAE-like. */
+        *p_fatal = TRUE;
+        result = FALSE;
+        more_info_diagnostic(ec_nonbool_atomic_constraint,
+                             &constraint->position, diag_list);
+      } else if (interpret_expr(expr, /*is_constant_evaluated=*/TRUE,
+                                /*force_prvalue=*/TRUE, cp, diag_list)) {
         result = !is_false_constant(cp);
         if (!result) {
           more_info_diagnostic(ec_atomic_constraint_false,
                                &constraint->position, diag_list);
         }  /* if */
       } else {
+        /* The failure to produce a constant value is not a SFINAE-like
+           error. */
+        *p_fatal = TRUE;
         more_info_diagnostic(ec_atomic_constraint_evaluation_failed,
                              &expr->position, diag_list);
         result = FALSE;
@@ -23620,6 +23655,15 @@ update diag_list with notes describing the reason for the failure.
     }  /* if */
     release_local_constant(&cp);
     if (expr != NULL) reclaim_fs_nodes_of_expr_tree(expr);
+  }  /* if */
+  if (!result && diagnose_here) {
+// FIXME: Instead of adding a "dummy" ec_template_constraint_not_satisfied
+// prefix, this should promote the leading note to the primary error.
+    a_diagnostic_ptr  dp;
+    dp = pos_start_error(ec_template_constraint_not_satisfied,
+                         &constraint->position);
+    add_more_info_list(dp, diag_list);
+    end_diagnostic(dp);
   }  /* if */
   return result;
 }  /* requires_clause_satisfied */

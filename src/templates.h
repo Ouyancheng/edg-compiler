@@ -493,6 +493,11 @@ extern a_boolean template_arg_list_is_dependent(
 extern a_boolean template_arg_list_involves_error_entity(
                                         a_template_arg_ptr	tap);
 
+extern a_boolean check_template_constraints(
+                                  a_template_symbol_supplement_ptr  tssp,
+                                  a_template_arg_ptr                args,
+                                  a_boolean                         diagnose);
+
 extern a_symbol_ptr find_template_class(
 			     a_symbol_ptr        class_template_sym,
                              a_template_arg_ptr  *new_list,
@@ -510,7 +515,8 @@ extern a_symbol_ptr find_template_variable(
 				a_symbol_ptr		template_sym,
 				a_template_arg_ptr	*new_templ_arg_list,
 				a_boolean		prototype_allowed,
-				a_boolean		is_use);
+				a_boolean		is_use,
+				a_boolean		diagnose);
 
 extern a_namespace_ptr determine_referencing_namespace(void);
 
