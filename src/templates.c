@@ -3209,6 +3209,47 @@ is put at the start of either ptp1 or ptp2.
 }  /* get_effective_param_type_list_for_templates */
 
 
+static a_boolean check_template_constraints(
+                                  a_template_symbol_supplement_ptr  tssp,
+                                  a_template_arg_ptr                args,
+                                  a_boolean                         diagnose)
+/*
+Return TRUE if the constraints on the template described by tssp is satisfied
+by the give template arguments.  Otherwise, return FALSE and, if diagnose is
+TRUE, issue a diagnostic explaining the failure.
+*/
+{
+  a_boolean            result = TRUE;
+  a_template_ptr       il_entry = tssp->il_template_entry;
+  a_template_decl_ptr  tdp = il_entry->template_decl;
+
+
+  if (tdp != NULL && if_microsoft_extensions(!tdp->is_generic &&)
+      tdp->constraint.requires_clause != NULL) {
+    an_expr_node_ptr      constraint =
+                                  tdp->constraint.requires_clause->constraint;
+    a_template_param_ptr  params = tssp->cache.decl_info->parameters;
+    a_diag_list           diag_list;
+    a_source_position     diag_pos = error_position;
+    clear_diag_list(&diag_list);
+    if (!requires_clause_satisfied(constraint, args, params, &diag_list)) {
+      if (!is_empty_diag_list(&diag_list)) {
+        if (diagnose) {
+          a_diagnostic_ptr  dp;
+          dp = pos_start_error(ec_template_constraint_not_satisfied,
+                               &diag_pos);
+          add_more_info_list(dp, &diag_list);
+          end_diagnostic(dp);
+        } else {
+          discard_more_info_list(&diag_list);
+        }  /* if */
+      }  /* if */
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* check_template_constraints */
+
 
 int compare_function_templates(
 			a_symbol_ptr 		templ_sym1,
@@ -9924,48 +9965,6 @@ is the template of which sym is an instance.
 }  /* make_into_ms_instantiated_nonreal_class */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-static a_boolean check_template_constraints(
-                                  a_template_symbol_supplement_ptr  tssp,
-                                  a_template_arg_ptr                args,
-                                  a_boolean                         diagnose)
-/*
-Return TRUE if the constraints on the template described by tssp is satisfied
-by the give template arguments.  Otherwise, return FALSE and, if diagnose is
-TRUE, issue a diagnostic explaining the failure.
-*/
-{
-  a_boolean            result = TRUE;
-  a_template_ptr       il_entry = tssp->il_template_entry;
-  a_template_decl_ptr  tdp = il_entry->template_decl;
-
-
-  if (tdp != NULL && if_microsoft_extensions(!tdp->is_generic &&)
-      tdp->constraint.requires_clause != NULL) {
-    an_expr_node_ptr      constraint =
-                                  tdp->constraint.requires_clause->constraint;
-    a_template_param_ptr  params = tssp->cache.decl_info->parameters;
-    a_diag_list           diag_list;
-    a_source_position     diag_pos = error_position;
-    clear_diag_list(&diag_list);
-    if (!requires_clause_satisfied(constraint, args, params, &diag_list)) {
-      if (!is_empty_diag_list(&diag_list)) {
-        if (diagnose) {
-          a_diagnostic_ptr  dp;
-          dp = pos_start_error(ec_template_constraint_not_satisfied,
-                               &diag_pos);
-          add_more_info_list(dp, &diag_list);
-          end_diagnostic(dp);
-        } else {
-          discard_more_info_list(&diag_list);
-        }  /* if */
-      }  /* if */
-      result = FALSE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* check_template_constraints */
-
 
 static void determine_templ_arg_lists_to_use(
 		a_boolean		is_alias_template,
