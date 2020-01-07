@@ -14202,7 +14202,7 @@ typedef struct an_expr_node {
       an_expr_node_ptr
 		ready_resume_suspend;
 			/* A list of three expressions representing the calls
-			   to await_resume, await_ready, and await_suspend
+			   to await_ready, await_resume, and await_suspend
 			   needed to implement the "co_await" operation. */
     } await_info;
     /* When kind == enk_fold: */
