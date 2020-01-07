@@ -632,21 +632,18 @@ initializer lists can have their braces ignored.
     icp = icp->variant.braced.list;
     if (!dps->has_deducible_class_templ_args) {
       result = TRUE;
-    } else {
-      a_type_ptr dtp = skip_typerefs_not_typedefs_or_type_operators(dps->type);
-      if (!parenthesized_init && icp != NULL && icp->next == NULL &&
-          is_expression_component(icp) &&
-          is_class_template_placeholder_type(dtp)) {
-        a_template_arg_ptr args;
-        a_type_ptr         operand_type = operand_of_arg_list_elem(icp)->type;
-        a_symbol_ptr       class_tmpl_sym =
-                                         dtp->variant.template_param.extra_info
-                                            ->class_template_symbol;
+    } else if (!parenthesized_init &&
+               icp != NULL && icp->next == NULL &&
+               is_expression_component(icp) &&
+               is_class_template_placeholder_type(dps->type)) {
+      a_template_arg_ptr args;
+      a_type_ptr         operand_type = operand_of_arg_list_elem(icp)->type;
+      a_symbol_ptr       class_tmpl_sym =
+          dps->type->variant.template_param.extra_info->class_template_symbol;
 
-        result = is_or_derived_from_instance_of_class_template(operand_type,
-                                                               class_tmpl_sym,
-                                                               &args);
-      }  /* if */
+      result = is_or_derived_from_instance_of_class_template(operand_type,
+                                                             class_tmpl_sym,
+                                                             &args);
     }  /* if */
   }  /* if */
   return result;
