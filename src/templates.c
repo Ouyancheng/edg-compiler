@@ -9925,7 +9925,7 @@ is the template of which sym is an instance.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-a_boolean check_template_constraints(
+static a_boolean check_template_constraints(
                                   a_template_symbol_supplement_ptr  tssp,
                                   a_template_arg_ptr                args,
                                   a_boolean                         diagnose)
