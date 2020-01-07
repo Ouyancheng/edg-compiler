@@ -1,5 +1,22 @@
 Version 6.1
 
+1/7/20   [EDGcpfe/22179]
+Spurious 'expected a ")"' error during template instantiation
+
+In certain instances the front end would issue a spurious 'expected a ")"'
+error during template instantiation.  For example:
+
+  template <typename T>
+  int func() noexcept(T(0));
+  template <typename T>
+  struct A {
+    using type = decltype(func<T>()); // Spurious 'expected a ")"' error here
+  };
+  A<A<int>>::type foo;
+
+This is now fixed.
+
+
 1/6/20   [EDGcpfe/22147]
 Abort in coroutines when awaiting an operand with a non-trivial destructor
 

@@ -3269,7 +3269,7 @@ indication in *rcblock).
           rescan_cached_tokens(&cache);
         }  /* if */ 
       }  /* if */
-      check_closing_paren_after_expr_list();
+      if (rcblock == NULL) check_closing_paren_after_expr_list();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       curr_construct_end_position = end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -26114,7 +26114,7 @@ freed by this routine.
     if (aggr_init) {
       scan_braced_init_list_cast(type_cast_to, csf_functional,
                                  supplied_arg_list, rcblock != NULL, result);
-      check_closing_paren_after_expr_list();
+      if (rcblock == NULL) check_closing_paren_after_expr_list();
       if (arg_list_supplied) {
         /* The arg list was provided - don't free it here. */
         supplied_arg_list->variant.braced.list = NULL;
@@ -26253,7 +26253,7 @@ freed by this routine.
     unbundle_init_component_list_expressions(supplied_arg_list);
     scan_braced_init_list_cast(type_cast_to, csf_functional,
                                supplied_arg_list, rcblock != NULL, result);
-    check_closing_paren_after_expr_list();
+    if (rcblock == NULL) check_closing_paren_after_expr_list();
     if (arg_list_supplied) {
       /* The arg list was provided - don't free it here. */
       supplied_arg_list->variant.braced.list = NULL;
