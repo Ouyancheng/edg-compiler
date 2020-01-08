@@ -6306,6 +6306,43 @@ in the Cfront ABI a "bi" flag is used instead).
 }  /* mangled_encoding_for_initializer */
 
 
+static void mangled_encoding_for_concept_id(an_expr_node_ptr         expr,
+                                            a_mangling_control_block *mctl)
+/*
+Add mangling for the concept-id expression to the current mangled name.
+FIXME: This currently mangles using the "X" expression and clang/gcc don't.
+FIXME: abi_tags?
+FIXME: clang/gcc differences?
+*/
+{
+  check_assertion(expr->kind == enk_concept_id);
+#if IA64_ABI
+  a_boolean need_nested_name_close = FALSE;
+  a_source_correspondence *discriminator_scp = NULL, *scp;
+  add_str_to_mangled_name("L_Z", mctl);
+  /* Clang does not appear to register a substitution for the entire concept.*/
+  if (!add_substitution_if_available(
+                             (char *)expr->variant.concept_id.concept_template,
+                             iek_template, /*is_pack_expansion=*/FALSE, mctl)){
+    scp = &expr->variant.concept_id.concept_template->source_corresp;
+    mangled_ia64_parent_qualifier(scp, iek_template, &need_nested_name_close,
+                                  &discriminator_scp,
+                                  /*force_individuation=*/FALSE, mctl);
+    mangled_name_with_length(scp->name, mctl);
+    alloc_substitution((char *)expr->variant.concept_id.concept_template,
+                       iek_template, /*is_pack_expansion=*/FALSE, mctl);
+  }  /* if */
+  mangled_template_arguments(expr->variant.concept_id.args,
+                             /*partial_spec=*/FALSE, /*old_form=*/FALSE,
+                             (a_name_reference_ptr)NULL, mctl);
+  close_ia64_nested_name(need_nested_name_close, discriminator_scp, mctl);
+  add_to_mangled_name('E', mctl);
+#else /* !IA64_ABI */
+  // FIXME: Need to implement Cfront mangling for this.
+#endif /* IA64_ABI */
+}  /* mangled_encoding_for_concept_id */
+
+
 static void mangled_encoding_for_expression_full(
                                   an_expr_node_ptr         expr,
                                   a_boolean                in_dependent_expr,
@@ -6879,6 +6916,9 @@ is TRUE.
         add_to_mangled_name('O', mctl);
 #endif /* IA64_ABI */
       }
+      break;
+    case enk_concept_id:
+      mangled_encoding_for_concept_id(expr, mctl);
       break;
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
