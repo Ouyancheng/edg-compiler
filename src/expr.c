@@ -3283,7 +3283,7 @@ indication in *rcblock).
            an empty expansion is accepted. */
         skip_empty_pack_expansions_after_comma();
       }  /* if */
-      if (rcblock == NULL) check_closing_paren_after_expr_list();
+      check_closing_paren_after_expr_list();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       curr_construct_end_position = end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
