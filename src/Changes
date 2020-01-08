@@ -21,7 +21,7 @@ This is now fixed.
 Abort in coroutines when awaiting an operand with a non-trivial destructor
 
 The operand to a (possibly generated) co_await expression produces an
-auxilliary expression "e" for the implicit e.await_ready, e.await_suspend, and
+auxiliary expression "e" for the implicit e.await_ready, e.await_suspend, and
 e.await_resume function calls.  If "e" contains an object destruction, the
 front end would abort in update_last_processed_dynamic_init.  For example:
 
