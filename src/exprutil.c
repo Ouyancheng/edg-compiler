@@ -23662,7 +23662,7 @@ return FALSE and:
     release_local_constant(&cp);
     if (expr != NULL) reclaim_fs_nodes_of_expr_tree(expr);
   }  /* if */
-  if (!result && diagnose_here) {
+  if (!result && *p_fatal && diagnose_here) {
 // FIXME: Instead of adding a "dummy" ec_template_constraint_not_satisfied
 // prefix, this should promote the leading note to the primary error.
     a_diagnostic_ptr  dp;

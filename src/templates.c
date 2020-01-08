@@ -9925,6 +9925,24 @@ is the template of which sym is an instance.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_boolean template_has_constraints(
+                                      a_template_symbol_supplement_ptr  tssp)
+/*
+Return TRUE if the template associated with tssp has constraints.
+*/
+{
+  a_boolean            result = FALSE;
+  a_template_ptr       il_entry = tssp->il_template_entry;
+  a_template_decl_ptr  tdp = il_entry->template_decl;
+
+  if (tdp != NULL && if_microsoft_extensions(!tdp->is_generic &&)
+      tdp->constraint.requires_clause != NULL) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* template_has_constraints */
+
+
 a_boolean check_template_constraints(
                                   a_template_symbol_supplement_ptr  tssp,
                                   a_template_arg_ptr                args,
@@ -10147,14 +10165,35 @@ use the current global value of the template template parameter.
                                    &new_list_without_local_types,
                                    &list_for_instantiation, &list_copied,
                                    &dependent_arg_list);
-  if (template_sym == symbol_for_make_integer_seq && !dependent_arg_list) {
-    /* For non-dependent arguments to __make_integer_seq, substitute a
-       reference to the builtin alias __make_integer_seq_alias which will
-       invoke instantiate_make_integer_seq to programatically instantiate
-       the template. */
-    template_sym = symbol_for_make_integer_seq_alias;
-    tssp = template_sym->variant.template_info;
-    is_alias_template = TRUE;
+  if (!dependent_arg_list) {
+    if (template_sym == symbol_for_make_integer_seq) {
+      /* For non-dependent arguments to __make_integer_seq, substitute a
+         reference to the builtin alias __make_integer_seq_alias which will
+         invoke instantiate_make_integer_seq to programatically instantiate
+         the template. */
+      template_sym = symbol_for_make_integer_seq_alias;
+      tssp = template_sym->variant.template_info;
+      is_alias_template = TRUE;
+    } else if (!in_substitution &&
+               !check_template_constraints(tssp, list_for_instantiation,
+                                           /*diagnose=*/TRUE)) {
+      /* The template arguments do not satisfy the constraints.  Create a
+         dummy symbol referring to an error type. */
+      expect_error();
+      sym = alloc_symbol((a_symbol_kind)sk_type, template_sym->header,
+                         &template_sym->decl_position);
+      sym->decl_scope = template_sym->decl_scope;
+      if (template_sym->is_class_member) {
+        set_class_membership(sym, (a_source_correspondence *)NULL,
+                             sym_parent_class(template_sym));
+      } else if (sym_is_namespace_member(template_sym)) {
+        set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                                 sym_parent_namespace(template_sym));
+      }  /* if */
+      sym->variant.type.ptr = error_type();
+      free_template_arg_list(*new_list);
+      goto done;
+    }  /* if */
   }  /* if */
   sym = NULL;
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
@@ -10278,6 +10317,7 @@ use the current global value of the template template parameter.
     }  /* if */
     free_template_arg_list(*new_list);
   }  /* if */
+done:
   /* The list is cleared in all cases.  The caller cannot use the list
      after we return because it may have been freed. */
   *new_list = NULL;
@@ -13635,8 +13675,14 @@ to an alias template, the substituted type is returned in *new_type
       /* Some error with the template arguments to an internal template. */
       new_sym = NULL;
       subst_fail(*copy_error);
-    }  /* if */
-    if (!*copy_error) {
+    } else if (template_has_constraints(tssp) &&
+               !template_arg_list_is_dependent(new_list) &&
+               !check_template_constraints(tssp, new_list,
+                                           /*diagnose=*/FALSE)) {
+      /* Constraints were not satisfied. */
+      new_sym = NULL;
+      subst_fail(*copy_error);
+    } else {
       new_sym = find_template_class(template_sym, &new_list, orig_is_prototype,
                                     (a_symbol_ptr)NULL,
                                     /*instantiate_nonreal=*/FALSE,
