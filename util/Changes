@@ -1,3 +1,15 @@
+Version 6.1
+
+1/8/20   [EDGcpfe/22182]
+IA-64 ABI demangling failure
+
+Certain IA-64 mangled names (with multiple substitutions, involving templates)
+could not be demangled properly.  One such example is
+_Z1fIcEiN1XIXL_Z1CIT_EEEE4TypeEN1YIXL_ZS1_IS2_EEEE4TypeE.  That now demangles
+to "int f<char>(X<C<T1>>::Type, Y<C<T1>>::Type)".
+
+
+-------------------------------------------------------------------------------
 Version 6.0, December 5, 2019
 
 8/8/19   [EDGcpfe/21114]

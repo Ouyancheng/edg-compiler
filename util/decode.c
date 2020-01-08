@@ -7698,7 +7698,11 @@ as a prefix to specify a module id for an externalized name.
     ptr = demangle_local_name(ptr, func_block, dctl);
   } else {
     /* <unscoped-name> or <unscoped-template-name> <template-args>. */
-    if (*ptr == 'S' && ptr[1] != '\0' && ptr[2] == 'I') {
+    if (*ptr == 'S' &&
+        ((ptr[1] == '_' && ptr[2] == 'I') ||
+         (isdigit((unsigned char)ptr[1]) && ptr[2] == '_' && ptr[3] == 'I') ||
+         (isdigit((unsigned char)ptr[1]) && isdigit((unsigned char)ptr[2]) &&
+                                            ptr[3] == '_' && ptr[4] == 'I'))) {
       /* <substitution> in <unscoped-template-name>, because it's
          followed by the "I" beginning a <template-args>. */
       ptr = demangle_substitution(ptr, 0, CVQ_NONE,
