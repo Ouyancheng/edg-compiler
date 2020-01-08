@@ -94,6 +94,7 @@ Clear an output control block to default values.
   octl->output_attributes         = NULL;
   octl->is_typedef_invisible      = NULL;
   octl->has_unprotected_gt_or_comma_operation = NULL;
+  octl->type_operator_expr_is_unusable = NULL;
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   octl->func_prototype_stack      = NULL;
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
@@ -2308,13 +2309,13 @@ available or not portable).
   a_boolean render = FALSE;
 
   if (typeref_is_type_operator(type)) {
+    an_expr_node_ptr expr = decltype_arg(type);
     if (octl->c_generating_back_end) {
       /* Never render a type operator in the C-generating back end. */
       render = FALSE;
     } else if (type->variant.typeref.is_underlying_type ||
                type->variant.typeref.is_bases ||
-               (!type->variant.typeref.is_decltype &&
-                decltype_arg(type) == NULL)) {
+               (!type->variant.typeref.is_decltype && expr == NULL)) {
       /* A non-expression case: __underlying_type, typeof, etc. applied to
          a type name.  Render the operator in the C++-generating back end
          (to match the source form) or when the argument is template-dependent.
@@ -2331,9 +2332,11 @@ available or not portable).
         /* With unknown template cases, you always need the underlying
            expression to make sense of things. */
         render = TRUE;
-      } else if (octl->gen_compilable_code) {
+      } else if (octl->gen_compilable_code &&
+                 (octl->type_operator_expr_is_unusable == NULL ||
+                  !octl->type_operator_expr_is_unusable(expr))) {
         /* We're generating compilable code, and the decltype or typeof is
-           based on an expression.  Render it. */
+           based on a usable expression.  Render it. */
         render = TRUE;
       }  /* if */
     }  /* if */

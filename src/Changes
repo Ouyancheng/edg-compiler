@@ -1,5 +1,47 @@
 Version 6.1
 
+1/8/20   [EDGcpfe/22162]
+C++-generating back end: reference to undefined type in decltype operand
+
+In C++-generating back end configurations in which
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS or
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, an explicit
+specialization could sometimes be generated containing a decltype specifier
+in which the operand expression referred to a class type that was not
+defined at the point of the explicit specialization.  This is now fixed.
+For example, with --c++11, given the input file
+
+  template <typename T> struct A {
+    typedef T type;
+  };
+  template <typename T> class B {
+    using dt = decltype(T().g());
+  public:
+    using type = typename A<dt>::type;
+  };
+  void f() {
+    struct C {
+      bool g() { return true; }
+    };
+    using type = B<C>::type;
+  }
+
+the generated output previously contained the following explicit
+specialization:
+
+  template<> struct A<bool>  {
+    typedef decltype((struct C().g())) type;
+  };
+
+However, "C" is a local class that cannot be referred to from namespace
+scope, where explicit specializations must appear.  The C++-generating back
+end now produces the following correct explicit specialization:
+
+  template<> struct A<bool>  {
+    typedef bool type;
+  };
+
+
 1/8/20   [EDGcpfe/22184]
 Reference to uninitialized pointer
 

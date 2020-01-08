@@ -10057,7 +10057,8 @@ expression tree.  It stops the traversal and sets the result to TRUE when
 it finds a node referring to a member of a class that has not yet been
 defined.  It is used by suppress_invalid_explicit_specialization to
 detect references in exception specifications that would make the class
-containing such an exception specification invalid.
+containing such an exception specification invalid and by form_type to
+avoid putting out invalid type operator expressions.
 */
 {
   a_source_correspondence_ptr scp = NULL;
@@ -10079,11 +10080,30 @@ containing such an exception specification invalid.
       !scp_parent_class(scp)->has_been_defined) {
     /* This node refers to a member of a not-yet-defined class, so an
        explicit specialization for the class in which this expression
-       appears would be invalid. */
+       appears or a type operator containing this expression would be
+       invalid. */
     tblock->result = TRUE;
     tblock->terminate = TRUE;
   }  /* if */
 }  /* check_for_member_of_undefined_class */
+
+
+static a_boolean expr_uses_undefined_type(an_expr_node_ptr expr)
+/*
+Walk the tree rooted in expr looking for references to members of classes
+that haven't been defined yet.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = check_for_member_of_undefined_class;
+  tblock.process_non_dynamic_constants = TRUE;
+  tblock.process_expressions_for_constants = TRUE;
+  tblock.process_template_parameter_constants_and_expressions = TRUE;
+  traverse_expr(expr, &tblock);
+  return tblock.result;
+}  /* expr_uses_undefined_type */
 
 
 static a_boolean i_is_or_uses_unnameable_class_type(a_type_ptr type)
@@ -10361,16 +10381,7 @@ instantiations are only permitted in namespace scope).
         a_constant_ptr   con = esp->variant.noexcept_arg;
         an_expr_node_ptr expr = con != NULL ? con->expr : NULL;
         if (expr != NULL) {
-          /* Walk the expression tree looking for references to members of
-             classes that haven't been defined yet. */
-          an_expr_or_stmt_traversal_block tblock;
-          clear_expr_or_stmt_traversal_block(&tblock);
-          tblock.process_expr = check_for_member_of_undefined_class;
-          tblock.process_non_dynamic_constants = TRUE;
-          tblock.process_expressions_for_constants = TRUE;
-          tblock.process_template_parameter_constants_and_expressions = TRUE;
-          traverse_expr(expr, &tblock);
-          result = tblock.result;
+          result = expr_uses_undefined_type(expr);
         }  /* if */
       }  /* if */
     }  /* for */
@@ -21655,6 +21666,9 @@ Initialize for the C++/C-generating back end.
   octl.is_typedef_invisible = is_typedef_invisible_in_cp_gen_be;
   octl.has_unprotected_gt_or_comma_operation =
                                          has_unprotected_gt_or_comma_operation;
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  octl.type_operator_expr_is_unusable = expr_uses_undefined_type;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   octl.gen_compilable_code = TRUE;
   octl.gen_pcc_code = il_header.pcc_compatibility_mode;
   /* In C99 mode we want to see "_Bool" rather than "bool" or the type

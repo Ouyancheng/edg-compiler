@@ -70,6 +70,8 @@ typedef void an_output_attributes_function(
 typedef an_output_attributes_function *an_output_attributes_function_ptr;
 typedef a_boolean a_constant_test_function(a_constant_ptr con);
 typedef a_constant_test_function *a_constant_test_function_ptr;
+typedef a_boolean an_expression_test_function(an_expr_node_ptr expr);
+typedef an_expression_test_function *an_expression_test_function_ptr;
 
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 
@@ -188,6 +190,17 @@ typedef struct an_il_to_str_output_control_block {
 			   for a given constant.  This is used to test a
 			   non-type template argument to see if it needs to
 			   be enclosed in parentheses. */
+  an_expression_test_function_ptr
+	type_operator_expr_is_unusable;
+			/* Function that tests whether the expression
+			   operand of a type operator can appear in the
+			   current context.  If the call returns TRUE, the
+			   resulting type of the type operator will be put
+			   out instead of the type operator itself.  This
+			   is useful for the C++-generating back end, where
+			   a generated explicit specialization might
+			   otherwise refer to an as-yet-undefined type via
+			   the expression of a type operator. */
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   a_func_prototype_stack_entry_ptr
 	func_prototype_stack;
