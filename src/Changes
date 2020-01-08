@@ -1,5 +1,24 @@
 Version 6.1
 
+1/8/20   [EDGcpfe/22005]
+Spurious error direct-initializing lvalue-ref with a dependent expression
+
+When a template dependent type is used to direct-initialize a non-const lvalue
+reference using braced-initialization, the front end would issue a spurious
+"initial value of reference to non-const must be an lvalue" error.  For
+example:
+
+  struct A {};
+  template<typename T>
+  struct B
+  {
+    B(T& val) : a{val.getA()} {} // Spurious error here
+    A& a;
+  };
+
+This is now fixed.
+
+
 1/8/20   [EDGcpfe/22162]
 C++-generating back end: reference to undefined type in decltype operand
 

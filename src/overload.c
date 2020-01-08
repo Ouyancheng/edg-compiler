@@ -25110,17 +25110,19 @@ will be an lvalue instead of the usual prvalue.
     } else if (is_single_elem(list) &&
                (!is_any_reference_type(dest_type) ||
                 ((singleton_expr_type != NULL &&
-                  are_reference_related(type_pointed_to(dest_type),
-                                        singleton_expr_type)) ||
+                  (are_reference_related(type_pointed_to(dest_type),
+                                         singleton_expr_type) ||
+                   is_template_dependent_type(singleton_expr_type))) ||
                  (is_expression_component(list) &&
                   is_indefinite_function_operand(
                                          operand_of_arg_list_elem(list)))))) {
       /* A list containing just one member.  Drop the {} and do a recursive
          call.  Reference cases also go here if the underlying type is
          reference-related to the element expression type.  See 8.5.4/3 bullet
-         (3.7) in N4431.  For the case of a brace-enclosed indefinite function
-         operand we don't yet know the type, but this is the only case that
-         can succeed (a type mismatch will be caught later if needed). */
+         (3.7) in N4431.  For the cases of a brace-enclosed indefinite function
+         operand or a dependent expression we don't yet know the type, but
+         these are the only cases that can succeed (a type mismatch will be
+         caught later if needed). */
       if (is_braced_init_component(list)) {
         /* Multiple levels of braces on a scalar initialization.  Only one
            is allowed. */
