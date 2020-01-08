@@ -6307,7 +6307,7 @@ in the Cfront ABI a "bi" flag is used instead).
 
 
 static void mangled_encoding_for_concept_id(an_expr_node_ptr         expr,
-                                            a_mangling_control_block *mctl)
+                       /*FIXME*/ ARG_UNUSED a_mangling_control_block *mctl)
 /*
 Add mangling for the concept-id expression to the current mangled name.
 FIXME: This currently mangles using the "X" expression and clang/gcc don't.
@@ -6315,7 +6315,7 @@ FIXME: abi_tags?
 FIXME: clang/gcc differences?
 */
 {
-  check_assertion(expr->kind == enk_concept_id);
+  check_assertion(expr->kind == (an_expr_node_kind_tag)enk_concept_id);
 #if IA64_ABI
   a_boolean need_nested_name_close = FALSE;
   a_source_correspondence *discriminator_scp = NULL, *scp;
