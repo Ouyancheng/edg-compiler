@@ -6315,7 +6315,7 @@ FIXME: abi_tags?
 FIXME: clang/gcc differences?
 */
 {
-  check_assertion(expr->kind == (an_expr_node_kind_tag)enk_concept_id);
+  check_assertion(expr->kind == (an_expr_node_kind)enk_concept_id);
 #if IA64_ABI
   a_boolean need_nested_name_close = FALSE;
   a_source_correspondence *discriminator_scp = NULL, *scp;
