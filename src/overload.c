@@ -5962,18 +5962,21 @@ next_argument:
                                                    ovl_context,
                                                    &local_template_arg_list,
                                                    &rescan_pushed);
-    if (concepts_enabled) {
-      a_template_symbol_supplement_ptr
-                        tssp = function_symbol->variant.template_info;
-      check_template_constraints(tssp, local_template_arg_list,
-                                 /*diagnose=*/FALSE);
-    }  /* if */
     if (routine_type == NULL) {
       /* Deduction failed. */
 #if DEBUG
       n_deduction_viability_failures += 1;
 #endif /* DEBUG */
       goto reject_function;
+    }  /* if */
+    if (concepts_enabled) {
+      /* Check that the constraints are satisfied. */
+      a_template_symbol_supplement_ptr
+                        tssp = function_symbol->variant.template_info;
+      if (!check_template_constraints(tssp, local_template_arg_list,
+                                      /*diagnose=*/FALSE)) {
+        goto reject_function;
+      }  /* if */
     }  /* if */
     routine_type = skip_typerefs(routine_type);
     rtsp = routine_type->variant.routine.extra_info;
