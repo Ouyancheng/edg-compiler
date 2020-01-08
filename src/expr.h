@@ -423,6 +423,8 @@ an_expr_node_ptr make_synthesized_rel_op(a_token_kind      op_token,
 
 extern void check_closing_paren_after_expr_list(void);
 
+extern void skip_empty_pack_expansions_after_comma(void);
+
 extern
 void scan_ctor_arguments(a_symbol_ptr             constructor_sym,
                          a_source_position        *source_pos,

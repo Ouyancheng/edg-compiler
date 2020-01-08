@@ -4714,6 +4714,8 @@ position is available.
                                 dps->prescanned_initializer_cache.first_init));
       }  /* if */
       flush_initializer_cache(&dps->prescanned_initializer_cache);
+    } else {
+      skip_empty_pack_expansions_after_comma();
     }  /* if */
   }  /* if */
   if (expr_icp == NULL) {

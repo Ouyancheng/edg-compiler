@@ -3178,6 +3178,31 @@ unexpected expressions more gracefully.
 }  /* check_closing_paren_after_expr_list */
 
 
+void skip_empty_pack_expansions_after_comma()
+/*
+Skip empty pack expansions that follow a tok_comma.  This may be needed in
+cases where something like "X, Y..." needs to be accepted when "Y..." results
+in an empty expansion.  Calling this has no effect if the current token is not
+a comma, or if called outside of a variadic template context.
+*/
+{
+  a_pack_expansion_stack_entry_ptr  pesep;
+  a_token_cache                     cache;
+
+  if (curr_token == tok_comma && is_variadic_template_context()) {
+    clear_token_cache(&cache, /*reusable=*/FALSE);
+    cache_curr_token(&cache);
+    (void)get_token();
+    /* Begin the potential pack expansion just to check for an empty
+       expansion. */
+    if (begin_potential_pack_expansion_context(&pesep)) {
+      abandon_potential_pack_expansion_context(pesep);
+      rescan_cached_tokens(&cache);
+    }  /* if */
+  }  /* if */
+}  /* skip_empty_pack_expansions_after_comma */
+
+
 static an_expr_node_ptr scan_parenthesized_initializer_expression(
                                       a_decl_parse_state     *dps,
                                       a_rescan_control_block *rcblock,
@@ -3252,22 +3277,11 @@ indication in *rcblock).
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      if ((gpp_mode || microsoft_mode) && curr_token == tok_comma &&
-          is_variadic_template_context()) {
+      if (gpp_mode || microsoft_mode) {
         /* GNU and Microsoft compilers don't diagnose empty pack expansions at
            this point.  I.e., something like "X, Y..." where "Y..." results in
            an empty expansion is accepted. */
-        a_pack_expansion_stack_entry_ptr  pesep;
-        a_token_cache                     cache;
-        clear_token_cache(&cache, /*reusable=*/FALSE);
-        cache_curr_token(&cache);
-        (void)get_token();
-        /* Begin the potential pack expansion just to check for an empty
-           expansion. */
-        if (begin_potential_pack_expansion_context(&pesep)) {
-          abandon_potential_pack_expansion_context(pesep);
-          rescan_cached_tokens(&cache);
-        }  /* if */ 
+        skip_empty_pack_expansions_after_comma();
       }  /* if */
       if (rcblock == NULL) check_closing_paren_after_expr_list();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
