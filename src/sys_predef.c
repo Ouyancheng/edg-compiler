@@ -415,7 +415,7 @@ returned an error is issued (only if issue_error is TRUE).
 */
 {
   a_boolean     result = TRUE;
-  a_const_char  *restrictions;
+  a_const_char  *restrictions = NULL;
   
   if (sym_hdr->is_user_builtin_function) {
     /* For a user-defined builtin function, re-parse the condition string to

@@ -1,5 +1,12 @@
 Version 6.1
 
+1/8/20   [EDGcpfe/22184]
+Reference to uninitialized pointer
+
+The "restrictions" variable in builtin_restrictions_met had been uninitialized
+in some cases, leading to undefined behavior.  Now fixed.
+
+
 1/7/20   [EDGcpfe/22179]
 Spurious 'expected a ")"' error during template instantiation
 
