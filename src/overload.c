@@ -5962,6 +5962,12 @@ next_argument:
                                                    ovl_context,
                                                    &local_template_arg_list,
                                                    &rescan_pushed);
+    if (concepts_enabled) {
+      a_template_symbol_supplement_ptr
+                        tssp = function_symbol->variant.template_info;
+      check_template_constraints(tssp, local_template_arg_list,
+                                 /*diagnose=*/FALSE);
+    }  /* if */
     if (routine_type == NULL) {
       /* Deduction failed. */
 #if DEBUG

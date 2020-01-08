@@ -23602,19 +23602,17 @@ return FALSE and:
   } else {
     /* An atomic constraint.  First perform substitution; then evaluate the
        expression. */
-    a_ctws_state            ctws_state;
-    a_rescan_control_block  rcblock;
-    an_expr_node_ptr        expr;
-    a_constant_ptr          cp = local_constant();
+    a_ctws_state      ctws_state;
+    an_expr_node_ptr  expr;
+    a_constant_ptr    cp = local_constant(), allocated_cp = NULL;
+    a_boolean         err = FALSE;
     init_ctws_state(&ctws_state);
-    clear_rescan_control_block(&rcblock);
-    rcblock.template_arg_list = template_arg_list;
-    rcblock.template_param_list = template_param_list;
-    rcblock.options = CTWS_NO_OPTIONS;
-    rcblock.ctws_state = &ctws_state;
-    expr = rescan_expr_with_substitution(skip_parens(constraint),
-                                         (a_type_ptr)NULL, &rcblock, cp);
-    if (rcblock.error_detected) {
+    expr = copy_template_param_expr(
+                            constraint, template_arg_list, template_param_list,
+                            (a_type_ptr)NULL, &constraint->position,
+                            CTWS_NO_OPTIONS, &err, &ctws_state,
+                            cp, &allocated_cp);
+    if (err) {
       /* Substitution failed. */
       more_info_diagnostic(ec_atomic_constraint_substitution_failed,
                            &constraint->position, diag_list);
@@ -23643,10 +23641,22 @@ return FALSE and:
         result = FALSE;
       }  /* if */
     } else {
-      result = !is_false_constant(cp);
-      if (!result) {
-        more_info_diagnostic(ec_atomic_constraint_false,
+      if (allocated_cp == NULL) {
+        allocated_cp = cp;
+      }  /* if */
+      if (!is_bool_type(allocated_cp->type)) {
+        /* If the type is not a boolean after substitution, the failure is
+           not SFINAE-like. */
+        *p_fatal = TRUE;
+        result = FALSE;
+        more_info_diagnostic(ec_nonbool_atomic_constraint,
                              &constraint->position, diag_list);
+      } else {
+        result = !is_false_constant(allocated_cp);
+        if (!result) {
+          more_info_diagnostic(ec_atomic_constraint_false,
+                               &constraint->position, diag_list);
+        }  /* if */
       }  /* if */
     }  /* if */
     release_local_constant(&cp);
