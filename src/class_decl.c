@@ -11581,21 +11581,47 @@ table and if that empties the overload set, also remove the latter.  Set the
 symbol pointers pointing to removed symbols to NULL.
 */
 {
-  check_assertion(is_class_member_using_decl_symbol(*pu_sym));
-  if (*ps_sym == *pu_sym) {
-    remove_symbol(*pu_sym);
+  a_symbol_ptr  u_sym = *pu_sym, s_sym = *ps_sym;
+
+  check_assertion(is_class_member_using_decl_symbol(u_sym));
+  
+  if (s_sym == u_sym) {
+    remove_symbol(u_sym);
     *ps_sym = NULL;
   } else {
-    remove_symbol_from_overload_set(*pu_sym, *ps_sym);
-    if ((*ps_sym)->variant.overloaded_function.symbols == NULL) {
+    remove_symbol_from_overload_set(u_sym, s_sym);
+    if (s_sym->variant.overloaded_function.symbols == NULL) {
       /* The last entry of the overload set was removed: Remove the set
          itself. */
-      remove_symbol(*ps_sym);
+      remove_symbol(s_sym);
       *ps_sym = NULL;
     }  /* if */
   }  /* if */
   *pu_sym = NULL;
 }  /* remove_member_using_decl */
+
+
+static void remove_from_conversion_list(a_symbol_ptr  sym)
+/*
+sym represents a conversion function symbol (or a projection thereof) declared
+in a class X.  Remove the corresponding entry on the "conversion functions
+list" for X.
+*/
+{
+  a_type_ptr               class_type = sym_parent_class(sym);
+  a_class_symbol_supplement_ptr
+                           cssp = class_symbol_supp(symbol_for(class_type));
+  a_symbol_list_entry_ptr  *p_slep = &cssp->conversion_list, slep;
+
+  for (slep = *p_slep; slep != NULL; p_slep = &slep->next, slep = *p_slep) {
+    if (slep->symbol == sym) {
+      *p_slep = slep->next;
+      slep->next = NULL;
+      free_list_of_symbol_list_entries(slep);
+      break;
+    }  /* if */
+  }  /* for */
+}  /* remove_from_conversion_list */
 
 
 static a_symbol_ptr symbol_for_member_function(
@@ -11647,6 +11673,10 @@ was used).
         /* A using-declaration previously declared a matching function or
            template in this scope.  The new declaration hides the one brought
            in by the using-declaration: Remove new_sym. */
+        if (locator->is_conversion_name &&
+            symbol_is(fundamental_symbol_of(new_sym), sk_member_function)) {
+          remove_from_conversion_list(new_sym);
+        }  /* if */
         remove_member_using_decl(&new_sym, &sym);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (microsoft_mode &&
@@ -23870,11 +23900,12 @@ class_type.  Set *updated if a projection symbol is created.
             (is_template_list &&
              conversion_template_matches_base_member(sym, bcsym))) {
           /* A conversion to the same type.  If this is from the current class
-             (i.e., it is not a projection symbol) we should ignore the one
-             from the base class.  If the entry on the current class list
-             is a projection to the same routine as the symbol from
-             the base class, it can also be ignored. */
-          if (!symbol_is(sym, sk_projection)) {
+             (i.e., it is not an implicit projection symbol) we should ignore
+             the one from the base class.  If the entry on the current class
+             list is a projection to the same routine as the symbol from the
+             base class, it can also be ignored. */
+          if (!symbol_is(sym, sk_projection) ||
+              sym->variant.projection.is_using_decl) {
             /* The symbol is from the current class.  Ignore the base
                symbol. */
             break;

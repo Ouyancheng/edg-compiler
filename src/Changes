@@ -1,5 +1,24 @@
 Version 6.1
 
+1/9/20   [EDGcpfe/20929,EDGcpfe/21998,EDGcpfe/22163]
+Using-declarations and conversion functions
+
+Consider:
+
+  struct X { operator bool() const; };
+  struct Y { operator bool() const; };
+  struct D: X, Y {
+    using X::operator bool;
+  };
+  bool foo(D d) {
+    return d;  // Previously ambiguous.  Now okay.
+  }
+
+The front end previously did not hide Y::operator bool() in the presence of the
+using-declaration for X::operator bool() in D.  That resulted in a spurious
+ambiguity error.  This is now fixed.
+
+
 1/9/20   [EDGcpfe/21041,EDGcpfe/22138]
 Use of uninitialized bits when creating floating-point hash value
 
