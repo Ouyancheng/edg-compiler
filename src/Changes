@@ -1,5 +1,22 @@
 Version 6.1
 
+1/9/20   [EDGcpfe/22185]
+GNU compatibility: Accept hot/cold attributes on labels
+
+The "hot" and "cold" GNU attributes, which had previously only been recognized
+when applied to functions can now be applied to labels.  As is the case when
+applied to functions, these attributes are recorded and otherwise ignored
+by the front end.  For example (with --gnu_version 40800):
+
+  int f(int x) {
+    if (x > 1) goto coldbranch; else goto hotbranch;
+  hotbranch: __attribute__((hot));
+    return 1;
+  coldbranch: __attribute__((cold));
+    return 2;
+  }
+
+
 1/8/20   [EDGcpfe/22005]
 Spurious error direct-initializing lvalue-ref with a dependent expression
 

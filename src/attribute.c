@@ -677,7 +677,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_cdecl, "t|r|v|d|p", apply_cdecl_attr },
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
   { ak_cleanup, "v|Wp", apply_cleanup_attr },
-  { ak_cold, "r", NO_APPL_FN },
+  { ak_cold, "r|l", NO_APPL_FN },
   { ak_common, "v:-a|Wr", apply_common_attr },
   { ak_const, "t|r|v|d|p", apply_const_attr },
   { ak_constructor, "r", apply_constructor_attr },
@@ -694,7 +694,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_format, "t|r|v|d|p", apply_format_attr },
   { ak_format_arg, "r", apply_format_arg_attr },
   { ak_gnu_inline, "r", apply_gnu_inline_attr },
-  { ak_hot, "r", NO_APPL_FN },
+  { ak_hot, "r|l", NO_APPL_FN },
   { ak_ifunc, "r", apply_ifunc_attr },
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   { ak_init_priority, "v:-l", apply_init_priority_attr },
