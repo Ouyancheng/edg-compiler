@@ -7698,13 +7698,17 @@ as a prefix to specify a module id for an externalized name.
     ptr = demangle_local_name(ptr, func_block, dctl);
   } else {
     /* <unscoped-name> or <unscoped-template-name> <template-args>. */
-    if (*ptr == 'S' &&
-        ((ptr[1] == '_' && ptr[2] == 'I') ||
-         (isdigit((unsigned char)ptr[1]) && ptr[2] == '_' && ptr[3] == 'I') ||
-         (isdigit((unsigned char)ptr[1]) && isdigit((unsigned char)ptr[2]) &&
-                                            ptr[3] == '_' && ptr[4] == 'I'))) {
+    if (*ptr == 'S' && ptr[1] != '\0' &&
+        (ptr[2] == 'I' ||
+         (ptr[2] == '_' && ptr[3] == 'I') ||
+         (ptr[2] != '\0' && ptr[3] == '_' && ptr[4] == 'I'))) {
       /* <substitution> in <unscoped-template-name>, because it's
-         followed by the "I" beginning a <template-args>. */
+         followed by the "I" beginning a <template-args>.  Note that the
+         test above covers both standard substitutions (one character after
+         the S) and repetition substitutions (whose length can be zero or
+         more characters followed by an underscore).  The test only covers two
+         character substitutions (but that's greater than 1000 since they are
+         recorded in base 36). */
       ptr = demangle_substitution(ptr, 0, CVQ_NONE,
                                   /*under_lhs_declarator=*/FALSE,
                                   /*need_trailing_space=*/FALSE,
