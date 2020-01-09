@@ -10175,6 +10175,7 @@ use the current global value of the template template parameter.
       tssp = template_sym->variant.template_info;
       is_alias_template = TRUE;
     } else if (!in_substitution &&
+               !tssp->variant.class_template.invented_template &&
                !check_template_constraints(tssp, list_for_instantiation,
                                            /*diagnose=*/TRUE)) {
       /* The template arguments do not satisfy the constraints.  Create a
