@@ -9380,9 +9380,19 @@ function).  Issue a diagnostic if attributes appear in a context that doesn't
 allow for them (as indicated by flags); such attributes are otherwise ignored.
 *std_attr_seen is set to TRUE if standard attributes were encountered, and to
 FALSE otherwise.
+
+Note that Microsoft appears to have a bug where attributes in this syntactic
+location are treated as though they appeared in the prefix position.
 */
 {
-  an_attribute_ptr  ap = scan_attributes(al_specifier);
+  a_boolean         treat_as_prefix =
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                      microsoft_mode && microsoft_bugs;
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+                                      FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  an_attribute_ptr  ap = scan_attributes(treat_as_prefix ? al_prefix :
+                                                           al_specifier);
 
   *std_attr_seen = FALSE;
   if (ap != NULL) {
@@ -9397,6 +9407,7 @@ FALSE otherwise.
       if (disallow_gnu && is_gcc_attribute(*p_ap)) {
         drop_attribute = TRUE;
       } else if (is_std_attribute(*p_ap) &&
+                 !treat_as_prefix &&
                  !(c11_mode &&
                    ap->family == (a_byte_attribute_family)af_alignas)) {
         if (disallow_std) {
@@ -9416,7 +9427,12 @@ FALSE otherwise.
         p_ap = &(*p_ap)->next;
       }  /* if */
     } while (*p_ap != NULL);
-    *last_attribute_link(&dps->specifier_attributes) = ap;
+    if (treat_as_prefix) {
+      *last_attribute_link(&dps->prefix_attributes) = ap;
+      *std_attr_seen = FALSE;
+    } else {
+      *last_attribute_link(&dps->specifier_attributes) = ap;
+    }  /* if */
   }  /* if */
 }  /* scan_specifier_attributes */
 

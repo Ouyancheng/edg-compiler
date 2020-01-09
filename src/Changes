@@ -1,5 +1,18 @@
 Version 6.1
 
+1/9/20   [EDGcpfe/22101,EDGcpfe/22140]
+Microsoft compatibility: attributes after decl-specifiers
+
+Syntactically, attributes that appear after a decl-specifier appertain to
+the type for the declaration, but Microsoft appears to apply them to the
+object being declared.  In Microsoft emulation mode (and when microsoft_bugs is
+TRUE), the front end now does the same.  For example, with --ms_c++latest
+--microsoft_version 1925:
+
+  static alignas(32) int x;
+  static_assert(__alignof(x) == 32);
+
+
 1/9/20   [EDGcpfe/22185]
 GNU compatibility: Accept hot/cold attributes on labels
 
