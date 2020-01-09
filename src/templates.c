@@ -12994,17 +12994,17 @@ parameters.
     if (templ_arg_kind_for_symbol_kind(param_sym_kind) != tap->kind) {
       /* The argument kinds do not match. */
       subst_fail(*copy_error);
+      goto done;
     }  /* if */
   }  /* if */
-  if (*copy_error) {
-    /* Don't process this argument further if an error occurred. */
-  } else if (is_type_templ_arg(tap)) {
+  if (is_type_templ_arg(tap)) {
     a_boolean		is_unnamed, is_local, is_vla, is_generic;
     tap->variant.type =
                copy_type_with_substitution(tap->variant.type,
                                            templ_arg_list, templ_param_list,
 					   source_pos, options, copy_error,
                                            ctws_state);
+    if (*copy_error) goto done;
     tap->is_pack = type_is_pack(tap->variant.type);
     /* Make sure the resulting type is a valid template argument. */
     if (!*copy_error &&
@@ -13042,12 +13042,14 @@ parameters.
                                          arg_list_to_copy, param_list_for_copy,
 					 source_pos, options, copy_error,
                                          ctws_state);
+          if (*copy_error) goto done;
         }  /* if */
         new_const_type = copy_type_with_substitution(new_const_type,
                                                      templ_arg_list,
                                                      templ_param_list,
                                                      source_pos, options,
                                                      copy_error, ctws_state);
+        if (*copy_error) goto done;
       }  /* if */
       /* Make sure the new type is a valid type for a nontype template
          parameter. */
@@ -13063,6 +13065,7 @@ parameters.
             !floating_point_template_parameters_allowed))) {
         new_const_type = error_type();
         subst_fail(*copy_error);
+        goto done;
       }  /* if */
     }  /* if */
     tap->variant.constant =
@@ -13075,6 +13078,7 @@ parameters.
                                                      CTWS_NONTYPE_TEMPLATE_ARG,
                                                    copy_error,
                                                    ctws_state);
+    if (*copy_error) goto done;
     tap->is_pack = constant_is_pack(tap->variant.constant);
     if (have_params && tpp->uses_auto) {
       /* Make sure the new argument is compatible with the auto template
@@ -13116,6 +13120,7 @@ parameters.
                                  templ_param_list,
                                  source_pos, options, copy_error,
                                  ctws_state);
+    if (*copy_error) goto done;
     tap->variant.templ.ptr = templ;
     tap->is_pack = templ->is_pack;
     if (have_params && templ != orig_templ) {
@@ -13135,6 +13140,7 @@ parameters.
       }  /* if */
     }  /* if */
   }  /* if */
+done:;
 }  /* substitute_template_argument */
 
 
