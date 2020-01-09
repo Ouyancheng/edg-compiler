@@ -7803,8 +7803,8 @@ NULL) that can fit in the string.
 
 
 a_symbol_ptr make_module_symbol(a_symbol_ptr      primary_name,
-                                     a_symbol_ptr      partition_name,
-                                     a_source_position *pos)
+                                a_symbol_ptr      partition_name,
+                                a_source_position *pos)
 /*
 Create a symbol to represent a module.  Synthesize the identifier in the
 symbol header from the primary and partition names.  primary_name is the

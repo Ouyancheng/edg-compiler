@@ -19027,8 +19027,9 @@ left unchanged.
                                              ec_module_decl_only_after_glb_mod;
     pos_error(err_code, &module_pos);
   } else {
-    a_symbol_ptr mod = make_module_symbol(primary_name, partition_name,
-                                          &module_pos);
+    check_assertion(curr_module_sym == NULL);
+    curr_module_sym = make_module_symbol(primary_name, partition_name,
+                                         &module_pos);
     set_tu_stage(tud_module_unit);
   }  /* if */
 }  /* decl_module */
@@ -20620,6 +20621,7 @@ Initialize variables that are specific to a given translation unit.
 {
   set_tu_stage(tud_none);
   any_decls_seen_this_stage = FALSE;
+  curr_module_sym = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   scanning_generated_code_from_metadata = FALSE;
   scanning_generated_code = FALSE;

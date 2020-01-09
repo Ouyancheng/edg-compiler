@@ -1393,6 +1393,16 @@ pass_stdarg_references_to_generated_code.
 }  /* proc_include */
 
 
+static void import_module(a_symbol_ptr          module_sym,
+                          a_source_position_ptr module_pos)
+/*
+Import the given module.  module_pos is the position of the module import
+directive.
+*/
+{
+}  /* import_module */
+
+
 void proc_modules_import(a_pp_directive_kind ppd)
 /*
 Process an import directive for a module.  ppd can be either ppd_import or
@@ -1425,10 +1435,18 @@ can only occur inside a global module fragment.
     a_source_position pos = pos_curr_token;
 
     scan_module_name(&primary_name, &partition_name);
+    if (primary_name == NULL && curr_module_sym != NULL) {
+      primary_name = curr_module_sym->variant.module_info.primary_name;
+    }  /* if */
     if (primary_name == NULL) {
-      // Import of module partition
+      /* Trying to import a module with no name.  Either something like
+         "import :foo" without a current module unit, or the module unit was
+         declared without a name (already diagnosed). */
+      pos_error(ec_cannot_import_module_with_no_name, &pos);
     } else {
-      // Import of another module entirely
+      a_symbol_ptr module_sym =
+                        make_module_symbol(primary_name, partition_name, &pos);
+      import_module(module_sym, &pos);
     }  /* if */
   }  /* if */
 }  /* proc_modules_import */
