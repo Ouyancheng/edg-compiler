@@ -1414,8 +1414,12 @@ can only occur inside a global module fragment.
 */
 {
   if (get_header_name()) {
+    sizeof_t name_len;
     check_assertion(curr_token == tok_header_name);
-    // Import of a header module
+    /* The set of importable headers is implementation defined.  Currently no
+       headers are importable. */
+    pos_st_error(ec_header_not_importable, &pos_curr_token,
+                 extract_header_name(/*process_escapes=*/FALSE, &name_len));
   } else {
     a_symbol_ptr      primary_name, partition_name;
     a_source_position pos = pos_curr_token;
