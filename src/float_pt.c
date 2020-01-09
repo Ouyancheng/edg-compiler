@@ -1084,6 +1084,7 @@ underflow.  If the conversion can be done, return the result in "result".
 */
 {
   long double      ldbl_val;
+  a_boolean        local_err = FALSE;
 #if !USE_SOFTFLOAT
   a_host_fp_value  round_trip_val;
 #endif /* !USE_SOFTFLOAT */
@@ -1110,19 +1111,22 @@ underflow.  If the conversion can be done, return the result in "result".
       (softfloat_exceptionFlags & softfloat_flag_overflow) != 0 &&
       !gnu_mode) {
     /* An overflow. */
-    *err = TRUE;
-  } else {
-    *result = ldbl_val;
+    local_err = TRUE;
   }  /* if */
 #else /* !USE_SOFTFLOAT */
   ldbl_val = (long double)val;
   round_trip_val = ldbl_val;
   if (is_finite(val) && !is_finite(round_trip_val) && !gnu_mode) {
-    *err = TRUE;
-  } else {
-    *result = ldbl_val;
+    local_err = TRUE;
   }  /* if */
 #endif /* USE_SOFTFLOAT */
+  if (local_err) {
+    *err = TRUE;
+  } else {
+    /* Use memcpy to copy all of the bits (an assignment may copy 12 bytes
+       in some cases). */
+    (void)memcpy(result, &ldbl_val, sizeof(ldbl_val));
+  }  /* if */
 }  /* conv_host_fp_to_long_double */
 
 #endif /* HOST_FP_VALUE_IS_128BIT */

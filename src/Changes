@@ -1,5 +1,17 @@
 Version 6.1
 
+1/9/20   [EDGcpfe/21041,EDGcpfe/22138]
+Use of uninitialized bits when creating floating-point hash value
+
+In configurations that use 128-bit floating-point types as the host type and
+support 80-bit extended floating-point for long double types, a conversion
+from 128-bit to 80-bit had resulted in the correct value, but some of the
+unused bytes in the result were uninitialized.  That could lead to cases where,
+e.g., a conversion of 0.0 would result in a value where not all of the
+16 bytes were zero.  This could also cause problems when using floating-point
+values in a hash (e.g., with fp_hash).  Those unused bytes are now zeroed.
+
+
 1/9/20   [EDGcpfe/22101,EDGcpfe/22140]
 Microsoft compatibility: attributes after decl-specifiers
 
