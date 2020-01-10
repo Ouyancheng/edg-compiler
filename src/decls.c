@@ -18955,56 +18955,6 @@ error is issued and the translation unit stage is left unchanged.
 }  /* decl_private_module_fragment */
 
 
-static a_symbol_ptr scan_module_qualified_name()
-/*
-Scan a qualified module name portion (either the primary name or the partition
-name) and return the head of the symbol list, or NULL if the list is empty.
-curr_token refers to the first qualifier in the module name portion being
-scanned (a tok_identifier if the name is non-empty).
-*/
-{
-  a_symbol_ptr result = NULL, *next_sym = &result;
-
-  while (curr_token == tok_identifier) {
-    (*next_sym) = alloc_symbol(sk_undefined, locator_for_curr_id.symbol_header,
-                               &pos_curr_token);
-    next_sym = &(*next_sym)->next;
-    (void)get_token(); /* Advance past the identifier. */
-    if (curr_token == tok_period) {
-      /* This was a qualifier - we expect a tok_identifier to come next. */
-      (void)get_token();
-      (void)required_token_no_advance(tok_identifier, ec_exp_identifier);
-    }  /* if */
-  }  /* while */
-  return result;
-}  /* scan_module_qualified_name */
-
-
-void scan_module_name(a_symbol_ptr *primary_name,
-                      a_symbol_ptr *partition_name)
-/*
-Scan a module name, including its partition (if present) into the provided
-symbol pointers.  A module or partition name can have any number of qualifiers,
-e.g., "A.B.C:D.E.F".
-*/
-{
-  *partition_name = NULL;
-  add_stop_token(tok_semicolon);
-  add_stop_token(tok_colon);
-  if (curr_token != tok_colon) {
-    required_token_no_advance(tok_identifier, ec_exp_identifier);
-  }  /* if */
-  *primary_name = scan_module_qualified_name();
-  remove_stop_token(tok_colon);
-  if (curr_token == tok_colon) {
-    (void)get_token();
-    (void)required_token_no_advance(tok_identifier, ec_exp_identifier);
-    *partition_name = scan_module_qualified_name();
-  }  /* if */
-  remove_stop_token(tok_semicolon);
-}  /* scan_module_name */
-
-
 static void decl_module(a_boolean is_interface)
 /*
 Declare a module and set the translation stage accordingly.

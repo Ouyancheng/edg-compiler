@@ -36,6 +36,7 @@ incorporated:
     lexical.h
     mem_manage.h
     mem_tables.h
+    modules.h
     src_seq.h
     symbol_tbl.h
     trans_corresp.h
@@ -134,6 +135,9 @@ incorporated:
 #endif /* DEBUG */
 
 #include "sys_predef.h"
+
+/* Module file support. */
+#include "modules.h"
 
 #endif /* ifndef FE_COMMON_H */
 

@@ -1764,9 +1764,6 @@ extern void check_nonfunction_declaration_errors(
                                          a_symbol_locator    *locator,
                                          a_boolean           is_variable_decl);
 
-extern void scan_module_name(a_symbol_ptr *primary_name,
-                             a_symbol_ptr *partition_name);
-
 /*
 Utility macro to avoid a function call in the common case where an entity
 has no alignment attribute.  Here we check only that the entity has

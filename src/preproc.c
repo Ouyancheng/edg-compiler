@@ -1400,6 +1400,11 @@ Import the given module.  module_pos is the position of the module import
 directive.
 */
 {
+  a_boolean err = FALSE;
+  err = check_module_has_interface_dependency(module_sym, curr_module_sym,
+                                              module_pos);
+  if (!err) {
+  }  /* if */
 }  /* import_module */
 
 
