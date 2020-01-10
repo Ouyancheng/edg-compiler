@@ -48,7 +48,7 @@ TRUE), the front end now does the same.  For example, with --ms_c++latest
 GNU compatibility: Accept hot/cold attributes on labels
 
 The "hot" and "cold" GNU attributes, which had previously only been recognized
-when applied to functions can now be applied to labels.  As is the case when
+when applied to functions, can now be applied to labels.  As is the case when
 applied to functions, these attributes are recorded and otherwise ignored
 by the front end.  For example (with --gnu_version 40800):
 
