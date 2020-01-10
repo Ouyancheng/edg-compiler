@@ -1,5 +1,18 @@
 Version 6.1
 
+1/10/20  [EDGcpfe/21192]
+Unused inline variables
+
+The front end previously issued a spurious error for an inline variable that
+is declared but not defined, and referenced but not odr-used.  For example:
+
+  extern inline int i;  // Not a definition.
+  auto r = sizeof(i);   // i is referenced, but not "used".  Previously, this
+                        // triggered an error.  Now okay.
+
+That is now fixed.
+
+
 1/10/20  [EDGcpfe/17387,EDGcpfe/21970,EDGcpfe/22117]
 __is_pod and trivial default constructors
 
