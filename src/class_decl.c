@@ -21720,6 +21720,9 @@ constructor should be deleted.
             gsfd->suppress_default_ctor = TRUE;
             break;
           }  /* if */
+        } else if (is_const_qualified_type(tp)) {
+          gsfd->suppress_default_ctor = TRUE;
+          break;
         }  /* if */
       }  /* if */
     }  /* for */
@@ -21772,12 +21775,10 @@ record that fact in *gsfd.
       goto done;
     }  /* if */
     check_assertion(default_ctor_rp->is_defaulted);
-    /* A defaulted constructor may implicitly be deleted, which also means it
-       isn't trivial. */
+    /* A defaulted constructor may implicitly be deleted, */
     check_suppressed_default_ctor(class_type, gsfd);
     if (cpp11_mode && gsfd->suppress_default_ctor) {
       default_ctor->variant.routine.ptr->is_deleted = TRUE;
-      class_state->default_ctor_is_nontrivial = TRUE;
     }  /* if */
     if (class_state->default_ctor_is_nontrivial) {
       cssp->trivial_default_constructor = NULL;
