@@ -11474,7 +11474,8 @@ that can be called with zero arguments.
   } else {
     /* Exactly one default constructor. */
     ctor_routine = ctor_sym->variant.routine.ptr;
-    if (ctor_routine->is_trivial_default_constructor) {
+    if (ctor_routine->is_trivial_default_constructor &&
+        !ctor_routine->is_deleted) {
       /* The constructor is a trivial default constructor.  Check access
          but do not mark it as referenced (because there will be no call). */
       evaluated = FALSE;

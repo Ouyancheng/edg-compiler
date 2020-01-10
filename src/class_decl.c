@@ -13515,6 +13515,12 @@ IL entry accordingly.  def_pos is the position of the "= default;" or
         *placeholder_type =
                *add_placeholder_typeref(integer_type((an_integer_kind)ik_int),
                                         is_decltype_auto);
+      } else if (special_kind_is(rp, sfk_constructor) &&
+                 is_default_constructor(rp, /*is_declarative_context=*/TRUE)) {
+        /* The "= delete" declaration appeared on the in-class declaration of
+           the canonical default constructor.  Assume the default constructor
+           is trivial for now and revisit the flag later. */
+        rp->is_trivial_default_constructor = TRUE;
       }  /* if */
     }  /* if */
   } else if (func_info->is_defaulted) {
@@ -13529,7 +13535,7 @@ IL entry accordingly.  def_pos is the position of the "= default;" or
     } else if ((dps->dso_flags & DSO_FRIEND) != 0) {
       /* A special member cannot be defined in a friend declaration. */
       err_code = ec_function_defaulted_in_friend_decl;
-    } else if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
+    } else if (special_kind_is(rp, sfk_constructor)) {
       a_boolean  is_default_ctor, has_default_arg, is_deleted;
       if (constructor_can_be_defaulted(sym, &is_default_ctor,
                                        &has_default_arg,
@@ -21704,15 +21710,16 @@ constructor should be deleted.
           if (error_detected) {
             gsfd->suppress_default_ctor = TRUE;
             break;
-          } else if (mcssp->has_user_provided_default_constructor) {
+          } else if (mcssp->has_user_provided_default_constructor ||
+                     (gpp_mode && !clang_mode)) {
             const_member_okay = TRUE;
           }  /* if */
-        }  /* if */
-        if (!const_member_okay && is_const_qualified_type(tp)) {
-          /* Default initialization of const members is only allowed if a
-             user-provided default constructor is available. */
-          gsfd->suppress_default_ctor = TRUE;
-          break;
+          if (!const_member_okay && is_const_qualified_type(tp)) {
+            /* Default initialization of const members is only allowed if a
+               user-provided default constructor is available. */
+            gsfd->suppress_default_ctor = TRUE;
+            break;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* for */
@@ -21759,8 +21766,12 @@ record that fact in *gsfd.
     /* A defaulted default constructor, which was initially assumed to be
        trivial.  Check if it is indeed trivial now that the whole class has
        been processed.  If not, make the necessary adjustments. */
-    a_symbol_ptr  default_ctor = cssp->trivial_default_constructor;
-    check_assertion(default_ctor->variant.routine.ptr->is_defaulted);
+    a_symbol_ptr   default_ctor = cssp->trivial_default_constructor;
+    a_routine_ptr  default_ctor_rp = default_ctor->variant.routine.ptr;
+    if (default_ctor_rp->is_deleted) {
+      goto done;
+    }  /* if */
+    check_assertion(default_ctor_rp->is_defaulted);
     /* A defaulted constructor may implicitly be deleted, which also means it
        isn't trivial. */
     check_suppressed_default_ctor(class_type, gsfd);
@@ -21841,6 +21852,7 @@ record that fact in *gsfd.
        be a "trivial class" and therefore it cannot be POD. */ 
     class_state->cpp03_POD_ruled_out = TRUE;
   }  /* if */
+done:
   return result;
 }  /* check_if_default_ctor_needed */
 

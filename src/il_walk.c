@@ -596,8 +596,9 @@ definition of the routine is needed, and not just the declaration.
     }  /* if */
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-  if (walking_secondary_trans_unit &&
-      !in_secondary_trans_unit(rout)) {
+  if (rout->is_deleted) {
+    /* Nothing to do. */
+  } else if (walking_secondary_trans_unit && !in_secondary_trans_unit(rout)) {
     /* If a routine in the primary IL is encountered while walking the
        IL for a secondary translation unit, do not set the definition needed
        flag, because we want the primary IL flags to be set only on the final

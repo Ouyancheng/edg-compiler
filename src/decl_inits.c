@@ -1886,6 +1886,13 @@ the position at which diagnostics should be issued.
     a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(etype);
     if (has_trivial_default_constructor(cssp) &&
         (!exceptions_enabled || cssp->has_trivial_destructor)) {
+      a_boolean  err = FALSE;
+      if (!is_aggregate_type(etype)) {
+        (void)reference_to_trivial_default_constructor(
+                         etype, etype, diag_pos, /*check_access=*/TRUE,
+                         is->no_diagnostics ? &err : (a_boolean*)NULL);
+        if (err) is->init_error = TRUE;
+      }  /* if */
       if (implicit_init_involves_ref_init(etype)) {
         /* An array element of class type with no constructor but with a ref
            member will end up uninitialized. */
