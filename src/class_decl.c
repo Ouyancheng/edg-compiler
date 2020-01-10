@@ -11584,7 +11584,6 @@ symbol pointers pointing to removed symbols to NULL.
   a_symbol_ptr  u_sym = *pu_sym, s_sym = *ps_sym;
 
   check_assertion(is_class_member_using_decl_symbol(u_sym));
-  
   if (s_sym == u_sym) {
     remove_symbol(u_sym);
     *ps_sym = NULL;
