@@ -9385,12 +9385,7 @@ Note that Microsoft appears to have a bug where attributes in this syntactic
 location are treated as though they appeared in the prefix position.
 */
 {
-  a_boolean         treat_as_prefix =
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                                      microsoft_mode && microsoft_bugs;
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-                                      FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_boolean         treat_as_prefix = microsoft_mode && microsoft_bugs;
   an_attribute_ptr  ap = scan_attributes(treat_as_prefix ? al_prefix :
                                                            al_specifier);
 
