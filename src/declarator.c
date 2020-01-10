@@ -5167,7 +5167,7 @@ __w64 annotation, and __based variable specifiers).  The given type must be a
 a_type_ptr pointer_declarator(
                    a_type_ptr                       specifiers_type,
                    a_decl_parse_state               *state,
-                   a_boolean   	               reference_allowed,
+                   a_boolean                        reference_allowed,
                    ARG_UNUSED a_call_conv_descr_ptr left_calling_convention,
                    ARG_UNUSED a_call_conv_descr_ptr unbound_calling_convention,
                    ARG_UNUSED a_type_qualifier_set  *left_qualifiers,
@@ -5685,6 +5685,13 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
       complete_type = f_make_qualified_type(complete_type, ptr_mods.qualifiers,
                                             upc_block_size);
       consume_any_stray_microsoft_rparen();
+      if (state->is_new_expr_type) {
+        /* In a "new" expression, an attribute cannot appear after any
+           cv-qualifiers (e.g., "new int * volatile [[]];" is invalid). */
+        an_error_severity severity = (gnu_mode && !clang_mode) ? es_remark :
+                                                        es_discretionary_error;
+        scan_and_discard_attributes(severity, ec_attribute_not_allowed);
+      }  /* if */
     }  /* if */
     scan_declarator_attributes(state, &complete_type);
     ref_to_ref_allowed = FALSE;

@@ -1,5 +1,18 @@
 Version 6.1
 
+1/10/20  [EDGcpfe/19636,EDGcpfe/21872]
+Issue a diagnostic on extraneous attributes in new expression
+
+The syntax for a "new" expression does not allow for attributes that follow
+a cv-qualified ptr-operator.  A discretionary error is now given for such cases
+(except in GNU emulation mode where a remark is issued).  For example
+(with --c++11):
+
+  void f() {
+    new int * volatile [[]];    // Now generates a diagnostic.
+  }
+
+
 1/9/20   [EDGcpfe/20929,EDGcpfe/21998,EDGcpfe/22163]
 Using-declarations and conversion functions
 

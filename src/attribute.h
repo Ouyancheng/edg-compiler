@@ -113,6 +113,9 @@ attribute in the "gnu" namespace.
 
 extern an_attribute_ptr scan_attributes(an_attribute_location  loc);
 
+extern void scan_and_discard_attributes(an_error_severity sev,
+                                        an_error_code     err_code);
+
 extern an_attribute_ptr scan_gnu_attribute_groups(an_attribute_location  loc);
 
 #if CHECKING

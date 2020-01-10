@@ -2598,6 +2598,21 @@ is made.
 }  /* scan_attributes */
 
 
+void scan_and_discard_attributes(an_error_severity sev,
+                                 an_error_code     err_code)
+/*
+If any attributes exist at the current position, scan and discard them
+reporting the specified error with the specified severity.  A single message
+is given though multiple attributes may be dropped.
+*/
+{
+  an_attribute_ptr ap = scan_attributes(al_implicit);
+  if (ap != NULL) {
+    pos_diagnostic(sev, err_code, &ap->position);
+  }  /* if */
+}  /* scan_and_discard_attributes */
+
+
 an_attribute_ptr scan_gnu_attribute_groups(an_attribute_location  loc)
 /*
 This routine is similar to scan_attributes, except that only GNU attribute
