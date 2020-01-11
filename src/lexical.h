@@ -2779,6 +2779,9 @@ cases.
          curr_token != tok_end_of_source) (void)get_token();}
 
 
+extern void scan_module_name(a_symbol_ptr *primary_name,
+                             a_symbol_ptr *partition_name);
+
 extern void push_stop_token_stack(void);
 extern void pop_stop_token_stack(void);
 extern void push_lexical_state_stack(void);

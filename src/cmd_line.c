@@ -1006,6 +1006,15 @@ Initialize the option information table.
   add_option_description(optk_include_file_suffixes, "incl_suffixes", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
+  add_option_description(optk_module_dir, "modules_directory", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
+  add_option_description(optk_modules, "modules", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_modules, "no_modules", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #if COMPOUND_LITERAL_ENABLING_POSSIBLE
   add_option_description(optk_compound_literals,
                          "compound_literals",
@@ -3644,7 +3653,9 @@ default mode (e.g., exception handling).
         }  /* if */
         destroying_operator_delete_enabled = TRUE;
         concepts_enabled = TRUE;
-        modules_enabled = TRUE;
+        if (!option_kind_used[(int)optk_modules]) {
+          modules_enabled = TRUE;
+        }  /* if */
         export_keyword_enabled = FALSE;
         if (export_template_allowed) {
           /* This should not be enabled unless someone explicitly enabled it
@@ -9614,6 +9625,17 @@ Process the arguments on the command line that invoked the compiler.
           add_to_include_search_path(file_name_from_opt_arg(opt_arg),
                                      kind == optk_system_include_dir);
         }  /* if */
+        break;
+      case optk_module_dir:
+        /* Add the directory to the search path when searching for module
+           files. */
+        add_to_specified_include_search_path(opt_arg, /*system_dir=*/FALSE,
+                                             &module_search_path,
+                                             &end_module_search_path);
+        break;
+      case optk_modules:
+        /* Enable/disable support for modules. */
+        modules_enabled = opt_value;
         break;
       case optk_preinclude:
       case optk_preinclude_macros:

@@ -370,6 +370,10 @@ extern an_attribute_arg_ptr alloc_attribute_arg(void);
 
 extern an_attribute_group_ptr alloc_attribute_group(void);
 
+extern a_module_ptr alloc_module(a_module_kind kind);
+
+extern a_module_import_decl_ptr alloc_module_import_decl(void);
+
 #if DEBUG
 unsigned long show_il_alloc_space_used(unsigned long grand_total);
 #endif /* DEBUG */

@@ -99,7 +99,12 @@ typedef struct a_gcnew_supplement
 typedef struct a_gnu_routine_supplement
                               *a_gnu_routine_supplement_ptr;
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
-
+typedef struct a_module       *a_module_ptr;
+typedef struct a_module_entity
+                              *a_module_entity_ptr;
+typedef struct an_ifc_module  *an_ifc_module_ptr;
+typedef struct a_class_module_definition
+                              *a_class_module_definition_ptr;
 
 /* Opaque type definition for an_arg_operand (used in the expression
    processing routines, but a pointer to it appears in a front-end only
@@ -710,6 +715,9 @@ typedef enum /*an_il_entry_kind*/ {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   iek_subobject_path,	/* a_subobject_path */
   iek_constexpr_if,	/* a_constexpr_if */
+  iek_module,		/* a_module */
+  iek_module_import_decl,
+			/* a_module_import_decl */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -879,6 +887,8 @@ EXTERN a_const_char *il_entry_kind_names[(int)iek_last + 1]
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* iek_subobject_path */		"subobject-path",
 /* iek_constexpr_if */			"constexpr-if",
+/* iek_module */			"module",
+/* iek_module_import_decl */		"mod-import-decl",
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -2552,6 +2562,8 @@ typedef enum an_attribute_location_tag {
   al_builtin_has_attribute,
 			/* The attribute in a call to the GCC
 			   __builtin_has_attribute builtin. */
+  al_module,		/* The attribute follows a module-name in a module-
+			   import-declaration.  (Standard attributes only.) */
   al_last
 } an_attribute_location;
 
@@ -17117,6 +17129,77 @@ typedef struct a_scope {
 
 
 /*
+An enumeration to identify the different types of supported module files.
+*/
+enum a_module_kind_tag {
+  mk_none,
+  mk_header,
+  mk_ifc
+};
+
+typedef a_byte a_module_kind;
+
+/*
+Information about a module file.
+FIXME: For PCH, f_module needs to be re-opened and mmap_addr recomputed.
+*/
+typedef struct a_module {
+  a_module_kind	kind;	/* The kind of module file. */
+  a_const_char	*name;	/* The name (as written) of the module file. */
+  a_const_char	*full_name;
+			/* The full path name to the module file. */
+  FILE		*f_module;
+			/* The file descriptor for the file. */
+  void		*mmap_addr;
+			/* A pointer to the memory-mapped beginning of the
+			   module file. */
+  size_t	mmap_size;
+			/* The size of the memory-mapped partition. */
+#if EDG_WIN32
+  a_windows_handle
+		mapped_input;
+			/* A HANDLE returned by CreateFile_interface during
+			   the mapping process on Windows. */
+  a_windows_handle
+		map_object;
+			/* A HANDLE returned by CreateFileMapping during the
+			   mapping process on Windows. */
+#endif /* EDG_WIN32 */
+  union {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* When kind == mk_ifc: */
+    an_ifc_module_ptr
+		ifc;	/* IFC-specific module information. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } variant;
+} a_module;
+
+
+/*
+Entry to represent a module-import-declaration.  Pointed to by the
+imported_modules field of il_header.
+*/
+typedef struct a_module_import_decl *a_module_import_decl_ptr;
+typedef struct a_module_import_decl {
+  a_module_import_decl_ptr
+		next;	/* Next module-import declaration in this translation
+			   unit. */
+  a_source_position
+		position;
+			/* Position of the beginning of the declaration. */
+  a_source_position
+		module_name_position;
+			/* Position of the beginning of the module-name. */
+  an_attribute_ptr
+		attributes;
+			/* A list of attributes (NULL if none) specified on
+			   this module-import-declaration. */
+  a_module_ptr	module_info;
+			/* The module referenced by this declaration. */
+} a_module_import_decl;
+
+
+/*
 Header for the entire intermediate language tree.  Note that the pointers
 here are into the file scope memory region.
 
@@ -17439,6 +17522,9 @@ typedef struct an_il_header {
 			   no --target option was given and no default
 			   configuration was specified, otherwise the number
 			   is an index into the target_configurations array. */
+  a_module_import_decl_ptr
+		imported_modules;
+			/* A list of module import declarations. */
 } an_il_header;
 
 EXTERN an_il_header il_header;
@@ -17747,6 +17833,8 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sizeof(a_subobject_path),
   sizeof(a_constexpr_if),
+  sizeof(a_module),
+  sizeof(a_module_import_decl),
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

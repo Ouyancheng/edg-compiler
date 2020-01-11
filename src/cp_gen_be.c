@@ -17341,6 +17341,27 @@ function body before the implicit statements were added.
 }  /* gen_coroutine_statement */
 
 
+static void gen_module_import_decl(void)
+/*
+Generate a module import directive.
+*/
+{
+  a_module_import_decl_ptr midp = ss_entry_ptr(curr_source_sequence_entry,
+                                               a_module_import_decl_ptr);
+
+  /* Advance past the source sequence entry for the import declaration. */
+  adv_curr_source_sequence_entry();
+  set_output_position(&midp->position);
+  /* Write out the import declaration */
+  write_tok_str("import ");
+  write_tok_str(midp->module_info->name);
+  gen_attributes(midp->attributes, al_module, /*primary_only=*/FALSE);
+  if (midp->module_info->kind != (a_module_kind)mk_header) {
+    write_tok_ch(';');
+  }  /* if */
+}  /* gen_module_import_decl */
+
+
 static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       is_stmt_expression)
 /*
@@ -21456,6 +21477,9 @@ parameter declarations).
         gen_cli_using_directive();
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      case iek_module_import_decl:
+        gen_module_import_decl();
+        break;
       default:
         unexpected_condition_str(
                         "gen_declaration: bad entity kind on source seq list");

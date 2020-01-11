@@ -328,6 +328,10 @@ extern a_boolean process_multiversion_function(
                                              a_boolean        *found_existing);
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
 
+extern an_attribute_ptr make_module_attribute(a_const_char            *name,
+                                              a_byte_attribute_family family,
+                                              an_attribute_ptr        next);
+
 /*
 Opaque pointer to the result of looking up an attribute name.
 */

@@ -2255,6 +2255,30 @@ be used as the implicit attribute namespace name for this attribute.
 }  /* scan_attribute */
 
 
+an_attribute_ptr make_module_attribute(a_const_char            *name,
+                                       a_byte_attribute_family family,
+                                       an_attribute_ptr        next)
+/*
+Utility to create an attribute with the specified name and family.  Used to
+create an_attribute entries for entities defined in modules.  The newly
+created attribute is returned (and its next pointer is set to the value of
+the "next" argument).  Note that this routine assumes there is no source
+location or arguments for the attribute.
+*/
+{
+  an_attribute_ptr   ap;
+  an_attr_descr_ptr  adp;
+
+  ap = make_attribute((an_attribute_family)family);
+  ap->position = null_source_position;
+  ap->next = next;
+  ap->name = copy_string_to_region(file_scope_region_number, name);
+  adp = get_attr_descr_for_attribute(ap);
+  check_assertion(adp != NULL);
+  return ap;
+}  /* make_module_attribute */
+
+
 static an_attribute_ptr scan_attributes_list(an_attribute_location loc,
                                              an_attribute_family   af,
                                              a_token_kind          end_token,
@@ -3379,6 +3403,9 @@ this is &scp.attributes.)
       break;
     case iek_base_class:
       p_attributes = &((a_base_class*)entity)->attributes;
+      break;
+    case iek_module_import_decl:
+      p_attributes = &((a_module_import_decl*)entity)->attributes;
       break;
     default:
       unexpected_condition();

@@ -309,6 +309,8 @@ That is what the remap function does.
             a_routine_list_entry_ptr, iek_routine_list_entry);
 #endif /* !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
+  walk_list(il_header.imported_modules, a_module_import_decl_ptr,
+            iek_module_import_decl);
   /* Restore the state of global variables. */
   restore_il_walk_state(saved_state);
   db_exit();
@@ -2512,6 +2514,8 @@ pointers.  The subtree is not processed.
   remap_list_ptr(il_header.cli_metadata_files,
                  a_cli_metadata_file_ptr, iek_cli_metadata_file);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  remap_list_ptr(il_header.imported_modules,
+                 a_module_import_decl_ptr, iek_module_import_decl);
   /* region_scope_entry should not be changed; it's not a pointer into
      IL memory in the usual way.  It's changed explicitly as needed. */
   walk_remap_func = saved_walk_remap_func;

@@ -287,6 +287,8 @@ EXTERN a_function_pointer function_pointers[(int)fn_last+1]
   (a_function_pointer)compare_substituted_type_list_entry,
   (a_function_pointer)hash_token_sequence_xref,
   (a_function_pointer)compare_token_sequence_xref,
+  (a_function_pointer)hash_module_entity,
+  (a_function_pointer)compare_for_module_entity,
   (a_function_pointer)last               /* fn_last */
 }
 #endif /* VAR_INITIALIZERS */
@@ -1617,6 +1619,7 @@ after the command-line processing has been done.
   ms_attrib_one_time_init();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sys_predef_one_time_init();
+  modules_one_time_init();
 #if !USE_HOST_FP_CONVERSION_ROUTINES
   floating_one_time_init();
 #endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
@@ -1727,6 +1730,7 @@ source file's compilation.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ms_attrib_init();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  modules_init();
 #if DO_IL_LOWERING
   if (!C_mode() && make_all_functions_unprototyped) {
     /* <stdarg.h> cannot be treated as a builtin if IL lowering will
@@ -2033,6 +2037,7 @@ when it is a secondary file.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   il_header.cli_metadata_files = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  il_header.imported_modules = NULL;
   predeclare_entities();
   if (is_primary_translation_unit) {
     /* We have to wait until now to create name linkage constants to

@@ -1044,10 +1044,10 @@ static void write_list_of_metadata_file_timestamps(
                                                   a_cli_metadata_file_ptr cmfp)
 /*
 Go through a list of cli metadata file entries and write the file name and
-timestamp to the PCH output file.  
+timestamp to the PCH output file.
 */
 {
-  db_enter(5, "write_list_of_file_timestamps");
+  db_enter(5, "write_list_of_metadata_file_timestamps");
   for (; cmfp != NULL; cmfp = cmfp->next) {
     time_t	mod_time;
 
@@ -1066,11 +1066,38 @@ timestamp to the PCH output file.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void write_include_file_timestamps(void)
+static void write_list_of_module_file_timestamps(void)
 /*
-Write a list of include file names and their associated modification times.
-In order for this PCH to be used later, none of the includes files may have
-changed.
+Go through a list of module file entries and write the file name and timestamp
+to the PCH output file.
+*/
+{
+  a_module_import_decl_ptr midp;
+
+  db_enter(5, "write_list_of_module_file_timestamps");
+  for (midp = il_header.imported_modules; midp != NULL; midp = midp->next) {
+    time_t     mod_time;
+
+    (void)get_file_modification_time(midp->module_info->full_name, &mod_time);
+    pch_write_string(midp->module_info->full_name);
+    pch_write_value(mod_time);
+#if DEBUG
+    if (debug_level >= 5) {
+      fprintf(f_debug, "Writing file timestamp for %s, time is %ld\n",
+              midp->module_info->full_name, (long)mod_time);
+    }  /* if */
+#endif /* DEBUG */
+  }  /* for */
+  db_exit();
+}  /* write_list_of_module_file_timestamps */
+
+
+static void write_file_timestamps(void)
+/*
+Write a list of file names and their associated modification times.  Any
+external file that the front end reads during the compilation is a candidate
+for inclusion on this list (e.g., include files, module files, assembly files).
+In order for this PCH to be used later, none of the files may have changed.
 */
 {
   write_list_of_file_timestamps(il_header.primary_source_file);
@@ -1079,9 +1106,10 @@ changed.
     write_list_of_metadata_file_timestamps(il_header.cli_metadata_files);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  write_list_of_module_file_timestamps();
   /* Write a NULL string to mark the end of the list. */
   pch_write_string((char *)NULL);
-}  /* write_include_file_timestamps */
+}  /* write_file_timestamps */
 
 
 static void write_saved_variables(void)
@@ -1305,10 +1333,18 @@ memory region information will be accessed using mmap by the consumer of
 the PCH file.
 */
 {
-  int		i;
-  sizeof_t	offset;
+  int		   i;
+  sizeof_t         offset;
+  a_windows_handle map_object = NULL;
+#if EDG_WIN32
+  a_windows_handle mapped_input;
+#endif /* EDG_WIN32 */
 
-
+#if EDG_WIN32
+  /* Open the file a second time in a way that it can be used for file mapping
+     purposes. */
+  open_mapped_input_file(pch_input_file_name, &mapped_input, &map_object);
+#endif /* EDG_WIN32 */
   /* The memory regions that have already been allocated should be
      unmapped so that the address space is available to be remapped. */
   free_mapped_mem_blocks();
@@ -1317,8 +1353,9 @@ the PCH file.
   for (i = 0; i < new_alloc_history_entries; ++i) {
     a_mem_alloc_history_ptr	mahp = &new_alloc_history[i];
     offset = do_page_alignment(offset);
-    map_input_file_to_region(f_pch_input, offset, mahp->size, mahp->addr,
-                             pch_input_file_name);
+    (void)map_input_file_to_region(f_pch_input, map_object,
+                                   /*read_only=*/FALSE, offset, mahp->size,
+                                   mahp->addr, pch_input_file_name);
     offset += mahp->size;
     /* Create a memory allocation history entry for this block. */
     record_mapped_mem_block(mahp->addr, mahp->size);
@@ -1329,6 +1366,9 @@ the PCH file.
     }  /* if */
 #endif /* DEBUG */
   }  /* for */
+#if EDG_WIN32
+  close_mapped_input_file(mapped_input, map_object);
+#endif /* EDG_WIN32 */
 }  /* read_memory_used_for_memory_regions */
 
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
@@ -1523,7 +1563,7 @@ current point.
   /* Write dependency checking information. */
   /* Include file names and timestamps. */
   write_file_section_id(pfs_include_file_info);
-  write_include_file_timestamps();
+  write_file_timestamps();
   /* Write the memory allocation history information. */
   write_file_section_id(pfs_mem_alloc_info);
   write_mem_alloc_history();
@@ -1739,10 +1779,10 @@ the current directory.
 }  /* curr_dir_matches */
 
 
-static a_boolean include_files_have_not_changed(void)
+static a_boolean files_have_not_changed(void)
 /*
-Read the include file timestamp information from the PCH input file
-and make the modification times match the current values for the files.
+Read the file timestamp information from the PCH input file and make the
+modification times match the current values for the files.
 */
 {
   a_boolean	match = TRUE;
@@ -1770,11 +1810,12 @@ and make the modification times match the current values for the files.
     }  /* if */
   }  /* for */
   if (!match && automatic_pch_processing) {
-    /* The include files are obsolete.  Remove the file. */
+    /* At least one of the files has a different modification time.  Remove the
+       PCH file. */
     remove_pch_input_file();
   }  /* if */
   return match;
-}  /* include_files_have_not_changed */
+}  /* files_have_not_changed */
 
 
 static a_boolean cmd_line_events_match(void)
@@ -1944,7 +1985,7 @@ matching event is returned.
     if (cmd_line_events_match()) {
       last_matching_event = compare_event_lists();
       if (last_matching_event != NULL) {
-        if (include_files_have_not_changed()) {
+        if (files_have_not_changed()) {
           /* The include files have not changed.  We can use this PCH. */
         } else {
           /* This PCH cannot be used because the include files have changed. */
@@ -2120,6 +2161,7 @@ from the PCH file) to reflect the information loaded from the file.
                          il_header_from_pch.thread_local_dynamic_init_routines;
 #endif /* !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
+  il_header.imported_modules = il_header_from_pch.imported_modules;
   /* Rebuild the trans_unit_for_scope table.  This is done by calling
      take_next_scope_number the appropriate number of times. */
   {
@@ -2150,6 +2192,8 @@ from the PCH file) to reflect the information loaded from the file.
   /* Reconstruct any data structures that must be rebuilt from the IL
      that was just read. */
   rebuild_structures_on_il_read();
+  /* Re-open module files that might have been open. */
+  modules_pch_reset();
 }  /* pch_fixup_part_1 */
 
 
@@ -2247,11 +2291,6 @@ may be used.
        the memory configuration needed by the PCH is compatible with
        what we can allocate. */
     last_event_from_pch = pch_is_applicable();
-#if EDG_WIN32 && USE_MMAP_FOR_MEMORY_REGIONS
-    /* Open the file a second time in a way that it can be used for
-       file mapping purposes. */
-    open_mapped_input_file(pch_input_file_name);
-#endif /* EDG_WIN32  && USE_MMAP_FOR_MEMORY_REGIONS */
     if (last_event_from_pch != NULL && read_mem_alloc_history()) {
       /* Everything is OK. */
       pos_of_last_event_from_pch = last_event_from_pch->position;
@@ -2277,9 +2316,6 @@ may be used.
     saved_curr_stop_token_stack_entry = curr_stop_token_stack_entry;
     curr_stop_token_stack_entry = NULL;
     read_memory_regions();
-#if EDG_WIN32 && USE_MMAP_FOR_MEMORY_REGIONS
-    close_mapped_input_file();
-#endif /* EDG_WIN32  && USE_MMAP_FOR_MEMORY_REGIONS */
     if (new_alloc_history != NULL) {
       /* Free the new allocation history information. */
       free_general((a_void_ptr)new_alloc_history,

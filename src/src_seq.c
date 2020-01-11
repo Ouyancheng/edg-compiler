@@ -191,6 +191,11 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       cmfp = (a_cli_metadata_file_ptr)ssep->entity.ptr;
       fprintf(f_debug, " (at %lu) ", (unsigned long)cmfp->position.seq);
       fprintf(f_debug, "#using <%s>", cmfp->name_as_written);
+    } else if (kind == (an_il_entry_kind)iek_module_import_decl) {
+      a_module_import_decl_ptr midp;
+      midp = (a_module_import_decl_ptr)ssep->entity.ptr;
+      fprintf(f_debug, " (at %lu) ", (unsigned long)midp->position.seq);
+      fprintf(f_debug, "import %s", midp->module_info->name);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (kind == (an_il_entry_kind)iek_lambda) {
       a_lambda_ptr  lambda = ss_entry_ptr(ssep, a_lambda_ptr);

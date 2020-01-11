@@ -5687,6 +5687,54 @@ Allocate an attribute group in file scope memory and return a pointer to it.
 }  /* alloc_attribute_group */
 
 
+a_module_ptr alloc_module(a_module_kind kind)
+/*
+Allocate and return an IL entry for a module.
+*/
+{
+  a_module_ptr mep = alloc_cil_of_type(a_module);
+
+  mep->kind = kind;
+  mep->name = NULL;
+  mep->full_name = NULL;
+  mep->f_module = NULL;
+  mep->mmap_addr = NULL;
+  mep->mmap_size = 0;
+#if EDG_WIN32
+  mep->mapped_input = NULL;
+  mep->map_object = NULL;
+#endif /* EDG_WIN32 */
+  switch (kind) {
+    case mk_none:
+    case mk_header:
+      break;
+    case mk_ifc:
+      mep->variant.ifc = NULL;
+      break;
+    default:
+      unexpected_condition_str("Bad module kind");
+  }  /* switch */
+  return mep;
+}  /* alloc_module */
+
+
+a_module_import_decl_ptr alloc_module_import_decl(void)
+/*
+Allocate an entry for a module-import or module-export declaration and return a
+pointer to it.  The entry is allocated in the current memory region.
+*/
+{
+  a_module_import_decl_ptr  entry;
+
+  entry = alloc_cil_of_type(a_module_import_decl);
+  entry->next = NULL;
+  entry->position = null_source_position;
+  entry->module_name_position = null_source_position;
+  entry->attributes = NULL;
+  entry->module_info = NULL;
+  return entry;
+}  /* alloc_module_import_decl */
+
 #if DEBUG
 
 unsigned long show_il_alloc_space_used(unsigned long grand_total)

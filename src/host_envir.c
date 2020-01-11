@@ -3164,14 +3164,6 @@ Produce a hash value for the unique file identifier "id".
 static HANDLE	f_mmap_file;
 			/* The file handle for the mapped IL file. */
 
-static HANDLE	f_mapped_input;
-			/* The file handle of the PCH input file as
-			   opened for file mapping purposes. */
-
-static HANDLE	f_map_object;
-			/* The file handle of the map object associated with
-			   the mapped input file. */
-
 static DOES_NOT_RETURN str_GetLastError_catastrophe(an_error_code error_code,
                                                     a_const_char  *file_name)
 /*
@@ -3238,48 +3230,52 @@ Close the file used for allocation of file mapped memory for IL memory blocks.
 
 #endif /* MAKE_FRONT_END_CALLABLE */
 
-void open_mapped_input_file(a_const_char *file_name)
+void open_mapped_input_file(a_const_char     *file_name,
+                            a_windows_handle *mapped_input,
+                            a_windows_handle *map_object)
 /*
 Open a file that contains memory region information that will be mapped
 into the address space of the current process.  This is used to reactivate
-a precompiled header file.  This file will already have been opened using
-fopen, so this open must be done in shared mode.
+a precompiled header file or an open IFC module file.  This file will already
+have been opened using fopen, so this open must be done in shared mode.
+Returns handle for the re-opened inpout file and the mapped object.
 */
 {
-  f_mapped_input = CreateFile_interface(
+  *mapped_input = CreateFile_interface(
                               file_name, GENERIC_READ,
                               FILE_SHARE_READ, (LPSECURITY_ATTRIBUTES)NULL,
                               OPEN_EXISTING, FILE_ATTRIBUTE_READONLY,
                               (HANDLE)NULL);
-  check_assertion_str(f_mapped_input != INVALID_HANDLE_VALUE,
+  check_assertion_str(*mapped_input != INVALID_HANDLE_VALUE,
                       "CreateFile of mapped input file failed");
-  if (f_mapped_input == INVALID_HANDLE_VALUE) {
+  if (*mapped_input == INVALID_HANDLE_VALUE) {
     /* This shouldn't happen because the file must have already been
        successfully opened as a normal input file before this routine is
        called. */
     str_GetLastError_catastrophe(ec_cannot_open_pch_input_file_reason,
                                  file_name);
   }  /* if */
-  f_map_object = CreateFileMapping(f_mapped_input, NULL,
-                                   PAGE_WRITECOPY, 0, 0, NULL);
-  check_assertion_str(f_map_object != INVALID_HANDLE_VALUE,
+  *map_object = CreateFileMapping(*mapped_input, NULL,
+                                  PAGE_WRITECOPY, 0, 0, NULL);
+  check_assertion_str(*map_object != INVALID_HANDLE_VALUE,
                       "CreateFileMapping failed");
-  if (f_map_object == INVALID_HANDLE_VALUE) {
+  if (*map_object == INVALID_HANDLE_VALUE) {
     str_GetLastError_catastrophe(ec_unable_to_get_mapped_memory_reason,
                                  file_name);
   }  /* if */
 }  /* open_mapped_input_file */
 
 
-void close_mapped_input_file(void)
+void close_mapped_input_file(a_windows_handle mapped_input,
+                             a_windows_handle map_object)
 /*
 Close the mapped input file and the associated map object.
 */
 {
-  if (!CloseHandle(f_mapped_input)) {
+  if (!CloseHandle(mapped_input)) {
     unexpected_condition_str("CloseHandle of mapped input failed");
   }  /* if */
-  if (!CloseHandle(f_map_object)) {
+  if (!CloseHandle(map_object)) {
     unexpected_condition_str("CloseHandle of map object failed");
   }  /* if */
 }  /* close_mapped_input_file */
@@ -3385,25 +3381,30 @@ page size.
 }  /* map_file_region */
 
 
-void map_input_file_to_region(ARG_UNUSED FILE   *file,
-                              sizeof_t          offset,
-                              sizeof_t          size,
-                              a_void_ptr        address,
-                              a_const_char      *file_name)
+a_void_ptr map_input_file_to_region(ARG_UNUSED FILE   *file,
+                                    a_windows_handle  map_object,
+                                    a_boolean         read_only,
+                                    sizeof_t          offset,
+                                    sizeof_t          size,
+                                    a_void_ptr        address,
+                                    a_const_char      *file_name)
 /*
-Map the data pointed to by "file", starting at "offset" bytes,
-for "size" bytes to the address specified by "address".
-This mapping is done as a FILE_MAP_COPY mapping so that any changes to
-the data will be local.  This is used to map a section of a PCH
-file to a memory region.  If the memory cannot be mapped, a catastrophic
-error is issued.  file_name is the name of the mapped input file
-to be used if a diagnostic is issued.
+Map the data pointed to by "file", with mapped object "map_object", starting at
+"offset" bytes, for "size" bytes to the address specified by "address".
+This mapping is done as either a FILE_MAP_COPY mapping so that any changes to
+the data will be local (when read_only is FALSE), or FILE_MAP_READ for
+read-only access (when read_only is TRUE).  This is used to map a section of a
+PCH file or module file to a memory region.  If the memory cannot be mapped, a
+catastrophic error is issued.  file_name is the name of the mapped input file
+to be used if a diagnostic is issued.  Returns the mapped address (or issues
+a catastrophic error).
 */
 {
   a_void_ptr	result_addr;
 
-  result_addr = MapViewOfFileEx(f_map_object, FILE_MAP_COPY, (DWORD)0,
-                                (DWORD)offset, size, address);
+  result_addr = MapViewOfFileEx(map_object,
+                                read_only ? FILE_MAP_READ : FILE_MAP_COPY,
+                                (DWORD)0, (DWORD)offset, size, address);
 #if DEBUG
   if (db_flag_is_set("mmap") || debug_level >= 4) {
     fprintf(f_debug,
@@ -3420,6 +3421,7 @@ to be used if a diagnostic is issued.
     str_GetLastError_catastrophe(ec_unable_to_get_mapped_memory_reason,
                                  file_name);
   }  /* if */
+  return result_addr;
 }  /* map_input_file_to_region */
 
 
@@ -3543,29 +3545,37 @@ page size.
 }  /* map_file_region */
 
 
-void map_input_file_to_region(FILE		*file,
-                              sizeof_t		offset,
-			      sizeof_t		size,
-			      a_void_ptr	address,
-			      a_const_char	*file_name)
+/*ARGSUSED*/ /* <-- Because "map_object" is not used. */
+a_void_ptr map_input_file_to_region(FILE             *file,
+                                    a_windows_handle  map_object,
+                                    a_boolean         read_only,
+                                    sizeof_t          offset,
+                                    sizeof_t          size,
+                                    a_void_ptr        address,
+                                    a_const_char      *file_name)
 /*
-Map the data pointed to by "file", starting at "offset" bytes,
-for "size" bytes to the address specified by "address".
-This mapping is done as a private mapping so that any changes to
-the data will be local.  This is used to map a section of a PCH
-file to a memory region.  If the memory cannot be mapped, a catastrophic
-error is issued.  file_name is the name of the mapped input file
-to be used if a diagnostic is issued.
+Map the data pointed to by "file", starting at "offset" bytes, for "size" bytes
+to the address specified by "address".  map_object is unused.  When read_only
+is FALSE, the mapping is done as a private mapping so that any changes to the
+data will be local, otherwise the mapping is read-only.  This is used to map a
+section of a PCH file or a module file to a memory region.  If the memory
+cannot be mapped, a catastrophic error is issued.  file_name is the name of the
+mapped input file to be used if a diagnostic is issued.  Returns the mapped
+address (or issues a catastrophic error).
 */
 {
   int		fd = fileno(file); /*lint !e718 !e746*/
   a_void_ptr	result_addr;
 
   result_addr = (a_void_ptr)mmap((caddr_t)address, size,
-                            PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_FIXED,
-                            fd, (off_t)offset);
+                                 read_only ? PROT_READ :
+                                             PROT_READ | PROT_WRITE,
+                                 address == NULL ? MAP_PRIVATE :
+                                                   MAP_PRIVATE | MAP_FIXED,
+                                 fd, (off_t)offset);
   /* mmap returns (caddr_t)-1 if the operation fails. */
-  if (result_addr == (caddr_t)-1 || result_addr != address) {
+  if (result_addr == (caddr_t)-1 ||
+      (address != NULL && result_addr != address)) {
     result_addr = NULL;
   }  /* if */
 #if DEBUG
@@ -3584,6 +3594,7 @@ to be used if a diagnostic is issued.
     str_errno_catastrophe(ec_unable_to_get_mapped_memory_reason, file_name,
                           errno);
   }  /* if */
+  return result_addr;
 }  /* map_input_file_to_region */
 
 
@@ -5227,6 +5238,31 @@ must be used before the buffer (temp_text_buffer) is overwritten.
 
 #endif /* EDG_WIN32 */
 
+static void init_module_search_path(void)
+/*
+Complete the initialization of the module search path.  Because this is called
+after the command line is processed, some directories may already be on the
+module search path (via the option --modules_directory).  The final search path
+will include, in this order:
+  - Current directory
+  - Directories specified from the --modules_directory option
+  - EDG_MODULES_PATH environment variable
+*/
+{
+  char       *env_path;
+
+  /* The current directory is the first place we search, so prepend it. */
+  add_to_front_of_include_search_path(current_directory_name,
+                                      &module_search_path,
+                                      &end_module_search_path);
+  env_path = getenv("EDG_MODULES_PATH");
+  if (env_path != NULL) {
+    add_to_specified_include_search_path(env_path, FALSE,
+                                         &module_search_path,
+                                         &end_module_search_path);
+  }  /* if */
+}  /* init_module_search_path */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void init_assembly_search_path(void)
@@ -5238,9 +5274,9 @@ final search path will include, in this order:
   - Current directory
   - .NET system directory (if we haven't seen --no_using_framework_directory)
   - Directories specified from the --using_directory option
-  - Directories from the environment variable LIBPATH
   - EDG_CPPCLI_PORTABLE_ASSEMBLY_PATH environment variable (in some configs)
   - CPPCLI_PORTABLE_ASSEMBLY_PATH (in some configurations)
+  - Directories from the environment variable LIBPATH
 */
 {
   char       *libpath;
@@ -5672,6 +5708,7 @@ is done after command line processing.
      exported template files. */
   register_trans_unit_variable(incl_search_path);
   register_trans_unit_variable(sys_incl_search_path);
+  init_module_search_path();
 #if MODULE_ID_NEEDED
   register_trans_unit_variable_with_field(module_id, module_id_ptr);
 #endif /* MODULE_ID_NEEDED */
@@ -5850,6 +5887,8 @@ This is done before command line processing.
   sys_incl_search_path = NULL;
   put_dir_of_each_opened_source_file_on_incl_search_path = TRUE;
   stack_referenced_include_directories = STACK_REFERENCED_INCLUDE_DIRECTORIES;
+  module_search_path = NULL;
+  end_module_search_path = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   assembly_search_path = NULL;
   end_assembly_search_path = NULL;
@@ -5876,8 +5915,6 @@ This is done before command line processing.
   page_size = 0;
 #if EDG_WIN32
   f_mmap_file = NULL;
-  f_mapped_input = NULL;
-  f_map_object = NULL;
 #else /* !EDG_WIN32 */
   f_mmap_file = NULL;
   mmap_file_number = 0;

@@ -334,6 +334,8 @@ typedef enum /*an_option_kind*/ {
   optk_ms_std_preproc,
   optk_char8_t,
   optk_relaxed_abstract_checking,
+  optk_module_dir,
+  optk_modules,
   optk_last		/* Must be last. */
 } an_option_kind;
 

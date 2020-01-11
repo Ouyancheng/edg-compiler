@@ -937,6 +937,38 @@ Display the indicated subobject path.
 }  /* disp_subobject_path */
 
 
+static void disp_module(a_module_ptr ptr)
+/*
+Display information about the indicated module.
+*/
+{
+  // FIXME: Make sure all fields are printed
+  if (ptr->name != NULL) {
+    disp_string_ptr("name", ptr->name, iek_id_name, (sizeof_t)0);
+  }  /* if */
+  if (ptr->full_name != NULL) {
+    disp_string_ptr("full_name", ptr->name, iek_id_name, (sizeof_t)0);
+  }  /* if */
+}  /* disp_module */
+
+
+static void disp_module_import_decl(a_module_import_decl_ptr ptr)
+/*
+Display the indicated module-import-declaration.
+*/
+{
+  // FIXME: Make sure all fields are printed
+  disp_source_position("position", &ptr->position);
+  disp_source_position("module_name_position", &ptr->module_name_position);
+  if (ptr->attributes != NULL) {
+    disp_ptr("attributes", (char *)ptr->attributes, iek_attribute);
+  }  /* if */
+  if (ptr->module_info != NULL) {
+    disp_ptr("module_info", (char *)ptr->module_info, iek_module);
+  }  /* if */
+}  /* disp_module_import_decl */
+
+
 static void disp_template_param_coordinate(a_template_param_coordinate *ptr)
 /*
 Display the indicated template parameter coordinate.
@@ -7747,6 +7779,12 @@ This routine is called during IL walking.
           break;
         case iek_subobject_path:
           disp_subobject_path((a_subobject_path_ptr)entry_ptr);
+          break;
+        case iek_module:
+          disp_module((a_module_ptr)entry_ptr);
+          break;
+        case iek_module_import_decl:
+          disp_module_import_decl((a_module_import_decl_ptr)entry_ptr);
           break;
         default:
           (void)printf("**BAD ENTRY KIND**\n");

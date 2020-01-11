@@ -1393,22 +1393,35 @@ pass_stdarg_references_to_generated_code.
 }  /* proc_include */
 
 
-static void import_module(a_symbol_ptr          module_sym,
-                          a_source_position_ptr module_pos)
+static void import_header_module(a_module_import_decl_ptr midp)
 /*
-Import the given module.  module_pos is the position of the module import
-directive.
+Import the given header module.
+*/
+{
+  /* The set of importable headers is implementation defined.  Currently no
+     headers are importable. */
+  pos_st_error(ec_header_not_importable, &midp->module_name_position,
+               midp->module_info->name);
+}  /* import_header_module */
+
+
+static void import_module(a_module_import_decl_ptr midp,
+                          a_symbol_ptr             assoc_sym)
+/*
+Import the given module.  assoc_sym is the associated symbol for the module.
 */
 {
   a_boolean err = FALSE;
-  err = check_module_has_interface_dependency(module_sym, curr_module_sym,
-                                              module_pos);
+
+  err = check_module_has_interface_dependency(assoc_sym, curr_module_sym,
+                                              &midp->module_name_position);
   if (!err) {
   }  /* if */
 }  /* import_module */
 
 
-void proc_modules_import(a_pp_directive_kind ppd)
+void proc_modules_import(a_pp_directive_kind   ppd,
+                         a_source_position_ptr start_pos)
 /*
 Process an import directive for a module.  ppd can be either ppd_import or
 ppd_export_import (if the import is exported).  Module imports can take the
@@ -1428,19 +1441,29 @@ somewhat different rules (notably it does introduce macros).  A header import
 can only occur inside a global module fragment.
 */
 {
+  a_module_import_decl_ptr midp;
+  an_attribute_ptr         attributes = NULL;
+  a_symbol_ptr             module_sym = NULL;
+  a_boolean                err = FALSE;
+
+  midp = alloc_module_import_decl();
+  midp->position = *start_pos;
   if (get_header_name()) {
     sizeof_t name_len;
     check_assertion(curr_token == tok_header_name);
-    /* The set of importable headers is implementation defined.  Currently no
-       headers are importable. */
-    pos_st_error(ec_header_not_importable, &pos_curr_token,
-                 extract_header_name(/*process_escapes=*/FALSE, &name_len));
+    midp->module_name_position = pos_curr_token;
+    midp->module_info = alloc_module(mk_header);
+    midp->module_info->name = copy_header_name(/*process_escapes=*/FALSE);
   } else {
     a_symbol_ptr      primary_name, partition_name;
     a_source_position pos = pos_curr_token;
 
     scan_module_name(&primary_name, &partition_name);
-    if (primary_name == NULL && curr_module_sym != NULL) {
+    if (locator_for_curr_id.is_error) {
+      err = TRUE;
+    }  /* if */
+    if (primary_name == NULL && partition_name != NULL &&
+        curr_module_sym != NULL) {
       primary_name = curr_module_sym->variant.module_info.primary_name;
     }  /* if */
     if (primary_name == NULL) {
@@ -1448,10 +1471,29 @@ can only occur inside a global module fragment.
          "import :foo" without a current module unit, or the module unit was
          declared without a name (already diagnosed). */
       pos_error(ec_cannot_import_module_with_no_name, &pos);
+      err = TRUE;
+    }  /* if */
+    module_sym = make_module_symbol(primary_name, partition_name, &pos);
+    /* FIXME: attach symbol to the appropriate place */
+    /* We don't currently know what kind of module this is. */
+    midp->module_name_position = pos;
+    midp->module_info = alloc_module(mk_none);
+    midp->module_info->name = module_sym->header->identifier;
+  }  /* if */
+  if (!err) {
+    attributes = scan_attributes(al_module);
+  }  /* if */
+  /* Do not allow pragmas to bind to module import declarations. */
+  cannot_bind_to_curr_construct();
+  attach_attributes(attributes, (char*)midp, iek_module_import_decl);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  add_to_source_sequence_list((char*)midp, iek_module_import_decl);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  if (!err) {
+    if (midp->module_info->kind == (a_module_kind_tag)mk_header) {
+      import_header_module(midp);
     } else {
-      a_symbol_ptr module_sym =
-                        make_module_symbol(primary_name, partition_name, &pos);
-      import_module(module_sym, &pos);
+      import_module(midp, module_sym);
     }  /* if */
   }  /* if */
 }  /* proc_modules_import */

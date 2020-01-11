@@ -20571,7 +20571,6 @@ Initialize variables that are specific to a given translation unit.
 {
   set_tu_stage(tud_none);
   any_decls_seen_this_stage = FALSE;
-  curr_module_sym = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   scanning_generated_code_from_metadata = FALSE;
   scanning_generated_code = FALSE;

@@ -37,7 +37,6 @@ enum class a_tu_decl_stage {
 
 EXTERN a_tu_decl_stage tu_stage;
 EXTERN a_boolean       any_decls_seen_this_stage;
-EXTERN a_symbol_ptr    curr_module_sym;
 
 #define tu_stage_is(stage)                                                    \
   (tu_stage == a_tu_decl_stage::stage)

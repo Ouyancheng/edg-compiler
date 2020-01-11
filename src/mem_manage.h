@@ -41,22 +41,22 @@ a remainder operation.
 */
 #if HOST_ALIGNMENT_REQUIRED == 1
 #define ALIGNMENT_BITS 0
-#else
+#else /* HOST_ALIGNMENT_REQUIRED != 1 */
 #if HOST_ALIGNMENT_REQUIRED == 2
 #define ALIGNMENT_BITS 0x1
-#else
+#else /* HOST_ALIGNMENT_REQUIRED != 2 */
 #if HOST_ALIGNMENT_REQUIRED == 4
 #define ALIGNMENT_BITS 0x3
-#else
+#else /* HOST_ALIGNMENT_REQUIRED != 4 */
 #if HOST_ALIGNMENT_REQUIRED == 8
 #define ALIGNMENT_BITS 0x7
-#else
+#else /* HOST_ALIGNMENT_REQUIRED != 8 */
 #if HOST_ALIGNMENT_REQUIRED == 16
 #define ALIGNMENT_BITS 0xf
-#else
+#else /* HOST_ALIGNMENT_REQUIRED != 16 */
 #if HOST_ALIGNMENT_REQUIRED == 32
 #define ALIGNMENT_BITS 0x1f
-#else
+#else /* HOST_ALIGNMENT_REQUIRED != 32 */
 /* Alignment will have to be established with "%". */
 #define ALIGNMENT_BITS (-1)
 #endif /* == 32 */
@@ -501,6 +501,8 @@ enum a_function_number_tag {
   fn_compare_substituted_type_list_entry,
   fn_hash_token_sequence_xref,
   fn_compare_token_sequence_xref,
+  fn_hash_module_entity,
+  fn_compare_for_module_entity,
   fn_last
 };
 /* Define as "a_byte" to explicitly control storage size. */

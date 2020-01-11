@@ -766,6 +766,8 @@ check_abbreviation()
 --microsoft_version
 --mmap_address
 --module_init
+--modules
+--modules_directory
 --ms_c++14
 --ms_c++17
 --ms_c++20
@@ -854,6 +856,7 @@ check_abbreviation()
 --no_macro_positions_in_diagnostics
 --no_microsoft
 --no_microsoft_bugs
+--no_modules
 --no_ms_compatibility
 --no_ms_std_preprocessor
 --no_ms_cplusplus_std_value
@@ -1398,6 +1401,8 @@ process_option()
 	 --microsoft_bugs | \
 	 --no_microsoft_bugs | \
 	 --microsoft_16 | \
+         --modules | \
+         --no_modules | \
          --ms_c++14 | \
          --ms_c++17 | \
          --ms_c++20 | \
@@ -1721,6 +1726,7 @@ process_option()
          --microsoft_build_number | \
          --microsoft_version | \
          --mmap_address | \
+         --modules_directory | \
          --gnu_version | \
          --clang_version | \
 	 --definition_list_file | \
@@ -1757,7 +1763,7 @@ process_option()
         -t | --instantiate)
           instantiation_mode_specified=1
           ;;
-        -I | --include_directory | --sys_include)
+        -I | --include_directory | --sys_include | --modules_directory)
           # Convert relative -I paths to absolute ones, if necessary.
           if [ $EDG_USE_ABSOLUTE_INCL_DIR_PATHS -eq 1 -a \
                "$curr_param" != "-" ] ; then
@@ -1814,6 +1820,7 @@ process_option()
           --mmap_address=* | \
           --microsoft_build_number=* | \
           --microsoft_version=* | \
+          --ms_modules_directory=* | \
           --gnu_version=* | \
           --clang_version=* | \
           --pending_instantiations=* | \
@@ -1865,7 +1872,8 @@ process_option()
           curr_arg=-I`native_path $dir_name`
           ;;
         --sys_include=* | \
-        --include_directory=*)
+        --include_directory=* | \
+        --modules_directory=*)
           # Convert relative --include_directory  paths to absolute ones,
           # if necessary.
           dir_name=`expr $arg : '.*=\(.*\)'`    # Get the string after the =

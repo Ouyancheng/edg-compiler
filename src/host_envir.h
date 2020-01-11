@@ -2969,6 +2969,15 @@ EXTERN a_directory_name_entry_ptr
 			/* Beginning and end pointers for the list.
 			   The name strings are in general storage. */
 
+/*
+Search path for module files.
+*/
+EXTERN a_directory_name_entry_ptr
+                module_search_path,
+                end_module_search_path;
+                        /* Beginning and end pointers for the list.
+                           The name strings are in general storage. */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*
 Search path for #using files.
@@ -3342,6 +3351,12 @@ char *get_file_name_from_dir(a_boolean    first,
 			     a_const_char *suffix,
 			     a_const_char *curr_dir_name);
 
+/*
+Define a local type for a Windows HANDLE (since HANDLE isn't defined on
+non-Windows OSes).
+*/
+typedef void *a_windows_handle;
+
 #if USE_MMAP_FOR_MEMORY_REGIONS
 extern sizeof_t do_page_alignment(sizeof_t size);
 
@@ -3351,11 +3366,13 @@ a_void_ptr map_file_region(sizeof_t	curr_size,
 			   sizeof_t     file_offset);
 
 extern
-void map_input_file_to_region(FILE		*file,
-                              sizeof_t		offset,
-			      sizeof_t		size,
-			      a_void_ptr	address,
-			      a_const_char	*file_name);
+a_void_ptr map_input_file_to_region(FILE		*file,
+                                    a_windows_handle	map_object,
+                                    a_boolean		read_only,
+                                    sizeof_t		offset,
+                                    sizeof_t		size,
+                                    a_void_ptr		address,
+                                    a_const_char	*file_name);
 
 extern void unmap_memory(a_void_ptr	addr,
 			 sizeof_t	size);
@@ -3676,8 +3693,11 @@ extern "C".  This flag must not be TRUE when compiling in C mode.
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 #if EDG_WIN32
-extern void open_mapped_input_file(a_const_char *file_name);
-extern void close_mapped_input_file(void);
+extern void open_mapped_input_file(a_const_char     *file_name,
+                                   a_windows_handle *mapped_input,
+                                   a_windows_handle *map_object);
+extern void close_mapped_input_file(a_windows_handle mapped_input,
+                                    a_windows_handle map_object);
 extern char *conv_wide_to_utf8(wchar_t *wide_str);
 #if !STANDALONE_UTILITY_PROGRAM
 extern a_const_char *com_error_to_str(void);

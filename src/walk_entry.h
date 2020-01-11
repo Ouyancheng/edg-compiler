@@ -3977,6 +3977,32 @@ after_entry_from_class:
 #undef eptr
       }
       break;
+    case iek_module:
+      {
+#define eptr ((a_module_ptr)entry_ptr)
+        /* FIXME: make sure all fields are walked appropriately. */
+        walk_string_ptr(eptr->name, iek_other_text, 0);
+        walk_string_ptr(eptr->full_name, iek_other_text, 0);
+        conditionally_clear_fe_pointer(eptr->f_module);
+        conditionally_clear_fe_pointer(eptr->mmap_addr);
+#if EDG_WIN32
+        conditionally_clear_fe_pointer(eptr->mapped_input);
+        conditionally_clear_fe_pointer(eptr->map_object);
+#endif /* EDG_WIN32 */
+#undef eptr
+      }
+      break;
+    case iek_module_import_decl:
+      {
+#define eptr ((a_module_import_decl_ptr)entry_ptr)
+        /* FIXME: make sure all fields are walked appropriately. */
+        remap_next_ptr(eptr->next, a_module_import_decl_ptr,
+                       iek_module_import_decl);
+        walk_list(eptr->attributes, an_attribute_ptr, iek_attribute);
+        walk_ptr(eptr->module_info, a_module_ptr, iek_module);
+#undef eptr
+      }
+      break;
     case iek_id_name:
     case iek_string_text:
     case iek_other_text:
@@ -4141,6 +4167,7 @@ of each kind.
      and iek_src_seq_end_of_construct, since such entries will
      never appear on an orphan list.  Ditto for iek_src_seq_sublist. */
   /* Likewise iek_per_instantiation_needed_flags_entry. */
+  /* Also iek_module_import_decl. */
 }  /* walk_orphaned_file_scope_il_entries */
 
 #endif /* ifdef WALK_ORPHANED_ENTRY_ROUTINE_NAME */
