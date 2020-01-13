@@ -23368,6 +23368,18 @@ the case if the return type was incomplete at the point of definition.
 }  /* set_routine_calling_method_flag */
 
 
+a_boolean routine_has_default_args(a_routine_ptr  rp)
+/*
+Return TRUE if the given routine has default arguments.
+*/
+{
+  a_type_ptr       rtp = skip_typerefs(rp->type);
+  a_param_type_ptr ptp = function_type_params(rtp);
+
+  return ptp != NULL && ptp->has_default_arg;
+}  /* routine_has_default_args */
+
+
 void mark_routine_referenced_full(a_routine_ptr routine,
                                   a_boolean     instantiate,
                                   a_boolean     elided_reference)

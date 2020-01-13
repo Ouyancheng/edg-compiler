@@ -1370,6 +1370,8 @@ extern a_boolean type_returned_by_cctor(a_type_ptr  return_type,
 extern void set_routine_calling_method_flag(a_type_ptr         routine_type,
                                             a_source_position  *err_pos);
 
+extern a_boolean routine_has_default_args(a_routine_ptr  rp);
+
 extern void copy_type(a_type_ptr from,
                       a_type_ptr to);
 
