@@ -1411,11 +1411,24 @@ static void import_module(a_module_import_decl_ptr midp,
 Import the given module.  assoc_sym is the associated symbol for the module.
 */
 {
-  a_boolean err = FALSE;
+  a_boolean already_included = FALSE;
 
-  err = check_module_has_interface_dependency(assoc_sym, curr_module_sym,
-                                              &midp->module_name_position);
-  if (!err) {
+  /* See if this module has already been imported.  If so, ignore it. */
+  for (a_module_import_decl_ptr ptr = il_header.imported_modules;
+       ptr != NULL; ptr = ptr->next) {
+    if (strcmp(ptr->module_info->name, midp->module_info->name) == 0) {
+      pos_st_remark(ec_module_already_imported, &midp->module_name_position,
+                    midp->module_info->name);
+      already_included = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  if (!already_included &&
+      !check_module_has_interface_dependency(assoc_sym, curr_module_sym,
+                                             &midp->module_name_position)) {
+    /* Perform the import of the module file. */
+    midp->next = il_header.imported_modules;
+    il_header.imported_modules = midp;
   }  /* if */
 }  /* import_module */
 
@@ -1466,7 +1479,7 @@ can only occur inside a global module fragment.
         curr_module_sym != NULL) {
       primary_name = curr_module_sym->variant.module_info.primary_name;
     }  /* if */
-    if (primary_name == NULL) {
+    if (!err && primary_name == NULL) {
       /* Trying to import a module with no name.  Either something like
          "import :foo" without a current module unit, or the module unit was
          declared without a name (already diagnosed). */
