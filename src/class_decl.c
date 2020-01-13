@@ -21670,7 +21670,7 @@ constructor should be deleted.
     a_symbol_ptr      sym;
     a_base_class_ptr  bcp;
     a_class_symbol_supplement_ptr
-                      mcssp, cssp = symbol_supplement_for_class(class_type);
+                      mcssp, cssp = class_symbol_supp(symbol_for(class_type));
     /* First, scan through all the nonstatic data members, using the symbol
        list rather than the field list to be sure that only user-defined
        fields are checked and to be sure that anonymous union fields are
@@ -21721,7 +21721,7 @@ constructor should be deleted.
             gsfd->suppress_default_ctor = TRUE;
             break;
           }  /* if */
-        } else if (is_const_qualified_type(tp)) {
+        } else if (is_const_qualified_type(tp) && !(gpp_mode && !clang_mode)) {
           gsfd->suppress_default_ctor = TRUE;
           break;
         }  /* if */
