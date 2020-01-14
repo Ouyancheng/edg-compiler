@@ -21721,7 +21721,10 @@ constructor should be deleted.
             gsfd->suppress_default_ctor = TRUE;
             break;
           }  /* if */
-        } else if (is_const_qualified_type(tp) && !(gpp_mode && !clang_mode)) {
+        } else if (is_const_qualified_type(tp) &&
+                   !type_is(parent_class_of(field), tk_union)) {
+          /* A const non-variant member causes a generated default constructor
+             to be deleted (N4842 [class.default.ctor] bullet (2.4)). */
           gsfd->suppress_default_ctor = TRUE;
           break;
         }  /* if */
