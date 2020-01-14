@@ -719,7 +719,7 @@ extern void conv_nontype_template_arg_to_param_type(
                                             a_type_ptr         param_type,
                                             a_constant         *constant);
 
-extern a_requires_clause_ptr scan_requires_clause(void);
+extern a_requires_clause_ptr scan_requires_clause(a_boolean  discard);
 
 extern an_expr_node_ptr scan_concept_expression(void);
 

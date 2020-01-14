@@ -11082,6 +11082,17 @@ enum a_ctor_or_dtor_kind_tag {
 typedef a_byte a_ctor_or_dtor_kind;
 
 
+typedef struct a_requires_clause *a_requires_clause_ptr;
+typedef struct a_requires_clause {
+  an_expr_node_ptr
+		constraint;
+			/* The expression describing the constraint. */
+  a_source_position
+		requires_pos;
+			/* The position of the "requires" keyword. */
+} a_requires_clause;
+
+
 /*
 Data structures related to routines:
 */
@@ -11906,6 +11917,12 @@ typedef struct a_routine {
 			   Microsoft storage-class-like __declspec
 			   modifiers. */
 #endif /* DECL_MODIFIERS_IN_USE */
+  a_requires_clause_ptr
+		trailing_requires_clause;
+			/* If this is a constrained templated function, the
+			   associated trailing requires clause if any.
+			   Otherwise, NULL.  FIXME: unionize with
+			   virtual_function_number. */
   a_virtual_function_number
 		virtual_function_number;
 			/* When is_virtual is TRUE and is_consteval is FALSE,
@@ -15677,17 +15694,6 @@ typedef struct a_template_parameter {
     } templ;
   } variant;
 } a_template_parameter;
-
-
-typedef struct a_requires_clause *a_requires_clause_ptr;
-typedef struct a_requires_clause {
-  an_expr_node_ptr
-		constraint;
-			/* The expression describing the constraint. */
-  a_source_position
-		requires_pos;
-			/* The position of the "requires" keyword. */
-} a_requires_clause;
 
 
 typedef struct a_template_decl {

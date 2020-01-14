@@ -45053,7 +45053,7 @@ type will be obtained from the arg_operand.
 }  /* conv_nontype_template_arg_to_param_type */
 
 
-a_requires_clause_ptr scan_requires_clause(void)
+a_requires_clause_ptr scan_requires_clause(a_boolean  discard)
 /*
 Scan a C++20-style requires-clause, of the form:
 
@@ -45061,15 +45061,21 @@ Scan a C++20-style requires-clause, of the form:
 
 where <limited-expr> is an expression that is composed only of primary
 expressions (in the standard sense) and logical "or" and "and" operators.
+If discard is TRUE, discard the representation of the clause and return NULL.
+Otherwise, return a pointer to that representation.
 */
 {
   an_expr_stack_entry_ptr saved_expr_stack;
   an_expr_stack_entry     expr_stack_entry;
   an_operand              opnd;
-  a_requires_clause_ptr   rcp = alloc_requires_clause();
+  a_requires_clause_ptr   rcp = NULL;
+
 
   check_assertion(curr_token == tok_requires);
-  rcp->requires_pos = pos_curr_token;
+  if (!discard) {
+    rcp = alloc_requires_clause();
+    rcp->requires_pos = pos_curr_token;
+  }  /* if */
   (void)get_token();
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
@@ -45082,7 +45088,11 @@ expressions (in the standard sense) and logical "or" and "and" operators.
   scan_expr(&opnd, PREC_QUEST_MARK,
             EOPT_CONSTRAINT_EXPR | EOPT_REQUIRES_CLAUSE);
   check_bool_constraint(&opnd, EOPT_CONSTRAINT_EXPR | EOPT_REQUIRES_CLAUSE);
-  rcp->constraint = make_node_from_operand(&opnd);
+  if (!discard) {
+    rcp->constraint = make_node_from_operand(&opnd);
+  } else {
+    reclaim_fs_nodes_of_operand(&opnd);
+  }  /* if */
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
   return rcp;

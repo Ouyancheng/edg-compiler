@@ -4069,6 +4069,19 @@ an error if a default argument expression is encountered.
     }  /* if */
   }  /* if */
   scan_declarator_attributes(state, new_type_ptr);
+  if (curr_token == tok_requires) {
+    a_boolean  discard_clause = state->is_template_rescan;
+    if (!is_top_level_declarator) {
+      pos_error(ec_trailing_requires_clause_not_top_level, &pos_curr_token);
+      discard_clause = TRUE;
+    } else if (!(is_template_dependent_context() &&
+                 state->function_definition_allowed) &&
+               !discard_clause) {
+      pos_error(ec_trailing_requires_clause_not_on_template, &pos_curr_token);
+      discard_clause = TRUE;
+    }  /* if */
+    state->trailing_requires_clause = scan_requires_clause(discard_clause);
+  }  /* if */
   /* Pop the function prototype scope if needed. */
   if (must_pop_function_prototype_scope) pop_scope();
   if (!is_top_level_declarator) {

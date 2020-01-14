@@ -314,6 +314,7 @@ be restored).
   dps->source_sequence_entry = NULL;
   dps->alignment = 0;
   dps->strongest_alignment = NULL;
+  dps->trailing_requires_clause = NULL;
   dps->routine_fixup = NULL;
 }  /* clear_decl_parse_state_fields */
 
@@ -10811,6 +10812,10 @@ definition of a member function of a class template.
                           (storage_class == (a_storage_class)sc_extern) ?
                                 (a_name_linkage_kind)nlk_cplusplus_external :
                                 (a_name_linkage_kind)nlk_internal;
+    if (dps->trailing_requires_clause != NULL) {
+      rout_ptr->trailing_requires_clause = dps->trailing_requires_clause;
+      dps->trailing_requires_clause = NULL;
+    }  /* if */
     /* Call a routine that manages the correspondence of entities between
        translation units to notify it of the new instance. */
     record_instantiation(prototype_sym, tssp);

@@ -5971,9 +5971,7 @@ next_argument:
     }  /* if */
     if (concepts_enabled) {
       /* Check that the constraints are satisfied. */
-      a_template_symbol_supplement_ptr
-                        tssp = function_symbol->variant.template_info;
-      if (!check_template_constraints(tssp, local_template_arg_list,
+      if (!check_template_constraints(function_symbol, local_template_arg_list,
                                       /*diagnose=*/FALSE)) {
         goto reject_function;
       }  /* if */

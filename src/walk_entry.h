@@ -1447,6 +1447,8 @@ debug builds) don't recognize that these variables are mutually-exclusive.
           remap_ptr(eptr->variant.lambda_call_operator, a_routine_ptr,
                     iek_routine);
         }  /* if */
+        walk_ptr(eptr->trailing_requires_clause, a_requires_clause_ptr,
+                 iek_requires_clause);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         walk_list(eptr->overridden_functions, an_il_entity_list_entry_ptr,
                   iek_il_entity_list_entry);

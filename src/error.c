@@ -1468,6 +1468,10 @@ specified by dp.
       entity_kind = ec_variable_template;
       is_declaration_like = TRUE;
       goto symbol_name;
+    case sk_concept_template:
+      entity_kind = ec_concept_template;
+      is_declaration_like = TRUE;
+      goto symbol_name;
     case sk_function_template:
       entity_kind = ec_function_template;
       routine = fund_sym->variant.template_info->variant.function.routine;

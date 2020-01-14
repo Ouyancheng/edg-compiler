@@ -1218,6 +1218,9 @@ typedef struct a_decl_parse_state {
 			/* The UPC block size associated with any UPC shared
 			   qualifier (or UPC_BLOCK_SIZE_NONE if there is no
 			   such qualifier). */
+  a_requires_clause_ptr
+		trailing_requires_clause;
+			/* The trailing requires-clause, if any. */
   an_il_entity_list_entry_ptr
 		*p_postfix_entities;
 			/* While parsing a declaration statement (stmk_decl),

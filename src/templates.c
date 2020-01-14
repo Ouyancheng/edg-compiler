@@ -501,6 +501,7 @@ Initialize a template declaration state block.
 */
 {
   init_decl_parse_state(&tdsp->decl_parse);
+  tdsp->decl_parse.function_definition_allowed = TRUE;
   tdsp->decl_parse.trailing_return_type_allowed =
                                                 trailing_return_types_enabled;
   tdsp->is_template_friend = FALSE;
@@ -3614,7 +3615,8 @@ in ps_arg_list.
                                 templ_param_list, MTT_NO_FLAGS) &&
       (total_errors == 0 ||
        !template_arg_list_involves_error_entity(*ps_arg_list)) &&
-      check_template_constraints(tssp, *ps_arg_list, /*diagnose=*/FALSE)) {
+      check_template_constraints(template_sym, *ps_arg_list,
+                                 /*diagnose=*/FALSE)) {
     /* We found a match without errors: Check that substituting the resulting
        arguments is valid. */
     a_source_position  saved_error_pos = error_position;
@@ -9925,7 +9927,7 @@ is the template of which sym is an instance.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_boolean template_has_constraints(
+static a_boolean type_template_has_constraints(
                                       a_template_symbol_supplement_ptr  tssp)
 /*
 Return TRUE if the template associated with tssp has constraints.
@@ -9940,13 +9942,47 @@ Return TRUE if the template associated with tssp has constraints.
     result = TRUE;
   }  /* if */
   return result;
-}  /* template_has_constraints */
+}  /* type_template_has_constraints */
 
 
-a_boolean check_template_constraints(
-                                  a_template_symbol_supplement_ptr  tssp,
-                                  a_template_arg_ptr                args,
-                                  a_boolean                         diagnose)
+static a_boolean requires_constraint_satisfied(
+                               a_template_symbol_supplement_ptr  tssp,
+                               a_requires_clause_ptr             rcp,
+                               a_template_arg_ptr                args,
+                               a_boolean                         diagnose)
+/*
+Return TRUE if the given requires clause (associated with tssp) is satisfied
+by the given template argument list.  Otherwise, return FALSE and issue a
+diagnostic if diagnose is TRUE.
+*/
+{
+  a_boolean             result = TRUE;
+  an_expr_node_ptr      constraint = rcp->constraint;
+  a_template_param_ptr  params = tssp->cache.decl_info->parameters;
+  a_diag_list           diag_list;
+  a_source_position     diag_pos = error_position;
+
+  clear_diag_list(&diag_list);
+  if (!requires_clause_satisfied(constraint, args, params, &diag_list)) {
+    if (!is_empty_diag_list(&diag_list)) {
+      if (diagnose) {
+        a_diagnostic_ptr  dp;
+        dp = pos_start_error(ec_template_constraint_not_satisfied, &diag_pos);
+        add_more_info_list(dp, &diag_list);
+        end_diagnostic(dp);
+      } else {
+        discard_more_info_list(&diag_list);
+      }  /* if */
+    }  /* if */
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* requires_constraint_satisfied */
+
+
+a_boolean check_template_constraints(a_symbol_ptr        template_sym,
+                                     a_template_arg_ptr  args,
+                                     a_boolean           diagnose)
 /*
 Return TRUE if the constraints on the template described by tssp is satisfied
 by the give template arguments.  Otherwise, return FALSE and, if diagnose is
@@ -9954,30 +9990,22 @@ TRUE, issue a diagnostic explaining the failure.
 */
 {
   a_boolean            result = TRUE;
+  a_template_symbol_supplement_ptr
+                       tssp = template_sym->variant.template_info;
   a_template_ptr       il_entry = tssp->il_template_entry;
   a_template_decl_ptr  tdp = il_entry->template_decl;
 
 
   if (tdp != NULL && if_microsoft_extensions(!tdp->is_generic &&)
-      tdp->constraint.requires_clause != NULL) {
-    an_expr_node_ptr      constraint =
-                                  tdp->constraint.requires_clause->constraint;
-    a_template_param_ptr  params = tssp->cache.decl_info->parameters;
-    a_diag_list           diag_list;
-    a_source_position     diag_pos = error_position;
-    clear_diag_list(&diag_list);
-    if (!requires_clause_satisfied(constraint, args, params, &diag_list)) {
-      if (!is_empty_diag_list(&diag_list)) {
-        if (diagnose) {
-          a_diagnostic_ptr  dp;
-          dp = pos_start_error(ec_template_constraint_not_satisfied,
-                               &diag_pos);
-          add_more_info_list(dp, &diag_list);
-          end_diagnostic(dp);
-        } else {
-          discard_more_info_list(&diag_list);
-        }  /* if */
-      }  /* if */
+      tdp->constraint.requires_clause != NULL &&
+      !requires_constraint_satisfied(tssp, tdp->constraint.requires_clause,
+                                     args, diagnose)) {
+    result = FALSE;
+  } else if (is_simple_function_or_template_symbol(template_sym)) {
+    a_routine_ptr  rp = tssp->variant.function.routine;
+    if (rp->trailing_requires_clause != NULL &&
+        !requires_constraint_satisfied(tssp, rp->trailing_requires_clause,
+                                       args, diagnose)) {
       result = FALSE;
     }  /* if */
   }  /* if */
@@ -10176,7 +10204,8 @@ use the current global value of the template template parameter.
       is_alias_template = TRUE;
     } else if (!in_substitution &&
                !tssp->variant.class_template.invented_template &&
-               !check_template_constraints(tssp, list_for_instantiation,
+               !check_template_constraints(template_sym,
+                                           list_for_instantiation,
                                            /*diagnose=*/TRUE)) {
       /* The template arguments do not satisfy the constraints.  Create a
          dummy symbol referring to an error type. */
@@ -10589,7 +10618,8 @@ If template constraints are not satisfied, return NULL.
     sym = hash_table_sym == NULL ? NULL : *hash_table_sym;
   }  /* if */
   if (sym == NULL && !is_nonreal &&
-      !check_template_constraints(tssp, list_for_instantiation, diagnose)) {
+      !check_template_constraints(template_sym, list_for_instantiation,
+                                  diagnose)) {
     if (list_copied) {
       free_template_arg_list(new_list_without_local_types);
     }  /* if */
@@ -13682,9 +13712,9 @@ to an alias template, the substituted type is returned in *new_type
       /* Some error with the template arguments to an internal template. */
       new_sym = NULL;
       subst_fail(*copy_error);
-    } else if (template_has_constraints(tssp) &&
+    } else if (type_template_has_constraints(tssp) &&
                !template_arg_list_is_dependent(new_list) &&
-               !check_template_constraints(tssp, new_list,
+               !check_template_constraints(template_sym, new_list,
                                            /*diagnose=*/FALSE)) {
       /* Constraints were not satisfied. */
       new_sym = NULL;
@@ -27963,7 +27993,7 @@ information).  See the definition of a_tmpl_decl_state for details.
                                          scope_stack[decl_scope_level].number;
         if (curr_token == tok_requires && !decl_state->is_generic) {
           decl_state->template_decl->constraint.requires_clause =
-                                                       scan_requires_clause();
+                                      scan_requires_clause(/*discard=*/FALSE);
         }  /* if */
         /* Record that a template parameter list has been seen.  A
            subsequent missing parameter list is an error. */

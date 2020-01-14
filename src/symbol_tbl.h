@@ -6505,6 +6505,11 @@ results in better error recovery.
   (is_function_symbol((sym)) ||						\
    (sym)->kind == (a_symbol_kind)sk_function_template)
 
+/* Return TRUE if a symbol is a single function, member function, or function
+   template symbol. */
+#define is_simple_function_or_template_symbol(sym)                            \
+  (is_simple_function_symbol((sym)) || symbol_is(sym, sk_function_template))
+
 /* Return TRUE if a symbol is a member function symbol. */
 #define is_member_function_symbol(sym)                                \
   ((sym)->is_class_member &&                                          \
