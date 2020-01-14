@@ -23370,13 +23370,20 @@ the case if the return type was incomplete at the point of definition.
 
 a_boolean routine_has_default_args(a_routine_ptr  rp)
 /*
-Return TRUE if the given routine has default arguments.
+Return TRUE if the given routine has one or more default arguments.
 */
 {
+  a_boolean        result = FALSE;
   a_type_ptr       rtp = skip_typerefs(rp->type);
   a_param_type_ptr ptp = function_type_params(rtp);
 
-  return ptp != NULL && ptp->has_default_arg;
+  for (; ptp != NULL; ptp = ptp->next) {
+    if (ptp->has_default_arg) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
 }  /* routine_has_default_args */
 
 
