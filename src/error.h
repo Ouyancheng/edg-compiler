@@ -597,6 +597,12 @@ extern DOES_NOT_RETURN str_errno_catastrophe(an_error_code error_code,
 extern a_diagnostic_ptr pos_start_diagnostic(an_error_severity  error_severity,
                                              an_error_code      error_code,
                                              a_source_position  *error_pos);
+extern a_diagnostic_ptr pos_st2_start_diagnostic(
+                                             an_error_severity error_severity,
+                                             an_error_code     error_code,
+                                             a_source_position *error_pos,
+                                             a_const_char      *error_string1,
+                                             a_const_char      *error_string2);
 extern a_diagnostic_ptr pos_ty_start_diagnostic(
                                     an_error_severity  error_severity,
                                     an_error_code      error_code,

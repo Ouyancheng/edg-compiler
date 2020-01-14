@@ -768,6 +768,13 @@ EXTERN a_boolean
 			   normally permit them. */
 
 EXTERN a_boolean
+		skip_module_imports;
+			/* TRUE when the front end should not attempt to
+			   import a module and instead behave as if the module
+			   was imported but there was nothing of impact
+			   imported. */
+
+EXTERN a_boolean
 		vla_enabled;
 			/* TRUE if support for variable length arrays (VLAs)
 			   is enabled.  Controlled by command-line options

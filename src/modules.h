@@ -57,6 +57,8 @@ extern a_boolean check_module_has_interface_dependency(
                                            a_symbol_ptr          interface_sym,
                                            a_source_position_ptr module_pos);
 
+extern a_boolean find_module_file(a_module_ptr  midp,
+                                  a_module_kind *kind);
 
 extern a_hash_value hash_module_entity(a_void_ptr  key);
 

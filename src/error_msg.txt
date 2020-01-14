@@ -3149,10 +3149,15 @@ ec_cannot_export_fgmt;;"a %s module fragment cannot be exported"
 ec_more_than_one_module_decl;;"cannot declare more than one module"
 ec_more_than_one_fgmt_decl;;"cannot declare more than one %s module fragment"
 ec_module_req_primary_name;;"a module must be declared with a non-empty name"
-ec_header_not_importable;;"\"%s\" is not an importable header"
+ec_header_not_importable;;"%sq is not an importable header"
 ec_cannot_import_module_with_no_name;;"cannot import a module with no name"
 ec_module_cannot_depend_on_itself;;"a module cannot have an interface dependency on itself"
-ec_module_already_imported;;"module \"%s\" has already been imported"
+ec_module_already_imported;;"module %sq has already been imported"
+ec_module_file;INTERNAL;"module file"
+ec_module_file_not_found;;"could not find module file for module %sq"
+ec_cannot_import_module;;"could not import module file %sq"
+ec_mismatched_module_file_kind;;"expected %s1 module file, found %s2 module file instead"
+ec_mismatched_module_file_context;INTERNAL;"when opening module file %sq"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -17132,9 +17132,10 @@ typedef struct a_scope {
 An enumeration to identify the different types of supported module files.
 */
 enum a_module_kind_tag {
-  mk_none,
-  mk_header,
-  mk_ifc
+  mk_none,		/* An unknown module. */
+  mk_header,		/* An importable header. */
+  mk_edg,		/* An EDG module. */
+  mk_ifc		/* A Microsoft IFC module. */
 };
 
 typedef a_byte a_module_kind;

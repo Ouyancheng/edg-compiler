@@ -5707,6 +5707,7 @@ Allocate and return an IL entry for a module.
   switch (kind) {
     case mk_none:
     case mk_header:
+    case mk_edg:
       break;
     case mk_ifc:
       mep->variant.ifc = NULL;

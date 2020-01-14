@@ -1426,6 +1426,10 @@ Import the given module.  assoc_sym is the associated symbol for the module.
   if (!already_included &&
       !check_module_has_interface_dependency(assoc_sym, curr_module_sym,
                                              &midp->module_name_position)) {
+    a_module_kind found_kind = mk_none;
+    a_boolean     err = FALSE;
+
+    err = find_module_file(midp->module_info, &found_kind);
     /* Perform the import of the module file. */
     midp->next = il_header.imported_modules;
     il_header.imported_modules = midp;
@@ -1503,6 +1507,7 @@ can only occur inside a global module fragment.
   add_to_source_sequence_list((char*)midp, iek_module_import_decl);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (!err) {
+    error_position = midp->module_name_position;
     if (midp->module_info->kind == (a_module_kind_tag)mk_header) {
       import_header_module(midp);
     } else {

@@ -2147,6 +2147,7 @@ static a_flag_name
   { "lazy_field_initializers", &always_delay_field_initializer_processing },
   { "core_constant_expr_is_noexcept", &core_constant_expr_is_noexcept },
   { "null_template_ptr_arg_enabled", &null_template_ptr_arg_enabled },
+  { "skip_module_imports", &skip_module_imports },
   { NULL, NULL }  /* must be last */
 };
 
@@ -12148,6 +12149,7 @@ variables declared in cmd_line.h.
   init_statement_allowed_in_range_based_for = FALSE;
   relaxed_abstract_checking = FALSE;
   modules_enabled = FALSE;
+  skip_module_imports = FALSE;
 }  /* cmd_line_static_var_init */
 
 

@@ -25,6 +25,44 @@ modules.c -- Module handling classes and routines.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+namespace {
+
+typedef struct a_module_file_suffix *a_module_file_suffix_ptr;
+struct a_module_file_suffix {
+  a_const_char	*suffix;
+			/* The suffix associated with the module file. */
+  a_module_kind	kind;
+			/* The kind of module this suffix implies. */
+};
+
+constexpr a_module_file_suffix module_file_suffixes[] = {
+  { "edgm", mk_edg },
+  { "ifc", mk_ifc }
+};
+constexpr sizeof_t num_module_file_suffixes =
+                     sizeof(module_file_suffixes)/sizeof(a_module_file_suffix);
+
+
+constexpr char ifc_magic_numbers[] = { '\x54', '\x51', '\x45', '\x1A' };
+constexpr char edg_magic_numbers[] = { '\x9A', '\x13', '\x37', '\x7D' };
+
+
+inline a_boolean magic_numbers_match(const char magic[4], const char expected[4])
+/*
+Return true if the provided magic numbers match their expected magic numbers.
+*/
+{
+  return magic[0] == expected[0] &&
+         magic[1] == expected[1] &&
+         magic[2] == expected[2] &&
+         magic[3] == expected[3];
+}  /* magic_numbers_match */
+
+
+a_text_buffer_ptr module_search_buffer, module_file_name_buffer;
+a_text_buffer_ptr module_primary_name_buffer, module_partition_name_buffer;
+
+}  /* namespace */
 
 static a_boolean same_module_name(a_symbol_ptr module_name,
                                   a_symbol_ptr other_module_name)
@@ -74,6 +112,251 @@ dependency, FALSE otherwise.
   /* FIXME: Recurse over interface_sym's interface dependencies. */
   return result;
 }  /* check_module_has_interface_dependency */
+
+
+static a_const_char *get_module_primary_name(a_module_ptr mod)
+/*
+Get just the module primary name from the given module's name (i.e., remove the
+partition if it's present) and return it.  If no name is present, return empty
+string.  Note that the name will be stored in re-useable memory and should be
+copied if it's wanted to be kept long-term.
+*/
+{
+  a_const_char *name = mod->name;
+  sizeof_t     name_len = strlen(name);
+
+  reset_text_buffer(module_primary_name_buffer);
+  for (sizeof_t idx = 0; idx < name_len; ++idx) {
+    if (name[idx] == ':') {
+      name_len = idx;
+      break;
+    }  /* if */
+  }  /* for */
+  add_to_text_buffer(module_primary_name_buffer, name, name_len);
+  add_char_to_text_buffer(module_primary_name_buffer, '\0');
+  return module_primary_name_buffer->buffer;
+}  /* get_module_primary_name */
+
+
+static a_const_char *get_module_file_base_name(a_module_ptr mod)
+/*
+Get the base name of the module file for the given module.  This is typically
+just the primary name of the module with subtitutions for the module
+qualifiers.
+*/
+{
+  reset_text_buffer(module_file_name_buffer);
+  (void)get_module_primary_name(mod);
+  add_to_text_buffer(module_file_name_buffer,
+                     module_primary_name_buffer->buffer,
+                     module_primary_name_buffer->size);
+  for (char* ch = module_file_name_buffer->buffer; *ch != '\0'; ++ch) {
+    if (*ch == '.') *ch = '_';
+  }  /* for */
+  return module_file_name_buffer->buffer;
+}  /* get_module_file_name */
+
+
+static a_const_char *get_module_partition_name(a_module_ptr mod)
+/*
+Get just the module partition name from the given module's name (if present)
+and return it.  If no name is present, return empty string.  Note that the name
+will be stored in re-useable memory and should be copied if it's wanted to be
+kept long-term.
+*/
+{
+  a_const_char *name = mod->name;
+  sizeof_t     name_len = 0;
+
+  reset_text_buffer(module_partition_name_buffer);
+  for (; *name != '\0'; ++name) {
+    if (*name == ':') {
+      ++name;
+      name_len = strlen(name);
+      break;
+    }  /* if */
+  }  /* for */
+  add_to_text_buffer(module_partition_name_buffer, name, name_len);
+  add_char_to_text_buffer(module_partition_name_buffer, '\0');
+  return module_partition_name_buffer->buffer;
+}  /* get_module_partition_name */
+
+
+static a_module_kind determine_module_file_kind(FILE *file)
+/*
+Given an already open file pointer, determine what kind of module file is open
+(if any).  Return the kind of module file.
+*/
+{
+  a_module_kind kind = mk_none;
+  char          magic[4];
+
+  /* Ensure we're at the start of the file. */
+  fseek(file, 0, SEEK_SET);
+  if (fread(magic, (size_t)1, sizeof(magic), file) == sizeof(magic)) {
+    if (magic_numbers_match(magic, edg_magic_numbers)) {
+      kind = mk_edg;
+    } else if (magic_numbers_match(magic, ifc_magic_numbers)) {
+      kind = mk_ifc;
+    }  /* if */
+  }  /* if */
+  return kind;
+}  /* determine_module_file_kind */
+
+
+static inline a_const_char *err_string_for_module_kind(a_module_kind kind)
+/*
+Given a module kind, return a string for that kind for use in error messages.
+*/
+{
+  a_const_char *str;
+
+  switch (kind) {
+    case mk_none:
+      str = "an unknown";
+      break;
+    case mk_header:
+      str = "an importable header";
+      break;
+    case mk_edg:
+      str = "an EDG";
+      break;
+    case mk_ifc:
+      str = "an IFC";
+      break;
+    default:
+      unexpected_condition_str("Unexpected module kind");
+  }  /* switch */
+  return str;
+}  /* err_string_for_module_kind */
+
+
+static void diagnose_mismatched_module_file_kind(a_module_kind file_kind,
+                                                 a_module_kind expected_kind,
+                                                 a_const_char  *module_file)
+/*
+Given a module file, issue diagnostics for a mismatch between expected_kind and
+file_kind (which may range from remarks to catastrophic errors).
+*/
+{
+  an_error_severity severity;
+  a_diagnostic_ptr  dp;
+
+  if (file_kind == expected_kind) {
+    /* No mismatch, no diagnostics to issue. */
+    goto done;
+  }  /* if */
+  switch (expected_kind) {
+    case mk_none:
+    case mk_edg:
+      severity = es_catastrophe;
+      break;
+    case mk_ifc:
+      /* Visual Studio skips files that don't appear to be IFCs. */
+      severity = es_remark;
+      break;
+    case mk_header:
+    default:
+      unexpected_condition_str("Unexpected module kind");
+  }  /* switch */
+  dp = pos_st2_start_diagnostic(severity, ec_mismatched_module_file_kind,
+                                &error_position,
+                                err_string_for_module_kind(expected_kind),
+                                err_string_for_module_kind(file_kind));
+  str_add_diag_info(dp, ec_mismatched_module_file_context, module_file);
+  end_diagnostic(dp);
+done:;
+}  /* diagnose_mismatched_module_file_kind */
+
+
+static a_boolean check_module_file(a_module_kind kind,
+                                   a_const_char  *module_file)
+/*
+Return TRUE if the provided module file exists and is the given kind, FALSE
+otherwise.  This function may not return and instead issue a catastrophic error
+if the module file exists but cannot be opened, or if it does not match the
+expected kind and such a mismatch cannot be ignored.
+*/
+{
+  a_boolean           result = FALSE;
+  FILE*               file;
+  an_open_file_result open_result;
+  a_module_kind       file_kind;
+
+  file = fopen_with_result(module_file, FOPEN_MODE_FOR_BINARY_READ,
+                           &open_result);
+  if (file == NULL) {
+    /* Open failed.  Most reasons are likely valid, but check for specific
+        problem cases. */
+    if (open_result.flags & OFR_CANNOT_OPEN) {
+      /* Note that file_open_error does not return when called from
+          here. */
+      file_open_error(es_catastrophe, ec_module_file, module_file,
+                      &open_result);
+    } else {
+      goto done;
+    }  /* if */
+  }  /* if */
+  /* We've found a file - determine what kind it is. */
+  file_kind = determine_module_file_kind(file);
+  (void)fclose(file);
+  if (kind == file_kind) {
+    result = TRUE;
+  } else {
+    /* Module file matched the expected extension for this type, but did
+       not match the expected content indicators.  This may or may not
+       issue a catastrophic error - if this returns, that means we ignore
+       the file and continue on searching. */
+    diagnose_mismatched_module_file_kind(file_kind, kind, module_file);
+  }  /* if */
+done:
+  return result;
+}  /* check_module_file */
+
+
+a_boolean find_module_file(a_module_ptr  mod,
+                           a_module_kind *kind)
+/*
+Find the module file associated with mod and update mod with the path to the
+file.  If *kind == mk_none, select the first (supported) module file
+encountered and set *kind to the kind found.  Otherwise, only consider module
+files of the kind indicated by *kind.  Return TRUE if a module file was found,
+FALSE otherwise.
+*/
+{
+  a_boolean                  found = FALSE;
+  a_directory_name_entry_ptr dir = module_search_path;
+  a_const_char               *module_name;
+
+  if (skip_module_imports || mod->full_name != NULL) {
+    /* Module file has already been found. */
+    found = TRUE;
+    goto done;
+  }  /* if */
+  module_name = get_module_file_base_name(mod);
+  for (; !found && dir != NULL; dir = dir->next) {
+    /* combine_dir_and_file_name clears the buffer for us. */
+    (void)combine_dir_and_file_name(dir->dir_name, module_name,
+                                    module_search_buffer);
+    for (const auto& suffix : module_file_suffixes) {
+      if (*kind != mk_none && suffix.kind != *kind) continue;
+      replace_file_name_suffix(suffix.suffix, module_search_buffer);
+      if (check_module_file(suffix.kind, module_search_buffer->buffer)) {
+        found = TRUE;
+        mod->full_name = alloc_primary_file_scope_il(module_search_buffer->size);
+        (void)strcpy((char*)mod->full_name, module_search_buffer->buffer);
+        check_assertion(*kind == mk_none || *kind == suffix.kind);
+        *kind = suffix.kind;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* for */
+  if (!found) {
+    pos_st_catastrophe(ec_module_file_not_found, &error_position, mod->name);
+  }  /* if */
+done:
+  return found;
+}  /* find_module_file */
 
 
 static a_hash_table_ptr
@@ -236,6 +519,10 @@ void modules_one_time_init(void)
 Do one-time initialization of static variables defined in this file.
 */
 {
+  module_search_buffer = alloc_text_buffer(256);
+  module_file_name_buffer = alloc_text_buffer(64);
+  module_primary_name_buffer = alloc_text_buffer(64);
+  module_partition_name_buffer = alloc_text_buffer(64);
 }  /* modules_one_time_init */
 
 
