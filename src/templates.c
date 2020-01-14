@@ -23641,6 +23641,7 @@ the components of the declaration.
     invalidate_type(&state);
   }  /* if */
   *param_type_ptr = state.type;
+  attach_decl_attributes(&state, /*primary_decl=*/TRUE);
   run_end_of_parse_actions(&state, /*more_declarators=*/FALSE);
 #if MAINTAIN_NEEDED_FLAGS
   mark_as_needed((char*)state.type, (an_il_entry_kind)iek_type);

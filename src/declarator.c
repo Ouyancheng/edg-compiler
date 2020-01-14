@@ -3118,6 +3118,15 @@ an error if a default argument expression is encountered.
             remove_stop_token(tok_comma);
             abandon_potential_pack_expansion_context(pesep);
             pesep = NULL;
+            if (param_state.prefix_attributes != NULL) {
+              /* There is no parameter to apply the attributes to.  Create a
+                 dummy parameter and attempt to apply the attribute to that.
+                 This will give a diagnostic if one is necessary (but won't
+                 for cases where the syntax allows the attribute even if it
+                 has no effect, e.g., "[[deprecated]] void"). */
+              ptp = make_param_type(error_type(), &param_type_pos);
+              attach_param_attributes(&param_state, ptp);
+            }  /* if */
             break;
           } else if (is_void_type(param_state.type) &&
                      (c99_mode || cpp11_mode ||
