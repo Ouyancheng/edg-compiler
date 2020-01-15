@@ -22157,8 +22157,9 @@ Otherwise return TRUE.
   a_template_decl_ptr  old_tdp = old_tdip->template_decl,
                        new_tdp = new_tdip->template_decl;
 
-  if (old_tdp != NULL && new_tdp != NULL &&
-      !old_tdp->is_generic && !new_tdp->is_generic) {
+  if (old_tdp != NULL && new_tdp != NULL
+      if_microsoft_extensions(
+        && !old_tdp->is_generic && !new_tdp->is_generic)) {
     a_requires_clause_ptr  old_rcp = old_tdp->constraint.requires_clause,
                            new_rcp = new_tdp->constraint.requires_clause;
     if (!equiv_requires_clauses(old_rcp, new_rcp)) {

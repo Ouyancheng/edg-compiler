@@ -3414,8 +3414,15 @@ when the declaration is a friend declaration within a class.
         params = idlbp->templ_info->parameters;
         n_params = idlbp->templ_info->n_params;
         tdp = idlbp->templ_info->template_decl;
-        new_rcp = tdp->is_generic ? (a_requires_clause_ptr)NULL
-                                  : tdp->constraint.requires_clause;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (tdp->is_generic) {
+          new_rcp = (a_requires_clause_ptr)NULL;
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          new_rcp = tdp->constraint.requires_clause;
+        }  /* if */
       }  /* if */
       if (decls_at_same_scope) {
         /* idlbp->homonym_symbol is set for cases in which the current symbol
@@ -3471,8 +3478,15 @@ when the declaration is a friend declaration within a class.
             tdip = tssp->variant.function.decl_cache.decl_info;
             rp = tssp->variant.function.routine;
             tdp = tdip->template_decl;
-            old_rcp = tdp->is_generic ? (a_requires_clause_ptr)NULL
-                                      : tdp->constraint.requires_clause;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            if (tdp->is_generic) {
+              old_rcp = (a_requires_clause_ptr)NULL;
+            } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            /* Do not insert code here. */
+            {
+              old_rcp = tdp->constraint.requires_clause;
+            }  /* if */
             if (n_params == tdip->n_params &&
                 equiv_template_param_lists(tdip->parameters, params,
                                            /*issue_errors=*/FALSE,
