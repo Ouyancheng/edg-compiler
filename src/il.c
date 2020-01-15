@@ -3700,6 +3700,58 @@ a file that contains metadata).
   db_exit();
 } /* record_start_of_source_file */
 
+
+void record_inclusion_of_module_source_file(
+                                          a_const_char      *file_name,
+                                          a_source_position *inserted_position)
+/*
+Record sequence number information for a source file referenced in a module
+file.  Module files (such as IFC files) may record file/line/column information
+for entities, but information about the sequence of source file includes may
+not be maintained.  Additionally, the specified file may not even be accessible
+on this system (it may be an include file on a system on which the module was
+compiled).
+
+This function creates a record of the source file, then creates a single
+(bogus) sequence number that is associated with the source file, then resumes
+the previous file.  The result is a single position (returned in
+*inserted_position), which can be used as position information for any item in
+the file.
+*/
+{
+  a_source_file_ptr parent_file, new_file;
+
+  check_assertion(curr_seq_number_lookup_entry != NULL);
+  parent_file = curr_seq_number_lookup_entry->source_file;
+  check_assertion(parent_file != NULL);
+  /* Record the new source file.  Specify an unknown line number to suppress
+     line number information in any diagnostics. */
+  record_start_of_source_file(parent_file,
+                              seq_number_last_read + 1,
+                              (a_line_number)SP_LINE_UNKNOWN,
+                              file_name,
+                              file_name,
+                              file_name,
+                              &new_file,
+                              /*is_include_file=*/TRUE, /* presumably */
+                              /*is_system_include=*/FALSE, /* presumably */
+                              /*is_preinclude=*/FALSE,
+                              /*preinclude_macros_only=*/FALSE,
+                              /*is_implicit_include=*/FALSE,
+                              /*from_system_include_dir=*/FALSE,
+                              /*is_assembly_file=*/FALSE);
+  /* Increment the sequence number to create a unique number that can be
+     mapped to this file. */
+  curr_seq_number = ++seq_number_last_read;
+  set_position_to(*inserted_position, curr_seq_number, SP_COL_UNKNOWN);
+  record_end_of_source_file(new_file, seq_number_last_read);
+  /* Resume the previous file where we left off. */
+  record_resumption_of_source_file(parent_file,
+                                   seq_number_last_read + 1,
+                                   curr_ise->line_number + 1);
+}  /* record_inclusion_of_module_source_file */
+
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 void record_inclusion_of_assembly_source_file(

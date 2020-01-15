@@ -3370,6 +3370,8 @@ after_entry_from_class:
                  iek_event_interface);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         walk_ptr(ctsp->proxy_of_type, a_type_ptr, iek_type);
+        /* FIXME: do we want to do this? */
+        conditionally_clear_fe_pointer(ctsp->module_entity);
       }
       break;
     case iek_template_param_type_supplement:

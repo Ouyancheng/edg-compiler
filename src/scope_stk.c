@@ -3724,6 +3724,44 @@ scope.  A pointers block to be used for the scope may be specified (or NULL).
 }  /* push_for_init_scope */
 
 
+/* FIXME: These routines are probably overly simplistic and probably have other
+   cases to account for. */
+a_boolean push_module_declaration_context(a_scope_ptr scope)
+/*
+A reference to an entity in a module can occur in any scope and the reference
+has triggered the need to declare/define a module entity the scope specified
+by the argument.  If needed, push the new scope(s) and return TRUE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (scope_stack_top().il_scope != scope) {
+    push_new_top_level_declaration();
+    if (scope_is(scope, sck_namespace)) {
+      (void)push_namespace_extension_scope(scope->variant.assoc_namespace);
+    }  /* if */
+    decl_scope_level = depth_innermost_namespace_scope;
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* push_module_declaration_context */
+
+
+void pop_module_declaration_context(a_boolean scope_pushed)
+/*
+If scope_pushed is TRUE, pop the scope(s) that have been pushed by
+push_module_declaration_context.
+*/
+{
+  if (scope_pushed) {
+    if (scope_stack_top().kind == (a_scope_kind)sck_namespace_extension) {
+      pop_namespace_extension_scope();
+    }  /* if */
+    pop_scope();
+  }  /* if */
+}  /* pop_module_declaration_context */
+
+
 static void microsoft_using_directive_bug_processing(
 					a_namespace_ptr		nsp,
 					a_boolean		end_of_scope)

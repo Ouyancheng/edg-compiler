@@ -4214,6 +4214,11 @@ typedef struct a_symbol_header {
 			/* The hash value for the identifier.  This is saved
 			   to avoid the need to recompute it if the header
 			   is entered into a scope's lookup table. */
+  a_module_entity_ptr
+		deferred_module_entities;
+			/* A list of entities defined in module files whose
+			   definitions have been deferred because there has
+			   been no reference to them. */
   union {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* When is_cli_operator is TRUE: */

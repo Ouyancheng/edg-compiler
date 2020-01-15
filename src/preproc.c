@@ -1466,7 +1466,6 @@ can only occur inside a global module fragment.
   midp = alloc_module_import_decl();
   midp->position = *start_pos;
   if (get_header_name()) {
-    sizeof_t name_len;
     check_assertion(curr_token == tok_header_name);
     midp->module_name_position = pos_curr_token;
     midp->module_info = alloc_module(mk_header);

@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2020-2020 Edison Design Group Inc.                   [_]          *
+* Copyright 2017-2020 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -47,7 +47,8 @@ constexpr char ifc_magic_numbers[] = { '\x54', '\x51', '\x45', '\x1A' };
 constexpr char edg_magic_numbers[] = { '\x9A', '\x13', '\x37', '\x7D' };
 
 
-inline a_boolean magic_numbers_match(const char magic[4], const char expected[4])
+inline a_boolean magic_numbers_match(const char magic[4],
+                                     const char expected[4])
 /*
 Return true if the provided magic numbers match their expected magic numbers.
 */
@@ -343,7 +344,7 @@ FALSE otherwise.
       replace_file_name_suffix(suffix.suffix, module_search_buffer);
       if (check_module_file(suffix.kind, module_search_buffer->buffer)) {
         found = TRUE;
-        mod->full_name = alloc_primary_file_scope_il(module_search_buffer->size);
+        mod->full_name=alloc_primary_file_scope_il(module_search_buffer->size);
         (void)strcpy((char*)mod->full_name, module_search_buffer->buffer);
         check_assertion(*kind == mk_none || *kind == suffix.kind);
         *kind = suffix.kind;
@@ -357,6 +358,94 @@ FALSE otherwise.
 done:
   return found;
 }  /* find_module_file */
+
+
+void define_names_from_scope(a_scope_ptr     scope,
+                             a_symbol_header *sym_hdr)
+/*
+Called during name lookup when the name associated with sym_hdr has been
+referred to in the indicated scope.  Scan through the list of deferred name
+entries for this symbol header and process declarations for any that match the
+scope.
+*/
+{
+  a_boolean           scope_pushed = FALSE;
+  a_module_entity_ptr mep, *mepp = &(sym_hdr->deferred_module_entities);
+
+  check_assertion(sym_hdr->deferred_module_entities != NULL);
+  while (*mepp != NULL) {
+    if ((*mepp)->scope == scope) {
+      check_assertion(!scope_pushed);
+      scope_pushed = push_module_declaration_context(scope);
+#if DEBUG
+      if (db_flag_is_set("ms_symbols")) {
+        (void)fprintf(f_debug, "Loading symbol %s in ",
+                      sym_hdr->identifier);
+        db_scope(scope);
+        (void)fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
+      /* Remove the entry from the queue (so it's not recursively processed)
+         but don't free it until it's been processed. */
+      mep = *mepp;
+      *mepp = mep->next;
+      switch (mep->module_info->kind) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case mk_ifc:
+          process_ifc_declaration(mep, /*defer=*/FALSE, (a_type_ptr)NULL);
+          break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        default:
+          unexpected_condition();
+      }  /* switch */
+    } else {
+      mepp = &(*mepp)->next;
+    }  /* if */
+  }  /* for */
+  pop_module_declaration_context(scope_pushed);
+}  /* define_names_from_scope */
+
+
+void get_definition_of_module_class(a_type_ptr    class_type,
+                                    a_text_buffer *buffer)
+/*
+This routine is called (from get_definition_of_class) when the front end has
+determined that the class is defined in a module and now needs a definition.
+Create a textual representation of that class (starting with the base class
+list, if any) from information in the module file and return it in buffer.
+*/
+{
+  a_class_type_supplement_ptr   ctsp = class_type_supp(class_type);
+  a_module_entity_ptr           mep = ctsp->module_entity;
+
+  check_assertion(mep != NULL);
+  /* Dispatch the request to the appropriate routine. */
+  switch (mep->module_info->kind) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case mk_ifc:
+      get_definition_of_module_class_from_ifc(mep, buffer);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    default:
+      unexpected_condition();
+  }  /* switch */
+  /* Once the class is defined, there is no need for this information. */
+  ctsp->module_entity = NULL;
+}  /* get_definition_of_module_class */
+
+
+void import_module_file(a_module_import_decl_ptr midp)
+/*
+Import the module file specified in the module-import-declaration.
+*/
+{
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* FIXME: How to search for both IFC and non-IFC modules? */
+  import_ifc_module_file(midp);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+  /* FIXME: perhaps issue a warning here? */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* import_module_file */
 
 
 static a_hash_table_ptr

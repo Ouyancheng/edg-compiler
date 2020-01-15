@@ -1891,6 +1891,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   clear_ms_attribute_usage(&ctsp->attribute_usage);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ctsp->proxy_of_type                     = NULL;
+  ctsp->module_entity                     = NULL;
 }  /* clear_class_type_supplement */
 
 

@@ -239,6 +239,25 @@ the options being used for the lookup.
 }  /* find_synthesized_projection_symbol */
 
 
+static void load_lazy_symbols_if_needed(a_scope_ptr            scope,
+                                       a_symbol_locator        *locator)
+/*
+If the kind associated with scope is a namespace or file scope, call a
+routine to see if there are symbols that should be made visible in scope.
+locator points to the symbol locator for the symbol being looked up.  Note
+that scope can be NULL.
+*/
+{
+  if (scope != NULL &&
+      locator->symbol_header->deferred_module_entities != NULL) {
+    if (scope_is(scope, sck_file) ||
+        scope_is(scope, sck_namespace)) {
+      define_names_from_scope(scope, locator->symbol_header);
+    }  /* if */
+  }  /* if */
+}  /* load_lazy_symbols_if_needed */
+
+
 a_symbol_ptr curr_scope_id_lookup(a_symbol_locator         *locator,
                                   an_id_lookup_options_set options)
 /*
@@ -285,6 +304,7 @@ IDL_PROJ_SYMBOL_ALLOWED is specified in options.
     /* The locator is for a specific symbol, so return the symbol for it. */
   } else {
     ssep = &scope_stack[decl_scope_level];
+    load_lazy_symbols_if_needed(ssep->il_scope, locator);
     /* Look for a symbol in the current scope for which the kind matches that
        of the scope level specified by the caller. */
     scope_number = ssep->number;
@@ -2495,6 +2515,7 @@ lookup processing.
   if (lookup_state->skip_curr_scope) {
     /* Skip this scope.  Note that we still look for a projected symbol. */
   } else {
+    load_lazy_symbols_if_needed(ssep->il_scope, locator);
     prev_active_sym = NULL;
     active_sym = symbol_list_from_locator(*locator);
     /* Find the first symbol on the active list for this scope. */
@@ -2631,6 +2652,7 @@ that do normal id lookup processing.
         a_boolean			use_scope_list = FALSE;
         a_boolean			process_single_symbol = FALSE;
         a_symbol_ptr			next_sym;
+        load_lazy_symbols_if_needed(ssep->il_scope, locator);
         spbp = assoc_pointers_block_of(ssep);
         use_lookup_table = spbp->lookup_table != NULL;
         if (ssep->is_reactivation && is_local_scope_kind(ssep->kind)) {
@@ -3895,7 +3917,7 @@ C and C++.
           using-directives and for the reactivation of the file scope.
     */
     ssep = &scope_stack[depth_scope_stack];
-    if (ssep->slow_lookup_required) {
+    if (lazy_symbols_may_be_visible || ssep->slow_lookup_required) {
       /* Certain scopes (e.g., pragma and template instantiation) require
          slow lookups. */    
       use_slow_lookup = TRUE;
@@ -5651,6 +5673,7 @@ inline namespaces.
   /* Get the declaration sequence number to be used for this lookup. */
   decl_seq_number = get_effective_decl_seq();
   nssp = symbol_supplement_for_namespace(ns_ptr);
+  load_lazy_symbols_if_needed(ns_ptr->variant.assoc_scope, locator);
   /* Search for a symbol in the lookup table for the namespace. */
   for (sym = find_symbol_list_in_table(&nssp->pointers_block,
                                        locator->symbol_header);
@@ -5896,6 +5919,7 @@ file scope.
     /* Search for a symbol in the file scope.  First look on the active
        list. */
     a_symbol_ptr	type_tag_symbol = NULL;
+    load_lazy_symbols_if_needed(file_scope_to_use, locator);
     /*lint --e{446,850} sym modified in loop (LINTBUG) */
     for (sym = symbol_list_from_locator(*locator);
          sym != NULL;

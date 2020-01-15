@@ -2144,6 +2144,10 @@ extern void make_class_definition_context_visible(void);
 
 extern void pop_namespace_scope(void);
 
+extern a_boolean push_module_declaration_context(a_scope_ptr scope);
+
+extern void pop_module_declaration_context(a_boolean scope_pushed);
+
 extern void set_template_decl_info_for_class_definition(
 				a_template_decl_info_ptr	tdip,
 				a_type_ptr			class_type);

@@ -2576,6 +2576,10 @@ extern void record_start_of_source_file(
 				 a_boolean	   from_system_include_dir,
 				 a_boolean	   is_assembly_file);
 
+extern void record_inclusion_of_module_source_file(
+                                         a_const_char      *file_name,
+                                         a_source_position *inserted_position);
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void record_inclusion_of_assembly_source_file(
                                      a_const_char      *file_name,
