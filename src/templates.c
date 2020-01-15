@@ -26260,7 +26260,7 @@ supplement for this template should be returned to the caller.
     pos_sy_error(ec_not_compatible_with_previous_decl,
 		 &locator->source_position, sym);
     err = TRUE;
-  } else if (!is_initial_decl &&
+  } else if (!is_initial_decl && tdip != NULL &&
              !check_requires_redecl(tdip, decl_state->decl_info,
                                     locator, sym)) {
     err = TRUE;
