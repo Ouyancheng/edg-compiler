@@ -3195,11 +3195,12 @@ represent an overload set).
 }  /* is_overloadable_c_sym */
 
 
-static void find_linked_symbol(an_id_linkage_block  *idlbp)
+static void find_linked_symbol(an_id_linkage_block  *idlbp,
+                               a_decl_parse_state   *dps)
 /*
 Find and return a symbol idlbp->linked_symbol representing the potential prior
 declaration of the variable, routine, or function template declaration
-described by *idlbp.  Two distinct cases are handled here:
+described by *idlbp and *dps.  Two distinct cases are handled here:
   -- redeclaration in the same scope:
         void f();
         void f() { }        // the other "f" is returned as linked symbol
@@ -3405,11 +3406,16 @@ when the declaration is a friend declaration within a class.
         is_function && kind != (a_symbol_kind)sk_variable) {
       /* C++ function or function template -- type compatibility check is
          required. */
-      a_template_param_ptr  params = NULL;
-      unsigned short        n_params = 0;
+      a_template_param_ptr   params = NULL;
+      unsigned short         n_params = 0;
+      a_requires_clause_ptr  new_rcp = NULL;
       if (idlbp->is_function_template) {
+        a_template_decl_ptr  tdp;
         params = idlbp->templ_info->parameters;
         n_params = idlbp->templ_info->n_params;
+        tdp = idlbp->templ_info->template_decl;
+        new_rcp = tdp->is_generic ? (a_requires_clause_ptr)NULL
+                                  : tdp->constraint.requires_clause;
       }  /* if */
       if (decls_at_same_scope) {
         /* idlbp->homonym_symbol is set for cases in which the current symbol
@@ -3459,18 +3465,26 @@ when the declaration is a friend declaration within a class.
           if (idlbp->is_function_template) {
             a_template_symbol_supplement_ptr  tssp;
             a_template_decl_info_ptr          tdip;
+            a_template_decl_ptr               tdp;
+            a_requires_clause_ptr             old_rcp;
             tssp = fund_other_decl->variant.template_info;
             tdip = tssp->variant.function.decl_cache.decl_info;
             rp = tssp->variant.function.routine;
+            tdp = tdip->template_decl;
+            old_rcp = tdp->is_generic ? (a_requires_clause_ptr)NULL
+                                      : tdp->constraint.requires_clause;
             if (n_params == tdip->n_params &&
                 equiv_template_param_lists(tdip->parameters, params,
                                            /*issue_errors=*/FALSE,
 	                                   ETP_NO_OPTIONS,
                                            (a_source_position*)NULL,
                                            es_error) &&
+                equiv_requires_clauses(old_rcp, new_rcp) &&
                 routine_types_are_redecl_compatible(
                                     rp->type, idlbp->type,
-                                    TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)) {
+                                    TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) &&
+                equiv_requires_clauses(rp->trailing_requires_clause,
+                                       dps->trailing_requires_clause)) {
               /* The other_decl template function matches the current
                  declaration. */
               idlbp->linked_symbol = fund_other_decl;
@@ -3760,7 +3774,7 @@ information in the specified id-linkage block.
     }  /* if */
     /* Find a previously declared entity with the same name and to which
        this declaration is linked. */
-    find_linked_symbol(idlbp);
+    find_linked_symbol(idlbp, dps);
     prior_decl = idlbp->linked_symbol;
     if ((sun_mode || microsoft_mode) && prior_decl != NULL) {
       /* In Sun and Microsoft modes, linked symbol could validly be a
@@ -6103,7 +6117,8 @@ redeclaration).
 }  /* add_namespace_parent_pointer */
 
 
-static void qualified_name_redecl_sym(an_id_linkage_block  *idlbp)
+static void qualified_name_redecl_sym(an_id_linkage_block  *idlbp,
+                                      a_decl_parse_state   *dps)
 /*
 This routine is called from decl_variable, decl_routine, and
 decl_function_template for either of two cases:
@@ -6167,7 +6182,7 @@ function.
                       locator->is_template_id);
     }  /* if */
     /* Look up the name. */
-    find_linked_symbol(idlbp);
+    find_linked_symbol(idlbp, dps);
     linked_symbol = idlbp->linked_symbol;
     if (idlbp->from_inline_namespace) {
       /* If the linked symbol is a namespace projection for an inline namespace
@@ -6957,7 +6972,7 @@ for use in generating cross-reference output describing this declaration.
        locator->is_file_scope_qualified_name)) {
     /* This identifier is a namespace-qualified name that was previously
        declared.  Be sure this is a valid scope in which to define it. */
-    qualified_name_redecl_sym(&idlb);
+    qualified_name_redecl_sym(&idlb, dps);
   } else {
     /* Determine the linkage of this symbol. */
     id_linkage(&idlb, dps);
@@ -8797,7 +8812,7 @@ for use in generating cross-reference output describing this declaration.
         idlb.suppress_qualified_name_redecl_error = TRUE;
       }  /* if */
       /* Look up the name. */
-      qualified_name_redecl_sym(&idlb);
+      qualified_name_redecl_sym(&idlb, dps);
     } else {
       /* Determine the linkage of this symbol. */
       id_linkage(&idlb, dps);
@@ -9259,8 +9274,7 @@ for use in generating cross-reference output describing this declaration.
            declaration.  We may have an instance of function overloading. */
         an_error_code  error_code;
 
-        if (!overload_distinguishable(homonym_symbol, type_ptr,
-                                      (a_template_param_ptr)NULL,
+        if (!overload_distinguishable(homonym_symbol, type_ptr, dps,
                                       &error_code)) {
           /* The previous declaration and the current one are not "overload
              distinguishable" for a reason given by the error code returned. */
@@ -10531,7 +10545,7 @@ definition of a member function of a class template.
              class B { template <class T> friend int ::foo(const B&, T); }; */
         idlb.suppress_qualified_name_redecl_error = TRUE;
       }  /* if */
-      qualified_name_redecl_sym(&idlb);
+      qualified_name_redecl_sym(&idlb, dps);
       sym = idlb.linked_symbol;
       if (sym != NULL && sym->kind != (a_symbol_kind)sk_function_template) {
         pos_sy_error(ec_not_compatible_with_previous_decl,
@@ -10601,8 +10615,7 @@ definition of a member function of a class template.
       }  /* if */
       check_default_args(dps);
       if (homonym_symbol != NULL &&
-          !overload_distinguishable(homonym_symbol, type_ptr,
-                                    templ_decl_info->parameters,
+          !overload_distinguishable(homonym_symbol, type_ptr, dps,
                                     &error_code)) {
         /* The previous declaration and the current one are not "overload
            distinguishable" for a reason given by the error code returned. */

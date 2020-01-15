@@ -3119,6 +3119,9 @@ extern a_boolean compare_expressions(an_expr_node_ptr                node1,
                                      an_expr_node_ptr                node2,
                                      a_compare_constants_options_set options);
 
+extern a_boolean equiv_requires_clauses(a_requires_clause_ptr  rcp1,
+                                        a_requires_clause_ptr  rcp2);
+
 extern void rebuild_structures_on_il_read(void);
 
 #if CHECKING

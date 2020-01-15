@@ -25,6 +25,7 @@ types.c -- Utility routines that check types.
 /* Additional header files. */
 #if !STANDALONE_UTILITY_PROGRAM
 #include "class_decl.h"
+#include "decls.h"
 #include "folding.h"
 #include "symbol_ref.h"
 #include "templates.h"
@@ -12977,40 +12978,37 @@ calling disentangle_default_args).
 }  /* composite_type */
 
 
-a_boolean overload_distinguishable(a_symbol_ptr		old_sym_ptr,
-                                   a_type_ptr		new_type,
-				   a_template_param_ptr	templ_param_list,
-                                   an_error_code	*err_code)
+a_boolean overload_distinguishable(a_symbol_ptr        old_sym_ptr,
+                                   a_type_ptr          new_type,
+                                   a_decl_parse_state  *dps,
+                                   an_error_code       *err_code)
 /*
-Return TRUE if the new function type new_type is distinguishable under
-overload resolution from all the types of the functions indicated by
+Return TRUE if a new function described by new_type and dps is distinguishable
+under overload resolution from all the types of the functions indicated by
 old_sym_ptr (which might be a simple function or an sk_overloaded_function
-symbol).  Otherwise, set *err_code to an appropriate error code
-and return FALSE.  We assume that the caller has already determined that
-the new type is not compatible with any of the existing types.
-The new type may be for a function template (templ_param_list points to
-the templates parameter list in that case), as may any of the types on
-the old list.  Only callable in C++ mode.  See ARM 13.
+symbol).  Otherwise, set *err_code to an appropriate error code and return
+FALSE.  We assume that the caller has already determined that the new type is
+not compatible with any of the existing types.  The new type may be for a
+function template, as may any of the types on the old list.  Only callable in
+C++ mode.
 */
 {
-  a_boolean        distinguishable = TRUE;
-  a_boolean        old_is_list, old_is_template;
-  a_type_ptr       old_type;
-  a_param_type_ptr old_param, new_param;
+  a_boolean             distinguishable = TRUE;
+  a_boolean             old_is_list, old_is_template;
+  a_type_ptr            old_type;
+  a_param_type_ptr      old_param, new_param;
   a_routine_type_supplement_ptr
-                   old_extra_info, new_extra_info;
-  a_type_ptr       old_this_class, new_this_class;
-  a_type_qualifier_set
-                   old_this_qualifiers, new_this_qualifiers;
-  a_boolean        old_this_qualified, new_this_qualified;
-  a_ref_qualifier_kind
-                   old_ref_qualifiers, new_ref_qualifiers;
-  a_boolean	   new_is_template = templ_param_list != NULL;
+                        old_extra_info, new_extra_info;
+  a_type_ptr            old_this_class, new_this_class;
+  a_type_qualifier_set  old_this_qualifiers, new_this_qualifiers;
+  a_boolean             old_this_qualified, new_this_qualified;
+  a_ref_qualifier_kind  old_ref_qualifiers, new_ref_qualifiers;
+  a_boolean             new_is_template = dps->is_template_declaration;
 
   db_enter(5, "overload_distinguishable");
   *err_code = ec_no_error;
   /* See if the old symbol is a list of overloaded functions. */
-  if (old_sym_ptr->kind == (a_symbol_kind)sk_overloaded_function) {
+  if (symbol_is(old_sym_ptr, sk_overloaded_function)) {
     old_is_list = TRUE;
     old_sym_ptr = old_sym_ptr->variant.overloaded_function.symbols;
   } else {
@@ -13022,12 +13020,13 @@ the old list.  Only callable in C++ mode.  See ARM 13.
   new_this_qualifiers = new_extra_info->qualifiers;
   new_ref_qualifiers = new_extra_info->ref_qualifiers;
   do {
-    /* Projection symbols are ignored. */
-    if (old_sym_ptr->kind == (a_symbol_kind)sk_projection ||
-        old_sym_ptr->kind == (a_symbol_kind)sk_namespace_projection) continue;
+    if (symbol_is(old_sym_ptr, sk_projection) ||
+        symbol_is(old_sym_ptr, sk_namespace_projection)) {
+      /* Projection symbols are ignored. */
+      continue;
+    }  /* if */
     /* See if old_sym_ptr and new_type are distinguishable. */
-    old_is_template = (old_sym_ptr->kind ==
-                                          (a_symbol_kind)sk_function_template);
+    old_is_template = symbol_is(old_sym_ptr, sk_function_template);
     if (new_is_template || old_is_template) {
       /* Template and nontemplate functions can always be distinguished.
          Furthermore, template arguments can presumably always be chosen
@@ -13035,9 +13034,16 @@ the old list.  Only callable in C++ mode.  See ARM 13.
       distinguishable = TRUE;
       goto distinguishable_determined;
     } else {
+      a_routine_ptr          old_rp = old_sym_ptr->variant.routine.ptr;
+      a_requires_clause_ptr  old_rcp = old_rp->trailing_requires_clause,
+                             new_rcp = dps->trailing_requires_clause;
+      if (old_rcp != new_rcp && !equiv_requires_clauses(old_rcp, new_rcp)) {
+        distinguishable = TRUE;
+        goto distinguishable_determined;
+      }  /* if */
       distinguishable = FALSE;
     /* Get the old routine type. */
-      old_type = routine_symbol_type(old_sym_ptr);
+      old_type = skip_typerefs(old_rp->type);
     }  /* if */
     old_extra_info = old_type->variant.routine.extra_info;
     /* See if the types are sufficiently different that they are

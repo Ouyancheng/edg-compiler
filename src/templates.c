@@ -22142,6 +22142,39 @@ thereof.
 }  /* should_cancel_friend_class_template_lookup */
 
 
+static a_boolean check_requires_redecl(a_template_decl_info  *old_tdip,
+                                       a_template_decl_info  *new_tdip,
+                                       a_symbol_locator      *loc,
+                                       a_symbol_ptr          sym)
+/*
+Compare the requires clauses for two template declarations described by
+old_tdip and new_tdip (the latter is a redeclaration of the former).  If they
+are incompatible, return FALSE and issue a diagnostic using loc and sym.
+Otherwise return TRUE.
+*/
+{
+  a_boolean            result = TRUE;
+  a_template_decl_ptr  old_tdp = old_tdip->template_decl,
+                       new_tdp = new_tdip->template_decl;
+
+  if (old_tdp != NULL && new_tdp != NULL &&
+      !old_tdp->is_generic && !new_tdp->is_generic) {
+    a_requires_clause_ptr  old_rcp = old_tdp->constraint.requires_clause,
+                           new_rcp = new_tdp->constraint.requires_clause;
+    if (!equiv_requires_clauses(old_rcp, new_rcp)) {
+      a_source_position  *diag_pos = &loc->source_position;
+      if (new_rcp != NULL) {
+        diag_pos = &new_rcp->requires_pos;
+      }  /* if */
+      pos_sy_error(ec_requires_incompatible_with_previous_decl,
+                   diag_pos, sym);
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* check_requires_redecl */
+
+
 static void class_template_declaration(
                          a_tmpl_decl_state_ptr decl_state,
 		         a_symbol_ptr          *p_sym_ptr,
@@ -22179,8 +22212,8 @@ declaration of a partial specialization declared outside of its class.
   a_source_position                 friend_pos;
   a_boolean			    friend_token_seen = FALSE;
   a_boolean			    is_nested_class_definition = FALSE;
-  a_template_param_ptr		    templ_params =
-                                             decl_state->decl_info->parameters;
+  a_template_decl_info_ptr	    tdip = decl_state->decl_info;
+  a_template_param_ptr		    templ_params = tdip->parameters;
   a_token_cache_ptr		    definition_token_cache = NULL;
   a_token_kind			    next_tok;
   a_boolean			    partial_spec_outside_of_class = FALSE;
@@ -22713,7 +22746,7 @@ friend_template_checks_done:
   }  /* if */
   /* See if the class being declared has the same name as one of its
      template parameters. */
-  if (same_name_as_template_param(decl_state->decl_info, &locator,
+  if (same_name_as_template_param(tdip, &locator,
                                   /*is_template_template_param=*/FALSE)) {
     sym = NULL;
     suppress_redecl_error = TRUE;
@@ -22775,80 +22808,79 @@ friend_template_checks_done:
         err = TRUE;
       }  /* if */
       if (decl_state->decl_scope_err) err = TRUE;
-      if ((is_definition || is_redecl) && sym != NULL) {
-        /* Either a definition or a redeclaration.  Make sure the template
-           parameters are compatible with the previous declaration. */
-        if (sym->is_class_member &&
-            !in_prototype_instantiation_or_cli_generic(decl_state) &&
-            (decl_state->class_declared_in == NULL ||
-             decl_state->is_template_friend)) {
-          /* If this is a class member defined outside of its class or a friend
-             function declaration in a class.  Make sure that the template
-             parameters match those of the original class definition. */
-          if (!member_template_param_list_matches_class(
-                       decl_state, sym,
-                       /*allow_missing_member_constraint=*/is_redecl &&
-                                                           !is_definition,
-                       &error_position)) {
-            err = TRUE;
-          } /* if */
-        }  /* if */
-        if (!err && sym->kind == (a_symbol_kind)sk_class_template &&
-            !tssp->is_nonreal_member) {
-          /* If this is a class template, make sure the template parameters
-             match a previous declaration of the class.  This test is not
-             done if the template found is a nonreal template (that has no
-             template parameter list).  For member templates, default
-             arguments are only allowed on the initial declaration (in the
-             class). */
-          a_boolean	default_allowed;
-          default_allowed = !sym->is_class_member ||
-                            decl_state->class_declared_in != NULL;
-          if (!default_allowed && sym->is_class_member) {
-            a_type_ptr	parent_class = sym_parent_class(sym);
-            if (!parent_class->variant.class_struct_union.is_template_class ||
-                !parent_class->
-                       variant.class_struct_union.is_prototype_instantiation) {
-              /* A default argument is allowed on an out-of-class definition
-                 of a member of a class that is not a class template. */
-              default_allowed = TRUE;
-            }  /* if */
-          }  /* if */
-          if (microsoft_bugs && microsoft_version < 1310 && sym->defined) {
-            /* The Microsoft compiler (prior to version 7.1) does not check
-               the parameter list of a template that is redeclared after
-               it has been defined. */
-          } else {
-            a_boolean	mismatch;
-            an_error_severity	severity = es_error;
-            if (gpp_mode && decl_state->is_template_friend &&
-                locator.is_qualified_name) {
-              /* g++ does not check the parameter list of a friend class
-                 template declared with a qualified name. */
-              severity = es_warning;
-            }  /* if */
-            mismatch = !reconcile_template_param_lists(
-                                templ_params, decl_state, sym,
-                                &locator.source_position, default_allowed,
-                                /*checking_parent_params=*/FALSE,
-                                /*allow_missing_member_constraint=*/TRUE,
-                                severity);
-            if (mismatch && severity == es_error) err = TRUE;
-          }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          if (cli_or_cx_enabled && !err) {
-            a_type_ptr  class_type = 
-                          tssp->variant.class_template.prototype_instantiation
-                              ->variant.class_struct_union.type;
-            if (class_type_supp(class_type)->cli_class_type_kind !=
-                                             decl_state->cli_class_type_kind) {
-              pos_sy_error(ec_conflicting_cli_class_template_kinds,
-                           &locator.source_position, sym);
-            }  /* if */
-          }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Either a definition or a redeclaration.  Make sure the template
+         parameters are compatible with the previous declaration. */
+      if (sym->is_class_member &&
+          !in_prototype_instantiation_or_cli_generic(decl_state) &&
+          (decl_state->class_declared_in == NULL ||
+           decl_state->is_template_friend)) {
+        /* If this is a class member defined outside of its class or a friend
+           function declaration in a class.  Make sure that the template
+           parameters match those of the original class definition. */
+        if (!member_template_param_list_matches_class(
+                     decl_state, sym,
+                     /*allow_missing_member_constraint=*/is_redecl &&
+                                                         !is_definition,
+                     &error_position)) {
+          err = TRUE;
         } /* if */
       }  /* if */
+      if (!err && sym->kind == (a_symbol_kind)sk_class_template &&
+          !tssp->is_nonreal_member) {
+        /* If this is a class template, make sure the template parameters
+           match a previous declaration of the class.  This test is not
+           done if the template found is a nonreal template (that has no
+           template parameter list).  For member templates, default
+           arguments are only allowed on the initial declaration (in the
+           class). */
+        a_boolean  default_allowed = !sym->is_class_member ||
+                                     decl_state->class_declared_in != NULL;
+        if (!default_allowed && sym->is_class_member) {
+          a_type_ptr	parent_class = sym_parent_class(sym);
+          if (!parent_class->variant.class_struct_union.is_template_class ||
+              !parent_class->
+                     variant.class_struct_union.is_prototype_instantiation) {
+            /* A default argument is allowed on an out-of-class definition
+               of a member of a class that is not a class template. */
+            default_allowed = TRUE;
+          }  /* if */
+        }  /* if */
+        (void)check_requires_redecl(tssp->cache.decl_info, tdip, &locator,
+                                    sym);
+        if (microsoft_bugs && microsoft_version < 1310 && sym->defined) {
+          /* The Microsoft compiler (prior to version 7.1) does not check
+             the parameter list of a template that is redeclared after
+             it has been defined. */
+        } else {
+          a_boolean	mismatch;
+          an_error_severity	severity = es_error;
+          if (gpp_mode && decl_state->is_template_friend &&
+              locator.is_qualified_name) {
+            /* g++ does not check the parameter list of a friend class
+               template declared with a qualified name. */
+            severity = es_warning;
+          }  /* if */
+          mismatch = !reconcile_template_param_lists(
+                              templ_params, decl_state, sym,
+                              &locator.source_position, default_allowed,
+                              /*checking_parent_params=*/FALSE,
+                              /*allow_missing_member_constraint=*/TRUE,
+                              severity);
+          if (mismatch && severity == es_error) err = TRUE;
+        }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (cli_or_cx_enabled && !err) {
+          a_type_ptr  class_type = 
+                        tssp->variant.class_template.prototype_instantiation
+                            ->variant.class_struct_union.type;
+          if (class_type_supp(class_type)->cli_class_type_kind !=
+                                           decl_state->cli_class_type_kind) {
+            pos_sy_error(ec_conflicting_cli_class_template_kinds,
+                         &locator.source_position, sym);
+          }  /* if */
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      } /* if */
     } else if (locator.is_qualified_name) {
       /* A qualified name that does not refer to a class template
          symbol.  Issue an error and set the locator to an error locator. */
@@ -26143,6 +26175,7 @@ supplement for this template should be returned to the caller.
   a_symbol_ptr                     var_sym = NULL;
   a_boolean                        has_parenthesized_initializer = FALSE;
   a_template_symbol_supplement_ptr tssp = NULL;
+  a_template_decl_info_ptr         tdip = NULL;
   a_decl_parse_state               *dps = &decl_state->decl_parse;
   a_boolean                        is_variable_template;
   a_boolean                        is_initial_decl = FALSE;
@@ -26182,6 +26215,7 @@ supplement for this template should be returned to the caller.
       var = tssp->variant.variable.prototype_variable;
       check_assertion(var != NULL);
       var_sym = symbol_for(var);
+      tdip = tssp->variant.variable.decl_cache.decl_info;
     } else {
       /* tssp should only be NULL in error cases. */
       expect_error();
@@ -26227,10 +26261,12 @@ supplement for this template should be returned to the caller.
 		 &locator->source_position, sym);
     err = TRUE;
   } else if (!is_initial_decl &&
-             tssp->variant.variable.decl_cache.decl_info != NULL &&
+             !check_requires_redecl(tdip, decl_state->decl_info,
+                                    locator, sym)) {
+    err = TRUE;
+  } else if (!is_initial_decl && tdip != NULL &&
              !symbol_is(sym, sk_static_data_member) &&
-             (!equiv_template_param_lists(tssp->variant.variable.decl_cache.
-                                                         decl_info->parameters,
+             (!equiv_template_param_lists(tdip->parameters,
                                           decl_state->decl_info->parameters,
                                           /*issue_errors=*/TRUE,
                                           ETP_NO_OPTIONS,
@@ -28239,8 +28275,9 @@ alias
 */
 {
   a_symbol_locator			locator;
-  a_symbol_ptr				sym = NULL;
-  a_template_symbol_supplement_ptr	tssp;
+  a_symbol_ptr				sym = NULL, orig_decl_sym = NULL;
+  a_template_symbol_supplement_ptr	tssp, orig_decl_tssp;
+  a_template_decl_info_ptr              tdip, orig_tdip;
   a_token_cache_ptr			p_token_cache = NULL;
   a_token_cache				token_cache;
   an_attribute_ptr			attributes;
@@ -28251,8 +28288,6 @@ alias
   a_boolean				keep_token_cache = TRUE;
   a_boolean				internal_alias;
   a_boolean				is_redecl = FALSE;
-  a_symbol_ptr				orig_decl_sym = NULL;
-  a_template_symbol_supplement_ptr	orig_decl_tssp;
   a_token_sequence_number		tsn_for_alias =
                                                     curr_token_sequence_number;
 
@@ -28402,6 +28437,11 @@ alias
   tssp->has_variadic_template_params =
                                       decl_state->has_variadic_template_params;
   orig_decl_tssp = orig_decl_sym->variant.template_info;
+  tdip = decl_state->decl_info;
+  if (is_redecl) {
+    orig_tdip = orig_decl_tssp->cache.decl_info;
+    (void)check_requires_redecl(orig_tdip, tdip, &locator, orig_decl_sym);
+  }  /* if */
   set_membership_of_template(decl_state, sym);
   if (sym->is_class_member && !is_redecl) {
     /* This is a member class template declaration.  See if the enclosing
@@ -28444,8 +28484,7 @@ alias
   /* Save the information needed to create an instantiation based
      on the definition of the template.  First, save the initializer
      expression. */
-  set_template_cache_info(&tssp->cache, p_token_cache,
-                          decl_state->decl_info);
+  set_template_cache_info(&tssp->cache, p_token_cache, tdip);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (prototype_instantiations_in_il) {
     /* Prevent the generation of a source sequence entry for the a_template
@@ -28461,7 +28500,7 @@ alias
   }  /* if */
   if (decl_state->is_alias_redecl) {
     (void)reconcile_template_param_lists(
-                                      decl_state->decl_info->parameters,
+                                      tdip->parameters,
                                       decl_state, orig_decl_sym,
                                       &sym->decl_position,
                                       /*default_allowed=*/TRUE,
@@ -28472,7 +28511,7 @@ alias
   /* Check the default arguments and/or template packs of the parameter
      list. */
   check_template_param_default_args_and_packs(
-                                          decl_state->decl_info->parameters,
+                                          tdip->parameters,
                                           /*is_class_template=*/FALSE,
                                           /*is_partial_specialization=*/FALSE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -28486,9 +28525,8 @@ alias
   create_prototype_type(decl_state, sym, tssp, (a_symbol_ptr)NULL,
                         /*is_partial_specialization=*/FALSE);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  update_decl_pos_info(
-           &tssp->variant.class_template.prototype_instantiation->
-                                              variant.type.ptr->source_corresp,
+  update_decl_pos_info(&tssp->variant.class_template.prototype_instantiation
+                            ->variant.type.ptr->source_corresp,
                        &decl_state->decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* If this is a redeclaration, the original symbol is returned, not the

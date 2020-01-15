@@ -10711,7 +10711,9 @@ When templates_only is TRUE, only function templates members are considered.
     new_esp = new_rts->exception_specification;
     new_rts->exception_specification = NULL;
     match = routine_types_are_redecl_compatible(orig_type, new_type,
-                                                tcf_flags);
+                                                tcf_flags) &&
+            equiv_requires_clauses(routine->trailing_requires_clause,
+                                   dps->trailing_requires_clause);
     orig_rts->exception_specification = orig_esp;
     new_rts->exception_specification = new_esp;
     if (restore_this_param) {
@@ -11720,14 +11722,12 @@ was used).
             !multiple_selective_overriders &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             !overload_distinguishable(sym, decl_info->decl_state.type,
-                                      (a_template_param_ptr)NULL,
-                                      &error_code)) {
+                                      &decl_info->decl_state, &error_code)) {
           pos_error(error_code, &locator->source_position);
           suppress_redecl_error = TRUE;
           set_to_named_error_locator(*locator);
         } else {
           a_boolean  is_ctor = decl_info->is_constructor;
-
           /* Enter this symbol as an instance of overloading. */
           new_sym = enter_overloaded_symbol((a_symbol_kind)sk_member_function,
                                             locator, is_ctor, sym,
@@ -15029,7 +15029,11 @@ implicitly declared member functions.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
-  check_defaulted_or_deleted_function(&decl_info->decl_state, func_info,
+  if (decl_state->trailing_requires_clause != NULL) {
+    rtn->trailing_requires_clause = decl_state->trailing_requires_clause;
+    decl_state->trailing_requires_clause = NULL;
+  }  /* if */
+  check_defaulted_or_deleted_function(decl_state, func_info,
                                       &locator->source_position);
   if (rtn->is_defaulted) {
     class_state->any_defaulted_special_members = TRUE;
@@ -15169,7 +15173,8 @@ implicitly declared member functions.
           overload_sym->variant.overloaded_function.symbols = repr_sym;
         }  /* if */
         /* Use the target-specific version symbol. */
-        decl_state->sym = sym = new_sym;
+        sym = new_sym;
+        decl_state->sym = new_sym;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -16066,14 +16071,14 @@ decl_member_function, which handles in-class member function declarations.)
       for (; other_sym != NULL; other_sym = is_list ? other_sym->next : NULL) {
         a_symbol_ptr  fund_sym = other_sym;
         /* Ignore projections not resulting from a using-declaration. */
-        if (fund_sym->kind == (a_symbol_kind)sk_projection) {
+        if (symbol_is(fund_sym, sk_projection)) {
           if (is_class_member_using_decl_symbol(fund_sym)) {
             reduce_projection_symbol_to_fundamental_symbol(fund_sym);
           } else {
             continue;
           }  /* if */
         }  /* if */
-        if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
+        if (symbol_is(fund_sym, sk_function_template)) {
           /* Issue an error if the other member function template declaration
              has a type compatible with this one -- compare the routine
              types. */
@@ -16124,7 +16129,10 @@ decl_member_function, which handles in-class member function declarations.)
               error_code = ec_static_nonstatic_with_same_param_types;
               pos_error(error_code, &locator->source_position);
             } else if (routine_types_are_redecl_compatible(tp, member_type,
-                                                           TCF_NO_FLAGS)) {
+                                                           TCF_NO_FLAGS) &&
+                       equiv_requires_clauses(
+                                           other_rp->trailing_requires_clause,
+                                           dps->trailing_requires_clause)) {
               if (dps->is_inheriting_ctor && other_rp->is_inheriting_ctor) {
                 error_code = ec_inheriting_ctor_conflict;
                 pos_syty_error(error_code, &locator->source_position,
@@ -16225,6 +16233,10 @@ decl_member_function, which handles in-class member function declarations.)
   }  /* if */
   if ((prototype_instantiations_in_il || tssp->is_generic) && !sym->is_error) {
     add_to_routines_list(rtn, NO_SCOPE_DEPTH);
+  }  /* if */
+  if (dps->trailing_requires_clause != NULL) {
+    rtn->trailing_requires_clause = dps->trailing_requires_clause;
+    dps->trailing_requires_clause = NULL;
   }  /* if */
   if (!is_error_locator(*locator)) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -28293,6 +28305,7 @@ that is provided if this is a member template declaration.
   dps->is_template_rescan = is_member_template_rescan;
   dps->is_lambda = type_is_lambda_closure(class_type);
   dps->is_implicit_type_context = TRUE;
+  dps->function_definition_allowed = TRUE;
   if (!dps->is_lambda) {
     /* Normal case: Scan attributes and declaration specifiers. */
     /* First, scan prefix attributes. */
@@ -28413,8 +28426,7 @@ that is provided if this is a member template declaration.
   decl_info.is_finalizer = (dso_flags & DSO_FINALIZER) != 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   mutable_specified = (dso_flags & DSO_MUTABLE) != 0;
-  is_typedef =
-            dps->declared_storage_class == (a_storage_class)sc_typedef;
+  is_typedef = dps->declared_storage_class == (a_storage_class)sc_typedef;
   consume_any_stray_microsoft_rparen();
 #if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
   if (ms_extensions || sun_mode) {

@@ -3128,9 +3128,9 @@ ec_bad_scope_for_concept;;"concept definition cannot appear in this scope"
 ec_invalid_concept_redecl;;"invalid redeclaration of %nd"
 ec_concept_arg_list_substitution_failed;;"substitution of arguments for concept-id failed"
 ec_concept_failed;;"concept is false"
-ec_trailing_requires_clause_not_top_level;;"a requires-clause is not allowed here (not a function declaration)"
 ec_trailing_requires_clause_not_on_template;;"a requires-clause is not allowed here (not a templated function)"
 ec_concept_template;INTERNAL;"concept template"
+ec_requires_incompatible_with_previous_decl;;"requires-clause incompatible with %nfd"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

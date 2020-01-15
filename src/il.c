@@ -7333,6 +7333,14 @@ are done.
                      compare_expressions(op1->next, op2->next, options)));
         }
         break;
+      case enk_concept_id:
+        eq = (node1->variant.concept_id.concept_template ==
+                               node2->variant.concept_id.concept_template) &&
+             equiv_template_arg_lists(node1->variant.concept_id.args,
+                                      node2->variant.concept_id.args,
+                                      (ETA_IS_NONREAL_MEMBER |
+                                       eta_flags_for_cc_options(options)));
+        break;
       case enk_error:
         /* Nonequivalence is assumed. */
         break;
@@ -7362,6 +7370,25 @@ are done.
   }  /* if */
   return eq;
 }  /* compare_expressions */
+
+
+extern a_boolean equiv_requires_clauses(a_requires_clause_ptr  rcp1,
+                                        a_requires_clause_ptr  rcp2)
+/*
+Return TRUE if the given requires clauses (possibly NULL) are equivalent.
+Otherwise, return FALSE.
+*/
+{
+  a_boolean  result;
+
+  if (rcp1 == NULL || rcp2 == NULL) {
+    result = rcp1 == rcp2;
+  } else {
+    result = compare_expressions(rcp1->constraint, rcp2->constraint,
+                                 CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED);
+  }  /* if */
+  return result;
+}  /* equiv_requires_clauses */
 
 
 static a_boolean equiv_template_constant_identity(

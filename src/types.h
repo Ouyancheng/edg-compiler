@@ -1363,11 +1363,10 @@ extern a_type_ptr multilevel_composite_pointer_type(a_type_ptr type_1,
 extern a_type_ptr composite_type(a_type_ptr type_1,
                                  a_type_ptr type_2);
 
-extern
-a_boolean overload_distinguishable(a_symbol_ptr		old_sym_ptr,
-                                   a_type_ptr		new_type,
-				   a_template_param_ptr	templ_param_list,
-                                   an_error_code	*err_code);
+extern a_boolean overload_distinguishable(a_symbol_ptr        old_sym_ptr,
+                                          a_type_ptr          new_type,
+                                          a_decl_parse_state  *dps,
+                                          an_error_code       *err_code);
 extern a_boolean is_or_contains_error_type(a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_local_type(a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_unnamed_namespace_type(a_type_ptr  type_ptr);
