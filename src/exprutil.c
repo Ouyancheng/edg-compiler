@@ -23667,7 +23667,7 @@ return FALSE and:
 // prefix, this should promote the leading note to the primary error.
     a_diagnostic_ptr  dp;
     dp = pos_start_error(ec_template_constraint_not_satisfied,
-                         &constraint->position);
+                         &error_position);
     add_more_info_list(dp, diag_list);
     end_diagnostic(dp);
   }  /* if */
