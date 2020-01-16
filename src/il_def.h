@@ -9945,9 +9945,12 @@ enum an_init_kind_tag {
 			   does not point at the initializer; rather the
 			   initialization is represented by a local static
 			   variable init entry. */
-  initk_binding		/* For the bindings in a structured binding, the
+  initk_binding,	/* For the bindings in a structured binding, the
 			   lvalue expression they stand for.  (This is not
 			   an "initialization" in the traditional sense.) */
+  initk_deducing	/* For placeholder variables, the initialization kind
+			   set while prescanning the initializer.  (Used in
+			   the front end only.) */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_init_kind;

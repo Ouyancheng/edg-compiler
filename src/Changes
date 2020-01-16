@@ -1,5 +1,25 @@
 Version 6.1
 
+1/16/20  [EDGcpfe/22205]
+Spurious error with variable defined with class-template argument deduction
+
+Consider (in C++17 mode):
+
+  template<typename = int> struct X { };
+  template<typename T> void g(T t) {}
+  int main() {
+    X x;   // Class-template argument deduction with no initializer.
+    g(x);  // Previously a spurious error.  Now okay.
+  }
+
+The variable x is defined with type X<int>, relying on class-template argument
+deduction to deduce the <int> argument.  In cases like these, where no actual
+initializer appears in the variable definition, the front end did not correctly
+determine that the deduction was completed, and later uses -- such as in the
+call g(x) -- produced spurious errors claiming the variable cannot be used in
+its own initializer.  That is now fixed.
+
+
 1/14/20  [EDGcpfe/20839]
 Diagnose invalid attributes in more cases
 

@@ -683,8 +683,26 @@ swallowed); otherwise, it's "="-form or "{...}" form.
                                        !dps->is_init_capture &&
                                        dps->sym != NULL;
   a_decl_parse_state    *saved_decl_parse_state = NULL;
+  a_variable_ptr        var = NULL;
+  an_init_kind          saved_init_kind;
 
   check_assertion(dps->has_deduced_type && dps->auto_type != NULL);
+  if (dps->sym != NULL) {
+    /* Update the type in the IL entry. */
+    if (symbol_is(dps->sym, sk_variable)) {
+      var = dps->sym->variant.variable.ptr;
+      saved_init_kind = var->init_kind;
+      var->init_kind = (an_init_kind)initk_deducing;
+    } else if (symbol_is(dps->sym, sk_static_data_member)) {
+      var = dps->sym->variant.static_data_member.variable;
+      saved_init_kind = var->init_kind;
+      var->init_kind = (an_init_kind)initk_deducing;
+    } else if (dps->is_init_capture) {
+      /* No IL entry has been created yet: nothing to do. */
+    } else {
+      unexpected_condition();
+    }  /* if */
+  }  /* if */
   /* Usually an initializer is a full expression and we must push an entry
      on the expression stack.  However, the initializer for a new-expression
      or a lambda-capture is not a full expression and a stack entry will
@@ -701,9 +719,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
          "auto" type specifier.  (See
          scan_member_constant_initializer_expression.) */
       a_boolean is_non_constexpr_inline_sdm = FALSE;
-      if (dps->sym != NULL &&
-          dps->sym->kind == (a_symbol_kind)sk_static_data_member) {
-        a_variable_ptr var = dps->sym->variant.static_data_member.variable;
+      if (dps->sym != NULL && symbol_is(dps->sym, sk_static_data_member)) {
         if (var != NULL && var->is_inline && !var->is_constexpr) {
           is_non_constexpr_inline_sdm = TRUE;
         }  /* if */
@@ -905,17 +921,10 @@ swallowed); otherwise, it's "="-form or "{...}" form.
       check_deduced_auto_type(dps);
     }  /* if */
   }  /* if */
-  if (dps->sym != NULL) {
-    /* Update the type in the IL entry. */
-    if (symbol_is(dps->sym, sk_variable)) {
-      dps->sym->variant.variable.ptr->type = dps->type;
-    } else if (symbol_is(dps->sym, sk_static_data_member)) {
-      dps->sym->variant.static_data_member.variable->type = dps->type;
-    } else if (dps->is_init_capture) {
-      /* No IL entry has been created yet: nothing to do. */
-    } else {
-      unexpected_condition();
-    }  /* if */
+  if (var != NULL) {
+    /* Update the type in the IL entry and restore the initializer kind. */
+    var->type = dps->type;
+    var->init_kind = saved_init_kind;
   }  /* if */
   /* Pop the expression stack if needed. */
   if (is_full_expr) {
@@ -33446,16 +33455,9 @@ where the use of "x" within its own declaration is invalid.
 */
 {
   a_boolean auto_decl_underway =
-                              (var_declared_with_placeholder_type(var_ptr) &&
-                               var_ptr->init_kind == (an_init_kind)initk_none);
-  if (auto_decl_underway && var_ptr->is_enhanced_for_iterator &&
-      symbol_for(var_ptr)->value_has_been_set) {
-    /* In for-each or range-based-for statements, the iterator variable does
-       not get an initializer even after its deduction is finished.
-       Conclude from the fact that the variable is set that we're no
-       longer in the initializer expression. */
-    auto_decl_underway = FALSE;
-  }  /* if */
+                         (var_declared_with_placeholder_type(var_ptr) &&
+                          var_ptr->init_kind == (an_init_kind)initk_deducing);
+
   return auto_decl_underway;
 }  /* variable_auto_decl_underway */
 
