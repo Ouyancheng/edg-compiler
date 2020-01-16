@@ -39955,6 +39955,7 @@ pointer to that entry (or NULL in error cases).  If needed, update *is
     pop_expr_stack_for_initializer(saved_expr_stack, /*is_full_expr=*/TRUE,
                                    dps, is);
   }  /* if */
+  cp->do_not_interpret = TRUE;
   return cp;
 }  /* convert_generic_aggr_init_element */
 

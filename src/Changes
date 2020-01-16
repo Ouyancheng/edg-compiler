@@ -1,5 +1,31 @@
 Version 6.1
 
+1/16/20  [EDGcpfe/22196]
+Interpreter aborts processing constants in templates
+
+Under some circumstances, the front end could abort attempting to process
+constants appearing in templates.  For example, in Clang C++14 mode:
+
+  template<typename T> struct B {
+    constexpr B(char const *p): p{p} {}
+    char const *p;
+  };
+  template<typename T> struct D : B<T> {
+    constexpr D(const char* p) noexcept : B<T>(p) {}
+  };
+  template<typename> struct X  {
+    D<char> g()  { return x; }  // Previously aborted in interpreter.
+    static constexpr D<char> x{D<char>("xyz")};
+  };
+
+This example previously aborted in some configurations where the interpreter
+attempted to load the value of X::x, because that representation has an
+inconsistent type due to the inability to precisely check types in templates
+(in this case a ck_aggregate constant has an element that has the same type
+as the aggregate).  This problem is now fixed (by marking some constants as
+not usable by the interpreter).
+
+
 1/16/20  [EDGcpfe/22205]
 Spurious error with variable defined with class-template argument deduction
 

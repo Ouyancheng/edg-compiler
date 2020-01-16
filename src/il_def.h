@@ -4414,6 +4414,11 @@ typedef struct a_constant {
 			   do constexpr evaluation.  As such, if should never
 			   be incorporated directly into "real" IL; a copy
 			   should always be made. */
+  a_bit_field	do_not_interpret:1;
+			/* TRUE if the interpreter should not attempt to
+			   evaluate this constant (e.g., because it is
+			   created in a template-dependent context that
+			   doesn't full check type consistency). */
   a_constant_repr_kind
                 kind;
                         /* The kind of representation for the constant. */
