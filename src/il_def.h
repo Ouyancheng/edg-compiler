@@ -4418,7 +4418,7 @@ typedef struct a_constant {
 			/* TRUE if the interpreter should not attempt to
 			   evaluate this constant (e.g., because it is
 			   created in a template-dependent context that
-			   doesn't full check type consistency). */
+			   doesn't fully check type consistency). */
   a_constant_repr_kind
                 kind;
                         /* The kind of representation for the constant. */
