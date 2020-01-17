@@ -15625,7 +15625,13 @@ position of the "?" and ":".
         } else {
           /* For the unoptimized class rvalue case, make an extra copy,
              producing a single temporary result for the whole operation. */
-          temp_init_from_operand(result, /*result_is_lvalue=*/FALSE);
+          a_type_ptr  temp_type = skip_typerefs(result->type);
+          if (is_immediate_class_type(temp_type)) {
+            /* Preserve qualifiers on class-type prvalues. */
+            temp_type = result->type;
+          }  /* if */
+          temp_init_from_operand_full(result, temp_type,
+                                      /*result_is_lvalue=*/FALSE);
         }  /* if */
         if (!is_error_operand(result) &&
             !(optimizable && suppress_class_temp_optimization)) {

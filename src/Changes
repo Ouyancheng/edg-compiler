@@ -1,5 +1,22 @@
 Version 6.1
 
+1/17/20  [EDGcpfe/22151]
+GNU-mode regression on type of conditional operator
+
+Consider:
+
+  struct X { X(); };
+  X const xc;
+  void f(bool b) {
+    X&& x(b ? throw : xc);  // Previously accepted in GNU mode.
+  }                         // Now an error (qualifiers are dropped).
+
+This code is invalid because the initializer for x has a const type, but x is
+a reference-to-non-const type.  However, the changes for EDGcpfe/20526 caused
+this to be accepted in GNU C++ modes (i.e., a regression in version 5.1).  That
+is now fixed.
+
+
 1/17/20  [EDGcpfe/22083]
 GNU compatibility: template dependent arguments to __builtin_assume_aligned
 
