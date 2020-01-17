@@ -8940,8 +8940,8 @@ treat_as_static_member:
              template is returned because there's only a representation
              for the class case as a member of a nonreal class, but
              it's really a function template. */
-          check_assertion(locator.is_template_id &&
-                          is_template_dependent_context());
+          check_assertion_or_expect_error(locator.is_template_id &&
+                                          is_template_dependent_context());
           make_unknown_dependent_function_operand(projection_member_sym,
                                                   /*is_template_id=*/TRUE,
                                                   locator.template_arg_list,
