@@ -17961,6 +17961,7 @@ early so that cases like "auto [x] = x;" are diagnosed.
       vp->is_struct_binding = TRUE;
       vp->declared_with_auto_type_specifier = TRUE;
       vp->variant.container = container;
+      vp->init_kind = (an_init_kind)initk_deducing;
       list_entry->entity.kind = (a_byte_il_entry_kind)iek_variable;
       list_entry->entity.ptr = (char*)vp;
       *p_end_bindings = list_entry;
