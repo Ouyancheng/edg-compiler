@@ -1,5 +1,49 @@
 Version 6.1
 
+1/16/20  [EDGcpfe/22210]
+Multiple translation units: Failure to update canonical entry for enumerators
+in a nested enumeration
+
+The fix for EDGcpfe/21866 did not go far enough; while the enumerations were
+having the correct canonical entry applied, the enumerators contained therein
+were not.  This caused an abort in configurations that have
+IL_SHOULD_BE_WRITTEN_TO_FILE set and compiling multiple translation units when
+both the primary and a secondary TU contain instantiations of the class
+template and usages of the enumerator, and the secondary TU contains an
+independent usage of the enumerator (and therefore the secondary TU had its own
+version enumeration instantiated).  For example, if t.h contains:
+
+  template<typename>
+  struct A {
+    enum class ENUM { e1 };
+    A(int);
+    void func();
+    virtual void vfunc();
+  };
+  struct B {
+    A<int> arr[1] { 0 };
+  };
+  template<typename T>
+  void A<T>::func() {
+    ENUM::e1;
+  }
+  template<typename T>
+  void A<T>::vfunc() {
+    ENUM::e1;
+  }
+
+and a.cpp #includes t.h while b.cpp contains:
+
+  #include "t.h"
+  void func() {
+    B().arr[0].func(); // Abort/potential segfault triggered here
+  }
+
+the front end would abort in 'read_memory_region'.  Also note that if
+IL_SHOULD_BE_WRITTEN_TO_FILE is FALSE, the front end may have accessed invalid
+memory and segfaulted.  This is now fixed.
+
+
 1/16/20  [EDGcpfe/22196]
 Interpreter aborts processing constants in templates
 

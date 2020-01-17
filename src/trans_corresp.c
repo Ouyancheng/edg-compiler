@@ -4343,7 +4343,7 @@ given enum type.
 {
   a_type_ptr      corresp_type = (a_type_ptr)canonical_type_entry_of(type);
 
-  if (corresp_type != NULL) {
+  if (corresp_type != NULL && corresp_type != type) {
     a_constant_ptr  enumerator = enum_constants(type);
     a_constant_ptr  corresp_enumerator = enum_constants(corresp_type);
     for (; enumerator != NULL; enumerator = enumerator->next) {
@@ -4994,6 +4994,7 @@ instantiated.  Such an event may cause enum_type to become the canonical entry.
                                      &enum_type->source_corresp.decl_position);
     }  /* if */
     update_canonical_entry(iek_type, (char*)enum_type);
+    establish_trans_unit_correspondences_for_enum(enum_type);
   }  /* if */
 }  /* establish_enum_instantiation_corresp */
 
