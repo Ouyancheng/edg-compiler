@@ -11663,6 +11663,7 @@ variables declared in cmd_line.h.
   suppress_deferral_on_partial_spec_members =
                              DEFAULT_SUPPRESS_DEFERRAL_ON_PARTIAL_SPEC_MEMBERS;
   defer_friend_instantiation = TRUE;
+  always_delay_field_initializer_processing = FALSE;
   nonstandard_instantiation_lookup_enabled =
                                       DEFAULT_NONSTANDARD_INSTANTIATION_LOOKUP;
   nonstandard_using_decl_allowed = DEFAULT_NONSTANDARD_USING_DECL_ALLOWED;
@@ -11706,6 +11707,8 @@ variables declared in cmd_line.h.
   display_compilation_time = FALSE;
   instantiation_mode = DEFAULT_INSTANTIATION_MODE;
   instantiate_before_pch_creation = INSTANTIATE_BEFORE_PCH_CREATION;
+  null_template_ptr_arg_enabled = FALSE;
+  no_very_expensive_checking = FALSE;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   automatic_instantiation_mode = DEFAULT_AUTOMATIC_INSTANTIATION_MODE;
   suppress_instantiation_flags = FALSE;
