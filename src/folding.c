@@ -10012,7 +10012,8 @@ the folding mechanism is used as a way to validate argument values.
              type.  A fourth argument is not permitted. */
           if (args2->next->next != NULL) {
             *err_code = ec_too_many_arguments;
-          } else if (!is_integral_type(args2->next->type)) {
+          } else if (!(is_integral_type(args2->next->type) ||
+                       is_template_dependent_type(args2->next->type))) {
             *err_code = ec_3rd_arg_of_assume_aligned_must_be_integral;
           }  /* if */
         }  /* if */
