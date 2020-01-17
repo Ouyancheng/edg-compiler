@@ -18038,6 +18038,10 @@ can be fully determined.
     a_variable_ptr      vp = (a_variable_ptr)binding_entry->entity.ptr;
     a_type_ptr          btype;
     an_init_component   *icp = NULL;
+    /* The initializer kind was set to initk_deducing while scanning the
+       associated initializer.  Reset it to initk_none for now, until the
+       actual binding initializer is recorded. */
+    vp->init_kind = (an_init_kind)initk_none;
     if (err || dependent_case) {
       /* Don't keep a count. */
     } else if (n == n_elements) {
