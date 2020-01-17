@@ -988,7 +988,6 @@ associated variant fields to default values.
   cp->constant_for_base_class = FALSE;
   cp->constant_for_base_class_from_constexpr_folding = FALSE;
   cp->part_of_constexpr_master_expr = FALSE;
-  cp->do_not_interpret = FALSE;
   set_constant_kind(cp, kind);
 }  /* clear_constant */
 

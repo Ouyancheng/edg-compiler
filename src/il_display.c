@@ -1180,9 +1180,6 @@ Display the indicated constant entry.
   if (ptr->constant_for_base_class_from_constexpr_folding) {
     disp_boolean("constant_for_base_class_from_constexpr_folding", TRUE);
   }  /* if */
-  if (ptr->do_not_interpret) {
-    disp_boolean("do_not_interpret", TRUE);
-  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case ck_error:

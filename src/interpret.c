@@ -4548,12 +4548,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
 {
   a_boolean  result = TRUE;
 
-  if (con->do_not_interpret) {
-    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
-                  &ips->position, ips);
-    do_constexpr_fail(result);
-    goto done;
-  } else if (con->implicit_cast) {
+  if (con->implicit_cast) {
     if (con->is_reinterpret_cast &&
         !(ips->allow_reinterpret_cast && constant_is(con, ck_integer) &&
           is_pointer_type(con->type))) {
@@ -5037,6 +5032,17 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             /* Record the derivation step. */
             record_subobject_derivation(value+offset, bcp);
             if (elem_con != NULL) {
+              if (elem_con->type == tp) {
+                /* This can happen with aggregates created in generic contexts,
+                   where braces cannot be matched to destination types and so
+                   element constants get the same type as their enclosing
+                   aggregate.  Although the type itself may be nondependent,
+                   no interpretation is needed in these dependent contexts. */
+                info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                              &ips->position, ips);
+                do_constexpr_fail(result);
+                goto done;
+              }  /* if */
               if (!copy_val_from_constant(
                               ips, elem_con, value+offset, complete_object)) {
                 do_constexpr_fail(result);
@@ -5098,6 +5104,17 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                                                  ips, value, complete_object);
               }  /* if */
               mark_complete_class_object_if_needed(ftp, dst_bytes);
+              if (elem_con->type == tp) {
+                /* This can happen with aggregates created in generic contexts,
+                   where braces cannot be matched to destination types and so
+                   element constants get the same type as their enclosing
+                   aggregate.  Although the type itself may be nondependent,
+                   no interpretation is needed in these dependent contexts. */
+                info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                              &ips->position, ips);
+                do_constexpr_fail(result);
+                goto done;
+              }  /* if */
               if (!copy_val_from_constant(
                                  ips, elem_con, dst_bytes, complete_object)) {
                 do_constexpr_fail(result);

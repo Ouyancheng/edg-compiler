@@ -1009,7 +1009,6 @@ of the whole initialization (*is) as appropriate.
       *init_con = NULL;
     } else if (!is->check_validity_only) {
       *init_con = alloc_constant((a_constant_repr_kind)ck_designator);
-      (*init_con)->do_not_interpret = TRUE;
       (*init_con)->variant.designator.is_generic = TRUE;
       if (icp->variant.designator.field_name != NULL) {
         (*init_con)->variant.designator.is_field_designator = TRUE;
@@ -1062,7 +1061,6 @@ of the whole initialization (*is) as appropriate.
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (*init_con)->explicit_braces_on_aggregate = TRUE;
-    (*init_con)->do_not_interpret = TRUE;
     icp = icp->variant.braced.list;
     for (; icp != NULL; icp = next_elem(icp)) {
       a_constant_ptr  elem_con;
