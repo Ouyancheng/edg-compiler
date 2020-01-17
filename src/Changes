@@ -11,7 +11,7 @@ IL_SHOULD_BE_WRITTEN_TO_FILE set and compiling multiple translation units when
 both the primary and a secondary TU contain instantiations of the class
 template and usages of the enumerator, and the secondary TU contains an
 independent usage of the enumerator (and therefore the secondary TU had its own
-version enumeration instantiated).  For example, if t.h contains:
+instantiation of the enumeration).  For example, if t.h contains:
 
   template<typename>
   struct A {
