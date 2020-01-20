@@ -98,8 +98,7 @@ This example previously aborted in some configurations where the interpreter
 attempted to load the value of X::x, because that representation has an
 inconsistent type due to the inability to precisely check types in templates
 (in this case a ck_aggregate constant has an element that has the same type
-as the aggregate).  This problem is now fixed (by marking some constants as
-not usable by the interpreter).
+as the aggregate).  This problem is now fixed.
 
 
 1/16/20  [EDGcpfe/22205]
