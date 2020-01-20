@@ -1,5 +1,18 @@
 Version 6.1
 
+1/20/20  [EDGcpfe/22226]
+Incorrect inlining of asm statements
+
+Inlining of calls within asm statements had, in some cases, resulted in
+replacement of the asm statement with the inlined call itself.  Now fixed.
+For example:
+
+  inline int f() { return 0; }
+  void g() {
+    asm volatile ("foo %0, %1;" :: "n"(f()), "n"(1) : "memory");
+  }
+
+
 1/17/20  [EDGcpfe/22151]
 GNU-mode regression on type of conditional operator
 

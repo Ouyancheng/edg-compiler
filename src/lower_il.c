@@ -19209,7 +19209,7 @@ under it.  Used in both C++ and C mode.
         continue;
       }  /* if */
     }  /* if */
-    lower_full_expr(expr, statement);
+    lower_full_expr(expr, (a_statement_ptr)NULL);
   }  /* for */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* lower_asm_statement */
