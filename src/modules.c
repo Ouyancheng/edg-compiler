@@ -15,6 +15,8 @@ modules.c -- Module handling classes and routines.
 
 /* Header files common to all files. */
 #include "fe_common.h"
+#include "ifc_modules.h"
+#include "util.h"
 
 #ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
@@ -33,19 +35,18 @@ struct a_module_file_suffix {
 			/* The suffix associated with the module file. */
   a_module_kind	kind;
 			/* The kind of module this suffix implies. */
-};
+};  /* a_module_file_suffix */
 
 constexpr a_module_file_suffix module_file_suffixes[] = {
   { "edgm", mk_edg },
+#if MICROSOFT_EXTENSIONS_ALLOWED
   { "ifc", mk_ifc }
+#endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
 };
 constexpr sizeof_t num_module_file_suffixes =
                      sizeof(module_file_suffixes)/sizeof(a_module_file_suffix);
 
-
-constexpr char ifc_magic_numbers[] = { '\x54', '\x51', '\x45', '\x1A' };
 constexpr char edg_magic_numbers[] = { '\x9A', '\x13', '\x37', '\x7D' };
-
 
 inline a_boolean magic_numbers_match(const char magic[4],
                                      const char expected[4])
@@ -115,7 +116,7 @@ dependency, FALSE otherwise.
 }  /* check_module_has_interface_dependency */
 
 
-static a_const_char *get_module_primary_name(a_module_ptr mod)
+static a_const_char *get_module_primary_name(a_const_char *name)
 /*
 Get just the module primary name from the given module's name (i.e., remove the
 partition if it's present) and return it.  If no name is present, return empty
@@ -123,7 +124,6 @@ string.  Note that the name will be stored in re-useable memory and should be
 copied if it's wanted to be kept long-term.
 */
 {
-  a_const_char *name = mod->name;
   sizeof_t     name_len = strlen(name);
 
   reset_text_buffer(module_primary_name_buffer);
@@ -139,15 +139,15 @@ copied if it's wanted to be kept long-term.
 }  /* get_module_primary_name */
 
 
-static a_const_char *get_module_file_base_name(a_module_ptr mod)
+static a_const_char *get_module_file_base_name(a_const_char *name)
 /*
-Get the base name of the module file for the given module.  This is typically
-just the primary name of the module with subtitutions for the module
+Get the base name of the module file for the given module name.  This is
+typically just the primary name of the module with subtitutions for the module
 qualifiers.
 */
 {
   reset_text_buffer(module_file_name_buffer);
-  (void)get_module_primary_name(mod);
+  (void)get_module_primary_name(name);
   add_to_text_buffer(module_file_name_buffer,
                      module_primary_name_buffer->buffer,
                      module_primary_name_buffer->size);
@@ -158,7 +158,7 @@ qualifiers.
 }  /* get_module_file_name */
 
 
-static a_const_char *get_module_partition_name(a_module_ptr mod)
+static a_const_char *get_module_partition_name(a_const_char *name)
 /*
 Get just the module partition name from the given module's name (if present)
 and return it.  If no name is present, return empty string.  Note that the name
@@ -166,7 +166,6 @@ will be stored in re-useable memory and should be copied if it's wanted to be
 kept long-term.
 */
 {
-  a_const_char *name = mod->name;
   sizeof_t     name_len = 0;
 
   reset_text_buffer(module_partition_name_buffer);
@@ -316,38 +315,41 @@ done:
 
 
 a_boolean find_module_file(a_module_ptr  mod,
-                           a_module_kind *kind)
+                           a_module_kind kind)
 /*
 Find the module file associated with mod and update mod with the path to the
-file.  If *kind == mk_none, select the first (supported) module file
-encountered and set *kind to the kind found.  Otherwise, only consider module
-files of the kind indicated by *kind.  Return TRUE if a module file was found,
-FALSE otherwise.
+file.  If kind == mk_none, select the first (supported) module file
+encountered and update the kind of mid.  Otherwise, only consider module files
+of the kind indicated by kind.  Return TRUE if a module file was found, FALSE
+otherwise.
 */
 {
   a_boolean                  found = FALSE;
   a_directory_name_entry_ptr dir = module_search_path;
   a_const_char               *module_name;
 
-  if (skip_module_imports || mod->full_name != NULL) {
+  if (skip_module_imports) {
+    found = FALSE;
+    goto done;
+  }  /* if */
+  if (mod->full_name != NULL) {
     /* Module file has already been found. */
     found = TRUE;
     goto done;
   }  /* if */
-  module_name = get_module_file_base_name(mod);
+  module_name = get_module_file_base_name(mod->name);
   for (; !found && dir != NULL; dir = dir->next) {
     /* combine_dir_and_file_name clears the buffer for us. */
     (void)combine_dir_and_file_name(dir->dir_name, module_name,
                                     module_search_buffer);
     for (const auto& suffix : module_file_suffixes) {
-      if (*kind != mk_none && suffix.kind != *kind) continue;
+      if (kind != mk_none && suffix.kind != kind) continue;
       replace_file_name_suffix(suffix.suffix, module_search_buffer);
       if (check_module_file(suffix.kind, module_search_buffer->buffer)) {
         found = TRUE;
-        mod->full_name=alloc_primary_file_scope_il(module_search_buffer->size);
-        (void)strcpy((char*)mod->full_name, module_search_buffer->buffer);
-        check_assertion(*kind == mk_none || *kind == suffix.kind);
-        *kind = suffix.kind;
+        mod->kind = suffix.kind;
+        mod->full_name = copy_string_to_region(file_scope_region_number,
+                                               module_search_buffer->buffer);
         break;
       }  /* if */
     }  /* for */
@@ -358,6 +360,34 @@ FALSE otherwise.
 done:
   return found;
 }  /* find_module_file */
+
+
+void import_module_file(a_module_import_decl_ptr midp)
+/*
+Import the module file specified in the module-import-declaration.
+*/
+{
+  a_module_interface_ptr iface = NULL;
+
+  check_assertion(midp->module_info->full_name != NULL);
+  switch (midp->module_info->kind) {
+    case mk_edg:
+      iface = new_general<an_edg_module>();
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case mk_ifc:
+      iface = new_general<an_ifc_module>();
+      //import_ifc_module_file(midp);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case mk_none:
+    case mk_header:
+    default:
+      unexpected_condition_str("Unexpected module kind for import.");
+  }  /* switch */
+  midp->module_info->module_interface = iface;
+  iface->import(midp);
+}  /* import_module_file */
 
 
 void define_names_from_scope(a_scope_ptr     scope,
@@ -434,20 +464,6 @@ list, if any) from information in the module file and return it in buffer.
 }  /* get_definition_of_module_class */
 
 
-void import_module_file(a_module_import_decl_ptr midp)
-/*
-Import the module file specified in the module-import-declaration.
-*/
-{
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  /* FIXME: How to search for both IFC and non-IFC modules? */
-  import_ifc_module_file(midp);
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-  /* FIXME: perhaps issue a warning here? */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-}  /* import_module_file */
-
-
 static a_hash_table_ptr
        module_entity_hash_table;
                         /* A hash table to find module entities. */
@@ -514,6 +530,30 @@ file_offset in the specified module.
   }  /* if */
   return *p;
 }  /* get_module_entity_ptr */
+
+
+a_module_interface::~a_module_interface() noexcept
+{
+  if (is_open()) close();
+}  /* ~a_module_interface */
+
+
+void a_module_interface::set_name(a_const_char *module_name) noexcept
+/*
+Set the name of this module to the provided module_name.
+*/
+{
+  a_const_char *name;
+
+  name = get_module_primary_name(module_name);
+  primary_name = copy_string_to_region(file_scope_region_number, name);
+  name = get_module_partition_name(module_name);
+  if (name[0] != '\0') {
+    partition_name = copy_string_to_region(file_scope_region_number, name);
+  } else {
+    partition_name = NULL;
+  }  /* if */
+}  /* set_name */
 
 #if DEBUG
 
@@ -595,6 +635,11 @@ translation units.
       case mk_none:
         /* No error if module kind was never determined. */
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case mk_ifc:
+        close_ifc_module_file(midp);
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         unexpected_condition();
     }  /* switch */

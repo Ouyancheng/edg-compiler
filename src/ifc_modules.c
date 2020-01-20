@@ -15,6 +15,7 @@ ifc_modules.c -- Microsoft-specific IFC module code
 
 #include "basic_hdrs.h"
 #include "fe_common.h"
+#include "ifc_modules.h"
 #include "decl_spec.h"
 #include "symbol_ref.h"
 #include "class_decl.h"
@@ -54,7 +55,7 @@ FIXME: Move this and add to dump_config
 A control block used when turning IFC declarations into a textual
 representation.
 */
-typedef struct a_str_control_block {
+struct a_str_control_block {
   a_module_ptr  module_info;
                         /* The module being traversed. */
   a_text_buffer_ptr
@@ -67,7 +68,7 @@ typedef struct a_str_control_block {
                            representation being generated will be consumed
                            by the front end (otherwise it's just for debug
                            output). */
-} a_str_control_block;
+};  /* a_str_control_block */
 
 
 static a_text_buffer_ptr
@@ -247,7 +248,7 @@ static void f_db_get_byte(a_const_char *value_str,
 Utility to print some debug information for every access to an IFC module file.
 */
 {
-  if (db_flag_is_set("ms_modules")) {
+  if (db_flag_is_set("ifc_modules")) {
     if (debug_partition != NULL) {
       (void)fprintf(f_debug, "[%s:0x%08lx:%d] = ",
                     debug_partition->name,
@@ -2284,7 +2285,7 @@ Map the IFC locus source position information into the source position at *pos.
 Structure used to hold the existing name linkage state if the name linkage
 state needs to be modified.
 */
-typedef struct a_partial_scope_stack_state {
+struct a_partial_scope_stack_state {
   a_byte_boolean
                 saved;
                         /* TRUE if the state has been saved. */
@@ -2295,7 +2296,7 @@ typedef struct a_partial_scope_stack_state {
                         /* Previous default_name_linkage setting. */
   a_bit_field   current_access:2;
                         /* Previous current_access setting. */
-} a_partial_scope_stack_state;
+};  /* a_partial_scope_stack_state */
 
 
 static void save_partial_scope_stack(a_partial_scope_stack_state *psssp)
@@ -3117,51 +3118,7 @@ definitions will be deferred until they are referenced.
 }  /* process_ifc_scope */
 
 
-static char *search_for_ms_module_file(a_const_char *file_name)
-/*
-Attempt to find the given file_name, searching, if necessary, in the order
-given by ms_module_search_path (see init_ms_module_search_path for the relative
-ordering).  An ".ifc" suffix is appended to the given file_name during the
-search.  If a file is found, the return value is the full path to the file;
-otherwise, it is NULL.
-*/
-{
-  a_directory_name_entry_ptr    curr_directory_name_entry;
-  a_text_buffer_ptr             buffer = NULL;
-  char                          *new_input_file = NULL;
-
-  /* Add ".ifc" to the given module name before searching. */
-  if (ifc_file_name_text_buffer == NULL) {
-    ifc_file_name_text_buffer = alloc_text_buffer(256);
-  }  /* if */
-  reset_text_buffer(ifc_file_name_text_buffer);
-  add_string_to_text_buffer(ifc_file_name_text_buffer, file_name);
-  add_string_to_text_buffer(ifc_file_name_text_buffer, ".ifc");
-  add_char_to_text_buffer(ifc_file_name_text_buffer, '\0');
-  /* The search path is initialized properly before we get here. */
-  for (curr_directory_name_entry = module_search_path;
-       curr_directory_name_entry != NULL;
-       curr_directory_name_entry = curr_directory_name_entry->next) {
-    /* Join the directory and file name. */
-    buffer = combine_dir_and_file_name(curr_directory_name_entry->dir_name,
-                                       ifc_file_name_text_buffer->buffer,
-                                       NULL);
-    /* Check if a file exists in the directory and is not a directory. */
-    if (is_regular_file(buffer->buffer)) {
-      /* FIXME: Visual Studio skips files that don't appear to be IFCs. */
-      /* A file has been found, so stop searching.  Copy the filename from
-         temporary memory to an IL region because we synthesized the name
-         here. */
-      new_input_file = alloc_primary_file_scope_il(buffer->size);
-      strncpy(new_input_file, buffer->buffer, buffer->size);
-      break;
-    }  /* if */
-  }  /* for */
-  return new_input_file;
-}  /* search_for_ms_module_file */
-
-
-static a_boolean open_and_map_ms_module_file(a_module_import_decl_ptr midp)
+static a_boolean open_and_map_ifc_module_file(a_module_import_decl_ptr midp)
 /*
 Open the module file and map it into the process' address space.  Note that
 this is also used after restoring from a PCH file.  Returns TRUE if the
@@ -3210,6 +3167,7 @@ otherwise.
     if (!err) {
       /* Map the module file into the address space of the process.  The
          process is a little different on Windows environments. */
+#if USE_MMAP_FOR_MEMORY_REGIONS
 #if EDG_WIN32
       open_mapped_input_file(mod->full_name, &mod->mapped_input,
                              &mod->map_object);
@@ -3225,6 +3183,7 @@ otherwise.
                                                 (sizeof_t)0, mod->mmap_size,
                                                 NULL, mod->full_name);
       check_assertion(mod->mmap_addr != NULL);
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
       mod->f_module = file;
     }  /* if */
     if (err) {
@@ -3237,10 +3196,10 @@ otherwise.
                  mod->full_name);
   }  /* if */
   return !err;
-}  /* open_and_map_ms_module_file */
+}  /* open_and_map_ifc_module_file */
 
 
-void import_ifc_module_file(a_module_import_decl_ptr midp)
+static a_boolean import_ifc_module_file(a_module_import_decl_ptr midp)
 /*
 Import an IFC module file as specified in the module-import-declaration.
 Note that a ".ifc" suffix is appended to the module name during the search
@@ -3250,102 +3209,95 @@ process.
   a_module_ptr              mod = midp->module_info;
   unsigned int              i;
   an_ifc_File_Header        header;
+  a_boolean                 result = FALSE;
 
-  check_assertion(mod->name != NULL);
-  /* Look through the search path and see if any suitable file is found. */
-  mod->full_name = search_for_ms_module_file(mod->name);
-  if (mod->full_name != NULL) {
-    /* Found an IFC file; open it and verify its magic number. */
-    if (open_and_map_ms_module_file(midp)) {
-      /* Allocate storage for the module information. */
-      mod->kind = mk_ifc;
-      mod->variant.ifc = alloc_il_of_type(an_ifc_module);
-      /* FIXME: perhaps a routine to explicitly initialize each piece? */
-      memzero((char *)mod->variant.ifc, sizeof(an_ifc_module));
-      /* Read the IFC file header (which starts after the magic number). */
-      init_byte_buffer((char*)mod->mmap_addr + 4, mod->mmap_size - 4);
-      memcpy(&(mod->variant.ifc->header), get_File_Header(&header),
-            sizeof(header));
-      /* Prepare to read the partitions (by "seeking" to the IFC Table of
-         Contents). */
-      init_byte_buffer((char*)mod->mmap_addr + mod->variant.ifc->header.toc,
-                       mod->mmap_size - mod->variant.ifc->header.toc);
+  check_assertion(mod->name != NULL && mod->full_name != NULL);
+  /* Found an IFC file; open it and verify its magic number. */
+  if (open_and_map_ifc_module_file(midp)) {
+    result = TRUE;
+    /* Allocate storage for the module information. */
+    mod->kind = mk_ifc;
+    mod->variant.ifc = alloc_il_of_type(an_ifc_module);
+    /* FIXME: perhaps a routine to explicitly initialize each piece? */
+    memzero((char *)mod->variant.ifc, sizeof(an_ifc_module));
+    /* Read the IFC file header (which starts after the magic number). */
+    init_byte_buffer((char*)mod->mmap_addr + 4, mod->mmap_size - 4);
+    memcpy(&(mod->variant.ifc->header), get_File_Header(&header),
+           sizeof(header));
+    /* Prepare to read the partitions (by "seeking" to the IFC Table of
+       Contents). */
+    init_byte_buffer((char*)mod->mmap_addr + mod->variant.ifc->header.toc,
+                     mod->mmap_size - mod->variant.ifc->header.toc);
 #if DEBUG
-      if (db_flag_is_set("ms_modules")) {
-        db_module(mod);
-      }  /* if */
-#endif /* DEBUG */
-      for (i = 0; i < mod->variant.ifc->header.partition_count; i++) {
-        an_ifc_Partition partition, *ifc_pp;
-        an_ifc_partition *pp;
-        a_const_char *name_str;
-        an_ifc_partition_map *map_ptr;
-
-        /* Read information about the partition. */
-        ifc_pp = get_Partition(&partition);
-        name_str = get_string_at_offset(mod, ifc_pp->name);
-#if DEBUG
-        if (db_flag_is_set("ms_modules")) {
-          (void)fprintf(f_debug, 
-            "partition %d \"%s\" offset 0x%08x cardinality %d entry_size %d\n",
-             i, name_str, ifc_pp->offset, ifc_pp->cardinality,
-             ifc_pp->entry_size);
-        }  /* if */
-#endif /* DEBUG */
-        check_assertion(ifc_pp->cardinality != 0 && ifc_pp->offset != 0);
-        /* FIXME: replace with binary search. */
-        for (map_ptr = ifc_partition_map; map_ptr->name != NULL; map_ptr++) {
-          if (strcmp(name_str, map_ptr->name) == 0) {
-            break;
-          }  /* if */
-        }  /* for */
-        check_assertion_str2(map_ptr->name != NULL,
-                            "unknown IFC partition name:", name_str);
-        check_assertion_str(map_ptr->kind != ifc_last,
-                            "no mapping for IFC partition");
-        pp = &mod->variant.ifc->partitions[map_ptr->kind];
-        pp->name = map_ptr->name;
-        pp->offset = ifc_pp->offset;
-        pp->size = ifc_pp->cardinality * ifc_pp->entry_size;
-        pp->entry_size = ifc_pp->entry_size;
-      }  /* for */
-      (void)fseek(mod->f_module, 0L, SEEK_SET);
-      if (mod->variant.ifc->partitions[ifc_name_source_file].name != NULL) {
-        /* Allocate an array to map source files to sequence numbers for the
-           the module.  No information about the sequence numbers is recorded
-           yet (we do that only if the source file is later referenced). */
-        an_ifc_partition *nsf_pp =
-                           &mod->variant.ifc->partitions[ifc_name_source_file];
-        size_t size;
-        check_assertion(nsf_pp->entry_size != 0);
-        size = (nsf_pp->size / nsf_pp->entry_size) * sizeof(a_seq_number);
-        mod->variant.ifc->sequence_numbers = (a_seq_number *)alloc_il(size);
-        memzero((char *)mod->variant.ifc->sequence_numbers, size);
-      }  /* if */
-#if DEBUG
-      if (db_flag_is_set("ms_modsrc")) {
-        /* Generate a textual representation of the module file and print
-           it. */
-        a_str_control_block scb;
-        clear_str_control_block(&scb, mod, (a_text_buffer*)NULL);
-        str_ifc_scope_index(mod->variant.ifc->header.global_scope, &scb);
-        add_char_to_text_buffer(scb.text_buffer, '\0');
-        (void)fwrite(scb.text_buffer->buffer, 1, scb.text_buffer->size,
-                     f_debug);
-        (void)fputc('\n', f_debug);
-      }  /* if */
-#endif /* DEBUG */
-      /* Indicate to the lookup routines that lazy symbols are in use. */
-      lazy_symbols_may_be_visible = TRUE;
-      /* Process all declarations in the global scope. */
-      process_ifc_scope(mod, mod->variant.ifc->header.global_scope,
-                        il_header.primary_scope);
+    if (db_flag_is_set("ifc_modules")) {
+      db_module(mod);
     }  /* if */
-  } else {
-    /* No IFC file found. */
-    pos_st_catastrophe(ec_module_file_not_found, &midp->module_name_position,
-                       mod->name);
+#endif /* DEBUG */
+    for (i = 0; i < mod->variant.ifc->header.partition_count; i++) {
+      an_ifc_Partition partition, *ifc_pp;
+      an_ifc_partition *pp;
+      a_const_char *name_str;
+      an_ifc_partition_map *map_ptr;
+
+      /* Read information about the partition. */
+      ifc_pp = get_Partition(&partition);
+      name_str = get_string_at_offset(mod, ifc_pp->name);
+#if DEBUG
+      if (db_flag_is_set("ifc_modules")) {
+        (void)fprintf(f_debug,
+            "partition %d \"%s\" offset 0x%08x cardinality %d entry_size %d\n",
+            i, name_str, ifc_pp->offset, ifc_pp->cardinality,
+            ifc_pp->entry_size);
+      }  /* if */
+#endif /* DEBUG */
+      check_assertion(ifc_pp->cardinality != 0 && ifc_pp->offset != 0);
+      /* FIXME: replace with binary search. */
+      for (map_ptr = ifc_partition_map; map_ptr->name != NULL; map_ptr++) {
+        if (strcmp(name_str, map_ptr->name) == 0) {
+          break;
+        }  /* if */
+      }  /* for */
+      check_assertion_str2(map_ptr->name != NULL,
+                          "unknown IFC partition name:", name_str);
+      check_assertion_str(map_ptr->kind != ifc_last,
+                          "no mapping for IFC partition");
+      pp = &mod->variant.ifc->partitions[map_ptr->kind];
+      pp->name = map_ptr->name;
+      pp->offset = ifc_pp->offset;
+      pp->size = ifc_pp->cardinality * ifc_pp->entry_size;
+      pp->entry_size = ifc_pp->entry_size;
+    }  /* for */
+    (void)fseek(mod->f_module, 0L, SEEK_SET);
+    if (mod->variant.ifc->partitions[ifc_name_source_file].name != NULL) {
+      /* Allocate an array to map source files to sequence numbers for the
+         the module.  No information about the sequence numbers is recorded
+         yet (we do that only if the source file is later referenced). */
+      an_ifc_partition *nsf_pp =
+                          &mod->variant.ifc->partitions[ifc_name_source_file];
+      size_t size;
+      check_assertion(nsf_pp->entry_size != 0);
+      size = (nsf_pp->size / nsf_pp->entry_size) * sizeof(a_seq_number);
+      mod->variant.ifc->sequence_numbers = (a_seq_number *)alloc_il(size);
+      memzero((char *)mod->variant.ifc->sequence_numbers, size);
+    }  /* if */
+#if DEBUG
+    if (db_flag_is_set("ms_modsrc")) {
+      /* Generate a textual representation of the module file and print it. */
+      a_str_control_block scb;
+      clear_str_control_block(&scb, mod, (a_text_buffer*)NULL);
+      str_ifc_scope_index(mod->variant.ifc->header.global_scope, &scb);
+      add_char_to_text_buffer(scb.text_buffer, '\0');
+      (void)fwrite(scb.text_buffer->buffer, 1, scb.text_buffer->size, f_debug);
+      (void)fputc('\n', f_debug);
+    }  /* if */
+#endif /* DEBUG */
+    /* Indicate to the lookup routines that lazy symbols are in use. */
+    lazy_symbols_may_be_visible = TRUE;
+    /* Process all declarations in the global scope. */
+    process_ifc_scope(mod, mod->variant.ifc->header.global_scope,
+                      il_header.primary_scope);
   }  /* if */
+  return result;
 }  /* import_ifc_module_file */
 
 
@@ -3394,22 +3346,32 @@ buffer.
 }  /* get_definition_of_module_class_from_ifc */
 
 
-void ms_modules_pch_reset(a_module_import_decl_ptr midp)
+void ifc_modules_pch_reset(a_module_import_decl_ptr midp)
 /*
 Called after a PCH file has been read to re-open and re-mmap the specified
 module.  Note that the mmap-ed address does not need to be at the same
 location as the original.
 */
 {
-  if (!open_and_map_ms_module_file(midp)) {
+  if (!open_and_map_ifc_module_file(midp)) {
     /* This shouldn't happen (the PCH processing checks the existence and
        modification time of module files. */
     unexpected_condition();
   }  /* if */
-}  /* ms_modules_pch_reset */
+}  /* ifc_modules_pch_reset */
 
 
-void ms_modules_one_time_init(void)
+a_boolean an_ifc_module::import(a_module_import_decl_ptr midp) noexcept
+/*
+Import an IFC module file described by midp.
+*/
+{
+  check_assertion(midp->module_info->kind == mk_ifc);
+  return import_ifc_module_file(midp);
+}  /* import */
+
+
+void ifc_modules_one_time_init(void)
 /*
 Do one-time initialization of static variables defined in this file.
 */
@@ -3424,10 +3386,10 @@ Do one-time initialization of static variables defined in this file.
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
-}  /* ms_modules_one_time_init */
+}  /* ifc_modules_one_time_init */
 
 
-void ms_modules_init(void)
+void ifc_modules_init(void)
 /*
 Initialize static variables related to this file that must be initialized
 for each compilation.
@@ -3439,7 +3401,7 @@ for each compilation.
   debug_partition = NULL;
   debug_mod = NULL;
 #endif /* DEBUG */
-}  /* ms_modules_init */
+}  /* ifc_modules_init */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

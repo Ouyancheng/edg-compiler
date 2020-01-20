@@ -1426,11 +1426,12 @@ Import the given module.  assoc_sym is the associated symbol for the module.
   if (!already_included &&
       !check_module_has_interface_dependency(assoc_sym, curr_module_sym,
                                              &midp->module_name_position)) {
-    a_module_kind found_kind = mk_none;
-    a_boolean     err = FALSE;
-
-    err = find_module_file(midp->module_info, &found_kind);
-    /* Perform the import of the module file. */
+    if (find_module_file(midp->module_info, (a_module_kind)mk_none)) {
+      import_module_file(midp);
+    }  /* if */
+    /* Add this to the list of imported modules regardless of whether the
+       import was successful - future attempts to import the same module
+       aren't likely to succeed if this one failed. */
     midp->next = il_header.imported_modules;
     il_header.imported_modules = midp;
   }  /* if */

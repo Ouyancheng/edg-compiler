@@ -15,13 +15,22 @@ ifc_modules.h -- Declarations relating to ifc_modules.c (having to do with
 */
 
 /* Avoid including these declarations more than once: */
-#ifndef MS_MODULES_H
-#define MS_MODULES_H 1
-
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#ifndef IFC_MODULES_H
+#define IFC_MODULES_H 1
 
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
+
+namespace {
+/*
+Magic numbers that identify the beginning of an IFC file.  Declared outside of
+MICROSOFT_EXTENSIONS_ALLOWED to facilitate identifying the kind of a mismatched
+module file.
+*/
+constexpr char ifc_magic_numbers[] = { '\x54', '\x51', '\x45', '\x1A' };
+}  /* namespace */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 /* These types are described by the IFC document. */
 /* 32-bit types: */
@@ -80,43 +89,43 @@ These are handled specially here (rather than with the ifc_map.h automated
 method) because the nesting can create padding issues on some architectures.
 FIXME: See if these can be handled "automatically" as well.
 */
-typedef struct ifc_SourceLocation {
+struct ifc_SourceLocation {
   ifc_LineOffset
                 line;
   ifc_Column    column;
-} ifc_SourceLocation;
+};  /* ifc_SourceLocation */
 
-typedef struct ifc_Sequence {
+struct ifc_Sequence {
   ifc_Index     start;
   ifc_Cardinality
                 cardinality;
-} ifc_Sequence;
+};  /* ifc_Sequence */
 
-typedef struct ifc_NoexceptSpecification {
+struct ifc_NoexceptSpecification {
   ifc_SentenceOffset  
                 words;
   ifc_NoexceptSort
                 sort;
   /* Note that there are three bytes of padding here. */
-} ifc_NoexceptSpecification;
+};  /* ifc_NoexceptSpecification */
 
 /*
 Create structures for each of the IFC entities by setting the IFC_DECL macros
 appropriately and including ifc_map.h.  The net result is something like:
 
-  typedef struct an_ifc_foo {
+  struct an_ifc_foo {
     ifc_field1_type field1;
     ifc_field2_type field2;
     ...
-  } an_ifc_foo;
+  };
 */
 
 #define IFC_DECL_START(name) \
-  typedef struct concat(an_ifc_, name) {
+  struct concat(an_ifc_, name) {
 #define IFC_DECL_FIELD(field, type) \
     concat(ifc_, type)  field;
 #define IFC_DECL_END(name) \
-  } concat(an_ifc_, name);
+  };
 
 #include "ifc_map.h"  /*lint !e451 included more than once. */
 
@@ -682,11 +691,11 @@ A method for mapping partition names to an_ifc_partition_kind values.  Used
 when reading an IFC file to identify which partitions are which.  The list
 should be sorted by the partition name.
 */
-typedef struct an_ifc_partition_map {
+struct an_ifc_partition_map {
   a_const_char  *name;  /* The name of an IFC partition. */
   an_ifc_partition_kind
                 kind;   /* The internal representation of the partition. */
-} an_ifc_partition_map;
+};  /* an_ifc_partition_map */
 
 EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
 #if VAR_INITIALIZERS
@@ -839,27 +848,32 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
 /*
 An internal representation of an IFC partition.
 */
-typedef struct an_ifc_partition {
+struct an_ifc_partition {
   a_const_char  *name;  /* The name of the partition in the IFC file. */
   size_t        offset; /* An offset from the beginning of the file to the
                            start of the partition. */
   uint32_t      size;   /* The number of bytes in the partition. */
   uint32_t      entry_size;
                         /* The size of an entry in the partition. */
-} an_ifc_partition;
+};  /* an_ifc_partition */
 
 /*
 Information specific to an IFC module.
 */
-typedef struct an_ifc_module {
+struct an_ifc_module : public a_module_interface {
+  virtual ~an_ifc_module() noexcept = default;
+
+  a_boolean import(a_module_import_decl_ptr midp) noexcept override;
+
   an_ifc_File_Header
-                header; /* The values of an IFC File_Header (byte-swapped if
+                header = {};
+                        /* The values of an IFC File_Header (byte-swapped if
                            necessary). */
   an_ifc_partition
-                partitions[(int)ifc_last+1];
+                partitions[(int)ifc_last+1] = {};
                         /* Information about each of the IFC partitions that
                            could exist in a module file. */
-  a_seq_number  *sequence_numbers;
+  a_seq_number  *sequence_numbers = NULL;
                         /* An array of sequence numbers, indexed by a
                            NameSort::SourceFile index, yields the sequence
                            number to be used for all items in the associated
@@ -868,7 +882,7 @@ typedef struct an_ifc_module {
                            line in each file and that's time-consuming to
                            compute).  Dynamically allocated once the number of
                            source files is known. */
-} an_ifc_module;
+};  /* an_ifc_module */
 
 extern void process_ifc_declaration(a_module_entity_ptr mep,
                                     a_boolean           defer,
@@ -882,22 +896,20 @@ extern void get_definition_of_module_class_from_ifc(
                                                   a_module_entity_ptr mep,
                                                   a_text_buffer       *buffer);
 
-extern void import_ifc_module_file(a_module_import_decl_ptr midp);
+extern void ifc_modules_pch_reset(a_module_import_decl_ptr midp);
 
 extern void close_ifc_module_file(a_module_import_decl_ptr midp);
 
-extern void ms_modules_pch_reset(a_module_import_decl_ptr midp);
+extern void ifc_modules_one_time_init();
 
-extern void ms_modules_one_time_init(void);
+extern void ifc_modules_init();
 
-extern void ms_modules_init(void);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-#endif /* ifndef MS_MODULES_H */
+#endif /* ifndef IFC_MODULES_H */
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -100,6 +100,8 @@ typedef struct a_gnu_routine_supplement
                               *a_gnu_routine_supplement_ptr;
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 typedef struct a_module       *a_module_ptr;
+typedef struct a_module_interface
+                              *a_module_interface_ptr;
 typedef struct a_module_entity
                               *a_module_entity_ptr;
 typedef struct an_ifc_module  *an_ifc_module_ptr;
@@ -17154,6 +17156,10 @@ typedef struct a_module {
   a_const_char	*name;	/* The name (as written) of the module file. */
   a_const_char	*full_name;
 			/* The full path name to the module file. */
+  a_module_interface_ptr
+		module_interface;
+			/* The module interface object used to interact with
+			   the module. */
   FILE		*f_module;
 			/* The file descriptor for the file. */
   void		*mmap_addr;
