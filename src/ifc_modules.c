@@ -1511,6 +1511,8 @@ an "ellipsis type").
         }
         break;
       case ifc_TypeSort_Method: /* FIXME: for now (same structures?): */
+        unexpected_condition(); /* FIXME: No longer same structures. */
+        break;
       case ifc_TypeSort_Function:
         { an_ifc_TypeSort_Function itsf, *itsfp;
           itsfp = get_TypeSort_Function(&itsf);

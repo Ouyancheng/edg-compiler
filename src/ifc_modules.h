@@ -330,6 +330,7 @@ enum an_ifc_TypeSort {
   ifc_TypeSort_VendorExtension,
   ifc_TypeSort_Fundamental,
   ifc_TypeSort_Designated,
+  ifc_TypeSort_Deduced,
   ifc_TypeSort_Syntactic,
   ifc_TypeSort_Expansion,
   ifc_TypeSort_Pointer,
