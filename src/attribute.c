@@ -1387,6 +1387,15 @@ static int attr_family_seen[(int)ak_last];
 			   attributes. */
 
 
+void reset_attr_family_seen(an_attribute_ptr ap)
+/*
+Reset the appropriate flag in attr_family_seen for the specified attribute.
+*/
+{
+  attr_family_seen[ap->kind] = 0;
+}  /* reset_attr_family_seen */
+
+
 static an_attr_name_map_entry_ptr *lookup_attribute_name(
                                                     a_const_char        *name,
                                                     an_attribute_family family)
@@ -2096,7 +2105,7 @@ that of the current token.
 }  /* make_attribute */
 
 
-static a_boolean is_valid_attribute_identifier(a_token_kind  tok)
+a_boolean is_valid_attribute_identifier(a_token_kind  tok)
 /*
 Return TRUE if the given token can be used as a standard attribute name or
 attribute namespace.
@@ -2136,8 +2145,8 @@ track end positions).
 }  /* record_attribute_name */
 
 
-static an_attribute_ptr scan_attribute(an_attribute_family  af,
-                                       an_attribute_ptr     using_ns_ap)
+an_attribute_ptr scan_attribute(an_attribute_family  af,
+                                an_attribute_ptr     using_ns_ap)
 /*
 Scan a standard attribute of one of the following forms
     <identifier>
@@ -2347,7 +2356,7 @@ that appeared in a previous "using" prefix.  Can return NULL on error.
   for (ap = attributes; ap != NULL; ap = ap->next) {
     ap->syntactic_location = (a_byte_attribute_location)loc;
     /* Clear the attr_family_seen array. */
-    attr_family_seen[ap->kind] = 0;
+    reset_attr_family_seen(ap);
   }  /* for */
   return attributes;
 }  /* scan_attributes_list */
@@ -9512,7 +9521,7 @@ standard attributes given preference.
 }  /* attribute_is_supported */
 
 
-static a_boolean attribute_is_template_dependent(an_attribute_ptr ap)
+a_boolean attribute_is_template_dependent(an_attribute_ptr ap)
 /*
 Returns TRUE if any of the arguments to the attribute are template-dependent.
 */

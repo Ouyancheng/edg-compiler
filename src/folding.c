@@ -9076,6 +9076,71 @@ expression for the returned constant will be set as well.
 }  /* fold_is_same */
 
 
+static void fold_builtin_has_attribute(an_expr_node_ptr   expr,
+                                       a_constant_ptr     constant,
+                                       a_boolean          maintain_expression)
+/*
+expr is an enk_builtin_operation node for an __builtin_has_attribute operation.
+*constant.  The boolean constant will have value "true" if the attribute(s)
+attached to the second operand appertain to the first operand; otherwise, the
+constant will have value "false".  Note that a template-dependent first
+operand is checked for attributes (i.e., the operation applies to the template
+parameter, not the template argument it represents).  If maintain_expression
+is TRUE, the backing expression for the returned constant will be set as well.
+*/
+{
+  an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
+                    arg2 = arg1->next;
+  a_boolean         result = FALSE;
+  an_attribute_ptr  target_ap, ap;
+  a_source_correspondence
+                    *scp;
+
+  /* eok_parens shouldn't appear here, since the construct is generated. */
+  check_assertion(arg1 != NULL && arg2 != NULL && arg2->next == NULL &&
+                  arg2->kind == (an_expr_node_kind)enk_constant);
+  target_ap = arg2->variant.constant.ptr->source_corresp.attributes;
+  switch (arg1->kind) {
+    case enk_routine:
+      scp = &arg1->variant.routine.ptr->source_corresp;
+      break;
+    case enk_variable:
+      scp = &arg1->variant.variable.ptr->source_corresp;
+      break;
+    case enk_type_operand:
+      scp = &arg1->variant.type_operand.type->source_corresp;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  for (ap = scp->attributes; ap != NULL; ap = ap->next) {
+    if (target_ap->kind == ap->kind) {
+      if (target_ap->arguments == NULL) {
+        /* If the attribute we're looking for doesn't have any arguments,
+           consider it a match (e.g., "aligned" matches "aligned(X)"). */
+        result = TRUE;
+        break;
+      } else if (ap->arguments != NULL &&
+                 target_ap->arguments->kind == ap->arguments->kind) {
+        /* See if the two arguments are the same (e.g., "aligned(4)" and
+           "aligned(4)".  Consider a template-dependent argument to be a
+           match. */
+        if (attribute_is_template_dependent(target_ap) ||
+            equivalent_attributes(target_ap, ap, /*ignore_family=*/TRUE)) {
+          result = TRUE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  clear_constant(constant, (a_constant_repr_kind)ck_integer);
+  set_integer_value(&constant->variant.integer_value,
+                    (a_host_large_integer)result);
+  if (maintain_expression) constant->expr = expr;
+  constant->type = expr->type;
+}  /* fold_builtin_has_attribute */
+
+
 void fold_builtin_operation_if_possible(
                               an_expr_node_ptr             expr,
                               a_constant_ptr               constant,
@@ -9216,6 +9281,9 @@ constant is set as well.
       case bok_is_same:
       case bok_is_same_as:
         fold_is_same(expr, constant, maintain_expression);
+        break;
+      case bok_builtin_has_attribute:
+        fold_builtin_has_attribute(expr, constant, maintain_expression);
         break;
       default:
         unexpected_condition();

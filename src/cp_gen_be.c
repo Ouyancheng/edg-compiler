@@ -14030,6 +14030,25 @@ therefore always render the operator as "__builtin_offsetof".
 }  /* gen_builtin_offsetof */
 
 
+static void gen_builtin_has_attribute(an_expr_node_ptr  expr)
+/*
+Generate code for a __builtin_has_attribute.  The second argument to the
+builtin is an attribute that is represented in the IL by a constant (to which
+the attribute(s) are attached).
+*/
+{
+  an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
+                    arg2 = arg1->next;
+
+  check_assertion(arg2 != NULL && is_constant_node(arg2));
+  write_tok_str("__builtin_has_attribute(");
+  gen_expr(arg1, /*need_parens=*/FALSE, /*obj_expr_of_mfunc_operator=*/FALSE);
+  write_tok_str(", ");
+  gen_attribute(arg2->variant.constant.ptr->source_corresp.attributes);
+  write_tok_ch(')');
+}  /* gen_builtin_has_attribute */
+
+
 static void gen_builtin_operation(an_expr_node_ptr  expr)
 /*
 Render code for the given expression node, which represent a builtin operation.
@@ -14041,6 +14060,10 @@ Most cases fit a simple pattern, but some require special handling.
     /* The builtin offsetof operator is a little tricky because its second
        operand must be rendered in the context of its first operand. */
     gen_builtin_offsetof(expr);
+  } else if (expr->variant.builtin_operation.kind ==
+                         (a_builtin_operation_kind)bok_builtin_has_attribute) {
+    /* __builtin_has_attribute also needs some special-case code. */
+    gen_builtin_has_attribute(expr);
   } else {
     /* The normal case:
           <operation-name> ( <operand1>, <operand2>, ... )

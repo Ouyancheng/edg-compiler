@@ -13581,6 +13581,7 @@ indication in *rcblock).
                                          bok_has_unique_object_representations;
                                         break;
       case tok_is_aggregate:            bok = bok_is_aggregate; break;
+      case tok_builtin_has_attribute:   bok = bok_builtin_has_attribute; break;
       default:
         unexpected_condition();
     }  /* switch */
@@ -13639,6 +13640,177 @@ is returned through *result.
 }  /* scan_builtin_types_compatible */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
+
+static void scan_builtin_has_attribute(an_operand *result)
+/*
+Scan a GNU construct of the form
+      __builtin_has_attribute(<type-or-expression>, <attribute>)
+the result of which is true if the specified attribute (along with optional
+arguments) has been applied to the given type or symbol.  The resulting
+constant operand is returned through *result.  There is no rescanning (as
+this appears to be applied to the template parameter itself rather than the
+argument it represents).  The result is always a folded constant (in non-error
+cases).
+*/
+{
+  an_expr_stack_entry     expr_stack_entry;
+  an_attribute_ptr        ap;
+  a_type_ptr              type;
+  an_operand              operand;
+  a_boolean               err = FALSE, force_false = FALSE;
+  an_attribute_family     family;
+  a_const_char            *name;
+  an_expr_node_ptr        arg1;
+  a_source_position       start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position       end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
+  check_assertion(curr_token == tok_builtin_has_attribute);
+  start_position = pos_curr_token;
+  (void)get_token();
+  /* Check for and pass over the left parenthesis. */
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  add_matching_stop_token(tok_rparen);
+  push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
+                               &expr_stack_entry,
+                               /*force_object_lifetime=*/FALSE,
+                               /*suppress_object_lifetime=*/FALSE,
+                               (a_rescan_control_block *)NULL);
+  expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
+  add_stop_token(tok_comma);
+  if (is_decl_not_expr(DFS_IS_SIZEOF |
+                       DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                       DFS_SINGLE_TYPE_REQUIRED)) {
+    /* A type name. */
+    type_name(&type);
+    arg1 = alloc_expr_node((an_expr_node_kind)enk_type_operand);
+    arg1->type = void_type();
+    arg1->variant.type_operand.type = type;
+    arg1->position = pos_curr_token;
+  } else {
+    /* An expression. */
+    scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+    if (is_error_operand(&operand)) {
+      err = TRUE;
+    } else {
+      do_operand_transformations(&operand,
+                                 TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
+      if (is_indefinite_function_operand(&operand)) {
+        /* An overloaded function or template function.  GCC appears to return
+           false for all of these cases.  Come up with an expression node that
+           will render properly for a back end (since, e.g., the IL doesn't
+           support an overload set). */
+        force_false = TRUE;
+        if (symbol_is(operand.symbol, sk_overloaded_function)) {
+          a_symbol_ptr  rtn_sym =
+                           operand.symbol->variant.overloaded_function.symbols;
+          arg1 = function_lvalue_expr(rtn_sym->variant.routine.ptr);
+        } else if (symbol_is(operand.symbol, sk_function_template)) {
+          a_template_ptr tp =
+                      operand.symbol->variant.template_info->il_template_entry;
+          if (tp->kind == templk_function ||
+              tp->kind == templk_member_function) {
+            arg1 = function_lvalue_expr(tp->prototype_instantiation.routine);
+          } else {
+            unexpected_condition();
+          }  /* if */
+        } else {
+          unexpected_condition();
+        }  /* if */
+      } else {
+        /* Typical case. */
+        arg1 = make_node_from_operand(&operand);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  (void)required_token(tok_comma, ec_exp_comma);
+  remove_stop_token(tok_comma);
+  /* An attribute is next.  Get the name of the attribute. */
+  if (is_valid_attribute_identifier(curr_token)) {
+    name = locator_for_curr_id.symbol_header->identifier;
+  } else {
+    expr_pos_diagnostic(es_error, ec_expected_an_attribute, &pos_curr_token);
+    err = TRUE;
+  }  /* if */
+  if (!err) {
+    /* See if the attribute is a supported "standard" attribute or if it is
+       a supported "gnu" attribute. */
+    if (attribute_is_supported(name, NULL, af_std)) {
+      family = af_std;
+    } else if (attribute_is_supported(name, NULL, af_gnu)) {
+      family = af_gnu;
+    } else {
+      /* The attribute is not recognized. */
+      expr_pos_st_diagnostic(es_error, ec_unrecognized_attribute,
+                             &pos_curr_token, name);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!err) {
+    /* Scan the attribute. */
+    ap = scan_attribute(family, /*using_ns_ap=*/FALSE);
+    if (ap != NULL) {
+      /* Create a dummy constant and attach the attributes to it. */
+      a_constant_ptr  cp, con = local_constant();
+      make_zero_of_proper_type(bool_type(), con);
+      cp = alloc_unshared_constant(con);
+      cp->source_corresp.attributes = ap;
+      ap->syntactic_location =
+                           (a_byte_attribute_location)al_builtin_has_attribute;
+      arg1->next = alloc_expr_node((an_expr_node_kind)enk_constant);
+      arg1->next->variant.constant.ptr = cp;
+      arg1->next->type = cp->type;
+      reset_attr_family_seen(ap);
+      release_local_constant(&con);
+    } else {
+      /* Couldn't parse the attributes; expect an error. */
+      expr_expect_error();
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  remove_matching_stop_token(tok_rparen);
+  if (!err) {
+    /* Create the constant result operand by attempting to fold an
+       enk_builtin_operation node that represents the operation. */
+    an_expr_node_ptr  expr;
+    a_boolean         not_a_constant;
+    expr = alloc_expr_node((an_expr_node_kind)enk_builtin_operation);
+    expr->type = bool_type();
+    expr->position = start_position;
+    expr->variant.builtin_operation.kind =
+                           (a_builtin_operation_kind)bok_builtin_has_attribute;
+    expr->variant.builtin_operation.operands = arg1;
+    record_operator_position_in_expr_rescan_info(expr, &start_position,
+                                                 NO_TOKEN_SEQUENCE_NUMBER,
+                                                 (a_source_position *)NULL);
+    clear_operand((an_operand_kind)ok_constant, result);
+    fold_builtin_operation_if_possible(
+                     expr, &result->variant.constant,
+                     curr_expr_kind_is_one_in_which_const_exprs_are_recorded(),
+                     &start_position, &not_a_constant);
+    check_assertion(!not_a_constant);
+    result->type = result->variant.constant.type;
+    result->state = (an_operand_state)os_prvalue;
+    if (force_false) {
+      /* In some cases, override the folded constant's computed value.  That's
+         the case, e.g., when an overload set is specified and the attribute is
+         applied to all members of the set, but GCC still returns false. */
+      set_integer_value(&result->variant.constant.variant.integer_value,
+                        (a_host_large_integer)0);
+    }  /* if */
+  } else {
+    make_error_operand(result);
+  }  /* if */
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
+  pop_expr_stack();
+}  /* scan_builtin_has_attribute */
+
 #if GNU_VECTOR_TYPES_ALLOWED
 
 static a_boolean check_operand_is_vector(a_rescan_control_block  *rcblock,
@@ -32266,6 +32438,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_reference_binds_to_temporary:
     case tok_is_same:
     case tok_is_same_as:
+    case tok_builtin_has_attribute:
       is_expr_start = TRUE;
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -37538,6 +37711,11 @@ handle_identifier:
       scan_builtin_types_compatible(&local_result);
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+
+    case tok_builtin_has_attribute:
+      /* GNU __builtin_has_attribute construct. */
+      scan_builtin_has_attribute(&local_result);
+      break;
 
 #if C99_IL_EXTENSIONS_SUPPORTED && GNU_EXTENSIONS_ALLOWED
     case tok_gnu_real:

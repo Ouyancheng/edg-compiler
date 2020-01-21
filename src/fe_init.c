@@ -1114,6 +1114,10 @@ Install the keywords in the symbol table.
         enter_keyword((a_token_kind)tok_integer_pack, "__integer_pack");
       }  /* if */
     }  /* if */
+    if (gnu_version >= 90000) {
+      enter_gnu_keyword((a_token_kind)tok_builtin_has_attribute,
+                        "__builtin_has_attribute");
+    }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* Enable alternative token spellings. */
     enter_gnu_keyword((a_token_kind)tok_inline, "__inline");

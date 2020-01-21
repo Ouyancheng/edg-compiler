@@ -3131,6 +3131,7 @@ ec_concept_failed;;"concept is false"
 ec_trailing_requires_clause_not_on_template;;"a requires-clause is not allowed here (not a templated function)"
 ec_concept_template;INTERNAL;"concept template"
 ec_requires_incompatible_with_previous_decl;;"requires-clause incompatible with %nfd"
+ec_expected_an_attribute;;"expected an attribute"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

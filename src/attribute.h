@@ -111,6 +111,13 @@ attribute in the "gnu" namespace.
   ((ap)->family == (a_byte_attribute_family)af_gnu ||                        \
    (ap)->is_std_gcc_attribute)
 
+extern void reset_attr_family_seen(an_attribute_ptr ap);
+
+extern a_boolean is_valid_attribute_identifier(a_token_kind  tok);
+
+extern an_attribute_ptr scan_attribute(an_attribute_family  af,
+                                       an_attribute_ptr     using_ns_ap);
+
 extern an_attribute_ptr scan_attributes(an_attribute_location  loc);
 
 extern void scan_and_discard_attributes(an_error_severity sev,
@@ -174,6 +181,8 @@ extern a_type_ptr make_typeref_with_attributes(a_type_ptr        tp,
 extern void attach_type_attributes(a_type_ptr        *p_type,
                                    an_attribute_ptr  attributes,
                                    void              *assoc_info);
+
+extern a_boolean attribute_is_template_dependent(an_attribute_ptr ap);
 
 extern a_boolean equivalent_attributes(an_attribute_ptr  ap1,
                                        an_attribute_ptr  ap2,
