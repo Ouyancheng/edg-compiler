@@ -32,7 +32,7 @@ end of this file).
 
 /* File_Header */
 IFC_DECL_START(File_Header)
-  IFC_DECL_FIELD(checksum, ContentHash)
+  IFC_DECL_FIELD(checksum, Checksum)
   IFC_DECL_FIELD(major_version, Version)
   IFC_DECL_FIELD(minor_version, Version)
   IFC_DECL_FIELD(abi, Abi)
@@ -886,40 +886,12 @@ IFC_DECL_END(ExprSort_UnaryFold)
 IFC_DECL_START(ExprSort_BinaryFold)
 IFC_DECL_END(ExprSort_BinaryFold)
 
-/* StringSort::Ordinary */
-IFC_DECL_START(StringSort_Ordinary)
+/* String::Literal */
+IFC_DECL_START(String_Literal)
   IFC_DECL_FIELD(start, TextOffset)
-  IFC_DECL_FIELD(size, Cardinality)
+  IFC_DECL_FIELD(length, Cardinality)
   IFC_DECL_FIELD(suffix, TextOffset)
-IFC_DECL_END(StringSort_Ordinary)
-
-/* StringSort::UTF8 */
-IFC_DECL_START(StringSort_UTF8)
-  IFC_DECL_FIELD(start, TextOffset)
-  IFC_DECL_FIELD(size, Cardinality)
-  IFC_DECL_FIELD(suffix, TextOffset)
-IFC_DECL_END(StringSort_UTF8)
-
-/* StringSort::Char16 */
-IFC_DECL_START(StringSort_Char16)
-  IFC_DECL_FIELD(start, TextOffset)
-  IFC_DECL_FIELD(size, Cardinality)
-  IFC_DECL_FIELD(suffix, TextOffset)
-IFC_DECL_END(StringSort_Char16)
-
-/* StringSort::Char32 */
-IFC_DECL_START(StringSort_Char32)
-  IFC_DECL_FIELD(start, TextOffset)
-  IFC_DECL_FIELD(size, Cardinality)
-  IFC_DECL_FIELD(suffix, TextOffset)
-IFC_DECL_END(StringSort_Char32)
-
-/* StringSort::Wide */
-IFC_DECL_START(StringSort_Wide)
-  IFC_DECL_FIELD(start, TextOffset)
-  IFC_DECL_FIELD(size, Cardinality)
-  IFC_DECL_FIELD(suffix, TextOffset)
-IFC_DECL_END(StringSort_Wide)
+IFC_DECL_END(String_Literal)
 
 /* NameSort::Identifier */
 /* No partition - value is index into string table. */

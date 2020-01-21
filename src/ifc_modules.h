@@ -104,6 +104,10 @@ typedef uint8_t  ifc_bool;
 typedef uint8_t  ifc_uint8_t;
 typedef uint16_t ifc_uint16_t;
 
+/* SHA256 checksum. */
+typedef uint8_t sha256_t[32];
+typedef sha256_t ifc_Checksum;
+
 /*
 Define some IFC structures that are used in nested inside other IFC structures.
 These are handled specially here (rather than with the ifc_map.h automated
@@ -115,10 +119,6 @@ struct ifc_Sequence {
   ifc_Cardinality
                 cardinality;
 };  /* ifc_Sequence */
-
-struct ifc_ContentHash {
-  uint64_t      bytes[4];
-};  /* ifc_Hash */
 
 struct ifc_ModuleReference {
   ifc_TextOffset
@@ -693,7 +693,7 @@ enum an_ifc_SyntaxSort {
   ifc_SyntaxSort_TrailingReturnType,
              /* a trailing return type: '-> T' */
   ifc_SyntaxSort_Declarator,
-             /* A declarator: i.e. something that has not (yet) been resolved */
+            /* A declarator: i.e. something that has not (yet) been resolved */
   ifc_SyntaxSort_PointerDeclarator,
              /* A sub-declarator for a pointer: '*D' */
   ifc_SyntaxSort_ArrayDeclarator,

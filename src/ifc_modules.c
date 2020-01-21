@@ -268,7 +268,13 @@ Utility to print some debug information for every access to an IFC module file.
         (void)fprintf(f_debug, "0x%08x", *((uint32_t*)addr));
         break;
       case 8:
-        (void)fprintf(f_debug, "0x%08x%08x", *((uint32_t*)addr), *(((uint32_t*)addr)+1));
+        (void)fprintf(f_debug, "0x%08x%08x", *((uint32_t*)addr),
+                      *(((uint32_t*)addr)+1));
+        break;
+      case 32:
+        (void)fprintf(f_debug, "%08x%08x%08x%08x", *((uint32_t*)addr),
+                      *(((uint32_t*)addr)+1), *(((uint32_t*)addr)+2),
+                      *(((uint32_t*)addr)+3));
         break;
       default:
         unexpected_condition();
@@ -308,6 +314,11 @@ they change the value of their argument.
   (check_size(value, 8)                                                 \
    get_big_endian_bytes(&(value), 8)                                    \
    db_get_byte(stringize(value), &(value), 8))
+
+#define GET_256bit_int(value)                                           \
+  (check_size(value, 32)                                                \
+   get_big_endian_bytes(&(value), 32)                                   \
+   db_get_byte(stringize(value), &(value), 32))
 
 
 /*
@@ -398,6 +409,8 @@ Handle nested structures differently (and check for padding).
 #define GET_bool(x)               GET_byte(x)
 #define GET_uint8_t(x)            GET_byte(x)
 #define GET_uint16_t(x)           GET_short(x)
+
+#define GET_Checksum(x)           GET_256bit_int(x)
 
 /* Utility to save the current partition (for display during debugging). */
 #if DEBUG
@@ -3271,6 +3284,7 @@ process.
     init_byte_buffer((char*)mod->mmap_addr + 4, mod->mmap_size - 4);
     memcpy(&(mod->variant.ifc->header), get_File_Header(&header),
            sizeof(header));
+    /* FIXME: The checksum is not yet checked. */
     /* Prepare to read the partitions (by "seeking" to the IFC Table of
        Contents). */
     init_byte_buffer((char*)mod->mmap_addr + mod->variant.ifc->header.toc,
@@ -3304,15 +3318,17 @@ process.
           break;
         }  /* if */
       }  /* for */
-      check_assertion_str2(map_ptr->name != NULL,
-                          "unknown IFC partition name:", name_str);
-      check_assertion_str(map_ptr->kind != ifc_last,
-                          "no mapping for IFC partition");
-      pp = &mod->variant.ifc->partitions[map_ptr->kind];
-      pp->name = map_ptr->name;
-      pp->offset = ifc_pp->offset;
-      pp->size = ifc_pp->cardinality * ifc_pp->entry_size;
-      pp->entry_size = ifc_pp->entry_size;
+      if (map_ptr->name == NULL) {
+        str_warning(ec_unknown_ifc_partition, name_str);
+      } else {
+        check_assertion_str(map_ptr->kind != ifc_last,
+                            "no mapping for IFC partition");
+        pp = &mod->variant.ifc->partitions[map_ptr->kind];
+        pp->name = map_ptr->name;
+        pp->offset = ifc_pp->offset;
+        pp->size = ifc_pp->cardinality * ifc_pp->entry_size;
+        pp->entry_size = ifc_pp->entry_size;
+      }  /* if */
     }  /* for */
     (void)fseek(mod->f_module, 0L, SEEK_SET);
     if (mod->variant.ifc->partitions[ifc_name_source_file].name != NULL) {
