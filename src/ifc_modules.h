@@ -36,32 +36,37 @@ constexpr char ifc_magic_numbers[] = { '\x54', '\x51', '\x45', '\x1A' };
 /* 32-bit types: */
 typedef uint32_t ifc_ByteOffset;
 typedef uint32_t ifc_Cardinality;
+typedef uint32_t ifc_ChartIndex;
 typedef uint32_t ifc_Column;
 typedef uint32_t ifc_DeclIndex;
 typedef uint32_t ifc_EntitySize;
 typedef uint32_t ifc_ExprIndex;
 typedef uint32_t ifc_Index;
+typedef uint32_t ifc_LanguageVersion;
+typedef uint32_t ifc_LineIndex;
 typedef uint32_t ifc_LineNumber;
-typedef uint32_t ifc_LineOffset;
 typedef uint32_t ifc_LitIndex;
+typedef uint32_t ifc_MsvcTraits;
 typedef uint32_t ifc_NameIndex;
 typedef uint32_t ifc_Offset;
 typedef uint32_t ifc_ParameterLevel;
 typedef uint32_t ifc_ParameterPosition;
 typedef uint32_t ifc_ScopeIndex;
-typedef uint32_t ifc_SentenceOffset;
+typedef uint32_t ifc_SentenceIndex;  /* Referenced, not defined. */
+typedef uint32_t ifc_SentenceOffset; /* Referenced, not defined. */
+typedef uint32_t ifc_StmtIndex;
 typedef uint32_t ifc_StringIndex;
-typedef uint32_t ifc_SyntaxIndex;
+typedef uint32_t ifc_SyntaxIndex;    /* Referenced, not defined. */
 typedef uint32_t ifc_TextOffset;
-typedef uint32_t ifc_TokenCategory;
+typedef uint32_t ifc_TokenCategory;  /* Referenced, not defined. */
 typedef uint32_t ifc_TypeIndex;
-typedef uint32_t ifc_UniqueID;
+typedef uint32_t ifc_UniqueID;       /* Referenced, not defined. */
+typedef uint32_t ifc_UnitIndex;
 
 /* 16-bit types: */
 typedef uint16_t ifc_Alignment;
-typedef uint16_t ifc_EHFlags;
+typedef uint16_t ifc_EHFlags;        /* Referenced, not defined. */
 typedef uint16_t ifc_FunctionTraits;
-typedef uint16_t ifc_ObjectTraits;
 typedef uint16_t ifc_OperatorCategory;
 typedef uint16_t ifc_PackSize;
 
@@ -73,15 +78,31 @@ typedef uint8_t ifc_BasicSpecifiers;
 typedef uint8_t ifc_CallingConvention;
 typedef uint8_t ifc_FunctionTypeTraits;
 typedef uint8_t ifc_NoexceptSort;
+typedef uint8_t ifc_ObjectTraits;
+typedef uint8_t ifc_ParameterSort;
 typedef uint8_t ifc_Qualifiers;
+typedef uint8_t ifc_ReadConversionSort;
 typedef uint8_t ifc_ScopeTraits;
+typedef uint8_t ifc_SyntaxSort;
 typedef uint8_t ifc_TypeBasis;
 typedef uint8_t ifc_TypePrecision;
 typedef uint8_t ifc_TypeSign;
 typedef uint8_t ifc_Version;
 
-/* Some IFC fields have "bool" type. */
-typedef uint8_t ifc_bool;
+/* Embedded tags: */
+typedef uint8_t ifc_ChartSort;
+typedef uint8_t ifc_DeclSort;
+typedef uint8_t ifc_ExprSort;
+typedef uint8_t ifc_NameSort;
+typedef uint8_t ifc_StmtSort;
+typedef uint8_t ifc_StringSort;
+typedef uint8_t ifc_TypeSort;
+typedef uint8_t ifc_UnitSort;
+
+/* Some IFC fields have fundamental types. */
+typedef uint8_t  ifc_bool;
+typedef uint8_t  ifc_uint8_t;
+typedef uint16_t ifc_uint16_t;
 
 /*
 Define some IFC structures that are used in nested inside other IFC structures.
@@ -89,25 +110,40 @@ These are handled specially here (rather than with the ifc_map.h automated
 method) because the nesting can create padding issues on some architectures.
 FIXME: See if these can be handled "automatically" as well.
 */
-struct ifc_SourceLocation {
-  ifc_LineOffset
-                line;
-  ifc_Column    column;
-};  /* ifc_SourceLocation */
-
 struct ifc_Sequence {
   ifc_Index     start;
   ifc_Cardinality
                 cardinality;
 };  /* ifc_Sequence */
 
-struct ifc_NoexceptSpecification {
+struct ifc_ContentHash {
+  uint64_t      bytes[4];
+};  /* ifc_Hash */
+
+struct ifc_ModuleReference {
+  ifc_TextOffset
+                owner;
+  ifc_TextOffset
+                partition;
+};  /* ifc_ModuleReference */
+
+struct ifc_SourceLocation {
+  ifc_LineIndex line;
+  ifc_Column    column;
+};  /* ifc_SourceLocation */
+
+struct ifc_NoexceptSpecification { /* Referenced but not defined. */
   ifc_SentenceOffset  
                 words;
   ifc_NoexceptSort
                 sort;
   /* Note that there are three bytes of padding here. */
 };  /* ifc_NoexceptSpecification */
+
+struct ifc_ParameterizedEntity {
+  /* The spec refers to this but doesn't define it.  Usage suggests it's a
+     struct of some kind. */
+};
 
 /*
 Create structures for each of the IFC entities by setting the IFC_DECL macros
@@ -125,7 +161,7 @@ appropriately and including ifc_map.h.  The net result is something like:
 #define IFC_DECL_FIELD(field, type) \
     concat(ifc_, type)  field;
 #define IFC_DECL_END(name) \
-  };
+  };  /* #name */
 
 #include "ifc_map.h"  /*lint !e451 included more than once. */
 
@@ -135,8 +171,17 @@ appropriately and including ifc_map.h.  The net result is something like:
 #define IFC_MODULE_MAGIC_3 0x45
 #define IFC_MODULE_MAGIC_4 0x1A
 
+/* Enumeration for Architectures. */
+enum an_ifc_Architecture {
+  ifc_Architecture_Unknown = 0,
+  ifc_Architecture_X86     = 0x01,
+  ifc_Architecture_X64     = 0x02,
+  ifc_Architecture_ARM32   = 0x03,
+  ifc_Architecture_ARM64   = 0x04,
+};
+
 /* Enumeration for Qualifiers. */
-enum an_ifc_Qualifier_kind {
+enum an_ifc_Qualifier {
   ifc_Qualifier_None     = 0,  
   ifc_Qualifier_Const    = 1 << 0,
   ifc_Qualifier_Volatile = 1 << 1,
@@ -144,7 +189,7 @@ enum an_ifc_Qualifier_kind {
 };
 
 /* Enumeration for Access specifiers. */
-enum an_ifc_Access_kind {
+enum an_ifc_Access {
   ifc_Access_None,      /* No access specifier. */
   ifc_Access_Private,   /* "private" for scope member. */
   ifc_Access_Protected, /* "protected" for scope member. */
@@ -152,7 +197,7 @@ enum an_ifc_Access_kind {
 };
 
 /* Enumeration for BasicSpecifiers. */
-enum an_ifc_BasicSpecifiers_kind {
+enum an_ifc_BasicSpecifiers {
   ifc_BasicSpecifiers_Cxx               = 0,      /* C++ language linkage */
   ifc_BasicSpecifiers_C                 = 1 << 0, /* C language linkage */
   ifc_BasicSpecifiers_Internal          = 1 << 1,
@@ -166,42 +211,57 @@ enum an_ifc_BasicSpecifiers_kind {
 };
 
 /* Enumeration for ObjectTraits. */
-enum an_ifc_ObjectTraits_kind {
+enum an_ifc_ObjectTraits {
   ifc_ObjectTraits_None        = 0,
   ifc_ObjectTraits_Constexpr   = 1 << 0,
   ifc_ObjectTraits_Mutable     = 1 << 1,
   ifc_ObjectTraits_ThreadLocal = 1 << 2,
-  ifc_ObjectTraits_Comdat      = 1 << 3,
-  ifc_ObjectTraits_SelectAny   = 1 << 4,
-  ifc_ObjectTraits_Process     = 1 << 5,
-  ifc_ObjectTraits_DllExport   = 1 << 6,
-  ifc_ObjectTraits_DllImport   = 1 << 7,
-  ifc_ObjectTraits_Allocate    = 1 << 8,
+  ifc_ObjectTraits_Inline      = 1 << 3,
+  ifc_ObjectTraits_InitializerExported
+                               = 1 << 4,
+  ifc_ObjectTraits_Vendor      = 1 << 7
+};
+
+/* Enumeration for MsvcTraits. */
+enum an_ifc_MsvcTraits {
+  ifc_MsvcTraits_None            = 0,
+  ifc_MsvcTraits_ForceInline     = 1 << 0,
+  ifc_MsvcTraits_Naked           = 1 << 1,
+  ifc_MsvcTraits_NoAlias         = 1 << 2,
+  ifc_MsvcTraits_NoInline        = 1 << 3,
+  ifc_MsvcTraits_Restrict        = 1 << 4,
+  ifc_MsvcTraits_SafeBuffers     = 1 << 5,
+  ifc_MsvcTraits_DllExport       = 1 << 6,
+  ifc_MsvcTraits_DllImport       = 1 << 7,
+  ifc_MsvcTraits_CodeSegment     = 1 << 8,
+  ifc_MsvcTraits_Novtable        = 1 << 9,
+  ifc_MsvcTraits_IntrinsicType   = 1 << 10,
+  ifc_MsvcTraits_EmptyBases      = 1 << 11,
+  ifc_MsvcTraits_Process         = 1 << 12,
+  ifc_MsvcTraits_Allocate        = 1 << 13,
+  ifc_MsvcTraits_SelectAny       = 1 << 14,
+  ifc_MsvcTraits_Comdat          = 1 << 15,
+  ifc_MsvcTraits_Uuid            = 1 << 16,
 };
 
 /* Enumeration for FunctionTraits. */
-enum an_ifc_FunctionTraits_kind {
+enum an_ifc_FunctionTraits {
   ifc_FunctionTraits_None         = 0,
   ifc_FunctionTraits_Inline       = 1 << 0,
-  ifc_FunctionTraits_ForceInline  = 1 << 1,
-  ifc_FunctionTraits_Constexpr    = 1 << 2,
-  ifc_FunctionTraits_Explicit     = 1 << 3,
-  ifc_FunctionTraits_Virtual      = 1 << 4,
-  ifc_FunctionTraits_NoReturn     = 1 << 5,
-  ifc_FunctionTraits_Naked        = 1 << 6,
-  ifc_FunctionTraits_NoAlias      = 1 << 7,
-  ifc_FunctionTraits_NoThrow      = 1 << 8,
-  ifc_FunctionTraits_NoInline     = 1 << 9,
-  ifc_FunctionTraits_Restrict     = 1 << 10,
-  ifc_FunctionTraits_SafeBuffers  = 1 << 11,
-  ifc_FunctionTraits_DllExport    = 1 << 12,
-  ifc_FunctionTraits_CodeSegment  = 1 << 13,
-  ifc_FunctionTraits_PureVirtual  = 1 << 14,
-  ifc_FunctionTraits_HiddenFriend = 1 << 15,
+  ifc_FunctionTraits_Constexpr    = 1 << 1,
+  ifc_FunctionTraits_Explicit     = 1 << 2,
+  ifc_FunctionTraits_Virtual      = 1 << 3,
+  ifc_FunctionTraits_NoReturn     = 1 << 4,
+  ifc_FunctionTraits_PureVirtual  = 1 << 5,
+  ifc_FunctionTraits_HiddenFriend = 1 << 6,
+  ifc_FunctionTraits_Defaulted    = 1 << 7,
+  ifc_FunctionTraits_Deleted      = 1 << 8,
+  ifc_FunctionTraits_Constrained  = 1 << 9,
+  ifc_FunctionTraits_Vendor       = 1 << 15,
 };
 
 /* Enumeration for FunctionTypeTraits. */
-enum an_ifc_FunctionTypeTraits_kind {
+enum an_ifc_FunctionTypeTraits {
   ifc_FunctionTypeTraits_None     = 0,
   ifc_FunctionTypeTraits_Const    = 1 << 0,
   ifc_FunctionTypeTraits_Volatile = 1 << 1,
@@ -209,8 +269,19 @@ enum an_ifc_FunctionTypeTraits_kind {
   ifc_FunctionTypeTraits_Rvalue   = 1 << 3,
 };
 
+/* Enumeration for CallingConventions. */
+enum an_ifc_CallingConvention {
+  ifc_CallingConvention_Cdecl,
+  ifc_CallingConvention_Fast,
+  ifc_CallingConvention_Std,
+  ifc_CallingConvention_This,
+  ifc_CallingConvention_Clr,
+  ifc_CallingConvention_Vector,
+  ifc_CallingConvention_Eabi,
+};
+
 /* Enumeration for NoexceptSpecification. */
-enum an_ifc_NoexceptSort_kind {
+enum an_ifc_NoexceptSort {
   ifc_NoexceptSort_None,
   ifc_NoexceptSort_False,
   ifc_NoexceptSort_True,
@@ -219,14 +290,35 @@ enum an_ifc_NoexceptSort_kind {
 };
 
 /* Enumeration for ScopeTraits. */
-enum an_ifc_ScopeTraits_kind {
+enum an_ifc_ScopeTraits {
   ifc_ScopeTraits_None          = 0,
   ifc_ScopeTraits_Unnamed       = 1 << 0,
   ifc_ScopeTraits_Inline        = 1 << 1,
-  ifc_ScopeTraits_NoVtable      = 1 << 2,
-  ifc_ScopeTraits_CodeSegment   = 1 << 3,
-  ifc_ScopeTraits_IntrinsicType = 1 << 4,
-  ifc_ScopeTraits_EmptyBases    = 1 << 5,
+  ifc_ScopeTraits_InitializerExported
+                                = 1 << 2,
+  ifc_ScopeTraits_ClosureType   = 1 << 3,
+  ifc_ScopeTraits_Vendor        = 1 << 7,
+};
+
+/* Macros used to access UnitIndex::tag and UnitIndex::value. */
+#define unit_tag(unit) ((unit) & 0x00000007)
+#define unit_value(unit) ((unit) >> 3)
+
+/* Enumeration for UnitSorts (i.e., types of modules). */
+enum an_ifc_UnitSort {
+  ifc_UnitSort_Source,
+  ifc_UnitSort_Primary,
+  ifc_UnitSort_Partition,
+  ifc_UnitSort_Header,
+  ifc_UnitSort_ExportedTU,
+};
+
+/* Enumeration for ParameterSorts (i.e., types of parameters). */
+enum an_ifc_ParameterSort {
+  ifc_ParameterSort_Object,           /* Function parameter. */
+  ifc_ParameterSort_Type,             /* Type template parameter. */
+  ifc_ParameterSort_NonType,          /* Non-type template parameter. */
+  ifc_ParameterSort_Template,         /* Template template parameter. */
 };
 
 /* Macros used to access TypeIndex::tag and TypeIndex::value. */
@@ -234,7 +326,7 @@ enum an_ifc_ScopeTraits_kind {
 #define type_value(type) ((type) >> 5)
 
 /* Enumeration for TypeSort (i.e., types of types). */
-enum an_ifc_TypeSort_kind_tag {
+enum an_ifc_TypeSort {
   ifc_TypeSort_VendorExtension,
   ifc_TypeSort_Fundamental,
   ifc_TypeSort_Designated,
@@ -253,17 +345,43 @@ enum an_ifc_TypeSort_kind_tag {
   ifc_TypeSort_Unaligned,
   ifc_TypeSort_Decltype,
   ifc_TypeSort_Tuple,
-  ifc_TypeSort_SyntaxTree
+  ifc_TypeSort_SyntaxTree,
+  /* Must always equal the last enumerator above. */
+  ifc_TypeSort_Last = ifc_TypeSort_SyntaxTree
 };
 
-typedef a_byte an_ifc_TypeSort_kind;
+/* Macros used to access StmtIndex::tag and StmtIndex::value. */
+#define stmt_tag(type) ((type) & 0x0000000F)
+#define stmt_value(type) ((type) >> 4)
+
+/* Enumeration for StmtSort (i.e., types of statements). */
+enum an_ifc_StmtSort {
+  ifc_StmtSort_VendorExtension,
+  ifc_StmtSort_Empty,
+  ifc_StmtSort_If,
+  ifc_StmtSort_For,
+  ifc_StmtSort_Case,
+  ifc_StmtSort_While,
+  ifc_StmtSort_Block,
+  ifc_StmtSort_Break,
+  ifc_StmtSort_Switch,
+  ifc_StmtSort_DoWhile,
+  ifc_StmtSort_Default,
+  ifc_StmtSort_Continue,
+  ifc_StmtSort_Expression,
+  ifc_StmtSort_Return,
+  ifc_StmtSort_VariableDecl,
+  ifc_StmtSort_SyntaxTree,
+  /* Must always equal the last enumerator above. */
+  ifc_StmtSort_Last = ifc_StmtSort_SyntaxTree
+};
 
 /* Macros used to access ExprIndex::tag and ExprIndex::value. */
 #define expr_tag(expr) ((expr) & 0x0000003F)
 #define expr_value(expr) ((expr) >> 6)
 
 /* Enumeration for ExprSort (i.e., types of expressions). */
-enum an_ifc_ExprSort_kind_tag {
+enum an_ifc_ExprSort {
   ifc_ExprSort_VendorExtension,
   ifc_ExprSort_Empty,
   ifc_ExprSort_Literal,
@@ -311,9 +429,40 @@ enum an_ifc_ExprSort_kind_tag {
   ifc_ExprSort_CompoundString,
   ifc_ExprSort_StringSequence,
   ifc_ExprSort_Initializer,
+  ifc_ExprSort_HierarchyConversion,
+  ifc_ExprSort_Product,
+  ifc_ExprSort_Sum,
+  ifc_ExprSort_Subobject,
+  ifc_ExprSort_Array,
+  ifc_ExprSort_VirtualFunction,
+  ifc_ExprSort_Requires,
+  ifc_ExprSort_UnaryFold,
+  ifc_ExprSort_BinaryFold,
+  /* Must always equal the last enumerator above. */
+  ifc_ExprSort_Last = ifc_ExprSort_BinaryFold,
 };
 
-typedef a_byte an_ifc_ExprSort_kind;
+/* Enumeration for ReadConversionSort (i.e., kinds of read conversions). */
+enum an_ifc_ReadConversionSort {
+  ifc_ReadConversionSort_Identity,
+  ifc_ReadConversionSort_Indirection,
+  ifc_ReadConversionSort_Dereference,
+  ifc_ReadConversionSort_LvalueToRvalue,
+  ifc_ReadConversionSort_IntegralConversion,
+};
+
+/* Macros used to access StringIndex::tag and StringIndex::value. */
+#define str_tag(expr) ((expr) & 0x0000000F)
+#define str_value(expr) ((expr) >> 4)
+
+/* Enumeration for StringSort (i.e., kinds of strings). */
+enum an_ifc_StringSort {
+  ifc_StringSort_Ordinary,
+  ifc_StringSort_UTF8,
+  ifc_StringSort_Char16,
+  ifc_StringSort_Char32,
+  ifc_StringSort_Wide,
+};
 
 /* Enumeration for TypeBasis (i.e., kinds of fundamental types). */
 enum an_ifc_TypeBasis {
@@ -338,7 +487,7 @@ enum an_ifc_TypeBasis {
   ifc_TypeBasis_Empty,
   ifc_TypeBasis_VariableTemplate,
   ifc_TypeBasis_Auto,
-  ifc_TypeBasis_DecltypeAuto
+  ifc_TypeBasis_DecltypeAuto,
 };
 
 /* Enumeration for TypePrecision (i.e., sizes of fundamental types). */
@@ -366,68 +515,70 @@ enum an_ifc_TypeSign {
   ((ifc_DeclIndex)((idx) << 5) | ((tag) & 0x0000001F))
 
 /* Enumeration for DeclSort (i.e., types of declarations). */
-enum an_ifc_DeclSort_kind_tag {
+enum an_ifc_DeclSort {
   ifc_DeclSort_VendorExtension,
   ifc_DeclSort_Enumerator,
   ifc_DeclSort_Variable,
-  ifc_DeclSort_TemplateParameter,
-  ifc_DeclSort_FunctionParameter,
+  ifc_DeclSort_Parameter,
   ifc_DeclSort_Field,
   ifc_DeclSort_Bitfield,
   ifc_DeclSort_Scope,
   ifc_DeclSort_Enumeration,
-  ifc_DeclSort_TypeAlias,
+  ifc_DeclSort_Alias,
   ifc_DeclSort_Temploid,
   ifc_DeclSort_Template,
   ifc_DeclSort_PartialSpecialization,
   ifc_DeclSort_ExplicitSpecialization,
   ifc_DeclSort_ExplicitInstantiation,
+  ifc_DeclSort_Concept,
   ifc_DeclSort_Intrinsic,
   ifc_DeclSort_Function,
   ifc_DeclSort_Method,
   ifc_DeclSort_Constructor,
+  ifc_DeclSort_InheritedConstructor,
   ifc_DeclSort_Destructor,
   ifc_DeclSort_Reference,
   ifc_DeclSort_Property,
   ifc_DeclSort_OutputSegment,
   ifc_DeclSort_UsingDeclaration,
   ifc_DeclSort_UsingDirective,
+  ifc_DeclSort_Friend,
   ifc_DeclSort_SyntaxTree,
-  ifc_DeclSort_Tuple
+  ifc_DeclSort_Tuple,
+  /* Must always equal the last enumerator above. */
+  ifc_DeclSort_Last = ifc_DeclSort_Tuple
 };
-
-typedef a_byte an_ifc_DeclSort_kind;
 
 /* Macros used to access NameIndex::tag and NameIndex::value. */
 #define name_tag(name) ((name) & 0x00000007)
 #define name_value(name) ((name) >> 3)
 
 /* Enumeration for NameSort (i.e., types of names). */
-enum an_ifc_NameSort_kind_tag {
+enum an_ifc_NameSort {
   ifc_NameSort_Identifier,
   ifc_NameSort_Operator,
   ifc_NameSort_Conversion,
   ifc_NameSort_Literal,
   ifc_NameSort_Template,
   ifc_NameSort_Specialization,
-  ifc_NameSort_SourceFile
+  ifc_NameSort_SourceFile,
+  /* Must always equal the last enumerator above. */
+  ifc_NameSort_Last = ifc_NameSort_SourceFile
 };
-
-typedef a_byte an_ifc_NameSort_kind;
 
 /* Macros used to access LitIndex::tag and LitIndex::index. */
 #define literal_tag(litindex) ((litindex) & 0x00000003)
 #define literal_index(litindex) ((litindex) >> 2)
 
 /* Enumeration for LiteralSort (i.e., types of literals). */
-enum an_ifc_LiteralSort_tag {
+enum an_ifc_LiteralSort {
   ifc_LiteralSort_Immediate,
   ifc_LiteralSort_Integer,
   ifc_LiteralSort_FloatingPoint,
 };
 
 /* Enumeration for OperatorCategory (i.e., types of operations). */
-enum an_ifc_OperatorCategory_tag {
+enum an_ifc_OperatorCategory {
   ifc_OperatorCategory_Bitand = 14,                /* operator& */
   ifc_OperatorCategory_LogicAnd = 15,              /* operator&& */
   ifc_OperatorCategory_Assign = 16,                /* operator= */
@@ -453,7 +604,7 @@ enum an_ifc_OperatorCategory_tag {
   ifc_OperatorCategory_Noexcept = 166,             /* operator noexcept */
   ifc_OperatorCategory_Requires = 174,             /* operator requires */
   ifc_OperatorCategory_Coreturn = 185,             /* operator co_return */
-  ifc_OperatorCategory_Await = 186,                /* operator co_yield */
+  ifc_OperatorCategory_Await = 186,                /* operator co_await */
   ifc_OperatorCategory_Yield = 187,                /* operator co_yield */
   ifc_OperatorCategory_StaticAssert = 261,         /* operator static_assert */
   ifc_OperatorCategory_PostIncrement = 336,        /* operator++ */
@@ -487,7 +638,241 @@ enum an_ifc_OperatorCategory_tag {
   ifc_OperatorCategory_IndirectMemberAccess = 387, /* operator->* */
 };
 
-typedef a_byte an_ifc_LiteralSort_kind;
+/* Macros used to access ChartIndex::tag and ChartIndex::value. */
+#define chart_tag(expr) ((expr) & 0x0000000F)
+#define chart_value(expr) ((expr) >> 4)
+
+/* Enumeration for ChartSort (i.e., kinds of charts). */
+enum an_ifc_ChartSort {
+  ifc_ChartSort_None,
+  ifc_ChartSort_Enclosing,
+  ifc_ChartSort_Unilevel,
+  ifc_ChartSort_Multilevel,
+};
+
+/* Enumeration for SyntaxSort (i.e., kinds of syntax). */
+enum an_ifc_SyntaxSort {
+  ifc_SyntaxSort_VendorExtension,
+             /* Vendor-specific extension for syntax. */
+  ifc_SyntaxSort_SimpleTypeSpecifier,
+             /* A simple type-specifier (i.e. no declarator) */
+  ifc_SyntaxSort_DecltypeSpecifier,
+             /* A decltype-specifier - 'decltype(expression)' */
+  ifc_SyntaxSort_DecltypeAutoSpecifier,
+             /* A decltype-specifier - 'decltype(auto)' */
+  ifc_SyntaxSort_TypeSpecifierSeq,
+             /* A type-specifier-seq - part of a type-id */
+  ifc_SyntaxSort_DeclSpecifierSeq,
+             /* A decl-specifier-seq - part of a declarator */
+  ifc_SyntaxSort_VirtualSpecifierSeq,
+             /* A virtual-specifier-seq (includes pure-specifier) */
+  ifc_SyntaxSort_NoexceptSpecification,
+             /* A noexcept-specification */
+  ifc_SyntaxSort_ExplicitSpecifier,
+             /* An explicit-specifier */
+  ifc_SyntaxSort_EnumSpecifier,
+             /* An enum-specifier */
+  ifc_SyntaxSort_EnumeratorDefinition,
+             /* An enumerator-definition */
+  ifc_SyntaxSort_ClassSpecifier,
+             /* A class-specifier */
+  ifc_SyntaxSort_MemberSpecification,
+             /* A member-specification */
+  ifc_SyntaxSort_MemberDeclaration,
+             /* A member-declaration */
+  ifc_SyntaxSort_MemberDeclarator,
+             /* A member-declarator */
+  ifc_SyntaxSort_AccessSpecifier,
+             /* An access-specifier */
+  ifc_SyntaxSort_BaseSpecifierList,
+             /* A base-specifier-list */
+  ifc_SyntaxSort_BaseSpecifier,
+             /* A base-specifier */
+  ifc_SyntaxSort_TypeId,
+             /* A complete type used as part of an expression */
+  ifc_SyntaxSort_TrailingReturnType,
+             /* a trailing return type: '-> T' */
+  ifc_SyntaxSort_Declarator,
+             /* A declarator: i.e. something that has not (yet) been resolved */
+  ifc_SyntaxSort_PointerDeclarator,
+             /* A sub-declarator for a pointer: '*D' */
+  ifc_SyntaxSort_ArrayDeclarator,
+             /* A sub-declarator for an array: 'D[e]' */
+  ifc_SyntaxSort_FunctionDeclarator,
+             /* A sub-declarator for a function: 'D(T1, T2, T3) <stuff>' */
+  ifc_SyntaxSort_ArrayOrFunctionDeclarator,
+             /* Either an array or a function sub-declarator */
+  ifc_SyntaxSort_ParameterDeclarator,
+             /* A function parameter declaration */
+  ifc_SyntaxSort_InitDeclarator,
+             /* A declaration with an initializer */
+  ifc_SyntaxSort_NewDeclarator,
+             /* A new declarator (used in new expressions) */
+  ifc_SyntaxSort_SimpleDeclaration,
+             /* A simple-declaration */
+  ifc_SyntaxSort_ExceptionDeclaration,
+             /* An exception-declaration */
+  ifc_SyntaxSort_ConditionDeclaration,
+             /* A declaration within if or switch statement */
+  ifc_SyntaxSort_StaticAssertDeclaration,
+             /* A static_assert-declaration */
+  ifc_SyntaxSort_AliasDeclaration,
+             /* An alias-declaration */
+  ifc_SyntaxSort_ConceptDefinition,
+             /* A concept-definition */
+  ifc_SyntaxSort_CompoundStatement,
+             /* A compound statement */
+  ifc_SyntaxSort_ReturnStatement,
+             /* A return statement */
+  ifc_SyntaxSort_IfStatement,
+             /* An if statement */
+  ifc_SyntaxSort_WhileStatement,
+             /* A while statement */
+  ifc_SyntaxSort_DoWhileStatement,
+             /* A do-while statement */
+  ifc_SyntaxSort_ForStatement,
+             /* A for statement */
+  ifc_SyntaxSort_InitStatement,
+             /* An init-statement */
+  ifc_SyntaxSort_RangeBasedForStatement,
+             /* A range-based for statement */
+  ifc_SyntaxSort_ForRangeDeclaration,
+             /* A for-range-declaration */
+  ifc_SyntaxSort_LabeledStatement,
+             /* A labeled statement */
+  ifc_SyntaxSort_BreakStatement,
+             /* A break statement */
+  ifc_SyntaxSort_ContinueStatement,
+             /* A continue statement */
+  ifc_SyntaxSort_SwitchStatement,
+             /* A switch statement */
+  ifc_SyntaxSort_GotoStatement,
+             /* A goto statement */
+  ifc_SyntaxSort_DeclarationStatement,
+             /* A declaration statement */
+  ifc_SyntaxSort_ExpressionStatement,
+             /* An expression statement */
+  ifc_SyntaxSort_TryBlock,
+             /* A try block */
+  ifc_SyntaxSort_Handler,
+             /* A catch handler */
+  ifc_SyntaxSort_HandlerSeq,
+             /* A sequence of catch handlers */
+  ifc_SyntaxSort_FunctionTryBlock,
+             /* A function try block */
+  ifc_SyntaxSort_TypeIdListElement,
+             /* a type-id-list element */
+  ifc_SyntaxSort_DynamicExceptionSpec,
+             /* A dynamic exception specification */
+  ifc_SyntaxSort_StatementSeq,
+             /* A sequence of statements */
+  ifc_SyntaxSort_FunctionBody,
+             /* The body of a function */
+  ifc_SyntaxSort_Expression,
+             /* A wrapper around an ExprSort node */
+  ifc_SyntaxSort_FunctionDefinition,
+             /* A function-definition */
+  ifc_SyntaxSort_MemberFunctionDeclaration,
+             /* A member function declaration */
+  ifc_SyntaxSort_TemplateDeclaration,
+             /* A template head definition */
+  ifc_SyntaxSort_RequiresClause,
+             /* A requires clause */
+  ifc_SyntaxSort_SimpleRequirement,
+             /* A simple requirement */
+  ifc_SyntaxSort_TypeRequirement,
+             /* A type requirement */
+  ifc_SyntaxSort_CompoundRequirement,
+             /* A compound requirement */
+  ifc_SyntaxSort_NestedRequirement,
+             /* A nested requirement */
+  ifc_SyntaxSort_RequirementBody,
+             /* A requirement body */
+  ifc_SyntaxSort_TypeTemplateParameter,
+             /* A type template-parameter */
+  ifc_SyntaxSort_TemplateTemplateParameter,
+             /* A template template-parameter */
+  ifc_SyntaxSort_TypeTemplateArgument,
+             /* A type template-argument */
+  ifc_SyntaxSort_NonTypeTemplateArgument,
+             /* A non-type template-argument */
+  ifc_SyntaxSort_TemplateParameterList,
+             /* A template parameter list */
+  ifc_SyntaxSort_TemplateArgumentList,
+             /* A template argument list */
+  ifc_SyntaxSort_TemplateId,
+             /* A template-id */
+  ifc_SyntaxSort_MemInitializer,
+             /* A mem-initializer */
+  ifc_SyntaxSort_CtorInitializer,
+             /* A ctor-initializer */
+  ifc_SyntaxSort_LambdaIntroducer,
+             /* A lambda-introducer */
+  ifc_SyntaxSort_LambdaDeclarator,
+             /* A lambda-declarator */
+  ifc_SyntaxSort_CaptureDefault,
+             /* A capture-default */
+  ifc_SyntaxSort_SimpleCapture,
+             /* A simple-capture */
+  ifc_SyntaxSort_InitCapture,
+             /* An init-capture */
+  ifc_SyntaxSort_ThisCapture,
+             /* A this-capture */
+  ifc_SyntaxSort_AttributedStatement,
+             /* An attributed statement */
+  ifc_SyntaxSort_AttributedDeclaration,
+             /* An attributed declaration */
+  ifc_SyntaxSort_AttributeSpecifierSeq,
+             /* An attribute-specifier-seq */
+  ifc_SyntaxSort_AttributeSpecifier,
+             /* An attribute-specifier */
+  ifc_SyntaxSort_AttributeUsingPrefix,
+             /* An attribute-using-prefix */
+  ifc_SyntaxSort_Attribute,
+             /* An attribute */
+  ifc_SyntaxSort_AttributeArgumentClause,
+             /* An attribute-argument-clause */
+  ifc_SyntaxSort_Alignas,
+             /* An alignas( expression ) */
+  ifc_SyntaxSort_UsingDeclaration,
+             /* A using-declaration */
+  ifc_SyntaxSort_UsingDeclarator,
+             /* A using-declarator */
+  ifc_SyntaxSort_UsingDirective,
+             /* A using-directive */
+  ifc_SyntaxSort_ArrayIndex,
+             /* An array index */
+  ifc_SyntaxSort_SEHTry,
+             /* An SEH try-block */
+  ifc_SyntaxSort_SEHExcept,
+             /* An SEH except-block */
+  ifc_SyntaxSort_SEHFinally,
+             /* An SEH finally-block */
+  ifc_SyntaxSort_SEHLeave,
+             /* An SEH leave */
+  ifc_SyntaxSort_TypeTraitIntrinsic,
+             /* A type trait intrinsic */
+  ifc_SyntaxSort_Tuple,
+             /* A sequence of zero or more syntactic elements */
+  ifc_SyntaxSort_AsmStatement,
+             /* An __asm statement, */
+  ifc_SyntaxSort_NamespaceAliasDefinition,
+             /* A namespace-alias-definition */
+  ifc_SyntaxSort_Super,
+             /* The '__super' keyword in a qualified id */
+  ifc_SyntaxSort_UnaryFoldExpression,
+             /* A unary fold expression */
+  ifc_SyntaxSort_BinaryFoldExpression,
+             /* A binary fold expression */
+  ifc_SyntaxSort_EmptyStatement,
+             /* An empty statement: ';' */
+  ifc_SyntaxSort_StructuredBindingDeclaration,
+             /* A structured binding */
+  ifc_SyntaxSort_StructuredBindingIdentifier,
+             /* A structured binding identifier */
+  /* Must always equal the last enumerator above. */
+  ifc_SyntaxSort_Last = ifc_SyntaxSort_StructuredBindingIdentifier
+};
 
 /*
 An enumeration of IFC partitions.  Note that generally the order of
@@ -503,15 +888,12 @@ enum an_ifc_partition_kind_tag {
   ifc_decl_vendor_extension = ifc_decl_start + ifc_DeclSort_VendorExtension,
   ifc_decl_enumerator = ifc_decl_start + ifc_DeclSort_Enumerator,
   ifc_decl_variable = ifc_decl_start + ifc_DeclSort_Variable,
-  ifc_decl_template_parameter = ifc_decl_start +
-                                                ifc_DeclSort_TemplateParameter,
-  ifc_decl_function_parameter = ifc_decl_start +
-                                                ifc_DeclSort_FunctionParameter,
+  ifc_decl_parameter = ifc_decl_start + ifc_DeclSort_Parameter,
   ifc_decl_field = ifc_decl_start + ifc_DeclSort_Field,
   ifc_decl_bitfield = ifc_decl_start + ifc_DeclSort_Bitfield,
   ifc_decl_scope = ifc_decl_start + ifc_DeclSort_Scope,
   ifc_decl_enum = ifc_decl_start + ifc_DeclSort_Enumeration,
-  ifc_decl_type_alias = ifc_decl_start + ifc_DeclSort_TypeAlias,
+  ifc_decl_alias = ifc_decl_start + ifc_DeclSort_Alias,
   ifc_decl_temploid = ifc_decl_start + ifc_DeclSort_Temploid,
   ifc_decl_template = ifc_decl_start + ifc_DeclSort_Template,
   ifc_decl_partial_specialization = ifc_decl_start +
@@ -520,18 +902,22 @@ enum an_ifc_partition_kind_tag {
                                            ifc_DeclSort_ExplicitSpecialization,
   ifc_decl_explicit_instantiation = ifc_decl_start +
                                             ifc_DeclSort_ExplicitInstantiation,
+  ifc_decl_concept = ifc_decl_start + ifc_DeclSort_Concept,
   ifc_decl_intrinsic = ifc_decl_start + ifc_DeclSort_Intrinsic,
   ifc_decl_function = ifc_decl_start + ifc_DeclSort_Function,
   ifc_decl_method = ifc_decl_start + ifc_DeclSort_Method,
   ifc_decl_constructor = ifc_decl_start + ifc_DeclSort_Constructor,
+  ifc_decl_inh_ctor = ifc_decl_start + ifc_DeclSort_InheritedConstructor,
   ifc_decl_destructor = ifc_decl_start + ifc_DeclSort_Destructor,
   ifc_decl_reference = ifc_decl_start + ifc_DeclSort_Reference,
   ifc_decl_property = ifc_decl_start + ifc_DeclSort_Property,
   ifc_decl_segment = ifc_decl_start + ifc_DeclSort_OutputSegment,
   ifc_decl_using_declaration = ifc_decl_start + ifc_DeclSort_UsingDeclaration,
   ifc_decl_using_directive = ifc_decl_start + ifc_DeclSort_UsingDirective,
+  ifc_decl_friend = ifc_decl_start + ifc_DeclSort_Friend,
   ifc_decl_syntax_tree = ifc_decl_start + ifc_DeclSort_SyntaxTree,
   ifc_decl_tuple = ifc_decl_start + ifc_DeclSort_Tuple,
+  ifc_decl_end = ifc_decl_start + ifc_DeclSort_Last,
   /* Group all TypeIndex::tag partitions together. */
   ifc_type_start,
   ifc_type_vendor_extension = ifc_type_start + ifc_TypeSort_VendorExtension,
@@ -553,6 +939,7 @@ enum an_ifc_partition_kind_tag {
   ifc_type_decltype = ifc_type_start + ifc_TypeSort_Decltype,
   ifc_type_tuple = ifc_type_start + ifc_TypeSort_Tuple,
   ifc_type_syntax_tree = ifc_type_start + ifc_TypeSort_SyntaxTree,
+  ifc_type_end = ifc_type_start + ifc_TypeSort_Last,
   /* Group all NameSort::tag partitions together.  Note that there is no
      partition for NameSort::Identifier (ifc_NameSort_Identifier). */
   ifc_name_start,
@@ -562,6 +949,7 @@ enum an_ifc_partition_kind_tag {
   ifc_name_template = ifc_name_start + ifc_NameSort_Template,
   ifc_name_specialization = ifc_name_start + ifc_NameSort_Specialization,
   ifc_name_source_file = ifc_name_start + ifc_NameSort_SourceFile,
+  ifc_name_end = ifc_name_start + ifc_NameSort_Last,
   /* Group all ExprSort::tag partitions together. */
   ifc_expr_start,
   ifc_expr_vendor_extension = ifc_expr_start + ifc_ExprSort_VendorExtension,
@@ -615,49 +1003,253 @@ enum an_ifc_partition_kind_tag {
   ifc_expr_compound_string = ifc_expr_start + ifc_ExprSort_CompoundString,
   ifc_expr_string_sequence = ifc_expr_start + ifc_ExprSort_StringSequence,
   ifc_expr_initializer = ifc_expr_start + ifc_ExprSort_Initializer,
+  ifc_expr_hierarchy_conversion = ifc_expr_start +
+                                              ifc_ExprSort_HierarchyConversion,
+  ifc_expr_product = ifc_expr_start + ifc_ExprSort_Product,
+  ifc_expr_sum = ifc_expr_start + ifc_ExprSort_Sum,
+  ifc_expr_subobject = ifc_expr_start + ifc_ExprSort_Subobject,
+  ifc_expr_array = ifc_expr_start + ifc_ExprSort_Array,
+  ifc_expr_virtual_function = ifc_expr_start + ifc_ExprSort_VirtualFunction,
+  ifc_expr_requires = ifc_expr_start + ifc_ExprSort_Requires,
+  ifc_expr_unaryfold = ifc_expr_start + ifc_ExprSort_UnaryFold,
+  ifc_expr_binaryfold = ifc_expr_start + ifc_ExprSort_BinaryFold,
+  ifc_expr_end = ifc_expr_start + ifc_ExprSort_Last,
+  /* Group all StmtSort::Tag partitions together. */
+  ifc_stmt_start,
+  ifc_stmt_vendor_extension = ifc_stmt_start + ifc_StmtSort_VendorExtension,
+  ifc_stmt_empty = ifc_stmt_start + ifc_StmtSort_Empty,
+  ifc_stmt_if = ifc_stmt_start + ifc_StmtSort_If,
+  ifc_stmt_for = ifc_stmt_start + ifc_StmtSort_For,
+  ifc_stmt_case = ifc_stmt_start + ifc_StmtSort_Case,
+  ifc_stmt_while = ifc_stmt_start + ifc_StmtSort_While,
+  ifc_stmt_block = ifc_stmt_start + ifc_StmtSort_Block,
+  ifc_stmt_break = ifc_stmt_start + ifc_StmtSort_Break,
+  ifc_stmt_switch = ifc_stmt_start + ifc_StmtSort_Switch,
+  ifc_stmt_do_while = ifc_stmt_start + ifc_StmtSort_DoWhile,
+  ifc_stmt_default = ifc_stmt_start + ifc_StmtSort_Default,
+  ifc_stmt_continue = ifc_stmt_start + ifc_StmtSort_Continue,
+  ifc_stmt_expression = ifc_stmt_start + ifc_StmtSort_Expression,
+  ifc_stmt_return = ifc_stmt_start + ifc_StmtSort_Return,
+  ifc_stmt_variable = ifc_stmt_start + ifc_StmtSort_VariableDecl,
+  ifc_stmt_syntax_tree = ifc_stmt_start + ifc_StmtSort_SyntaxTree,
+  ifc_stmt_end = ifc_stmt_start + ifc_StmtSort_Last,
+  /* Group all SyntaxSort::Tag partitions together. */
+  ifc_syntax_start,
+  ifc_syntax_vendor_extension = ifc_syntax_start +
+                                                ifc_SyntaxSort_VendorExtension,
+  ifc_syntax_simple_type_specifier = ifc_syntax_start +
+                                            ifc_SyntaxSort_SimpleTypeSpecifier,
+  ifc_syntax_decltype_specifier = ifc_syntax_start +
+                                              ifc_SyntaxSort_DecltypeSpecifier,
+  ifc_syntax_decltype_auto_specifier = ifc_syntax_start +
+                                          ifc_SyntaxSort_DecltypeAutoSpecifier,
+  ifc_syntax_type_specifier_seq = ifc_syntax_start +
+                                               ifc_SyntaxSort_TypeSpecifierSeq,
+  ifc_syntax_decl_specifier_seq = ifc_syntax_start +
+                                               ifc_SyntaxSort_DeclSpecifierSeq,
+  ifc_syntax_virtual_specifier_seq = ifc_syntax_start +
+                                            ifc_SyntaxSort_VirtualSpecifierSeq,
+  ifc_syntax_noexcept_specification = ifc_syntax_start +
+                                          ifc_SyntaxSort_NoexceptSpecification,
+  ifc_syntax_explicit_specifier = ifc_syntax_start +
+                                              ifc_SyntaxSort_ExplicitSpecifier,
+  ifc_syntax_enum_specifier = ifc_syntax_start + ifc_SyntaxSort_EnumSpecifier,
+  ifc_syntax_enumerator_definition = ifc_syntax_start +
+                                           ifc_SyntaxSort_EnumeratorDefinition,
+  ifc_syntax_class_specifier = ifc_syntax_start +
+                                                 ifc_SyntaxSort_ClassSpecifier,
+  ifc_syntax_member_specification = ifc_syntax_start +
+                                            ifc_SyntaxSort_MemberSpecification,
+  ifc_syntax_member_declaration = ifc_syntax_start +
+                                              ifc_SyntaxSort_MemberDeclaration,
+  ifc_syntax_member_declarator = ifc_syntax_start +
+                                               ifc_SyntaxSort_MemberDeclarator,
+  ifc_syntax_access_specifier = ifc_syntax_start +
+                                                ifc_SyntaxSort_AccessSpecifier,
+  ifc_syntax_base_specifier_list = ifc_syntax_start +
+                                              ifc_SyntaxSort_BaseSpecifierList,
+  ifc_syntax_base_specifier = ifc_syntax_start + ifc_SyntaxSort_BaseSpecifier,
+  ifc_syntax_type_id = ifc_syntax_start + ifc_SyntaxSort_TypeId,
+  ifc_syntax_trailing_return_type = ifc_syntax_start +
+                                             ifc_SyntaxSort_TrailingReturnType,
+  ifc_syntax_declarator = ifc_syntax_start + ifc_SyntaxSort_Declarator,
+  ifc_syntax_pointer_declarator = ifc_syntax_start +
+                                              ifc_SyntaxSort_PointerDeclarator,
+  ifc_syntax_array_declarator = ifc_syntax_start +
+                                                ifc_SyntaxSort_ArrayDeclarator,
+  ifc_syntax_function_declarator = ifc_syntax_start +
+                                             ifc_SyntaxSort_FunctionDeclarator,
+  ifc_syntax_array_or_function_declarator = ifc_syntax_start +
+                                      ifc_SyntaxSort_ArrayOrFunctionDeclarator,
+  ifc_syntax_parameter_declarator = ifc_syntax_start +
+                                            ifc_SyntaxSort_ParameterDeclarator,
+  ifc_syntax_init_declarator = ifc_syntax_start +
+                                                 ifc_SyntaxSort_InitDeclarator,
+  ifc_syntax_new_declarator = ifc_syntax_start + ifc_SyntaxSort_NewDeclarator,
+  ifc_syntax_simple_declaration = ifc_syntax_start +
+                                              ifc_SyntaxSort_SimpleDeclaration,
+  ifc_syntax_exception_declaration = ifc_syntax_start +
+                                           ifc_SyntaxSort_ExceptionDeclaration,
+  ifc_syntax_condition_declaration = ifc_syntax_start +
+                                           ifc_SyntaxSort_ConditionDeclaration,
+  ifc_syntax_static_assert_declaration = ifc_syntax_start +
+                                        ifc_SyntaxSort_StaticAssertDeclaration,
+  ifc_syntax_alias_declaration = ifc_syntax_start +
+                                               ifc_SyntaxSort_AliasDeclaration,
+  ifc_syntax_concept_definition = ifc_syntax_start +
+                                              ifc_SyntaxSort_ConceptDefinition,
+  ifc_syntax_compound_statement = ifc_syntax_start +
+                                              ifc_SyntaxSort_CompoundStatement,
+  ifc_syntax_return_statement = ifc_syntax_start +
+                                                ifc_SyntaxSort_ReturnStatement,
+  ifc_syntax_if_statement = ifc_syntax_start + ifc_SyntaxSort_IfStatement,
+  ifc_syntax_while_statement = ifc_syntax_start +
+                                                 ifc_SyntaxSort_WhileStatement,
+  ifc_syntax_do_statement = ifc_syntax_start + ifc_SyntaxSort_DoWhileStatement,
+  ifc_syntax_for_statement = ifc_syntax_start + ifc_SyntaxSort_ForStatement,
+  ifc_syntax_init_statement = ifc_syntax_start + ifc_SyntaxSort_InitStatement,
+  ifc_syntax_range_based_for_statement = ifc_syntax_start +
+                                         ifc_SyntaxSort_RangeBasedForStatement,
+  ifc_syntax_for_range_declaration = ifc_syntax_start +
+                                            ifc_SyntaxSort_ForRangeDeclaration,
+  ifc_syntax_labeled_statement = ifc_syntax_start +
+                                               ifc_SyntaxSort_LabeledStatement,
+  ifc_syntax_break_statement = ifc_syntax_start +
+                                                 ifc_SyntaxSort_BreakStatement,
+  ifc_syntax_continue_statement = ifc_syntax_start +
+                                              ifc_SyntaxSort_ContinueStatement,
+  ifc_syntax_switch_statement = ifc_syntax_start +
+                                                ifc_SyntaxSort_SwitchStatement,
+  ifc_syntax_declaration_statement = ifc_syntax_start +
+                                           ifc_SyntaxSort_DeclarationStatement,
+  ifc_syntax_expression_statement = ifc_syntax_start +
+                                            ifc_SyntaxSort_ExpressionStatement,
+  ifc_syntax_try_block = ifc_syntax_start + ifc_SyntaxSort_TryBlock,
+  ifc_syntax_handler = ifc_syntax_start + ifc_SyntaxSort_Handler,
+  ifc_syntax_handler_seq = ifc_syntax_start + ifc_SyntaxSort_HandlerSeq,
+  ifc_syntax_function_try_block = ifc_syntax_start +
+                                               ifc_SyntaxSort_FunctionTryBlock,
+  ifc_syntax_type_id_list_element = ifc_syntax_start +
+                                              ifc_SyntaxSort_TypeIdListElement,
+  ifc_syntax_dynamic_exception_spec = ifc_syntax_start +
+                                           ifc_SyntaxSort_DynamicExceptionSpec,
+  ifc_syntax_statement_seq = ifc_syntax_start + ifc_SyntaxSort_StatementSeq,
+  ifc_syntax_function_body = ifc_syntax_start + ifc_SyntaxSort_FunctionBody,
+  ifc_syntax_expression = ifc_syntax_start + ifc_SyntaxSort_Expression,
+  ifc_syntax_function_definition = ifc_syntax_start +
+                                             ifc_SyntaxSort_FunctionDefinition,
+  ifc_syntax_member_function_declaration = ifc_syntax_start +
+                                      ifc_SyntaxSort_MemberFunctionDeclaration,
+  ifc_syntax_template_declaration = ifc_syntax_start +
+                                            ifc_SyntaxSort_TemplateDeclaration,
+  ifc_syntax_requires_clause = ifc_syntax_start +
+                                                 ifc_SyntaxSort_RequiresClause,
+  ifc_syntax_simple_requirement = ifc_syntax_start +
+                                              ifc_SyntaxSort_SimpleRequirement,
+  ifc_syntax_type_requirement = ifc_syntax_start +
+                                                ifc_SyntaxSort_TypeRequirement,
+  ifc_syntax_compound_requirement = ifc_syntax_start +
+                                            ifc_SyntaxSort_CompoundRequirement,
+  ifc_syntax_nested_requirement = ifc_syntax_start +
+                                              ifc_SyntaxSort_NestedRequirement,
+  ifc_syntax_requirement_body = ifc_syntax_start +
+                                                ifc_SyntaxSort_RequirementBody,
+  ifc_syntax_type_template_parameter = ifc_syntax_start +
+                                          ifc_SyntaxSort_TypeTemplateParameter,
+  ifc_syntax_type_template_argument = ifc_syntax_start +
+                                           ifc_SyntaxSort_TypeTemplateArgument,
+  ifc_syntax_non_type_template_argument = ifc_syntax_start +
+                                        ifc_SyntaxSort_NonTypeTemplateArgument,
+  ifc_syntax_template_parameter_list = ifc_syntax_start +
+                                          ifc_SyntaxSort_TemplateParameterList,
+  ifc_syntax_template_argument_list = ifc_syntax_start +
+                                           ifc_SyntaxSort_TemplateArgumentList,
+  ifc_syntax_template_id = ifc_syntax_start + ifc_SyntaxSort_TemplateId,
+  ifc_syntax_mem_initializer = ifc_syntax_start +
+                                                 ifc_SyntaxSort_MemInitializer,
+  ifc_syntax_ctor_initializer = ifc_syntax_start +
+                                                ifc_SyntaxSort_CtorInitializer,
+  ifc_syntax_lambda_introducer = ifc_syntax_start +
+                                               ifc_SyntaxSort_LambdaIntroducer,
+  ifc_syntax_lambda_declarator = ifc_syntax_start +
+                                               ifc_SyntaxSort_LambdaDeclarator,
+  ifc_syntax_capture_default = ifc_syntax_start +
+                                                 ifc_SyntaxSort_CaptureDefault,
+  ifc_syntax_simple_capture = ifc_syntax_start + ifc_SyntaxSort_SimpleCapture,
+  ifc_syntax_init_capture = ifc_syntax_start + ifc_SyntaxSort_InitCapture,
+  ifc_syntax_this_capture = ifc_syntax_start + ifc_SyntaxSort_ThisCapture,
+  ifc_syntax_attributed_statement = ifc_syntax_start +
+                                            ifc_SyntaxSort_AttributedStatement,
+  ifc_syntax_attributed_declaration = ifc_syntax_start +
+                                          ifc_SyntaxSort_AttributedDeclaration,
+  ifc_syntax_attribute_specifier_seq = ifc_syntax_start +
+                                          ifc_SyntaxSort_AttributeSpecifierSeq,
+  ifc_syntax_attribute_specifier = ifc_syntax_start +
+                                             ifc_SyntaxSort_AttributeSpecifier,
+  ifc_syntax_attribute_using_prefix = ifc_syntax_start +
+                                           ifc_SyntaxSort_AttributeUsingPrefix,
+  ifc_syntax_attribute = ifc_syntax_start + ifc_SyntaxSort_Attribute,
+  ifc_syntax_attribute_argument_clause = ifc_syntax_start +
+                                        ifc_SyntaxSort_AttributeArgumentClause,
+  ifc_syntax_alignas = ifc_syntax_start + ifc_SyntaxSort_Alignas,
+  ifc_syntax_using_declaration = ifc_syntax_start +
+                                               ifc_SyntaxSort_UsingDeclaration,
+  ifc_syntax_using_declarator = ifc_syntax_start +
+                                                ifc_SyntaxSort_UsingDeclarator,
+  ifc_syntax_using_directive = ifc_syntax_start +
+                                                 ifc_SyntaxSort_UsingDirective,
+  ifc_syntax_array_index = ifc_syntax_start + ifc_SyntaxSort_ArrayIndex,
+  ifc_syntax_seh_try = ifc_syntax_start + ifc_SyntaxSort_SEHTry,
+  ifc_syntax_seh_except = ifc_syntax_start + ifc_SyntaxSort_SEHExcept,
+  ifc_syntax_seh_finally = ifc_syntax_start + ifc_SyntaxSort_SEHFinally,
+  ifc_syntax_seh_leave = ifc_syntax_start + ifc_SyntaxSort_SEHLeave,
+  ifc_syntax_type_trait_intrinsic = ifc_syntax_start +
+                                             ifc_SyntaxSort_TypeTraitIntrinsic,
+  ifc_syntax_tuple = ifc_syntax_start + ifc_SyntaxSort_Tuple,
+  ifc_syntax_asm_statement = ifc_syntax_start + ifc_SyntaxSort_AsmStatement,
+  ifc_syntax_namespace_alias_definition = ifc_syntax_start +
+                                       ifc_SyntaxSort_NamespaceAliasDefinition,
+  ifc_syntax_super = ifc_syntax_start + ifc_SyntaxSort_Super,
+  ifc_syntax_unary_fold_expression = ifc_syntax_start +
+                                            ifc_SyntaxSort_UnaryFoldExpression,
+  ifc_syntax_binary_fold_expression = ifc_syntax_start +
+                                           ifc_SyntaxSort_BinaryFoldExpression,
+  ifc_syntax_empty_statement = ifc_syntax_start +
+                                                 ifc_SyntaxSort_EmptyStatement,
+  ifc_syntax_structured_binding_declaration = ifc_syntax_start +
+                                   ifc_SyntaxSort_StructuredBindingDeclaration,
+  ifc_syntax_structured_binding_identifier = ifc_syntax_start +
+                                    ifc_SyntaxSort_StructuredBindingIdentifier,
+  ifc_syntax_end = ifc_syntax_start + ifc_SyntaxSort_Last,
   /* No particular grouping. */
-  ifc_msvc_code_segment,
+  ifc_chart_none,
+  ifc_chart_enclosing,
   ifc_chart_multilevel,
   ifc_chart_unilevel,
   ifc_const_f64,
   ifc_const_i64,
   ifc_const_str,
-  ifc_form_spec,
   ifc_heap_chart,
   ifc_heap_decl,
   ifc_heap_expr,
-  ifc_heap_spec,
   ifc_heap_stmt,
   ifc_heap_syn,
   ifc_heap_type,
+  ifc_msvc_trait_uuid,
+  ifc_msvc_trait_vendor_traits,
   ifc_module_exported,
   ifc_module_imported,
-  ifc_pragma_states,
   ifc_scope_desc,
   ifc_scope_member,
   ifc_src_line,
-  ifc_src_sentence,
-  ifc_src_word,
-  ifc_stmt_block,
-  ifc_stmt_break,
-  ifc_stmt_case,
-  ifc_stmt_continue,
-  ifc_stmt_default,
-  ifc_stmt_do_while,
-  ifc_stmt_empty,
-  ifc_stmt_expression,
-  ifc_stmt_for,
-  ifc_stmt_if,
-  ifc_stmt_return,
-  ifc_stmt_switch,
-  ifc_stmt_syntax_tree,
-  ifc_stmt_variable,
-  ifc_stmt_vendor_extension,
-  ifc_stmt_while,
+  ifc_trait_alias_template,
+  ifc_trait_class_template,
   ifc_trait_constexpr_function,
   ifc_trait_deprecated,
   ifc_trait_friend,
+  ifc_trait_function_template,
   ifc_trait_specialization,
+  ifc_trait_variable_template,
   ifc_last
 };
 
@@ -700,13 +1292,19 @@ struct an_ifc_partition_map {
 EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
 #if VAR_INITIALIZERS
 = {
-  { ".msvc.code-segment",              ifc_msvc_code_segment },
+  { ".msvc.code-segment",              ifc_decl_segment },
+  { ".msvc.trait.uuid",                ifc_msvc_trait_uuid },
+  { ".msvc.trait.vendor-traits",       ifc_msvc_trait_vendor_traits },
+  { "chart.enclosing",                 ifc_chart_enclosing },
   { "chart.multilevel",                ifc_chart_multilevel },
+  { "chart.none",                      ifc_chart_none },
   { "chart.unilevel",                  ifc_chart_unilevel },
   { "const.f64",                       ifc_const_f64 },
   { "const.i64",                       ifc_const_i64 },
   { "const.str",                       ifc_const_str },
+  { "decl.alias",                      ifc_decl_alias },
   { "decl.bitfield",                   ifc_decl_bitfield },
+  { "decl.concept",                    ifc_decl_concept },
   { "decl.constructor",                ifc_decl_constructor },
   { "decl.destructor",                 ifc_decl_destructor },
   { "decl.enum",                       ifc_decl_enum },
@@ -714,21 +1312,19 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "decl.explicit-instantiation",     ifc_decl_explicit_instantiation },
   { "decl.explicit-specialization",    ifc_decl_explicit_specialization },
   { "decl.field",                      ifc_decl_field },
+  { "decl.friend-declaration",         ifc_decl_friend },
   { "decl.function",                   ifc_decl_function },
-  { "decl.function-parameter",         ifc_decl_function_parameter },
   { "decl.intrinsic",                  ifc_decl_intrinsic },
   { "decl.method",                     ifc_decl_method },
+  { "decl.parameter",                  ifc_decl_parameter },
   { "decl.partial-specialization",     ifc_decl_partial_specialization },
   { "decl.property",                   ifc_decl_property },
   { "decl.reference",                  ifc_decl_reference },
   { "decl.scope",                      ifc_decl_scope },
-  { "decl.segment",                    ifc_decl_segment },
   { "decl.syntax-tree",                ifc_decl_syntax_tree },
   { "decl.template",                   ifc_decl_template },
-  { "decl.template-parameter",         ifc_decl_template_parameter },
   { "decl.temploid",                   ifc_decl_temploid },
   { "decl.tuple",                      ifc_decl_tuple },
-  { "decl.type-alias",                 ifc_decl_type_alias },
   { "decl.using-declaration",          ifc_decl_using_declaration },
   { "decl.using-directive",            ifc_decl_using_directive },
   { "decl.variable",                   ifc_decl_variable },
@@ -746,8 +1342,10 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "expr.empty",                      ifc_expr_empty },
   { "expr.expression-list",            ifc_expr_expression_list },
   { "expr.function-string",            ifc_expr_function_string },
+  { "expr.hierarchy-conversion",       ifc_expr_hierarchy_conversion },
   { "expr.identifier",                 ifc_expr_identifier },
   { "expr.inheritance-path",           ifc_expr_inheritance_path },
+  { "expr.initializer",                ifc_expr_initializer },
   { "expr.initializer-list",           ifc_expr_initializer_list },
   { "expr.lambda",                     ifc_expr_lambda },
   { "expr.literal",                    ifc_expr_literal },
@@ -779,11 +1377,9 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "expr.typeid",                     ifc_expr_typeid },
   { "expr.unresolved",                 ifc_expr_unresolved },
   { "expr.vendor-extension",           ifc_expr_vendor_extension },
-  { "form.spec",                       ifc_form_spec },
   { "heap.chart",                      ifc_heap_chart },
   { "heap.decl",                       ifc_heap_decl },
   { "heap.expr",                       ifc_heap_expr },
-  { "heap.spec",                       ifc_heap_spec },
   { "heap.stmt",                       ifc_heap_stmt },
   { "heap.syn",                        ifc_heap_syn },
   { "heap.type",                       ifc_heap_type },
@@ -795,12 +1391,9 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "name.source-file",                ifc_name_source_file },
   { "name.specialization",             ifc_name_specialization },
   { "name.template",                   ifc_name_template },
-  { "pragma.state",                    ifc_pragma_states },
   { "scope.desc",                      ifc_scope_desc },
   { "scope.member",                    ifc_scope_member },
   { "src.line",                        ifc_src_line },
-  { "src.sentence",                    ifc_src_sentence },
-  { "src.word",                        ifc_src_word },
   { "stmt.block",                      ifc_stmt_block },
   { "stmt.break",                      ifc_stmt_break },
   { "stmt.case",                       ifc_stmt_case },
@@ -817,10 +1410,127 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "stmt.variable",                   ifc_stmt_variable },
   { "stmt.vendor-extension",           ifc_stmt_vendor_extension },
   { "stmt.while",                      ifc_stmt_while },
+  { "syntax.access-specifier",         ifc_syntax_access_specifier },
+  { "syntax.alias-declaration",        ifc_syntax_alias_declaration },
+  { "syntax.alignas",                  ifc_syntax_alignas },
+  { "syntax.array-declarator",         ifc_syntax_array_declarator },
+  { "syntax.array-index",              ifc_syntax_array_index },
+  { "syntax.array-or-function-declarator",
+                                     ifc_syntax_array_or_function_declarator },
+  { "syntax.asm-statement",            ifc_syntax_asm_statement },
+  { "syntax.attribute",                ifc_syntax_attribute },
+  { "syntax.attribute-argument-clause",ifc_syntax_attribute_argument_clause },
+  { "syntax.attribute-specifier",      ifc_syntax_attribute_specifier },
+  { "syntax.attribute-specifier-seq",  ifc_syntax_attribute_specifier_seq },
+  { "syntax.attribute-using-prefix",   ifc_syntax_attribute_using_prefix },
+  { "syntax.attributed-declaration",   ifc_syntax_attributed_declaration },
+  { "syntax.attributed-statement",     ifc_syntax_attributed_statement },
+  { "syntax.base-specifier",           ifc_syntax_base_specifier },
+  { "syntax.base-specifier-list",      ifc_syntax_base_specifier_list },
+  { "syntax.binary-fold-expression",   ifc_syntax_binary_fold_expression },
+  { "syntax.break-statement",          ifc_syntax_break_statement },
+  { "syntax.capture-default",          ifc_syntax_capture_default },
+  { "syntax.class-specifier",          ifc_syntax_class_specifier },
+  { "syntax.compound-requirement",     ifc_syntax_compound_requirement },
+  { "syntax.compound-statement",       ifc_syntax_compound_statement },
+  { "syntax.concept-definition",       ifc_syntax_concept_definition },
+  { "syntax.condition-declaration",    ifc_syntax_condition_declaration },
+  { "syntax.continue-statement",       ifc_syntax_continue_statement },
+  { "syntax.ctor-initializer",         ifc_syntax_ctor_initializer },
+  { "syntax.decl-specifier-seq",       ifc_syntax_decl_specifier_seq },
+  { "syntax.declaration-statement",    ifc_syntax_declaration_statement },
+  { "syntax.declarator",               ifc_syntax_declarator },
+  { "syntax.decltype-auto-specifier",  ifc_syntax_decltype_auto_specifier },
+  { "syntax.decltype-specifier",       ifc_syntax_decltype_specifier },
+  { "syntax.do-statement",             ifc_syntax_do_statement },
+  { "syntax.dynamic-exception-spec",   ifc_syntax_dynamic_exception_spec },
+  { "syntax.empty-statement",          ifc_syntax_empty_statement },
+  { "syntax.enum-specifier",           ifc_syntax_enum_specifier },
+  { "syntax.enumerator-definition",    ifc_syntax_enumerator_definition },
+  { "syntax.exception-declaration",    ifc_syntax_exception_declaration },
+  { "syntax.explicit-specifier",       ifc_syntax_explicit_specifier },
+  { "syntax.expression",               ifc_syntax_expression },
+  { "syntax.expression-statement",     ifc_syntax_expression_statement },
+  { "syntax.for-range-declaration",    ifc_syntax_for_range_declaration },
+  { "syntax.for-statement",            ifc_syntax_for_statement },
+  { "syntax.function-body",            ifc_syntax_function_body },
+  { "syntax.function-declarator",      ifc_syntax_function_declarator },
+  { "syntax.function-definition",      ifc_syntax_function_definition },
+  { "syntax.function-try-block",       ifc_syntax_function_try_block },
+  { "syntax.handler",                  ifc_syntax_handler },
+  { "syntax.handler-seq",              ifc_syntax_handler_seq },
+  { "syntax.if-statement",             ifc_syntax_if_statement },
+  { "syntax.init-capture",             ifc_syntax_init_capture },
+  { "syntax.init-declarator",          ifc_syntax_init_declarator },
+  { "syntax.init-statement",           ifc_syntax_init_statement },
+  { "syntax.labeled-statement",        ifc_syntax_labeled_statement },
+  { "syntax.lambda-declarator",        ifc_syntax_lambda_declarator },
+  { "syntax.lambda-introducer",        ifc_syntax_lambda_introducer },
+  { "syntax.mem-initializer",          ifc_syntax_mem_initializer },
+  { "syntax.member-declaration",       ifc_syntax_member_declaration },
+  { "syntax.member-declarator",        ifc_syntax_member_declarator },
+  { "syntax.member-function-declaration",
+                                      ifc_syntax_member_function_declaration },
+  { "syntax.member-specification",     ifc_syntax_member_specification },
+  { "syntax.namespace-alias-definition",
+                                       ifc_syntax_namespace_alias_definition },
+  { "syntax.nested-requirement",       ifc_syntax_nested_requirement },
+  { "syntax.new-declarator",           ifc_syntax_new_declarator },
+  { "syntax.noexcept-specification",   ifc_syntax_noexcept_specification },
+  { "syntax.non-type-template-argument",
+                                       ifc_syntax_non_type_template_argument },
+  { "syntax.parameter-declarator",     ifc_syntax_parameter_declarator },
+  { "syntax.pointer-declarator",       ifc_syntax_pointer_declarator },
+  { "syntax.range-based-for-statement",ifc_syntax_range_based_for_statement },
+  { "syntax.requirement-body",         ifc_syntax_requirement_body },
+  { "syntax.requires-clause",          ifc_syntax_requires_clause },
+  { "syntax.return-statement",         ifc_syntax_return_statement },
+  { "syntax.seh-except",               ifc_syntax_seh_except },
+  { "syntax.seh-finally",              ifc_syntax_seh_finally },
+  { "syntax.seh-leave",                ifc_syntax_seh_leave },
+  { "syntax.seh-try",                  ifc_syntax_seh_try },
+  { "syntax.simple-capture",           ifc_syntax_simple_capture },
+  { "syntax.simple-declaration",       ifc_syntax_simple_declaration },
+  { "syntax.simple-requirement",       ifc_syntax_simple_requirement },
+  { "syntax.simple-type-specifier",    ifc_syntax_simple_type_specifier },
+  { "syntax.statement-seq",            ifc_syntax_statement_seq },
+  { "syntax.static-assert-declaration",ifc_syntax_static_assert_declaration },
+  { "syntax.structured-binding-declaration",
+                                   ifc_syntax_structured_binding_declaration },
+  { "syntax.structured-binding-identifier",
+                                    ifc_syntax_structured_binding_identifier },
+  { "syntax.super",                    ifc_syntax_super },
+  { "syntax.switch-statement",         ifc_syntax_switch_statement },
+  { "syntax.template-argument-list",   ifc_syntax_template_argument_list },
+  { "syntax.template-declaration",     ifc_syntax_template_declaration },
+  { "syntax.template-id",              ifc_syntax_template_id },
+  { "syntax.template-parameter-list",  ifc_syntax_template_parameter_list },
+  { "syntax.this-capture",             ifc_syntax_this_capture },
+  { "syntax.trailing-return-type",     ifc_syntax_trailing_return_type },
+  { "syntax.try-block",                ifc_syntax_try_block },
+  { "syntax.tuple",                    ifc_syntax_tuple },
+  { "syntax.type-id",                  ifc_syntax_type_id },
+  { "syntax.type-id-list-element",     ifc_syntax_type_id_list_element },
+  { "syntax.type-requirement",         ifc_syntax_type_requirement },
+  { "syntax.type-specifier-seq",       ifc_syntax_type_specifier_seq },
+  { "syntax.type-template-argument",   ifc_syntax_type_template_argument },
+  { "syntax.type-template-parameter",  ifc_syntax_type_template_parameter },
+  { "syntax.type-trait-intrinsic",     ifc_syntax_type_trait_intrinsic },
+  { "syntax.unary-fold-expression",    ifc_syntax_unary_fold_expression },
+  { "syntax.using-declaration",        ifc_syntax_using_declaration },
+  { "syntax.using-declarator",         ifc_syntax_using_declarator },
+  { "syntax.using-directive",          ifc_syntax_using_directive },
+  { "syntax.vendor-extension",         ifc_syntax_vendor_extension },
+  { "syntax.virtual-specifier-seq",    ifc_syntax_virtual_specifier_seq },
+  { "syntax.while-statement",          ifc_syntax_while_statement },
+  { "trait.alias-template",            ifc_trait_alias_template },
+  { "trait.class-template",            ifc_trait_class_template },
   { "trait.constexpr-function",        ifc_trait_constexpr_function },
   { "trait.deprecated",                ifc_trait_deprecated },
   { "trait.friend",                    ifc_trait_friend },
+  { "trait.function-template",         ifc_trait_function_template },
   { "trait.specialization",            ifc_trait_specialization },
+  { "trait.variable-template",         ifc_trait_variable_template },
   { "type.array",                      ifc_type_array },
   { "type.base",                       ifc_type_base },
   { "type.decltype",                   ifc_type_decltype },
@@ -828,7 +1538,7 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "type.expansion",                  ifc_type_expansion },
   { "type.function",                   ifc_type_function },
   { "type.fundamental",                ifc_type_fundamental },
-  { "type.lvalue-reference",           ifc_type_lvalue_reference },
+  { "type.pointer-lvalue-reference",   ifc_type_lvalue_reference },
   { "type.nonstatic-member-function",  ifc_type_nonstatic_member_function },
   { "type.pointer",                    ifc_type_pointer },
   { "type.pointer-to-member",          ifc_type_pointer_to_member },

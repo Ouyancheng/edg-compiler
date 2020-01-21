@@ -267,6 +267,9 @@ Utility to print some debug information for every access to an IFC module file.
       case 4:
         (void)fprintf(f_debug, "0x%08x", *((uint32_t*)addr));
         break;
+      case 8:
+        (void)fprintf(f_debug, "0x%08x%08x", *((uint32_t*)addr), *(((uint32_t*)addr)+1));
+        break;
       default:
         unexpected_condition();
     }  /* switch */
@@ -285,6 +288,7 @@ read_ifc_partition_at_offset or read_ifc_partition_at_index), in the proper
 endianness.  These macros have the GET capitalized as a visual indicator that
 they change the value of their argument.
 */
+/* FIXME: Header/TOC is little-endian, partitions use big-endian */
 #define GET_byte(value)						        \
   (check_size(value, 1)                                                 \
    get_big_endian_bytes(&(value), 1)                                    \
@@ -320,59 +324,80 @@ visual indicator that they change the value of their argument.
 
 Handle nested structures differently (and check for padding).
 */
-#define GET_SourceLocation(x)  (GET_int((x).line), \
-                                GET_int((x).column))
 #define GET_Sequence(x)        (GET_int((x).start), \
                                 GET_int((x).cardinality))
+#define GET_ContentHash(x)     (GET_64bit_int((x).bytes[0]), \
+                                GET_64bit_int((x).bytes[1]), \
+                                GET_64bit_int((x).bytes[2]), \
+                                GET_64bit_int((x).bytes[3]))
+#define GET_ModuleReference(x) (GET_int((x).owner), \
+                                GET_int((x).partition))
+#define GET_SourceLocation(x)  (GET_int((x).line), \
+                                GET_int((x).column))
 /* Note that this includes padding: */
 #define GET_NoexceptSpecification(x) \
                                (GET_int((x).words), \
                                 GET_byte((x).sort), \
                                 pad(3))
+#define GET_ParameterizedEntity(x) (unexpected_condition_str \
+                         ("Lacking specification for a parameterized entity."))
 
 #define GET_ByteOffset(x)         GET_int(x)
 #define GET_Cardinality(x)        GET_int(x)
+#define GET_ChartIndex(x)         GET_int(x)
+#define GET_Column(x)             GET_int(x)
 #define GET_DeclIndex(x)          GET_int(x)
 #define GET_EntitySize(x)         GET_int(x)
 #define GET_ExprIndex(x)          GET_int(x)
 #define GET_Index(x)              GET_int(x)
+#define GET_LanguageVersion(x)    GET_int(x)
+#define GET_LineIndex(x)          GET_int(x)
 #define GET_LineNumber(x)         GET_int(x)
 #define GET_LitIndex(x)           GET_int(x)
+#define GET_MsvcTraits(x)         GET_int(x)
 #define GET_NameIndex(x)          GET_int(x)
 #define GET_Offset(x)             GET_int(x)
 #define GET_ParameterLevel(x)     GET_int(x)
 #define GET_ParameterPosition(x)  GET_int(x)
 #define GET_ScopeIndex(x)         GET_int(x)
+#define GET_SentenceIndex(x)      GET_int(x)
 #define GET_SentenceOffset(x)     GET_int(x)
+#define GET_StmtIndex(x)          GET_int(x)
 #define GET_StringIndex(x)        GET_int(x)
 #define GET_SyntaxIndex(x)        GET_int(x)
 #define GET_TextOffset(x)         GET_int(x)
 #define GET_TokenCategory(x)      GET_int(x)
 #define GET_TypeIndex(x)          GET_int(x)
 #define GET_UniqueID(x)           GET_int(x)
+#define GET_UnitIndex(x)          GET_int(x)
 
 #define GET_Alignment(x)          GET_short(x)
-#define GET_PackSize(x)           GET_short(x)
-#define GET_FunctionTraits(x)     GET_short(x)
-#define GET_ObjectTraits(x)       GET_short(x)
-#define GET_OperatorCategory(x)   GET_short(x)
 #define GET_EHFlags(x)            GET_short(x)
+#define GET_FunctionTraits(x)     GET_short(x)
+#define GET_OperatorCategory(x)   GET_short(x)
+#define GET_PackSize(x)           GET_short(x)
 
-#define GET_ScopeTraits(x)        GET_byte(x)
-#define GET_BasicSpecifiers(x)    GET_byte(x)
+#define GET_Abi(x)                GET_byte(x)
 #define GET_Access(x)             GET_byte(x)
+#define GET_Architecture(x)       GET_byte(x)
+#define GET_BasicSpecifiers(x)    GET_byte(x)
+#define GET_CallingConvention(x)  GET_byte(x)
+#define GET_FunctionTypeTraits(x) GET_byte(x)
+#define GET_NoexceptSort(x)       GET_byte(x)
+#define GET_ObjectTraits(x)       GET_byte(x)
+#define GET_ParameterSort(x)      GET_byte(x)
+#define GET_Qualifiers(x)         GET_byte(x)
+#define GET_ReadConversionSort(x) GET_byte(x)
+#define GET_ScopeTraits(x)        GET_byte(x)
+#define GET_SyntaxSort(x)         GET_byte(x)
 #define GET_TypeBasis(x)          GET_byte(x)
 #define GET_TypePrecision(x)      GET_byte(x)
 #define GET_TypeSign(x)           GET_byte(x)
-#define GET_NoexceptSort(x)       GET_byte(x)
-#define GET_CallingConvention(x)  GET_byte(x)
-#define GET_FunctionTypeTraits(x) GET_byte(x)
-#define GET_Qualifiers(x)         GET_byte(x)
 #define GET_Version(x)            GET_byte(x)
-#define GET_Abi(x)                GET_byte(x)
-#define GET_Architecture(x)       GET_byte(x)
 
 #define GET_bool(x)               GET_byte(x)
+#define GET_uint8_t(x)            GET_byte(x)
+#define GET_uint16_t(x)           GET_short(x)
 
 /* Utility to save the current partition (for display during debugging). */
 #if DEBUG
@@ -509,24 +534,26 @@ Display the contents of the IFC file header for the specified module.
 {
   an_ifc_File_Header *hdr = &mod->variant.ifc->header;
 
+  /* FIXME: Print checksum */
   (void)fprintf(f_debug, "  major_version = %d\n", hdr->major_version);
   (void)fprintf(f_debug, "  minor_version = %d\n", hdr->minor_version);
   (void)fprintf(f_debug, "  abi = %d\n", hdr->abi);
   (void)fprintf(f_debug, "  arch = %d\n", hdr->arch);
+  (void)fprintf(f_debug, "  dialect = %d\n", hdr->dialect);
   (void)fprintf(f_debug, "  string_table_bytes = 0x%08x\n",
                                                       hdr->string_table_bytes);
   (void)fprintf(f_debug, "  string_table_size = %d\n", hdr->string_table_size);
-  (void)fprintf(f_debug, "  name = 0x%08x \"%s\"\n", hdr->name,
-                                         get_string_at_offset(mod, hdr->name));
-  (void)fprintf(f_debug, "  source = 0x%08x \"%s\"\n", hdr->source,
-                                       get_string_at_offset(mod, hdr->source));
+  (void)fprintf(f_debug, "  unit = %d\n", hdr->unit);
+  (void)fprintf(f_debug, "  src_path = 0x%08x \"%s\"\n", hdr->src_path,
+                                     get_string_at_offset(mod, hdr->src_path));
   (void)fprintf(f_debug, "  global_scope = %d\n", hdr->global_scope);
   (void)fprintf(f_debug, "  toc = 0x%08x\n", hdr->toc);
   (void)fprintf(f_debug, "  partition_count = %d\n", hdr->partition_count);
+  (void)fprintf(f_debug, "  internal = %d\n", hdr->internal);
 }  /* db_ifc_File_header */
 
 
-static a_const_char *db_decl_tag(an_ifc_DeclSort_kind tag)
+static a_const_char *db_decl_tag(ifc_DeclSort tag)
 /*
 Return a string with the name that corresponds to the DeclSort tag.
 */
@@ -537,13 +564,12 @@ Return a string with the name that corresponds to the DeclSort tag.
     case ifc_DeclSort_VendorExtension:   result = "VendorExtension"; break;
     case ifc_DeclSort_Enumerator:        result = "Enumerator"; break;
     case ifc_DeclSort_Variable:          result = "Variable"; break;
-    case ifc_DeclSort_TemplateParameter: result = "TemplateParameter"; break;
-    case ifc_DeclSort_FunctionParameter: result = "FunctionParameter"; break;
+    case ifc_DeclSort_Parameter:         result = "Parameter"; break;
     case ifc_DeclSort_Field:             result = "Field"; break;
     case ifc_DeclSort_Bitfield:          result = "Bitfield"; break;
     case ifc_DeclSort_Scope:             result = "Scope"; break;
     case ifc_DeclSort_Enumeration:       result = "Enumeration"; break;
-    case ifc_DeclSort_TypeAlias:         result = "TypeAlias"; break;
+    case ifc_DeclSort_Alias:             result = "Alias"; break;
     case ifc_DeclSort_Temploid:          result = "Temploid"; break;
     case ifc_DeclSort_Template:          result = "Template"; break;
     case ifc_DeclSort_PartialSpecialization:
@@ -552,16 +578,20 @@ Return a string with the name that corresponds to the DeclSort tag.
                                        result = "ExplicitSpecialization";break;
     case ifc_DeclSort_ExplicitInstantiation:
                                        result = "ExplicitInstantiation"; break;
+    case ifc_DeclSort_Concept:           result = "Concept"; break;
     case ifc_DeclSort_Intrinsic:         result = "Intrinsic"; break;
     case ifc_DeclSort_Function:          result = "Function"; break;
     case ifc_DeclSort_Method:            result = "Method"; break;
     case ifc_DeclSort_Constructor:       result = "Constructor"; break;
+    case ifc_DeclSort_InheritedConstructor:
+                                        result = "InheritedConstructor"; break;
     case ifc_DeclSort_Destructor:        result = "Destructor"; break;
     case ifc_DeclSort_Reference:         result = "Reference"; break;
     case ifc_DeclSort_Property:          result = "Property"; break;
     case ifc_DeclSort_OutputSegment:     result = "OutputSegment"; break;
     case ifc_DeclSort_UsingDeclaration:  result = "UsingDeclaration"; break;
     case ifc_DeclSort_UsingDirective:    result = "UsingDirective"; break;
+    case ifc_DeclSort_Friend:            result = "Friend"; break;
     case ifc_DeclSort_SyntaxTree:        result = "SyntaxTree"; break;
     case ifc_DeclSort_Tuple:             result = "Tuple"; break;
     default:
@@ -722,9 +752,9 @@ updated accordingly.
 */
 {
   a_const_char         *result = NULL, *prefix = NULL;
-  an_ifc_NameSort_kind tag = name_tag(name_index);
+  ifc_NameSort         tag = name_tag(name_index);
 
-  if (tag == (an_ifc_NameSort_kind)ifc_NameSort_Identifier) {
+  if (tag == (an_ifc_NameSort)ifc_NameSort_Identifier) {
     /* NameSort::Identifiers just refer to the string table. */
     result = get_string_at_offset(mod, name_value(name_index));
   } else {
@@ -831,7 +861,7 @@ For constructors and destructors, add the name of the class specified
 by home_scope to the output buffer.
 */
 {
-  an_ifc_DeclSort_kind tag = decl_tag(home_scope);
+  ifc_DeclSort          tag = decl_tag(home_scope);
   an_ifc_DeclSort_Scope idss, *idssp;
 
   /* Prepare to read from the proper partition for this declaration. */
@@ -987,27 +1017,64 @@ Add strings representing object traits, if any.
     if (traits & ifc_ObjectTraits_ThreadLocal) {
       add_string_to_text_buffer(scbp->text_buffer, "thread_local ");
     }  /* if */
-    if (traits & ifc_ObjectTraits_Comdat) {
-      /* FIXME */
-      add_string_to_text_buffer(scbp->text_buffer, "__declspec(comdat?) ");
-    }  /* if */
-    if (traits & ifc_ObjectTraits_SelectAny) {
-      add_string_to_text_buffer(scbp->text_buffer, "__declspec(selectany) ");
-    }  /* if */
-    if (traits & ifc_ObjectTraits_Process) {
-      add_string_to_text_buffer(scbp->text_buffer, "__declspec(process) ");
-    }  /* if */
-    if (traits & ifc_ObjectTraits_DllExport) {
-      add_string_to_text_buffer(scbp->text_buffer, "__declspec(dllexport) ");
-    }  /* if */
-    if (traits & ifc_ObjectTraits_DllImport) {
-      add_string_to_text_buffer(scbp->text_buffer, "__declspec(dllimport) ");
-    }  /* if */
-    if (traits & ifc_ObjectTraits_Allocate) {
-      add_string_to_text_buffer(scbp->text_buffer, "__declspec(allocate) ");
+    if (traits & ifc_ObjectTraits_Inline) {
+      add_string_to_text_buffer(scbp->text_buffer, "inline ");
     }  /* if */
   }  /* if */
 }  /* str_ifc_object_traits */
+
+
+static void str_ifc_msvc_traits(ifc_MsvcTraits      traits,
+                                a_str_control_block *scbp)
+{
+  if (traits != ifc_MsvcTraits_None) {
+    if (traits & ifc_MsvcTraits_ForceInline) {
+      add_string_to_text_buffer(scbp->text_buffer, "__forceinline ");
+    }  /* if */
+    if (traits & ifc_MsvcTraits_Naked) {
+      add_string_to_text_buffer(scbp->text_buffer, "__declspec(naked) ");
+    }  /* if */
+    if (traits & ifc_MsvcTraits_NoAlias) {
+      add_string_to_text_buffer(scbp->text_buffer, "__declspec(noalias) ");
+    }  /* if */
+    if (traits & ifc_MsvcTraits_NoInline) {
+      add_string_to_text_buffer(scbp->text_buffer, "__declspec(noinline) ");
+    }  /* if */
+    if (traits & ifc_MsvcTraits_Restrict) {
+      add_string_to_text_buffer(scbp->text_buffer, "__declspec(restrict) ");
+    }  /* if */
+    if (traits & ifc_MsvcTraits_SafeBuffers) {
+      add_string_to_text_buffer(scbp->text_buffer,
+                                                  "__declspec(safebuffers) ");
+    }  /* if */
+    if (traits & ifc_MsvcTraits_DllExport) {
+      add_string_to_text_buffer(scbp->text_buffer, "__declspec(dllexport) ");
+    }  /* if */
+    if (traits & ifc_MsvcTraits_DllImport) {
+      add_string_to_text_buffer(scbp->text_buffer, "__declspec(dllimport) ");
+    }  /* if */
+    if (traits & ifc_MsvcTraits_CodeSegment) {
+      add_string_to_text_buffer(scbp->text_buffer, "__declspec(code_seg) ");
+    }  /* if */
+    /* FIXME: Novtable */
+    /* FIXME: IntrinsicType */
+    /* FIXME: EmptyBases */
+    if (traits & ifc_MsvcTraits_Process) {
+      add_string_to_text_buffer(scbp->text_buffer, "__declspec(process) ");
+    }  /* if */
+    if (traits & ifc_MsvcTraits_Allocate) {
+      add_string_to_text_buffer(scbp->text_buffer, "__declspec(allocate) ");
+    }  /* if */
+    if (traits & ifc_MsvcTraits_SelectAny) {
+      add_string_to_text_buffer(scbp->text_buffer, "__declspec(selectany) ");
+    }  /* if */
+    if (traits & ifc_MsvcTraits_Comdat) {
+      /* FIXME */
+      add_string_to_text_buffer(scbp->text_buffer, "__declspec(comdat?) ");
+    }  /* if */
+    /* FIXME: Uuid */
+  }  /* if */
+}  /* str_ifc_msvc_traits */
 
 
 static void str_ifc_function_type_traits(ifc_FunctionTypeTraits traits,
@@ -1070,9 +1137,6 @@ traits that prefix a function declaration, otherwise emit postfix traits.
       if (traits & ifc_FunctionTraits_Inline) {
         add_string_to_text_buffer(scbp->text_buffer, "inline ");
       }  /* if */
-      if (traits & ifc_FunctionTraits_ForceInline) {
-        add_string_to_text_buffer(scbp->text_buffer, "__forceinline ");
-      }  /* if */
       if (traits & ifc_FunctionTraits_Constexpr) {
         add_string_to_text_buffer(scbp->text_buffer, "constexpr ");
       }  /* if */
@@ -1084,31 +1148,6 @@ traits that prefix a function declaration, otherwise emit postfix traits.
       }  /* if */
       if (traits & ifc_FunctionTraits_NoReturn) {
         add_string_to_text_buffer(scbp->text_buffer, "[[noreturn]] ");
-      }  /* if */
-      if (traits & ifc_FunctionTraits_Naked) {
-        add_string_to_text_buffer(scbp->text_buffer, "__declspec(naked) ");
-      }  /* if */
-      if (traits & ifc_FunctionTraits_NoAlias) {
-        add_string_to_text_buffer(scbp->text_buffer, "__declspec(noalias) ");
-      }  /* if */
-      if (traits & ifc_FunctionTraits_NoThrow) {
-        add_string_to_text_buffer(scbp->text_buffer, "__declspec(nothrow) ");
-      }  /* if */
-      if (traits & ifc_FunctionTraits_NoInline) {
-        add_string_to_text_buffer(scbp->text_buffer, "__declspec(noinline) ");
-      }  /* if */
-      if (traits & ifc_FunctionTraits_Restrict) {
-        add_string_to_text_buffer(scbp->text_buffer, "__declspec(restrict) ");
-      }  /* if */
-      if (traits & ifc_FunctionTraits_SafeBuffers) {
-        add_string_to_text_buffer(scbp->text_buffer,
-                                                   "__declspec(safebuffers) ");
-      }  /* if */
-      if (traits & ifc_FunctionTraits_DllExport) {
-        add_string_to_text_buffer(scbp->text_buffer, "__declspec(dllexport) ");
-      }  /* if */
-      if (traits & ifc_FunctionTraits_CodeSegment) {
-        add_string_to_text_buffer(scbp->text_buffer, "__declspec(code_seg) ");
       }  /* if */
       if (traits & ifc_FunctionTraits_HiddenFriend) {
         /* FIXME: don't know what this is. */
@@ -1131,7 +1170,7 @@ Add a textual representation of the expression referenced by expr_index to
 the output buffer.
 */
 {
-  an_ifc_ExprSort_kind      tag = type_tag(expr_index);
+  ifc_ExprSort      tag = expr_tag(expr_index);
 
   /* Prepare to read from the proper partition for this expression. */
   read_ifc_partition_at_index(scbp->module_info, ifc_expr_start + tag,
@@ -1258,7 +1297,7 @@ an "ellipsis type").
 {
   a_type_ptr                result = NULL;
   a_module_entity_ptr       mep = get_type_module_entity_ptr(mod, type_index);
-  an_ifc_TypeSort_kind      tag;
+  ifc_TypeSort              tag;
 
   if (mep->entity.ptr != NULL) {
     /* There is already an entry for this; return it. */
@@ -1574,7 +1613,7 @@ Create a string representation for the specified type (first part).
 FIXME: more specific
 */
 {
-  an_ifc_TypeSort_kind      tag = type_tag(type_index);
+  ifc_TypeSort      tag = type_tag(type_index);
 
   /* Prepare to read from the proper partition for this type. */
   read_ifc_partition_at_index(scbp->module_info, ifc_type_start + tag,
@@ -1841,7 +1880,7 @@ Create a string representation for the specified type (second part).
 FIXME: more specific
 */
 {
-  an_ifc_TypeSort_kind      tag = type_tag(type_index);
+  ifc_TypeSort      tag = type_tag(type_index);
 
   /* Prepare to read from the proper partition for this type. */
   read_ifc_partition_at_index(scbp->module_info, ifc_type_start + tag,
@@ -1978,7 +2017,7 @@ Generate a string for the specified declaration.
 FIXME: Perhaps have a "flags" argument rather than is_designated_type?
 */
 {
-  an_ifc_DeclSort_kind     tag = decl_tag(decl_index);
+  ifc_DeclSort             tag = decl_tag(decl_index);
   a_boolean                end_decl = TRUE;
 
   /* Prepare to read from the proper partition for this declaration. */
@@ -2123,10 +2162,10 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         /* FIXME: todo: idscp->eh_spec and idcsp->convention */
       }
       break;
-    case ifc_DeclSort_TypeAlias:
-      { an_ifc_DeclSort_TypeAlias idsta, *idstap;
+    case ifc_DeclSort_Alias:
+      { an_ifc_DeclSort_Alias       idsta, *idstap;
         an_ifc_TypeSort_Fundamental itsf, *itsfp;
-        idstap = get_DeclSort_TypeAlias(&idsta);
+        idstap = get_DeclSort_Alias(&idsta);
         /* FIXME: lots missing */
         check_assertion(type_tag(idstap->type) == ifc_TypeSort_Fundamental);
         /* Read the type to see what kind it is. */
@@ -2210,18 +2249,20 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
       }
       break;
     case ifc_DeclSort_VendorExtension:
-    case ifc_DeclSort_TemplateParameter:
-    case ifc_DeclSort_FunctionParameter:
+    case ifc_DeclSort_Parameter:
     case ifc_DeclSort_Temploid:
     case ifc_DeclSort_Template:
     case ifc_DeclSort_PartialSpecialization:
     case ifc_DeclSort_ExplicitSpecialization:
     case ifc_DeclSort_ExplicitInstantiation:
+    case ifc_DeclSort_Concept:
+    case ifc_DeclSort_InheritedConstructor:
     case ifc_DeclSort_Reference:
     case ifc_DeclSort_Property:
     case ifc_DeclSort_OutputSegment:
     case ifc_DeclSort_UsingDeclaration:
     case ifc_DeclSort_UsingDirective:
+    case ifc_DeclSort_Friend:
     case ifc_DeclSort_SyntaxTree:
     case ifc_DeclSort_Tuple:
     default:
@@ -2250,13 +2291,13 @@ Map the IFC locus source position information into the source position at *pos.
 */
 {
   an_ifc_Source_Line   isl, *islp;
-  an_ifc_NameSort_kind tag;
+  ifc_NameSort         tag;
   a_seq_number         *seq;
 
   read_ifc_partition_at_index(mod, ifc_src_line, locus->line);
   islp = get_Source_Line(&isl);
   tag = name_tag(islp->file);
-  check_assertion(tag == (an_ifc_NameSort_kind)ifc_NameSort_SourceFile);
+  check_assertion(tag == (ifc_NameSort)ifc_NameSort_SourceFile);
   /* See if this file has been used before. */
   seq = &mod->variant.ifc->sequence_numbers[name_value(islp->file)];
   if (*seq == 0) {
@@ -2335,6 +2376,7 @@ static void init_dps(a_decl_parse_state          *dps,
                      ifc_TypeIndex               type_index,
                      ifc_Alignment               alignment,
                      ifc_ObjectTraits            traits,
+                     ifc_MsvcTraits              msvc_traits,
                      ifc_BasicSpecifiers         specifiers,
                      ifc_Access                  access,
                      a_partial_scope_stack_state *psssp)
@@ -2367,26 +2409,26 @@ should be called with this pointer after the declaration has been processed.
     if (traits & ifc_ObjectTraits_ThreadLocal) {
       dps->dso_flags |= DSO_THREAD_LOCAL;
     }  /* if */
-    if (traits & ifc_ObjectTraits_Comdat) {
+    if (msvc_traits & ifc_MsvcTraits_Comdat) {
       unexpected_condition(); /* FIXME */
     }  /* if */
-    if (traits & ifc_ObjectTraits_SelectAny) {
+    if (msvc_traits & ifc_MsvcTraits_SelectAny) {
       ap = make_module_attribute("selectany",
                                  (a_byte_attribute_family)af_ms_declspec, ap);
     }  /* if */
-    if (traits & ifc_ObjectTraits_Process) {
+    if (msvc_traits & ifc_MsvcTraits_Process) {
       ap = make_module_attribute("process",
                                  (a_byte_attribute_family)af_ms_declspec, ap);
     }  /* if */
-    if (traits & ifc_ObjectTraits_DllExport) {
+    if (msvc_traits & ifc_MsvcTraits_DllExport) {
       ap = make_module_attribute("dllexport",
                                  (a_byte_attribute_family)af_ms_declspec, ap);
     }  /* if */
-    if (traits & ifc_ObjectTraits_DllImport) {
+    if (msvc_traits & ifc_MsvcTraits_DllImport) {
       ap = make_module_attribute("dllimport",
                                  (a_byte_attribute_family)af_ms_declspec, ap);
     }  /* if */
-    if (traits & ifc_ObjectTraits_Allocate) {
+    if (msvc_traits & ifc_MsvcTraits_Allocate) {
       ap = make_module_attribute("allocate",
                                  (a_byte_attribute_family)af_ms_declspec, ap);
     }  /* if */
@@ -2506,7 +2548,7 @@ FIXME: shared or unshared?
 FIXME: what other expressions can we get here?
 */
 {
-  an_ifc_ExprSort_kind      tag = expr_tag(expr_index);
+  ifc_ExprSort              tag = expr_tag(expr_index);
   a_constant_ptr            cp = NULL;
 
   /* Prepare to read from the proper partition for this expression. */
@@ -2588,7 +2630,7 @@ constants for that type).
 */
 {
   a_module_ptr             mod = mep->module_info;
-  an_ifc_DeclSort_kind     tag;
+  ifc_DeclSort             tag;
   a_decl_parse_state       dps;
   an_id_linkage_kind       linkage_ptr;
   a_symbol_ptr             ext_sym;
@@ -2615,7 +2657,8 @@ constants for that type).
             /* FIXME: lots more to do here. */
             a_variable_ptr vp;
             init_dps(&dps, mod, &idsvp->locus, idsvp->type, idsvp->alignment,
-                     idsvp->traits, idsvp->specifier, idsvp->access, &psss);
+                     idsvp->traits, ifc_MsvcTraits_None, idsvp->specifier,
+                     idsvp->access, &psss);
             clear_decl_pos_block(&decl_pos_block);
             decl_variable(&loc, &dps, SRK_DEFINITION, &linkage_ptr, &ext_sym,
                           &decl_pos_block);
@@ -2648,7 +2691,8 @@ constants for that type).
             /* FIXME: lots more to do here. */
             a_routine_ptr rp;
             init_dps(&dps, mod, &idsfp->locus, idsfp->type, (ifc_Alignment)0,
-                     idsfp->traits, idsfp->specifiers, idsfp->access, &psss);
+                     idsfp->traits, ifc_MsvcTraits_None, idsfp->specifiers,
+                     idsfp->access, &psss);
             clear_func_info(&func_info);
             clear_decl_pos_block(&decl_pos_block);
             decl_routine(&loc, &dps, &func_info, SRK_DECLARATION, &linkage_ptr,
@@ -2674,8 +2718,8 @@ constants for that type).
             /* FIXME: lots more to do here (just copied
                ifc_DeclSort_Function).*/
             init_dps(&dps, mod, &idsip->locus, idsip->type, (ifc_Alignment)0,
-                     ifc_ObjectTraits_None, idsip->specifiers, idsip->access,
-                     &psss);
+                     ifc_ObjectTraits_None, ifc_MsvcTraits_None,
+                     idsip->specifiers, idsip->access, &psss);
             clear_func_info(&func_info);
             clear_decl_pos_block(&decl_pos_block);
             decl_routine(&loc, &dps, &func_info, SRK_DECLARATION, &linkage_ptr,
@@ -2823,10 +2867,10 @@ class_struct_union_case:
           }  /* switch */
         }
         break;
-      case ifc_DeclSort_TypeAlias:
-        { an_ifc_DeclSort_TypeAlias idsta, *idstap;
+      case ifc_DeclSort_Alias:
+        { an_ifc_DeclSort_Alias idsta, *idstap;
           an_ifc_TypeSort_Fundamental itsf, *itsfp;
-          idstap = get_DeclSort_TypeAlias(&idsta);
+          idstap = get_DeclSort_Alias(&idsta);
           init_locator_from_name(mod, 0, idstap->name, &idstap->locus, &loc);
           if (defer) {
             defer_symbol_creation(mep, &loc);
@@ -2840,7 +2884,8 @@ class_struct_union_case:
               /* A type alias; declare a typedef for this case. */
               init_dps(&dps, mod, &idstap->locus, idstap->initializer,
                        (ifc_Alignment)0, ifc_ObjectTraits_None,
-                       idstap->specifiers, idstap->access, &psss);
+                       ifc_MsvcTraits_None, idstap->specifiers, idstap->access,
+                       &psss);
               clear_decl_pos_block(&decl_pos_block);
               decl_typedef(&loc, &dps, (a_type_ptr)NULL, &decl_pos_block);
               restore_partial_scope_stack_if_necessary(&psss);
@@ -2891,8 +2936,8 @@ class_struct_union_case:
             a_symbol_ptr tag_sym;
             check_assertion(idsep->base != 0);
             init_dps(&dps, mod, &idsep->locus, idsep->base, idsep->alignment,
-                     ifc_ObjectTraits_None, idsep->specifiers, idsep->access,
-                     &psss);
+                     ifc_ObjectTraits_None, ifc_MsvcTraits_None,
+                     idsep->specifiers, idsep->access, &psss);
             clear_decl_pos_block(&decl_pos_block);
             /* Allocate an integer type and set its size based on the type
                specified by idsep->base. */
@@ -3043,17 +3088,19 @@ class_struct_union_case:
            class. */
         unexpected_condition();
       case ifc_DeclSort_VendorExtension:
-      case ifc_DeclSort_TemplateParameter:
-      case ifc_DeclSort_FunctionParameter:
+      case ifc_DeclSort_Parameter:
       case ifc_DeclSort_Temploid:
       case ifc_DeclSort_Template:
       case ifc_DeclSort_PartialSpecialization:
       case ifc_DeclSort_ExplicitSpecialization:
       case ifc_DeclSort_ExplicitInstantiation:
+      case ifc_DeclSort_Concept:
+      case ifc_DeclSort_InheritedConstructor:
       case ifc_DeclSort_Reference:
       case ifc_DeclSort_OutputSegment:
       case ifc_DeclSort_UsingDeclaration:
       case ifc_DeclSort_UsingDirective:
+      case ifc_DeclSort_Friend:
       case ifc_DeclSort_SyntaxTree:
       case ifc_DeclSort_Tuple:
       default:

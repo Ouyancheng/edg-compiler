@@ -569,6 +569,12 @@ Display debug information about the specified module.
       case mk_none:
         (void)fprintf(f_debug, "kind: mk_none\n");
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case mk_ifc:
+        (void)fprintf(f_debug, "kind: mk_ifc\n");
+        db_ifc_file_header(mod);
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         unexpected_condition();
     }  /* switch */

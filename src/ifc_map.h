@@ -32,17 +32,20 @@ end of this file).
 
 /* File_Header */
 IFC_DECL_START(File_Header)
+  IFC_DECL_FIELD(checksum, ContentHash)
   IFC_DECL_FIELD(major_version, Version)
   IFC_DECL_FIELD(minor_version, Version)
   IFC_DECL_FIELD(abi, Abi)
   IFC_DECL_FIELD(arch, Architecture)
+  IFC_DECL_FIELD(dialect, LanguageVersion)
   IFC_DECL_FIELD(string_table_bytes, ByteOffset)
   IFC_DECL_FIELD(string_table_size, Cardinality)
-  IFC_DECL_FIELD(name, TextOffset)
-  IFC_DECL_FIELD(source, TextOffset)
+  IFC_DECL_FIELD(unit, UnitIndex)
+  IFC_DECL_FIELD(src_path, TextOffset)
   IFC_DECL_FIELD(global_scope, ScopeIndex)
   IFC_DECL_FIELD(toc, ByteOffset)
   IFC_DECL_FIELD(partition_count, Cardinality)
+  IFC_DECL_FIELD(internal, bool)
 IFC_DECL_END(File_Header)
 
 /* Partition */
@@ -52,6 +55,18 @@ IFC_DECL_START(Partition)
   IFC_DECL_FIELD(cardinality, Cardinality)
   IFC_DECL_FIELD(entry_size, EntitySize)
 IFC_DECL_END(Partition)
+
+/* Module::Imported */
+IFC_DECL_START(Module_Imported)
+  /* Inferred from the description, not explicit in the spec. */
+  IFC_DECL_FIELD(imp, ModuleReference)
+IFC_DECL_END(Module_Imported)
+
+/* Module::Exported */
+IFC_DECL_START(Module_Exported)
+  /* Inferred from the description, not explicit in the spec. */
+  IFC_DECL_FIELD(exp, ModuleReference)
+IFC_DECL_END(Module_Exported)
 
 /* Scope::Descriptor */
 IFC_DECL_START(Scope_Descriptor)
@@ -63,6 +78,42 @@ IFC_DECL_END(Scope_Descriptor)
 IFC_DECL_START(Scope_Member)
   IFC_DECL_FIELD(index, DeclIndex)
 IFC_DECL_END(Scope_Member)
+
+/* Heap::Decl */
+IFC_DECL_START(Heap_Decl)
+  /* Inferred from the description, not explicit in the spec. */
+  IFC_DECL_FIELD(decl, DeclIndex)
+IFC_DECL_END(Heap_Decl)
+
+/* Heap::Type */
+IFC_DECL_START(Heap_Type)
+  /* Inferred from the description, not explicit in the spec. */
+  IFC_DECL_FIELD(type, TypeIndex)
+IFC_DECL_END(Heap_Type)
+
+/* Heap::Statement */
+IFC_DECL_START(Heap_Stmt)
+  /* Inferred from the description, not explicit in the spec. */
+  IFC_DECL_FIELD(stmt, StmtIndex)
+IFC_DECL_END(Heap_Stmt)
+
+/* Heap::Expr */
+IFC_DECL_START(Heap_Expr)
+  /* Inferred from the description, not explicit in the spec. */
+  IFC_DECL_FIELD(expr, ExprIndex)
+IFC_DECL_END(Heap_Expr)
+
+/* Heap::Syntax */
+IFC_DECL_START(Heap_Syntax)
+  /* Inferred from the description, not explicit in the spec. */
+  IFC_DECL_FIELD(syntax, SyntaxIndex)
+IFC_DECL_END(Heap_Syntax)
+
+/* Heap::Chart */
+IFC_DECL_START(Heap_Chart)
+  /* Inferred from the description, not explicit in the spec. */
+  IFC_DECL_FIELD(chart, ChartIndex)
+IFC_DECL_END(Heap_Chart)
 
 /* DeclSort::Enumerator */
 IFC_DECL_START(DeclSort_Enumerator)
@@ -87,16 +138,18 @@ IFC_DECL_START(DeclSort_Variable)
   IFC_DECL_FIELD(access, Access)
 IFC_DECL_END(DeclSort_Variable)
 
-#if 0
-/* DeclSort::FunctionParameter */
-IFC_DECL_START(DeclSort_FunctionParameter)
+/* DeclSort::Parameter */
+IFC_DECL_START(DeclSort_Parameter)
   IFC_DECL_FIELD(name, TextOffset)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(constraint, ExprIndex)
   IFC_DECL_FIELD(initializer, ExprIndex)
-  IFC_DECL_FIELD(specifier, BasicSpecifiers)
-IFC_DECL_END(DeclSort_FunctionParameter)
-#endif /* 0 */
+  IFC_DECL_FIELD(level, ParameterLevel)
+  IFC_DECL_FIELD(position, ParameterPosition)
+  IFC_DECL_FIELD(sort, ParameterSort)
+  IFC_DECL_FIELD(pack, bool)
+IFC_DECL_END(DeclSort_Parameter)
 
 /* DeclSort::Field */
 IFC_DECL_START(DeclSort_Field)
@@ -152,8 +205,8 @@ IFC_DECL_START(DeclSort_Enumeration)
   IFC_DECL_FIELD(access, Access)
 IFC_DECL_END(DeclSort_Enumeration)
 
-/* DeclSort::TypeAlias */
-IFC_DECL_START(DeclSort_TypeAlias)
+/* DeclSort::Alias */
+IFC_DECL_START(DeclSort_Alias)
   IFC_DECL_FIELD(name, TextOffset)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
@@ -162,6 +215,48 @@ IFC_DECL_START(DeclSort_TypeAlias)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
 IFC_DECL_END(DeclSort_TypeAlias)
+
+/* DeclSort::Temploid */
+IFC_DECL_START(DeclSort_Temploid)
+IFC_DECL_END(DeclSort_Temploid)
+
+/* DeclSort::Template */
+IFC_DECL_START(DeclSort_Template)
+  IFC_DECL_FIELD(name, NameIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(home_scope, DeclIndex)
+  IFC_DECL_FIELD(chart, ChartIndex)
+  IFC_DECL_FIELD(entity, ParameterizedEntity)
+  IFC_DECL_FIELD(specifiers, BasicSpecifiers)
+  IFC_DECL_FIELD(access, Access)
+IFC_DECL_END(DeclSort_Template)
+
+/* DeclSort::PartialSpecialization */
+IFC_DECL_START(DeclSort_PartialSpecialization)
+IFC_DECL_END(DeclSort_PartialSpecialization)
+
+/* DeclSort::ExplicitSpecialization */
+IFC_DECL_START(DeclSort_ExplicitSpecialization)
+IFC_DECL_END(DeclSort_ExplicitSpecialization)
+
+/* DeclSort::ExplicitInstantiation */
+IFC_DECL_START(DeclSort_ExplicitInstantiation)
+IFC_DECL_END(DeclSort_ExplicitInstantiation)
+
+/* DeclSort::Concept */
+IFC_DECL_START(DeclSort_Concept)
+  IFC_DECL_FIELD(name, TextOffset)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(home_scope, DeclIndex)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(chart, ChartIndex)
+  IFC_DECL_FIELD(body, ExprIndex)
+  IFC_DECL_FIELD(specifiers, BasicSpecifiers)
+  IFC_DECL_FIELD(access, Access)
+  IFC_DECL_FIELD(head, SentenceIndex)
+  /*IFC_DECL_FIELD(body, SentenceIndex) duplicate definition of body. */
+  IFC_DECL_FIELD(body2, SentenceIndex)
+IFC_DECL_END(DeclSort_Concept)
 
 /* DeclSort::Intrinsic */
 IFC_DECL_START(DeclSort_Intrinsic)
@@ -211,6 +306,10 @@ IFC_DECL_START(DeclSort_Constructor)
   IFC_DECL_FIELD(convention, CallingConvention)
 IFC_DECL_END(DeclSort_Constructor)
 
+/* DeclSort::InheritedConstructor */
+IFC_DECL_START(DeclSort_InheritedConstructor)
+IFC_DECL_END(DeclSort_InheritedConstructor)
+
 /* DeclSort::Destructor */
 IFC_DECL_START(DeclSort_Destructor)
   IFC_DECL_FIELD(name, TextOffset)
@@ -223,7 +322,6 @@ IFC_DECL_START(DeclSort_Destructor)
   IFC_DECL_FIELD(convention, CallingConvention)
 IFC_DECL_END(DeclSort_Destructor)
 
-#if 0
 /* DeclSort::Reference */
 IFC_DECL_START(DeclSort_Reference)
   IFC_DECL_FIELD(owner, TextOffset)
@@ -231,18 +329,70 @@ IFC_DECL_START(DeclSort_Reference)
   IFC_DECL_FIELD(local_index, DeclIndex)
 IFC_DECL_END(DeclSort_Reference)
 
+/* DeclSort::Property */
+IFC_DECL_START(DeclSort_Property)
+IFC_DECL_END(DeclSort_Property)
+
+/* DeclSort::OutputSegment */
+IFC_DECL_START(DeclSort_OutputSegment)
+IFC_DECL_END(DeclSort_OutputSegment)
+
+/* DeclSort::UsingDeclaration */
+IFC_DECL_START(DeclSort_UsingDeclaration)
+  IFC_DECL_FIELD(name, NameIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(home_scope, DeclIndex)
+  IFC_DECL_FIELD(resolution, DeclIndex)
+  IFC_DECL_FIELD(parent, ExprIndex)
+  IFC_DECL_FIELD(name2, TextOffset)
+  IFC_DECL_FIELD(specifiers, BasicSpecifiers)
+  IFC_DECL_FIELD(access, Access)
+  IFC_DECL_FIELD(hidden, bool)
+IFC_DECL_END(DeclSort_UsingDeclaration)
+
 /* DeclSort::UsingDirective */
 IFC_DECL_START(DeclSort_UsingDirective)
-  IFC_DECL_FIELD(index, DeclIndex)
 IFC_DECL_END(DeclSort_UsingDirective)
-#endif /* 0 */
+
+/* DeclSort::Friend */
+IFC_DECL_START(DeclSort_Friend)
+  /*IFC_DECL_FIELD(entity, TypeDecl) TypeDecl not defined. */
+  IFC_DECL_FIELD(entity, DeclIndex)
+IFC_DECL_END(DeclSort_Friend)
+
+/* DeclSort::SyntaxTree */
+IFC_DECL_START(DeclSort_SyntaxTree)
+IFC_DECL_END(DeclSort_SyntaxTree)
+
+/* DeclSort::Tuple */
+IFC_DECL_START(DeclSort_Tuple)
+IFC_DECL_END(DeclSort_Tuple)
+
+/* TypeSort::VendorExtension */
+IFC_DECL_START(TypeSort_VendorExtension)
+IFC_DECL_END(TypeSort_VendorExtension)
 
 /* TypeSort::Fundamental */
 IFC_DECL_START(TypeSort_Fundamental)
   IFC_DECL_FIELD(basis, TypeBasis)
   IFC_DECL_FIELD(precision, TypePrecision)
   IFC_DECL_FIELD(sign, TypeSign)
+  IFC_DECL_FIELD(__padding__, uint8_t)
 IFC_DECL_END(TypeSort_Fundamental)
+
+/* TypeSort::Designated */
+IFC_DECL_START(TypeSort_Designated)
+  IFC_DECL_FIELD(decl, DeclIndex)
+IFC_DECL_END(TypeSort_Designated)
+
+/* TypeSort::Syntactic */
+IFC_DECL_START(TypeSort_Syntactic)
+  IFC_DECL_FIELD(expr, ExprIndex)
+IFC_DECL_END(TypeSort_Syntactic)
+
+/* TypeSort::Expansion */
+IFC_DECL_START(TypeSort_Expansion)
+IFC_DECL_END(TypeSort_Expansion)
 
 /* TypeSort::Pointer */
 IFC_DECL_START(TypeSort_Pointer)
@@ -265,11 +415,6 @@ IFC_DECL_START(TypeSort_RvalueReference)
   IFC_DECL_FIELD(referee, TypeIndex)
 IFC_DECL_END(TypeSort_RvalueReference)
 
-/* TypeSort::Designated */
-IFC_DECL_START(TypeSort_Designated)
-  IFC_DECL_FIELD(decl, DeclIndex)
-IFC_DECL_END(TypeSort_Designated)
-
 /* TypeSort::Function */
 IFC_DECL_START(TypeSort_Function)
   IFC_DECL_FIELD(target, TypeIndex)
@@ -279,7 +424,6 @@ IFC_DECL_START(TypeSort_Function)
   IFC_DECL_FIELD(traits, FunctionTypeTraits)
 IFC_DECL_END(TypeSort_Function)
 
-#if 0
 /* TypeSort::Method */
 IFC_DECL_START(TypeSort_Method)
   IFC_DECL_FIELD(target, TypeIndex)
@@ -289,7 +433,6 @@ IFC_DECL_START(TypeSort_Method)
   IFC_DECL_FIELD(convention, CallingConvention)
   IFC_DECL_FIELD(traits, FunctionTypeTraits)
 IFC_DECL_END(TypeSort_Method)
-#endif /* 0 */
 
 /* TypeSort::Array */
 IFC_DECL_START(TypeSort_Array)
@@ -297,12 +440,10 @@ IFC_DECL_START(TypeSort_Array)
   IFC_DECL_FIELD(extent, ExprIndex)
 IFC_DECL_END(TypeSort_Array)
 
-#if 0
 /* TypeSort::Typename */
 IFC_DECL_START(TypeSort_Typename)
   IFC_DECL_FIELD(path, ExprIndex)
 IFC_DECL_END(TypeSort_Typename)
-#endif /* 0 */
 
 /* TypeSort::Qualified */
 IFC_DECL_START(TypeSort_Qualified)
@@ -318,25 +459,136 @@ IFC_DECL_START(TypeSort_Base)
   IFC_DECL_FIELD(pack_expanded, bool)
 IFC_DECL_END(TypeSort_Base)
 
+/* TypeSort::Unaligned */
+IFC_DECL_START(TypeSort_Unaligned)
+  IFC_DECL_FIELD(type, TypeIndex)
+IFC_DECL_END(TypeSort_Unaligned)
+
+/* TypeSort::Decltype */
+IFC_DECL_START(TypeSort_Decltype)
+  IFC_DECL_FIELD(words, SentenceOffset)
+IFC_DECL_END(TypeSort_Decltype)
+
 /* TypeSort::Tuple */
 IFC_DECL_START(TypeSort_Tuple)
   IFC_DECL_FIELD(start, Index)
   IFC_DECL_FIELD(cardinality, Cardinality)
 IFC_DECL_END(TypeSort_Tuple)
 
-/* Source::Line */
-IFC_DECL_START(Source_Line)
-  IFC_DECL_FIELD(file, NameIndex)
-  IFC_DECL_FIELD(line, LineNumber)
-IFC_DECL_END(Source_Line)
+/* TypeSort::SyntaxTree */
+IFC_DECL_START(TypeSort_SyntaxTree)
+IFC_DECL_END(TypeSort_SyntaxTree)
 
-#if 0
+/* StmtSort::VendorExtension */
+IFC_DECL_START(StmtSort_VendorExtension)
+IFC_DECL_END(StmtSort_VendorExtension)
+
+/* StmtSort::Empty */
+IFC_DECL_START(StmtSort_Empty)
+  IFC_DECL_FIELD(locus, SourceLocation)
+IFC_DECL_END(StmtSort_Empty)
+
+/* StmtSort::If */
+IFC_DECL_START(StmtSort_If)
+  IFC_DECL_FIELD(initialization, StmtIndex)
+  IFC_DECL_FIELD(condition, StmtIndex)
+  IFC_DECL_FIELD(consequence, StmtIndex)
+  IFC_DECL_FIELD(alternative, StmtIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+IFC_DECL_END(StmtSort_If)
+
+/* StmtSort::For */
+IFC_DECL_START(StmtSort_For)
+  IFC_DECL_FIELD(initialization, StmtIndex)
+  IFC_DECL_FIELD(condition, StmtIndex)
+  IFC_DECL_FIELD(continuation, StmtIndex)
+  IFC_DECL_FIELD(body, StmtIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+IFC_DECL_END(StmtSort_For)
+
+/* StmtSort::Case */
+IFC_DECL_START(StmtSort_Case)
+  IFC_DECL_FIELD(expr, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+IFC_DECL_END(StmtSort_Case)
+
+/* StmtSort::While */
+IFC_DECL_START(StmtSort_While)
+  IFC_DECL_FIELD(condition, StmtIndex)
+  IFC_DECL_FIELD(body, StmtIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+IFC_DECL_END(StmtSort_While)
+
+/* StmtSort::Block */
+IFC_DECL_START(StmtSort_Block)
+  IFC_DECL_FIELD(start, Offset)
+  IFC_DECL_FIELD(cardinality, Cardinality)
+IFC_DECL_END(StmtSort_Block)
+
+/* StmtSort::Break */
+IFC_DECL_START(StmtSort_Break)
+  IFC_DECL_FIELD(locus, SourceLocation)
+IFC_DECL_END(StmtSort_Break)
+
+/* StmtSort::Switch */
+IFC_DECL_START(StmtSort_Switch)
+  IFC_DECL_FIELD(initialization, StmtIndex)
+  IFC_DECL_FIELD(condition, ExprIndex)
+  IFC_DECL_FIELD(body, StmtIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+IFC_DECL_END(StmtSort_Switch)
+
+/* StmtSort::DoWhile */
+IFC_DECL_START(StmtSort_DoWhile)
+  IFC_DECL_FIELD(condition, StmtIndex)
+  IFC_DECL_FIELD(body, StmtIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+IFC_DECL_END(StmtSort_DoWhile)
+
+/* StmtSort::Default */
+IFC_DECL_START(StmtSort_Default)
+  IFC_DECL_FIELD(locus, SourceLocation)
+IFC_DECL_END(StmtSort_Default)
+
+/* StmtSort::Continue */
+IFC_DECL_START(StmtSort_Continue)
+  IFC_DECL_FIELD(locus, SourceLocation)
+IFC_DECL_END(StmtSort_Continue)
+
+/* StmtSort::Expression */
+IFC_DECL_START(StmtSort_Expression)
+  IFC_DECL_FIELD(expr, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+IFC_DECL_END(StmtSort_Expression)
+
+/* StmtSort::Return */
+IFC_DECL_START(StmtSort_Return)
+  IFC_DECL_FIELD(expr, ExprIndex)
+  IFC_DECL_FIELD(function_type, TypeIndex)
+  IFC_DECL_FIELD(expression_type, TypeIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+IFC_DECL_END(StmtSort_Return)
+
+/* StmtSort::VariableDecl */
+IFC_DECL_START(StmtSort_VariableDecl)
+  IFC_DECL_FIELD(decl, DeclIndex)
+  IFC_DECL_FIELD(initializer, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+IFC_DECL_END(StmtSort_VariableDecl)
+
+/* StmtSort::SyntaxTree */
+IFC_DECL_START(StmtSort_SyntaxTree)
+IFC_DECL_END(StmtSort_SyntaxTree)
+
+/* ExprSort::VendorExtension */
+IFC_DECL_START(ExprSort_VendorExtension)
+IFC_DECL_END(ExprSort_VendorExtension)
+
 /* ExprSort::Empty */
 IFC_DECL_START(ExprSort_Empty)
   IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_Empty)
-#endif /* 0 */
 
 /* ExprSort::Literal */
 IFC_DECL_START(ExprSort_Literal)
@@ -345,7 +597,6 @@ IFC_DECL_START(ExprSort_Literal)
   IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_Literal)
 
-#if 0
 /* ExprSort::Type */
 IFC_DECL_START(ExprSort_Type)
   IFC_DECL_FIELD(type, TypeIndex)
@@ -359,7 +610,7 @@ IFC_DECL_START(ExprSort_NamedDecl)
   IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_NamedDecl)
 
-/* ExprSort::Unresolved */
+/* ExprSort::UnresolvedId */
 IFC_DECL_START(ExprSort_Unresolved)
   IFC_DECL_FIELD(name, NameIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
@@ -384,6 +635,7 @@ IFC_DECL_START(ExprSort_Read)
   IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(address, ExprIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(sort, ReadConversionSort)
 IFC_DECL_END(ExprSort_Read)
 
 /* ExprSort::Monad */
@@ -397,9 +649,9 @@ IFC_DECL_END(ExprSort_Monad)
 /* ExprSort::Dyad */
 IFC_DECL_START(ExprSort_Dyad)
   IFC_DECL_FIELD(type, TypeIndex)
-  /* IFC_DECL_FIELD(arguments, ExprIndex[2])  re-written: */
-  IFC_DECL_FIELD(arguments_0, ExprIndex)
-  IFC_DECL_FIELD(arguments_1, ExprIndex)
+  IFC_DECL_FIELD(arguments[2], ExprIndex)
+  /*IFC_DECL_FIELD(arguments_0, ExprIndex)
+  IFC_DECL_FIELD(arguments_1, ExprIndex)*/
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(opcat, OperatorCategory)
 IFC_DECL_END(ExprSort_Dyad)
@@ -407,10 +659,10 @@ IFC_DECL_END(ExprSort_Dyad)
 /* ExprSort::Triad */
 IFC_DECL_START(ExprSort_Triad)
   IFC_DECL_FIELD(type, TypeIndex)
-  /* IFC_DECL_FIELD(arguments, ExprIndex[3]) re-written: */
-  IFC_DECL_FIELD(arguments_0, ExprIndex)
+  IFC_DECL_FIELD(arguments[3], ExprIndex)
+  /*IFC_DECL_FIELD(arguments_0, ExprIndex)
   IFC_DECL_FIELD(arguments_1, ExprIndex)
-  IFC_DECL_FIELD(arguments_2, ExprIndex)
+  IFC_DECL_FIELD(arguments_2, ExprIndex)*/
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(opcat, OperatorCategory)
 IFC_DECL_END(ExprSort_Triad)
@@ -494,13 +746,183 @@ IFC_DECL_START(ExprSort_TemplateReference)
   IFC_DECL_FIELD(arguments, ExprIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_TemplateReference)
-#endif /* 0 */
 
-/* NameSort::SourceFile */
-IFC_DECL_START(NameSort_SourceFile)
-  IFC_DECL_FIELD(path, TextOffset)
-  IFC_DECL_FIELD(guard, TextOffset)
-IFC_DECL_END(NameSort_SourceFile)
+/* ExprSort::InitializerList */
+IFC_DECL_START(ExprSort_InitializerList)
+IFC_DECL_END(ExprSort_InitializerList)
+
+/* ExprSort::QualifiedName */
+IFC_DECL_START(ExprSort_QualifiedName)
+IFC_DECL_END(ExprSort_QualifiedName)
+
+/* ExprSort::Cast */
+IFC_DECL_START(ExprSort_Cast)
+IFC_DECL_END(ExprSort_Cast)
+
+/* ExprSort::Condition */
+IFC_DECL_START(ExprSort_Condition)
+IFC_DECL_END(ExprSort_Condition)
+
+/* ExprSort::Identifier */
+IFC_DECL_START(ExprSort_Identifier)
+IFC_DECL_END(ExprSort_Identifier)
+
+/* ExprSort::SimpleIdentifier */
+IFC_DECL_START(ExprSort_SimpleIdentifier)
+IFC_DECL_END(ExprSort_SimpleIdentifier)
+
+/* ExprSort::ExpressionList */
+IFC_DECL_START(ExprSort_ExpressionList)
+IFC_DECL_END(ExprSort_ExpressionList)
+
+/* ExprSort::AssignInitializer */
+IFC_DECL_START(ExprSort_AssignInitializer)
+IFC_DECL_END(ExprSort_AssignInitializer)
+
+/* ExprSort::Nullptr */
+IFC_DECL_START(ExprSort_Nullptr)
+IFC_DECL_END(ExprSort_Nullptr)
+
+/* ExprSort::This */
+IFC_DECL_START(ExprSort_This)
+IFC_DECL_END(ExprSort_This)
+
+/* ExprSort::PackedTemplateArguments */
+IFC_DECL_START(ExprSort_PackedTemplateArguments)
+IFC_DECL_END(ExprSort_PackedTemplateArguments)
+
+/* ExprSort::New */
+IFC_DECL_START(ExprSort_New)
+IFC_DECL_END(ExprSort_New)
+
+/* ExprSort::Delete */
+IFC_DECL_START(ExprSort_Delete)
+IFC_DECL_END(ExprSort_Delete)
+
+/* ExprSort::SyntaxTree */
+IFC_DECL_START(ExprSort_SyntaxTree)
+IFC_DECL_END(ExprSort_SyntaxTree)
+
+/* ExprSort::Pointer */
+IFC_DECL_START(ExprSort_Pointer)
+IFC_DECL_END(ExprSort_Pointer)
+
+/* ExprSort::SizeofTypeId */
+IFC_DECL_START(ExprSort_SizeofTypeId)
+IFC_DECL_END(ExprSort_SizeofTypeId)
+
+/* ExprSort::Alignof */
+IFC_DECL_START(ExprSort_Alignof)
+IFC_DECL_END(ExprSort_Alignof)
+
+/* ExprSort::Lambda */
+IFC_DECL_START(ExprSort_Lambda)
+IFC_DECL_END(ExprSort_Lambda)
+
+/* ExprSort::DestructorCall */
+IFC_DECL_START(ExprSort_DestructorCall)
+IFC_DECL_END(ExprSort_DestructorCall)
+
+/* ExprSort::Typeid */
+IFC_DECL_START(ExprSort_Typeid)
+IFC_DECL_END(ExprSort_Typeid)
+
+/* ExprSort::FunctionString */
+IFC_DECL_START(ExprSort_FunctionString)
+IFC_DECL_END(ExprSort_FunctionString)
+
+/* ExprSort::StringSequence */
+IFC_DECL_START(ExprSort_StringSequence)
+IFC_DECL_END(ExprSort_StringSequence)
+
+/* ExprSort::CompoundString */
+IFC_DECL_START(ExprSort_CompoundString)
+IFC_DECL_END(ExprSort_CompoundString)
+
+/* ExprSort::Initializer */
+IFC_DECL_START(ExprSort_Initializer)
+IFC_DECL_END(ExprSort_Initializer)
+
+/* ExprSort::HierarchyConversion */
+IFC_DECL_START(ExprSort_HierarchyConversion)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(arg, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(target, TypeIndex)
+  IFC_DECL_FIELD(inheritance, ExprIndex)
+  IFC_DECL_FIELD(override, ExprIndex)
+  IFC_DECL_FIELD(op_category, OperatorCategory)
+IFC_DECL_END(ExprSort_HierarchyConversion)
+
+/* ExprSort::Product */
+IFC_DECL_START(ExprSort_Product)
+IFC_DECL_END(ExprSort_Product)
+
+/* ExprSort::SumTypeValue */
+IFC_DECL_START(ExprSort_SumTypeValue)
+IFC_DECL_END(ExprSort_SumTypeValue)
+
+/* ExprSort::Subobject */
+IFC_DECL_START(ExprSort_Subobject)
+IFC_DECL_END(ExprSort_Subobject)
+
+/* ExprSort::Array */
+IFC_DECL_START(ExprSort_Array)
+IFC_DECL_END(ExprSort_Array)
+
+/* ExprSort::VirtualFunction */
+IFC_DECL_START(ExprSort_VirtualFunction)
+IFC_DECL_END(ExprSort_VirtualFunction)
+
+/* ExprSort::Requires */
+IFC_DECL_START(ExprSort_Requires)
+IFC_DECL_END(ExprSort_Requires)
+
+/* ExprSort::UnaryFold */
+IFC_DECL_START(ExprSort_UnaryFold)
+IFC_DECL_END(ExprSort_UnaryFold)
+
+/* ExprSort::BinaryFold */
+IFC_DECL_START(ExprSort_BinaryFold)
+IFC_DECL_END(ExprSort_BinaryFold)
+
+/* StringSort::Ordinary */
+IFC_DECL_START(StringSort_Ordinary)
+  IFC_DECL_FIELD(start, TextOffset)
+  IFC_DECL_FIELD(size, Cardinality)
+  IFC_DECL_FIELD(suffix, TextOffset)
+IFC_DECL_END(StringSort_Ordinary)
+
+/* StringSort::UTF8 */
+IFC_DECL_START(StringSort_UTF8)
+  IFC_DECL_FIELD(start, TextOffset)
+  IFC_DECL_FIELD(size, Cardinality)
+  IFC_DECL_FIELD(suffix, TextOffset)
+IFC_DECL_END(StringSort_UTF8)
+
+/* StringSort::Char16 */
+IFC_DECL_START(StringSort_Char16)
+  IFC_DECL_FIELD(start, TextOffset)
+  IFC_DECL_FIELD(size, Cardinality)
+  IFC_DECL_FIELD(suffix, TextOffset)
+IFC_DECL_END(StringSort_Char16)
+
+/* StringSort::Char32 */
+IFC_DECL_START(StringSort_Char32)
+  IFC_DECL_FIELD(start, TextOffset)
+  IFC_DECL_FIELD(size, Cardinality)
+  IFC_DECL_FIELD(suffix, TextOffset)
+IFC_DECL_END(StringSort_Char32)
+
+/* StringSort::Wide */
+IFC_DECL_START(StringSort_Wide)
+  IFC_DECL_FIELD(start, TextOffset)
+  IFC_DECL_FIELD(size, Cardinality)
+  IFC_DECL_FIELD(suffix, TextOffset)
+IFC_DECL_END(StringSort_Wide)
+
+/* NameSort::Identifier */
+/* No partition - value is index into string table. */
 
 /* NameSort::Operator */
 IFC_DECL_START(NameSort_Operator)
@@ -519,6 +941,539 @@ IFC_DECL_END(NameSort_Conversion)
 IFC_DECL_START(NameSort_Literal)
   IFC_DECL_FIELD(encoded, TextOffset)
 IFC_DECL_END(NameSort_Literal)
+
+/* NameSort::Template */
+IFC_DECL_START(NameSort_Template)
+  IFC_DECL_FIELD(name, NameIndex)
+IFC_DECL_END(NameSort_Template)
+
+/* NameSort::Specialization */
+IFC_DECL_START(NameSort_Specialization)
+  IFC_DECL_FIELD(primary, NameIndex)
+  IFC_DECL_FIELD(arguments, ExprIndex)
+IFC_DECL_END(NameSort_Specialization)
+
+/* NameSort::SourceFile */
+IFC_DECL_START(NameSort_SourceFile)
+  IFC_DECL_FIELD(path, TextOffset)
+  IFC_DECL_FIELD(guard, TextOffset)
+IFC_DECL_END(NameSort_SourceFile)
+
+/* ChartSort::None */
+IFC_DECL_START(ChartSort_None)
+IFC_DECL_END(ChartSort_None)
+
+/* ChartSort::Enclosing */
+IFC_DECL_START(ChartSort_Enclosing)
+IFC_DECL_END(ChartSort_Enclosing)
+
+/* ChartSort::Unilevel */
+IFC_DECL_START(ChartSort_Unilevel)
+  IFC_DECL_FIELD(start, Offset)
+  IFC_DECL_FIELD(cardinality, Cardinality)
+IFC_DECL_END(ChartSort_Unilevel)
+
+/* ChartSort::Multilevel */
+IFC_DECL_START(ChartSort_Multilevel)
+  IFC_DECL_FIELD(start, Offset)
+  IFC_DECL_FIELD(cardinality, Cardinality)
+IFC_DECL_END(ChartSort_Multilevel)
+
+/* SyntaxSort::VendorExtension */
+IFC_DECL_START(SyntaxSort_VendorExtension)
+IFC_DECL_END(SyntaxSort_VendorExtension)
+
+/* SyntaxSort::SimpleTypeSpecifier */
+IFC_DECL_START(SyntaxSort_SimpleTypeSpecifier)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(expr, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+IFC_DECL_END(SyntaxSort_SimpleTypeSpecifier)
+
+/* SyntaxSort::DecltypeSpecifier */
+IFC_DECL_START(SyntaxSort_DecltypeSpecifier)
+  IFC_DECL_FIELD(expr, ExprIndex)
+  IFC_DECL_FIELD(decltype_keyword, SourceLocation)
+  IFC_DECL_FIELD(left_paren, SourceLocation)
+  IFC_DECL_FIELD(right_paren, SourceLocation)
+IFC_DECL_END(SyntaxSort_DecltypeSpecifier)
+
+/* SyntaxSort::DecltypeAutoSpecifier */
+IFC_DECL_START(SyntaxSort_DecltypeAutoSpecifier)
+IFC_DECL_END(SyntaxSort_DecltypeAutoSpecifier)
+
+/* SyntaxSort::TypeSpecifierSeq */
+IFC_DECL_START(SyntaxSort_TypeSpecifierSeq)
+IFC_DECL_END(SyntaxSort_TypeSpecifierSeq)
+
+/* SyntaxSort::DeclSpecifierSeq */
+IFC_DECL_START(SyntaxSort_DeclSpecifierSeq)
+IFC_DECL_END(SyntaxSort_DeclSpecifierSeq)
+
+/* SyntaxSort::VirtualSpecifierSeq */
+IFC_DECL_START(SyntaxSort_VirtualSpecifierSeq)
+IFC_DECL_END(SyntaxSort_VirtualSpecifierSeq)
+
+/* SyntaxSort::NoexceptSpecification */
+IFC_DECL_START(SyntaxSort_NoexceptSpecification)
+IFC_DECL_END(SyntaxSort_NoexceptSpecification)
+
+/* SyntaxSort::ExplicitSpecifier */
+IFC_DECL_START(SyntaxSort_ExplicitSpecifier)
+IFC_DECL_END(SyntaxSort_ExplicitSpecifier)
+
+/* SyntaxSort::EnumSpecifier */
+IFC_DECL_START(SyntaxSort_EnumSpecifier)
+IFC_DECL_END(SyntaxSort_EnumSpecifier)
+
+/* SyntaxSort::EnumeratorDefinition */
+IFC_DECL_START(SyntaxSort_EnumeratorDefinition)
+IFC_DECL_END(SyntaxSort_EnumeratorDefinition)
+
+/* SyntaxSort::ClassSpecifier */
+IFC_DECL_START(SyntaxSort_ClassSpecifier)
+IFC_DECL_END(SyntaxSort_ClassSpecifier)
+
+/* SyntaxSort::MemberSpecification */
+IFC_DECL_START(SyntaxSort_MemberSpecification)
+IFC_DECL_END(SyntaxSort_MemberSpecification)
+
+/* SyntaxSort::MemberDeclaration */
+IFC_DECL_START(SyntaxSort_MemberDeclaration)
+IFC_DECL_END(SyntaxSort_MemberDeclaration)
+
+/* SyntaxSort::MemberDeclarator */
+IFC_DECL_START(SyntaxSort_MemberDeclarator)
+IFC_DECL_END(SyntaxSort_MemberDeclarator)
+
+/* SyntaxSort::AccessSpecifier */
+IFC_DECL_START(SyntaxSort_AccessSpecifier)
+IFC_DECL_END(SyntaxSort_AccessSpecifier)
+
+/* SyntaxSort::BaseSpecifierList */
+IFC_DECL_START(SyntaxSort_BaseSpecifierList)
+IFC_DECL_END(SyntaxSort_BaseSpecifierList)
+
+/* SyntaxSort::BaseSpecifier */
+IFC_DECL_START(SyntaxSort_BaseSpecifier)
+IFC_DECL_END(SyntaxSort_BaseSpecifier)
+
+/* SyntaxSort::TypeId */
+IFC_DECL_START(SyntaxSort_TypeId)
+IFC_DECL_END(SyntaxSort_TypeId)
+
+/* SyntaxSort::TrailingReturnType */
+IFC_DECL_START(SyntaxSort_TrailingReturnType)
+IFC_DECL_END(SyntaxSort_TrailingReturnType)
+
+/* SyntaxSort::Declarator */
+IFC_DECL_START(SyntaxSort_Declarator)
+IFC_DECL_END(SyntaxSort_Declarator)
+
+/* SyntaxSort::PointerDeclarator */
+IFC_DECL_START(SyntaxSort_PointerDeclarator)
+IFC_DECL_END(SyntaxSort_PointerDeclarator)
+
+/* SyntaxSort::ArrayDeclarator */
+IFC_DECL_START(SyntaxSort_ArrayDeclarator)
+IFC_DECL_END(SyntaxSort_ArrayDeclarator)
+
+/* SyntaxSort::FunctionDeclarator */
+IFC_DECL_START(SyntaxSort_FunctionDeclarator)
+IFC_DECL_END(SyntaxSort_FunctionDeclarator)
+
+/* SyntaxSort::ArrayOrFunctionDeclarator */
+IFC_DECL_START(SyntaxSort_ArrayOrFunctionDeclarator)
+IFC_DECL_END(SyntaxSort_ArrayOrFunctionDeclarator)
+
+/* SyntaxSort::ParameterDeclarator */
+IFC_DECL_START(SyntaxSort_ParameterDeclarator)
+IFC_DECL_END(SyntaxSort_ParameterDeclarator)
+
+/* SyntaxSort::InitDeclarator */
+IFC_DECL_START(SyntaxSort_InitDeclarator)
+IFC_DECL_END(SyntaxSort_InitDeclarator)
+
+/* SyntaxSort::NewDeclarator */
+IFC_DECL_START(SyntaxSort_NewDeclarator)
+IFC_DECL_END(SyntaxSort_NewDeclarator)
+
+/* SyntaxSort::SimpleDeclaration */
+IFC_DECL_START(SyntaxSort_SimpleDeclaration)
+IFC_DECL_END(SyntaxSort_SimpleDeclaration)
+
+/* SyntaxSort::ExceptionDeclaration */
+IFC_DECL_START(SyntaxSort_ExceptionDeclaration)
+IFC_DECL_END(SyntaxSort_ExceptionDeclaration)
+
+/* SyntaxSort::ConditionDeclaration */
+IFC_DECL_START(SyntaxSort_ConditionDeclaration)
+IFC_DECL_END(SyntaxSort_ConditionDeclaration)
+
+/* SyntaxSort::StaticAssertDeclaration */
+IFC_DECL_START(SyntaxSort_StaticAssertDeclaration)
+IFC_DECL_END(SyntaxSort_StaticAssertDeclaration)
+
+/* SyntaxSort::AliasDeclaration */
+IFC_DECL_START(SyntaxSort_AliasDeclaration)
+IFC_DECL_END(SyntaxSort_AliasDeclaration)
+
+/* SyntaxSort::ConceptDefinition */
+IFC_DECL_START(SyntaxSort_ConceptDefinition)
+IFC_DECL_END(SyntaxSort_ConceptDefinition)
+
+/* SyntaxSort::CompoundStatement */
+IFC_DECL_START(SyntaxSort_CompoundStatement)
+IFC_DECL_END(SyntaxSort_CompoundStatement)
+
+/* SyntaxSort::ReturnStatement */
+IFC_DECL_START(SyntaxSort_ReturnStatement)
+IFC_DECL_END(SyntaxSort_ReturnStatement)
+
+/* SyntaxSort::IfStatement */
+IFC_DECL_START(SyntaxSort_IfStatement)
+IFC_DECL_END(SyntaxSort_IfStatement)
+
+/* SyntaxSort::WhileStatement */
+IFC_DECL_START(SyntaxSort_WhileStatement)
+IFC_DECL_END(SyntaxSort_WhileStatement)
+
+/* SyntaxSort::DoWhileStatement */
+IFC_DECL_START(SyntaxSort_DoWhileStatement)
+IFC_DECL_END(SyntaxSort_DoWhileStatement)
+
+/* SyntaxSort::ForStatement */
+IFC_DECL_START(SyntaxSort_ForStatement)
+IFC_DECL_END(SyntaxSort_ForStatement)
+
+/* SyntaxSort::InitStatement */
+IFC_DECL_START(SyntaxSort_InitStatement)
+IFC_DECL_END(SyntaxSort_InitStatement)
+
+/* SyntaxSort::RangeBasedForStatement */
+IFC_DECL_START(SyntaxSort_RangeBasedForStatement)
+IFC_DECL_END(SyntaxSort_RangeBasedForStatement)
+
+/* SyntaxSort::ForRangeDeclaration */
+IFC_DECL_START(SyntaxSort_ForRangeDeclaration)
+IFC_DECL_END(SyntaxSort_ForRangeDeclaration)
+
+/* SyntaxSort::LabeledStatement */
+IFC_DECL_START(SyntaxSort_LabeledStatement)
+IFC_DECL_END(SyntaxSort_LabeledStatement)
+
+/* SyntaxSort::BreakStatement */
+IFC_DECL_START(SyntaxSort_BreakStatement)
+IFC_DECL_END(SyntaxSort_BreakStatement)
+
+/* SyntaxSort::ContinueStatement */
+IFC_DECL_START(SyntaxSort_ContinueStatement)
+IFC_DECL_END(SyntaxSort_ContinueStatement)
+
+/* SyntaxSort::SwitchStatement */
+IFC_DECL_START(SyntaxSort_SwitchStatement)
+IFC_DECL_END(SyntaxSort_SwitchStatement)
+
+/* SyntaxSort::GotoStatement */
+IFC_DECL_START(SyntaxSort_GotoStatement)
+IFC_DECL_END(SyntaxSort_GotoStatement)
+
+/* SyntaxSort::DeclarationStatement */
+IFC_DECL_START(SyntaxSort_DeclarationStatement)
+IFC_DECL_END(SyntaxSort_DeclarationStatement)
+
+/* SyntaxSort::ExpressionStatement */
+IFC_DECL_START(SyntaxSort_ExpressionStatement)
+IFC_DECL_END(SyntaxSort_ExpressionStatement)
+
+/* SyntaxSort::TryBlock */
+IFC_DECL_START(SyntaxSort_TryBlock)
+IFC_DECL_END(SyntaxSort_TryBlock)
+
+/* SyntaxSort::Handler */
+IFC_DECL_START(SyntaxSort_Handler)
+IFC_DECL_END(SyntaxSort_Handler)
+
+/* SyntaxSort::HandlerSeq */
+IFC_DECL_START(SyntaxSort_HandlerSeq)
+IFC_DECL_END(SyntaxSort_HandlerSeq)
+
+/* SyntaxSort::FunctionTryBlock */
+IFC_DECL_START(SyntaxSort_FunctionTryBlock)
+IFC_DECL_END(SyntaxSort_FunctionTryBlock)
+
+/* SyntaxSort::TypeIdListElement */
+IFC_DECL_START(SyntaxSort_TypeIdListElement)
+IFC_DECL_END(SyntaxSort_TypeIdListElement)
+
+/* SyntaxSort::DynamicExceptionSpec */
+IFC_DECL_START(SyntaxSort_DynamicExceptionSpec)
+IFC_DECL_END(SyntaxSort_DynamicExceptionSpec)
+
+/* SyntaxSort::StatementSeq */
+IFC_DECL_START(SyntaxSort_StatementSeq)
+IFC_DECL_END(SyntaxSort_StatementSeq)
+
+/* SyntaxSort::FunctionBody */
+IFC_DECL_START(SyntaxSort_FunctionBody)
+IFC_DECL_END(SyntaxSort_FunctionBody)
+
+/* SyntaxSort::Expression */
+IFC_DECL_START(SyntaxSort_Expression)
+IFC_DECL_END(SyntaxSort_Expression)
+
+/* SyntaxSort::FunctionDefinition */
+IFC_DECL_START(SyntaxSort_FunctionDefinition)
+IFC_DECL_END(SyntaxSort_FunctionDefinition)
+
+/* SyntaxSort::MemberFunctionDeclaration */
+IFC_DECL_START(SyntaxSort_MemberFunctionDeclaration)
+IFC_DECL_END(SyntaxSort_MemberFunctionDeclaration)
+
+/* SyntaxSort::TemplateDeclaration */
+IFC_DECL_START(SyntaxSort_TemplateDeclaration)
+IFC_DECL_END(SyntaxSort_TemplateDeclaration)
+
+/* SyntaxSort::RequiresClause */
+IFC_DECL_START(SyntaxSort_RequiresClause)
+IFC_DECL_END(SyntaxSort_RequiresClause)
+
+/* SyntaxSort::SimpleRequirement */
+IFC_DECL_START(SyntaxSort_SimpleRequirement)
+IFC_DECL_END(SyntaxSort_SimpleRequirement)
+
+/* SyntaxSort::TypeRequirement */
+IFC_DECL_START(SyntaxSort_TypeRequirement)
+IFC_DECL_END(SyntaxSort_TypeRequirement)
+
+/* SyntaxSort::CompoundRequirement */
+IFC_DECL_START(SyntaxSort_CompoundRequirement)
+IFC_DECL_END(SyntaxSort_CompoundRequirement)
+
+/* SyntaxSort::NestedRequirement */
+IFC_DECL_START(SyntaxSort_NestedRequirement)
+IFC_DECL_END(SyntaxSort_NestedRequirement)
+
+/* SyntaxSort::RequirementBody */
+IFC_DECL_START(SyntaxSort_RequirementBody)
+IFC_DECL_END(SyntaxSort_RequirementBody)
+
+/* SyntaxSort::TypeTemplateParameter */
+IFC_DECL_START(SyntaxSort_TypeTemplateParameter)
+IFC_DECL_END(SyntaxSort_TypeTemplateParameter)
+
+/* SyntaxSort::TemplateTemplateParameter */
+IFC_DECL_START(SyntaxSort_TemplateTemplateParameter)
+IFC_DECL_END(SyntaxSort_TemplateTemplateParameter)
+
+/* SyntaxSort::TypeTemplateArgument */
+IFC_DECL_START(SyntaxSort_TypeTemplateArgument)
+IFC_DECL_END(SyntaxSort_TypeTemplateArgument)
+
+/* SyntaxSort::NonTypeTemplateArgument */
+IFC_DECL_START(SyntaxSort_NonTypeTemplateArgument)
+IFC_DECL_END(SyntaxSort_NonTypeTemplateArgument)
+
+/* SyntaxSort::TemplateParameterList */
+IFC_DECL_START(SyntaxSort_TemplateParameterList)
+IFC_DECL_END(SyntaxSort_TemplateParameterList)
+
+/* SyntaxSort::TemplateArgumentList */
+IFC_DECL_START(SyntaxSort_TemplateArgumentList)
+IFC_DECL_END(SyntaxSort_TemplateArgumentList)
+
+/* SyntaxSort::TemplateId */
+IFC_DECL_START(SyntaxSort_TemplateId)
+IFC_DECL_END(SyntaxSort_TemplateId)
+
+/* SyntaxSort::MemInitializer */
+IFC_DECL_START(SyntaxSort_MemInitializer)
+IFC_DECL_END(SyntaxSort_MemInitializer)
+
+/* SyntaxSort::CtorInitializer */
+IFC_DECL_START(SyntaxSort_CtorInitializer)
+IFC_DECL_END(SyntaxSort_CtorInitializer)
+
+/* SyntaxSort::LambdaIntroducer */
+IFC_DECL_START(SyntaxSort_LambdaIntroducer)
+IFC_DECL_END(SyntaxSort_LambdaIntroducer)
+
+/* SyntaxSort::LambdaDeclarator */
+IFC_DECL_START(SyntaxSort_LambdaDeclarator)
+IFC_DECL_END(SyntaxSort_LambdaDeclarator)
+
+/* SyntaxSort::CaptureDefault */
+IFC_DECL_START(SyntaxSort_CaptureDefault)
+IFC_DECL_END(SyntaxSort_CaptureDefault)
+
+/* SyntaxSort::SimpleCapture */
+IFC_DECL_START(SyntaxSort_SimpleCapture)
+IFC_DECL_END(SyntaxSort_SimpleCapture)
+
+/* SyntaxSort::InitCapture */
+IFC_DECL_START(SyntaxSort_InitCapture)
+IFC_DECL_END(SyntaxSort_InitCapture)
+
+/* SyntaxSort::ThisCapture */
+IFC_DECL_START(SyntaxSort_ThisCapture)
+IFC_DECL_END(SyntaxSort_ThisCapture)
+
+/* SyntaxSort::AttributedStatement */
+IFC_DECL_START(SyntaxSort_AttributedStatement)
+IFC_DECL_END(SyntaxSort_AttributedStatement)
+
+/* SyntaxSort::AttributedDeclaration */
+IFC_DECL_START(SyntaxSort_AttributedDeclaration)
+IFC_DECL_END(SyntaxSort_AttributedDeclaration)
+
+/* SyntaxSort::AttributeSpecifierSeq */
+IFC_DECL_START(SyntaxSort_AttributeSpecifierSeq)
+IFC_DECL_END(SyntaxSort_AttributeSpecifierSeq)
+
+/* SyntaxSort::AttributeSpecifier */
+IFC_DECL_START(SyntaxSort_AttributeSpecifier)
+IFC_DECL_END(SyntaxSort_AttributeSpecifier)
+
+/* SyntaxSort::AttributeUsingPrefix */
+IFC_DECL_START(SyntaxSort_AttributeUsingPrefix)
+IFC_DECL_END(SyntaxSort_AttributeUsingPrefix)
+
+/* SyntaxSort::Attribute */
+IFC_DECL_START(SyntaxSort_Attribute)
+IFC_DECL_END(SyntaxSort_Attribute)
+
+/* SyntaxSort::AttributeArgumentClause */
+IFC_DECL_START(SyntaxSort_AttributeArgumentClause)
+IFC_DECL_END(SyntaxSort_AttributeArgumentClause)
+
+/* SyntaxSort::Alignas */
+IFC_DECL_START(SyntaxSort_Alignas)
+IFC_DECL_END(SyntaxSort_Alignas)
+
+/* SyntaxSort::UsingDeclaration */
+IFC_DECL_START(SyntaxSort_UsingDeclaration)
+IFC_DECL_END(SyntaxSort_UsingDeclaration)
+
+/* SyntaxSort::UsingDeclarator */
+IFC_DECL_START(SyntaxSort_UsingDeclarator)
+IFC_DECL_END(SyntaxSort_UsingDeclarator)
+
+/* SyntaxSort::UsingDirective */
+IFC_DECL_START(SyntaxSort_UsingDirective)
+IFC_DECL_END(SyntaxSort_UsingDirective)
+
+/* SyntaxSort::ArrayIndex */
+IFC_DECL_START(SyntaxSort_ArrayIndex)
+IFC_DECL_END(SyntaxSort_ArrayIndex)
+
+/* SyntaxSort::SEHTry */
+IFC_DECL_START(SyntaxSort_SEHTry)
+IFC_DECL_END(SyntaxSort_SEHTry)
+
+/* SyntaxSort::SEHExcept */
+IFC_DECL_START(SyntaxSort_SEHExcept)
+IFC_DECL_END(SyntaxSort_SEHExcept)
+
+/* SyntaxSort::SEHFinally */
+IFC_DECL_START(SyntaxSort_SEHFinally)
+IFC_DECL_END(SyntaxSort_SEHFinally)
+
+/* SyntaxSort::SEHLeave */
+IFC_DECL_START(SyntaxSort_SEHLeave)
+IFC_DECL_END(SyntaxSort_SEHLeave)
+
+/* SyntaxSort::TypeTraitIntrinsic */
+IFC_DECL_START(SyntaxSort_TypeTraitIntrinsic)
+IFC_DECL_END(SyntaxSort_TypeTraitIntrinsic)
+
+/* SyntaxSort::Tuple */
+IFC_DECL_START(SyntaxSort_Tuple)
+IFC_DECL_END(SyntaxSort_Tuple)
+
+/* SyntaxSort::AsmStatement */
+IFC_DECL_START(SyntaxSort_AsmStatement)
+IFC_DECL_END(SyntaxSort_AsmStatement)
+
+/* SyntaxSort::NamespaceAliasDefinition */
+IFC_DECL_START(SyntaxSort_NamespaceAliasDefinition)
+IFC_DECL_END(SyntaxSort_NamespaceAliasDefinition)
+
+/* SyntaxSort::Super */
+IFC_DECL_START(SyntaxSort_Super)
+IFC_DECL_END(SyntaxSort_Super)
+
+/* SyntaxSort::UnaryFoldExpression */
+IFC_DECL_START(SyntaxSort_UnaryFoldExpression)
+IFC_DECL_END(SyntaxSort_UnaryFoldExpression)
+
+/* SyntaxSort::BinaryFoldExpression */
+IFC_DECL_START(SyntaxSort_BinaryFoldExpression)
+IFC_DECL_END(SyntaxSort_BinaryFoldExpression)
+
+/* SyntaxSort::EmptyStatement */
+IFC_DECL_START(SyntaxSort_EmptyStatement)
+IFC_DECL_END(SyntaxSort_EmptyStatement)
+
+/* SyntaxSort::StructuredBindingDeclaration */
+IFC_DECL_START(SyntaxSort_StructuredBindingDeclaration)
+IFC_DECL_END(SyntaxSort_StructuredBindingDeclaration)
+
+/* SyntaxSort::StructuredBindingIdentifier */
+IFC_DECL_START(SyntaxSort_StructuredBindingIdentifier)
+IFC_DECL_END(SyntaxSort_StructuredBindingIdentifier)
+
+/* Source::Line */
+IFC_DECL_START(Source_Line)
+  IFC_DECL_FIELD(file, NameIndex)
+  IFC_DECL_FIELD(line, LineNumber)
+IFC_DECL_END(Source_Line)
+
+/* Trait::Deprecated */
+IFC_DECL_START(Trait_Deprecated)
+IFC_DECL_END(Trait_Deprecated)
+
+/* Trait::Specialization */
+IFC_DECL_START(Trait_Specialization)
+IFC_DECL_END(Trait_Specialization)
+
+/* Trait::Friend */
+IFC_DECL_START(Trait_Friend)
+IFC_DECL_END(Trait_Friend)
+
+/* Trait::ConstexprFunction */
+IFC_DECL_START(Trait_ConstexprFunction)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(function, DeclIndex)
+  IFC_DECL_FIELD(parameters, ChartIndex)
+  IFC_DECL_FIELD(initializers, ExprIndex)
+  IFC_DECL_FIELD(body, StmtIndex)
+IFC_DECL_END(Trait_ConstexprFunction)
+
+/* Trait::FunctionTemplate */
+IFC_DECL_START(Trait_FunctionTemplate)
+IFC_DECL_END(Trait_FunctionTemplate)
+
+/* Trait::ClassTemplate */
+IFC_DECL_START(Trait_ClassTemplate)
+IFC_DECL_END(Trait_ClassTemplate)
+
+/* Trait::AliasTemplate */
+IFC_DECL_START(Trait_AliasTemplate)
+IFC_DECL_END(Trait_AliasTemplate)
+
+/* Trait::VariableTemplate */
+IFC_DECL_START(Trait_VariableTemplate)
+IFC_DECL_END(Trait_VariableTemplate)
+
+/* Trait::MsvcVendorTrait */
+IFC_DECL_START(Trait_MsvcVendorTrait)
+  IFC_DECL_FIELD(trait, MsvcTraits)
+IFC_DECL_END(Trait_MsvcVendorTrait)
+
+/* Trait::MsvcUuid */
+IFC_DECL_START(Trait_MsvcUuid)
+  IFC_DECL_FIELD(uuid, uint16_t)
+IFC_DECL_END(Trait_MsvcUuid)
 
 /* #undef macros that were set by the #includer. */
 #undef IFC_DECL_START
