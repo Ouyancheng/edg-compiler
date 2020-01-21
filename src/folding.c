@@ -9094,12 +9094,22 @@ is TRUE, the backing expression for the returned constant will be set as well.
   a_boolean         result = FALSE;
   an_attribute_ptr  target_ap, ap;
   a_source_correspondence
-                    *scp;
+                    *scp = NULL;
 
   /* eok_parens shouldn't appear here, since the construct is generated. */
   check_assertion(arg1 != NULL && arg2 != NULL && arg2->next == NULL &&
                   arg2->kind == (an_expr_node_kind)enk_constant);
   target_ap = arg2->variant.constant.ptr->source_corresp.attributes;
+  arg1 = skip_parens(arg1);
+  if (arg1 != NULL && is_operation_node(arg1) &&
+      (node_operator_is(arg1, eok_dot_field) ||
+       node_operator_is(arg1, eok_points_to_field) ||
+       node_operator_is(arg1, eok_dot_static) ||
+       node_operator_is(arg1, eok_points_to_static))) {
+    /* GCC uses constructs such as "((A*)0)->m" to see if an attribute is
+       applied to a field. */
+    arg1 = skip_parens(arg1->variant.operation.operands->next);
+  }  /* if */
   switch (arg1->kind) {
     case enk_routine:
       scp = &arg1->variant.routine.ptr->source_corresp;
@@ -9110,28 +9120,37 @@ is TRUE, the backing expression for the returned constant will be set as well.
     case enk_type_operand:
       scp = &arg1->variant.type_operand.type->source_corresp;
       break;
+    case enk_field:
+      scp = &arg1->variant.field.ptr->source_corresp;
+      break;
+    case enk_operation:
+      /* Not really sure what entity is being tested in a generic operation,
+         so return false. */
+      break;
     default:
       unexpected_condition();
   }  /* switch */
-  for (ap = scp->attributes; ap != NULL; ap = ap->next) {
-    if (target_ap->kind == ap->kind) {
-      if (target_ap->arguments == NULL) {
-        /* If the attribute we're looking for doesn't have any arguments,
-           consider it a match (e.g., "aligned" matches "aligned(X)"). */
-        result = TRUE;
-        break;
-      } else if (ap->arguments != NULL &&
-                 target_ap->arguments->kind == ap->arguments->kind) {
-        /* See if the two arguments are the same (e.g., "aligned(4)" and
-           "aligned(4)".  Consider a template-dependent argument to be a
-           match. */
-        if (attribute_is_template_dependent(target_ap) ||
-            equivalent_attributes(target_ap, ap, /*ignore_family=*/TRUE)) {
+  if (scp != NULL) {
+    for (ap = scp->attributes; ap != NULL; ap = ap->next) {
+      if (target_ap->kind == ap->kind) {
+        if (target_ap->arguments == NULL) {
+          /* If the attribute we're looking for doesn't have any arguments,
+             consider it a match (e.g., "aligned" matches "aligned(X)"). */
           result = TRUE;
           break;
+        } else if (ap->arguments != NULL &&
+                   target_ap->arguments->kind == ap->arguments->kind) {
+          /* See if the two arguments are the same (e.g., "aligned(4)" and
+             "aligned(4)".  Consider a template-dependent argument to be a
+             match. */
+          if (attribute_is_template_dependent(target_ap) ||
+              equivalent_attributes(target_ap, ap, /*ignore_family=*/TRUE)) {
+            result = TRUE;
+            break;
+          }  /* if */
         }  /* if */
       }  /* if */
-    }  /* if */
+    }  /* for */
   }  /* if */
   clear_constant(constant, (a_constant_repr_kind)ck_integer);
   set_integer_value(&constant->variant.integer_value,

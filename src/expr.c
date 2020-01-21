@@ -13672,11 +13672,9 @@ cases).
   /* Check for and pass over the left parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_matching_stop_token(tok_rparen);
-  push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
-                               &expr_stack_entry,
-                               /*force_object_lifetime=*/FALSE,
-                               /*suppress_object_lifetime=*/FALSE,
-                               (a_rescan_control_block *)NULL);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
   add_stop_token(tok_comma);
   if (is_decl_not_expr(DFS_IS_SIZEOF |
@@ -13719,7 +13717,11 @@ cases).
           unexpected_condition();
         }  /* if */
       } else {
-        /* Typical case. */
+        /* Typical case.  Note that the expression is recorded as-is here
+           (so it can be re-created in a back end), and folding will need to
+           determine what entity the expression is actually referring to.  For
+           example, "((A*)0)->m" is actually a way to see if the class member
+           "m" has the specified attribute. */
         arg1 = make_node_from_operand(&operand);
       }  /* if */
     }  /* if */
