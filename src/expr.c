@@ -13749,7 +13749,7 @@ cases).
   }  /* if */
   if (!err) {
     /* Scan the attribute. */
-    ap = scan_attribute(family, /*using_ns_ap=*/FALSE);
+    ap = scan_attribute(family, (an_attribute_ptr)NULL);
     if (ap != NULL) {
       /* Create a dummy constant and attach the attributes to it. */
       a_constant_ptr  cp, con = local_constant();
