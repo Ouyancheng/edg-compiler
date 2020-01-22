@@ -13660,7 +13660,7 @@ cases).
   a_boolean               err = FALSE, force_false = FALSE;
   an_attribute_family     family;
   a_const_char            *name;
-  an_expr_node_ptr        arg1;
+  an_expr_node_ptr        arg1 = NULL;
   a_source_position       start_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position       end_position;
