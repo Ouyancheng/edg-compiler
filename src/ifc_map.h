@@ -250,12 +250,11 @@ IFC_DECL_START(DeclSort_Concept)
   IFC_DECL_FIELD(home_scope, DeclIndex)
   IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(chart, ChartIndex)
-  IFC_DECL_FIELD(body, ExprIndex)
+  IFC_DECL_FIELD(constraint, ExprIndex)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
   IFC_DECL_FIELD(head, SentenceIndex)
-  /*IFC_DECL_FIELD(body, SentenceIndex) duplicate definition of body. */
-  IFC_DECL_FIELD(body2, SentenceIndex)
+  IFC_DECL_FIELD(body, SentenceIndex)
 IFC_DECL_END(DeclSort_Concept)
 
 /* DeclSort::Intrinsic */
@@ -356,8 +355,7 @@ IFC_DECL_END(DeclSort_UsingDirective)
 
 /* DeclSort::Friend */
 IFC_DECL_START(DeclSort_Friend)
-  /*IFC_DECL_FIELD(entity, TypeDecl) TypeDecl not defined. */
-  IFC_DECL_FIELD(entity, DeclIndex)
+  IFC_DECL_FIELD(entity, TypeIndex)
 IFC_DECL_END(DeclSort_Friend)
 
 /* DeclSort::SyntaxTree */
@@ -384,6 +382,11 @@ IFC_DECL_END(TypeSort_Fundamental)
 IFC_DECL_START(TypeSort_Designated)
   IFC_DECL_FIELD(decl, DeclIndex)
 IFC_DECL_END(TypeSort_Designated)
+
+/* TypeSort::Deduced */
+IFC_DECL_START(TypeSort_Deduced)
+  IFC_DECL_FIELD(return_type, TypeIndex)
+IFC_DECL_END(TypeSort_Deduced)
 
 /* TypeSort::Syntactic */
 IFC_DECL_START(TypeSort_Syntactic)
@@ -466,7 +469,8 @@ IFC_DECL_END(TypeSort_Unaligned)
 
 /* TypeSort::Decltype */
 IFC_DECL_START(TypeSort_Decltype)
-  IFC_DECL_FIELD(words, SentenceOffset)
+  IFC_DECL_FIELD(expr, SyntaxIndex)
+  IFC_DECL_FIELD(words, SentenceIndex)
 IFC_DECL_END(TypeSort_Decltype)
 
 /* TypeSort::Tuple */
@@ -474,6 +478,12 @@ IFC_DECL_START(TypeSort_Tuple)
   IFC_DECL_FIELD(start, Index)
   IFC_DECL_FIELD(cardinality, Cardinality)
 IFC_DECL_END(TypeSort_Tuple)
+
+/* TypeSort::Forall */
+IFC_DECL_START(TypeSort_Forall)
+  IFC_DECL_FIELD(chart, ChartIndex)
+  IFC_DECL_FIELD(subject, TypeIndex)
+IFC_DECL_END(TypeSort_Forall)
 
 /* TypeSort::SyntaxTree */
 IFC_DECL_START(TypeSort_SyntaxTree)
@@ -676,7 +686,7 @@ IFC_DECL_END(ExprSort_Tuple)
 
 /* ExprSort::Tokens */
 IFC_DECL_START(ExprSort_Tokens)
-  IFC_DECL_FIELD(tokens, SentenceOffset)
+  IFC_DECL_FIELD(words, SentenceIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_Tokens)
 
@@ -713,8 +723,8 @@ IFC_DECL_END(ExprSort_PushState)
 /* ExprSort::TypeTraitIntrinsic */
 IFC_DECL_START(ExprSort_TypeTraitIntrinsic)
   IFC_DECL_FIELD(type, TypeIndex)
-  IFC_DECL_FIELD(shape, TokenCategory)
-  IFC_DECL_FIELD(kind, TokenCategory)
+  IFC_DECL_FIELD(shape, OperatorCategory)
+  IFC_DECL_FIELD(kind, OperatorCategory)
   IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_TypeTraitIntrinsic)
 
@@ -934,10 +944,6 @@ IFC_DECL_END(NameSort_SourceFile)
 /* ChartSort::None */
 IFC_DECL_START(ChartSort_None)
 IFC_DECL_END(ChartSort_None)
-
-/* ChartSort::Enclosing */
-IFC_DECL_START(ChartSort_Enclosing)
-IFC_DECL_END(ChartSort_Enclosing)
 
 /* ChartSort::Unilevel */
 IFC_DECL_START(ChartSort_Unilevel)
@@ -1446,6 +1452,20 @@ IFC_DECL_END(Trait_MsvcVendorTrait)
 IFC_DECL_START(Trait_MsvcUuid)
   IFC_DECL_FIELD(uuid, uint16_t)
 IFC_DECL_END(Trait_MsvcUuid)
+
+/* Sentences: Internal token stream from MSVC. */
+IFC_DECL_START(Sentence)
+  IFC_DECL_FIELD(start, WordIndex)
+  IFC_DECL_FIELD(cardinality, Cardinality)
+  IFC_DECL_FIELD(locus, SourceLocation)
+IFC_DECL_END(Sentence)
+
+/* Words: Tokens that build up a Sentence. */
+IFC_DECL_START(Words)
+  IFC_DECL_FIELD(index, Index)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(category, WordCategory)
+IFC_DECL_END(Words)
 
 /* #undef macros that were set by the #includer. */
 #undef IFC_DECL_START

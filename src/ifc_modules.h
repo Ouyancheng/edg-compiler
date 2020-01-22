@@ -52,23 +52,23 @@ typedef uint32_t ifc_Offset;
 typedef uint32_t ifc_ParameterLevel;
 typedef uint32_t ifc_ParameterPosition;
 typedef uint32_t ifc_ScopeIndex;
-typedef uint32_t ifc_SentenceIndex;  /* Referenced, not defined. */
-typedef uint32_t ifc_SentenceOffset; /* Referenced, not defined. */
+typedef uint32_t ifc_SentenceIndex;
 typedef uint32_t ifc_StmtIndex;
 typedef uint32_t ifc_StringIndex;
 typedef uint32_t ifc_SyntaxIndex;    /* Referenced, not defined. */
 typedef uint32_t ifc_TextOffset;
-typedef uint32_t ifc_TokenCategory;  /* Referenced, not defined. */
 typedef uint32_t ifc_TypeIndex;
-typedef uint32_t ifc_UniqueID;       /* Referenced, not defined. */
+typedef uint32_t ifc_UniqueID;
 typedef uint32_t ifc_UnitIndex;
+typedef uint32_t ifc_WordIndex;
 
 /* 16-bit types: */
 typedef uint16_t ifc_Alignment;
-typedef uint16_t ifc_EHFlags;        /* Referenced, not defined. */
+typedef uint16_t ifc_EHFlags;
 typedef uint16_t ifc_FunctionTraits;
 typedef uint16_t ifc_OperatorCategory;
 typedef uint16_t ifc_PackSize;
+typedef uint16_t ifc_WordCategory;   /* Referenced, not defined. */
 
 /* 8-bit types: */
 typedef uint8_t ifc_Abi;
@@ -132,8 +132,8 @@ struct ifc_SourceLocation {
   ifc_Column    column;
 };  /* ifc_SourceLocation */
 
-struct ifc_NoexceptSpecification { /* Referenced but not defined. */
-  ifc_SentenceOffset  
+struct ifc_NoexceptSpecification {
+  ifc_SentenceIndex
                 words;
   ifc_NoexceptSort
                 sort;
@@ -141,8 +141,13 @@ struct ifc_NoexceptSpecification { /* Referenced but not defined. */
 };  /* ifc_NoexceptSpecification */
 
 struct ifc_ParameterizedEntity {
-  /* The spec refers to this but doesn't define it.  Usage suggests it's a
-     struct of some kind. */
+  ifc_Index     index;
+  ifc_SentenceIndex
+                head;
+  ifc_SentenceIndex
+                body;
+  ifc_SentenceIndex
+                attributes;
 };
 
 /*
@@ -286,7 +291,8 @@ enum an_ifc_NoexceptSort {
   ifc_NoexceptSort_False,
   ifc_NoexceptSort_True,
   ifc_NoexceptSort_Expression,
-  ifc_NoexceptSort_Deduced,
+  ifc_NoexceptSort_Weak,
+  ifc_NoexceptSort_Unenforced,
 };
 
 /* Enumeration for ScopeTraits. */
@@ -346,6 +352,7 @@ enum an_ifc_TypeSort {
   ifc_TypeSort_Unaligned,
   ifc_TypeSort_Decltype,
   ifc_TypeSort_Tuple,
+  ifc_TypeSort_Forall,
   ifc_TypeSort_SyntaxTree,
   /* Must always equal the last enumerator above. */
   ifc_TypeSort_Last = ifc_TypeSort_SyntaxTree
@@ -640,13 +647,12 @@ enum an_ifc_OperatorCategory {
 };
 
 /* Macros used to access ChartIndex::tag and ChartIndex::value. */
-#define chart_tag(expr) ((expr) & 0x0000000F)
-#define chart_value(expr) ((expr) >> 4)
+#define chart_tag(expr) ((expr) & 0x00000003)
+#define chart_value(expr) ((expr) >> 2)
 
 /* Enumeration for ChartSort (i.e., kinds of charts). */
 enum an_ifc_ChartSort {
   ifc_ChartSort_None,
-  ifc_ChartSort_Enclosing,
   ifc_ChartSort_Unilevel,
   ifc_ChartSort_Multilevel,
 };
@@ -924,6 +930,7 @@ enum an_ifc_partition_kind_tag {
   ifc_type_vendor_extension = ifc_type_start + ifc_TypeSort_VendorExtension,
   ifc_type_fundamental = ifc_type_start + ifc_TypeSort_Fundamental,
   ifc_type_designated = ifc_type_start + ifc_TypeSort_Designated,
+  ifc_type_deduced = ifc_type_start + ifc_TypeSort_Deduced,
   ifc_type_syntactic = ifc_type_start + ifc_TypeSort_Syntactic,
   ifc_type_expansion = ifc_type_start + ifc_TypeSort_Expansion,
   ifc_type_pointer = ifc_type_start + ifc_TypeSort_Pointer,
@@ -939,6 +946,7 @@ enum an_ifc_partition_kind_tag {
   ifc_type_unaligned = ifc_type_start + ifc_TypeSort_Unaligned,
   ifc_type_decltype = ifc_type_start + ifc_TypeSort_Decltype,
   ifc_type_tuple = ifc_type_start + ifc_TypeSort_Tuple,
+  ifc_type_forall = ifc_type_start + ifc_TypeSort_Forall,
   ifc_type_syntax_tree = ifc_type_start + ifc_TypeSort_SyntaxTree,
   ifc_type_end = ifc_type_start + ifc_TypeSort_Last,
   /* Group all NameSort::tag partitions together.  Note that there is no
@@ -1251,6 +1259,8 @@ enum an_ifc_partition_kind_tag {
   ifc_trait_function_template,
   ifc_trait_specialization,
   ifc_trait_variable_template,
+  ifc_sentence,
+  ifc_word,
   ifc_last
 };
 
@@ -1395,6 +1405,8 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "scope.desc",                      ifc_scope_desc },
   { "scope.member",                    ifc_scope_member },
   { "src.line",                        ifc_src_line },
+  { "src.sentence",                    ifc_sentence },
+  { "src.word",                        ifc_word },
   { "stmt.block",                      ifc_stmt_block },
   { "stmt.break",                      ifc_stmt_break },
   { "stmt.case",                       ifc_stmt_case },
@@ -1535,8 +1547,10 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "type.array",                      ifc_type_array },
   { "type.base",                       ifc_type_base },
   { "type.decltype",                   ifc_type_decltype },
+  { "type.deduced",                    ifc_type_deduced },
   { "type.designated",                 ifc_type_designated },
   { "type.expansion",                  ifc_type_expansion },
+  { "type.forall",                     ifc_type_forall },
   { "type.function",                   ifc_type_function },
   { "type.fundamental",                ifc_type_fundamental },
   { "type.pointer-lvalue-reference",   ifc_type_lvalue_reference },

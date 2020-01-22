@@ -335,23 +335,6 @@ visual indicator that they change the value of their argument.
 
 Handle nested structures differently (and check for padding).
 */
-#define GET_Sequence(x)        (GET_int((x).start), \
-                                GET_int((x).cardinality))
-#define GET_ContentHash(x)     (GET_64bit_int((x).bytes[0]), \
-                                GET_64bit_int((x).bytes[1]), \
-                                GET_64bit_int((x).bytes[2]), \
-                                GET_64bit_int((x).bytes[3]))
-#define GET_ModuleReference(x) (GET_int((x).owner), \
-                                GET_int((x).partition))
-#define GET_SourceLocation(x)  (GET_int((x).line), \
-                                GET_int((x).column))
-/* Note that this includes padding: */
-#define GET_NoexceptSpecification(x) \
-                               (GET_int((x).words), \
-                                GET_byte((x).sort), \
-                                pad(3))
-#define GET_ParameterizedEntity(x) (unexpected_condition_str \
-                         ("Lacking specification for a parameterized entity."))
 
 #define GET_ByteOffset(x)         GET_int(x)
 #define GET_Cardinality(x)        GET_int(x)
@@ -372,21 +355,21 @@ Handle nested structures differently (and check for padding).
 #define GET_ParameterPosition(x)  GET_int(x)
 #define GET_ScopeIndex(x)         GET_int(x)
 #define GET_SentenceIndex(x)      GET_int(x)
-#define GET_SentenceOffset(x)     GET_int(x)
 #define GET_StmtIndex(x)          GET_int(x)
 #define GET_StringIndex(x)        GET_int(x)
 #define GET_SyntaxIndex(x)        GET_int(x)
 #define GET_TextOffset(x)         GET_int(x)
-#define GET_TokenCategory(x)      GET_int(x)
 #define GET_TypeIndex(x)          GET_int(x)
 #define GET_UniqueID(x)           GET_int(x)
 #define GET_UnitIndex(x)          GET_int(x)
+#define GET_WordIndex(x)          GET_int(x)
 
 #define GET_Alignment(x)          GET_short(x)
 #define GET_EHFlags(x)            GET_short(x)
 #define GET_FunctionTraits(x)     GET_short(x)
 #define GET_OperatorCategory(x)   GET_short(x)
 #define GET_PackSize(x)           GET_short(x)
+#define GET_WordCategory(x)       GET_short(x)
 
 #define GET_Abi(x)                GET_byte(x)
 #define GET_Access(x)             GET_byte(x)
@@ -411,6 +394,21 @@ Handle nested structures differently (and check for padding).
 #define GET_uint16_t(x)           GET_short(x)
 
 #define GET_Checksum(x)           GET_256bit_int(x)
+
+#define GET_Sequence(x)        (GET_Index((x).start), \
+                                GET_Cardinality((x).cardinality))
+#define GET_ModuleReference(x) (GET_TextOffset((x).owner), \
+                                GET_TextOffset((x).partition))
+#define GET_SourceLocation(x)  (GET_LineIndex((x).line), \
+                                GET_Column((x).column))
+/* Note that this includes padding: */
+#define GET_NoexceptSpecification(x) (GET_SentenceIndex((x).words), \
+                                      GET_NoexceptSort((x).sort), \
+                                      pad(3))
+#define GET_ParameterizedEntity(x) (GET_Index((x).index), \
+                                    GET_SentenceIndex((x).head), \
+                                    GET_SentenceIndex((x).body), \
+                                    GET_SentenceIndex((x).attributes))
 
 /* Utility to save the current partition (for display during debugging). */
 #if DEBUG
@@ -1129,7 +1127,8 @@ Add strings representing a noexcept specification, if any.
       add_string_to_text_buffer(scbp->text_buffer, "noexcept(true) ");
       break;
     case ifc_NoexceptSort_Expression:
-    case ifc_NoexceptSort_Deduced:
+    case ifc_NoexceptSort_Weak:
+    case ifc_NoexceptSort_Unenforced:
       /* FIXME: not sure what these should be */
     default:
       unexpected_condition();
@@ -1589,8 +1588,10 @@ an "ellipsis type").
           result = class_or_enum_type;
         }
         break;
+      case ifc_TypeSort_Deduced:
       case ifc_TypeSort_PointerToMember:
       case ifc_TypeSort_Tuple:
+      case ifc_TypeSort_Forall:
       case ifc_TypeSort_VendorExtension:
       case ifc_TypeSort_Syntactic:
       case ifc_TypeSort_Expansion:
