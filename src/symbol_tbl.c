@@ -9776,9 +9776,10 @@ the latter will be NULL for variables.
 #if !TARG_CASE_SENSITIVE_EXTERNAL_NAMES
       /* External names are case-insensitive, so make a case-neutral copy
          of the identifier, upcasing each letter. */
-      { char     *src = hdr_ptr->identifier, *dest;
-        sizeof_t count;
-        char     ch;
+      { a_const_char *src = hdr_ptr->identifier;
+        char         *dest;
+        sizeof_t     count;
+        char         ch;
 #if TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME > 0
         /* There is an upper limit on significance in external names. */
         char     new_ident[TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME];

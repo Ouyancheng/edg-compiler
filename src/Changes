@@ -1,5 +1,14 @@
 Version 6.1
 
+1/22/19  [EDGcpfe/22235]
+Build error with !TARG_CASE_SENSITIVE_EXTERNAL_NAMES
+
+The change to accommodate const correctness for string literals (see
+EDGcpfe/10662, part of version 4.8) overlooked a necessary edit in
+find_external_symbol (symbol_tbl.c), resulting in a build error when
+TARG_CASE_SENSITIVE_EXTERNAL_NAMES is FALSE.  This is now fixed.
+
+
 1/21/20  [EDGcpfe/21207,EDGcpfe/21623]
 GNU compatibility: __builtin_has_attribute
 
