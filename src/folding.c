@@ -9080,8 +9080,8 @@ static void fold_builtin_has_attribute(an_expr_node_ptr   expr,
                                        a_constant_ptr     constant,
                                        a_boolean          maintain_expression)
 /*
-expr is an enk_builtin_operation node for an __builtin_has_attribute operation.
-*constant.  The boolean constant will have value "true" if the attribute(s)
+expr is an enk_builtin_operation node for a __builtin_has_attribute operation.
+The returned boolean constant will have value "true" if the attribute(s)
 attached to the second operand appertain to the first operand; otherwise, the
 constant will have value "false".  Note that a template-dependent first
 operand is checked for attributes (i.e., the operation applies to the template
