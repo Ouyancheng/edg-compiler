@@ -1,5 +1,16 @@
 Version 6.1
 
+1/22/19  [EDGcpfe/22229]
+C++-generating back end: use of dependent alias template from invalid scope
+
+In some obscure cases, the output of the C++-generating back end could use
+an instance of an alias template defined in one class template to represent
+a dependent type appearing in the definition of an unrelated class
+template.  Depending on the characteristics of the alias template, this
+could lead in some cases to errors when compiling the generated code.  This
+is now fixed.
+
+
 1/22/19  [EDGcpfe/22235]
 Build error with !TARG_CASE_SENSITIVE_EXTERNAL_NAMES
 

@@ -1694,10 +1694,9 @@ otherwise, return NULL.
   for (entry = &hash_table[bucket];
        result == NULL && entry != NULL && entry->type != NULL;
        entry = entry->next) {
-    a_boolean matches =
-         standalone_identical_types(entry->type->variant.typeref.type, type) &&
-                                (entry->fcn_scope == NULL ||
-                                 entry->fcn_scope == innermost_function_scope);
+    a_boolean matches = (entry->type->variant.typeref.type == type &&
+                         (entry->fcn_scope == NULL ||
+                          entry->fcn_scope == innermost_function_scope));
     if (!matches && entry->type->variant.typeref.is_template_alias) {
       /* Instances of template aliases can also match base classes. */
       a_base_class_ptr bcp = find_base_class_of(
