@@ -36992,7 +36992,6 @@ static void scan_requires_expr(an_operand_ptr  result)
           break;
         case tok_requires:
           *p_last_req = scan_nested_requirement(&is_dependent);
-          goto done_with_requirements;
           break;
         case tok_end_of_source:
         case tok_rbrace:
