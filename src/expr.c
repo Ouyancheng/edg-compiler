@@ -36775,6 +36775,8 @@ If *is_dependent is FALSE and the given type is template dependent, set
     if (!*is_dependent && is_instantiation_dependent_type(tp)) {
       *is_dependent = TRUE;
     }  /* if */
+    /* Skip over the type name. */
+    (void)get_token();
   } else {
     syntax_error(ec_exp_type_name);
     set_expr_node_kind(result, (an_expr_node_kind)enk_error);
