@@ -5983,6 +5983,15 @@ Interpret the given block statement and its associated scope (if any).
     if (vp != NULL || scope_is(scope, sck_function)) {
       save_storage_stack(ips, saved_stack);
       local_storage = TRUE;
+      for (; vp != NULL; vp = vp->next) {
+        /* Ordinarily, local variables are allocated and initialized when
+           interpreting their associated stmk_init entry.  In C++20, however,
+           uninitialized variables are permitted in constexpr expressions
+           (via changes introduced by P1331R2). */
+        if (vp->init_kind == (an_init_kind)initk_none) {
+          (void)do_constexpr_alloc_variable(ips, vp, &result);
+        }  /* if */
+      }  /* for */
     }  /* if */
     if (scope->variables != NULL) {
       /* There are local static variables.  That is normally not possible in
@@ -14051,6 +14060,7 @@ the value representation of the integer value.
             break;
           case eok_assign:
             { a_constexpr_address  *dst = (a_constexpr_address*)opnd1_value;
+              a_boolean            lhs_initialized;
               if (cannot_dereference(dst)) {
                 /* Storing one position past the end of an array. */
                 do_constexpr_fail(result);
@@ -14075,7 +14085,10 @@ the value representation of the integer value.
                 info_with_pos(ec_constexpr_modifying_const_storage,
                               &expr->position, ips);
                 do_constexpr_fail(result);
-              } else if (!is_initialized(dst)) {
+              } else if (!(lhs_initialized = is_initialized(dst)) &&
+                         !cpp20_mode) {
+                /* Prior to C++20 (i.e., the changes of P1331R2), assigning to
+                   uninitialized storage was invalid. */
                 do_constexpr_fail(result);
                 info_with_pos(ec_object_not_initialized, &opnd1->position,
                               ips);
@@ -14109,6 +14122,13 @@ the value representation of the integer value.
                      more. */
                   (void)memcpy(result_storage, dst_storage,
                                size_t_arg(n_bytes));
+                }  /* if */
+                if (!lhs_initialized) {
+                  mark_whole_subobject_initialized(ips, dst_storage, tp,
+                                                   dst->complete_object);
+                  if (dst_storage == dst->complete_object) {
+                    mark_complete_object_initialized(dst_storage);
+                  }  /* if */
                 }  /* if */
               }  /* if */
             }
