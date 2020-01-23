@@ -7494,7 +7494,7 @@ rescan_statement:
     case tok_microsoft_asm:
       /* Asm "declaration" or Microsoft mode asm block. */
       asm_statement();
-      can_appear_in_constexpr_body = FALSE;
+      can_appear_in_constexpr_body = cpp20_mode;
       break;
     case tok_try:
       /* C++ try block. */

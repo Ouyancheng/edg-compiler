@@ -10921,10 +10921,14 @@ command line -D options.
           }  /* if */
         }  /* if */
       }  /* for */
-      /* __cpp_constexpr must be handled specially, as it will have
-         different values depending on whether C++11, C++14, or C++17
-         constexpr features are supported. */
-      if (constexpr_lambdas_enabled) {
+      /* __cpp_constexpr must be handled specially, as it will have different
+         values depending on whether C++11, C++14, C++17, or C++20 constexpr
+         features are supported. */
+      if (cpp20_mode) {
+        (void)enter_predef_macro("201907L", "__cpp_constexpr",
+                                 /*cannot_be_redefined=*/TRUE,
+                                 /*ref_suppresses_pch_file=*/FALSE);
+      } else if (constexpr_lambdas_enabled) {
         (void)enter_predef_macro("201603L", "__cpp_constexpr",
                                  /*cannot_be_redefined=*/TRUE,
                                  /*ref_suppresses_pch_file=*/FALSE);
