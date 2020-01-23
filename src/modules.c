@@ -622,7 +622,9 @@ translation units.
   a_module_import_decl_ptr midp;
 
   for (midp = il_header.imported_modules; midp != NULL; midp = midp->next) {
-    midp->module_info->module_interface->close();
+    if (midp->module_info->module_interface != NULL) {
+      midp->module_info->module_interface->close();
+    }  /* if */
   }  /* for */
   il_header.imported_modules = NULL;
 }  /* modules_wrapup */
