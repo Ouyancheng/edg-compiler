@@ -20,7 +20,7 @@ feature and the changes for EDGcpfe/21581 etc. are now implemented.
 
 
 1/23/20  [EDGcpfe/21581,EDGcpfe/22234,EDGcpfe/22240]
-Uninitialized local variables in constexpr functions
+C++20: Uninitialized local variables in constexpr functions
 
 The changes for EDGcpfe/17158, which permitted uninitialized local variables of
 empty class types in constexpr function definitions, have now been enabled in
