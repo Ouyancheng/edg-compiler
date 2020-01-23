@@ -104,7 +104,6 @@ typedef struct a_module_interface
                               *a_module_interface_ptr;
 typedef struct a_module_entity
                               *a_module_entity_ptr;
-typedef struct an_ifc_module  *an_ifc_module_ptr;
 
 /* Opaque type definition for an_arg_operand (used in the expression
    processing routines, but a pointer to it appears in a front-end only
@@ -17149,7 +17148,6 @@ typedef a_byte a_module_kind;
 
 /*
 Information about a module file.
-FIXME: For PCH, f_module needs to be re-opened and mmap_addr recomputed.
 */
 typedef struct a_module {
   a_module_kind	kind;	/* The kind of module file. */
@@ -17160,30 +17158,6 @@ typedef struct a_module {
 		module_interface;
 			/* The module interface object used to interact with
 			   the module. */
-  FILE		*f_module;
-			/* The file descriptor for the file. */
-  void		*mmap_addr;
-			/* A pointer to the memory-mapped beginning of the
-			   module file. */
-  size_t	mmap_size;
-			/* The size of the memory-mapped partition. */
-#if EDG_WIN32
-  a_windows_handle
-		mapped_input;
-			/* A HANDLE returned by CreateFile_interface during
-			   the mapping process on Windows. */
-  a_windows_handle
-		map_object;
-			/* A HANDLE returned by CreateFileMapping during the
-			   mapping process on Windows. */
-#endif /* EDG_WIN32 */
-  union {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    /* When kind == mk_ifc: */
-    an_ifc_module_ptr
-		ifc;	/* IFC-specific module information. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } variant;
 } a_module;
 
 

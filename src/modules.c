@@ -422,7 +422,8 @@ scope.
       switch (mep->module_info->kind) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
         case mk_ifc:
-          process_ifc_declaration(mep, /*defer=*/FALSE, (a_type_ptr)NULL);
+          ((an_ifc_module*)mep->module_info->module_interface)->
+            process_ifc_declaration(mep, /*defer=*/FALSE, (a_type_ptr)NULL);
           break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         default:
@@ -449,16 +450,8 @@ list, if any) from information in the module file and return it in buffer.
   a_module_entity_ptr           mep = ctsp->module_entity;
 
   check_assertion(mep != NULL);
-  /* Dispatch the request to the appropriate routine. */
-  switch (mep->module_info->kind) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case mk_ifc:
-      get_definition_of_module_class_from_ifc(mep, buffer);
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    default:
-      unexpected_condition();
-  }  /* switch */
+  mep->module_info->module_interface->
+                                   get_definition_of_module_class(mep, buffer);
   /* Once the class is defined, there is no need for this information. */
   ctsp->module_entity = NULL;
 }  /* get_definition_of_module_class */
@@ -565,19 +558,11 @@ Display debug information about the specified module.
   if (mod != NULL) {
     (void)fprintf(f_debug, "Module name: %s ",
                   (mod->name == NULL) ? "<NULL>" : mod->name);
-    switch (mod->kind) {
-      case mk_none:
-        (void)fprintf(f_debug, "kind: mk_none\n");
-        break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      case mk_ifc:
-        (void)fprintf(f_debug, "kind: mk_ifc\n");
-        db_ifc_file_header(mod);
-        break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      default:
-        unexpected_condition();
-    }  /* switch */
+    if (mod->module_interface == NULL) {
+      (void)fprintf(f_debug, "NULL interface");
+    } else {
+      mod->module_interface->debug();
+    }  /* if */
   }  /* if */
 }  /* db_module */
 
@@ -637,18 +622,7 @@ translation units.
   a_module_import_decl_ptr midp;
 
   for (midp = il_header.imported_modules; midp != NULL; midp = midp->next) {
-    switch (midp->module_info->kind) {
-      case mk_none:
-        /* No error if module kind was never determined. */
-        break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      case mk_ifc:
-        close_ifc_module_file(midp);
-        break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      default:
-        unexpected_condition();
-    }  /* switch */
+    midp->module_info->module_interface->close();
   }  /* for */
   il_header.imported_modules = NULL;
 }  /* modules_wrapup */

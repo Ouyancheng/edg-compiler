@@ -3985,11 +3985,11 @@ after_entry_from_class:
         /* FIXME: make sure all fields are walked appropriately. */
         walk_string_ptr(eptr->name, iek_other_text, 0);
         walk_string_ptr(eptr->full_name, iek_other_text, 0);
-        conditionally_clear_fe_pointer(eptr->f_module);
-        conditionally_clear_fe_pointer(eptr->mmap_addr);
+        conditionally_clear_fe_pointer(eptr->module_interface->f_module);
+        conditionally_clear_fe_pointer(eptr->module_interface->mmap_addr);
 #if EDG_WIN32
-        conditionally_clear_fe_pointer(eptr->mapped_input);
-        conditionally_clear_fe_pointer(eptr->map_object);
+        conditionally_clear_fe_pointer(eptr->module_interface->mapped_input);
+        conditionally_clear_fe_pointer(eptr->module_interface->map_object);
 #endif /* EDG_WIN32 */
 #undef eptr
       }

@@ -80,8 +80,35 @@ struct a_module_entity {
 An (effectively) abstract class used for interfacing with a module.  Different
 module implementations can inherit from this to provide their own interface
 without needing to make an IL change.
+FIXME: For PCH, f_module needs to be re-opened and mmap_addr recomputed.
 */
 struct a_module_interface {
+  a_const_char	*primary_name = NULL;
+			/* The primary name of the module. */
+  a_const_char	*partition_name = NULL;
+			/* The partition name of the module.  May be NULL if
+			   this is not a module partition. */
+  a_module_ptr	assoc_module_info = NULL;
+			/* The associated IL module pointer that references
+			   this module interface. */
+  FILE		*f_module = NULL;
+			/* The file descriptor for the file. */
+  void		*mmap_addr = NULL;
+			/* A pointer to the memory-mapped beginning of the
+			   module file. */
+  size_t	mmap_size = 0;
+			/* The size of the memory-mapped partition. */
+#if EDG_WIN32
+  a_windows_handle
+		mapped_input = NULL;
+			/* A HANDLE returned by CreateFile_interface during
+			   the mapping process on Windows. */
+  a_windows_handle
+		map_object = NULL;
+			/* A HANDLE returned by CreateFileMapping during the
+			   mapping process on Windows. */
+#endif /* EDG_WIN32 */
+
   a_module_interface() noexcept = default;
   virtual ~a_module_interface() noexcept;
 
@@ -90,15 +117,17 @@ struct a_module_interface {
 
 /* Disk interface functions. */
   virtual a_boolean import(a_module_import_decl_ptr midp) noexcept ABSTRACT;
-  virtual a_boolean close() noexcept ABSTRACT
+  virtual void close() noexcept ABSTRACT
 
 /* Module interface functions. */
   void set_name(a_const_char *module_name) noexcept;
-/* FIXME: Implement these. */
+  virtual void get_definition_of_module_class(a_module_entity_ptr mep,
+                                              a_text_buffer       *buffer)
+                                                       const noexcept ABSTRACT;
 
-/* Data members. */
-  a_const_char *primary_name = NULL;
-  a_const_char *partition_name = NULL;
+#if DEBUG
+  virtual void debug() const noexcept ABSTRACT
+#endif /* DEBUG */
 };  /* a_module_interface */
 
 /* If in a module unit, the current module symbol. */

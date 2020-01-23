@@ -1279,14 +1279,12 @@ the comments there).
 Some convenience macros to get module entities of various IFC sorts when
 the sort is known by the context.
 */
-#define get_decl_module_entity_ptr(mod, decl_index) \
-  (get_ifc_module_entity_ptr((mod), \
-                             ifc_decl_start + decl_tag((decl_index)), \
+#define get_decl_module_entity_ptr(decl_index) \
+  (get_ifc_module_entity_ptr(ifc_decl_start + decl_tag((decl_index)), \
                              decl_value((decl_index))))
 
-#define get_type_module_entity_ptr(mod, type_index) \
-  (get_ifc_module_entity_ptr((mod), \
-                             ifc_type_start + type_tag((type_index)), \
+#define get_type_module_entity_ptr(type_index) \
+  (get_ifc_module_entity_ptr(ifc_type_start + type_tag((type_index)), \
                              type_value((type_index))))
 
 /*
@@ -1582,14 +1580,13 @@ struct an_ifc_partition {
                         /* The size of an entry in the partition. */
 };  /* an_ifc_partition */
 
+
+struct a_str_control_block;
+struct a_partial_scope_stack_state;
 /*
 Information specific to an IFC module.
 */
 struct an_ifc_module : public a_module_interface {
-  virtual ~an_ifc_module() noexcept = default;
-
-  a_boolean import(a_module_import_decl_ptr midp) noexcept override;
-
   an_ifc_File_Header
                 header = {};
                         /* The values of an IFC File_Header (byte-swapped if
@@ -1607,23 +1604,118 @@ struct an_ifc_module : public a_module_interface {
                            line in each file and that's time-consuming to
                            compute).  Dynamically allocated once the number of
                            source files is known. */
-};  /* an_ifc_module */
 
-extern void process_ifc_declaration(a_module_entity_ptr mep,
-                                    a_boolean           defer,
-                                    a_type_ptr          enumeration_type);
+  virtual ~an_ifc_module() noexcept = default;
+
+  inline a_boolean is_open() const noexcept override {
+    return f_module != NULL;
+  }
+
+  a_boolean import(a_module_import_decl_ptr midp) noexcept override;
+  void close() noexcept override;
+  void ifc_modules_pch_reset(a_module_import_decl_ptr midp) noexcept;
+
+  void process_ifc_declaration(a_module_entity_ptr mep,
+                               a_boolean           defer,
+                               a_type_ptr          enumeration_type)
+                                                                const noexcept;
+  void get_definition_of_module_class(a_module_entity_ptr mep,
+                                      a_text_buffer       *buffer)
+                                                       const noexcept override;
 
 #if DEBUG
-extern void db_ifc_file_header(a_module_ptr mod);
+  void debug() const noexcept override;
 #endif /* DEBUG */
 
-extern void get_definition_of_module_class_from_ifc(
-                                                  a_module_entity_ptr mep,
-                                                  a_text_buffer       *buffer);
+private:
+  a_boolean open_and_map_ifc_module_file(a_module_import_decl_ptr midp)
+                                                                      noexcept;
+  static an_ifc_partition_map *find_ifc_partition(a_const_char *name) noexcept;
+  void process_ifc_scope(ifc_ScopeIndex scope_index,
+                         a_scope_ptr    scope) const noexcept;
+  a_module_entity_ptr get_ifc_module_entity_ptr(
+                                       an_ifc_partition_kind partition,
+                                       size_t                partition_offset)
+                                                                const noexcept;
+  a_type_ptr type_for_ifc_type_index(ifc_TypeIndex type_index) const noexcept;
+  void source_position_from_locus(a_source_position  *pos,
+                                  ifc_SourceLocation *locus) const noexcept;
+  a_const_char *string_from_name_index(ifc_NameIndex    name_index,
+                                       a_symbol_locator *loc) const noexcept;
+  void init_dps(a_decl_parse_state          *dps,
+                ifc_SourceLocation          *locus,
+                ifc_TypeIndex               type_index,
+                ifc_Alignment               alignment,
+                ifc_ObjectTraits            traits,
+                ifc_MsvcTraits              msvc_traits,
+                ifc_BasicSpecifiers         specifiers,
+                ifc_Access                  access,
+                a_partial_scope_stack_state *psssp) const noexcept;
+  void init_locator_from_name(ifc_NameIndex      name_index,
+                              ifc_TextOffset     text_offset,
+                              ifc_SourceLocation *locus,
+                              a_symbol_locator   *loc) const noexcept;
+  a_constant_ptr constant_for_expr_index(ifc_ExprIndex expr_index,
+                                         a_type_ptr    default_type)
+                                                                const noexcept;
+  void str_ifc_text_offset(ifc_TextOffset     offset,
+                           a_str_control_block *scbp) const noexcept;
+  void str_ifc_name_index(ifc_NameIndex       name_index,
+                          a_str_control_block *scbp) const noexcept;
+  void str_ifc_class_name(ifc_DeclIndex       home_scope,
+                          a_str_control_block *scbp) const noexcept;
+  void str_ifc_add_number(a_host_large_unsigned value,
+                          a_str_control_block   *scbp) const noexcept;
+  void str_ifc_source_location(ifc_SourceLocation  *locus,
+                               a_str_control_block *scbp) const noexcept;
+  void str_ifc_access(ifc_Access          access,
+                      a_str_control_block *scbp) const noexcept;
+  void str_ifc_alignment(ifc_Alignment       alignment,
+                         a_str_control_block *scbp) const noexcept;
+  void str_ifc_qualifiers(ifc_Qualifiers      qualifiers,
+                          a_str_control_block *scbp) const noexcept;
+  void str_ifc_basic_specifiers(ifc_BasicSpecifiers specifiers,
+                                a_str_control_block *scbp) const noexcept;
+  void str_ifc_object_traits(ifc_ObjectTraits    traits,
+                             a_str_control_block *scbp) const noexcept;
+  void str_ifc_msvc_traits(ifc_MsvcTraits      traits,
+                           a_str_control_block *scbp) const noexcept;
+  void str_ifc_function_type_traits(ifc_FunctionTypeTraits traits,
+                                    a_str_control_block    *scbp)
+                                                                const noexcept;
+  void str_ifc_noexcept_specification(ifc_NoexceptSpecification *eh_spec,
+                                      a_str_control_block       *scbp)
+                                                                const noexcept;
+  void str_ifc_function_traits(ifc_FunctionTraits  traits,
+                               a_boolean           prefix,
+                               a_str_control_block *scbp) const noexcept;
+  void str_ifc_expr_index(ifc_ExprIndex       expr_index,
+                          a_str_control_block *scbp) const noexcept;
+  void str_ifc_scope_index(ifc_ScopeIndex      scope_index,
+                           a_str_control_block *scbp) const noexcept;
+  void str_ifc_type_index_first_part(ifc_TypeIndex       type_index,
+                                     a_str_control_block *scbp) const noexcept;
+  void str_ifc_type_index_second_part(ifc_TypeIndex       type_index,
+                                      a_str_control_block *scbp)
+                                                                const noexcept;
+  void str_ifc_type_index(ifc_TypeIndex       type_index,
+                          a_str_control_block *scbp) const noexcept;
+  void str_ifc_common_decl(ifc_SourceLocation  *locus,
+                           ifc_Access          access,
+                           ifc_BasicSpecifiers specifiers,
+                           ifc_ObjectTraits    traits,
+                           ifc_Alignment       alignment,
+                           a_str_control_block *scbp) const noexcept;
+  void str_ifc_class_definition(an_ifc_DeclSort_Scope *idssp,
+                                a_str_control_block   *scbp) const noexcept;
+  void str_ifc_declaration(ifc_DeclIndex       decl_index,
+                           a_boolean           is_designated_type,
+                           a_str_control_block *scbp) const noexcept;
 
-extern void ifc_modules_pch_reset(a_module_import_decl_ptr midp);
-
-extern void close_ifc_module_file(a_module_import_decl_ptr midp);
+#if DEBUG
+  void db_ifc_file_header() const noexcept;
+#endif /* DEBUG */
+};  /* an_ifc_module */
 
 extern void ifc_modules_one_time_init();
 

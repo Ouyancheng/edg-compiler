@@ -5698,24 +5698,7 @@ Allocate and return an IL entry for a module.
   mep->kind = kind;
   mep->name = NULL;
   mep->full_name = NULL;
-  mep->f_module = NULL;
-  mep->mmap_addr = NULL;
-  mep->mmap_size = 0;
-#if EDG_WIN32
-  mep->mapped_input = NULL;
-  mep->map_object = NULL;
-#endif /* EDG_WIN32 */
-  switch (kind) {
-    case mk_none:
-    case mk_header:
-    case mk_edg:
-      break;
-    case mk_ifc:
-      mep->variant.ifc = NULL;
-      break;
-    default:
-      unexpected_condition_str("Bad module kind");
-  }  /* switch */
+  mep->module_interface = NULL;
   return mep;
 }  /* alloc_module */
 
