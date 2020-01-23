@@ -529,39 +529,39 @@ Return a string with the name that corresponds to the DeclSort tag.
   a_const_char *result;
 
   switch (tag) {
-    case ifc_DeclSort_VendorExtension:   result = "VendorExtension"; break;
-    case ifc_DeclSort_Enumerator:        result = "Enumerator"; break;
-    case ifc_DeclSort_Variable:          result = "Variable"; break;
-    case ifc_DeclSort_Parameter:         result = "Parameter"; break;
-    case ifc_DeclSort_Field:             result = "Field"; break;
-    case ifc_DeclSort_Bitfield:          result = "Bitfield"; break;
-    case ifc_DeclSort_Scope:             result = "Scope"; break;
-    case ifc_DeclSort_Enumeration:       result = "Enumeration"; break;
-    case ifc_DeclSort_Alias:             result = "Alias"; break;
-    case ifc_DeclSort_Temploid:          result = "Temploid"; break;
-    case ifc_DeclSort_Template:          result = "Template"; break;
-    case ifc_DeclSort_PartialSpecialization:
+    case DeclSort(VendorExtension):   result = "VendorExtension"; break;
+    case DeclSort(Enumerator):        result = "Enumerator"; break;
+    case DeclSort(Variable):          result = "Variable"; break;
+    case DeclSort(Parameter):         result = "Parameter"; break;
+    case DeclSort(Field):             result = "Field"; break;
+    case DeclSort(Bitfield):          result = "Bitfield"; break;
+    case DeclSort(Scope):             result = "Scope"; break;
+    case DeclSort(Enumeration):       result = "Enumeration"; break;
+    case DeclSort(Alias):             result = "Alias"; break;
+    case DeclSort(Temploid):          result = "Temploid"; break;
+    case DeclSort(Template):          result = "Template"; break;
+    case DeclSort(PartialSpecialization):
                                        result = "PartialSpecialization"; break;
-    case ifc_DeclSort_ExplicitSpecialization:
+    case DeclSort(ExplicitSpecialization):
                                        result = "ExplicitSpecialization";break;
-    case ifc_DeclSort_ExplicitInstantiation:
+    case DeclSort(ExplicitInstantiation):
                                        result = "ExplicitInstantiation"; break;
-    case ifc_DeclSort_Concept:           result = "Concept"; break;
-    case ifc_DeclSort_Intrinsic:         result = "Intrinsic"; break;
-    case ifc_DeclSort_Function:          result = "Function"; break;
-    case ifc_DeclSort_Method:            result = "Method"; break;
-    case ifc_DeclSort_Constructor:       result = "Constructor"; break;
-    case ifc_DeclSort_InheritedConstructor:
+    case DeclSort(Concept):           result = "Concept"; break;
+    case DeclSort(Intrinsic):         result = "Intrinsic"; break;
+    case DeclSort(Function):          result = "Function"; break;
+    case DeclSort(Method):            result = "Method"; break;
+    case DeclSort(Constructor):       result = "Constructor"; break;
+    case DeclSort(InheritedConstructor):
                                         result = "InheritedConstructor"; break;
-    case ifc_DeclSort_Destructor:        result = "Destructor"; break;
-    case ifc_DeclSort_Reference:         result = "Reference"; break;
-    case ifc_DeclSort_Property:          result = "Property"; break;
-    case ifc_DeclSort_OutputSegment:     result = "OutputSegment"; break;
-    case ifc_DeclSort_UsingDeclaration:  result = "UsingDeclaration"; break;
-    case ifc_DeclSort_UsingDirective:    result = "UsingDirective"; break;
-    case ifc_DeclSort_Friend:            result = "Friend"; break;
-    case ifc_DeclSort_SyntaxTree:        result = "SyntaxTree"; break;
-    case ifc_DeclSort_Tuple:             result = "Tuple"; break;
+    case DeclSort(Destructor):        result = "Destructor"; break;
+    case DeclSort(Reference):         result = "Reference"; break;
+    case DeclSort(Property):          result = "Property"; break;
+    case DeclSort(OutputSegment):     result = "OutputSegment"; break;
+    case DeclSort(UsingDeclaration):  result = "UsingDeclaration"; break;
+    case DeclSort(UsingDirective):    result = "UsingDirective"; break;
+    case DeclSort(Friend):            result = "Friend"; break;
+    case DeclSort(SyntaxTree):        result = "SyntaxTree"; break;
+    case DeclSort(Tuple):             result = "Tuple"; break;
     default:
       unexpected_condition();
   }  /* switch */
@@ -601,66 +601,66 @@ Map an IFC OperatorCategory to an_opname_kind.
 
   /* FIXME: Note that some of these get mapped to the same entry. */
   switch (category) {
-    case ifc_OperatorCategory_Bitand:       op = onk_ampersand; break;
-    case ifc_OperatorCategory_LogicAnd:     op = onk_and_and; break;
-    case ifc_OperatorCategory_Assign:       op = onk_assign; break;
-    case ifc_OperatorCategory_Comma:        op = onk_comma; break;
-    case ifc_OperatorCategory_Not:          op = onk_not; break;
-    case ifc_OperatorCategory_Minus:        op = onk_minus; break;
-    case ifc_OperatorCategory_Star:         op = onk_star; break;
-    case ifc_OperatorCategory_Bitor:        op = onk_or; break;
-    case ifc_OperatorCategory_LogicOr:      op = onk_or_or; break;
-    case ifc_OperatorCategory_Plus:         op = onk_plus; break;
-    case ifc_OperatorCategory_Quest:        op = onk_question; break;
-    case ifc_OperatorCategory_Complement:   op = onk_compl; break;
-    case ifc_OperatorCategory_Caret:        op = onk_excl_or; break;
-    case ifc_OperatorCategory_Slash:        op = onk_divide; break;
-    case ifc_OperatorCategory_Modulo:       op = onk_remainder; break;
-    case ifc_OperatorCategory_New:          op = onk_new; break;
-    case ifc_OperatorCategory_Delete:       op = onk_delete; break;
-    case ifc_OperatorCategory_IndirectMemberAccess:
+    case OperatorCategory(Bitand):          op = onk_ampersand; break;
+    case OperatorCategory(LogicAnd):        op = onk_and_and; break;
+    case OperatorCategory(Assign):          op = onk_assign; break;
+    case OperatorCategory(Comma):           op = onk_comma; break;
+    case OperatorCategory(Not):             op = onk_not; break;
+    case OperatorCategory(Minus):           op = onk_minus; break;
+    case OperatorCategory(Star):            op = onk_star; break;
+    case OperatorCategory(Bitor):           op = onk_or; break;
+    case OperatorCategory(LogicOr):         op = onk_or_or; break;
+    case OperatorCategory(Plus):            op = onk_plus; break;
+    case OperatorCategory(Quest):           op = onk_question; break;
+    case OperatorCategory(Complement):      op = onk_compl; break;
+    case OperatorCategory(Caret):           op = onk_excl_or; break;
+    case OperatorCategory(Slash):           op = onk_divide; break;
+    case OperatorCategory(Modulo):          op = onk_remainder; break;
+    case OperatorCategory(New):             op = onk_new; break;
+    case OperatorCategory(Delete):          op = onk_delete; break;
+    case OperatorCategory(IndirectMemberAccess):
                                             op = onk_arrow_star; break;
-    case ifc_OperatorCategory_PostIncrement:op = onk_plus_plus; break;
-    case ifc_OperatorCategory_PostDecrement:op = onk_minus_minus; break;
-    case ifc_OperatorCategory_SlashEq:      op = onk_divide_assign; break;
-    case ifc_OperatorCategory_EqEq:         op = onk_eq; break;
-    case ifc_OperatorCategory_NotEq:        op = onk_ne; break;
-    case ifc_OperatorCategory_Greater:      op = onk_gt; break;
-    case ifc_OperatorCategory_GreaterEq:    op = onk_ge; break;
-    case ifc_OperatorCategory_Less:         op = onk_lt; break;
-    case ifc_OperatorCategory_LessEq:       op = onk_le; break;
-    case ifc_OperatorCategory_LshiftEq:     op = onk_shift_left_assign; break;
-    case ifc_OperatorCategory_RshiftEq:     op = onk_shift_right_assign; break;
-    case ifc_OperatorCategory_MinusEq:      op = onk_minus_assign; break;
-    case ifc_OperatorCategory_ModuloEq:     op = onk_remainder_assign; break;
-    case ifc_OperatorCategory_StarEq:       op = onk_times_assign; break;
-    case ifc_OperatorCategroy_BitorEq:      op = onk_or_assign; break;
-    case ifc_OperatorCategory_PlusEq:       op = onk_plus_assign; break;
-    case ifc_OperatorCategory_BitandEq:     op = onk_and_assign; break;
-    case ifc_OperatorCategory_BitxorEq:     op = onk_excl_or_assign; break;
-    case ifc_OperatorCategory_Lshift:       op = onk_shift_left; break;
-    case ifc_OperatorCategory_Rshift:       op = onk_shift_right; break;
-    case ifc_OperatorCategory_Arrow:        op = onk_arrow; break;
-    case ifc_OperatorCategory_PreDecrement: op = onk_minus_minus; break;
-    case ifc_OperatorCategory_PreIncrement: op = onk_plus_plus; break;
-    case ifc_OperatorCategory_UnaryMinus:   op = onk_minus; break;
-    case ifc_OperatorCategory_Address:      op = onk_ampersand; break;
-    case ifc_OperatorCategory_UnaryPlus:    op = onk_plus; break;
+    case OperatorCategory(PostIncrement):   op = onk_plus_plus; break;
+    case OperatorCategory(PostDecrement):   op = onk_minus_minus; break;
+    case OperatorCategory(SlashEq):         op = onk_divide_assign; break;
+    case OperatorCategory(EqEq):            op = onk_eq; break;
+    case OperatorCategory(NotEq):           op = onk_ne; break;
+    case OperatorCategory(Greater):         op = onk_gt; break;
+    case OperatorCategory(GreaterEq):       op = onk_ge; break;
+    case OperatorCategory(Less):            op = onk_lt; break;
+    case OperatorCategory(LessEq):          op = onk_le; break;
+    case OperatorCategory(LshiftEq):        op = onk_shift_left_assign; break;
+    case OperatorCategory(RshiftEq):        op = onk_shift_right_assign; break;
+    case OperatorCategory(MinusEq):         op = onk_minus_assign; break;
+    case OperatorCategory(ModuloEq):        op = onk_remainder_assign; break;
+    case OperatorCategory(StarEq):          op = onk_times_assign; break;
+    case OperatorCategory(BitorEq):         op = onk_or_assign; break;
+    case OperatorCategory(PlusEq):          op = onk_plus_assign; break;
+    case OperatorCategory(BitandEq):        op = onk_and_assign; break;
+    case OperatorCategory(BitxorEq):        op = onk_excl_or_assign; break;
+    case OperatorCategory(Lshift):          op = onk_shift_left; break;
+    case OperatorCategory(Rshift):          op = onk_shift_right; break;
+    case OperatorCategory(Arrow):           op = onk_arrow; break;
+    case OperatorCategory(PreDecrement):    op = onk_minus_minus; break;
+    case OperatorCategory(PreIncrement):    op = onk_plus_plus; break;
+    case OperatorCategory(UnaryMinus):      op = onk_minus; break;
+    case OperatorCategory(Address):         op = onk_ampersand; break;
+    case OperatorCategory(UnaryPlus):       op = onk_plus; break;
 
     /* These don't have direct mappings: */
-    case ifc_OperatorCategory_Percent:              /* operator% */
-    case ifc_OperatorCategory_Sizeof:               /* operator sizeof */
-    case ifc_OperatorCategory_ExpandingSizeof:      /* operator sizeof... */
-    case ifc_OperatorCategory_Throw:                /* operator throw */
-    case ifc_OperatorCategory_Alignof:              /* operator alignof */
-    case ifc_OperatorCategory_Noexcept:             /* operator noexcept */
-    case ifc_OperatorCategory_Requires:             /* operator requires */
-    case ifc_OperatorCategory_Coreturn:             /* operator co_return */
-    case ifc_OperatorCategory_Await:                /* operator co_yield */
-    case ifc_OperatorCategory_Yield:                /* operator co_yield */
-    case ifc_OperatorCategory_StaticAssert:         /* operator static_assert*/
-    case ifc_OperatorCategory_Dot:                  /* operator. */
-    case ifc_OperatorCategory_DerefMemberAccess:    /* operator.* */
+    case OperatorCategory(Percent):              /*    operator% */
+    case OperatorCategory(Sizeof):               /*    operator sizeof */
+    case OperatorCategory(ExpandingSizeof):      /*    operator sizeof... */
+    case OperatorCategory(Throw):                /*    operator throw */
+    case OperatorCategory(Alignof):              /*    operator alignof */
+    case OperatorCategory(Noexcept):             /*    operator noexcept */
+    case OperatorCategory(Requires):             /*    operator requires */
+    case OperatorCategory(Coreturn):             /*    operator co_return */
+    case OperatorCategory(Await):                /*    operator co_yield */
+    case OperatorCategory(Yield):                /*    operator co_yield */
+    case OperatorCategory(StaticAssert):         /*    operator static_assert*/
+    case OperatorCategory(Dot):                  /*    operator. */
+    case OperatorCategory(DerefMemberAccess):    /*    operator.* */
     default:
 #if DEBUG
       if (db_flag_is_set("ms_ignore")) {
@@ -904,9 +904,10 @@ constants for that type).
     /* Prepare to read from the proper partition for this declaration. */
     read_ifc_partition_at_offset(mep->variant.ifc_partition,
                                  mep->file_offset);
-    tag = get_tag_from_partition(mep->variant.ifc_partition, ifc_decl_start);
+    tag = (ifc_DeclSort)get_tag_from_partition(mep->variant.ifc_partition,
+                                               ifc_decl_start);
     switch (tag) {
-      case ifc_DeclSort_Variable:
+      case DeclSort(Variable):
         { an_ifc_DeclSort_Variable idsv, *idsvp;
           idsvp = get_DeclSort_Variable(&idsv);
           init_locator_from_name(idsvp->name, 0, &idsvp->locus, &loc);
@@ -937,7 +938,7 @@ constants for that type).
           }  /* if */
         }
         break;
-      case ifc_DeclSort_Function:
+      case DeclSort(Function):
         { a_func_info_block        func_info;
           a_type_ptr               old_type;
           an_ifc_DeclSort_Function idsf, *idsfp;
@@ -962,7 +963,7 @@ constants for that type).
           }  /* if */
         }
         break;
-      case ifc_DeclSort_Intrinsic:
+      case DeclSort(Intrinsic):
         /* A builtin function declaration. */
         { a_func_info_block        func_info;
           a_type_ptr               old_type;
@@ -974,7 +975,7 @@ constants for that type).
             defer_symbol_creation(mep, &loc);
           } else {
             /* FIXME: lots more to do here (just copied
-               ifc_DeclSort_Function).*/
+               DeclSort(Function)).*/
             init_dps(&dps, &idsip->locus, idsip->type, (ifc_Alignment)0,
                      ifc_ObjectTraits_None, ifc_MsvcTraits_None,
                      idsip->specifiers, idsip->access, &psss);
@@ -989,7 +990,7 @@ constants for that type).
           }  /* if */
         }
         break;
-      case ifc_DeclSort_Scope:
+      case DeclSort(Scope):
         /* A DeclSort::Scope, which indicates a namespace or a
            class/struct/union.  Note that although these declare "scopes",
            the IL entity that is attached to them is either a namespace or
@@ -1004,12 +1005,12 @@ constants for that type).
           init_locator_from_name(idssp->name, 0, &idssp->locus, &loc);
           /* Look at the "type" to determine whether we have a namespace or
              not. */
-          check_assertion(type_tag(idssp->type) == ifc_TypeSort_Fundamental);
+          check_assertion(type_tag(idssp->type) == TypeSort(Fundamental));
           read_ifc_partition_at_index(ifc_type_fundamental,
                                       type_value(idssp->type));
           itsfp = get_TypeSort_Fundamental(&itsf);
           switch (itsfp->basis) {
-            case ifc_TypeBasis_Namespace:
+            case TypeBasis(Namespace):
               { a_namespace_ptr nsp = NULL;
                 a_symbol_ptr    ns_sym;
                 if (defer && !(idssp->traits & ifc_ScopeTraits_Inline)) {
@@ -1059,16 +1060,16 @@ constants for that type).
                 }  /* if */
               }
               break;
-            case ifc_TypeBasis_Class:
+            case TypeBasis(Class):
               type_kind = tk_class;
               tag_kind = sk_class_or_struct_tag;
               goto class_struct_union_case;
-            case ifc_TypeBasis_Struct:
-            case ifc_TypeBasis_Interface:
+            case TypeBasis(Struct):
+            case TypeBasis(Interface):
               type_kind = tk_struct;
               tag_kind = sk_class_or_struct_tag;
               goto class_struct_union_case;
-            case ifc_TypeBasis_Union:
+            case TypeBasis(Union):
               type_kind = tk_union;
               tag_kind = sk_union_tag;
 class_struct_union_case:
@@ -1084,7 +1085,7 @@ class_struct_union_case:
                      get_definition_of_class if it is referenced. */
                   class_type = alloc_type(type_kind);
                   ctsp = class_type_supp(class_type);
-                  if (itsfp->basis == ifc_TypeBasis_Interface) {
+                  if (itsfp->basis == TypeBasis(Interface)) {
                     class_type->variant.class_struct_union.is_interface = TRUE;
                     class_type->variant.class_struct_union.abstract = TRUE;
                   }  /* if */
@@ -1125,7 +1126,7 @@ class_struct_union_case:
           }  /* switch */
         }
         break;
-      case ifc_DeclSort_Alias:
+      case DeclSort(Alias):
         { an_ifc_DeclSort_Alias idsta, *idstap;
           an_ifc_TypeSort_Fundamental itsf, *itsfp;
           idstap = get_DeclSort_Alias(&idsta);
@@ -1133,12 +1134,12 @@ class_struct_union_case:
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
-            check_assertion(type_tag(idstap->type)== ifc_TypeSort_Fundamental);
+            check_assertion(type_tag(idstap->type)== TypeSort(Fundamental));
             /* Read the type to see what kind it is. */
             read_ifc_partition_at_index(ifc_type_fundamental,
                                         type_value(idstap->type));
             itsfp = get_TypeSort_Fundamental(&itsf);
-            if (itsfp->basis == ifc_TypeBasis_Typename) {
+            if (itsfp->basis == TypeBasis(Typename)) {
               /* A type alias; declare a typedef for this case. */
               init_dps(&dps, &idstap->locus, idstap->initializer,
                        (ifc_Alignment)0, ifc_ObjectTraits_None,
@@ -1149,7 +1150,7 @@ class_struct_union_case:
               restore_partial_scope_stack_if_necessary(&psss);
               il_entity = (char *)dps.sym->variant.type.ptr;
               kind = iek_type;
-            } else if (itsfp->basis == ifc_TypeBasis_Namespace) {
+            } else if (itsfp->basis == TypeBasis(Namespace)) {
               /* A namespace alias. */
               /* FIXME: unimplemented. */
               unexpected_condition();
@@ -1159,24 +1160,24 @@ class_struct_union_case:
           }  /* if */
         }
         break;
-      case ifc_DeclSort_Enumeration:
+      case DeclSort(Enumeration):
         { an_ifc_DeclSort_Enumeration idse, *idsep;
           an_ifc_TypeSort_Fundamental itsf, *itsfp;
           a_boolean                   is_scoped_enum = FALSE;
           a_scope_ptr                 enum_scope = mep->scope;
           idsep = get_DeclSort_Enumeration(&idse);
-          check_assertion(type_tag(idsep->type) == ifc_TypeSort_Fundamental);
+          check_assertion(type_tag(idsep->type) == TypeSort(Fundamental));
           /* See if this is a scoped enumeration or not. */
           read_ifc_partition_at_index(ifc_type_fundamental,
                                       type_value(idsep->type));
           itsfp = get_TypeSort_Fundamental(&itsf);
-          if (itsfp->basis == ifc_TypeBasis_Enum) {
+          if (itsfp->basis == TypeBasis(Enum)) {
             /* A classic enumeration.  Don't bother to defer in this case
                because each of the enumerators need to be registered in the
                symbol table so they can be found. */
             defer = FALSE;
-          } else if (itsfp->basis == ifc_TypeBasis_Class ||
-                     itsfp->basis == ifc_TypeBasis_Struct) {
+          } else if (itsfp->basis == TypeBasis(Class) ||
+                     itsfp->basis == TypeBasis(Struct)) {
             /* A scoped enumeration.  Enumerator definitions are deferred when
                the enumeration definition is deferred (enumerators can't be
                referred to without specifying the scoped enumeration at which
@@ -1260,7 +1261,7 @@ class_struct_union_case:
                    process the enumerators. */
                 a_module_entity_ptr emep;
                 emep = get_decl_module_entity_ptr(make_decl_index(
-                                                ifc_DeclSort_Enumerator,
+                                                DeclSortAsType(Enumerator),
                                                 idsep->initializer.start + i));
                 emep->scope = enum_scope;
                 process_ifc_declaration(emep, /*defer=*/FALSE, enum_type);
@@ -1274,7 +1275,7 @@ class_struct_union_case:
           }  /* if */
         }
         break;
-      case ifc_DeclSort_Enumerator:
+      case DeclSort(Enumerator):
         { an_ifc_DeclSort_Enumerator idse, *idsep;
           idsep = get_DeclSort_Enumerator(&idse);
           check_assertion(idsep->name != 0);
@@ -1334,32 +1335,32 @@ class_struct_union_case:
           }  /* if */
         }
         break;
-      case ifc_DeclSort_Method:
-      case ifc_DeclSort_Constructor:
-      case ifc_DeclSort_Destructor:
-      case ifc_DeclSort_Field:
-      case ifc_DeclSort_Bitfield:
-      case ifc_DeclSort_Property:
+      case DeclSort(Method):
+      case DeclSort(Constructor):
+      case DeclSort(Destructor):
+      case DeclSort(Field):
+      case DeclSort(Bitfield):
+      case DeclSort(Property):
         /* These entities can only exist in a class and class definitions are
            currently handled by scanning a textual representation of the
            class. */
         unexpected_condition();
-      case ifc_DeclSort_VendorExtension:
-      case ifc_DeclSort_Parameter:
-      case ifc_DeclSort_Temploid:
-      case ifc_DeclSort_Template:
-      case ifc_DeclSort_PartialSpecialization:
-      case ifc_DeclSort_ExplicitSpecialization:
-      case ifc_DeclSort_ExplicitInstantiation:
-      case ifc_DeclSort_Concept:
-      case ifc_DeclSort_InheritedConstructor:
-      case ifc_DeclSort_Reference:
-      case ifc_DeclSort_OutputSegment:
-      case ifc_DeclSort_UsingDeclaration:
-      case ifc_DeclSort_UsingDirective:
-      case ifc_DeclSort_Friend:
-      case ifc_DeclSort_SyntaxTree:
-      case ifc_DeclSort_Tuple:
+      case DeclSort(VendorExtension):
+      case DeclSort(Parameter):
+      case DeclSort(Temploid):
+      case DeclSort(Template):
+      case DeclSort(PartialSpecialization):
+      case DeclSort(ExplicitSpecialization):
+      case DeclSort(ExplicitInstantiation):
+      case DeclSort(Concept):
+      case DeclSort(InheritedConstructor):
+      case DeclSort(Reference):
+      case DeclSort(OutputSegment):
+      case DeclSort(UsingDeclaration):
+      case DeclSort(UsingDirective):
+      case DeclSort(Friend):
+      case DeclSort(SyntaxTree):
+      case DeclSort(Tuple):
       default:
 #if DEBUG
         if (db_flag_is_set("ms_ignore")) {
@@ -1604,148 +1605,149 @@ an "ellipsis type").
     /* Prepare to read from the proper partition for this type. */
     read_ifc_partition_at_offset(mep->variant.ifc_partition,
                                  mep->file_offset);
-    tag = get_tag_from_partition(mep->variant.ifc_partition, ifc_type_start);
+    tag = (ifc_TypeSort)get_tag_from_partition(mep->variant.ifc_partition,
+                                               ifc_type_start);
     switch (tag) {
-      case ifc_TypeSort_Fundamental:
+      case TypeSort(Fundamental):
         { an_integer_kind             ik;
           an_ifc_TypeSort_Fundamental itsf, *itsfp;
           itsfp = get_TypeSort_Fundamental(&itsf);
           /* Note: no check is made for non-sensical types (e.g., signed
              void).*/
           switch (itsfp->basis) {
-            case ifc_TypeBasis_Void:
-              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+            case TypeBasis(Void):
+              check_assertion(itsfp->precision == TypePrecision(Default));
               result = void_type();
               break;
-            case ifc_TypeBasis_Bool:
-              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+            case TypeBasis(Bool):
+              check_assertion(itsfp->precision == TypePrecision(Default));
               result = bool_type();
               break;
-            case ifc_TypeBasis_Char:
+            case TypeBasis(Char):
               switch (itsfp->sign) {
-                case ifc_TypeSign_Plain:
+                case TypeSign(Plain):
                   switch (itsfp->precision) {
-                    case ifc_TypePrecision_Default:
+                    case TypePrecision(Default):
                       result = integer_type((an_integer_kind)ik_char);
                       break;
-                    case ifc_TypePrecision_Bit16:
+                    case TypePrecision(Bit16):
                       result = char16_t_type();
                       break;
-                    case ifc_TypePrecision_Bit32:
+                    case TypePrecision(Bit32):
                       result = char32_t_type();
                       break;
                     default:
                       unexpected_condition();
                   }  /* switch */
                   break;
-                case ifc_TypeSign_Signed:
+                case TypeSign(Signed):
                   check_assertion(itsfp->precision ==
-                                                    ifc_TypePrecision_Default);
+                                                    TypePrecision(Default));
                   result = integer_type((an_integer_kind)ik_signed_char);
                   break;
-                case ifc_TypeSign_Unsigned:
+                case TypeSign(Unsigned):
                   check_assertion(itsfp->precision ==
-                                                    ifc_TypePrecision_Default);
+                                                    TypePrecision(Default));
                   result = integer_type((an_integer_kind)ik_unsigned_char);
                   break;
                 default:
                   unexpected_condition();
               }  /* if */
               break;
-            case ifc_TypeBasis_Wchar_t:
+            case TypeBasis(Wchar_t):
               switch (itsfp->precision) {
-                case ifc_TypePrecision_Default:
+                case TypePrecision(Default):
                   result = wchar_t_type();
                   break;
-                case ifc_TypePrecision_Bit16:
+                case TypePrecision(Bit16):
                   result = char16_t_type();
                   break;
-                case ifc_TypePrecision_Bit32:
+                case TypePrecision(Bit32):
                   result = char32_t_type();
                   break;
                 /* FIXME: not sure how to map these: */
-                case ifc_TypePrecision_Short:
-                case ifc_TypePrecision_Long:
-                case ifc_TypePrecision_Bit64:
-                case ifc_TypePrecision_Bit128:
+                case TypePrecision(Short):
+                case TypePrecision(Long):
+                case TypePrecision(Bit64):
+                case TypePrecision(Bit128):
                 default:
                   unexpected_condition();
               }  /* switch */
               break;
-            case ifc_TypeBasis_Int:
+            case TypeBasis(Int):
               switch (itsfp->precision) {
-                case ifc_TypePrecision_Default:
-                  ik = (itsfp->sign == ifc_TypeSign_Unsigned) ?
+                case TypePrecision(Default):
+                  ik = (itsfp->sign == TypeSign(Unsigned)) ?
                                                               ik_unsigned_int :
                                                               ik_int;
                   break;
-                case ifc_TypePrecision_Short:
-                  ik = (itsfp->sign == ifc_TypeSign_Unsigned) ?
+                case TypePrecision(Short):
+                  ik = (itsfp->sign == TypeSign(Unsigned)) ?
                                                             ik_unsigned_short :
                                                             ik_short;
                   break;
-                case ifc_TypePrecision_Long:
-                  ik = (itsfp->sign == ifc_TypeSign_Unsigned) ?
+                case TypePrecision(Long):
+                  ik = (itsfp->sign == TypeSign(Unsigned)) ?
                                                              ik_unsigned_long :
                                                              ik_long;
                   break;
-                case ifc_TypePrecision_Bit64:
-                  ik = (itsfp->sign == ifc_TypeSign_Unsigned) ?
+                case TypePrecision(Bit64):
+                  ik = (itsfp->sign == TypeSign(Unsigned)) ?
                                                         ik_unsigned_long_long :
                                                         ik_long_long;
                   break;
                 /* FIXME: not sure how to map these: */
-                case ifc_TypePrecision_Bit16:
-                case ifc_TypePrecision_Bit32:
-                case ifc_TypePrecision_Bit128:
+                case TypePrecision(Bit16):
+                case TypePrecision(Bit32):
+                case TypePrecision(Bit128):
                 default:
                   unexpected_condition();
               }  /* switch */
               result = integer_type(ik);
               break;
-            case ifc_TypeBasis_Float:
-              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+            case TypeBasis(Float):
+              check_assertion(itsfp->precision == TypePrecision(Default));
               result = float_type((a_float_kind)fk_float);
               break;
-            case ifc_TypeBasis_Double:
-              if (itsfp->precision == ifc_TypePrecision_Long) {
+            case TypeBasis(Double):
+              if (itsfp->precision == TypePrecision(Long)) {
                 result = float_type((a_float_kind)fk_long_double);
               } else {
-                check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+                check_assertion(itsfp->precision == TypePrecision(Default));
                 result = float_type((a_float_kind)fk_double);
               }  /* if */
               break;
-            case ifc_TypeBasis_Nullptr:
-              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+            case TypeBasis(Nullptr):
+              check_assertion(itsfp->precision == TypePrecision(Default));
               result = standard_nullptr_type();
               break;
-            case ifc_TypeBasis_Ellipsis:
-              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+            case TypeBasis(Ellipsis):
+              check_assertion(itsfp->precision == TypePrecision(Default));
               /* The IL doesn't have a way to represent an "ellipsis type", so
                  return a NULL type and let the caller check explicitly for
                  it. */
               result = NULL;
               break;
-            case ifc_TypeBasis_Class:
-            case ifc_TypeBasis_Struct:
-            case ifc_TypeBasis_Union:
-            case ifc_TypeBasis_Auto:
-            case ifc_TypeBasis_DecltypeAuto:
-            case ifc_TypeBasis_Namespace:
-            case ifc_TypeBasis_Interface:
-            case ifc_TypeBasis_Enum:
-            case ifc_TypeBasis_Typename:
-            case ifc_TypeBasis_SegmentType:
-            case ifc_TypeBasis_Function:
-            case ifc_TypeBasis_Empty:
-            case ifc_TypeBasis_VariableTemplate:
+            case TypeBasis(Class):
+            case TypeBasis(Struct):
+            case TypeBasis(Union):
+            case TypeBasis(Auto):
+            case TypeBasis(DecltypeAuto):
+            case TypeBasis(Namespace):
+            case TypeBasis(Interface):
+            case TypeBasis(Enum):
+            case TypeBasis(Typename):
+            case TypeBasis(SegmentType):
+            case TypeBasis(Function):
+            case TypeBasis(Empty):
+            case TypeBasis(VariableTemplate):
             default:
               /* FIXME: not implemented yet. */
               unexpected_condition();
           }  /* switch */
         }
         break;
-      case ifc_TypeSort_Qualified:
+      case TypeSort(Qualified):
         { a_type_qualifier_set      qualifiers = TQ_NONE;
           an_ifc_TypeSort_Qualified itsq, *itsqp;
           itsqp = get_TypeSort_Qualified(&itsq);
@@ -1763,27 +1765,27 @@ an "ellipsis type").
                                    qualifiers);
         }
         break;
-      case ifc_TypeSort_Pointer:
+      case TypeSort(Pointer):
         { an_ifc_TypeSort_Pointer itsp, *itspp;
           itspp = get_TypeSort_Pointer(&itsp);
           result = make_pointer_type(type_for_ifc_type_index(itspp->pointee));
         }
         break;
-      case ifc_TypeSort_LvalueReference:
+      case TypeSort(LvalueReference):
         { an_ifc_TypeSort_LvalueReference itslr, *itslrp;
           itslrp = get_TypeSort_LvalueReference(&itslr);
           result =
                  make_reference_type(type_for_ifc_type_index(itslrp->referee));
         }
         break;
-      case ifc_TypeSort_RvalueReference:
+      case TypeSort(RvalueReference):
         { an_ifc_TypeSort_RvalueReference itsrr, *itsrrp;
           itsrrp = get_TypeSort_RvalueReference(&itsrr);
           result = make_rvalue_reference_type(
                                      type_for_ifc_type_index(itsrrp->referee));
         }
         break;
-      case ifc_TypeSort_Array:
+      case TypeSort(Array):
         { an_ifc_TypeSort_Array itsa, *itsap;
           itsap = get_TypeSort_Array(&itsa);
           result = alloc_type((a_type_kind)tk_array);
@@ -1793,10 +1795,10 @@ an "ellipsis type").
           result->variant.array.variant.number_of_elements = itsap->extent;
         }
         break;
-      case ifc_TypeSort_Method: /* FIXME: for now (same structures?): */
+      case TypeSort(Method): /* FIXME: for now (same structures)?): */
         unexpected_condition(); /* FIXME: No longer same structures. */
         break;
-      case ifc_TypeSort_Function:
+      case TypeSort(Function):
         { an_ifc_TypeSort_Function itsf, *itsfp;
           itsfp = get_TypeSort_Function(&itsf);
           /* Create a routine type with no parameters to start. */
@@ -1812,7 +1814,7 @@ an "ellipsis type").
             a_param_type_ptr              ptp, *prev = &rtsp->param_type_list;
             an_ifc_TypeSort_Tuple         itst, *itstp;
             a_type_ptr                    param_type;
-            if (type_tag(itsfp->source) == ifc_TypeSort_Tuple) {
+            if (type_tag(itsfp->source) == TypeSort(Tuple)) {
               /* A list of parameters. */
               read_ifc_partition_at_index(ifc_type_tuple,
                                           type_value(itsfp->source));
@@ -1849,7 +1851,7 @@ an "ellipsis type").
           }  /* if */
         }
         break;
-      case ifc_TypeSort_Designated:
+      case TypeSort(Designated):
         /* A type's name (e.g., "A"). */
         { an_ifc_TypeSort_Designated itsd, *itsdp;
           a_type_ptr                 class_or_enum_type;
@@ -1857,8 +1859,8 @@ an "ellipsis type").
           itsdp = get_TypeSort_Designated(&itsd);
           /* Prepare to read from the proper partition for the
              type scope declaration. */
-          check_assertion(decl_tag(itsdp->decl) == ifc_DeclSort_Scope ||
-                          decl_tag(itsdp->decl) == ifc_DeclSort_Enumeration);
+          check_assertion(decl_tag(itsdp->decl) == DeclSort(Scope) ||
+                          decl_tag(itsdp->decl) == DeclSort(Enumeration));
           /* Find the type of the scope declaration by processing it (in
              case it has been deferred). */
           dmep = get_decl_module_entity_ptr(itsdp->decl);
@@ -1871,18 +1873,18 @@ an "ellipsis type").
           result = class_or_enum_type;
         }
         break;
-      case ifc_TypeSort_Deduced:
-      case ifc_TypeSort_PointerToMember:
-      case ifc_TypeSort_Tuple:
-      case ifc_TypeSort_Forall:
-      case ifc_TypeSort_VendorExtension:
-      case ifc_TypeSort_Syntactic:
-      case ifc_TypeSort_Expansion:
-      case ifc_TypeSort_Typename:
-      case ifc_TypeSort_Base:
-      case ifc_TypeSort_Unaligned:
-      case ifc_TypeSort_Decltype:
-      case ifc_TypeSort_SyntaxTree:
+      case TypeSort(Deduced):
+      case TypeSort(PointerToMember):
+      case TypeSort(Tuple):
+      case TypeSort(Forall):
+      case TypeSort(VendorExtension):
+      case TypeSort(Syntactic):
+      case TypeSort(Expansion):
+      case TypeSort(Typename):
+      case TypeSort(Base):
+      case TypeSort(Unaligned):
+      case TypeSort(Decltype):
+      case TypeSort(SyntaxTree):
       default:
         /* FIXME: not yet implemented. */
 #if DEBUG
@@ -1919,7 +1921,7 @@ Map the IFC locus source position information into the source position at *pos.
   read_ifc_partition_at_index(ifc_src_line, locus->line);
   islp = get_Source_Line(&isl);
   tag = name_tag(islp->file);
-  check_assertion(tag == (ifc_NameSort)ifc_NameSort_SourceFile);
+  check_assertion(tag == NameSort(SourceFile));
   /* See if this file has been used before. */
   seq = &sequence_numbers[name_value(islp->file)];
   if (*seq == 0) {
@@ -1959,20 +1961,20 @@ updated accordingly.
   a_const_char         *result = NULL, *prefix = NULL;
   ifc_NameSort         tag = name_tag(name_index);
 
-  if (tag == (an_ifc_NameSort)ifc_NameSort_Identifier) {
+  if (tag == NameSort(Identifier)) {
     /* NameSort::Identifiers just refer to the string table. */
     result = get_string_at_offset(name_value(name_index));
   } else {
-    read_ifc_partition_at_index(ifc_name_start + tag,
+    read_ifc_partition_at_index(ifc_name_start + (ifc_NameSort_type)tag,
                                 name_value(name_index));
     switch (tag) {
-      case ifc_NameSort_SourceFile:
+      case NameSort(SourceFile):
         { an_ifc_NameSort_SourceFile inssf, *inssfp;
           inssfp = get_NameSort_SourceFile(&inssf);
           result = get_string_at_offset(inssfp->path);
         }
         break;
-      case ifc_NameSort_Operator:
+      case NameSort(Operator):
         { an_ifc_NameSort_Operator inso, *insop;
           insop = get_NameSort_Operator(&inso);
           if (loc != NULL) {
@@ -1986,7 +1988,7 @@ updated accordingly.
           }  /* if */
         }
         break;
-      case ifc_NameSort_Conversion:
+      case NameSort(Conversion):
         { an_ifc_NameSort_Conversion insc, *inscp;
           a_type_ptr                 target_type;
           inscp = get_NameSort_Conversion(&insc);
@@ -2002,7 +2004,7 @@ updated accordingly.
           }  /* if */
         }
         break;
-      case ifc_NameSort_Literal:
+      case NameSort(Literal):
         { an_ifc_NameSort_Literal insl, *inslp;
           inslp = get_NameSort_Literal(&insl);
           result = get_string_at_offset(inslp->encoded);
@@ -2022,11 +2024,11 @@ updated accordingly.
           }  /* if */
         }
         break;
-      case ifc_NameSort_Template:
-      case ifc_NameSort_Specialization:
+      case NameSort(Template):
+      case NameSort(Specialization):
         unexpected_condition(); /* FIXME: not implemented yet. */
         break;
-      case ifc_NameSort_Identifier:
+      case NameSort(Identifier):
       default:
         unexpected_condition();
     }  /* switch */
@@ -2141,12 +2143,12 @@ should be called with this pointer after the declaration has been processed.
   if (ap != NULL) {
     dps->prefix_attributes = ap;
   }  /* if */
-  if (access != ifc_Access_None) {
+  if (access != Access(None)) {
     an_access_specifier il_access;
     switch (access) {
-      case ifc_Access_Private:   il_access = as_private;   break;
-      case ifc_Access_Protected: il_access = as_protected; break;
-      case ifc_Access_Public:    il_access = as_public;    break;
+      case Access(Private):   il_access = as_private;   break;
+      case Access(Protected): il_access = as_protected; break;
+      case Access(Public):    il_access = as_public;    break;
       default:
         unexpected_condition();
     }  /* switch */
@@ -2203,10 +2205,10 @@ FIXME: what other expressions can we get here?
   a_constant_ptr            cp = NULL;
 
   /* Prepare to read from the proper partition for this expression. */
-  read_ifc_partition_at_index(ifc_expr_start + tag,
+  read_ifc_partition_at_index(ifc_expr_start + (ifc_ExprSort_type)tag,
                               expr_value(expr_index));
   switch (tag) {
-    case ifc_ExprSort_Literal:
+    case ExprSort(Literal):
       { an_ifc_ExprSort_Literal iesl, *ieslp;
         a_type_ptr              constant_type, stripped_type;
         ieslp = get_ExprSort_Literal(&iesl);
@@ -2219,7 +2221,7 @@ FIXME: what other expressions can we get here?
           constant_type = type_for_ifc_type_index(ieslp->type);
         }  /* if */
         switch (literal_tag(ieslp->value)) {
-          case ifc_LiteralSort_Immediate:
+          case LiteralSort(Immediate):
             /* An immediate literal (30 bits or less). */
             cp = alloc_constant(ck_integer);
             if (ieslp->type == 0) {
@@ -2236,7 +2238,7 @@ FIXME: what other expressions can we get here?
               cp->type = constant_type;
             }  /* if */
             break;
-          case ifc_LiteralSort_Integer:
+          case LiteralSort(Integer):
             /* An integer larger than 30 bits. */
             { a_host_large_unsigned value;
               cp = alloc_constant(ck_integer);
@@ -2251,7 +2253,7 @@ FIXME: what other expressions can we get here?
               cp->type = constant_type;
             }
             break;
-          case ifc_LiteralSort_FloatingPoint:
+          case LiteralSort(FloatingPoint):
             /* FIXME: not yet implemented. */
           default:
             unexpected_condition();
@@ -2298,13 +2300,13 @@ For constructors and destructors, add the name of the class specified
 by home_scope to the output buffer.
 */
 {
-  ifc_DeclSort          tag = decl_tag(home_scope);
+  ifc_DeclSort_type     tag = decl_tag_as_type(home_scope);
   an_ifc_DeclSort_Scope idss, *idssp;
 
   /* Prepare to read from the proper partition for this declaration. */
   read_ifc_partition_at_index(ifc_decl_start + tag,
                               decl_value(home_scope));
-  check_assertion(tag == ifc_DeclSort_Scope);
+  check_assertion(tag == DeclSortAsType(Scope));
   idssp = get_DeclSort_Scope(&idss);
   str_ifc_name_index(idssp->name, scbp);
 }  /* str_ifc_class_name */
@@ -2358,10 +2360,10 @@ Add an access specifier to the current string, if needed.
   a_const_char *string;
 
   switch (access) {
-    case ifc_Access_None:       string = NULL;         break;
-    case ifc_Access_Private:    string = "private";    break;
-    case ifc_Access_Protected:  string = "protected";  break;
-    case ifc_Access_Public:     string = "public";     break;
+    case Access(None):       string = NULL;         break;
+    case Access(Private):    string = "private";    break;
+    case Access(Protected):  string = "protected";  break;
+    case Access(Public):     string = "public";     break;
     default:
       unexpected_condition();
   }  /* switch */
@@ -2553,17 +2555,17 @@ Add strings representing a noexcept specification, if any.
 */
 {
   switch (eh_spec->sort) {
-    case ifc_NoexceptSort_None:
+    case NoexceptSort(None):
       break;
-    case ifc_NoexceptSort_False:
+    case NoexceptSort(False):
       add_string_to_text_buffer(scbp->text_buffer, "noexcept(false) ");
       break;
-    case ifc_NoexceptSort_True:
+    case NoexceptSort(True):
       add_string_to_text_buffer(scbp->text_buffer, "noexcept(true) ");
       break;
-    case ifc_NoexceptSort_Expression:
-    case ifc_NoexceptSort_Weak:
-    case ifc_NoexceptSort_Unenforced:
+    case NoexceptSort(Expression):
+    case NoexceptSort(Weak):
+    case NoexceptSort(Unenforced):
       /* FIXME: not sure what these should be */
     default:
       unexpected_condition();
@@ -2622,10 +2624,10 @@ the output buffer.
   ifc_ExprSort      tag = expr_tag(expr_index);
 
   /* Prepare to read from the proper partition for this expression. */
-  read_ifc_partition_at_index(ifc_expr_start + tag,
+  read_ifc_partition_at_index(ifc_expr_start + (ifc_ExprSort_type)tag,
                               expr_value(expr_index));
   switch (tag) {
-    case ifc_ExprSort_Literal:
+    case ExprSort(Literal):
       { an_ifc_ExprSort_Literal iesl, *ieslp;
         ieslp = get_ExprSort_Literal(&iesl);
         if (ieslp->type != 0) {
@@ -2636,12 +2638,12 @@ the output buffer.
           add_char_to_text_buffer(scbp->text_buffer, ')');
         }  /* if */
         switch (literal_tag(ieslp->value)) {
-          case ifc_LiteralSort_Immediate:
+          case LiteralSort(Immediate):
             str_ifc_add_number(
                             (a_host_large_unsigned)literal_index(ieslp->value),
                             scbp);
             break;
-          case ifc_LiteralSort_Integer:
+          case LiteralSort(Integer):
             { a_host_large_unsigned value;
               read_ifc_partition_at_index(ifc_const_i64,
                                           literal_index(ieslp->value));
@@ -2649,54 +2651,54 @@ the output buffer.
               str_ifc_add_number(value, scbp);
             }
             break;
-          case ifc_LiteralSort_FloatingPoint:
+          case LiteralSort(FloatingPoint):
             /* FIXME: not yet implemented. */
           default:
             unexpected_condition();
         }  /* switch */
       }
       break;
-    case ifc_ExprSort_VendorExtension:
-    case ifc_ExprSort_Empty:
-    case ifc_ExprSort_Type:
-    case ifc_ExprSort_NamedDecl:
-    case ifc_ExprSort_UnresolvedId:
-    case ifc_ExprSort_TemplateId:
-    case ifc_ExprSort_Identifier:
-    case ifc_ExprSort_SimpleIdentifier:
-    case ifc_ExprSort_Pointer:
-    case ifc_ExprSort_QualifiedName:
-    case ifc_ExprSort_Path:
-    case ifc_ExprSort_Read:
-    case ifc_ExprSort_Monad:
-    case ifc_ExprSort_Dyad:
-    case ifc_ExprSort_Triad:
-    case ifc_ExprSort_Tuple:
-    case ifc_ExprSort_Tokens:
-    case ifc_ExprSort_String:
-    case ifc_ExprSort_Temporary:
-    case ifc_ExprSort_Call:
-    case ifc_ExprSort_PushState:
-    case ifc_ExprSort_TypeTraitIntrinsic:
-    case ifc_ExprSort_MemberInitializer:
-    case ifc_ExprSort_MemberAccess:
-    case ifc_ExprSort_InheritancePath:
-    case ifc_ExprSort_TemplateReference:
-    case ifc_ExprSort_InitializerList:
-    case ifc_ExprSort_Cast:
-    case ifc_ExprSort_Condition:
-    case ifc_ExprSort_ExpressionList:
-    case ifc_ExprSort_AssignInitializer:
-    case ifc_ExprSort_Nullptr:
-    case ifc_ExprSort_This:
-    case ifc_ExprSort_SizeofTypeId:
-    case ifc_ExprSort_Alignof:
-    case ifc_ExprSort_PackedTemplateArguments:
-    case ifc_ExprSort_New:
-    case ifc_ExprSort_Delete:
-    case ifc_ExprSort_Lambda:
-    case ifc_ExprSort_Typeid:
-    case ifc_ExprSort_SyntaxTree:
+    case ExprSort(VendorExtension):
+    case ExprSort(Empty):
+    case ExprSort(Type):
+    case ExprSort(NamedDecl):
+    case ExprSort(UnresolvedId):
+    case ExprSort(TemplateId):
+    case ExprSort(Identifier):
+    case ExprSort(SimpleIdentifier):
+    case ExprSort(Pointer):
+    case ExprSort(QualifiedName):
+    case ExprSort(Path):
+    case ExprSort(Read):
+    case ExprSort(Monad):
+    case ExprSort(Dyad):
+    case ExprSort(Triad):
+    case ExprSort(Tuple):
+    case ExprSort(Tokens):
+    case ExprSort(String):
+    case ExprSort(Temporary):
+    case ExprSort(Call):
+    case ExprSort(PushState):
+    case ExprSort(TypeTraitIntrinsic):
+    case ExprSort(MemberInitializer):
+    case ExprSort(MemberAccess):
+    case ExprSort(InheritancePath):
+    case ExprSort(TemplateReference):
+    case ExprSort(InitializerList):
+    case ExprSort(Cast):
+    case ExprSort(Condition):
+    case ExprSort(ExpressionList):
+    case ExprSort(AssignInitializer):
+    case ExprSort(Nullptr):
+    case ExprSort(This):
+    case ExprSort(SizeofTypeId):
+    case ExprSort(Alignof):
+    case ExprSort(PackedTemplateArguments):
+    case ExprSort(New):
+    case ExprSort(Delete):
+    case ExprSort(Lambda):
+    case ExprSort(Typeid):
+    case ExprSort(SyntaxTree):
     default:
       /* FIXME: for now: */
       add_string_to_text_buffer(scbp->text_buffer,
@@ -2749,139 +2751,139 @@ FIXME: more specific
   ifc_TypeSort      tag = type_tag(type_index);
 
   /* Prepare to read from the proper partition for this type. */
-  read_ifc_partition_at_index(ifc_type_start + tag,
+  read_ifc_partition_at_index(ifc_type_start + (ifc_TypeSort_type)tag,
                               type_value(type_index));
   switch (tag) {
-    case ifc_TypeSort_Fundamental:
+    case TypeSort(Fundamental):
       { a_const_char *basis_str = NULL;
         an_ifc_TypeSort_Fundamental itsf, *itsfp;
         itsfp = get_TypeSort_Fundamental(&itsf);
         /* Note: no check is made for non-sensical types (e.g., signed void).*/
         switch (itsfp->sign) {
-          case ifc_TypeSign_Plain:
+          case TypeSign(Plain):
             break;
-          case ifc_TypeSign_Signed:
+          case TypeSign(Signed):
             add_string_to_text_buffer(scbp->text_buffer, "signed ");
             break;
-          case ifc_TypeSign_Unsigned:
+          case TypeSign(Unsigned):
             add_string_to_text_buffer(scbp->text_buffer, "unsigned ");
             break;
           default:
             unexpected_condition();
         }  /* if */
         switch (itsfp->basis) {
-          case ifc_TypeBasis_Void:
-            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+          case TypeBasis(Void):
+            check_assertion(itsfp->precision == TypePrecision(Default));
             basis_str = "void";
             break;
-          case ifc_TypeBasis_Bool:
-            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+          case TypeBasis(Bool):
+            check_assertion(itsfp->precision == TypePrecision(Default));
             basis_str = "bool";
             break;
-          case ifc_TypeBasis_Char:
+          case TypeBasis(Char):
             switch (itsfp->precision) {
-              case ifc_TypePrecision_Default:
+              case TypePrecision(Default):
                 basis_str = "char";
                 break;
-              case ifc_TypePrecision_Bit16:
+              case TypePrecision(Bit16):
                 basis_str = "char16_t";
                 break;
-              case ifc_TypePrecision_Bit32:
+              case TypePrecision(Bit32):
                 basis_str = "char32_t";
                 break;
               default:
                 unexpected_condition();
             }  /* switch */
             break;
-          case ifc_TypeBasis_Wchar_t:
+          case TypeBasis(Wchar_t):
             switch (itsfp->precision) {
-              case ifc_TypePrecision_Default: basis_str = "wchar_t";     break;
-              case ifc_TypePrecision_Bit16:   basis_str = "wchar16_t";   break;
-              case ifc_TypePrecision_Bit32:   basis_str = "wchar32_t";   break;
+              case TypePrecision(Default): basis_str = "wchar_t";     break;
+              case TypePrecision(Bit16):   basis_str = "wchar16_t";   break;
+              case TypePrecision(Bit32):   basis_str = "wchar32_t";   break;
               /* FIXME: not sure how to map these: */
-              case ifc_TypePrecision_Short:
-              case ifc_TypePrecision_Long:
-              case ifc_TypePrecision_Bit64:
-              case ifc_TypePrecision_Bit128:
+              case TypePrecision(Short):
+              case TypePrecision(Long):
+              case TypePrecision(Bit64):
+              case TypePrecision(Bit128):
               default:
                 unexpected_condition();
             }  /* switch */
             break;
-          case ifc_TypeBasis_Int:
+          case TypeBasis(Int):
             switch (itsfp->precision) {
-              case ifc_TypePrecision_Default: basis_str = "int";     break;
-              case ifc_TypePrecision_Short:   basis_str = "short";   break;
-              case ifc_TypePrecision_Long:    basis_str = "long";    break;
-              case ifc_TypePrecision_Bit64:   basis_str = "long long"; break;
+              case TypePrecision(Default): basis_str = "int";     break;
+              case TypePrecision(Short):   basis_str = "short";   break;
+              case TypePrecision(Long):    basis_str = "long";    break;
+              case TypePrecision(Bit64):   basis_str = "long long"; break;
               /* FIXME: not sure how to map these: */
-              case ifc_TypePrecision_Bit16:
-              case ifc_TypePrecision_Bit32:
-              case ifc_TypePrecision_Bit128:
+              case TypePrecision(Bit16):
+              case TypePrecision(Bit32):
+              case TypePrecision(Bit128):
               default:
                 unexpected_condition();
             }  /* switch */
             break;
-          case ifc_TypeBasis_Float:
-            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+          case TypeBasis(Float):
+            check_assertion(itsfp->precision == TypePrecision(Default));
             basis_str = "float";
             break;
-          case ifc_TypeBasis_Double:
-            if (itsfp->precision == ifc_TypePrecision_Long) {
+          case TypeBasis(Double):
+            if (itsfp->precision == TypePrecision(Long)) {
               basis_str = "long double";
             } else {
-              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+              check_assertion(itsfp->precision == TypePrecision(Default));
               basis_str = "double";
             }  /* if */
             break;
-          case ifc_TypeBasis_Nullptr:
-            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+          case TypeBasis(Nullptr):
+            check_assertion(itsfp->precision == TypePrecision(Default));
             basis_str = "nullptr_t";
             break;
-          case ifc_TypeBasis_Auto:
-            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+          case TypeBasis(Auto):
+            check_assertion(itsfp->precision == TypePrecision(Default));
             basis_str = "auto";
             break;
-          case ifc_TypeBasis_DecltypeAuto:
-            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+          case TypeBasis(DecltypeAuto):
+            check_assertion(itsfp->precision == TypePrecision(Default));
             basis_str = "decltype(auto)";
             break;
-          case ifc_TypeBasis_Class:
-            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+          case TypeBasis(Class):
+            check_assertion(itsfp->precision == TypePrecision(Default));
             basis_str = "class";
             break;
-          case ifc_TypeBasis_Struct:
-            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+          case TypeBasis(Struct):
+            check_assertion(itsfp->precision == TypePrecision(Default));
             basis_str = "struct";
             break;
-          case ifc_TypeBasis_Union:
-            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+          case TypeBasis(Union):
+            check_assertion(itsfp->precision == TypePrecision(Default));
             basis_str = "union";
             break;
-          case ifc_TypeBasis_Namespace:
-            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+          case TypeBasis(Namespace):
+            check_assertion(itsfp->precision == TypePrecision(Default));
             basis_str = "namespace";
             break;
-          case ifc_TypeBasis_Interface:
-            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+          case TypeBasis(Interface):
+            check_assertion(itsfp->precision == TypePrecision(Default));
             basis_str = "__interface";
             break;
-          case ifc_TypeBasis_Enum:
-            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+          case TypeBasis(Enum):
+            check_assertion(itsfp->precision == TypePrecision(Default));
             basis_str = "enum";
             break;
-          case ifc_TypeBasis_Typename:
+          case TypeBasis(Typename):
             /* FIXME: not sure what goes here. */
-            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+            check_assertion(itsfp->precision == TypePrecision(Default));
             basis_str = "typename";
             break;
-          case ifc_TypeBasis_Ellipsis:
-            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+          case TypeBasis(Ellipsis):
+            check_assertion(itsfp->precision == TypePrecision(Default));
             basis_str = "...";
             break;
-          case ifc_TypeBasis_SegmentType:
-          case ifc_TypeBasis_Function:
-          case ifc_TypeBasis_Empty:
-          case ifc_TypeBasis_VariableTemplate:
+          case TypeBasis(SegmentType):
+          case TypeBasis(Function):
+          case TypeBasis(Empty):
+          case TypeBasis(VariableTemplate):
           default:
             /* FIXME: not implemented yet */
             unexpected_condition();
@@ -2891,15 +2893,15 @@ FIXME: more specific
         }  /* if */
       }
       break;
-    case ifc_TypeSort_Designated:
+    case TypeSort(Designated):
       /* A type's name (e.g., "A"). */
       { an_ifc_TypeSort_Designated itsd, *itsdp;
         itsdp = get_TypeSort_Designated(&itsd);
         str_ifc_declaration(itsdp->decl, /*is_designated_type=*/TRUE, scbp);
       }
       break;
-    case ifc_TypeSort_Method: /* FIXME: for now (same structures?): */
-    case ifc_TypeSort_Function:
+    case TypeSort(Method): /* FIXME: for now (same structures)?): */
+    case TypeSort(Function):
       { an_ifc_TypeSort_Function itsf, *itsfp;
         itsfp = get_TypeSort_Function(&itsf);
         /* FIXME: need more here. */
@@ -2909,21 +2911,21 @@ FIXME: more specific
         str_ifc_type_index(itsfp->target, scbp);
       }
       break;
-    case ifc_TypeSort_Qualified:
+    case TypeSort(Qualified):
       { an_ifc_TypeSort_Qualified itsq, *itsqp;
         itsqp = get_TypeSort_Qualified(&itsq);
         str_ifc_qualifiers(itsqp->qualifiers, scbp);
         str_ifc_type_index(itsqp->unqualified, scbp);
       }
       break;
-    case ifc_TypeSort_Pointer:
+    case TypeSort(Pointer):
       { an_ifc_TypeSort_Pointer itsp, *itspp;
         itspp = get_TypeSort_Pointer(&itsp);
         str_ifc_type_index(itspp->pointee, scbp);
         add_char_to_text_buffer(scbp->text_buffer, '*');
       }
       break;
-    case ifc_TypeSort_PointerToMember:
+    case TypeSort(PointerToMember):
       { an_ifc_TypeSort_PointerToMember itsptm, *itsptmp;
         itsptmp = get_TypeSort_PointerToMember(&itsptm);
         str_ifc_type_index(itsptmp->member, scbp);
@@ -2932,21 +2934,21 @@ FIXME: more specific
         add_string_to_text_buffer(scbp->text_buffer, "::");
       }
       break;
-    case ifc_TypeSort_LvalueReference:
+    case TypeSort(LvalueReference):
       { an_ifc_TypeSort_LvalueReference itslr, *itslrp;
         itslrp = get_TypeSort_LvalueReference(&itslr);
         str_ifc_type_index(itslrp->referee, scbp);
         add_char_to_text_buffer(scbp->text_buffer, '&');
       }
       break;
-    case ifc_TypeSort_RvalueReference:
+    case TypeSort(RvalueReference):
       { an_ifc_TypeSort_RvalueReference itsrr, *itsrrp;
         itsrrp = get_TypeSort_RvalueReference(&itsrr);
         str_ifc_type_index(itsrrp->referee, scbp);
         add_string_to_text_buffer(scbp->text_buffer, "&&");
       }
       break;
-    case ifc_TypeSort_Tuple:
+    case TypeSort(Tuple):
       { an_ifc_TypeSort_Tuple itst, *itstp;
         unsigned int i;
         itstp = get_TypeSort_Tuple(&itst);
@@ -2964,16 +2966,16 @@ FIXME: more specific
         }  /* for */
       }
       break;
-    case ifc_TypeSort_Array:
+    case TypeSort(Array):
       { an_ifc_TypeSort_Array itsa, *itsap;
         itsap = get_TypeSort_Array(&itsa);
         str_ifc_type_index(itsap->element, scbp);
       }
       break;
-    case ifc_TypeSort_Base:
+    case TypeSort(Base):
       { an_ifc_TypeSort_Base itsb, *itsbp;
         itsbp = get_TypeSort_Base(&itsb);
-        if (itsbp->access != ifc_Access_None) {
+        if (itsbp->access != Access(None)) {
           str_ifc_access(itsbp->access, scbp);
           add_char_to_text_buffer(scbp->text_buffer, ' ');
         }  /* if */
@@ -2987,13 +2989,13 @@ FIXME: more specific
         }  /* if */
       }
       break;
-    case ifc_TypeSort_VendorExtension:
-    case ifc_TypeSort_Syntactic:
-    case ifc_TypeSort_Expansion:
-    case ifc_TypeSort_Typename:
-    case ifc_TypeSort_Unaligned:
-    case ifc_TypeSort_Decltype:
-    case ifc_TypeSort_SyntaxTree:
+    case TypeSort(VendorExtension):
+    case TypeSort(Syntactic):
+    case TypeSort(Expansion):
+    case TypeSort(Typename):
+    case TypeSort(Unaligned):
+    case TypeSort(Decltype):
+    case TypeSort(SyntaxTree):
     default:
 #if DEBUG
       if (db_flag_is_set("ms_ignore")) {
@@ -3018,22 +3020,22 @@ FIXME: more specific
   ifc_TypeSort      tag = type_tag(type_index);
 
   /* Prepare to read from the proper partition for this type. */
-  read_ifc_partition_at_index(ifc_type_start + tag,
+  read_ifc_partition_at_index(ifc_type_start + (ifc_TypeSort_type)tag,
                               type_value(type_index));
   switch (tag) {
-    case ifc_TypeSort_Fundamental:
-    case ifc_TypeSort_Designated:
-    case ifc_TypeSort_Qualified:
-    case ifc_TypeSort_Pointer:
-    case ifc_TypeSort_PointerToMember:
-    case ifc_TypeSort_LvalueReference:
-    case ifc_TypeSort_RvalueReference:
-    case ifc_TypeSort_Tuple:
-    case ifc_TypeSort_Base:
+    case TypeSort(Fundamental):
+    case TypeSort(Designated):
+    case TypeSort(Qualified):
+    case TypeSort(Pointer):
+    case TypeSort(PointerToMember):
+    case TypeSort(LvalueReference):
+    case TypeSort(RvalueReference):
+    case TypeSort(Tuple):
+    case TypeSort(Base):
       /* Handled in str_ifc_type_index_first_part. */
       break;
-    case ifc_TypeSort_Method: /* FIXME: for now (same structures?): */
-    case ifc_TypeSort_Function:
+    case TypeSort(Method): /* FIXME: for now (same structures)?): */
+    case TypeSort(Function):
       { an_ifc_TypeSort_Function itsf, *itsfp;
         itsfp = get_TypeSort_Function(&itsf);
         /* FIXME: lots here. */
@@ -3048,7 +3050,7 @@ FIXME: more specific
         str_ifc_noexcept_specification(&itsfp->eh_spec, scbp);
       }
       break;
-    case ifc_TypeSort_Array:
+    case TypeSort(Array):
       { an_ifc_TypeSort_Array itsa, *itsap;
         itsap = get_TypeSort_Array(&itsa);
         add_char_to_text_buffer(scbp->text_buffer, '[');
@@ -3056,13 +3058,13 @@ FIXME: more specific
         add_char_to_text_buffer(scbp->text_buffer, ']');
       }
       break;
-    case ifc_TypeSort_VendorExtension:
-    case ifc_TypeSort_Syntactic:
-    case ifc_TypeSort_Expansion:
-    case ifc_TypeSort_Typename:
-    case ifc_TypeSort_Unaligned:
-    case ifc_TypeSort_Decltype:
-    case ifc_TypeSort_SyntaxTree:
+    case TypeSort(VendorExtension):
+    case TypeSort(Syntactic):
+    case TypeSort(Expansion):
+    case TypeSort(Typename):
+    case TypeSort(Unaligned):
+    case TypeSort(Decltype):
+    case TypeSort(SyntaxTree):
     default:
 #if DEBUG
       if (db_flag_is_set("ms_ignore")) {
@@ -3104,7 +3106,7 @@ nominal value can be supplied (which will suppress its output).
 */
 {
   str_ifc_source_location(locus, scbp);
-  if (access != ifc_Access_None) {
+  if (access != Access(None)) {
     str_ifc_access(access, scbp);
     add_string_to_text_buffer(scbp->text_buffer, ": ");
   }  /* if */
@@ -3160,10 +3162,10 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
   a_boolean                end_decl = TRUE;
 
   /* Prepare to read from the proper partition for this declaration. */
-  read_ifc_partition_at_index(ifc_decl_start + tag,
+  read_ifc_partition_at_index(ifc_decl_start + (ifc_DeclSort_type)tag,
                               decl_value(decl_index));
   switch (tag) {
-    case ifc_DeclSort_Variable:
+    case DeclSort(Variable):
       { an_ifc_DeclSort_Variable idsv, *idsvp;
         idsvp = get_DeclSort_Variable(&idsv);
         /* Emit a variable declaration. */
@@ -3178,7 +3180,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         }  /* if */
       }
       break;
-    case ifc_DeclSort_Scope:
+    case DeclSort(Scope):
       { an_ifc_DeclSort_Scope idss, *idssp;
         idssp = get_DeclSort_Scope(&idss);
         /* FIXME: lots missing. */
@@ -3200,7 +3202,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         }  /* if */
       }
       break;
-    case ifc_DeclSort_Field:
+    case DeclSort(Field):
       { an_ifc_DeclSort_Field idsf, *idsfp;
         idsfp = get_DeclSort_Field(&idsf);
         str_ifc_common_decl(&idsfp->locus, idsfp->access, idsfp->specifier,
@@ -3210,7 +3212,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         str_ifc_text_offset(idsfp->name, scbp);
       }
       break;
-    case ifc_DeclSort_Bitfield:
+    case DeclSort(Bitfield):
       { an_ifc_DeclSort_Bitfield idsb, *idsbp;
         idsbp = get_DeclSort_Bitfield(&idsb);
         str_ifc_common_decl(&idsbp->locus, idsbp->access, idsbp->specifier,
@@ -3222,7 +3224,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         str_ifc_add_number((a_host_large_unsigned)idsbp->width, scbp);
       }
       break;
-    case ifc_DeclSort_Function:
+    case DeclSort(Function):
       { an_ifc_DeclSort_Function idsf, *idsfp;
         idsfp = get_DeclSort_Function(&idsf);
         str_ifc_common_decl(&idsfp->locus, idsfp->access,
@@ -3237,7 +3239,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         /* FIXME: default_arguments is unused */
       }
       break;
-    case ifc_DeclSort_Method:
+    case DeclSort(Method):
       { an_ifc_DeclSort_Method idsm, *idsmp;
         idsmp = get_DeclSort_Method(&idsm);
         str_ifc_common_decl(&idsmp->locus, idsmp->access,
@@ -3253,7 +3255,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         /* FIXME: default_arguments is unused */
       }
       break;
-    case ifc_DeclSort_Intrinsic:
+    case DeclSort(Intrinsic):
       { an_ifc_DeclSort_Intrinsic idsi, *idsip;
         idsip = get_DeclSort_Intrinsic(&idsi);
         str_ifc_common_decl(&idsip->locus, idsip->access,
@@ -3265,7 +3267,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         str_ifc_type_index_second_part(idsip->type, scbp);
       }
       break;
-    case ifc_DeclSort_Constructor:
+    case DeclSort(Constructor):
       { an_ifc_DeclSort_Constructor idsc, *idscp;
         idscp = get_DeclSort_Constructor(&idsc);
         str_ifc_common_decl(&idscp->locus, idscp->access,
@@ -3285,7 +3287,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         /* FIXME: todo: idscp->eh_spec and idcsp->convention */
       }
       break;
-    case ifc_DeclSort_Destructor:
+    case DeclSort(Destructor):
       { an_ifc_DeclSort_Destructor idsd, *idsdp;
         idsdp = get_DeclSort_Destructor(&idsd);
         str_ifc_common_decl(&idsdp->locus, idsdp->access,
@@ -3301,23 +3303,23 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         /* FIXME: todo: idscp->eh_spec and idcsp->convention */
       }
       break;
-    case ifc_DeclSort_Alias:
+    case DeclSort(Alias):
       { an_ifc_DeclSort_Alias       idsta, *idstap;
         an_ifc_TypeSort_Fundamental itsf, *itsfp;
         idstap = get_DeclSort_Alias(&idsta);
         /* FIXME: lots missing */
-        check_assertion(type_tag(idstap->type) == ifc_TypeSort_Fundamental);
+        check_assertion(type_tag(idstap->type) == TypeSort(Fundamental));
         /* Read the type to see what kind it is. */
         read_ifc_partition_at_index(ifc_type_fundamental,
                                     type_value(idstap->type));
         itsfp = get_TypeSort_Fundamental(&itsf);
-        if (itsfp->basis == ifc_TypeBasis_Typename) {
+        if (itsfp->basis == TypeBasis(Typename)) {
           /* A type alias. */
           add_string_to_text_buffer(scbp->text_buffer, "typedef ");
           str_ifc_type_index(idstap->initializer, scbp);
           add_char_to_text_buffer(scbp->text_buffer, ' ');
           str_ifc_text_offset(idstap->name, scbp);
-        } else if (itsfp->basis == ifc_TypeBasis_Namespace) {
+        } else if (itsfp->basis == TypeBasis(Namespace)) {
           /* A namespace alias. */
           /* FIXME: unimplemented. */
           unexpected_condition();
@@ -3326,7 +3328,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         }  /* if */
       }
       break;
-    case ifc_DeclSort_Enumeration:
+    case DeclSort(Enumeration):
       { an_ifc_DeclSort_Enumeration idse, *idsep;
         an_ifc_TypeSort_Fundamental itsf, *itsfp;
         idsep = get_DeclSort_Enumeration(&idse);
@@ -3334,18 +3336,18 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         str_ifc_common_decl(&idsep->locus, idsep->access, idsep->specifiers,
                             (ifc_ObjectTraits)ifc_ObjectTraits_None,
                             idsep->alignment, scbp);
-        check_assertion(type_tag(idsep->type) == ifc_TypeSort_Fundamental);
+        check_assertion(type_tag(idsep->type) == TypeSort(Fundamental));
         /* Read the type to see what kind it is. */
         read_ifc_partition_at_index(ifc_type_fundamental,
                                     type_value(idsep->type));
         itsfp = get_TypeSort_Fundamental(&itsf);
         add_string_to_text_buffer(scbp->text_buffer, "enum ");
-        if (itsfp->basis == ifc_TypeBasis_Class) {
+        if (itsfp->basis == TypeBasis(Class)) {
           add_string_to_text_buffer(scbp->text_buffer, "class ");
-        } else if (itsfp->basis == ifc_TypeBasis_Struct) {
+        } else if (itsfp->basis == TypeBasis(Struct)) {
           add_string_to_text_buffer(scbp->text_buffer, "struct ");
         } else {
-          check_assertion(itsfp->basis == ifc_TypeBasis_Enum);
+          check_assertion(itsfp->basis == TypeBasis(Enum));
         }  /* if */
         str_ifc_text_offset(idsep->name, scbp);
         if (idsep->initializer.cardinality != 0) {
@@ -3358,7 +3360,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
             /* The sequence doesn't specifically contain DeclIndex values --
                compute one so we can invoke ourselves recursively to process
                the enumerators. */
-            str_ifc_declaration(make_decl_index(ifc_DeclSort_Enumerator,
+            str_ifc_declaration(make_decl_index(DeclSortAsType(Enumerator),
                                                 idsep->initializer.start + i),
                                 /*is_designated_type=*/FALSE, scbp);
             add_char_to_text_buffer(scbp->text_buffer, ',');
@@ -3370,12 +3372,12 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         }  /* if */
       }
       break;
-    case ifc_DeclSort_Enumerator:
+    case DeclSort(Enumerator):
       { an_ifc_DeclSort_Enumerator idse, *idsep;
         idsep = get_DeclSort_Enumerator(&idse);
         /* Emit an enumerator declaration. */
         /* FIXME: idsep->access unused here (to suppress access field): */
-        str_ifc_common_decl(&idsep->locus, ifc_Access_None, idsep->specifier,
+        str_ifc_common_decl(&idsep->locus, Access(None), idsep->specifier,
                             (ifc_ObjectTraits)ifc_ObjectTraits_None,
                             (ifc_Alignment)0, scbp);
         add_char_to_text_buffer(scbp->text_buffer, ' ');
@@ -3387,23 +3389,23 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         end_decl = FALSE;
       }
       break;
-    case ifc_DeclSort_VendorExtension:
-    case ifc_DeclSort_Parameter:
-    case ifc_DeclSort_Temploid:
-    case ifc_DeclSort_Template:
-    case ifc_DeclSort_PartialSpecialization:
-    case ifc_DeclSort_ExplicitSpecialization:
-    case ifc_DeclSort_ExplicitInstantiation:
-    case ifc_DeclSort_Concept:
-    case ifc_DeclSort_InheritedConstructor:
-    case ifc_DeclSort_Reference:
-    case ifc_DeclSort_Property:
-    case ifc_DeclSort_OutputSegment:
-    case ifc_DeclSort_UsingDeclaration:
-    case ifc_DeclSort_UsingDirective:
-    case ifc_DeclSort_Friend:
-    case ifc_DeclSort_SyntaxTree:
-    case ifc_DeclSort_Tuple:
+    case DeclSort(VendorExtension):
+    case DeclSort(Parameter):
+    case DeclSort(Temploid):
+    case DeclSort(Template):
+    case DeclSort(PartialSpecialization):
+    case DeclSort(ExplicitSpecialization):
+    case DeclSort(ExplicitInstantiation):
+    case DeclSort(Concept):
+    case DeclSort(InheritedConstructor):
+    case DeclSort(Reference):
+    case DeclSort(Property):
+    case DeclSort(OutputSegment):
+    case DeclSort(UsingDeclaration):
+    case DeclSort(UsingDirective):
+    case DeclSort(Friend):
+    case DeclSort(SyntaxTree):
+    case DeclSort(Tuple):
     default:
 #if DEBUG
       if (db_flag_is_set("ms_ignore")) {
