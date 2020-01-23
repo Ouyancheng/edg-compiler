@@ -3132,6 +3132,11 @@ ec_trailing_requires_clause_not_on_template;;"a requires-clause is not allowed h
 ec_concept_template;INTERNAL;"concept template"
 ec_requires_incompatible_with_previous_decl;;"requires-clause incompatible with %nfd"
 ec_expected_an_attribute;;"expected an attribute"
+ec_invalid_start_of_requirement;;"invalid start of requirement"
+ec_exp_type_name;;"expected a type name"
+ec_requires_expr_ellipsis_param;;"an ellipsis parameter is not permitted in a requires-expression"
+ec_unnamed_require_expr_param;;"unnamed parameter in requires-expression has no effect"
+ec_exp_concept_name;;"expected a concept name"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

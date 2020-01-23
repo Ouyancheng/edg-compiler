@@ -5725,6 +5725,9 @@ typedef struct a_param_type {
   a_bit_field	move_ctor_or_assign_parameter:1;
 			/* TRUE if this is the first parameter of a move
 			   constructor or a move assignment operator. */
+  a_bit_field	is_requires_expr_param:1;
+			/* TRUE if this is a parameter for a requires-
+			   expression. */
   uint32_t	param_num;
 			/* The ordinal position of the parameter (1, 2, ...).
 			   In the instantiation of a variadic template, this
@@ -12471,6 +12474,9 @@ enum an_expr_node_kind_tag {
 			   this represents the original initializer in the
 			   backing expression. */
   enk_concept_id,	/* A concept-id expression. */
+  enk_requires,		/* A requires-expression. */
+  enk_compound_req,	/* A compound-requirement. */
+  enk_nested_req,	/* A nested-requirement. */
   enk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -14263,6 +14269,36 @@ typedef struct an_expr_node {
 		args;
 			/* The template arguments passed to the concept. */
     } concept_id;
+    /* When kind == enk_requires: */
+    struct {
+      an_expr_node_ptr
+		requirements;
+			/* The list of requirements.  Type-requirements are
+			   represented with enk_type_operand nodes.  Compound
+			   nested requirements are represented with
+			   enk_compound_req and enk_nested_req nodes,
+			   respectively. */
+      a_param_type_ptr
+		parameters;
+			/* The optional list of parameters. */
+    } requires_expr;
+    struct {
+      an_expr_node_ptr
+		expr_and_constraint;
+			/* A list of one or two nodes.  The first node is a
+			   general expression.  The optional second node is an
+			   enk_concept_id node representing a type
+			   constraint. */
+      a_bit_field
+		is_noexcept:1;
+			/* TRUE if this compound requirement requires that the
+			   first node in exor_and_constraint is non-throwing
+			   (after substitution of template arguments). */ 
+    } compound_req;
+    struct {
+      an_expr_node_ptr
+		constraint;
+    } nested_req;
   } variant;
   union {
     an_expr_rescan_info_entry_ptr

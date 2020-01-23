@@ -3015,7 +3015,7 @@ an error if a default argument expression is encountered.
     (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
                      *new_type_ptr, (a_routine_ptr)NULL);
     scope_stack_top().decl_parse_state = state;
-    must_pop_function_prototype_scope = TRUE;
+    must_pop_function_prototype_scope = !state->for_requires_expr_params;
     if (is_constructor && is_template_dependent_context()) {
       /* A constructor in a template-dependent context may be used for
          deduction even if it isn't a template itself, because of C++17
@@ -3406,6 +3406,9 @@ an error if a default argument expression is encountered.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (!is_error_locator(param_locator)) {
           ptp->name = param_locator.symbol_header->identifier;
+        } else if (state->for_requires_expr_params) {
+          pos_warning(ec_unnamed_require_expr_param,
+                      &param_state.declarator_pos);
         }  /* if */
         attach_param_attributes(&param_state, ptp);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -3785,6 +3788,9 @@ an error if a default argument expression is encountered.
              a C++/CLI parameter array. */
           ellipsis_pos = pos_curr_token;
           (void)get_token();
+          if (state->for_requires_expr_params) {
+            pos_error(ec_requires_expr_ellipsis_param, &ellipsis_pos);
+          }  /* if */
 #if ASM_FUNCTION_ALLOWED
           if (func_info->is_asm_function) {
             pos_error(ec_bad_asm_func_ellipsis, &ellipsis_pos);
@@ -4152,6 +4158,46 @@ the left parenthesis introducing the declarator-like construct.
   }  /* if */
   dps->type = func_type;
 }  /* scan_lambda_declarator */
+
+
+a_param_type_ptr scan_requires_expr_parameters(void)
+/*
+Scan sequence of parameters for a require-expression and return a pointer to
+the corresponding param-type entries.
+*/
+{
+  a_decl_parse_state  dps;
+  a_func_info_block   func_info;
+  a_type_ptr          func_type = void_type();
+  a_decl_pos_block    decl_pos_block;
+  a_param_type_ptr    result = NULL;
+  a_symbol_locator    loc;
+
+  init_decl_parse_state(&dps);
+  dps.for_requires_expr_params = TRUE;
+  clear_func_info(&func_info);
+  clear_decl_pos_block(&decl_pos_block);
+  check_assertion(curr_token == tok_lparen);
+  make_opname_locator((an_opname_kind)onk_function_call, &loc,
+                      &pos_curr_token);
+  add_stop_token(tok_rparen);
+  (void)get_token();
+  function_declarator(&dps, DI_NO_INPUT_FLAGS, &func_type, &func_info, &loc,
+                      /*parent_type=*/(a_type_ptr)NULL,
+                      /*is_nonstatic_member=*/FALSE, /*is_constructor=*/FALSE, 
+                      /*is_static_constructor=*/FALSE, /*is_destructor=*/FALSE,
+                      /*is_finalizer=*/FALSE, /*disallow_default_args=*/TRUE,
+                      /*disallow_exception_spec=*/TRUE, &decl_pos_block);
+  if (func_type != NULL && type_is(func_type, tk_routine)) {
+    a_param_type_ptr  ptp;
+    result = function_type_params(func_type);
+    for (ptp = result; ptp != NULL; ptp = ptp->next) {
+      ptp->is_requires_expr_param = TRUE;
+    }  /* for */
+  }  /* if */
+  remove_stop_token(tok_rparen);
+  return result;
+}  /* scan_requires_expr_parameters */
 
 
 static void make_bound_expr_referenceable_from_file_scope(

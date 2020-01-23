@@ -1177,6 +1177,7 @@ in the file scope memory region.
   ptp->is_cli_param_array = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ptp->move_ctor_or_assign_parameter = FALSE;
+  ptp->is_requires_expr_param = FALSE;
   ptp->param_num = 0;
   ptp->default_arg_expr = NULL;
   ptp->orig_param_type_for_unevaluated_default_arg_expr = NULL;
@@ -3603,6 +3604,17 @@ fields to default values.
     case enk_concept_id:
       node->variant.concept_id.concept_template = NULL;
       node->variant.concept_id.args = NULL;
+      break;
+    case enk_requires:
+      node->variant.requires_expr.requirements = NULL;
+      node->variant.requires_expr.parameters = NULL;
+      break;
+    case enk_compound_req:
+      node->variant.compound_req.expr_and_constraint = NULL;
+      node->variant.compound_req.is_noexcept = FALSE;
+      break;
+    case enk_nested_req:
+      node->variant.nested_req.constraint = NULL;
       break;
     default:
       unexpected_condition_str("set_expr_node_kind: bad kind");

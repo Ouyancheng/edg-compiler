@@ -2795,6 +2795,8 @@ extern void expr_expect_error(void);
 
 extern a_boolean expr_access_checking_should_be_done(void);
 
+extern void reclaim_fs_nodes_of_expr_tree(an_expr_node  *expr_tree);
+
 extern void reclaim_fs_nodes_of_operand(an_operand *opnd);
 
 extern void make_error_operand(an_operand *operand);
@@ -3115,6 +3117,11 @@ a_boolean requires_clause_satisfied(an_expr_node_ptr      constraint,
                                     a_template_param_ptr  template_param_list,
                                     a_diag_list_ptr       diag_list,
                                     a_boolean             *p_fatal = NULL);
+
+extern
+a_boolean requires_expr_satisfied(an_expr_node_ptr      expr,
+                                  a_template_arg_ptr    template_arg_list,
+                                  a_template_param_ptr  template_param_list);
 
 #if DEBUG
 extern void count_rescan_fs_expr_nodes(unsigned long *p_count);

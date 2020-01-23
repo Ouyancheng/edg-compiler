@@ -11518,7 +11518,8 @@ process_enum_specifier:
                     curr_type_symbol((input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                                      /*in_prescan=*/FALSE,
                                      /*in_type_check=*/FALSE,
-                                     state->is_implicit_type_context,
+                                     state->is_implicit_type_context &&
+                                         relaxed_typename_enabled,
                                      /*is_sizeof_context=*/FALSE);
         if (!C_mode() && is_member_decl &&
             (decl_specifiers_seen & DS_TYPE) == 0 &&

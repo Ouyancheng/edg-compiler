@@ -425,6 +425,9 @@ extern void scan_lambda_declarator(a_decl_parse_state  *dps,
                                    a_func_info_block   *func_info,
                                    a_decl_pos_block    *decl_pos_block);
 
+
+extern a_param_type_ptr scan_requires_expr_parameters(void);
+
 extern void make_param_syms_invisible(a_boolean  is_invisible);
 
 /* Conditionally close the "edg" namespace. */

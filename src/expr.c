@@ -29851,6 +29851,7 @@ of:
     case tok_function_name:
     case tok_pretty_function_name:
     case tok_decorated_function_name:
+    case tok_requires:
       result = TRUE;
       break;
 
@@ -32441,6 +32442,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_same:
     case tok_is_same_as:
     case tok_builtin_has_attribute:
+    case tok_requires:
       is_expr_start = TRUE;
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -35215,7 +35217,8 @@ type_identifier_case:
             if (required_token_no_advance(tok_lt, ec_exp_lt)) {
               (void)get_token();
               add_stop_token(tok_gt);
-              tap = scan_concept_arg_list(sym_ptr, &err);
+              tap = scan_concept_arg_list(sym_ptr, /*skip_first_param=*/FALSE,
+                                          &err);
               remove_stop_token(tok_gt);
               if (!required_token_no_advance(tok_gt, ec_exp_gt)) {
                 err = TRUE;
@@ -36739,6 +36742,296 @@ called to record the end of the header of the indicated lambda.
   expr_stack->current_lambda_in_header = NULL;
 }  /* record_end_of_lambda_header */
 
+
+static an_expr_node_ptr scan_type_requirement(a_boolean  *is_dependent)
+/*
+Scan a requirement of the form
+
+	typename <type-name> ;
+
+where <type-name> is the possibly-qualified name of a type (and not a general
+type-id).
+
+If *is_dependent is FALSE and the given type is template dependent, set
+*is_dependent to TRUE.
+*/
+{
+  an_expr_node_ptr  result;
+  a_symbol_ptr      type_sym;
+
+  result = alloc_expr_node((an_expr_node_kind)enk_type_operand);
+  result->type = void_type();
+  result->position = pos_curr_token;
+  (void)get_token();
+  type_sym = curr_type_symbol(/*is_new_type_name=*/FALSE,
+                              /*in_prescan=*/FALSE,
+                              /*in_typecheck=*/FALSE,
+                              /*is_implicit_type_context=*/TRUE,
+                              /*is_sizeof_context=*/FALSE);
+  add_stop_token(tok_semicolon);
+  if (type_sym != NULL) {
+    a_type_ptr  tp = type_symbol_type(type_sym);
+    result->variant.type_operand.type = tp;
+    if (!*is_dependent && is_instantiation_dependent_type(tp)) {
+      *is_dependent = TRUE;
+    }  /* if */
+  } else {
+    syntax_error(ec_exp_type_name);
+    set_expr_node_kind(result, (an_expr_node_kind)enk_error);
+  }  /* if */
+  (void)required_token(tok_semicolon, ec_exp_semicolon);
+  remove_stop_token(tok_semicolon);
+  return result;
+}  /* scan_type_requirement */
+
+
+static an_expr_node_ptr scan_compound_requirement(a_boolean  *is_dependent)
+/*
+Scan a requirement of the form
+
+	{ <expr> } noexcept(opt) <optional-type-constraint>
+
+where <optional-type-constraint> is of the form
+
+	-> <concept-name> <optional-template-args>
+
+and return a corresponding enk_compound_requirement node.
+
+If *is_dependent is FALSE and <expr> or the optional template arguments are
+instantiation-dependent, set *is_dependent to TRUE.
+*/
+{
+  an_expr_node_ptr     result, expr, constraint;
+  an_operand           operand;
+  an_expr_stack_entry  *saved_expr_stack;
+  an_expr_stack_entry  expr_stack_entry;
+
+  result = alloc_expr_node((an_expr_node_kind)enk_compound_req);
+  result->type = void_type();
+  result->position = pos_curr_token;
+
+  /* Skip the right brace. */
+  (void)get_token();
+  add_stop_token(tok_semicolon);
+  add_stop_token(tok_rbrace);
+
+  /* Scan a braced expression. */
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  expr = make_node_from_operand(&operand);
+  expr = wrap_up_full_expression(expr);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  (void)required_token(tok_rbrace, ec_exp_rbrace);
+  remove_stop_token(tok_rbrace);
+  if (!*is_dependent && expr_is_instantiation_dependent(expr)) {
+    *is_dependent = TRUE;
+  }  /* if */
+  result->variant.compound_req.expr_and_constraint = expr;
+
+  /* Scan an optional "noexcept" keyword. */
+  if (curr_token == tok_noexcept) {
+    result->variant.compound_req.is_noexcept = TRUE;
+    (void)get_token();
+  }  /* if */
+
+  /* Scan an optional type constraint. */
+  if (curr_token == tok_arrow) {
+    a_boolean     err = FALSE;
+    a_symbol_ptr  concept_templ = NULL;
+    an_identifier_options_set
+                  gid_options = GID_IS_EXPR_CONTEXT |
+                                GID_TEMPLATE_ARGS_OPTIONAL;
+    (void)get_token();
+    if (curr_token == tok_identifier) {
+      concept_templ = coalesce_and_lookup_generalized_identifier(
+                                                 gid_options, ilm_expr, &err);
+    }  /* if */
+    if (concept_templ == NULL ||
+       !symbol_is(concept_templ, sk_concept_template)) {
+      syntax_error(ec_exp_concept_name);
+    } else {
+      a_template_symbol_supplement_ptr
+                                tssp = concept_templ->variant.template_info;
+      constraint = alloc_expr_node((an_expr_node_kind)enk_concept_id);
+      constraint->type = bool_type();
+      constraint->position = pos_curr_token;
+      constraint->variant.concept_id.concept_template =
+                                                      tssp->il_template_entry;
+      (void)get_token();
+      if (curr_token == tok_lt) {
+        (void)get_token();
+        add_stop_token(tok_gt);
+        constraint->variant.concept_id.args =
+                           scan_concept_arg_list(
+                              concept_templ, /*skip_first_param=*/TRUE, &err);
+        (void)required_token(tok_gt, ec_exp_gt);
+        remove_stop_token(tok_gt);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+
+  (void)required_token(tok_semicolon, ec_exp_semicolon);
+  remove_stop_token(tok_semicolon);
+  return result;
+}  /* scan_compound_requirement */
+
+
+static an_expr_node_ptr scan_nested_requirement(a_boolean  *is_dependent)
+/*
+Scan a requirement of the form
+
+	requires <expr> ;
+
+where <expr> is a constraint-expression, and return a corresponding
+enk_nested_req node.
+
+If *is_dependent is FALSE and <expr> is an instantiation-dependent expression,
+set *is_dependent to TRUE.
+*/
+{
+  an_expr_node_ptr  result, expr;
+
+  result = alloc_expr_node((an_expr_node_kind)enk_compound_req);
+  result->type = void_type();
+  result->position = pos_curr_token;
+  /* Skip the "requires" token. */
+  (void)get_token();
+  add_stop_token(tok_semicolon);
+  expr = scan_concept_expression();
+  result->variant.nested_req.constraint = expr;
+  (void)required_token(tok_semicolon, ec_exp_semicolon);
+  remove_stop_token(tok_semicolon);
+  if (!*is_dependent && expr_is_instantiation_dependent(expr)) {
+    *is_dependent = TRUE;
+  }  /* if */
+  return result;
+}  /* scan_nested_requirement */
+
+
+static an_expr_node_ptr scan_simple_requirement(a_boolean  *is_dependent)
+/*
+Scan a requirement of the form
+
+	<expr> ;
+
+where <expr> is unevaluated, and return a pointer to the node representing
+<expr>.
+
+If *is_dependent is FALSE and <expr> is an instantiation-dependent expression,
+set *is_dependent to TRUE.
+*/
+{
+  an_expr_node_ptr     result;
+  an_operand           operand;
+  an_expr_stack_entry  *saved_expr_stack;
+  an_expr_stack_entry  expr_stack_entry;
+
+  add_stop_token(tok_semicolon);
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  /* Scan the expression. */
+  scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  result = make_node_from_operand(&operand);
+  result = wrap_up_full_expression(result);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  (void)required_token(tok_semicolon, ec_exp_semicolon);
+  remove_stop_token(tok_semicolon);
+  if (!*is_dependent && expr_is_instantiation_dependent(result)) {
+    *is_dependent = TRUE;
+  }  /* if */
+  return result;
+}  /* scan_simple_requirement */
+
+
+static void scan_requires_expr(an_operand_ptr  result)
+/*
+*/
+{
+  a_source_position  start_pos = pos_curr_token;
+  a_boolean          is_dependent = FALSE;
+  a_param_type_ptr   params = NULL;         
+
+  (void)get_token();
+  add_stop_token(tok_rbrace);
+  if (curr_token == tok_lparen) {
+    /* Scan a function-like declarator. */
+    params = scan_requires_expr_parameters();
+  } else {
+    (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
+                     (a_type_ptr)NULL, (a_routine_ptr)NULL);
+  }  /* if */
+  if (is_template_dependent_context()) {
+    scope_stack_top().in_template_deduction_context = TRUE;
+  }  /* if */
+  if (!required_token(tok_lbrace, ec_exp_lbrace)) {
+    make_error_operand(result);
+  } else {
+    an_expr_node_ptr  node = alloc_expr_node((an_expr_node_kind)enk_requires),
+                      *p_last_req = &node->variant.requires_expr.requirements;
+    node->variant.requires_expr.parameters = params;
+    for (;;) {
+      switch (curr_token) {
+        case tok_typename:
+          *p_last_req = scan_type_requirement(&is_dependent);
+          break;
+        case tok_lbrace:
+          *p_last_req = scan_compound_requirement(&is_dependent);
+          break;
+        case tok_requires:
+          *p_last_req = scan_nested_requirement(&is_dependent);
+          goto done_with_requirements;
+          break;
+        case tok_end_of_source:
+        case tok_rbrace:
+          goto done_with_requirements;
+        default:
+          if (!is_expr_start_token(curr_token)) {
+            goto done_with_requirements;
+          } else {
+            *p_last_req = scan_simple_requirement(&is_dependent);
+          }  /* if */
+          break;
+      }  /* switch */
+      if (*p_last_req != NULL) {
+        p_last_req = &(*p_last_req)->next;
+      }  /* if */
+    }  /* for */
+done_with_requirements:
+    node->type = bool_type();
+    node->position = start_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    (void)required_token(tok_rbrace, ec_exp_rbrace);
+    if (!is_dependent) {
+      /* A non-dependent requires-expression is a "true" constant. */
+      make_integer_constant_operand(result, (a_host_large_integer)1);
+      result->type = bool_type();
+      result->variant.constant.type = result->type;
+      result->variant.constant.expr = node;
+    } else {
+      make_expression_operand(node, result);
+    }  /*if */
+  }  /* if */
+  /* Pop the function-prototype scope that was pushed earlier. */
+  check_assertion(scope_is(&scope_stack_top(), sck_func_prototype));
+  pop_scope();
+  remove_stop_token(tok_rbrace);
+}  /* scan_requires_expr */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean turn_safe_cast_into_keyword_if_appropriate(void)
@@ -38029,6 +38322,10 @@ type_start:
     case tok_ud_literal:
       check_assertion(user_defined_literals_enabled);
       scan_ud_literal(&local_result);
+      break;
+
+    case tok_requires:
+      scan_requires_expr(&local_result);
       break;
 
 #if GNU_VECTOR_TYPES_ALLOWED

@@ -3529,6 +3529,10 @@ as specified in the control block.
       traverse_dynamic_init(expr->variant.initializer.dyn_init, tblock);
       break;
     case enk_concept_id:
+      /* FIXME */
+      break;
+    case enk_requires:
+      /* FIXME */
       break;
     default:
       unexpected_condition_str("traverse_expr: bad expr kind");

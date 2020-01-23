@@ -1065,6 +1065,9 @@ typedef struct a_decl_parse_state {
 			/* TRUE if this is a context in which a dependent
 			   qualified name is considered to be a type (a
 			   C++20 feature). */
+  a_bit_field	for_requires_expr_params:1;
+			/* TRUE if this block is for the parsing of the
+			   parameters of a requires-expression. */
   an_init_state
 		init_state;
 			/* Information about the initializer (if any)

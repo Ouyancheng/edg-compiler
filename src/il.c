@@ -2248,6 +2248,9 @@ sizeof_cases:
         fputs("<null-list>\n", f_debug);
       }  /* if */
       break;
+    case enk_requires:
+      fputs("requires ", f_debug);
+      break;
     case enk_error:
       fputs("error node\n", f_debug);
       break;
@@ -7340,6 +7343,26 @@ are done.
                                       node2->variant.concept_id.args,
                                       (ETA_IS_NONREAL_MEMBER |
                                        eta_flags_for_cc_options(options)));
+        break;
+      case enk_requires:
+        eq = compare_expression_lists(
+                                    node1->variant.requires_expr.requirements,
+                                    node2->variant.requires_expr.requirements,
+                                    options) &&
+             TRUE /*FIXME: parameters */;
+        break;
+      case enk_compound_req:
+        eq = compare_expression_lists(
+                              node1->variant.compound_req.expr_and_constraint,
+                              node2->variant.compound_req.expr_and_constraint,
+                              options) &&
+             node1->variant.compound_req.is_noexcept ==
+                                      node2->variant.compound_req.is_noexcept;
+        break;
+      case enk_nested_req:
+        eq = compare_expressions(node1->variant.nested_req.constraint,
+                                 node2->variant.nested_req.constraint,
+                                 options);
         break;
       case enk_error:
         /* Nonequivalence is assumed. */
@@ -17597,7 +17620,7 @@ TRUE.
   }  /* if */
   return valid;
 }  /* substituted_cast_is_valid */
-                                    
+
 
 an_expr_node_ptr copy_template_param_expr(
                                   an_expr_node_ptr         expr,
@@ -18128,6 +18151,18 @@ options is a set of name lookup options.
                                         template_param_list, &diag_list);
         make_bool_constant_value(val, constant);
         discard_more_info_list(&diag_list);
+      }  /* if */
+      break;
+    case enk_requires:
+      if (template_arg_list_is_dependent(template_arg_list)) {
+        /* Don't attempt to substitute requires-expressions with dependent
+           parameter lists. */
+        subst_fail(*copy_error);
+      } else {
+        a_boolean    val;
+        val = requires_expr_satisfied(expr, template_arg_list,
+                                      template_param_list);
+        make_bool_constant_value(val, constant);
       }  /* if */
       break;
     case enk_lambda:
@@ -20151,6 +20186,26 @@ be called to start a copy.
       expr_copy->variant.fold.left_associative =
                                           expr->variant.fold.left_associative;
       break;
+    case enk_requires:
+      expr_copy->variant.requires_expr.requirements =
+                        i_copy_list_of_expr_trees(
+                                     expr->variant.requires_expr.requirements,
+                                     options, cblock);
+      expr_copy->variant.requires_expr.parameters =
+                                       expr->variant.requires_expr.parameters;
+      break;
+    case enk_compound_req:
+      expr_copy->variant.compound_req.expr_and_constraint =
+                        i_copy_list_of_expr_trees(
+                               expr->variant.compound_req.expr_and_constraint,
+                               options, cblock);
+      break;
+    case enk_nested_req:
+      expr_copy->variant.nested_req.constraint =
+                        i_copy_list_of_expr_trees(
+                                          expr->variant.nested_req.constraint,
+                                          options, cblock);
+      break;
     default:
       unexpected_condition_str("i_copy_expr_tree: bad expr kind");
   }  /* switch */
@@ -22169,8 +22224,12 @@ doing nothing should be suppressed.
       has_side_effects = TRUE;
       break;
     case enk_braced_init_list:
+    case enk_type_operand:
     case enk_param_ref:
     case enk_fold:
+    case enk_requires:
+    case enk_compound_req:
+    case enk_nested_req:
     default:
       /* Others cause no side effects at this level.  The subtree might
          still cause side effects. */

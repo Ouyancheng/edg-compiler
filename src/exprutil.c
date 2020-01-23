@@ -7126,7 +7126,7 @@ the avail_fs_nodes list.
 }  /* reclaim_fs_node */
 
 
-static void reclaim_fs_nodes_of_expr_tree(an_expr_node  *expr_tree)
+void reclaim_fs_nodes_of_expr_tree(an_expr_node  *expr_tree)
 /*
 Traverse the given expression tree and reclaim every file-scope-memory node it
 contains for potential reuse later on.
@@ -23679,6 +23679,165 @@ return FALSE and:
   }  /* if */
   return result;
 }  /* requires_clause_satisfied */
+
+
+static a_type_ptr check_requirement_expr(an_expr_node_ptr      req_expr,
+                                         a_template_arg_ptr    templ_args,
+                                         a_template_param_ptr  templ_params,
+                                         a_boolean             *p_is_noexcept)
+/*
+Substitute the given template parameters with the given template arguments in
+the given expression.  If that substitution is invalid, return NULL.
+Otherwise, return the type of the substituted expression.  Set *p_is_noexcept
+to TRUE, unless the substitution was successful and the resulting expression
+is potentially throwing.
+*/
+{
+  a_type_ptr        result = NULL;
+  a_boolean         err = FALSE, is_noexcept = TRUE;
+  a_constant_ptr    cp = local_constant(), allocated_cp = NULL;
+  an_expr_node_ptr  expr;
+  a_ctws_state      ctws_state;
+
+  init_ctws_state(&ctws_state);
+  expr = copy_template_param_expr(
+                         req_expr, templ_args, templ_params, (a_type_ptr)NULL,
+                         &req_expr->position, CTWS_NON_CONSTANT_EXPR, &err,
+                         &ctws_state, cp, &allocated_cp);
+  if (expr != NULL) {
+    reclaim_fs_nodes_of_expr_tree(expr);
+  }  /* if */
+  if (err) {
+    result = NULL;
+  } else if (expr != NULL) {
+    result = expr->type;
+    if (expr_might_throw(expr)) {
+      is_noexcept = FALSE;
+    }  /* if */
+  } else {
+    if (allocated_cp == NULL) {
+      allocated_cp = cp;
+    }  /* if */
+    result = allocated_cp->type;
+  }  /* if */
+  release_local_constant(&cp);
+  *p_is_noexcept = is_noexcept;
+  return result;
+}  /* check_requirement_expr */
+
+
+static a_boolean check_type_constraint(a_type_ptr            type,
+                                       an_expr_node_ptr      constraint,
+                                       a_template_arg_ptr    templ_args,
+                                       a_template_param_ptr  templ_params)
+/*
+constraint is an enk_concept_id node with a possibly-empty argument list
+<A1, ..., An>.  Let C be the associated concept and T the type represented
+by the given type.  Return TRUE if, after successful substitution of
+<A1, ..., An>, C<T, A1, ..., An> is satisfied.  Return FALSE otherwise.
+*/
+{
+  a_boolean           result = TRUE, copy_error = FALSE;
+  a_template_arg_ptr  first_arg, new_args;
+  a_template_ptr      templ = constraint->variant.concept_id.concept_template;
+  a_symbol_ptr        sym = symbol_for(templ);
+  a_template_param_ptr
+                      params = sym->variant.template_info->cache.decl_info
+                                                         ->parameters;
+  a_ctws_state        ctws_state;
+
+  init_ctws_state(&ctws_state);
+  first_arg = alloc_template_arg((a_templ_arg_kind)tak_type);
+  first_arg->variant.type = type;
+  first_arg->next = constraint->variant.concept_id.args;
+  new_args = copy_template_arg_list_with_substitution(
+                                                  sym, first_arg, params,
+                                                  (a_template_param_ptr)NULL,
+                                                  templ_args, templ_params,
+                                                  &constraint->position,
+                                                  CTWS_NO_OPTIONS,
+                                                  &copy_error, &ctws_state);
+  if (copy_error) {
+    result = FALSE;
+  } else {
+    an_expr_node_ptr  expr = templ->prototype_instantiation.constraint;
+    a_diag_list       diag_list;
+    clear_diag_list(&diag_list);
+    result = requires_clause_satisfied(expr, new_args, params, &diag_list);
+  }  /* if */
+  return result;
+}  /* check_type_constraint */
+
+
+a_boolean requires_expr_satisfied(an_expr_node_ptr      requires_expr,
+                                  a_template_arg_ptr    templ_args,
+                                  a_template_param_ptr  templ_params)
+/*
+The given node is a requires-expression.  Return TRUE if substituting the given
+template arguments for the given parameters is successful.
+FIXME pass through details of failure?
+*/
+{
+  a_boolean         result = TRUE;
+  an_expr_node_ptr  req = requires_expr->variant.requires_expr.requirements;
+
+  for (; req != NULL && result; req = req->next) {
+    switch (req->kind) {
+      case enk_type_operand:
+        { a_type_ptr          tp = req->variant.type_operand.type;
+          a_boolean           copy_error = FALSE;
+          a_ctws_options_set  ctws_options = CTWS_NO_OPTIONS;
+          a_ctws_state        ctws_state;
+          init_ctws_state(&ctws_state);
+          copy_type_with_substitution(tp, templ_args, templ_params,
+                                      &req->position, ctws_options,
+                                      &copy_error, &ctws_state);
+          if (copy_error) {
+            result = FALSE;
+          }  /* if */
+        }
+        break;
+      case enk_compound_req:
+        { a_boolean         is_noexcept;
+          an_expr_node_ptr  req_expr =
+                                req->variant.compound_req.expr_and_constraint;
+          a_type_ptr        expr_type;
+          expr_type = check_requirement_expr(req, templ_args, templ_params,
+                                             &is_noexcept);
+          if (expr_type == NULL) {
+            result = FALSE;
+          } else if (req->variant.compound_req.is_noexcept && !is_noexcept) {
+            result = FALSE;
+          } else {
+            /* Check the type constraint. */
+            an_expr_node_ptr  req_constr = req_expr->next;
+            if (!check_type_constraint(expr_type, req_constr,
+                                       templ_args, templ_params)) {
+              result = FALSE;
+            }  /* if */
+          }  /* if */
+        }
+        break;
+      case enk_nested_req:
+        { a_diag_list  diag_list;
+          clear_diag_list(&diag_list);
+          result = requires_clause_satisfied(
+                                        req->variant.nested_req.constraint,
+                                        templ_args, templ_params, &diag_list);
+        }
+        break;
+      default:
+        { a_boolean  is_noexcept;
+          if (check_requirement_expr(req, templ_args, templ_params,
+                                     &is_noexcept) == NULL) {
+            result = FALSE;
+          }  /* if */
+        }
+        break;
+    }  /* switch */
+  }  /* for */
+  return result;
+}  /* requires_expr_satisfied */
 
 
 #if DEBUG

@@ -188,7 +188,8 @@ the "::" at the start of a qualified name) is a type name.
 #define prescan_curr_id_is_type_name(flags)				\
   (curr_type_symbol(/*is_new_type_name=*/FALSE, /*in_prescan=*/TRUE,	\
                     /*in_type_check=*/FALSE,				\
-                    ((flags) & DFS_IMPLICIT_TYPENAME_CONTEXT) != 0,	\
+                    ((flags) & DFS_IMPLICIT_TYPENAME_CONTEXT) != 0 &&	\
+                      relaxed_typename_enabled,				\
                     /*is_sizeof_context=*/FALSE) != NULL)
 
 /*

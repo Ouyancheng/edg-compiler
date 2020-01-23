@@ -233,6 +233,7 @@ be restored).
     dps->last_declarator = FALSE;
     dps->type_is_injected_class_name = FALSE;
     dps->is_implicit_type_context = FALSE;
+    dps->for_requires_expr_params = FALSE;
     dps->prefix_attributes = NULL;
     dps->deferred_alignas_attributes = NULL;
     dps->specifier_attributes = NULL;
@@ -941,10 +942,10 @@ routines used for disambiguation.  This flag suppresses errors that
 might result from class template names that are missing argument lists.
 in_type_check is used when this routine is called directly or indirectly
 from places such as is_type_start.  is_implicit_type_context is TRUE if
-this is a context where a dependent qualified name is considered to be
-a typename based on the C++20 rules.  is_sizeof_context is TRUE if this
-is called indirectly from scan_sizeof_operator and the name being scanned
-should not be treated as a type for dependent name purposes.
+this is a context where a dependent qualified name is implicitly considered
+to be a type name (e.g., based on the C++20 rules).  is_sizeof_context is TRUE
+if this is called indirectly from scan_sizeof_operator and the name being
+scanned should not be treated as a type for dependent name purposes.
 */
 {
   a_symbol_ptr               assoc_symbol;
@@ -963,7 +964,7 @@ should not be treated as a type for dependent name purposes.
        template name without an argument list is allowed. */
     options |= GID_TEMPLATE_ARGS_OPTIONAL;
   }  /* if */
-  if (is_implicit_type_context && relaxed_typename_enabled) {
+  if (is_implicit_type_context) {
     /* A C++20 context where a dependent qualified name is considered to
        name a type. */
     options |= GID_IMPLICIT_TYPENAME_CONTEXT;
@@ -1090,7 +1091,8 @@ and associated routines.
       type_sym = curr_type_symbol(/*is_new_type_name=*/FALSE, is_prescan,
                                   /*in_type_check=*/TRUE,
                                   (ids_options &
-                                           IDS_IMPLICIT_TYPENAME_CONTEXT) != 0,
+                                        IDS_IMPLICIT_TYPENAME_CONTEXT) != 0 &&
+                                    relaxed_typename_enabled,
                                   (ids_options & IDS_IS_SIZEOF) != 0);
       if (class_template_arg_deduction_enabled && is_expr_context &&
           type_sym != NULL) {

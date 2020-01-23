@@ -16422,6 +16422,7 @@ Otherwise, return FALSE.
 static
 a_template_arg_ptr scan_template_argument_list(
                                              a_symbol_ptr template_sym,
+                                             a_boolean    skip_first_param,
                                              a_boolean    *any_errors,
                                              long         *first_defaulted_arg)
 /*
@@ -16437,6 +16438,11 @@ routine.  Its value is unchanged if no errors are detected.
 first_defaulted_arg is set to the number (starting with 0) of the first
 argument that was taken from the parameter's default argument, or to -1 if
 all arguments were explicit.
+
+If skip_first_param is TRUE, the first parameter of the template is ignored,
+and thus the first scanned argument is matched to the second parameter.  That
+is used to scan the arguments for a type-constraint (following a concept
+template name).
 */
 {
   a_template_param_ptr             param_ptr = NULL;
@@ -16474,7 +16480,11 @@ all arguments were explicit.
   orig_param_ptr = param_ptr;
   /* Indicate that this is an error case if the template has any empty
      parameter list. */
-  if (param_ptr == NULL) *any_errors = TRUE;
+  if (param_ptr == NULL) {
+    *any_errors = TRUE;
+  } else if (skip_first_param && !param_ptr->is_pack) {
+    param_ptr = param_ptr->next;
+  }  /* if */
   /* Determine whether this is a template declared within a prototype
      instantiation.  Such cases must be handled specially for rescanning
      purposes. */
@@ -17267,16 +17277,19 @@ modes.
 
 
 a_template_arg_ptr scan_concept_arg_list(a_symbol_ptr template_sym,
+                                         a_boolean    skip_first_param,
                                          a_boolean    *any_errors)
 /*
-Scan a template argument list for the give concept template.
-FIXME: Option to skip first parameter.
+Scan a template argument list for the give concept template.  If
+skip_first_param is TRUE, the first argument is for the second parameter (this
+occurs when scanning type-constraints).
 */
 {
   a_template_arg_ptr  templ_arg_list;
   long                first_defaulted_arg = -1;
 
-  templ_arg_list = scan_template_argument_list(template_sym, any_errors, 
+  templ_arg_list = scan_template_argument_list(template_sym, skip_first_param,
+                                               any_errors, 
                                                &first_defaulted_arg);
   check_closing_angle_bracket(any_errors);
   return templ_arg_list;
@@ -17612,8 +17625,9 @@ a routine to lookup the appropriate instance (or generate one if needed).
     /* Do not insert code here. */
     {
       /* Scan the template argument list. */
-      arg_list = scan_template_argument_list(template_sym, &any_errors,
-                                             &first_defaulted_arg);
+      arg_list = scan_template_argument_list(
+                                     template_sym, /*skip_first_param=*/FALSE,
+                                     &any_errors, &first_defaulted_arg);
     }  /* if */
   } else {
     /* The template is a member of a proxy or nonreal class.  This occurs
@@ -18041,8 +18055,9 @@ indicated by the template argument list.
         !template_sym->variant.template_info->is_error) {
       long	first_defaulted_arg = -1L;
       /* Scan the template argument list. */
-      arg_list = scan_template_argument_list(template_sym, &any_errors,
-                                             &first_defaulted_arg);
+      arg_list = scan_template_argument_list(
+                                     template_sym, /*skip_first_param=*/FALSE,
+                                     &any_errors, &first_defaulted_arg);
     } else {
       /* The template is a member of a proxy or nonreal class.  This occurs
          as a result of constructs like T::A<int>.  In such cases there is
