@@ -44,7 +44,7 @@ For example:
   static_assert(h().i == 42);  // Now accepted in C++20 mode.
 
 
-1/22/19  [EDGcpfe/22229]
+1/22/20  [EDGcpfe/22229]
 C++-generating back end: use of dependent alias template from invalid scope
 
 In some obscure cases, the output of the C++-generating back end could use
