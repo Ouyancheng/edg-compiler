@@ -1,5 +1,21 @@
 Version 6.1
 
+1/24/20  [EDGcpfe/22152]
+Assertion failure on use of injected class name as template argument
+
+A change made in version 5.1 added an incorrect assertion check that would
+produce an spurious internal error (in equiv_template_arg_lists) on some
+uses of an injected class name as a template argument.  Now fixed.
+
+  template <typename> struct A {
+    static const bool value = true;
+  };
+  template <typename T> T&& f();
+  template <typename T> struct C {
+    template<typename U, typename = A<decltype(f<C>() + f<U>())>> void g();
+  };
+
+
 1/24/20  [EDGcpfe/20420,EDGcpfe/21576]
 GNU C++ compatibility: spurious substitution failure substituting template
 argument list in parent type

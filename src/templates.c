@@ -7497,10 +7497,6 @@ the same constant.
        purposes. */
     if (arg1->is_pack || arg2->is_pack) pack_seen = TRUE;
 #endif /* CHECKING */
-    /* This flag should not be set on template argument lists that are
-       associated with an actual instantiation. */
-    check_assertion(!arg1->type_is_injected_class_name &&
-                    !arg2->type_is_injected_class_name);
     /* For a given non-variadic class, argument lists should always have
        the same sequence of type, constant, and template arguments. */
     if (arg1->kind != arg2->kind) {
