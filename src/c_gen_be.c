@@ -5627,7 +5627,7 @@ should be replaced by just
           dump_expr_with_parens(func_expr->next);
           result = TRUE;
           break;
-        case bufk_is_constant_evaluated:
+        case bfk_is_constant_evaluated:
           result = TRUE;
           m_write_tok_ch('(');
           dump_cast(call_expr->type);

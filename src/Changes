@@ -1,5 +1,14 @@
 Version 6.1
 
+1/24/20  [EDGcpfe/22247]
+Remove duplicate enumerators for __builtin_is_constant_evaluated
+
+There had been separate enumerators for the __builtin_is_constant_evaluated
+builtin function (bfk_is_constant_evaluated and bufk_is_constant_evaluated).
+The front end now uses the former and maintains the latter for backward
+compatibility (though now the two values are the same so either can be used).
+
+
 1/24/20  [EDGcpfe/22241,EDGcpfe/22242]
 Microsoft compatibility: Enable Visual Studio 16.6 features
 

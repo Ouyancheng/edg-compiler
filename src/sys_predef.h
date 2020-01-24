@@ -218,10 +218,12 @@ a continuation of the automatically-generated a_builtin_function_kind_tag
 enumeration.
 */
 enum a_builtin_user_function_kind_tag {
+  bufk_is_constant_evaluated = (int)bfk_is_constant_evaluated,
+                                  /* __builtin_is_constant_evaluated --
+                                     for backward compatibility only. */
   bufk_first = (int)bfk_last,     /* initial entry */
   bufk_choose_expr,               /* __builtin_choose_expr */
   bufk_launder,                   /* __builtin_launder */
-  bufk_is_constant_evaluated,     /* __builtin_is_constant_evaluated */
   bufk_u8memchr,                  /* __builtin_u8memchr */
   bufk_u8memcmp,                  /* __builtin_u8memcmp */
   bufk_u8strlen,                  /* __builtin_u8strlen */
@@ -256,7 +258,7 @@ EXTERN a_builtin_user_descr builtin_user_table[]
      __builtin_is_constexpr_evaluated.  We accept it in all modes, but the
      front end also recognizes std::is_constexpr_evaluated directly. */
   { "__builtin_is_constant_evaluated", "g+(90000-)L+(90000)s+(202000)m+(1925)",
-    "bool () __edg_throw__()", bufk_is_constant_evaluated },
+    "bool () __edg_throw__()", bfk_is_constant_evaluated },
 
   /* __builtin_launder is "magical" in that it implicitly produces a return
      type matching the argument type. */

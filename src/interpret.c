@@ -7758,7 +7758,7 @@ to FALSE and the reason for the failure is recorded in *ips.
         }  /* if */
       }
       break;
-    case bufk_is_constant_evaluated:
+    case bfk_is_constant_evaluated:
       {
         interpreted = TRUE;
         /* Return a true value if ips->is_constant_evaluated is TRUE, or
