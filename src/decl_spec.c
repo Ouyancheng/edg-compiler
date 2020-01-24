@@ -9635,8 +9635,10 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
     } else if (vtp->incomplete) {
       /* We can get here in error situations, but we cannot test an incomplete
          class type with is_literal_type (it can trigger an internal error). */
-      expect_error();
-      vp->is_constexpr = FALSE;
+      if (dps->is_definition) {
+        expect_error();
+        vp->is_constexpr = FALSE;
+      }  /* if */
     } else if (!is_literal_type(vtp) &&
                !is_template_dependent_type(vtp) &&
                !is_error_type(vtp)) {

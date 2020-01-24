@@ -1,5 +1,20 @@
 Version 6.1
 
+1/24/20  [EDGcpfe/22096,EDGcpfe/22237]
+Spurious incomplete type error on explicit specialization of variable template
+
+A spurious incomplete type error could be issued on an explicit specialization
+of a variable template if type instantiated based on the template definition
+would have had an incomplete type.  Now fixed.
+
+  template <typename T> struct X;
+  template <typename T, typename = void> constexpr X<T> V;
+  template<> constexpr int V<int> = 1;
+  int main() {
+    return V<int>;
+  }
+
+
 1/24/20  [EDGcpfe/22152]
 Assertion failure on use of injected class name as template argument
 

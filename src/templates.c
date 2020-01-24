@@ -5903,13 +5903,16 @@ user later during real instantiations.
 static a_boolean is_invalid_variable_template_type(
 					a_variable_ptr		var,
 					a_decl_parse_state_ptr	dps,
+					a_boolean		is_use,
 					a_boolean		issue_error)
 /*
 Check whether the type of the variable template instance var is a valid
 variable type.  For example, a variable template instance that is given
 a function type is not valid.  dps provides information about the declaration.
 Return TRUE if the type is not valid.  If issue_error is TRUE, issue a
-diagnostic about the invalid type.
+diagnostic about the invalid type.  is_use is TRUE if this is a reference
+that requires a definition.  It is FALSE for just an instantiation of the
+declaration (which could be for an explicit specialization, etc.).
 */
 {
   a_type_ptr	tp = var->type;
@@ -5918,10 +5921,15 @@ diagnostic about the invalid type.
   a_boolean	is_extern = var->storage_class == (a_storage_class)sc_extern;
 
   check_assertion(tp != NULL);
+  if (is_use) {
+    /* If we will be checking for an incomplete type below, make sure the type
+       is instantiated. */
+    complete_class_type_is_needed(tp);
+  }  /* if */
   if (is_function_type(tp)) {
     result = TRUE;
     error_code = ec_variable_templ_function_type;
-  } else if (is_incomplete_type(tp)) {
+  } else if (is_use && is_incomplete_type(tp)) {
     if (is_incomplete_array_type(tp) &&
         (is_extern || is_prototype_instantiation_context())) {
       /* Allow an incomplete array on an extern declaration and also in a
@@ -6110,7 +6118,7 @@ user later during real instantiations.
   /* Make sure the type from the declaration is a valid variable
      declaration. */
   if (is_variable_template && !incomplete_type_error_reported) {
-    if (is_invalid_variable_template_type(var_ptr, dps,
+    if (is_invalid_variable_template_type(var_ptr, dps, /*is_use=*/TRUE,
                                           /*issue_error=*/TRUE)) {
       var_ptr->type = error_type();
     }  /* if */
@@ -7044,7 +7052,9 @@ expression context) rather than a declaration.
                                 variant.variable.has_out_of_class_definition));
   if (is_definition) {
     master_instance_of(tip)->already_instantiated = TRUE;
+    dps.is_definition = TRUE;
   }  /* if */
+  attach_decl_attributes(&dps, /*primary_decl=*/TRUE);
   /* Call a routine to do processing common to various forms of variable
      declarations. */
   if (is_var_templ_instance && is_use) {
@@ -7188,7 +7198,7 @@ expression context) rather than a declaration.
   /* Make sure the type from the declaration is a valid variable
      declaration. */
   if (is_var_templ_instance && !incomplete_type_error_reported) {
-    if (is_invalid_variable_template_type(var_ptr, &dps,
+    if (is_invalid_variable_template_type(var_ptr, &dps, is_use,
                                           /*issue_error=*/TRUE)) {
       var_ptr->type = error_type();
     }  /* if */
@@ -17123,7 +17133,6 @@ by this routine.
   clear_decl_pos_block(&decl_pos_block);
   init_decl_parse_state(dps);
   dps->trailing_return_type_allowed = trailing_return_types_enabled;
-  dps->is_definition = TRUE;
   dps->sym = sym;
   rescan_reusable_cache(&decl_cache->tokens);
   scan_template_declaration(dps, /*is_initial_decl=*/FALSE,
@@ -17143,7 +17152,6 @@ by this routine.
     (void)reconcile_static_data_member_types(sym, dps->type,
                                              &locator.source_position);
   }  /* if */
-  attach_decl_attributes(dps, /*primary_decl=*/TRUE);
 }  /* scan_template_variable_declaration */
 
 
@@ -29941,7 +29949,7 @@ that follows.
           /* Variable template specializations take the type from the
              specialization. */
           var->type = dps->type;
-          if (is_invalid_variable_template_type(var, dps,
+          if (is_invalid_variable_template_type(var, dps, /*is_use=*/TRUE,
                                                 /*issue_error=*/TRUE)) {
             var->type = error_type();
           }  /* if */
