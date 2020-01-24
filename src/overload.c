@@ -13788,7 +13788,9 @@ overloaded operator cases.
     /* The called function is unknown because some of the arguments
        are template dependent.  Make an argument list. */
     prep_generic_argument_list(arg_list);
-    *arg_expr_list = make_expr_list_from_argument_list(arg_list);
+    *arg_expr_list = make_expr_list_from_argument_list(
+                                                arg_list,
+                                                /*dependent_expression=*/TRUE);
   } else {
     /* There was an error.  Change the references on the operand lists to
        errors. */
@@ -17737,7 +17739,8 @@ to FALSE.
        (!unary_operator && operand_is_dependent(operand_2)))) {
     /* There is at least one template-dependent operand, so we cannot
        check for operator overloading.  Just build an expression with a
-       generic operator. */
+       generic operator.  Suppress any diagnostics that may result from this,
+       as they may not be valid. */
     make_generic_operation_operand(kind, unary_operator, operand_1, operand_2,
                                    result, operator_position,
                                    operator_tok_seq_number,

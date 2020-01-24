@@ -2956,7 +2956,8 @@ extern void make_braced_init_list_operand(an_arg_list_elem_ptr alep,
 extern an_expr_node_ptr make_expr_from_argument(an_arg_list_elem_ptr arg);
 
 extern an_expr_node_ptr make_expr_list_from_argument_list(
-                                                an_arg_list_elem_ptr arg_list);
+                                    an_arg_list_elem_ptr arg_list,
+                                    a_boolean            dependent_expression);
 
 extern void make_dummy_lvalue_operand(a_type_ptr type,
                                       an_operand *operand);

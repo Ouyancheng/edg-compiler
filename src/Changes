@@ -1,5 +1,27 @@
 Version 6.1
 
+1/24/20  [EDGcpfe/22116]
+Spurious "unexpected designator" error in class template assignment
+
+When a braced-initializer containing designated initializers is used to
+initialize a template-dependent type, the front end would issue a spurious
+"unexpected designator" error while parsing the prototype template.  This
+also affected non-dependent types in gnu versions earlier than 70200, as
+these types are treated as dependent in expression contexts.  For example:
+
+  struct Foo { int a; };
+  template<typename T> struct Bar {
+      T baz;
+      T fun() { return this->baz = { .a = 42 }; } // Spurious error here
+  };
+  int main(){
+      Bar<Foo> *b = new Bar<Foo>();
+      b->fun();
+  }
+
+This is now fixed.
+
+
 1/24/20  [EDGcpfe/22096,EDGcpfe/22237]
 Spurious incomplete type error on explicit specialization of variable template
 

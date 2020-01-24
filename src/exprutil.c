@@ -14907,7 +14907,8 @@ some other kind of expression (e.g., a constructor call).
   check_assertion(is_braced_init_component(alep));
   node = alloc_expr_node((an_expr_node_kind)enk_braced_init_list);
   node->variant.braced_init_list =
-              make_expr_list_from_argument_list(alep->variant.braced.list);
+              make_expr_list_from_argument_list(alep->variant.braced.list,
+                                                /*dependent_expression=*/TRUE);
   node->type = type_of_unknown_templ_param_nontype;
   if (alep->pack_expansion_descr != NULL) {
     node->is_pack_expansion = TRUE;
@@ -14958,10 +14959,13 @@ Make and return an expression for an argument in arg-list-element form.
 
 
 an_expr_node_ptr make_expr_list_from_argument_list(
-                                                 an_arg_list_elem_ptr arg_list)
+                                     an_arg_list_elem_ptr arg_list,
+                                     a_boolean            dependent_expression)
 /*
 Make and return an expression list for an argument list.  Some of the
-arguments may be brace-enclosed lists, in prototype instantiations.
+arguments may be brace-enclosed lists, in prototype instantiations.  If
+dependent_expression is TRUE, this is being done in a template-dependent
+context and the result is template-dependent.
 */
 {
   an_expr_node_ptr     expr, prev_expr, expr_list;
@@ -14970,6 +14974,11 @@ arguments may be brace-enclosed lists, in prototype instantiations.
   prev_expr = NULL;
   expr_list = NULL;
   for (arg = arg_list; arg != NULL; arg = next_elem(arg)) {
+    /* Ignore designator components in dependent expressions as we cannot
+       represent this as an expression and don't know whether it's valid for
+       instantiations.  This will be diagnosed during instantiation if it's
+       invalid. */
+    if (dependent_expression && is_designator_component(arg)) continue;
     expr = make_expr_from_argument(arg);
     /* Add this expression to the end of the expression-form list
        being built up. */
@@ -15078,7 +15087,9 @@ list of the subscripts.
   prep_generic_operand(operand_1);
   op_1_expr = make_node_from_operand(operand_1);
   prep_generic_argument_list(subscripts);
-  subsc_exprs = make_expr_list_from_argument_list(subscripts);
+  subsc_exprs = make_expr_list_from_argument_list(
+                                                subscripts,
+                                                /*dependent_expression=*/TRUE);
   op_1_expr->next = subsc_exprs;
   op_expr = make_lvalue_operator_node((an_expr_operator_kind)eok_cli_subscript,
                                       type_of_unknown_templ_param_nontype,
@@ -22578,7 +22589,9 @@ orig_operand to the function operand created before assembling the final call.
       if (member_sym != NULL &&
           is_nontype_template_param_symbol(member_sym)) {
         nonreal_case = TRUE;
-        arg_node_list = make_expr_list_from_argument_list(alep);
+        arg_node_list = make_expr_list_from_argument_list(
+                                               alep,
+                                               /*dependent_expression=*/FALSE);
         make_constant_operand(member_sym->variant.constant, &function_operand);
         if (selector_operand != NULL) {
           bind_member_function_operand_to_selector(
