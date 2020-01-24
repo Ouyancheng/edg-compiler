@@ -921,6 +921,10 @@ typedef struct an_interpreter_state {
 			/* The value returned by std::is_constant_evaluated in
 			   this interpretation. */
   a_bit_field
+		is_variable_initializer:1;
+			/* This interpreter invocation is to attempt to fold a
+			   variable initializer. */
+  a_bit_field
 		allow_reinterpret_cast:1;
 			/* TRUE if reinterpret_cast should be permitted when
 			   possible.  This is used to optimize certain variable
@@ -2259,6 +2263,7 @@ result of calls to std::is_constant_evaluated().
   ips->cost = 0;
   ips->curr_alloc_seq_number = 1;
   ips->is_constant_evaluated = is_constant_evaluated;
+  ips->is_variable_initializer = FALSE;
   ips->allow_reinterpret_cast = FALSE;
   ips->static_storage_ready = FALSE;
   ips->side_effects_disabled = !relaxed_constexpr_enabled;
@@ -7356,6 +7361,25 @@ done:
 }  /* do_constexpr_builtin_strcmp */
 
 
+static void warn_about_is_constant_evaluated(a_routine_ptr         callee,
+                                             an_expr_node_ptr      call_node)
+/*
+call_node describes a call to callee, which is std::is_constant_evaluated() or
+__builtin_is_constant_evaluated() in a context where it would always produce
+a true value.  Issue a warning if justified.
+*/
+{
+  if (innermost_function_scope != NULL &&
+      !current_routine_entry()->is_consteval &&
+      !scope_stack_top().is_rescan) {
+    pos_st_warning(ec_is_constant_evaluated_in_constant_expression,
+                   &call_node->position,
+                   unmangled_name_of(&callee->source_corresp));
+
+  }  /* if */
+}  /* warn_about_is_constant_evaluated */
+
+
 static a_boolean do_constexpr_builtin_function(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -7767,6 +7791,10 @@ to FALSE and the reason for the failure is recorded in *ips.
           unexpected_condition();
         } else if (ips->is_constant_evaluated) {
           *(an_integer_value*)result_storage = one_int;
+          if (ips->curr_call_frame == NULL &&
+              !ips->is_variable_initializer) {
+            warn_about_is_constant_evaluated(callee, call_node);
+          }  /* if */
         } else {
           do_constexpr_fail(*p_result);
         }  /* if */
@@ -7798,7 +7826,7 @@ statement.
 
 static a_boolean do_constexpr_std_is_constant_evaluated(
                                    an_interpreter_state        *ips,
-                                   ARG_UNUSED a_routine_ptr    callee,
+                                   a_routine_ptr               callee,
                                    ARG_UNUSED an_expr_node_ptr call_node,
                                    ARG_UNUSED a_byte           **p_arg_bytes,
                                    a_byte                      *result_storage,
@@ -7812,6 +7840,10 @@ TRUE.  Otherwise result FALSE.
 
   if (ips->is_constant_evaluated) {
     *(an_integer_value*)result_storage = one_int;
+    if (ips->curr_call_frame->parent == NULL &&
+        !ips->is_variable_initializer) {
+      warn_about_is_constant_evaluated(callee, call_node);
+    }  /* if */
   } else {
     do_constexpr_fail(result);
   }  /* if */
@@ -17166,6 +17198,7 @@ value produced by std::is_constant_evaluated().
         ips.allow_reinterpret_cast = TRUE;
       }  /* if */
     }  /* if */
+    ips.is_variable_initializer = TRUE;
   } else {
     a_byte_count  n_bytes;
     n_bytes = value_bytes_for_type(&ips, result_type, &result); 
@@ -17440,6 +17473,18 @@ std::is_constant_evaluated.)
   rp->is_constexpr_intrinsic = TRUE;
   map_byte_count(&persistent_map, rp, (a_byte_count)tag);
 }  /* register_constexpr_intrinsic */
+
+
+a_boolean is_std_is_constant_evaluated(a_routine_ptr  rp)
+/*
+Return TRUE if (and only if) the given routine is std::is_constant_evaluated().
+*/
+{
+  a_byte_count  impl_idx = (a_byte_count)cit_error;
+
+  get_mapped_byte_count(&persistent_map, rp, impl_idx);
+  return impl_idx == cit_std_is_constant_evaluated;
+}  /* is_std_is_constant_evaluated */
 
 #if DEBUG
 

@@ -3137,6 +3137,9 @@ ec_exp_type_name;;"expected a type name"
 ec_requires_expr_ellipsis_param;;"an ellipsis parameter is not permitted in a requires-expression"
 ec_unnamed_require_expr_param;;"unnamed parameter in requires-expression has no effect"
 ec_exp_concept_name;;"expected a concept name"
+ec_is_constant_evaluated_in_constant_expression;;"call to %s appearing in a constant expression always produces \"true\""
+ec_is_constant_evaluated_in_consteval_context;;"call to %s appearing in a consteval context always produces \"true\""
+ec_is_constant_evaluated_in_nonconstexpr_context;;"call to %s appearing in a non-constexpr function always produces \"false\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

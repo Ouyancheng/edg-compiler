@@ -34,6 +34,7 @@ exprutil.c -- Expression scanning utility routines.
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
+#include "statements.h"
 #if USE_X86_FUNCTION_MULTIVERSIONING
 #include "sys_predef.h"
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
@@ -6604,7 +6605,35 @@ the call target).
       make_constant_operand(result_con, result);
       folded = TRUE;
     }  /* if */
-    if (release_constant) release_local_constant(&result_con);
+  if (release_constant) release_local_constant(&result_con);
+    /* Check for calls to std::is_constant_evaluated() and
+       __builtin_is_constant_evaluated(), and warn if they appear in a
+       function that is not plain "constexpr". */
+    if ((rout->is_constexpr_intrinsic &&
+         is_std_is_constant_evaluated(rout)) ||
+        (special_kind_is(rout, sfk_none) &&
+         rout->variant.builtin_function_kind ==
+                       (a_builtin_function_kind)bufk_is_constant_evaluated)) {
+      an_error_code  err_code = ec_no_error;
+      if (!scope_stack_top().is_rescan && innermost_function_scope != NULL) {
+        a_routine_ptr  curr_rp = current_routine_entry();
+        if (curr_rp->is_consteval && !curr_rp->is_prototype_instantiation) {
+          err_code = ec_is_constant_evaluated_in_consteval_context;
+        } else if (!curr_rp->is_constexpr && !curr_expr_kind_is_const() &&
+                   struct_stmt_stack_top().kind !=
+                                       (a_struct_stmt_kind)ssk_constexpr_if) {
+          /* Don't warn here if we are in a constant-expression context.
+             Note that constexpr-if conditions are not parsed as constant-
+             expressions (they're pre-scanned and evaluated later), but this
+             warning is not correct for them. */
+          err_code = ec_is_constant_evaluated_in_nonconstexpr_context;
+        }  /* if */
+      }  /* if */
+      if (err_code != ec_no_error) {
+        pos_st_warning(err_code, &call_expr->position,
+                       unmangled_name_of(&rout->source_corresp));
+      }  /* if */
+    }  /* if */
   }  /* if */
 done:
   return folded;
