@@ -13299,6 +13299,7 @@ If there is an error in the copying, set *copy_error to TRUE.
   a_boolean		preserve_packs =
                                   (options & CTWS_PRESERVE_DEDUCED_PACKS) != 0;
 
+  options &= (~CTWS_IS_PARENT);
   /* If a template symbol was provided, see if it is variadic. */
   if (template_sym != NULL) {
     tssp = template_supplement_for_symbol(template_sym);

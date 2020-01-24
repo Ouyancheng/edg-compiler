@@ -1,5 +1,36 @@
 Version 6.1
 
+1/24/20  [EDGcpfe/20420,EDGcpfe/21576]
+GNU C++ compatibility: spurious substitution failure substituting template
+argument list in parent type
+
+In some complex situations involving a nested substitution of a template
+argument list under a parent type, a spurious substitution failure could
+occur in g++ and clang modes.  Now fixed.
+
+  template <class T> struct A {};
+  template<bool b> struct B { static constexpr bool v = b; };
+  typedef B<true> true_type;
+  typedef B<false> false_type;
+  template<bool, typename T = void> struct E { };
+  template<typename T> struct E<true, T> { typedef T t; };
+  template<typename, typename> struct H { static constexpr bool v = true; };
+  template <typename T> struct C{using t = T;};
+  template <typename T> struct C<A<T>>{using t = T;};
+  struct G {int v;};
+  struct F { template <typename T> using ftype = false_type; };
+  template <typename T> using D = C<T>;
+  template <typename Q, typename T> using U = typename Q::template ftype<T>;
+  template <typename Q, typename T> using S = U<Q, typename D<T>::t>;
+  template <typename Q, typename T, typename = void> struct I{};
+  template <typename Q, typename T>
+  struct I<Q, T, typename E<!S<Q, T>::v>::t> {
+    using t = G;
+  };
+  bool b = H<I<F, int>::t, G>::v;
+
+
+
 1/24/20  [EDGcpfe/22247]
 Remove duplicate enumerators for __builtin_is_constant_evaluated
 
