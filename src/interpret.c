@@ -7369,8 +7369,8 @@ __builtin_is_constant_evaluated() in a context where it would always produce
 a true value.  Issue a warning if justified.
 */
 {
-  if (innermost_function_scope != NULL &&
-      !current_routine_entry()->is_consteval &&
+  if ((innermost_function_scope == NULL ||
+       !current_routine_entry()->is_consteval) &&
       !scope_stack_top().is_rescan) {
     pos_st_warning(ec_is_constant_evaluated_in_constant_expression,
                    &call_node->position,

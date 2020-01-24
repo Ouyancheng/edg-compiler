@@ -6564,7 +6564,11 @@ the call target).
   } else {
     is_consteval = FALSE;
   }  /* if */
-  if ((constexpr_call_folding_should_be_done() || is_consteval) &&
+  if (((constexpr_call_folding_should_be_done() &&
+        /* Exclude constant-expressions, because those will be handled when
+           the expression is complete. */
+        !curr_expr_kind_is_const()) ||
+       is_consteval) &&
       (!expr_stack->in_noexcept_operand_expression ||
        core_constant_expr_is_noexcept)) {
     a_constant_ptr  result_con = local_constant();
@@ -6605,7 +6609,7 @@ the call target).
       make_constant_operand(result_con, result);
       folded = TRUE;
     }  /* if */
-  if (release_constant) release_local_constant(&result_con);
+    if (release_constant) release_local_constant(&result_con);
     /* Check for calls to std::is_constant_evaluated() and
        __builtin_is_constant_evaluated(), and warn if they appear in a
        function that is not plain "constexpr". */
@@ -6621,7 +6625,8 @@ the call target).
           err_code = ec_is_constant_evaluated_in_consteval_context;
         } else if (!curr_rp->is_constexpr && !curr_expr_kind_is_const() &&
                    struct_stmt_stack_top().kind !=
-                                       (a_struct_stmt_kind)ssk_constexpr_if) {
+                                       (a_struct_stmt_kind)ssk_constexpr_if &&
+                   !expr_stack->is_vla_dimension_expression) {
           /* Don't warn here if we are in a constant-expression context.
              Note that constexpr-if conditions are not parsed as constant-
              expressions (they're pre-scanned and evaluated later), but this
@@ -6654,7 +6659,11 @@ the description of the remaining parameters.
 {
   a_boolean folded = FALSE;
 
-  if (constexpr_call_folding_should_be_done() || ctor->is_consteval) {
+  if ((constexpr_call_folding_should_be_done() &&
+       /* Exclude constant-expressions, because those will be handled when
+          the expression is complete. */
+       !curr_expr_kind_is_const()) ||
+      ctor->is_consteval) {
     a_boolean need_backing_expr =
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
     if (fold_constexpr_ctor(ctor_dip, need_backing_expr, check_constexpr,
@@ -23457,8 +23466,12 @@ user-defined conversions (see also process_boolean_controlling_expression).
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Force a constant addressing expression to a constant. */
-  force_operand_to_constant_if_possible(operand);
+  if (!curr_expr_kind_is_const()) {
+    /* Force a constant addressing expression to a constant (not needed in
+       constant-expression contexts since those have to be constant-evaluated
+       at the top anyway. */
+    force_operand_to_constant_if_possible(operand);
+  }  /* if */
   orig_operand = *operand;
   /* Remember whether or not the expression is a constant pointer or
      pointer-to-member, before any (other) changes are made. */
