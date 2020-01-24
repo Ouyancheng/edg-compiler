@@ -870,9 +870,9 @@ Install the keywords in the symbol table.
        modes as well as some clang C and C++ modes). */
     enter_keyword((a_token_kind)tok_noreturn, "_Noreturn");
   }  /* if */
-  if (c11_mode || gcc_version_is(>= 40900) || clang_version_is(>= 30000)) {
-    /* Enable the C11 _Generic keyword (accepted by default in some GNU C
-       modes as well as some clang C and C++ modes). */
+  if (c11_mode || gcc_version_is(>= 40900) || clang_version_is(>= 30000) ||
+      msc_version_is(>=1926)) {
+    /* Enable the C11 _Generic keyword in appropriate emulation modes. */
     enter_keyword((a_token_kind)tok_c11_generic, "_Generic");
   }  /* if */
   if (c11_atomic_enabled) {

@@ -2789,6 +2789,12 @@ option values if they were not already set by a command line option.
           constexpr_try_enabled = TRUE;
         }  /* if */
       }  /* if */
+      if (microsoft_version >= 1926) {
+        /* Visual Studio 2019 version 16.6. */
+        if (ms_cpp20_mode) {
+          consteval_enabled = TRUE;
+        }  /* if */
+      }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
          member functions "deleted", whereas Microsoft compilers prior to 1900

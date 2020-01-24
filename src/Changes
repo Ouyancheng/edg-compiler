@@ -1,5 +1,14 @@
 Version 6.1
 
+1/24/20  [EDGcpfe/22241,EDGcpfe/22242]
+Microsoft compatibility: Enable Visual Studio 16.6 features
+
+Two features that are supported by Microsoft Visual Studio 16.6 are now
+enabled when microsoft_version >= 1926.  In C mode, _Generic (see
+EDGcpfe/14743) is now enabled, and in C++ mode, with --ms_c++latest or
+--ms_c++20, immediate functions (see EDGcpfe/20550) are now enabled.
+
+
 1/23/20  [EDGcpfe/21590]
 C++20: asm-declarations in constexpr functions
 
