@@ -55,7 +55,7 @@ could lead in some cases to errors when compiling the generated code.  This
 is now fixed.
 
 
-1/22/19  [EDGcpfe/22235]
+1/22/20  [EDGcpfe/22235]
 Build error with !TARG_CASE_SENSITIVE_EXTERNAL_NAMES
 
 The change to accommodate const correctness for string literals (see
