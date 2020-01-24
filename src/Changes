@@ -1,5 +1,23 @@
 Version 6.1
 
+1/24/20  [EDGcpfe/22236]
+Warnings for suspect uses of std::is_constant_evaluated()
+
+The front end now warns about various uses of std::is_constant_evaluated() that
+seem suspect because the value can be determined at the point of call.  For
+example:
+
+  constexpr int f(int x) {
+    if constexpr (std::is_constant_evaluated()) {  // Always true!  Now
+      return x;                                    // elicits a warning.
+    } else {
+      return 0;
+    }
+  }
+
+(The intrinsic __builtin_is_constant_evaluated() is handled similarly.)
+
+
 1/24/20  [EDGcpfe/22116]
 Spurious "unexpected designator" error in class template assignment
 
