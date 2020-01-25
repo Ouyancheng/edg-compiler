@@ -20302,10 +20302,10 @@ abstract class type is okay (e.g., if we are initializing a base subobject).
 }  /* make_constructor_dynamic_init */
 
 
-static void temp_init_by_bitwise_copy_from_operand(an_operand *operand,
-                                                   a_type_ptr temp_type,
-                                                   a_boolean  result_is_lvalue,
-                                                   a_boolean  is_explicit_cast)
+void temp_init_by_bitwise_copy_from_operand(an_operand *operand,
+                                            a_type_ptr temp_type,
+                                            a_boolean  result_is_lvalue,
+                                            a_boolean  is_explicit_cast)
 /*
 Create a temporary of type temp_type and initialize it by bitwise copy from
 the given operand.  If temp_type is NULL, use the current type of the
@@ -21103,7 +21103,7 @@ example, for a return, because the caller will do the destruction).
      return value optimizations when the temporaries come through a
      conditional operator. */
   if (dip->kind != (a_dynamic_init_kind)dik_none &&
-      !(microsoft_mode && ms_permissive && !mandatory_copy_elision &&
+      !(microsoft_mode && ms_permissive &&
         dip->is_result_for_class_rvalue_question_mark)) {
     is_usable_temp_init = TRUE;
     /* Take the dynamic init off whatever destruction list it is on, if any,

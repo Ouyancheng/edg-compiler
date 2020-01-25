@@ -1048,6 +1048,12 @@ extern void temp_init_from_operand_full(an_operand *operand,
                                         a_type_ptr temp_type,
                                         a_boolean  result_is_lvalue);
 
+extern void temp_init_by_bitwise_copy_from_operand(
+                                                  an_operand *operand,
+                                                  a_type_ptr temp_type,
+                                                  a_boolean  result_is_lvalue,
+                                                  a_boolean  is_explicit_cast);
+
 extern a_boolean conversion_for_direct_reference_binding_possible(
                                      an_operand               *source_operand,
                                      a_type_ptr               dest_type,

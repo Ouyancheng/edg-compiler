@@ -15301,10 +15301,33 @@ node, convert the operand into a temp init from that node.
 {
   if (is_expression_operand(operand)) {
     an_expr_node_ptr node = skip_parens(operand->variant.expression);
+    a_type_ptr       unqual_type = skip_typerefs(operand->type);
     if (is_operation_node(node) && node_operator_is(node, eok_comma) &&
         is_temp_node(node->variant.operation.operands->next)) {
-      temp_init_from_operand_full(operand, operand->type,
-                                  /*result_is_lvalue=*/FALSE);
+      a_boolean elision_done = FALSE;
+      if ((mandatory_copy_elision || gnu_mode) &&
+          is_class_struct_union_type(unqual_type)) {
+        /* In modes where we need to elide copies, check to see if elision
+           applies. */
+        a_dynamic_init_ptr dip;
+        a_conv_context_set conv_context = CCO_MOVE_OPTIMIZATION_ALLOWED;
+        if (gnu_version_is(any_version)) {
+          /* GCC treats this like statement expressions, in that it doesn't
+             diagnose the elision of a deleted constructor call. */
+          conv_context |= CCO_STMT_EXPR_RESULT;
+        }  /* if */
+        prep_elision_initializer_operand(operand, unqual_type,
+                                         /*fill_in_dtor=*/TRUE, conv_context,
+                                         ec_no_error, &elision_done, &dip);
+      }  /* if */
+      if (elision_done) {
+        temp_init_by_bitwise_copy_from_operand(operand, unqual_type,
+                                               /*result_is_lvalue=*/FALSE,
+                                               /*is_explicit_cast=*/FALSE);
+      } else {
+        temp_init_from_operand_full(operand, /*temp_type=*/NULL,
+                                    /*result_is_lvalue=*/FALSE);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* temp_init_from_comma_operand */
@@ -15342,8 +15365,7 @@ entries for the operands.
     temp_init_from_operand_full(operand_3, operand_2->type,
                                 /*result_is_lvalue=*/FALSE);
     op3_is_temp_init = operand_is_temp_init_full(operand_3, &op_3);
-  } else if (operand_is_temp_init(operand_3) &&
-             !operand_is_temp_init(operand_2) &&
+  } else if (!op2_is_temp_init && op3_is_temp_init &&
              is_class_struct_union_type(operand_2->type)) {
     temp_init_from_operand_full(operand_2, operand_2->type,
                                 /*result_is_lvalue=*/FALSE);
