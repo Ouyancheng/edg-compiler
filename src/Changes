@@ -6,7 +6,7 @@ Invalid pointer access via scan_expression_list_context_expr
 Calls to scan_expression_list_context_expr could previously (in some
 difficult-to-characterize situations) result in accessing an invalid pointer
 value.  That is now fixed.  (The problem was discovered by running valgrind on
-the front processing the Ranges-v3 source code.)
+the front end processing the Ranges-v3 source code.)
 
 
 1/24/20  [EDGcpfe/22091]
