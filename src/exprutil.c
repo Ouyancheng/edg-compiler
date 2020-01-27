@@ -6662,7 +6662,7 @@ the description of the remaining parameters.
   if ((constexpr_call_folding_should_be_done() &&
        /* Exclude constant-expressions, because those will be handled when
           the expression is complete. */
-       !curr_expr_kind_is_const()) ||
+       (!curr_expr_kind_is_const() || check_constexpr)) ||
       ctor->is_consteval) {
     a_boolean need_backing_expr =
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
@@ -15813,8 +15813,9 @@ on output it will be an lvalue.
   an_expr_node_ptr node;
   an_operand       orig_result;
 
-  check_assertion_str(is_any_reference_type(result->type),
-                      "add_reference_indirection: not reference type");
+  check_assertion_or_expect_error_str(
+                             is_any_reference_type(result->type),
+                             "add_reference_indirection: not reference type");
   if (curr_expr_kind_is_traditional_const() &&
       !current_mode_allows_field_selection_folding()) {
     /* Can't do reference indirection in a constant expression.  This is

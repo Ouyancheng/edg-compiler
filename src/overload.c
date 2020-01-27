@@ -20691,9 +20691,12 @@ is_transparent.  conv_context describes the context of the conversion.
          (Note that if an explicit cast was applied to the template argument,
          those restrictions do not apply.) */
       a_type_ptr  src_type = source_operand->type, eff_src_type = src_type;
-      an_operand  *src_to_test = source_operand;
-      an_operand  src_copy;
+      an_operand  src_copy, *src_to_test;
       a_boolean   constant_src;
+      if (!is_template_dependent_context()) {
+        force_operand_to_constant_if_possible(source_operand);
+      }  /* if */
+      src_to_test = source_operand;
       if (conversion->routine != NULL) {
         eff_src_type = return_type_of(conversion->routine->type);
         if (is_constant_operand(source_operand)) {
