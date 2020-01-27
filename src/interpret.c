@@ -10215,6 +10215,23 @@ condition and return TRUE.  Otherwise, return FALSE and record a diagnostic.
               *p_cond = FALSE;
             }  /* if */
           } else {
+            if (constant_is(addr_con, ck_address)) {
+              /* Check for the case of a (non-weak) variable address: That is
+                 a known true value. */
+              if (addr_con->variant.address.kind ==
+                                         (an_address_base_kind)abk_variable) {
+                a_variable_ptr  vp = addr_con->variant.address
+                                              .variant.variable;
+                if (vp != NULL
+#if GNU_EXTENSIONS_ALLOWED
+                    && !vp->is_weak
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                   ) {
+                  *p_cond = TRUE;
+                  break;
+                }  /* if */
+              }  /* if */
+            }  /* if */
             *p_cond = FALSE;
             do_constexpr_fail(result);
             info_with_pos(ec_constexpr_access_to_runtime_storage,
