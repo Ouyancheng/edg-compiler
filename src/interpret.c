@@ -6891,6 +6891,25 @@ done_with_return_statement:
   return result;
 }  /* do_constexpr_statement */
 
+
+static void warn_about_is_constant_evaluated(a_routine_ptr         callee,
+                                             an_expr_node_ptr      call_node)
+/*
+call_node describes a call to callee, which is std::is_constant_evaluated() or
+__builtin_is_constant_evaluated() in a context where it would always produce
+a true value.  Issue a warning if justified.
+*/
+{
+  if ((innermost_function_scope == NULL ||
+       !current_routine_entry()->is_consteval) &&
+      !scope_stack_top().is_rescan) {
+    pos_st_warning(ec_is_constant_evaluated_in_constant_expression,
+                   &call_node->position,
+                   unmangled_name_of(&callee->source_corresp));
+
+  }  /* if */
+}  /* warn_about_is_constant_evaluated */
+
 #if BUILTIN_FUNCTIONS_ENABLED
 #if C99_IL_EXTENSIONS_SUPPORTED
 
@@ -7359,25 +7378,6 @@ return_result:
 done:
   return result;
 }  /* do_constexpr_builtin_strcmp */
-
-
-static void warn_about_is_constant_evaluated(a_routine_ptr         callee,
-                                             an_expr_node_ptr      call_node)
-/*
-call_node describes a call to callee, which is std::is_constant_evaluated() or
-__builtin_is_constant_evaluated() in a context where it would always produce
-a true value.  Issue a warning if justified.
-*/
-{
-  if ((innermost_function_scope == NULL ||
-       !current_routine_entry()->is_consteval) &&
-      !scope_stack_top().is_rescan) {
-    pos_st_warning(ec_is_constant_evaluated_in_constant_expression,
-                   &call_node->position,
-                   unmangled_name_of(&callee->source_corresp));
-
-  }  /* if */
-}  /* warn_about_is_constant_evaluated */
 
 
 static a_boolean do_constexpr_builtin_function(
@@ -10222,11 +10222,7 @@ condition and return TRUE.  Otherwise, return FALSE and record a diagnostic.
                                          (an_address_base_kind)abk_variable) {
                 a_variable_ptr  vp = addr_con->variant.address
                                               .variant.variable;
-                if (vp != NULL
-#if GNU_EXTENSIONS_ALLOWED
-                    && !vp->is_weak
-#endif /* GNU_EXTENSIONS_ALLOWED */
-                                   ) {
+                if (vp != NULL if_gnu_allowed(&& !vp->is_weak)) {
                   *p_cond = TRUE;
                   break;
                 }  /* if */

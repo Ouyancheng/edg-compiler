@@ -472,6 +472,16 @@ Flag that is TRUE to include code for GNU C compatibility features.
 #endif /* ifndef GNU_EXTENSIONS_ALLOWED */
 
 /*
+if_gnu_allowed(txt) expands to "txt" when building with GNU_EXTENSIONS_ALLOWED
+or to nothing otherwise.
+*/
+#if GNU_EXTENSIONS_ALLOWED
+#define if_gnu_allowed(txt) txt
+#else /* !GNU_EXTENSIONS_ALLOWED */
+#define if_gnu_allowed(txt) /* nothing */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
+/*
 Obsolete flag indicating that GNU compatibility features should be enabled
 by default.  Use DEFAULT_GNU_COMPATIBILITY instead.  It now also affects C++
 mode.

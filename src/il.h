@@ -547,6 +547,16 @@ Macro to test a routine entry's special_kind field.
 #define special_kind_is(rp, sfk)                                            \
   ((rp)->special_kind == (a_special_function_kind)(sfk))
 
+/*
+Macro to test whether a routine is a specific GNU built-in function.
+*/
+#if GNU_EXTENSIONS_ALLOWED
+#define rout_is_specific_builtin(rp, bfk)                                   \
+  (special_kind_is(rp, sfk_none) &&                                         \
+   (rp)->variant.builtin_function_kind == (a_builtin_function_kind)(bfk))
+#else /* !GNU_EXTENSIONS_ALLOWED */
+#define rout_is_specific_builtin(rp, bfk) FALSE
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 /*
 Macro to test an operator routine entry's opname_kind field.

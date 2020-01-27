@@ -6615,9 +6615,7 @@ the call target).
        function that is not plain "constexpr". */
     if ((rout->is_constexpr_intrinsic &&
          is_std_is_constant_evaluated(rout)) ||
-        (special_kind_is(rout, sfk_none) &&
-         rout->variant.builtin_function_kind ==
-                       (a_builtin_function_kind)bufk_is_constant_evaluated)) {
+        rout_is_specific_builtin(rout, bufk_is_constant_evaluated)) {
       an_error_code  err_code = ec_no_error;
       if (!scope_stack_top().is_rescan && innermost_function_scope != NULL) {
         a_routine_ptr  curr_rp = current_routine_entry();
