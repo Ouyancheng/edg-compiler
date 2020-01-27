@@ -89,7 +89,7 @@ definition would have had an incomplete type.  Now fixed.
 Assertion failure on use of injected class name as template argument
 
 A change made in version 5.1 added an incorrect assertion check that would
-produce an spurious internal error (in equiv_template_arg_lists) on some
+produce a spurious internal error (in equiv_template_arg_lists) on some
 uses of an injected class name as a template argument.  Now fixed.
 
   template <typename> struct A {
