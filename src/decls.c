@@ -2457,8 +2457,8 @@ the function non-constexpr in that case).
                  vtp->variant.class_struct_union.is_empty_class &&
                  !strict_ansi_mode)) {
       /* Prior to C++20 (i.e., paper P1331R2), variables in constexpr functions
-         were requires to be explicitly initialized.  However, GCC, Clang, and
-         MSVC, didn't enforce that for empty class types.  We follow suite in
+         were required to be explicitly initialized.  However, GCC, Clang, and
+         MSVC didn't enforce that for empty class types.  We follow suite in
          non-strict modes. */
       if ((!rp->is_template_function || rp->is_specialized) &&
           (rp->is_declared_constexpr || rp->is_consteval)) {
