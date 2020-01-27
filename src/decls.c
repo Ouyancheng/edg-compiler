@@ -2458,7 +2458,7 @@ the function non-constexpr in that case).
                  !strict_ansi_mode)) {
       /* Prior to C++20 (i.e., paper P1331R2), variables in constexpr functions
          were required to be explicitly initialized.  However, GCC, Clang, and
-         MSVC didn't enforce that for empty class types.  We follow suite in
+         MSVC didn't enforce that for empty class types.  We follow suit in
          non-strict modes. */
       if ((!rp->is_template_function || rp->is_specialized) &&
           (rp->is_declared_constexpr || rp->is_consteval)) {
