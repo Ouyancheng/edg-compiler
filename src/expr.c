@@ -45443,6 +45443,7 @@ processing routines.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
+  force_operand_to_constant_if_possible(&arg_operand->operand);
   /* Don't do anything with references on this operand, since this is only
      exploratory. */
   operand = arg_operand->operand;
