@@ -6564,11 +6564,7 @@ the call target).
   } else {
     is_consteval = FALSE;
   }  /* if */
-  if (((constexpr_call_folding_should_be_done() &&
-        /* Exclude constant-expressions, because those will be handled when
-           the expression is complete. */
-        !curr_expr_kind_is_const()) ||
-       is_consteval) &&
+  if ((constexpr_call_folding_should_be_done() || is_consteval) &&
       (!expr_stack->in_noexcept_operand_expression ||
        core_constant_expr_is_noexcept)) {
     a_constant_ptr  result_con = local_constant();
