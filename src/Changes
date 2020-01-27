@@ -165,7 +165,7 @@ expressions, however.  For example:
 
 This change was introduced in the working paper for C++20 by the C++
 standardization committee's paper P1668R1.  The predefined macro
-__cpp_constexpr now has the value 201907L in C++ mode to reflect that this
+__cpp_constexpr now has the value 201907L in C++20 mode to reflect that this
 feature and the changes for EDGcpfe/21581 etc. are now implemented.
 
 
