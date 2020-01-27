@@ -547,7 +547,8 @@ in some cases, leading to undefined behavior.  Now fixed.
 Spurious 'expected a ")"' error during template instantiation
 
 In certain instances the front end would issue a spurious 'expected a ")"'
-error during template instantiation.  For example:
+error during template instantiation where C++20 parenthesized aggregate
+initialization was used.  For example:
 
   template <typename T>
   int func() noexcept(T(0));
