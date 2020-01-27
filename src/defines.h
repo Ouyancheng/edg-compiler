@@ -1142,6 +1142,40 @@ command-line when compiling system headers.
 #define TARG_MICROSOFT_BIT_FIELD_ALLOCATION 1
 
 /* Configuration definitions determined by dettarg.c: */
+#if defined(__x86_64__)
+
+#define TARG_LITTLE_ENDIAN 1
+#define TARG_CHAR_BIT 8
+#define TARG_HAS_SIGNED_CHARS 1
+#define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT 1
+#define TARG_SIZEOF_SHORT 2
+#define TARG_ALIGNOF_SHORT 2
+#define TARG_SIZEOF_INT 4
+#define TARG_ALIGNOF_INT 4
+#define TARG_SIZEOF_LONG 8
+#define TARG_ALIGNOF_LONG 8
+#define TARG_SIZEOF_POINTER 8
+#define TARG_ALIGNOF_POINTER 8
+#define TARG_SIZEOF_FLOAT 4
+#define TARG_ALIGNOF_FLOAT 4
+#define TARG_SIZEOF_DOUBLE 8
+#define TARG_ALIGNOF_DOUBLE 8
+#define TARG_SIZEOF_LONG_DOUBLE 16
+#define TARG_ALIGNOF_LONG_DOUBLE 16
+#define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_unsigned_short)
+#define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
+#define TARG_SSIZE_T_INT_KIND ((an_integer_kind)ik_long)
+#define TARG_SIZE_T_MAX ((a_targ_size_t)0xffffffffUL)
+#define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_long)
+#define HOST_ALIGNMENT_REQUIRED 8
+#define TARG_RIGHT_SHIFT_IS_ARITHMETIC 1
+#define TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE 0
+#define TARG_MINIMUM_STRUCT_ALIGNMENT 1
+#define TARG_JMP_BUF_NUM_ELEMENTS 32
+#define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_long)
+
+#else /* !defined(__x86_64) */
+
 #define TARG_LITTLE_ENDIAN 1
 #define TARG_CHAR_BIT 8
 #define TARG_HAS_SIGNED_CHARS 1
@@ -1176,6 +1210,8 @@ command-line when compiling system headers.
 #define TARG_MINIMUM_STRUCT_ALIGNMENT 1
 #define TARG_JMP_BUF_NUM_ELEMENTS 52
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
+
+#endif /* defined(__x86_64) */
 
 #if INCLUDE_ADDITIONAL_TARGET_CONFIGURATIONS
 #define LEGACY_TARGET_CONFIGURATION_NAME "cygwin"
