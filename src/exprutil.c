@@ -23486,7 +23486,7 @@ user-defined conversions (see also process_boolean_controlling_expression).
   if (!curr_expr_kind_is_const()) {
     /* Force a constant addressing expression to a constant (not needed in
        constant-expression contexts since those have to be constant-evaluated
-       at the top anyway. */
+       at the top anyway). */
     force_operand_to_constant_if_possible(operand);
   }  /* if */
   orig_operand = *operand;

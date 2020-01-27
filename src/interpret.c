@@ -6896,7 +6896,7 @@ static void warn_about_is_constant_evaluated(a_routine_ptr         callee,
                                              an_expr_node_ptr      call_node)
 /*
 call_node describes a call to callee, which is std::is_constant_evaluated() or
-__builtin_is_constant_evaluated() in a context where it would always produce
+__builtin_is_constant_evaluated(), in a context where it would always produce
 a true value.  Issue a warning if justified.
 */
 {
