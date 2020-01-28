@@ -23762,7 +23762,8 @@ the associated concept; otherwise, set it to NULL.
   /* Check for a C++20 type-constraint first. */
   if (concepts_enabled && curr_token == tok_identifier) {
     a_boolean                  err = FALSE;
-    an_identifier_options_set  gid_options = GID_TEMPLATE_ARGS_OPTIONAL;
+    an_identifier_options_set  gid_options = GID_TEMPLATE_ARGS_OPTIONAL |
+                                             GID_IMPLICIT_TYPENAME_CONTEXT;
     concept_templ = coalesce_and_lookup_generalized_identifier(
                                                gid_options, ilm_normal, &err);
     if (concept_templ == NULL ||
