@@ -1906,14 +1906,14 @@ do_set_proper_definition_needed_flag:
                       iek_template_arg);
             break;
           case enk_requires:
-            walk_ptr(eptr->variant.requires_expr.requirements,
-                     an_expr_node_ptr, iek_expr_node);
+            walk_list(eptr->variant.requires_expr.requirements,
+                      an_expr_node_ptr, iek_expr_node);
             walk_list(eptr->variant.requires_expr.parameters, a_param_type_ptr,
                       iek_param_type);
             break;
           case enk_compound_req:
-            walk_ptr(eptr->variant.compound_req.expr_and_constraint,
-                     an_expr_node_ptr, iek_expr_node);
+            walk_list(eptr->variant.compound_req.expr_and_constraint,
+                      an_expr_node_ptr, iek_expr_node);
             break;
           case enk_nested_req:
             walk_ptr(eptr->variant.nested_req.constraint, an_expr_node_ptr,
