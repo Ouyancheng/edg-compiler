@@ -2734,6 +2734,9 @@ typedef struct a_template_symbol_supplement {
 			/* TRUE if this is an actual variadic template and
 			   not simply treated as variadic in GNU mode (see
 			   is_variadic above. */
+  a_bit_field	has_template_param_constraint:1;
+			/* TRUE if one of the template parameters has a type
+			   constraint. */
   a_bit_field
 		is_generic:1;
 			/* TRUE for C++/CLI generics. */

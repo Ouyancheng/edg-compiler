@@ -19327,7 +19327,7 @@ placeholder type corresponding to the template name that was just scanned).
   /* Check the scope implied by the placeholder. */
   check_assertion(is_class_template_placeholder_type(placeholder_type));
   ct_sym = placeholder_type->variant.template_param.extra_info
-                           ->class_template_symbol;
+                           ->constraint.class_template_symbol;
   check_assertion(ct_sym != NULL);
   make_locator_for_symbol(ct_sym, locator);
   locator->source_position = dps->specifiers_pos;

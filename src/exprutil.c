@@ -23798,15 +23798,17 @@ is potentially throwing.
 }  /* check_requirement_expr */
 
 
-static a_boolean check_type_constraint(a_type_ptr            type,
-                                       an_expr_node_ptr      constraint,
-                                       a_template_arg_ptr    templ_args,
-                                       a_template_param_ptr  templ_params)
+a_boolean check_type_constraint(a_type_ptr            type,
+                                an_expr_node_ptr      constraint,
+                                a_template_arg_ptr    templ_args,
+                                a_template_param_ptr  templ_params,
+                                a_diag_list           *diag_list)
 /*
 constraint is an enk_concept_id node with a possibly-empty argument list
 <A1, ..., An>.  Let C be the associated concept and T the type represented
 by the given type.  Return TRUE if, after successful substitution of
-<A1, ..., An>, C<T, A1, ..., An> is satisfied.  Return FALSE otherwise.
+<A1, ..., An>, C<T, A1, ..., An> is satisfied.  Return FALSE otherwise and,
+if diag_list is non-NULL, update diag_list accordingly.
 */
 {
   a_boolean           result = TRUE, copy_error = FALSE;
@@ -23833,9 +23835,12 @@ by the given type.  Return TRUE if, after successful substitution of
     result = FALSE;
   } else {
     an_expr_node_ptr  expr = templ->prototype_instantiation.constraint;
-    a_diag_list       diag_list;
-    clear_diag_list(&diag_list);
-    result = requires_clause_satisfied(expr, new_args, params, &diag_list);
+    a_diag_list       local_diag_list;
+    if (diag_list == NULL) {
+      clear_diag_list(&local_diag_list);
+      diag_list = &local_diag_list;
+    }  /* if */
+    result = requires_clause_satisfied(expr, new_args, params, diag_list);
   }  /* if */
   return result;
 }  /* check_type_constraint */

@@ -2956,7 +2956,7 @@ the template template argument.  Otherwise, return tp.
 */
 {
   a_symbol_ptr  orig_ct_sym = tp->variant.template_param.extra_info
-                                ->class_template_symbol,
+                                ->constraint.class_template_symbol,
                 new_ct_sym;
 
   new_ct_sym = template_argument_if_template_template_param(orig_ct_sym);

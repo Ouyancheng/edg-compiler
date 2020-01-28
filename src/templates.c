@@ -535,6 +535,7 @@ Initialize a template declaration state block.
   tdsp->is_var_templ_initial_decl = FALSE;
   tdsp->is_enum = FALSE;
   tdsp->caching_tokens = FALSE;
+  tdsp->has_template_param_constraint = FALSE;
   tdsp->export_position = null_source_position;
   tdsp->other_decl_pos = null_source_position;
   tdsp->starting_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
@@ -10000,8 +10001,47 @@ TRUE, issue a diagnostic explaining the failure.
                        tssp = template_sym->variant.template_info;
   a_template_ptr       il_entry = tssp->il_template_entry;
   a_template_decl_ptr  tdp = il_entry->template_decl;
+  a_source_position    diag_pos = error_position;
 
-
+  if (tssp->has_template_param_constraint) {
+    /* Check type constraints of template arguments. */
+    a_diag_list           diag_list, *p_diag_list = NULL;
+    a_template_arg_ptr    tap = args;
+    a_template_param_ptr  tpp, params = tssp->cache.decl_info->parameters;
+    if (diagnose) {
+      clear_diag_list(&diag_list);
+      p_diag_list = &diag_list;
+    }  /* if */
+    begin_template_arg_list_traversal(params, tap, &tpp, &tap);
+    for (; tpp != NULL; advance_to_next_template_arg(&tpp, &tap)) {
+      an_expr_node_ptr  type_constraint = NULL;
+      a_symbol_ptr      param_sym = tpp->param_symbol;
+      if (symbol_is(param_sym, sk_type)) {
+        type_constraint = param_sym->variant.type.ptr
+                                   ->variant.template_param.extra_info
+                                   ->constraint.type_constraint;
+        if (type_constraint != NULL) {
+          if (!check_type_constraint(tap->variant.type, type_constraint,
+                                     args, params, p_diag_list)) {
+            if (diagnose) {
+              a_diagnostic_ptr  dp;
+              a_diag_list       lead_note;
+              clear_diag_list(&lead_note);
+              more_info_type_diagnostic(ec_type_constraint_failed,
+                                        &param_sym->decl_position,
+                                        tap->variant.type, &lead_note);
+              splice_diag_list(&lead_note, p_diag_list,
+                               /*insert_after=*/(a_diagnostic_ptr)NULL);
+              dp = pos_start_error(ec_template_constraint_not_satisfied,
+                                   &diag_pos);
+              add_more_info_list(dp, p_diag_list);
+              end_diagnostic(dp);
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
   if (tdp != NULL && if_microsoft_extensions(!tdp->is_generic &&)
       tdp->constraint.requires_clause != NULL &&
       !requires_constraint_satisfied(tssp, tdp->constraint.requires_clause,
@@ -14396,7 +14436,7 @@ copy_type_with_substitution for the meaning of the parameters.
 */
 {
   a_symbol_ptr    ct_sym = type->variant.template_param.extra_info
-                               ->class_template_symbol;
+                               ->constraint.class_template_symbol;
   a_template_ptr  orig_templ, templ;
   a_type_ptr      result = NULL;
 
@@ -22989,7 +23029,9 @@ friend_template_checks_done:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     tssp->is_variadic = decl_state->is_variadic;
     tssp->has_variadic_template_params =
-                                      decl_state->has_variadic_template_params;
+                                     decl_state->has_variadic_template_params;
+    tssp->has_template_param_constraint =
+                                    decl_state->has_template_param_constraint;
     /* Set the name-linkage for this template -- it will be propagated
        into the instances. */
     /* Normally, a template has C++ linkage. */
@@ -23687,12 +23729,12 @@ the components of the declaration.
 }  /* scan_a_template_parameter_declaration */
 
 
-static
-a_symbol_kind determine_template_param_kind(void)
+static a_symbol_kind determine_template_param_kind(a_symbol_ptr  *p_concept)
 /*
-Determine the kind of template parameter that is being scanned.
-Return the symbol kind for the parameter symbol to be created for
-this parameter.
+Determine the kind of template parameter that is being scanned.  Return the
+symbol kind for the parameter symbol to be created for this parameter.  If
+the parameter is declared with a C++20 type-constraint, set *p_concept to
+the associated concept; otherwise, set it to NULL.
 */
 {
   a_symbol_kind			result;
@@ -23700,6 +23742,7 @@ this parameter.
   a_boolean			is_end_of_param;
   a_token_sequence_number	first_tsn = curr_token_sequence_number;
   a_token_cache			cache;
+  a_symbol_ptr                  concept_templ = NULL;
 
   /* Determine whether this is a "type-argument" (a parameter that
      represents a type) or a "parameter-declaration" (a parameter that
@@ -23710,12 +23753,32 @@ this parameter.
      to be a type parameter if it is "class" or "typename" followed by an
      optional simple (i.e., nonqualified) identifier.  In Microsoft bugs mode,
      the "typename" keyword can be repeated, and may be followed by a "class"
-     keyword (e.g., "typename typename class X").  A template template
-     parameter begins with they keyword "template".  All other cases are
-     considered to be nontype parameters. */
-  first_token = curr_token;
+     keyword (e.g., "typename typename class X").  In C++20 mode, a type
+     parameter declaration can also start with a type-constraint, which is a
+     concept template name, optionally followed by a template argument list.
+     A template template parameter begins with they keyword "template".
+     All other cases are considered to be nontype parameters. */
   clear_token_cache(&cache, /*is_reusable=*/FALSE);
+  /* Check for a C++20 type-constraint first. */
+  if (concepts_enabled && curr_token == tok_identifier) {
+    a_boolean                  err = FALSE;
+    an_identifier_options_set  gid_options = GID_TEMPLATE_ARGS_OPTIONAL;
+    concept_templ = coalesce_and_lookup_generalized_identifier(
+                                               gid_options, ilm_normal, &err);
+    if (concept_templ == NULL ||
+       !symbol_is(concept_templ, sk_concept_template)) {
+      /* An identifier other than a concept template: This is a nontype
+         template parameter. */
+      result = (a_symbol_kind)sk_constant;
+      concept_templ = NULL;
+    } else {
+      /* A type constraint. */
+      result = (a_symbol_kind)sk_type;
+    }  /* if */
+    goto done;
+  }  /*if */
   /* Bypass the initial token of the declaration. */
+  first_token = curr_token;
   if (curr_token != tok_end_of_source) (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_bugs && first_token == tok_typename) {
@@ -23748,12 +23811,14 @@ this parameter.
     /* A nontype parameter. */
     result = (a_symbol_kind)sk_constant;
   }  /* if */
+done:
   /* Get the tokens that were fetched by this routine from the cache
      that has been accumulated and rescan them. */
   copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn,
                          curr_token_sequence_number,
                          /*include_last_token=*/FALSE, &cache);
   rescan_cached_tokens(&cache);
+  *p_concept = concept_templ;
   return result;
 }  /* determine_template_param_kind */
 
@@ -23948,6 +24013,7 @@ static a_template_param_ptr decl_type_template_param(
                                    a_symbol_locator            *loc,
                                    a_boolean                   is_named,
                                    a_boolean                   is_pack,
+                                   an_expr_node_ptr            constraint,
                                    a_tmpl_decl_state           *decl_state,
                                    ARG_UNUSED a_decl_pos_block *decl_pos_block)
 /*
@@ -23960,13 +24026,17 @@ param_pos is 1.
 If the parameter is named (is_named is TRUE), loc is the corresponding symbol
 locator; otherwise, loc may be NULL (or it may be a synthesized locator, e.g.,
 for "auto" parameters in generic lambdas).  is_pack is TRUE if the parameter
-is really a parameter pack.  decl_state tracks the declaration of the template
-overall, and decl_pos_block provides additional position information.
+is really a parameter pack.  constraint describes the type-constraint (a C++20
+feature) used to declare the parameter, if any.  decl_state tracks the
+declaration of the template overall, and decl_pos_block provides additional
+position information.
 */
 {
   a_symbol_ptr		sym;
   a_type_ptr		template_param_type;
   a_template_param_ptr	template_param;
+  a_template_param_type_supplement_ptr
+                        tptsp;
 
   /* Create an sk_type symbol for the parameter. */
   sym = create_template_param_symbol((a_symbol_kind)sk_type, loc, !is_named,
@@ -23975,13 +24045,16 @@ overall, and decl_pos_block provides additional position information.
      only and will not appear in the IL passed on to the back end.  It
      is therefore not added to any scope types list. */
   template_param_type = alloc_type((a_type_kind)tk_template_param);
-  template_param_type->variant.template_param.extra_info->
-                                coordinates.depth = decl_state->nesting_depth;
-  template_param_type->variant.template_param.extra_info->
-                                coordinates.position = param_pos;
   template_param_type->variant.template_param.is_pack = is_pack;
   template_param_type->variant.template_param.is_generic_param =
                                                        decl_state->is_generic;
+  tptsp = template_param_type->variant.template_param.extra_info;
+  tptsp->coordinates.depth = decl_state->nesting_depth;
+  tptsp->coordinates.position = param_pos;
+  if (constraint != NULL) {
+    tptsp->constraint.type_constraint = constraint;
+    decl_state->has_template_param_constraint = TRUE;
+  }  /* if */
   set_type_size(template_param_type);
   set_source_corresp(&template_param_type->source_corresp, sym);
   if (parent_scope_should_be_set_for_template_param()) {
@@ -24021,40 +24094,78 @@ overall, and decl_pos_block provides additional position information.
 
 
 static a_template_param_ptr scan_type_template_param(
-		a_tmpl_decl_state_ptr		decl_state,
-		a_tmpl_param_state_ptr		param_state)
+                                        a_tmpl_decl_state_ptr   decl_state,
+                                        a_tmpl_param_state_ptr  param_state,
+                                        a_symbol_ptr            concept_templ)
 /*
 Scan the declaration of a type template parameter.  Return the template
-parameter entry for the parameter.
+parameter entry for the parameter.  The caller already determined whether the
+parameter is declared with a type-constraint, and, if it is, concept_templ
+represents the associated concept template.
 */
 {
-  a_template_param_ptr	template_param;
-  a_boolean		is_named;
-  a_boolean		is_pack = FALSE;
-  a_decl_pos_block	decl_pos_block;
+  a_template_param_ptr  template_param;
+  a_boolean             is_named, is_pack = FALSE;
+  a_decl_pos_block      decl_pos_block;
+  an_expr_node_ptr      constraint = NULL;
 
   clear_decl_pos_block(&decl_pos_block);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   decl_pos_block.specifiers_range.start = pos_curr_token;
   decl_pos_block.specifiers_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Bypass "class" or "typename". */
-  (void)get_token();
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  /* Microsoft compilers allow "typename" to be repeated, and optionally
-     followed by "class" (see determine_template_param_kind, which checks for
-     this constraint; here we can just skip every "typename" and "class"). */
-  if (microsoft_bugs) {
-    while (curr_token == tok_typename || curr_token == tok_class) {
+  if (concept_templ != NULL) {
+      a_boolean   err = FALSE;
+      a_template_symbol_supplement_ptr
+                  tssp = concept_templ->variant.template_info;
+      constraint = alloc_expr_node((an_expr_node_kind)enk_concept_id);
+      constraint->type = bool_type();
+      constraint->position = pos_curr_token;
+      constraint->variant.concept_id.concept_template =
+                                                      tssp->il_template_entry;
+      /* Bypass the concept name. */
       (void)get_token();
-    }  /* while */
-  }  /* if */
-  /* The Microsoft compiler accepts and ignores a __declspec modifier
-     on a template type parameter. */
-  if (curr_token == tok_declspec) {
-    scan_and_discard_extended_decl_modifiers();
-  }  /* if */
+      if (curr_token == tok_lt) {
+        (void)get_token();
+        add_stop_token(tok_gt);
+        constraint->variant.concept_id.args =
+                           scan_concept_arg_list(
+                              concept_templ, /*skip_first_param=*/TRUE, &err);
+        (void)required_token(tok_gt, ec_exp_gt);
+        remove_stop_token(tok_gt);
+      } else {
+        a_template_param_ptr  tpp = tssp->cache.decl_info->parameters;
+        if (tpp == NULL || tpp->next != NULL) {
+          /* If no concept arguments are specified, the concept should have
+             exactly one parameter. */
+          pos_error(ec_exp_lt, &pos_curr_token);
+          err = TRUE;
+        }  /* if */
+      }  /* if */
+      if (err) {
+        /* Ignore the constraint. */
+        constraint = NULL;
+        concept_templ = NULL;
+      }  /* if */
+  } else {
+    /* Bypass "class" or "typename". */
+    (void)get_token();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Microsoft compilers allow "typename" to be repeated, and optionally
+       followed by "class" (see determine_template_param_kind, which checks for
+       this constraint; here we can just skip every "typename" and "class"). */
+    if (microsoft_bugs) {
+      while (curr_token == tok_typename || curr_token == tok_class) {
+        (void)get_token();
+      }  /* while */
+    }  /* if */
+    /* The Microsoft compiler accepts and ignores a __declspec modifier
+       on a template type parameter. */
+    if (curr_token == tok_declspec) {
+      scan_and_discard_extended_decl_modifiers();
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
   if (curr_token == tok_ellipsis && variadic_templates_enabled &&
       !decl_state->is_generic) {
     is_pack = TRUE;
@@ -24070,9 +24181,8 @@ parameter entry for the parameter.
   template_param = decl_type_template_param(param_state->list_pos,
                                             is_named ? &locator_for_curr_id
                                                      : (a_symbol_locator*)NULL,
-                                            is_named, is_pack,
-                                            decl_state,
-                                            &decl_pos_block);
+                                            is_named, is_pack, constraint,
+                                            decl_state, &decl_pos_block);
   /* Bypass the identifier. */
   if (is_named) (void)get_token();
   if (curr_token == tok_assign) {
@@ -24582,7 +24692,9 @@ depends on a another template parameter.
   tssp->variant.class_template.argument_template = sym;
   tssp->is_variadic = local_decl_state.is_variadic;
   tssp->has_variadic_template_params =
-                                 local_decl_state.has_variadic_template_params;
+                                local_decl_state.has_variadic_template_params;
+  tssp->has_template_param_constraint =
+                               local_decl_state.has_template_param_constraint;
   set_template_cache_info(&tssp->cache,
                           (a_token_cache_ptr)NULL,
                           local_decl_state.decl_info);
@@ -24753,19 +24865,21 @@ to represent the template parameters.
       end_of_template_param_list = template_param;
     }  /* if */
     while (any_params) {
+      a_symbol_ptr  concept_templ;
       ++param_state.list_pos;
       begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
       first_tsn = curr_token_sequence_number;
       /* Determine the kind of template parameter to be scanned.  C++/CLI
          generics can only have type parameters. */
-      param_kind = determine_template_param_kind();
+      param_kind = determine_template_param_kind(&concept_templ);
       if (decl_state->is_generic && param_kind != (a_symbol_kind)sk_type) {
         pos_error(ec_bad_param_kind_for_generic, &pos_curr_token);
         invalid_param = TRUE;
       }  /* if */
       if (param_kind == (a_symbol_kind)sk_type) {
         /* A type template parameter. */
-        template_param = scan_type_template_param(decl_state, &param_state);
+        template_param = scan_type_template_param(decl_state, &param_state,
+                                                  concept_templ);
       } else if (param_kind == (a_symbol_kind)sk_constant) {
         template_param = scan_nontype_template_param(
                              decl_state, &param_state,
@@ -25985,6 +26099,8 @@ variable template specified by locator.  Return the symbol.
   tssp->is_variadic = decl_state->is_variadic;
   tssp->has_variadic_template_params =
                                      decl_state->has_variadic_template_params;
+  tssp->has_template_param_constraint =
+                                    decl_state->has_template_param_constraint;
   set_il_template_entry(decl_state, sym, tssp);
   if (decl_state->is_var_templ_initial_decl) {
     tssp->il_template_entry->canonical_template = tssp->il_template_entry;
@@ -26503,6 +26619,8 @@ supplement for this template should be returned to the caller.
     tssp->is_variadic = decl_state->is_variadic;
     tssp->has_variadic_template_params =
                                      decl_state->has_variadic_template_params;
+    tssp->has_template_param_constraint =
+                                    decl_state->has_template_param_constraint;
     /* Save the information needed to create an instantiation based
        on the definition of the template.  First, save the initializer
        expression.  For a static data member initialized in-class, don't
@@ -27169,7 +27287,9 @@ caller.
     tssp->variant.function.routine->assoc_template = tssp->il_template_entry;
     tssp->is_variadic = decl_state->is_variadic;
     tssp->has_variadic_template_params =
-                                      decl_state->has_variadic_template_params;
+                                     decl_state->has_variadic_template_params;
+    tssp->has_template_param_constraint =
+                                    decl_state->has_template_param_constraint;
     if (decl_state->is_specialization && !decl_state->is_template_friend) {
       /* This template is a specialization of a member template.  Update the
          template information to reflect this. */
@@ -27418,7 +27538,9 @@ decl_state and locator.
   tssp = template_supplement_for_symbol(sym);
   tssp->is_variadic = decl_state->is_variadic;
   tssp->has_variadic_template_params =
-                                      decl_state->has_variadic_template_params;
+                                     decl_state->has_variadic_template_params;
+  tssp->has_template_param_constraint =
+                                    decl_state->has_template_param_constraint;
   set_template_cache_info(&tssp->variant.function.decl_cache,
                           (a_token_cache_ptr)NULL, decl_state->decl_info);
   return sym;
@@ -27461,7 +27583,7 @@ optionally prefixed with the keyword "explicit".
   }  /* if */
   check_assertion(is_class_template_placeholder_type(placeholder_type));
   ct_sym = placeholder_type->variant.template_param.extra_info
-                           ->class_template_symbol;
+                           ->constraint.class_template_symbol;
   check_assertion(ct_sym != NULL);
   make_locator_for_symbol(ct_sym, locator);
   locator->source_position = dps->specifiers_pos;
@@ -28441,7 +28563,9 @@ alias
   tssp->attributes = attributes;
   tssp->is_variadic = decl_state->is_variadic;
   tssp->has_variadic_template_params =
-                                      decl_state->has_variadic_template_params;
+                                     decl_state->has_variadic_template_params;
+  tssp->has_template_param_constraint =
+                                    decl_state->has_template_param_constraint;
   orig_decl_tssp = orig_decl_sym->variant.template_info;
   tdip = decl_state->decl_info;
   if (is_redecl) {
@@ -31782,6 +31906,8 @@ following a template parameter clause.  Parse and record the concept.
     tssp->is_variadic = decl_state->is_variadic;
     tssp->has_variadic_template_params =
                                      decl_state->has_variadic_template_params;
+    tssp->has_template_param_constraint =
+                                    decl_state->has_template_param_constraint;
     tssp->il_template_entry = il_template;
     set_il_template_entry(decl_state, sym, tssp);
     tssp->il_template_entry->canonical_template = tssp->il_template_entry;
@@ -32169,6 +32295,7 @@ parameters described by dps->auto_params.  Update *templ_state accordingly.
     template_param = decl_type_template_param(param_pos+param_pos_offset,
                                               &param_loc, /*is_named=*/FALSE,
                                               apdp->is_parameter_pack,
+                                              (an_expr_node_ptr)NULL,
                                               templ_state, &decl_pos_block);
     template_param->param_symbol->is_invisible = TRUE;
     template_param->param_symbol->token_sequence_number = apdp->auto_tsn;
@@ -39113,6 +39240,10 @@ function parameter list) will be completed later.
   tssp->has_variadic_template_params = ct_tssp->has_variadic_template_params ||
                                      (ctor_tssp != NULL &&
                                       ctor_tssp->has_variadic_template_params);
+  tssp->has_template_param_constraint =
+                                   ct_tssp->has_template_param_constraint ||
+                                   (ctor_tssp != NULL &&
+                                    ctor_tssp->has_template_param_constraint);
   if (!is_hypothetical) {
     tssp->variant.function.constructor_symbol_for_guide = ctor_sym;
   }  /* if */

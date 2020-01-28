@@ -1381,7 +1381,9 @@ and return a pointer to it.
   tptsp->generic_constraints = NULL;
   tptsp->generic_param_seq_number = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  tptsp->class_template_symbol = NULL;
+  tptsp->coordinates.position = 0;
+  tptsp->coordinates.depth = 0;
+  tptsp->constraint.type_constraint = NULL;
   return tptsp;
 }  /* alloc_template_param_type_supplement */
 

@@ -9412,7 +9412,7 @@ entry.  pos is used to establish the type entry's position information.
   sym = alloc_symbol((a_symbol_kind)sk_type, class_template->header, pos);
   sym->variant.type.ptr = type;
   tpcp->depth = CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH;
-  tptsp->class_template_symbol = class_template;
+  tptsp->constraint.class_template_symbol = class_template;
   set_type_size(type);
   set_source_corresp(&type->source_corresp, sym);
   return type;

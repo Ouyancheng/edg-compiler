@@ -2147,7 +2147,7 @@ Issue an error suggesting explicit template arguments.
   check_assertion(type_is(ptp, tk_template_param));
   tptsp = ptp->variant.template_param.extra_info;
   pos_sy_error(ec_missing_template_arg_list, &dps->auto_pos,
-               tptsp->class_template_symbol);
+               tptsp->constraint.class_template_symbol);
 }  /* diagnose_invalid_class_templ_arg_deduction */
 
 

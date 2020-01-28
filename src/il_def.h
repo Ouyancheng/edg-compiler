@@ -8477,13 +8477,22 @@ typedef struct a_template_param_type_supplement {
 		coordinates;
 			/* The parameter list position and template nesting
 			   depth of the parameter. */
-  struct a_symbol
+  union {
+    /* When coordinates.depth != CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH: */
+    an_expr_node_ptr
+		type_constraint;
+			/* For template parameter declared with a type
+			   constraint, this points to the enk_concept_id
+			   node representing that constraint. */
+    /* When coordinates.depth == CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH: */
+    struct a_symbol
 		*class_template_symbol;
 			/* For a tptk_param type used to represent a
 			   placeholder for C++17 class template argument
 			   deduction, this points to the class template
 			   that was specified.  NULL otherwise.  Used in
 			   the front end only; cannot be used in back ends. */
+  } constraint;
 } a_template_param_type_supplement;
 
 

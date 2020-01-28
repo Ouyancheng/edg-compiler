@@ -27328,7 +27328,7 @@ set to TRUE and FALSE is returned.
     }  /* if */
   }  /* if */
   ct_sym = placeholder_type->variant.template_param.extra_info
-                           ->class_template_symbol;
+                           ->constraint.class_template_symbol;
   if (ct_sym->is_template_param ||
       (ct_sym->is_class_member &&
        is_template_dependent_type(sym_parent_class(ct_sym)))) {

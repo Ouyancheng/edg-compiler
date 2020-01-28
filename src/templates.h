@@ -153,6 +153,9 @@ typedef struct a_tmpl_decl_state {
   a_boolean	caching_tokens;
 			/* TRUE if we are currently doing background
 			   caching of tokens for this declaration. */
+  a_boolean	has_template_param_constraint;
+			/* TRUE if one of the template parameters has a type
+			   constraint. */
   a_source_position
 		export_position;
 			/* If export_present is TRUE, the position of the

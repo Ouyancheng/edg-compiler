@@ -3389,7 +3389,14 @@ after_entry_from_class:
                    iek_generic_constraint);
         }  /*if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        conditionally_clear_fe_pointer(eptr->class_template_symbol);
+        if (eptr->coordinates.depth ==
+                                   CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH) {
+          conditionally_clear_fe_pointer(
+                                       eptr->constraint.class_template_symbol);
+        } else {
+          walk_ptr(eptr->constraint.type_constraint, an_expr_node_ptr,
+                   iek_expr_node);
+        }  /* if */
 #undef eptr
       }
       break;

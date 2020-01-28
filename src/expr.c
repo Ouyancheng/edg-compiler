@@ -641,7 +641,7 @@ initializer lists can have their braces ignored.
         a_type_ptr         operand_type = operand_of_arg_list_elem(icp)->type;
         a_symbol_ptr       class_tmpl_sym =
                                          dtp->variant.template_param.extra_info
-                                            ->class_template_symbol;
+                                            ->constraint.class_template_symbol;
 
         result = is_or_derived_from_instance_of_class_template(operand_type,
                                                                class_tmpl_sym,
