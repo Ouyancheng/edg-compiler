@@ -2901,6 +2901,8 @@ FIXME: more specific
       }
       break;
     case TypeSort(Method): /* FIXME: for now (same structures)?): */
+      unexpected_condition(); /* FIXME: No longer same structures. */
+      break;
     case TypeSort(Function):
       { an_ifc_TypeSort_Function itsf, *itsfp;
         itsfp = get_TypeSort_Function(&itsf);
@@ -3035,6 +3037,8 @@ FIXME: more specific
       /* Handled in str_ifc_type_index_first_part. */
       break;
     case TypeSort(Method): /* FIXME: for now (same structures)?): */
+      unexpected_condition(); /* FIXME: No longer same structures. */
+      break;
     case TypeSort(Function):
       { an_ifc_TypeSort_Function itsf, *itsfp;
         itsfp = get_TypeSort_Function(&itsf);
