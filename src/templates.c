@@ -19428,17 +19428,17 @@ a_boolean equiv_template_param_lists(
 			a_source_position			*error_pos,
 			an_error_severity			error_severity)
 /*
-Compare the template parameter list pointed to by old_list with the
-one pointed to by new_list.  To be equivalent, the parameter lists must
-have the same number of parameters, be of the same kind (type vs. nontype),
-and nontype parameters must be of the same type.  Return TRUE if the
-lists are equivalent.  If issue_errors is TRUE, errors are issued
-describing any incompatibilities.  "options" is a set of option flags
-to be used.  error_severity is the severity at which any diagnostics should
-be issued.  When ETP_TEMPLATE_TEMPLATE_PARAM_MATCH is TRUE, the old list
-is from a template template parameter and additional flexibility in the
-matching process is provided.   For example, a parameter pack in old_list
-can match zero or more parameters from new_list.
+Compare the template parameter list pointed to by old_list with the one
+pointed to by new_list.  To be equivalent, the parameter lists must have the
+same number of parameters, be of the same kind (type vs. nontype), nontype
+parameters must be of the same type, and type constraints (C++20) must be
+equivalent.  Return TRUE if the lists are equivalent.  If issue_errors is
+TRUE, errors are issued describing any incompatibilities.  "options" is a set
+of option flags to be used.  error_severity is the severity at which any
+diagnostics should be issued.  When ETP_TEMPLATE_TEMPLATE_PARAM_MATCH is TRUE,
+the old list is from a template template parameter and additional flexibility
+in the matching process is provided.   For example, a parameter pack in
+old_list can match zero or more parameters from new_list.
 */
 {
   a_template_param_ptr		new_tpp;
@@ -19478,7 +19478,33 @@ can match zero or more parameters from new_list.
          parameter matching. */
       err = TRUE;
     } else if (old_sym->kind == (a_symbol_kind)sk_type) {
-      /* Both are types.  No further checking is needed. */
+      /* Both are types.  Check the type constraints, if any. */
+      a_type_ptr  new_tp = new_tpp->variant.type,
+                  old_tp = old_tpp->variant.type;
+      a_template_param_type_supplement_ptr
+                  new_tptsp = new_tp->variant.template_param.extra_info,
+                  old_tptsp = old_tp->variant.template_param.extra_info;
+      if (new_tptsp != NULL && old_tptsp != NULL) {
+        an_expr_node_ptr
+                       new_constraint = new_tptsp->constraint.type_constraint,
+                       old_constraint = old_tptsp->constraint.type_constraint;
+        if (new_constraint == NULL || old_constraint == NULL) {
+          /* If one parameter has no constraint, the other should have one
+             either. */
+          err = !(new_constraint == NULL && old_constraint == NULL);
+        } else {
+          /* Compare the concept template and its arguments. */
+          check_assertion(
+                  new_constraint->kind == (an_expr_node_kind)enk_concept_id &&
+                  old_constraint->kind == (an_expr_node_kind)enk_concept_id);
+          err = new_constraint->variant.concept_id.concept_template !=
+                        old_constraint->variant.concept_id.concept_template ||
+                !equiv_template_arg_lists(
+                                      new_constraint->variant.concept_id.args,
+                                      old_constraint->variant.concept_id.args,
+                                      ETA_IS_NONREAL_MEMBER);
+        }  /* if */
+      }  /* if */
     } else if (old_sym->kind == (a_symbol_kind)sk_constant) {
       a_compare_constants_options_set	cc_options = CC_NO_OPTIONS;
       /* Both are constants.  Make sure the values are the same.  The
