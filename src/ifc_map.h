@@ -189,14 +189,26 @@ IFC_DECL_END(DeclSort_Template)
 
 /* DeclSort::PartialSpecialization */
 IFC_DECL_START(DeclSort_PartialSpecialization)
+  IFC_DECL_FIELD(name, NameIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(home_scope, DeclIndex)
+  IFC_DECL_FIELD(chart, ChartIndex)
+  IFC_DECL_FIELD(entity, ParameterizedEntity)
+  IFC_DECL_FIELD(form, Index)
+  IFC_DECL_FIELD(specifiers, BasicSpecifiers)
+  IFC_DECL_FIELD(access, Access)
 IFC_DECL_END(DeclSort_PartialSpecialization)
 
 /* DeclSort::ExplicitSpecialization */
 IFC_DECL_START(DeclSort_ExplicitSpecialization)
+  IFC_DECL_FIELD(form, Index)
+  IFC_DECL_FIELD(decl, DeclIndex)
 IFC_DECL_END(DeclSort_ExplicitSpecialization)
 
 /* DeclSort::ExplicitInstantiation */
 IFC_DECL_START(DeclSort_ExplicitInstantiation)
+  IFC_DECL_FIELD(form, Index)
+  IFC_DECL_FIELD(decl, DeclIndex)
 IFC_DECL_END(DeclSort_ExplicitInstantiation)
 
 /* DeclSort::Concept */
