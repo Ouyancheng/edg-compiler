@@ -7076,6 +7076,31 @@ argument lists and return TRUE if they match.  Otherwise, return FALSE
 }  /* equiv_template_variables */
 
 
+static a_boolean equiv_requires_expr_params(an_expr_node_ptr  node1,
+                                            an_expr_node_ptr  node2)
+/*
+Return TRUE if the given requires-expressions have equivalent (possibly empty)
+parameter lists.
+*/
+{
+  a_boolean result = TRUE;
+  a_param_type_ptr  ptp1 = node1->variant.requires_expr.parameters,
+                    ptp2 = node2->variant.requires_expr.parameters;
+
+  for (; ptp1 != NULL && ptp2 != NULL; ptp1 = ptp1->next, ptp2 = ptp2->next) {
+    if (!identical_types(ptp1->type, ptp2->type)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* for */
+  if (ptp1 != NULL || ptp2 != NULL) {
+    result = FALSE;
+  }  /* if */
+done:
+  return result;
+}  /* equiv_requires_expr_params */
+
+
 a_boolean compare_expressions(an_expr_node_ptr                node1,
                               an_expr_node_ptr                node2,
                               a_compare_constants_options_set options)
@@ -7349,7 +7374,7 @@ are done.
                                     node1->variant.requires_expr.requirements,
                                     node2->variant.requires_expr.requirements,
                                     options) &&
-             TRUE /*FIXME: parameters */;
+             equiv_requires_expr_params(node1, node2);
         break;
       case enk_compound_req:
         eq = compare_expression_lists(

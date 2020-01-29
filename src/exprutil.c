@@ -5778,6 +5778,7 @@ instead.
     case ok_error:
       /* Make an error node.  Its type will be error. */
       node = error_node();
+      node->position = operand->position;
       break;
     case ok_expression:
       /* Just return the node in the operand. */
@@ -23752,8 +23753,8 @@ subject to SFINAE.
     if (expr != NULL) reclaim_fs_nodes_of_expr_tree(expr);
   }  /* if */
   if (!result && *p_fatal && diagnose_here) {
-// FIXME: Instead of adding a "dummy" ec_template_constraint_not_satisfied
-// prefix, this should promote the leading note to the primary error.
+    /* A non-SFINAE error occurred, and the caller will not emit the associated
+       diagnostic.  So diagnose the issue here. */
     a_diagnostic_ptr  dp;
     dp = pos_start_error(ec_template_constraint_not_satisfied,
                          &error_position);

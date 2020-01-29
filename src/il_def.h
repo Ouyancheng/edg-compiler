@@ -14291,6 +14291,7 @@ typedef struct an_expr_node {
 		parameters;
 			/* The optional list of parameters. */
     } requires_expr;
+    /* When kind == enk_compound_req: */
     struct {
       an_expr_node_ptr
 		expr_and_constraint;
@@ -14304,6 +14305,7 @@ typedef struct an_expr_node {
 			   first node in exor_and_constraint is non-throwing
 			   (after substitution of template arguments). */ 
     } compound_req;
+    /* When kind == enk_nested_req: */
     struct {
       an_expr_node_ptr
 		constraint;

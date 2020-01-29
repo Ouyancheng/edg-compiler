@@ -3529,10 +3529,29 @@ as specified in the control block.
       traverse_dynamic_init(expr->variant.initializer.dyn_init, tblock);
       break;
     case enk_concept_id:
-      /* FIXME */
+      { a_template_arg_ptr  tap = expr->variant.concept_id.args;
+        for (; tap != NULL; tap = tap->next) {
+          if (tap->kind == (a_templ_arg_kind)tak_type) {
+            if (tblock->process_type != NULL) {
+              tblock->process_type(tap->variant.type, tblock);
+              if (tblock->terminate) goto end_of_routine;
+            }  /* if */
+          } else if (tap->kind == (a_templ_arg_kind)tak_nontype) {
+            traverse_constant(tap->variant.constant, tblock);
+            if (tblock->terminate) goto end_of_routine;
+          }  /* if */
+        }  /* for */
+      }
       break;
     case enk_requires:
-      /* FIXME */
+      traverse_expr_list(expr->variant.requires_expr.requirements, tblock);
+      break;
+    case enk_compound_req:
+      traverse_expr_list(expr->variant.compound_req.expr_and_constraint,
+                         tblock);
+      break;
+    case enk_nested_req:
+      traverse_expr(expr->variant.nested_req.constraint, tblock);
       break;
     default:
       unexpected_condition_str("traverse_expr: bad expr kind");
