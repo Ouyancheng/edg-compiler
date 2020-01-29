@@ -857,8 +857,7 @@ Close the module file specified in the module-import-declaration.
 }  /* close_ifc_module_file */
 
 
-void an_ifc_module::ifc_modules_pch_reset(a_module_import_decl_ptr midp)
-                                                                       noexcept
+void an_ifc_module::pch_reset(a_module_import_decl_ptr midp) noexcept
 /*
 Called after a PCH file has been read to re-open and re-mmap the specified
 module.  Note that the mmap-ed address does not need to be at the same
@@ -951,8 +950,8 @@ constants for that type).
             /* FIXME: lots more to do here. */
             a_routine_ptr rp;
             init_dps(&dps, &idsfp->locus, idsfp->type, (ifc_Alignment)0,
-                     idsfp->traits, ifc_MsvcTraits_None, idsfp->specifiers,
-                     idsfp->access, &psss);
+                     ifc_ObjectTraits_None, ifc_MsvcTraits_None,
+                     idsfp->specifiers, idsfp->access, &psss);
             clear_func_info(&func_info);
             clear_decl_pos_block(&decl_pos_block);
             decl_routine(&loc, &dps, &func_info, SRK_DECLARATION, &linkage_ptr,
@@ -1421,6 +1420,23 @@ Print debug information for an IFC module
 {
   (void)fprintf(f_debug, "kind: mk_ifc\n");
 }  /* debug */
+
+
+void an_ifc_module::db_module_entity(a_module_entity_ptr mep) const noexcept
+/*
+Print debug information related to a module entity that refers to this module.
+*/
+{
+  check_assertion(mep->module_info->module_interface == this);
+  if (mep->variant.ifc_partition != ifc_none) {
+    const an_ifc_partition &part = partitions[mep->variant.ifc_partition];
+    (void)fprintf(f_debug, " IFC partition \"%s\", index %lu\n", part.name,
+                  (unsigned long)(mep->file_offset - part.offset) /
+                                                              part.entry_size);
+  } else {
+    (void)fprintf(f_debug, "\n");
+  }  /* if */
+}  /* db_module_entity */
 
 #endif /* DEBUG */
 
@@ -3575,7 +3591,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         idsfp = get_DeclSort_Function(&idsf);
         str_ifc_common_decl(&idsfp->locus, idsfp->access,
                             (ifc_BasicSpecifiers)ifc_BasicSpecifiers_Cxx,
-                            idsfp->traits, (ifc_Alignment)0, scbp);
+                            ifc_ObjectTraits_None, (ifc_Alignment)0, scbp);
         str_ifc_function_traits(idsfp->traits, /*prefix=*/TRUE, scbp);
         str_ifc_type_index_first_part(idsfp->type, scbp);
         add_char_to_text_buffer(scbp->text_buffer, ' ');
@@ -3590,7 +3606,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         idsmp = get_DeclSort_Method(&idsm);
         str_ifc_common_decl(&idsmp->locus, idsmp->access,
                             (ifc_BasicSpecifiers)ifc_BasicSpecifiers_Cxx,
-                            idsmp->traits, (ifc_Alignment)0, scbp);
+                            ifc_ObjectTraits_None, (ifc_Alignment)0, scbp);
         str_ifc_function_traits(idsmp->traits, /*prefix=*/TRUE, scbp);
         /* FIXME: Need to suppress return type on conversion functions. */
         str_ifc_type_index_first_part(idsmp->type, scbp);

@@ -117,7 +117,8 @@ struct a_module_interface {
 
 /* Disk interface functions. */
   virtual a_boolean import(a_module_import_decl_ptr midp) noexcept ABSTRACT;
-  virtual void close() noexcept ABSTRACT
+  virtual void close() noexcept ABSTRACT;
+  virtual void pch_reset(a_module_import_decl_ptr midp) noexcept ABSTRACT;
 
 /* Module interface functions. */
   void set_name(a_const_char *module_name) noexcept;
@@ -127,6 +128,8 @@ struct a_module_interface {
 
 #if DEBUG
   virtual void debug() const noexcept ABSTRACT
+  virtual void db_module_entity(a_module_entity_ptr mep)
+                                                       const noexcept ABSTRACT;
 #endif /* DEBUG */
 };  /* a_module_interface */
 

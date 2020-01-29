@@ -1721,7 +1721,7 @@ struct an_ifc_module : public a_module_interface {
 
   a_boolean import(a_module_import_decl_ptr midp) noexcept override;
   void close() noexcept override;
-  void ifc_modules_pch_reset(a_module_import_decl_ptr midp) noexcept;
+  void pch_reset(a_module_import_decl_ptr midp) noexcept override;
 
   void process_ifc_declaration(a_module_entity_ptr mep,
                                a_boolean           defer,
@@ -1733,6 +1733,7 @@ struct an_ifc_module : public a_module_interface {
 
 #if DEBUG
   void debug() const noexcept override;
+  void db_module_entity(a_module_entity_ptr mep) const noexcept override;
 #endif /* DEBUG */
 
 private:

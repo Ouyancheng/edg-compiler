@@ -573,11 +573,11 @@ Display information about a module entity.
 */
 {
   (void)fprintf(f_debug, "module \"%s\"", mep->module_info->name);
-  switch (mep->module_info->kind) {
-    default:
-      (void)fprintf(f_debug, "\n");
-      break;
-  }  /* switch */
+  if (mep->module_info->module_interface != NULL) {
+    mep->module_info->module_interface->db_module_entity(mep);
+  } else {
+    (void)fprintf(f_debug, "\n");
+  }  /* if */
   if (mep->entity.ptr != NULL) {
     db_entity_info(mep->entity.ptr, (an_il_entry_kind)mep->entity.kind);
   }  /* if */
@@ -594,10 +594,9 @@ had been opened at the time the PCH file was created.
   a_module_import_decl_ptr midp;
 
   for (midp = il_header.imported_modules; midp != NULL; midp = midp->next) {
-    switch (midp->module_info->kind) {
-      default:
-        unexpected_condition();
-    }  /* switch */
+    if (midp->module_info->module_interface != NULL) {
+      midp->module_info->module_interface->pch_reset(midp);
+    }  /* if */
   }  /* for */
 }  /* modules_pch_reset */
 
