@@ -3116,6 +3116,7 @@ extern
 a_boolean requires_clause_satisfied(an_expr_node_ptr      constraint,
                                     a_template_arg_ptr    template_arg_list,
                                     a_template_param_ptr  template_param_list,
+                                    a_boolean             map_failure_is_fatal,
                                     a_diag_list_ptr       diag_list,
                                     a_boolean             *p_fatal = NULL);
 

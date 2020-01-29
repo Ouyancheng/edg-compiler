@@ -18148,7 +18148,9 @@ options is a set of name lookup options.
         a_diag_list  diag_list;
         clear_diag_list(&diag_list);
         val = requires_clause_satisfied(expr, template_arg_list,
-                                        template_param_list, &diag_list);
+                                        template_param_list,
+                                        /*map_failure_is_fatal=*/FALSE,
+                                        &diag_list);
         make_bool_constant_value(val, constant);
         discard_more_info_list(&diag_list);
       }  /* if */

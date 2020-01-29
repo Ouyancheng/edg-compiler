@@ -23582,6 +23582,7 @@ user-defined conversions (see also process_boolean_controlling_expression).
 a_boolean requires_clause_satisfied(an_expr_node_ptr      constraint,
                                     a_template_arg_ptr    template_arg_list,
                                     a_template_param_ptr  template_param_list,
+                                    a_boolean             map_failure_is_fatal,
                                     a_diag_list_ptr       diag_list,
                                     a_boolean             *p_fatal)
 /*
@@ -23594,6 +23595,8 @@ return FALSE and:
     *p_fatal to TRUE and update diag_list with a corresponding note, or
   - if p_fatal is NULL and the failure is not subject to SFINAE, issue an
     error with any notes record in diag_list and clear diag_list.
+If map_failure_is_fatal is TRUE, substitution of mappings in concepts are not
+subject to SFINAE.
 */
 {
   a_boolean  result = TRUE, fatal = FALSE, diagnose_here = (p_fatal == NULL);
@@ -23617,6 +23620,9 @@ return FALSE and:
     sym = symbol_for(templ);
     old_args = constraint->variant.concept_id.args;
     params = sym->variant.template_info->cache.decl_info->parameters;
+    // FIXME: We should only substitute the parameters that are actually
+    // referenced in the concept.  Presumably, those are those for which
+    // param->param_symbol->referenced is TRUE.
     new_args = copy_template_arg_list_with_substitution(
                                                   sym, old_args, params,
                                                   (a_template_param_ptr)NULL,
@@ -23626,8 +23632,8 @@ return FALSE and:
                                                   CTWS_NO_OPTIONS,
                                                   &copy_error, &ctws_state);
     if (copy_error) {
-      /* Substitution errors during parameter mappings are not SFINAE-like.
-         For example:
+      /* Substitution errors during parameter mappings are not SFINAE-like if
+         they occur outside atomic constraints.  For example:
            template<typename T> concept X = sizeof(T) == 1;
            template<typename T> concept Y = X<T[1]>;
            template<typename T> requires Y<T&> void f(T) {}
@@ -23635,14 +23641,15 @@ return FALSE and:
            void g() { f(0); }
          fails at this stage when forming the invalid type T = "int &[1]" in
          the parameter mapping for concept X. */
-      *p_fatal = TRUE;
+      if (map_failure_is_fatal) *p_fatal = TRUE;
       more_info_diagnostic(ec_concept_arg_list_substitution_failed,
                            &constraint->position, diag_list);
       result = FALSE;
     } else {
       a_diagnostic_ptr  prev_diags = diag_list->tail;
       an_expr_node_ptr  expr = templ->prototype_instantiation.constraint;
-      result = requires_clause_satisfied(expr, new_args, params, diag_list,
+      result = requires_clause_satisfied(expr, new_args, params,
+                                         map_failure_is_fatal, diag_list,
                                          p_fatal);
       if (!result) {
         /* Insert a diagnostic before the ones detailing the constraint
@@ -23661,10 +23668,12 @@ return FALSE and:
        evaluated. */
     an_expr_node_ptr  opnds = constraint->variant.operation.operands;
     result = requires_clause_satisfied(opnds, template_arg_list,
-                                       template_param_list, diag_list,
+                                       template_param_list,
+                                       map_failure_is_fatal, diag_list,
                                        p_fatal) &&
              requires_clause_satisfied(opnds->next, template_arg_list,
-                                       template_param_list, diag_list,
+                                       template_param_list,
+                                       map_failure_is_fatal, diag_list,
                                        p_fatal);
   } else if (node_is_operator(constraint, eok_lor)) {
     /* Check the two underlying constraints separately.  If the first
@@ -23672,10 +23681,12 @@ return FALSE and:
        evaluated. */
     an_expr_node_ptr  opnds = constraint->variant.operation.operands;
     result = requires_clause_satisfied(opnds, template_arg_list,
-                                       template_param_list, diag_list,
+                                       template_param_list,
+                                       map_failure_is_fatal, diag_list,
                                        p_fatal) ||
              requires_clause_satisfied(opnds->next, template_arg_list,
-                                       template_param_list, diag_list,
+                                       template_param_list,
+                                       map_failure_is_fatal, diag_list,
                                        p_fatal);
   } else {
     /* An atomic constraint.  First perform substitution; then evaluate the
@@ -23840,7 +23851,9 @@ if diag_list is non-NULL, update diag_list accordingly.
       clear_diag_list(&local_diag_list);
       diag_list = &local_diag_list;
     }  /* if */
-    result = requires_clause_satisfied(expr, new_args, params, diag_list);
+    result = requires_clause_satisfied(expr, new_args, params, 
+                                       /*map_failure_is_fatal=*/TRUE,
+                                       diag_list);
   }  /* if */
   return result;
 }  /* check_type_constraint */
@@ -23899,8 +23912,9 @@ FIXME pass through details of failure?
         { a_diag_list  diag_list;
           clear_diag_list(&diag_list);
           result = requires_clause_satisfied(
-                                        req->variant.nested_req.constraint,
-                                        templ_args, templ_params, &diag_list);
+                                  req->variant.nested_req.constraint,
+                                  templ_args, templ_params,
+                                  /*map_failure_is_fatal=*/TRUE, &diag_list);
         }
         break;
       default:

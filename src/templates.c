@@ -9970,7 +9970,8 @@ diagnostic if diagnose is TRUE.
   a_source_position     diag_pos = error_position;
 
   clear_diag_list(&diag_list);
-  if (!requires_clause_satisfied(constraint, args, params, &diag_list)) {
+  if (!requires_clause_satisfied(constraint, args, params,
+                                 /* map_failure_is_fatal=*/TRUE, &diag_list)) {
     if (!is_empty_diag_list(&diag_list)) {
       if (diagnose) {
         a_diagnostic_ptr  dp;

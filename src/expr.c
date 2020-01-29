@@ -35255,8 +35255,10 @@ type_identifier_case:
                   a_template_param_ptr  param_list = tssp->cache.decl_info
                                                          ->parameters;
                   clear_diag_list(&diag_list);
-                  val = requires_clause_satisfied(node, tap, param_list,
-                                                  &diag_list);
+                  val = requires_clause_satisfied(
+                                               node, tap, param_list,
+                                               /*map_failure_is_fatal=*/FALSE,
+                                               &diag_list);
                   make_bool_constant_value(val, con);
                   con->expr = node;
                   discard_more_info_list(&diag_list);
