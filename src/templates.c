@@ -19482,10 +19482,11 @@ old_list can match zero or more parameters from new_list.
       /* Both are types.  Check the type constraints, if any. */
       a_type_ptr  new_tp = new_tpp->variant.type,
                   old_tp = old_tpp->variant.type;
-      a_template_param_type_supplement_ptr
+      if (type_is(new_tp, tk_template_param) &&
+          type_is(old_tp, tk_template_param)) {
+        a_template_param_type_supplement_ptr
                   new_tptsp = new_tp->variant.template_param.extra_info,
                   old_tptsp = old_tp->variant.template_param.extra_info;
-      if (new_tptsp != NULL && old_tptsp != NULL) {
         an_expr_node_ptr
                        new_constraint = new_tptsp->constraint.type_constraint,
                        old_constraint = old_tptsp->constraint.type_constraint;
