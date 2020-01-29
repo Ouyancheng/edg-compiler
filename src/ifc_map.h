@@ -56,18 +56,6 @@ IFC_DECL_START(Partition)
   IFC_DECL_FIELD(entry_size, EntitySize)
 IFC_DECL_END(Partition)
 
-/* Module::Imported */
-IFC_DECL_START(Module_Imported)
-  /* Inferred from the description, not explicit in the spec. */
-  IFC_DECL_FIELD(imp, ModuleReference)
-IFC_DECL_END(Module_Imported)
-
-/* Module::Exported */
-IFC_DECL_START(Module_Exported)
-  /* Inferred from the description, not explicit in the spec. */
-  IFC_DECL_FIELD(exp, ModuleReference)
-IFC_DECL_END(Module_Exported)
-
 /* Scope::Descriptor */
 IFC_DECL_START(Scope_Descriptor)
   IFC_DECL_FIELD(start, Index)
@@ -79,41 +67,9 @@ IFC_DECL_START(Scope_Member)
   IFC_DECL_FIELD(index, DeclIndex)
 IFC_DECL_END(Scope_Member)
 
-/* Heap::Decl */
-IFC_DECL_START(Heap_Decl)
-  /* Inferred from the description, not explicit in the spec. */
-  IFC_DECL_FIELD(decl, DeclIndex)
-IFC_DECL_END(Heap_Decl)
-
-/* Heap::Type */
-IFC_DECL_START(Heap_Type)
-  /* Inferred from the description, not explicit in the spec. */
-  IFC_DECL_FIELD(type, TypeIndex)
-IFC_DECL_END(Heap_Type)
-
-/* Heap::Statement */
-IFC_DECL_START(Heap_Stmt)
-  /* Inferred from the description, not explicit in the spec. */
-  IFC_DECL_FIELD(stmt, StmtIndex)
-IFC_DECL_END(Heap_Stmt)
-
-/* Heap::Expr */
-IFC_DECL_START(Heap_Expr)
-  /* Inferred from the description, not explicit in the spec. */
-  IFC_DECL_FIELD(expr, ExprIndex)
-IFC_DECL_END(Heap_Expr)
-
-/* Heap::Syntax */
-IFC_DECL_START(Heap_Syntax)
-  /* Inferred from the description, not explicit in the spec. */
-  IFC_DECL_FIELD(syntax, SyntaxIndex)
-IFC_DECL_END(Heap_Syntax)
-
-/* Heap::Chart */
-IFC_DECL_START(Heap_Chart)
-  /* Inferred from the description, not explicit in the spec. */
-  IFC_DECL_FIELD(chart, ChartIndex)
-IFC_DECL_END(Heap_Chart)
+/* DeclSort::VendorExtension */
+IFC_DECL_START(DeclSort_VendorExtension)
+IFC_DECL_END(DeclSort_VendorExtension)
 
 /* DeclSort::Enumerator */
 IFC_DECL_START(DeclSort_Enumerator)
@@ -621,10 +577,10 @@ IFC_DECL_START(ExprSort_NamedDecl)
 IFC_DECL_END(ExprSort_NamedDecl)
 
 /* ExprSort::UnresolvedId */
-IFC_DECL_START(ExprSort_Unresolved)
+IFC_DECL_START(ExprSort_UnresolvedId)
   IFC_DECL_FIELD(name, NameIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
-IFC_DECL_END(ExprSort_Unresolved)
+IFC_DECL_END(ExprSort_UnresolvedId)
 
 /* ExprSort::TemplateId */
 IFC_DECL_START(ExprSort_TemplateId)
@@ -1408,18 +1364,22 @@ IFC_DECL_END(Source_Line)
 
 /* Trait::Deprecated */
 IFC_DECL_START(Trait_Deprecated)
+  IFC_DECL_FIELD(decl, DeclIndex);
 IFC_DECL_END(Trait_Deprecated)
 
 /* Trait::Specialization */
 IFC_DECL_START(Trait_Specialization)
+  IFC_DECL_FIELD(decl, DeclIndex);
 IFC_DECL_END(Trait_Specialization)
 
 /* Trait::Friend */
 IFC_DECL_START(Trait_Friend)
+  IFC_DECL_FIELD(decl, DeclIndex);
 IFC_DECL_END(Trait_Friend)
 
 /* Trait::ConstexprFunction */
 IFC_DECL_START(Trait_ConstexprFunction)
+  IFC_DECL_FIELD(decl, DeclIndex);
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(function, DeclIndex)
   IFC_DECL_FIELD(parameters, ChartIndex)
@@ -1429,27 +1389,33 @@ IFC_DECL_END(Trait_ConstexprFunction)
 
 /* Trait::FunctionTemplate */
 IFC_DECL_START(Trait_FunctionTemplate)
+  IFC_DECL_FIELD(decl, DeclIndex);
 IFC_DECL_END(Trait_FunctionTemplate)
 
 /* Trait::ClassTemplate */
 IFC_DECL_START(Trait_ClassTemplate)
+  IFC_DECL_FIELD(decl, DeclIndex);
 IFC_DECL_END(Trait_ClassTemplate)
 
 /* Trait::AliasTemplate */
 IFC_DECL_START(Trait_AliasTemplate)
+  IFC_DECL_FIELD(decl, DeclIndex);
 IFC_DECL_END(Trait_AliasTemplate)
 
 /* Trait::VariableTemplate */
 IFC_DECL_START(Trait_VariableTemplate)
+  IFC_DECL_FIELD(decl, DeclIndex);
 IFC_DECL_END(Trait_VariableTemplate)
 
 /* Trait::MsvcVendorTrait */
 IFC_DECL_START(Trait_MsvcVendorTrait)
+  IFC_DECL_FIELD(decl, DeclIndex);
   IFC_DECL_FIELD(trait, MsvcTraits)
 IFC_DECL_END(Trait_MsvcVendorTrait)
 
 /* Trait::MsvcUuid */
 IFC_DECL_START(Trait_MsvcUuid)
+  IFC_DECL_FIELD(decl, DeclIndex);
   IFC_DECL_FIELD(uuid, uint16_t)
 IFC_DECL_END(Trait_MsvcUuid)
 
@@ -1461,11 +1427,11 @@ IFC_DECL_START(Sentence)
 IFC_DECL_END(Sentence)
 
 /* Words: Tokens that build up a Sentence. */
-IFC_DECL_START(Words)
+IFC_DECL_START(Word)
   IFC_DECL_FIELD(index, Index)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(category, WordCategory)
-IFC_DECL_END(Words)
+IFC_DECL_END(Word)
 
 /* #undef macros that were set by the #includer. */
 #undef IFC_DECL_START

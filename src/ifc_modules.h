@@ -191,12 +191,6 @@ appropriately and including ifc_map.h.  The net result is something like:
 
 #include "ifc_map.h"  /*lint !e451 included more than once. */
 
-/* Magic numbers that identify the beginning of an IFC file. */
-#define IFC_MODULE_MAGIC_1 0x54
-#define IFC_MODULE_MAGIC_2 0x51
-#define IFC_MODULE_MAGIC_3 0x45
-#define IFC_MODULE_MAGIC_4 0x1A
-
 #define Architecture(arch) (ifc_Architecture::ifc_Architecture_##arch)
 #define ArchitectureAsType(arch) ((ifc_Architecture_type)Architecture(arch))
 
@@ -741,7 +735,7 @@ enum class ifc_OperatorCategory : ifc_OperatorCategory_type {
 #define chart_tag(chart) ((ifc_ChartSort)chart_tag_as_type(chart))
 #define chart_value(chart) ((chart) >> 2)
 
-#define ChartSort(chart) (ifc_ChartSort::ifc_CharSort_##decl)
+#define ChartSort(chart) (ifc_ChartSort::ifc_ChartSort_##chart)
 #define ChartSortAsType(chart) ((ifc_ChartSort_type)ChartSort(chart))
 
 /* Enumeration for ChartSort (i.e., kinds of charts). */
@@ -749,7 +743,14 @@ enum class ifc_ChartSort : ifc_ChartSort_type {
   ifc_ChartSort_None,
   ifc_ChartSort_Unilevel,
   ifc_ChartSort_Multilevel,
+  /* Must always equal the last enumerator above. */
+  ifc_ChartSort_Last
 };
+
+/* Macros used to access SyntaxIndex::tag and SyntaxIndex::value. */
+#define syntax_tag_as_type(syn) ((syn) & 0x0000007F)
+#define syntax_tag(syn) ((ifc_SyntaxSort)syntax_tag_as_type(syn))
+#define syntax_value(syn) ((syn) >> 7)
 
 #define SyntaxSort(syn) (ifc_SyntaxSort::ifc_SyntaxSort_##syn)
 #define SyntaxSortAsType(syn) ((ifc_SyntaxSort_type)SyntaxSort(syn))
@@ -1142,6 +1143,12 @@ enum an_ifc_partition_kind_tag {
   ifc_stmt_variable = ifc_stmt_start + StmtSortAsType(VariableDecl),
   ifc_stmt_syntax_tree = ifc_stmt_start + StmtSortAsType(SyntaxTree),
   ifc_stmt_end = ifc_stmt_start + StmtSortAsType(Last),
+  /* Group all ChartSort::Tag partitions together. */
+  ifc_chart_start,
+  ifc_chart_none = ifc_chart_start + ChartSortAsType(None),
+  ifc_chart_multilevel = ifc_chart_start + ChartSortAsType(Multilevel),
+  ifc_chart_unilevel = ifc_chart_start + ChartSortAsType(Unilevel),
+  ifc_chart_end = ifc_chart_start + ChartSortAsType(Last),
   /* Group all SyntaxSort::Tag partitions together. */
   ifc_syntax_start,
   ifc_syntax_vendor_extension = ifc_syntax_start +
@@ -1337,10 +1344,6 @@ enum an_ifc_partition_kind_tag {
                                  SyntaxSortAsType(StructuredBindingIdentifier),
   ifc_syntax_end = ifc_syntax_start + SyntaxSortAsType(Last),
   /* No particular grouping. */
-  ifc_chart_none,
-  ifc_chart_enclosing,
-  ifc_chart_multilevel,
-  ifc_chart_unilevel,
   ifc_const_f64,
   ifc_const_i64,
   ifc_const_str,
@@ -1356,6 +1359,7 @@ enum an_ifc_partition_kind_tag {
   ifc_module_imported,
   ifc_scope_desc,
   ifc_scope_member,
+  ifc_sentence,
   ifc_src_line,
   ifc_trait_alias_template,
   ifc_trait_class_template,
@@ -1365,7 +1369,6 @@ enum an_ifc_partition_kind_tag {
   ifc_trait_function_template,
   ifc_trait_specialization,
   ifc_trait_variable_template,
-  ifc_sentence,
   ifc_word,
   ifc_last
 };
@@ -1410,7 +1413,6 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { ".msvc.code-segment",              ifc_decl_segment },
   { ".msvc.trait.uuid",                ifc_msvc_trait_uuid },
   { ".msvc.trait.vendor-traits",       ifc_msvc_trait_vendor_traits },
-  { "chart.enclosing",                 ifc_chart_enclosing },
   { "chart.multilevel",                ifc_chart_multilevel },
   { "chart.none",                      ifc_chart_none },
   { "chart.unilevel",                  ifc_chart_unilevel },
@@ -1817,11 +1819,80 @@ private:
   void str_ifc_declaration(ifc_DeclIndex       decl_index,
                            a_boolean           is_designated_type,
                            a_str_control_block *scbp) const noexcept;
+  void str_ifc_statement(ifc_StmtIndex       stmt_index,
+                         a_str_control_block *scbp) const noexcept;
+  void str_ifc_string_literal(ifc_StringIndex     str_index,
+                              a_str_control_block *scbp) const noexcept;
+  void str_ifc_name(ifc_NameIndex       name_index,
+                    a_str_control_block *scbp) const noexcept;
+  void str_ifc_chart(ifc_ChartIndex      chart_index,
+                     a_str_control_block *scbp) const noexcept;
+  template<typename T>
+  void str_ifc_associated_trait(ifc_DeclIndex       decl_index,
+                                a_str_control_block *scbp) const noexcept;
+  void str_ifc_syntax_node(ifc_SyntaxIndex     syntax_index,
+                           a_str_control_block *scbp) const noexcept;
+  void str_ifc_sentence(ifc_SentenceIndex   sentence_index,
+                        a_str_control_block *scbp) const noexcept;
+  void str_ifc_word(ifc_WordIndex       word_index,
+                    a_str_control_block *scbp) const noexcept;
 
 #if DEBUG
   void db_ifc_file_header() const noexcept;
 #endif /* DEBUG */
 };  /* an_ifc_module */
+
+/* Expected instantiations of an_ifc_module::str_ifc_associated_trait<T>: */
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Deprecated>
+                                            (ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp)
+                                                                const noexcept;
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Specialization>
+                                            (ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp)
+                                                                const noexcept;
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Friend>
+                                            (ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp)
+                                                                const noexcept;
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ConstexprFunction>
+                                            (ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp)
+                                                                const noexcept;
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_FunctionTemplate>
+                                            (ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp)
+                                                                const noexcept;
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ClassTemplate>
+                                            (ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp)
+                                                                const noexcept;
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_AliasTemplate>
+                                            (ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp)
+                                                                const noexcept;
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_VariableTemplate>
+                                            (ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp)
+                                                                const noexcept;
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcVendorTrait>
+                                            (ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp)
+                                                                const noexcept;
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcUuid>
+                                            (ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp)
+                                                                const noexcept;
 
 extern void ifc_modules_one_time_init();
 

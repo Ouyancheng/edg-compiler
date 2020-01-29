@@ -664,7 +664,8 @@ Map an IFC OperatorCategory to an_opname_kind.
     default:
 #if DEBUG
       if (db_flag_is_set("ms_ignore")) {
-        (void)fprintf(f_debug, "Unsupported operation: %d\n", category);
+        (void)fprintf(f_debug, "Unsupported operation: %d\n",
+                      (ifc_OperatorCategory_type)category);
       }  /* if */
 #endif /* DEBUG */
       unexpected_condition();
@@ -2659,46 +2660,336 @@ the output buffer.
       }
       break;
     case ExprSort(VendorExtension):
+      { an_ifc_ExprSort_VendorExtension ieve;
+        get_ExprSort_VendorExtension(&ieve);
+        unexpected_condition_str("ExprSort::VendorExtension"
+                                 " is currently unspecified.");
+      }
+      break;
     case ExprSort(Empty):
+      { an_ifc_ExprSort_Empty iee;
+        get_ExprSort_Empty(&iee);
+        add_char_to_text_buffer(scbp->text_buffer, ';');
+      }
+      break;
     case ExprSort(Type):
+      { an_ifc_ExprSort_Type iet;
+        get_ExprSort_Type(&iet);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(NamedDecl):
+      { an_ifc_ExprSort_NamedDecl iend;
+        get_ExprSort_NamedDecl(&iend);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(UnresolvedId):
+      { an_ifc_ExprSort_UnresolvedId ieuid;
+        get_ExprSort_UnresolvedId(&ieuid);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(TemplateId):
+      { an_ifc_ExprSort_TemplateId ietid;
+        get_ExprSort_TemplateId(&ietid);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(Identifier):
+      { an_ifc_ExprSort_Identifier ieid;
+        get_ExprSort_Identifier(&ieid);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(SimpleIdentifier):
+      { an_ifc_ExprSort_SimpleIdentifier iesid;
+        get_ExprSort_SimpleIdentifier(&iesid);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(Pointer):
+      { an_ifc_ExprSort_Pointer iep;
+        get_ExprSort_Pointer(&iep);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(QualifiedName):
+      { an_ifc_ExprSort_QualifiedName ieqn;
+        get_ExprSort_QualifiedName(&ieqn);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(Path):
+      { an_ifc_ExprSort_Path iep;
+        get_ExprSort_Path(&iep);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(Read):
+      { an_ifc_ExprSort_Read ier;
+        get_ExprSort_Read(&ier);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(Monad):
+      { an_ifc_ExprSort_Monad iem;
+        get_ExprSort_Monad(&iem);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(Dyad):
+      { an_ifc_ExprSort_Dyad ied;
+        get_ExprSort_Dyad(&ied);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(Triad):
+      { an_ifc_ExprSort_Triad iet;
+        get_ExprSort_Triad(&iet);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(Tuple):
+      { an_ifc_ExprSort_Tuple iet;
+        get_ExprSort_Tuple(&iet);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(Tokens):
+      { an_ifc_ExprSort_Tokens iet;
+        get_ExprSort_Tokens(&iet);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(String):
+      { an_ifc_ExprSort_String ies;
+        get_ExprSort_String(&ies);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(Temporary):
+      { an_ifc_ExprSort_Temporary iet;
+        get_ExprSort_Temporary(&iet);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(Call):
+      { an_ifc_ExprSort_Call iec;
+        get_ExprSort_Call(&iec);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(PushState):
+      { an_ifc_ExprSort_PushState iep;
+        get_ExprSort_PushState(&iep);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(TypeTraitIntrinsic):
+      { an_ifc_ExprSort_TypeTraitIntrinsic ietti;
+        get_ExprSort_TypeTraitIntrinsic(&ietti);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(MemberInitializer):
+      { an_ifc_ExprSort_MemberInitializer iemi;
+        get_ExprSort_MemberInitializer(&iemi);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(MemberAccess):
+      { an_ifc_ExprSort_MemberAccess iema;
+        get_ExprSort_MemberAccess(&iema);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(InheritancePath):
+      { an_ifc_ExprSort_InheritancePath ieip;
+        get_ExprSort_InheritancePath(&ieip);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(TemplateReference):
+      { an_ifc_ExprSort_TemplateReference ietr;
+        get_ExprSort_TemplateReference(&ietr);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(InitializerList):
+      { an_ifc_ExprSort_InitializerList ieil;
+        get_ExprSort_InitializerList(&ieil);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(Cast):
+      { an_ifc_ExprSort_Cast iec;
+        get_ExprSort_Cast(&iec);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(Condition):
+      { an_ifc_ExprSort_Condition iec;
+        get_ExprSort_Condition(&iec);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(ExpressionList):
+      { an_ifc_ExprSort_ExpressionList ieel;
+        get_ExprSort_ExpressionList(&ieel);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(AssignInitializer):
+      { an_ifc_ExprSort_AssignInitializer ieai;
+        get_ExprSort_AssignInitializer(&ieai);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(Nullptr):
+      { an_ifc_ExprSort_Nullptr ienp;
+        get_ExprSort_Nullptr(&ienp);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(This):
+      { an_ifc_ExprSort_This iet;
+        get_ExprSort_This(&iet);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(SizeofTypeId):
+      { an_ifc_ExprSort_SizeofTypeId iesotid;
+        get_ExprSort_SizeofTypeId(&iesotid);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(Alignof):
+      { an_ifc_ExprSort_Alignof ieao;
+        get_ExprSort_Alignof(&ieao);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(PackedTemplateArguments):
+      { an_ifc_ExprSort_PackedTemplateArguments iepta;
+        get_ExprSort_PackedTemplateArguments(&iepta);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(New):
+      { an_ifc_ExprSort_New ien;
+        get_ExprSort_New(&ien);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(Delete):
+      { an_ifc_ExprSort_Delete ied;
+        get_ExprSort_Delete(&ied);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(Lambda):
+      { an_ifc_ExprSort_Lambda iel;
+        get_ExprSort_Lambda(&iel);
+        /* FIXME: Handle this. */
+      }
+      break;
+    case ExprSort(DestructorCall):
+      { an_ifc_ExprSort_DestructorCall iedc;
+        get_ExprSort_DestructorCall(&iedc);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(Typeid):
+      { an_ifc_ExprSort_Typeid ietid;
+        get_ExprSort_Typeid(&ietid);
+        /* FIXME: Handle this. */
+      }
+      break;
     case ExprSort(SyntaxTree):
+      { an_ifc_ExprSort_SyntaxTree iest;
+        get_ExprSort_SyntaxTree(&iest);
+        /* FIXME: Handle this. */
+      }
+      break;
+    case ExprSort(FunctionString):
+      { an_ifc_ExprSort_FunctionString iefs;
+        get_ExprSort_FunctionString(&iefs);
+        /* FIXME: Handle this. */
+      }
+      break;
+    case ExprSort(CompoundString):
+      { an_ifc_ExprSort_CompoundString iecs;
+        get_ExprSort_CompoundString(&iecs);
+        /* FIXME: Handle this. */
+      }
+      break;
+    case ExprSort(StringSequence):
+      { an_ifc_ExprSort_StringSequence iess;
+        get_ExprSort_StringSequence(&iess);
+        /* FIXME: Handle this. */
+      }
+      break;
+    case ExprSort(Initializer):
+      { an_ifc_ExprSort_Initializer iei;
+        get_ExprSort_Initializer(&iei);
+        /* FIXME: Handle this. */
+      }
+      break;
+    case ExprSort(HierarchyConversion):
+      { an_ifc_ExprSort_HierarchyConversion iehc;
+        get_ExprSort_HierarchyConversion(&iehc);
+        /* FIXME: Handle this. */
+      }
+      break;
+    case ExprSort(Product):
+      { an_ifc_ExprSort_Product iep;
+        get_ExprSort_Product(&iep);
+        /* FIXME: Handle this. */
+      }
+      break;
+    case ExprSort(Sum):
+      { an_ifc_ExprSort_SumTypeValue iestv;
+        get_ExprSort_SumTypeValue(&iestv);
+        /* FIXME: Handle this. */
+      }
+      break;
+    case ExprSort(Subobject):
+      { an_ifc_ExprSort_Subobject ieso;
+        get_ExprSort_Subobject(&ieso);
+        /* FIXME: Handle this. */
+      }
+      break;
+    case ExprSort(Array):
+      { an_ifc_ExprSort_Array iea;
+        get_ExprSort_Array(&iea);
+        /* FIXME: Handle this. */
+      }
+      break;
+    case ExprSort(VirtualFunction):
+      { an_ifc_ExprSort_VirtualFunction ievf;
+        get_ExprSort_VirtualFunction(&ievf);
+        /* FIXME: Handle this. */
+      }
+      break;
+    case ExprSort(Requires):
+      { an_ifc_ExprSort_Requires ier;
+        get_ExprSort_Requires(&ier);
+        /* FIXME: Handle this. */
+      }
+      break;
+    case ExprSort(UnaryFold):
+      { an_ifc_ExprSort_UnaryFold ieuf;
+        get_ExprSort_UnaryFold(&ieuf);
+        /* FIXME: Handle this. */
+      }
+      break;
+    case ExprSort(BinaryFold):
+      { an_ifc_ExprSort_BinaryFold iebf;
+        get_ExprSort_BinaryFold(&iebf);
+        /* FIXME: Handle this. */
+      }
+      break;
     default:
       /* FIXME: for now: */
       add_string_to_text_buffer(scbp->text_buffer,
@@ -2901,6 +3192,10 @@ FIXME: more specific
       }
       break;
     case TypeSort(Method): /* FIXME: for now (same structures)?): */
+      { an_ifc_TypeSort_Method itsm;
+        get_TypeSort_Method(&itsm);
+        /* FIXME: Handle this. */
+      }
       unexpected_condition(); /* FIXME: No longer same structures. */
       break;
     case TypeSort(Function):
@@ -2992,17 +3287,64 @@ FIXME: more specific
       }
       break;
     case TypeSort(VendorExtension):
+      { an_ifc_TypeSort_VendorExtension itsve;
+        get_TypeSort_VendorExtension(&itsve);
+        /* FIXME: Handle this. */
+      }
+      break;
+    case TypeSort(Deduced):
+      { an_ifc_TypeSort_Deduced itsd;
+        get_TypeSort_Deduced(&itsd);
+        /* FIXME: Handle this. */
+      }
+      break;
     case TypeSort(Syntactic):
+      { an_ifc_TypeSort_Syntactic itss;
+        get_TypeSort_Syntactic(&itss);
+        /* FIXME: Handle this. */
+      }
+      break;
     case TypeSort(Expansion):
+      { an_ifc_TypeSort_Expansion itse;
+        get_TypeSort_Expansion(&itse);
+        /* FIXME: Handle this. */
+      }
+      break;
     case TypeSort(Typename):
+      { an_ifc_TypeSort_Typename itst;
+        get_TypeSort_Typename(&itst);
+        /* FIXME: Handle this. */
+      }
+      break;
     case TypeSort(Unaligned):
+      { an_ifc_TypeSort_Unaligned itsu;
+        get_TypeSort_Unaligned(&itsu);
+        /* FIXME: Handle this. */
+      }
+      break;
     case TypeSort(Decltype):
+      { an_ifc_TypeSort_Decltype itsd;
+        get_TypeSort_Decltype(&itsd);
+        /* FIXME: Handle this. */
+      }
+      break;
+    case TypeSort(Forall):
+      { an_ifc_TypeSort_Forall itsfa;
+        get_TypeSort_Forall(&itsfa);
+        /* FIXME: Handle this. */
+      }
+      break;
     case TypeSort(SyntaxTree):
+      { an_ifc_TypeSort_SyntaxTree itsst;
+        get_TypeSort_SyntaxTree(&itsst);
+        /* FIXME: Handle this. */
+      }
+      break;
     default:
 #if DEBUG
       if (db_flag_is_set("ms_ignore")) {
         (void)fprintf(f_debug, "Unsupported type: %d, %d\n",
-                      tag, type_value(type_index));
+                      (ifc_TypeSort_type)tag, type_value(type_index));
       }  /* if */
 #endif /* DEBUG */
       break;
@@ -3073,7 +3415,7 @@ FIXME: more specific
 #if DEBUG
       if (db_flag_is_set("ms_ignore")) {
         (void)fprintf(f_debug, "Unsupported type: %d, %d\n",
-                      tag, type_value(type_index));
+                      (ifc_TypeSort_type)tag, type_value(type_index));
       }  /* if */
 #endif /* DEBUG */
       break;
@@ -3394,22 +3736,107 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
       }
       break;
     case DeclSort(VendorExtension):
+      { an_ifc_DeclSort_VendorExtension idsve;
+        get_DeclSort_VendorExtension(&idsve);
+        /* FIXME: Handle this. */
+      }
+      break;
     case DeclSort(Parameter):
+      { an_ifc_DeclSort_Parameter idsp;
+        get_DeclSort_Parameter(&idsp);
+        /* FIXME: Handle this. */
+      }
+      break;
     case DeclSort(Temploid):
+      { an_ifc_DeclSort_Temploid idst;
+        get_DeclSort_Temploid(&idst);
+        /* FIXME: Handle this. */
+      }
+      break;
     case DeclSort(Template):
+      { an_ifc_DeclSort_Template idst;
+        get_DeclSort_Template(&idst);
+        /* FIXME: Handle this. */
+      }
+      break;
     case DeclSort(PartialSpecialization):
+      { an_ifc_DeclSort_PartialSpecialization idsps;
+        get_DeclSort_PartialSpecialization(&idsps);
+        /* FIXME: Handle this. */
+      }
+      break;
     case DeclSort(ExplicitSpecialization):
+      { an_ifc_DeclSort_ExplicitSpecialization idses;
+        get_DeclSort_ExplicitSpecialization(&idses);
+        /* FIXME: Handle this. */
+      }
+      break;
     case DeclSort(ExplicitInstantiation):
+      { an_ifc_DeclSort_ExplicitInstantiation idsei;
+        get_DeclSort_ExplicitInstantiation(&idsei);
+        /* FIXME: Handle this. */
+      }
+      break;
     case DeclSort(Concept):
+      { an_ifc_DeclSort_Concept idsc;
+        get_DeclSort_Concept(&idsc);
+        /* FIXME: Handle this. */
+      }
+      break;
     case DeclSort(InheritedConstructor):
+      { an_ifc_DeclSort_InheritedConstructor idsic;
+        get_DeclSort_InheritedConstructor(&idsic);
+        /* FIXME: Handle this. */
+      }
+      break;
     case DeclSort(Reference):
+      { an_ifc_DeclSort_Reference idsr;
+        get_DeclSort_Reference(&idsr);
+        /* FIXME: Handle this. */
+      }
+      break;
     case DeclSort(Property):
+      { an_ifc_DeclSort_Property idsp;
+        get_DeclSort_Property(&idsp);
+        /* FIXME: Handle this. */
+      }
+      break;
     case DeclSort(OutputSegment):
+      { an_ifc_DeclSort_OutputSegment idsos;
+        get_DeclSort_OutputSegment(&idsos);
+        /* FIXME: Handle this. */
+      }
+      break;
     case DeclSort(UsingDeclaration):
+      { an_ifc_DeclSort_UsingDeclaration idsud;
+        get_DeclSort_UsingDeclaration(&idsud);
+        /* FIXME: Handle this. */
+      }
+      break;
     case DeclSort(UsingDirective):
+      { an_ifc_DeclSort_UsingDirective idsud;
+        get_DeclSort_UsingDirective(&idsud);
+        /* FIXME: Handle this. */
+      }
+      break;
     case DeclSort(Friend):
+      { an_ifc_DeclSort_Friend idsf;
+        get_DeclSort_Friend(&idsf);
+        /* FIXME: Handle this. */
+      }
+      break;
     case DeclSort(SyntaxTree):
+      { an_ifc_DeclSort_SyntaxTree idsst;
+        get_DeclSort_SyntaxTree(&idsst);
+        /* FIXME: Handle this. */
+      }
+      break;
     case DeclSort(Tuple):
+      { an_ifc_DeclSort_Tuple idst;
+        get_DeclSort_Tuple(&idst);
+        /* FIXME: Handle this. */
+      }
+      break;
     default:
 #if DEBUG
       if (db_flag_is_set("ms_ignore")) {
@@ -3427,6 +3854,1238 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
   }  /* if */
 }  /* str_ifc_declaration */
 
+
+void an_ifc_module::str_ifc_statement(ifc_StmtIndex       stmt_index,
+                                      a_str_control_block *scbp) const noexcept
+/*
+Generate a string for the specified statement.
+*/
+{
+  ifc_StmtSort tag = stmt_tag(stmt_index);
+
+  read_ifc_partition_at_index(ifc_stmt_start + (ifc_StmtSort_type)tag,
+                              stmt_value(stmt_index));
+  switch (tag) {
+    case StmtSort(VendorExtension):
+      { an_ifc_StmtSort_VendorExtension issve;
+        get_StmtSort_VendorExtension(&issve);
+        unexpected_condition_str("StmtSort::VendorExtension"
+                                 " is not yet handled");
+      }
+      break;
+    case StmtSort(Empty):
+      { an_ifc_StmtSort_Empty isse;
+        get_StmtSort_Empty(&isse);
+        unexpected_condition_str("StmtSort::Empty"
+                                 " is not yet handled");
+      }
+      break;
+    case StmtSort(If):
+      { an_ifc_StmtSort_If issi;
+        get_StmtSort_If(&issi);
+        unexpected_condition_str("StmtSort::If"
+                                 " is not yet handled");
+      }
+      break;
+    case StmtSort(For):
+      { an_ifc_StmtSort_For issf;
+        get_StmtSort_For(&issf);
+        unexpected_condition_str("StmtSort::For"
+                                 " is not yet handled");
+      }
+      break;
+    case StmtSort(Case):
+      { an_ifc_StmtSort_Case issc;
+        get_StmtSort_Case(&issc);
+        unexpected_condition_str("StmtSort::Case"
+                                 " is not yet handled");
+      }
+      break;
+    case StmtSort(While):
+      { an_ifc_StmtSort_While issw;
+        get_StmtSort_While(&issw);
+        unexpected_condition_str("StmtSort::While"
+                                 " is not yet handled");
+      }
+      break;
+    case StmtSort(Block):
+      { an_ifc_StmtSort_Block issb;
+        get_StmtSort_Block(&issb);
+        unexpected_condition_str("StmtSort::Block"
+                                 " is not yet handled");
+      }
+      break;
+    case StmtSort(Break):
+      { an_ifc_StmtSort_Break issb;
+        get_StmtSort_Break(&issb);
+        unexpected_condition_str("StmtSort::Break"
+                                 " is not yet handled");
+      }
+      break;
+    case StmtSort(Switch):
+      { an_ifc_StmtSort_Switch isss;
+        get_StmtSort_Switch(&isss);
+        unexpected_condition_str("StmtSort::Switch"
+                                 " is not yet handled");
+      }
+      break;
+    case StmtSort(DoWhile):
+      { an_ifc_StmtSort_DoWhile issdw;
+        get_StmtSort_DoWhile(&issdw);
+        unexpected_condition_str("StmtSort::DoWhile"
+                                 " is not yet handled");
+      }
+      break;
+    case StmtSort(Default):
+      { an_ifc_StmtSort_Default issd;
+        get_StmtSort_Default(&issd);
+        unexpected_condition_str("StmtSort::Default"
+                                 " is not yet handled");
+      }
+      break;
+    case StmtSort(Continue):
+      { an_ifc_StmtSort_Continue issc;
+        get_StmtSort_Continue(&issc);
+        unexpected_condition_str("StmtSort::Continue"
+                                 " is not yet handled");
+      }
+      break;
+    case StmtSort(Expression):
+      { an_ifc_StmtSort_Expression isse;
+        get_StmtSort_Expression(&isse);
+        unexpected_condition_str("StmtSort::Expression"
+                                 " is not yet handled");
+      }
+      break;
+    case StmtSort(Return):
+      { an_ifc_StmtSort_Return issr;
+        get_StmtSort_Return(&issr);
+        unexpected_condition_str("StmtSort::Return"
+                                 " is not yet handled");
+      }
+      break;
+    case StmtSort(VariableDecl):
+      { an_ifc_StmtSort_VariableDecl issvd;
+        get_StmtSort_VariableDecl(&issvd);
+        unexpected_condition_str("StmtSort::VariableDecl"
+                                 " is not yet handled");
+      }
+      break;
+    case StmtSort(SyntaxTree):
+      { an_ifc_StmtSort_SyntaxTree issst;
+        get_StmtSort_SyntaxTree(&issst);
+        unexpected_condition_str("StmtSort::SyntaxTree"
+                                 " is not yet handled");
+      }
+      break;
+    default:
+      unexpected_condition_str("Unknown StmtSort kind");
+  }  /* switch */
+}  /* str_ifc_statement */
+
+
+void an_ifc_module::str_ifc_string_literal(ifc_StringIndex     str_index,
+                                           a_str_control_block *scbp)
+                                                                 const noexcept
+/*
+Generate a string for the specified string literal.
+*/
+{
+  ifc_StringSort        tag = str_tag(str_index);
+  an_ifc_String_Literal str_lit;
+
+  read_ifc_partition_at_index(ifc_const_str, str_value(str_index));
+  get_String_Literal(&str_lit);
+  if (tag != StringSort(Ordinary)) {
+    unexpected_condition_str("Non-ordinary strings are not yet handled.");
+  }  /* if */
+  add_string_with_length_to_text_buffer(scbp->text_buffer,
+                                        get_string_at_offset(str_lit.start),
+                                        str_lit.length);
+  if (str_lit.suffix != 0) {
+    add_string_to_text_buffer(scbp->text_buffer,
+                              get_string_at_offset(str_lit.suffix));
+  }  /* if */
+}  /* str_ifc_string_literal */
+
+
+void an_ifc_module::str_ifc_name(ifc_NameIndex       name_index,
+                                 a_str_control_block *scbp) const noexcept
+/*
+Generate a string for the specified name.
+*/
+{
+  ifc_NameSort tag = name_tag(name_index);
+
+  read_ifc_partition_at_index(ifc_name_start + (ifc_NameSort_type)tag,
+                              name_value(name_index));
+  switch (tag) {
+    case NameSort(Identifier):
+      str_ifc_name_index(name_value(name_index), scbp);
+      break;
+    case NameSort(Operator):
+      { an_ifc_NameSort_Operator inso;
+        get_NameSort_Operator(&inso);
+        unexpected_condition_str("NameSort::Operator is not yet handled.");
+      }
+      break;
+    case NameSort(Conversion):
+      { an_ifc_NameSort_Conversion insc;
+        get_NameSort_Conversion(&insc);
+        unexpected_condition_str("NameSort::Conversion is not yet handled.");
+      }
+      break;
+    case NameSort(Literal):
+      { an_ifc_NameSort_Literal insl;
+        get_NameSort_Literal(&insl);
+        unexpected_condition_str("NameSort::Literal is not yet handled.");
+      }
+      break;
+    case NameSort(Template):
+      { an_ifc_NameSort_Template inst;
+        get_NameSort_Template(&inst);
+        unexpected_condition_str("NameSort::Template is not yet handled.");
+      }
+      break;
+    case NameSort(Specialization):
+      { an_ifc_NameSort_Specialization inss;
+        get_NameSort_Specialization(&inss);
+        unexpected_condition_str("NameSort::Specialization"
+                                 " is not yet handled.");
+      }
+      break;
+    case NameSort(SourceFile):
+      { an_ifc_NameSort_SourceFile inssf;
+        get_NameSort_SourceFile(&inssf);
+        unexpected_condition_str("NameSort::SourceFile is not yet handled.");
+      }
+      break;
+    default:
+      unexpected_condition_str("Unknown ChartSort kind");
+  }  /* switch */
+}  /* str_ifc_name */
+
+
+void an_ifc_module::str_ifc_chart(ifc_ChartIndex      chart_index,
+                                  a_str_control_block *scbp) const noexcept
+/*
+Generate a string for the specified chart.
+*/
+{
+  ifc_ChartSort tag = chart_tag(chart_index);
+
+  read_ifc_partition_at_index(ifc_chart_start + (ifc_ChartSort_type)tag,
+                              chart_value(chart_index));
+  switch (tag) {
+    case ChartSort(None):
+      { an_ifc_ChartSort_None icsn;
+        get_ChartSort_None(&icsn);
+        unexpected_condition_str("ChartSort::None is unspecified.");
+      }
+      break;
+    case ChartSort(Unilevel):
+      { an_ifc_ChartSort_Unilevel icsu;
+        get_ChartSort_Unilevel(&icsu);
+        unexpected_condition_str("ChartSort::Unilevel is unspecified.");
+      }
+      break;
+    case ChartSort(Multilevel):
+      { an_ifc_ChartSort_Multilevel icsm;
+        get_ChartSort_Multilevel(&icsm);
+        unexpected_condition_str("ChartSort::Multilevel is unspecified.");
+      }
+      break;
+    default:
+      unexpected_condition_str("Unknown ChartSort kind");
+  }  /* switch */
+}  /* str_ifc_chart */
+
+
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Deprecated>
+                                            (ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp)
+                                                                const noexcept
+/*
+Generate a string for the specified associated deprecation trait.
+*/
+{
+  an_ifc_Trait_Deprecated itd;
+
+  read_ifc_partition_at_index(ifc_trait_deprecated, decl_index);
+  get_Trait_Deprecated(&itd);
+  unexpected_condition_str("AssociatedTrait<Deprecated> is not specified.");
+}  /* str_ifc_associated_trait<an_ifc_Trait_Deprecated> */
+
+
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Specialization>
+                                            (ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp)
+                                                                const noexcept
+/*
+Generate a string for the specified associated template specialization trait.
+*/
+{
+  an_ifc_Trait_Specialization its;
+
+  read_ifc_partition_at_index(ifc_trait_specialization, decl_index);
+  get_Trait_Specialization(&its);
+  unexpected_condition_str("AssociatedTrait<Specialization>"
+                           " is not specified.");
+}  /* str_ifc_associated_trait<an_ifc_Trait_Specialization> */
+
+
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Friend>
+                                            (ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp)
+                                                                const noexcept
+/*
+Generate a string for the specified associated class friend trait.
+*/
+{
+  an_ifc_Trait_Friend itf;
+
+  read_ifc_partition_at_index(ifc_trait_friend, decl_index);
+  get_Trait_Friend(&itf);
+  unexpected_condition_str("AssociatedTrait<Friend> is not specified.");
+}  /* str_ifc_associated_trait<an_ifc_Trait_Friend> */
+
+
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ConstexprFunction>
+                                            (ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp)
+                                                                const noexcept
+/*
+Generate a string for the specified associated constexpr function trait.
+*/
+{
+  an_ifc_Trait_ConstexprFunction itcf;
+
+  read_ifc_partition_at_index(ifc_trait_constexpr_function, decl_index);
+  get_Trait_ConstexprFunction(&itcf);
+  unexpected_condition_str("AssociatedTrait<ConstexprFunction>"
+                           " is not specified.");
+}  /* str_ifc_associated_trait<an_ifc_Trait_ConstexprFunction> */
+
+
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_FunctionTemplate>
+                                            (ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp)
+                                                                const noexcept
+/*
+Generate a string for the specified associated function template trait.
+*/
+{
+  an_ifc_Trait_FunctionTemplate itft;
+
+  read_ifc_partition_at_index(ifc_trait_function_template, decl_index);
+  get_Trait_FunctionTemplate(&itft);
+  unexpected_condition_str("AssociatedTrait<FunctionTemplate>"
+                           " is not specified.");
+}  /* str_ifc_associated_trait<an_ifc_Trait_FunctionTemplate> */
+
+
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ClassTemplate>
+                                            (ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp)
+                                                                const noexcept
+/*
+Generate a string for the specified associated class template trait.
+*/
+{
+  an_ifc_Trait_ClassTemplate itct;
+
+  read_ifc_partition_at_index(ifc_trait_class_template, decl_index);
+  get_Trait_ClassTemplate(&itct);
+  unexpected_condition_str("AssociatedTrait<ClassTemplate> is not specified.");
+}  /* str_ifc_associated_trait<an_ifc_Trait_ClassTemplate> */
+
+
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_AliasTemplate>
+                                            (ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp)
+                                                                const noexcept
+/*
+Generate a string for the specified associated template alias trait.
+*/
+{
+  an_ifc_Trait_AliasTemplate itat;
+
+  read_ifc_partition_at_index(ifc_trait_alias_template, decl_index);
+  get_Trait_AliasTemplate(&itat);
+  unexpected_condition_str("AssociatedTrait<AliasTemplate> is not specified.");
+}  /* str_ifc_associated_trait<an_ifc_Trait_AliasTemplate> */
+
+
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_VariableTemplate>
+                                            (ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp)
+                                                                const noexcept
+/*
+Generate a string for the specified associated variable template trait.
+*/
+{
+  an_ifc_Trait_VariableTemplate itvt;
+
+  read_ifc_partition_at_index(ifc_trait_variable_template, decl_index);
+  get_Trait_VariableTemplate(&itvt);
+  unexpected_condition_str("AssociatedTrait<VariableTemplate>"
+                           " is not specified.");
+}  /* str_ifc_associated_trait<an_ifc_Trait_VariableTemplate> */
+
+
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcVendorTrait>
+                                            (ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp)
+                                                                const noexcept
+/*
+Generate a string for the specified associated MSVC Vendor trait.
+*/
+{
+  an_ifc_Trait_MsvcVendorTrait itmsvct;
+
+  read_ifc_partition_at_index(ifc_msvc_trait_vendor_traits, decl_index);
+  get_Trait_MsvcVendorTrait(&itmsvct);
+  str_ifc_msvc_traits(itmsvct.trait, scbp);
+}  /* str_ifc_associated_trait<an_ifc_Trait_MsvcVendorTrait> */
+
+
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcUuid>
+                                            (ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp)
+                                                                const noexcept
+/*
+Generate a string for the specified associated MSVC UUID trait.
+*/
+{
+  an_ifc_Trait_MsvcUuid itmsvcuuid;
+  char                  str[16];
+
+  read_ifc_partition_at_index(ifc_msvc_trait_uuid, decl_index);
+  get_Trait_MsvcUuid(&itmsvcuuid);
+  snprintf(str, sizeof(str), "%04x", itmsvcuuid.uuid);
+  add_string_to_text_buffer(scbp->text_buffer, str);
+}  /* str_ifc_associated_trait<an_ifc_Trait_MsvcUuid> */
+
+
+void an_ifc_module::str_ifc_syntax_node(ifc_SyntaxIndex     syntax_index,
+                                        a_str_control_block *scbp)
+                                                                 const noexcept
+/*
+Generate a string for the specified syntax tree node.
+*/
+{
+  ifc_SyntaxSort tag = syntax_tag(syntax_index);
+
+  read_ifc_partition_at_index(ifc_syntax_start + (ifc_SyntaxSort_type)tag,
+                              syntax_value(syntax_index));
+  switch (tag) {
+    case SyntaxSort(VendorExtension):
+      { an_ifc_SyntaxSort_VendorExtension issve;
+        get_SyntaxSort_VendorExtension(&issve);
+        unexpected_condition_str("SyntaxSort::VendorExtension"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(SimpleTypeSpecifier):
+      { an_ifc_SyntaxSort_SimpleTypeSpecifier isssts;
+        get_SyntaxSort_SimpleTypeSpecifier(&isssts);
+        unexpected_condition_str("SyntaxSort::SimpleTypeSpecifier"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(DecltypeSpecifier):
+      { an_ifc_SyntaxSort_DecltypeSpecifier issds;
+        get_SyntaxSort_DecltypeSpecifier(&issds);
+        unexpected_condition_str("SyntaxSort::DecltypeSpecifier"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(DecltypeAutoSpecifier):
+      { an_ifc_SyntaxSort_DecltypeAutoSpecifier issdas;
+        get_SyntaxSort_DecltypeAutoSpecifier(&issdas);
+        unexpected_condition_str("SyntaxSort::DecltypeAutoSpecifier"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(TypeSpecifierSeq):
+      { an_ifc_SyntaxSort_TypeSpecifierSeq isstss;
+        get_SyntaxSort_TypeSpecifierSeq(&isstss);
+        unexpected_condition_str("SyntaxSort::TypeSpecifierSeq"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(DeclSpecifierSeq):
+      { an_ifc_SyntaxSort_DeclSpecifierSeq issdss;
+        get_SyntaxSort_DeclSpecifierSeq(&issdss);
+        unexpected_condition_str("SyntaxSort::DeclSpecifierSeq"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(VirtualSpecifierSeq):
+      { an_ifc_SyntaxSort_VirtualSpecifierSeq issvss;
+        get_SyntaxSort_VirtualSpecifierSeq(&issvss);
+        unexpected_condition_str("SyntaxSort::VirtualSpecifierSeq"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(NoexceptSpecification):
+      { an_ifc_SyntaxSort_NoexceptSpecification issns;
+        get_SyntaxSort_NoexceptSpecification(&issns);
+        unexpected_condition_str("SyntaxSort::NoexceptSpecification"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(ExplicitSpecifier):
+      { an_ifc_SyntaxSort_ExplicitSpecifier isses;
+        get_SyntaxSort_ExplicitSpecifier(&isses);
+        unexpected_condition_str("SyntaxSort::ExplicitSpecifier"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(EnumSpecifier):
+      { an_ifc_SyntaxSort_EnumSpecifier isses;
+        get_SyntaxSort_EnumSpecifier(&isses);
+        unexpected_condition_str("SyntaxSort::EnumSpecifier"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(EnumeratorDefinition):
+      { an_ifc_SyntaxSort_EnumeratorDefinition issed;
+        get_SyntaxSort_EnumeratorDefinition(&issed);
+        unexpected_condition_str("SyntaxSort::EnumeratorDefinition"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(ClassSpecifier):
+      { an_ifc_SyntaxSort_ClassSpecifier isscs;
+        get_SyntaxSort_ClassSpecifier(&isscs);
+        unexpected_condition_str("SyntaxSort::ClassSpecifier"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(MemberSpecification):
+      { an_ifc_SyntaxSort_MemberSpecification issms;
+        get_SyntaxSort_MemberSpecification(&issms);
+        unexpected_condition_str("SyntaxSort::MemberSpecification"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(MemberDeclaration):
+      { an_ifc_SyntaxSort_MemberDeclaration issmd;
+        get_SyntaxSort_MemberDeclaration(&issmd);
+        unexpected_condition_str("SyntaxSort::MemberDeclaration"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(MemberDeclarator):
+      { an_ifc_SyntaxSort_MemberDeclarator issmd;
+        get_SyntaxSort_MemberDeclarator(&issmd);
+        unexpected_condition_str("SyntaxSort::MemberDeclarator"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(AccessSpecifier):
+      { an_ifc_SyntaxSort_AccessSpecifier issas;
+        get_SyntaxSort_AccessSpecifier(&issas);
+        unexpected_condition_str("SyntaxSort::AccessSpecifier"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(BaseSpecifierList):
+      { an_ifc_SyntaxSort_BaseSpecifierList issbsl;
+        get_SyntaxSort_BaseSpecifierList(&issbsl);
+        unexpected_condition_str("SyntaxSort::BaseSpecifierList"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(BaseSpecifier):
+      { an_ifc_SyntaxSort_BaseSpecifier issbs;
+        get_SyntaxSort_BaseSpecifier(&issbs);
+        unexpected_condition_str("SyntaxSort::BaseSpecifier"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(TypeId):
+      { an_ifc_SyntaxSort_TypeId isstid;
+        get_SyntaxSort_TypeId(&isstid);
+        unexpected_condition_str("SyntaxSort::TypeId"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(TrailingReturnType):
+      { an_ifc_SyntaxSort_TrailingReturnType isstrt;
+        get_SyntaxSort_TrailingReturnType(&isstrt);
+        unexpected_condition_str("SyntaxSort::TrailingReturnType"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(Declarator):
+      { an_ifc_SyntaxSort_Declarator issd;
+        get_SyntaxSort_Declarator(&issd);
+        unexpected_condition_str("SyntaxSort::Declarator"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(PointerDeclarator):
+      { an_ifc_SyntaxSort_PointerDeclarator isspd;
+        get_SyntaxSort_PointerDeclarator(&isspd);
+        unexpected_condition_str("SyntaxSort::PointerDeclarator"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(ArrayDeclarator):
+      { an_ifc_SyntaxSort_ArrayDeclarator issad;
+        get_SyntaxSort_ArrayDeclarator(&issad);
+        unexpected_condition_str("SyntaxSort::ArrayDeclarator"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(FunctionDeclarator):
+      { an_ifc_SyntaxSort_FunctionDeclarator issfd;
+        get_SyntaxSort_FunctionDeclarator(&issfd);
+        unexpected_condition_str("SyntaxSort::FunctionDeclarator"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(ArrayOrFunctionDeclarator):
+      { an_ifc_SyntaxSort_ArrayOrFunctionDeclarator issafd;
+        get_SyntaxSort_ArrayOrFunctionDeclarator(&issafd);
+        unexpected_condition_str("SyntaxSort::ArrayOrFunctionDeclarator"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(ParameterDeclarator):
+      { an_ifc_SyntaxSort_ParameterDeclarator isspd;
+        get_SyntaxSort_ParameterDeclarator(&isspd);
+        unexpected_condition_str("SyntaxSort::ParameterDeclarator"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(InitDeclarator):
+      { an_ifc_SyntaxSort_InitDeclarator issid;
+        get_SyntaxSort_InitDeclarator(&issid);
+        unexpected_condition_str("SyntaxSort::InitDeclarator"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(NewDeclarator):
+      { an_ifc_SyntaxSort_NewDeclarator issnd;
+        get_SyntaxSort_NewDeclarator(&issnd);
+        unexpected_condition_str("SyntaxSort::NewDeclarator"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(SimpleDeclaration):
+      { an_ifc_SyntaxSort_SimpleDeclaration isssd;
+        get_SyntaxSort_SimpleDeclaration(&isssd);
+        unexpected_condition_str("SyntaxSort::SimpleDeclaration"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(ExceptionDeclaration):
+      { an_ifc_SyntaxSort_ExceptionDeclaration issed;
+        get_SyntaxSort_ExceptionDeclaration(&issed);
+        unexpected_condition_str("SyntaxSort::ExceptionDeclaration"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(ConditionDeclaration):
+      { an_ifc_SyntaxSort_ConditionDeclaration isscd;
+        get_SyntaxSort_ConditionDeclaration(&isscd);
+        unexpected_condition_str("SyntaxSort::ConditionDeclaration"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(StaticAssertDeclaration):
+      { an_ifc_SyntaxSort_StaticAssertDeclaration isssad;
+        get_SyntaxSort_StaticAssertDeclaration(&isssad);
+        unexpected_condition_str("SyntaxSort::StaticAssertDeclaration"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(AliasDeclaration):
+      { an_ifc_SyntaxSort_AliasDeclaration issad;
+        get_SyntaxSort_AliasDeclaration(&issad);
+        unexpected_condition_str("SyntaxSort::AliasDeclaration"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(ConceptDefinition):
+      { an_ifc_SyntaxSort_ConceptDefinition isscd;
+        get_SyntaxSort_ConceptDefinition(&isscd);
+        unexpected_condition_str("SyntaxSort::ConceptDefinition"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(CompoundStatement):
+      { an_ifc_SyntaxSort_CompoundStatement isscs;
+        get_SyntaxSort_CompoundStatement(&isscs);
+        unexpected_condition_str("SyntaxSort::CompoundStatement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(ReturnStatement):
+      { an_ifc_SyntaxSort_ReturnStatement issrs;
+        get_SyntaxSort_ReturnStatement(&issrs);
+        unexpected_condition_str("SyntaxSort::ReturnStatement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(IfStatement):
+      { an_ifc_SyntaxSort_IfStatement issis;
+        get_SyntaxSort_IfStatement(&issis);
+        unexpected_condition_str("SyntaxSort::IfStatement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(WhileStatement):
+      { an_ifc_SyntaxSort_WhileStatement issws;
+        get_SyntaxSort_WhileStatement(&issws);
+        unexpected_condition_str("SyntaxSort::WhileStatement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(DoWhileStatement):
+      { an_ifc_SyntaxSort_DoWhileStatement issdws;
+        get_SyntaxSort_DoWhileStatement(&issdws);
+        unexpected_condition_str("SyntaxSort::DoWhileStatement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(ForStatement):
+      { an_ifc_SyntaxSort_ForStatement issfs;
+        get_SyntaxSort_ForStatement(&issfs);
+        unexpected_condition_str("SyntaxSort::ForStatement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(InitStatement):
+      { an_ifc_SyntaxSort_InitStatement issis;
+        get_SyntaxSort_InitStatement(&issis);
+        unexpected_condition_str("SyntaxSort::InitStatement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(RangeBasedForStatement):
+      { an_ifc_SyntaxSort_RangeBasedForStatement issrbfs;
+        get_SyntaxSort_RangeBasedForStatement(&issrbfs);
+        unexpected_condition_str("SyntaxSort::RangeBasedForStatement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(ForRangeDeclaration):
+      { an_ifc_SyntaxSort_ForRangeDeclaration issfrd;
+        get_SyntaxSort_ForRangeDeclaration(&issfrd);
+        unexpected_condition_str("SyntaxSort::ForRangeDeclaration"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(LabeledStatement):
+      { an_ifc_SyntaxSort_LabeledStatement issls;
+        get_SyntaxSort_LabeledStatement(&issls);
+        unexpected_condition_str("SyntaxSort::LabeledStatement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(BreakStatement):
+      { an_ifc_SyntaxSort_BreakStatement issbs;
+        get_SyntaxSort_BreakStatement(&issbs);
+        unexpected_condition_str("SyntaxSort::BreakStatement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(ContinueStatement):
+      { an_ifc_SyntaxSort_ContinueStatement isscs;
+        get_SyntaxSort_ContinueStatement(&isscs);
+        unexpected_condition_str("SyntaxSort::ContinueStatement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(SwitchStatement):
+      { an_ifc_SyntaxSort_SwitchStatement issss;
+        get_SyntaxSort_SwitchStatement(&issss);
+        unexpected_condition_str("SyntaxSort::SwitchStatement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(GotoStatement):
+      { an_ifc_SyntaxSort_GotoStatement issgs;
+        get_SyntaxSort_GotoStatement(&issgs);
+        unexpected_condition_str("SyntaxSort::GotoStatement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(DeclarationStatement):
+      { an_ifc_SyntaxSort_DeclarationStatement issds;
+        get_SyntaxSort_DeclarationStatement(&issds);
+        unexpected_condition_str("SyntaxSort::DeclarationStatement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(ExpressionStatement):
+      { an_ifc_SyntaxSort_ExpressionStatement isses;
+        get_SyntaxSort_ExpressionStatement(&isses);
+        unexpected_condition_str("SyntaxSort::ExpressionStatement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(TryBlock):
+      { an_ifc_SyntaxSort_TryBlock isstb;
+        get_SyntaxSort_TryBlock(&isstb);
+        unexpected_condition_str("SyntaxSort::TryBlock"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(Handler):
+      { an_ifc_SyntaxSort_Handler issh;
+        get_SyntaxSort_Handler(&issh);
+        unexpected_condition_str("SyntaxSort::Handler"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(HandlerSeq):
+      { an_ifc_SyntaxSort_HandlerSeq isshs;
+        get_SyntaxSort_HandlerSeq(&isshs);
+        unexpected_condition_str("SyntaxSort::HandlerSeq"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(FunctionTryBlock):
+      { an_ifc_SyntaxSort_FunctionTryBlock issftb;
+        get_SyntaxSort_FunctionTryBlock(&issftb);
+        unexpected_condition_str("SyntaxSort::FunctionTryBlock"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(TypeIdListElement):
+      { an_ifc_SyntaxSort_TypeIdListElement isstidle;
+        get_SyntaxSort_TypeIdListElement(&isstidle);
+        unexpected_condition_str("SyntaxSort::TypeIdListElement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(DynamicExceptionSpec):
+      { an_ifc_SyntaxSort_DynamicExceptionSpec issdes;
+        get_SyntaxSort_DynamicExceptionSpec(&issdes);
+        unexpected_condition_str("SyntaxSort::DynamicExceptionSpec"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(StatementSeq):
+      { an_ifc_SyntaxSort_StatementSeq issss;
+        get_SyntaxSort_StatementSeq(&issss);
+        unexpected_condition_str("SyntaxSort::StatementSeq"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(FunctionBody):
+      { an_ifc_SyntaxSort_FunctionBody issfb;
+        get_SyntaxSort_FunctionBody(&issfb);
+        unexpected_condition_str("SyntaxSort::FunctionBody"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(Expression):
+      { an_ifc_SyntaxSort_Expression isse;
+        get_SyntaxSort_Expression(&isse);
+        unexpected_condition_str("SyntaxSort::Expression"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(FunctionDefinition):
+      { an_ifc_SyntaxSort_FunctionDefinition issfd;
+        get_SyntaxSort_FunctionDefinition(&issfd);
+        unexpected_condition_str("SyntaxSort::FunctionDefinition"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(MemberFunctionDeclaration):
+      { an_ifc_SyntaxSort_MemberFunctionDeclaration issmfd;
+        get_SyntaxSort_MemberFunctionDeclaration(&issmfd);
+        unexpected_condition_str("SyntaxSort::MemberFunctionDeclaration"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(TemplateDeclaration):
+      { an_ifc_SyntaxSort_TemplateDeclaration isstd;
+        get_SyntaxSort_TemplateDeclaration(&isstd);
+        unexpected_condition_str("SyntaxSort::TemplateDeclaration"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(RequiresClause):
+      { an_ifc_SyntaxSort_RequiresClause issrc;
+        get_SyntaxSort_RequiresClause(&issrc);
+        unexpected_condition_str("SyntaxSort::RequiresClause"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(SimpleRequirement):
+      { an_ifc_SyntaxSort_SimpleRequirement isssr;
+        get_SyntaxSort_SimpleRequirement(&isssr);
+        unexpected_condition_str("SyntaxSort::SimpleRequirement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(TypeRequirement):
+      { an_ifc_SyntaxSort_TypeRequirement isstr;
+        get_SyntaxSort_TypeRequirement(&isstr);
+        unexpected_condition_str("SyntaxSort::TypeRequirement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(CompoundRequirement):
+      { an_ifc_SyntaxSort_CompoundRequirement isscr;
+        get_SyntaxSort_CompoundRequirement(&isscr);
+        unexpected_condition_str("SyntaxSort::CompoundRequirement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(NestedRequirement):
+      { an_ifc_SyntaxSort_NestedRequirement issnr;
+        get_SyntaxSort_NestedRequirement(&issnr);
+        unexpected_condition_str("SyntaxSort::NestedRequirement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(RequirementBody):
+      { an_ifc_SyntaxSort_RequirementBody issrb;
+        get_SyntaxSort_RequirementBody(&issrb);
+        unexpected_condition_str("SyntaxSort::RequirementBody"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(TypeTemplateParameter):
+      { an_ifc_SyntaxSort_TypeTemplateParameter issttp;
+        get_SyntaxSort_TypeTemplateParameter(&issttp);
+        unexpected_condition_str("SyntaxSort::TypeTemplateParameter"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(TemplateTemplateParameter):
+      { an_ifc_SyntaxSort_TemplateTemplateParameter issttp;
+        get_SyntaxSort_TemplateTemplateParameter(&issttp);
+        unexpected_condition_str("SyntaxSort::TemplateTemplateParameter"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(TypeTemplateArgument):
+      { an_ifc_SyntaxSort_TypeTemplateArgument isstta;
+        get_SyntaxSort_TypeTemplateArgument(&isstta);
+        unexpected_condition_str("SyntaxSort::TypeTemplateArgument"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(NonTypeTemplateArgument):
+      { an_ifc_SyntaxSort_NonTypeTemplateArgument issntta;
+        get_SyntaxSort_NonTypeTemplateArgument(&issntta);
+        unexpected_condition_str("SyntaxSort::NonTypeTemplateArgument"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(TemplateParameterList):
+      { an_ifc_SyntaxSort_TemplateParameterList isstpl;
+        get_SyntaxSort_TemplateParameterList(&isstpl);
+        unexpected_condition_str("SyntaxSort::TemplateParameterList"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(TemplateArgumentList):
+      { an_ifc_SyntaxSort_TemplateArgumentList isstal;
+        get_SyntaxSort_TemplateArgumentList(&isstal);
+        unexpected_condition_str("SyntaxSort::TemplateArgumentList"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(TemplateId):
+      { an_ifc_SyntaxSort_TemplateId isstid;
+        get_SyntaxSort_TemplateId(&isstid);
+        unexpected_condition_str("SyntaxSort::TemplateId"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(MemInitializer):
+      { an_ifc_SyntaxSort_MemInitializer issmi;
+        get_SyntaxSort_MemInitializer(&issmi);
+        unexpected_condition_str("SyntaxSort::MemInitializer"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(CtorInitializer):
+      { an_ifc_SyntaxSort_CtorInitializer issci;
+        get_SyntaxSort_CtorInitializer(&issci);
+        unexpected_condition_str("SyntaxSort::CtorInitializer"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(LambdaIntroducer):
+      { an_ifc_SyntaxSort_LambdaIntroducer issli;
+        get_SyntaxSort_LambdaIntroducer(&issli);
+        unexpected_condition_str("SyntaxSort::LambdaIntroducer"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(LambdaDeclarator):
+      { an_ifc_SyntaxSort_LambdaDeclarator issld;
+        get_SyntaxSort_LambdaDeclarator(&issld);
+        unexpected_condition_str("SyntaxSort::LambdaDeclarator"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(CaptureDefault):
+      { an_ifc_SyntaxSort_CaptureDefault isscd;
+        get_SyntaxSort_CaptureDefault(&isscd);
+        unexpected_condition_str("SyntaxSort::CaptureDefault"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(SimpleCapture):
+      { an_ifc_SyntaxSort_SimpleCapture isssc;
+        get_SyntaxSort_SimpleCapture(&isssc);
+        unexpected_condition_str("SyntaxSort::SimpleCapture"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(InitCapture):
+      { an_ifc_SyntaxSort_InitCapture issic;
+        get_SyntaxSort_InitCapture(&issic);
+        unexpected_condition_str("SyntaxSort::InitCapture"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(ThisCapture):
+      { an_ifc_SyntaxSort_ThisCapture isstc;
+        get_SyntaxSort_ThisCapture(&isstc);
+        unexpected_condition_str("SyntaxSort::ThisCapture"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(AttributedStatement):
+      { an_ifc_SyntaxSort_AttributedStatement issas;
+        get_SyntaxSort_AttributedStatement(&issas);
+        unexpected_condition_str("SyntaxSort::AttributedStatement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(AttributedDeclaration):
+      { an_ifc_SyntaxSort_AttributedDeclaration issad;
+        get_SyntaxSort_AttributedDeclaration(&issad);
+        unexpected_condition_str("SyntaxSort::AttributedDeclaration"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(AttributeSpecifierSeq):
+      { an_ifc_SyntaxSort_AttributeSpecifierSeq issass;
+        get_SyntaxSort_AttributeSpecifierSeq(&issass);
+        unexpected_condition_str("SyntaxSort::AttributeSpecifierSeq"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(AttributeSpecifier):
+      { an_ifc_SyntaxSort_AttributeSpecifier issas;
+        get_SyntaxSort_AttributeSpecifier(&issas);
+        unexpected_condition_str("SyntaxSort::AttributeSpecifier"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(AttributeUsingPrefix):
+      { an_ifc_SyntaxSort_AttributeUsingPrefix issaup;
+        get_SyntaxSort_AttributeUsingPrefix(&issaup);
+        unexpected_condition_str("SyntaxSort::AttributeUsingPrefix"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(Attribute):
+      { an_ifc_SyntaxSort_Attribute issa;
+        get_SyntaxSort_Attribute(&issa);
+        unexpected_condition_str("SyntaxSort::Attribute"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(AttributeArgumentClause):
+      { an_ifc_SyntaxSort_AttributeArgumentClause issaac;
+        get_SyntaxSort_AttributeArgumentClause(&issaac);
+        unexpected_condition_str("SyntaxSort::AttributeArgumentClause"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(Alignas):
+      { an_ifc_SyntaxSort_Alignas issa;
+        get_SyntaxSort_Alignas(&issa);
+        unexpected_condition_str("SyntaxSort::Alignas"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(UsingDeclaration):
+      { an_ifc_SyntaxSort_UsingDeclaration issud;
+        get_SyntaxSort_UsingDeclaration(&issud);
+        unexpected_condition_str("SyntaxSort::UsingDeclaration"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(UsingDeclarator):
+      { an_ifc_SyntaxSort_UsingDeclarator issud;
+        get_SyntaxSort_UsingDeclarator(&issud);
+        unexpected_condition_str("SyntaxSort::UsingDeclarator"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(UsingDirective):
+      { an_ifc_SyntaxSort_UsingDirective issud;
+        get_SyntaxSort_UsingDirective(&issud);
+        unexpected_condition_str("SyntaxSort::UsingDirective"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(ArrayIndex):
+      { an_ifc_SyntaxSort_ArrayIndex issai;
+        get_SyntaxSort_ArrayIndex(&issai);
+        unexpected_condition_str("SyntaxSort::ArrayIndex"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(SEHTry):
+      { an_ifc_SyntaxSort_SEHTry issseht;
+        get_SyntaxSort_SEHTry(&issseht);
+        unexpected_condition_str("SyntaxSort::SEHTry"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(SEHExcept):
+      { an_ifc_SyntaxSort_SEHExcept isssehe;
+        get_SyntaxSort_SEHExcept(&isssehe);
+        unexpected_condition_str("SyntaxSort::SEHExcept"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(SEHFinally):
+      { an_ifc_SyntaxSort_SEHFinally isssehf;
+        get_SyntaxSort_SEHFinally(&isssehf);
+        unexpected_condition_str("SyntaxSort:: is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(SEHLeave):
+      { an_ifc_SyntaxSort_SEHLeave isssehl;
+        get_SyntaxSort_SEHLeave(&isssehl);
+        unexpected_condition_str("SyntaxSort::SEHLeave"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(TypeTraitIntrinsic):
+      { an_ifc_SyntaxSort_TypeTraitIntrinsic isstti;
+        get_SyntaxSort_TypeTraitIntrinsic(&isstti);
+        unexpected_condition_str("SyntaxSort::TypeTraitIntrinsic"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(Tuple):
+      { an_ifc_SyntaxSort_Tuple isst;
+        get_SyntaxSort_Tuple(&isst);
+        unexpected_condition_str("SyntaxSort::Tuple"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(AsmStatement):
+      { an_ifc_SyntaxSort_AsmStatement issas;
+        get_SyntaxSort_AsmStatement(&issas);
+        unexpected_condition_str("SyntaxSort::AsmStatement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(NamespaceAliasDefinition):
+      { an_ifc_SyntaxSort_NamespaceAliasDefinition issnad;
+        get_SyntaxSort_NamespaceAliasDefinition(&issnad);
+        unexpected_condition_str("SyntaxSort::NamespaceAliasDefinition"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(Super):
+      { an_ifc_SyntaxSort_Super isss;
+        get_SyntaxSort_Super(&isss);
+        unexpected_condition_str("SyntaxSort::Super"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(UnaryFoldExpression):
+      { an_ifc_SyntaxSort_UnaryFoldExpression issufe;
+        get_SyntaxSort_UnaryFoldExpression(&issufe);
+        unexpected_condition_str("SyntaxSort::UnaryFoldExpression"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(BinaryFoldExpression):
+      { an_ifc_SyntaxSort_BinaryFoldExpression issbfe;
+        get_SyntaxSort_BinaryFoldExpression(&issbfe);
+        unexpected_condition_str("SyntaxSort::BinaryFoldExpression"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(EmptyStatement):
+      { an_ifc_SyntaxSort_EmptyStatement isses;
+        get_SyntaxSort_EmptyStatement(&isses);
+        unexpected_condition_str("SyntaxSort::EmptyStatement"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(StructuredBindingDeclaration):
+      { an_ifc_SyntaxSort_StructuredBindingDeclaration isssbd;
+        get_SyntaxSort_StructuredBindingDeclaration(&isssbd);
+        unexpected_condition_str("SyntaxSort::StructuredBindingDeclaration"
+                                 " is currently unspecified.");
+      }
+      break;
+    case SyntaxSort(StructuredBindingIdentifier):
+      { an_ifc_SyntaxSort_StructuredBindingIdentifier isssbi;
+        get_SyntaxSort_StructuredBindingIdentifier(&isssbi);
+        unexpected_condition_str("SyntaxSort::StructuredBindingIdentifier"
+                                 " is currently unspecified.");
+      }
+      break;
+    default:
+      unexpected_condition_str("Unexpected syntax sort");
+      break;
+  }  /* switch */
+}  /* str_ifc_syntax_node */
+
+
+void an_ifc_module::str_ifc_sentence(ifc_SentenceIndex   sentence_index,
+                                     a_str_control_block *scbp) const noexcept
+/*
+Generate a string for the specified sentence.
+*/
+{
+  an_ifc_Sentence is;
+
+  read_ifc_partition_at_index(ifc_sentence, sentence_index);
+  get_Sentence(&is);
+  unexpected_condition_str("IFC Sentences currently unspecified.");
+}  /* str_ifc_sentence*/
+
+
+void an_ifc_module::str_ifc_word(ifc_WordIndex       word_index,
+                                 a_str_control_block *scbp) const noexcept
+/*
+Generate a string for the specified sentence.
+*/
+{
+  an_ifc_Word iw;
+
+  read_ifc_partition_at_index(ifc_word, word_index);
+  get_Word(&iw);
+  unexpected_condition_str("IFC Words currently unspecified.");
+}  /* str_ifc_word */
+
+
 #if DEBUG
 
 void an_ifc_module::db_ifc_file_header() const noexcept
@@ -3438,7 +5097,7 @@ Display the contents of the IFC file header for the specified module.
   (void)fprintf(f_debug, "  major_version = %d\n", header.major_version);
   (void)fprintf(f_debug, "  minor_version = %d\n", header.minor_version);
   (void)fprintf(f_debug, "  abi = %d\n", header.abi);
-  (void)fprintf(f_debug, "  arch = %d\n", header.arch);
+  (void)fprintf(f_debug, "  arch = %d\n", (ifc_Architecture_type)header.arch);
   (void)fprintf(f_debug, "  dialect = %d\n", header.dialect);
   (void)fprintf(f_debug, "  string_table_bytes = 0x%08x\n",
                                                     header.string_table_bytes);

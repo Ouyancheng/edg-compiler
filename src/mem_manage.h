@@ -370,6 +370,8 @@ Add the specified string to a text buffer.
 */
 #define add_string_to_text_buffer(buffer, string)			\
   (add_to_text_buffer(buffer, string, (sizeof_t)(strlen(string))))
+#define add_string_with_length_to_text_buffer(buffer, string, len)	\
+  (add_to_text_buffer(buffer, string, (sizeof_t)(len)))
 
 /*
 Make sure that the specified buffer has at least "length" total bytes in it.
