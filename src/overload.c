@@ -7523,7 +7523,7 @@ apply that would make one better than the other, and return
                            arg_match2->conversion.std.num_elements_initialized;
       if (!identical_types(elem_type1, elem_type2)) {
         /* No tiebreaker if the underlying types are different. */
-      } if (num_elem1 != num_elem2) {
+      } else if (num_elem1 != num_elem2) {
       /* C++14 [over.ics.rank] added a case where L1 and L2 both convert to
          arrays of N1 and N2 T.  L1 is a better match if N1 is smaller than
          N2. */

@@ -17261,9 +17261,9 @@ value produced by std::is_constant_evaluated().
                                          &ips, result_storage, result_storage,
                                          result_type, result_con)) {
         do_constexpr_fail(result);
-      } if (dip->destructor != NULL &&
-            !do_constexpr_dtor(&ips, dip->destructor, pos,
-                               result_storage, result_storage)) {
+      } else if (dip->destructor != NULL &&
+                 !do_constexpr_dtor(&ips, dip->destructor, pos,
+                                    result_storage, result_storage)) {
         do_constexpr_fail(result);
       } else if (ips.dyn_allocations != NULL) {
         /* Leftover dynamic allocations are always invalid in this case. */

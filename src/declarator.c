@@ -3163,7 +3163,7 @@ an error if a default argument expression is encountered.
                 an_error_severity  sev = es_warning;
                 if (qualified_void) {
                   sev = es_error;
-                } if (strict_ansi_mode) {
+                } else if (strict_ansi_mode) {
                   sev = strict_ansi_discretionary_severity;
                 }  /* if */
                 pos_diagnostic(sev, ec_nonstd_void_param_list,
