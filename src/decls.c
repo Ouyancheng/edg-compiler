@@ -19208,8 +19208,10 @@ processing should proceed after the call.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
-  if (!any_decls_seen_this_stage) any_decls_seen_this_stage = TRUE;
-  if (tu_stage_is(tud_none)) set_tu_stage(tud_basic_tu);
+  if (!scanning_generated_code) {
+    if (!any_decls_seen_this_stage) any_decls_seen_this_stage = TRUE;
+    if (tu_stage_is(tud_none)) set_tu_stage(tud_basic_tu);
+  }  /* if */
   if (end_of_decl_action != eoda_not_at_end) {
     /* Nothing more to do in this routine. */
   } else if (curr_token == tok_asm || curr_token == tok_microsoft_asm) {

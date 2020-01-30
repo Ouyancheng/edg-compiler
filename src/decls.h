@@ -21,7 +21,7 @@ decls.h -- Declarations related to decls.c (having to do with scanning
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-enum class a_tu_decl_stage {
+enum a_tu_decl_stage {
   tud_none,			/* No declarations of any kind have been seen
 				   for this translation unit. */
   tud_basic_tu,			/* The translation unit doesn't fall into any
@@ -39,10 +39,10 @@ EXTERN a_tu_decl_stage tu_stage;
 EXTERN a_boolean       any_decls_seen_this_stage;
 
 #define tu_stage_is(stage)                                                    \
-  (tu_stage == a_tu_decl_stage::stage)
+  (tu_stage == stage)
 
 #define set_tu_stage(stage)                                                   \
-  tu_stage = a_tu_decl_stage::stage;                                          \
+  tu_stage = stage;                                                           \
   any_decls_seen_this_stage = FALSE /* User-provided semi-colon. */
 
 /*

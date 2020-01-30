@@ -3658,13 +3658,6 @@ default mode (e.g., exception handling).
           modules_enabled = TRUE;
         }  /* if */
         export_keyword_enabled = FALSE;
-        if (export_template_allowed) {
-          /* This should not be enabled unless someone explicitly enabled it
-             via the command line. */
-          check_assertion(option_kind_used[(int)optk_export_template]);
-          command_line_error(
-                       ec_cl_export_template_option_incompatible_with_modules);
-        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -9642,6 +9635,15 @@ Process the arguments on the command line that invoked the compiler.
       case optk_modules:
         /* Enable/disable support for modules. */
         modules_enabled = opt_value;
+        if (modules_enabled) {
+          if (!option_kind_used[(int)optk_export_template]) {
+            /* These are mutually exclusive.  If exported templates was enabled
+               via the command line, don't change the value - an error will be
+               issued later. */
+            export_template_allowed = FALSE;
+          }  /* if */
+          export_keyword_enabled = FALSE;
+        }  /* if */
         break;
       case optk_preinclude:
       case optk_preinclude_macros:
@@ -10829,6 +10831,12 @@ enable_microsoft_mode:
     implicit_template_inclusion_mode = FALSE;
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
     do_dependent_name_processing = TRUE;
+    if (modules_enabled) {
+      /* This should not be enabled unless someone explicitly enabled it via
+         the command line. */
+      check_assertion(option_kind_used[(int)optk_export_template]);
+      command_line_error(ec_cl_export_template_option_incompatible_with_modules);
+    }  /* if */
   }  /* if */
   if (trans_unit_test_mode) {
     /* Exported templates cannot be used in trans_unit_test mode.  Turn
