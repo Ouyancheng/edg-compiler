@@ -1,5 +1,20 @@
 Version 6.1
 
+1/30/20  [EDGcpfe/22271]
+Missing "else" in code intended to be "} else if"
+
+In three front end source files (declarator.c, interpret.c, and overload.c),
+a pattern of the form:
+
+  if (cond1) {
+    ...
+  } if (cond2) {
+    ...
+
+occurred.  In all cases, an "else" was missing following the closing brace.
+That is now fixed.
+
+
 1/27/20  [EDGcpfe/22148]
 Invalid pointer access via scan_expression_list_context_expr
 
