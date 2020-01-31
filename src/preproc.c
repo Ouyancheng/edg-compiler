@@ -3269,8 +3269,9 @@ Allocate and return a GCC pragma options entry.
     ++num_gcc_pragma_options_stack_entries_allocated;
 #endif /* DEBUG */
     gpoep = alloc_fe_of_type(a_gcc_pragma_options_entry);
-    gpoep->target_pragma_attribute = NULL;
   }  /* if */
+  gpoep->next = NULL;
+  gpoep->target_pragma_attribute = NULL;
   return gpoep;
 }  /* alloc_gcc_pragma_options_entry */
 

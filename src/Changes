@@ -1,5 +1,14 @@
 Version 6.1
 
+1/31/20  [EDGcpfe/22276]
+Potential reference through uninitialized pointer
+
+The alloc_gcc_pragma_options_entry function returns a pointer to a
+a_gcc_pragma_options_entry data structure, but the "next" pointer in that
+data structure is not initialized, potentially leading to undefined behavior.
+This issue could appear during processing of the "GCC" #pragma.
+
+
 1/30/20  [EDGcpfe/22271]
 Missing "else" in code intended to be "} else if"
 
