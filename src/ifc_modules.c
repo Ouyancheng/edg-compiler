@@ -510,7 +510,7 @@ FIXME: may want to store mmap_addr + string_table_bytes somewhere
 */
 #if EXPENSIVE_CHECKING
 #define verify_offset(offset) \
-  (check_assertion((offset) < header.string_table_size)),
+  (check_assertion((ifc_Cardinality)(offset) < header.string_table_size)),
 #else /* !EXPENSIVE_CHECKING */
 #define verify_offset(mod, offset) /**/
 #endif /* EXPENSIVE_CHECKING */
@@ -529,39 +529,39 @@ Return a string with the name that corresponds to the DeclSort tag.
   a_const_char *result;
 
   switch (tag) {
-    case DeclSort(VendorExtension):   result = "VendorExtension"; break;
-    case DeclSort(Enumerator):        result = "Enumerator"; break;
-    case DeclSort(Variable):          result = "Variable"; break;
-    case DeclSort(Parameter):         result = "Parameter"; break;
-    case DeclSort(Field):             result = "Field"; break;
-    case DeclSort(Bitfield):          result = "Bitfield"; break;
-    case DeclSort(Scope):             result = "Scope"; break;
-    case DeclSort(Enumeration):       result = "Enumeration"; break;
-    case DeclSort(Alias):             result = "Alias"; break;
-    case DeclSort(Temploid):          result = "Temploid"; break;
-    case DeclSort(Template):          result = "Template"; break;
-    case DeclSort(PartialSpecialization):
+    case ifc_DeclSort_VendorExtension:  result = "VendorExtension"; break;
+    case ifc_DeclSort_Enumerator:       result = "Enumerator"; break;
+    case ifc_DeclSort_Variable:         result = "Variable"; break;
+    case ifc_DeclSort_Parameter:        result = "Parameter"; break;
+    case ifc_DeclSort_Field:            result = "Field"; break;
+    case ifc_DeclSort_Bitfield:         result = "Bitfield"; break;
+    case ifc_DeclSort_Scope:            result = "Scope"; break;
+    case ifc_DeclSort_Enumeration:      result = "Enumeration"; break;
+    case ifc_DeclSort_Alias:            result = "Alias"; break;
+    case ifc_DeclSort_Temploid:         result = "Temploid"; break;
+    case ifc_DeclSort_Template:         result = "Template"; break;
+    case ifc_DeclSort_PartialSpecialization:
                                        result = "PartialSpecialization"; break;
-    case DeclSort(ExplicitSpecialization):
+    case ifc_DeclSort_ExplicitSpecialization:
                                        result = "ExplicitSpecialization";break;
-    case DeclSort(ExplicitInstantiation):
+    case ifc_DeclSort_ExplicitInstantiation:
                                        result = "ExplicitInstantiation"; break;
-    case DeclSort(Concept):           result = "Concept"; break;
-    case DeclSort(Intrinsic):         result = "Intrinsic"; break;
-    case DeclSort(Function):          result = "Function"; break;
-    case DeclSort(Method):            result = "Method"; break;
-    case DeclSort(Constructor):       result = "Constructor"; break;
-    case DeclSort(InheritedConstructor):
+    case ifc_DeclSort_Concept:          result = "Concept"; break;
+    case ifc_DeclSort_Intrinsic:        result = "Intrinsic"; break;
+    case ifc_DeclSort_Function:         result = "Function"; break;
+    case ifc_DeclSort_Method:           result = "Method"; break;
+    case ifc_DeclSort_Constructor:      result = "Constructor"; break;
+    case ifc_DeclSort_InheritedConstructor:
                                         result = "InheritedConstructor"; break;
-    case DeclSort(Destructor):        result = "Destructor"; break;
-    case DeclSort(Reference):         result = "Reference"; break;
-    case DeclSort(Property):          result = "Property"; break;
-    case DeclSort(OutputSegment):     result = "OutputSegment"; break;
-    case DeclSort(UsingDeclaration):  result = "UsingDeclaration"; break;
-    case DeclSort(UsingDirective):    result = "UsingDirective"; break;
-    case DeclSort(Friend):            result = "Friend"; break;
-    case DeclSort(SyntaxTree):        result = "SyntaxTree"; break;
-    case DeclSort(Tuple):             result = "Tuple"; break;
+    case ifc_DeclSort_Destructor:       result = "Destructor"; break;
+    case ifc_DeclSort_Reference:        result = "Reference"; break;
+    case ifc_DeclSort_Property:         result = "Property"; break;
+    case ifc_DeclSort_OutputSegment:    result = "OutputSegment"; break;
+    case ifc_DeclSort_UsingDeclaration: result = "UsingDeclaration"; break;
+    case ifc_DeclSort_UsingDirective:   result = "UsingDirective"; break;
+    case ifc_DeclSort_Friend:           result = "Friend"; break;
+    case ifc_DeclSort_SyntaxTree:       result = "SyntaxTree"; break;
+    case ifc_DeclSort_Tuple:            result = "Tuple"; break;
     default:
       unexpected_condition();
   }  /* switch */
@@ -601,72 +601,71 @@ Map an IFC OperatorCategory to an_opname_kind.
 
   /* FIXME: Note that some of these get mapped to the same entry. */
   switch (category) {
-    case OperatorCategory(Bitand):          op = onk_ampersand; break;
-    case OperatorCategory(LogicAnd):        op = onk_and_and; break;
-    case OperatorCategory(Assign):          op = onk_assign; break;
-    case OperatorCategory(Comma):           op = onk_comma; break;
-    case OperatorCategory(Not):             op = onk_not; break;
-    case OperatorCategory(Minus):           op = onk_minus; break;
-    case OperatorCategory(Star):            op = onk_star; break;
-    case OperatorCategory(Bitor):           op = onk_or; break;
-    case OperatorCategory(LogicOr):         op = onk_or_or; break;
-    case OperatorCategory(Plus):            op = onk_plus; break;
-    case OperatorCategory(Quest):           op = onk_question; break;
-    case OperatorCategory(Complement):      op = onk_compl; break;
-    case OperatorCategory(Caret):           op = onk_excl_or; break;
-    case OperatorCategory(Slash):           op = onk_divide; break;
-    case OperatorCategory(Modulo):          op = onk_remainder; break;
-    case OperatorCategory(New):             op = onk_new; break;
-    case OperatorCategory(Delete):          op = onk_delete; break;
-    case OperatorCategory(IndirectMemberAccess):
+    case ifc_OperatorCategory_Bitand:       op = onk_ampersand; break;
+    case ifc_OperatorCategory_LogicAnd:     op = onk_and_and; break;
+    case ifc_OperatorCategory_Assign:       op = onk_assign; break;
+    case ifc_OperatorCategory_Comma:        op = onk_comma; break;
+    case ifc_OperatorCategory_Not:          op = onk_not; break;
+    case ifc_OperatorCategory_Minus:        op = onk_minus; break;
+    case ifc_OperatorCategory_Star:         op = onk_star; break;
+    case ifc_OperatorCategory_Bitor:        op = onk_or; break;
+    case ifc_OperatorCategory_LogicOr:      op = onk_or_or; break;
+    case ifc_OperatorCategory_Plus:         op = onk_plus; break;
+    case ifc_OperatorCategory_Quest:        op = onk_question; break;
+    case ifc_OperatorCategory_Complement:   op = onk_compl; break;
+    case ifc_OperatorCategory_Caret:        op = onk_excl_or; break;
+    case ifc_OperatorCategory_Slash:        op = onk_divide; break;
+    case ifc_OperatorCategory_Modulo:       op = onk_remainder; break;
+    case ifc_OperatorCategory_New:          op = onk_new; break;
+    case ifc_OperatorCategory_Delete:       op = onk_delete; break;
+    case ifc_OperatorCategory_IndirectMemberAccess:
                                             op = onk_arrow_star; break;
-    case OperatorCategory(PostIncrement):   op = onk_plus_plus; break;
-    case OperatorCategory(PostDecrement):   op = onk_minus_minus; break;
-    case OperatorCategory(SlashEq):         op = onk_divide_assign; break;
-    case OperatorCategory(EqEq):            op = onk_eq; break;
-    case OperatorCategory(NotEq):           op = onk_ne; break;
-    case OperatorCategory(Greater):         op = onk_gt; break;
-    case OperatorCategory(GreaterEq):       op = onk_ge; break;
-    case OperatorCategory(Less):            op = onk_lt; break;
-    case OperatorCategory(LessEq):          op = onk_le; break;
-    case OperatorCategory(Spaceship):       op = onk_spaceship; break;
-    case OperatorCategory(LshiftEq):        op = onk_shift_left_assign; break;
-    case OperatorCategory(RshiftEq):        op = onk_shift_right_assign; break;
-    case OperatorCategory(MinusEq):         op = onk_minus_assign; break;
-    case OperatorCategory(ModuloEq):        op = onk_remainder_assign; break;
-    case OperatorCategory(StarEq):          op = onk_times_assign; break;
-    case OperatorCategory(BitorEq):         op = onk_or_assign; break;
-    case OperatorCategory(PlusEq):          op = onk_plus_assign; break;
-    case OperatorCategory(BitandEq):        op = onk_and_assign; break;
-    case OperatorCategory(BitxorEq):        op = onk_excl_or_assign; break;
-    case OperatorCategory(Lshift):          op = onk_shift_left; break;
-    case OperatorCategory(Rshift):          op = onk_shift_right; break;
-    case OperatorCategory(Arrow):           op = onk_arrow; break;
-    case OperatorCategory(PreDecrement):    op = onk_minus_minus; break;
-    case OperatorCategory(PreIncrement):    op = onk_plus_plus; break;
-    case OperatorCategory(UnaryMinus):      op = onk_minus; break;
-    case OperatorCategory(Address):         op = onk_ampersand; break;
-    case OperatorCategory(UnaryPlus):       op = onk_plus; break;
+    case ifc_OperatorCategory_PostIncrement:op = onk_plus_plus; break;
+    case ifc_OperatorCategory_PostDecrement:op = onk_minus_minus; break;
+    case ifc_OperatorCategory_SlashEq:      op = onk_divide_assign; break;
+    case ifc_OperatorCategory_EqEq:         op = onk_eq; break;
+    case ifc_OperatorCategory_NotEq:        op = onk_ne; break;
+    case ifc_OperatorCategory_Greater:      op = onk_gt; break;
+    case ifc_OperatorCategory_GreaterEq:    op = onk_ge; break;
+    case ifc_OperatorCategory_Less:         op = onk_lt; break;
+    case ifc_OperatorCategory_LessEq:       op = onk_le; break;
+    case ifc_OperatorCategory_Spaceship:    op = onk_spaceship; break;
+    case ifc_OperatorCategory_LshiftEq:     op = onk_shift_left_assign; break;
+    case ifc_OperatorCategory_RshiftEq:     op = onk_shift_right_assign; break;
+    case ifc_OperatorCategory_MinusEq:      op = onk_minus_assign; break;
+    case ifc_OperatorCategory_ModuloEq:     op = onk_remainder_assign; break;
+    case ifc_OperatorCategory_StarEq:       op = onk_times_assign; break;
+    case ifc_OperatorCategory_BitorEq:      op = onk_or_assign; break;
+    case ifc_OperatorCategory_PlusEq:       op = onk_plus_assign; break;
+    case ifc_OperatorCategory_BitandEq:     op = onk_and_assign; break;
+    case ifc_OperatorCategory_BitxorEq:     op = onk_excl_or_assign; break;
+    case ifc_OperatorCategory_Lshift:       op = onk_shift_left; break;
+    case ifc_OperatorCategory_Rshift:       op = onk_shift_right; break;
+    case ifc_OperatorCategory_Arrow:        op = onk_arrow; break;
+    case ifc_OperatorCategory_PreDecrement: op = onk_minus_minus; break;
+    case ifc_OperatorCategory_PreIncrement: op = onk_plus_plus; break;
+    case ifc_OperatorCategory_UnaryMinus:   op = onk_minus; break;
+    case ifc_OperatorCategory_Address:      op = onk_ampersand; break;
+    case ifc_OperatorCategory_UnaryPlus:    op = onk_plus; break;
 
-    /* These don't have direct mappings: */
-    case OperatorCategory(Percent):              /*    operator% */
-    case OperatorCategory(Sizeof):               /*    operator sizeof */
-    case OperatorCategory(ExpandingSizeof):      /*    operator sizeof... */
-    case OperatorCategory(Throw):                /*    operator throw */
-    case OperatorCategory(Alignof):              /*    operator alignof */
-    case OperatorCategory(Noexcept):             /*    operator noexcept */
-    case OperatorCategory(Requires):             /*    operator requires */
-    case OperatorCategory(Coreturn):             /*    operator co_return */
-    case OperatorCategory(Await):                /*    operator co_yield */
-    case OperatorCategory(Yield):                /*    operator co_yield */
-    case OperatorCategory(StaticAssert):         /*    operator static_assert*/
-    case OperatorCategory(Dot):                  /*    operator. */
-    case OperatorCategory(DerefMemberAccess):    /*    operator.* */
+    /* These don't have direct mappings:*/
+    case ifc_OperatorCategory_Percent:           /*    operator% */
+    case ifc_OperatorCategory_Sizeof:            /*    operator sizeof */
+    case ifc_OperatorCategory_ExpandingSizeof:   /*    operator sizeof... */
+    case ifc_OperatorCategory_Throw:             /*    operator throw */
+    case ifc_OperatorCategory_Alignof:           /*    operator alignof */
+    case ifc_OperatorCategory_Noexcept:          /*    operator noexcept */
+    case ifc_OperatorCategory_Requires:          /*    operator requires */
+    case ifc_OperatorCategory_Coreturn:          /*    operator co_return */
+    case ifc_OperatorCategory_Await:             /*    operator co_yield */
+    case ifc_OperatorCategory_Yield:             /*    operator co_yield */
+    case ifc_OperatorCategory_StaticAssert:      /*    operator static_assert*/
+    case ifc_OperatorCategory_Dot:               /*    operator. */
+    case ifc_OperatorCategory_DerefMemberAccess: /*    operator.* */
     default:
 #if DEBUG
       if (db_flag_is_set("ms_ignore")) {
-        (void)fprintf(f_debug, "Unsupported operation: %d\n",
-                      (ifc_OperatorCategory_type)category);
+        (void)fprintf(f_debug, "Unsupported operation: %d\n", category);
       }  /* if */
 #endif /* DEBUG */
       unexpected_condition();
@@ -908,10 +907,11 @@ constants for that type).
     tag = (ifc_DeclSort)get_tag_from_partition(mep->variant.ifc_partition,
                                                ifc_decl_start);
     switch (tag) {
-      case DeclSort(Variable):
+      case ifc_DeclSort_Variable:
         { an_ifc_DeclSort_Variable idsv, *idsvp;
           idsvp = get_DeclSort_Variable(&idsv);
-          init_locator_from_name(idsvp->name, 0, &idsvp->locus, &loc);
+          init_locator_from_name(idsvp->name, (ifc_TextOffset)0, &idsvp->locus,
+                                 &loc);
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
@@ -939,12 +939,13 @@ constants for that type).
           }  /* if */
         }
         break;
-      case DeclSort(Function):
+      case ifc_DeclSort_Function:
         { a_func_info_block        func_info;
           a_type_ptr               old_type;
           an_ifc_DeclSort_Function idsf, *idsfp;
           idsfp = get_DeclSort_Function(&idsf);
-          init_locator_from_name(idsfp->name, 0, &idsfp->locus, &loc);
+          init_locator_from_name(idsfp->name, (ifc_TextOffset)0, &idsfp->locus,
+                                 &loc);
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
@@ -964,19 +965,20 @@ constants for that type).
           }  /* if */
         }
         break;
-      case DeclSort(Intrinsic):
+      case ifc_DeclSort_Intrinsic:
         /* A builtin function declaration. */
         { a_func_info_block        func_info;
           a_type_ptr               old_type;
           a_routine_ptr            rp;
           an_ifc_DeclSort_Intrinsic idsi, *idsip;
           idsip = get_DeclSort_Intrinsic(&idsi);
-          init_locator_from_name(0, idsip->name, &idsip->locus, &loc);
+          init_locator_from_name((ifc_NameIndex)0, idsip->name, &idsip->locus,
+                                 &loc);
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
             /* FIXME: lots more to do here (just copied
-               DeclSort(Function)).*/
+               ifc_DeclSort_Function).*/
             init_dps(&dps, &idsip->locus, idsip->type, (ifc_Alignment)0,
                      ifc_ObjectTraits_None, ifc_MsvcTraits_None,
                      idsip->specifiers, idsip->access, &psss);
@@ -991,27 +993,28 @@ constants for that type).
           }  /* if */
         }
         break;
-      case DeclSort(Scope):
+      case ifc_DeclSort_Scope:
         /* A DeclSort::Scope, which indicates a namespace or a
            class/struct/union.  Note that although these declare "scopes",
            the IL entity that is attached to them is either a namespace or
            a type. */
-        { an_ifc_DeclSort_Scope idss, *idssp;
+        { an_ifc_DeclSort_Scope       idss, *idssp;
           an_ifc_TypeSort_Fundamental itsf, *itsfp;
           a_type_kind                 type_kind;
           a_symbol_kind               tag_kind;
           idssp = get_DeclSort_Scope(&idss);
           /* Should be no unnamed namespaces or types. */
           check_assertion(idssp->name != 0);
-          init_locator_from_name(idssp->name, 0, &idssp->locus, &loc);
+          init_locator_from_name(idssp->name, (ifc_TextOffset)0, &idssp->locus,
+                                 &loc);
           /* Look at the "type" to determine whether we have a namespace or
              not. */
-          check_assertion(type_tag(idssp->type) == TypeSort(Fundamental));
+          check_assertion(type_tag(idssp->type) == ifc_TypeSort_Fundamental);
           read_ifc_partition_at_index(ifc_type_fundamental,
                                       type_value(idssp->type));
           itsfp = get_TypeSort_Fundamental(&itsf);
           switch (itsfp->basis) {
-            case TypeBasis(Namespace):
+            case ifc_TypeBasis_Namespace:
               { a_namespace_ptr nsp = NULL;
                 a_symbol_ptr    ns_sym;
                 if (defer && !(idssp->traits & ifc_ScopeTraits_Inline)) {
@@ -1061,16 +1064,16 @@ constants for that type).
                 }  /* if */
               }
               break;
-            case TypeBasis(Class):
+            case ifc_TypeBasis_Class:
               type_kind = tk_class;
               tag_kind = sk_class_or_struct_tag;
               goto class_struct_union_case;
-            case TypeBasis(Struct):
-            case TypeBasis(Interface):
+            case ifc_TypeBasis_Struct:
+            case ifc_TypeBasis_Interface:
               type_kind = tk_struct;
               tag_kind = sk_class_or_struct_tag;
               goto class_struct_union_case;
-            case TypeBasis(Union):
+            case ifc_TypeBasis_Union:
               type_kind = tk_union;
               tag_kind = sk_union_tag;
 class_struct_union_case:
@@ -1086,7 +1089,7 @@ class_struct_union_case:
                      get_definition_of_class if it is referenced. */
                   class_type = alloc_type(type_kind);
                   ctsp = class_type_supp(class_type);
-                  if (itsfp->basis == TypeBasis(Interface)) {
+                  if (itsfp->basis == ifc_TypeBasis_Interface) {
                     class_type->variant.class_struct_union.is_interface = TRUE;
                     class_type->variant.class_struct_union.abstract = TRUE;
                   }  /* if */
@@ -1127,20 +1130,21 @@ class_struct_union_case:
           }  /* switch */
         }
         break;
-      case DeclSort(Alias):
+      case ifc_DeclSort_Alias:
         { an_ifc_DeclSort_Alias idsta, *idstap;
           an_ifc_TypeSort_Fundamental itsf, *itsfp;
           idstap = get_DeclSort_Alias(&idsta);
-          init_locator_from_name(0, idstap->name, &idstap->locus, &loc);
+          init_locator_from_name((ifc_NameIndex)0, idstap->name,
+                                 &idstap->locus, &loc);
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
-            check_assertion(type_tag(idstap->type)== TypeSort(Fundamental));
+            check_assertion(type_tag(idstap->type)== ifc_TypeSort_Fundamental);
             /* Read the type to see what kind it is. */
             read_ifc_partition_at_index(ifc_type_fundamental,
                                         type_value(idstap->type));
             itsfp = get_TypeSort_Fundamental(&itsf);
-            if (itsfp->basis == TypeBasis(Typename)) {
+            if (itsfp->basis == ifc_TypeBasis_Typename) {
               /* A type alias; declare a typedef for this case. */
               init_dps(&dps, &idstap->locus, idstap->initializer,
                        (ifc_Alignment)0, ifc_ObjectTraits_None,
@@ -1151,7 +1155,7 @@ class_struct_union_case:
               restore_partial_scope_stack_if_necessary(&psss);
               il_entity = (char *)dps.sym->variant.type.ptr;
               kind = iek_type;
-            } else if (itsfp->basis == TypeBasis(Namespace)) {
+            } else if (itsfp->basis == ifc_TypeBasis_Namespace) {
               /* A namespace alias. */
               /* FIXME: unimplemented. */
               unexpected_condition();
@@ -1161,24 +1165,24 @@ class_struct_union_case:
           }  /* if */
         }
         break;
-      case DeclSort(Enumeration):
+      case ifc_DeclSort_Enumeration:
         { an_ifc_DeclSort_Enumeration idse, *idsep;
           an_ifc_TypeSort_Fundamental itsf, *itsfp;
           a_boolean                   is_scoped_enum = FALSE;
           a_scope_ptr                 enum_scope = mep->scope;
           idsep = get_DeclSort_Enumeration(&idse);
-          check_assertion(type_tag(idsep->type) == TypeSort(Fundamental));
+          check_assertion(type_tag(idsep->type) == ifc_TypeSort_Fundamental);
           /* See if this is a scoped enumeration or not. */
           read_ifc_partition_at_index(ifc_type_fundamental,
                                       type_value(idsep->type));
           itsfp = get_TypeSort_Fundamental(&itsf);
-          if (itsfp->basis == TypeBasis(Enum)) {
+          if (itsfp->basis == ifc_TypeBasis_Enum) {
             /* A classic enumeration.  Don't bother to defer in this case
                because each of the enumerators need to be registered in the
                symbol table so they can be found. */
             defer = FALSE;
-          } else if (itsfp->basis == TypeBasis(Class) ||
-                     itsfp->basis == TypeBasis(Struct)) {
+          } else if (itsfp->basis == ifc_TypeBasis_Class ||
+                     itsfp->basis == ifc_TypeBasis_Struct) {
             /* A scoped enumeration.  Enumerator definitions are deferred when
                the enumeration definition is deferred (enumerators can't be
                referred to without specifying the scoped enumeration at which
@@ -1188,7 +1192,8 @@ class_struct_union_case:
             unexpected_condition();
           }  /* if */
           check_assertion(idsep->name != 0);
-          init_locator_from_name(0, idsep->name, &idsep->locus, &loc);
+          init_locator_from_name((ifc_NameIndex)0, idsep->name, &idsep->locus,
+                                 &loc);
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
@@ -1262,7 +1267,7 @@ class_struct_union_case:
                    process the enumerators. */
                 a_module_entity_ptr emep;
                 emep = get_decl_module_entity_ptr(make_decl_index(
-                                                DeclSortAsType(Enumerator),
+                                                ifc_DeclSort_Enumerator,
                                                 idsep->initializer.start + i));
                 emep->scope = enum_scope;
                 process_ifc_declaration(emep, /*defer=*/FALSE, enum_type);
@@ -1276,11 +1281,12 @@ class_struct_union_case:
           }  /* if */
         }
         break;
-      case DeclSort(Enumerator):
+      case ifc_DeclSort_Enumerator:
         { an_ifc_DeclSort_Enumerator idse, *idsep;
           idsep = get_DeclSort_Enumerator(&idse);
           check_assertion(idsep->name != 0);
-          init_locator_from_name(0, idsep->name, &idsep->locus, &loc);
+          init_locator_from_name((ifc_NameIndex)0, idsep->name, &idsep->locus,
+                                 &loc);
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
@@ -1336,32 +1342,32 @@ class_struct_union_case:
           }  /* if */
         }
         break;
-      case DeclSort(Method):
-      case DeclSort(Constructor):
-      case DeclSort(Destructor):
-      case DeclSort(Field):
-      case DeclSort(Bitfield):
-      case DeclSort(Property):
+      case ifc_DeclSort_Method:
+      case ifc_DeclSort_Constructor:
+      case ifc_DeclSort_Destructor:
+      case ifc_DeclSort_Field:
+      case ifc_DeclSort_Bitfield:
+      case ifc_DeclSort_Property:
         /* These entities can only exist in a class and class definitions are
            currently handled by scanning a textual representation of the
            class. */
         unexpected_condition();
-      case DeclSort(VendorExtension):
-      case DeclSort(Parameter):
-      case DeclSort(Temploid):
-      case DeclSort(Template):
-      case DeclSort(PartialSpecialization):
-      case DeclSort(ExplicitSpecialization):
-      case DeclSort(ExplicitInstantiation):
-      case DeclSort(Concept):
-      case DeclSort(InheritedConstructor):
-      case DeclSort(Reference):
-      case DeclSort(OutputSegment):
-      case DeclSort(UsingDeclaration):
-      case DeclSort(UsingDirective):
-      case DeclSort(Friend):
-      case DeclSort(SyntaxTree):
-      case DeclSort(Tuple):
+      case ifc_DeclSort_VendorExtension:
+      case ifc_DeclSort_Parameter:
+      case ifc_DeclSort_Temploid:
+      case ifc_DeclSort_Template:
+      case ifc_DeclSort_PartialSpecialization:
+      case ifc_DeclSort_ExplicitSpecialization:
+      case ifc_DeclSort_ExplicitInstantiation:
+      case ifc_DeclSort_Concept:
+      case ifc_DeclSort_InheritedConstructor:
+      case ifc_DeclSort_Reference:
+      case ifc_DeclSort_OutputSegment:
+      case ifc_DeclSort_UsingDeclaration:
+      case ifc_DeclSort_UsingDirective:
+      case ifc_DeclSort_Friend:
+      case ifc_DeclSort_SyntaxTree:
+      case ifc_DeclSort_Tuple:
       default:
 #if DEBUG
         if (db_flag_is_set("ms_ignore")) {
@@ -1626,146 +1632,146 @@ an "ellipsis type").
     tag = (ifc_TypeSort)get_tag_from_partition(mep->variant.ifc_partition,
                                                ifc_type_start);
     switch (tag) {
-      case TypeSort(Fundamental):
+      case ifc_TypeSort_Fundamental:
         { an_integer_kind             ik;
           an_ifc_TypeSort_Fundamental itsf, *itsfp;
           itsfp = get_TypeSort_Fundamental(&itsf);
           /* Note: no check is made for non-sensical types (e.g., signed
              void).*/
           switch (itsfp->basis) {
-            case TypeBasis(Void):
-              check_assertion(itsfp->precision == TypePrecision(Default));
+            case ifc_TypeBasis_Void:
+              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
               result = void_type();
               break;
-            case TypeBasis(Bool):
-              check_assertion(itsfp->precision == TypePrecision(Default));
+            case ifc_TypeBasis_Bool:
+              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
               result = bool_type();
               break;
-            case TypeBasis(Char):
+            case ifc_TypeBasis_Char:
               switch (itsfp->sign) {
-                case TypeSign(Plain):
+                case ifc_TypeSign_Plain:
                   switch (itsfp->precision) {
-                    case TypePrecision(Default):
+                    case ifc_TypePrecision_Default:
                       result = integer_type((an_integer_kind)ik_char);
                       break;
-                    case TypePrecision(Bit16):
+                    case ifc_TypePrecision_Bit16:
                       result = char16_t_type();
                       break;
-                    case TypePrecision(Bit32):
+                    case ifc_TypePrecision_Bit32:
                       result = char32_t_type();
                       break;
                     default:
                       unexpected_condition();
                   }  /* switch */
                   break;
-                case TypeSign(Signed):
+                case ifc_TypeSign_Signed:
                   check_assertion(itsfp->precision ==
-                                                    TypePrecision(Default));
+                                                    ifc_TypePrecision_Default);
                   result = integer_type((an_integer_kind)ik_signed_char);
                   break;
-                case TypeSign(Unsigned):
+                case ifc_TypeSign_Unsigned:
                   check_assertion(itsfp->precision ==
-                                                    TypePrecision(Default));
+                                                    ifc_TypePrecision_Default);
                   result = integer_type((an_integer_kind)ik_unsigned_char);
                   break;
                 default:
                   unexpected_condition();
               }  /* if */
               break;
-            case TypeBasis(Wchar_t):
+            case ifc_TypeBasis_Wchar_t:
               switch (itsfp->precision) {
-                case TypePrecision(Default):
+                case ifc_TypePrecision_Default:
                   result = wchar_t_type();
                   break;
-                case TypePrecision(Bit16):
+                case ifc_TypePrecision_Bit16:
                   result = char16_t_type();
                   break;
-                case TypePrecision(Bit32):
+                case ifc_TypePrecision_Bit32:
                   result = char32_t_type();
                   break;
                 /* FIXME: not sure how to map these: */
-                case TypePrecision(Short):
-                case TypePrecision(Long):
-                case TypePrecision(Bit64):
-                case TypePrecision(Bit128):
+                case ifc_TypePrecision_Short:
+                case ifc_TypePrecision_Long:
+                case ifc_TypePrecision_Bit64:
+                case ifc_TypePrecision_Bit128:
                 default:
                   unexpected_condition();
               }  /* switch */
               break;
-            case TypeBasis(Int):
+            case ifc_TypeBasis_Int:
               switch (itsfp->precision) {
-                case TypePrecision(Default):
-                  ik = (itsfp->sign == TypeSign(Unsigned)) ?
+                case ifc_TypePrecision_Default:
+                  ik = (itsfp->sign == ifc_TypeSign_Unsigned) ?
                                                               ik_unsigned_int :
                                                               ik_int;
                   break;
-                case TypePrecision(Short):
-                  ik = (itsfp->sign == TypeSign(Unsigned)) ?
+                case ifc_TypePrecision_Short:
+                  ik = (itsfp->sign == ifc_TypeSign_Unsigned) ?
                                                             ik_unsigned_short :
                                                             ik_short;
                   break;
-                case TypePrecision(Long):
-                  ik = (itsfp->sign == TypeSign(Unsigned)) ?
+                case ifc_TypePrecision_Long:
+                  ik = (itsfp->sign == ifc_TypeSign_Unsigned) ?
                                                              ik_unsigned_long :
                                                              ik_long;
                   break;
-                case TypePrecision(Bit64):
-                  ik = (itsfp->sign == TypeSign(Unsigned)) ?
+                case ifc_TypePrecision_Bit64:
+                  ik = (itsfp->sign == ifc_TypeSign_Unsigned) ?
                                                         ik_unsigned_long_long :
                                                         ik_long_long;
                   break;
                 /* FIXME: not sure how to map these: */
-                case TypePrecision(Bit16):
-                case TypePrecision(Bit32):
-                case TypePrecision(Bit128):
+                case ifc_TypePrecision_Bit16:
+                case ifc_TypePrecision_Bit32:
+                case ifc_TypePrecision_Bit128:
                 default:
                   unexpected_condition();
               }  /* switch */
               result = integer_type(ik);
               break;
-            case TypeBasis(Float):
-              check_assertion(itsfp->precision == TypePrecision(Default));
+            case ifc_TypeBasis_Float:
+              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
               result = float_type((a_float_kind)fk_float);
               break;
-            case TypeBasis(Double):
-              if (itsfp->precision == TypePrecision(Long)) {
+            case ifc_TypeBasis_Double:
+              if (itsfp->precision == ifc_TypePrecision_Long) {
                 result = float_type((a_float_kind)fk_long_double);
               } else {
-                check_assertion(itsfp->precision == TypePrecision(Default));
+                check_assertion(itsfp->precision == ifc_TypePrecision_Default);
                 result = float_type((a_float_kind)fk_double);
               }  /* if */
               break;
-            case TypeBasis(Nullptr):
-              check_assertion(itsfp->precision == TypePrecision(Default));
+            case ifc_TypeBasis_Nullptr:
+              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
               result = standard_nullptr_type();
               break;
-            case TypeBasis(Ellipsis):
-              check_assertion(itsfp->precision == TypePrecision(Default));
+            case ifc_TypeBasis_Ellipsis:
+              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
               /* The IL doesn't have a way to represent an "ellipsis type", so
                  return a NULL type and let the caller check explicitly for
                  it. */
               result = NULL;
               break;
-            case TypeBasis(Class):
-            case TypeBasis(Struct):
-            case TypeBasis(Union):
-            case TypeBasis(Auto):
-            case TypeBasis(DecltypeAuto):
-            case TypeBasis(Namespace):
-            case TypeBasis(Interface):
-            case TypeBasis(Enum):
-            case TypeBasis(Typename):
-            case TypeBasis(SegmentType):
-            case TypeBasis(Function):
-            case TypeBasis(Empty):
-            case TypeBasis(VariableTemplate):
+            case ifc_TypeBasis_Class:
+            case ifc_TypeBasis_Struct:
+            case ifc_TypeBasis_Union:
+            case ifc_TypeBasis_Auto:
+            case ifc_TypeBasis_DecltypeAuto:
+            case ifc_TypeBasis_Namespace:
+            case ifc_TypeBasis_Interface:
+            case ifc_TypeBasis_Enum:
+            case ifc_TypeBasis_Typename:
+            case ifc_TypeBasis_SegmentType:
+            case ifc_TypeBasis_Function:
+            case ifc_TypeBasis_Empty:
+            case ifc_TypeBasis_VariableTemplate:
             default:
               /* FIXME: not implemented yet. */
               unexpected_condition();
           }  /* switch */
         }
         break;
-      case TypeSort(Qualified):
+      case ifc_TypeSort_Qualified:
         { a_type_qualifier_set      qualifiers = TQ_NONE;
           an_ifc_TypeSort_Qualified itsq, *itsqp;
           itsqp = get_TypeSort_Qualified(&itsq);
@@ -1783,27 +1789,27 @@ an "ellipsis type").
                                    qualifiers);
         }
         break;
-      case TypeSort(Pointer):
+      case ifc_TypeSort_Pointer:
         { an_ifc_TypeSort_Pointer itsp, *itspp;
           itspp = get_TypeSort_Pointer(&itsp);
           result = make_pointer_type(type_for_ifc_type_index(itspp->pointee));
         }
         break;
-      case TypeSort(LvalueReference):
+      case ifc_TypeSort_LvalueReference:
         { an_ifc_TypeSort_LvalueReference itslr, *itslrp;
           itslrp = get_TypeSort_LvalueReference(&itslr);
           result =
                  make_reference_type(type_for_ifc_type_index(itslrp->referee));
         }
         break;
-      case TypeSort(RvalueReference):
+      case ifc_TypeSort_RvalueReference:
         { an_ifc_TypeSort_RvalueReference itsrr, *itsrrp;
           itsrrp = get_TypeSort_RvalueReference(&itsrr);
           result = make_rvalue_reference_type(
                                      type_for_ifc_type_index(itsrrp->referee));
         }
         break;
-      case TypeSort(Array):
+      case ifc_TypeSort_Array:
         { an_ifc_TypeSort_Array itsa, *itsap;
           itsap = get_TypeSort_Array(&itsa);
           result = alloc_type((a_type_kind)tk_array);
@@ -1813,10 +1819,10 @@ an "ellipsis type").
           result->variant.array.variant.number_of_elements = itsap->extent;
         }
         break;
-      case TypeSort(Method): /* FIXME: for now (same structures)?): */
+      case ifc_TypeSort_Method: /* FIXME: for now (same structures)?): */
         unexpected_condition(); /* FIXME: No longer same structures. */
         break;
-      case TypeSort(Function):
+      case ifc_TypeSort_Function:
         { an_ifc_TypeSort_Function itsf, *itsfp;
           itsfp = get_TypeSort_Function(&itsf);
           /* Create a routine type with no parameters to start. */
@@ -1832,7 +1838,7 @@ an "ellipsis type").
             a_param_type_ptr              ptp, *prev = &rtsp->param_type_list;
             an_ifc_TypeSort_Tuple         itst, *itstp;
             a_type_ptr                    param_type;
-            if (type_tag(itsfp->source) == TypeSort(Tuple)) {
+            if (type_tag(itsfp->source) == ifc_TypeSort_Tuple) {
               /* A list of parameters. */
               read_ifc_partition_at_index(ifc_type_tuple,
                                           type_value(itsfp->source));
@@ -1869,7 +1875,7 @@ an "ellipsis type").
           }  /* if */
         }
         break;
-      case TypeSort(Designated):
+      case ifc_TypeSort_Designated:
         /* A type's name (e.g., "A"). */
         { an_ifc_TypeSort_Designated itsd, *itsdp;
           a_type_ptr                 class_or_enum_type;
@@ -1877,8 +1883,8 @@ an "ellipsis type").
           itsdp = get_TypeSort_Designated(&itsd);
           /* Prepare to read from the proper partition for the
              type scope declaration. */
-          check_assertion(decl_tag(itsdp->decl) == DeclSort(Scope) ||
-                          decl_tag(itsdp->decl) == DeclSort(Enumeration));
+          check_assertion(decl_tag(itsdp->decl) == ifc_DeclSort_Scope ||
+                          decl_tag(itsdp->decl) == ifc_DeclSort_Enumeration);
           /* Find the type of the scope declaration by processing it (in
              case it has been deferred). */
           dmep = get_decl_module_entity_ptr(itsdp->decl);
@@ -1891,18 +1897,18 @@ an "ellipsis type").
           result = class_or_enum_type;
         }
         break;
-      case TypeSort(Deduced):
-      case TypeSort(PointerToMember):
-      case TypeSort(Tuple):
-      case TypeSort(Forall):
-      case TypeSort(VendorExtension):
-      case TypeSort(Syntactic):
-      case TypeSort(Expansion):
-      case TypeSort(Typename):
-      case TypeSort(Base):
-      case TypeSort(Unaligned):
-      case TypeSort(Decltype):
-      case TypeSort(SyntaxTree):
+      case ifc_TypeSort_Deduced:
+      case ifc_TypeSort_PointerToMember:
+      case ifc_TypeSort_Tuple:
+      case ifc_TypeSort_Forall:
+      case ifc_TypeSort_VendorExtension:
+      case ifc_TypeSort_Syntactic:
+      case ifc_TypeSort_Expansion:
+      case ifc_TypeSort_Typename:
+      case ifc_TypeSort_Base:
+      case ifc_TypeSort_Unaligned:
+      case ifc_TypeSort_Decltype:
+      case ifc_TypeSort_SyntaxTree:
       default:
         /* FIXME: not yet implemented. */
 #if DEBUG
@@ -1939,7 +1945,7 @@ Map the IFC locus source position information into the source position at *pos.
   read_ifc_partition_at_index(ifc_src_line, locus->line);
   islp = get_Source_Line(&isl);
   tag = name_tag(islp->file);
-  check_assertion(tag == NameSort(SourceFile));
+  check_assertion(tag == ifc_NameSort_SourceFile);
   /* See if this file has been used before. */
   seq = &sequence_numbers[name_value(islp->file)];
   if (*seq == 0) {
@@ -1979,20 +1985,19 @@ updated accordingly.
   a_const_char         *result = NULL, *prefix = NULL;
   ifc_NameSort         tag = name_tag(name_index);
 
-  if (tag == NameSort(Identifier)) {
+  if (tag == ifc_NameSort_Identifier) {
     /* NameSort::Identifiers just refer to the string table. */
     result = get_string_at_offset(name_value(name_index));
   } else {
-    read_ifc_partition_at_index(ifc_name_start + (ifc_NameSort_type)tag,
-                                name_value(name_index));
+    read_ifc_partition_at_index(ifc_name_start + tag, name_value(name_index));
     switch (tag) {
-      case NameSort(SourceFile):
+      case ifc_NameSort_SourceFile:
         { an_ifc_NameSort_SourceFile inssf, *inssfp;
           inssfp = get_NameSort_SourceFile(&inssf);
           result = get_string_at_offset(inssfp->path);
         }
         break;
-      case NameSort(Operator):
+      case ifc_NameSort_Operator:
         { an_ifc_NameSort_Operator inso, *insop;
           insop = get_NameSort_Operator(&inso);
           if (loc != NULL) {
@@ -2006,7 +2011,7 @@ updated accordingly.
           }  /* if */
         }
         break;
-      case NameSort(Conversion):
+      case ifc_NameSort_Conversion:
         { an_ifc_NameSort_Conversion insc, *inscp;
           a_type_ptr                 target_type;
           inscp = get_NameSort_Conversion(&insc);
@@ -2022,7 +2027,7 @@ updated accordingly.
           }  /* if */
         }
         break;
-      case NameSort(Literal):
+      case ifc_NameSort_Literal:
         { an_ifc_NameSort_Literal insl, *inslp;
           inslp = get_NameSort_Literal(&insl);
           result = get_string_at_offset(inslp->encoded);
@@ -2042,11 +2047,20 @@ updated accordingly.
           }  /* if */
         }
         break;
-      case NameSort(Template):
-      case NameSort(Specialization):
-        unexpected_condition(); /* FIXME: not implemented yet. */
+      case ifc_NameSort_Template:
+        { an_ifc_NameSort_Template inst;
+          get_NameSort_Template(&inst);
+          unexpected_condition_str("NameSort::Template is not yet handled.");
+        }
         break;
-      case NameSort(Identifier):
+      case ifc_NameSort_Specialization:
+        { an_ifc_NameSort_Specialization inss;
+          get_NameSort_Specialization(&inss);
+          unexpected_condition_str("NameSort::Specialization"
+                                   " is not yet handled.");
+        }
+        break;
+      case ifc_NameSort_Identifier:
       default:
         unexpected_condition();
     }  /* switch */
@@ -2163,12 +2177,12 @@ should be called with this pointer after the declaration has been processed.
   if (ap != NULL) {
     dps->prefix_attributes = ap;
   }  /* if */
-  if (access != Access(None)) {
+  if (access != ifc_Access_None) {
     an_access_specifier il_access;
     switch (access) {
-      case Access(Private):   il_access = as_private;   break;
-      case Access(Protected): il_access = as_protected; break;
-      case Access(Public):    il_access = as_public;    break;
+      case ifc_Access_Private:   il_access = as_private;   break;
+      case ifc_Access_Protected: il_access = as_protected; break;
+      case ifc_Access_Public:    il_access = as_public;    break;
       default:
         unexpected_condition();
     }  /* switch */
@@ -2225,10 +2239,9 @@ FIXME: what other expressions can we get here?
   a_constant_ptr            cp = NULL;
 
   /* Prepare to read from the proper partition for this expression. */
-  read_ifc_partition_at_index(ifc_expr_start + (ifc_ExprSort_type)tag,
-                              expr_value(expr_index));
+  read_ifc_partition_at_index(ifc_expr_start + tag, expr_value(expr_index));
   switch (tag) {
-    case ExprSort(Literal):
+    case ifc_ExprSort_Literal:
       { an_ifc_ExprSort_Literal iesl, *ieslp;
         a_type_ptr              constant_type, stripped_type;
         ieslp = get_ExprSort_Literal(&iesl);
@@ -2241,7 +2254,7 @@ FIXME: what other expressions can we get here?
           constant_type = type_for_ifc_type_index(ieslp->type);
         }  /* if */
         switch (literal_tag(ieslp->value)) {
-          case LiteralSort(Immediate):
+          case ifc_LiteralSort_Immediate:
             /* An immediate literal (30 bits or less). */
             cp = alloc_constant(ck_integer);
             if (ieslp->type == 0) {
@@ -2258,7 +2271,7 @@ FIXME: what other expressions can we get here?
               cp->type = constant_type;
             }  /* if */
             break;
-          case LiteralSort(Integer):
+          case ifc_LiteralSort_Integer:
             /* An integer larger than 30 bits. */
             { a_host_large_unsigned value;
               cp = alloc_constant(ck_integer);
@@ -2273,7 +2286,7 @@ FIXME: what other expressions can we get here?
               cp->type = constant_type;
             }
             break;
-          case LiteralSort(FloatingPoint):
+          case ifc_LiteralSort_FloatingPoint:
             /* FIXME: not yet implemented. */
           default:
             unexpected_condition();
@@ -2320,13 +2333,13 @@ For constructors and destructors, add the name of the class specified
 by home_scope to the output buffer.
 */
 {
-  ifc_DeclSort_type     tag = decl_tag_as_type(home_scope);
+  ifc_DeclSort          tag = decl_tag(home_scope);
   an_ifc_DeclSort_Scope idss, *idssp;
 
   /* Prepare to read from the proper partition for this declaration. */
   read_ifc_partition_at_index(ifc_decl_start + tag,
                               decl_value(home_scope));
-  check_assertion(tag == DeclSortAsType(Scope));
+  check_assertion(tag == ifc_DeclSort_Scope);
   idssp = get_DeclSort_Scope(&idss);
   str_ifc_name_index(idssp->name, scbp);
 }  /* str_ifc_class_name */
@@ -2380,10 +2393,10 @@ Add an access specifier to the current string, if needed.
   a_const_char *string;
 
   switch (access) {
-    case Access(None):       string = NULL;         break;
-    case Access(Private):    string = "private";    break;
-    case Access(Protected):  string = "protected";  break;
-    case Access(Public):     string = "public";     break;
+    case ifc_Access_None:       string = NULL;         break;
+    case ifc_Access_Private:    string = "private";    break;
+    case ifc_Access_Protected:  string = "protected";  break;
+    case ifc_Access_Public:     string = "public";     break;
     default:
       unexpected_condition();
   }  /* switch */
@@ -2575,17 +2588,17 @@ Add strings representing a noexcept specification, if any.
 */
 {
   switch (eh_spec->sort) {
-    case NoexceptSort(None):
+    case ifc_NoexceptSort_None:
       break;
-    case NoexceptSort(False):
+    case ifc_NoexceptSort_False:
       add_string_to_text_buffer(scbp->text_buffer, "noexcept(false) ");
       break;
-    case NoexceptSort(True):
+    case ifc_NoexceptSort_True:
       add_string_to_text_buffer(scbp->text_buffer, "noexcept(true) ");
       break;
-    case NoexceptSort(Expression):
-    case NoexceptSort(Weak):
-    case NoexceptSort(Unenforced):
+    case ifc_NoexceptSort_Expression:
+    case ifc_NoexceptSort_Weak:
+    case ifc_NoexceptSort_Unenforced:
       /* FIXME: not sure what these should be */
     default:
       unexpected_condition();
@@ -2644,10 +2657,9 @@ the output buffer.
   ifc_ExprSort      tag = expr_tag(expr_index);
 
   /* Prepare to read from the proper partition for this expression. */
-  read_ifc_partition_at_index(ifc_expr_start + (ifc_ExprSort_type)tag,
-                              expr_value(expr_index));
+  read_ifc_partition_at_index(ifc_expr_start + tag, expr_value(expr_index));
   switch (tag) {
-    case ExprSort(Literal):
+    case ifc_ExprSort_Literal:
       { an_ifc_ExprSort_Literal iesl, *ieslp;
         ieslp = get_ExprSort_Literal(&iesl);
         if (ieslp->type != 0) {
@@ -2658,12 +2670,12 @@ the output buffer.
           add_char_to_text_buffer(scbp->text_buffer, ')');
         }  /* if */
         switch (literal_tag(ieslp->value)) {
-          case LiteralSort(Immediate):
+          case ifc_LiteralSort_Immediate:
             str_ifc_add_number(
                             (a_host_large_unsigned)literal_index(ieslp->value),
                             scbp);
             break;
-          case LiteralSort(Integer):
+          case ifc_LiteralSort_Integer:
             { a_host_large_unsigned value;
               read_ifc_partition_at_index(ifc_const_i64,
                                           literal_index(ieslp->value));
@@ -2671,339 +2683,339 @@ the output buffer.
               str_ifc_add_number(value, scbp);
             }
             break;
-          case LiteralSort(FloatingPoint):
+          case ifc_LiteralSort_FloatingPoint:
             /* FIXME: not yet implemented. */
           default:
             unexpected_condition();
         }  /* switch */
       }
       break;
-    case ExprSort(VendorExtension):
+    case ifc_ExprSort_VendorExtension:
       { an_ifc_ExprSort_VendorExtension ieve;
         get_ExprSort_VendorExtension(&ieve);
         unexpected_condition_str("ExprSort::VendorExtension"
                                  " is currently unspecified.");
       }
       break;
-    case ExprSort(Empty):
+    case ifc_ExprSort_Empty:
       { an_ifc_ExprSort_Empty iee;
         get_ExprSort_Empty(&iee);
         add_char_to_text_buffer(scbp->text_buffer, ';');
       }
       break;
-    case ExprSort(Type):
+    case ifc_ExprSort_Type:
       { an_ifc_ExprSort_Type iet;
         get_ExprSort_Type(&iet);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(NamedDecl):
+    case ifc_ExprSort_NamedDecl:
       { an_ifc_ExprSort_NamedDecl iend;
         get_ExprSort_NamedDecl(&iend);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(UnresolvedId):
+    case ifc_ExprSort_UnresolvedId:
       { an_ifc_ExprSort_UnresolvedId ieuid;
         get_ExprSort_UnresolvedId(&ieuid);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(TemplateId):
+    case ifc_ExprSort_TemplateId:
       { an_ifc_ExprSort_TemplateId ietid;
         get_ExprSort_TemplateId(&ietid);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Identifier):
+    case ifc_ExprSort_Identifier:
       { an_ifc_ExprSort_Identifier ieid;
         get_ExprSort_Identifier(&ieid);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(SimpleIdentifier):
+    case ifc_ExprSort_SimpleIdentifier:
       { an_ifc_ExprSort_SimpleIdentifier iesid;
         get_ExprSort_SimpleIdentifier(&iesid);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Pointer):
+    case ifc_ExprSort_Pointer:
       { an_ifc_ExprSort_Pointer iep;
         get_ExprSort_Pointer(&iep);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(QualifiedName):
+    case ifc_ExprSort_QualifiedName:
       { an_ifc_ExprSort_QualifiedName ieqn;
         get_ExprSort_QualifiedName(&ieqn);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Path):
+    case ifc_ExprSort_Path:
       { an_ifc_ExprSort_Path iep;
         get_ExprSort_Path(&iep);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Read):
+    case ifc_ExprSort_Read:
       { an_ifc_ExprSort_Read ier;
         get_ExprSort_Read(&ier);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Monad):
+    case ifc_ExprSort_Monad:
       { an_ifc_ExprSort_Monad iem;
         get_ExprSort_Monad(&iem);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Dyad):
+    case ifc_ExprSort_Dyad:
       { an_ifc_ExprSort_Dyad ied;
         get_ExprSort_Dyad(&ied);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Triad):
+    case ifc_ExprSort_Triad:
       { an_ifc_ExprSort_Triad iet;
         get_ExprSort_Triad(&iet);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Tuple):
+    case ifc_ExprSort_Tuple:
       { an_ifc_ExprSort_Tuple iet;
         get_ExprSort_Tuple(&iet);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Tokens):
+    case ifc_ExprSort_Tokens:
       { an_ifc_ExprSort_Tokens iet;
         get_ExprSort_Tokens(&iet);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(String):
+    case ifc_ExprSort_String:
       { an_ifc_ExprSort_String ies;
         get_ExprSort_String(&ies);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Temporary):
+    case ifc_ExprSort_Temporary:
       { an_ifc_ExprSort_Temporary iet;
         get_ExprSort_Temporary(&iet);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Call):
+    case ifc_ExprSort_Call:
       { an_ifc_ExprSort_Call iec;
         get_ExprSort_Call(&iec);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(PushState):
+    case ifc_ExprSort_PushState:
       { an_ifc_ExprSort_PushState iep;
         get_ExprSort_PushState(&iep);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(TypeTraitIntrinsic):
+    case ifc_ExprSort_TypeTraitIntrinsic:
       { an_ifc_ExprSort_TypeTraitIntrinsic ietti;
         get_ExprSort_TypeTraitIntrinsic(&ietti);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(MemberInitializer):
+    case ifc_ExprSort_MemberInitializer:
       { an_ifc_ExprSort_MemberInitializer iemi;
         get_ExprSort_MemberInitializer(&iemi);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(MemberAccess):
+    case ifc_ExprSort_MemberAccess:
       { an_ifc_ExprSort_MemberAccess iema;
         get_ExprSort_MemberAccess(&iema);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(InheritancePath):
+    case ifc_ExprSort_InheritancePath:
       { an_ifc_ExprSort_InheritancePath ieip;
         get_ExprSort_InheritancePath(&ieip);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(TemplateReference):
+    case ifc_ExprSort_TemplateReference:
       { an_ifc_ExprSort_TemplateReference ietr;
         get_ExprSort_TemplateReference(&ietr);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(InitializerList):
+    case ifc_ExprSort_InitializerList:
       { an_ifc_ExprSort_InitializerList ieil;
         get_ExprSort_InitializerList(&ieil);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Cast):
+    case ifc_ExprSort_Cast:
       { an_ifc_ExprSort_Cast iec;
         get_ExprSort_Cast(&iec);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Condition):
+    case ifc_ExprSort_Condition:
       { an_ifc_ExprSort_Condition iec;
         get_ExprSort_Condition(&iec);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(ExpressionList):
+    case ifc_ExprSort_ExpressionList:
       { an_ifc_ExprSort_ExpressionList ieel;
         get_ExprSort_ExpressionList(&ieel);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(AssignInitializer):
+    case ifc_ExprSort_AssignInitializer:
       { an_ifc_ExprSort_AssignInitializer ieai;
         get_ExprSort_AssignInitializer(&ieai);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Nullptr):
+    case ifc_ExprSort_Nullptr:
       { an_ifc_ExprSort_Nullptr ienp;
         get_ExprSort_Nullptr(&ienp);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(This):
+    case ifc_ExprSort_This:
       { an_ifc_ExprSort_This iet;
         get_ExprSort_This(&iet);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(SizeofTypeId):
+    case ifc_ExprSort_SizeofTypeId:
       { an_ifc_ExprSort_SizeofTypeId iesotid;
         get_ExprSort_SizeofTypeId(&iesotid);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Alignof):
+    case ifc_ExprSort_Alignof:
       { an_ifc_ExprSort_Alignof ieao;
         get_ExprSort_Alignof(&ieao);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(PackedTemplateArguments):
+    case ifc_ExprSort_PackedTemplateArguments:
       { an_ifc_ExprSort_PackedTemplateArguments iepta;
         get_ExprSort_PackedTemplateArguments(&iepta);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(New):
+    case ifc_ExprSort_New:
       { an_ifc_ExprSort_New ien;
         get_ExprSort_New(&ien);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Delete):
+    case ifc_ExprSort_Delete:
       { an_ifc_ExprSort_Delete ied;
         get_ExprSort_Delete(&ied);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Lambda):
+    case ifc_ExprSort_Lambda:
       { an_ifc_ExprSort_Lambda iel;
         get_ExprSort_Lambda(&iel);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(DestructorCall):
+    case ifc_ExprSort_DestructorCall:
       { an_ifc_ExprSort_DestructorCall iedc;
         get_ExprSort_DestructorCall(&iedc);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Typeid):
+    case ifc_ExprSort_Typeid:
       { an_ifc_ExprSort_Typeid ietid;
         get_ExprSort_Typeid(&ietid);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(SyntaxTree):
+    case ifc_ExprSort_SyntaxTree:
       { an_ifc_ExprSort_SyntaxTree iest;
         get_ExprSort_SyntaxTree(&iest);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(FunctionString):
+    case ifc_ExprSort_FunctionString:
       { an_ifc_ExprSort_FunctionString iefs;
         get_ExprSort_FunctionString(&iefs);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(CompoundString):
+    case ifc_ExprSort_CompoundString:
       { an_ifc_ExprSort_CompoundString iecs;
         get_ExprSort_CompoundString(&iecs);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(StringSequence):
+    case ifc_ExprSort_StringSequence:
       { an_ifc_ExprSort_StringSequence iess;
         get_ExprSort_StringSequence(&iess);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Initializer):
+    case ifc_ExprSort_Initializer:
       { an_ifc_ExprSort_Initializer iei;
         get_ExprSort_Initializer(&iei);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(HierarchyConversion):
+    case ifc_ExprSort_HierarchyConversion:
       { an_ifc_ExprSort_HierarchyConversion iehc;
         get_ExprSort_HierarchyConversion(&iehc);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Product):
+    case ifc_ExprSort_Product:
       { an_ifc_ExprSort_Product iep;
         get_ExprSort_Product(&iep);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Sum):
+    case ifc_ExprSort_Sum:
       { an_ifc_ExprSort_SumTypeValue iestv;
         get_ExprSort_SumTypeValue(&iestv);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Subobject):
+    case ifc_ExprSort_Subobject:
       { an_ifc_ExprSort_Subobject ieso;
         get_ExprSort_Subobject(&ieso);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Array):
+    case ifc_ExprSort_Array:
       { an_ifc_ExprSort_Array iea;
         get_ExprSort_Array(&iea);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(VirtualFunction):
+    case ifc_ExprSort_VirtualFunction:
       { an_ifc_ExprSort_VirtualFunction ievf;
         get_ExprSort_VirtualFunction(&ievf);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(Requires):
+    case ifc_ExprSort_Requires:
       { an_ifc_ExprSort_Requires ier;
         get_ExprSort_Requires(&ier);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(UnaryFold):
+    case ifc_ExprSort_UnaryFold:
       { an_ifc_ExprSort_UnaryFold ieuf;
         get_ExprSort_UnaryFold(&ieuf);
         /* FIXME: Handle this. */
       }
       break;
-    case ExprSort(BinaryFold):
+    case ifc_ExprSort_BinaryFold:
       { an_ifc_ExprSort_BinaryFold iebf;
         get_ExprSort_BinaryFold(&iebf);
         /* FIXME: Handle this. */
@@ -3061,139 +3073,138 @@ FIXME: more specific
   ifc_TypeSort      tag = type_tag(type_index);
 
   /* Prepare to read from the proper partition for this type. */
-  read_ifc_partition_at_index(ifc_type_start + (ifc_TypeSort_type)tag,
-                              type_value(type_index));
+  read_ifc_partition_at_index(ifc_type_start + tag, type_value(type_index));
   switch (tag) {
-    case TypeSort(Fundamental):
+    case ifc_TypeSort_Fundamental:
       { a_const_char *basis_str = NULL;
         an_ifc_TypeSort_Fundamental itsf, *itsfp;
         itsfp = get_TypeSort_Fundamental(&itsf);
         /* Note: no check is made for non-sensical types (e.g., signed void).*/
         switch (itsfp->sign) {
-          case TypeSign(Plain):
+          case ifc_TypeSign_Plain:
             break;
-          case TypeSign(Signed):
+          case ifc_TypeSign_Signed:
             add_string_to_text_buffer(scbp->text_buffer, "signed ");
             break;
-          case TypeSign(Unsigned):
+          case ifc_TypeSign_Unsigned:
             add_string_to_text_buffer(scbp->text_buffer, "unsigned ");
             break;
           default:
             unexpected_condition();
         }  /* if */
         switch (itsfp->basis) {
-          case TypeBasis(Void):
-            check_assertion(itsfp->precision == TypePrecision(Default));
+          case ifc_TypeBasis_Void:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
             basis_str = "void";
             break;
-          case TypeBasis(Bool):
-            check_assertion(itsfp->precision == TypePrecision(Default));
+          case ifc_TypeBasis_Bool:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
             basis_str = "bool";
             break;
-          case TypeBasis(Char):
+          case ifc_TypeBasis_Char:
             switch (itsfp->precision) {
-              case TypePrecision(Default):
+              case ifc_TypePrecision_Default:
                 basis_str = "char";
                 break;
-              case TypePrecision(Bit16):
+              case ifc_TypePrecision_Bit16:
                 basis_str = "char16_t";
                 break;
-              case TypePrecision(Bit32):
+              case ifc_TypePrecision_Bit32:
                 basis_str = "char32_t";
                 break;
               default:
                 unexpected_condition();
             }  /* switch */
             break;
-          case TypeBasis(Wchar_t):
+          case ifc_TypeBasis_Wchar_t:
             switch (itsfp->precision) {
-              case TypePrecision(Default): basis_str = "wchar_t";     break;
-              case TypePrecision(Bit16):   basis_str = "wchar16_t";   break;
-              case TypePrecision(Bit32):   basis_str = "wchar32_t";   break;
+              case ifc_TypePrecision_Default: basis_str = "wchar_t";     break;
+              case ifc_TypePrecision_Bit16:   basis_str = "wchar16_t";   break;
+              case ifc_TypePrecision_Bit32:   basis_str = "wchar32_t";   break;
               /* FIXME: not sure how to map these: */
-              case TypePrecision(Short):
-              case TypePrecision(Long):
-              case TypePrecision(Bit64):
-              case TypePrecision(Bit128):
+              case ifc_TypePrecision_Short:
+              case ifc_TypePrecision_Long:
+              case ifc_TypePrecision_Bit64:
+              case ifc_TypePrecision_Bit128:
               default:
                 unexpected_condition();
             }  /* switch */
             break;
-          case TypeBasis(Int):
+          case ifc_TypeBasis_Int:
             switch (itsfp->precision) {
-              case TypePrecision(Default): basis_str = "int";     break;
-              case TypePrecision(Short):   basis_str = "short";   break;
-              case TypePrecision(Long):    basis_str = "long";    break;
-              case TypePrecision(Bit64):   basis_str = "long long"; break;
+              case ifc_TypePrecision_Default: basis_str = "int";     break;
+              case ifc_TypePrecision_Short:   basis_str = "short";   break;
+              case ifc_TypePrecision_Long:    basis_str = "long";    break;
+              case ifc_TypePrecision_Bit64:   basis_str = "long long"; break;
               /* FIXME: not sure how to map these: */
-              case TypePrecision(Bit16):
-              case TypePrecision(Bit32):
-              case TypePrecision(Bit128):
+              case ifc_TypePrecision_Bit16:
+              case ifc_TypePrecision_Bit32:
+              case ifc_TypePrecision_Bit128:
               default:
                 unexpected_condition();
             }  /* switch */
             break;
-          case TypeBasis(Float):
-            check_assertion(itsfp->precision == TypePrecision(Default));
+          case ifc_TypeBasis_Float:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
             basis_str = "float";
             break;
-          case TypeBasis(Double):
-            if (itsfp->precision == TypePrecision(Long)) {
+          case ifc_TypeBasis_Double:
+            if (itsfp->precision == ifc_TypePrecision_Long) {
               basis_str = "long double";
             } else {
-              check_assertion(itsfp->precision == TypePrecision(Default));
+              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
               basis_str = "double";
             }  /* if */
             break;
-          case TypeBasis(Nullptr):
-            check_assertion(itsfp->precision == TypePrecision(Default));
+          case ifc_TypeBasis_Nullptr:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
             basis_str = "nullptr_t";
             break;
-          case TypeBasis(Auto):
-            check_assertion(itsfp->precision == TypePrecision(Default));
+          case ifc_TypeBasis_Auto:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
             basis_str = "auto";
             break;
-          case TypeBasis(DecltypeAuto):
-            check_assertion(itsfp->precision == TypePrecision(Default));
+          case ifc_TypeBasis_DecltypeAuto:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
             basis_str = "decltype(auto)";
             break;
-          case TypeBasis(Class):
-            check_assertion(itsfp->precision == TypePrecision(Default));
+          case ifc_TypeBasis_Class:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
             basis_str = "class";
             break;
-          case TypeBasis(Struct):
-            check_assertion(itsfp->precision == TypePrecision(Default));
+          case ifc_TypeBasis_Struct:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
             basis_str = "struct";
             break;
-          case TypeBasis(Union):
-            check_assertion(itsfp->precision == TypePrecision(Default));
+          case ifc_TypeBasis_Union:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
             basis_str = "union";
             break;
-          case TypeBasis(Namespace):
-            check_assertion(itsfp->precision == TypePrecision(Default));
+          case ifc_TypeBasis_Namespace:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
             basis_str = "namespace";
             break;
-          case TypeBasis(Interface):
-            check_assertion(itsfp->precision == TypePrecision(Default));
+          case ifc_TypeBasis_Interface:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
             basis_str = "__interface";
             break;
-          case TypeBasis(Enum):
-            check_assertion(itsfp->precision == TypePrecision(Default));
+          case ifc_TypeBasis_Enum:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
             basis_str = "enum";
             break;
-          case TypeBasis(Typename):
+          case ifc_TypeBasis_Typename:
             /* FIXME: not sure what goes here. */
-            check_assertion(itsfp->precision == TypePrecision(Default));
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
             basis_str = "typename";
             break;
-          case TypeBasis(Ellipsis):
-            check_assertion(itsfp->precision == TypePrecision(Default));
+          case ifc_TypeBasis_Ellipsis:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
             basis_str = "...";
             break;
-          case TypeBasis(SegmentType):
-          case TypeBasis(Function):
-          case TypeBasis(Empty):
-          case TypeBasis(VariableTemplate):
+          case ifc_TypeBasis_SegmentType:
+          case ifc_TypeBasis_Function:
+          case ifc_TypeBasis_Empty:
+          case ifc_TypeBasis_VariableTemplate:
           default:
             /* FIXME: not implemented yet */
             unexpected_condition();
@@ -3203,21 +3214,21 @@ FIXME: more specific
         }  /* if */
       }
       break;
-    case TypeSort(Designated):
+    case ifc_TypeSort_Designated:
       /* A type's name (e.g., "A"). */
       { an_ifc_TypeSort_Designated itsd, *itsdp;
         itsdp = get_TypeSort_Designated(&itsd);
         str_ifc_declaration(itsdp->decl, /*is_designated_type=*/TRUE, scbp);
       }
       break;
-    case TypeSort(Method): /* FIXME: for now (same structures)?): */
+    case ifc_TypeSort_Method: /* FIXME: for now (same structures)?): */
       { an_ifc_TypeSort_Method itsm;
         get_TypeSort_Method(&itsm);
         /* FIXME: Handle this. */
       }
       unexpected_condition(); /* FIXME: No longer same structures. */
       break;
-    case TypeSort(Function):
+    case ifc_TypeSort_Function:
       { an_ifc_TypeSort_Function itsf, *itsfp;
         itsfp = get_TypeSort_Function(&itsf);
         /* FIXME: need more here. */
@@ -3227,21 +3238,21 @@ FIXME: more specific
         str_ifc_type_index(itsfp->target, scbp);
       }
       break;
-    case TypeSort(Qualified):
+    case ifc_TypeSort_Qualified:
       { an_ifc_TypeSort_Qualified itsq, *itsqp;
         itsqp = get_TypeSort_Qualified(&itsq);
         str_ifc_qualifiers(itsqp->qualifiers, scbp);
         str_ifc_type_index(itsqp->unqualified, scbp);
       }
       break;
-    case TypeSort(Pointer):
+    case ifc_TypeSort_Pointer:
       { an_ifc_TypeSort_Pointer itsp, *itspp;
         itspp = get_TypeSort_Pointer(&itsp);
         str_ifc_type_index(itspp->pointee, scbp);
         add_char_to_text_buffer(scbp->text_buffer, '*');
       }
       break;
-    case TypeSort(PointerToMember):
+    case ifc_TypeSort_PointerToMember:
       { an_ifc_TypeSort_PointerToMember itsptm, *itsptmp;
         itsptmp = get_TypeSort_PointerToMember(&itsptm);
         str_ifc_type_index(itsptmp->member, scbp);
@@ -3250,21 +3261,21 @@ FIXME: more specific
         add_string_to_text_buffer(scbp->text_buffer, "::");
       }
       break;
-    case TypeSort(LvalueReference):
+    case ifc_TypeSort_LvalueReference:
       { an_ifc_TypeSort_LvalueReference itslr, *itslrp;
         itslrp = get_TypeSort_LvalueReference(&itslr);
         str_ifc_type_index(itslrp->referee, scbp);
         add_char_to_text_buffer(scbp->text_buffer, '&');
       }
       break;
-    case TypeSort(RvalueReference):
+    case ifc_TypeSort_RvalueReference:
       { an_ifc_TypeSort_RvalueReference itsrr, *itsrrp;
         itsrrp = get_TypeSort_RvalueReference(&itsrr);
         str_ifc_type_index(itsrrp->referee, scbp);
         add_string_to_text_buffer(scbp->text_buffer, "&&");
       }
       break;
-    case TypeSort(Tuple):
+    case ifc_TypeSort_Tuple:
       { an_ifc_TypeSort_Tuple itst, *itstp;
         unsigned int i;
         itstp = get_TypeSort_Tuple(&itst);
@@ -3282,16 +3293,16 @@ FIXME: more specific
         }  /* for */
       }
       break;
-    case TypeSort(Array):
+    case ifc_TypeSort_Array:
       { an_ifc_TypeSort_Array itsa, *itsap;
         itsap = get_TypeSort_Array(&itsa);
         str_ifc_type_index(itsap->element, scbp);
       }
       break;
-    case TypeSort(Base):
+    case ifc_TypeSort_Base:
       { an_ifc_TypeSort_Base itsb, *itsbp;
         itsbp = get_TypeSort_Base(&itsb);
-        if (itsbp->access != Access(None)) {
+        if (itsbp->access != ifc_Access_None) {
           str_ifc_access(itsbp->access, scbp);
           add_char_to_text_buffer(scbp->text_buffer, ' ');
         }  /* if */
@@ -3305,55 +3316,55 @@ FIXME: more specific
         }  /* if */
       }
       break;
-    case TypeSort(VendorExtension):
+    case ifc_TypeSort_VendorExtension:
       { an_ifc_TypeSort_VendorExtension itsve;
         get_TypeSort_VendorExtension(&itsve);
         /* FIXME: Handle this. */
       }
       break;
-    case TypeSort(Deduced):
+    case ifc_TypeSort_Deduced:
       { an_ifc_TypeSort_Deduced itsd;
         get_TypeSort_Deduced(&itsd);
         /* FIXME: Handle this. */
       }
       break;
-    case TypeSort(Syntactic):
+    case ifc_TypeSort_Syntactic:
       { an_ifc_TypeSort_Syntactic itss;
         get_TypeSort_Syntactic(&itss);
         /* FIXME: Handle this. */
       }
       break;
-    case TypeSort(Expansion):
+    case ifc_TypeSort_Expansion:
       { an_ifc_TypeSort_Expansion itse;
         get_TypeSort_Expansion(&itse);
         /* FIXME: Handle this. */
       }
       break;
-    case TypeSort(Typename):
+    case ifc_TypeSort_Typename:
       { an_ifc_TypeSort_Typename itst;
         get_TypeSort_Typename(&itst);
         /* FIXME: Handle this. */
       }
       break;
-    case TypeSort(Unaligned):
+    case ifc_TypeSort_Unaligned:
       { an_ifc_TypeSort_Unaligned itsu;
         get_TypeSort_Unaligned(&itsu);
         /* FIXME: Handle this. */
       }
       break;
-    case TypeSort(Decltype):
+    case ifc_TypeSort_Decltype:
       { an_ifc_TypeSort_Decltype itsd;
         get_TypeSort_Decltype(&itsd);
         /* FIXME: Handle this. */
       }
       break;
-    case TypeSort(Forall):
+    case ifc_TypeSort_Forall:
       { an_ifc_TypeSort_Forall itsfa;
         get_TypeSort_Forall(&itsfa);
         /* FIXME: Handle this. */
       }
       break;
-    case TypeSort(SyntaxTree):
+    case ifc_TypeSort_SyntaxTree:
       { an_ifc_TypeSort_SyntaxTree itsst;
         get_TypeSort_SyntaxTree(&itsst);
         /* FIXME: Handle this. */
@@ -3363,7 +3374,7 @@ FIXME: more specific
 #if DEBUG
       if (db_flag_is_set("ms_ignore")) {
         (void)fprintf(f_debug, "Unsupported type: %d, %d\n",
-                      (ifc_TypeSort_type)tag, type_value(type_index));
+                      tag, type_value(type_index));
       }  /* if */
 #endif /* DEBUG */
       break;
@@ -3383,24 +3394,23 @@ FIXME: more specific
   ifc_TypeSort      tag = type_tag(type_index);
 
   /* Prepare to read from the proper partition for this type. */
-  read_ifc_partition_at_index(ifc_type_start + (ifc_TypeSort_type)tag,
-                              type_value(type_index));
+  read_ifc_partition_at_index(ifc_type_start + tag, type_value(type_index));
   switch (tag) {
-    case TypeSort(Fundamental):
-    case TypeSort(Designated):
-    case TypeSort(Qualified):
-    case TypeSort(Pointer):
-    case TypeSort(PointerToMember):
-    case TypeSort(LvalueReference):
-    case TypeSort(RvalueReference):
-    case TypeSort(Tuple):
-    case TypeSort(Base):
+    case ifc_TypeSort_Fundamental:
+    case ifc_TypeSort_Designated:
+    case ifc_TypeSort_Qualified:
+    case ifc_TypeSort_Pointer:
+    case ifc_TypeSort_PointerToMember:
+    case ifc_TypeSort_LvalueReference:
+    case ifc_TypeSort_RvalueReference:
+    case ifc_TypeSort_Tuple:
+    case ifc_TypeSort_Base:
       /* Handled in str_ifc_type_index_first_part. */
       break;
-    case TypeSort(Method): /* FIXME: for now (same structures)?): */
+    case ifc_TypeSort_Method: /* FIXME: for now (same structures)?): */
       unexpected_condition(); /* FIXME: No longer same structures. */
       break;
-    case TypeSort(Function):
+    case ifc_TypeSort_Function:
       { an_ifc_TypeSort_Function itsf, *itsfp;
         itsfp = get_TypeSort_Function(&itsf);
         /* FIXME: lots here. */
@@ -3415,7 +3425,7 @@ FIXME: more specific
         str_ifc_noexcept_specification(&itsfp->eh_spec, scbp);
       }
       break;
-    case TypeSort(Array):
+    case ifc_TypeSort_Array:
       { an_ifc_TypeSort_Array itsa, *itsap;
         itsap = get_TypeSort_Array(&itsa);
         add_char_to_text_buffer(scbp->text_buffer, '[');
@@ -3423,18 +3433,18 @@ FIXME: more specific
         add_char_to_text_buffer(scbp->text_buffer, ']');
       }
       break;
-    case TypeSort(VendorExtension):
-    case TypeSort(Syntactic):
-    case TypeSort(Expansion):
-    case TypeSort(Typename):
-    case TypeSort(Unaligned):
-    case TypeSort(Decltype):
-    case TypeSort(SyntaxTree):
+    case ifc_TypeSort_VendorExtension:
+    case ifc_TypeSort_Syntactic:
+    case ifc_TypeSort_Expansion:
+    case ifc_TypeSort_Typename:
+    case ifc_TypeSort_Unaligned:
+    case ifc_TypeSort_Decltype:
+    case ifc_TypeSort_SyntaxTree:
     default:
 #if DEBUG
       if (db_flag_is_set("ms_ignore")) {
         (void)fprintf(f_debug, "Unsupported type: %d, %d\n",
-                      (ifc_TypeSort_type)tag, type_value(type_index));
+                      tag, type_value(type_index));
       }  /* if */
 #endif /* DEBUG */
       break;
@@ -3471,7 +3481,7 @@ nominal value can be supplied (which will suppress its output).
 */
 {
   str_ifc_source_location(locus, scbp);
-  if (access != Access(None)) {
+  if (access != ifc_Access_None) {
     str_ifc_access(access, scbp);
     add_string_to_text_buffer(scbp->text_buffer, ": ");
   }  /* if */
@@ -3527,10 +3537,9 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
   a_boolean                end_decl = TRUE;
 
   /* Prepare to read from the proper partition for this declaration. */
-  read_ifc_partition_at_index(ifc_decl_start + (ifc_DeclSort_type)tag,
-                              decl_value(decl_index));
+  read_ifc_partition_at_index(ifc_decl_start + tag, decl_value(decl_index));
   switch (tag) {
-    case DeclSort(Variable):
+    case ifc_DeclSort_Variable:
       { an_ifc_DeclSort_Variable idsv, *idsvp;
         idsvp = get_DeclSort_Variable(&idsv);
         /* Emit a variable declaration. */
@@ -3545,7 +3554,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         }  /* if */
       }
       break;
-    case DeclSort(Scope):
+    case ifc_DeclSort_Scope:
       { an_ifc_DeclSort_Scope idss, *idssp;
         idssp = get_DeclSort_Scope(&idss);
         /* FIXME: lots missing. */
@@ -3567,7 +3576,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         }  /* if */
       }
       break;
-    case DeclSort(Field):
+    case ifc_DeclSort_Field:
       { an_ifc_DeclSort_Field idsf, *idsfp;
         idsfp = get_DeclSort_Field(&idsf);
         str_ifc_common_decl(&idsfp->locus, idsfp->access, idsfp->specifier,
@@ -3577,7 +3586,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         str_ifc_text_offset(idsfp->name, scbp);
       }
       break;
-    case DeclSort(Bitfield):
+    case ifc_DeclSort_Bitfield:
       { an_ifc_DeclSort_Bitfield idsb, *idsbp;
         idsbp = get_DeclSort_Bitfield(&idsb);
         str_ifc_common_decl(&idsbp->locus, idsbp->access, idsbp->specifier,
@@ -3589,7 +3598,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         str_ifc_add_number((a_host_large_unsigned)idsbp->width, scbp);
       }
       break;
-    case DeclSort(Function):
+    case ifc_DeclSort_Function:
       { an_ifc_DeclSort_Function idsf, *idsfp;
         idsfp = get_DeclSort_Function(&idsf);
         str_ifc_common_decl(&idsfp->locus, idsfp->access,
@@ -3604,7 +3613,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         /* FIXME: default_arguments is unused */
       }
       break;
-    case DeclSort(Method):
+    case ifc_DeclSort_Method:
       { an_ifc_DeclSort_Method idsm, *idsmp;
         idsmp = get_DeclSort_Method(&idsm);
         str_ifc_common_decl(&idsmp->locus, idsmp->access,
@@ -3620,7 +3629,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         /* FIXME: default_arguments is unused */
       }
       break;
-    case DeclSort(Intrinsic):
+    case ifc_DeclSort_Intrinsic:
       { an_ifc_DeclSort_Intrinsic idsi, *idsip;
         idsip = get_DeclSort_Intrinsic(&idsi);
         str_ifc_common_decl(&idsip->locus, idsip->access,
@@ -3632,7 +3641,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         str_ifc_type_index_second_part(idsip->type, scbp);
       }
       break;
-    case DeclSort(Constructor):
+    case ifc_DeclSort_Constructor:
       { an_ifc_DeclSort_Constructor idsc, *idscp;
         idscp = get_DeclSort_Constructor(&idsc);
         str_ifc_common_decl(&idscp->locus, idscp->access,
@@ -3652,7 +3661,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         /* FIXME: todo: idscp->eh_spec and idcsp->convention */
       }
       break;
-    case DeclSort(Destructor):
+    case ifc_DeclSort_Destructor:
       { an_ifc_DeclSort_Destructor idsd, *idsdp;
         idsdp = get_DeclSort_Destructor(&idsd);
         str_ifc_common_decl(&idsdp->locus, idsdp->access,
@@ -3668,23 +3677,23 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         /* FIXME: todo: idscp->eh_spec and idcsp->convention */
       }
       break;
-    case DeclSort(Alias):
+    case ifc_DeclSort_Alias:
       { an_ifc_DeclSort_Alias       idsta, *idstap;
         an_ifc_TypeSort_Fundamental itsf, *itsfp;
         idstap = get_DeclSort_Alias(&idsta);
         /* FIXME: lots missing */
-        check_assertion(type_tag(idstap->type) == TypeSort(Fundamental));
+        check_assertion(type_tag(idstap->type) == ifc_TypeSort_Fundamental);
         /* Read the type to see what kind it is. */
         read_ifc_partition_at_index(ifc_type_fundamental,
                                     type_value(idstap->type));
         itsfp = get_TypeSort_Fundamental(&itsf);
-        if (itsfp->basis == TypeBasis(Typename)) {
+        if (itsfp->basis == ifc_TypeBasis_Typename) {
           /* A type alias. */
           add_string_to_text_buffer(scbp->text_buffer, "typedef ");
           str_ifc_type_index(idstap->initializer, scbp);
           add_char_to_text_buffer(scbp->text_buffer, ' ');
           str_ifc_text_offset(idstap->name, scbp);
-        } else if (itsfp->basis == TypeBasis(Namespace)) {
+        } else if (itsfp->basis == ifc_TypeBasis_Namespace) {
           /* A namespace alias. */
           /* FIXME: unimplemented. */
           unexpected_condition();
@@ -3693,7 +3702,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         }  /* if */
       }
       break;
-    case DeclSort(Enumeration):
+    case ifc_DeclSort_Enumeration:
       { an_ifc_DeclSort_Enumeration idse, *idsep;
         an_ifc_TypeSort_Fundamental itsf, *itsfp;
         idsep = get_DeclSort_Enumeration(&idse);
@@ -3701,18 +3710,18 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         str_ifc_common_decl(&idsep->locus, idsep->access, idsep->specifiers,
                             (ifc_ObjectTraits)ifc_ObjectTraits_None,
                             idsep->alignment, scbp);
-        check_assertion(type_tag(idsep->type) == TypeSort(Fundamental));
+        check_assertion(type_tag(idsep->type) == ifc_TypeSort_Fundamental);
         /* Read the type to see what kind it is. */
         read_ifc_partition_at_index(ifc_type_fundamental,
                                     type_value(idsep->type));
         itsfp = get_TypeSort_Fundamental(&itsf);
         add_string_to_text_buffer(scbp->text_buffer, "enum ");
-        if (itsfp->basis == TypeBasis(Class)) {
+        if (itsfp->basis == ifc_TypeBasis_Class) {
           add_string_to_text_buffer(scbp->text_buffer, "class ");
-        } else if (itsfp->basis == TypeBasis(Struct)) {
+        } else if (itsfp->basis == ifc_TypeBasis_Struct) {
           add_string_to_text_buffer(scbp->text_buffer, "struct ");
         } else {
-          check_assertion(itsfp->basis == TypeBasis(Enum));
+          check_assertion(itsfp->basis == ifc_TypeBasis_Enum);
         }  /* if */
         str_ifc_text_offset(idsep->name, scbp);
         if (idsep->initializer.cardinality != 0) {
@@ -3725,7 +3734,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
             /* The sequence doesn't specifically contain DeclIndex values --
                compute one so we can invoke ourselves recursively to process
                the enumerators. */
-            str_ifc_declaration(make_decl_index(DeclSortAsType(Enumerator),
+            str_ifc_declaration(make_decl_index(ifc_DeclSort_Enumerator,
                                                 idsep->initializer.start + i),
                                 /*is_designated_type=*/FALSE, scbp);
             add_char_to_text_buffer(scbp->text_buffer, ',');
@@ -3737,12 +3746,12 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         }  /* if */
       }
       break;
-    case DeclSort(Enumerator):
+    case ifc_DeclSort_Enumerator:
       { an_ifc_DeclSort_Enumerator idse, *idsep;
         idsep = get_DeclSort_Enumerator(&idse);
         /* Emit an enumerator declaration. */
         /* FIXME: idsep->access unused here (to suppress access field): */
-        str_ifc_common_decl(&idsep->locus, Access(None), idsep->specifier,
+        str_ifc_common_decl(&idsep->locus, ifc_Access_None, idsep->specifier,
                             (ifc_ObjectTraits)ifc_ObjectTraits_None,
                             (ifc_Alignment)0, scbp);
         add_char_to_text_buffer(scbp->text_buffer, ' ');
@@ -3754,103 +3763,103 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         end_decl = FALSE;
       }
       break;
-    case DeclSort(VendorExtension):
+    case ifc_DeclSort_VendorExtension:
       { an_ifc_DeclSort_VendorExtension idsve;
         get_DeclSort_VendorExtension(&idsve);
         /* FIXME: Handle this. */
       }
       break;
-    case DeclSort(Parameter):
+    case ifc_DeclSort_Parameter:
       { an_ifc_DeclSort_Parameter idsp;
         get_DeclSort_Parameter(&idsp);
         /* FIXME: Handle this. */
       }
       break;
-    case DeclSort(Temploid):
+    case ifc_DeclSort_Temploid:
       { an_ifc_DeclSort_Temploid idst;
         get_DeclSort_Temploid(&idst);
         /* FIXME: Handle this. */
       }
       break;
-    case DeclSort(Template):
+    case ifc_DeclSort_Template:
       { an_ifc_DeclSort_Template idst;
         get_DeclSort_Template(&idst);
         /* FIXME: Handle this. */
       }
       break;
-    case DeclSort(PartialSpecialization):
+    case ifc_DeclSort_PartialSpecialization:
       { an_ifc_DeclSort_PartialSpecialization idsps;
         get_DeclSort_PartialSpecialization(&idsps);
         /* FIXME: Handle this. */
       }
       break;
-    case DeclSort(ExplicitSpecialization):
+    case ifc_DeclSort_ExplicitSpecialization:
       { an_ifc_DeclSort_ExplicitSpecialization idses;
         get_DeclSort_ExplicitSpecialization(&idses);
         /* FIXME: Handle this. */
       }
       break;
-    case DeclSort(ExplicitInstantiation):
+    case ifc_DeclSort_ExplicitInstantiation:
       { an_ifc_DeclSort_ExplicitInstantiation idsei;
         get_DeclSort_ExplicitInstantiation(&idsei);
         /* FIXME: Handle this. */
       }
       break;
-    case DeclSort(Concept):
+    case ifc_DeclSort_Concept:
       { an_ifc_DeclSort_Concept idsc;
         get_DeclSort_Concept(&idsc);
         /* FIXME: Handle this. */
       }
       break;
-    case DeclSort(InheritedConstructor):
+    case ifc_DeclSort_InheritedConstructor:
       { an_ifc_DeclSort_InheritedConstructor idsic;
         get_DeclSort_InheritedConstructor(&idsic);
         /* FIXME: Handle this. */
       }
       break;
-    case DeclSort(Reference):
+    case ifc_DeclSort_Reference:
       { an_ifc_DeclSort_Reference idsr;
         get_DeclSort_Reference(&idsr);
         /* FIXME: Handle this. */
       }
       break;
-    case DeclSort(Property):
+    case ifc_DeclSort_Property:
       { an_ifc_DeclSort_Property idsp;
         get_DeclSort_Property(&idsp);
         /* FIXME: Handle this. */
       }
       break;
-    case DeclSort(OutputSegment):
+    case ifc_DeclSort_OutputSegment:
       { an_ifc_DeclSort_OutputSegment idsos;
         get_DeclSort_OutputSegment(&idsos);
         /* FIXME: Handle this. */
       }
       break;
-    case DeclSort(UsingDeclaration):
+    case ifc_DeclSort_UsingDeclaration:
       { an_ifc_DeclSort_UsingDeclaration idsud;
         get_DeclSort_UsingDeclaration(&idsud);
         /* FIXME: Handle this. */
       }
       break;
-    case DeclSort(UsingDirective):
+    case ifc_DeclSort_UsingDirective:
       { an_ifc_DeclSort_UsingDirective idsud;
         get_DeclSort_UsingDirective(&idsud);
         /* FIXME: Handle this. */
       }
       break;
-    case DeclSort(Friend):
+    case ifc_DeclSort_Friend:
       { an_ifc_DeclSort_Friend idsf;
         get_DeclSort_Friend(&idsf);
         /* FIXME: Handle this. */
       }
       break;
-    case DeclSort(SyntaxTree):
+    case ifc_DeclSort_SyntaxTree:
       { an_ifc_DeclSort_SyntaxTree idsst;
         get_DeclSort_SyntaxTree(&idsst);
         /* FIXME: Handle this. */
       }
       break;
-    case DeclSort(Tuple):
+    case ifc_DeclSort_Tuple:
       { an_ifc_DeclSort_Tuple idst;
         get_DeclSort_Tuple(&idst);
         /* FIXME: Handle this. */
@@ -3882,115 +3891,114 @@ Generate a string for the specified statement.
 {
   ifc_StmtSort tag = stmt_tag(stmt_index);
 
-  read_ifc_partition_at_index(ifc_stmt_start + (ifc_StmtSort_type)tag,
-                              stmt_value(stmt_index));
+  read_ifc_partition_at_index(ifc_stmt_start + tag, stmt_value(stmt_index));
   switch (tag) {
-    case StmtSort(VendorExtension):
+    case ifc_StmtSort_VendorExtension:
       { an_ifc_StmtSort_VendorExtension issve;
         get_StmtSort_VendorExtension(&issve);
         unexpected_condition_str("StmtSort::VendorExtension"
                                  " is not yet handled");
       }
       break;
-    case StmtSort(Empty):
+    case ifc_StmtSort_Empty:
       { an_ifc_StmtSort_Empty isse;
         get_StmtSort_Empty(&isse);
         unexpected_condition_str("StmtSort::Empty"
                                  " is not yet handled");
       }
       break;
-    case StmtSort(If):
+    case ifc_StmtSort_If:
       { an_ifc_StmtSort_If issi;
         get_StmtSort_If(&issi);
         unexpected_condition_str("StmtSort::If"
                                  " is not yet handled");
       }
       break;
-    case StmtSort(For):
+    case ifc_StmtSort_For:
       { an_ifc_StmtSort_For issf;
         get_StmtSort_For(&issf);
         unexpected_condition_str("StmtSort::For"
                                  " is not yet handled");
       }
       break;
-    case StmtSort(Case):
+    case ifc_StmtSort_Case:
       { an_ifc_StmtSort_Case issc;
         get_StmtSort_Case(&issc);
         unexpected_condition_str("StmtSort::Case"
                                  " is not yet handled");
       }
       break;
-    case StmtSort(While):
+    case ifc_StmtSort_While:
       { an_ifc_StmtSort_While issw;
         get_StmtSort_While(&issw);
         unexpected_condition_str("StmtSort::While"
                                  " is not yet handled");
       }
       break;
-    case StmtSort(Block):
+    case ifc_StmtSort_Block:
       { an_ifc_StmtSort_Block issb;
         get_StmtSort_Block(&issb);
         unexpected_condition_str("StmtSort::Block"
                                  " is not yet handled");
       }
       break;
-    case StmtSort(Break):
+    case ifc_StmtSort_Break:
       { an_ifc_StmtSort_Break issb;
         get_StmtSort_Break(&issb);
         unexpected_condition_str("StmtSort::Break"
                                  " is not yet handled");
       }
       break;
-    case StmtSort(Switch):
+    case ifc_StmtSort_Switch:
       { an_ifc_StmtSort_Switch isss;
         get_StmtSort_Switch(&isss);
         unexpected_condition_str("StmtSort::Switch"
                                  " is not yet handled");
       }
       break;
-    case StmtSort(DoWhile):
+    case ifc_StmtSort_DoWhile:
       { an_ifc_StmtSort_DoWhile issdw;
         get_StmtSort_DoWhile(&issdw);
         unexpected_condition_str("StmtSort::DoWhile"
                                  " is not yet handled");
       }
       break;
-    case StmtSort(Default):
+    case ifc_StmtSort_Default:
       { an_ifc_StmtSort_Default issd;
         get_StmtSort_Default(&issd);
         unexpected_condition_str("StmtSort::Default"
                                  " is not yet handled");
       }
       break;
-    case StmtSort(Continue):
+    case ifc_StmtSort_Continue:
       { an_ifc_StmtSort_Continue issc;
         get_StmtSort_Continue(&issc);
         unexpected_condition_str("StmtSort::Continue"
                                  " is not yet handled");
       }
       break;
-    case StmtSort(Expression):
+    case ifc_StmtSort_Expression:
       { an_ifc_StmtSort_Expression isse;
         get_StmtSort_Expression(&isse);
         unexpected_condition_str("StmtSort::Expression"
                                  " is not yet handled");
       }
       break;
-    case StmtSort(Return):
+    case ifc_StmtSort_Return:
       { an_ifc_StmtSort_Return issr;
         get_StmtSort_Return(&issr);
         unexpected_condition_str("StmtSort::Return"
                                  " is not yet handled");
       }
       break;
-    case StmtSort(VariableDecl):
+    case ifc_StmtSort_VariableDecl:
       { an_ifc_StmtSort_VariableDecl issvd;
         get_StmtSort_VariableDecl(&issvd);
         unexpected_condition_str("StmtSort::VariableDecl"
                                  " is not yet handled");
       }
       break;
-    case StmtSort(SyntaxTree):
+    case ifc_StmtSort_SyntaxTree:
       { an_ifc_StmtSort_SyntaxTree issst;
         get_StmtSort_SyntaxTree(&issst);
         unexpected_condition_str("StmtSort::SyntaxTree"
@@ -4015,7 +4023,7 @@ Generate a string for the specified string literal.
 
   read_ifc_partition_at_index(ifc_const_str, str_value(str_index));
   get_String_Literal(&str_lit);
-  if (tag != StringSort(Ordinary)) {
+  if (tag != ifc_StringSort_Ordinary) {
     unexpected_condition_str("Non-ordinary strings are not yet handled.");
   }  /* if */
   add_string_with_length_to_text_buffer(scbp->text_buffer,
@@ -4028,63 +4036,6 @@ Generate a string for the specified string literal.
 }  /* str_ifc_string_literal */
 
 
-void an_ifc_module::str_ifc_name(ifc_NameIndex       name_index,
-                                 a_str_control_block *scbp) const noexcept
-/*
-Generate a string for the specified name.
-*/
-{
-  ifc_NameSort tag = name_tag(name_index);
-
-  read_ifc_partition_at_index(ifc_name_start + (ifc_NameSort_type)tag,
-                              name_value(name_index));
-  switch (tag) {
-    case NameSort(Identifier):
-      str_ifc_name_index(name_value(name_index), scbp);
-      break;
-    case NameSort(Operator):
-      { an_ifc_NameSort_Operator inso;
-        get_NameSort_Operator(&inso);
-        unexpected_condition_str("NameSort::Operator is not yet handled.");
-      }
-      break;
-    case NameSort(Conversion):
-      { an_ifc_NameSort_Conversion insc;
-        get_NameSort_Conversion(&insc);
-        unexpected_condition_str("NameSort::Conversion is not yet handled.");
-      }
-      break;
-    case NameSort(Literal):
-      { an_ifc_NameSort_Literal insl;
-        get_NameSort_Literal(&insl);
-        unexpected_condition_str("NameSort::Literal is not yet handled.");
-      }
-      break;
-    case NameSort(Template):
-      { an_ifc_NameSort_Template inst;
-        get_NameSort_Template(&inst);
-        unexpected_condition_str("NameSort::Template is not yet handled.");
-      }
-      break;
-    case NameSort(Specialization):
-      { an_ifc_NameSort_Specialization inss;
-        get_NameSort_Specialization(&inss);
-        unexpected_condition_str("NameSort::Specialization"
-                                 " is not yet handled.");
-      }
-      break;
-    case NameSort(SourceFile):
-      { an_ifc_NameSort_SourceFile inssf;
-        get_NameSort_SourceFile(&inssf);
-        unexpected_condition_str("NameSort::SourceFile is not yet handled.");
-      }
-      break;
-    default:
-      unexpected_condition_str("Unknown ChartSort kind");
-  }  /* switch */
-}  /* str_ifc_name */
-
-
 void an_ifc_module::str_ifc_chart(ifc_ChartIndex      chart_index,
                                   a_str_control_block *scbp) const noexcept
 /*
@@ -4093,22 +4044,21 @@ Generate a string for the specified chart.
 {
   ifc_ChartSort tag = chart_tag(chart_index);
 
-  read_ifc_partition_at_index(ifc_chart_start + (ifc_ChartSort_type)tag,
-                              chart_value(chart_index));
+  read_ifc_partition_at_index(ifc_chart_start + tag, chart_value(chart_index));
   switch (tag) {
-    case ChartSort(None):
+    case ifc_ChartSort_None:
       { an_ifc_ChartSort_None icsn;
         get_ChartSort_None(&icsn);
         unexpected_condition_str("ChartSort::None is unspecified.");
       }
       break;
-    case ChartSort(Unilevel):
+    case ifc_ChartSort_Unilevel:
       { an_ifc_ChartSort_Unilevel icsu;
         get_ChartSort_Unilevel(&icsu);
         unexpected_condition_str("ChartSort::Unilevel is unspecified.");
       }
       break;
-    case ChartSort(Multilevel):
+    case ifc_ChartSort_Multilevel:
       { an_ifc_ChartSort_Multilevel icsm;
         get_ChartSort_Multilevel(&icsm);
         unexpected_condition_str("ChartSort::Multilevel is unspecified.");
@@ -4305,765 +4255,765 @@ Generate a string for the specified syntax tree node.
 {
   ifc_SyntaxSort tag = syntax_tag(syntax_index);
 
-  read_ifc_partition_at_index(ifc_syntax_start + (ifc_SyntaxSort_type)tag,
+  read_ifc_partition_at_index(ifc_syntax_start + tag,
                               syntax_value(syntax_index));
   switch (tag) {
-    case SyntaxSort(VendorExtension):
+    case ifc_SyntaxSort_VendorExtension:
       { an_ifc_SyntaxSort_VendorExtension issve;
         get_SyntaxSort_VendorExtension(&issve);
         unexpected_condition_str("SyntaxSort::VendorExtension"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(SimpleTypeSpecifier):
+    case ifc_SyntaxSort_SimpleTypeSpecifier:
       { an_ifc_SyntaxSort_SimpleTypeSpecifier isssts;
         get_SyntaxSort_SimpleTypeSpecifier(&isssts);
         unexpected_condition_str("SyntaxSort::SimpleTypeSpecifier"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(DecltypeSpecifier):
+    case ifc_SyntaxSort_DecltypeSpecifier:
       { an_ifc_SyntaxSort_DecltypeSpecifier issds;
         get_SyntaxSort_DecltypeSpecifier(&issds);
         unexpected_condition_str("SyntaxSort::DecltypeSpecifier"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(DecltypeAutoSpecifier):
+    case ifc_SyntaxSort_DecltypeAutoSpecifier:
       { an_ifc_SyntaxSort_DecltypeAutoSpecifier issdas;
         get_SyntaxSort_DecltypeAutoSpecifier(&issdas);
         unexpected_condition_str("SyntaxSort::DecltypeAutoSpecifier"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(TypeSpecifierSeq):
+    case ifc_SyntaxSort_TypeSpecifierSeq:
       { an_ifc_SyntaxSort_TypeSpecifierSeq isstss;
         get_SyntaxSort_TypeSpecifierSeq(&isstss);
         unexpected_condition_str("SyntaxSort::TypeSpecifierSeq"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(DeclSpecifierSeq):
+    case ifc_SyntaxSort_DeclSpecifierSeq:
       { an_ifc_SyntaxSort_DeclSpecifierSeq issdss;
         get_SyntaxSort_DeclSpecifierSeq(&issdss);
         unexpected_condition_str("SyntaxSort::DeclSpecifierSeq"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(VirtualSpecifierSeq):
+    case ifc_SyntaxSort_VirtualSpecifierSeq:
       { an_ifc_SyntaxSort_VirtualSpecifierSeq issvss;
         get_SyntaxSort_VirtualSpecifierSeq(&issvss);
         unexpected_condition_str("SyntaxSort::VirtualSpecifierSeq"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(NoexceptSpecification):
+    case ifc_SyntaxSort_NoexceptSpecification:
       { an_ifc_SyntaxSort_NoexceptSpecification issns;
         get_SyntaxSort_NoexceptSpecification(&issns);
         unexpected_condition_str("SyntaxSort::NoexceptSpecification"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(ExplicitSpecifier):
+    case ifc_SyntaxSort_ExplicitSpecifier:
       { an_ifc_SyntaxSort_ExplicitSpecifier isses;
         get_SyntaxSort_ExplicitSpecifier(&isses);
         unexpected_condition_str("SyntaxSort::ExplicitSpecifier"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(EnumSpecifier):
+    case ifc_SyntaxSort_EnumSpecifier:
       { an_ifc_SyntaxSort_EnumSpecifier isses;
         get_SyntaxSort_EnumSpecifier(&isses);
         unexpected_condition_str("SyntaxSort::EnumSpecifier"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(EnumeratorDefinition):
+    case ifc_SyntaxSort_EnumeratorDefinition:
       { an_ifc_SyntaxSort_EnumeratorDefinition issed;
         get_SyntaxSort_EnumeratorDefinition(&issed);
         unexpected_condition_str("SyntaxSort::EnumeratorDefinition"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(ClassSpecifier):
+    case ifc_SyntaxSort_ClassSpecifier:
       { an_ifc_SyntaxSort_ClassSpecifier isscs;
         get_SyntaxSort_ClassSpecifier(&isscs);
         unexpected_condition_str("SyntaxSort::ClassSpecifier"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(MemberSpecification):
+    case ifc_SyntaxSort_MemberSpecification:
       { an_ifc_SyntaxSort_MemberSpecification issms;
         get_SyntaxSort_MemberSpecification(&issms);
         unexpected_condition_str("SyntaxSort::MemberSpecification"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(MemberDeclaration):
+    case ifc_SyntaxSort_MemberDeclaration:
       { an_ifc_SyntaxSort_MemberDeclaration issmd;
         get_SyntaxSort_MemberDeclaration(&issmd);
         unexpected_condition_str("SyntaxSort::MemberDeclaration"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(MemberDeclarator):
+    case ifc_SyntaxSort_MemberDeclarator:
       { an_ifc_SyntaxSort_MemberDeclarator issmd;
         get_SyntaxSort_MemberDeclarator(&issmd);
         unexpected_condition_str("SyntaxSort::MemberDeclarator"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(AccessSpecifier):
+    case ifc_SyntaxSort_AccessSpecifier:
       { an_ifc_SyntaxSort_AccessSpecifier issas;
         get_SyntaxSort_AccessSpecifier(&issas);
         unexpected_condition_str("SyntaxSort::AccessSpecifier"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(BaseSpecifierList):
+    case ifc_SyntaxSort_BaseSpecifierList:
       { an_ifc_SyntaxSort_BaseSpecifierList issbsl;
         get_SyntaxSort_BaseSpecifierList(&issbsl);
         unexpected_condition_str("SyntaxSort::BaseSpecifierList"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(BaseSpecifier):
+    case ifc_SyntaxSort_BaseSpecifier:
       { an_ifc_SyntaxSort_BaseSpecifier issbs;
         get_SyntaxSort_BaseSpecifier(&issbs);
         unexpected_condition_str("SyntaxSort::BaseSpecifier"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(TypeId):
+    case ifc_SyntaxSort_TypeId:
       { an_ifc_SyntaxSort_TypeId isstid;
         get_SyntaxSort_TypeId(&isstid);
         unexpected_condition_str("SyntaxSort::TypeId"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(TrailingReturnType):
+    case ifc_SyntaxSort_TrailingReturnType:
       { an_ifc_SyntaxSort_TrailingReturnType isstrt;
         get_SyntaxSort_TrailingReturnType(&isstrt);
         unexpected_condition_str("SyntaxSort::TrailingReturnType"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(Declarator):
+    case ifc_SyntaxSort_Declarator:
       { an_ifc_SyntaxSort_Declarator issd;
         get_SyntaxSort_Declarator(&issd);
         unexpected_condition_str("SyntaxSort::Declarator"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(PointerDeclarator):
+    case ifc_SyntaxSort_PointerDeclarator:
       { an_ifc_SyntaxSort_PointerDeclarator isspd;
         get_SyntaxSort_PointerDeclarator(&isspd);
         unexpected_condition_str("SyntaxSort::PointerDeclarator"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(ArrayDeclarator):
+    case ifc_SyntaxSort_ArrayDeclarator:
       { an_ifc_SyntaxSort_ArrayDeclarator issad;
         get_SyntaxSort_ArrayDeclarator(&issad);
         unexpected_condition_str("SyntaxSort::ArrayDeclarator"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(FunctionDeclarator):
+    case ifc_SyntaxSort_FunctionDeclarator:
       { an_ifc_SyntaxSort_FunctionDeclarator issfd;
         get_SyntaxSort_FunctionDeclarator(&issfd);
         unexpected_condition_str("SyntaxSort::FunctionDeclarator"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(ArrayOrFunctionDeclarator):
+    case ifc_SyntaxSort_ArrayOrFunctionDeclarator:
       { an_ifc_SyntaxSort_ArrayOrFunctionDeclarator issafd;
         get_SyntaxSort_ArrayOrFunctionDeclarator(&issafd);
         unexpected_condition_str("SyntaxSort::ArrayOrFunctionDeclarator"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(ParameterDeclarator):
+    case ifc_SyntaxSort_ParameterDeclarator:
       { an_ifc_SyntaxSort_ParameterDeclarator isspd;
         get_SyntaxSort_ParameterDeclarator(&isspd);
         unexpected_condition_str("SyntaxSort::ParameterDeclarator"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(InitDeclarator):
+    case ifc_SyntaxSort_InitDeclarator:
       { an_ifc_SyntaxSort_InitDeclarator issid;
         get_SyntaxSort_InitDeclarator(&issid);
         unexpected_condition_str("SyntaxSort::InitDeclarator"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(NewDeclarator):
+    case ifc_SyntaxSort_NewDeclarator:
       { an_ifc_SyntaxSort_NewDeclarator issnd;
         get_SyntaxSort_NewDeclarator(&issnd);
         unexpected_condition_str("SyntaxSort::NewDeclarator"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(SimpleDeclaration):
+    case ifc_SyntaxSort_SimpleDeclaration:
       { an_ifc_SyntaxSort_SimpleDeclaration isssd;
         get_SyntaxSort_SimpleDeclaration(&isssd);
         unexpected_condition_str("SyntaxSort::SimpleDeclaration"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(ExceptionDeclaration):
+    case ifc_SyntaxSort_ExceptionDeclaration:
       { an_ifc_SyntaxSort_ExceptionDeclaration issed;
         get_SyntaxSort_ExceptionDeclaration(&issed);
         unexpected_condition_str("SyntaxSort::ExceptionDeclaration"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(ConditionDeclaration):
+    case ifc_SyntaxSort_ConditionDeclaration:
       { an_ifc_SyntaxSort_ConditionDeclaration isscd;
         get_SyntaxSort_ConditionDeclaration(&isscd);
         unexpected_condition_str("SyntaxSort::ConditionDeclaration"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(StaticAssertDeclaration):
+    case ifc_SyntaxSort_StaticAssertDeclaration:
       { an_ifc_SyntaxSort_StaticAssertDeclaration isssad;
         get_SyntaxSort_StaticAssertDeclaration(&isssad);
         unexpected_condition_str("SyntaxSort::StaticAssertDeclaration"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(AliasDeclaration):
+    case ifc_SyntaxSort_AliasDeclaration:
       { an_ifc_SyntaxSort_AliasDeclaration issad;
         get_SyntaxSort_AliasDeclaration(&issad);
         unexpected_condition_str("SyntaxSort::AliasDeclaration"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(ConceptDefinition):
+    case ifc_SyntaxSort_ConceptDefinition:
       { an_ifc_SyntaxSort_ConceptDefinition isscd;
         get_SyntaxSort_ConceptDefinition(&isscd);
         unexpected_condition_str("SyntaxSort::ConceptDefinition"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(CompoundStatement):
+    case ifc_SyntaxSort_CompoundStatement:
       { an_ifc_SyntaxSort_CompoundStatement isscs;
         get_SyntaxSort_CompoundStatement(&isscs);
         unexpected_condition_str("SyntaxSort::CompoundStatement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(ReturnStatement):
+    case ifc_SyntaxSort_ReturnStatement:
       { an_ifc_SyntaxSort_ReturnStatement issrs;
         get_SyntaxSort_ReturnStatement(&issrs);
         unexpected_condition_str("SyntaxSort::ReturnStatement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(IfStatement):
+    case ifc_SyntaxSort_IfStatement:
       { an_ifc_SyntaxSort_IfStatement issis;
         get_SyntaxSort_IfStatement(&issis);
         unexpected_condition_str("SyntaxSort::IfStatement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(WhileStatement):
+    case ifc_SyntaxSort_WhileStatement:
       { an_ifc_SyntaxSort_WhileStatement issws;
         get_SyntaxSort_WhileStatement(&issws);
         unexpected_condition_str("SyntaxSort::WhileStatement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(DoWhileStatement):
+    case ifc_SyntaxSort_DoWhileStatement:
       { an_ifc_SyntaxSort_DoWhileStatement issdws;
         get_SyntaxSort_DoWhileStatement(&issdws);
         unexpected_condition_str("SyntaxSort::DoWhileStatement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(ForStatement):
+    case ifc_SyntaxSort_ForStatement:
       { an_ifc_SyntaxSort_ForStatement issfs;
         get_SyntaxSort_ForStatement(&issfs);
         unexpected_condition_str("SyntaxSort::ForStatement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(InitStatement):
+    case ifc_SyntaxSort_InitStatement:
       { an_ifc_SyntaxSort_InitStatement issis;
         get_SyntaxSort_InitStatement(&issis);
         unexpected_condition_str("SyntaxSort::InitStatement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(RangeBasedForStatement):
+    case ifc_SyntaxSort_RangeBasedForStatement:
       { an_ifc_SyntaxSort_RangeBasedForStatement issrbfs;
         get_SyntaxSort_RangeBasedForStatement(&issrbfs);
         unexpected_condition_str("SyntaxSort::RangeBasedForStatement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(ForRangeDeclaration):
+    case ifc_SyntaxSort_ForRangeDeclaration:
       { an_ifc_SyntaxSort_ForRangeDeclaration issfrd;
         get_SyntaxSort_ForRangeDeclaration(&issfrd);
         unexpected_condition_str("SyntaxSort::ForRangeDeclaration"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(LabeledStatement):
+    case ifc_SyntaxSort_LabeledStatement:
       { an_ifc_SyntaxSort_LabeledStatement issls;
         get_SyntaxSort_LabeledStatement(&issls);
         unexpected_condition_str("SyntaxSort::LabeledStatement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(BreakStatement):
+    case ifc_SyntaxSort_BreakStatement:
       { an_ifc_SyntaxSort_BreakStatement issbs;
         get_SyntaxSort_BreakStatement(&issbs);
         unexpected_condition_str("SyntaxSort::BreakStatement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(ContinueStatement):
+    case ifc_SyntaxSort_ContinueStatement:
       { an_ifc_SyntaxSort_ContinueStatement isscs;
         get_SyntaxSort_ContinueStatement(&isscs);
         unexpected_condition_str("SyntaxSort::ContinueStatement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(SwitchStatement):
+    case ifc_SyntaxSort_SwitchStatement:
       { an_ifc_SyntaxSort_SwitchStatement issss;
         get_SyntaxSort_SwitchStatement(&issss);
         unexpected_condition_str("SyntaxSort::SwitchStatement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(GotoStatement):
+    case ifc_SyntaxSort_GotoStatement:
       { an_ifc_SyntaxSort_GotoStatement issgs;
         get_SyntaxSort_GotoStatement(&issgs);
         unexpected_condition_str("SyntaxSort::GotoStatement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(DeclarationStatement):
+    case ifc_SyntaxSort_DeclarationStatement:
       { an_ifc_SyntaxSort_DeclarationStatement issds;
         get_SyntaxSort_DeclarationStatement(&issds);
         unexpected_condition_str("SyntaxSort::DeclarationStatement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(ExpressionStatement):
+    case ifc_SyntaxSort_ExpressionStatement:
       { an_ifc_SyntaxSort_ExpressionStatement isses;
         get_SyntaxSort_ExpressionStatement(&isses);
         unexpected_condition_str("SyntaxSort::ExpressionStatement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(TryBlock):
+    case ifc_SyntaxSort_TryBlock:
       { an_ifc_SyntaxSort_TryBlock isstb;
         get_SyntaxSort_TryBlock(&isstb);
         unexpected_condition_str("SyntaxSort::TryBlock"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(Handler):
+    case ifc_SyntaxSort_Handler:
       { an_ifc_SyntaxSort_Handler issh;
         get_SyntaxSort_Handler(&issh);
         unexpected_condition_str("SyntaxSort::Handler"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(HandlerSeq):
+    case ifc_SyntaxSort_HandlerSeq:
       { an_ifc_SyntaxSort_HandlerSeq isshs;
         get_SyntaxSort_HandlerSeq(&isshs);
         unexpected_condition_str("SyntaxSort::HandlerSeq"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(FunctionTryBlock):
+    case ifc_SyntaxSort_FunctionTryBlock:
       { an_ifc_SyntaxSort_FunctionTryBlock issftb;
         get_SyntaxSort_FunctionTryBlock(&issftb);
         unexpected_condition_str("SyntaxSort::FunctionTryBlock"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(TypeIdListElement):
+    case ifc_SyntaxSort_TypeIdListElement:
       { an_ifc_SyntaxSort_TypeIdListElement isstidle;
         get_SyntaxSort_TypeIdListElement(&isstidle);
         unexpected_condition_str("SyntaxSort::TypeIdListElement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(DynamicExceptionSpec):
+    case ifc_SyntaxSort_DynamicExceptionSpec:
       { an_ifc_SyntaxSort_DynamicExceptionSpec issdes;
         get_SyntaxSort_DynamicExceptionSpec(&issdes);
         unexpected_condition_str("SyntaxSort::DynamicExceptionSpec"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(StatementSeq):
+    case ifc_SyntaxSort_StatementSeq:
       { an_ifc_SyntaxSort_StatementSeq issss;
         get_SyntaxSort_StatementSeq(&issss);
         unexpected_condition_str("SyntaxSort::StatementSeq"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(FunctionBody):
+    case ifc_SyntaxSort_FunctionBody:
       { an_ifc_SyntaxSort_FunctionBody issfb;
         get_SyntaxSort_FunctionBody(&issfb);
         unexpected_condition_str("SyntaxSort::FunctionBody"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(Expression):
+    case ifc_SyntaxSort_Expression:
       { an_ifc_SyntaxSort_Expression isse;
         get_SyntaxSort_Expression(&isse);
         unexpected_condition_str("SyntaxSort::Expression"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(FunctionDefinition):
+    case ifc_SyntaxSort_FunctionDefinition:
       { an_ifc_SyntaxSort_FunctionDefinition issfd;
         get_SyntaxSort_FunctionDefinition(&issfd);
         unexpected_condition_str("SyntaxSort::FunctionDefinition"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(MemberFunctionDeclaration):
+    case ifc_SyntaxSort_MemberFunctionDeclaration:
       { an_ifc_SyntaxSort_MemberFunctionDeclaration issmfd;
         get_SyntaxSort_MemberFunctionDeclaration(&issmfd);
         unexpected_condition_str("SyntaxSort::MemberFunctionDeclaration"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(TemplateDeclaration):
+    case ifc_SyntaxSort_TemplateDeclaration:
       { an_ifc_SyntaxSort_TemplateDeclaration isstd;
         get_SyntaxSort_TemplateDeclaration(&isstd);
         unexpected_condition_str("SyntaxSort::TemplateDeclaration"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(RequiresClause):
+    case ifc_SyntaxSort_RequiresClause:
       { an_ifc_SyntaxSort_RequiresClause issrc;
         get_SyntaxSort_RequiresClause(&issrc);
         unexpected_condition_str("SyntaxSort::RequiresClause"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(SimpleRequirement):
+    case ifc_SyntaxSort_SimpleRequirement:
       { an_ifc_SyntaxSort_SimpleRequirement isssr;
         get_SyntaxSort_SimpleRequirement(&isssr);
         unexpected_condition_str("SyntaxSort::SimpleRequirement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(TypeRequirement):
+    case ifc_SyntaxSort_TypeRequirement:
       { an_ifc_SyntaxSort_TypeRequirement isstr;
         get_SyntaxSort_TypeRequirement(&isstr);
         unexpected_condition_str("SyntaxSort::TypeRequirement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(CompoundRequirement):
+    case ifc_SyntaxSort_CompoundRequirement:
       { an_ifc_SyntaxSort_CompoundRequirement isscr;
         get_SyntaxSort_CompoundRequirement(&isscr);
         unexpected_condition_str("SyntaxSort::CompoundRequirement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(NestedRequirement):
+    case ifc_SyntaxSort_NestedRequirement:
       { an_ifc_SyntaxSort_NestedRequirement issnr;
         get_SyntaxSort_NestedRequirement(&issnr);
         unexpected_condition_str("SyntaxSort::NestedRequirement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(RequirementBody):
+    case ifc_SyntaxSort_RequirementBody:
       { an_ifc_SyntaxSort_RequirementBody issrb;
         get_SyntaxSort_RequirementBody(&issrb);
         unexpected_condition_str("SyntaxSort::RequirementBody"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(TypeTemplateParameter):
+    case ifc_SyntaxSort_TypeTemplateParameter:
       { an_ifc_SyntaxSort_TypeTemplateParameter issttp;
         get_SyntaxSort_TypeTemplateParameter(&issttp);
         unexpected_condition_str("SyntaxSort::TypeTemplateParameter"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(TemplateTemplateParameter):
+    case ifc_SyntaxSort_TemplateTemplateParameter:
       { an_ifc_SyntaxSort_TemplateTemplateParameter issttp;
         get_SyntaxSort_TemplateTemplateParameter(&issttp);
         unexpected_condition_str("SyntaxSort::TemplateTemplateParameter"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(TypeTemplateArgument):
+    case ifc_SyntaxSort_TypeTemplateArgument:
       { an_ifc_SyntaxSort_TypeTemplateArgument isstta;
         get_SyntaxSort_TypeTemplateArgument(&isstta);
         unexpected_condition_str("SyntaxSort::TypeTemplateArgument"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(NonTypeTemplateArgument):
+    case ifc_SyntaxSort_NonTypeTemplateArgument:
       { an_ifc_SyntaxSort_NonTypeTemplateArgument issntta;
         get_SyntaxSort_NonTypeTemplateArgument(&issntta);
         unexpected_condition_str("SyntaxSort::NonTypeTemplateArgument"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(TemplateParameterList):
+    case ifc_SyntaxSort_TemplateParameterList:
       { an_ifc_SyntaxSort_TemplateParameterList isstpl;
         get_SyntaxSort_TemplateParameterList(&isstpl);
         unexpected_condition_str("SyntaxSort::TemplateParameterList"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(TemplateArgumentList):
+    case ifc_SyntaxSort_TemplateArgumentList:
       { an_ifc_SyntaxSort_TemplateArgumentList isstal;
         get_SyntaxSort_TemplateArgumentList(&isstal);
         unexpected_condition_str("SyntaxSort::TemplateArgumentList"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(TemplateId):
+    case ifc_SyntaxSort_TemplateId:
       { an_ifc_SyntaxSort_TemplateId isstid;
         get_SyntaxSort_TemplateId(&isstid);
         unexpected_condition_str("SyntaxSort::TemplateId"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(MemInitializer):
+    case ifc_SyntaxSort_MemInitializer:
       { an_ifc_SyntaxSort_MemInitializer issmi;
         get_SyntaxSort_MemInitializer(&issmi);
         unexpected_condition_str("SyntaxSort::MemInitializer"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(CtorInitializer):
+    case ifc_SyntaxSort_CtorInitializer:
       { an_ifc_SyntaxSort_CtorInitializer issci;
         get_SyntaxSort_CtorInitializer(&issci);
         unexpected_condition_str("SyntaxSort::CtorInitializer"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(LambdaIntroducer):
+    case ifc_SyntaxSort_LambdaIntroducer:
       { an_ifc_SyntaxSort_LambdaIntroducer issli;
         get_SyntaxSort_LambdaIntroducer(&issli);
         unexpected_condition_str("SyntaxSort::LambdaIntroducer"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(LambdaDeclarator):
+    case ifc_SyntaxSort_LambdaDeclarator:
       { an_ifc_SyntaxSort_LambdaDeclarator issld;
         get_SyntaxSort_LambdaDeclarator(&issld);
         unexpected_condition_str("SyntaxSort::LambdaDeclarator"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(CaptureDefault):
+    case ifc_SyntaxSort_CaptureDefault:
       { an_ifc_SyntaxSort_CaptureDefault isscd;
         get_SyntaxSort_CaptureDefault(&isscd);
         unexpected_condition_str("SyntaxSort::CaptureDefault"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(SimpleCapture):
+    case ifc_SyntaxSort_SimpleCapture:
       { an_ifc_SyntaxSort_SimpleCapture isssc;
         get_SyntaxSort_SimpleCapture(&isssc);
         unexpected_condition_str("SyntaxSort::SimpleCapture"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(InitCapture):
+    case ifc_SyntaxSort_InitCapture:
       { an_ifc_SyntaxSort_InitCapture issic;
         get_SyntaxSort_InitCapture(&issic);
         unexpected_condition_str("SyntaxSort::InitCapture"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(ThisCapture):
+    case ifc_SyntaxSort_ThisCapture:
       { an_ifc_SyntaxSort_ThisCapture isstc;
         get_SyntaxSort_ThisCapture(&isstc);
         unexpected_condition_str("SyntaxSort::ThisCapture"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(AttributedStatement):
+    case ifc_SyntaxSort_AttributedStatement:
       { an_ifc_SyntaxSort_AttributedStatement issas;
         get_SyntaxSort_AttributedStatement(&issas);
         unexpected_condition_str("SyntaxSort::AttributedStatement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(AttributedDeclaration):
+    case ifc_SyntaxSort_AttributedDeclaration:
       { an_ifc_SyntaxSort_AttributedDeclaration issad;
         get_SyntaxSort_AttributedDeclaration(&issad);
         unexpected_condition_str("SyntaxSort::AttributedDeclaration"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(AttributeSpecifierSeq):
+    case ifc_SyntaxSort_AttributeSpecifierSeq:
       { an_ifc_SyntaxSort_AttributeSpecifierSeq issass;
         get_SyntaxSort_AttributeSpecifierSeq(&issass);
         unexpected_condition_str("SyntaxSort::AttributeSpecifierSeq"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(AttributeSpecifier):
+    case ifc_SyntaxSort_AttributeSpecifier:
       { an_ifc_SyntaxSort_AttributeSpecifier issas;
         get_SyntaxSort_AttributeSpecifier(&issas);
         unexpected_condition_str("SyntaxSort::AttributeSpecifier"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(AttributeUsingPrefix):
+    case ifc_SyntaxSort_AttributeUsingPrefix:
       { an_ifc_SyntaxSort_AttributeUsingPrefix issaup;
         get_SyntaxSort_AttributeUsingPrefix(&issaup);
         unexpected_condition_str("SyntaxSort::AttributeUsingPrefix"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(Attribute):
+    case ifc_SyntaxSort_Attribute:
       { an_ifc_SyntaxSort_Attribute issa;
         get_SyntaxSort_Attribute(&issa);
         unexpected_condition_str("SyntaxSort::Attribute"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(AttributeArgumentClause):
+    case ifc_SyntaxSort_AttributeArgumentClause:
       { an_ifc_SyntaxSort_AttributeArgumentClause issaac;
         get_SyntaxSort_AttributeArgumentClause(&issaac);
         unexpected_condition_str("SyntaxSort::AttributeArgumentClause"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(Alignas):
+    case ifc_SyntaxSort_Alignas:
       { an_ifc_SyntaxSort_Alignas issa;
         get_SyntaxSort_Alignas(&issa);
         unexpected_condition_str("SyntaxSort::Alignas"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(UsingDeclaration):
+    case ifc_SyntaxSort_UsingDeclaration:
       { an_ifc_SyntaxSort_UsingDeclaration issud;
         get_SyntaxSort_UsingDeclaration(&issud);
         unexpected_condition_str("SyntaxSort::UsingDeclaration"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(UsingDeclarator):
+    case ifc_SyntaxSort_UsingDeclarator:
       { an_ifc_SyntaxSort_UsingDeclarator issud;
         get_SyntaxSort_UsingDeclarator(&issud);
         unexpected_condition_str("SyntaxSort::UsingDeclarator"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(UsingDirective):
+    case ifc_SyntaxSort_UsingDirective:
       { an_ifc_SyntaxSort_UsingDirective issud;
         get_SyntaxSort_UsingDirective(&issud);
         unexpected_condition_str("SyntaxSort::UsingDirective"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(ArrayIndex):
+    case ifc_SyntaxSort_ArrayIndex:
       { an_ifc_SyntaxSort_ArrayIndex issai;
         get_SyntaxSort_ArrayIndex(&issai);
         unexpected_condition_str("SyntaxSort::ArrayIndex"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(SEHTry):
+    case ifc_SyntaxSort_SEHTry:
       { an_ifc_SyntaxSort_SEHTry issseht;
         get_SyntaxSort_SEHTry(&issseht);
         unexpected_condition_str("SyntaxSort::SEHTry"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(SEHExcept):
+    case ifc_SyntaxSort_SEHExcept:
       { an_ifc_SyntaxSort_SEHExcept isssehe;
         get_SyntaxSort_SEHExcept(&isssehe);
         unexpected_condition_str("SyntaxSort::SEHExcept"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(SEHFinally):
+    case ifc_SyntaxSort_SEHFinally:
       { an_ifc_SyntaxSort_SEHFinally isssehf;
         get_SyntaxSort_SEHFinally(&isssehf);
         unexpected_condition_str("SyntaxSort:: is currently unspecified.");
       }
       break;
-    case SyntaxSort(SEHLeave):
+    case ifc_SyntaxSort_SEHLeave:
       { an_ifc_SyntaxSort_SEHLeave isssehl;
         get_SyntaxSort_SEHLeave(&isssehl);
         unexpected_condition_str("SyntaxSort::SEHLeave"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(TypeTraitIntrinsic):
+    case ifc_SyntaxSort_TypeTraitIntrinsic:
       { an_ifc_SyntaxSort_TypeTraitIntrinsic isstti;
         get_SyntaxSort_TypeTraitIntrinsic(&isstti);
         unexpected_condition_str("SyntaxSort::TypeTraitIntrinsic"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(Tuple):
+    case ifc_SyntaxSort_Tuple:
       { an_ifc_SyntaxSort_Tuple isst;
         get_SyntaxSort_Tuple(&isst);
         unexpected_condition_str("SyntaxSort::Tuple"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(AsmStatement):
+    case ifc_SyntaxSort_AsmStatement:
       { an_ifc_SyntaxSort_AsmStatement issas;
         get_SyntaxSort_AsmStatement(&issas);
         unexpected_condition_str("SyntaxSort::AsmStatement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(NamespaceAliasDefinition):
+    case ifc_SyntaxSort_NamespaceAliasDefinition:
       { an_ifc_SyntaxSort_NamespaceAliasDefinition issnad;
         get_SyntaxSort_NamespaceAliasDefinition(&issnad);
         unexpected_condition_str("SyntaxSort::NamespaceAliasDefinition"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(Super):
+    case ifc_SyntaxSort_Super:
       { an_ifc_SyntaxSort_Super isss;
         get_SyntaxSort_Super(&isss);
         unexpected_condition_str("SyntaxSort::Super"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(UnaryFoldExpression):
+    case ifc_SyntaxSort_UnaryFoldExpression:
       { an_ifc_SyntaxSort_UnaryFoldExpression issufe;
         get_SyntaxSort_UnaryFoldExpression(&issufe);
         unexpected_condition_str("SyntaxSort::UnaryFoldExpression"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(BinaryFoldExpression):
+    case ifc_SyntaxSort_BinaryFoldExpression:
       { an_ifc_SyntaxSort_BinaryFoldExpression issbfe;
         get_SyntaxSort_BinaryFoldExpression(&issbfe);
         unexpected_condition_str("SyntaxSort::BinaryFoldExpression"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(EmptyStatement):
+    case ifc_SyntaxSort_EmptyStatement:
       { an_ifc_SyntaxSort_EmptyStatement isses;
         get_SyntaxSort_EmptyStatement(&isses);
         unexpected_condition_str("SyntaxSort::EmptyStatement"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(StructuredBindingDeclaration):
+    case ifc_SyntaxSort_StructuredBindingDeclaration:
       { an_ifc_SyntaxSort_StructuredBindingDeclaration isssbd;
         get_SyntaxSort_StructuredBindingDeclaration(&isssbd);
         unexpected_condition_str("SyntaxSort::StructuredBindingDeclaration"
                                  " is currently unspecified.");
       }
       break;
-    case SyntaxSort(StructuredBindingIdentifier):
+    case ifc_SyntaxSort_StructuredBindingIdentifier:
       { an_ifc_SyntaxSort_StructuredBindingIdentifier isssbi;
         get_SyntaxSort_StructuredBindingIdentifier(&isssbi);
         unexpected_condition_str("SyntaxSort::StructuredBindingIdentifier"
@@ -5116,7 +5066,7 @@ Display the contents of the IFC file header for the specified module.
   (void)fprintf(f_debug, "  major_version = %d\n", header.major_version);
   (void)fprintf(f_debug, "  minor_version = %d\n", header.minor_version);
   (void)fprintf(f_debug, "  abi = %d\n", header.abi);
-  (void)fprintf(f_debug, "  arch = %d\n", (ifc_Architecture_type)header.arch);
+  (void)fprintf(f_debug, "  arch = %d\n", header.arch);
   (void)fprintf(f_debug, "  dialect = %d\n", header.dialect);
   (void)fprintf(f_debug, "  string_table_bytes = 0x%08x\n",
                                                     header.string_table_bytes);
