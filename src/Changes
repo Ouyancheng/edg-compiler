@@ -5,7 +5,7 @@ Incorrect return value for constexpr __builtin_memcmp and other builtins
 
 The implementation of __builtin_memcmp in the interpreter was flawed and
 would sometimes silently return an incorrect return value if one or more of
-the first arguments were not array types.  For example, with --g++
+the first arguments were not array types.  For example, with --gnu_ver 80000
 
   const int x = 1;
   const int y = 0;
