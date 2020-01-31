@@ -629,6 +629,7 @@ Map an IFC OperatorCategory to an_opname_kind.
     case OperatorCategory(GreaterEq):       op = onk_ge; break;
     case OperatorCategory(Less):            op = onk_lt; break;
     case OperatorCategory(LessEq):          op = onk_le; break;
+    case OperatorCategory(Spaceship):       op = onk_spaceship; break;
     case OperatorCategory(LshiftEq):        op = onk_shift_left_assign; break;
     case OperatorCategory(RshiftEq):        op = onk_shift_right_assign; break;
     case OperatorCategory(MinusEq):         op = onk_minus_assign; break;
@@ -1910,7 +1911,7 @@ an "ellipsis type").
           db_module_entity(mep);
         }  /* if */
 #endif /* DEBUG */
-        unexpected_condition();
+        unexpected_condition_str("Unexpected TypeSort");
         break;
     }  /* switch */
     /* Record this mapping for future reference. */
@@ -2151,10 +2152,12 @@ should be called with this pointer after the declaration has been processed.
                                  (a_byte_attribute_family)af_ms_declspec, ap);
     }  /* if */
     if (specifiers & ifc_BasicSpecifiers_InitializedInClass) {
-      unexpected_condition(); /* FIXME */
+      unexpected_condition_str("BasicSpecifiers::InitializedInClass"
+                               " not yet handled"); /* FIXME */
     }  /* if */
     if (specifiers & ifc_BasicSpecifiers_NonExported) {
-      unexpected_condition(); /* FIXME */
+      unexpected_condition_str("BasicSpecifiers::NonExported"
+                               " not yet handled"); /* FIXME */
     }  /* if */
   }  /* if */
   if (ap != NULL) {

@@ -1318,7 +1318,7 @@ process_option()
       any_l_or_o_files=1
       add_to_instantiation_command=0
       ;;
-    *\.c | *\.C | *\.cc | *\.cpp | *\.CPP | *\.cxx | *\.CXX | *\.s)
+    *\.c | *\.C | *\.cc | *\.cpp | *\.CPP | *\.cxx | *\.CXX | *\.ixx | *\.IXX | *\.s)
 #     Collect a list of .c files.
       arg=`native_path $arg`
       if [ "$cfiles" ]; then more_than_one_c_file=1; fi;

@@ -567,7 +567,8 @@ enum class ifc_TypePrecision : ifc_TypePrecision_type {
   ifc_TypePrecision_Default,
   ifc_TypePrecision_Short,
   ifc_TypePrecision_Long,
-  ifc_TypePrecision_Bit16,
+  /* ifc_TypePrecision_Bit8 supposed to be here? */
+  ifc_TypePrecision_Bit16 = 4,
   ifc_TypePrecision_Bit32,
   ifc_TypePrecision_Bit64,
   ifc_TypePrecision_Bit128,
@@ -669,27 +670,44 @@ enum class ifc_LiteralSort : ifc_LiteralSort_type {
 #define OperatorCategoryAsType(opcat) \
                            ((ifc_OperatorCategory_type)OperatorCategory(opcat))
 
+#if 0
+/* The enumeration according to the IFC spec. */
 /* Enumeration for OperatorCategory (i.e., types of operations). */
 enum class ifc_OperatorCategory : ifc_OperatorCategory_type {
+  /* Values in IFC files match this. */
   ifc_OperatorCategory_Bitand = 14,                /* operator& */
+  /* Values in IFC files match this. */
   ifc_OperatorCategory_LogicAnd = 15,              /* operator&& */
   ifc_OperatorCategory_Assign = 16,                /* operator= */
+  /* Values in IFC files say this is 19. */
   ifc_OperatorCategory_Comma = 18,                 /* operator, */
+  /* Values in IFC files say this is 20. */
   ifc_OperatorCategory_Not = 19,                   /* operator! */
+  /* Values in IFC files say this is 27. */
   ifc_OperatorCategory_Minus = 26,                 /* operator- */
+  /* Values in IFC files say this is 28. */
   ifc_OperatorCategory_Star = 27,                  /* operator* */
+  /* Values in IFC files say this is 29. */
   ifc_OperatorCategory_Bitor = 28,                 /* operator| */
+  /* Values in IFC files say this is 30. */
   ifc_OperatorCategory_LogicOr = 29,               /* operator|| */
+  /* Values in IFC files say this is 31. */
   ifc_OperatorCategory_Plus = 30,                  /* operator+ */
   ifc_OperatorCategory_Quest = 31,                 /* operator? */
+  /* Values in IFC files say this is 33. */
   ifc_OperatorCategory_Complement = 32,            /* operator~ */
+  /* Values in IFC files say this is 34. */
   ifc_OperatorCategory_Caret = 33,                 /* operator^ */
+  /* Values in IFC files say this is 40. */
   ifc_OperatorCategory_Slash = 39,                 /* operator/ */
+  /* Values in IFC files say this is 41. */
   ifc_OperatorCategory_Modulo = 40,                /* operator% */
   ifc_OperatorCategory_Percent = 41,               /* operator% */
   ifc_OperatorCategory_Sizeof = 62,                /* operator sizeof */
   ifc_OperatorCategory_ExpandingSizeof = 63,       /* operator sizeof... */
+  /* Values in IFC files say this is 71. */
   ifc_OperatorCategory_New = 69,                   /* operator new */
+  /* Values in IFC files say this is 72. */
   ifc_OperatorCategory_Delete = 70,                /* operator delete */
   ifc_OperatorCategory_Throw = 96,                 /* operator throw */
   ifc_OperatorCategory_Alignof = 99,               /* operator alignof */
@@ -699,36 +717,147 @@ enum class ifc_OperatorCategory : ifc_OperatorCategory_type {
   ifc_OperatorCategory_Await = 186,                /* operator co_await */
   ifc_OperatorCategory_Yield = 187,                /* operator co_yield */
   ifc_OperatorCategory_StaticAssert = 261,         /* operator static_assert */
+  /* Values in IFC files say this is 381. */
   ifc_OperatorCategory_PostIncrement = 336,        /* operator++ */
+  /* Values in IFC files say this is 380. */
   ifc_OperatorCategory_PostDecrement = 337,        /* operator-- */
+  /* Values in IFC files say this is 358. */
   ifc_OperatorCategory_SlashEq = 338,              /* operator/= */
+  /* Values in IFC files say this is 359. */
   ifc_OperatorCategory_EqEq = 339,                 /* operator== */
+  /* Values in IFC files say this is 360. */
   ifc_OperatorCategory_NotEq = 340,                /* operator!= */
+  /* Values in IFC files say this is 361. */
   ifc_OperatorCategory_Greater = 341,              /* operator> */
+  /* Values in IFC files say this is 362. */
   ifc_OperatorCategory_GreaterEq = 342,            /* operator>= */
+  /* Values in IFC files say this is 363. */
   ifc_OperatorCategory_Less = 343,                 /* operator< */
+  /* Values in IFC files say this is 364. */
   ifc_OperatorCategory_LessEq = 344,               /* operator<= */
+  /* Encountered in spaceship tests. */
+  ifc_OperatorCategory_Spaceship = 365,            /* operator<=> */
+  /* Values in IFC files say this is 366. */
   ifc_OperatorCategory_LshiftEq = 345,             /* operator<<= */
+  /* Values in IFC files say this is 367. */
   ifc_OperatorCategory_RshiftEq = 346,             /* operator>>= */
+  /* Values in IFC files say this is 368. */
   ifc_OperatorCategory_MinusEq = 347,              /* operator-= */
+  /* Values in IFC files say this is 369. */
   ifc_OperatorCategory_ModuloEq = 348,             /* operator%= */
+  /* Values in IFC files say this is 370. */
   ifc_OperatorCategory_StarEq = 349,               /* operator*= */
+  /* Values in IFC files say this is 371. */
   ifc_OperatorCategory_BitorEq = 350,              /* operator|= */
+  /* Values in IFC files say this is 372. */
   ifc_OperatorCategory_PlusEq = 351,               /* operator+= */
+  /* Values in IFC files say this is 373. */
   ifc_OperatorCategory_BitandEq = 352,             /* operator&= */
+  /* Values in IFC files say this is 374. */
   ifc_OperatorCategory_BitxorEq = 353,             /* operator^= */
+  /* Values in IFC files say this is 375. */
   ifc_OperatorCategory_Lshift = 354,               /* operator<< */
+  /* Values in IFC files say this is 376. */
   ifc_OperatorCategory_Rshift = 355,               /* operator>> */
   ifc_OperatorCategory_Dot = 356,                  /* operator. */
   ifc_OperatorCategory_Arrow = 357,                /* operator =  */
+  /* Values in IFC files say this is also 380. */
   ifc_OperatorCategory_PreDecrement = 359,         /* operator-- */
+  /* Values in IFC files say this is also 381. */
   ifc_OperatorCategory_PreIncrement = 360,         /* operator++ */
   ifc_OperatorCategory_UnaryMinus = 361,           /* operator- */
   ifc_OperatorCategory_Address = 362,              /* operator& */
   ifc_OperatorCategory_UnaryPlus = 381,            /* operator+ */
   ifc_OperatorCategory_DerefMemberAccess = 386,    /* operator.* */
+  /* Values in IFC files say this is 410. */
   ifc_OperatorCategory_IndirectMemberAccess = 387, /* operator->* */
 };
+#else /* !0 */
+/* The enumeration according to tests. */
+/* Enumeration for OperatorCategory (i.e., types of operations). */
+enum class ifc_OperatorCategory : ifc_OperatorCategory_type {
+  ifc_OperatorCategory_Bitand = 14,                /* operator& */
+  ifc_OperatorCategory_LogicAnd = 15,              /* operator&& */
+  /* Untested */
+  ifc_OperatorCategory_Assign = 16,                /* operator= */
+  ifc_OperatorCategory_Comma = 19,                 /* operator, */
+  ifc_OperatorCategory_Not = 20,                   /* operator! */
+  ifc_OperatorCategory_Minus = 27,                 /* operator- */
+  ifc_OperatorCategory_Star = 28,                  /* operator* */
+  ifc_OperatorCategory_Bitor = 29,                 /* operator| */
+  ifc_OperatorCategory_LogicOr = 30,               /* operator|| */
+  ifc_OperatorCategory_Plus = 31,                  /* operator+ */
+  /* Untested */
+  ifc_OperatorCategory_Quest = 32,                 /* operator? */
+  ifc_OperatorCategory_Complement = 33,            /* operator~ */
+  ifc_OperatorCategory_Caret = 34,                 /* operator^ */
+  ifc_OperatorCategory_Slash = 40,                 /* operator/ */
+  ifc_OperatorCategory_Modulo = 41,                /* operator% */
+  /* Untested */
+  ifc_OperatorCategory_Percent = 42,               /* operator% */
+  /* Untested */
+  ifc_OperatorCategory_Sizeof = 62,                /* operator sizeof */
+  /* Untested */
+  ifc_OperatorCategory_ExpandingSizeof = 63,       /* operator sizeof... */
+  ifc_OperatorCategory_New = 71,                   /* operator new */
+  ifc_OperatorCategory_Delete = 72,                /* operator delete */
+  /* Untested */
+  ifc_OperatorCategory_Throw = 96,                 /* operator throw */
+  /* Untested */
+  ifc_OperatorCategory_Alignof = 99,               /* operator alignof */
+  /* Untested */
+  ifc_OperatorCategory_Noexcept = 166,             /* operator noexcept */
+  /* Untested */
+  ifc_OperatorCategory_Requires = 174,             /* operator requires */
+  /* Untested */
+  ifc_OperatorCategory_Coreturn = 185,             /* operator co_return */
+  /* Untested */
+  ifc_OperatorCategory_Await = 186,                /* operator co_await */
+  /* Untested */
+  ifc_OperatorCategory_Yield = 187,                /* operator co_yield */
+  /* Untested */
+  ifc_OperatorCategory_StaticAssert = 261,         /* operator static_assert */
+  /* Values in IFC files say this is 381 - same as preinc, leaving as-was. */
+  ifc_OperatorCategory_PostIncrement = 336,        /* operator++ */
+  /* Values in IFC files say this is 380 - same as predec, leaving as-was. */
+  ifc_OperatorCategory_PostDecrement = 337,        /* operator-- */
+  ifc_OperatorCategory_SlashEq = 358,              /* operator/= */
+  ifc_OperatorCategory_EqEq = 359,                 /* operator== */
+  ifc_OperatorCategory_NotEq = 360,                /* operator!= */
+  ifc_OperatorCategory_Greater = 361,              /* operator> */
+  ifc_OperatorCategory_GreaterEq = 362,            /* operator>= */
+  ifc_OperatorCategory_Less = 363,                 /* operator< */
+  ifc_OperatorCategory_LessEq = 364,               /* operator<= */
+  ifc_OperatorCategory_Spaceship = 365,            /* operator<=> */
+  ifc_OperatorCategory_LshiftEq = 366,             /* operator<<= */
+  ifc_OperatorCategory_RshiftEq = 367,             /* operator>>= */
+  ifc_OperatorCategory_MinusEq = 368,              /* operator-= */
+  ifc_OperatorCategory_ModuloEq = 369,             /* operator%= */
+  ifc_OperatorCategory_StarEq = 370,               /* operator*= */
+  ifc_OperatorCategory_BitorEq = 371,              /* operator|= */
+  ifc_OperatorCategory_PlusEq = 372,               /* operator+= */
+  ifc_OperatorCategory_BitandEq = 373,             /* operator&= */
+  ifc_OperatorCategory_BitxorEq = 374,             /* operator^= */
+  ifc_OperatorCategory_Lshift = 375,               /* operator<< */
+  ifc_OperatorCategory_Rshift = 376,               /* operator>> */
+  /* Untested */
+  ifc_OperatorCategory_Dot = 377,                  /* operator. */
+  /* Untested */
+  ifc_OperatorCategory_Arrow = 378,                /* operator =  */
+  ifc_OperatorCategory_PreDecrement = 380,         /* operator-- */
+  ifc_OperatorCategory_PreIncrement = 381,         /* operator++ */
+  /* Untested */
+  ifc_OperatorCategory_UnaryMinus = 382,           /* operator- */
+  /* Untested */
+  ifc_OperatorCategory_Address = 383,              /* operator& */
+  /* Untested */
+  ifc_OperatorCategory_UnaryPlus = 404,            /* operator+ */
+  /* Untested */
+  ifc_OperatorCategory_DerefMemberAccess = 409,    /* operator.* */
+  ifc_OperatorCategory_IndirectMemberAccess = 410, /* operator->* */
+};
+
+#endif /* 0*/
 
 /* Macros used to access ChartIndex::tag and ChartIndex::value. */
 #define chart_tag_as_type(chart) ((chart) & 0x00000003)
@@ -1344,19 +1473,29 @@ enum an_ifc_partition_kind_tag {
                                  SyntaxSortAsType(StructuredBindingIdentifier),
   ifc_syntax_end = ifc_syntax_start + SyntaxSortAsType(Last),
   /* No particular grouping. */
+  ifc_cmd_line,
   ifc_const_f64,
   ifc_const_i64,
   ifc_const_str,
+  ifc_decl_other_segment,
+  ifc_expr_vfunc_conversion,
+  ifc_form_spec,
   ifc_heap_chart,
   ifc_heap_decl,
   ifc_heap_expr,
   ifc_heap_stmt,
   ifc_heap_syn,
   ifc_heap_type,
+  ifc_msvc_trait_code_segment,
+  ifc_msvc_trait_named_func_params,
+  ifc_msvc_trait_spec_encodings,
+  ifc_msvc_trait_suppressed_warnings,
+  ifc_msvc_trait_templ_templ_param_classes,
   ifc_msvc_trait_uuid,
   ifc_msvc_trait_vendor_traits,
   ifc_module_exported,
   ifc_module_imported,
+  ifc_pragma_state,
   ifc_scope_desc,
   ifc_scope_member,
   ifc_sentence,
@@ -1367,6 +1506,7 @@ enum an_ifc_partition_kind_tag {
   ifc_trait_deprecated,
   ifc_trait_friend,
   ifc_trait_function_template,
+  ifc_trait_requires,
   ifc_trait_specialization,
   ifc_trait_variable_template,
   ifc_word,
@@ -1411,15 +1551,33 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
 #if VAR_INITIALIZERS
 = {
   { ".msvc.code-segment",              ifc_decl_segment },
+  /* Not mentioned in spec.  Found in IFC files. */
+  { ".msvc.trait.code-segment",        ifc_msvc_trait_code_segment },
+  /* Not mentioned in spec.  Found in IFC files. */
+  { ".msvc.trait.named-function-parameters",
+                                       ifc_msvc_trait_named_func_params },
+  /* Not mentioned in spec.  Found in IFC files. */
+  { ".msvc.trait.specialization-encodings",
+                                       ifc_msvc_trait_spec_encodings },
+  /* Not mentioned in spec.  Found in IFC files. */
+  { ".msvc.trait.template-template-parameter-classes",
+                                    ifc_msvc_trait_templ_templ_param_classes },
+  /* Not mentioned in spec.  Found in IFC files. */
+  { ".msvc.trait.suppressed-warnings", ifc_msvc_trait_suppressed_warnings },
   { ".msvc.trait.uuid",                ifc_msvc_trait_uuid },
   { ".msvc.trait.vendor-traits",       ifc_msvc_trait_vendor_traits },
   { "chart.multilevel",                ifc_chart_multilevel },
   { "chart.none",                      ifc_chart_none },
   { "chart.unilevel",                  ifc_chart_unilevel },
+  /* Not mentioned in spec.  Found in IFC files. */
+  { "command_line",                    ifc_cmd_line },
   { "const.f64",                       ifc_const_f64 },
   { "const.i64",                       ifc_const_i64 },
   { "const.str",                       ifc_const_str },
-  { "decl.alias",                      ifc_decl_alias },
+  /* Spec says this is the partition name for DeclSort::Alias, however the IFC
+     files themselves still use "decl.type-alias" instead. */
+  /*{ "decl.alias",                      ifc_decl_alias },*/
+  { "decl.type-alias",                 ifc_decl_alias },
   { "decl.bitfield",                   ifc_decl_bitfield },
   { "decl.concept",                    ifc_decl_concept },
   { "decl.constructor",                ifc_decl_constructor },
@@ -1431,6 +1589,8 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "decl.field",                      ifc_decl_field },
   { "decl.friend-declaration",         ifc_decl_friend },
   { "decl.function",                   ifc_decl_function },
+  /* Not mentioned in spec.  DeclSort::InheritedConstructor not elaborated. */
+  { "decl.inherited-constructor",      ifc_decl_inh_ctor },
   { "decl.intrinsic",                  ifc_decl_intrinsic },
   { "decl.method",                     ifc_decl_method },
   { "decl.parameter",                  ifc_decl_parameter },
@@ -1438,6 +1598,9 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "decl.property",                   ifc_decl_property },
   { "decl.reference",                  ifc_decl_reference },
   { "decl.scope",                      ifc_decl_scope },
+  /* Not mentioned in spec.  DeclSort::OutputSegment refers to
+    ".msvc.code-segment". */
+  { "decl.segment",                    ifc_decl_other_segment },
   { "decl.syntax-tree",                ifc_decl_syntax_tree },
   { "decl.template",                   ifc_decl_template },
   { "decl.temploid",                   ifc_decl_temploid },
@@ -1447,15 +1610,21 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "decl.variable",                   ifc_decl_variable },
   { "decl.vendor-extension",           ifc_decl_vendor_extension },
   { "expr.alignof-type-id",            ifc_expr_alignof_type_id },
+  /* Not mentioned in spec.  ExprSort::Array is not elaborated. */
+  { "expr.array-value",                ifc_expr_array },
   { "expr.assign-initializer",         ifc_expr_assign_initializer },
   { "expr.call",                       ifc_expr_call },
   { "expr.cast",                       ifc_expr_cast },
+  /* Not mentioned in spec.  ExprSort::Subobject is not elaborated. */
+  { "expr.class-subobject-value",      ifc_expr_subobject },
   { "expr.compound-string",            ifc_expr_compound_string },
   { "expr.condition",                  ifc_expr_condition },
   { "expr.decl",                       ifc_expr_decl },
   { "expr.delete",                     ifc_expr_delete },
   { "expr.destructor-call",            ifc_expr_destructor_call },
   { "expr.dyad",                       ifc_expr_dyad },
+  /* Not mentioned in spec.  ExprSort::VirtualFunction is not elaborated. */
+  { "expr.dynamic-dispatch",           ifc_expr_virtual_function },
   { "expr.empty",                      ifc_expr_empty },
   { "expr.expression-list",            ifc_expr_expression_list },
   { "expr.function-string",            ifc_expr_function_string },
@@ -1474,13 +1643,19 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "expr.packed-template-arguments",  ifc_expr_packed_template_arguments },
   { "expr.path",                       ifc_expr_path },
   { "expr.pointer",                    ifc_expr_pointer },
+  /* Not mentioned in spec.  ExprSort::Product is not elaborated. */
+  { "expr.product-type-value",         ifc_expr_product },
   { "expr.push-state",                 ifc_expr_push_state },
   { "expr.qualified-name",             ifc_expr_qualified_name },
   { "expr.read",                       ifc_expr_read },
+  /* Not mentioned in spec.  ExprSort::Requires is not elaborated. */
+  { "expr.requires-expression",        ifc_expr_requires },
   { "expr.simple-identifier",          ifc_expr_simple_identifier },
   { "expr.sizeof-type-id",             ifc_expr_sizeof_type_id },
   { "expr.string-sequence",            ifc_expr_string_sequence },
   { "expr.strings",                    ifc_expr_strings },
+  /* Not mentioned in spec.  ExprSort::Sum is not elaborated. */
+  { "expr.sum-type-value",             ifc_expr_sum },
   { "expr.syntax-tree",                ifc_expr_syntax_tree },
   { "expr.template-id",                ifc_expr_template_id },
   { "expr.template-reference",         ifc_expr_template_reference },
@@ -1492,8 +1667,14 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "expr.type",                       ifc_expr_type },
   { "expr.type-trait",                 ifc_expr_type_trait },
   { "expr.typeid",                     ifc_expr_typeid },
+  /* Not mentioned in spec.  ExprSort::UnaryFold is not elaborated. */
+  { "expr.unary-fold-expression",      ifc_expr_unaryfold },
   { "expr.unresolved",                 ifc_expr_unresolved },
   { "expr.vendor-extension",           ifc_expr_vendor_extension },
+  /* Not mentioned in spec.  Found in IFC files. */
+  { "expr.virtual-function-conversion",ifc_expr_vfunc_conversion },
+  /* Not mentioned in spec.  Found in IFC files. */
+  { "form.spec",                       ifc_form_spec },
   { "heap.chart",                      ifc_heap_chart },
   { "heap.decl",                       ifc_heap_decl },
   { "heap.expr",                       ifc_heap_expr },
@@ -1508,6 +1689,8 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "name.source-file",                ifc_name_source_file },
   { "name.specialization",             ifc_name_specialization },
   { "name.template",                   ifc_name_template },
+  /* Not mentioned in spec.  Found in IFC files. */
+  { "pragma.state",                    ifc_pragma_state },
   { "scope.desc",                      ifc_scope_desc },
   { "scope.member",                    ifc_scope_member },
   { "src.line",                        ifc_src_line },
@@ -1648,6 +1831,8 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "trait.deprecated",                ifc_trait_deprecated },
   { "trait.friend",                    ifc_trait_friend },
   { "trait.function-template",         ifc_trait_function_template },
+  /* Not mentioned in spec.  Found in IFC files. */
+  { "trait.requires",                  ifc_trait_requires },
   { "trait.specialization",            ifc_trait_specialization },
   { "trait.variable-template",         ifc_trait_variable_template },
   { "type.array",                      ifc_type_array },
@@ -1659,9 +1844,12 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "type.forall",                     ifc_type_forall },
   { "type.function",                   ifc_type_function },
   { "type.fundamental",                ifc_type_fundamental },
-  { "type.pointer-lvalue-reference",   ifc_type_lvalue_reference },
+  { "type.lvalue-reference",           ifc_type_lvalue_reference },
   { "type.nonstatic-member-function",  ifc_type_nonstatic_member_function },
   { "type.pointer",                    ifc_type_pointer },
+  /* Spec says this is the partition name for TypeSort::LvalueReference,
+     however the IFC files themselves use "type.lvalue-reference" instead. */
+  /*{ "type.pointer-lvalue-reference",   ifc_type_lvalue_reference },*/
   { "type.pointer-to-member",          ifc_type_pointer_to_member },
   { "type.qualified",                  ifc_type_qualified },
   { "type.rvalue-reference",           ifc_type_rvalue_reference },

@@ -139,25 +139,6 @@ copied if it's wanted to be kept long-term.
 }  /* get_module_primary_name */
 
 
-static a_const_char *get_module_file_base_name(a_const_char *name)
-/*
-Get the base name of the module file for the given module name.  This is
-typically just the primary name of the module with subtitutions for the module
-qualifiers.
-*/
-{
-  reset_text_buffer(module_file_name_buffer);
-  (void)get_module_primary_name(name);
-  add_to_text_buffer(module_file_name_buffer,
-                     module_primary_name_buffer->buffer,
-                     module_primary_name_buffer->size);
-  for (char* ch = module_file_name_buffer->buffer; *ch != '\0'; ++ch) {
-    if (*ch == '.') *ch = '_';
-  }  /* for */
-  return module_file_name_buffer->buffer;
-}  /* get_module_file_name */
-
-
 static a_const_char *get_module_partition_name(a_const_char *name)
 /*
 Get just the module partition name from the given module's name (if present)
@@ -180,6 +161,30 @@ kept long-term.
   add_char_to_text_buffer(module_partition_name_buffer, '\0');
   return module_partition_name_buffer->buffer;
 }  /* get_module_partition_name */
+
+
+static a_const_char *get_module_file_base_name(a_const_char *name)
+/*
+Get the base name of the module file for the given module name.  A module name
+takes the form <primary>[:<partition>], and the resulting base name is
+<primary>[-<partition>].
+*/
+{
+  reset_text_buffer(module_file_name_buffer);
+  (void)get_module_primary_name(name);
+  (void)get_module_partition_name(name);
+  add_to_text_buffer(module_file_name_buffer,
+                     module_primary_name_buffer->buffer,
+                     module_primary_name_buffer->size);
+  if (module_partition_name_buffer->size > 1) {
+    remove_null_terminator_from_text_buffer(module_file_name_buffer);
+    add_char_to_text_buffer(module_file_name_buffer, '-');
+    add_to_text_buffer(module_file_name_buffer,
+                       module_partition_name_buffer->buffer,
+                       module_partition_name_buffer->size);
+  }  /* if */
+  return module_file_name_buffer->buffer;
+}  /* get_module_file_name */
 
 
 static a_module_kind determine_module_file_kind(FILE *file)
@@ -342,6 +347,10 @@ otherwise.
     /* combine_dir_and_file_name clears the buffer for us. */
     (void)combine_dir_and_file_name(dir->dir_name, module_name,
                                     module_search_buffer);
+    /* Add an arbitrary extension to prevent replace_file_name_suffix from
+       replacing part of the actual module name. */
+    remove_null_terminator_from_text_buffer(module_search_buffer);
+    add_to_text_buffer(module_search_buffer, ".ext", 5);
     for (const auto& suffix : module_file_suffixes) {
       if (kind != mk_none && suffix.kind != kind) continue;
       replace_file_name_suffix(suffix.suffix, module_search_buffer);
@@ -520,6 +529,9 @@ file_offset in the specified module.
     (*p)->entity.ptr = NULL;
     (*p)->entity.kind = iek_none;
     (*p)->file_offset = file_offset;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    (*p)->variant.ifc_partition = ifc_none;
+#endif /* MICROSOFT_EXTENSIONS_ALLWED */
   }  /* if */
   return *p;
 }  /* get_module_entity_ptr */
