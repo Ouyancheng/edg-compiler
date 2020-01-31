@@ -7297,12 +7297,12 @@ expression node and interpreter state.
                                       ec_constexpr_access_to_runtime_storage,
                 &call_node->variant.operation.operands->next->next->position,
                 ips);
-  } else if (is_array_element(addr1) && is_array_element(addr2)) {
+  } else {
     an_integer_value  *ptr1 = (an_integer_value*)addr1->address;
     an_integer_value  *ptr2 = (an_integer_value*)addr2->address;
     an_integer_value  len, max_len, *eff_max;
-    a_byte_count      elem_size1, pos1, max1;
-    a_byte_count      elem_size2, pos2, max2;
+    a_byte_count      elem_size1, pos1, max1 = MAX_CONSTEXPR_TYPE_SIZE;
+    a_byte_count      elem_size2, pos2, max2 = MAX_CONSTEXPR_TYPE_SIZE;
     a_boolean         check_for_read_past_operand = FALSE;
     if (tp == void_type()) {
       /* In the memcmp case, the arguments are "void *"; treat them as
@@ -7311,11 +7311,15 @@ expression node and interpreter state.
     } else {
       check_assertion(tp->kind == (a_type_kind)tk_integer);
     }  /* if */
-    get_array_pos(ips, addr1, tp, &max1, &pos1, &elem_size1, &result);
-    get_array_pos(ips, addr2, tp, &max2, &pos2, &elem_size2, &result);
+    if (is_array_element(addr1)) {
+      get_array_pos(ips, addr1, tp, &max1, &pos1, &elem_size1, &result);
+      max1 -= pos1;
+    }  /* if */
+    if (is_array_element(addr2)) {
+      get_array_pos(ips, addr2, tp, &max2, &pos2, &elem_size2, &result);
+      max2 -= pos2;
+    }  /* if */
     if (!result) goto done;
-    max1 -= pos1;
-    max2 -= pos2;
     /* Use the minimum of the two object sizes for the loop below. */
     set_integer_value(&max_len,
                       (a_host_large_integer)(max1 > max2) ? max2 : max1);

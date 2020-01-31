@@ -1,5 +1,20 @@
 Version 6.1
 
+1/31/20  [EDGcpfe/22278]
+Incorrect return value for constexpr __builtin_memcmp and other builtins
+
+The implementation of __builtin_memcmp in the interpreter was flawed and
+would sometimes silently return an incorrect return value if one or more of
+the first arguments were not array types.  For example, with --g++
+
+  const int x = 1;
+  const int y = 0;
+  static_assert(__builtin_memcmp(&x, &y, sizeof(x)) == 1);
+
+Other constexpr builtins (strcmp/memcmp/wcscmp/wcsncmp/wmemcmp/strncmp) were
+also affected and are now fixed.
+
+
 1/31/20  [EDGcpfe/21190]
 Missing diagnostic on const inline static members
 
