@@ -1,5 +1,18 @@
 Version 6.1
 
+1/31/20  [EDGcpfe/21190]
+Missing diagnostic on const inline static members
+
+The front end previously failed to diagnose a missing initializer on a case
+like the following:
+
+  struct S {
+    static inline int const ic;  // Previously undiagnosed.  Now an error
+  };                             // (missing initializer).
+
+That is now fixed.
+
+
 1/31/20  [EDGcpfe/22276]
 Potential reference through uninitialized pointer
 

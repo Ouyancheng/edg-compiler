@@ -17646,6 +17646,10 @@ template declaration and is NULL otherwise.
       check_constant_valued_variable(decl_state);
       decl_state->sym->value_has_been_set = TRUE;
     }  /* if */
+    if (is_const_qualified_type(var->type) &&
+        !is_const_default_constructible(var->type)) {
+      sym_error(ec_missing_initializer_on_const, sym);
+    }  /* if */
   }  /* if */
   if (inline_variables_allowed) {
     if (var->is_inline) {
