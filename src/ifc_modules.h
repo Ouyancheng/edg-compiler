@@ -635,59 +635,59 @@ enum ifc_OperatorCategory : ifc_Category_type {
   ifc_OperatorCategory_Await = 186,                /* operator co_await */
   ifc_OperatorCategory_Yield = 187,                /* operator co_yield */
   ifc_OperatorCategory_StaticAssert = 261,         /* operator static_assert */
-  /* Values in IFC files say this is 381. */
+  /* Values in IFC files say this is 383. */
   ifc_OperatorCategory_PostIncrement = 336,        /* operator++ */
-  /* Values in IFC files say this is 380. */
+  /* Values in IFC files say this is 382. */
   ifc_OperatorCategory_PostDecrement = 337,        /* operator-- */
-  /* Values in IFC files say this is 358. */
-  ifc_OperatorCategory_SlashEq = 338,              /* operator/= */
-  /* Values in IFC files say this is 359. */
-  ifc_OperatorCategory_EqEq = 339,                 /* operator== */
   /* Values in IFC files say this is 360. */
-  ifc_OperatorCategory_NotEq = 340,                /* operator!= */
+  ifc_OperatorCategory_SlashEq = 338,              /* operator/= */
   /* Values in IFC files say this is 361. */
-  ifc_OperatorCategory_Greater = 341,              /* operator> */
+  ifc_OperatorCategory_EqEq = 339,                 /* operator== */
   /* Values in IFC files say this is 362. */
-  ifc_OperatorCategory_GreaterEq = 342,            /* operator>= */
+  ifc_OperatorCategory_NotEq = 340,                /* operator!= */
   /* Values in IFC files say this is 363. */
-  ifc_OperatorCategory_Less = 343,                 /* operator< */
+  ifc_OperatorCategory_Greater = 341,              /* operator> */
   /* Values in IFC files say this is 364. */
+  ifc_OperatorCategory_GreaterEq = 342,            /* operator>= */
+  /* Values in IFC files say this is 365. */
+  ifc_OperatorCategory_Less = 343,                 /* operator< */
+  /* Values in IFC files say this is 366. */
   ifc_OperatorCategory_LessEq = 344,               /* operator<= */
   /* Encountered in spaceship tests. */
-  ifc_OperatorCategory_Spaceship = 365,            /* operator<=> */
-  /* Values in IFC files say this is 366. */
-  ifc_OperatorCategory_LshiftEq = 345,             /* operator<<= */
-  /* Values in IFC files say this is 367. */
-  ifc_OperatorCategory_RshiftEq = 346,             /* operator>>= */
+  ifc_OperatorCategory_Spaceship = 367,            /* operator<=> */
   /* Values in IFC files say this is 368. */
-  ifc_OperatorCategory_MinusEq = 347,              /* operator-= */
+  ifc_OperatorCategory_LshiftEq = 345,             /* operator<<= */
   /* Values in IFC files say this is 369. */
-  ifc_OperatorCategory_ModuloEq = 348,             /* operator%= */
+  ifc_OperatorCategory_RshiftEq = 346,             /* operator>>= */
   /* Values in IFC files say this is 370. */
-  ifc_OperatorCategory_StarEq = 349,               /* operator*= */
+  ifc_OperatorCategory_MinusEq = 347,              /* operator-= */
   /* Values in IFC files say this is 371. */
-  ifc_OperatorCategory_BitorEq = 350,              /* operator|= */
+  ifc_OperatorCategory_ModuloEq = 348,             /* operator%= */
   /* Values in IFC files say this is 372. */
-  ifc_OperatorCategory_PlusEq = 351,               /* operator+= */
+  ifc_OperatorCategory_StarEq = 349,               /* operator*= */
   /* Values in IFC files say this is 373. */
-  ifc_OperatorCategory_BitandEq = 352,             /* operator&= */
+  ifc_OperatorCategory_BitorEq = 350,              /* operator|= */
   /* Values in IFC files say this is 374. */
-  ifc_OperatorCategory_BitxorEq = 353,             /* operator^= */
+  ifc_OperatorCategory_PlusEq = 351,               /* operator+= */
   /* Values in IFC files say this is 375. */
-  ifc_OperatorCategory_Lshift = 354,               /* operator<< */
+  ifc_OperatorCategory_BitandEq = 352,             /* operator&= */
   /* Values in IFC files say this is 376. */
+  ifc_OperatorCategory_BitxorEq = 353,             /* operator^= */
+  /* Values in IFC files say this is 377. */
+  ifc_OperatorCategory_Lshift = 354,               /* operator<< */
+  /* Values in IFC files say this is 378. */
   ifc_OperatorCategory_Rshift = 355,               /* operator>> */
   ifc_OperatorCategory_Dot = 356,                  /* operator. */
   ifc_OperatorCategory_Arrow = 357,                /* operator =  */
-  /* Values in IFC files say this is also 380. */
+  /* Values in IFC files say this is also 382. */
   ifc_OperatorCategory_PreDecrement = 359,         /* operator-- */
-  /* Values in IFC files say this is also 381. */
+  /* Values in IFC files say this is also 383. */
   ifc_OperatorCategory_PreIncrement = 360,         /* operator++ */
   ifc_OperatorCategory_UnaryMinus = 361,           /* operator- */
   ifc_OperatorCategory_Address = 362,              /* operator& */
   ifc_OperatorCategory_UnaryPlus = 381,            /* operator+ */
   ifc_OperatorCategory_DerefMemberAccess = 386,    /* operator.* */
-  /* Values in IFC files say this is 410. */
+  /* Values in IFC files say this is 412. */
   ifc_OperatorCategory_IndirectMemberAccess = 387, /* operator->* */
 };
 #else /* !0 */
@@ -739,40 +739,40 @@ enum ifc_OperatorCategory : ifc_Category_type {
   ifc_OperatorCategory_PostIncrement = 336,        /* operator++ */
   /* Values in IFC files say this is 380 - same as predec, leaving as-was. */
   ifc_OperatorCategory_PostDecrement = 337,        /* operator-- */
-  ifc_OperatorCategory_SlashEq = 358,              /* operator/= */
-  ifc_OperatorCategory_EqEq = 359,                 /* operator== */
-  ifc_OperatorCategory_NotEq = 360,                /* operator!= */
-  ifc_OperatorCategory_Greater = 361,              /* operator> */
-  ifc_OperatorCategory_GreaterEq = 362,            /* operator>= */
-  ifc_OperatorCategory_Less = 363,                 /* operator< */
-  ifc_OperatorCategory_LessEq = 364,               /* operator<= */
-  ifc_OperatorCategory_Spaceship = 365,            /* operator<=> */
-  ifc_OperatorCategory_LshiftEq = 366,             /* operator<<= */
-  ifc_OperatorCategory_RshiftEq = 367,             /* operator>>= */
-  ifc_OperatorCategory_MinusEq = 368,              /* operator-= */
-  ifc_OperatorCategory_ModuloEq = 369,             /* operator%= */
-  ifc_OperatorCategory_StarEq = 370,               /* operator*= */
-  ifc_OperatorCategory_BitorEq = 371,              /* operator|= */
-  ifc_OperatorCategory_PlusEq = 372,               /* operator+= */
-  ifc_OperatorCategory_BitandEq = 373,             /* operator&= */
-  ifc_OperatorCategory_BitxorEq = 374,             /* operator^= */
-  ifc_OperatorCategory_Lshift = 375,               /* operator<< */
-  ifc_OperatorCategory_Rshift = 376,               /* operator>> */
+  ifc_OperatorCategory_SlashEq = 360,              /* operator/= */
+  ifc_OperatorCategory_EqEq = 361,                 /* operator== */
+  ifc_OperatorCategory_NotEq = 362,                /* operator!= */
+  ifc_OperatorCategory_Greater = 363,              /* operator> */
+  ifc_OperatorCategory_GreaterEq = 364,            /* operator>= */
+  ifc_OperatorCategory_Less = 365,                 /* operator< */
+  ifc_OperatorCategory_LessEq = 366,               /* operator<= */
+  ifc_OperatorCategory_Spaceship = 367,            /* operator<=> */
+  ifc_OperatorCategory_LshiftEq = 368,             /* operator<<= */
+  ifc_OperatorCategory_RshiftEq = 369,             /* operator>>= */
+  ifc_OperatorCategory_MinusEq = 370,              /* operator-= */
+  ifc_OperatorCategory_ModuloEq = 371,             /* operator%= */
+  ifc_OperatorCategory_StarEq = 372,               /* operator*= */
+  ifc_OperatorCategory_BitorEq = 373,              /* operator|= */
+  ifc_OperatorCategory_PlusEq = 374,               /* operator+= */
+  ifc_OperatorCategory_BitandEq = 375,             /* operator&= */
+  ifc_OperatorCategory_BitxorEq = 376,             /* operator^= */
+  ifc_OperatorCategory_Lshift = 377,               /* operator<< */
+  ifc_OperatorCategory_Rshift = 378,               /* operator>> */
   /* Untested */
-  ifc_OperatorCategory_Dot = 377,                  /* operator. */
+  ifc_OperatorCategory_Dot = 379,                  /* operator. */
   /* Untested */
-  ifc_OperatorCategory_Arrow = 378,                /* operator =  */
-  ifc_OperatorCategory_PreDecrement = 380,         /* operator-- */
-  ifc_OperatorCategory_PreIncrement = 381,         /* operator++ */
+  ifc_OperatorCategory_Arrow = 380,                /* operator =  */
+  ifc_OperatorCategory_PreDecrement = 382,         /* operator-- */
+  ifc_OperatorCategory_PreIncrement = 383,         /* operator++ */
   /* Untested */
-  ifc_OperatorCategory_UnaryMinus = 382,           /* operator- */
+  ifc_OperatorCategory_UnaryMinus = 384,           /* operator- */
   /* Untested */
-  ifc_OperatorCategory_Address = 383,              /* operator& */
+  ifc_OperatorCategory_Address = 385,              /* operator& */
   /* Untested */
-  ifc_OperatorCategory_UnaryPlus = 404,            /* operator+ */
+  ifc_OperatorCategory_UnaryPlus = 406,            /* operator+ */
   /* Untested */
-  ifc_OperatorCategory_DerefMemberAccess = 409,    /* operator.* */
-  ifc_OperatorCategory_IndirectMemberAccess = 410, /* operator->* */
+  ifc_OperatorCategory_DerefMemberAccess = 411,    /* operator.* */
+  ifc_OperatorCategory_IndirectMemberAccess = 412, /* operator->* */
 };
 
 #endif /* 0*/
