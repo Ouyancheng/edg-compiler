@@ -28,7 +28,11 @@ abort if they're called.
 #ifndef ABSTRACT_MODULE_INTERFACE_IS_UNIMPLEMENTED
 /* FIXME: Change this to default to FALSE so that we can know that our
    implementations always implement all the interface functions. */
+#if CHECKING
 #define ABSTRACT_MODULE_INTERFACE_IS_UNIMPLEMENTED TRUE
+#else /* !CHECKING */
+#define ABSTRACT_MODULE_INTERFACE_IS_UNIMPLEMENTED FALSE
+#endif /* CHECKING */
 #endif /* ifndef ABSTRACT_MODULE_INTERFACE_IS_UNIMPLEMENTED */
 
 /* FIXME: Also defined in ifc_modules.h */
