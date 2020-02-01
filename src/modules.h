@@ -74,6 +74,9 @@ struct a_module_entity {
 };  /* a_module_entity */
 
 #if ABSTRACT_MODULE_INTERFACE_IS_UNIMPLEMENTED
+#if !CHECKING
+#error -- ABSTRACT_MODULE_INTERFACE_IS_UNIMPLEMENTED requires CHECKING
+#endif /* !CHECKING */
 #define ABSTRACT                                                              \
   { unexpected_condition_str("Unimplemented interface function"); }
 #else /* !ABSTRACT_MODULE_INTERFACE_IS_UNIMPLEMENTED */
