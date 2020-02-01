@@ -1376,22 +1376,22 @@ IFC_DECL_END(Source_Line)
 
 /* Trait::Deprecated */
 IFC_DECL_START(Trait_Deprecated)
-  IFC_DECL_FIELD(decl, DeclIndex);
+  IFC_DECL_FIELD(decl, DeclIndex)
 IFC_DECL_END(Trait_Deprecated)
 
 /* Trait::Specialization */
 IFC_DECL_START(Trait_Specialization)
-  IFC_DECL_FIELD(decl, DeclIndex);
+  IFC_DECL_FIELD(decl, DeclIndex)
 IFC_DECL_END(Trait_Specialization)
 
 /* Trait::Friend */
 IFC_DECL_START(Trait_Friend)
-  IFC_DECL_FIELD(decl, DeclIndex);
+  IFC_DECL_FIELD(decl, DeclIndex)
 IFC_DECL_END(Trait_Friend)
 
 /* Trait::ConstexprFunction */
 IFC_DECL_START(Trait_ConstexprFunction)
-  IFC_DECL_FIELD(decl, DeclIndex);
+  IFC_DECL_FIELD(decl, DeclIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(function, DeclIndex)
   IFC_DECL_FIELD(parameters, ChartIndex)
@@ -1401,33 +1401,33 @@ IFC_DECL_END(Trait_ConstexprFunction)
 
 /* Trait::FunctionTemplate */
 IFC_DECL_START(Trait_FunctionTemplate)
-  IFC_DECL_FIELD(decl, DeclIndex);
+  IFC_DECL_FIELD(decl, DeclIndex)
 IFC_DECL_END(Trait_FunctionTemplate)
 
 /* Trait::ClassTemplate */
 IFC_DECL_START(Trait_ClassTemplate)
-  IFC_DECL_FIELD(decl, DeclIndex);
+  IFC_DECL_FIELD(decl, DeclIndex)
 IFC_DECL_END(Trait_ClassTemplate)
 
 /* Trait::AliasTemplate */
 IFC_DECL_START(Trait_AliasTemplate)
-  IFC_DECL_FIELD(decl, DeclIndex);
+  IFC_DECL_FIELD(decl, DeclIndex)
 IFC_DECL_END(Trait_AliasTemplate)
 
 /* Trait::VariableTemplate */
 IFC_DECL_START(Trait_VariableTemplate)
-  IFC_DECL_FIELD(decl, DeclIndex);
+  IFC_DECL_FIELD(decl, DeclIndex)
 IFC_DECL_END(Trait_VariableTemplate)
 
 /* Trait::MsvcVendorTrait */
 IFC_DECL_START(Trait_MsvcVendorTrait)
-  IFC_DECL_FIELD(decl, DeclIndex);
+  IFC_DECL_FIELD(decl, DeclIndex)
   IFC_DECL_FIELD(trait, MsvcTraits)
 IFC_DECL_END(Trait_MsvcVendorTrait)
 
 /* Trait::MsvcUuid */
 IFC_DECL_START(Trait_MsvcUuid)
-  IFC_DECL_FIELD(decl, DeclIndex);
+  IFC_DECL_FIELD(decl, DeclIndex)
   IFC_DECL_FIELD(uuid, uint16_t)
 IFC_DECL_END(Trait_MsvcUuid)
 
