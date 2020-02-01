@@ -2088,6 +2088,39 @@ may be overridden by a command line option.
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
 /*
+Argument strings for fopen.  These must come after the default definitions for
+the used test macros.
+*/
+#if READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
+/* Read source files in binary mode for some MS-DOS cases.  Carriage return
+   and control-Z are handled explicitly. */
+#define FOPEN_MODE_FOR_READ "rb"
+#define FOPEN_MODE_FOR_WRITE "w"
+#define FOPEN_MODE_FOR_UPDATE "w+"
+#define FOPEN_MODE_FOR_BINARY_WRITE "wb"
+#define FOPEN_MODE_FOR_BINARY_UPDATE "w+b"
+#define FOPEN_MODE_FOR_BINARY_READ "rb"
+#else /* !READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
+#if __ANSIC__ || __MICROSOFT_OS__
+/* ANSI C allows binary modes.  So does MS-DOS. */
+#define FOPEN_MODE_FOR_READ "r"
+#define FOPEN_MODE_FOR_WRITE "w"
+#define FOPEN_MODE_FOR_UPDATE "w+"
+#define FOPEN_MODE_FOR_BINARY_WRITE "wb"
+#define FOPEN_MODE_FOR_BINARY_UPDATE "w+b"
+#define FOPEN_MODE_FOR_BINARY_READ "rb"
+#else /* !(__ANSIC__ || __MICROSOFT_OS__) */
+/* Assume UNIX (binary and text files the same). */
+#define FOPEN_MODE_FOR_READ "r"
+#define FOPEN_MODE_FOR_WRITE "w"
+#define FOPEN_MODE_FOR_UPDATE "w+"
+#define FOPEN_MODE_FOR_BINARY_WRITE "w"
+#define FOPEN_MODE_FOR_BINARY_UPDATE "w+"
+#define FOPEN_MODE_FOR_BINARY_READ "r"
+#endif /* __ANSIC__  || __MICROSOFT_OS__ */
+#endif /* READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
+
+/*
 The minimum number of declarations required in header files that qualify
 for precompilation.  In other words, if the header files preceding the
 header stop have fewer than PCH_DECL_SEQ_THRESHOLD declarations, creation
@@ -2534,39 +2567,6 @@ supported with Unicode.
 #ifndef QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
 #define QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR TRUE
 #endif /* ifndef QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
-
-/*
-Argument strings for fopen.  These must come after the default definitions for
-the used test macros.
-*/
-#if READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
-/* Read source files in binary mode for some MS-DOS cases.  Carriage return
-   and control-Z are handled explicitly. */
-#define FOPEN_MODE_FOR_READ "rb"
-#define FOPEN_MODE_FOR_WRITE "w"
-#define FOPEN_MODE_FOR_UPDATE "w+"
-#define FOPEN_MODE_FOR_BINARY_WRITE "wb"
-#define FOPEN_MODE_FOR_BINARY_UPDATE "w+b"
-#define FOPEN_MODE_FOR_BINARY_READ "rb"
-#else /* !READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
-#if __ANSIC__ || __MICROSOFT_OS__
-/* ANSI C allows binary modes.  So does MS-DOS. */
-#define FOPEN_MODE_FOR_READ "r"
-#define FOPEN_MODE_FOR_WRITE "w"
-#define FOPEN_MODE_FOR_UPDATE "w+"
-#define FOPEN_MODE_FOR_BINARY_WRITE "wb"
-#define FOPEN_MODE_FOR_BINARY_UPDATE "w+b"
-#define FOPEN_MODE_FOR_BINARY_READ "rb"
-#else /* !(__ANSIC__ || __MICROSOFT_OS__) */
-/* Assume UNIX (binary and text files the same). */
-#define FOPEN_MODE_FOR_READ "r"
-#define FOPEN_MODE_FOR_WRITE "w"
-#define FOPEN_MODE_FOR_UPDATE "w+"
-#define FOPEN_MODE_FOR_BINARY_WRITE "w"
-#define FOPEN_MODE_FOR_BINARY_UPDATE "w+"
-#define FOPEN_MODE_FOR_BINARY_READ "r"
-#endif /* __ANSIC__  || __MICROSOFT_OS__ */
-#endif /* READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
 
 /*
 Macro that returns TRUE if a given character might be the beginning
