@@ -1475,10 +1475,7 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "const.f64",                       ifc_const_f64 },
   { "const.i64",                       ifc_const_i64 },
   { "const.str",                       ifc_const_str },
-  /* Spec says this is the partition name for DeclSort::Alias, however the IFC
-     files themselves still use "decl.type-alias" instead. */
-  /*{ "decl.alias",                      ifc_decl_alias },*/
-  { "decl.type-alias",                 ifc_decl_alias },
+  { "decl.alias",                      ifc_decl_alias },
   { "decl.bitfield",                   ifc_decl_bitfield },
   { "decl.concept",                    ifc_decl_concept },
   { "decl.constructor",                ifc_decl_constructor },
