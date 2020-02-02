@@ -559,6 +559,7 @@ Return a string with the name that corresponds to the DeclSort tag.
     case ifc_DeclSort_SyntaxTree:       result = "SyntaxTree"; break;
     case ifc_DeclSort_Tuple:            result = "Tuple"; break;
     default:
+      result = "Unexpected";
       unexpected_condition();
   }  /* switch */
   return result;
@@ -664,6 +665,7 @@ Map an IFC OperatorCategory to an_opname_kind.
         (void)fprintf(f_debug, "Unsupported operation: %d\n", category);
       }  /* if */
 #endif /* DEBUG */
+      op = onk_none;
       unexpected_condition();
   }  /* switch */
   return op;
@@ -1721,6 +1723,7 @@ an "ellipsis type").
                 case ifc_TypePrecision_Bit32:
                 case ifc_TypePrecision_Bit128:
                 default:
+                  ik = ik_none;
                   unexpected_condition();
               }  /* switch */
               result = integer_type(ik);
@@ -1935,13 +1938,17 @@ Map the IFC locus source position information into the source position at *pos.
 */
 {
   an_ifc_Source_Line   isl, *islp;
+#if CHECKING
   ifc_NameSort         tag;
+#endif /* CHECKING */
   a_seq_number         *seq;
 
   read_ifc_partition_at_index(ifc_src_line, locus->line);
   islp = get_Source_Line(&isl);
+#if CHECKING
   tag = name_tag(islp->file);
   check_assertion(tag == ifc_NameSort_SourceFile);
+#endif /* CHECKING */
   /* See if this file has been used before. */
   seq = &sequence_numbers[name_value(islp->file)];
   if (*seq == 0) {
@@ -2180,6 +2187,7 @@ should be called with this pointer after the declaration has been processed.
       case ifc_Access_Protected: il_access = as_protected; break;
       case ifc_Access_Public:    il_access = as_public;    break;
       default:
+        il_access = as_inaccessible;
         unexpected_condition();
     }  /* switch */
     save_partial_scope_stack(psssp);
@@ -2394,6 +2402,7 @@ Add an access specifier to the current string, if needed.
     case ifc_Access_Protected:  string = "protected";  break;
     case ifc_Access_Public:     string = "public";     break;
     default:
+      string = "Unexpected";
       unexpected_condition();
   }  /* switch */
   if (string != NULL) {
