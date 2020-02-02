@@ -66,7 +66,7 @@ FIXME: For PCH, f_module needs to be re-opened and mmap_addr recomputed.
 */
 struct a_module_interface {
 #if !USE_VIRTUAL_FUNCTIONS
-  a_module_kind	kind = mk_none;
+  a_module_kind	mod_kind = mk_none;
 			/* What kind of module this interface is for.  This
 			   indicates which class has inherited this module and
 			   is used to emulate virtual function dispatch. */
@@ -100,7 +100,7 @@ struct a_module_interface {
   a_module_interface() noexcept = delete;
   a_module_interface(a_module_kind iface_kind) noexcept
 #if !USE_VIRTUAL_FUNCTIONS
-    : kind(iface_kind)
+    : mod_kind(iface_kind)
 #endif /* !USE_VIRTUAL_FUNCTIONS */
     {}
   VIRTUAL ~a_module_interface() noexcept;

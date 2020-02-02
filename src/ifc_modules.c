@@ -1840,11 +1840,11 @@ an "ellipsis type").
                                           type_value(itsfp->source));
               itstp = get_TypeSort_Tuple(&itst);
               for (i = 0; i < itstp->cardinality; i++) {
-                ifc_TypeIndex type_index;
+                ifc_TypeIndex ti;
                 read_ifc_partition_at_index(ifc_heap_type,
                                             itstp->start + i);
-                GET_TypeIndex(type_index);
-                param_type = type_for_ifc_type_index(type_index);
+                GET_TypeIndex(ti);
+                param_type = type_for_ifc_type_index(ti);
                 if (param_type == NULL) {
                   /* This happens when an ellipsis is present as the last
                      parameter. */
@@ -3277,11 +3277,11 @@ FIXME: more specific
         itstp = get_TypeSort_Tuple(&itst);
         /* A list of types. */
         for (i = 0; i < itstp->cardinality; i++) {
-          ifc_TypeIndex type_index;
+          ifc_TypeIndex ti;
           read_ifc_partition_at_index(ifc_heap_type,
                                       itstp->start + i);
-          GET_TypeIndex(type_index);
-          str_ifc_type_index(type_index, scbp);
+          GET_TypeIndex(ti);
+          str_ifc_type_index(ti, scbp);
           /* FIXME: not really sure what the separator should be here: */
           if (i+1 < itstp->cardinality) {
             add_char_to_text_buffer(scbp->text_buffer, ',');

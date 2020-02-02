@@ -543,7 +543,7 @@ a_module_interface::~a_module_interface() noexcept = default;
 
 a_module_interface::~a_module_interface() noexcept
 {
-  switch (kind) {
+  switch (mod_kind) {
     case mk_none:
       /* This is the actual object. */
       break;
@@ -568,7 +568,7 @@ Dispatch the is_open() call to the variant for the actual object.
 {
   a_boolean result = FALSE;
 
-  switch (kind) {
+  switch (mod_kind) {
     case mk_none:
       /* This is the actual object. */
       break;
@@ -594,7 +594,7 @@ Dispatch the import() call to the variant for the actual object.
 {
   a_boolean result = FALSE;
 
-  switch (kind) {
+  switch (mod_kind) {
     case mk_none:
       /* This is the actual object. */
       break;
@@ -618,7 +618,7 @@ void a_module_interface::close() noexcept
 Dispatch the close() call to the variant for the actual object.
 */
 {
-  switch (kind) {
+  switch (mod_kind) {
     case mk_none:
       /* This is the actual object. */
       break;
@@ -641,7 +641,7 @@ void a_module_interface::pch_reset(a_module_import_decl_ptr midp) noexcept
 Dispatch the pch_reset() call to the variant for the actual object.
 */
 {
-  switch (kind) {
+  switch (mod_kind) {
     case mk_none:
       /* This is the actual object. */
       break;
@@ -688,7 +688,7 @@ Dispatch the get_definition_of_module_class() call to the variant for the
 actual object.
 */
 {
-  switch (kind) {
+  switch (mod_kind) {
     case mk_none:
       /* This is the actual object. */
       break;
@@ -712,7 +712,7 @@ void a_module_interface::debug() const noexcept
 Dispatch the debug() call to the variant for the actual object.
 */
 {
-  switch (kind) {
+  switch (mod_kind) {
     case mk_none:
       /* This is the actual object. */
       break;
@@ -736,7 +736,7 @@ void a_module_interface::db_module_entity(a_module_entity_ptr mep)
 Dispatch the db_module_entity() call to the variant for the actual object.
 */
 {
-  switch (kind) {
+  switch (mod_kind) {
     case mk_none:
       /* This is the actual object. */
       break;
