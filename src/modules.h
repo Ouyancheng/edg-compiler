@@ -20,21 +20,6 @@ modules.h -- Declarations related to module handling.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-/*
-Control whether the module interface is abstract.  If this macro is TRUE, the
-module interface instead provides an implementation of all methods that will
-abort if they're called.
-*/
-#ifndef ABSTRACT_MODULE_INTERFACE_IS_UNIMPLEMENTED
-/* FIXME: Change this to default to FALSE so that we can know that our
-   implementations always implement all the interface functions. */
-#if CHECKING
-#define ABSTRACT_MODULE_INTERFACE_IS_UNIMPLEMENTED TRUE
-#else /* !CHECKING */
-#define ABSTRACT_MODULE_INTERFACE_IS_UNIMPLEMENTED FALSE
-#endif /* CHECKING */
-#endif /* ifndef ABSTRACT_MODULE_INTERFACE_IS_UNIMPLEMENTED */
-
 /* FIXME: Also defined in ifc_modules.h */
 typedef uint32_t an_ifc_partition_kind;
 
@@ -73,16 +58,6 @@ struct a_module_entity {
   } variant;
 };  /* a_module_entity */
 
-#if ABSTRACT_MODULE_INTERFACE_IS_UNIMPLEMENTED
-#if !CHECKING
-#error -- ABSTRACT_MODULE_INTERFACE_IS_UNIMPLEMENTED requires CHECKING
-#endif /* !CHECKING */
-#define ABSTRACT                                                              \
-  { unexpected_condition_str("Unimplemented interface function"); }
-#else /* !ABSTRACT_MODULE_INTERFACE_IS_UNIMPLEMENTED */
-#define ABSTRACT = 0;
-#endif /* ABSTRACT_MODULE_INTERFACE_IS_UNIMPLEMENTED */
-
 /*
 An (effectively) abstract class used for interfacing with a module.  Different
 module implementations can inherit from this to provide their own interface
@@ -90,6 +65,12 @@ without needing to make an IL change.
 FIXME: For PCH, f_module needs to be re-opened and mmap_addr recomputed.
 */
 struct a_module_interface {
+#if !USE_VIRTUAL_FUNCTIONS
+  a_module_kind	kind = mk_none;
+			/* What kind of module this interface is for.  This
+			   indicates which class has inherited this module and
+			   is used to emulate virtual function dispatch. */
+#endif /* !USE_VIRTUAL_FUNCTIONS */
   a_const_char	*primary_name = NULL;
 			/* The primary name of the module. */
   a_const_char	*partition_name = NULL;
@@ -116,26 +97,31 @@ struct a_module_interface {
 			   mapping process on Windows. */
 #endif /* EDG_WIN32 */
 
-  a_module_interface() noexcept = default;
-  virtual ~a_module_interface() noexcept;
+  a_module_interface() noexcept = delete;
+  a_module_interface(a_module_kind iface_kind) noexcept
+#if !USE_VIRTUAL_FUNCTIONS
+    : kind(iface_kind)
+#endif /* !USE_VIRTUAL_FUNCTIONS */
+    {}
+  VIRTUAL ~a_module_interface() noexcept;
 
 /* State query functions. */
-  virtual a_boolean is_open() const noexcept ABSTRACT
+  VIRTUAL a_boolean is_open() const noexcept ABSTRACT;
 
 /* Disk interface functions. */
-  virtual a_boolean import(a_module_import_decl_ptr midp) noexcept ABSTRACT;
-  virtual void close() noexcept ABSTRACT;
-  virtual void pch_reset(a_module_import_decl_ptr midp) noexcept ABSTRACT;
+  VIRTUAL a_boolean import(a_module_import_decl_ptr midp) noexcept ABSTRACT;
+  VIRTUAL void close() noexcept ABSTRACT;
+  VIRTUAL void pch_reset(a_module_import_decl_ptr midp) noexcept ABSTRACT;
 
 /* Module interface functions. */
   void set_name(a_const_char *module_name) noexcept;
-  virtual void get_definition_of_module_class(a_module_entity_ptr mep,
+  VIRTUAL void get_definition_of_module_class(a_module_entity_ptr mep,
                                               a_text_buffer       *buffer)
                                                        const noexcept ABSTRACT;
 
 #if DEBUG
-  virtual void debug() const noexcept ABSTRACT
-  virtual void db_module_entity(a_module_entity_ptr mep)
+  VIRTUAL void debug() const noexcept ABSTRACT;
+  VIRTUAL void db_module_entity(a_module_entity_ptr mep)
                                                        const noexcept ABSTRACT;
 #endif /* DEBUG */
 };  /* a_module_interface */
@@ -172,7 +158,30 @@ extern a_module_entity_ptr get_module_entity_ptr(a_module_ptr mod,
 EDG implementation of modules.
 */
 struct an_edg_module : public a_module_interface {
-/* FIXME: Implement. */
+  an_edg_module() noexcept : a_module_interface(mk_edg) {}
+  ~an_edg_module() noexcept = default;
+
+  a_boolean is_open() const noexcept OVERRIDE
+    { unexpected_condition_str("Unimplemented"); return FALSE; }
+
+  a_boolean import(a_module_import_decl_ptr midp) noexcept OVERRIDE
+    { unexpected_condition_str("Unimplemented"); return FALSE; }
+  void close() noexcept OVERRIDE
+    { unexpected_condition_str("Unimplemented"); }
+  void pch_reset(a_module_import_decl_ptr midp) noexcept OVERRIDE
+    { unexpected_condition_str("Unimplemented"); }
+
+  void get_definition_of_module_class(a_module_entity_ptr mep,
+                                              a_text_buffer       *buffer)
+                                                        const noexcept OVERRIDE
+    { unexpected_condition_str("Unimplemented"); }
+
+#if DEBUG
+  void debug() const noexcept OVERRIDE
+    { unexpected_condition_str("Unimplemented"); }
+  void db_module_entity(a_module_entity_ptr mep) const noexcept OVERRIDE
+    { unexpected_condition_str("Unimplemented"); }
+#endif /* DEBUG */
 };  /* an_edg_module */
 
 #if DEBUG

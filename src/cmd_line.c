@@ -9178,6 +9178,11 @@ file.
 #else /* !defined(USE_TEMPLATE_INFO_FILE) */
   comment_undefined_macro_name(USE_TEMPLATE_INFO_FILE);
 #endif /* defined(USE_TEMPLATE_INFO_FILE) */
+#if defined(USE_VIRTUAL_FUNCTIONS)
+  define_numeric_valued_macro(USE_VIRTUAL_FUNCTIONS);
+#else /* !defined(USE_VIRTUAL_FUNCTIONS) */
+  comment_undefined_macro_name(USE_VIRTUAL_FUNCTIONS);
+#endif /* defined(USE_VIRTUAL_FUNCTIONS) */
 #if defined(USE_X86_FUNCTION_MULTIVERSIONING)
   define_numeric_valued_macro(USE_X86_FUNCTION_MULTIVERSIONING);
 #else /* !defined(USE_X86_FUNCTION_MULTIVERSIONING) */
@@ -10835,7 +10840,8 @@ enable_microsoft_mode:
       /* This should not be enabled unless someone explicitly enabled it via
          the command line. */
       check_assertion(option_kind_used[(int)optk_export_template]);
-      command_line_error(ec_cl_export_template_option_incompatible_with_modules);
+      command_line_error(
+                       ec_cl_export_template_option_incompatible_with_modules);
     }  /* if */
   }  /* if */
   if (trans_unit_test_mode) {

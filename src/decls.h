@@ -42,8 +42,9 @@ EXTERN a_boolean       any_decls_seen_this_stage;
   (tu_stage == stage)
 
 #define set_tu_stage(stage)                                                   \
-  tu_stage = stage;                                                           \
-  any_decls_seen_this_stage = FALSE /* User-provided semi-colon. */
+  { tu_stage = stage;                                                         \
+    any_decls_seen_this_stage = FALSE;                                        \
+  }
 
 /*
 Kinds of linkage, meaning whether or not an identifier declared in

@@ -1799,15 +1799,16 @@ struct an_ifc_module : public a_module_interface {
                            compute).  Dynamically allocated once the number of
                            source files is known. */
 
-  virtual ~an_ifc_module() noexcept = default;
+  an_ifc_module() noexcept : a_module_interface(mk_ifc) {}
+  VIRTUAL ~an_ifc_module() noexcept = default;
 
-  inline a_boolean is_open() const noexcept override {
+  inline a_boolean is_open() const noexcept OVERRIDE {
     return f_module != NULL;
   }
 
-  a_boolean import(a_module_import_decl_ptr midp) noexcept override;
-  void close() noexcept override;
-  void pch_reset(a_module_import_decl_ptr midp) noexcept override;
+  a_boolean import(a_module_import_decl_ptr midp) noexcept OVERRIDE;
+  void close() noexcept OVERRIDE;
+  void pch_reset(a_module_import_decl_ptr midp) noexcept OVERRIDE;
 
   void process_ifc_declaration(a_module_entity_ptr mep,
                                a_boolean           defer,
@@ -1815,11 +1816,11 @@ struct an_ifc_module : public a_module_interface {
                                                                 const noexcept;
   void get_definition_of_module_class(a_module_entity_ptr mep,
                                       a_text_buffer       *buffer)
-                                                       const noexcept override;
+                                                       const noexcept OVERRIDE;
 
 #if DEBUG
-  void debug() const noexcept override;
-  void db_module_entity(a_module_entity_ptr mep) const noexcept override;
+  void debug() const noexcept OVERRIDE;
+  void db_module_entity(a_module_entity_ptr mep) const noexcept OVERRIDE;
 #endif /* DEBUG */
 
 private:

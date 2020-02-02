@@ -43,8 +43,6 @@ constexpr a_module_file_suffix module_file_suffixes[] = {
   { "ifc", mk_ifc }
 #endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
 };
-constexpr sizeof_t num_module_file_suffixes =
-                     sizeof(module_file_suffixes)/sizeof(a_module_file_suffix);
 
 constexpr char edg_magic_numbers[] = { '\x9A', '\x13', '\x37', '\x7D' };
 
@@ -386,7 +384,6 @@ Import the module file specified in the module-import-declaration.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case mk_ifc:
       iface = new_general<an_ifc_module>();
-      //import_ifc_module_file(midp);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case mk_none:
@@ -536,12 +533,130 @@ file_offset in the specified module.
   return *p;
 }  /* get_module_entity_ptr */
 
+#if USE_VIRTUAL_FUNCTIONS
+
+a_module_interface::~a_module_interface() noexcept = default;
+
+#else /* !USE_VIRTUAL_FUNCTIONS */
 
 a_module_interface::~a_module_interface() noexcept
 {
-  if (is_open()) close();
+  switch (kind) {
+    case mk_none:
+      /* This is the actual object. */
+      break;
+    case mk_edg:
+      ((an_edg_module*)this)->~an_edg_module();
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case mk_ifc:
+      ((an_ifc_module*)this)->~an_ifc_module();
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    default:
+      unexpected_condition();
+  }  /* switch */
 }  /* ~a_module_interface */
 
+
+a_boolean a_module_interface::is_open() const noexcept
+/*
+Dispatch the is_open() call to the variant for the actual object.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (kind) {
+    case mk_none:
+      /* This is the actual object. */
+      break;
+    case mk_edg:
+      result = ((an_edg_module*)this)->is_open();
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case mk_ifc:
+      result = ((an_ifc_module*)this)->is_open();
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* is_open */
+
+
+a_boolean a_module_interface::import(a_module_import_decl_ptr midp) noexcept
+/*
+Dispatch the import() call to the variant for the actual object.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (kind) {
+    case mk_none:
+      /* This is the actual object. */
+      break;
+    case mk_edg:
+      result = ((an_edg_module*)this)->import(midp);
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case mk_ifc:
+      result = ((an_ifc_module*)this)->import(midp);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* import */
+
+
+void a_module_interface::close() noexcept
+/*
+Dispatch the close() call to the variant for the actual object.
+*/
+{
+  switch (kind) {
+    case mk_none:
+      /* This is the actual object. */
+      break;
+    case mk_edg:
+      ((an_edg_module*)this)->close();
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case mk_ifc:
+      ((an_ifc_module*)this)->close();
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    default:
+      unexpected_condition();
+  }  /* switch */
+}  /* close */
+
+
+void a_module_interface::pch_reset(a_module_import_decl_ptr midp) noexcept
+/*
+Dispatch the pch_reset() call to the variant for the actual object.
+*/
+{
+  switch (kind) {
+    case mk_none:
+      /* This is the actual object. */
+      break;
+    case mk_edg:
+      ((an_edg_module*)this)->pch_reset(midp);
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case mk_ifc:
+      ((an_ifc_module*)this)->pch_reset(midp);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    default:
+      unexpected_condition();
+  }  /* switch */
+}  /* pch_reset */
+
+#endif /* USE_VIRTUAL_FUNCTIONS */
 
 void a_module_interface::set_name(a_const_char *module_name) noexcept
 /*
@@ -559,6 +674,85 @@ Set the name of this module to the provided module_name.
     partition_name = NULL;
   }  /* if */
 }  /* set_name */
+
+#if !USE_VIRTUAL_FUNCTIONS
+
+void a_module_interface::get_definition_of_module_class(
+                                                   a_module_entity_ptr mep,
+                                                   a_text_buffer       *buffer)
+                                                                 const noexcept
+/*
+Dispatch the get_definition_of_module_class() call to the variant for the
+actual object.
+*/
+{
+  switch (kind) {
+    case mk_none:
+      /* This is the actual object. */
+      break;
+    case mk_edg:
+      ((an_edg_module*)this)->get_definition_of_module_class(mep, buffer);
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case mk_ifc:
+      ((an_ifc_module*)this)->get_definition_of_module_class(mep, buffer);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    default:
+      unexpected_condition();
+  }  /* switch */
+}  /* get_definition_of_module_class */
+
+#if DEBUG
+
+void a_module_interface::debug() const noexcept
+/*
+Dispatch the debug() call to the variant for the actual object.
+*/
+{
+  switch (kind) {
+    case mk_none:
+      /* This is the actual object. */
+      break;
+    case mk_edg:
+      ((an_edg_module*)this)->debug();
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case mk_ifc:
+      ((an_ifc_module*)this)->debug();
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    default:
+      unexpected_condition();
+  }  /* switch */
+}  /* debug */
+
+
+void a_module_interface::db_module_entity(a_module_entity_ptr mep)
+                                                                 const noexcept
+/*
+Dispatch the db_module_entity() call to the variant for the actual object.
+*/
+{
+  switch (kind) {
+    case mk_none:
+      /* This is the actual object. */
+      break;
+    case mk_edg:
+      ((an_edg_module*)this)->db_module_entity(mep);
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case mk_ifc:
+      ((an_ifc_module*)this)->db_module_entity(mep);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    default:
+      unexpected_condition();
+  }  /* switch */
+}  /* db_module_entity */
+
+#endif /* DEBUG */
+#endif /* !USE_VIRTUAL_FUNCTIONS */
 
 #if DEBUG
 

@@ -278,6 +278,26 @@ typedefs for the various integer types.
 #endif /* USE_STDINT_HEADER && USE_INT_TYPES_HEADER */
 
 /*
+Flag that is TRUE if the front end should use virtual functions rather than
+using its own form of virtual function dispatch.  Note that using virtual
+functions introduces a dependency on a C++ run-time support library and may
+limit portability.
+*/
+#ifndef USE_VIRTUAL_FUNCTIONS
+#define USE_VIRTUAL_FUNCTIONS FALSE
+#endif /* ifndef USE_VIRTUAL_FUNCTIONS */
+
+#if USE_VIRTUAL_FUNCTIONS
+#define VIRTUAL virtual
+#define OVERRIDE override
+#define ABSTRACT = 0
+#else /* !USE_VIRTUAL_FUNCTIONS */
+#define VIRTUAL /* nothing */
+#define OVERRIDE /* nothing */
+#define ABSTRACT /* nothing */
+#endif /* USE_VIRTUAL_FUNCTIONS */
+
+/*
 Flag that is TRUE if, when USE_STDINT_HEADER and USE_INT_TYPES_HEADER
 are both FALSE, the EDG-supplied definitions of the stdint.h types should
 still not be used.  This flag can be used if the types normally defined in

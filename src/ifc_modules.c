@@ -77,10 +77,6 @@ static a_text_buffer_ptr
                            representation is placed. */
 
 static a_text_buffer_ptr
-		ifc_file_name_text_buffer;
-			/* A text buffer used to build IFC file names. */
-
-static a_text_buffer_ptr
 		operator_text_buffer;
 			/* A text buffer used to prefix operator names. */
 
@@ -101,7 +97,7 @@ static unsigned char
 			/* Pointer to the last byte of the buffer used by
 			   get_byte, etc. */
 
-#if DEBUG
+#if DEBUG && EXPENSIVE_CHECKING
 static const an_ifc_partition
                 *debug_partition;
                         /* Points to information about the partition currently
@@ -110,7 +106,7 @@ static const a_module
                 *debug_mod;
                         /* Points to information about the module currently
                            being read (for debugging purposes only). */
-#endif /* DEBUG */
+#endif /* DEBUG && EXPENSIVE_CHECKING */
 
 
 static unsigned char buffer_overrun(void)
@@ -394,13 +390,13 @@ Handle nested structures differently (and check for padding).
                                     GET_SentenceIndex((x).attributes))
 
 /* Utility to save the current partition (for display during debugging). */
-#if DEBUG
+#if DEBUG && EXPENSIVE_CHECKING
 #define set_debug_partition(kind) \
   (debug_mod = assoc_module_info, \
    debug_partition = &partitions[(kind)]),
-#else /* !DEBUG */
-#define set_debug_partition(mod, kind) /**/
-#endif /* DEBUG */
+#else /* !(DEBUG && EXPENSIVE_CHECKING) */
+#define set_debug_partition(kind) /**/
+#endif /* DEBUG && EXPENSIVE_CHECKING */
 
 
 /*
@@ -512,7 +508,7 @@ FIXME: may want to store mmap_addr + string_table_bytes somewhere
 #define verify_offset(offset) \
   (check_assertion((ifc_Cardinality)(offset) < header.string_table_size)),
 #else /* !EXPENSIVE_CHECKING */
-#define verify_offset(mod, offset) /**/
+#define verify_offset(offset) /**/
 #endif /* EXPENSIVE_CHECKING */
 #define get_string_at_offset(offset) \
   (verify_offset(offset) \
@@ -5089,7 +5085,6 @@ Do one-time initialization of static variables defined in this file.
 */
 {
   top_ifc_text_buffer = NULL;
-  ifc_file_name_text_buffer = NULL;
   operator_text_buffer = NULL;
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
@@ -5109,10 +5104,10 @@ for each compilation.
 {
   byte_buffer = NULL;
   buffer_end = NULL;
-#if DEBUG
+#if DEBUG && EXPENSIVE_CHECKING
   debug_partition = NULL;
   debug_mod = NULL;
-#endif /* DEBUG */
+#endif /* DEBUG && EXPENSIVE_CHECKING */
 }  /* ifc_modules_init */
 
 /* Conditionally close the "edg" namespace. */
