@@ -2267,7 +2267,9 @@ location or arguments for the attribute.
 */
 {
   an_attribute_ptr   ap;
+#if CHECKING
   an_attr_descr_ptr  adp;
+#endif /* CHECKING */
 
   ap = make_attribute((an_attribute_family)family);
   ap->position = null_source_position;

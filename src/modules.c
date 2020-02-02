@@ -228,6 +228,7 @@ Given a module kind, return a string for that kind for use in error messages.
       str = "an IFC";
       break;
     default:
+      str = "an unexpected";
       unexpected_condition_str("Unexpected module kind");
   }  /* switch */
   return str;
@@ -260,6 +261,7 @@ file_kind (which may range from remarks to catastrophic errors).
       break;
     case mk_header:
     default:
+      severity = es_catastrophe;
       unexpected_condition_str("Unexpected module kind");
   }  /* switch */
   dp = pos_st2_start_diagnostic(severity, ec_mismatched_module_file_kind,
