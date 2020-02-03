@@ -16238,7 +16238,8 @@ be returned for a C mode const variable.
       con_val = alloc_constant((a_constant_repr_kind)ck_template_param);
       make_template_param_expr_constant(var_rvalue_expr(var), con_val);
     }  /* if */
-    if (!C_mode() && strict_ansi_mode && !var->constant_valued) {
+    if (!C_mode() && !constexpr_enabled && strict_ansi_mode &&
+        !var->constant_valued) {
       /* In strict C++ mode, there are some cases that look constant
          but don't have the right form, so pretend the initializer is
          not constant for those. */
