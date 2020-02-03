@@ -17648,7 +17648,11 @@ template declaration and is NULL otherwise.
     }  /* if */
     if (is_const_qualified_type(var->type) &&
         !is_const_default_constructible(var->type)) {
-      sym_error(ec_missing_initializer_on_const, sym);
+      an_error_severity  sev = es_error;
+      if (gpp_mode && scope_stack_top().in_prototype_instantiation) {
+        sev = es_warning;
+      }  /* if */
+      sym_diagnostic(sev, ec_missing_initializer_on_const, sym);
     }  /* if */
   }  /* if */
   if (inline_variables_allowed) {
