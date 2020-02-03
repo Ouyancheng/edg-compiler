@@ -1,5 +1,30 @@
 Version 6.1
 
+2/3/20   [EDGcpfe/22277]
+Incorrect lookup of potential type-specifier in template instantiation
+
+In the definition of C::f a "tentative type" lookup is done to determine
+whether A is a type name.  When this lookup was done in a template
+instantiation context of a class member, a type name from the context enclosing
+the class could incorrectly be found (i.e., the global scope A was found)
+resulting in incorrect behavior or spurious errors.  Now fixed.
+
+  struct A {
+    A();
+  };
+  struct B {
+    int i;
+    inline int& A() {return i; }
+  };
+  struct C : public B {
+    template <typename T> void f(const T&) { A() = 0; }
+  };
+  int main() {
+    C c;
+    c.f(1);
+  }
+
+
 1/31/20  [EDGcpfe/22278]
 Incorrect return value for constexpr __builtin_memcmp and other builtins
 

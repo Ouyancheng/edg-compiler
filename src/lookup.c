@@ -1961,7 +1961,8 @@ typedef struct a_lookup_state {
   a_boolean	terminate_lookup;
 			/* TRUE if a condition occurred that should cause
 			   the lookup to terminate even is a symbol was
-			   not found. */
+			   not found (i.e., a symbol was found but ignored
+			   because it did not satisfy the lookup options). */
   a_boolean	skip_curr_scope;
 			/* TRUE if the IDL_SKIP_CURR_SCOPE was specified for
 			   this lookup. If the current scope is a class
@@ -3642,8 +3643,11 @@ that do normal id lookup processing.
   /* If either of these lookups failed to find a symbol, continue the
      lookup starting from the common scope.  When doing a friend lookup
      for a name that is not a template-id, only do the common scope lookup
-     if the innermost namespace scope is part of the common lookup. */
+     if the innermost namespace scope is part of the common lookup.  Don't
+     do this lookup if the terminate_lookup flag is set (which means we
+     found a symbol earlier, but it didn't satisfy the lookup options). */
   if ((ref_sym == NULL || def_sym == NULL) &&
+      !lookup_state->terminate_lookup &&
       (!lookup_state->is_friend_lookup ||
        (lookup_state->must_be_tag &&
         ((gpp_mode && gnu_version < 40000) || sun_mode ||
