@@ -1682,7 +1682,8 @@ Add type (which must be a typedef) to hash_table.
 static a_type_ptr find_typedef_in(a_typedef_hash_entry *hash_table,
                                   a_type_ptr           type)
 /*
-Look up type in hash_table.  If it is found, return the associated typedef;
+Look up type in hash_table.  If it (or an equivalent type, to accommodate
+the use of intermediate typedefs) is found, return the associated typedef;
 otherwise, return NULL.
 */
 {
@@ -1694,9 +1695,10 @@ otherwise, return NULL.
   for (entry = &hash_table[bucket];
        result == NULL && entry != NULL && entry->type != NULL;
        entry = entry->next) {
-    a_boolean matches = (entry->type->variant.typeref.type == type &&
-                         (entry->fcn_scope == NULL ||
-                          entry->fcn_scope == innermost_function_scope));
+    a_boolean matches =
+         standalone_identical_types(entry->type->variant.typeref.type, type) &&
+                                (entry->fcn_scope == NULL ||
+                                 entry->fcn_scope == innermost_function_scope);
     if (!matches && entry->type->variant.typeref.is_template_alias) {
       /* Instances of template aliases can also match base classes. */
       a_base_class_ptr bcp = find_base_class_of(
@@ -1710,10 +1712,19 @@ otherwise, return NULL.
     if (matches) {
       /* The typedef matches.  Check whether it can be used. */
       a_type_ptr parent_class = parent_class_or_null(entry->type);
-      if (entry->type->variant.typeref.is_template_alias) {
-        /* Alias templates are instantiated separately and thus are not
-           subject to the restriction below, regardless of whether the
-           parent class is a prototype instantiation or not. */
+      if (entry->type->variant.typeref.is_template_alias &&
+          skip_typerefs(type)->kind != (a_type_kind)tk_template_param) {
+        /* An alias template is instantiated separately from its containing
+           template, so if the underlying type of the alias template
+           instance is non-dependent, it doesn't matter whether the
+           containing class is a prototype instantiation or not.  If the
+           underlying type is dependent, however, the alias template
+           instance can only be used within the scope of the prototype
+           instantiation.  (We can get "false positive" matches on
+           dependent underlying types that refer to template parameters of
+           unrelated templates because such types are identified only by
+           their coordinates and not by the template with which they are
+           associated.) */
         result = entry->type;
       } else if (parent_class != NULL &&
                  is_prototype_instantiation_type(parent_class)) {
