@@ -31,7 +31,7 @@ That is now fixed.
 1/31/20  [EDGcpfe/22276]
 Potential reference through uninitialized pointer
 
-The alloc_gcc_pragma_options_entry function returns a pointer to a
+The alloc_gcc_pragma_options_entry function returns a pointer to an
 a_gcc_pragma_options_entry data structure, but the "next" pointer in that
 data structure is not initialized, potentially leading to undefined behavior.
 This issue could appear during processing of the "GCC" #pragma.
