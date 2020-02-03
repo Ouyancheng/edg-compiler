@@ -10547,17 +10547,19 @@ is within the given complete_object.
           }  /* if */
         }  /* if */
         /* Get the value of the captured variable. */
-        if (is_volatile_qualified_type(vtp)) {
-          /* Capturing a volatile variable prevents the lambda from being
-             used in a constant expression. */
-          info_with_pos(ec_constexpr_volatile_fetch, pos, ips);
-          do_constexpr_fail(result);
-        } else if (var_storage != NULL) {
+        if (var_storage != NULL) {
           /* We already have the variable's value in interpreter storage. */
           if (!complete_object_is_initialized(var_storage)) {
             info_with_pos(ec_object_not_initialized, pos, ips);
             do_constexpr_fail(result);
           }  /* if */
+        } else if (cap->capture_by_reference) {
+          /* We are not capturing the variable's value.  Only its address. */
+        } else if (is_volatile_qualified_type(vtp)) {
+          /* Capturing a volatile variable prevents the lambda from being
+             used in a constant expression. */
+          info_with_pos(ec_constexpr_volatile_fetch, pos, ips);
+          do_constexpr_fail(result);
         } else {
           /* This is the first interpreter reference to the variable's
              value, so copy it into the associated interpreter storage. */

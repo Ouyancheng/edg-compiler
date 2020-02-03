@@ -1,5 +1,21 @@
 Version 6.1
 
+2/3/20   [EDGcpfe/21030]
+Spurious error on by-reference captures in constant-expression contexts
+
+The front end previously emitted spurious errors when a lambda in a constant-
+expression context captured a variable outside that context by reference.
+For example:
+
+  bool f() {
+    int i;
+    constexpr bool r = [&]{ return &i; }() == &i;  // Previously an error.
+    return r;                                      // Now okay.
+  }
+
+That is now fixed.
+
+
 2/3/20   [EDGcpfe/22277]
 Incorrect lookup of potential type-specifier in template instantiation
 
