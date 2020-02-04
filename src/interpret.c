@@ -10554,7 +10554,7 @@ is within the given complete_object.
             do_constexpr_fail(result);
           }  /* if */
         } else if (cap->capture_by_reference) {
-          /* We are not capturing the variable's value.  Only its address. */
+          /* We are not capturing the variable's value, only its address. */
         } else if (is_volatile_qualified_type(vtp)) {
           /* Capturing a volatile variable prevents the lambda from being
              used in a constant expression. */
