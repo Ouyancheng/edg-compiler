@@ -5068,9 +5068,9 @@ Display the contents of the IFC file header for the specified module.
 */
 {
   /* FIXME: Print checksum */
-  (void)fprintf(f_debug, "  major_version = %d\n", header.major_version);
-  (void)fprintf(f_debug, "  minor_version = %d\n", header.minor_version);
-  (void)fprintf(f_debug, "  abi = %d\n", header.abi);
+  (void)fprintf(f_debug, "  major_version = %hhu\n", header.major_version);
+  (void)fprintf(f_debug, "  minor_version = %hhu\n", header.minor_version);
+  (void)fprintf(f_debug, "  abi = %hhu\n", header.abi);
   (void)fprintf(f_debug, "  arch = %d\n", header.arch);
   (void)fprintf(f_debug, "  dialect = %d\n", header.dialect);
   (void)fprintf(f_debug, "  string_table_bytes = 0x%08x\n",
