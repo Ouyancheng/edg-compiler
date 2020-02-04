@@ -10256,6 +10256,41 @@ instantiations are only permitted in namespace scope).
       result = TRUE;
     }  /* if */
   }  /* if */
+  if (!result && kind == iek_type &&
+      !microsoft_dialect_is_generated_code_target) {
+    a_type_ptr tp = (a_type_ptr)scp;
+    if (is_immediate_class_type(tp) &&
+        class_type_supp(tp)->assoc_scope != NULL) {
+      /* Check to see if there are any generated explicit specializations
+         inside the class scope.  If so, suppress the containing explicit
+         specialization, since explicit specializations must appear in
+         namespace scope in non-Microsoft dialects. */
+      a_source_sequence_entry_ptr ssep = scp->source_sequence_entry->next;
+      a_boolean                   done = FALSE;
+      do {
+        if (ss_entry_kind(ssep) == iek_src_seq_end_of_construct) {
+          a_src_seq_end_of_construct_ptr ssecp =
+                            ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr);
+          if (ss_entry_kind(ssecp) == iek_type &&
+              ss_entry_ptr(ssecp, a_type_ptr) == tp) {
+            done = TRUE;
+          }  /* if */
+        } else if (ss_entry_kind(ssep) == iek_type) {
+          a_type_ptr nested_type = ss_entry_ptr(ssep, a_type_ptr);
+          if (is_immediate_class_type(nested_type) &&
+              class_type_supp(nested_type)->template_arg_list != NULL &&
+              !nested_type->variant.class_struct_union.is_specialized &&
+              !nested_type->
+                       variant.class_struct_union.is_prototype_instantiation) {
+            /* This nested type is a generated explicit specialization.
+               Suppress the containing explicit specialization. */
+            result = TRUE;
+          }  /* if */
+        }  /* if */
+        ssep = ssep->next;
+      } while (!result && !done);
+    }  /* if */
+  }  /* if */
   if (!result && kind == iek_routine && msvc_is_generated_code_target &&
       msvc_target_version_number < 1915) {
     /* MSVC versions before 19.15 have a bug that prevents associating an

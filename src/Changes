@@ -1,5 +1,36 @@
 Version 6.1
 
+2/4/20   [EDGcpfe/22273]
+C++-generating back end: missing definition of nested class template
+
+In C++-generating back end configurations in which
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, when the
+source contains a class template in which an instance of a nested class
+template is used as the type of a member of the outer template, the
+generated code could contain an explicit specialization of the outer class
+template in which the nested class template was only declared, not defined,
+resulting in errors when the generated code was compiled.  This is now fixed.
+For example, given
+
+  template<typename T> struct O {
+    template<typename U> struct I { };
+    I<T> it;
+  };
+  O<int> oi;
+
+when compiled with --g++ the generated code previously contained the
+explicit specialization
+
+  template<> struct O<int> {
+    template<class U> struct I;
+    I<int> it;   // Error: incomplete type
+  };
+
+Such explicit specializations are now suppressed because the required
+explicit specialization for O<int>::I<int> would need to appear inside the
+explicit specialization for O<int>, which is not permitted in standard C++.
+
+
 2/3/20   [EDGcpfe/21029]
 Spurious error on use of local reference in constant-expression context
 
