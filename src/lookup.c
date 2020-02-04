@@ -1960,7 +1960,7 @@ typedef struct a_lookup_state {
 			   specified for this lookup. */
   a_boolean	terminate_lookup;
 			/* TRUE if a condition occurred that should cause
-			   the lookup to terminate even is a symbol was
+			   the lookup to terminate even if a symbol was
 			   not found (i.e., a symbol was found but ignored
 			   because it did not satisfy the lookup options). */
   a_boolean	skip_curr_scope;
