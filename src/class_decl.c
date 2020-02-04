@@ -17032,9 +17032,12 @@ in the context of the completed class later on.
   token_cache = cache_inclass_initializer(dps->sym);
   if (ms_extensions && symbol_is(dps->sym, sk_field) &&
       !nonclass_prototype_instantiations &&
-      in_class_template_definition(class_state)) {
+      in_class_template_definition(class_state) &&
+      !scope_stack_top().in_variadic_template) {
     /* Field symbols in prototype instantiations do not have their fixup
-       entries recorded because Microsoft does not evaluate them. */
+       entries recorded because MSVC does not appear to evaluate them.
+       However, in variadic templates we cannot avoid parsing them in their
+       generic form because that is needed to successfully expand packs. */
   } else {
     /* Record the fixup in the class symbol supplement. */
     a_scope_stack_entry       *ssep = &scope_stack_top();

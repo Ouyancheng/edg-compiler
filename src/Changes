@@ -1,5 +1,20 @@
 Version 6.1
 
+2/4/20   [EDGcpfe/21241]
+Spurious Microsoft-mode error on variadic default member initializers
+
+Consider:
+
+  template<typename ... Ts> struct X {
+    int szs[sizeof...(Ts)] = { sizeof(Ts)... };  // Previously a spurious
+  };                                             // error in Microsoft modes.
+  X<int, short> xis;
+
+Previously, the instantiation of the default member initializer triggered an
+error in Microsoft modes (complaining that a "}" was expected instead of the
+ellipsis "...").  That is now fixed.
+
+
 2/4/20   [EDGcpfe/22273]
 C++-generating back end: missing definition of nested class template
 
