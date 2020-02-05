@@ -1,5 +1,19 @@
 Version 6.1
 
+2/5/20   [EDGcpfe/22289]
+Incorrect template parameter position for empty pack expansion
+
+When a template parameter is declared using a pack expansion the parameter
+that is created is given an incorrect position when the pack expansion
+is empty.  Now fixed.
+
+  int g(...);
+  template <typename ...T> struct A {
+    template <T... X> static decltype(g(X...)) f();
+  };
+  auto x = A<>::f<>(); // Template parameter X has incorrect position
+
+
 2/4/20   [EDGcpfe/22221]
 C++-generating back end: __make_integer_seq incorrectly named
 

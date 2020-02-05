@@ -24877,6 +24877,7 @@ to represent the template parameters.
                                                  /*ignore_suppression=*/FALSE);
     param_state.pack_expansion_stack_entry = pesep;
     if (!any_params && pedp->param_symbol_header != NULL) {
+      ++param_state.list_pos;
       /* A pack expands to an empty expansion.  Add a placeholder
          parameter. */
       template_param = make_empty_template_param(decl_state, &param_state,
