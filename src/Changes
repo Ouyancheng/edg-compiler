@@ -1,5 +1,20 @@
 Version 6.1
 
+2/5/20   [EDGcpfe/20900]
+Spurious "too few arguments" for template argument to pack expansion
+
+A spurious "too few arguments" message could be issued for a template
+argument list to a template parameter list that was the result of a
+pack expansion.  Now fixed.
+
+  template <class T, typename... Us> struct A {
+    template <Us...> struct B {};
+  };
+  int main() {
+    A<int, int, int>::B<1, 2> ab;
+  }
+
+
 2/5/20   [EDGcpfe/22289]
 Incorrect template parameter position for empty pack expansion
 

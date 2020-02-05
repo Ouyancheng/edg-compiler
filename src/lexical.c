@@ -16865,7 +16865,7 @@ next_integer_pack_element:
                           arg_ptr->variant.type->
                                              variant.template_param.is_pack) &&
                          assoc_template_param_is_pack(arg_ptr);
-      if (param_ptr->is_pack) {
+      if (param_ptr->is_pack || param_ptr->is_pack_element) {
         /* Record that this argument was associated with a pack. */
         arg_ptr->is_pack_element = TRUE;
       }  /* if */
@@ -16887,11 +16887,12 @@ next_integer_pack_element:
       } else {
         /* Advance to the next template parameter, unless the current
            parameter is a pack. */
-        if (!param_ptr->is_pack) {
+        if (!param_ptr->is_pack || param_ptr->is_pack_element) {
           /* Don't advance to the next parameter if this is a pack. */
           param_ptr = param_ptr->next;
         }  /* if */
-        if (orig_param_ptr != NULL && !orig_param_ptr->is_pack) {
+        if (orig_param_ptr != NULL &&
+            (!orig_param_ptr->is_pack || orig_param_ptr->is_pack_element)) {
           /* Don't advance to the next parameter if this is a pack. */
           orig_param_ptr = orig_param_ptr->next;
         }  /* if */
