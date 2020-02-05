@@ -7304,8 +7304,25 @@ A reference is not the definition.
     } else if (typeref_is_type_operator(type)) {
       gen_type_operator(type);
     } else {
+      a_boolean    truncated = FALSE;
+      a_const_char *nm = NULL;
+      if (has_name_before_mangling(type)) {
+        nm = unmangled_or_fabricated_name_of(&orig_type->source_corresp);
+        if (nm[0] == '_' && nm[1] == '_' &&
+            strcmp(nm, "__make_integer_seq_alias") == 0) {
+          /* The front end sometimes uses an internal alias for
+             __make_integer_seq, but that alias should not appear in the
+             generated code.  Temporarily truncate the alias name to the
+             standard name. */
+          ((char *)nm)[sizeof("__make_integer_seq") - 1] = 0;
+          truncated = TRUE;
+        }  /* if */
+      }  /* if */
       gen_name(&orig_type->source_corresp, iek_type, options,
                (a_boolean *)NULL);
+      if (truncated) {
+        ((char *)nm)[sizeof("__make_integer_seq") - 1] = '_';
+      }  /* if */
     }  /* if */
   } else {
     /* A class, struct, union, or enum. */

@@ -1,5 +1,25 @@
 Version 6.1
 
+2/4/20   [EDGcpfe/22221]
+C++-generating back end: __make_integer_seq incorrectly named
+
+The C++-generating back end sometimes put out a reference to the builtin
+alias template __make_integer_seq using an internal name,
+__make_integer_seq_alias, resulting in errors when compiling the generated
+code.  This has now been fixed.  For example, with --clang_version=90000:
+
+  namespace std {
+  template<typename _Tp, _Tp... _Idx> struct integer_sequence {
+    typedef _Tp value_type; 
+  };
+  }
+
+  void f() {
+    typedef __make_integer_seq<std::integer_sequence, int, 100> s;
+    // Previously generated as __make_integer_seq_alias<...
+  }
+
+
 2/4/20   [EDGcpfe/22246]
 C++-generating back end: explicit specializations of function templates whose
 return type uses a dependent decltype-specifier
