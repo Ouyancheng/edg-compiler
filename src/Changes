@@ -1,5 +1,34 @@
 Version 6.1
 
+2/4/20   [EDGcpfe/22246]
+C++-generating back end: explicit specializations of function templates whose
+return type uses a dependent decltype-specifier
+
+The entry for EDGcpfe/21621 describes an MSVC bug that affected the output
+of the C++-generating back end in configurations in which
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE.
+Briefly, versions of MSVC before 1915 could not match a generated explicit
+specialization with its corresponding function template when the return
+type of the function template is a dependent decltype-specifier.  It now
+appears that that MSVC bug is more general, affecting function templates in
+which a dependent decltype-specifier is used anywhere within the function
+return type, such as within a template argument.  The C++-generating back
+end has now been modified to suppress all such explicit specializations
+when msvc_is_generated_code_target is TRUE and msvc_target_version_number
+is less than 1915.  For example, with --microsoft
+--msvc_target_version=1914:
+
+  template <typename> struct A {
+    using an_int_t = int;
+  };
+  template <typename> struct B {};
+  template <typename T> using I = typename A<T>::an_int_t;
+  template <typename T> auto f(T t) -> B<B<I<decltype(t)>>>;
+  void g() {
+    f(0);
+  }
+
+
 2/4/20   [EDGcpfe/21241]
 Spurious Microsoft-mode error on variadic default member initializers
 

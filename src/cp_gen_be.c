@@ -10201,6 +10201,26 @@ i_is_or_uses_unnameable_class_type returns TRUE; FALSE otherwise.
 }  /* is_or_uses_unnameable_class_type */
 
 
+static a_boolean ttt_is_dependent_decltype(a_type_ptr type,
+                                           a_boolean  *end_traversal)
+/*
+This function is called via traverse_type_tree from
+suppress_invalid_explicit_specialization.  If type is a dependent type
+operator, set *end_traversal to TRUE and return TRUE; otherwise, return
+FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (type->kind == (a_type_kind)tk_typeref &&
+      type->variant.typeref.is_dependent_type_operator) {
+    result = TRUE;
+    *end_traversal = TRUE;
+  }  /* if */
+  return result;
+}  /* ttt_is_dependent_decltype */
+
+
 static a_boolean ttt_is_type_operator_for_local_type(a_type_ptr type,
                                                      a_boolean  *end_traversal)
 /*
@@ -10295,14 +10315,17 @@ instantiations are only permitted in namespace scope).
       msvc_target_version_number < 1915) {
     /* MSVC versions before 19.15 have a bug that prevents associating an
        explicit specialization with its template if the template's return
-       type is a dependent decltype.  Check for that case. */
+       type is or uses a dependent decltype.  Check for that case. */
     a_routine_ptr proto_rp =
          ((a_routine_ptr)scp)->assoc_template->prototype_instantiation.routine;
     if (proto_rp != NULL) {
       a_type_ptr func_type = skip_typerefs(proto_rp->type);
       a_type_ptr ret_type = func_type->variant.routine.return_type;
-      if (ret_type->kind == (a_type_kind)tk_typeref &&
-          ret_type->variant.typeref.is_dependent_type_operator) {
+      if (traverse_type_tree(ret_type, ttt_is_dependent_decltype,
+                             TTT_TEMPLATE_ARGS |
+                             TTT_RETURN_TYPE |
+                             TTT_PARAM_TYPES |
+                             TTT_EXCEPTION_SPECS)) {
         /* This would be a specialization of a template like
              template<typename T> auto g(T) -> decltype(f<T>())
            which triggers the MSVC bug.  Suppress the specialization. */
