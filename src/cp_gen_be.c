@@ -10320,12 +10320,15 @@ instantiations are only permitted in namespace scope).
               !nested_type->
                        variant.class_struct_union.is_prototype_instantiation) {
             /* This nested type is a generated explicit specialization.
-               Suppress the containing explicit specialization. */
+               Suppress the containing explicit specialization.  We also
+               mark the nested type as suppressed so that its members will
+               also be suppressed. */
             result = TRUE;
+            nested_type->explicit_specialization_suppressed = TRUE;
           }  /* if */
         }  /* if */
         ssep = ssep->next;
-      } while (!result && !done);
+      } while (!done);
     }  /* if */
   }  /* if */
   if (!result && kind == iek_routine && msvc_is_generated_code_target &&
@@ -10622,14 +10625,15 @@ this one is such a continuation.
       skip_type_and_delay_definition(type, is_definition);
     }  /* if */
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  } else if (is_generated_explicit_specialization &&
-             suppress_invalid_explicit_specialization(
-                                   &type->source_corresp, iek_type,
-                                   class_type_supp(type)->template_arg_list)) {
+  } else if ((is_generated_explicit_specialization &&
+              suppress_invalid_explicit_specialization(
+                                  &type->source_corresp, iek_type,
+                                  class_type_supp(type)->template_arg_list)) ||
+             has_suppressed_parent(&type->source_corresp)) {
     /* This is an explicit specialization corresponding to an implicit
-       instantiation, and the explicit specialization cannot be validly
-       put out in this location.  Just discard the class definition, if
-       any. */
+       instantiation for which an explicit specialization cannot be validly
+       put out in this location or it is a member of such an explicit
+       specialization.  Just discard the class definition, if any. */
     if (is_definition) {
       for (;;) {
         if (ss_entry_kind(curr_source_sequence_entry) !=
