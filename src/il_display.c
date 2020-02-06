@@ -4746,7 +4746,6 @@ cleanup_state_common:
                (char *)ptr->variant.concept_id.concept_template, iek_template);
       disp_template_arg_list("concept_id.args", ptr->variant.concept_id.args);
       break;
-      break;
     default:
       (void)printf("**BAD EXPR NODE KIND**\n");
   }  /* switch */
