@@ -7039,10 +7039,10 @@ Display the indicated class type supplement entry.
   if (ptr->defined_in_variable_initializer) {
     disp_boolean("defined_in_variable_initializer", TRUE);
   }  /* if */
+#endif /* NEED_NAME_MANGLING */
   if (ptr->defined_in_field_initializer) {
     disp_boolean("defined_in_field_initializer", TRUE);
   }  /* if */
-#endif /* NEED_NAME_MANGLING */
   if (ptr->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
     disp_name("anonymous_union_kind");
     switch (ptr->anonymous_union_kind) {

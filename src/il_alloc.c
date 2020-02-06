@@ -1861,8 +1861,8 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->has_anonymous_union_member        = FALSE;
 #if NEED_NAME_MANGLING
   ctsp->defined_in_variable_initializer   = FALSE;
-  ctsp->defined_in_field_initializer      = FALSE;
 #endif /* NEED_NAME_MANGLING */
+  ctsp->defined_in_field_initializer      = FALSE;
   ctsp->befriending_classes               = NULL;
   ctsp->assoc_template                    = NULL;
   ctsp->template_arg_list                 = NULL;

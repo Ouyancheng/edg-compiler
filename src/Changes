@@ -1,5 +1,15 @@
 Version 6.1
 
+2/6/20   [EDGcpfe/22300]
+Uninitialized a_class_type_supplement::defined_in_field_initializer
+
+The changes for EDGcpfe/21195 (in version 5.1) made the field
+a_class_type_supplement::defined_in_field_initializer unconditional (previously
+it had been conditionally compiled with NEED_NAME_MANGLING).  Unfortunately,
+the initialization for the field was still conditionally compiled so it could
+be uninitialized in configurations where NEED_NAME_MANGLING is FALSE.
+
+
 2/5/20   [EDGcpfe/20900]
 Spurious "too few arguments" for template argument to pack expansion
 
