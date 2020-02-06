@@ -9,7 +9,7 @@
 ******************************************************************************/
 /*
 
-modules.c -- Module handling classes and routines.
+modules.c -- Classes and routines handling modules.
 
 */
 
@@ -66,6 +66,9 @@ a_text_buffer_ptr module_primary_name_buffer, module_partition_name_buffer;
 
 static a_boolean same_module_name(a_symbol_ptr module_name,
                                   a_symbol_ptr other_module_name)
+/*
+Determine whether two modules have the same name.
+*/
 {
   a_boolean result = FALSE;
 
@@ -91,11 +94,11 @@ static a_boolean same_module_name(a_symbol_ptr module_name,
 a_boolean check_module_has_interface_dependency(
                                            a_symbol_ptr          module_sym,
                                            a_symbol_ptr          interface_sym,
-                                           a_source_position_ptr module_pos)
+                                           a_source_position_ptr pos)
 /*
 Determine whether the given module has an interface dependency on the module
-referred to by interface_sym.  Return TRUE if there exists an interface
-dependency, FALSE otherwise.
+referred to by interface_sym.  pos is the position to use for diagnostics (if
+any).  Return TRUE if there exists an interface dependency, FALSE otherwise.
 */
 {
   a_boolean result = FALSE;
@@ -106,7 +109,7 @@ dependency, FALSE otherwise.
                        interface_sym->variant.module_info.primary_name) &&
       same_module_name(module_sym->variant.module_info.partition_name,
                        interface_sym->variant.module_info.partition_name)) {
-    pos_error(ec_module_cannot_depend_on_itself, module_pos);
+    pos_error(ec_module_cannot_depend_on_itself, pos);
     result = TRUE;
   }
   /* FIXME: Recurse over interface_sym's interface dependencies. */
@@ -117,9 +120,9 @@ dependency, FALSE otherwise.
 static a_const_char *get_module_primary_name(a_const_char *name)
 /*
 Get just the module primary name from the given module's name (i.e., remove the
-partition if it's present) and return it.  If no name is present, return empty
-string.  Note that the name will be stored in re-useable memory and should be
-copied if it's wanted to be kept long-term.
+partition if it's present) and return it.  If no name is present, return an
+empty string.  Note that the name will be stored in reuseable memory and
+should be copied if it's wanted to be kept long-term.
 */
 {
   sizeof_t     name_len = strlen(name);
@@ -140,9 +143,9 @@ copied if it's wanted to be kept long-term.
 static a_const_char *get_module_partition_name(a_const_char *name)
 /*
 Get just the module partition name from the given module's name (if present)
-and return it.  If no name is present, return empty string.  Note that the name
-will be stored in re-useable memory and should be copied if it's wanted to be
-kept long-term.
+and return it.  If no name is present, return an empty string.  Note that the
+name will be stored in reuseable memory and should be copied if it's wanted to
+be kept long-term.
 */
 {
   sizeof_t     name_len = 0;
@@ -165,7 +168,8 @@ static a_const_char *get_module_file_base_name(a_const_char *name)
 /*
 Get the base name of the module file for the given module name.  A module name
 takes the form <primary>[:<partition>], and the resulting base name is
-<primary>[-<partition>].
+<primary>[-<partition>].  Note that the name will be stored in reuseable memory
+and should be copied if it's wanted to be kept long-term.
 */
 {
   reset_text_buffer(module_file_name_buffer);
@@ -324,7 +328,7 @@ a_boolean find_module_file(a_module_ptr  mod,
 /*
 Find the module file associated with mod and update mod with the path to the
 file.  If kind == mk_none, select the first (supported) module file
-encountered and update the kind of mid.  Otherwise, only consider module files
+encountered and update the kind of mod.  Otherwise, only consider module files
 of the kind indicated by kind.  Return TRUE if a module file was found, FALSE
 otherwise.
 */
@@ -500,8 +504,8 @@ entity.
 a_module_entity_ptr get_module_entity_ptr(a_module_ptr mod,
                                           size_t       file_offset)
 /*
-Returns a pointer to the module entity pointer for the entity at
-file_offset in the specified module.
+Return a pointer to the module entity pointer for the entity at file_offset in
+the specified module.
 */
 {
   a_module_entity  key, **p;
@@ -822,7 +826,7 @@ Called to ensure files are closed after a (possibly aborted) compilation.
 
 void modules_wrapup(void)
 /*
-Closes any open module files.  Invoked at the end of primary and secondary
+Close any open module files.  Invoked at the end of primary and secondary
 translation units.
 */
 {

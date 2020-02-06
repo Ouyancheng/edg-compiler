@@ -17442,7 +17442,7 @@ Generate a module import directive.
   /* Advance past the source sequence entry for the import declaration. */
   adv_curr_source_sequence_entry();
   set_output_position(&midp->position);
-  /* Write out the import declaration */
+  /* Write out the import declaration. */
   write_tok_str("import ");
   write_tok_str(midp->module_info->name);
   gen_attributes(midp->attributes, al_module, /*primary_only=*/FALSE);

@@ -56,25 +56,25 @@ A control block used when turning IFC declarations into a textual
 representation.
 */
 struct a_str_control_block {
-  a_module_ptr  module_info;
-                        /* The module being traversed. */
+  a_module_ptr	module_info;
+			/* The module being traversed. */
   a_text_buffer_ptr
-                text_buffer;
-                        /* The text buffer into which the generated text is
-                           placed. */
+		text_buffer;
+			/* The text buffer into which the generated text is
+			   placed. */
   a_byte_boolean
-                is_generated_code;
-                        /* A flag to indicate whether the textual
-                           representation being generated will be consumed
-                           by the front end (otherwise it's just for debug
-                           output). */
+		is_generated_code;
+			/* A flag to indicate whether the textual
+			   representation being generated will be consumed
+			   by the front end (otherwise it's just for debug
+			   output). */
 };  /* a_str_control_block */
 
 
 static a_text_buffer_ptr
-                top_ifc_text_buffer;
-                        /* A static text buffer into which a textual
-                           representation is placed. */
+		top_ifc_text_buffer;
+			/* A static text buffer into which a textual
+			   representation is placed. */
 
 static a_text_buffer_ptr
 		operator_text_buffer;
@@ -99,13 +99,13 @@ static unsigned char
 
 #if DEBUG && EXPENSIVE_CHECKING
 static const an_ifc_partition
-                *debug_partition;
-                        /* Points to information about the partition currently
-                           being read (for debugging purposes only). */
+		*debug_partition;
+			/* Points to information about the partition currently
+			   being read (for debugging purposes only). */
 static const a_module
-                *debug_mod;
-                        /* Points to information about the module currently
-                           being read (for debugging purposes only). */
+		*debug_mod;
+			/* Points to information about the module currently
+			   being read (for debugging purposes only). */
 #endif /* DEBUG && EXPENSIVE_CHECKING */
 
 
@@ -125,8 +125,8 @@ that returns an unsigned char.
 static void init_byte_buffer(void*	memory,
 			     size_t	length)
 /*
-Initialize the state information used by "get_bytes", etc.  "memory"
-is the start of the buffer to be read.  "length" is its size, in bytes.
+Initialize the state information used by "get_bytes", etc.  memory is the start
+of the buffer to be read.  length is its size, in bytes.
 */
 {
   byte_buffer = (unsigned char*)memory;
@@ -183,7 +183,7 @@ order.
   f_get_big_endian_bytes((void*)entity, length)
 
 static void f_get_big_endian_bytes(void		*entity,
-			           size_t	length)
+                                   size_t	length)
 /*
 Get "length" bytes from memory and convert them to the host byte order.
 This routine is used only when the host byte order is big-endian.
@@ -678,15 +678,15 @@ state needs to be modified.
 */
 struct a_partial_scope_stack_state {
   a_byte_boolean
-                saved;
-                        /* TRUE if the state has been saved. */
+		saved;
+			/* TRUE if the state has been saved. */
   a_byte_boolean
-                name_linkage_is_explicit;
-                        /* Previous name_linkage_is_explicit setting. */
-  a_bit_field   default_name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
-                        /* Previous default_name_linkage setting. */
-  a_bit_field   current_access:2;
-                        /* Previous current_access setting. */
+		name_linkage_is_explicit;
+			/* Previous name_linkage_is_explicit setting. */
+  a_bit_field	default_name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
+			/* Previous default_name_linkage setting. */
+  a_bit_field	current_access:2;
+			/* Previous current_access setting. */
 };  /* a_partial_scope_stack_state */
 
 
@@ -751,9 +751,9 @@ Import an IFC module file described by midp.  The IFC file should already have
 been confirmed to exist and the path stored in midp.
 */
 {
-  a_module_ptr              mod = midp->module_info;
-  unsigned int              i;
-  a_boolean                 result = FALSE;
+  a_module_ptr mod = midp->module_info;
+  unsigned int i;
+  a_boolean    result = FALSE;
 
   check_assertion(midp->module_info->kind == mk_ifc);
   check_assertion(mod->name != NULL && mod->full_name != NULL);
@@ -776,9 +776,9 @@ been confirmed to exist and the path stored in midp.
     }  /* if */
 #endif /* DEBUG */
     for (i = 0; i < header.partition_count; i++) {
-      an_ifc_Partition partition, *ifc_pp;
-      an_ifc_partition *pp;
-      a_const_char *name_str;
+      an_ifc_Partition     partition, *ifc_pp;
+      an_ifc_partition     *pp;
+      a_const_char         *name_str;
       an_ifc_partition_map *map_ptr;
 
       /* Read information about the partition. */
@@ -864,7 +864,7 @@ location as the original.
 {
   if (!open_and_map_ifc_module_file(midp)) {
     /* This shouldn't happen (the PCH processing checks the existence and
-       modification time of module files. */
+       modification time of module files). */
     unexpected_condition();
   }  /* if */
 }  /* ifc_modules_pch_reset */
@@ -1176,7 +1176,7 @@ class_struct_union_case:
           itsfp = get_TypeSort_Fundamental(&itsf);
           if (itsfp->basis == ifc_TypeBasis_Enum) {
             /* A classic enumeration.  Don't bother to defer in this case
-               because each of the enumerators need to be registered in the
+               because each of the enumerators needs to be registered in the
                symbol table so they can be found. */
             defer = FALSE;
           } else if (itsfp->basis == ifc_TypeBasis_Class ||
@@ -1552,7 +1552,7 @@ void an_ifc_module::process_ifc_scope(ifc_ScopeIndex scope_index,
                                       a_scope_ptr    scope) const noexcept
 /*
 Process the IFC scope specified by scope_index in the module file pointed to
-by mod.  All items in the IFC scope will be members of "scope" and their
+by mod.  All items in the IFC scope will be members of scope and their
 definitions will be deferred until they are referenced.
 */
 {
@@ -1615,9 +1615,9 @@ file indicated by mod.  Note that NULL is a valid return (and represents
 an "ellipsis type").
 */
 {
-  a_type_ptr                result = NULL;
-  a_module_entity_ptr       mep = get_type_module_entity_ptr(type_index);
-  ifc_TypeSort              tag;
+  a_type_ptr          result = NULL;
+  a_module_entity_ptr mep = get_type_module_entity_ptr(type_index);
+  ifc_TypeSort        tag;
 
   if (mep->entity.ptr != NULL) {
     /* There is already an entry for this; return it. */
@@ -1634,8 +1634,8 @@ an "ellipsis type").
         { an_integer_kind             ik;
           an_ifc_TypeSort_Fundamental itsf, *itsfp;
           itsfp = get_TypeSort_Fundamental(&itsf);
-          /* Note: no check is made for non-sensical types (e.g., signed
-             void).*/
+          /* Note: no check is made for nonsensical types (e.g., signed
+             void). */
           switch (itsfp->basis) {
             case ifc_TypeBasis_Void:
               check_assertion(itsfp->precision == ifc_TypePrecision_Default);
@@ -1934,7 +1934,7 @@ void an_ifc_module::source_position_from_locus(a_source_position  *pos,
                                                ifc_SourceLocation *locus)
                                                                  const noexcept
 /*
-Map the IFC locus source position information into the source position at *pos.
+Map the IFC locus source position information into the source position at pos.
 */
 {
   an_ifc_Source_Line   isl, *islp;
@@ -1978,11 +1978,10 @@ a_const_char *an_ifc_module::string_from_name_index(
                                                    a_symbol_locator *loc)
                                                                  const noexcept
 /*
-Return the string referenced by name_index in the module specified by mod.
-The returned string may not be in the IL (it may be a pointer to an mmap'ed
-memory region or a pointer to a local static buffer), so the caller should copy
-it if necessary.  If non-NULL, fields (like is_operator_name) in *loc are
-updated accordingly.
+Return the string referenced by name_index.  The returned string may not be in
+the IL (it may be a pointer to an mmap'ed memory region or a pointer to a local
+static buffer), so the caller should copy it if necessary.  If non-NULL, fields
+(like is_operator_name) in *loc are updated accordingly.
 */
 {
   a_const_char         *result = NULL, *prefix = NULL;
@@ -2093,12 +2092,12 @@ void an_ifc_module::init_dps(a_decl_parse_state          *dps,
                              ifc_Access                  access,
                              a_partial_scope_stack_state *psssp) const noexcept
 /*
-Map the IFC fields given by locus, type_index, alignment, traits, specifiers
-and access to internal values used in the front end and set those fields in
-*dps.  mod indicates the module file that contains the declaration.  *psssp
-is a place in which to store various fields of the decl_scope_level scope_stack
-entry (saved only if necessary).  restore_partial_scope_stack_if_necessary
-should be called with this pointer after the declaration has been processed.
+Map the IFC fields given by locus, type_index, alignment, traits, msvc_traits,
+specifiers, and access to internal values used in the front end and set those
+fields in *dps.  *psssp is a place in which to store various fields of the
+decl_scope_level scope_stack entry (saved only if necessary).
+restore_partial_scope_stack_if_necessary should be called with this pointer
+after the declaration has been processed.
 */
 {
   an_attribute_ptr ap = NULL;
@@ -2202,9 +2201,9 @@ void an_ifc_module::init_locator_from_name(ifc_NameIndex      name_index,
                                            a_symbol_locator   *loc)
                                                                  const noexcept
 /*
-Initialize the locator specified by *loc.  The entity is in the module file
-indicated by mod and the name of the entity is either given by name_index or
-text_offset, whichever is non-zero.  The source position is given by locus.
+Initialize the locator specified by *loc.  The name of the entity is either
+given by name_index or text_offset, whichever is non-zero.  The source position
+is given by locus.
 FIXME: Not sure if we need source location here.
 */
 {
@@ -2233,8 +2232,8 @@ a_constant_ptr an_ifc_module::constant_for_expr_index(
                                                                  const noexcept
 /*
 Returns a constant (allocated in the current IL memory region) with the value
-specified by the ExprIndex.  Assumes the expression is constant.  If the
-expression's type is zero, use the default_type as the expression's type.
+specified by expr_index.  Assumes the expression is constant.  If the
+expression's type is zero, use default_type as the expression's type.
 FIXME: shared or unshared?
 FIXME: what other expressions can we get here?
 */
@@ -2304,7 +2303,7 @@ FIXME: what other expressions can we get here?
 }  /* constant_for_expr_index */
 
 
-void an_ifc_module::str_ifc_text_offset(ifc_TextOffset     offset,
+void an_ifc_module::str_ifc_text_offset(ifc_TextOffset      offset,
                                         a_str_control_block *scbp)
                                                                  const noexcept
 /*
@@ -3075,7 +3074,7 @@ Create a string representation for the specified type (first part).
 FIXME: more specific
 */
 {
-  ifc_TypeSort      tag = type_tag(type_index);
+  ifc_TypeSort tag = type_tag(type_index);
 
   /* Prepare to read from the proper partition for this type. */
   read_ifc_partition_at_index(ifc_type_start + tag, type_value(type_index));
@@ -3084,7 +3083,7 @@ FIXME: more specific
       { a_const_char *basis_str = NULL;
         an_ifc_TypeSort_Fundamental itsf, *itsfp;
         itsfp = get_TypeSort_Fundamental(&itsf);
-        /* Note: no check is made for non-sensical types (e.g., signed void).*/
+        /* Note: no check is made for nonsensical types (e.g., signed void). */
         switch (itsfp->sign) {
           case ifc_TypeSign_Plain:
             break;
@@ -3396,7 +3395,7 @@ Create a string representation for the specified type (second part).
 FIXME: more specific
 */
 {
-  ifc_TypeSort      tag = type_tag(type_index);
+  ifc_TypeSort tag = type_tag(type_index);
 
   /* Prepare to read from the proper partition for this type. */
   read_ifc_partition_at_index(ifc_type_start + tag, type_value(type_index));
@@ -3479,10 +3478,11 @@ void an_ifc_module::str_ifc_common_decl(ifc_SourceLocation  *locus,
                                         a_str_control_block *scbp)
                                                                  const noexcept
 /*
-This is a utility routine to add textual representations for various aspects
-common fields of a DeclIndex.  If a particular DeclIndex doesn't have a
-SourceLocation, Access, BasicSpecifiers, ObjectTraits, or Alignment field, a
-nominal value can be supplied (which will suppress its output).
+This is a utility routine to add textual representations for the common fields
+of the various IFC DeclSorts (e.g., DeclSort::Variable).  If a particular
+DeclSort doesn't have a SourceLocation, Access, BasicSpecifiers, ObjectTraits,
+or Alignment field, a nominal value can be supplied (which will suppress its
+output).
 */
 {
   str_ifc_source_location(locus, scbp);
@@ -5049,7 +5049,7 @@ Generate a string for the specified sentence.
 void an_ifc_module::str_ifc_word(ifc_WordIndex       word_index,
                                  a_str_control_block *scbp) const noexcept
 /*
-Generate a string for the specified sentence.
+Generate a string for the specified word.
 */
 {
   an_ifc_Word iw;
@@ -5064,7 +5064,7 @@ Generate a string for the specified sentence.
 
 void an_ifc_module::db_ifc_file_header() const noexcept
 /*
-Display the contents of the IFC file header for the specified module.
+Display the contents of the IFC file header.
 */
 {
   /* FIXME: Print checksum */

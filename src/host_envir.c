@@ -3206,7 +3206,7 @@ Open a file that contains memory region information that will be mapped
 into the address space of the current process.  This is used to reactivate
 a precompiled header file or an open IFC module file.  This file will already
 have been opened using fopen, so this open must be done in shared mode.
-Returns handle for the re-opened inpout file and the mapped object.
+Returns handles for the re-opened input file and the mapped object.
 */
 {
   *mapped_input = CreateFile_interface(

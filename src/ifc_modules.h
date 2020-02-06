@@ -117,45 +117,45 @@ typedef uint8_t sha256_t[32];
 typedef sha256_t ifc_Checksum;
 
 /*
-Define some IFC structures that are used in nested inside other IFC structures.
-These are handled specially here (rather than with the ifc_map.h automated
-method) because the nesting can create padding issues on some architectures.
+Define some IFC structures that are nested inside other IFC structures.  These
+are handled specially here (rather than with the ifc_map.h automated method)
+because the nesting can create padding issues on some architectures.
 FIXME: See if these can be handled "automatically" as well.
 */
 struct ifc_Sequence {
-  ifc_Index     start;
+  ifc_Index	start;
   ifc_Cardinality
-                cardinality;
+		cardinality;
 };  /* ifc_Sequence */
 
 struct ifc_ModuleReference {
   ifc_TextOffset
-                owner;
+		owner;
   ifc_TextOffset
-                partition;
+		partition;
 };  /* ifc_ModuleReference */
 
 struct ifc_SourceLocation {
-  ifc_LineIndex line;
-  ifc_Column    column;
+  ifc_LineIndex	line;
+  ifc_Column	column;
 };  /* ifc_SourceLocation */
 
 struct ifc_NoexceptSpecification {
   ifc_SentenceIndex
-                words;
+		words;
   ifc_NoexceptSort
-                sort;
+		sort;
   /* Note that there are three bytes of padding here. */
 };  /* ifc_NoexceptSpecification */
 
 struct ifc_ParameterizedEntity {
-  ifc_Index     index;
+  ifc_Index	index;
   ifc_SentenceIndex
-                head;
+		head;
   ifc_SentenceIndex
-                body;
+		body;
   ifc_SentenceIndex
-                attributes;
+		attributes;
 };
 
 /*
@@ -1443,9 +1443,9 @@ when reading an IFC file to identify which partitions are which.  The list
 should be sorted by the partition name.
 */
 struct an_ifc_partition_map {
-  a_const_char  *name;  /* The name of an IFC partition. */
+  a_const_char	*name;	/* The name of an IFC partition. */
   an_ifc_partition_kind
-                kind;   /* The internal representation of the partition. */
+		kind;	/* The internal representation of the partition. */
 };  /* an_ifc_partition_map */
 
 EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
@@ -1766,12 +1766,12 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
 An internal representation of an IFC partition.
 */
 struct an_ifc_partition {
-  a_const_char  *name;  /* The name of the partition in the IFC file. */
-  size_t        offset; /* An offset from the beginning of the file to the
-                           start of the partition. */
-  uint32_t      size;   /* The number of bytes in the partition. */
-  uint32_t      entry_size;
-                        /* The size of an entry in the partition. */
+  a_const_char	*name;	/* The name of the partition in the IFC file. */
+  size_t	offset;	/* An offset from the beginning of the file to the
+			   start of the partition. */
+  uint32_t	size;	/* The number of bytes in the partition. */
+  uint32_t	entry_size;
+			/* The size of an entry in the partition. */
 };  /* an_ifc_partition */
 
 

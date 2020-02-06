@@ -2260,7 +2260,7 @@ an_attribute_ptr make_module_attribute(a_const_char            *name,
                                        an_attribute_ptr        next)
 /*
 Utility to create an attribute with the specified name and family.  Used to
-create an_attribute entries for entities defined in modules.  The newly
+create an_attribute entries for entities defined in modules.  The newly-
 created attribute is returned (and its next pointer is set to the value of
 the "next" argument).  Note that this routine assumes there is no source
 location or arguments for the attribute.
@@ -2276,7 +2276,7 @@ location or arguments for the attribute.
   adp = get_attr_descr_for_attribute(ap);
 #if CHECKING
   check_assertion(adp != NULL);
-#else
+#else  /* !CHECKING */
   (void)adp; /* "Use" adp to suppress compiler warning. */
 #endif /* CHECKING */
   return ap;
