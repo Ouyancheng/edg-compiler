@@ -14795,6 +14795,7 @@ it's a definition and NULL otherwise).
   an_attribute_ptr            attributes = NULL;
   a_boolean                   nested_namespace_is_inline = FALSE;
   a_source_position           attr_token_pos = null_source_position;
+  a_boolean                   using_namespace_alias = FALSE;
 
   db_enter(3, "namespace_declaration");
   *ns_definition_sym = NULL;
@@ -15047,6 +15048,7 @@ it's a definition and NULL otherwise).
           ns_sym = (a_symbol_ptr)
              skip_namespace_aliases(ns_sym->variant.namespace_info.ptr)->
                                                     source_corresp.assoc_info;
+          using_namespace_alias = TRUE;
         } else if (gnu_namespace_and_class_in_same_scope &&
                    is_tag_symbol(ns_sym) && !locator.is_template_id) {
           /* Versions of g++ before 4.3 allow a namespace and class to be
@@ -15272,8 +15274,19 @@ it's a definition and NULL otherwise).
         /* Push a scope for the scanning the namespace body.  This is not done
            when using the g++ compatibility feature that makes "std" a
            synonym for the global namespace. */
-        (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
-                                   skip_namespace_aliases(nsp));
+        if (using_namespace_alias) {
+          /* In the non-standard Microsoft case where a namespace alias is
+             used in a namespace extension, that alias could be a nested
+             namespace reference, so ensure all of the parent namespaces are
+             also pushed onto the stack.  E.g., N1 must also be pushed:
+               namespace N = N1::N2;
+               namespace N {}
+             */
+          push_namespace_extension_scope(nsp);
+        } else {
+          (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
+                                     skip_namespace_aliases(nsp));
+        }  /* if */
         scope_stack[depth_scope_stack].
                                explicitly_declared_namespace_extension = TRUE;
         scope_stack[depth_scope_stack].initial_decl_of_namespace_std =
@@ -15347,7 +15360,11 @@ it's a definition and NULL otherwise).
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       /* Pop the namespace or namespace-extension scope. */
-      pop_namespace_scope();
+      if (using_namespace_alias) {
+        pop_namespace_extension_scope();
+      } else {
+        pop_namespace_scope();
+      }  /* if */
     }  /* if */
     if (is_enclosing_namespace_specifier && !in_nested_namespace_decl &&
         *ns_definition_sym != NULL) {

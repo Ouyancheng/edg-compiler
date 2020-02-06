@@ -1,5 +1,25 @@
 Version 6.1
 
+2/6/20   [EDGcpfe/22301]
+Microsoft compatibility: nested namespace alias in a namespace extension
+
+The C++ standard prohibits using a namespace-alias in a namespace extension,
+but the front end allows it in Microsoft emulation mode.  In the case where
+a nested namespace is used as a namespace-alias, spurious errors could occur,
+e.g., (with --microsoft):
+
+  namespace N1 {
+    using T = int;
+    namespace N2 {}
+  }
+  namespace N = N1::N2;
+  namespace N {
+    T f();      // Spurious error because N1::T had not been found.
+  }
+
+This is now fixed.
+
+
 2/6/20   [EDGcpfe/22018,EDGcpfe/22131,EDGcpfe/22299]
 Abort on nontype template parameter substitution with dependent type
 
