@@ -84,14 +84,13 @@ BEGIN_EDG_NAMESPACE
 #define EOPT_CONSTRAINT_EXPR 0x1000
 			/* Flag set when parsing a constraint expression (in a
 			   "requires" clause or in a concept definition).  This
-			    causes logical and/or to be handled specially. */
+			   causes logical and/or to be handled specially. */
 #define EOPT_REQUIRES_CLAUSE 0x2000
 			/* Flag set when parsing the expression for a
 			   "requires" clause (which only permit primary
 			   expressions and logical and/or operators at the top
 			   level).  This flag is cleared while scanning primary
 			   sub-expressions. */
-			
 #define EOPT_NO_OPTIONS 0
 
 typedef int a_local_expr_options_set;

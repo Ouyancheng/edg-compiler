@@ -9992,8 +9992,8 @@ a_boolean check_template_constraints(a_symbol_ptr        template_sym,
                                      a_template_arg_ptr  args,
                                      a_boolean           diagnose)
 /*
-Return TRUE if the constraints on the template described by tssp is satisfied
-by the give template arguments.  Otherwise, return FALSE and, if diagnose is
+Return TRUE if the constraints on the template described by tssp are satisfied
+by the given template arguments.  Otherwise, return FALSE and, if diagnose is
 TRUE, issue a diagnostic explaining the failure.
 */
 {
@@ -22889,7 +22889,7 @@ friend_template_checks_done:
           (decl_state->class_declared_in == NULL ||
            decl_state->is_template_friend)) {
         /* If this is a class member defined outside of its class or a friend
-           function declaration in a class.  Make sure that the template
+           function declaration in a class, make sure that the template
            parameters match those of the original class definition. */
         if (!member_template_param_list_matches_class(
                      decl_state, sym,
@@ -31917,7 +31917,7 @@ following a template parameter clause.  Parse and record the concept.
   } else if (!is_file_or_namespace_scope(
                                  &scope_stack[decl_state->orig_decl_level])) {
     /* Concepts have to appear in namespace scope.  Don't create a
-       representation for a concept that appear in an invalid scope. */
+       representation for a concept that appears in an invalid scope. */
     pos_error(ec_bad_scope_for_concept, &concept_pos);
   } else {
     a_template_ptr  il_template;

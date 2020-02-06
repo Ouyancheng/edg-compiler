@@ -23596,7 +23596,7 @@ return FALSE and:
   - if p_fatal is non-NULL and the failure is not subject to SFINAE, set
     *p_fatal to TRUE and update diag_list with a corresponding note, or
   - if p_fatal is NULL and the failure is not subject to SFINAE, issue an
-    error with any notes record in diag_list and clear diag_list.
+    error with any notes recorded in diag_list and clear diag_list.
 If map_failure_is_fatal is TRUE, substitution of mappings in concepts are not
 subject to SFINAE.
 */
@@ -23666,7 +23666,7 @@ subject to SFINAE.
     free_template_arg_list(new_args);
   } else if (node_is_operator(constraint, eok_land)) {
     /* Check the two underlying constraints separately.  If the first
-       determines the outcome, the second is neither substituted not
+       determines the outcome, the second is neither substituted nor
        evaluated. */
     an_expr_node_ptr  opnds = constraint->variant.operation.operands;
     result = requires_clause_satisfied(opnds, template_arg_list,
@@ -23679,7 +23679,7 @@ subject to SFINAE.
                                        p_fatal);
   } else if (node_is_operator(constraint, eok_lor)) {
     /* Check the two underlying constraints separately.  If the first
-       determines the outcome, the second is neither substituted not
+       determines the outcome, the second is neither substituted nor
        evaluated. */
     an_expr_node_ptr  opnds = constraint->variant.operation.operands;
     result = requires_clause_satisfied(opnds, template_arg_list,

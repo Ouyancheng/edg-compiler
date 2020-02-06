@@ -29993,7 +29993,7 @@ and whether the operator appears at the top level of a requires clause.
 
   if (rcblock == NULL) {
     /* Scan the second operand. */
-    int                       prec_level;
+    int  prec_level;
     if (operator_token == tok_and_and) {
       prec_level = PREC_AND_AND;
     } else {
@@ -45551,7 +45551,6 @@ Otherwise, return a pointer to that representation.
   an_operand              opnd;
   a_requires_clause_ptr   rcp = NULL;
 
-
   check_assertion(curr_token == tok_requires);
   if (!discard) {
     rcp = alloc_requires_clause();
@@ -45582,7 +45581,7 @@ Otherwise, return a pointer to that representation.
 
 an_expr_node_ptr scan_concept_expression(void)
 /*
-Scan a (unevaluated but rescannable) expression that is the right-hand side of
+Scan an (unevaluated but rescannable) expression that is the right-hand side of
 the "=" token in a concept-definition.  Return a node representing that
 expression.
 */

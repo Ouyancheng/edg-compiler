@@ -17338,7 +17338,7 @@ a_template_arg_ptr scan_concept_arg_list(a_symbol_ptr template_sym,
                                          a_boolean    skip_first_param,
                                          a_boolean    *any_errors)
 /*
-Scan a template argument list for the give concept template.  If
+Scan a template argument list for the given concept template.  If
 skip_first_param is TRUE, the first argument is for the second parameter (this
 occurs when scanning type-constraints).
 */
