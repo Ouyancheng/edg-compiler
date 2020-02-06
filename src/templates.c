@@ -19977,7 +19977,7 @@ a class template.
        declaration, so there is not a problem having other parameters
        after the expansion. */
     if (!is_partial_specialization && template_param_is_pack(tpp) &&
-        !tpp->is_pack_expansion) {
+        !tpp->is_pack_expansion && !tpp->is_pack_element) {
       if (tpp->next != NULL && tpp->param_num != tpp->next->param_num) {
         pos_error(ec_template_param_pack_not_at_end,
                   &tpp->param_symbol->decl_position);

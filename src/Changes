@@ -1,5 +1,18 @@
 Version 6.1
 
+2/6/20   [EDGcpfe/22303]
+Spurious "pack not at end" for template parameter that uses pack expansion
+
+If a template parameter pack was declared using an expansion of an enclosing
+pack, and that was followed by another template parameter, a spurious error
+could result.  Now fixed.
+
+  template <typename ... T> struct A {
+    template <T ..., typename U> struct B {};
+  };
+  A<int> ai;
+
+
 2/6/20   [EDGcpfe/22301]
 Microsoft compatibility: nested namespace alias in a namespace extension
 
