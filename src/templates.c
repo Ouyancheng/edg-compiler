@@ -13113,12 +13113,15 @@ parameters.
           /* The type of the template parameter involves a template
              parameter.   Substitute the current set of template arguments
              (the ones being created by this routine) into the type.
-             The outer template arguments will also be substituted below. */
+             The outer template arguments will also be substituted below,
+             which means that any expressions that result from substitution
+             may be rescanned once more. */
           new_const_type =
              copy_type_with_substitution(new_const_type,
                                          arg_list_to_copy, param_list_for_copy,
-					 source_pos, options, copy_error,
-                                         ctws_state);
+					 source_pos,
+                                         options | CTWS_MAY_BE_RESCANNED,
+                                         copy_error, ctws_state);
           if (*copy_error) goto done;
         }  /* if */
         new_const_type = copy_type_with_substitution(new_const_type,
