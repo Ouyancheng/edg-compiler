@@ -16656,7 +16656,7 @@ next_integer_pack_element:
           if (arg_list == NULL) arg_list = arg_ptr;
           if (last_arg != NULL) last_arg->next = arg_ptr;
           last_arg = arg_ptr;
-          in_pack = TRUE;
+          in_pack = !param_ptr->is_pack_element;
         }  /* if */
         if (curr_token == tok_shift_right &&
             right_shift_can_be_angle_brackets) {
