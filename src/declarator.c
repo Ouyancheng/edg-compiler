@@ -4162,7 +4162,7 @@ the left parenthesis introducing the declarator-like construct.
 
 a_param_type_ptr scan_requires_expr_parameters(void)
 /*
-Scan sequence of parameters for a require-expression and return a pointer to
+Scan a sequence of parameters for a requires-expression and return a pointer to
 the corresponding param-type entries.
 */
 {

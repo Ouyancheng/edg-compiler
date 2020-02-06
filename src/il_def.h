@@ -8501,7 +8501,7 @@ typedef struct a_template_param_type_supplement {
     /* When coordinates.depth != CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH: */
     an_expr_node_ptr
 		type_constraint;
-			/* For template parameter declared with a type
+			/* For a template parameter declared with a type
 			   constraint, this points to the enk_concept_id
 			   node representing that constraint. */
     /* When coordinates.depth == CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH: */

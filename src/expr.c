@@ -36962,6 +36962,21 @@ set *is_dependent to TRUE.
 
 static void scan_requires_expr(an_operand_ptr  result)
 /*
+Scan a requires-expression of the form
+
+	requires <optional-parameters> {
+	  <sequence-of-requirements>
+	}
+
+where <optional-parameters> is a parenthesized parameters clause and
+<sequence-of-requirements> is a sequence of requirements, each of which is
+one of:
+	- a type-requirement (see scan_type_requirement),
+	- a compound-requirement (see scan_compound_requirement),
+	- a nested-requirement (see scan_nested_requirement), or
+	- a simple-requirement (see scan_simple_requirement).
+
+Record the representation or the requires-expression in *result.
 */
 {
   a_source_position  start_pos = pos_curr_token;

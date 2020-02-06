@@ -19491,7 +19491,7 @@ old_list can match zero or more parameters from new_list.
                        new_constraint = new_tptsp->constraint.type_constraint,
                        old_constraint = old_tptsp->constraint.type_constraint;
         if (new_constraint == NULL || old_constraint == NULL) {
-          /* If one parameter has no constraint, the other should have one
+          /* If one parameter has no constraint, the other should have not one
              either. */
           err = !(new_constraint == NULL && old_constraint == NULL);
         } else {
@@ -23770,7 +23770,7 @@ the associated concept; otherwise, set it to NULL.
   a_boolean			is_end_of_param;
   a_token_sequence_number	first_tsn = curr_token_sequence_number;
   a_token_cache			cache;
-  a_symbol_ptr                  concept_templ = NULL;
+  a_symbol_ptr			concept_templ = NULL;
 
   /* Determine whether this is a "type-argument" (a parameter that
      represents a type) or a "parameter-declaration" (a parameter that
@@ -23784,7 +23784,7 @@ the associated concept; otherwise, set it to NULL.
      keyword (e.g., "typename typename class X").  In C++20 mode, a type
      parameter declaration can also start with a type-constraint, which is a
      concept template name, optionally followed by a template argument list.
-     A template template parameter begins with they keyword "template".
+     A template template parameter begins with the keyword "template".
      All other cases are considered to be nontype parameters. */
   clear_token_cache(&cache, /*is_reusable=*/FALSE);
   /* Check for a C++20 type-constraint first. */
@@ -24061,9 +24061,9 @@ declaration of the template overall, and decl_pos_block provides additional
 position information.
 */
 {
-  a_symbol_ptr		sym;
-  a_type_ptr		template_param_type;
-  a_template_param_ptr	template_param;
+  a_symbol_ptr          sym;
+  a_type_ptr            template_param_type;
+  a_template_param_ptr  template_param;
   a_template_param_type_supplement_ptr
                         tptsp;
 
@@ -24144,38 +24144,37 @@ represents the associated concept template.
   decl_pos_block.specifiers_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (concept_templ != NULL) {
-      a_boolean   err = FALSE;
-      a_template_symbol_supplement_ptr
-                  tssp = concept_templ->variant.template_info;
-      constraint = alloc_expr_node((an_expr_node_kind)enk_concept_id);
-      constraint->type = bool_type();
-      constraint->position = pos_curr_token;
-      constraint->variant.concept_id.concept_template =
-                                                      tssp->il_template_entry;
-      /* Bypass the concept name. */
+    a_boolean   err = FALSE;
+    a_template_symbol_supplement_ptr
+                tssp = concept_templ->variant.template_info;
+    constraint = alloc_expr_node((an_expr_node_kind)enk_concept_id);
+    constraint->type = bool_type();
+    constraint->position = pos_curr_token;
+    constraint->variant.concept_id.concept_template = tssp->il_template_entry;
+    /* Bypass the concept name. */
+    (void)get_token();
+    if (curr_token == tok_lt) {
       (void)get_token();
-      if (curr_token == tok_lt) {
-        (void)get_token();
-        add_stop_token(tok_gt);
-        constraint->variant.concept_id.args =
-                           scan_concept_arg_list(
+      add_stop_token(tok_gt);
+      constraint->variant.concept_id.args =
+                         scan_concept_arg_list(
                               concept_templ, /*skip_first_param=*/TRUE, &err);
-        (void)required_token(tok_gt, ec_exp_gt);
-        remove_stop_token(tok_gt);
-      } else {
-        a_template_param_ptr  tpp = tssp->cache.decl_info->parameters;
-        if (tpp == NULL || tpp->next != NULL) {
-          /* If no concept arguments are specified, the concept should have
-             exactly one parameter. */
-          pos_error(ec_exp_lt, &pos_curr_token);
-          err = TRUE;
-        }  /* if */
+      (void)required_token(tok_gt, ec_exp_gt);
+      remove_stop_token(tok_gt);
+    } else {
+      a_template_param_ptr  tpp = tssp->cache.decl_info->parameters;
+      if (tpp == NULL || tpp->next != NULL) {
+        /* If no concept arguments are specified, the concept should have
+           exactly one parameter. */
+        pos_error(ec_exp_lt, &pos_curr_token);
+        err = TRUE;
       }  /* if */
-      if (err) {
-        /* Ignore the constraint. */
-        constraint = NULL;
-        concept_templ = NULL;
-      }  /* if */
+    }  /* if */
+    if (err) {
+      /* Ignore the constraint. */
+      constraint = NULL;
+      concept_templ = NULL;
+    }  /* if */
   } else {
     /* Bypass "class" or "typename". */
     (void)get_token();

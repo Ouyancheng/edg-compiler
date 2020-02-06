@@ -23597,7 +23597,7 @@ return FALSE and:
     *p_fatal to TRUE and update diag_list with a corresponding note, or
   - if p_fatal is NULL and the failure is not subject to SFINAE, issue an
     error with any notes recorded in diag_list and clear diag_list.
-If map_failure_is_fatal is TRUE, substitution of mappings in concepts are not
+If map_failure_is_fatal is TRUE, substitution of mappings in concepts is not
 subject to SFINAE.
 */
 {
