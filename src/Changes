@@ -1,5 +1,15 @@
 Version 6.1
 
+2/6/20   [EDGcpfe/22230]
+C++-generating back end: decltype-specifier using out-of-scope local class
+
+In C++-generating back end configurations in which
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS or
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, under some
+complex conditions a decltype-specifier could be emitted that referred to a
+local class of a function outside that function's body.  This is now fixed.
+
+
 2/6/20   [EDGcpfe/22303]
 Spurious "pack not at end" for template parameter that uses pack expansion
 

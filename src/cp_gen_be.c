@@ -10075,17 +10075,18 @@ for reuse.
 */
 static a_type_scan_record_ptr available_type_scan_records;
 
-static void check_for_member_of_undefined_class(
+static void check_for_member_of_undefined_or_local_class(
                                     an_expr_node_ptr                    expr,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 This routine is called by traverse_expr in a top-down traversal of an
 expression tree.  It stops the traversal and sets the result to TRUE when
 it finds a node referring to a member of a class that has not yet been
-defined.  It is used by suppress_invalid_explicit_specialization to
-detect references in exception specifications that would make the class
-containing such an exception specification invalid and by form_type to
-avoid putting out invalid type operator expressions.
+defined or a local class.  It is used by
+suppress_invalid_explicit_specialization to detect references in exception
+specifications that would make the class containing such an exception
+specification invalid and by form_type to avoid putting out invalid type
+operator expressions.
 */
 {
   a_source_correspondence_ptr scp = NULL;
@@ -10104,33 +10105,34 @@ avoid putting out invalid type operator expressions.
       break;
   }  /* switch */
   if (scp != NULL && scp->is_class_member &&
-      !scp_parent_class(scp)->has_been_defined) {
-    /* This node refers to a member of a not-yet-defined class, so an
-       explicit specialization for the class in which this expression
+      (!scp_parent_class(scp)->has_been_defined ||
+       scp->is_local_to_function)) {
+    /* This node refers to a member of a not-yet-defined or local class, so
+       an explicit specialization for the class in which this expression
        appears or a type operator containing this expression would be
        invalid. */
     tblock->result = TRUE;
     tblock->terminate = TRUE;
   }  /* if */
-}  /* check_for_member_of_undefined_class */
+}  /* check_for_member_of_undefined_or_local_class */
 
 
-static a_boolean expr_uses_undefined_type(an_expr_node_ptr expr)
+static a_boolean expr_uses_undefined_or_local_type(an_expr_node_ptr expr)
 /*
 Walk the tree rooted in expr looking for references to members of classes
-that haven't been defined yet.
+that haven't been defined yet and local classes.
 */
 {
   an_expr_or_stmt_traversal_block tblock;
 
   clear_expr_or_stmt_traversal_block(&tblock);
-  tblock.process_expr = check_for_member_of_undefined_class;
+  tblock.process_expr = check_for_member_of_undefined_or_local_class;
   tblock.process_non_dynamic_constants = TRUE;
   tblock.process_expressions_for_constants = TRUE;
   tblock.process_template_parameter_constants_and_expressions = TRUE;
   traverse_expr(expr, &tblock);
   return tblock.result;
-}  /* expr_uses_undefined_type */
+}  /* expr_uses_undefined_or_local_type */
 
 
 static a_boolean i_is_or_uses_unnameable_class_type(a_type_ptr type)
@@ -10469,7 +10471,7 @@ instantiations are only permitted in namespace scope).
         a_constant_ptr   con = esp->variant.noexcept_arg;
         an_expr_node_ptr expr = con != NULL ? con->expr : NULL;
         if (expr != NULL) {
-          result = expr_uses_undefined_type(expr);
+          result = expr_uses_undefined_or_local_type(expr);
         }  /* if */
       }  /* if */
     }  /* for */
@@ -21803,7 +21805,7 @@ Initialize for the C++/C-generating back end.
   octl.has_unprotected_gt_or_comma_operation =
                                          has_unprotected_gt_or_comma_operation;
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  octl.type_operator_expr_is_unusable = expr_uses_undefined_type;
+  octl.type_operator_expr_is_unusable = expr_uses_undefined_or_local_type;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   octl.gen_compilable_code = TRUE;
   octl.gen_pcc_code = il_header.pcc_compatibility_mode;
