@@ -220,19 +220,19 @@ Given a module kind, return a string for that kind for use in error messages.
 
   switch (kind) {
     case mk_none:
-      str = "an unknown";
+      str = error_text(ec_module_kind_none);
       break;
     case mk_header:
-      str = "an importable header";
+      str = error_text(ec_module_kind_header);
       break;
     case mk_edg:
-      str = "an EDG";
+      str = error_text(ec_module_kind_edg);
       break;
     case mk_ifc:
-      str = "an IFC";
+      str = error_text(ec_module_kind_ifc);
       break;
     default:
-      str = "an unexpected";
+      str = error_text(ec_module_kind_unexpected);
       unexpected_condition_str("Unexpected module kind");
   }  /* switch */
   return str;
