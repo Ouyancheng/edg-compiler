@@ -175,8 +175,7 @@ Macro to get a sequence of bytes from memory.
   get_bytes_from_buffer((void*)value, (size_t)length)
 
 /*
-Get "length" bytes in big-endian form and convert them to the host byte
-order.
+Get length bytes in big-endian form and convert them to the host byte order.
 */
 #if HOST_BIG_ENDIAN
 #define get_big_endian_bytes(entity, length)				\
@@ -185,8 +184,8 @@ order.
 static void f_get_big_endian_bytes(void		*entity,
                                    size_t	length)
 /*
-Get "length" bytes from memory and convert them to the host byte order.
-This routine is used only when the host byte order is big-endian.
+Get length bytes from memory and convert them to the host byte order.  This
+routine is used only when the host byte order is big-endian.
 */
 {
   unsigned char	*ptr;
