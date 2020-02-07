@@ -13119,7 +13119,7 @@ parameters.
           new_const_type =
              copy_type_with_substitution(new_const_type,
                                          arg_list_to_copy, param_list_for_copy,
-					 source_pos,
+                                         source_pos,
                                          options | CTWS_MAY_BE_RESCANNED,
                                          copy_error, ctws_state);
           if (*copy_error) goto done;

@@ -48,7 +48,7 @@ Abort on nontype template parameter substitution with dependent type
 
 In somewhat complex cases involving a member template with a nontype template
 parameter whose type depends on a previous template parameter, the front end
-abort due to an assertion failure in get_expr_rescan_info.  For example:
+aborted due to an assertion failure in get_expr_rescan_info.  For example:
 
   template<bool> struct B;
   template<typename> struct E {};
