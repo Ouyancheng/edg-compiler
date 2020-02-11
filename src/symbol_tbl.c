@@ -1985,7 +1985,6 @@ is not needed by make_literal_opname_locator.
 {
   a_literal_operator_header_ptr ptr;
 
-  db_enter(5, "alloc_literal_operator_header");
   ptr = (a_literal_operator_header_ptr)
                                    alloc_fe(sizeof(a_literal_operator_header));
 #if DEBUG

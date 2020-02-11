@@ -1,5 +1,16 @@
 Version 6.1
 
+2/11/20  [EDGcpfe/22334]
+Assertion failure in debug_exit: "stop tokens set checksum is incorrect"
+
+The alloc_literal_operator_header had a db_enter macro invocation but no
+matching db_exit macro invocation.  That had caused an assertion failure
+in debug_exit when debug_level > 0 in some cases.  For example, with
+-d1 --g++ --gnu_version=80300 --c++14:
+
+  void operator""s(const char*, __EDG_SIZE_TYPE__);
+
+
 2/11/20  [EDGcpfe/22322]
 Infinite loop in multi-translation unit mode
 
