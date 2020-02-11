@@ -1,5 +1,19 @@
 Version 6.1
 
+2/11/20  [EDGcpfe/22322]
+Infinite loop in multi-translation unit mode
+
+When using multi-translation unit mode with C source code in GNU emulation
+mode, code that triggers an ec_bad_linkage_of_ref_within_inline_function
+warning could then cause the front end to loop indefinitely.  For example,
+when invoked with two other empty files and --gcc --gnu_version 50000:
+
+  static void f(void) {}
+  inline void g(void) {
+    f();
+  }
+
+
 2/6/20   [EDGcpfe/22230]
 C++-generating back end: decltype-specifier using out-of-scope local class
 

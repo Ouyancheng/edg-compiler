@@ -12989,6 +12989,7 @@ given translation unit.
   depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
   num_classes_on_scope_stack = 0;
   pack_expansion_stack = NULL;
+  c99_inline_definition_locators_to_check = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Source sequence entries are always suppressed when compiling secondary
      translation units. */
@@ -13036,7 +13037,6 @@ of the front end.
   num_string_literal_tables_allocated = 0;
 #endif /* DEBUG */
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
-  c99_inline_definition_locators_to_check = NULL;
   avail_c99_inline_definition_locators = NULL;
 #if DEBUG
   num_c99_inline_definition_locators_allocated = 0;
