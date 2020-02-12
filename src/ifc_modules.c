@@ -763,7 +763,7 @@ been confirmed to exist and the path stored in midp.
     set_name(mod->name);
     /* Read the IFC file header (which starts after the magic number). */
     init_byte_buffer((char*)mmap_addr + 4, mmap_size - 4);
-    (void)get_File_Header(&header);
+    memcpy(&header, get_File_Header(&header), sizeof(header));
     /* FIXME: The checksum is not yet checked. */
     /* Prepare to read the partitions (by "seeking" to the IFC Table of
        Contents). */
