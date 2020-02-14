@@ -1,5 +1,14 @@
 Version 6.1
 
+2/14/20  [EDGcpfe/22342]
+Incorrect variant of a_symbol used
+
+A projection symbol created for a conversion function in a base class
+(in check_base_class_conversion_list) could have the incorrect value set for
+a_symbol::variant.projection.any_intervening_using_decl due to an incorrect
+variant being used when setting that flag.  Now fixed.
+
+
 2/11/20  [EDGcpfe/22334]
 Assertion failure in debug_exit: "stop tokens set checksum is incorrect"
 

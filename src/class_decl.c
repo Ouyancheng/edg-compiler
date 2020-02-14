@@ -23997,8 +23997,10 @@ class_type.  Set *updated if a projection symbol is created.
         sym->variant.projection.access =
                             compute_access(access_for_symbol(bcsym),
                                            base_class->derivation->access);
-        sym->variant.projection.any_intervening_using_decl =
-               bcsym->variant.projection.any_intervening_using_decl;
+        if (symbol_is(bcsym, sk_projection)) {
+          sym->variant.projection.any_intervening_using_decl =
+                 bcsym->variant.projection.any_intervening_using_decl;
+        }  /* if */
         /* Allocate the new conversion list entry and link it in the
            list for the current class. */
         add_to_conversion_list(sym, cssp);
