@@ -14527,6 +14527,28 @@ Render the given GNU statement expression.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+static void gen_fold_operand(an_expr_node_ptr expr)
+/*
+Put out the operand of a fold-expression.  This differs from just calling
+gen_expr directly in that the is_pack_expansion flag must be suppressed and
+special consideration given to whether parentheses are needed.
+*/
+{
+  a_boolean        saved_pack_expansion = expr->is_pack_expansion;
+  an_expr_node_ptr eff_opnd = assoc_expr_if_constant(expr);
+  a_boolean        need_parens;
+
+  /* This node should not be treated as a pack expansion, since the ellipsis
+     comes at a different location in a fold-expression. */
+  expr->is_pack_expansion = FALSE;
+  /* Suppress parentheses around an explicit temporary.  They are not
+     needed for precedence, and something like "(T()) + ...", where T is a
+     pack, looks like the start of a cast to a function type. */
+  need_parens = (eff_opnd->kind != (an_expr_node_kind)enk_temp_init);
+  gen_expr(expr, need_parens, /*obj_expr_of_mfunc_operator=*/FALSE);
+  expr->is_pack_expansion = saved_pack_expansion;
+}  /* gen_fold_operand */
+
 static void gen_fold_expression(an_expr_node_ptr  expr)
 /*
 Generate a C++17 fold expression (only appears in templates).
@@ -14537,30 +14559,18 @@ Generate a C++17 fold expression (only appears in templates).
   check_assertion(opnd != NULL);
   write_tok_str("(");
   if (opnd->next == NULL && expr->variant.fold.left_associative) {
-    /* Don't render a "left" operand. */
+    /* Don't put out a "left" operand. */
   } else {
-    a_boolean  node_marked_as_pack_expansion = opnd->is_pack_expansion;
-    /* Even if this is the expanded node, inhibit the generation of an
-       ellipsis after it since the fold expression expansion syntax is
-       different (the ellipsis is rendered explicitly below). */
-    opnd->is_pack_expansion = FALSE;
-    gen_expr_with_parens(opnd);
-    opnd->is_pack_expansion = node_marked_as_pack_expansion;
+    gen_fold_operand(opnd);
     write_tok_str(" ");
     write_tok_str(token_names[expr->variant.fold.operator_token]);
     opnd = opnd->next;
   }  /* if */
   write_tok_str(" ... ");
   if (opnd != NULL) {
-    a_boolean  node_marked_as_pack_expansion = opnd->is_pack_expansion;
-    /* Even if this is the expanded node, inhibit the generation of an
-       ellipsis after it since the fold expression expansion syntax is
-       different (the ellipsis is rendered explicitly above). */
-    opnd->is_pack_expansion = FALSE;
     write_tok_str(token_names[expr->variant.fold.operator_token]);
     write_tok_str(" ");
-    gen_expr_with_parens(opnd);
-    opnd->is_pack_expansion = node_marked_as_pack_expansion;
+    gen_fold_operand(opnd);
   }  /* if */
   write_tok_str(")");
 }  /* gen_fold_expression */

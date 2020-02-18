@@ -1,5 +1,20 @@
 Version 6.1
 
+2/17/20  [EDGcpfe/22043]
+C++-generating back end: fold-expressions involving explicit temporaries
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end unnecessarily
+parenthesized explicit temporaries, resulting in incorrect generated code
+in some cases.  This is now fixed.  For example:
+
+  template <class... T> int f (T... ts) {
+    return (T() + ... );  // Previously generated as "(T()) + ...", which is
+                          // invalid, as "(T())" looks like the start of a
+                          // cast to a function type and is a syntax error.
+  }
+
+
 2/14/20  [EDGcpfe/22342]
 Incorrect variant of a_symbol used
 
