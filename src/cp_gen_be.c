@@ -14529,9 +14529,10 @@ Render the given GNU statement expression.
 
 static void gen_fold_operand(an_expr_node_ptr expr)
 /*
-Put out the operand of a fold-expression.  This differs from just calling
-gen_expr directly in that the is_pack_expansion flag must be suppressed and
-special consideration given to whether parentheses are needed.
+Put out expr, which is the operand of a fold-expression.  This differs from
+just calling gen_expr directly in that the is_pack_expansion flag must be
+suppressed and special consideration given to whether parentheses are
+needed.
 */
 {
   a_boolean        saved_pack_expansion = expr->is_pack_expansion;
@@ -14543,7 +14544,8 @@ special consideration given to whether parentheses are needed.
   expr->is_pack_expansion = FALSE;
   /* Suppress parentheses around an explicit temporary.  They are not
      needed for precedence, and something like "(T()) + ...", where T is a
-     pack, looks like the start of a cast to a function type. */
+     pack, looks like the start of a cast to a function type and is a
+     syntax error. */
   need_parens = (eff_opnd->kind != (an_expr_node_kind)enk_temp_init);
   gen_expr(expr, need_parens, /*obj_expr_of_mfunc_operator=*/FALSE);
   expr->is_pack_expansion = saved_pack_expansion;

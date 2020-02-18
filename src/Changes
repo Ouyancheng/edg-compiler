@@ -5,8 +5,9 @@ C++-generating back end: fold-expressions involving explicit temporaries
 
 In configurations in which template definitions are generated from the
 prototype instantiation IL, the C++-generating back end unnecessarily
-parenthesized explicit temporaries, resulting in incorrect generated code
-in some cases.  This is now fixed.  For example:
+parenthesized explicit temporaries appearing as operands in
+fold-expressions, resulting in incorrect generated code in some cases.
+This is now fixed.  For example:
 
   template <class... T> int f (T... ts) {
     return (T() + ... );  // Previously generated as "(T()) + ...", which is
