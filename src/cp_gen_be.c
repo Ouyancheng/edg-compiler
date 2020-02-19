@@ -20788,21 +20788,27 @@ handle_as_definition:
   if (!discard_declaration && msvc_is_generated_code_target) {
     a_type_ptr ret_type = unqual_rout_type->variant.routine.return_type;
     if (!type_is_typedef(ret_type) &&
-        (is_reference_type(ret_type) || is_pointer_type(ret_type)) &&
-        (is_function_type(type_pointed_to(ret_type)) ||
-         is_array_type(type_pointed_to(ret_type)))) {
-      /* MSVC has a bug that results in spurious errors when parsing an
-         explicit specialization of a function template when the return
-         type is a reference or pointer to a function or array type.  Put
-         out a typedef for the return type and use the typedef for the
-         explicit specialization.  That is, turn something like
-           template<> void (&&f<void ()>())();
-         into
-           typedef void (&&__T12345678)();
-           template<> __T12345678 f<void ()>();
-         which is digestible by MSVC. */
-      establish_replacement_typedef(ret_type, /*set=*/TRUE);
-      replacement_ret_type = ret_type;
+        (is_reference_type(ret_type) || is_pointer_type(ret_type))) {
+      a_type_ptr targ_type = ret_type;
+      do {
+        targ_type = skip_typerefs_not_typedefs_or_type_operators(
+                                                   type_pointed_to(targ_type));
+      } while (targ_type->kind == (a_type_kind)tk_pointer);
+      if (is_function_type(targ_type) || is_array_type(targ_type)) {
+        /* MSVC has a bug that results in spurious errors when parsing an
+           explicit specialization of a function template when the return
+           type is a (possibly multi-level) reference or pointer to a
+           function or array type.  Put out a typedef for the return type
+           and use the typedef for the explicit specialization.  That is,
+           turn something like
+             template<> void (&&f<void ()>())();
+           into
+             typedef void (&&__T12345678)();
+             template<> __T12345678 f<void ()>();
+           which is digestible by MSVC. */
+        establish_replacement_typedef(ret_type, /*set=*/TRUE);
+        replacement_ret_type = ret_type;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (!discard_declaration && curr_name_context_is_a_class() &&
