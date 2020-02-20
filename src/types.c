@@ -9648,6 +9648,14 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         } else if ((microsoft_mode && C_mode()) || gcc_mode) {
           /* Microsoft C mode and gcc mode allow dropping qualifiers. */
           std_conv->warning_suggested = default_warning_code;
+        } else if (clang_mode &&
+                   (source_type_qualifiers & TQ_C11_ATOMIC) != 0 &&
+                   !any_qualifier_in_set_missing(
+                                       (dest_type_qualifiers | TQ_C11_ATOMIC),
+                                       source_type_qualifiers) &&
+                   is_void_type(unqual_dest_type_pointed_to)) {
+          /* Clang permits "_Atomic(int) *p; void *q = p;" even in C++ mode. */
+          std_conv->warning_suggested = default_warning_code;
         } else {
           /* Qualifiers are being dropped. */
           okay = FALSE;
