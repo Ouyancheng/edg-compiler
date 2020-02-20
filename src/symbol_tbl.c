@@ -13270,11 +13270,18 @@ a context where deferral of errors applies.
   a_boolean			defer_access_checks = FALSE;
   a_scope_stack_entry_ptr	ssep = NULL;
   a_boolean			in_template_arg_list, in_decltype_context;
+  a_boolean			in_expr_testing = in_expr_testing_context();
 
   if (scope_stack_top().make_access_errors_warnings) {
     /* We're in a context where we are supposed to reduce access errors
        to warnings. */
     severity = es_warning;
+  } else if (in_expr_testing) {
+    /* In SFINAE contexts, access errors should trigger a deduction
+       failure. */
+    if (!cpp11_sfinae_ignore_access) {
+      severity = es_error;
+    }  /* if */
   }  /* if */
   in_template_arg_list = scope_stack_top().in_template_arg_list;
   in_decltype_context = scope_stack_top().in_decltype_context;
@@ -13282,12 +13289,12 @@ a context where deferral of errors applies.
     ssep = &scope_stack[curr_deferred_access_scope];
     defer_access_checks = ssep->defer_access_checks;
   }  /* if */
-  if (!defer_access_checks || in_expr_testing_context()) {
+  if (!defer_access_checks || in_expr_testing) {
     a_boolean suppressed_error = FALSE;
     a_boolean *p_error_detected = error_detected;
     /* In rescan and similar contexts, do the check immediately so that the
        result can be returned. */
-    if (error_detected == NULL && in_expr_testing_context()) {
+    if (error_detected == NULL && in_expr_testing) {
       p_error_detected = &suppressed_error;
     }  /* if */
     if (locator == NULL || !locator->access_control_error_reported) {

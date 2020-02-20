@@ -1,5 +1,13 @@
 Version 6.1
 
+2/20/20  [EDGcpfe/22364]
+Access error not correctly handled in system headers
+
+A change in the handling of SFINAE diagnostics caused access errors to not
+trigger deduction failures in system headers even cpp11_sfinae_ignore_access
+is FALSE.  That regression introduced in version 6.0 is now fixed.
+
+
 2/20/20  [EDGcpfe/19901]
 Clang C++ compatibility: Conversion from pointer to _Atomic to void*
 
