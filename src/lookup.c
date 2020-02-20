@@ -3280,7 +3280,6 @@ that do normal id lookup processing.
   for (curr_depth = start_depth; curr_depth > end_depth;
        curr_depth = ssep->previous_scope) {
     a_scope_kind	kind;
-    a_boolean		is_inline_namespace_to_skip;
     ssep = &scope_stack[curr_depth];
     if (curr_scope_skipped && lookup_state->skip_curr_scope &&
         lookup_state->hidden_name_lookup &&
@@ -3344,14 +3343,6 @@ that do normal id lookup processing.
     /* Inline namespaces are skipped because names declared there should be
        found via the enclosing namespace in which the members are implicitly
        visible. */
-    is_inline_namespace_to_skip = (scope_is(ssep, sck_namespace) ||
-                                   scope_is(ssep, sck_namespace_extension) ||
-                                   scope_is(ssep,
-                                            sck_namespace_reactivation)) &&
-                                  ssep->assoc_namespace != NULL &&
-                                  ssep->assoc_namespace->is_inline &&
-                                  (lookup_state->options &
-                                                     IDL_IS_EXPR_CONTEXT) != 0;
     if (kind == (a_scope_kind)sck_namespace_extension ||
         kind == (a_scope_kind)sck_namespace_reactivation) {
       /* If a namespace extension or reactivation scope is pushed while the
@@ -3375,12 +3366,6 @@ that do normal id lookup processing.
            !lookup_state->treat_as_template_id)) {
         /* Skip class reactivation scopes for linkage lookups, except when
            looking for a template name. */
-      } else if (is_inline_namespace_to_skip) {
-        /* Skip inline namespaces in most contexts (see above), but
-           do a using-directive lookup if needed based on the scope and
-           lookup options. */
-        sym = do_normal_using_directive_lookup_if_needed(ssep, sym, locator,
-                                                         lookup_state);
       } else {
         sym = inactive_scope_lookup(kind, ssep, locator, lookup_state);
         if (sym != NULL && microsoft_bugs && microsoft_version <= 1300 &&

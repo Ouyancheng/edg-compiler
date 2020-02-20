@@ -30770,7 +30770,8 @@ that follows.
               rp->defined_outside_of_parent = TRUE;
             }  /* if */
             scan_function_body(rp, &func_info,
-                               SFB_NEW_STRUCT_STMT_STACK_REQUIRED);
+                               SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
+                               SFB_IS_EXPLICIT_SPECIALIZATION);
             /* Leave it to the caller to advance past the closing brace. */
             *(decl_state->final_token_ptr) = tok_rbrace;
           }  /* if */

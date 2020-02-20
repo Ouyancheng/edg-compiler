@@ -51,6 +51,10 @@ BEGIN_EDG_NAMESPACE
 			   scanned is one in which a "#pragma pack" directive
 			   has effect only within the function and does not
 			   persist once the function body has terminated. */
+#define SFB_IS_EXPLICIT_SPECIALIZATION (a_decl_flag_set)(0x20)
+			/* This bit is set when scanning the body of an
+			   explicit specialization of a function template or
+			   member function of a class template. */
 
 extern void adjust_member_routine_type(a_type_ptr	rout_type,
 				       a_type_ptr	prev_type);
