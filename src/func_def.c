@@ -1429,9 +1429,10 @@ of lambda expressions.
           /* The namespace is pushed when the template instantiation
              scope is pushed.  Don't do it again now. */
           nsp = NULL;
-        } else if (gpp_mode && (flags & SFB_IS_EXPLICIT_SPECIALIZATION) != 0) {
-          /* If an explicit specialization is declared without reopening the
-             namespace, g++ and clang do not extend the namespace. */
+        } else if (gpp_mode &&
+                   (flags & SFB_INLINE_NAMESPACE_SPECIALIZATION) != 0) {
+          /* An explicit specialization of an inline namespace member does
+             not extend the namespace in g++ and clang modes. */
           nsp = NULL;
         } else if ((decl_ssep->kind != (a_scope_kind)sck_namespace &&
                     decl_ssep->kind !=

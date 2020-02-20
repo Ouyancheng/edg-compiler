@@ -30766,12 +30766,14 @@ that follows.
                                          /*compiler_generated=*/FALSE);
             }  /* if */
           } else {
+            a_decl_flag_set sfb_flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED;
             if (rp->source_corresp.is_class_member) {
               rp->defined_outside_of_parent = TRUE;
             }  /* if */
-            scan_function_body(rp, &func_info,
-                               SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
-                               SFB_IS_EXPLICIT_SPECIALIZATION);
+            if (is_symbol_from_inline_namespace(sym)) {
+              sfb_flags |= SFB_INLINE_NAMESPACE_SPECIALIZATION;
+            }  /* if */
+            scan_function_body(rp, &func_info, sfb_flags);
             /* Leave it to the caller to advance past the closing brace. */
             *(decl_state->final_token_ptr) = tok_rbrace;
           }  /* if */
