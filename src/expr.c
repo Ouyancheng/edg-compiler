@@ -29937,7 +29937,12 @@ and whether the operator appears at the top level of a requires clause.
     operator_position = pos_curr_token;
     operator_tok_seq_number = curr_token_sequence_number;
     local_options &= EOPT_CONSTRAINT_EXPR | EOPT_REQUIRES_CLAUSE;
-    check_bool_constraint(operand_1, local_options);
+    if ((local_options & EOPT_CONSTRAINT_EXPR) != 0) {
+      check_bool_constraint(operand_1, local_options);
+      if (operator_token == tok_or_or) {
+        expr_stack->direct_disjunction_seen = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
 
   /* There is a potential sequence point after the first operand. */
@@ -35233,16 +35238,21 @@ type_identifier_case:
               an_expr_node_ptr  node;
               a_template_symbol_supplement_ptr
                                 tssp = sym_ptr->variant.template_info;
+              a_template_ptr    concept_template;
               node = alloc_expr_node((an_expr_node_kind)enk_concept_id);
               node->type = bool_type();
               node->position = start_position;
-              node->variant.concept_id.concept_template =
-                                                      tssp->il_template_entry;
+              concept_template = tssp->il_template_entry;
+              node->variant.concept_id.concept_template = concept_template;
               node->variant.concept_id.args = tap;
               if ((local_options & EOPT_CONSTRAINT_EXPR) != 0) {
                 /* In a constraint expression, just keep the expression
                    itself. */
                 make_expression_operand(node, result);
+                if (concept_template->has_direct_disjunction ||
+                    concept_template->has_indirect_disjunction) {
+                  expr_stack->indirect_disjunction_seen = TRUE;
+                }  /* if */
               } else {
                 /* In contexts that aren't constraint expressions, produce a
                    constant entry. */
@@ -36901,6 +36911,8 @@ set *is_dependent to TRUE.
 */
 {
   an_expr_node_ptr  result, expr;
+  a_boolean         direct_disjunction_seen = FALSE,
+                    indirect_disjunction_seen = FALSE;
 
   result = alloc_expr_node((an_expr_node_kind)enk_compound_req);
   result->type = void_type();
@@ -36908,7 +36920,8 @@ set *is_dependent to TRUE.
   /* Skip the "requires" token. */
   (void)get_token();
   add_stop_token(tok_semicolon);
-  expr = scan_concept_expression();
+  expr = scan_concept_expression(&direct_disjunction_seen,
+                                 &indirect_disjunction_seen);
   result->variant.nested_req.constraint = expr;
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   remove_stop_token(tok_semicolon);
@@ -45594,11 +45607,21 @@ Otherwise, return a pointer to that representation.
 }  /* scan_requires_clause */
 
 
-an_expr_node_ptr scan_concept_expression(void)
+an_expr_node_ptr scan_concept_expression(a_boolean  *direct_disjunction_seen,
+                                         a_boolean  *indirect_disjunction_seen)
 /*
 Scan an (unevaluated but rescannable) expression that is the right-hand side of
 the "=" token in a concept-definition.  Return a node representing that
-expression.
+expression.  Set *direct_disjunction to TRUE if the concept expression contains
+a disjunction (||) at the top level, and set *indirect_disjunction if it
+contains concept-id that has an underlying disjunction.  For example:
+
+  template<typename T> concept X = sizeof(T)<10 || sizeof(T)>100;
+    // Concept X has a direct disjunction.
+  template<typename T> concept Y = X<T[2]>;
+    // Concept Y has an indirect disjunction.
+  template<typename T> concept Z = Y<T> || T::N == 42;
+    // Concept Z has both a direct and an indirect disjunction.
 */
 {
   an_expr_stack_entry_ptr saved_expr_stack;
@@ -45614,6 +45637,12 @@ expression.
   scan_expr(&opnd, PREC_QUEST_MARK, EOPT_CONSTRAINT_EXPR);
   check_bool_constraint(&opnd, EOPT_CONSTRAINT_EXPR);
   result_node = make_node_from_operand(&opnd);
+  if (expr_stack->direct_disjunction_seen) {
+    *direct_disjunction_seen = TRUE;
+  }  /* if */
+  if (expr_stack->indirect_disjunction_seen) {
+    *indirect_disjunction_seen = TRUE;
+  }  /* if */
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
   return result_node;

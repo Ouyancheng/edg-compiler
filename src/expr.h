@@ -720,7 +720,9 @@ extern void conv_nontype_template_arg_to_param_type(
 
 extern a_requires_clause_ptr scan_requires_clause(a_boolean  discard);
 
-extern an_expr_node_ptr scan_concept_expression(void);
+extern an_expr_node_ptr scan_concept_expression(
+                                        a_boolean  *direct_disjunction_seen,
+                                        a_boolean  *indirect_disjunction_seen);
 
 #if !STANDALONE_UTILITY_PROGRAM
 extern

@@ -1839,7 +1839,6 @@ is pushed regardless of any of the other factors.
   new_entry->is_template_arg_expression = FALSE;
   new_entry->is_vla_dimension_expression = FALSE;
   new_entry->in_cctor_elision_initializer = FALSE;
-  new_entry->expr_will_be_discarded = FALSE;
   new_entry->favor_constant_result = FALSE;
   new_entry->inside_conditional_expression = FALSE;
   new_entry->unevaluated_expr_will_be_kept_in_il = FALSE;
@@ -1870,6 +1869,9 @@ is pushed regardless of any of the other factors.
   new_entry->in_call_argument = FALSE;
   new_entry->in_coroutine_desc_init = FALSE;
   new_entry->paren_as_aggregate_init = FALSE;
+  new_entry->expr_will_be_discarded = FALSE;
+  new_entry->direct_disjunction_seen = FALSE;
+  new_entry->indirect_disjunction_seen = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;
@@ -23580,6 +23582,194 @@ user-defined conversions (see also process_boolean_controlling_expression).
   return okay;
 }  /* check_boolean_controlling_expr */
 
+#if /*FIXME*/0
+
+/*
+Concepts, constraints, and subsumption
+======================================
+C++20 introduces a notion of "constrained templates", including a "concept"
+abstraction of constraints (predicated on template arguments) and a mechanism
+to compare constraint called "subsumption".
+
+Constraints
+-----------
+FIXME
+
+Constraint comparison and subsumption
+-------------------------------------
+Sometimes we need to check if a declaration is "more constrained" than another.
+A key relation in that context is "subsumes", which essentially means "is at
+least as constrained as".  Let "SS" denotes "subsumes" and "$$" denote "does
+not subsume", then clearly for all constraints X, Y, and Z the following hold:
+
+	X SS X
+	(X AND Y) SS X
+	X $$ (X AND Y)
+	X SS (X OR Y)
+	(X OR Y) $$ X
+
+To determine subsumption we therefore need special rules to handle AND on the
+left hand side and OR on the right hand side.  These rules are:
+
+	(X SS (Y AND Z)) <=> (X SS Y) AND (X SS Z)
+	((X OR Y) SS Z) <=> (X SS Z) AND (Y SS Z)
+
+The first rule expresses that a constraint X is at least as constrained as the
+conjunction of two constraints X and Y, if it is at least as constrained as
+each one separately (which matches our intuition).  The second rule is
+similarly intuitive: For a disjunction of two constraints X and Y to be at
+least as constrained as a constraint Z, each alternative (X and Y) has to be
+as constrainted as Z.
+
+Consider constraints E1 and E2 expressed through conjunctions (AND) and
+disjunctions (OR) or atomic constraints.  Let E1[k] be the set of all
+constraints obtained by considering all combinations of disjunctions (OR) in
+E1.  E.g., if
+
+        E1 = (X OR Y) AND (Y OR Z)
+
+then we produce
+
+	E1[1] = X AND Y
+	E1[2] = X AND Z
+	E1[3] = Y AND Y
+	E1[4] = Y AND Z
+
+E1 subsumes E2 if and only if each of the E1[k] subsumes E2.
+
+Let E2[k] be the set of all constraints obtained by considering all
+combinations of conjunctions (AND) in E2.  E.g., if
+
+	E2 = (P AND Q) OR (P AND R)
+
+we produce
+
+	E2[1] = P OR P
+	E2[2] = P OR R
+	E2[3] = Q OR P
+	E2[4] = Q OR R
+
+E1 subsumes E2 if it subsumes every E2[k].
+
+This leads to the following algorithm for "E1 SS E2":
+
+	result = TRUE
+	for each E1[i]
+	  for each E2[j]
+	    if not (E1[i] SS E2[j])
+	      result = FALSE
+	      exit
+
+Furthermore, because E1[k] is a conjunction (all ANDs applied to atomic
+constraints) and E2[k] is a disjunction (ORs applied to atomic constraints),
+"E1[i] SS E2[j]" amounts to checking that one term in E1[i] is identical to
+one term in E2[j] (that follows from the rules "(X AND Y) SS X" and
+"X SS (X OR Y)" above).
+
+The C++20 standard expresses this in N4849 [temp.constr.order] in terms of
+disjunctive normal form of a constraint (whose terms correspond to the E1[k])
+and the conjunctive normal form of another constraint (whose terms correspond
+to the E2[k]).
+
+We generate the E1[k] or E2[k] by creating a flattened representation of the
+constraint tree(s), and keeping flags on the AND and OR entries that are
+"counted through" (0000..., 1000..., 0100..., 1100, 0010..., etc.): Each flag
+decides whether the corresponding left or right operand is considered.
+*/
+
+#define CK_ATOMIC 0
+#define CK_CONCEPT 1
+#define CK_AND 2
+#define CK_OR 3
+
+struct a_charted_constraint {
+  unsigned	kind:2;
+			/* The kind of constraint node this represents. */
+  unsigned	flag:1;
+			/* For CK_AND and CK_OR entries, nonzero if the second
+			   constraint operand should be considered at this
+			   time. */
+  unsigned	link: 29;
+			/* For CK_ATOMIC and CK_CONCEPT entries, the index of
+			   the "parent concept" (or -1 if none).  That is used
+			   to compare mappings.
+			   For CK_AND and CK_OR entries, the index of the
+			   second constraint operand. */
+  an_expr_node_ptr
+		constraint;
+			/* An atomic constraint or an enk_concept_id node. */
+};
+
+
+struct a_constraint_chart {
+  Dyn_array<a_charted_constraint>
+		constraints_array;
+			/* A representation of the constraint obtained by
+			   traversing the constraint expression tree(s) in
+			   prefix depth-first order. */
+
+};
+
+
+static a_boolean next_disjunctive_clause(a_constraint_chart  *chart)
+/*
+FIXME
+*/
+{
+  using an_array = Dyn_array<a_charted_constraint>;
+  an_array          &array = chart->constraints_array;
+  an_array::a_size  k = 0, len = array.length(), next_active = 0;
+  a_boolean         flipping = TRUE;
+
+  while (k < len) {
+    a_charted_constraint  *constraint = &array[k];
+    switch (constraint->kind) {
+      case CK_ATOMIC:
+        if (k == next_active) {
+          // FIXME: Add node to lookup table
+          ++next_active;
+        }  /* if */
+        ++k;
+        break;
+      case CK_CONCEPT:
+        /* Nothing to do. */
+        ++k;
+        break;
+      case CK_AND:
+        /* Nothing to do. */
+        ++k;
+        break;
+      case CK_OR:
+        if (constraint->flag) {
+          /* Select the right operand. */
+          next_active = constraint->link;
+          if (flipping) {
+            /* Flip the "one" to a "zero" (and keep flipping until we run into
+               "zero" that can be flipped to a "one". */
+            constraint->flag = FALSE;
+            ++k;
+          } else {
+            k = next_active;
+          }  /* if */
+        } else {
+          /* Select the left operand. */
+          ++k;
+          next_active = k;
+          if (flipping) {
+            constraint->flag = TRUE;
+            /* We found a "zero": Stop flipping flags. */
+            flipping = FALSE;
+          }  /* if */
+        }  /* if */
+        break;
+    }  /* switch */
+  }  /* while */
+  /* If we're still flipping flags at this stage, we've turned "111..." into
+     "000..." and thus the last disjunctive clause was produced. */
+  return flipping == FALSE;
+}  /* next_disjunctive_clause */
+
+#endif /* FIXME */
 
 a_boolean requires_clause_satisfied(an_expr_node_ptr      constraint,
                                     a_template_arg_ptr    template_arg_list,

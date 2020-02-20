@@ -31869,12 +31869,19 @@ following a template parameter clause.  Parse and record the concept.
   a_symbol_locator   loc;
   a_symbol_ptr       sym;
   an_expr_node_ptr   expr;
+  a_boolean          direct_disjunction_seen = FALSE,
+                     indirect_disjunction_seen = FALSE;
 
   add_stop_token(tok_semicolon);
   check_assertion(curr_token == tok_concept);
   (void)get_token();
   add_stop_token(tok_assign);
   loc = locator_for_curr_id;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_state->decl_pos_block.identifier_range.start = pos_curr_token;
+  decl_state->decl_pos_block.identifier_range.end = end_pos_curr_token;
+  decl_state->decl_pos_block.specifiers_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (!required_token(tok_identifier, ec_exp_identifier)) {
     set_to_error_locator(loc);
   } else if (loc.is_operator_name || loc.is_udl_operator_name ||
@@ -31888,9 +31895,6 @@ following a template parameter clause.  Parse and record the concept.
   } else {
     /* Look up the identifier. */
     a_scope_depth	saved_decl_scope_level = decl_scope_level;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    decl_state->decl_pos_block.identifier_range.start = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Look up the symbol in the current scope.  To do this we must
        temporarily change the decl_scope_level to the effective level for this
        declaration because decl_scope_level currently points to the template
@@ -31902,16 +31906,13 @@ following a template parameter clause.  Parse and record the concept.
       pos_sy_error(ec_invalid_concept_redecl, &loc.source_position, sym);
       set_to_error_locator(loc);
     }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    decl_state->decl_pos_block.identifier_range.end = end_pos_curr_token;
-    decl_state->decl_pos_block.specifiers_range.end = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     decl_scope_level = saved_decl_scope_level;
   }  /* if */
   (void)required_token_no_advance(tok_assign, ec_exp_assign);
   if (curr_token == tok_assign) (void)get_token();
   remove_stop_token(tok_assign);
-  expr = scan_concept_expression();
+  expr = scan_concept_expression(&direct_disjunction_seen,
+                                 &indirect_disjunction_seen);
   remove_stop_token(tok_semicolon);
   if (is_error_locator(loc)) {
     /* Don't attempt to create a concept representation for a concept for
@@ -31927,6 +31928,8 @@ following a template parameter clause.  Parse and record the concept.
                     tssp;
     il_template = decl_state->il_template_entry;
     il_template->prototype_instantiation.constraint = expr;
+    il_template->has_direct_disjunction = direct_disjunction_seen;
+    il_template->has_indirect_disjunction = indirect_disjunction_seen;
     sym = enter_symbol((a_symbol_kind)sk_concept_template, &loc,
                        decl_state->effective_decl_level,
                        /*suppress_error=*/FALSE);
