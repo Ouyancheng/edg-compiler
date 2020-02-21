@@ -30267,33 +30267,49 @@ that returns type long.)
 static a_boolean has_nonliteral_type_subobject(a_type_ptr  class_type)
 /*
 Return TRUE if the given class type has a field or direct base class that is
-not a literal type.
+not a literal type.  For the union case, return TRUE if all its fields have
+a non-literal type.
 */
 {
-  a_boolean         result = FALSE;
-  a_field_ptr       fp;
-  a_base_class_ptr  bcp;
+  a_boolean    result;
+  a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
 
-  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-    /* Check if the base classes include a nonliteral class type.  Exclude
-       nonreal bases, and also incomplete bases (which are possible in
-       Microsoft-mode nonreal instantiations). */
-    if (bcp->direct && !bcp->type->incomplete &&
-        !bcp->type->variant.class_struct_union.is_nonreal_class &&
-        !is_literal_type(bcp->type)) {
-      result = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  if (!result) {
-    fp = class_type->variant.class_struct_union.field_list;
+  if (type_is(class_type, tk_union)) {
     fp = next_proper_initializable_field(fp);
-    for (; fp != NULL; fp = next_proper_initializable_field(fp->next)) {
-      if (!fp->compiler_generated && !could_be_literal_type(fp->type)) {
+    if (fp != NULL) {
+      result = TRUE;
+      for (; fp != NULL; fp = next_proper_initializable_field(fp->next)) {
+        if (could_be_literal_type(fp->type)) {
+          result = FALSE;
+          break;
+        }  /* if */
+      }  /* for */
+    } else {
+      result = FALSE;
+    }  /* if */
+  } else {
+    a_base_class_ptr  bcp;
+    result = FALSE;
+    for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+      /* Check if the base classes include a nonliteral class type.  Exclude
+         nonreal bases, and also incomplete bases (which are possible in
+         Microsoft-mode nonreal instantiations). */
+      if (bcp->direct && !bcp->type->incomplete &&
+          !bcp->type->variant.class_struct_union.is_nonreal_class &&
+          !is_literal_type(bcp->type)) {
         result = TRUE;
         break;
       }  /* if */
     }  /* for */
+    if (!result) {
+      fp = next_proper_initializable_field(fp);
+      for (; fp != NULL; fp = next_proper_initializable_field(fp->next)) {
+        if (!could_be_literal_type(fp->type)) {
+          result = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
   return result;
 }  /* has_nonliteral_type_subobject */
@@ -30317,7 +30333,7 @@ flag is set in the class symbol supplement of the given type.
       /* Don't treat managed class types as literal types. */
       cssp->known_not_to_be_a_literal_type = TRUE;
     } else if (has_nontrivial_destructor(cssp) &&
-               !constexpr_dynamic_alloc_enabled) {
+               !cssp->destructor->variant.routine.ptr->is_constexpr) {
       /* Literal class types must have trivial or constexpr destructors. */
       cssp->known_not_to_be_a_literal_type = TRUE;
     } else if (type->variant.class_struct_union.any_volatile_member) {
