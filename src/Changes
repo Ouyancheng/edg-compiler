@@ -25,7 +25,7 @@ literal type or not.  For example:
   struct D { ~D() {}; };  // Not a literal type (non-constexpr destructor).
   struct S { union { D m; }; };  // Not a literal type (member with non-
                                  // literal type).
-  static_assert(!__is_literal_type(S), "");
+  static_assert(!__is_literal_type(F12), "");
      // Previously failed.  Now okay.
 
 That is now fixed.
