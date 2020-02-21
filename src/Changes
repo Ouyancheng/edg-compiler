@@ -1,5 +1,27 @@
 Version 6.1
 
+2/21/20  [EDGcpfe/20194,EDGcpfe/22386]
+Using references with constant-address initializers
+
+Consider:
+
+  int gi = 42;
+  struct S {
+    constexpr static volatile int &mri = gi;
+  };
+  int  main() {
+    return S::mri;
+  }
+
+Prior to C++17, the in-class declaration of S::mri was not considered a
+definition.  The standard does not actually require a definition to exist for
+the use of S::mri in main().  However, the changes for EDGcpfe/18834 (see entry
+of 10/3/17) introduced a regression in version 5.0 of the front causing it to
+require a definition for that reference.  That in turn caused the example above
+to result in a linker error in C++11 or C++14 modes (because S::mri is
+undefined).  This regression is now fixed.
+
+
 2/20/20  [EDGcpfe/17750,EDGcpfe/22385]
 Incorrect folding of type_info address comparison
 

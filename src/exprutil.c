@@ -15842,10 +15842,22 @@ on output it will be an lvalue.
            of the reference (in effect, loading the reference pointer value
            from the location that contains it). */
         if (is_variable_node(node)) {
-          /* The address may be "constant", but we don't want to fold it. */
           a_variable_ptr  vp = node_variable(node);
-          p_constant_addr = (a_boolean*)NULL;
-          constant_addr = var_has_static_storage_duration(vp);
+          if (vp->initializer_in_class && vp->is_template_variable) {
+            ensure_inclass_static_member_constant_initializer_is_scanned(vp);
+          }  /* if */
+          if (vp->init_kind == (an_init_kind)initk_static &&
+              curr_expr_is_potentially_evaluated()) {
+            /* The reference variable has a known-value initializer and the
+               value of that initializer may be used (i.e., we're not just
+               interested in the type of the reference or the size of what it
+               references). */
+            p_constant_addr = &constant_addr;
+          } else {
+            /* The address may be "constant", but we don't want to fold it. */
+            p_constant_addr = (a_boolean*)NULL;
+            constant_addr = var_has_static_storage_duration(vp);
+          }  /* if */
         } else {
           p_constant_addr = &constant_addr;
         }  /* if */
