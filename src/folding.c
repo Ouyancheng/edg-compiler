@@ -939,7 +939,6 @@ otherwise).
         object = (char *)constant->variant.address.variant.constant;
         break;
       case abk_typeid:
-        break;
       case abk_uuidof:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case abk_cli_typeid:
@@ -964,6 +963,54 @@ otherwise).
   }  /* if */
   return object;
 }  /* base_object */
+
+
+static a_boolean same_address_base(a_constant_ptr  cp1,
+                                   a_constant_ptr  cp2,
+                                   a_boolean       *unknown_base)
+/*
+cp1 and cp2 are address constants (ck_address or ck_integer).  Return TRUE if
+they have the same address base entity.  If one of the base entities is
+unknown return FALSE and set *unknown_base to TRUE; otherwise.
+*/
+{
+  char       *base_1, *base_2;
+  a_boolean  result;
+
+  base_1 = base_object(cp1, unknown_base);
+  base_2 = base_object(cp2, unknown_base);
+  if (*unknown_base) {
+    result = FALSE;
+  } else if (base_1 == base_2) {
+    result = TRUE;
+  } else {
+    if (constant_is(cp1, ck_address) && constant_is(cp2, ck_address) &&
+        cp1->variant.address.kind == cp2->variant.address.kind) {
+      if (address_base_is(cp1, abk_constant)) {
+        a_constant_ptr  base_cp1 = cp1->variant.address.variant.constant;
+        a_constant_ptr  base_cp2 = cp2->variant.address.variant.constant;
+        if (constant_is(base_cp1, ck_string) &&
+            constant_is(base_cp2, ck_string) &&
+            base_cp1->variant.string.value == base_cp2->variant.string.value) {
+          result = TRUE;
+        } else {
+          result = FALSE;
+        }  /* if */
+      } else if (address_base_is(cp1, abk_typeid) ||
+                 address_base_is(cp1, abk_uuidof)
+                 if_microsoft_extensions(
+                   || address_base_is(cp1, abk_cli_typeid))) {
+        result = identical_types(cp1->variant.address.variant.type,
+                                 cp2->variant.address.variant.type);
+      } else {
+        result = FALSE;
+      }  /* if */
+    } else {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* same_address_base */
 
 
 static void implicit_or_explicit_base_cast(a_constant_ptr  cp,
@@ -5034,30 +5081,6 @@ have_result:
 }  /* do_padd */
 
 
-static a_boolean same_string_base_address_constants(a_constant_ptr  cp1,
-                                                    a_constant_ptr  cp2)
-/*
-Return TRUE if cp1 and cp2 are both ck_address/abk_constant entries pointing
-to ck_string constants that point to the same underlying string value.
-*/
-{
-  a_boolean  result = FALSE;
-
-  if (constant_is(cp1, ck_address) &&
-      cp1->variant.address.kind == (an_address_base_kind)abk_constant &&
-      constant_is(cp2, ck_address) &&
-      cp2->variant.address.kind == (an_address_base_kind)abk_constant) {
-    a_constant_ptr  base_cp1 = cp1->variant.address.variant.constant;
-    a_constant_ptr  base_cp2 = cp2->variant.address.variant.constant;
-    if (constant_is(base_cp1, ck_string) && constant_is(base_cp2, ck_string) &&
-        base_cp1->variant.string.value == base_cp2->variant.string.value) {
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* same_string_base_address_constants */
-
-
 void do_pdiff(a_constant        *constant_1,
               a_constant        *constant_2,
               a_constant        *result,
@@ -5076,7 +5099,6 @@ integral type, as in "(int)&x - (int)&x".
 */
 {
   a_constant_ptr   offset_2 = local_constant(), offset_1 = local_constant();
-  char             *base_1, *base_2;
   an_integer_value difference, size_intval;
   a_type_ptr       object_type;
   a_boolean        err, offset_1_is_signed, offset_2_is_signed;
@@ -5086,11 +5108,7 @@ integral type, as in "(int)&x - (int)&x".
   *err_severity = es_warning;
   /* The two pointers must be in the same base object, or the operation
      cannot be folded. */
-  base_1 = base_object(constant_1, &cannot_fold);
-  base_2 = base_object(constant_2, &cannot_fold);
-  if ((base_1 != base_2 &&
-       !same_string_base_address_constants(constant_1, constant_2)) ||
-      cannot_fold) {
+  if (!same_address_base(constant_1, constant_2, &cannot_fold)) {
     if (cannot_fold) {
       /* Nothing more to do. */
 #if GNU_EXTENSIONS_ALLOWED
@@ -5185,13 +5203,9 @@ return TRUE and set *p_cmp to zero if the addresses are equal, to -1 if
 the first constant is less than the second, and to 1 otherwise.
 */
 {
-  a_boolean  result = TRUE;
-  char       *base1, *base2;
-  a_boolean  cannot_fold = FALSE;
+  a_boolean  result = TRUE, cannot_fold = FALSE;
 
-  base1 = base_object(con1, &cannot_fold);
-  base2 = base_object(con2, &cannot_fold);
-  if (cannot_fold || base1 != base2) {
+  if (!same_address_base(con1, con2, &cannot_fold)) {
     result = FALSE;
   } else if (constant_is(con1, ck_integer)) {
     *p_cmp = cmp_integer_constants(con1, con2);
@@ -5255,15 +5269,12 @@ set if the operation cannot be folded.
 */
 {
   a_constant_ptr offset_1 = local_constant(), offset_2 = local_constant();
-  char           *base_1, *base_2;
   int            result_value = 0, cmp;
   a_boolean      cannot_fold = FALSE;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
-  base_1 = base_object(constant_1, &cannot_fold);
-  base_2 = base_object(constant_2, &cannot_fold);
-  if (base_1 != base_2 || cannot_fold) {
+  if (!same_address_base(constant_1, constant_2, &cannot_fold)) {
     /* The pointers are in different objects.  In C++11 and following,
        equality comparisons of constant addresses are required to work in
        the obvious fashion.  In earlier versions of the language, however,

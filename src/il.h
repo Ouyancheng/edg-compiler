@@ -454,11 +454,17 @@ Return TRUE if a constant is of a given kind.
   ((con)->kind == (a_constant_repr_kind)(con_kind))
 
 /*
+Return TRUE if a ck_address entry is of the given kind.
+*/
+#define address_base_is(con, abk_kind)                                      \
+  ((con)->variant.address.kind == (an_address_base_kind)(abk_kind))
+
+/*
 Return TRUE if a ck_template_param entry is of the given kind.
 */
 #define tpck_is(con, tpck_kind)                                             \
   ((con)->variant.template_param.kind ==                                    \
-                                (a_template_param_constant_kind)tpck_kind)
+                               (a_template_param_constant_kind)(tpck_kind))
 
 /*
 Return TRUE if cp is a ck_template_param/tpck_unknown_function constant.
