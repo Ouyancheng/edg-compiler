@@ -971,12 +971,14 @@ static a_boolean same_address_base(a_constant_ptr  cp1,
 /*
 cp1 and cp2 are address constants (ck_address or ck_integer).  Return TRUE if
 they have the same address base entity.  If one of the base entities is
-unknown return FALSE and set *unknown_base to TRUE; otherwise.
+unknown, return FALSE and set *unknown_base to TRUE; otherwise set
+*unknown_base to FALSE.
 */
 {
   char       *base_1, *base_2;
   a_boolean  result;
 
+  *unknown_base = FALSE;
   base_1 = base_object(cp1, unknown_base);
   base_2 = base_object(cp2, unknown_base);
   if (*unknown_base) {
@@ -5101,8 +5103,7 @@ integral type, as in "(int)&x - (int)&x".
   a_constant_ptr   offset_2 = local_constant(), offset_1 = local_constant();
   an_integer_value difference, size_intval;
   a_type_ptr       object_type;
-  a_boolean        err, offset_1_is_signed, offset_2_is_signed;
-  a_boolean        cannot_fold = FALSE;
+  a_boolean        err, offset_1_is_signed, offset_2_is_signed, cannot_fold;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
@@ -5203,7 +5204,7 @@ return TRUE and set *p_cmp to zero if the addresses are equal, to -1 if
 the first constant is less than the second, and to 1 otherwise.
 */
 {
-  a_boolean  result = TRUE, cannot_fold = FALSE;
+  a_boolean  result = TRUE, cannot_fold;
 
   if (!same_address_base(con1, con2, &cannot_fold)) {
     result = FALSE;
@@ -5270,7 +5271,7 @@ set if the operation cannot be folded.
 {
   a_constant_ptr offset_1 = local_constant(), offset_2 = local_constant();
   int            result_value = 0, cmp;
-  a_boolean      cannot_fold = FALSE;
+  a_boolean      cannot_fold;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
