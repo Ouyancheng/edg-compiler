@@ -938,16 +938,21 @@ otherwise).
       case abk_temporary:
         object = (char *)constant->variant.address.variant.constant;
         break;
-      case abk_uuidof:
       case abk_typeid:
+        break;
+      case abk_uuidof:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case abk_cli_typeid:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        object = (char *)constant->variant.address.variant.type;
+        break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
       case abk_cli_array:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        /* Use the address constant as the "base object" for a __uuidof,
-           typeid, or C++/CLI constant array construct.  It's weird, but we
-           need to return a non-NULL base object for this case, and the
-           constant seems like the best of the possibilities. */
+        /* Use the address constant as the "base object" for a C++/CLI
+           constant array construct.  It's weird, but we need to return a
+           non-NULL base object for this case, and the constant seems like
+           the best of the possibilities. */
         object = (char *)constant;
         break;
       case abk_label:
