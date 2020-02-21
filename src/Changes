@@ -9,7 +9,7 @@ Consider:
   enum class E {} e;
   std::type_info const &rti1 = typeid(e);
   std::type_info const &rti2 = typeid(E);
-  static_assert(&rti1 == &rti1);  // Previously failed.
+  static_assert(&rti1 == &rti2);  // Previously failed.
 
 The front end previously did not correct fold the type_info address comparison
 in this example, causing the static_assert to fail.  That is now fixed.  (This
