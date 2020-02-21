@@ -30279,7 +30279,8 @@ a non-literal type.
     if (fp != NULL) {
       result = TRUE;
       for (; fp != NULL; fp = next_proper_initializable_field(fp->next)) {
-        if (could_be_literal_type(fp->type)) {
+        if (could_be_literal_type(fp->type) &&
+            !is_volatile_qualified_type(fp->type)) {
           result = FALSE;
           break;
         }  /* if */
@@ -30304,7 +30305,8 @@ a non-literal type.
     if (!result) {
       fp = next_proper_initializable_field(fp);
       for (; fp != NULL; fp = next_proper_initializable_field(fp->next)) {
-        if (!could_be_literal_type(fp->type)) {
+        if (!could_be_literal_type(fp->type) ||
+            is_volatile_qualified_type(fp->type)) {
           result = TRUE;
           break;
         }  /* if */
