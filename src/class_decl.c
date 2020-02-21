@@ -30268,13 +30268,18 @@ static a_boolean has_nonliteral_type_subobject(a_type_ptr  class_type)
 /*
 Return TRUE if the given class type has a field or direct base class that is
 not a literal type.  For the union case, return TRUE if all its fields have
-a non-literal type.
+a non-literal type (except when emulating compilers that do not treat unions
+differently from other class types in this respect).
 */
 {
   a_boolean    result;
   a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
 
-  if (type_is(class_type, tk_union)) {
+  if (type_is(class_type, tk_union) &&
+      !(clang_mode || gpp_version_is(<100000))) {
+    /* Core issue 2096 changed the rule on subobjects for unions to be that
+       just one should have a non-volatile literal type.  Clang doesn't
+       implement that yet, nor do GCC versions prior to 10.x. */
     fp = next_proper_initializable_field(fp);
     if (fp != NULL) {
       result = TRUE;
