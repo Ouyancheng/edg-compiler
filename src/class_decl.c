@@ -30336,7 +30336,8 @@ flag is set in the class symbol supplement of the given type.
                !cssp->destructor->variant.routine.ptr->is_constexpr) {
       /* Literal class types must have trivial or constexpr destructors. */
       cssp->known_not_to_be_a_literal_type = TRUE;
-    } else if (type->variant.class_struct_union.any_volatile_member) {
+    } else if (type->variant.class_struct_union.any_volatile_member &&
+               !type_is(type, tk_union)) {
       /* Literal class types cannot have volatile subobjects. */
       cssp->known_not_to_be_a_literal_type = TRUE;
     } else if (type->variant.class_struct_union.any_virtual_base_classes) {
