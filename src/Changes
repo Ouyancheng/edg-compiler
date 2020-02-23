@@ -1,5 +1,21 @@
 Version 6.1
 
+2/23/20  [EDGcpfe/22223]
+Spurious error on definition of nested inline namespace member
+
+A spurious error could occur on the definition of a namespace member that
+is declared in more then one inline namespace level.  Now fixed.
+
+  namespace A {
+    inline namespace B {
+      inline namespace C {
+        void f();
+      }
+    }
+  }
+  void A::f() {}  // error: namespace "A" has no actual member "f"
+
+
 2/23/20  [EDGcpfe/22283]
 Incorrect behavior with generic lambda defined in template contexts
 

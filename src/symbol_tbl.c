@@ -6093,6 +6093,10 @@ Return TRUE if the parent namespace of sym is an inline namespace of scope.
       if (same_entities(parent_nsp, udp_nsp)) {
         result = TRUE;
         break;
+      } else if (is_symbol_from_inline_namespace_of_scope(
+                                          sym, udp_nsp->variant.assoc_scope)) {
+        result = TRUE;
+        break;
       }  /* if */
     }  /* if */
   }  /* for */
