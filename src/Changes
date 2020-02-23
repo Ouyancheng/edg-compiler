@@ -1,5 +1,18 @@
 Version 6.1
 
+2/23/20  [EDGcpfe/22283]
+Incorrect behavior with generic lambda defined in template contexts
+
+A spurious error, or internal error, could result in some cases when a
+generic lambda is defined in a template declaration or a class template
+prototype instantiation context.  Now fixed.
+
+  template <class T> struct A {
+    static constexpr int I = [](auto x) -> int {return 0; }(1);
+  };
+  A<int> ai;
+
+
 2/21/20  [EDGcpfe/20194,EDGcpfe/22386]
 Using references with constant-address initializers
 

@@ -27439,6 +27439,7 @@ caller.
     if (is_nonspecialized_prototype_instantiation_context()) {
       if (sym->is_class_member && decl_state->class_declared_in != NULL &&
           decl_state->defines_something &&
+          !rout_ptr->is_lambda_body &&
           !decl_state->is_deleted &&
           sym->kind == (a_symbol_kind)sk_function_template) {
         /* This is a member template function definition.  Create a template
