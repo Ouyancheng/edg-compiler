@@ -11666,7 +11666,8 @@ in the standard is perhaps accidental.
     match = TRUE;
   } else {
     /* Check the exception specification. */
-    if (deduction_from_exc_spec_allowed) {
+    if (deduction_from_exc_spec_allowed &&
+        (flags & MTT_ALLOW_STRICTER_NOEXCEPT) == 0) {
       /* Some compilers allow deduction from the noexcept flag of a function
          type.  Do this deduction, if needed. */
       a_constant_ptr	t_cp = t_esp->variant.noexcept_arg;

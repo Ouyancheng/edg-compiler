@@ -1,5 +1,16 @@
 Version 6.1
 
+2/24/20  [EDGcpfe/22036,EDGcpfe/22310]
+GNU/clang compatibility: spurious error with noexcept(true) function template
+
+A spurious error could result in g++ and clang mode when taking the
+address of an instance of a noexcept(true) function and assigning it to a
+noexcept(false) pointer, or explicitly a noexcept(true) function.  Now fixed.
+ 
+  template <class T> void f(void) noexcept(true) { }
+  void (&r)() = f<int>;
+
+
 2/23/20  [EDGcpfe/22223]
 Spurious error on definition of nested inline namespace member
 
