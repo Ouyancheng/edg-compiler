@@ -1,5 +1,26 @@
 Version 6.1
 
+2/25/20  [EDGcpfe/22406]
+C++-generating back end: generated variable template explicit specializations
+
+In C++-generating back end configurations in which
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE,
+generated explicit specializations representing implicit instantiations of
+variable templates were put out without a template argument list.  This is
+now fixed.  For example, with --c++14, the generated code for
+
+  template<typename T> bool x = false;
+  bool y = x<int>;
+
+previously contained the erroneous explicit specialization
+
+  template<> bool x = false;
+
+and now correctly contains
+
+  template<> bool x<int> = false;
+
+
 2/24/20  [EDGcpfe/22394]
 GNU compatibility: GCC 7.5.0 builtins
 
