@@ -2305,7 +2305,7 @@ Output some information about the map's key contents to f_debug.
       fprintf(f_debug, "(empty)\n");
     } else {
       fprintf(f_debug, "h = %2u  %p\n",
-              (an_index)hash_ptr(ptr) & mask, ptr);
+              (an_index)hash_ptr(ptr) & mask, (void*)ptr);
     }  /* if */
   }  /* for */
 }  /* Ptr_map::db_ptrs */

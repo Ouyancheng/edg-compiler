@@ -17658,9 +17658,9 @@ a routine to lookup the appropriate instance (or generate one if needed).
   }  /* if */
   add_stop_token(tok_lbrace);
   add_stop_token(tok_semicolon);
-  /* Get the angle bracket token. */
+  /* Skip the class template name. */
   (void)get_token();
-  /* Get token following opening angle bracket. */
+  /* Skip the left angle bracket. */
   (void)get_token();
   /* Increment the number of template argument lists that are being scanned. */
   scope_stack[depth_scope_stack].pending_templ_arg_lists++;

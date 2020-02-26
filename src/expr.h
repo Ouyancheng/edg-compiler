@@ -948,16 +948,20 @@ a_boolean compute_reference_binds_to_temporary(a_type_ptr  ref_type,
                                                a_type_ptr  init_type);
 
 /*
+Macro that is TRUE if the node is of the given kind.
+*/
+#define node_is(node, node_kind)                                        \
+  ((node)->kind == (an_expr_node_kind)(node_kind))
+
+/*
 Macro that is TRUE if the node is an operation node.
 */
-#define is_operation_node(node)						\
-	((node)->kind == (an_expr_node_kind)enk_operation)
+#define is_operation_node(node)	 node_is(node, enk_operation)
 
 /*
 Macro that is TRUE if the node is a constant node.
 */
-#define is_constant_node(node)						\
-	((node)->kind == (an_expr_node_kind)enk_constant)
+#define is_constant_node(node)  node_is(node, enk_constant)
 
 /*
 Macro to get the constant from a constant node.
@@ -973,8 +977,7 @@ Macro to test for a constant kind in a constant node.
 /*
 Macro that is TRUE if the node is a variable node.
 */
-#define is_variable_node(node)						\
-	((node)->kind == (an_expr_node_kind)enk_variable)
+#define is_variable_node(node)  node_is(node, enk_variable)
 
 /*
 Macro to get the variable from a variable node.
@@ -984,8 +987,7 @@ Macro to get the variable from a variable node.
 /*
 Macro that is TRUE if the node is a field node.
 */
-#define is_field_node(node)						\
-	((node)->kind == (an_expr_node_kind)enk_field)
+#define is_field_node(node)  node_is(node, enk_field)
 
 /*
 Macro to get the field from a field node.
@@ -995,8 +997,7 @@ Macro to get the field from a field node.
 /*
 Macro that is TRUE if the node is a routine node.
 */
-#define is_routine_node(node)						\
-	((node)->kind == (an_expr_node_kind)enk_routine)
+#define is_routine_node(node)  node_is(node, enk_routine)
 
 /*
 Macro to get the routine from a routine node.
@@ -1006,8 +1007,7 @@ Macro to get the routine from a routine node.
 /*
 Macro that is TRUE if the node is a type operand node.
 */
-#define is_type_node(node)						\
-	((node)->kind == (an_expr_node_kind)enk_type_operand)
+#define is_type_node(node)  node_is(node, enk_type_operand)
 
 /*
 Macro to get the type from a type operand node.
@@ -1018,14 +1018,12 @@ Macro to get the type from a type operand node.
 Macro that is TRUE if the node is a temporary node (enk_temp_init/enk_lambda).
 */
 #define is_temp_node(node)						\
-	((node)->kind == (an_expr_node_kind)enk_temp_init ||		\
-	 (node)->kind == (an_expr_node_kind)enk_lambda)
+	(node_is(node, enk_temp_init) || node_is(node, enk_lambda))
 
 /*
 Macro that is TRUE if the node is an error node.
 */
-#define is_error_node(node)						\
-	((node)->kind == (an_expr_node_kind)enk_error)
+#define is_error_node(node)  node_is(node, enk_error)
 
 /*
 Return TRUE if the node is a glvalue, meaning an lvalue or an xvalue.

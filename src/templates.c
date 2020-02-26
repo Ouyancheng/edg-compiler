@@ -2191,7 +2191,8 @@ Return TRUE if the template template argument specified by arg_template can
 be used as an argument to the template template parameter specified by
 param_template.
 
-This routine does the C++17 "at least as specialized" checking.
+This routine does the C++17 "at least as specialized" checking (see N4849,
+[temp.arg.template]/4).
 */
 {
   a_template_param_ptr			param_list_for_param;
@@ -2231,7 +2232,13 @@ This routine does the C++17 "at least as specialized" checking.
     /* Create an invented class template based on the template parameters
        of the argument template. */
     param_list_for_arg = arg_tssp->cache.decl_info->parameters;
+    // FIXME: Copy constraints
     invented_templ_sym = make_invented_class_template(param_list_for_arg);
+    invented_templ_sym->variant.template_info
+                      ->has_template_param_constraint =
+                                      arg_tssp->has_template_param_constraint;
+    invented_templ_sym->variant.template_info->il_template_entry =
+                                                                 arg_template;
     /* A rescan context is needed because nonreal types will be created
        below. */
     push_instantiation_scope_for_rescan(invented_templ_sym);
@@ -2263,10 +2270,17 @@ This routine does the C++17 "at least as specialized" checking.
       a_symbol_ptr	ft2;
       int		compare_result;
       /* Create the two function templates and perform the ordering. */
+      // FIXME: Copy constraints
       ft1 = make_invented_function_template(param_list_for_arg,
                                             type_symbol_type(arg_sym));
+      ft1->variant.template_info->has_template_param_constraint =
+                                      arg_tssp->has_template_param_constraint;
+      ft1->variant.template_info->il_template_entry = arg_template;
       ft2 = make_invented_function_template(param_list_for_param,
                                             type_symbol_type(param_sym));
+      ft2->variant.template_info->has_template_param_constraint =
+                                    param_tssp->has_template_param_constraint;
+      ft2->variant.template_info->il_template_entry = param_template;
       compare_result = compare_function_templates(
                                            ft1, ft2, /*entire_type=*/FALSE,
                                            /*is_templ_templ_param_check=*/TRUE,
@@ -3211,7 +3225,6 @@ is put at the start of either ptp1 or ptp2.
 }  /* get_effective_param_type_list_for_templates */
 
 
-
 int compare_function_templates(
 			a_symbol_ptr 		templ_sym1,
 			a_symbol_ptr		templ_sym2,
@@ -3372,6 +3385,21 @@ parameter matching.
   if (dummy_arg_list1 != NULL) free_template_arg_list(dummy_arg_list1);
   /* Free the template argument list produced by the deduction process. */
   if (dummy_arg_list2 != NULL) free_template_arg_list(dummy_arg_list2);
+  if (concepts_enabled) {
+    /* If deduction succeeded both ways, select the more constrained
+       template (N4849 [temp.func.order]/2). */
+    // FIXME: This isn't quite right, but the standard rules are baffling too.
+    int  constraint_order = compare_constraints(templ_sym1, templ_sym2);
+    if (constraint_order != 0) {
+      if (result == 0) {
+        if (match1 && match2) {
+          result = constraint_order;
+        }  /* if */
+      } else if (result != constraint_order) {
+        result = 0;
+      }  /* if */
+    }  /* if */
+  }  /* if */
 #if DEBUG
   if (db_flag_is_set("cft")) {
     fprintf(f_debug, "compare_function_template:\n");
@@ -3384,7 +3412,7 @@ parameter matching.
   }  /* if */
 #endif /* DEBUG */
   return result;
-}  /* compare_function_template */
+}  /* compare_function_templates */
 
 
 a_template_param_coordinate_ptr coordinates_of_template_param_symbol(
@@ -10038,15 +10066,20 @@ TRUE, issue a diagnostic explaining the failure.
               add_more_info_list(dp, p_diag_list);
               end_diagnostic(dp);
             }  /* if */
+            result = FALSE;
+            break;
           }  /* if */
         }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */
-  if (tdp != NULL && if_microsoft_extensions(!tdp->is_generic &&)
-      tdp->constraint.requires_clause != NULL &&
-      !requires_constraint_satisfied(tssp, tdp->constraint.requires_clause,
-                                     args, diagnose)) {
+  if (!result) {
+    /* Nothing more to check. */
+  } else if (tdp != NULL && if_microsoft_extensions(!tdp->is_generic &&)
+             tdp->constraint.requires_clause != NULL &&
+             !requires_constraint_satisfied(tssp,
+                                            tdp->constraint.requires_clause,
+                                            args, diagnose)) {
     result = FALSE;
   } else if (is_simple_function_or_template_symbol(template_sym)) {
     a_routine_ptr  rp = tssp->variant.function.routine;
@@ -10268,6 +10301,7 @@ use the current global value of the template template parameter.
                                  sym_parent_namespace(template_sym));
       }  /* if */
       sym->variant.type.ptr = error_type();
+      sym->is_error = TRUE;
       free_template_arg_list(*new_list);
       goto done;
     }  /* if */
@@ -11082,8 +11116,8 @@ match is found.
   a_symbol_ptr				templ_sym;
 
   /* Get the template parameter list associated with the template. */
-  sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
-  templ_sym = (a_symbol_ptr)templ_templ->source_corresp.assoc_info;
+  sym = symbol_for(templ);
+  templ_sym = symbol_for(templ_templ);
   if (sym->is_error || templ_sym->is_error) {
     /* If either symbol is an error symbol, there is no match. */
   } else {

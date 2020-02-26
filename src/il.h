@@ -2934,6 +2934,9 @@ extern void db_abbreviated_type(a_type *tp);
 
 extern void db_variable(a_variable_ptr var_ptr);
 
+extern void db_expr_node(an_expr_node_ptr node,
+                         int              level);
+
 extern void db_expression(an_expr_node_ptr node);
 
 extern void db_expr_range(an_expr_node_ptr node);

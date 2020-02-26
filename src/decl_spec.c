@@ -1240,7 +1240,7 @@ caution when modifying this routine.
           if (is_injected_class_symbol(tag_sym)) {
             tag_sym = (a_symbol_ptr)(type_symbol_type(tag_sym)->
                                                     source_corresp.assoc_info);
-          } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
+          } else if (symbol_is(tag_sym, sk_type)) {
             a_type_ptr  typedef_tp = skip_typerefs(tag_sym->variant.type.ptr);
             a_symbol_ptr	sym_of_type = symbol_for(typedef_tp);
             if (allow_typedef) {
@@ -1270,13 +1270,16 @@ caution when modifying this routine.
               tag_sym = NULL;
             } else if (is_template_class_symbol(tag_sym) &&
                        tag_kind != (a_symbol_kind)sk_enum_tag &&
-                       tag_sym->kind != (a_symbol_kind)sk_enum_tag) {
+                       !symbol_is(tag_sym, sk_enum_tag)) {
               /* Caller will issue the diagnostic. */
-            } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
-              /* A typedef name.  Issue an error. */
-              pos_st_error(ec_typedef_in_elab_type, 
-                           &locator_for_curr_id.source_position,
-                           tag_sym->header->identifier);
+            } else if (symbol_is(tag_sym, sk_type)) {
+              /* A typedef name.  Issue an error (unless it already is an
+                 error symbol). */
+              if (!tag_sym->is_error) {
+                pos_st_error(ec_typedef_in_elab_type, 
+                             &locator_for_curr_id.source_position,
+                             tag_sym->header->identifier);
+              }  /* if */
               tag_sym = NULL;
               tag_err = TRUE;
             } else {

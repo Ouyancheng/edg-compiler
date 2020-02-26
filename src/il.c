@@ -1853,8 +1853,8 @@ Dump the contents of the indicated variable and its type for debug purposes.
 }  /* db_variable */
 
 
-static void db_expr_node(an_expr_node_ptr node,
-		         int              level)
+void db_expr_node(an_expr_node_ptr node,
+                  int              level)
 /*
 Dump the contents of the indicated expression node for debug purposes.
 */
@@ -1866,6 +1866,10 @@ Dump the contents of the indicated expression node for debug purposes.
   a_throw_supplement_ptr      tsp;
 
   for (a = 0; a < level; a++) fputs(" ", f_debug);
+  if (node == NULL) {
+    fprintf(f_debug, "<NULL>\n");
+    goto done;
+  }  /* if */
   if (node->is_pack_expansion) fprintf(f_debug, "[pack expansion] ");
   if (node->is_lvalue) fprintf(f_debug, "[lvalue] ");
   if (node->is_xvalue) fprintf(f_debug, "[xvalue] ");
@@ -2249,7 +2253,7 @@ sizeof_cases:
       }  /* if */
       break;
     case enk_requires:
-      fputs("requires ", f_debug);
+      fputs("requires-expr\n", f_debug);
       break;
     case enk_error:
       fputs("error node\n", f_debug);
@@ -2257,6 +2261,7 @@ sizeof_cases:
     default:
       fputs("<bad expr kind>\n", f_debug);
   }  /* switch */
+done:;
 }  /* db_expr_node */
 
 

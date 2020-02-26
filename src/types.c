@@ -6918,15 +6918,30 @@ check_typerefs:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               /* Do not insert code here. */
               {
+                a_template_nesting_depth  depth1 = tptsp_1->coordinates.depth,
+                                          depth2 = tptsp_2->coordinates.depth;
                 identical =
                     (tptsp_1->coordinates.position ==
                                             tptsp_2->coordinates.position) &&
                       ((flags & ITF_EXACT_NESTING_DEPTHS_REQUIRED) != 0
-                        ? tptsp_1->coordinates.depth ==
-                                                   tptsp_2->coordinates.depth
-                        : ((equiv_nesting_depths(tptsp_1->coordinates.depth,
-                                                tptsp_2->coordinates.depth) ||
+                        ? depth1 == depth2
+                        : ((equiv_nesting_depths(depth1, depth2) ||
                             (flags & ITF_IGNORE_NESTING_DEPTH) != 0)));
+                if (identical &&
+                    depth1 != CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH &&
+                    depth2 != CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH) {
+                  /* Check that the constraints match. */
+                  an_expr_node_ptr  constr1, constr2;
+                  constr1 = tptsp_1->constraint.type_constraint;
+                  constr2 = tptsp_2->constraint.type_constraint;
+                  if (constr1 != constr2) {
+                    if (constr1 == NULL || constr2 == NULL ||
+                        !compare_expressions(constr1, constr2,
+                                             CC_NO_OPTIONS)) {
+                      identical = FALSE;
+                    }  /* if */
+                  }  /* if */
+                }  /* if */
               }  /* if */
               break;
             case tptk_member:
