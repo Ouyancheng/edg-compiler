@@ -14304,7 +14304,7 @@ typedef struct an_expr_node {
 		requirements;
 			/* The list of requirements.  Type-requirements are
 			   represented with enk_type_operand nodes.  Compound
-			   nested requirements are represented with
+			   and nested requirements are represented with
 			   enk_compound_req and enk_nested_req nodes,
 			   respectively. */
       a_param_type_ptr
