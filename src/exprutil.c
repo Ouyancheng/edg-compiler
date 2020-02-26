@@ -23896,6 +23896,8 @@ indicates that this function processed the last disjunctive clause).
           }  /* if */
         }  /* if */
         break;
+      default:
+        unexpected_condition();
     }  /* switch */
   }  /* while */
   /* If we're still flipping flags at this stage, we've turned "111..." into
@@ -23966,6 +23968,8 @@ conjunctive clause, and if the last clause was processed return TRUE.
           }  /* if */
         }  /* if */
         break;
+      default:
+        unexpected_condition();
     }  /* switch */
   }  /* while */
   /* If we're still flipping flags at this stage, we've turned "111..." into
