@@ -20154,7 +20154,8 @@ declarator (or NULL if it wasn't recorded).
     a_boolean                 suppress_declarator_parens = FALSE;
     a_boolean                 saved_render_auto_deduction_typerefs =
                                           octl.render_auto_deduction_typerefs;
-    octl.render_auto_deduction_typerefs = TRUE;
+    octl.render_auto_deduction_typerefs =
+                                         !is_generated_explicit_specialization;
     if (special_kind_is(rout, sfk_constructor) ||
         special_kind_is(rout, sfk_destructor) ||
 #if MICROSOFT_EXTENSIONS_ALLOWED

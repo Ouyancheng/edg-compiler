@@ -1,5 +1,32 @@
 Version 6.1
 
+2/25/20  [EDGcpfe/22402]
+C++-generating back end: deduced return types and generated specializations
+
+In C++-generating back end configurations in which
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE,
+function and template parameters appearing in generated explicit
+specializations could sometimes be incorrectly put out using "auto" as a
+type, resulting in uncompilable generated code.  This is now fixed.  For
+example, with --c++17:
+
+  template<typename T> void f(T);
+  template<typename T> struct S {
+    static auto x() { return T(); }
+  };
+  void g() {
+    f(S<int>::x());
+  }
+
+The explicit specialization of f<int> was previously put out incorrectly as:
+
+  template<> void f(auto);
+
+and now correctly as:
+
+  template<> void f(int);
+
+
 2/25/20  [EDGcpfe/22406]
 C++-generating back end: generated variable template explicit specializations
 
