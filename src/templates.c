@@ -31962,6 +31962,7 @@ following a template parameter clause.  Parse and record the concept.
        representation for a concept that appears in an invalid scope. */
     pos_error(ec_bad_scope_for_concept, &concept_pos);
   } else {
+    a_scope_depth   decl_depth = decl_state->effective_decl_level;
     a_template_ptr  il_template;
     a_template_symbol_supplement_ptr
                     tssp;
@@ -31969,12 +31970,13 @@ following a template parameter clause.  Parse and record the concept.
     il_template->prototype_instantiation.constraint = expr;
     il_template->has_direct_disjunction = direct_disjunction_seen;
     il_template->has_indirect_disjunction = indirect_disjunction_seen;
-    sym = enter_symbol((a_symbol_kind)sk_concept_template, &loc,
-                       decl_state->effective_decl_level,
+    sym = enter_symbol((a_symbol_kind)sk_concept_template, &loc, decl_depth,
                        /*suppress_error=*/FALSE);
-    set_namespace_membership(sym, (a_source_correspondence *)NULL,
-                             scope_stack[decl_state->effective_decl_level]
-                                        .il_scope->variant.assoc_namespace);
+    if (!scope_is(&scope_stack[decl_depth], sck_file)) {
+      set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                               scope_stack[decl_depth]
+                                          .il_scope->variant.assoc_namespace);
+    }  /* if */
     tssp = sym->variant.template_info;
     tssp->cache.decl_info = decl_state->decl_info;
     tssp->is_variadic = decl_state->is_variadic;

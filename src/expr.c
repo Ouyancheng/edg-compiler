@@ -36857,11 +36857,14 @@ instantiation-dependent, set *is_dependent to TRUE.
 
   /* Scan an optional type constraint. */
   if (curr_token == tok_arrow) {
-    a_boolean     err = FALSE;
-    a_symbol_ptr  concept_templ = NULL;
+    a_boolean          err = FALSE;
+    a_symbol_ptr       concept_templ = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    a_source_position  start_pos = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     an_identifier_options_set
-                  gid_options = GID_IS_EXPR_CONTEXT |
-                                GID_TEMPLATE_ARGS_OPTIONAL;
+                       gid_options = GID_IS_EXPR_CONTEXT |
+                                     GID_TEMPLATE_ARGS_OPTIONAL;
     (void)get_token();
     if (curr_token == tok_identifier) {
       concept_templ = coalesce_and_lookup_generalized_identifier(
@@ -36878,6 +36881,9 @@ instantiation-dependent, set *is_dependent to TRUE.
       constraint->position = pos_curr_token;
       constraint->variant.concept_id.concept_template =
                                                       tssp->il_template_entry;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       (void)get_token();
       if (curr_token == tok_lt) {
         (void)get_token();
@@ -36885,9 +36891,17 @@ instantiation-dependent, set *is_dependent to TRUE.
         constraint->variant.concept_id.args =
                            scan_concept_arg_list(
                               concept_templ, /*skip_first_param=*/TRUE, &err);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         (void)required_token(tok_gt, ec_exp_gt);
         remove_stop_token(tok_gt);
       }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      constraint->expr_range.start = start_pos;
+      constraint->expr_range.end = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      expr->next = constraint;
     }  /* if */
   }  /* if */
 
@@ -36914,7 +36928,7 @@ set *is_dependent to TRUE.
   a_boolean         direct_disjunction_seen = FALSE,
                     indirect_disjunction_seen = FALSE;
 
-  result = alloc_expr_node((an_expr_node_kind)enk_compound_req);
+  result = alloc_expr_node((an_expr_node_kind)enk_nested_req);
   result->type = void_type();
   result->position = pos_curr_token;
   /* Skip the "requires" token. */

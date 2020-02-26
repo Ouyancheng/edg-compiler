@@ -24548,8 +24548,8 @@ FIXME pass through details of failure?
           an_expr_node_ptr  req_expr =
                                 req->variant.compound_req.expr_and_constraint;
           a_type_ptr        expr_type;
-          expr_type = check_requirement_expr(req, templ_args, templ_params,
-                                             &is_noexcept);
+          expr_type = check_requirement_expr(req_expr, templ_args,
+                                             templ_params, &is_noexcept);
           if (expr_type == NULL) {
             result = FALSE;
           } else if (req->variant.compound_req.is_noexcept && !is_noexcept) {
@@ -24557,7 +24557,8 @@ FIXME pass through details of failure?
           } else {
             /* Check the type constraint. */
             an_expr_node_ptr  req_constr = req_expr->next;
-            if (!check_type_constraint(expr_type, req_constr,
+            if (req_constr != NULL &&
+                !check_type_constraint(expr_type, req_constr,
                                        templ_args, templ_params)) {
               result = FALSE;
             }  /* if */
