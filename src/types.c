@@ -1889,6 +1889,24 @@ Return TRUE if tp is a C++/CLI open constructed type (ECMA-372 31.2.1).
   return result;
 }  /* is_cli_open_constructed_type */
 
+
+a_boolean is_class_or_handle_to_class_type(a_type_ptr  tp)
+/*
+Return TRUE if the given type is a class type or a handle to a class type.
+*/
+{
+  a_boolean  result;
+
+  tp = skip_typerefs(tp);
+  if (is_immediate_class_type(tp)) {
+    result = TRUE;
+  } else if (is_handle_ptr(tp)) {
+    tp = tp->variant.pointer.type;
+    result = is_immediate_class_type(tp);
+  }  /* if */
+  return result;
+}  /* is_class_or_handle_to_class_type */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean is_scalar_type(a_type_ptr tp)
@@ -10790,7 +10808,7 @@ See conversion_possible.
              (See core issue 1601 and [conv.prom]/4 in N4659.)  Clang and GCC
              do not implement this yet. */
           base_type = source_type->variant.integer.extra_info->base_type;
-          if (cpp14_mode && !(gpp_mode || clang_mode) &&
+          if (cpp14_mode && !(gpp_mode || clang_version_is(<100000)) &&
               identical_types(base_type, dest_type)) {
             std_conv->promotion = TRUE;
             std_conv->fixed_enum_promotion = TRUE;

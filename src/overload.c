@@ -5679,21 +5679,35 @@ in a new-expression).
       allow_expl_conv_funcs = TRUE;
     }  /* if */
     if (is_overloaded_operator && !function_symbol->is_class_member &&
-        !(gpp_mode && gnu_version < 40800) && !microsoft_mode) {
+        !(gpp_mode && gnu_version < 40800)) {
       /* For operators applied to arguments that do not have class type,
          candidate nonmember operators are required to have at least one
          parameter of enumeration type (or reference to enumeration type). */
       check_assertion(arg_list != NULL);
       enum_param_still_needed = TRUE;
       if (is_expression_component(arg_list) &&
-          is_class_struct_union_type(
+          is_class_or_handle_to_class_type(
                                   operand_of_arg_list_elem(arg_list)->type)) {
         enum_param_still_needed = FALSE;
       } else {
         an_arg_list_elem_ptr arg2 = next_elem(arg_list);
         if (arg2 != NULL && is_expression_component(arg2) &&
-            is_class_struct_union_type(operand_of_arg_list_elem(arg2)->type)) {
+            is_class_or_handle_to_class_type(
+                                      operand_of_arg_list_elem(arg2)->type)) {
           enum_param_still_needed = FALSE;
+        }  /* if */
+      }  /* if */
+      if (enum_param_still_needed && (cppcli_enabled || cppcx_enabled)) {
+        /* C++/CLI and C++/CX treat string literals specially. */
+        if (is_expression_component(arg_list) &&
+            operand_is_string_literal(operand_of_arg_list_elem(arg_list))) {
+          enum_param_still_needed = FALSE;
+        } else {
+          an_arg_list_elem_ptr arg2 = next_elem(arg_list);
+          if (arg2 != NULL && is_expression_component(arg2) &&
+              operand_is_string_literal(operand_of_arg_list_elem(arg2))) {
+            enum_param_still_needed = FALSE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -15670,7 +15684,7 @@ match, promotion, etc.) for the operand and record it in arg_match.
                least a promotion cost. */
             match_level = aml_promotion;
             arg_match->conversion.std.promotion = TRUE;
-            if (cpp14_mode && !(gpp_mode || clang_mode)) {
+            if (cpp14_mode && !(gpp_mode || clang_version_is(<100000))) {
               a_type_ptr  tp = skip_typerefs(operand_type);
               if (tp->variant.integer.has_explicit_enum_base &&
                   !tp->variant.integer.is_scoped_enum) {
@@ -15963,7 +15977,7 @@ the target type to be used).
         a_type_ptr           class_type = pm_class_type(specific_type);
         a_type_qualifier_set qualifiers = TQ_NONE;
         if (cppcx_enabled ? is_pointer_or_handle_type(operand_type)
-                             : is_pointer_type(operand_type)) {
+                          : is_pointer_type(operand_type)) {
           /* If the first operand has a pointer type, adopt the cv-qualifiers
              under the pointer type as part of the specific type.  This
              allows a first operand of, say "pointer to const X" with a
