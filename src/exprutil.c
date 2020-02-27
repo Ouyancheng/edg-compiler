@@ -23769,14 +23769,22 @@ struct a_charted_constraint {
 
 
 struct a_constraint_chart {
+  inline a_constraint_chart(a_ptrdiff cap)
+    : constraints_array(cap), not_subsumable(FALSE) {}
   Dyn_array<a_charted_constraint>
 		constraints_array;
 			/* A representation of the constraint obtained by
 			   traversing the constraint expression tree(s) in
 			   prefix depth-first order. */
+  a_bit_field	not_subsumable:1;
+			/* TRUE if the constraints are not subsumable.  This
+			   occurs if every disjunctive clause of the
+			   constraint has an atomic constraint that is not
+			   introduced by a concept. */
 };
 
 #define UNCONSTRAINED_CHART ((a_constraint_chart*)(a_uintptr)0x1)
+
 
 #if DEBUG
 
@@ -23793,7 +23801,9 @@ Output a description of the given constraint chart.
     Dyn_array<a_charted_constraint>
                   &array = chart->constraints_array;
     a_const_char  *names[] = { "Atomic", "Concept", "AND", "OR" };
-
+    if (chart->not_subsumable) {
+      fprintf(f_debug, "Not subsumable\n");
+    }  /* if */
     for (auto k = 0; k<array.length(); ++k) {
       fprintf(f_debug, "[%3d -> %3d] %s ",
                        (int)k,
@@ -23815,8 +23825,13 @@ Output a description of the given constraint chart.
 }  /* db_constraint_chart */
 #endif /* DEBUG */
 
-static Ptr_map<a_symbol_ptr, a_constraint_chart*>
-		constraint_charts(/*mask_width=*/10);
+using a_constraint_charts_map = Ptr_map<a_symbol_ptr, a_constraint_chart*>;
+			/* The type a map from constrained entity symbols to
+			   their associated constraint chart (if one has been
+			   constructed). */
+
+static a_constraint_charts_map
+		*constraint_charts;
 			/* Map of constraint charts. */
 
 
@@ -23985,35 +24000,35 @@ Return TRUE if the constraints charted in chart1 subsume those in chart2.
 Return FALSE otherwise.
 */
 {
-  using an_array = Dyn_array<a_charted_constraint>;
-  an_array           &array1 = chart1->constraints_array,
-                     &array2 = chart2->constraints_array;
-  an_array::a_size   k, len;
-  a_boolean          result = TRUE;
+  a_boolean  result;
 
-  // FIXME: Optimize case where chart2 has "bare atomic constraint" in every
-  //        disjunctive clause.
-
-  /* Clear the CK_OR flags in chart1 and the CK_AND flags in chart2. */
-  len = array1.length();
-  for (k = 0; k<len; ++k) {
-    a_charted_constraint  *constraint = &array1[k];
-    if (constraint->kind == CK_OR) {
-      constraint->flag = FALSE;
-    } else if (constraint->kind == CK_ATOMIC) {
-      constraint->next = k;
+  if (chart2->not_subsumable) {
+    result = FALSE;
+  } else {
+    using an_array = Dyn_array<a_charted_constraint>;
+    an_array           &array1 = chart1->constraints_array,
+                       &array2 = chart2->constraints_array;
+    an_array::a_size   k, len;
+    /* Clear the CK_OR flags in chart1 and the CK_AND flags in chart2. */
+    len = array1.length();
+    for (k = 0; k<len; ++k) {
+      a_charted_constraint  *constraint = &array1[k];
+      if (constraint->kind == CK_OR) {
+        constraint->flag = FALSE;
+      } else if (constraint->kind == CK_ATOMIC) {
+        constraint->next = k;
+      }  /* if */
     }  /* if */
-  }  /* if */
-  len = array2.length();
-  for (k = 0; k<len; ++k) {
-    a_charted_constraint  *constraint = &array2[k];
-    if (constraint->kind == CK_AND) {
-      constraint->flag = FALSE;
-    } else if (constraint->kind == CK_ATOMIC) {
-      constraint->next = k;
+    len = array2.length();
+    for (k = 0; k<len; ++k) {
+      a_charted_constraint  *constraint = &array2[k];
+      if (constraint->kind == CK_AND) {
+        constraint->flag = FALSE;
+      } else if (constraint->kind == CK_ATOMIC) {
+        constraint->next = k;
+      }  /* if */
     }  /* if */
-  }  /* if */
-  /* Implement the algorithm:
+    /* Implement the algorithm:
 
 	result = TRUE
 	for each E1[i]
@@ -24022,26 +24037,28 @@ Return FALSE otherwise.
 	      result = FALSE
 	      exit
 
-     described above. */
-  for (;;) {
-    an_expr_chart_map  expr_map(/*mask_width=*/3);
-    a_boolean          last_disj_clause =
-                                process_disjunctive_clause(chart1, &expr_map);
+       described above. */
+    result = TRUE;
     for (;;) {
-      a_map_check_list  map_checks(10);
-      a_boolean         last_conj_clause = process_conjunctive_clause(
+      an_expr_chart_map  expr_map(/*mask_width=*/3);
+      a_boolean          last_disj_clause =
+                                process_disjunctive_clause(chart1, &expr_map);
+      for (;;) {
+        a_map_check_list  map_checks(10);
+        a_boolean         last_conj_clause = process_conjunctive_clause(
                                               chart2, &expr_map, &map_checks);
-      if (map_checks.length() == 0) {
-        /* No matching atomic constraints were found. */
-        result = FALSE;
-        goto done;
-      }  /* if */
-      // FIXME: Check mappings for the matching atomic constraints.
-      if (last_conj_clause) break;
+        if (map_checks.length() == 0) {
+          /* No matching atomic constraints were found. */
+          result = FALSE;
+          goto done;
+        }  /* if */
+        // FIXME: Check mappings for the matching atomic constraints.
+        if (last_conj_clause) break;
+      }  /* for */
+      if (last_disj_clause) break;
     }  /* for */
-    if (last_disj_clause) break;
-  }  /* for */
-  /* Verify mappings for matching expressions. */
+    /* Verify mappings for matching expressions. */
+  }  /* if */
 done:
   return result;
 }  /* subsumes_constraint_chart */
@@ -24049,7 +24066,8 @@ done:
 
 static void chart_constraint(an_expr_node_ptr    expr,
                              a_constraint_chart  *chart,
-                             int32_t             parent_idx)
+                             int32_t             parent_idx,
+                             a_boolean           *not_subsumable)
 /*
 Perform a recursive prefix traversal of the given (constraint) expression and
 chart its significant nodes (concept-ids, conjunctions, disjunctions, and
@@ -24065,27 +24083,29 @@ concept-id traversed prior to expr (-1 if there was none).
                                           (uint32_t)0, expr });
     chart_constraint(expr->variant.concept_id.concept_template
                          ->prototype_instantiation.constraint,
-                     chart, new_parent_idx);
+                     chart, new_parent_idx, not_subsumable);
   } else if (is_operation_node(expr) && node_operator_is(expr, eok_land)) {
     uint32_t  idx = array.length();
     array.push_back(a_charted_constraint{ CK_AND, (uint32_t)parent_idx,
                                           (uint32_t)0, expr });
     an_expr_node_ptr  opnds = expr->variant.operation.operands;
-    chart_constraint(opnds, chart, parent_idx);
+    chart_constraint(opnds, chart, parent_idx, not_subsumable);
     array[idx].link = array.length();
-    chart_constraint(opnds->next, chart, parent_idx);
+    chart_constraint(opnds->next, chart, parent_idx, not_subsumable);
   } else if (is_operation_node(expr) && node_operator_is(expr, eok_or)) {
-    uint32_t  idx = array.length();
+    uint32_t   idx = array.length();
+    a_boolean  left_not_subsumable = FALSE, right_not_subsumable = FALSE;
     array.push_back(a_charted_constraint{ CK_OR, (uint32_t)parent_idx,
                                           (uint32_t)0, expr });
     an_expr_node_ptr  opnds = expr->variant.operation.operands;
-    chart_constraint(opnds, chart, parent_idx);
+    chart_constraint(opnds, chart, parent_idx, &left_not_subsumable);
     array[idx].link = array.length();
-    chart_constraint(opnds->next, chart, parent_idx);
+    chart_constraint(opnds->next, chart, parent_idx, &right_not_subsumable);
   } else {
     /* An atomic constraint. */
     array.push_back(a_charted_constraint{ CK_ATOMIC, (uint32_t)parent_idx,
                                           (uint32_t)0, expr });
+    if (parent_idx == -1) *not_subsumable = TRUE;
   }  /* if */
 }  /* chart_constraint */
 
@@ -24096,7 +24116,7 @@ Return the constraint chart for the given declaration (if any).  If needed,
 generate that chart.
 */
 {
-  a_constraint_chart  *result = constraint_charts.get(sym);
+  a_constraint_chart  *result = constraint_charts->get(sym);
 
   if (result == NULL) {
     Dyn_array<an_expr_node_ptr>  constraints(10);
@@ -24146,8 +24166,9 @@ generate that chart.
     if (n_constraints == 0) {
       result = UNCONSTRAINED_CHART;
     } else {
+      a_boolean  not_subsumable = FALSE;
       result = alloc_fe_of_type(a_constraint_chart);
-      construct(result);
+      construct(result, 2*n_constraints);
       Dyn_array<a_charted_constraint>  &array = result->constraints_array;
       for (auto k = 0; k<n_constraints; ++k) {
         a_ptrdiff  pos = -1;
@@ -24156,15 +24177,18 @@ generate that chart.
           array.push_back(
                      a_charted_constraint{CK_AND, (uint32_t)0, FALSE, NULL });
         }  /* if */
-        chart_constraint(constraints[k], result, -1);
+        chart_constraint(constraints[k], result, -1, &not_subsumable);
         if (pos != -1) {
           /* This constraint is ANDed with the next.  Update the "link" field
              for the CK_AND entry that was recorded above. */
           array[pos].link = array.length();
         }  /* if */
       }  /* for */
+      if (not_subsumable) {
+        result->not_subsumable = TRUE;
+      }  /* if */
     }  /* if */
-    constraint_charts.map(sym, result);
+    constraint_charts->map(sym, result);
   }  /* if */
   return result;
 }  /* constraint_chart_of */
@@ -24766,7 +24790,8 @@ for each compilation.
 #endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
   num_dynamic_init_dtor_fixups_allocated = 0;
 #endif /* DEBUG */
-
+  constraint_charts = alloc_fe_of_type(a_constraint_charts_map);
+  construct(constraint_charts, /*mask_width=*/10);
   /* Do initialization for overload.c: */
   overload_init();
 }  /* expr_init */
