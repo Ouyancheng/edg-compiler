@@ -6000,8 +6000,8 @@ Interpret the given block statement and its associated scope (if any).
     }  /* if */
     if (scope->variables != NULL) {
       /* There are local static variables.  That is normally not possible in
-         constexpr functions, but in some modes the implied static variables
-         for __func__ and similar constructs are permitted. */
+         constexpr functions, but the implied static variables for __func__
+         and similar constructs are permitted. */
       if (!init_static_variables(ips, scope)) {
         result = FALSE;
       }  /* if */

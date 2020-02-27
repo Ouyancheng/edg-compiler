@@ -1,5 +1,13 @@
 Version 6.1
 
+2/27/20  [EDGcpfe/22423]
+__func__ in constexpr functions
+
+Previously, the use of __func__ (and similar constructs) in constexpr
+functions was only permitted in GNU and Clang C++ modes.  Now it is allowed
+in all C++ modes.  (See also the entry for EDGcpfe/19389.)
+
+
 2/25/20  [EDGcpfe/22400]
 C++20: Value of __cplusplus and std_version finalized
 
