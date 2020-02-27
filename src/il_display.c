@@ -5534,12 +5534,6 @@ Display the indicated template.
   if (ptr->is_friend_template) {
     disp_boolean("is_friend_template", TRUE);
   }  /* if */
-  if (ptr->has_direct_disjunction) {
-    disp_boolean("has_direct_disjunction", TRUE);
-  }  /* if */
-  if (ptr->has_indirect_disjunction) {
-    disp_boolean("has_indirect_disjunction", TRUE);
-  }  /* if */
   if (ptr->template_decl != NULL) {
     disp_ptr("template_decl", (char *)ptr->template_decl, iek_template_decl);
   }  /* if */

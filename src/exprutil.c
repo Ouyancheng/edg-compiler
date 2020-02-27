@@ -1870,8 +1870,6 @@ is pushed regardless of any of the other factors.
   new_entry->in_coroutine_desc_init = FALSE;
   new_entry->paren_as_aggregate_init = FALSE;
   new_entry->expr_will_be_discarded = FALSE;
-  new_entry->direct_disjunction_seen = FALSE;
-  new_entry->indirect_disjunction_seen = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;
@@ -23781,7 +23779,7 @@ struct a_constraint_chart {
 			   occurs if every disjunctive clause of the
 			   constraint has an atomic constraint that is not
 			   introduced by a concept. */
-// FIXME: Also consider "not_subsuming flag and verify the logic of the
+// FIXME: Also consider not_subsuming flag and verify the logic of the
 // not_subsumable flag.
 };
 

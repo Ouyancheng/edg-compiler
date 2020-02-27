@@ -15894,17 +15894,6 @@ typedef struct a_template {
 		is_friend_template:1;
 			/* TRUE for a template declared as a friend
 			   template. */
-  a_bit_field
-		has_direct_disjunction:1;
-			/* TRUE for a concept template that directly contains
-			   a disjunction (i.e., a disjunction not resulting
-			   from the expansion of another concept). */
-  a_bit_field
-		has_indirect_disjunction:1;
-			/* TRUE for a concept template that indirectly contains
-			   a disjunction (i.e., its constraint-expression
-			   includes a concept-id whose expansions involves a
-			   disjunction). */
 #if BACK_END_IS_CP_GEN_BE
   a_targ_alignment
 		final_alignment;

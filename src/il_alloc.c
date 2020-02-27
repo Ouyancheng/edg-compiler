@@ -5020,8 +5020,6 @@ fields, and return a pointer to it.
   tp->ignore_export = FALSE;
   tp->is_pack = FALSE;
   tp->is_friend_template = FALSE;
-  tp->has_direct_disjunction = FALSE;
-  tp->has_indirect_disjunction = FALSE;
 #if BACK_END_IS_CP_GEN_BE
   tp->final_alignment = 0;
   tp->min_template_arguments = -1;

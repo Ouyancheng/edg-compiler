@@ -1068,15 +1068,6 @@ typedef struct an_expr_stack_entry {
 		expr_will_be_discarded:1;
 			/* TRUE if scanning an expression whose result will be
 			   discarded (e.g., a void expression). */
-  a_bit_field
-		direct_disjunction_seen:1;
-			/* TRUE if while scanning a constraint expression an
-			   operator || was encountered. */
-  a_bit_field
-		indirect_disjunction_seen:1;
-			/* TRUE if while scanning a constraint expression a
-			   concept-id with an underlying disjunction was
-			   seen. */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor
