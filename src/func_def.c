@@ -1713,10 +1713,9 @@ of lambda expressions.
          parameters are not allowed.) */
       process_vla_parameters(func_info, rtsp);
     }  /* if */
-    if (rout_ptr->is_constexpr &&
-        !check_constexpr_routine_def_type(
-                         rout_ptr, &rout_ptr->source_corresp.decl_position)) {
-      rout_ptr->is_constexpr = FALSE;
+    if (rout_ptr->is_constexpr) {
+      (void)check_constexpr_routine_def_type(
+                           rout_ptr, &rout_ptr->source_corresp.decl_position);
     }  /* if */
     if (!is_instantiation) {
       /* Parameter symbols that were created in the prototype scope (and then
