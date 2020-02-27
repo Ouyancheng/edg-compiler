@@ -10,10 +10,8 @@ Consider:
     operator float();
   };
   double operator-(int, Q);
-  enum E : int { e };
-  void foo(E x) {
-    x - e;  // Previously an error in Microsoft C++14 mode.  Now okay.
-  }
+  enum E : int { e } x;
+  auto r = x - e;  // Previously an error in Microsoft C++14 mode.  Now okay.
 
 This example previously triggered an error in Microsoft C++14 mode.  That is
 now fixed.
