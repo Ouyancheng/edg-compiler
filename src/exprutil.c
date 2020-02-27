@@ -24080,14 +24080,14 @@ concept-id traversed prior to expr (-1 if there was none).
   if (node_is(expr, enk_concept_id)) {
     int32_t  new_parent_idx = array.length();
     array.push_back(a_charted_constraint{ CK_CONCEPT, (uint32_t)parent_idx,
-                                          (uint32_t)0, expr });
+                                          { (uint32_t)0 }, expr });
     chart_constraint(expr->variant.concept_id.concept_template
                          ->prototype_instantiation.constraint,
                      chart, new_parent_idx, not_subsumable);
   } else if (is_operation_node(expr) && node_operator_is(expr, eok_land)) {
     uint32_t  idx = array.length();
     array.push_back(a_charted_constraint{ CK_AND, (uint32_t)parent_idx,
-                                          (uint32_t)0, expr });
+                                          { (uint32_t)0 }, expr });
     an_expr_node_ptr  opnds = expr->variant.operation.operands;
     chart_constraint(opnds, chart, parent_idx, not_subsumable);
     array[idx].link = array.length();
@@ -24096,7 +24096,7 @@ concept-id traversed prior to expr (-1 if there was none).
     uint32_t   idx = array.length();
     a_boolean  left_not_subsumable = FALSE, right_not_subsumable = FALSE;
     array.push_back(a_charted_constraint{ CK_OR, (uint32_t)parent_idx,
-                                          (uint32_t)0, expr });
+                                          { (uint32_t)0 }, expr });
     an_expr_node_ptr  opnds = expr->variant.operation.operands;
     chart_constraint(opnds, chart, parent_idx, &left_not_subsumable);
     array[idx].link = array.length();
@@ -24104,7 +24104,7 @@ concept-id traversed prior to expr (-1 if there was none).
   } else {
     /* An atomic constraint. */
     array.push_back(a_charted_constraint{ CK_ATOMIC, (uint32_t)parent_idx,
-                                          (uint32_t)0, expr });
+                                          { (uint32_t)0 }, expr });
     if (parent_idx == -1) *not_subsumable = TRUE;
   }  /* if */
 }  /* chart_constraint */

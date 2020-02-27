@@ -3582,13 +3582,15 @@ static a_boolean matches_template_arg_list(
 static a_boolean matches_partial_specialization(
 				a_symbol_ptr		template_sym,
 				a_symbol_ptr		instance_sym,
+				a_boolean		for_ordering,
 				a_template_arg_ptr	*ps_arg_list)
 /*
 Determine whether the template instance specified by instance_sym
 matches the partial specialization indicated by template_sym.  Return
 TRUE if it does; otherwise return FALSE.  If a match is found, return
 the template argument list with respect to the partial specialization
-in ps_arg_list.
+in ps_arg_list.  If for_ordering is TRUE, this is a call used to
+determine the partial order among matching partial specializations.
 */
 {
   a_boolean				result = FALSE;
@@ -3644,8 +3646,9 @@ in ps_arg_list.
                                 templ_param_list, MTT_NO_FLAGS) &&
       (total_errors == 0 ||
        !template_arg_list_involves_error_entity(*ps_arg_list)) &&
-      check_template_constraints(template_sym, *ps_arg_list,
-                                 /*diagnose=*/FALSE)) {
+      (for_ordering ||
+       check_template_constraints(template_sym, *ps_arg_list,
+                                  /*diagnose=*/FALSE))) {
     /* We found a match without errors: Check that substituting the resulting
        arguments is valid. */
     a_source_position  saved_error_pos = error_position;
@@ -3743,6 +3746,7 @@ should be preferred over templ_sym2.
     prototype_sym1 = symbol_for(proto_var);
   }  /* if */
   match1 = matches_partial_specialization(template_sym2, prototype_sym1,
+                                          /*for_ordering=*/TRUE,
                                           &tap_for_match1);
   /* Attempt the deduction in the other direction. */
   tssp2 = template_sym2->variant.template_info;
@@ -3754,6 +3758,7 @@ should be preferred over templ_sym2.
     prototype_sym2 = symbol_for(proto_var);
   }  /* if */
   match2 = matches_partial_specialization(template_sym1, prototype_sym2,
+                                          /*for_ordering=*/TRUE,
                                           &tap_for_match2);
   if (match1 && !match2) {
     result = 1;
@@ -3773,6 +3778,19 @@ should be preferred over templ_sym2.
       result = -1;
     } else {
       result = 0;
+    }  /* if */
+  }  /* if */
+  if (concepts_enabled) {
+    // FIXME: This isn't quite right, but the standard rules are baffling too.
+    int  constraint_order = compare_constraints(template_sym1, template_sym2);
+    if (constraint_order != 0) {
+      if (result == 0) {
+        if (match1 && match2) {
+          result = constraint_order;
+        }  /* if */
+      } else if (result != constraint_order) {
+        result = 0;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -4003,6 +4021,7 @@ return NULL.
        ps_sym != NULL; ps_sym = ps_sym->next) {
     a_template_arg_ptr	ps_arg_list = NULL;
     if (matches_partial_specialization(ps_sym, instance_sym,
+                                       /*for_ordering=*/FALSE,
                                        &ps_arg_list)) {
       add_to_partial_order_candidates_list(&candidate_list,
                                            ps_sym, ps_arg_list);
@@ -21030,7 +21049,7 @@ subordinate templates.
     if (instance_type->variant.class_struct_union.is_specialized) continue;
     /* Skip the instance if a full instantiation has not yet been done. */
     if (is_incomplete_type(instance_type)) continue;
-    if (matches_partial_specialization(ps_sym, sym,
+    if (matches_partial_specialization(ps_sym, sym, /*for_ordering=*/FALSE,
                                        (a_template_arg_ptr*)NULL)) {
       /* It does match the partial specialization.  Now see whether the
          existing instantiation came from the primary template or another
