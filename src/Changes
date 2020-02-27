@@ -1,5 +1,17 @@
 Version 6.1
 
+2/25/20  [EDGcpfe/22400]
+C++20: Value of __cplusplus and std_version finalized
+
+With the final approval of the C++20 FDIS at the February meeting of WG21,
+the value of __cplusplus for the new revision of the Standard has been set
+to 202002L.  The temporary value of 202000 originally adopted by the front
+end to represent the C++20 version of the language (see EDGcpfe/20000) has
+now been updated accordingly.  For example:
+
+  long l = __cplusplus;  // Now sets l to 202002L
+
+
 2/25/20  [EDGcpfe/22402]
 C++-generating back end: deduced return types and generated specializations
 

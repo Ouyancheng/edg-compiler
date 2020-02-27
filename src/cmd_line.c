@@ -2757,11 +2757,11 @@ option values if they were not already set by a command line option.
              command-line options.  Note that internally most C++20 features
              are enabled via global variables, but for those that aren't, set
              std_version to the value for C++20. */
-          std_version = 202000;
+          std_version = 202002;
           if (ms_cpplatest_mode) {
             msvc_lang = "201704L";
           } else {
-            msvc_lang = "202000L";
+            msvc_lang = "202002L";
           }  /* if */
         }  /* if */
       }  /* if */
@@ -5219,7 +5219,7 @@ command line switches.
     C++11               std_version >= 201103            --c++11
     C++14               std_version >= 201402            --c++14
     C++17               std_version >= 201703            --c++17
-    C++20               std_version >= 202000 (?)        --c++20
+    C++20               std_version >= 202002            --c++20
     "normal"
       strict            strict_ansi_mode                 -A, -a, etc.
 
@@ -10556,7 +10556,7 @@ enable_microsoft_mode:
         /* Enable C++ features added as part of C++20.  The value used for
            std_version below is just a placeholder until the official value
            (and standard name) is known. */
-        std_version = 202000;
+        std_version = 202002;
         set_C_dialect(C_dialect_cplusplus);
         break;
       case optk_cpp14_mode:

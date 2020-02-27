@@ -228,10 +228,9 @@ static an_attr_descr known_attr_table[] = {
   { "nodiscard", "?(sx)", "1c+(201703-|M(1910-))", ak_nodiscard },
   { "maybe_unused", "", "1c+(201703-|M(1910-))", ak_maybe_unused },
   { "fallthrough", "", "1c+(201703-|M(1910-))", ak_fallthrough },
-  /* Note that the value of 202000 is temporary until C++20 is standardized. */
-  { "likely", "", "1c+(202000-|G(80300-))", ak_likely },
-  { "unlikely", "", "1c+(202000-|G(80300-))", ak_unlikely },
-  { "no_unique_address", "", "1c+(202000-|G(80300-))", ak_no_unique_address },
+  { "likely", "", "1c+(202002-|G(80300-))", ak_likely },
+  { "unlikely", "", "1c+(202002-|G(80300-))", ak_unlikely },
+  { "no_unique_address", "", "1c+(202002-|G(80300-))", ak_no_unique_address },
 
   /* Nonstandard attributes. */
   { "enable_if", "(X,sn)", "lx(30500-)", ak_enable_if },
