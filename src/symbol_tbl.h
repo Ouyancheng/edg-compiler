@@ -4859,6 +4859,9 @@ extern a_symbol_ptr full_enter_symbol(a_const_char  *identifier,
 extern void enter_keyword(a_token_kind token,
                           a_const_char *keyword);
 
+extern void enter_builtin_keyword(a_token_kind token,
+                                  a_const_char *keyword);
+
 #if NAMED_ADDRESS_SPACES_ALLOWED
 extern a_symbol_ptr enter_named_address_space(a_const_char  *name);
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */

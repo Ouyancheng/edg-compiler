@@ -1326,6 +1326,7 @@ typedef enum /*a_token_kind*/ {
   tok_requires,
   tok_concept,
   tok_builtin_has_attribute,
+  tok_builtin_bit_cast,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1522,6 +1523,7 @@ EXTERN a_const_char
    "__is_function",
    "requires", "concept",
    "__builtin_has_attribute",
+   "__builtin_bit_cast",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -13215,6 +13217,8 @@ typedef enum a_builtin_operation_kind_tag {
                            type-or-expression (e.g., similar to sizeof).  The
                            second operand is an attribute (with optional
                            arguments). */
+  bok_builtin_bit_cast, /* __builtin_bit_cast.  First operand is a type and the
+                           second is an object of that type. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */
@@ -17666,6 +17670,7 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__is_same_as",
   "__is_function",
   "__builtin_has_attribute",
+  "__builtin_bit_cast",
   "last"
 }
 #endif /* VAR_INITIALIZERS */

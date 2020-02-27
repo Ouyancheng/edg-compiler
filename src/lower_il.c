@@ -3379,7 +3379,10 @@ to a temporary, and return a pointer to the temporary.
   expr_copy = copy_node(expr);
   temp_node->next = expr_copy;
   set_expr_node_kind(expr, (an_expr_node_kind)enk_operation);
-  set_node_operator(expr, (an_expr_operator_kind)eok_assign,
+  set_node_operator(expr,
+                    (an_expr_operator_kind)(is_array_type(temp_type) ?
+                                                                  eok_bassign :
+                                                                  eok_assign),
                     temp_type, /*is_lvalue=*/FALSE, temp_node);
   return temp;
 }  /* assign_expr_to_temp */
@@ -14373,6 +14376,50 @@ an eok_address_of operation).
 }  /* lower_builtin_addressof */
 
 
+static void lower_builtin_bit_cast(an_expr_node_ptr  expr)
+/*
+Lower the __builtin_bit_cast construct (by effectively replacing it with
+a call to memcpy).  Unfortunately __builtin_bit_cast has two arguments
+(the destination type and the source object) while memcpy requires a
+destination, so a temporary needs to be introduced.  For example:
+
+  d = __builtin_bit_cast(decltype(d), s);
+
+becomes:
+
+  decltype(d) Td;
+  decltype(s) Ts;
+  d = ((void)memcpy((void*)&Td, 
+                    (Ts = s, (const void*)&Ts),
+                    sizeof(decltype(d))),
+       Td);
+*/
+{
+  an_expr_node_ptr new_expr, arg = expr->variant.builtin_operation.operands;
+  a_type_ptr       dst_type;
+  a_variable_ptr   dst_temp, src_temp;
+
+  check_assertion(arg != NULL &&
+                  arg->kind == (an_expr_node_kind)enk_type_operand &&
+                  arg->next != NULL);
+  dst_type = arg->variant.type_operand.type;
+  lower_os_type(dst_type);
+  lower_expr(arg->next);
+  dst_temp = make_local_temporary(dst_type);
+  dst_type = skip_typerefs(dst_type);
+  src_temp = assign_expr_to_temp(arg->next);
+  new_expr = make_memcpy_call(var_addr_expr(dst_temp),
+                              make_comma_node(arg->next,
+                                              var_addr_expr(src_temp)),
+                              (a_host_large_integer)size_of_type(dst_type));
+  new_expr = add_cast(new_expr, void_type());
+  new_expr = make_comma_node(new_expr, var_rvalue_expr(dst_temp));
+  check_assertion(expr->is_lvalue == new_expr->is_lvalue &&
+                  identical_types(expr->type, new_expr->type));
+  overwrite_node(expr, new_expr);
+}  /* lower_builtin_bit_cast */
+
+
 void lower_builtin_operation(an_expr_node_ptr expr)
 /*
 Lower an enk_builtin_operation node.  Most builtin operations currently result
@@ -14404,6 +14451,9 @@ bok_offsetof, which can include nonconstant subscripts.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case bok_builtin_addressof:
       lower_builtin_addressof(expr);
+      break;
+    case bok_builtin_bit_cast:
+      lower_builtin_bit_cast(expr);
       break;
     default:
       unexpected_condition();

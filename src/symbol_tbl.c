@@ -7943,6 +7943,23 @@ token that corresponds to it.
   sym_ptr->variant.keyword.token = (a_small_token_kind)token;
 }  /* enter_keyword */
 
+
+void enter_builtin_keyword(a_token_kind token,
+                           a_const_char *keyword)
+/*
+Enter the name of a builtin operator as a keyword.  This differs from
+enter_keyword in that it sets the is_builtin_function flag, thereby enabling
+__has_builtin to return TRUE when queried for the builtin.
+*/
+{
+  a_symbol_ptr sym_ptr;
+
+  sym_ptr = full_enter_symbol(keyword, (sizeof_t)(strlen(keyword)),
+			      (a_symbol_kind)sk_keyword, NO_SCOPE_DEPTH);
+  sym_ptr->variant.keyword.token = (a_small_token_kind)token;
+  sym_ptr->header->is_builtin_function = TRUE;
+}  /* enter_builtin_keyword */
+
 #if NAMED_ADDRESS_SPACES_ALLOWED
 
 a_symbol_ptr enter_named_address_space(a_const_char *name)

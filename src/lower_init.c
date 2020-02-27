@@ -8443,6 +8443,33 @@ created.
 static a_routine_ptr
 		memcpy_routine;
 
+an_expr_node_ptr make_memcpy_call(an_expr_node_ptr     dst,
+                                  an_expr_node_ptr     src,
+                                  a_host_large_integer size)
+/*
+Create and return an eok_call node to the memcpy library routine using the
+specified arguments as arguments to the memcpy routine.
+*/
+{
+  a_type_ptr size_t_type = integer_type(targ_size_t_int_kind);
+  a_type_ptr const_void_star = make_pointer_type(
+                                               make_qualified_type(void_type(),
+                                                                   TQ_CONST));
+
+  check_assertion(!dst->is_lvalue && !src->is_lvalue &&
+                  is_pointer_type(dst->type) &&
+                  is_pointer_type(src->type));
+  dst = add_cast_if_necessary(dst, void_star_type());
+  src = add_cast_if_necessary(src, const_void_star);
+  dst->next = src;
+  src->next = node_for_host_large_integer(size, targ_size_t_int_kind);
+  return make_prototyped_runtime_call_full("memcpy", &memcpy_routine,
+                                           void_star_type(), void_star_type(),
+                                           const_void_star, size_t_type,
+                                           NULL, NULL, NULL, NULL, dst);
+}  /* make_memcpy_call */
+
+
 void rewrite_class_assignment_if_necessary(an_expr_node_ptr expr)
 /*
 expr is a struct assignment.  It's defined to do what the C++ generated
@@ -8500,28 +8527,11 @@ expression can be either an lvalue or rvalue and lvalueness is preserved.
       if (entity_size != class_type->size) {
         /* A class with tail padding.  Rewrite the copy as a memcpy call. */
         an_expr_node_ptr call_node;
-        a_type_ptr       size_t_type = integer_type(targ_size_t_int_kind);
-        a_type_ptr       const_void_star = make_pointer_type(
-                                               make_qualified_type(void_type(),
-                                                                   TQ_CONST));
         check_assertion(entity_size != 0);
         op1->next = NULL;
-        op1 = add_address_of_to_node(op1);
-        op1 = add_cast(op1, void_star_type());
-        /* op2 is an rvalue, but we need a pointer for the memcpy. */
-        op2 = rvalue_pointer_for_class_rvalue(op2);
-        op2 = add_cast(op2, const_void_star);
-        op1->next = op2;
-        op2->next = node_for_host_large_integer(
-                                           (a_host_large_integer)entity_size,
-                                           targ_size_t_int_kind);
-        call_node = make_prototyped_runtime_call_full("memcpy",
-                                                      &memcpy_routine,
-                                                      void_star_type(),
-                                                      void_star_type(),
-                                                      const_void_star,
-                                                      size_t_type, NULL, NULL,
-                                                      NULL, NULL, op1);
+        call_node = make_memcpy_call(add_address_of_to_node(op1),
+                                     rvalue_pointer_for_class_rvalue(op2),
+                                     (a_host_large_integer)entity_size);
         if (!expr->result_is_not_used) {
           /* Make sure the node has the correct type. */
           call_node = add_cast(call_node, make_pointer_type(expr->type));

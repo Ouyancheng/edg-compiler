@@ -1153,6 +1153,10 @@ Install the keywords in the symbol table.
   if (ms_extensions || clang_mode || gnu_version_is(>=70000)) {
     enter_keyword((a_token_kind)tok_builtin_addressof, "__builtin_addressof");
   }  /* if */
+  if (mscpp_version_is(>=1926) || clang_version_is(>=90000)) {
+    enter_builtin_keyword((a_token_kind)tok_builtin_bit_cast,
+                          "__builtin_bit_cast");
+  }  /* if */
   if (nullability_qualifiers_enabled) {
     enter_keyword((a_token_kind)tok_nullable, "_Nullable");
     enter_keyword((a_token_kind)tok_nonnull, "_Nonnull");

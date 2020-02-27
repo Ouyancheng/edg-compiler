@@ -13582,6 +13582,7 @@ indication in *rcblock).
                                         break;
       case tok_is_aggregate:            bok = bok_is_aggregate; break;
       case tok_builtin_has_attribute:   bok = bok_builtin_has_attribute; break;
+      case tok_builtin_bit_cast:        bok = bok_builtin_bit_cast; break;
       default:
         unexpected_condition();
     }  /* switch */
@@ -13812,6 +13813,117 @@ cases).
                        &start_position);
   pop_expr_stack();
 }  /* scan_builtin_has_attribute */
+
+
+static void scan_builtin_bit_cast(a_rescan_control_block *rcblock,
+                                  an_operand             *result)
+/*
+Scan a construct of the form
+      __builtin_bit_cast(type, object)
+The result of the operation is an object of the specified type with the same
+representation as the source object.  The size of the object and the
+destination type must be the same.  Used by libraries to implement
+std::bit_cast.
+*/
+{
+  a_source_position  start_pos, type_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position  end_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_token_sequence_number
+                     start_tok_seq_number;
+  a_type_ptr         type_arg;
+  an_operand         op1, op2;
+  an_expr_node_ptr   arg1, expr;
+  a_boolean          err = FALSE;
+
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    expr = rcblock->expr;
+    check_assertion(expr != NULL &&
+                    expr->kind == (an_expr_node_kind)enk_builtin_operation &&
+                    expr->variant.builtin_operation.kind ==
+                               (a_builtin_operation_kind)bok_builtin_bit_cast);
+    make_rescan_operands(rcblock, &op1, &op2, (an_operand *)NULL,
+                         &start_pos, &start_tok_seq_number,
+                         (a_source_position *)NULL);
+    check_assertion(is_expression_operand(&op1) &&
+                    op1.variant.expression->kind ==
+                                         (an_expr_node_kind)enk_type_operand);
+    type_arg = op1.variant.expression->variant.type_operand.type;
+    type_pos = op1.position;
+  } else {
+    a_decl_parse_state  dps;
+    /* Normal, non-rescan, processing. */
+    start_pos = pos_curr_token;
+    check_assertion(curr_token == tok_builtin_bit_cast);
+    (void)get_token();
+    /* Check for and pass over the left parenthesis. */
+    (void)required_token(tok_lparen, ec_exp_lparen);
+    add_stop_token(tok_rparen);
+    type_pos = pos_curr_token;
+    type_name(&type_arg);
+    (void)required_token(tok_comma, ec_exp_comma);
+    init_decl_parse_state(&dps);
+    scan_expr(&op2, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_pos = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    remove_stop_token(tok_rparen);
+    /* Check for and pass over the right parenthesis. */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+  }  /* if */
+  if (is_error_type(type_arg) || is_error_operand(&op2)) {
+    err = TRUE;
+  } else {
+    do_operand_transformations(&op2,
+                               TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION);
+    if (is_error_operand(&op2)) {
+      err = TRUE;
+    } else if (is_template_dependent_context() &&
+               (is_template_dependent_type(type_arg) ||
+                is_template_dependent_type(op2.type))) {
+      /* Skip remaining checks because at least one type is dependent. */
+    } else if (size_of_type(skip_typerefs(type_arg)) !=
+               size_of_type(skip_typerefs(op2.type))) {
+      /* Give an error if the size of the type of the second operand is not the
+         same as the size of the type specified as the first operand. */
+      expr_pos_ty2_error(ec_types_must_have_same_size, &op2.position, type_arg,
+                         op2.type);
+      err = TRUE;
+    } else if (!is_trivially_copyable_type(type_arg)) {
+      /* Source type must be trivially copyable. */
+      expr_pos_error(ec_type_must_be_trivially_copyable, &type_pos);
+      err = TRUE;
+    } else if (!is_trivially_copyable_type(op2.type)) {
+      /* Destination type must be trivially copyable. */
+      expr_pos_error(ec_type_must_be_trivially_copyable, &op2.position);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!err) {
+    /* Create the IL for the expression. */
+    expr = alloc_expr_node((an_expr_node_kind)enk_builtin_operation);
+    expr->type = type_arg;
+    expr->variant.builtin_operation.kind =
+                                (a_builtin_operation_kind)bok_builtin_bit_cast;
+    arg1 = alloc_expr_node((an_expr_node_kind)enk_type_operand);
+    arg1->type = void_type();
+    arg1->variant.type_operand.type = type_arg;
+    arg1->position = type_pos;
+    record_type_operand_position_for_rescan(arg1, &start_pos);
+    arg1->next = make_node_from_operand(&op2);
+    arg1->next->is_lvalue = FALSE;
+    expr->variant.builtin_operation.operands = arg1;
+    record_position_in_expr_for_rescan(expr, &start_pos,
+                                       end_position_or_null(&end_pos));
+    make_expression_operand(expr, result);
+    set_operand_position(result, &start_pos, &end_pos, &start_pos);
+  }  /* if */
+  if (err) {
+    make_error_operand(result);
+  }  /* if */
+}  /* scan_builtin_bit_cast */
 
 #if GNU_VECTOR_TYPES_ALLOWED
 
@@ -32447,6 +32559,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_same:
     case tok_is_same_as:
     case tok_builtin_has_attribute:
+    case tok_builtin_bit_cast:
     case tok_requires:
       is_expr_start = TRUE;
       break;
@@ -38048,6 +38161,11 @@ handle_identifier:
     case tok_builtin_has_attribute:
       /* GNU __builtin_has_attribute construct. */
       scan_builtin_has_attribute(&local_result);
+      break;
+
+    case tok_builtin_bit_cast:
+      /* __builtin_bit_cast construct. */
+      scan_builtin_bit_cast((a_rescan_control_block *)NULL, &local_result);
       break;
 
 #if C99_IL_EXTENSIONS_SUPPORTED && GNU_EXTENSIONS_ALLOWED
@@ -46672,6 +46790,9 @@ alternative callable from outside, see rescan_expr_with_substitution.
                            result);
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      case tok_builtin_bit_cast:
+        scan_builtin_bit_cast(rcblock, result);
+        break;
       default:
         unexpected_condition();
     }  /* switch */

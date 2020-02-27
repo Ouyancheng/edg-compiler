@@ -118,7 +118,7 @@ large unsigned if is_signed is FALSE) otherwise set err to FALSE.
   *err = overflow;
 }  /* conv_integer_value_to_host_large_integer */
 
-#endif /* !INTEGER_VALUE_IS_A_HOST_LARGE_INTEGER */
+#endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
 /* Forward declaration. */
 static char *str_for_integer_value(an_integer_value *p_value,

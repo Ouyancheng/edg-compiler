@@ -3164,6 +3164,11 @@ ec_module_kind_header;INTERNAL;"an importable header"
 ec_module_kind_edg;INTERNAL;"an EDG"
 ec_module_kind_ifc;INTERNAL;"an IFC"
 ec_module_kind_unexpected;INTERNAL;"an unexpected"
+ec_types_must_have_same_size;;"the type of the second operand %t2 must have the same size as %t1"
+ec_type_must_be_trivially_copyable;;"type must be trivially copyable"
+ec_unsupported_type_for_bit_cast;;"type %t is currently not supported for constexpr evaluation of __builtin_bit_cast"
+ec_bitfields_not_allowed;;"class types (%t) with bitfields are not currently supported for constexpr evaluation of __builtin_bit_cast"
+ec_reference_type_not_allowed;;"non-static data member of reference type disqualifies %t from constexpr evaluation of __builtin_bit_cast"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

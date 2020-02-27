@@ -2548,6 +2548,47 @@ static a_byte_count lay_out_union_type(an_interpreter_state  *ips,
                                        a_type_ptr            tp,
                                        a_boolean             *p_result);
 
+static an_error_code get_element_and_type_from_array(a_type_ptr    array_type,
+                                                     a_type_ptr    *elem_type,
+                                                     a_targ_size_t *n_elems)
+/*
+Helper routine to return (in *elem_type) the underlying element type as well
+as (in *n_elems) the number of total elements in a potentially-multi-
+dimensional array type (array_type).  Returns an appropriate error code if
+the array type is not suitable for constexpr evaluation or ec_no_error.
+*/
+{
+  an_error_code  result = ec_no_error;
+  a_type_ptr     etp = array_type;
+
+  *n_elems = 1;
+  do {
+    if (etp->variant.array.is_variable_size_array) {
+      result = ec_constexpr_vla;
+      break;
+    } else if (etp->variant.array.is_template_dependent_size_array) {
+      result = ec_constexpr_dependent_array_size;
+      break;
+    } else if (etp->variant.array.variant.number_of_elements == 0 &&
+               !etp->variant.array.bound_is_zero) {
+      result = ec_constexpr_access_to_runtime_storage;
+      break;
+    } else {
+      *n_elems *= etp->variant.array.variant.number_of_elements;
+      etp = etp->variant.array.element_type;
+      etp = skip_typerefs(etp);
+    }  /* if */
+  } while (etp->kind == (a_type_kind)tk_array);
+  *elem_type = etp;
+  return result;
+}  /* get_element_and_type_from_array */
+
+
+#define value_bytes_for_target_type(ips, tp, p_result)                        \
+{ ips->is_target_layout = TRUE;                                               \
+  f_value_bytes_for_type((ips), (tp), (p_result);                             \
+  ips->is_target_layout = TRUE;                                               \
+}
 
 static a_byte_count f_value_bytes_for_type(an_interpreter_state  *ips,
                                            a_type_ptr            tp,
@@ -2586,26 +2627,10 @@ redo:
       result = sizeof(a_constexpr_address);
       break;
     case tk_array:
-      { a_targ_size_t  n_elems = 1;
-        a_type_ptr     etp = tp;
+      { a_targ_size_t  n_elems;
+        a_type_ptr     etp;
         an_error_code  err_code = ec_no_error;
-        do {
-          if (etp->variant.array.is_variable_size_array) {
-            err_code = ec_constexpr_vla;
-            break;
-          } else if (etp->variant.array.is_template_dependent_size_array) {
-            err_code = ec_constexpr_dependent_array_size;
-            break;
-          } else if (etp->variant.array.variant.number_of_elements == 0 &&
-                     !etp->variant.array.bound_is_zero) {
-            err_code = ec_constexpr_access_to_runtime_storage;
-            break;
-          } else {
-            n_elems *= etp->variant.array.variant.number_of_elements;
-            etp = etp->variant.array.element_type;
-            etp = skip_typerefs(etp);
-          }  /* if */
-        } while (etp->kind == (a_type_kind)tk_array);
+        err_code = get_element_and_type_from_array(tp, &etp, &n_elems);
         if (err_code == ec_no_error) {
           result = value_bytes_for_type(ips, etp, p_result);
           if (!*p_result) {
@@ -3826,7 +3851,12 @@ Output the contents of the given complete object.
 {
   a_type_ptr  tp = complete_object_type(obj);
 
-  db_type_name(tp);
+  if (is_scalar_type(tp)) {
+    db_type(tp);
+    (void)fprintf(f_debug, "= ");
+  } else {
+    db_type_name(tp);
+  }  /* if */
   db_object(obj, tp, obj);
 }  /* db_complete_object */
 
@@ -9925,6 +9955,503 @@ done:
 }  /* do_constexpr_intaddr */
 
 
+static a_boolean translate_interpreter_object_to_target_bytes(
+                                    an_interpreter_state  *ips,
+                                    a_type_ptr            type,
+                                    a_byte                *src_storage,
+                                    a_byte                *src_complete_object,
+                                    a_byte                *dest_storage,
+                                    a_byte                *dest_bitmap)
+/*
+Translate the interpreter object at src_storage, whose type is "type", into
+the target layout, starting at dest_storage.  Set the appropriate bits in
+dest_bitmap to indicate which bits in dest_storage have been written to
+(and are therefore considered to be initialized).  src_storage is encompassed
+by src_complete_object.  Returns TRUE if there are no errors; otherwise emits a
+diagnostic.  Used in the implementation of __builtin_bit_cast.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (is_volatile_qualified_type(type)) {
+    info_with_pos_type(ec_constexpr_type_invalid, &ips->position, type, ips);
+    do_constexpr_fail(result);
+  } else {
+    a_type_ptr tp = skip_typerefs(type);
+    switch (tp->kind) {
+      case tk_error:
+        ips->input_error = TRUE;
+        FALLTHROUGH
+      case tk_pointer:
+      case tk_nullptr:
+      case tk_union:
+      case tk_ptr_to_member:
+      case tk_routine:
+        /* These are explicitly forbidden for a constexpr bit_cast. */
+        info_with_pos_type(ec_constexpr_type_invalid, &ips->position, tp, ips);
+        do_constexpr_fail(result);
+        break;
+      case tk_integer:
+        { a_host_large_integer  val;
+          a_boolean             ovfl;
+          /* Convert the integer value in interpreter object format into
+             a large host integer.  Note that this may generate spurious
+             overflow indications for types where the target type is larger
+             than the host's large integer type. */
+          get_int_val_from(src_storage, tp, val, ovfl);
+          if (ovfl) {
+            info_with_pos_type(ec_constexpr_integer_overflow, &ips->position,
+                               tp, ips);
+            do_constexpr_fail(result);
+          } else {
+            /* Store the resulting value in target layout, noting that each
+               byte in the result has been initialized. */
+            a_byte   byte;
+            unsigned bit_shift;
+            for (unsigned int i = 0; i < tp->size; i++) {
+              bit_shift = host_little_endian ? i : ((tp->size - 1) - i);
+              bit_shift *= CHAR_BIT;
+              byte = (val & ((a_host_large_unsigned)0xff << bit_shift))
+                                                         >> bit_shift;
+              *dest_storage++ = byte;
+              *dest_bitmap++ = 0xff;
+            }  /* for */
+          }  /* if */
+        }
+        break;
+      case tk_float:
+        /* Floating-point values are stored internally in a buffer large enough
+           to hold the largest floating-point type for the target, but only
+           the required bytes for the specific floating-point type are used.
+           So, e.g., a float will only use four bytes (and the value is already
+           in target layout -- modulo endianness). */
+        for (unsigned int i = 0; i < tp->size; i++) {
+          *dest_storage++ = *src_storage++;
+          *dest_bitmap++ = 0xff;
+        }  /* for */
+        break;
+      case tk_array:
+        /* An array; step through each underlying element. */
+        { a_targ_size_t  n_elems;
+          a_type_ptr     etp;
+          an_error_code  err_code = ec_no_error;
+          err_code = get_element_and_type_from_array(tp, &etp, &n_elems);
+          if (err_code == ec_no_error) {
+            a_byte_count etp_n_bytes = value_bytes_for_type(ips, etp, &result);
+            if (result) {
+              check_assertion(n_elems < MAX_ARRAY_LENGTH);
+              for (; n_elems > 0; n_elems--) {
+                if (!translate_interpreter_object_to_target_bytes(ips, etp,
+                                                           src_storage,
+                                                           src_complete_object,
+                                                           dest_storage,
+                                                           dest_bitmap)) {
+                  do_constexpr_fail(result);
+                  break;
+                }  /* if */
+                /* Move to the next element (both source and destination). */
+                src_storage += etp_n_bytes;
+                dest_storage += etp->size;
+                dest_bitmap += etp->size;
+              }  /* for */
+            }  /* if */
+          } else {
+            info_with_pos(err_code, &ips->position, ips);
+            do_constexpr_fail(result);
+          }  /* if */
+        }
+        break;
+      case tk_class:
+      case tk_struct:
+        /* Visit each subobject of the class separately. */
+        { a_byte_count offset;
+          /* This is called to ensure that the class has been laid out. */
+          (void)f_value_bytes_for_type(ips, tp, &result);
+          /* Visit subobjects.  Note that the order in which the subobjects
+             are visited is immaterial. */
+          if (result) {
+            a_field_ptr fp = tp->variant.class_struct_union.field_list;
+            for (fp = next_alloc_field(fp);
+                 fp != NULL;
+                 fp = next_alloc_field(fp->next)) {
+              if (fp->compiler_generated && !fp->is_anonymous_parent_object) {
+                /* Ignore fields generated by prelowering. */
+                continue;
+              }  /* if */
+              if (fp->is_bit_field) {
+                /* For now, don't allow bitfields. */
+                info_with_pos_type(ec_bitfields_not_allowed, type_pos(tp, ips),
+                                   tp, ips);
+                do_constexpr_fail(result);
+                break;
+              }  /* if */
+              if (is_reference_type(fp->type)) {
+                /* Non-static data members with reference type are not
+                   allowed. */
+                info_with_pos_type(ec_reference_type_not_allowed,
+                                   type_pos(tp, ips), tp, ips);
+                do_constexpr_fail(result);
+                break;
+              }  /* if */
+              get_mapped_byte_count(&persistent_map, fp, offset);
+              if (!translate_interpreter_object_to_target_bytes(ips,
+                                                   skip_typerefs(fp->type),
+                                                   src_storage + offset,
+                                                   src_complete_object,
+                                                   dest_storage + fp->offset,
+                                                   dest_bitmap + fp->offset)) {
+                do_constexpr_fail(result);
+                break;
+              }  /* if */
+            }  /* for */
+          }  /* if */
+          if (result) {
+            a_base_class_ptr  bcp;
+            /* Visit base classes (direct and virtual). */
+            for (bcp = base_classes_of(tp); bcp != NULL; bcp = bcp->next) {
+              get_mapped_byte_count(&persistent_map, bcp, offset);
+              if (!translate_interpreter_object_to_target_bytes(ips,
+                                                  skip_typerefs(bcp->type),
+                                                  src_storage + offset,
+                                                  src_complete_object,
+                                                  dest_storage + bcp->offset,
+                                                  dest_bitmap + bcp->offset)) {
+                do_constexpr_fail(result);
+                break;
+              }  /* if */
+            }  /* for */
+          }  /* if */
+        }
+        break;
+#if GNU_VECTOR_TYPES_ALLOWED
+      case tk_vector:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case tk_complex:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+        /* These should eventually be supported but aren't yet. */
+        info_with_pos_type(ec_unsupported_type_for_bit_cast, &ips->position,
+                           tp, ips);
+        do_constexpr_fail(result);
+        break;
+#if FIXED_POINT_ALLOWED
+      case tk_fixed_point:
+#endif /* FIXED_POINT_ALLOWED */
+      case tk_void:
+      case tk_typeref:
+      case tk_template_param:
+      case tk_unknown:
+      default:
+        /* These types should not be encountered here. */
+        do_constexpr_fail(result);
+        unexpected_condition();
+    }  /* switch */
+  }  /* if */
+  return result;
+}  /* translate_interpreter_object_to_target_bytes */
+
+
+static a_boolean translate_target_bytes_to_interpreter_object(
+                                   an_interpreter_state  *ips,
+                                   a_type_ptr            type,
+                                   a_byte                *src_storage,
+                                   a_byte                *src_bitmap,
+                                   a_byte                *dest_storage,
+                                   a_byte                *dest_complete_object)
+/*
+Translate the bits stored in target layout at src_storage as an object of
+the specified type into the equivalent interpreter object layout at
+dest_storage.  src_bitmap is a parallel array to src_storage and indicates
+which bits have been previously initialized.  dest_storage is a subobject
+of dest_complete_object.  Report an error and return FALSE if the translation
+cannot be performed.  Used in the implementation of __builtin_bit_cast.
+*/
+{
+  a_boolean  result = TRUE, initialized = TRUE;
+  a_byte     *orig_dest_storage = dest_storage;
+  a_type_ptr tp = NULL;
+
+  if (is_volatile_qualified_type(type)) {
+    info_with_pos_type(ec_constexpr_type_invalid, &ips->position, type, ips);
+    do_constexpr_fail(result);
+  } else {
+    tp = skip_typerefs(type);
+    switch (tp->kind) {
+      case tk_error:
+        ips->input_error = TRUE;
+        FALLTHROUGH
+      case tk_pointer:
+      case tk_nullptr:
+      case tk_union:
+      case tk_ptr_to_member:
+      case tk_routine:
+        /* These are explicitly forbidden for a constexpr bit_cast. */
+        info_with_pos_type(ec_constexpr_type_invalid, &ips->position, tp, ips);
+        do_constexpr_fail(result);
+        break;
+      case tk_integer:
+        { a_host_large_unsigned val = 0;
+          if (sizeof(a_host_large_integer) < tp->size) {
+            /* Can't fit value into largest integer. */
+            info_with_pos_type(ec_constexpr_integer_overflow, &ips->position,
+                               tp, ips);
+            do_constexpr_fail(result);
+          } else {
+            /* For every byte in the target representation of the integer,
+               if initialized, use it to re-construct the actual integer
+               value. */
+            a_byte   byte;
+            unsigned bit_shift;
+            for (unsigned int i = 0; i < tp->size; i++) {
+              if (*src_bitmap++ != 0xff) {
+                initialized = FALSE;
+              }  /* if */
+              byte = *src_storage++;
+              bit_shift = host_little_endian ? i : ((tp->size - 1) - i);
+              bit_shift *= CHAR_BIT;
+              val |= (a_host_large_unsigned)byte << bit_shift;
+            }  /* for */
+            /* Now store "val" into the interpreter object. */
+            if (int_kind_is_signed[tp->variant.integer.int_kind]) {
+              set_integer_value((an_integer_value*)dest_storage,
+                                (a_host_large_integer)val);
+              sign_extend_integer_value((an_integer_value*)dest_storage,
+                                        (int)(tp->size * targ_char_bit));
+            } else {
+              set_unsigned_integer_value((an_integer_value*)dest_storage, val);
+            }  /* if */
+          }  /* if */
+        }
+        break;
+      case tk_float:
+        for (unsigned int i = 0; i < tp->size; i++) {
+          if (*src_bitmap++ != 0xff) {
+            initialized = FALSE;
+          }  /* if */
+          *dest_storage++ = *src_storage++;
+        }  /* for */
+        break;
+      case tk_array:
+        /* An array; step through each underlying element. */
+        { a_targ_size_t  n_elems;
+          a_type_ptr     etp;
+          an_error_code  err_code = ec_no_error;
+          err_code = get_element_and_type_from_array(tp, &etp, &n_elems);
+          if (err_code == ec_no_error) {
+            a_byte_count etp_n_bytes = value_bytes_for_type(ips, etp, &result);
+            if (result) {
+              check_assertion(n_elems < MAX_ARRAY_LENGTH);
+              for (; n_elems > 0; n_elems--) {
+                if (!translate_target_bytes_to_interpreter_object(ips, etp,
+                                                       src_storage,
+                                                       src_bitmap,
+                                                       dest_storage,
+                                                       dest_complete_object)) {
+                  do_constexpr_fail(result);
+                  break;
+                }  /* if */
+                if (!subobject_is_initialized(dest_storage,
+                                              dest_complete_object)) {
+                  initialized = FALSE;
+                }  /* if */
+                /* Move to the next element (both source and destination). */
+                src_storage += etp->size;
+                src_bitmap += etp->size;
+                dest_storage += etp_n_bytes;
+              }  /* for */
+            }  /* if */
+          } else {
+            info_with_pos(err_code, &ips->position, ips);
+            do_constexpr_fail(result);
+          }  /* if */
+        }
+        break;
+      case tk_class:
+      case tk_struct:
+        /* Visit each subobject of the class separately. */
+        { a_byte_count offset;
+          /* This is called to ensure that the class has been laid out. */
+          (void)f_value_bytes_for_type(ips, tp, &result);
+          /* Visit subobjects.  Note that the order in which the subobjects
+             are visited is immaterial. */
+          if (result) {
+            a_field_ptr fp = tp->variant.class_struct_union.field_list;
+            for (fp = next_alloc_field(fp);
+                 fp != NULL;
+                 fp = next_alloc_field(fp->next)) {
+              if (fp->compiler_generated && !fp->is_anonymous_parent_object) {
+                /* Ignore fields generated by prelowering. */
+                continue;
+              }  /* if */
+              if (fp->is_bit_field) {
+                /* For now, don't allow bitfields. */
+                info_with_pos_type(ec_bitfields_not_allowed, type_pos(tp, ips),
+                                   tp, ips);
+                do_constexpr_fail(result);
+                break;
+              }  /* if */
+              if (is_reference_type(fp->type)) {
+                /* Non-static data members with reference type are not
+                   allowed. */
+                info_with_pos_type(ec_reference_type_not_allowed,
+                                   type_pos(tp, ips), tp, ips);
+                do_constexpr_fail(result);
+                break;
+              }  /* if */
+              get_mapped_byte_count(&persistent_map, fp, offset);
+              if (!translate_target_bytes_to_interpreter_object(ips,
+                                                   skip_typerefs(fp->type),
+                                                   src_storage + fp->offset,
+                                                   src_bitmap + fp->offset,
+                                                   dest_storage + offset,
+                                                   dest_complete_object)) {
+                do_constexpr_fail(result);
+                break;
+              }  /* if */
+              if (!subobject_is_initialized(dest_storage + offset,
+                                            dest_complete_object)) {
+                initialized = FALSE;
+              }  /* if */
+            }  /* for */
+          }  /* if */
+          if (result) {
+            a_base_class_ptr  bcp;
+            /* Visit base classes (direct and virtual). */
+            for (bcp = base_classes_of(tp); bcp != NULL; bcp = bcp->next) {
+              get_mapped_byte_count(&persistent_map, bcp, offset);
+              if (!translate_target_bytes_to_interpreter_object(ips,
+                                                   skip_typerefs(bcp->type),
+                                                   src_storage + bcp->offset,
+                                                   src_bitmap + bcp->offset,
+                                                   dest_storage + offset,
+                                                   dest_complete_object)) {
+                do_constexpr_fail(result);
+                break;
+              }  /* if */
+              if (!subobject_is_initialized(dest_storage + offset,
+                                            dest_complete_object)) {
+                initialized = FALSE;
+              }  /* if */
+            }  /* for */
+          }  /* if */
+        }
+        break;
+#if GNU_VECTOR_TYPES_ALLOWED
+      case tk_vector:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case tk_complex:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+        /* These should eventually be supported but aren't yet. */
+        info_with_pos_type(ec_unsupported_type_for_bit_cast, &ips->position,
+                           tp, ips);
+        do_constexpr_fail(result);
+        break;
+#if FIXED_POINT_ALLOWED
+      case tk_fixed_point:
+#endif /* FIXED_POINT_ALLOWED */
+      case tk_void:
+      case tk_typeref:
+      case tk_template_param:
+      case tk_unknown:
+      default:
+        /* These types should not be encountered here. */
+        do_constexpr_fail(result);
+        unexpected_condition();
+    }  /* switch */
+  }  /* if */
+  if (result && initialized) {
+    /* Mark this subobject as initialized. */
+    mark_subobject_initialized(orig_dest_storage, dest_complete_object);
+    if (orig_dest_storage == dest_complete_object) {
+      /* Mark the destination storage as fully initialized. */
+      mark_complete_object_initialized(dest_complete_object);
+    }  /* if */
+    if (tp != NULL && 
+        (is_immediate_class_type(tp) || tp->kind == (a_type_kind)tk_array)) {
+      /* Mark the subobject as fully initialized. */
+      mark_whole_subobject_initialized(ips, orig_dest_storage, tp,
+                                       dest_complete_object);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* translate_target_bytes_to_interpreter_object */
+
+
+static a_boolean do_constexpr_builtin_bit_cast(
+                                        an_interpreter_state  *ips,
+                                        an_expr_node_ptr      expr,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_object)
+/*
+Evaluate, if possible, the given __builtin_bit_cast expression.  If successful,
+return TRUE and store the result in *result_storage (which is a subobject of
+complete_object).  Otherwise, return FALSE and record a diagnostic in *ips.
+*/
+{
+  a_boolean         result = TRUE;
+  an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands, object;
+  a_type_ptr        src_type, dst_type;
+  a_byte_count      n_bytes;
+  a_targ_size_t     type_size;
+  a_byte            *src_result_storage, *target_result_storage;
+  a_byte            *target_result_bitmap;
+
+  check_assertion(arg1 != NULL && arg1->next != NULL &&
+                  arg1->kind == (an_expr_node_kind)enk_type_operand);
+  object = arg1->next;
+  dst_type = skip_typerefs(arg1->variant.type_operand.type);
+  src_type = skip_typerefs(object->type);
+  type_size = size_of_type(src_type);
+  check_assertion(type_size == size_of_type(dst_type));
+  n_bytes = expr_result_size(ips, object, src_type, &result);
+  if (result) {
+    /* Interpret the source of the bit_cast into src_result_storage (which
+       is in "interpreter" object format). */
+    do_host_alignment(n_bytes);
+    alloc_complete_object(ips, n_bytes, src_type, src_result_storage);
+    if (!do_constexpr_expression(ips, object, src_result_storage,
+                                 src_result_storage)) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  if (result) {
+    /* Now transform the interpreter-formatted object format into the
+       target representation. */
+    alloc_stack_bytes(ips, type_size, target_result_storage);
+    alloc_stack_bytes(ips, type_size, target_result_bitmap);
+    debug_scramble(target_result_storage, type_size);
+    memzero((char*)target_result_bitmap, type_size);
+    if (!translate_interpreter_object_to_target_bytes(ips, src_type,
+                                                      src_result_storage,
+                                                      src_result_storage,
+                                                      target_result_storage,
+                                                      target_result_bitmap)) {
+      result = FALSE;
+    }  /* if */
+    /* Translate the target layout back to an interpreter object. */
+    if (result &&
+        !translate_target_bytes_to_interpreter_object(ips, dst_type,
+                                                      target_result_storage,
+                                                      target_result_bitmap,
+                                                      result_storage,
+                                                      complete_object)) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  if (!result) {
+    do_constexpr_fail(result);
+  }  /* if */
+  return result;
+}  /* do_constexpr_builtin_bit_cast */
+
+
 static a_boolean do_constexpr_builtin_operation(
                                        an_interpreter_state  *ips,
                                        an_expr_node_ptr      orig_expr,
@@ -9963,6 +10490,12 @@ storage within the given complete object).  Otherwise, return FALSE and update
           unexpected_condition();
         }  /* if */
       }
+      break;
+    case bok_builtin_bit_cast:
+      if (!do_constexpr_builtin_bit_cast(ips, expr, result_storage,
+                                         complete_object)) {
+        do_constexpr_fail(result);
+      }  /* if */
       break;
     default:
       do_constexpr_fail(result);
