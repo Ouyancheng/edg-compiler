@@ -23781,6 +23781,8 @@ struct a_constraint_chart {
 			   occurs if every disjunctive clause of the
 			   constraint has an atomic constraint that is not
 			   introduced by a concept. */
+// FIXME: Also consider "not_subsuming flag and verify the logic of the
+// not_subsumable flag.
 };
 
 #define UNCONSTRAINED_CHART ((a_constraint_chart*)(a_uintptr)0x1)
@@ -23841,7 +23843,7 @@ can appear multiple times (with different mappings) in the constraint chart,
 the chart links identical expressions on a circular linked list through the
 "next" field.
 */
-using an_expr_chart_map = Ptr_map<an_expr_node_ptr, uint32_t>;
+using an_expr_chart_map = Ptr_map<an_expr_node_ptr, int32_t>;
 
 #if DEBUG
 
@@ -23860,9 +23862,9 @@ indicates that this function processed the last disjunctive clause).
 */
 {
   using an_array = Dyn_array<a_charted_constraint>;
-  an_array          &array = chart->constraints_array;
-  an_array::a_size  k = 0, len = array.length(), next_active = 0;
-  a_boolean         flipping = TRUE;
+  an_array   &array = chart->constraints_array;
+  int32_t    k = 0, len = (int32_t)array.length(), next_active = 0;
+  a_boolean  flipping = TRUE;
 
   while (k < len) {
     a_charted_constraint  *constraint = &array[k];
@@ -23875,7 +23877,7 @@ indicates that this function processed the last disjunctive clause).
              and therefore cannot be repeated (and thus need not be recorded).
              I.e., map_or_replace only returns 0 if the map does not already
              contain the expression. */
-          uint32_t prev_k = expr_map->map_or_replace(constraint->expr, k);
+          int32_t prev_k = expr_map->map_or_replace(constraint->expr, k);
           if (prev_k != 0) {
             a_charted_constraint  *prev_constraint = &array[prev_k];
             constraint->next = prev_constraint->next;
@@ -23922,7 +23924,7 @@ indicates that this function processed the last disjunctive clause).
 
 
 struct a_map_check_pair {
-  uint32_t	idx1, idx2;
+  int32_t	idx1, idx2;
 };
 
 using a_map_check_list = Dyn_array<a_map_check_pair>;
@@ -23940,18 +23942,18 @@ conjunctive clause, and if the last clause was processed return TRUE.
 */
 {
   using an_array = Dyn_array<a_charted_constraint>;
-  an_array          &array = chart->constraints_array;
-  an_array::a_size  k = 0, len = array.length(), next_active = 0;
-  a_boolean         flipping = TRUE;
+  an_array   &array = chart->constraints_array;
+  int32_t    k = 0, len = (int32_t)array.length(), next_active = 0;
+  a_boolean  flipping = TRUE;
 
   while (k < len) {
     a_charted_constraint  *constraint = &array[k];
     switch (constraint->kind) {
       case CK_ATOMIC:
         if (k >= next_active) {
-          uint32_t  idx = expr_map->get(constraint->expr);
+          int32_t  idx = expr_map->get(constraint->expr);
           if (idx != 0) {
-            map_checks->push_back(a_map_check_pair{ idx, (uint32_t)k });
+            map_checks->push_back(a_map_check_pair{ idx, k });
           }  /* if */
         }  /* if */
         ++k;
@@ -24006,11 +24008,11 @@ Return FALSE otherwise.
     result = FALSE;
   } else {
     using an_array = Dyn_array<a_charted_constraint>;
-    an_array           &array1 = chart1->constraints_array,
-                       &array2 = chart2->constraints_array;
-    an_array::a_size   k, len;
+    an_array  &array1 = chart1->constraints_array,
+              &array2 = chart2->constraints_array;
+    int32_t   k, len;
     /* Clear the CK_OR flags in chart1 and the CK_AND flags in chart2. */
-    len = array1.length();
+    len = (int32_t)array1.length();
     for (k = 0; k<len; ++k) {
       a_charted_constraint  *constraint = &array1[k];
       if (constraint->kind == CK_OR) {
@@ -24019,7 +24021,7 @@ Return FALSE otherwise.
         constraint->next = k;
       }  /* if */
     }  /* if */
-    len = array2.length();
+    len = (int32_t)array2.length();
     for (k = 0; k<len; ++k) {
       a_charted_constraint  *constraint = &array2[k];
       if (constraint->kind == CK_AND) {
@@ -24078,28 +24080,28 @@ concept-id traversed prior to expr (-1 if there was none).
   Dyn_array<a_charted_constraint>  &array = chart->constraints_array;
 
   if (node_is(expr, enk_concept_id)) {
-    int32_t  new_parent_idx = array.length();
+    int32_t  new_parent_idx = (int32_t)array.length();
     array.push_back(a_charted_constraint{ CK_CONCEPT, (uint32_t)parent_idx,
                                           { (uint32_t)0 }, expr });
     chart_constraint(expr->variant.concept_id.concept_template
                          ->prototype_instantiation.constraint,
                      chart, new_parent_idx, not_subsumable);
   } else if (is_operation_node(expr) && node_operator_is(expr, eok_land)) {
-    uint32_t  idx = array.length();
+    int32_t  idx = (int32_t)array.length();
     array.push_back(a_charted_constraint{ CK_AND, (uint32_t)parent_idx,
                                           { (uint32_t)0 }, expr });
     an_expr_node_ptr  opnds = expr->variant.operation.operands;
     chart_constraint(opnds, chart, parent_idx, not_subsumable);
-    array[idx].link = array.length();
+    array[idx].link = (int32_t)array.length();
     chart_constraint(opnds->next, chart, parent_idx, not_subsumable);
   } else if (is_operation_node(expr) && node_operator_is(expr, eok_or)) {
-    uint32_t   idx = array.length();
+    int32_t   idx = array.length();
     a_boolean  left_not_subsumable = FALSE, right_not_subsumable = FALSE;
     array.push_back(a_charted_constraint{ CK_OR, (uint32_t)parent_idx,
                                           { (uint32_t)0 }, expr });
     an_expr_node_ptr  opnds = expr->variant.operation.operands;
     chart_constraint(opnds, chart, parent_idx, &left_not_subsumable);
-    array[idx].link = array.length();
+    array[idx].link = (uint32_t)array.length();
     chart_constraint(opnds->next, chart, parent_idx, &right_not_subsumable);
   } else {
     /* An atomic constraint. */
@@ -24120,7 +24122,7 @@ generate that chart.
 
   if (result == NULL) {
     Dyn_array<an_expr_node_ptr>  constraints(10);
-    a_ptrdiff                    n_constraints;
+    int32_t                      n_constraints;
     if (is_template_symbol(sym)) {
       a_template_symbol_supplement_ptr
                            tssp = sym->variant.template_info;
@@ -24171,17 +24173,17 @@ generate that chart.
       construct(result, 2*n_constraints);
       Dyn_array<a_charted_constraint>  &array = result->constraints_array;
       for (auto k = 0; k<n_constraints; ++k) {
-        a_ptrdiff  pos = -1;
+        int32_t  pos = -1;
         if (k != n_constraints-1) {
-          pos = array.length();
+          pos = (int32_t)array.length();
           array.push_back(
-                     a_charted_constraint{CK_AND, (uint32_t)0, FALSE, NULL });
+                 a_charted_constraint{CK_AND, (uint32_t)0, { FALSE }, NULL });
         }  /* if */
         chart_constraint(constraints[k], result, -1, &not_subsumable);
         if (pos != -1) {
           /* This constraint is ANDed with the next.  Update the "link" field
              for the CK_AND entry that was recorded above. */
-          array[pos].link = array.length();
+          array[pos].link = (uint32_t)array.length();
         }  /* if */
       }  /* for */
       if (not_subsumable) {
