@@ -1,5 +1,13 @@
 Version 6.1
 
+2/28/20  [EDGcpfe/15915,EDGcpfe/22427]
+Segfault with MAKE_FRONT_END_CALLABLE and digit separators
+
+In configurations with MAKE_FRONT_END_CALLABLE set to TRUE, uses of digit
+separators in separate calls to the front end could result in aborts in
+remove_digit_separators.  This is now fixed.
+
+
 2/28/20  [EDGcpfe/22239]
 C++20: __builtin_bit_cast (helper builtin operator for std::bit_cast)
 

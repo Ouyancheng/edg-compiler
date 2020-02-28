@@ -49,6 +49,7 @@ fe_wrapup.c - End of front end processing.
 #endif /* DEBUG */
 #if MAKE_FRONT_END_CALLABLE
 #include "pch.h"
+#include "literals.h"
 #endif /* MAKE_FRONT_END_CALLABLE */
 #if MAINTAIN_NEEDED_FLAGS || DO_IL_LOWERING
 #include "il_walk.h"
@@ -892,6 +893,7 @@ memory used by the compilation.
   error_cleanup();
   pch_cleanup();
   lexical_cleanup();
+  literals_cleanup();
   modules_cleanup();
   mem_manage_wrapup();
 #if CPPCLI_ENABLING_POSSIBLE

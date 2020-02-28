@@ -2012,6 +2012,20 @@ mix of the given kind and chk_char.
   db_exit();
 }  /* concat_string_literals */
 
+#if MAKE_FRONT_END_CALLABLE
+
+void literals_cleanup(void)
+/*
+This routine is called at the end of compilation, or if compilation is
+terminated prematurely for some reason.  It performs any cleanup operations
+required.
+*/
+{
+  token_buffer = NULL;
+}  /* literals_cleanup */
+
+#endif /* MAKE_FRONT_END_CALLABLE */
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 
