@@ -351,7 +351,8 @@ necessary to make it directly accessible in memory.
   reading_file_scope_il = (region_number == FILE_SCOPE_REGION_NUMBER);
   /* Position the file at the start of the data for the region, as
      indicated by the file index. */
-  if (fseek(f_il_input, index_for_il_file[region_number], SEEK_SET) != 0) {
+  if (set_file_position(f_il_input, index_for_il_file[region_number],
+                        SEEK_SET) != 0) {
     catastrophe(ec_bad_il_file);
   }  /* if */
   /* Read the region number to verify that we're in the right place. */
@@ -953,7 +954,7 @@ build the in-memory version.
        file index table (array giving the file offset for each region)
   */
   /* Seek to the beginning of the file. */
-  if (fseek(f_il_input, 0L, SEEK_SET) != 0) {
+  if (set_file_position(f_il_input, 0L, SEEK_SET) != 0) {
     catastrophe(ec_bad_il_file);
   }  /* if */
   /* Read and check the magic string. */
@@ -1023,7 +1024,7 @@ build the in-memory version.
   memzero((char *)il_header.function_def_table,
           size_t_arg(size_of_function_def_table*sizeof(a_function_def_descr)));
   /* Read the file index. */
-  if (fseek(f_il_input, index_pos, SEEK_SET) != 0) {
+  if (set_file_position(f_il_input, index_pos, SEEK_SET) != 0) {
     catastrophe(ec_bad_il_file);
   }  /* if */
   fread_with_check((char *)&index_for_il_file[FILE_SCOPE_REGION_NUMBER],

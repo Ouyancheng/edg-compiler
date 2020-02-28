@@ -39,17 +39,46 @@ BEGIN_EDG_NAMESPACE
 #define LEN_IL_FILE_MAGIC_STRING \
   (sizeof(IL_FILE_MAGIC_STRING) - 2 + sizeof(IL_VERSION_NUMBER) - 1)
                                 
-
+/*
+Definitions for file positioning.  The POSIX ftell and fseek functions
+typically limit IL files to 2 GB (32-bit offsets).  If larger IL files are
+anticipated, setting LARGE_IL_FILE_SUPPORT to TRUE causes the front end to
+use alternative system-dependent routines that permit file sizes larger
+than those supported by ftell/fseek.  (Note that on non-Windows systems it
+may be necessary to define _FILE_OFFSET_BITS to 64 in order to configure
+off_t to be a 64-bit value.)
+*/
+#ifndef LARGE_IL_FILE_SUPPORT
+#define LARGE_IL_FILE_SUPPORT FALSE
+#endif /* !defined(LARGE_IL_FILE_SUPPORT) */
+#if LARGE_IL_FILE_SUPPORT
+#if EDG_WIN32
+typedef __int64	a_file_position;
+			/* Position in a file, as returned by _ftelli64 and
+			   accepted by _fseeki64. */
+#define get_file_position(file) _ftelli64(file)
+#define set_file_position(file, offset, origin) _fseeki64(file, offset, origin)
+#else /* !EDG_WIN32 */
+typedef off_t	a_file_position;
+			/* Position in a file, as returned by ftello and
+			   accepted by fseeko. */
+#define get_file_position(file) ftello(file)
+#define set_file_position(file, offset, origin) fseeko(file, offset, origin)
+#endif /* EDG_WIN32 */
+#else /* !LARGE_IL_FILE_SUPPORT */
 typedef long	a_file_position;
-			/* Position in a file; type of value returned by ftell
-			   and accepted by fseek. */
+			/* Position in a file as returned by ftell and
+			   accepted by fseek. */
+#define get_file_position(file) ftell(file)
+#define set_file_position(file, offset, origin) fseek(file, offset, origin)
+#endif /* LARGE_IL_FILE_SUPPORT */
+
 EXTERN a_file_position
 		*index_for_il_file /* = NULL */;
 			/* Parallel array to mem_region_table.
 			   index_for_il_file[i] contains the file offset of
 			   region i in the file, or 0 if the region has not
 			   yet been written. */
-
 
 #if ALTERNATE_IL_FILE_FORMAT
 /*

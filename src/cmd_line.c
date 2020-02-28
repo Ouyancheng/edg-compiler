@@ -7345,6 +7345,11 @@ file.
   comment_undefined_macro_name(
                              KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION);
 #endif /* defined(KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION) */
+#if defined(LARGE_IL_FILE_SUPPORT)
+  define_numeric_valued_macro(LARGE_IL_FILE_SUPPORT);
+#else /* !defined(LARGE_IL_FILE_SUPPORT) */
+  comment_undefined_macro_name(LARGE_IL_FILE_SUPPORT);
+#endif /* defined(LARGE_IL_FILE_SUPPORT) */
 #if defined(LAZY_INITIALIZATION_USES_WEAK_REFERENCES)
   define_numeric_valued_macro(LAZY_INITIALIZATION_USES_WEAK_REFERENCES);
 #else /* !defined(LAZY_INITIALIZATION_USES_WEAK_REFERENCES) */

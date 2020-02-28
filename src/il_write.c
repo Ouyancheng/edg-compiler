@@ -412,7 +412,7 @@ Write the initial information to the IL file, if there is one.
                  f_il_output);
     (void)fwrite((char *)&zero_file_position, sizeof(zero_file_position), 1,
                  f_il_output);
-    il_header_pos = ftell(f_il_output);
+    il_header_pos = get_file_position(f_il_output);
     (void)fwrite((char *)&il_header, sizeof(il_header), 1, f_il_output);
     /* Leave space for the orphaned_file_scope_il_entries array. */
     (void)fwrite((char *)orphaned_file_scope_il_entries,
@@ -516,14 +516,15 @@ Finish writing the IL file, if there is one.
        of regions. */
     (void)fwrite((char *)&end_flag, sizeof(end_flag), 1, f_il_output);
     /* Write the file index table at the end of the file. */
-    index_pos = ftell(f_il_output);
+    index_pos = get_file_position(f_il_output);
     index_size = (sizeof_t)(unsigned)highest_used_region_number *
                  sizeof(a_file_position);
     (void)fwrite((char *)&index_for_il_file[FILE_SCOPE_REGION_NUMBER],
                  size_t_arg(index_size), 1, f_il_output);
     /* Seek back to just after the "magic" string at the beginning of the
        file. */
-    if (fseek(f_il_output,(long)LEN_IL_FILE_MAGIC_STRING,SEEK_SET) != 0) {
+    if (set_file_position(f_il_output, (long)LEN_IL_FILE_MAGIC_STRING,
+                          SEEK_SET) != 0) {
       file_write_error(ec_intermediate_language_1, errno);
     }  /* if */
     /* Write the number of regions. */
@@ -767,7 +768,7 @@ Write the indicated memory region to the file f_il_output.
                         "write_memory_region: region already written");
     /* Remember the current file position as the position of the region
        by saving it in the file index. */
-    index_for_il_file[region_number] = ftell(f_il_output);
+    index_for_il_file[region_number] = get_file_position(f_il_output);
     /* Write the region number. */
     (void)fwrite((char *)&region_number,
                  sizeof(region_number), 1, f_il_output);
@@ -796,7 +797,7 @@ Write the indicated memory region to the file f_il_output.
          only be known when the region has been fully processed.  Since
          we are writing to fill space, the distinction between the file-scope
          array and the function array is unimportant. */
-      count_array_pos = ftell(f_il_output);
+      count_array_pos = get_file_position(f_il_output);
       /* The first entry of the array is skipped. */
       (void)fwrite((char *)(entry_numbers_array+1),
                    sizeof(entry_numbers_array)-sizeof(an_il_entry_number), 1,
@@ -827,10 +828,10 @@ Write the indicated memory region to the file f_il_output.
          entries. */
       (void)fwrite(&zero, 1, 1, f_il_output);
       /* Save the end-of-file position. */
-      end_pos = ftell(f_il_output);
+      end_pos = get_file_position(f_il_output);
       /* Go back and write the array of entry counts.  This time it matters
          which one we write. */
-      if (fseek(f_il_output, count_array_pos, SEEK_SET) != 0) {
+      if (set_file_position(f_il_output, count_array_pos, SEEK_SET) != 0) {
         file_write_error(ec_intermediate_language_5, errno);
       }  /* if */
       /* The first entry of the array is skipped. */
@@ -841,7 +842,7 @@ Write the indicated memory region to the file f_il_output.
       /* Reposition the file at the end to leave it properly positioned
          for future writes.  SEEK_END is not used because ANSI doesn't 
          guarantee it for binary files. */
-      if (fseek(f_il_output, end_pos, SEEK_SET) != 0) {
+      if (set_file_position(f_il_output, end_pos, SEEK_SET) != 0) {
         file_write_error(ec_intermediate_language_6, errno);
       }  /* if */
     }
@@ -926,9 +927,9 @@ Write the indicated memory region to the file f_il_output.
            orphaned_file_scope_il_entries array (written as 0)
       */
       /* Save the current (end of file) position. */
-      end_pos = ftell(f_il_output);
+      end_pos = get_file_position(f_il_output);
       /* Seek to where the il_header was written. */
-      if (fseek(f_il_output, (long)il_header_pos, SEEK_SET) != 0) {
+      if (set_file_position(f_il_output, (long)il_header_pos, SEEK_SET) != 0) {
         file_write_error(ec_intermediate_language_8, errno);
       }  /* if */
       /* Save il_header; it gets modified, written, then restored. */
@@ -966,7 +967,7 @@ Write the indicated memory region to the file f_il_output.
 #endif /* ALTERNATE_IL_FILE_FORMAT */
       /* Restore the position at the end of the file.  SEEK_END is not
          used because ANSI doesn't guarantee it for binary files. */
-      if (fseek(f_il_output, end_pos, SEEK_SET) != 0) {
+      if (set_file_position(f_il_output, end_pos, SEEK_SET) != 0) {
         file_write_error(ec_intermediate_language_9, errno);
       }  /* if */
     }  /* if */

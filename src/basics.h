@@ -515,7 +515,7 @@ extern "C" char *sprintf(char *, const char *, ...);
 #endif /* __BSD__ */
 /* Some stdio.h's do not define SEEK_SET. */
 #ifndef SEEK_SET
-/* For fseek parameters: */
+/* For fseek (etc.) parameters: */
 #define SEEK_SET 0 /* Normal Unix value. */
 #endif /* ifndef SEEK_SET */
 

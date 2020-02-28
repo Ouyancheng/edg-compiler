@@ -1,5 +1,18 @@
 Version 6.1
 
+2/28/20  [EDGcpfe/22142]
+Support for very large IL files
+
+Until now, the front end has used the ftell and fseek functions to query
+and set file positions within IL files, which typically limits the size of
+an IL file to 2 GB.  The front end can now be configured to support larger
+IL files by setting the new configuration macro LARGE_IL_FILE_SUPPORT to
+TRUE.  In that configuration, the front end will use _ftelli64/_fseeki64 on
+Windows and ftello/fseeko on other platforms.  (Note that it is typically
+also necessary to define _FILE_OFFSET_BITS to 64 in order to configure the
+library typedef off_t, used in ftello and fseeko, to be a 64-bit type.)
+
+
 2/27/20  [EDGcpfe/22397]
 Spurious Microsoft C++14-mode error on overload resolution with enum types
 
