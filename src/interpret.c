@@ -9974,7 +9974,8 @@ diagnostic.  Used in the implementation of __builtin_bit_cast.
   a_boolean result = TRUE;
 
   if (is_volatile_qualified_type(type)) {
-    info_with_pos_type(ec_constexpr_type_invalid, &ips->position, type, ips);
+    info_with_pos_type(ec_volatile_type_not_allowed, &ips->position, type,
+                       ips);
     do_constexpr_fail(result);
   } else {
     a_type_ptr tp = skip_typerefs(type);
@@ -9988,7 +9989,7 @@ diagnostic.  Used in the implementation of __builtin_bit_cast.
       case tk_ptr_to_member:
       case tk_routine:
         /* These are explicitly forbidden for a constexpr bit_cast. */
-        info_with_pos_type(ec_constexpr_type_invalid, &ips->position, tp, ips);
+        info_with_pos_type(ec_invalid_bit_cast_type, &ips->position, tp, ips);
         do_constexpr_fail(result);
         break;
       case tk_integer:
@@ -10175,7 +10176,8 @@ cannot be performed.  Used in the implementation of __builtin_bit_cast.
   a_type_ptr tp = NULL;
 
   if (is_volatile_qualified_type(type)) {
-    info_with_pos_type(ec_constexpr_type_invalid, &ips->position, type, ips);
+    info_with_pos_type(ec_volatile_type_not_allowed, &ips->position, type,
+                       ips);
     do_constexpr_fail(result);
   } else {
     tp = skip_typerefs(type);
@@ -10189,7 +10191,7 @@ cannot be performed.  Used in the implementation of __builtin_bit_cast.
       case tk_ptr_to_member:
       case tk_routine:
         /* These are explicitly forbidden for a constexpr bit_cast. */
-        info_with_pos_type(ec_constexpr_type_invalid, &ips->position, tp, ips);
+        info_with_pos_type(ec_invalid_bit_cast_type, &ips->position, tp, ips);
         do_constexpr_fail(result);
         break;
       case tk_integer:

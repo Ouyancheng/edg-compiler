@@ -1,5 +1,14 @@
 Version 6.1
 
+2/28/20  [EDGcpfe/22239]
+C++20: __builtin_bit_cast (helper builtin operator for std::bit_cast)
+
+The front end now supports a new __builtin_bit_cast builtin operator that
+allows libraries to efficiently implement std::bit_cast.  This new builtin
+is enabled in clang emulation mode when clang_version >= 90000 and also
+in Microsoft emulation mode when microsoft_version >= 1926.
+
+
 2/28/20  [EDGcpfe/14115,EDGcpfe/22262]
 Internal errors on noexcept specifiers in nested contexts
 
