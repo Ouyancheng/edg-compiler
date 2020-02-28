@@ -31967,7 +31967,7 @@ following a template parameter clause.  Parse and record the concept.
   (void)required_token_no_advance(tok_assign, ec_exp_assign);
   if (curr_token == tok_assign) (void)get_token();
   remove_stop_token(tok_assign);
-  expr = scan_concept_expression()l
+  expr = scan_concept_expression();
   remove_stop_token(tok_semicolon);
   if (is_error_locator(loc)) {
     /* Don't attempt to create a concept representation for a concept for
