@@ -24093,7 +24093,7 @@ concept-id traversed prior to expr (-1 if there was none).
     array[idx].link = (int32_t)array.length();
     chart_constraint(opnds->next, chart, parent_idx, not_subsumable);
   } else if (is_operation_node(expr) && node_operator_is(expr, eok_or)) {
-    int32_t   idx = array.length();
+    int32_t   idx = (int32_t)array.length();
     a_boolean  left_not_subsumable = FALSE, right_not_subsumable = FALSE;
     array.push_back(a_charted_constraint{ CK_OR, (uint32_t)parent_idx,
                                           { (uint32_t)0 }, expr });
@@ -24162,7 +24162,7 @@ generate that chart.
     } else {
       unexpected_condition();
     }  /* if */
-    n_constraints = constraints.length();
+    n_constraints = (int32_t)constraints.length();
     if (n_constraints == 0) {
       result = UNCONSTRAINED_CHART;
     } else {
