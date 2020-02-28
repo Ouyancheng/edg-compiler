@@ -9993,31 +9993,33 @@ diagnostic.  Used in the implementation of __builtin_bit_cast.
         do_constexpr_fail(result);
         break;
       case tk_integer:
-        { a_host_large_integer  val;
-          a_boolean             ovfl;
-          /* Convert the integer value in interpreter object format into
-             a large host integer.  Note that this may generate spurious
-             overflow indications for types where the target type is larger
-             than the host's large integer type. */
-          get_int_val_from(src_storage, tp, val, ovfl);
-          if (ovfl) {
-            info_with_pos_type(ec_constexpr_integer_overflow, &ips->position,
-                               tp, ips);
-            do_constexpr_fail(result);
-          } else {
-            /* Store the resulting value in target layout, noting that each
-               byte in the result has been initialized. */
-            a_byte   byte;
-            unsigned bit_shift;
-            for (unsigned int i = 0; i < tp->size; i++) {
-              bit_shift = host_little_endian ? i : ((tp->size - 1) - i);
-              bit_shift *= CHAR_BIT;
-              byte = (val & ((a_host_large_unsigned)0xff << bit_shift))
-                                                         >> bit_shift;
-              *dest_storage++ = byte;
-              *dest_bitmap++ = 0xff;
-            }  /* for */
-          }  /* if */
+        { an_integer_value     int_val, byte_val;
+          a_boolean            ovfl;
+          a_host_large_integer byte;
+          int                  bit_shift;
+          /* Store the resulting value in target layout, marking each
+             byte in the result is initialized. */
+          (void)memcpy(&int_val, src_storage, sizeof(int_val));
+          for (unsigned int i = 0; i < tp->size; i++) {
+            bit_shift = host_little_endian ? i : ((tp->size - 1) - i);
+            bit_shift *= CHAR_BIT;
+            /* The following code effectively does:
+                byte = (int_val & (0xff << bit_shift)) >> bit_shift;
+            */
+            set_unsigned_integer_value(&byte_val, (a_host_large_integer)0xff);
+            shift_left_integer_value(&byte_val, bit_shift, &ovfl);
+            check_assertion(!ovfl);
+            and_integer_values(&byte_val, &int_val);
+            shift_right_integer_value(&byte_val, bit_shift,
+                                      /*is_signed=*/FALSE,
+                                      /*sign_extend=*/FALSE);
+            conv_integer_value_to_host_large_integer(&byte_val,
+                                                     /*is_signed=*/FALSE,
+                                                     &byte, &ovfl);
+            check_assertion(!ovfl);
+            *dest_storage++ = (a_byte)byte;
+            *dest_bitmap++ = 0xff;
+          }  /* for */
         }
         break;
       case tk_float:
@@ -10195,37 +10197,39 @@ cannot be performed.  Used in the implementation of __builtin_bit_cast.
         do_constexpr_fail(result);
         break;
       case tk_integer:
-        { a_host_large_unsigned val = 0;
-          if (sizeof(a_host_large_integer) < tp->size) {
-            /* Can't fit value into largest integer. */
-            info_with_pos_type(ec_constexpr_integer_overflow, &ips->position,
-                               tp, ips);
-            do_constexpr_fail(result);
-          } else {
-            /* For every byte in the target representation of the integer,
-               if initialized, use it to re-construct the actual integer
-               value. */
-            a_byte   byte;
-            unsigned bit_shift;
-            for (unsigned int i = 0; i < tp->size; i++) {
-              if (*src_bitmap++ != 0xff) {
-                initialized = FALSE;
-              }  /* if */
-              byte = *src_storage++;
-              bit_shift = host_little_endian ? i : ((tp->size - 1) - i);
-              bit_shift *= CHAR_BIT;
-              val |= (a_host_large_unsigned)byte << bit_shift;
-            }  /* for */
-            /* Now store "val" into the interpreter object. */
-            if (int_kind_is_signed[tp->variant.integer.int_kind]) {
-              set_integer_value((an_integer_value*)dest_storage,
-                                (a_host_large_integer)val);
-              sign_extend_integer_value((an_integer_value*)dest_storage,
-                                        (int)(tp->size * targ_char_bit));
-            } else {
-              set_unsigned_integer_value((an_integer_value*)dest_storage, val);
+        { an_integer_value int_val, byte_val;
+          a_boolean        ovfl;
+          a_byte           byte;
+          int              bit_shift;
+          /* For every byte in the target representation of the integer,
+             if initialized, use it to re-construct the actual integer
+             value. */
+          set_unsigned_integer_value(&int_val, 0);
+          for (unsigned int i = 0; i < tp->size; i++) {
+            if (*src_bitmap++ != 0xff) {
+              initialized = FALSE;
             }  /* if */
+            byte = *src_storage++;
+            bit_shift = host_little_endian ? i : ((tp->size - 1) - i);
+            bit_shift *= CHAR_BIT;
+            /* The code below effectively does this:
+                 int_val |= byte << bit_shift;
+            */
+            set_unsigned_integer_value(&byte_val, (a_host_large_integer)byte);
+            shift_left_integer_value(&byte_val, bit_shift, &ovfl);
+            if (ovfl) {
+              info_with_pos_type(ec_constexpr_integer_overflow, &ips->position,
+                                 tp, ips);
+              do_constexpr_fail(result);
+              break;
+            }  /* if */
+            or_integer_values(&int_val, &byte_val);
+          }  /* for */
+          if (int_kind_is_signed[tp->variant.integer.int_kind]) {
+            sign_extend_integer_value(&int_val,
+                                      (int)(tp->size * targ_char_bit));
           }  /* if */
+          (void)memcpy(dest_storage, &int_val, sizeof(int_val));
         }
         break;
       case tk_float:
