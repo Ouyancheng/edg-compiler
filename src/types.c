@@ -1903,6 +1903,8 @@ Return TRUE if the given type is a class type or a handle to a class type.
   } else if (is_handle_ptr(tp)) {
     tp = tp->variant.pointer.type;
     result = is_immediate_class_type(tp);
+  } else {
+    result = FALSE;
   }  /* if */
   return result;
 }  /* is_class_or_handle_to_class_type */
