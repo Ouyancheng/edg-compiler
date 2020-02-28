@@ -2549,6 +2549,70 @@ Return TRUE if the given routine fixup is for a friend declaration.
 }  /* fixup_is_for_friend */
 
 
+static a_routine_fixup_ptr find_fixup_for_rout(a_routine_ptr  rp)
+/*
+Return the fixup entry recorded for the given routine or NULL if there is
+none.
+*/
+{
+  a_type_ptr           class_type = parent_class_of(rp);
+  a_routine_fixup_ptr  result = NULL;
+
+  do {
+    a_class_symbol_supplement_ptr
+                         cssp = class_symbol_supp(symbol_for(class_type));
+    result = cssp->routine_fixup_list;
+    for (; result != NULL; result = result->next) {
+      if (result->symbol->variant.routine.ptr == rp) {
+        goto done;
+      }  /* if */
+    }  /* for */
+    class_type = parent_class_or_null(class_type);
+  } while (class_type != NULL);
+done:
+  return result;
+}  /* find_fixup_for_rout */
+
+
+void early_eh_spec_fixup(a_routine_ptr                   rp,
+                         an_exception_specification_ptr  esp)
+/*
+rp is a non-template member function with a pending fixup to scan the operand
+of its noexcept specifier.  Ordinarily, that would be scanned when the class
+and its parent classes are completed, but a member declaration has triggered
+the need for the exception specification to be determined earlier.  Perform
+the delayed scan of the noexcept operand now.
+*/
+{
+  a_token_cache        *cache = esp->variant.token_cache;
+  a_type_ptr           class_type = parent_class_of(rp);
+  a_routine_fixup_ptr  rfp = find_fixup_for_rout(rp);
+
+  push_class_reactivation_scope(class_type, /*extend_namespace=*/FALSE);
+  /* Recreate a function prototype scope equivalent to the original. */
+  (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
+                   rp->type, (a_routine_ptr)NULL);
+  scope_stack_top().outside_parameter_list = TRUE;
+  check_assertion(rfp != NULL);
+  if (rfp->func_info.prototype_scope_symbols != NULL) {
+    reactivate_prototype_scope_symbols(
+                                  rfp->func_info.prototype_scope_symbols);
+  }  /* if */
+  esp->arg_cached = FALSE;
+  esp->variant.token_cache = NULL;
+  rfp->process_exception_spec = FALSE;
+  if (cache != NULL) {
+    delayed_scan_of_exception_spec(rp, cache);
+    free_token_cache(cache);
+  } else {
+    expect_error();
+  }  /* if */
+  /* Pop the reactivated function prototype scope off the stack. */
+  pop_scope();
+  pop_class_reactivation_scope();
+}  /* early_eh_spec_fixup */
+
+
 void def_arg_and_eh_spec_fixup_for_class(a_type_ptr  class_type,
                                          a_boolean   is_template_based,
                                          a_boolean   template_second_pass)

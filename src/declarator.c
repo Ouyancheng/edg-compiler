@@ -1413,12 +1413,16 @@ is TRUE, cache the argument tokens if appropriate (i.e., if this is a
 template-dependent context or a member of a class).
 */
 {
-  a_boolean  is_inclass_member_function_decl = FALSE;
+  a_boolean  is_inclass_member_function_decl = FALSE,
+             is_local_decl = FALSE;
 
   if (scope_is(&scope_stack_top(), sck_func_prototype)) {
     a_decl_parse_state  *dps = scope_stack_top().decl_parse_state;
     if (dps != NULL && dps->is_inclass_member_function_decl) {
       is_inclass_member_function_decl = TRUE;
+    } else if (is_local_scope_kind(
+                       scope_stack[scope_stack_top().decl_scope_level].kind)) {
+      is_local_decl = TRUE;
     }  /* if */
   }  /* if */
   if (curr_token == tok_removed_expr) {
@@ -1439,7 +1443,8 @@ template-dependent context or a member of a class).
               is_template_dependent_context() ||
               is_nonspecialized_instantiation_context()) &&
               !is_microsoft_in_class_specialization_context() &&
-              !is_template_friend_decl()) {
+              !is_template_friend_decl() &&
+              !is_local_decl) {
     /* For top-level declarators in template-dependent contexts, just cache
        the specifier argument for now.  Also create a corresponding template
        cache segment to extract the tokens later on.  Microsoft in-class

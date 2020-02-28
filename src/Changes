@@ -1,5 +1,24 @@
 Version 6.1
 
+2/28/20  [EDGcpfe/14115,EDGcpfe/22262]
+Internal errors on noexcept specifiers in nested contexts
+
+In various somewhat complex situations, the front end could abort due to a
+failed assertion check in is_nothrow_type (types.c) when dealing with
+function or member function declarations in certain nested contexts (such as
+a nested class).  For example:
+
+  struct S {
+    struct N {
+      int n = f();
+      int f() noexcept (false) { return 10 ; }
+    };
+    N n;  // Previously triggered an internal error.  Now okay.
+  };
+
+That is now fixed.
+
+
 2/28/20  [EDGcpfe/22142]
 Support for very large IL files
 

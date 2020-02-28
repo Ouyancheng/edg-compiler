@@ -15910,8 +15910,10 @@ accordingly.
   check_assertion(is_simple_function_symbol(sym));
   rp = sym->variant.routine.ptr;
   tip = sym->variant.routine.instance_ptr;
-  /* Check if rp is a template function declared with a function declarator. */
-  if (rp->type->kind == (a_type_kind)tk_routine && tip != NULL) {
+  if (!type_is(rp->type, tk_routine)) {
+    /* The routine was not declared with a function declarator. */
+  } else if (tip != NULL) {
+    /* rp is a template function declared with a function declarator. */
     a_routine_ptr  proto_rout;
     a_routine_type_supplement_ptr
                    rtsp = rp->type->variant.routine.extra_info;
@@ -15956,67 +15958,81 @@ accordingly.
         esp->variant.routine = rp;
       }  /* if */
     }  /* if */
+  } else {
+    a_routine_type_supplement_ptr
+                   rtsp = rp->type->variant.routine.extra_info;
+    esp = rtsp->exception_specification;
   }  /* if */
   if (esp != NULL && esp->arg_cached) {
-    /* The template function has an exception specification that is still in
-       a "cached" state. */
-    a_template_cache_ptr      es_cache;
-    a_push_scope_options_set  ps_options = PS_EXCEPTION_SPEC;
-    esp->arg_cached = FALSE;
-    esp->variant.token_cache = NULL;
-    es_cache = &tssp->variant.function.exception_spec_arg_cache;
-    if (es_cache->decl_info == NULL) {
-      /* Something went wrong during the caching of the template (possible
-         with severe syntax errors).  Don't attempt to instantiate the
-         argument. */
-      expect_error();
+    if (tssp == NULL) {
+      /* A non-template case.  This can happen with member functions (whose
+         exception specifications are usually scanned at the end of the class
+         definition) when referred to by later member declarations. */
+      if (rp->source_corresp.is_class_member) {
+        early_eh_spec_fixup(rp, esp);
+      }  /* if */
     } else {
-      /* Push a new context to instantiate the exception specification. */
-      if (rp->is_prototype_instantiation) {
-        ps_options |= PS_PROTOTYPE_INSTANTIATION;
-      }  /* if */
-      (void)push_template_instantiation_scope(es_cache->decl_info,
-                                              (a_type_ptr)NULL, rp, sym,
-                                              template_sym,
-                                              rp->template_arg_list,
-                                              /*push_lex_state=*/TRUE,
-	                                      ps_options);
-      if (sym->is_class_member) {
-        /* Determine if this function was declared in a class template. */
-        a_symbol_ptr	parent_sym = symbol_for(sym->parent.class_type);
-        if (is_template_class_and_not_specific_def_symbol(parent_sym)) {
-          is_member_of_class_template = TRUE;
+      /* The template function has an exception specification that is still in
+         a "cached" state. */
+      a_template_cache_ptr      es_cache;
+      a_push_scope_options_set  ps_options = PS_EXCEPTION_SPEC;
+      esp->arg_cached = FALSE;
+      esp->variant.token_cache = NULL;
+      es_cache = &tssp->variant.function.exception_spec_arg_cache;
+      if (es_cache->decl_info == NULL) {
+        /* Something went wrong during the caching of the template (possible
+           with severe syntax errors).  Don't attempt to instantiate the
+           argument. */
+        expect_error();
+      } else {
+        /* Push a new context to instantiate the exception specification. */
+        if (rp->is_prototype_instantiation) {
+          ps_options |= PS_PROTOTYPE_INSTANTIATION;
         }  /* if */
-      }  /* if */
-      /* Recreate a function prototype scope equivalent to the original. */
-      (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
-                       rp->type, (a_routine_ptr)NULL);
-      /* exception_spec_decl_seq is used in g++ mode to limit visibility
-         of names used in exception specification to those previously
-         declared in a class template.  The exception_specification flag
-         is normally set by the scopes pushed above, but in prototype
-         instantiations of class members this is sometimes not the case. */
-      if (is_member_of_class_template || rp->is_prototype_instantiation) {
-        scope_stack_top().exception_specification = TRUE;
-        scope_stack_top().exception_spec_decl_seq = decl_seq_sym->decl_seq - 1;
-      }  /* if */
-      scope_stack_top().outside_parameter_list = TRUE;
-      if (tip->prototype_scope_symbols != NULL) {
-        reactivate_prototype_scope_symbols(tip->prototype_scope_symbols);
-      }  /* if */
-      scope_stack_top().param_id_list = tip->param_id_list;
-      /* Rescan the exception specification argument from the cache. */
-      delayed_scan_of_exception_spec(rp, &es_cache->tokens);
-      /* Pop the reactivated function prototype scope off the stack. */
-      pop_scope();
-      /* Pop the template instantiation scope. */
-      pop_template_instantiation_scope();
-      if (!exceptions_enabled && !exc_spec_in_func_type) {
-        /* When exceptions are disabled, no exception specification should be
-           recorded unless required as part of the function type.  However,
-           with noexcept an entry may have been created to enable this
-           instantiation.  Now that that is done, we can discard the entry. */
-        rp->type->variant.routine.extra_info->exception_specification = NULL;
+        (void)push_template_instantiation_scope(es_cache->decl_info,
+                                                (a_type_ptr)NULL, rp, sym,
+                                                template_sym,
+                                                rp->template_arg_list,
+                                                /*push_lex_state=*/TRUE,
+	                                      ps_options);
+        if (sym->is_class_member) {
+          /* Determine if this function was declared in a class template. */
+          a_symbol_ptr	parent_sym = symbol_for(sym->parent.class_type);
+          if (is_template_class_and_not_specific_def_symbol(parent_sym)) {
+            is_member_of_class_template = TRUE;
+          }  /* if */
+        }  /* if */
+        /* Recreate a function prototype scope equivalent to the original. */
+        (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
+                         rp->type, (a_routine_ptr)NULL);
+        /* exception_spec_decl_seq is used in g++ mode to limit visibility
+           of names used in exception specification to those previously
+           declared in a class template.  The exception_specification flag
+           is normally set by the scopes pushed above, but in prototype
+           instantiations of class members this is sometimes not the case. */
+        if (is_member_of_class_template || rp->is_prototype_instantiation) {
+          scope_stack_top().exception_specification = TRUE;
+          scope_stack_top().exception_spec_decl_seq = decl_seq_sym->decl_seq-1;
+        }  /* if */
+        scope_stack_top().outside_parameter_list = TRUE;
+        if (tip->prototype_scope_symbols != NULL) {
+          reactivate_prototype_scope_symbols(tip->prototype_scope_symbols);
+        }  /* if */
+        scope_stack_top().param_id_list = tip->param_id_list;
+        /* Rescan the exception specification argument from the cache. */
+        delayed_scan_of_exception_spec(rp, &es_cache->tokens);
+        /* Pop the reactivated function prototype scope off the stack. */
+        pop_scope();
+        /* Pop the template instantiation scope. */
+        pop_template_instantiation_scope();
+        if (!exceptions_enabled && !exc_spec_in_func_type) {
+          /* When exceptions are disabled, no exception specification should
+             be recorded unless required as part of the function type.
+             However, with noexcept an entry may have been created to enable
+             this instantiation.  Now that that is done, we can discard the
+             entry. */
+          rp->type->variant.routine.extra_info->exception_specification = NULL;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
