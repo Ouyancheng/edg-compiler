@@ -7957,7 +7957,9 @@ __has_builtin to return TRUE when queried for the builtin.
   sym_ptr = full_enter_symbol(keyword, (sizeof_t)(strlen(keyword)),
 			      (a_symbol_kind)sk_keyword, NO_SCOPE_DEPTH);
   sym_ptr->variant.keyword.token = (a_small_token_kind)token;
+#if BUILTIN_FUNCTIONS_ENABLED
   sym_ptr->header->is_builtin_function = TRUE;
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 }  /* enter_builtin_keyword */
 
 #if NAMED_ADDRESS_SPACES_ALLOWED
