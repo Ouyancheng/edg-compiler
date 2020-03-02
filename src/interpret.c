@@ -10027,7 +10027,7 @@ diagnostic.  Used in the implementation of __builtin_bit_cast.
            to hold the largest floating-point type for the target, but only
            the required bytes for the specific floating-point type are used.
            So, e.g., a float will only use four bytes (and the value is already
-           in target layout -- modulo endianness). */
+           in target layout). */
         for (unsigned int i = 0; i < tp->size; i++) {
           *dest_storage++ = *src_storage++;
           *dest_bitmap++ = 0xff;
