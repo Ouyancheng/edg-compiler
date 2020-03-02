@@ -239,16 +239,15 @@ That is now fixed.
 
 
 2/20/20  [EDGcpfe/22211]
-GNU/clang compatibility: Inline namespaces and explicit specializations
+Clang compatibility: Inline namespaces and explicit specializations
 
 A change made in 4.13 (see EDGcpfe/17520) altered the lookup of inline
 namespace members.  That change was not correct and the underlying issue
 actually concerned explicit specializations.  In the example in EDGcpfe/17520,
-g++ and clang do not reopen the inl1 namespace when processing the explicit
-specialization.  We now emulate this behavior in g++ and clang modes.  The
-original change we made caused examples like the one below to be handled
-incorrectly.  This example resulted in a spurious ambiguity on the call of f.
-Now fixed.
+clang does not reopen the inl1 namespace when processing the explicit
+specialization.  We now emulate this behavior in clang mode.  The original
+change we made caused examples like the one below to be handled incorrectly.
+This example resulted in a spurious ambiguity on the call of f.  Now fixed.
 
   namespace N {
     inline namespace M { void f(){} }
