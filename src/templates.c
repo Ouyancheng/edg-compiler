@@ -15994,7 +15994,7 @@ accordingly.
                                                 template_sym,
                                                 rp->template_arg_list,
                                                 /*push_lex_state=*/TRUE,
-	                                      ps_options);
+                                                ps_options);
         if (sym->is_class_member) {
           /* Determine if this function was declared in a class template. */
           a_symbol_ptr	parent_sym = symbol_for(sym->parent.class_type);
