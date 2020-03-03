@@ -13218,7 +13218,7 @@ typedef enum a_builtin_operation_kind_tag {
                            second operand is an attribute (with optional
                            arguments). */
   bok_builtin_bit_cast, /* __builtin_bit_cast.  First operand is a type and the
-                           second is an object of that type. */
+                           second is an object. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */

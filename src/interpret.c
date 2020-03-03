@@ -9998,7 +9998,7 @@ diagnostic.  Used in the implementation of __builtin_bit_cast.
           a_host_large_integer byte;
           int                  bit_shift;
           /* Store the resulting value in target layout, marking each
-             byte in the result is initialized. */
+             byte in the result as initialized. */
           (void)memcpy(&int_val, src_storage, sizeof(int_val));
           for (unsigned int i = 0; i < tp->size; i++) {
             bit_shift = host_little_endian ? i : ((tp->size - 1) - i);
