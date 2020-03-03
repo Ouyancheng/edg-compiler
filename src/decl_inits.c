@@ -10119,7 +10119,7 @@ declaration that has internal linkage because of the explicit presence of a
           an_error_code code;
           if (C_dialect == C_dialect_cplusplus) {
             code = ec_var_with_uninitialized_member;
-            severity = es_discretionary_error;
+            severity = any_cfront_mode() ? es_warning : es_discretionary_error;
           } else {
             code = ec_var_with_uninitialized_field;
             severity = es_warning;

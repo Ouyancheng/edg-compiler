@@ -19945,7 +19945,8 @@ be entered.
     }  /* if */
     /* In C++ we need to keep track of whether any members have reference
        type. */
-    if (is_any_reference_type(member_type)) {
+    if (is_any_reference_type(member_type) &&
+        !decl_state->is_property_or_event_field) {
       cssp->any_ref_member = TRUE;
       /* Assignment by bitwise copy is not allowed when a class has reference
          type members. */
@@ -20013,7 +20014,8 @@ be entered.
      from C99 and C++ in this regard: C89 does not consider the qualification
      of array element types (though it does consider the qualification of
      members of those element types). */
-  { a_type_ptr  type_to_check = (!C_mode() || (c99_mode && strict_ansi_mode)) ?
+  if (!decl_state->is_property_or_event_field) {
+    a_type_ptr  type_to_check = (!C_mode() || (c99_mode && strict_ansi_mode)) ?
                                    member_element_type : member_type;
     if (is_const_qualified_type(type_to_check) ||
         (is_class_struct_union_type(member_element_type) &&
@@ -21048,39 +21050,58 @@ warnings or remarks may be issued.
   a_symbol_ptr                  sym;
   a_base_class_ptr              bcp;
   a_type_ptr                    tp;
+  a_boolean                     union_case = type_is(class_type, tk_union),
+                                any_variant_members = union_case,
+                                all_variant_members_const = TRUE;
 
   /* First, scan through all the nonstatic data members, using the symbol list
      rather than the field list to be sure that only user-defined fields are
      checked and to be sure that anonymous union fields are picked up. */
   for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
-    if (sym->kind == (a_symbol_kind)sk_field &&
+    if (symbol_is(sym, sk_field) &&
         /* Property fields and events do not affect the special member
            functions. */
         !field_is_property_or_event(sym->variant.field.ptr)) {
       a_field_ptr  fp = sym->variant.field.ptr;
       a_type_ptr   utp;
+      a_boolean    tp_is_const, variant_field;
       tp = fp->type;
       if (is_array_type(tp)) {
         tp = underlying_array_element_type(tp);
       }  /* if */
+      tp_is_const = is_const_qualified_type(tp);
       utp = skip_typerefs(tp);
+      variant_field = union_case ||
+                      sym->variant.field.extra_info->is_variant_member;
       /* Check for properties not specific to class type subobjects that
          prevent implicit definitions of special member functions. */
-      if (gsfd->suppress_copy_assign && gsfd->suppress_move_assign) {
-        /* We already determined that the copy and move assignment operation
-           should be suppressed. */
-      } else if (is_const_qualified_type(tp)) {
-        /* A nonstatic data member with const-qualified type prevents the
-           copy assignment operator from being generated. */
-        gsfd->suppress_copy_assign = TRUE;
-        gsfd->suppress_move_assign = TRUE;
-        if (gsfd->warn_about_suppressed_copy_assign) {
-          pos_syty_diagnostic(es_remark,
-                              ec_const_mbr_suppresses_copy_asgn_decl,
-                              &class_type->source_corresp.decl_position,
-                              sym, class_type);
+      if (tp_is_const) {
+        if (gsfd->suppress_copy_assign && gsfd->suppress_move_assign) {
+          /* We already determined that the copy and move assignment operation
+             should be suppressed. */
+        } else {
+          /* A nonstatic data member with const-qualified type prevents the
+             copy assignment operator from being generated. */
+          gsfd->suppress_copy_assign = TRUE;
+          gsfd->suppress_move_assign = TRUE;
+          if (gsfd->warn_about_suppressed_copy_assign) {
+            pos_syty_diagnostic(es_remark,
+                                ec_const_mbr_suppresses_copy_asgn_decl,
+                                &class_type->source_corresp.decl_position,
+                                sym, class_type);
+          }  /* if */
+          if (!fp->has_initializer &&
+              (gpp_mode || !variant_field) &&
+              !is_const_default_constructible(utp)) {
+            /* A const field that is not default constructible causes the
+               generated default constructor to be suppressed.  This normally
+               does not apply to variant fields, but GCC does not make that
+               distinction. */
+            gsfd->suppress_default_ctor = TRUE;
+          }  /* if */
         }  /* if */
-      } else if (is_any_reference_type(utp)) {
+      }  /* if */
+      if (is_any_reference_type(utp)) {
         /* A nonstatic data member with reference type prevents the copy
            assignment operator from being generated. */
         gsfd->suppress_copy_assign = TRUE;
@@ -21090,6 +21111,11 @@ warnings or remarks may be issued.
                               ec_ref_mbr_suppresses_copy_asgn_decl,
                               &class_type->source_corresp.decl_position,
                               sym, class_type);
+        }  /* if */
+        if (is_rvalue_reference_type(utp)) {
+          /* A member of rvalue reference type suppresses the copy constructor
+             (N4849 [class.copy.ctor] bullet (10.4)). */
+          gsfd->suppress_copy_ctor = TRUE;
         }  /* if */
       }  /* if */
       if (!gsfd->suppress_copy_ctor) {
@@ -21102,24 +21128,26 @@ warnings or remarks may be issued.
         /* Check to see if the special member functions of the member's class
            type would prevent the corresponding functions from being
            generated. */
-        a_boolean  variant_field;
-        variant_field = class_type->kind == (a_type_kind)tk_union ||
-                        sym->variant.field.anonymous_parent_object != NULL;
         check_base_or_mbr_class_type_for_suppression(class_type, gsfd, tp,
                                                      (a_base_class_ptr)NULL,
                                                      fp->is_mutable,
                                                      variant_field);
       }  /* if */
-      if (class_type->kind == (a_type_kind)tk_union ||
-          sym->variant.field.extra_info->is_variant_member) {
+      if (variant_field) {
         /* Constexpr copy functions cannot deal with variant members. */
         gsfd->copy_ctor_not_constexpr = TRUE;
         gsfd->move_ctor_not_constexpr = TRUE;
         gsfd->copy_assign_not_constexpr = TRUE;
         gsfd->move_assign_not_constexpr = TRUE;
+        any_variant_members = TRUE;
+        if (!tp_is_const) all_variant_members_const = FALSE;
       }  /* if */
     }  /* if */
   }  /* for */
+  if (any_variant_members && all_variant_members_const &&
+      !microsoft_mode && !gpp_mode) {
+    gsfd->suppress_default_ctor = TRUE;
+  }  /* if */
   /* Now scan through all the direct and virtual bases of this class. */
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
     if (bcp->direct  || bcp->is_virtual) {
@@ -21529,7 +21557,7 @@ in some Microsoft modes, record that its body cannot be generated).
   initialize_member_decl_info(&decl_info,
                               &class_type->source_corresp.decl_position);
   decl_info.is_constructor = TRUE;
-  if (!class_state->default_ctor_is_nontrivial && !suppressed) {
+  if (!class_state->default_ctor_is_nontrivial) {
     /* We are generating a declaration of a trivial default constructor.
        Since it will never actually be called it gets special handling. */
     decl_info.is_trivial_default_constructor = TRUE;
@@ -21932,9 +21960,6 @@ record that fact in *gsfd.
     } else {
       /* A default constructor needs to be generated. */
       check_suppressed_default_ctor(class_type, gsfd);
-      if (cpp11_mode && gsfd->suppress_default_ctor) {
-        class_state->default_ctor_is_nontrivial = TRUE;
-      }  /* if */
       result = TRUE;
     }  /* if */
   } else if (!cssp->has_user_declared_default_constructor) {
@@ -23043,6 +23068,7 @@ The routine body is not generated until it is known to be needed.
                        class_state->needs_constructor_symbol ||
                        class_state->default_ctor_is_nontrivial ||
                        class_state->has_inheriting_constructors ||
+                       cssp->any_ref_member ||
                        no_bit_copy);
   declare_move_ctor = generate_move_operations &&
                       !cssp->has_copy_constructor &&
@@ -33135,6 +33161,7 @@ For example:
       /* In C++20, the default constructor and the copy/move constructors of a
          lambda introduced with "[]" are simply defaulted, not deleted.  */
     } else {
+      class_state.default_ctor_is_nontrivial = TRUE;
       generate_default_constructor(&class_state, /*is_deleted=*/TRUE);
       gsfd.suppress_copy_assign = TRUE;
     }  /* if */
