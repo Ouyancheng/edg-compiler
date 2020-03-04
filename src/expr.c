@@ -19788,7 +19788,7 @@ Scan the new-type-name or ( type-name ) from source.
 static void scan_new_initializer(a_new_parse_state  *nps,
                                  a_decl_parse_state *dps)
 /*
-Scans the new initializer expression (if present).
+Scan the new initializer expression (if present).
 */
 {
   if (curr_token == tok_lparen) {
@@ -20468,7 +20468,7 @@ elements of such a class.
       /* For C++/CLI arrays, don't use the associated class constructors.
          In C++/CX mode, we do use the constructor symbols of
          Platform::Array, however. */
-         (cppcx_enabled || !nps->cli_array_new) &&
+      (cppcx_enabled || !nps->cli_array_new) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       !nps->nonreal_new_type) {
     nps->cssp = symbol_supplement_for_class(nps->base_new_type);
@@ -20579,7 +20579,10 @@ initializer was provided.
   if (is_class_struct_union_type(nps->base_new_type) &&
       !nps->nonreal_new_type &&
       (nps->cssp == NULL || !is_pod_class(nps->unqual_base_new_type) ||
-       nps->cssp->constructor != NULL)
+       nps->cssp->constructor != NULL ||
+       (nps->cssp->trivial_default_constructor != NULL &&
+        nps->cssp->trivial_default_constructor
+                 ->variant.routine.ptr->is_deleted))
 #if MICROSOFT_EXTENSIONS_ALLOWED
       && !(cli_or_cx_enabled && is_value_class_type(nps->base_new_type))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -20589,8 +20592,8 @@ initializer was provided.
        constructor. */
     a_boolean is_generated_ctor = FALSE, do_const_test = FALSE;
     /* Look for a default constructor. */
-    if (nps->unqual_base_new_type->
-                                variant.class_struct_union.is_nonreal_class) {
+    if (nps->unqual_base_new_type
+           ->variant.class_struct_union.is_nonreal_class) {
       /* Don't look for a default constructor in a dependent type. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcx_enabled && nps->cli_array_new) {

@@ -20995,12 +20995,12 @@ skip_assignment_operators:
     }  /* if */
   }  /* if */
   /* Now check the destructor. */
-  if (gsfd->suppress_dtor && gsfd->suppress_copy_ctor &&
-      gsfd->suppress_move_ctor) {
+  if (gsfd->suppress_dtor && gsfd->suppress_default_ctor &&
+      gsfd->suppress_copy_ctor && gsfd->suppress_move_ctor) {
     /* Even if the destructor is already suppressed, we may still have to
        check this subobject destructor because it may cause the suppression
-       of the copy and/or move constructors.  If those are already suppressed,
-       no additional checking is needed. */
+       of the default and copy/move constructors.  If those are already
+       suppressed, no additional checking is needed. */
   } else if (cssp->destructor != NULL) {
     if (is_unusable_member_sym(cssp->destructor)) {
       /* An inaccessible base or member destructor prevents this one from
@@ -23066,6 +23066,7 @@ The routine body is not generated until it is known to be needed.
                 class_state->rule_out_trivial_copy_for_volatile_class_field;
   declare_copy_ctor = !cssp->has_copy_constructor &&
                       (gsfd.suppress_copy_ctor ||
+                       gsfd.suppress_dtor ||
                        ctsp->is_lambda_closure_class ||
                        cssp->constructor != NULL ||
                        class_state->needs_constructor_symbol ||

@@ -11595,8 +11595,12 @@ that can be called with zero arguments.
   } else {
     /* Exactly one default constructor. */
     ctor_routine = ctor_sym->variant.routine.ptr;
-    if (ctor_routine->is_trivial_default_constructor &&
-        !ctor_routine->is_deleted) {
+    if (ctor_routine->is_deleted) {
+      /* An error is going to be reported by the call to
+         reference_to_implicitly_invoked_function. */
+      check_assertion_or_expect_error(error_detected != NULL);
+      local_err = TRUE;
+    } else if (ctor_routine->is_trivial_default_constructor) {
       /* The constructor is a trivial default constructor.  Check access
          but do not mark it as referenced (because there will be no call). */
       evaluated = FALSE;
