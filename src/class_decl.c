@@ -21080,11 +21080,11 @@ warnings or remarks may be issued.
          prevent implicit definitions of special member functions. */
       if (tp_is_const) {
         if (gsfd->suppress_copy_assign && gsfd->suppress_move_assign) {
-          /* We already determined that the copy and move assignment operation
+          /* We already determined that the copy and move assignment operators
              should be suppressed. */
         } else {
           /* A nonstatic data member with const-qualified type prevents the
-             copy assignment operator from being generated. */
+             copy/move assignment operators from being generated. */
           gsfd->suppress_copy_assign = TRUE;
           gsfd->suppress_move_assign = TRUE;
           if (gsfd->warn_about_suppressed_copy_assign) {
