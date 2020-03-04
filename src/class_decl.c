@@ -23085,6 +23085,8 @@ The routine body is not generated until it is known to be needed.
                        class_state->needs_constructor_symbol ||
                        class_state->default_ctor_is_nontrivial ||
                        class_state->has_inheriting_constructors ||
+                       (deleted_functions_enabled &&
+                        (cssp->any_ref_member || gsfd.suppress_dtor)) ||
                        no_bit_copy);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   declare_copy_asgn_op = declare_copy_asgn_op &&

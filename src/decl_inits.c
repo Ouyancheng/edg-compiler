@@ -6494,11 +6494,12 @@ FALSE is returned) for non-class objects.
               /* In cfront and Microsoft modes silently use the generated
                  constructor. */
             } else {
-              /* Except in -A mode just issue a warning. */
-              pos_syty_diagnostic(strict_ansi_mode ?
-                                    strict_ansi_discretionary_severity :
-                                    es_warning,
-                                  ec_missing_default_constructor_on_const,
+              /* Issue an error or warning. */
+              an_error_severity  sev = es_warning;
+              if (strict_ansi_mode || has_trivial_default_constructor(cssp)) {
+                sev = es_discretionary_error;
+              }  /* if */
+              pos_syty_diagnostic(sev, ec_missing_default_constructor_on_const,
                                   err_pos, sym, tp);
             }  /* if */
           }  /* if */
