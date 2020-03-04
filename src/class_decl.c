@@ -11709,17 +11709,21 @@ is indicated by overridden_function (NULL if no explicit overriding syntax
 was used).
 */
 {
-  a_symbol_ptr   sym, new_sym = NULL;
-  an_error_code  error_code;
-  a_boolean      suppress_redecl_error = FALSE;
+  a_symbol_ptr        sym, new_sym = NULL;
+  an_error_code       error_code;
+  a_boolean           suppress_redecl_error = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_boolean      multiple_selective_overriders = FALSE;
+  a_boolean           multiple_selective_overriders = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_decl_parse_state  *dps = &decl_info->decl_state;
 
   db_enter(4, "symbol_for_member_function");
   *overload_sym = NULL;
   if (is_error_locator(*locator)) {
     sym = NULL;
+  } else if (dps->ineligible) {
+    /* Create a symbol that will not go into the symbol table. */
+    new_sym = make_symbol((a_symbol_kind)sk_member_function, locator);
   } else {
     /* See if there's already a member function with this name. */
     sym = find_direct_member_function(locator, class_type);
@@ -11727,7 +11731,7 @@ was used).
       /* A member function by this name has already been entered into the
          symbol table.  This could be a redeclaration, which is illegal for
          class members.  Check for that first by looking for a type match. */
-      new_sym = member_function_redecl_sym(sym, &decl_info->decl_state,
+      new_sym = member_function_redecl_sym(sym, dps,
                                            (a_template_param_ptr)NULL,
                                            (a_symbol_ptr*)NULL);
       if (new_sym == NULL) {
@@ -11785,8 +11789,7 @@ was used).
 #if MICROSOFT_EXTENSIONS_ALLOWED
             !multiple_selective_overriders &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            !overload_distinguishable(sym, decl_info->decl_state.type,
-                                      &decl_info->decl_state, &error_code)) {
+            !overload_distinguishable(sym, dps->type, dps, &error_code)) {
           pos_error(error_code, &locator->source_position);
           suppress_redecl_error = TRUE;
           set_to_named_error_locator(*locator);
@@ -28980,6 +28983,12 @@ that is provided if this is a member template declaration.
            checked earlier). */
         make_virtual_function_pure(rout_sym->variant.routine.ptr, class_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      }  /* if */
+      if (dps->ineligible) {
+        /* A constraint on a non-template member function makes this
+           member "ineligible". */
+        dps->sym->is_invisible = TRUE;
+        dps->sym->variant.routine.ptr->is_ineligible = TRUE;
       }  /* if */
       if (function_def_present) {
         remove_stop_token(tok_comma);

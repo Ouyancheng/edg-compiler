@@ -1093,6 +1093,10 @@ typedef struct a_decl_parse_state {
   a_bit_field	for_requires_expr_params:1;
 			/* TRUE if this block is for the parsing of the
 			   parameters of a requires-expression. */
+  a_bit_field	ineligible:1;
+			/* TRUE for a non-template member function of a class
+			   template instance when the associated trailing
+			   requires clause was not satisfied. */
   an_init_state
 		init_state;
 			/* Information about the initializer (if any)

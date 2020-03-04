@@ -11951,6 +11951,10 @@ typedef struct a_routine {
 			   TRUE for friends of local classes where the classes
 			   are defined in some kind of instantiation
 			   context. */
+  a_bit_field	is_ineligible:1;
+			/* TRUE for constrained ordinary member functions of
+			   class templates when the constraint is not
+			   satisfied. */
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
 		decl_modifiers;

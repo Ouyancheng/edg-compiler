@@ -24293,17 +24293,19 @@ subject to SFINAE.
     a_symbol_ptr          sym;
     a_template_arg_ptr    old_args, new_args;
     a_template_param_ptr  params;
-    a_ctws_state          ctws_state;
     a_boolean             copy_error = FALSE;
-    init_ctws_state(&ctws_state);
     templ = constraint->variant.concept_id.concept_template;
     sym = symbol_for(templ);
     old_args = constraint->variant.concept_id.args;
     params = sym->variant.template_info->cache.decl_info->parameters;
-    // FIXME: We should only substitute the parameters that are actually
-    // referenced in the concept.  Presumably, those are those for which
-    // param->param_symbol->referenced is TRUE.
-    new_args = copy_template_arg_list_with_substitution(
+    if (template_param_list != NULL) {
+      /* Substitute the dependent arguments of the concept-id. */
+      a_ctws_state          ctws_state;
+      init_ctws_state(&ctws_state);
+      // FIXME: We should only substitute the parameters that are actually
+      // referenced in the concept.  Presumably, those are those for which
+      // param->param_symbol->referenced is TRUE.
+      new_args = copy_template_arg_list_with_substitution(
                                                   sym, old_args, params,
                                                   (a_template_param_ptr)NULL,
                                                   template_arg_list,
@@ -24311,6 +24313,11 @@ subject to SFINAE.
                                                   &constraint->position,
                                                   CTWS_NO_OPTIONS,
                                                   &copy_error, &ctws_state);
+    } else {
+      /* The concept-id is already fully non-dependent.  This occurs when
+         called from check_eligibility. */
+      new_args = old_args;
+    }  /* if */
     if (copy_error) {
       /* Substitution errors during parameter mappings are not SFINAE-like if
          they occur outside atomic constraints.  For example:
@@ -24371,16 +24378,22 @@ subject to SFINAE.
   } else {
     /* An atomic constraint.  First perform substitution; then evaluate the
        expression. */
-    a_ctws_state      ctws_state;
     an_expr_node_ptr  expr;
     a_constant_ptr    cp = local_constant(), allocated_cp = NULL;
     a_boolean         err = FALSE;
-    init_ctws_state(&ctws_state);
-    expr = copy_template_param_expr(
+    
+    if (template_param_list != NULL) {
+      a_ctws_state      ctws_state;
+      init_ctws_state(&ctws_state);
+      expr = copy_template_param_expr(
                             constraint, template_arg_list, template_param_list,
                             (a_type_ptr)NULL, &constraint->position,
                             CTWS_NO_OPTIONS, &err, &ctws_state,
                             cp, &allocated_cp);
+    } else {
+      /* No parameters: This occurs when called from check_eligibility. */
+      expr = constraint;
+    }  /* if */
     if (err) {
       /* Substitution failed. */
       more_info_diagnostic(ec_atomic_constraint_substitution_failed,
@@ -24442,6 +24455,33 @@ subject to SFINAE.
   }  /* if */
   return result;
 }  /* requires_clause_satisfied */
+
+
+void check_eligibility(a_decl_parse_state  *dps)
+/*
+dps is associated with a declarator of an ordinary member of a real class
+template instantiation that has a trailing requires clause.  If the clause
+is not satisfied, set dps->ineligible to TRUE.
+*/
+{
+  a_requires_clause_ptr  rcp = dps->trailing_requires_clause;
+
+  if (rcp != NULL && rcp->constraint != NULL) {
+    a_boolean    err = FALSE;
+    a_diag_list  diag_list;
+    clear_diag_list(&diag_list);
+    if (!requires_clause_satisfied(rcp->constraint, (a_template_arg_ptr)NULL,
+                                 (a_template_param_ptr)NULL,
+                                 /*map_failure_is_fatal=*/FALSE,
+                                 &diag_list, &err)) {
+      dps->ineligible = TRUE;
+    }  /* if */
+  } else {
+    /* In error cases, the trailing requires clause may not have been
+       recorded. */
+    expect_error();
+  }  /* if */
+}  /* check_eligibility */
 
 
 static a_type_ptr check_requirement_expr(an_expr_node_ptr      req_expr,

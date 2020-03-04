@@ -1211,6 +1211,8 @@ itself recursively to process classes nested within this class.
       } else if (rout->is_prototype_instantiation) {
         /* Don't add prototype instantiations of member templates to the
            instantiations required list. */
+      } else if (rout->is_ineligible) {
+        /* Don't instantiate ineligible members. */
       } else {
         /* Simply add the function to the instantiation list, without setting
            the flag. */

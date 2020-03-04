@@ -26,6 +26,7 @@ declarator.c -- Scanning of declarators.
 
 /* Additional header files. */
 #include "disambig.h"
+#include "exprutil.h"
 #include "folding.h"
 #include "statements.h"
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -8259,24 +8260,28 @@ the parameters.
     state->type = error_type();
   }  /* if */
   if (curr_token == tok_requires) {
-    a_boolean  discard_clause = state->is_template_rescan;
+    a_boolean  discard_clause = state->is_template_rescan,
+               is_ordinary_member_instantiation = FALSE;
     if (scope_is(&scope_stack_top(), sck_class_struct_union)) {
       a_type_ptr  class_type = scope_stack_top().assoc_type;
       if (is_unspecialized_template_class(class_type) &&
           !class_type->variant.class_struct_union.is_prototype_instantiation) {
         /* When instantiating ordinary members of class templates, ignore the
            requires clause.  It will be substituted later. */
-        discard_clause = TRUE;
+        is_ordinary_member_instantiation = TRUE;
       }  /* if */
     }  /* if */
     if (!type_is(state->type, tk_routine) ||
         (!(is_template_dependent_context() &&
                   state->function_definition_allowed) &&
-         !discard_clause)) {
+         !discard_clause && !is_ordinary_member_instantiation)) {
       pos_error(ec_trailing_requires_clause_not_on_template, &pos_curr_token);
       discard_clause = TRUE;
     }  /* if */
     state->trailing_requires_clause = scan_requires_clause(discard_clause);
+    if (is_ordinary_member_instantiation) {
+      check_eligibility(state);
+    }  /* if */
   }  /* if */
 }  /* declarator */
 

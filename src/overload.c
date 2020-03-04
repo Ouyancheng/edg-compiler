@@ -7920,6 +7920,13 @@ the standard, return cmp set accordingly:
    0 if cfp1 and cfp2 are equally good, or
   -1 if cfp1 is worse than cfp2.
 
+Otherwise, if both are ordinary member functions of a class template and one
+is more constrained than the other, return cmp to indicate which is more
+constrained (N4849 [over.match.best] bullet (2.6)):
+
+  +1 if cfp1 is more constrained,
+  -1 if cfp2 is more constrained, or
+   0 otherwise.
 */
 {
   int cmp = 0;
@@ -7932,6 +7939,9 @@ the standard, return cmp set accordingly:
       /* cfp2 is a function template and cfp1 is not, so cfp1 is better. */
       cmp = 1;
     }  /* if */
+  } else if (!cfp1->is_function_template &&
+             cfp1->function_symbol != NULL && cfp2->function_symbol != NULL) {
+    cmp = compare_constraints(cfp1->function_symbol, cfp2->function_symbol);
   }  /* if */
   return cmp;
 }  /* compare_template_candidate_functions */
@@ -8929,7 +8939,7 @@ is set to TRUE.
          we've already seen one that used no such matches. */
       if ((cfp->operand_type_pattern != NULL &&
            function_candidate_with_same_sig_as_builtin_present(cfp,
-                                                              candidates)) ||
+                                                               candidates)) ||
           (uses_anachronism && have_candidates_without_anachronisms)) {
         /* Remove the candidate. */
         if (prev_cfp == NULL) {

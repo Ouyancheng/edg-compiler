@@ -3126,6 +3126,8 @@ a_boolean requires_clause_satisfied(an_expr_node_ptr      constraint,
                                     a_diag_list_ptr       diag_list,
                                     a_boolean             *p_fatal = NULL);
 
+extern void check_eligibility(a_decl_parse_state  *dps);
+
 extern
 a_boolean check_type_constraint(a_type_ptr            type,
                                 an_expr_node_ptr      constraint,

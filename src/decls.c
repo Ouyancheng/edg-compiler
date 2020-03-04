@@ -306,6 +306,7 @@ be restored).
   dps->position_of_this_reference_in_trailing_return_set = FALSE;
   dps->vla_field_treated_as_zero_length_array = FALSE;
   dps->is_struct_binding_decl = FALSE;
+  dps->ineligible = FALSE;
   clear_init_state(&dps->init_state);
   dps->id_attributes = NULL;
   dps->asm_name = NULL;
