@@ -21054,7 +21054,7 @@ warnings or remarks may be issued.
   a_base_class_ptr              bcp;
   a_type_ptr                    tp;
   a_boolean                     union_case = type_is(class_type, tk_union),
-                                any_variant_members = union_case,
+                                any_variant_members = FALSE,
                                 all_variant_members_const = TRUE;
 
   /* First, scan through all the nonstatic data members, using the symbol list
@@ -21148,7 +21148,7 @@ warnings or remarks may be issued.
     }  /* if */
   }  /* for */
   if (any_variant_members && all_variant_members_const &&
-      !microsoft_mode && !gpp_mode) {
+      !microsoft_mode && !(gpp_mode && !clang_mode)) {
     gsfd->suppress_default_ctor = TRUE;
   }  /* if */
   /* Now scan through all the direct and virtual bases of this class. */
