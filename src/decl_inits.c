@@ -6503,16 +6503,13 @@ FALSE is returned) for non-class objects.
             }  /* if */
           }  /* if */
         }  /* if */
-        if (cssp->trivial_default_constructor == NULL ||
-            tp->variant.class_struct_union.is_empty_class) {
-          /* Even if ctor is NULL (as a result of failing to find a default
-             constructor) we still set def_init_performed as though default
-             initialization were done even though it wasn't -- this will
-             prevent a redundant diagnostic from being issued.  In the case of
-             an empty class, default initialization was done since there is
-             nothing to initialize. */
-          def_init_performed = TRUE;
-        }  /* if */
+        /* Even if ctor is NULL (as a result of failing to find a default
+           constructor) we still set def_init_performed as though default
+           initialization were done even though it wasn't -- this will
+           prevent a redundant diagnostic from being issued.  In the case of
+           an empty class, default initialization was done since there is
+           nothing to initialize. */
+        def_init_performed = TRUE;
       } else {
         /* The class has no user-declared constructors. */
         if (is_const && !tp->variant.class_struct_union.is_empty_class) {
