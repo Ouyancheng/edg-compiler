@@ -23066,13 +23066,13 @@ The routine body is not generated until it is known to be needed.
                 class_state->rule_out_trivial_copy_for_volatile_class_field;
   declare_copy_ctor = !cssp->has_copy_constructor &&
                       (gsfd.suppress_copy_ctor ||
-                       gsfd.suppress_dtor ||
                        ctsp->is_lambda_closure_class ||
                        cssp->constructor != NULL ||
                        class_state->needs_constructor_symbol ||
                        class_state->default_ctor_is_nontrivial ||
                        class_state->has_inheriting_constructors ||
-                       cssp->any_ref_member ||
+                       (deleted_functions_enabled &&
+                        (cssp->any_ref_member || gsfd.suppress_dtor)) ||
                        no_bit_copy);
   declare_move_ctor = generate_move_operations &&
                       !cssp->has_copy_constructor &&
