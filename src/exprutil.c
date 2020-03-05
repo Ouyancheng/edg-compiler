@@ -23774,7 +23774,7 @@ struct a_charted_constraint {
 
 struct a_constraint_chart {
   inline a_constraint_chart(a_ptrdiff cap)
-    : constraints_array(cap), not_subsumable(FALSE) {}
+    : constraints_array(cap), not_subsumable(FALSE), not_subsuming(FALSE) {}
   Dyn_array<a_charted_constraint>
 		constraints_array;
 			/* A representation of the constraint obtained by
@@ -23785,8 +23785,10 @@ struct a_constraint_chart {
 			   occurs if every disjunctive clause of the
 			   constraint has an atomic constraint that is not
 			   introduced by a concept. */
-// FIXME: Also consider not_subsuming flag and verify the logic of the
-// not_subsumable flag.
+  a_bit_field	not_subsuming:1;
+			/* TRUE if the constraints are not subsuming.  This
+			   occurs if at least one of the conjunctive clauses
+			   contains no CK_CONCEPT entry. */
 };
 
 #define UNCONSTRAINED_CHART ((a_constraint_chart*)(a_uintptr)0x1)
@@ -24185,12 +24187,18 @@ done:
 static void chart_constraint(an_expr_node_ptr    expr,
                              a_constraint_chart  *chart,
                              int32_t             parent_idx,
-                             a_boolean           *not_subsumable)
+                             a_boolean           *not_subsumable,
+                             a_boolean           *not_subsuming)
 /*
 Perform a recursive prefix traversal of the given (constraint) expression and
 chart its significant nodes (concept-ids, conjunctions, disjunctions, and
 atomic constraints) into *chart.  parent_idx is the index of the last
-concept-id traversed prior to expr (-1 if there was none).
+concept-id traversed prior to expr (-1 if there was none).  not_subsumable is
+set to TRUE if an atomic constraint is encountered with parent_idx == -1, or
+if a disjunction is encountered where both alternatives recursively produced
+a not_subsumable == TRUE result.  not_subsuming is set to FALSE if a concept
+use is encountered with parent_idx == -1 or if a conjunction is encountered
+where both alternatives recursively set not_subsuming to FALSE.
 */
 {
   Dyn_array<a_charted_constraint>  &array = chart->constraints_array;
@@ -24202,24 +24210,36 @@ concept-id traversed prior to expr (-1 if there was none).
     array[new_parent_idx].remapped_args = nullptr;
     chart_constraint(expr->variant.concept_id.concept_template
                          ->prototype_instantiation.constraint,
-                     chart, new_parent_idx, not_subsumable);
+                     chart, new_parent_idx, not_subsumable, not_subsuming);
+    if (parent_idx == -1) *not_subsuming = FALSE;
   } else if (is_operation_node(expr) && node_operator_is(expr, eok_land)) {
-    int32_t  idx = (int32_t)array.length();
+    int32_t    idx = (int32_t)array.length();
+    a_boolean  left_not_subsuming = TRUE, right_not_subsuming = TRUE;
     array.push_back(a_charted_constraint{ CK_AND, (uint32_t)parent_idx,
                                           { (uint32_t)0 }, expr });
     an_expr_node_ptr  opnds = expr->variant.operation.operands;
-    chart_constraint(opnds, chart, parent_idx, not_subsumable);
+    chart_constraint(opnds, chart, parent_idx,
+                     not_subsumable, &left_not_subsuming);
     array[idx].link = (int32_t)array.length();
-    chart_constraint(opnds->next, chart, parent_idx, not_subsumable);
+    chart_constraint(opnds->next, chart, parent_idx,
+                     not_subsumable, &right_not_subsuming);
+    if (!left_not_subsuming && !right_not_subsuming) {
+      *not_subsuming = FALSE;
+    }  /* if */
   } else if (is_operation_node(expr) && node_operator_is(expr, eok_or)) {
     int32_t   idx = (int32_t)array.length();
     a_boolean  left_not_subsumable = FALSE, right_not_subsumable = FALSE;
     array.push_back(a_charted_constraint{ CK_OR, (uint32_t)parent_idx,
                                           { (uint32_t)0 }, expr });
     an_expr_node_ptr  opnds = expr->variant.operation.operands;
-    chart_constraint(opnds, chart, parent_idx, &left_not_subsumable);
+    chart_constraint(opnds, chart, parent_idx,
+                     &left_not_subsumable, not_subsuming);
     array[idx].link = (uint32_t)array.length();
-    chart_constraint(opnds->next, chart, parent_idx, &right_not_subsumable);
+    chart_constraint(opnds->next, chart, parent_idx,
+                     &right_not_subsumable, not_subsuming);
+    if (left_not_subsumable && right_not_subsumable) {
+      *not_subsumable = TRUE;
+    }  /* if */
   } else {
     /* An atomic constraint. */
     array.push_back(a_charted_constraint{ CK_ATOMIC, (uint32_t)parent_idx,
@@ -24284,7 +24304,7 @@ generate that chart.
     if (n_constraints == 0) {
       result = UNCONSTRAINED_CHART;
     } else {
-      a_boolean  not_subsumable = FALSE;
+      a_boolean  not_subsumable = FALSE, not_subsuming = TRUE;
       result = alloc_fe_of_type(a_constraint_chart);
       construct(result, 2*n_constraints);
       Dyn_array<a_charted_constraint>  &array = result->constraints_array;
@@ -24295,7 +24315,8 @@ generate that chart.
           array.push_back(
                  a_charted_constraint{CK_AND, (uint32_t)0, { FALSE }, NULL });
         }  /* if */
-        chart_constraint(constraints[k], result, -1, &not_subsumable);
+        chart_constraint(constraints[k], result, -1,
+                         &not_subsumable, &not_subsuming);
         if (pos != -1) {
           /* This constraint is ANDed with the next.  Update the "link" field
              for the CK_AND entry that was recorded above. */
@@ -24304,6 +24325,9 @@ generate that chart.
       }  /* for */
       if (not_subsumable) {
         result->not_subsumable = TRUE;
+      }  /* if */
+      if (not_subsuming) {
+        result->not_subsuming = TRUE;
       }  /* if */
     }  /* if */
     constraint_charts->map(sym, result);
@@ -24399,7 +24423,7 @@ subject to SFINAE.
 {
   a_boolean  result = TRUE, fatal = FALSE, diagnose_here = (p_fatal == NULL);
 
-/* FIXME: Cache results. */
+  // FIXME: Cache results.
   if (diagnose_here) {
     p_fatal = &fatal;
   }  /* if */
@@ -24703,7 +24727,6 @@ a_boolean requires_expr_satisfied(an_expr_node_ptr      requires_expr,
 /*
 The given node is a requires-expression.  Return TRUE if substituting the given
 template arguments for the given parameters is successful.
-FIXME pass through details of failure?
 */
 {
   a_boolean         result = TRUE;
