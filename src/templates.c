@@ -10002,22 +10002,31 @@ Return TRUE if the template associated with tssp has constraints.
 
 
 static a_boolean requires_constraint_satisfied(
-                               a_template_symbol_supplement_ptr  tssp,
-                               a_requires_clause_ptr             rcp,
-                               a_template_arg_ptr                args,
-                               a_boolean                         diagnose)
+                                          a_symbol_ptr           template_sym,
+                                          a_requires_clause_ptr  rcp,
+                                          a_template_arg_ptr     args,
+                                          a_boolean              diagnose)
 /*
-Return TRUE if the given requires clause (associated with tssp) is satisfied
-by the given template argument list.  Otherwise, return FALSE and issue a
-diagnostic if diagnose is TRUE.
+Return TRUE if the given requires clause (associated with template_sym) is
+satisfied by the given template argument list.  Otherwise, return FALSE and
+issue a diagnostic if diagnose is TRUE.
 */
 {
   a_boolean             result = TRUE;
+  a_template_symbol_supplement_ptr
+                        tssp = template_sym->variant.template_info;
   an_expr_node_ptr      constraint = rcp->constraint;
-  a_template_param_ptr  params = tssp->cache.decl_info->parameters;
+  a_template_param_ptr  params;
   a_diag_list           diag_list;
   a_source_position     diag_pos = error_position;
 
+  if (symbol_is(template_sym, sk_function_template)) {
+    params = decl_cache_for_function_template(tssp)->decl_info->parameters;
+  } else if (symbol_is(template_sym, sk_variable_template)) {
+    params = decl_cache_for_variable_template(tssp)->decl_info->parameters;
+  } else {
+    params = tssp->cache.decl_info->parameters;
+  }  /* if */
   clear_diag_list(&diag_list);
   if (!requires_clause_satisfied(constraint, args, params,
                                  /* map_failure_is_fatal=*/TRUE, &diag_list)) {
@@ -10098,14 +10107,15 @@ TRUE, issue a diagnostic explaining the failure.
     /* Nothing more to check. */
   } else if (tdp != NULL && if_microsoft_extensions(!tdp->is_generic &&)
              tdp->constraint.requires_clause != NULL &&
-             !requires_constraint_satisfied(tssp,
+             !requires_constraint_satisfied(template_sym,
                                             tdp->constraint.requires_clause,
                                             args, diagnose)) {
     result = FALSE;
   } else if (is_simple_function_or_template_symbol(template_sym)) {
     a_routine_ptr  rp = tssp->variant.function.routine;
     if (rp->trailing_requires_clause != NULL &&
-        !requires_constraint_satisfied(tssp, rp->trailing_requires_clause,
+        !requires_constraint_satisfied(template_sym,
+                                       rp->trailing_requires_clause,
                                        args, diagnose)) {
       result = FALSE;
     }  /* if */
