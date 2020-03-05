@@ -10027,6 +10027,7 @@ issue a diagnostic if diagnose is TRUE.
   } else {
     params = tssp->cache.decl_info->parameters;
   }  /* if */
+  push_instantiation_scope_for_rescan(template_sym);
   clear_diag_list(&diag_list);
   if (!requires_clause_satisfied(constraint, args, params,
                                  /* map_failure_is_fatal=*/TRUE, &diag_list)) {
@@ -10042,6 +10043,7 @@ issue a diagnostic if diagnose is TRUE.
     }  /* if */
     result = FALSE;
   }  /* if */
+  pop_instantiation_scope_for_rescan();
   return result;
 }  /* requires_constraint_satisfied */
 
