@@ -46730,6 +46730,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
         scan_is_assignable(bok_is_trivially_assignable, rcblock, result);
         break;
       case tok_is_same:
+      case tok_is_same_as:
       case tok_is_base_of:
       case tok_is_convertible_to:
       case tok_reference_binds_to_temporary:

@@ -1,5 +1,14 @@
 Version 6.1
 
+3/5/20   [EDGcpfe/22447]
+__is_same_as in rescanning contexts
+
+The Changes for EDGcpfe/21327,EDGcpfe/21944,EDGcpfe/21951 introduced support
+for GCC's __is_same_as type trait helper, but they failed to handle that
+extension in rescanning contexts.  That in turn could lead to internal errors
+in rescan_expr_with_substitution_internal.  This is now fixed.
+
+
 3/4/20   [EDGcpfe/22438]
 GNU compatibility: GCC 8.4.0 builtins
 
