@@ -23873,23 +23873,25 @@ the associated concept; otherwise, set it to NULL.
      All other cases are considered to be nontype parameters. */
   clear_token_cache(&cache, /*is_reusable=*/FALSE);
   /* Check for a C++20 type-constraint first. */
-  if (concepts_enabled && curr_token == tok_identifier) {
-    a_boolean                  err = FALSE;
+  if (concepts_enabled) {
     an_identifier_options_set  gid_options = GID_TEMPLATE_ARGS_OPTIONAL |
                                              GID_IMPLICIT_TYPENAME_CONTEXT;
-    concept_templ = coalesce_and_lookup_generalized_identifier(
+    if (is_generalized_identifier_start(gid_options)) {
+      a_boolean                  err = FALSE;
+      concept_templ = coalesce_and_lookup_generalized_identifier(
                                                gid_options, ilm_normal, &err);
-    if (concept_templ == NULL ||
-       !symbol_is(concept_templ, sk_concept_template)) {
-      /* An identifier other than a concept template: This is a nontype
-         template parameter. */
-      result = (a_symbol_kind)sk_constant;
-      concept_templ = NULL;
-    } else {
-      /* A type constraint. */
-      result = (a_symbol_kind)sk_type;
-    }  /* if */
-    goto done;
+      if (concept_templ == NULL ||
+          !symbol_is(concept_templ, sk_concept_template)) {
+        /* An identifier other than a concept template: This is a nontype
+           template parameter. */
+        result = (a_symbol_kind)sk_constant;
+        concept_templ = NULL;
+      } else {
+        /* A type constraint. */
+        result = (a_symbol_kind)sk_type;
+      }  /* if */
+      goto done;
+    }  /*if */
   }  /*if */
   /* Bypass the initial token of the declaration. */
   first_token = curr_token;
