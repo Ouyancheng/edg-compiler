@@ -23750,15 +23750,21 @@ struct a_charted_constraint {
 			/* Convenience function to test the absence of a
 			   parent entry. */
   union {
-    a_boolean	flag;
-			/* For CK_AND and CK_OR entries, nonzero if the second
-			   constraint operand should be considered at this
-			   time. */
-    uint32_t	next;
+    int32_t	next;
 			/* For CK_ATOMIC entries, the index of the next
 			   CK_ATOMIC entry that points to the same constraint.
 			   (If there is no other such entry, the index of this
 			   entry.) */
+    a_template_arg_ptr
+		remapped_args;
+			/* For CK_CONCEPT entries, a pointer to the remapped
+			   concept-id arguments, or NULL if they have not been
+			   computed yet.  Remapped arguments are arguments
+			   substituted by parent concept-id arguments. */
+    a_boolean	flag;
+			/* For CK_AND and CK_OR entries, nonzero if the second
+			   constraint operand should be considered at this
+			   time. */
   };
   an_expr_node_ptr
 		expr;
@@ -23993,6 +23999,116 @@ conjunctive clause, and if the last clause was processed return TRUE.
 }  /* process_conjunctive_clause */
 
 
+static a_template_arg_ptr get_remapped_args(a_constraint_chart  *chart,
+                                            int32_t             idx)
+/*
+Return remapped concept-id arguments for the concept-id constraint at the
+given index in the given constraint chart.
+*/
+{
+  using an_array = Dyn_array<a_charted_constraint>;
+  an_array              &array = chart->constraints_array;
+  a_charted_constraint  *constraint = &array[idx],
+                        *parent_constraint;
+  a_template_arg_ptr    result = constraint->remapped_args;
+
+  if (result == NULL) {
+    an_expr_node_ptr      concept_id = constraint->expr, parent_concept_id;
+    a_template_ptr        templ, parent_templ;
+    a_symbol_ptr          sym, parent_sym;
+    a_template_arg_ptr    orig_args, parent_remapped_args;
+    a_template_param_ptr  params, parent_params;
+    templ = concept_id->variant.concept_id.concept_template;
+    sym = symbol_for(templ);
+    orig_args = concept_id->variant.concept_id.args;
+    if (concept_id->is_type_constraint) {
+      /* Make the implicit argument implicit. */
+      a_template_arg_ptr  first_arg;
+      params = sym->variant.template_info->cache.decl_info->parameters;
+      first_arg = alloc_template_arg((a_templ_arg_kind)tak_type);
+      first_arg->variant.type = params->variant.type;
+      first_arg->next = orig_args;
+      orig_args = first_arg;
+    }  /* if */
+    if (constraint->no_link()) {
+      /* A top-level concept-id: No remapping is needed. */
+      result = orig_args;
+    } else {
+      a_ctws_state          ctws_state;
+      a_boolean             copy_error = FALSE;
+      params = sym->variant.template_info->cache.decl_info->parameters;
+      check_assertion(!constraint->no_link());
+      parent_constraint = &array[constraint->link];
+      parent_concept_id = parent_constraint->expr;
+      parent_templ = parent_concept_id->variant.concept_id.concept_template;
+      parent_sym = symbol_for(parent_templ);
+      parent_params = parent_sym->variant.template_info->cache.decl_info
+                                                       ->parameters;
+      parent_remapped_args = get_remapped_args(chart, constraint->link);
+      /* Substitute the dependent arguments of the concept-id. */
+      init_ctws_state(&ctws_state);
+      result = copy_template_arg_list_with_substitution(
+                                                   sym, orig_args, params,
+                                                   (a_template_param_ptr)NULL,
+                                                   parent_remapped_args,
+                                                   parent_params, 
+                                                   &concept_id->position,
+                                                   CTWS_NO_OPTIONS,
+                                                   &copy_error, &ctws_state);
+    }  /* if */
+    /* Cache the remapping so it can be reused if this constraint chart is
+       needed again. */
+    constraint->remapped_args = result;
+  }  /* if */
+  return result;
+}  /* get_remapped_args */
+
+
+static a_boolean incompatible_mappings(a_constraint_chart  *chart1,
+                                       a_constraint_chart  *chart2,
+                                       a_map_check_list    *map_checks)
+/*
+The constraints represented by chart1 subsume those represented by chart2 if
+the parameter mappings of certain atomic expression pairs are equivalent.
+map_checks represent the pairs (e1, e2) that must be checked, except that e1
+is a representative of a circular list of identical expressions that may
+appear in different mapping contexts: That list is connected by the "next"
+field in the corresponding chart entries.  Return TRUE if there is any entry
+e2 such that none of the corresponding entries in chart1 has an equivalent
+parameter mapping.
+*/
+{
+  using an_array = Dyn_array<a_charted_constraint>;
+  a_boolean  result = FALSE;
+  an_array   &array1 = chart1->constraints_array,
+             &array2 = chart2->constraints_array;
+
+  for (a_map_check_pair &p: *map_checks) {
+    int32_t             idx1 = p.idx1, idx2 = p.idx2, orig_idx1 = idx1;
+    a_template_arg_ptr  args1, args2;
+    a_boolean           incompatible = TRUE;
+    args2 = get_remapped_args(chart2, array2[idx2].link);
+    /* Loop through the linked list of identical chart1 atomic constraint
+       expressions. */
+    do {
+      args1 = get_remapped_args(chart1, array1[idx1].link);
+      // FIXME: Only check the arguments used by the atomic constraint
+      //        expression (presumably using a bit map).
+      if (equiv_template_arg_lists(args1, args2, ETA_NO_OPTIONS)) {
+        incompatible = FALSE;
+        break;
+      }  /* if */
+      idx1 = array1[idx1].next;
+    } while (idx1 != orig_idx1);
+    if (incompatible) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* incompatible_mappings */
+
+
 static a_boolean subsumes_constraint_chart(a_constraint_chart  *chart1,
                                            a_constraint_chart  *chart2)
 /*
@@ -24009,7 +24125,8 @@ Return FALSE otherwise.
     an_array  &array1 = chart1->constraints_array,
               &array2 = chart2->constraints_array;
     int32_t   k, len;
-    /* Clear the CK_OR flags in chart1 and the CK_AND flags in chart2. */
+    /* Clear the CK_OR flags in chart1 and the CK_AND flags in chart2.
+       Also initialize the "next" fields for the atomic expressions. */
     len = (int32_t)array1.length();
     for (k = 0; k<len; ++k) {
       a_charted_constraint  *constraint = &array1[k];
@@ -24051,13 +24168,14 @@ Return FALSE otherwise.
           /* No matching atomic constraints were found. */
           result = FALSE;
           goto done;
+        } else if (incompatible_mappings(chart1, chart2, &map_checks)) {
+          result = FALSE;
+          goto done;
         }  /* if */
-        // FIXME: Check mappings for the matching atomic constraints.
         if (last_conj_clause) break;
       }  /* for */
       if (last_disj_clause) break;
     }  /* for */
-    /* Verify mappings for matching expressions. */
   }  /* if */
 done:
   return result;
@@ -24081,6 +24199,7 @@ concept-id traversed prior to expr (-1 if there was none).
     int32_t  new_parent_idx = (int32_t)array.length();
     array.push_back(a_charted_constraint{ CK_CONCEPT, (uint32_t)parent_idx,
                                           { (uint32_t)0 }, expr });
+    array[new_parent_idx].remapped_args = nullptr;
     chart_constraint(expr->variant.concept_id.concept_template
                          ->prototype_instantiation.constraint,
                      chart, new_parent_idx, not_subsumable);
@@ -24137,7 +24256,6 @@ generate that chart.
                                        ->variant.template_param.extra_info
                                        ->constraint.type_constraint;
             if (type_constraint != NULL) {
-              // FIXME: Mark this as a type constraint somehow?
               constraints.push_back(type_constraint);
             }  /* if */
           }  /* if */

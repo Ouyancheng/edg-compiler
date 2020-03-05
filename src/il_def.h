@@ -13707,6 +13707,11 @@ typedef struct an_expr_node {
 			   the broader context implies that the node is
 			   compiler generated (e.g., in the synthesized
 			   definitions of special member functions). */
+  a_bit_field
+		is_type_constraint:1;
+			/* TRUE for an enk_concept_id node that represents a
+			   type constraint (i.e., its first template argument
+			   is implicit). */ 
   a_source_position
 		position;
 			/* When kind == enk_operation, the position at which

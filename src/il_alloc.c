@@ -3664,6 +3664,7 @@ its kind to the indicated kind.
   node->volatile_fetch = FALSE;
   node->do_not_interpret = FALSE;
   node->compiler_generated = FALSE;
+  node->is_type_constraint = FALSE;
   node->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   node->expr_range = null_source_range; 

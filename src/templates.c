@@ -24234,6 +24234,7 @@ represents the associated concept template.
                 tssp = concept_templ->variant.template_info;
     constraint = alloc_expr_node((an_expr_node_kind)enk_concept_id);
     constraint->type = bool_type();
+    constraint->is_type_constraint = TRUE;
     constraint->position = pos_curr_token;
     constraint->variant.concept_id.concept_template = tssp->il_template_entry;
     /* Bypass the concept name. */

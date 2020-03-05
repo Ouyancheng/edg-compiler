@@ -4353,6 +4353,9 @@ Display the indicated expression node.
   if (ptr->compiler_generated) {
     disp_boolean("compiler_generated", TRUE);
   }  /* if */
+  if (ptr->is_type_constraint) {
+    disp_boolean("is_type_constraint", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case enk_error:
