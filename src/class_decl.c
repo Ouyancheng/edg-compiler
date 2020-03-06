@@ -23817,8 +23817,6 @@ initialization requirement.
   rout_sym->decl_scope = decl_scope_level;
   new_rp = rout_sym->variant.routine.ptr;
   new_rp->is_inh_ctor_def_init = TRUE;
-  new_rp->type->variant.routine.extra_info->routine_name_linkage= nlk_internal;
-  new_rp->source_corresp.name = NULL;
   if (suppress_inh_ctor_default_ctor(class_type)) {
     new_rp->is_deleted = TRUE;
     new_rp->defined = TRUE;
@@ -24285,8 +24283,13 @@ TRUE.
   /* Traverse the list looking for a name and qualifier match. */
   for (; udp != NULL; udp = udp->next) {
     if (same_entities(udp->qualifier.class_type, sym_parent_class(sym))) {
-      scp = source_corresp_for_il_entry(udp->entity.ptr,
-                                        (an_il_entry_kind)udp->entity.kind);
+      if (udp->entity.kind == (a_byte_il_entry_kind)iek_base_class) {
+        a_base_class_ptr bcp = (a_base_class_ptr)udp->entity.ptr;
+        scp = &(bcp->type->source_corresp);
+      } else {
+        scp = source_corresp_for_il_entry(udp->entity.ptr,
+                                          (an_il_entry_kind)udp->entity.kind);
+      }  /* if */
       check_assertion(scp != NULL);
       if (((a_symbol_ptr)scp->assoc_info)->header == sym->header) {
         /* This must be a duplicate.  In strict mode issue an error (see

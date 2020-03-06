@@ -9786,21 +9786,6 @@ done:
 }  /* in_derivation_path */
 
 
-static void inh_ctor_init_call_inh_ctor(a_constructor_init_ptr init,
-                                        a_routine_ptr          ctor,
-                                        a_routine_ptr          inh_ctor)
-/*
-Generate the call to the inherited constructor given by inh_ctor and update
-init accordingly.  ctor is the inheriting constructor that inherited from
-inh_ctor.
-*/
-{
-  init->initializer =
-             forwarding_initializer_for_inheriting_constructor(ctor, inh_ctor);
-  init->initializer->is_constructor_init = TRUE;
-}  /* inh_ctor_init_call_inh_ctor */
-
-
 static void inh_ctor_init_default_initialize_base(
                                              a_constructor_init_ptr init,
                                              a_routine_ptr          ctor,
@@ -9925,7 +9910,6 @@ constructor are initialized in the normal way.
   a_constructor_init_ptr *next_init = &ctor_inits;
   a_routine_ptr          ctor_routine;
   a_type_ptr             ctor_owner, class_type;
-  a_symbol_ptr           ctor_sym;
   a_class_type_supplement_ptr
                          ctsp;
   Dyn_array<a_base_class_ptr>
@@ -9943,7 +9927,6 @@ constructor are initialized in the normal way.
   ctsp = class_type_supp(class_type);
   ctor_routine = get_inh_ctor_originator(ctor);
   ctor_owner = parent_class_of(ctor_routine);
-  ctor_sym = symbol_for(ctor_routine);
 
   /* Call the inherited constructor now to ensure it's instantiated. */
   dip = forwarding_initializer_for_inheriting_constructor(ctor, ctor_routine);

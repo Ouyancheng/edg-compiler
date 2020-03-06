@@ -3005,11 +3005,9 @@ construction (if any is needed).
   a_routine_type_supplement_ptr  rtsp;
   a_param_type_ptr               ptp;
   a_constructor_init_ptr         cip;
-  a_type_ptr                     class_type;
 
   db_enter(4, "make_generated_constructor_body");
   rp = scope->variant.routine.ptr;
-  class_type = parent_class_of(rp);
   /* Create the parameter variable -- needed for copy constructors only. */
   rtsp = (skip_typerefs(rp->type))->variant.routine.extra_info;
   for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {

@@ -2155,8 +2155,8 @@ elided copy constructor.
       sev = strict_ansi_discretionary_severity;
     }  /* if */
     if (special_kind_is(rout, sfk_constructor) &&
-        is_default_constructor(rout, /*is_declarative_context=*/FALSE) ||
-        (rout->is_inheriting_ctor || rout->is_inh_ctor_def_init)) {
+        (is_default_constructor(rout, /*is_declarative_context=*/FALSE) ||
+         rout->is_inheriting_ctor || rout->is_inh_ctor_def_init)) {
       /* Use a specific message for a default constructor.  This is clearer
          when the class is unnamed, as for a lambda. */
       if (rout->is_inh_ctor_def_init || rout->is_inheriting_ctor) {
