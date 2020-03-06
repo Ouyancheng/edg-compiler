@@ -23,23 +23,14 @@ __is_pod and trivial default constructors
 Some tweaks were made to the processes determining whether a defaulted default
 constructor is trivial or not.  These changes affect the outcome of the
 __is_pod type trait helper, sometimes for better conformance to the standard,
-and sometimes for better compatibility with GCC.  For example:
+and sometimes for better compatibility with GCC and Clang.  For example:
 
   struct S1 {
     int i;
-    S1() = delete;  // Previously nontrivial.  Now trivial.
+    S1() = delete;
   };
-  static_assert(__is_pod(S1), "");  // Previously an error.  Now accepted
-                                    // in all modes.
-  struct X {
-    int i;
-    X() = default;
-  };
-  struct S2 { X const xc; };  // The generated constructor for S2 is normally
-                              // nontrivial because xc is const-qualified.
-                              // Now, it is considered trivial in GNU modes.
-  static_assert(__is_pod(S2), "");  // Previously an error.  Now accepted in
-                                    // GNU modes.
+  static_assert(__is_pod(S1), "");  // Previously an error in all modes.
+                                    // Now accepted in some GCC modes.
 
 
 2/28/20  [EDGcpfe/15915,EDGcpfe/22427]

@@ -2088,6 +2088,19 @@ Return TRUE if the given type is trivially copyable.
         if (!has_trivial_copy_function) {
           result = FALSE;
         }  /* if */
+        if (result && clang_mode &&
+            tp->variant.class_struct_union.any_const_member) {
+          /* Clang considers a class to not be trivially copyable if it has a
+             data member of const class type. */
+          a_field_ptr  fp = tp->variant.class_struct_union.field_list;
+          for (; fp != NULL; fp = fp->next) {
+            if (is_const_qualified_type(fp->type) &&
+                is_class_struct_union_type(fp->type)) {
+              result = FALSE;
+              break;
+            }  /* if */
+          }  /* for */
+        }  /* if */
       } else {
         result = FALSE;
       }  /* if */
