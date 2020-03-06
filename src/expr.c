@@ -37105,9 +37105,10 @@ one of:
 Record the representation or the requires-expression in *result.
 */
 {
-  a_source_position  start_pos = pos_curr_token;
-  a_boolean          is_dependent = FALSE;
-  a_param_type_ptr   params = NULL;         
+  a_memory_region_number  il_region = curr_il_region_number;
+  a_source_position       start_pos = pos_curr_token;
+  a_boolean               is_dependent = FALSE;
+  a_param_type_ptr        params = NULL;         
 
   (void)get_token();
   add_stop_token(tok_rbrace);
@@ -37120,6 +37121,9 @@ Record the representation or the requires-expression in *result.
   }  /* if */
   if (is_template_dependent_context()) {
     scope_stack_top().in_template_deduction_context = TRUE;
+  }  /* if */
+  if (il_region != file_scope_region_number) {
+    switch_il_region(il_region);
   }  /* if */
   if (!required_token(tok_lbrace, ec_exp_lbrace)) {
     make_error_operand(result);
@@ -37172,6 +37176,12 @@ done_with_requirements:
   }  /* if */
   /* Pop the function-prototype scope that was pushed earlier. */
   check_assertion(scope_is(&scope_stack_top(), sck_func_prototype));
+  if (il_region != file_scope_region_number) {
+    if (params != NULL) {
+      possibly_add_orphaned_file_scope_il_entry((char*)params, iek_param_type);
+    }  /* if */
+    switch_il_region(file_scope_region_number);
+  }  /* if */
   pop_scope();
   remove_stop_token(tok_rbrace);
 }  /* scan_requires_expr */

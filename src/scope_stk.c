@@ -6901,7 +6901,7 @@ deduction, potentially entering an exponential-time process).
 {
   a_scope_depth  sd = depth_innermost_instantiation_scope;
 
-  if (scope_stack[sd].rescan_depth_exceeded) {
+  if (sd != NO_SCOPE_DEPTH && scope_stack[sd].rescan_depth_exceeded) {
     /* This routine has already been called for the current instantiation
        scope.  No need to issue multiple errors. */
   } else {

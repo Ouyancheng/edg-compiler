@@ -5985,10 +5985,21 @@ next_argument:
     }  /* if */
     if (concepts_enabled) {
       /* Check that the constraints are satisfied. */
-      if (!check_template_constraints(function_symbol, local_template_arg_list,
-                                      /*diagnose=*/FALSE)) {
+      /* First check for runaway substitution. */
+      a_template_symbol_supplement_ptr
+              tssp = function_symbol->variant.template_info;
+      if (tssp->variant.function.pending_deductions >
+                                                 max_pending_instantiations) {
+        report_excessive_rescan_depth();
         goto reject_function;
       }  /* if */
+      ++(tssp->variant.function.pending_deductions);
+      if (!check_template_constraints(function_symbol, local_template_arg_list,
+                                      /*diagnose=*/FALSE)) {
+        --(tssp->variant.function.pending_deductions);
+        goto reject_function;
+      }  /* if */
+      --(tssp->variant.function.pending_deductions);
     }  /* if */
     routine_type = skip_typerefs(routine_type);
     rtsp = routine_type->variant.routine.extra_info;
@@ -17194,6 +17205,7 @@ except that it was inaccessible because of hide-by-sig lookup.
   a_boolean                 operand_1_is_class;
   a_type_ptr                eff_operand_1_type = operand_1->type;
 
+  error_position = *operator_position;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (selector_is_handle) {
     eff_operand_1_type = type_pointed_to(eff_operand_1_type);

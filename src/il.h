@@ -3019,18 +3019,6 @@ of substitution failures in a debugger.
 
 #if ORPHAN_PROCESSING_NEEDED
 /*
-Record a file-scope entry as a potential orphan.  The macro here ensures
-that once the entry is placed on an orphan list the subroutine is no
-longer called (well, except if it's the last entry on the list).
-The orphan is recorded in the current translation unit.
-*/
-#define add_orphaned_file_scope_il_entry(entry_ptr, entry_kind)       \
-{ if (fs_orphan_pointer_of(entry_ptr) == NULL) {                      \
-    f_add_orphaned_file_scope_il_entry((entry_ptr), (entry_kind),     \
-                                       curr_translation_unit);        \
-  }  /* if */                                                         \
-}  /* add_orphaned_file_scope_il_entry */
-/*
 Like add_orphaned_file_scope_il_entry, but do not enter certain kinds
 of entries that can never be orphans (e.g., class members).  The
 orphan is recorded in the current translation unit.
