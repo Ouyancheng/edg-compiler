@@ -6082,8 +6082,7 @@ given expression.
                operand_is_instantiation_dependent(operand)) {
     /* In template-dependent contexts, assume the expression might become
        constant after instantiation. */
-    make_template_param_constant_from_operand(operand, constant,
-                                              (a_type_ptr)NULL);
+    make_template_param_expr_constant_operand(operand);
     result = TRUE;
   } else {
     result = FALSE;
