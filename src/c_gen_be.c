@@ -2078,7 +2078,7 @@ is non-NULL, in which case that is the function scope.
   a_func_prototype_stack_entry  fpse;
 
   /* Push an entry onto the function prototype stack. */
-  fpse.function_type = type;
+  fpse.params = rtsp->param_type_list;
   fpse.outside_parameter_list = FALSE;
   push_function_prototype(&fpse, &octl);
   if (scope != NULL) {
