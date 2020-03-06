@@ -16667,7 +16667,7 @@ parameter lists). */
     if (param->next != NULL) write_tok_str(", ");
   }  /* for */
   write_tok_str("> ");
-  if (!tdp->is_generic) {
+  if (!is_cppcli_generic) {
     a_requires_clause_ptr  rcp = tdp->constraint.requires_clause;
     if (rcp != NULL) {
       /* Render a requires-clause. */
@@ -16721,8 +16721,8 @@ parameter lists). */
         }  /* if */
       }  /* for */
     }  /* for */
-  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
 }  /* gen_template_header */
 
 
