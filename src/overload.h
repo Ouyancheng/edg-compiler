@@ -481,6 +481,9 @@ typedef struct a_candidate_function {
 			   when matching an initializer-list constructor in
 			   a special way (see [over.match.list] in the C++11
 			   standard). */
+  a_bit_field	is_inheriting_ctor:1;
+			/* If TRUE, this candidate is an inheriting
+			   constructor. */
   a_bit_field	is_user_conversion:1;
 			/* TRUE if this function is a user-defined conversion
 			   being examined to resolve an implicit conversion.

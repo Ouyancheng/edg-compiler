@@ -1626,6 +1626,7 @@ are used in resolving calls to overloaded functions.
   cfp->supplemental_reversed_candidate = FALSE;
   cfp->uses_microsoft_explicit_anachronism = FALSE;
   cfp->init_list_ctor_case = FALSE;
+  cfp->is_inheriting_ctor = FALSE;
   cfp->is_user_conversion = FALSE;
   cfp->in_best_match_set = FALSE;
   cfp->in_best_match_set_for_some_argument = FALSE;
@@ -1744,6 +1745,9 @@ formal parameters.
 
   candidate = alloc_candidate_function();
   candidate->function_symbol = function_symbol;
+  if (func_sym_routine(function_symbol)->is_inheriting_ctor) {
+    candidate->is_inheriting_ctor = TRUE;
+  }  /* if */
   candidate->overloaded_function_symbol = overloaded_function_symbol;
   candidate->arg_matches = arg_matches;
   candidate->next = *candidate_functions;
@@ -8430,11 +8434,10 @@ other.  Return
              (cmp = compare_function_templates_for_ovl_res(cfp1, cfp2)) != 0) {
     /* cfp1 and cfp2 are function templates and one is more specialized than
        the other. */
-  } else if (func_sym_routine(cfp1->function_symbol)->is_inheriting_ctor !=
-             func_sym_routine(cfp2->function_symbol)->is_inheriting_ctor) {
+  } else if (cfp1->is_inheriting_ctor != cfp2->is_inheriting_ctor) {
     /* One of the two functions is an inheriting constructor.  The one that
        isn't an inheriting constructor is better. */
-    if (func_sym_routine(cfp1->function_symbol)->is_inheriting_ctor) {
+    if (cfp1->is_inheriting_ctor) {
       cmp = -1;
     } else {
       cmp = 1;

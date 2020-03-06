@@ -14181,6 +14181,10 @@ set; otherwise, it is NULL.
 
   switch (rtn->special_kind) {
     case sfk_constructor:
+      if (decl_info->decl_state.is_inh_ctor_def_init) {
+        /* This symbol should not affect class state.  Do nothing. */
+        break;
+      }  /* if */
       /* Set the pointer to the constructor symbol in the class symbol
          supplement. */
       if (decl_info->is_trivial_default_constructor) {
