@@ -1593,6 +1593,7 @@ after the command-line processing has been done.
   lookup_one_time_init();
   layout_one_time_init();
   lexical_one_time_init();
+  literals_one_time_init();
   macro_one_time_init();
   mem_manage_one_time_init();
   pch_one_time_init();

@@ -161,9 +161,7 @@ extern void conv_string_literal(
 extern void widen_string_literal(a_constant_ptr con);
 extern void concat_string_literals(a_token_cache_ptr cache,
                                    a_character_kind  kind);
-#if MAKE_FRONT_END_CALLABLE
-extern void literals_cleanup(void);
-#endif /* MAKE_FRONT_END_CALLABLE */
+extern void literals_one_time_init(void);
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
