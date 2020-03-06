@@ -17936,6 +17936,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     rp->compiler_generated = templ_rout->compiler_generated;
     rp->is_initializer_list_ctor = templ_rout->is_initializer_list_ctor;
     rp->is_inheriting_ctor = templ_rout->is_inheriting_ctor;
+    rp->is_inh_ctor_def_init = templ_rout->is_inh_ctor_def_init;
     rp->generating_using_decl = templ_rout->generating_using_decl;
     set_inline_flag(rp, (a_boolean)templ_rout->is_inline);
 #if IA64_ABI
@@ -18014,6 +18015,11 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* Add it to the routines list of the appropriate scope; NO_SCOPE_DEPTH
        is passed in to cause the scope to be computed. */
+    if (rp->is_inheriting_ctor && !rp->is_deleted &&
+        suppress_inh_ctor_default_ctor(parent_class_of(rp))) {
+      rp->is_deleted = TRUE;
+      rp->defined = TRUE;
+    }  /* if */
     add_to_routines_list(rp, NO_SCOPE_DEPTH);
     update_befriending_classes_for_function(tssp, rp);
     perform_deferred_access_checks_for_function(rp);

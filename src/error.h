@@ -684,9 +684,15 @@ extern void pos_sy2_warning(an_error_code     error_code,
                             a_source_position *error_pos,
                             struct a_symbol   *symbol1,
                             struct a_symbol   *symbol2);
+
 extern void sym_add_diag_info(a_diagnostic_ptr primary_dp,
                               an_error_code    error_code,
                               struct a_symbol  *symbol);
+
+extern void pos_sy_add_diag_info(a_diagnostic_ptr  primary_dp,
+                                 an_error_code     error_code,
+                                 a_source_position *pos,
+                                 struct a_symbol   *symbol);
 
 extern void more_info_diagnostic(an_error_code     error_code,
                                  a_source_position *error_pos,

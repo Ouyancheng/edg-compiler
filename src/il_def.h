@@ -6654,6 +6654,14 @@ typedef struct a_routine_type_supplement {
 			   a special member with an "indeterminate" exception
 			   specification, this points to the associated
 			   function.  Otherwise, it is NULL. */
+  a_routine_ptr inherited_routine;
+                        /* If this type is the type for a function that is an
+			   inheriting constructor, this points to the routine
+			   that was inherited.  Otherwise, it is NULL. */
+  a_bit_field	inherits_virtually:1;
+                        /* TRUE if inherited_routine is non-NULL and it comes
+                           from a virtual base class of the class that owns
+                           this type. */
   a_bit_field	has_ellipsis:1;
                         /* TRUE if there is an ellipsis ("...") at the end of
                            the prototyped parameter list, indicating a
@@ -11415,6 +11423,9 @@ typedef struct a_routine {
   a_bit_field	is_inheriting_ctor:1;
 			/* TRUE if this routine is an inheriting
 			   constructor. */
+  a_bit_field	is_inh_ctor_def_init:1;
+			/* TRUE if this routine is a default-initialization
+			   constructor for inheriting constructors. */
 #if ASSIGNMENT_TO_THIS_ALLOWED
   a_bit_field	assignment_to_this_done:1;
 			/* TRUE if an assignment to "this" (an anachronism)

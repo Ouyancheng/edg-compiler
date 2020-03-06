@@ -953,6 +953,11 @@ typedef struct a_class_symbol_supplement {
 			   when an implicitly declared default constructor is
 			   nontrivial, it appears on the constructor list for
 			   the class. */
+  a_symbol_ptr	inh_ctor_def_ctor;
+			/* A "default constructor" for participation in the
+			   initialization of an object via an inherited
+			   constructor.  NULL if inheriting constructors are
+			   not enabled. */
   a_symbol_ptr	destructor;
 			/* Pointer to an sk_member_function symbol that
 			   identifies the destructor for this class; NULL if
@@ -6635,6 +6640,14 @@ extern a_boolean f_has_nontrivial_ctor(a_class_symbol_supplement_ptr  cssp);
   ((cssp)->destructor != NULL &&                                        \
    (!(cssp)->destructor->variant.routine.ptr->is_trivial_destructor ||  \
     (cssp)->destructor->variant.routine.ptr->is_deleted))
+
+extern a_routine_ptr get_inh_ctor_originator(a_routine_ptr ctor);
+
+#define inh_ctor_inherited_ctor(ctor)                                         \
+  (ctor->type->variant.routine.extra_info->inherited_routine)
+
+#define inh_ctor_inherits_virtually(ctor)                                     \
+  (ctor->type->variant.routine.extra_info->inherits_virtually)
 
 /* Return TRUE if a symbol is a conversion operator symbol. */
 #define is_conversion_function_symbol(sym)                            \

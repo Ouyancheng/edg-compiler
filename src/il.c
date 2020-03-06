@@ -755,10 +755,11 @@ Dump a member function (a routine entry), for debug purposes.
   db_name_full(&rp->source_corresp, iek_routine);
   fputs("\" (", f_debug);
   db_name_linkage((a_name_linkage_kind)rp->source_corresp.name_linkage);
-  fprintf(f_debug, " linkage)%s%s%s, sc_%s,\n    type = ",
+  fprintf(f_debug, " linkage)%s%s%s%s, sc_%s,\n    type = ",
                    (rp->is_constexpr) ? ", constexpr" : "",
                    (rp->is_inline) ? ", inline" : "",
                    (rp->is_deleted) ? ", =delete" : "",
+                   (rp->is_inheriting_ctor) ? ", inheriting" : "",
                    db_storage_class_names[(int)rp->storage_class]);
   db_abbreviated_type(rp->type);
 }  /* db_member_function */
@@ -1024,8 +1025,12 @@ Dump information on a using-decl entry, for debug purposes.
 
   if (!udp->is_using_directive) {
     /* A using-declaration. */
-    sc = source_corresp_for_il_entry(udp->entity.ptr,
-                                     (an_il_entry_kind)udp->entity.kind);
+    if (udp->entity.kind == (a_byte_il_entry_kind)iek_base_class) {
+      sc = &(((a_base_class_ptr)udp->entity.ptr)->type->source_corresp);
+    } else {
+      sc = source_corresp_for_il_entry(udp->entity.ptr,
+                                       (an_il_entry_kind)udp->entity.kind);
+    }  /* if */
     check_assertion(sc != NULL);
     fputs("\n    ", f_debug);
     if (udp->is_class_member) {
@@ -1036,6 +1041,7 @@ Dump information on a using-decl entry, for debug purposes.
         case iek_routine:    str = "member function";     break;
         case iek_type:       str = "member type";         break;
         case iek_constant:   str = "member constant";     break;
+        case iek_base_class: str = "member base";         break;
         case iek_template:   str = "template";            break;
         default:             str = NULL;                  break;
       }  /* switch */

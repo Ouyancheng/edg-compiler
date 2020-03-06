@@ -2302,12 +2302,23 @@ call.
     /* Print each candidate function. */
     function_sym = cfp->function_symbol;
     if (function_sym != NULL) {
+      a_boolean        inh_ctor_case = FALSE;
+      a_using_decl_ptr udp;
       /* Normal function case. */
       if (is_ambiguous_by_inheritance(function_sym)) {
         /* Function symbol is ambiguous by inheritance.  Use a special
            message.  This happens for conversion functions inherited
            into a derived class. */
         err_code = ec_ambiguous_by_inheritance_add_on;
+      } else if (function_sym->variant.routine.ptr->is_inheriting_ctor) {
+        /* This is an inheriting constructor - get the inherited constructor
+           symbol. */
+        a_routine_ptr rp = func_sym_routine(function_sym);
+        udp = rp->generating_using_decl;
+        rp = get_inh_ctor_originator(rp);
+        function_sym = symbol_for(rp);
+        err_code = ec_ambiguous_inh_constructor_add_on;
+        inh_ctor_case = TRUE;
       } else {
         /* Normal case. */
         if (cfp->supplemental_reversed_candidate) {
@@ -2317,7 +2328,11 @@ call.
         }  /* if */
         reduce_projection_symbol_to_fundamental_symbol(function_sym);
       }  /* if */
-      sym_add_diag_info(dp, err_code, function_sym);
+      if (inh_ctor_case) {
+        pos_sy_add_diag_info(dp, err_code, &udp->position, function_sym);
+      } else {
+        sym_add_diag_info(dp, err_code, function_sym);
+      }  /* if */
     } else if (cfp->surrogate_function_conv_sym != NULL) {
       /* Surrogate function. */
       sym_add_diag_info(dp, ec_surrogate_func_add_on,
@@ -8415,6 +8430,15 @@ other.  Return
              (cmp = compare_function_templates_for_ovl_res(cfp1, cfp2)) != 0) {
     /* cfp1 and cfp2 are function templates and one is more specialized than
        the other. */
+  } else if (func_sym_routine(cfp1->function_symbol)->is_inheriting_ctor !=
+             func_sym_routine(cfp2->function_symbol)->is_inheriting_ctor) {
+    /* One of the two functions is an inheriting constructor.  The one that
+       isn't an inheriting constructor is better. */
+    if (func_sym_routine(cfp1->function_symbol)->is_inheriting_ctor) {
+      cmp = -1;
+    } else {
+      cmp = 1;
+    }  /* if */
   } else if (cfp1->supplemental_comparison_candidate !=
                                     cfp2->supplemental_comparison_candidate) {
     /* For comparison operators, rewrites in terms of a different operator are

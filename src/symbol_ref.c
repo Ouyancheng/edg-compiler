@@ -2155,10 +2155,15 @@ elided copy constructor.
       sev = strict_ansi_discretionary_severity;
     }  /* if */
     if (special_kind_is(rout, sfk_constructor) &&
-        is_default_constructor(rout, /*is_declarative_context=*/FALSE)) {
+        is_default_constructor(rout, /*is_declarative_context=*/FALSE) ||
+        (rout->is_inheriting_ctor || rout->is_inh_ctor_def_init)) {
       /* Use a specific message for a default constructor.  This is clearer
          when the class is unnamed, as for a lambda. */
-      err_code = ec_deleted_default_constructor;
+      if (rout->is_inh_ctor_def_init || rout->is_inheriting_ctor) {
+        err_code = ec_deleted_inh_def_constructor;
+      } else {
+        err_code = ec_deleted_default_constructor;
+      }  /* if */
       /* If we are not issuing an error, call the "sfinae" version of the
          routine that can potentially ignore overridden severities. */
       if (pos == NULL) {

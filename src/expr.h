@@ -700,7 +700,8 @@ extern void scan_class_parenthesized_initializer(
                                    an_init_state         *is);
 
 extern a_dynamic_init_ptr forwarding_initializer_for_inheriting_constructor(
-                                                          a_routine_ptr  ctor);
+                                                       a_routine_ptr ctor,
+                                                       a_routine_ptr inh_ctor);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 extern void scan_template_argument_constant_expression(a_type_ptr param_type,

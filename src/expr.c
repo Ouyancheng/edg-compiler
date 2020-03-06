@@ -47772,15 +47772,16 @@ source position to be used in overall errors.
 
 
 a_dynamic_init_ptr forwarding_initializer_for_inheriting_constructor(
-                                                          a_routine_ptr  ctor)
+                                                        a_routine_ptr ctor,
+                                                        a_routine_ptr inh_ctor)
 /*
 Generate a dynamic init entry representing the mem-initializer of an
 inheriting constructor for the base class whose constructor signature it
-inherits.
+inherits.  ctor is the inheriting constructor that inherited from inh_ctor.
 */
 {
   a_using_decl_ptr      udp = ctor->generating_using_decl;
-  a_type_ptr            class_type = udp->qualifier.class_type;
+  a_type_ptr            class_type = parent_class_of(inh_ctor);
   a_dynamic_init_ptr    result = NULL;
   an_arg_list_elem_ptr  arg_list = NULL, *p_alep = &arg_list;
   a_variable_ptr        vp;

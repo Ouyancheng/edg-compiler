@@ -30,6 +30,7 @@ decl_inits.c -- Scanning of initializers in declarations.
 #include "folding.h"
 #include "interpret.h"
 #include "statements.h"
+#include "util.h"
 #if DO_IL_LOWERING
 #if MICROSOFT_EXTENSIONS_ALLOWED && LOWER_MICROSOFT_NONCONSTANT_AGGREGATE
 #include "lower_init.h"
@@ -8612,6 +8613,136 @@ end_of_routine:
 }  /* delegating_ctor_initializer */
 
 
+a_constructor_init_ptr ctor_inits_for_fields(
+                                       a_routine_ptr          ctor_rout,
+                                       a_type_ptr             class_type,
+                                       a_boolean              all_fields,
+                                       a_boolean              only_init_fields,
+                                       a_boolean              *has_field,
+                                       a_constructor_init_ptr *end_of_list)
+/*
+Generate the needed set of constructor initializers for the fields of a given
+class type.  ctor_rout is the constructor being used to initialize the object
+(of which class_type may be a class deriving from the class that owns ctor_rout
+in the case of inheriting constructors).  If all_fields is TRUE, create
+constructor initializers for all fields of a class, whether or not they would
+otherwise be required.  If only_init_fields is TRUE, only generate constructor
+initializers for fields that have initializers.  If has_field is non-NULL, set
+*has_field to TRUE if any fields are present (in some cases a class may have
+fields but not have any constructor initializers generated).  If end_of_list is
+non-NULL, set *end_of_list to the last initializer in the list.
+*/
+{
+  a_symbol_ptr                  class_sym, sym;
+  a_class_symbol_supplement_ptr cssp;
+  a_constructor_init_ptr        result = NULL;
+  a_constructor_init_ptr        *next_cip = &result;
+
+  check_assertion(is_immediate_class_type(class_type));
+  /* Loop through the symbol list for the class, not the field list, since
+     the symbol list contains only user-defined fields whereas the field
+     list may also include compiler-generated field entries. */
+  class_sym = symbol_for(class_type);
+  for (sym = class_symbol_supp(class_sym)->symbols;
+       sym != NULL;
+       sym = sym->next_in_scope) {
+    if (sym->kind == (a_symbol_kind)sk_field) {
+      /* sym represents a field.  Determine whether constructor initialization
+         is required. */
+      a_field_ptr field = sym->variant.field.ptr;
+      if (ms_extensions && field_is_property_or_event(field)) {
+        /* Property and event fields are not really data members and should
+           not be explicitly initialized. */
+        continue;
+      }  /* if */
+      if (has_field != NULL) {
+        *has_field = TRUE;
+      }  /* if */
+      if (all_fields) {
+        /* All fields are explicitly listed for a generated copy or move
+           constructor, since even if there is no constructor at least a
+           bitwise copy is required. */
+      } else if (field->has_initializer) {
+        /* Fields with an in-class initializer require corresponding
+           constructor-init entries. */
+      } else if (only_init_fields) {
+        /* This field doesn't have an initializer - don't include it. */
+        continue;
+      } else if (sym->variant.field.extra_info->is_first_variant_member ||
+                 sym->variant.field.extra_info->is_last_variant_member) {
+        /* The first and last variant field of an anonymous union must be
+           listed so we can detect the presence of the variant part below. */
+      } else if (ctor_rout->is_constexpr) {
+        /* All fields must be initialized in a constexpr constructor.  (For
+           variant fields only one member of the union must be initialized.
+           That is checked later.) */
+      } else {
+        /* This is not a copy constructor.  See if this is a field that
+           requires an initializer. */
+        a_type_ptr tp = field->type;
+        if (is_any_reference_type(tp) || is_const_qualified_type(tp)) {
+          /* Reference-type fields and const and array-of-const fields require
+             an initializer. */
+        } else {
+          tp = skip_typerefs(tp);
+          if (is_array_type(tp)) {
+            if (tp->size == 0) {
+              /* Zero-length arrays (a GNU feature) and flexible array members
+                 (a C++ extension in GNU and Microsoft modes) cannot be
+                 initialized. */
+              continue;
+            }  /* if */
+            tp = underlying_array_element_type(tp);
+            tp = skip_typerefs(tp);
+          }  /* if */
+          if (is_real_class_type(tp)) {
+            cssp = symbol_supplement_for_class(tp);
+            if (!has_trivial_default_constructor(cssp)) {
+              /* If the mem-initializer is omitted for this field, a
+                 default constructor will have to be called. */
+            } else if (cssp->trivial_default_constructor != NULL &&
+                       !cssp->trivial_default_constructor
+                            ->variant.routine.ptr->is_defaulted) {
+              /* If the mem-initializer is omitted for this field, the
+                 definition of the trivial default constructor will be
+                 generated, though only in case there are diagnostics. */
+            } else if (exceptions_enabled && has_nontrivial_destructor(cssp)) {
+              /* When exception handling is enabled and there's a destructor,
+                 we put out a constructor initializer entry anyway, just to
+                 record the destructor. */
+            } else if (cssp->is_cpp03_POD &&
+                       tp->variant.class_struct_union.any_const_member) {
+              /* A POD with const members -- if the mem-initializer is
+                 omitted a diagnostic will have to be issued. */
+            } else {
+              /* No action is required if the mem-initializer is omitted. */
+              continue;
+            }  /* if */
+          } else {
+            /* No initializer is needed. */
+            continue;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      /* A constructor init entry is required for this field. */
+      a_constructor_init_ptr cip =
+                           alloc_ctor_init((a_constructor_init_kind)cik_field);
+      cip->variant.field = sym->variant.field.ptr;
+      /* Mark the constructor initializer as compiler-generated (i.e., not
+         representing an explicit entry in the ctor-initializer list); clear
+         the flag later if appropriate. */
+      cip->compiler_generated = TRUE;
+      *next_cip = cip;
+      next_cip = &(cip->next);
+      if (end_of_list != NULL) {
+        *end_of_list = cip;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* ctor_inits_for_fields */
+
+
 a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout,
                                         a_boolean      user_defined)
 /*
@@ -8647,7 +8778,7 @@ initialized.  These are addressed in the course of the processing.
   a_boolean                     is_generated_cctor, is_generated_mctor;
   a_type_qualifier_set          required_qualifiers, object_qualifiers;
   a_type_ptr                    class_type, tp = NULL, array_type;
-  a_symbol_ptr                  sym, class_sym;
+  a_symbol_ptr                  sym;
   a_ctor_init_block             cib;
   a_constructor_init_ptr        cip, prev_cip, next_cip;
   a_base_class_ptr              bcp;
@@ -8780,102 +8911,14 @@ initialized.  These are addressed in the course of the processing.
   }  /* for */
   /* Move on to the third list -- the list of nonstatic data members requiring
      initialization. */
-  /* Loop through the symbol list for the class, not the field list, since
-     the symbol list contains only user-defined fields whereas the field
-     list may also include compiler-generated field entries. */
-  class_sym = symbol_for(class_type);
-  for (sym = class_symbol_supp(class_sym)->symbols;
-       sym != NULL;
-       sym = sym->next_in_scope) {
-    if (sym->kind == (a_symbol_kind)sk_field) {
-      /* sym represents a field.  Determine whether constructor initialization
-         is required. */
-      a_field_ptr field = sym->variant.field.ptr;
-      if (ms_extensions && field_is_property_or_event(field)) {
-        /* Property and event fields are not really data members and should
-           not be explicitly initialized. */
-        continue;
-      }  /* if */
-      has_field = TRUE;
-      if (is_generated_cctor || is_generated_mctor) {
-        /* All fields are explicitly listed for a generated copy or move
-           constructor, since even if there is no constructor at least a
-           bitwise copy is required. */
-      } else if (sym->variant.field.extra_info->is_first_variant_member ||
-                 sym->variant.field.extra_info->is_last_variant_member) {
-        /* The first and last variant field of an anonymous union must be
-           listed so we can detect the presence of the variant part below. */
-      } else if (ctor_rout->is_constexpr) {
-        /* All fields must be initialized in a constexpr constructor.  (For
-           variant fields only one member of the union must be initialized.
-           That is checked later.) */
-      } else if (field->has_initializer) {
-        /* Fields with an in-class initializer require corresponding
-           constructor-init entries. */
-      } else {
-        /* This is not a copy constructor.  See if this is a field that
-           requires an initializer. */
-        tp = field->type;
-        if (is_any_reference_type(tp) || is_const_qualified_type(tp)) {
-          /* Reference-type fields and const and array-of-const fields require
-             an initializer. */
-        } else {
-          tp = skip_typerefs(tp);
-          if (is_array_type(tp)) {
-            if (tp->size == 0) {
-              /* Zero-length arrays (a GNU feature) and flexible array members
-                 (a C++ extension in GNU and Microsoft modes) cannot be
-                 initialized. */
-              continue;
-            }  /* if */
-            tp = underlying_array_element_type(tp);
-            tp = skip_typerefs(tp);
-          }  /* if */
-          if (is_real_class_type(tp)) {
-            cssp = symbol_supplement_for_class(tp);
-            if (!has_trivial_default_constructor(cssp)) {
-              /* If the mem-initializer is omitted for this field, a
-                 default constructor will have to be called. */
-            } else if (cssp->trivial_default_constructor != NULL &&
-                       !cssp->trivial_default_constructor
-                            ->variant.routine.ptr->is_defaulted) {
-              /* If the mem-initializer is omitted for this field, the
-                 definition of the trivial default constructor will be
-                 generated, though only in case there are diagnostics. */
-            } else if (exceptions_enabled && has_nontrivial_destructor(cssp)) {
-              /* When exception handling is enabled and there's a destructor,
-                 we put out a constructor initializer entry anyway, just to
-                 record the destructor. */
-            } else if (cssp->is_cpp03_POD &&
-                       tp->variant.class_struct_union.any_const_member) {
-              /* A POD with const members -- if the mem-initializer is
-                 omitted a diagnostic will have to be issued. */
-            } else {
-              /* No action is required if the mem-initializer is omitted. */
-              continue;
-            }  /* if */
-          } else {
-            /* No initializer is needed. */
-            continue;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      /* A constructor init entry is required for this field. */
-      cip = alloc_ctor_init((a_constructor_init_kind)cik_field);
-      cip->variant.field = sym->variant.field.ptr;
-      /* Mark the constructor initializer as compiler-generated (i.e., not
-         representing an explicit entry in the ctor-initializer list); clear
-         the flag later if appropriate. */
-      cip->compiler_generated = TRUE;
-      if (cib.cip_list == NULL) {
-        cib.cip_list = cip;
-      } else {
-        check_assertion(cib.end_of_cip_list != NULL);
-        cib.end_of_cip_list->next = cip;
-      }  /* if */
-      cib.end_of_cip_list = cip;
-    }  /* if */
-  }  /* for */
+  /* All fields are explicitly listed for a generated copy or move
+     constructor, since even if there is no constructor at least a
+     bitwise copy is required. */
+  cib.cip_list = ctor_inits_for_fields(ctor_rout, class_type,
+                                       /*all_fields=*/is_generated_cctor ||
+                                                      is_generated_mctor,
+                                       /*only_init_fields=*/FALSE,
+                                       &has_field, &cib.end_of_cip_list);
   /* Three lists that have been created thus far were made to cover the
      default (or value) initialization required because base classes and
      fields need it.  It remains to scan the user specified initializers,
@@ -9220,13 +9263,6 @@ initialized.  These are addressed in the course of the processing.
                                         /*evaluated=*/TRUE,
                                         ctor_rout->is_consteval);
         }  /* if */
-      } else if (ctor_rout->is_inheriting_ctor &&
-                 cip->kind != (a_constructor_init_kind)cik_field &&
-                 identical_types(cip->variant.base_class->type,
-                                 ctor_rout->generating_using_decl
-                                          ->qualifier.class_type)) {
-        /* This is the forwarding initializer for an inheriting constructor. */
-        dip = forwarding_initializer_for_inheriting_constructor(ctor_rout);
       } else if (field_initializers_enabled &&
                  cip->kind == (a_constructor_init_kind)cik_field &&
                  cip->variant.field->has_initializer) {
@@ -9651,6 +9687,342 @@ done:
   db_exit();
   return cib.cip_list;
 }  /* ctor_initializer */
+
+
+static a_boolean any_ctors_inherited_from_base(a_type_ptr       class_type,
+                                               a_base_class_ptr base_class)
+/*
+Determine, for the given class, whether it inherited constructors from
+base_class.
+*/
+{
+  a_using_decl_ptr udp = class_type_supp(class_type)->assoc_scope->
+                                                            using_declarations;
+  a_boolean        result = FALSE;
+
+  for (; udp != NULL; udp = udp->next) {
+    if (udp->is_inheriting_ctor &&
+        udp->qualifier.class_type == base_class->type) {
+      result = TRUE;
+      break;
+    }
+  }  /* for */
+  return result;
+}  /* any_ctors_inherited_from_base */
+
+
+static a_boolean ctor_inherited_from_base(a_type_ptr       base_type,
+                                          a_routine_ptr    ctor_rout)
+/*
+Determine whether the given constructor routine was inherited from the given
+base class.
+*/
+{
+  a_boolean        result = FALSE;
+  a_symbol_ptr     ctor_sym =
+                           symbol_supplement_for_class(base_type)->constructor;
+
+  if (ctor_sym != NULL && symbol_is(ctor_sym, sk_overloaded_function)) {
+    ctor_sym = ctor_sym->variant.overloaded_function.symbols;
+  }  /* if */
+  for (; ctor_sym != NULL; ctor_sym = ctor_sym->next) {
+    if (symbol_is(ctor_sym, sk_function_template)) {
+      a_template_instance_ptr inst = ctor_sym->variant.template_info->
+                                               variant.function.instantiations;
+      for (; inst != NULL; inst = inst->next) {
+        check_assertion(symbol_is(inst->instance_sym, sk_member_function));
+        if (inst->instance_sym->variant.routine.ptr == ctor_rout) {
+          result = TRUE;
+          goto done;
+        }  /* if */
+      }  /* for */
+    } else {
+      check_assertion(symbol_is(ctor_sym, sk_member_function));
+      if (ctor_sym->variant.routine.ptr == ctor_rout) {
+        result = TRUE;
+        goto done;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  if (!result) {
+    /* The constructor wasn't directly inherited from this base.  Check to see
+       if it was indirectly inherited via using directives. */
+    a_scope_ptr      class_scope = class_type_supp(base_type)->assoc_scope;
+    a_using_decl_ptr udp = class_scope->using_declarations;
+
+    for (; udp != NULL; udp = udp->next) {
+      if (udp->is_inheriting_ctor &&
+          ctor_inherited_from_base(udp->qualifier.class_type, ctor_rout)) {
+        result = TRUE;
+        break;
+      }
+    }  /* for */
+  }  /* if */
+done:
+  return result;
+}  /* ctor_inherited_from_base */
+
+
+static a_boolean in_derivation_path(a_base_class_ptr            base,
+                                    a_base_class_derivation_ptr derivation)
+/*
+Determine whether the provided base class appears in any of the provided
+derivation paths.
+*/
+{
+  a_boolean result = FALSE;
+
+  for (; derivation != NULL; derivation = derivation->next) {
+    a_derivation_step_ptr path = derivation->path;
+    for (; path != NULL; path = path->next) {
+      if (path->base_class == base) {
+        result = TRUE;
+        goto done;
+      }  /* if */
+    }  /* for */
+  }  /* for */
+done:
+  return result;
+}  /* in_derivation_path */
+
+
+static void inh_ctor_init_call_inh_ctor(a_constructor_init_ptr init,
+                                        a_routine_ptr          ctor,
+                                        a_routine_ptr          inh_ctor)
+/*
+Generate the call to the inherited constructor given by inh_ctor and update
+init accordingly.  ctor is the inheriting constructor that inherited from
+inh_ctor.
+*/
+{
+  init->initializer =
+             forwarding_initializer_for_inheriting_constructor(ctor, inh_ctor);
+  init->initializer->is_constructor_init = TRUE;
+}  /* inh_ctor_init_call_inh_ctor */
+
+
+static void inh_ctor_init_default_initialize_base(
+                                             a_constructor_init_ptr init,
+                                             a_routine_ptr          ctor,
+                                             a_routine_ptr          inh_ctor,
+                                             a_type_ptr             class_type)
+/*
+Initialize the provided base class given by init as if by a defaulted default
+constructor.  inh_ctor is the inherited constructor that is responsible for the
+defaulted default initialization.  ctor is the inheriting constructor that
+inherited from inh_ctor.  class_type is the type of the class being
+default-initialized.
+*/
+{
+  a_symbol_ptr                  class_sym = symbol_for(class_type);
+  a_class_symbol_supplement_ptr cssp = class_symbol_supp(class_sym);
+  a_symbol_ptr                  ctor_sym = cssp->inh_ctor_def_ctor;
+  a_routine_ptr                 def_ctor = ctor_sym->variant.routine.ptr;
+
+  check_assertion(
+                init->kind == (a_constructor_init_kind)cik_direct_base_class ||
+                init->kind == (a_constructor_init_kind)cik_virtual_base_class);
+  init->initializer = alloc_ctor_dynamic_init(def_ctor,
+                                              /*implied_source=*/FALSE,
+                                              /*evaluated=*/FALSE,
+                                              inh_ctor->is_consteval);
+  init->initializer->is_constructor_init = TRUE;
+  reference_to_implicitly_invoked_function(symbol_for(def_ctor),
+                                           &pos_curr_token,
+                                           parent_class_of(ctor),
+                                           /*honor_virtual=*/FALSE,
+                                           /*evaluated=*/TRUE,
+                                           /*instantiate=*/TRUE,
+                                           /*check_access=*/FALSE,
+                                           /*elided_reference=*/FALSE,
+                                           /*error_detected=*/NULL);
+}  /* inh_ctor_init_default_initialize_object */
+
+
+static void inh_ctor_init_default_initialize_field(
+                                             a_constructor_init_ptr init,
+                                             a_type_ptr             class_type)
+/*
+Initialize the provided field given by init as if by a defaulted default
+constructor.  class_type is the type of the class being default-initialized.
+*/
+{
+  a_field_ptr   field = init->variant.field;
+
+  check_assertion(init->kind==(a_constructor_init_kind)cik_field);
+  check_assertion(field->has_initializer);
+  init->use_field_initializer = TRUE;
+  /* Ensure the field initializer is scanned if necessary. */
+  scan_field_initializer_if_needed(field, class_type);
+}  /* inh_ctor_init_default_initialize_field */
+
+
+static void inh_ctor_init_call_default_ctor(a_constructor_init_ptr init,
+                                            a_routine_ptr          ctor,
+                                            a_type_ptr             class_type)
+/*
+Generate the call to the default constructor for the provided base class
+initializer and update init accordingly.  ctor is the inherited constructor
+(not inherited from this base class).  class_type is the type of the object
+being created.
+*/
+{
+  a_routine_ptr      rp;
+  a_type_ptr         tp = init->variant.base_class->type;
+  a_dynamic_init_ptr dip;
+
+  rp = select_default_constructor(tp, &pos_curr_token, class_type,
+                                  /*err=*/NULL);
+  if (rp == NULL) {
+    dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+  } else {
+    dip = alloc_ctor_dynamic_init(rp, /*implied_source=*/FALSE,
+                                  /*evaluated=*/TRUE,
+                                  ctor->is_consteval);
+  }  /* if */
+  dip->is_constructor_init = TRUE;
+  init->initializer = dip;
+}  /* inh_ctor_init_call_default_ctor */
+
+
+a_constructor_init_ptr ctor_inits_for_inh_ctor_def_init(a_routine_ptr ctor)
+/*
+ctor is a generated constructor for the sub-object being initialized "as if by
+a defaulted default constructor" for an inheriting constructor call.  Generate
+and return the required constructor initializations.
+*/
+{
+  a_constructor_init_ptr cip, inits;
+  a_type_ptr             class_type = parent_class_of(ctor);
+
+  check_assertion(ctor->is_inh_ctor_def_init);
+  inits = ctor_inits_for_fields(ctor, class_type, /*all_fields=*/FALSE,
+                                /*only_init_fields=*/TRUE, /*has_field=*/NULL,
+                                /*end_of_list=*/NULL);
+  for (cip = inits; cip != NULL; cip = cip->next) {
+    inh_ctor_init_default_initialize_field(cip, class_type);
+  }  /* for */
+  return inits;
+}  /* ctor_inits_for_inh_ctor_def_init */
+
+
+a_constructor_init_ptr ctor_inits_for_inheriting_ctor(a_routine_ptr ctor)
+/*
+ctor is a generated inheriting constructor.  Generate and return the required
+constructor initializations.
+
+An inheriting constructor invocation has all sub-objects that participate in
+the constructor inheritance be initialized "as if by a defaulted default
+constructor", and the inherited constructor is used to directly initialize the
+sub-object from where it originated.  Note that the most-derived sub-object is
+considered to have participated in the inheritance.
+
+All other sub-objects that did not participate in the inheritance of this
+constructor are initialized in the normal way.
+*/
+{
+  a_constructor_init_ptr ctor_inits = NULL;
+  a_constructor_init_ptr *next_init = &ctor_inits;
+  a_routine_ptr          ctor_routine;
+  a_type_ptr             ctor_owner, class_type;
+  a_symbol_ptr           ctor_sym;
+  a_class_type_supplement_ptr
+                         ctsp;
+  Dyn_array<a_base_class_ptr>
+                         ctor_originators;
+  /* The flag is TRUE if the class needs to be specially initialized because
+     it participated in bringing the inherited constructor in. */
+  Dyn_array<Ptr_with_flag<a_base_class_ptr>>
+                         virtual_bases, direct_bases;
+  Dyn_array<Ptr_with_flag<a_constructor_init_ptr>>
+                         inits;
+  a_base_class_ptr       bcp;
+  a_dynamic_init_ptr     dip;
+
+  class_type = parent_class_of(ctor);
+  ctsp = class_type_supp(class_type);
+  ctor_routine = get_inh_ctor_originator(ctor);
+  ctor_owner = parent_class_of(ctor_routine);
+  ctor_sym = symbol_for(ctor_routine);
+
+  /* Call the inherited constructor now to ensure it's instantiated. */
+  dip = forwarding_initializer_for_inheriting_constructor(ctor, ctor_routine);
+  if (dyn_init_is(dip, dik_constructor)) {
+    ctor_routine = dip->variant.constructor.ptr;
+  }  /* if */
+  /* Determine which base classes provided the constructor.  Note that there
+     could be more than one in the case of virtual inheritance. */
+  for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+    if (any_ctors_inherited_from_base(class_type, bcp) &&
+        ctor_inherited_from_base(bcp->type, ctor_routine)) {
+      ctor_originators.push_back(bcp);
+    }  /* if */
+  }  /* for */
+  for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+    a_boolean introduced_ctor = FALSE;
+    for (const auto& originator : ctor_originators) {
+      if (bcp == originator ||
+          (in_derivation_path(originator, bcp->derivation) &&
+           ctor_inherited_from_base(bcp->type, ctor_routine))) {
+        introduced_ctor = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+    /* Virtual subobjects are always initialized by the object and not by
+       subobject constructors.  Conversely, non-virtual subobjects will be
+       initialized by the subobject that introduced them - we only need to
+       initialize them here if they're undergoing special initialization or
+       are a direct base. */
+    if (bcp->is_virtual) {
+      virtual_bases.push_back({bcp, introduced_ctor});
+    } else if (introduced_ctor || bcp->direct) {
+      direct_bases.push_back({bcp, introduced_ctor});
+    }  /* if */
+  }  /* for */
+  for (auto& base : virtual_bases) {
+    a_constructor_init_ptr cip;
+    cip = alloc_ctor_init((a_constructor_init_kind)cik_virtual_base_class);
+    cip->variant.base_class = base.ptr();
+    cip->compiler_generated = TRUE;
+    *next_init = cip;
+    next_init = &(cip->next);
+    inits.push_back({cip, base.flagged()});
+  }  /* for */
+  for (auto& base : direct_bases) {
+    a_constructor_init_ptr cip;
+    cip = alloc_ctor_init((a_constructor_init_kind)cik_direct_base_class);
+    cip->variant.base_class = base.ptr();
+    cip->compiler_generated = TRUE;
+    *next_init = cip;
+    next_init = &(cip->next);
+    inits.push_back({cip, base.flagged()});
+  }  /* for */
+  for (auto& init : inits) {
+    /* If flag is TRUE, this participated in the constructor inheritance. */
+    if (init.flagged()) {
+      if (init->variant.base_class->type == ctor_owner) {
+        init->initializer = dip;
+        init->initializer->is_constructor_init = TRUE;
+      } else {
+        inh_ctor_init_default_initialize_base(init.ptr(), ctor, ctor_routine,
+                                              init->variant.base_class->type);
+      }  /* if */
+    } else {
+      inh_ctor_init_call_default_ctor(init.ptr(), ctor_routine, class_type);
+    }  /* if */
+  }  /* for */
+  /* Generate initializers for the fields of the class. */
+  *next_init = ctor_inits_for_fields(ctor_routine, class_type,
+                                     /*all_fields=*/FALSE,
+                                     /*only_init_fields=*/TRUE,
+                                     /*has_field*=*/NULL,
+                                     /*end_of_list*=*/NULL);
+  for (a_constructor_init_ptr cip = *next_init; cip != NULL; cip = cip->next) {
+    inh_ctor_init_default_initialize_field(cip, class_type);
+  }  /* for */
+  check_assertion(inits.length() > 0);
+  return ctor_inits;
+}  /* class_initializers_for_inherited_ctor */
 
 
 a_constructor_init_ptr dtor_initializer(a_routine_ptr  dtor_rout)

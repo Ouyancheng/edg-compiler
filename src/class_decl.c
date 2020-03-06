@@ -10795,6 +10795,11 @@ When templates_only is TRUE, only function templates members are considered.
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
+    if (match && orig_rts->inherited_routine != new_rts->inherited_routine) {
+      /* At least one routine is an inheriting constructor, but they do not
+         inherit the same routine. */
+      match = FALSE;
+    }  /* if */
     if (match) {
       /* If a match was found by types_are_compatible, break out of the loop.
          An exception is made if the match we found is a selective overrider
@@ -11721,7 +11726,7 @@ was used).
   *overload_sym = NULL;
   if (is_error_locator(*locator)) {
     sym = NULL;
-  } else if (dps->ineligible) {
+  } else if (dps->ineligible || dps->is_inh_ctor_def_init) {
     /* Create a symbol that will not go into the symbol table. */
     new_sym = make_symbol((a_symbol_kind)sk_member_function, locator);
   } else {
@@ -12396,8 +12401,9 @@ enabled.
   if (rp->is_inheriting_ctor) {
     first_param = NULL;
     check_assertion(rp->generating_using_decl->entity.kind ==
-                                              (a_byte_il_entry_kind)iek_type);
-    generating_base_type = (a_type_ptr)rp->generating_using_decl->entity.ptr;
+                                         (a_byte_il_entry_kind)iek_base_class);
+    generating_base_type =
+               ((a_base_class_ptr)rp->generating_using_decl->entity.ptr)->type;
   } else {
     first_param = rtsp->param_type_list;
     generating_base_type = NULL;
@@ -12448,7 +12454,7 @@ enabled.
       if (is_array_type(tp)) tp = underlying_array_element_type(tp);
       subobj_qual = get_type_qualifiers(tp);
       tp = skip_typedefs(tp);
-      if (fp->has_initializer &&
+      if (fp->has_initializer && !rp->is_inheriting_ctor &&
           sfkind == (a_special_function_kind)sfk_constructor && no_params) {
         /* We're handling the default constructor and this is a field with an
            in-class initializer.  Ensure field initializers have been
@@ -14955,30 +14961,15 @@ implicitly declared member functions.
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
       /* Do not insert code here. */
       {
-        a_boolean  ambiguous = FALSE;
         /* symbol_for_member_function has returned a symbol that has already 
            been declared.  Issue an error on trying to redeclare a member
            function. */
-        if (decl_state->is_inheriting_ctor &&
-            sym->variant.routine.ptr->is_inheriting_ctor) {
-          /* Inheriting constructors were reformulated in C++17 such that they
-             are completely handled at the point of use (instead of synthesized
-             at the point where the using-declaration appears).  We approximate
-             some of that behavior by marking the synthesized constructors as
-             ambiguous if a duplicate synthesis is detected. */
-          sym->ambiguous = TRUE;
-          ambiguous = TRUE;
-        } else {
-          pos_sy_error(ec_member_function_redeclaration,
-                       &locator->source_position, sym);
-        }  /* if */
+        pos_sy_error(ec_member_function_redeclaration,
+                     &locator->source_position, sym);
         set_to_named_error_locator(*locator);
         sym = enter_local_symbol((a_symbol_kind)sk_member_function, locator,
                                  decl_scope_level,
                                  /*suppress_redecl_error=*/TRUE);
-        if (ambiguous) {
-          sym->ambiguous = TRUE;
-        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -21775,13 +21766,15 @@ for C++/CLI.
 
 static void check_suppressed_default_ctor(
                                a_type_ptr                          class_type,
+                               a_boolean                           check_bases,
                                a_generated_special_function_descr  *gsfd)
 /*
 Check whether the generated default constructor for class_type should be
 suppressed.  In Microsoft mode, this may mean (if microsoft_version < 1900)
 that it shouldn't be declared at all.  In C++11 mode (and in Microsoft mode
 with microsoft_version >= 1900), it means that the generated default
-constructor should be deleted.
+constructor should be deleted.  If check_bases is TRUE, include the base
+classes in the suppression determination.
 */
 {
   if (cpp11_mode || microsoft_mode) {
@@ -21848,7 +21841,7 @@ constructor should be deleted.
         }  /* if */
       }  /* if */
     }  /* for */
-    if (!gsfd->suppress_default_ctor) {
+    if (check_bases && !gsfd->suppress_default_ctor) {
       /* Now scan through all the direct base classes of this class. */
       a_boolean  abstract = class_type->variant.class_struct_union.abstract;
       for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
@@ -21898,7 +21891,7 @@ record that fact in *gsfd.
     }  /* if */
     check_assertion(default_ctor_rp->is_defaulted);
     /* A defaulted constructor may implicitly be deleted, */
-    check_suppressed_default_ctor(class_type, gsfd);
+    check_suppressed_default_ctor(class_type, /*check_bases=*/TRUE, gsfd);
     if (cpp11_mode && gsfd->suppress_default_ctor) {
       default_ctor->variant.routine.ptr->is_deleted = TRUE;
     }  /* if */
@@ -21962,7 +21955,7 @@ record that fact in *gsfd.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* A default constructor needs to be generated. */
-      check_suppressed_default_ctor(class_type, gsfd);
+      check_suppressed_default_ctor(class_type, /*check_bases=*/TRUE, gsfd);
       result = TRUE;
     }  /* if */
   } else if (!cssp->has_user_declared_default_constructor) {
@@ -21975,6 +21968,7 @@ record that fact in *gsfd.
 done:
   return result;
 }  /* check_if_default_ctor_needed */
+
 
 static void generate_copy_assignment_operator(
                               a_class_def_state_ptr               class_state,
@@ -23335,6 +23329,22 @@ The routine body is not generated until it is known to be needed.
 }  /* check_special_member_functions */
 
 
+a_boolean suppress_inh_ctor_default_ctor(a_type_ptr class_type)
+/*
+Determine whether the defaulted default constructor generated for inheriting
+constructors for the provided class symbol should be suppressed.  This is
+independent of whether any default constructors exist for the class, and no
+routines are generated as part of this call.
+*/
+{
+  a_generated_special_function_descr gsfd;
+
+  init_generated_special_function_descr(&gsfd);
+  check_suppressed_default_ctor(class_type, /*check_bases=*/FALSE, &gsfd);
+  return gsfd.suppress_default_ctor;
+}  /* suppress_inh_ctor_default_ctor */
+
+
 static void count_params_for_inheriting_ctor(a_routine_ptr  brp,
                                              uint32_t       *p_n_params,
                                              uint32_t       *p_min_n_args)
@@ -23358,10 +23368,11 @@ equals the number of parameters with no default argument).
 }  /* count_params_for_inheriting_ctor */
 
 
-static a_type_ptr create_inheriting_ctor_type(a_routine_ptr  brp,
-                                              uint32_t       n_base_params,
-                                              uint32_t       n_params,
-                                              a_type_ptr     class_type)
+static a_type_ptr create_inheriting_ctor_type(a_routine_ptr brp,
+                                              uint32_t      n_base_params,
+                                              uint32_t      n_params,
+                                              a_type_ptr    class_type,
+                                              a_boolean     inherits_virtually)
 /*
 brp is a base class constructor (possibly a base class constructor prototype
 instantiation) from which an inheriting constructor (or constructor template)
@@ -23388,6 +23399,10 @@ base class constructor has default arguments).
                                                n_params);
   new_rtsp->this_class = class_type;
   new_rtsp->assoc_routine = NULL;
+  new_rtsp->inherited_routine = brp;
+  if (inherits_virtually || inh_ctor_inherits_virtually(brp)) {
+    new_rtsp->inherits_virtually = TRUE;
+  }  /* if */
   if (n_params != n_base_params) {
     new_rtsp->has_ellipsis = FALSE;
   }  /* if */
@@ -23415,9 +23430,12 @@ templates from that base template.
   a_template_param_ptr  btpl, dtpl, new_tpl;
   a_type_ptr            new_tp;
   a_symbol_ptr          dctor;
+  a_base_class_ptr      bcp;
   an_access_specifier   saved_access = cdsp->access;
 
   check_assertion(symbol_is(bctor, sk_function_template));
+  check_assertion(udp->entity.kind == (a_byte_il_entry_kind)iek_base_class);
+  bcp = (a_base_class_ptr)udp->entity.ptr;
   btssp = bctor->variant.template_info;
   btpl = btssp->variant.function.decl_cache.decl_info->parameters;
   brp = btssp->variant.function.routine;
@@ -23428,7 +23446,7 @@ templates from that base template.
   if (n_params == 0) ++n_params;
   for (; n_params <= n_base_params; ++n_params) {
     new_tp = create_inheriting_ctor_type(brp, n_base_params, n_params,
-                                         cdsp->class_type);
+                                         cdsp->class_type, bcp->is_virtual);
     /* Check if the derived class already contains a user-declared constructor
        with this signature: */
     dctor = class_symbol_supp(symbol_for(cdsp->class_type))->constructor;
@@ -23573,11 +23591,14 @@ constructor.
 */
 {
   a_routine_ptr        brp;
+  a_base_class_ptr     bcp;
   uint32_t             n_params, n_base_params;
   an_access_specifier  saved_access = cdsp->access;
   a_type_ptr           brtp;
 
   check_assertion(symbol_is(bctor, sk_member_function));
+  check_assertion(udp->entity.kind == (a_byte_il_entry_kind)iek_base_class);
+  bcp = (a_base_class_ptr)udp->entity.ptr;
   brp = bctor->variant.routine.ptr;
   count_params_for_inheriting_ctor(brp, &n_base_params, &n_params);
   brtp = skip_typerefs(brp->type);
@@ -23591,7 +23612,7 @@ constructor.
        the base constructor, but exclude the zero-argument case. */
     ++n_params;
   }  /* if */
-  for (; n_params <= n_base_params; ++n_params) {
+  for (; n_params <= n_base_params; ++n_params) {  // CALEB! Why?
     a_type_ptr        new_tp;
     a_symbol_ptr      dctor;
     if (n_params == 1) {
@@ -23606,7 +23627,7 @@ constructor.
       }  /* if */
     }  /* if */
     new_tp = create_inheriting_ctor_type(brp, n_base_params, n_params,
-                                         cdsp->class_type);
+                                         cdsp->class_type, bcp->is_virtual);
     /* Check if the derived class already contains a constructor with this
        signature: */
     dctor = class_symbol_supp(symbol_for(cdsp->class_type))->constructor;
@@ -23629,6 +23650,14 @@ constructor.
         /* Don't inherit constructors that match a non-inheriting constructor
            declared in the derived class. */
         break;
+      }  /* if */
+      if (drp->is_inheriting_ctor && inh_ctor_inherits_virtually(brp) &&
+          inh_ctor_inherits_virtually(drp)) {
+        if (get_inh_ctor_originator(brp) == get_inh_ctor_originator(drp)) {
+          /* Don't inherit inheriting constructors that both inherit the same
+             original routine from a virtual base class. */
+          break;
+        }  /* if */
       }  /* if */
     }  /* for */
     if (dctor == NULL) {
@@ -23656,7 +23685,7 @@ constructor.
                                                     /*is_static_ctor=*/FALSE);
       cdsp->access = brp->source_corresp.access;
       decl_member_function(&loc, &func_info, cdsp, &decl_info,
-                           /*compile_generated=*/TRUE);
+                           /*compiler_generated=*/TRUE);
       new_rp = decl_info.decl_state.sym->variant.routine.ptr;
       new_rp->generating_using_decl = udp;
       new_rp->is_inheriting_ctor = TRUE;
@@ -23675,6 +23704,11 @@ constructor.
            course.) */
         add_to_inline_function_list(new_rp);
       }  /* if */
+      if (!new_rp->is_deleted &&
+          suppress_inh_ctor_default_ctor(cdsp->class_type)) {
+        new_rp->is_deleted = TRUE;
+        new_rp->defined = TRUE;
+      }  /* if */
     }  /* if */
   }  /* for */
   cdsp->access = saved_access;
@@ -23692,10 +23726,12 @@ to the representation of a using-declaration for inheriting constructors.
 Generate those constructors.
 */
 {
-  a_type_ptr  base_class;
+  a_type_ptr       base_class;
+  a_base_class_ptr bcp;
 
-  check_assertion(udp->entity.kind == (a_byte_il_entry_kind)iek_type);
-  base_class = skip_typerefs((a_type_ptr)udp->entity.ptr);
+  check_assertion(udp->entity.kind == (a_byte_il_entry_kind)iek_base_class);
+  bcp = (a_base_class_ptr)udp->entity.ptr;
+  base_class = skip_typerefs(bcp->type);
   if (is_immediate_class_type(base_class)) {
     a_symbol_ptr  base_ctors, bctor;
     /* Examine each base class constructor and constructor template in turn,
@@ -23708,12 +23744,12 @@ Generate those constructors.
       a_class_symbol_supplement_ptr
                       cssp = class_symbol_supp(symbol_for(cdsp->class_type));
       if (!cssp->has_nontrivial_default_constructor &&
-          cssp->trivial_default_constructor == NULL) {
+          cssp->trivial_default_constructor == NULL) { // CALEB! Why are we checking the derived class for trivial constructors?
         /* Note that we do not use "has_any_default_constructor" for this test
            because the case where cssp->constructor == NULL should still
            cause us to generate an actual representation of the default
            constructor, in case other constructs add constructors. */
-        generate_default_constructor(cdsp, /*suppressed=*/FALSE);
+        generate_default_constructor(cdsp, /*suppressed=*/FALSE); // CALEB! Shouldn't we be inheriting the trivial default ctor?
       }  /* if */
     } else {
       if (base_ctors != NULL &&
@@ -23750,6 +23786,41 @@ any needed inherited constructors.
     }  /*if */
   }  /* for */
 }  /* generate_inheriting_constructors */
+
+
+static a_symbol_ptr generate_inh_ctor_default_ctor(a_class_def_state_ptr cdsp)
+/*
+cdsp represents a class whose definition has just been completed, and whose
+implicitly-declared special members, if any, have been generated.  Generate
+a constructor routine to handle the inheriting constructor default
+initialization requirement.
+*/
+{
+  a_type_ptr          class_type = cdsp->class_type;
+  a_member_decl_info  decl_info;
+  a_func_info_block   func_info;
+  a_symbol_ptr        rout_sym;
+  a_routine_ptr       new_rp;
+
+  initialize_member_decl_info(&decl_info,
+                              &class_type->source_corresp.decl_position);
+  decl_info.is_constructor = TRUE;
+  decl_info.decl_state.is_inh_ctor_def_init = TRUE;
+  clear_func_info(&func_info);
+  generate_special_function(cdsp, &decl_info, &func_info,
+                            (a_param_type*)NULL);
+  rout_sym = decl_info.decl_state.sym;
+  rout_sym->decl_scope = decl_scope_level;
+  new_rp = rout_sym->variant.routine.ptr;
+  new_rp->is_inh_ctor_def_init = TRUE;
+  new_rp->type->variant.routine.extra_info->routine_name_linkage= nlk_internal;
+  new_rp->source_corresp.name = NULL;
+  if (suppress_inh_ctor_default_ctor(class_type)) {
+    new_rp->is_deleted = TRUE;
+    new_rp->defined = TRUE;
+  }  /* if */
+  return rout_sym;
+}  /* generate_inh_ctor_default_ctor */
 
 
 static void check_implicit_comparison_operators(a_class_def_state_ptr  cdsp)
@@ -24530,8 +24601,8 @@ declared).
       udp->is_inheriting_ctor = TRUE;
       udp->is_class_member = TRUE;
       udp->qualifier.class_type = parent_class;
-      udp->entity.kind = (a_byte_il_entry_kind)iek_type;
-      udp->entity.ptr = (char*)parent_class;
+      udp->entity.kind = (a_byte_il_entry_kind)iek_base_class;
+      udp->entity.ptr = (char*)bcp;
       udp->position = *pos;
       add_to_using_declarations_list(udp, depth_scope_stack);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -30806,6 +30877,12 @@ wrap_up_class_definition.
     wrapup_standard_layout_flag(class_type);
     if (!cssp->may_need_fixups) {
       wrap_up_class_definition(class_type);
+    }  /* if */
+    if (inheriting_constructors_enabled) {
+      /* Create a constructor routine that handles the "as if by a defaulted
+          default constructor" initialization requirement for inheriting
+          constructors. */
+      cssp->inh_ctor_def_ctor = generate_inh_ctor_default_ctor(class_state);
     }  /* if */
   }  /* if */
   error_position = saved_error_position;

@@ -13214,6 +13214,13 @@ C++ mode.
       distinguishable = TRUE;
       goto distinguishable_determined;
     }  /* if */
+    if (old_extra_info->inherited_routine !=
+        new_extra_info->inherited_routine) {
+      /* At least one routine is an inherited constructor, and they don't
+         inherit the same routine - therefore they are distinguishable. */
+      distinguishable = TRUE;
+      goto distinguishable_determined;
+    }  /* if */
     /* Falling through to here means the parameter types are all
        indistinguishable. */
     if ((old_this_class == NULL) != (new_this_class == NULL)) {

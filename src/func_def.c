@@ -3004,9 +3004,12 @@ construction (if any is needed).
   a_routine_ptr                  rp;
   a_routine_type_supplement_ptr  rtsp;
   a_param_type_ptr               ptp;
+  a_constructor_init_ptr         cip;
+  a_type_ptr                     class_type;
 
   db_enter(4, "make_generated_constructor_body");
   rp = scope->variant.routine.ptr;
+  class_type = parent_class_of(rp);
   /* Create the parameter variable -- needed for copy constructors only. */
   rtsp = (skip_typerefs(rp->type))->variant.routine.extra_info;
   for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
@@ -3014,8 +3017,14 @@ construction (if any is needed).
     vp->variant.assoc_param_type = ptp;
   }  /* if */    
   /* Create entries describing constructions to be done in the wrapper code. */
-  scope->variant.routine.constructor_inits =
-                                  ctor_initializer(rp, /*user_defined=*/FALSE);
+  if (rp->is_inh_ctor_def_init) {
+    cip = ctor_inits_for_inh_ctor_def_init(rp);
+  } else if (rp->is_inheriting_ctor) {
+    cip = ctor_inits_for_inheriting_ctor(rp);
+  } else {
+    cip = ctor_initializer(rp, /*user_defined=*/FALSE);
+  }  /* if */
+  scope->variant.routine.constructor_inits = cip;
   /* Create a statement block that is empty except for the return statement. */
   scope->assoc_block = alloc_statement((a_statement_kind)stmk_block);
   scope->assoc_block->variant.block.statements =
@@ -4155,6 +4164,7 @@ is considered already defined), force the definition now.
         a_class_symbol_supplement_ptr
                     cssp = symbol_supplement_for_class(parent_type);
         if (special_kind_is(rp, sfk_constructor) &&
+            !rp->is_inh_ctor_def_init &&
             cssp->has_initializer_fixups &&
             !is_immediate_managed_class_type(parent_type) &&
             is_default_constructor(rp, /*is_declarative_context=*/TRUE)) {

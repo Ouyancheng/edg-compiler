@@ -6196,6 +6196,23 @@ primary_dp.
 }  /* sym_add_diag_info */
 
 
+void pos_sy_add_diag_info(a_diagnostic_ptr      primary_dp,
+                          an_error_code         error_code,
+                          a_source_position_ptr pos,
+                          a_symbol_ptr          symbol)
+/*
+Add the specified diagnostic message with the indicated position and symbol
+substitution to primary_dp.
+*/
+{
+  a_diagnostic_ptr	dp;
+
+  dp = create_sub_message(primary_dp, error_code);
+  add_position_fill_in(dp, pos);
+  add_symbol_fill_in(dp, symbol);
+}  /* pos_sy_add_diag_info */
+
+
 void add_more_info_list(a_diagnostic_ptr	dp,
 			a_diag_list_ptr		dlp)
 /*

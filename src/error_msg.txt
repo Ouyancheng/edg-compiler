@@ -3171,6 +3171,8 @@ ec_bitfields_not_allowed;;"class types with bitfields %t are not currently suppo
 ec_reference_type_not_allowed;;"non-static data member of reference type %t prevents constexpr evaluation of __builtin_bit_cast"
 ec_volatile_type_not_allowed;;"a volatile type %t prevents constexpr evaluation of __builtin_bit_cast"
 ec_invalid_bit_cast_type;;"a union, pointer, or pointer-to-member type %t prevents constexpr evaluation of __builtin_bit_cast"
+ec_ambiguous_inh_constructor_add_on;INTERNAL;"%npT (inherited via using decl %p)"
+ec_deleted_inh_def_constructor;;"the sub-object construction of %t for inheriting constructors cannot be performed -- the implicit default constructor is deleted"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

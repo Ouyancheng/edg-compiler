@@ -105,6 +105,8 @@ extern a_symbol_ptr generate_trivial_ctors(a_symbol_ptr  class_sym);
 extern a_symbol_ptr generate_trivial_dtor(a_symbol_ptr      class_sym,
                                           a_symbol_locator  *src_loc);
 
+extern a_boolean suppress_inh_ctor_default_ctor(a_type_ptr class_type);
+
 extern void add_noexcept_specification(a_routine_type_supplement_ptr  rtsp);
 
 extern void check_for_conflicts_with_using_decls(

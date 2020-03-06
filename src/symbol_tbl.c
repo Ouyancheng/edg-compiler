@@ -1000,6 +1000,7 @@ do_variable:
         }  /* if */
         if (rp->is_inline) put_string("inline");
         if (rp->is_deleted) put_string("=delete");
+        if (rp->is_inheriting_ctor) put_string("inheriting");
         if (rp->definition_for_inlining_only) {
           put_string("def. for inlining only");
         } else if (rp->suppress_inline_body) {
@@ -3807,6 +3808,7 @@ state.
         cssp->symbols = NULL;
         cssp->constructor = NULL;
         cssp->trivial_default_constructor = NULL;
+        cssp->inh_ctor_def_ctor = NULL;
         cssp->destructor = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         cssp->static_constructor = NULL;
@@ -7156,6 +7158,30 @@ Return TRUE if any of the constructors associated with cssp is nontrivial.
   }  /* if */
   return result;
 }  /* f_has_nontrivial_ctor */
+
+
+a_routine_ptr get_inh_ctor_originator(a_routine_ptr ctor)
+/*
+ctor is a generated inheriting constructor.  Find and return the original class
+type from where the constructor came.
+*/
+{
+  a_boolean inheriting_virtually = inh_ctor_inherits_virtually(ctor);
+
+  while (ctor->is_inheriting_ctor) {
+    /* If the inheriting constructor is inheriting the constructor from a
+       virtual base, and the virtual base's inheriting constructor does *not*
+       inherit from a virtual base, consider the virtual base's constructor to
+       be the originator.  This may not be wholly true, however initialization
+       of the virtual base behaves as if the constructor originated from the
+       virtual base. */
+    ctor = inh_ctor_inherited_ctor(ctor);
+    if (inheriting_virtually && !inh_ctor_inherits_virtually(ctor)) {
+      break;
+    }  /* if */
+  }  /* while */
+  return ctor;
+}  /* get_inh_ctor_originator */
 
 
 a_base_class_ptr find_base_with_type(a_type_ptr        base_type,
@@ -12254,6 +12280,30 @@ functions befriending_list_test and class_scope_test.
         have_member_privilege = TRUE;
         break;
       }  /* if */
+      if (scope_routine != NULL && scope_routine->is_inheriting_ctor) {
+        a_routine_ptr inh_ctor = scope_routine;
+        /* Look through all the inherited constructors to see if any of them
+           have a befriending class that passes the test. */
+        do {
+          a_class_list_entry_ptr inh_ctor_friends = NULL;
+          inh_ctor = inh_ctor_inherited_ctor(inh_ctor);
+          if (inh_ctor->is_template_function) {
+            a_template_symbol_supplement_ptr tssp;
+            tssp = template_supplement_for_symbol(symbol_for(inh_ctor));
+            inh_ctor_friends = tssp->befriending_classes;
+          }  /* if */
+          if (inh_ctor_friends == NULL) {
+            inh_ctor_friends = inh_ctor->befriending_classes;
+          }  /* if */
+          if (befriending_list_test(inh_ctor_friends, class_type)) {
+            have_member_privilege = TRUE;
+            break;
+          }
+        } while (inh_ctor->is_inheriting_ctor);
+        if (have_member_privilege) {
+          break;
+        }  /* if */
+      }  /* if */
       /* scope_routine will be NULL for a function access scope that was
          pushed as part of a class template rescan context.  Skip the
          processing that requires a scope_routine. */
@@ -12294,6 +12344,26 @@ functions befriending_list_test and class_scope_test.
           /* We are inside a class that gives us member access. */
           have_member_privilege = TRUE;
           break;
+        }  /* if */
+        if (scope_routine != NULL && scope_routine->is_inheriting_ctor) {
+          a_routine_ptr inh_ctor = scope_routine;
+          a_type_ptr    saved_scope_class = ssep->assoc_type;
+          /* Look through all the inherited constructors to see if any of them
+             pass the class scope test.  Note that this test assumes that the
+             scope stack is encoding the appropriate type - we'll need to save
+             it off so that we can restore it later. */
+          do {
+            inh_ctor = inh_ctor_inherited_ctor(inh_ctor);
+            ssep->assoc_type = parent_class_of(inh_ctor);
+            if (class_scope_test(class_type, ssep)) {
+              have_member_privilege = TRUE;
+              break;
+            }
+          } while (inh_ctor->is_inheriting_ctor);
+          ssep->assoc_type = saved_scope_class;
+          if (have_member_privilege) {
+            break;
+          }  /* if */
         }  /* if */
         if (scope_class_type->source_corresp.is_class_member) {
           /* Ignore class scopes until we get to the class of which this
@@ -12721,7 +12791,8 @@ this one.
        to the fundamental base class, continuing as long as the base
        class at each step is accessible from the original class, and we
        check for special access at each step. */
-    if (proj_sym->variant.projection.any_intervening_using_decl &&
+    if (proj_sym->kind == (a_symbol_kind)sk_projection &&
+        proj_sym->variant.projection.any_intervening_using_decl &&
         proj_sym->parent.class_type == viewpoint_class) {
       /* If there is an intervening using-declaration, do the remaining part
          of the access check on the using-declaration in place of the original
@@ -13065,6 +13136,42 @@ Return TRUE if sym is for a member of a class template prototype instantiation.
 }  /* is_member_of_prototype_instantiation */
 
 
+static a_boolean have_access_to_inherited_ctor(a_symbol_ptr symbol)
+/*
+Return TRUE if generating the body of an inheriting constructor and the
+indicated symbol is the constructor that was inherited, or if calling an
+inheriting constructor where there is access to the inherited constructor.
+*/
+{
+  a_boolean               have_access = FALSE;
+  a_scope_stack_entry_ptr ssep = &scope_stack_top();
+  a_routine_ptr           sym_ctor = NULL;
+
+  if (is_constructor_symbol(symbol)) {
+    sym_ctor = func_sym_routine(symbol);
+  }  /* if */
+  if (sym_ctor != NULL &&
+      (scope_is(ssep, sck_function) || scope_is(ssep, sck_function_access)) &&
+      ssep->assoc_routine->is_inheriting_ctor) {
+    a_routine_ptr ctor_orig = get_inh_ctor_originator(ssep->assoc_routine);
+    a_routine_ptr sym_orig = get_inh_ctor_originator(sym_ctor);
+    if (ctor_orig == sym_orig) {
+      have_access = TRUE;
+    }  /* if */
+  } else if (sym_ctor != NULL && sym_ctor->is_inheriting_ctor) {
+    do {
+      sym_ctor = inh_ctor_inherited_ctor(sym_ctor);
+      symbol = symbol_for(sym_ctor);
+      if (have_access_across_derivations(symbol, symbol)) {
+        have_access = TRUE;
+        break;
+      }  /* if */
+    } while (sym_ctor->is_inheriting_ctor);
+  }  /* if */
+  return have_access;
+}  /* have_access_to_inherited_ctor */
+
+
 a_boolean have_access_to_symbol_full(a_symbol_ptr symbol,
                                      a_boolean    ignore_func_templ)
 /*
@@ -13103,8 +13210,14 @@ will be performed (after overload resolution).
   } else if (!strict_ansi_mode && is_injected_template_symbol(fund_sym)) {
     /* Microsoft, g++, clang, and Sun all treat the injected class name
        of a class template as accessible in all cases. */
+  } else if (have_access_across_derivations(fund_sym, symbol)) {
+    /* have_access = TRUE */
+  } else if (have_access_to_inherited_ctor(symbol)) {
+    /* An inheriting constructor is allowed to access its inherited
+       constructor, and inheriting constructors inherit friends for the
+       purposes of accessing the inheriting constructor. */
   } else {
-    have_access = have_access_across_derivations(fund_sym, symbol);
+    have_access = FALSE;
   }  /* if */
   return have_access;
 }  /* have_access_to_symbol_full */

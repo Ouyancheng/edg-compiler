@@ -2084,6 +2084,8 @@ to default values.
 #endif /* DEBUG */
       rtsp->param_type_list          = NULL;
       rtsp->assoc_routine            = NULL;
+      rtsp->inherited_routine        = NULL;
+      rtsp->inherits_virtually       = FALSE;
       rtsp->has_ellipsis             = FALSE;
       rtsp->prototyped               = FALSE;
       rtsp->old_style_params_scanned = FALSE;
@@ -2958,6 +2960,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_initializer_list_ctor    = FALSE;
   rp->is_delegating_ctor          = FALSE;
   rp->is_inheriting_ctor          = FALSE;
+  rp->is_inh_ctor_def_init        = FALSE;
 #if ASSIGNMENT_TO_THIS_ALLOWED
   rp->assignment_to_this_done     = FALSE;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */

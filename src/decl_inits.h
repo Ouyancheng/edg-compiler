@@ -93,8 +93,22 @@ extern void init_capture_initializer(a_lambda_capture  *lcp,
 extern a_boolean def_initializer(a_symbol_ptr       sym,
                                  a_source_position  *err_pos);
 
+extern a_constructor_init_ptr ctor_inits_for_fields(
+                                       a_routine_ptr          ctor_rout,
+                                       a_type_ptr             class_type,
+                                       a_boolean              all_fields,
+                                       a_boolean              only_init_fields,
+                                       a_boolean              *has_field,
+                                       a_constructor_init_ptr *end_of_list);
+
 extern a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout,
                                                a_boolean      user_defined);
+
+extern a_constructor_init_ptr ctor_inits_for_inh_ctor_def_init(
+                                                           a_routine_ptr ctor);
+
+extern a_constructor_init_ptr ctor_inits_for_inheriting_ctor(
+                                                           a_routine_ptr ctor);
 
 extern a_constructor_init_ptr dtor_initializer(a_routine_ptr  dtor_rout);
 

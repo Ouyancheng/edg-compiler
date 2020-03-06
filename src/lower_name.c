@@ -12001,6 +12001,12 @@ determination is made by the callee.
   }  /* if */
 #endif /* !IA64_ABI */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  if (routine->is_inh_ctor_def_init) {
+    /* This is a generated routine that looks like a default constructor but
+       doesn't replace the default constructor.  As such, it's possible to have
+       both symbols in the same program.  Give it a unique prefix. */
+    add_str_to_mangled_name("__inhctordefinit_", mctl);
+  }  /* if */
   mangled_function_base_name(&routine->source_corresp, routine->special_kind,
                              opname_kind, ctor_dtor_kind,
                              num_operands, conversion_type,
