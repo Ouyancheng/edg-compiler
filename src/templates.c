@@ -26006,6 +26006,8 @@ set, and its source sequence entry, if any, has been put out.)
           break;
         case sk_concept_template:
           il_template_entry->kind = (a_template_kind)templk_concept;
+          il_template_entry->canonical_template = il_template_entry;
+          il_template_entry->definition_template = il_template_entry;
           break;
         default:
           /* There must have been an error.  Do the check because we don't

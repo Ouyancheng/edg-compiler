@@ -85,8 +85,9 @@ typedef struct a_func_prototype_stack_entry {
 		next;	/* Pointer to the entry for the enclosing function
 			   prototype scope (or NULL if this entry if for the
 			   outermost function prototype scope). */
-  a_type_ptr	function_type;
-			/* The function type associated with this function
+  a_param_type_ptr
+		params;
+			/* The parameters associated with this function
 			   prototype scope. */
   a_boolean	outside_parameter_list;
 			/* TRUE if we have already rendered the list of

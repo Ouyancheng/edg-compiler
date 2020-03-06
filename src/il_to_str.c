@@ -6995,8 +6995,7 @@ for the function prototype scope context described by fpsep.
     fpsep = fpsep->next;
     check_assertion(fpsep != NULL);
   }  /* for */
-  check_assertion(fpsep->function_type->kind == (a_type_kind)tk_routine);
-  ptp = fpsep->function_type->variant.routine.extra_info->param_type_list;
+  ptp = fpsep->params;
   check_assertion(ptp != NULL);
   for (k = 1; k<expr->variant.param_ref.param_num; ++k) {
     ptp = ptp->next;

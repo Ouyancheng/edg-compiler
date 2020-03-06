@@ -3744,23 +3744,34 @@ template arguments, since they cannot be named.
 }  /* arg_before_unnamed_template_param_arg */
 
 
-static void gen_template_arguments(a_source_correspondence *scp,
-                                   an_il_entry_kind        entry_kind,
-                                   long                    num_arguments)
+static void gen_template_arguments_full(a_source_correspondence *scp,
+                                        an_il_entry_kind        entry_kind,
+                                        long                    num_arguments,
+                                        a_template_arg_ptr      templ_args)
 /*
-Output the first num_arguments template arguments of the entity associated
-with scp.  If num_arguments is negative, all the arguments are to be put
-out.  If the entry is a template class, the number of arguments can be
-modified by the value of min_template_arguments in the class type
-supplement; arguments beyond that number are checked for accessibility and,
-if there is a potential problem, the list is truncated at that point so
-that the remaining arguments will be defaulted.
+Output the first num_arguments template arguments of either
+   (a) the templ_args list if non-NULL or if scp is NULL, or
+   (b) the entity associated with scp otherwise.
+If num_arguments is negative, all the arguments are to be put out.  If the
+entry is a template class, the number of arguments can be modified by the
+value of min_template_arguments in the class type supplement; arguments beyond
+that number are checked for accessibility and, if there is a potential problem,
+the list is truncated at that point so that the remaining arguments will be
+defaulted.
 */
 {
-  a_boolean          insert_space;
+  a_boolean          insert_space, render_args;
   a_template_arg_ptr tap;
 
-  if (name_has_template_arguments(scp, entry_kind, &tap, &insert_space)) {
+  if (scp == NULL || templ_args != NULL) {
+    tap = templ_args;
+    render_args = tap != NULL;
+    insert_space = FALSE;
+  } else {
+    render_args = name_has_template_arguments(scp, entry_kind, &tap,
+                                              &insert_space);
+  }  /* if */
+  if (render_args) {
     a_template_arg_ptr argp = NULL;
     a_template_arg_ptr prev_argp = NULL;
     long               min_arguments = num_arguments;
@@ -3965,6 +3976,20 @@ that the remaining arguments will be defaulted.
   }  /* if */
 end_of_routine:
   ;
+}  /* gen_template_arguments_full */
+
+
+static inline
+void gen_template_arguments(a_source_correspondence *scp,
+                            an_il_entry_kind        entry_kind,
+                            long                    num_arguments)
+/*
+Shorthand for gen_template_arguments_full when the template argument list is
+not passed explicitly.
+*/
+{
+  gen_template_arguments_full(scp, entry_kind, num_arguments,
+                              (a_template_arg_ptr)NULL);
 }  /* gen_template_arguments */
 
 
@@ -8089,6 +8114,171 @@ Generate an "__event __interface" declaration for the specified type.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void gen_param_list(a_param_type_ptr  param_list,
+                           a_scope_ptr       scope,
+                           a_boolean         suppress_def_args,
+                           a_boolean         for_ctor)
+/*
+Render the given parameter list.  If scope is non-NULL, this is the parameter
+list of a function definition and scope points to the associated function
+scope.  If suppress_def_args is TRUE, do not render default arguments.  If
+for_ctor is TRUE, this is the parameter list of a constructor.
+*/
+{
+  a_param_type_ptr  param = param_list;
+  a_variable_ptr    param_var = scope != NULL ?
+                                      scope->variant.routine.parameters: NULL;
+  a_boolean         saved_in_parameter_pack_declaration =
+                                                 in_parameter_pack_declaration;
+  a_boolean         id_equiv_attribs_as_prefix = FALSE;
+
+  if (gcc_is_generated_code_target && gnu_target_version_number < 30400) {
+    /* Versions of g++ prior to 3.4 did not accept attributes applying to a
+       parameter in the postfix position, where they are normally put out;
+       instead, they must be put out immediately preceding the name of the
+       parameter. */
+    id_equiv_attribs_as_prefix = TRUE;
+  }  /* if */
+  for (;;) {
+    gen_attributes(param->attributes, al_prefix, /*primary_only=*/FALSE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (param->is_cli_param_array) write_tok_str("... ");
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (scope != NULL) {
+      /* This is the definition of the function, so put out the type and
+         name from the parameter variable.  Note that the type in the
+         variable might be slightly different than (though, of course,
+         compatible with) the type in the param_type entry. */
+      a_gen_decl_options_set  gdo_flags = GDO_NO_OPTIONS;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (param->ms_attributes != NULL) {
+        gen_ms_attribute_block(param->ms_attributes);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      if (param_var->storage_class == (a_storage_class)sc_register) {
+        gen_storage_class(param_var->storage_class);
+      }  /* if */
+      if (param->is_parameter_pack) {
+        gdo_flags |= GDO_PARAMETER_PACK;
+      }  /* if */
+      /* Watch out for unnamed parameters in C++. */
+      in_parameter_pack_declaration = param->is_parameter_pack;
+      gen_general_declaration_using_type(
+                                      param_var->declared_type,
+                                      has_name(param_var) ?
+                                         &param_var->source_corresp : NULL,
+                                      iek_variable,
+                                      (a_src_seq_secondary_decl_ptr)NULL,
+                                      TQ_NONE,
+                                      /*suppress_specifiers=*/FALSE,
+                                      gdo_flags,
+                                      (a_name_reference_ptr)NULL);
+      in_parameter_pack_declaration = saved_in_parameter_pack_declaration;
+      param_var = param_var->next;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (msvc_is_generated_code_target &&
+               is_function_type(param->type)) {
+      /* MSVC++ 6.0 does not correctly parse a function-typed parameter
+         if the parameter name is omitted, e.g.,
+           void foo(void  (void*));  // gets error
+           void foo(void f(void*));  // okay
+         Put out a generated name in this case if the parameter was
+         unnamed. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      gen_ms_attribute_block(param->ms_attributes);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      in_parameter_pack_declaration = param->is_parameter_pack;
+      form_type_first_part_simple(param->type,
+                                  /*under_lhs_declarator=*/FALSE,
+                                  /*need_trailing_space=*/TRUE,
+                                  &octl);
+      if (id_equiv_attribs_as_prefix) {
+        gen_attributes(param->attributes, al_id_equivalent,
+                       /*primary_only=*/FALSE);
+      }  /* if */
+      if (param->is_parameter_pack) write_tok_str("...");
+      if (param->name != NULL) {
+        gen_param_name_from_param_type(param);
+      } else {
+        gen_temp_name((char *)param);
+      }  /* if */
+      gen_attributes(param->attributes, al_declarator_id,
+                     /*primary_only=*/FALSE);
+      form_type_second_part_simple(param->type,
+                                   /*under_lhs_declarator=*/FALSE,
+                                   &octl);
+      in_parameter_pack_declaration = saved_in_parameter_pack_declaration;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else {
+      /* This is just a declaration, so put out the type and the name
+         (if any) from the param type entry. */
+      a_type_ptr            param_type = param->declared_type != NULL ?
+                                       param->declared_type : param->type;
+      a_type_qualifier_set  extra_qual = param->declared_type != NULL ?
+                                              TQ_NONE : param->qualifiers;
+      if (is_generated_explicit_specialization &&
+          msvc_is_generated_code_target &&
+          msvc_target_version_number >= 1400) {
+        /* MSVC has a bug that prevents matching an explicit
+           specialization with a use of the corresponding instance if a
+           function parameter is not declared with the adjusted
+           parameter type.  For example,
+             template<> void f(void (X::*)(int * const));
+           will not match but
+             template<> void f(void (X::*)(int *));
+           will.  Use the actual (adjusted) type instead of the declared
+           type. */
+        param_type = param->type;
+        extra_qual = TQ_NONE;
+      }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      gen_ms_attribute_block(param->ms_attributes);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      in_parameter_pack_declaration = param->is_parameter_pack;
+      form_type_first_part(param_type, /*under_lhs_declarator=*/FALSE,
+                           /*need_trailing_space=*/FALSE,
+                           extra_qual, FTO_NO_OPTIONS, &octl);
+      if (id_equiv_attribs_as_prefix) {
+        /* Although this is a "prefix" location, we still need to do
+           the spacing as if the attribute were in a postfix position
+           (with a preceding space and not a trailing space), so we use
+           the "...as_postfix" location specifier. */
+        gen_attributes(param->attributes, al_id_equivalent_as_postfix,
+                       /*primary_only=*/FALSE);
+      }  /* if */
+      if (param->name != NULL) {
+        write_space();
+        if (param->is_parameter_pack) write_tok_str("...");
+        gen_param_name_from_param_type(param);
+        gen_attributes(param->attributes, al_declarator_id,
+                       /*primary_only=*/FALSE);
+      } else {
+        if (param->is_parameter_pack) write_tok_str(" ...");
+      }  /* if */
+      form_type_second_part_simple(param_type,
+                                   /*under_lhs_declarator=*/FALSE, &octl);
+      in_parameter_pack_declaration = saved_in_parameter_pack_declaration;
+    }  /* if */
+    gen_attributes(param->attributes, al_postfix, /*primary_only=*/FALSE);
+    if (!id_equiv_attribs_as_prefix) {
+      gen_attributes(param->attributes, al_id_equivalent_as_postfix,
+                     /*primary_only=*/FALSE);
+    }  /* if */
+    if (!suppress_def_args) {
+      /* Put out a default argument expression if there is one. */
+      in_ctor_default_argument = for_ctor;
+      gen_default_arg_expr(param);
+      in_ctor_default_argument = FALSE;
+    }  /* if */
+    param = param->next;
+    if (param == NULL) break;
+    /* There are more parameters, so output a separator and keep
+       looping. */
+    write_tok_str(", ");
+  }  /* for */
+}  /* gen_param_list */
+
+
 static void gen_function_declarator_with_scope(a_type_ptr   type,
                                                a_scope_ptr  scope,
                                                a_boolean    top_level_decl,
@@ -8104,25 +8294,13 @@ default arguments should be suppressed (needed for template specializations).
 {
   a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
   a_param_type_ptr              param;
-  a_variable_ptr                param_var = NULL;
   a_func_prototype_stack_entry  fpse;
-  a_boolean                     saved_in_parameter_pack_declaration =
-                                                 in_parameter_pack_declaration;
-  a_boolean                     id_equiv_attribs_as_prefix = FALSE;
 
-  if (gcc_is_generated_code_target && gnu_target_version_number < 30400) {
-    /* Versions of g++ prior to 3.4 did not accept attributes applying to a
-       parameter in the postfix position, where they are normally put out;
-       instead, they must be put out immediately preceding the name of the
-       parameter. */
-    id_equiv_attribs_as_prefix = TRUE;
-  }  /* if */
   /* Push an entry onto the function prototype stack. */
-  fpse.function_type = type;
+  fpse.params = type->variant.routine.extra_info->param_type_list;
   fpse.outside_parameter_list = FALSE;
   push_function_prototype(&fpse, &octl);
   /* The code here is similar to code in form_function_declarator. */
-  if (scope != NULL) param_var = scope->variant.routine.parameters;
   write_tok_ch('(');
   /* A routine is put out as unprototyped if its interface is unprototyped
      or if this is the definition and the definition is old-style (i.e.,
@@ -8132,6 +8310,7 @@ default arguments should be suppressed (needed for template specializations).
     /* Old-style list. */
     if (scope != NULL) {
       /* This is the definition, so put out the parameter names. */
+      a_variable_ptr  param_var = scope->variant.routine.parameters;
       if (param_var != NULL) {
         for (;;) {
           gen_unqualified_name(&param_var->source_corresp, iek_variable);
@@ -8186,143 +8365,8 @@ default arguments should be suppressed (needed for template specializations).
            function declarator. */
         bypass_prototyped_param_src_seq_entries();
       }  /* if */
-      for (;;) {
-        gen_attributes(param->attributes, al_prefix, /*primary_only=*/FALSE);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (param->is_cli_param_array) write_tok_str("... ");
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        if (scope != NULL) {
-          /* This is the definition of the function, so put out the type and
-             name from the parameter variable.  Note that the type in the
-             variable might be slightly different than (though, of course,
-             compatible with) the type in the param_type entry. */
-          a_gen_decl_options_set  gdo_flags = GDO_NO_OPTIONS;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          if (param->ms_attributes != NULL) {
-            gen_ms_attribute_block(param->ms_attributes);
-          }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          if (param_var->storage_class == (a_storage_class)sc_register) {
-            gen_storage_class(param_var->storage_class);
-          }  /* if */
-          if (param->is_parameter_pack) {
-            gdo_flags |= GDO_PARAMETER_PACK;
-          }  /* if */
-          /* Watch out for unnamed parameters in C++. */
-          in_parameter_pack_declaration = param->is_parameter_pack;
-          gen_general_declaration_using_type(
-                                          param_var->declared_type,
-                                          has_name(param_var) ?
-                                             &param_var->source_corresp : NULL,
-                                          iek_variable,
-                                          (a_src_seq_secondary_decl_ptr)NULL,
-                                          TQ_NONE,
-                                          /*suppress_specifiers=*/FALSE,
-                                          gdo_flags,
-                                          (a_name_reference_ptr)NULL);
-          in_parameter_pack_declaration = saved_in_parameter_pack_declaration;
-          param_var = param_var->next;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (msvc_is_generated_code_target &&
-                   is_function_type(param->type)) {
-          /* MSVC++ 6.0 does not correctly parse a function-typed parameter
-             if the parameter name is omitted, e.g.,
-               void foo(void  (void*));  // gets error
-               void foo(void f(void*));  // okay
-             Put out a generated name in this case if the parameter was
-             unnamed. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          gen_ms_attribute_block(param->ms_attributes);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          in_parameter_pack_declaration = param->is_parameter_pack;
-          form_type_first_part_simple(param->type,
-                                      /*under_lhs_declarator=*/FALSE,
-                                      /*need_trailing_space=*/TRUE,
-                                      &octl);
-          if (id_equiv_attribs_as_prefix) {
-            gen_attributes(param->attributes, al_id_equivalent,
-                           /*primary_only=*/FALSE);
-          }  /* if */
-          if (param->is_parameter_pack) write_tok_str("...");
-          if (param->name != NULL) {
-            gen_param_name_from_param_type(param);
-          } else {
-            gen_temp_name((char *)param);
-          }  /* if */
-          gen_attributes(param->attributes, al_declarator_id,
-                         /*primary_only=*/FALSE);
-          form_type_second_part_simple(param->type,
-                                       /*under_lhs_declarator=*/FALSE,
-                                       &octl);
-          in_parameter_pack_declaration = saved_in_parameter_pack_declaration;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        } else {
-          /* This is just a declaration, so put out the type and the name
-             (if any) from the param type entry. */
-          a_type_ptr            param_type = param->declared_type != NULL ?
-                                           param->declared_type : param->type;
-          a_type_qualifier_set  extra_qual = param->declared_type != NULL ?
-                                                  TQ_NONE : param->qualifiers;
-          if (is_generated_explicit_specialization &&
-              msvc_is_generated_code_target &&
-              msvc_target_version_number >= 1400) {
-            /* MSVC has a bug that prevents matching an explicit
-               specialization with a use of the corresponding instance if a
-               function parameter is not declared with the adjusted
-               parameter type.  For example,
-                 template<> void f(void (X::*)(int * const));
-               will not match but
-                 template<> void f(void (X::*)(int *));
-               will.  Use the actual (adjusted) type instead of the declared
-               type. */
-            param_type = param->type;
-            extra_qual = TQ_NONE;
-          }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          gen_ms_attribute_block(param->ms_attributes);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          in_parameter_pack_declaration = param->is_parameter_pack;
-          form_type_first_part(param_type, /*under_lhs_declarator=*/FALSE,
-                               /*need_trailing_space=*/FALSE,
-                               extra_qual, FTO_NO_OPTIONS, &octl);
-          if (id_equiv_attribs_as_prefix) {
-            /* Although this is a "prefix" location, we still need to do
-               the spacing as if the attribute were in a postfix position
-               (with a preceding space and not a trailing space), so we use
-               the "...as_postfix" location specifier. */
-            gen_attributes(param->attributes, al_id_equivalent_as_postfix,
-                           /*primary_only=*/FALSE);
-          }  /* if */
-          if (param->name != NULL) {
-            write_space();
-            if (param->is_parameter_pack) write_tok_str("...");
-            gen_param_name_from_param_type(param);
-            gen_attributes(param->attributes, al_declarator_id,
-                           /*primary_only=*/FALSE);
-          } else {
-            if (param->is_parameter_pack) write_tok_str(" ...");
-          }  /* if */
-          form_type_second_part_simple(param_type,
-                                       /*under_lhs_declarator=*/FALSE, &octl);
-          in_parameter_pack_declaration = saved_in_parameter_pack_declaration;
-        }  /* if */
-        gen_attributes(param->attributes, al_postfix, /*primary_only=*/FALSE);
-        if (!id_equiv_attribs_as_prefix) {
-          gen_attributes(param->attributes, al_id_equivalent_as_postfix,
-                         /*primary_only=*/FALSE);
-        }  /* if */
-        if (!suppress_def_args) {
-          /* Put out a default argument expression if there is one. */
-          in_ctor_default_argument = rtsp->assoc_routine_is_ctor;
-          gen_default_arg_expr(param);
-          in_ctor_default_argument = FALSE;
-        }  /* if */
-        param = param->next;
-        if (param == NULL) break;
-        /* There are more parameters, so output a separator and keep
-           looping. */
-        write_tok_str(", ");
-      }  /* for */
+      gen_param_list(param, scope, suppress_def_args,
+                     rtsp->assoc_routine_is_ctor);
       /* Put out the ellipsis if there is one. */
       if (rtsp->has_ellipsis) write_tok_str(", ...");
       if (rtsp->prototype_scope != NULL) {
@@ -14651,6 +14695,84 @@ used as an rvalue).
 }  /* handle_lvalue_constant_node */
 
 
+static void gen_concept_id(an_expr_node_ptr expr)
+/*
+Render the given concept-id.
+*/
+{
+  check_assertion(node_is(expr, enk_concept_id));
+  gen_name(&expr->variant.concept_id.concept_template->source_corresp,
+           iek_template, GN_NO_OPTIONS, (a_boolean *)NULL);
+  gen_template_arguments_full((a_source_correspondence*)NULL, iek_none, -1L, 
+                              expr->variant.concept_id.args);
+}  /* gen_concept_id */
+
+
+static void gen_requires_expr(an_expr_node_ptr expr)
+/*
+Render the given requires-expression.
+*/
+{
+  an_expr_node_ptr  req = expr->variant.requires_expr.requirements;
+  a_seq_number      last_seq = expr->position.seq;
+  a_func_prototype_stack_entry
+                    fpse;
+
+  check_assertion(node_is(expr, enk_requires));
+  write_tok_str("requires ");
+  if (expr->variant.requires_expr.parameters != NULL) {
+    fpse.params = expr->variant.requires_expr.parameters;
+    fpse.outside_parameter_list = TRUE;
+    push_function_prototype(&fpse, &octl);
+    write_tok_ch('(');
+    gen_param_list(fpse.params, (a_scope_ptr)NULL, /*suppress_def_args=*/TRUE,
+                   /*for_ctor=*/FALSE);
+    write_tok_str(") ");
+  }  /* if */
+  write_tok_ch('{');
+  for (; req != NULL; req = req->next) {
+    if (req->position.seq > last_seq) {
+      end_output_line();
+      for (int k = 0; k < req->position.column; ++k) write_ch(' ');
+      last_seq = req->position.seq;
+    }  /* if */
+    switch (req->kind) {
+      case enk_type_operand:
+        write_tok_str("typename ");
+        gen_type(req->variant.type_operand.type);
+        break;
+      case enk_compound_req:
+        { an_expr_node_ptr  nodes =
+                                req->variant.compound_req.expr_and_constraint;
+          write_tok_str("{ ");
+          gen_expression(nodes);
+          write_tok_str("}");
+          if (req->variant.compound_req.is_noexcept) {
+            write_tok_str(" noexcept");
+          }  /* if */
+          if (nodes->next != NULL) {
+            write_tok_str(" -> ");
+            gen_concept_id(nodes->next);
+          }  /* if */
+        }
+        break;
+      case enk_nested_req:
+        write_tok_str("requires ");
+        gen_expression(req->variant.nested_req.constraint);
+        break;
+      default:
+        gen_expression(req);
+        break;
+    }  /* switch */
+    write_tok_str("; ");
+  }  /* for */
+  write_tok_ch('}');
+  if (expr->variant.requires_expr.parameters != NULL) {
+    pop_function_prototype(&octl);
+  }  /* if */
+}  /* gen_requires_expr */
+
+
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens,
                      a_boolean        obj_expr_of_mfunc_operator)
@@ -15803,6 +15925,12 @@ sizeof_cases:
     case enk_fold:
       gen_fold_expression(expr);
       break;
+    case enk_concept_id:
+      gen_concept_id(expr);
+      break;
+    case enk_requires:
+      gen_requires_expr(expr);
+      break;
 
     case enk_initializer:
 #if VLA_DEALLOCATIONS_IN_IL
@@ -16495,10 +16623,16 @@ parameter lists). */
     } else if (param->kind == (a_template_parameter_kind)tpk_type) {
       /* Remap the source correspondence entry for output. */
       a_type_ptr  type_param = param->variant.type.ptr;
-      remap_template_param(&type_param->variant.template_param.extra_info
-                                      ->coordinates,
+      a_template_param_type_supplement_ptr
+                  tptsp = type_param->variant.template_param.extra_info;
+      remap_template_param(&tptsp->coordinates,
                            &type_param->source_corresp);
-      write_tok_str("class ");
+      if (tptsp->constraint.type_constraint == NULL) {
+        write_tok_str("class ");
+      } else {
+        gen_concept_id(tptsp->constraint.type_constraint);
+        write_space();
+      }  /* if */
       if (param->is_pack) write_tok_str("...");
       /* Set the source position for the name. */
       set_output_position(&param->source_corresp.decl_position);
@@ -16533,8 +16667,19 @@ parameter lists). */
     if (param->next != NULL) write_tok_str(", ");
   }  /* for */
   write_tok_str("> ");
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (tdp->is_generic && tdp->constraint.where_clauses != NULL) {
+  if (!tdp->is_generic) {
+    a_requires_clause_ptr  rcp = tdp->constraint.requires_clause;
+    if (rcp != NULL) {
+      /* Render a requires-clause. */
+      set_output_position(&rcp->requires_pos);
+      write_tok_str("requires");
+      /* Force parentheses for the constraint expression because the grammar
+         in this context is otherwise limited. */
+      gen_expr_with_parens(rcp->constraint);
+      write_space();
+    }  /* if */
+ #if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (tdp->constraint.where_clauses != NULL) {
     /* Put out the list of constraints. */
     a_generic_constraint_clause_ptr gccp;
     for (gccp = tdp->constraint.where_clauses; gccp != NULL;
@@ -16630,6 +16775,17 @@ instantiation is available.
         result = TRUE;
       }  /* if */
       break;
+    case templk_concept:
+      gen_template_header(tp->template_decl, (a_type_ptr)NULL,
+                          /*is_cppcli_generic=*/FALSE,
+                          /*for_generic_lambda=*/FALSE);
+      write_tok_str("concept ");
+      gen_bare_name(&tp->source_corresp, iek_template);
+      write_tok_str(" = ");
+      adv_curr_source_sequence_entry();
+      gen_expression(tp->prototype_instantiation.constraint);
+      result = TRUE;
+      break;
     default:
       unexpected_condition_str2("gen_template_from_prototype_instantiation",
                                 "bad template kind");
@@ -16669,23 +16825,27 @@ instantiation is available; see gen_template_from_prototype_instantiation).
 {
   a_boolean  result = il_header.il_has_all_prototype_instantiations;
 
+  if (!result) {
+    if (tp->kind == (a_template_kind)templk_concept) {
+      result = TRUE;
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  if (!result && all_template_info_in_il &&
-      tp->source_corresp.is_class_member) {
-    /* Check if this is a member template of a real instantiation. */
-    a_type_ptr  parent_class = parent_class_of(tp);
-    do {
-      if (parent_class->variant.class_struct_union.is_template_class &&
-          !parent_class->variant.class_struct_union.is_nonreal_class &&
-          !parent_class->variant.class_struct_union.is_specialized) {
-        result = TRUE;
-        break;
-      }  /* if */
-      parent_class = parent_class->source_corresp.is_class_member ?
+    } else if (all_template_info_in_il &&
+               tp->source_corresp.is_class_member) {
+      /* Check if this is a member template of a real instantiation. */
+      a_type_ptr  parent_class = parent_class_of(tp);
+      do {
+        if (parent_class->variant.class_struct_union.is_template_class &&
+            !parent_class->variant.class_struct_union.is_nonreal_class &&
+            !parent_class->variant.class_struct_union.is_specialized) {
+          result = TRUE;
+          break;
+        }  /* if */
+        parent_class = parent_class->source_corresp.is_class_member ?
                              parent_class_of(parent_class) : (a_type_ptr)NULL;
-    } while (parent_class != NULL);
-  }  /* if */
+      } while (parent_class != NULL);
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+    }  /* if */
+  }  /* if */
   if (result && is_definition &&
       (tp->kind == (a_template_kind)templk_function ||
        tp->kind == (a_template_kind)templk_member_function)) {
@@ -18119,7 +18279,8 @@ one that yields the value) of a statement expression.
                need to push the function prototype in case the return type
                has an enk_param_ref embedded in a decltype-specifier. */
             a_func_prototype_stack_entry fpse;
-            fpse.function_type = curr_routine_type;
+            fpse.params = curr_routine_type->variant.routine.extra_info
+                                           ->param_type_list;
             fpse.outside_parameter_list = TRUE;
             push_function_prototype(&fpse, &octl);
             check_assertion(statement->variant.return_dynamic_init != NULL);
@@ -20322,6 +20483,17 @@ declarator (or NULL if it wasn't recorded).
     rout->type = saved_routine_type;
     octl.render_auto_deduction_typerefs = saved_render_auto_deduction_typerefs;
   }  /* if */
+  {
+    a_requires_clause_ptr  rcp = rout->trailing_requires_clause;
+    if (rcp != NULL) {
+      /* Render a requires-clause. */
+      if (decl_within_class) set_output_position(&rcp->requires_pos);
+      write_tok_str(" requires");
+      /* Force parentheses for the constraint expression because the grammar
+         in this context is otherwise limited. */
+      gen_expr_with_parens(rcp->constraint);
+    }  /* if */
+  }
   if (name_context_to_restore != NULL) {
     /* Restore lexical context lookup. */
     name_context_to_restore->ignore_lexical_context_for_friend_decl = FALSE;
