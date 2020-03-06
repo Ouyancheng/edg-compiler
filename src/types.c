@@ -2274,9 +2274,9 @@ POD changed between C++03 and C++11.
              is_trivially_copyable_type(tp);
     if (result && cssp->trivial_default_constructor != NULL &&
         cssp->trivial_default_constructor->variant.routine.ptr->is_deleted &&
-        !gpp_version_is(>=50000)) {
-      /* A deleted trivial default constructor makes the type a non-POD (some
-         versions of GCC do not consider that). */
+        !gpp_version_is(>=50000) && !clang_mode) {
+      /* A deleted trivial default constructor makes the type a non-POD (Clang
+         and some versions of GCC do not consider that). */
       result = FALSE;
     }  /* if */
     if (result) {
