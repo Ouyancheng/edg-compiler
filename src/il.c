@@ -20245,22 +20245,6 @@ be called to start a copy.
                                expr->variant.builtin_choose_expr.choose_first;
       break;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-#if GNU_EXTENSIONS_ALLOWED
-    case enk_statement:
-      /* Doesn't have to be copied because forbidden in default argument
-         expressions and because functions containing statement expressions
-         are considered not to be inlinable.  Copying these would involve
-         copying the statement subtree, the associated scopes, the variables
-         in those scopes, the initializers on those variables... */
-      if (options & CE_COPY_NOT_EVALUATED) {
-        /* If the statement expression occurs in a context where it's not
-           evaluated, create a dummy expression of the appropriate type
-           and lvalueness. */
-        expr_copy = make_dummy_expr(expr->type, expr->is_lvalue);
-        break;
-      }  /* if */
-      FALLTHROUGH
-#endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_fold:
       expr_copy->variant.fold.operands =
                         i_copy_list_of_expr_trees(expr->variant.fold.operands,
@@ -20290,6 +20274,23 @@ be called to start a copy.
                                           expr->variant.nested_req.constraint,
                                           options, cblock);
       break;
+#if GNU_EXTENSIONS_ALLOWED
+    case enk_statement:
+      /* Doesn't have to be copied because forbidden in default argument
+         expressions and because functions containing statement expressions
+         are considered not to be inlinable.  Copying these would involve
+         copying the statement subtree, the associated scopes, the variables
+         in those scopes, the initializers on those variables... */
+      if (options & CE_COPY_NOT_EVALUATED) {
+        /* If the statement expression occurs in a context where it's not
+           evaluated, create a dummy expression of the appropriate type
+           and lvalueness. */
+        expr_copy = make_dummy_expr(expr->type, expr->is_lvalue);
+        break;
+      }  /* if */
+      FALLTHROUGH
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
     default:
       unexpected_condition_str("i_copy_expr_tree: bad expr kind");
   }  /* switch */
