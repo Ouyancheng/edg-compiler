@@ -2254,11 +2254,18 @@ POD changed between C++03 and C++11.
   if (cpp11_mode) {
     /* In C++11, a POD class is a standard-layout, trivial class type whose
        members do not have non-POD class types (or arrays thereof).  A trivial
-       class type is a trivially copyable type that has a default constructor
-       and no nontrivial default constructor. */
+       class type is a trivially copyable type that has an eligible (e.g., not
+       deleted) default constructor and no nontrivial default constructor. */
     a_class_symbol_supplement_ptr  cssp = class_symbol_supp(symbol_for(tp));
     result = cssp->standard_layout && has_trivial_default_constructor(cssp) &&
              is_trivially_copyable_type(tp);
+    if (result && cssp->trivial_default_constructor != NULL &&
+        cssp->trivial_default_constructor->variant.routine.ptr->is_deleted &&
+        !gpp_version_is(>=50000)) {
+      /* A deleted trivial default constructor makes the type a non-POD (some
+         versions of GCC do not consider that). */
+      result = FALSE;
+    }  /* if */
     if (result) {
       /* Check that every field of class type (or array thereof) is of a POD
          class type. */
