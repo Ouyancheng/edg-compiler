@@ -3832,8 +3832,12 @@ defined.  Detailed position information is recorded in *decl_pos_block.
          specialization declaration (and the entity has not already
          been defined as a specialization), indicate that the entity being
          specialized has already been referenced. */
-      if (is_template_specialization &&
-          !class_type->variant.class_struct_union.is_specialized) {
+      if (tag_sym->is_error) {
+        /* This is a class generated because of an error situation.  Do not
+           add an unhelpful diagnostic. */
+        expect_error();
+      } else if (is_template_specialization &&
+                 !class_type->variant.class_struct_union.is_specialized) {
         pos2_sy_diagnostic(es_error,
                            ec_specialization_of_referenced_entity_pos,
                            &tag_position, &cssp->instantiation_position,

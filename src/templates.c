@@ -10322,20 +10322,53 @@ use the current global value of the template template parameter.
                                            /*diagnose=*/TRUE)) {
       /* The template arguments do not satisfy the constraints.  Create a
          dummy symbol referring to an error type. */
-      expect_error();
-      sym = alloc_symbol((a_symbol_kind)sk_type, template_sym->header,
-                         &template_sym->decl_position);
-      sym->decl_scope = template_sym->decl_scope;
-      if (template_sym->is_class_member) {
-        set_class_membership(sym, (a_source_correspondence *)NULL,
-                             sym_parent_class(template_sym));
-      } else if (sym_is_namespace_member(template_sym)) {
-        set_namespace_membership(sym, (a_source_correspondence *)NULL,
-                                 sym_parent_namespace(template_sym));
+      if (do_not_create) {
+        sym = NULL;
+      } else {
+        a_symbol_kind  sym_kind;
+        a_type_kind    type_kind;
+        a_type_ptr     type;
+        expect_error();
+        prototype_sym = tssp->variant.class_template.prototype_instantiation;
+        if (prototype_sym == NULL) {
+          /* This can happen with template template arguments. */
+          sym_kind = sk_class_or_struct_tag;
+          type_kind = tk_struct;
+        } else {
+          /* Determine whether to create a sk_type, sk_class_or_struct, or
+             sk_union symbol. */
+          sym_kind = prototype_sym->kind;
+          type_kind = type_symbol_type(prototype_sym)->kind;
+        }  /* if */
+        sym = alloc_symbol(sym_kind, template_sym->header,
+                           &template_sym->decl_position);
+        sym->decl_scope = template_sym->decl_scope;
+        type = alloc_type(type_kind);
+        if (symbol_is(sym, sk_type)) {
+          /* Create an alias for an error type. */
+          sym->variant.type.ptr = type;
+          type->variant.typeref.type = error_type();
+        } else {
+          /* Create a dummy class type.  Make it complete to reduce the number
+             of extraneous diagnostics. */
+          sym->variant.class_struct_union.type = type;
+          add_scope_to_class_type(type);
+          type->incomplete = FALSE;
+          type->size = 1;
+          type->alignment = 1;
+          sym->defined = TRUE;
+        }  /* if */
+        set_source_corresp(&type->source_corresp, sym);
+        if (template_sym->is_class_member) {
+          set_class_membership(sym, &type->source_corresp,
+                               sym_parent_class(template_sym));
+        } else if (sym_is_namespace_member(template_sym)) {
+          set_namespace_membership(sym, &type->source_corresp,
+                                   sym_parent_namespace(template_sym));
+        }  /* if */
+        sym->is_error = TRUE;
+        free_template_arg_list(*new_list);
       }  /* if */
-      sym->variant.type.ptr = error_type();
-      sym->is_error = TRUE;
-      free_template_arg_list(*new_list);
       goto done;
     }  /* if */
   }  /* if */
