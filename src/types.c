@@ -2255,6 +2255,37 @@ array thereof.
 }  /* is_const_default_constructible */
 
 
+a_boolean is_trivial_class(a_type_ptr  tp)
+/*
+Return TRUE if the given class type is a "trivial class", which is a trivially
+copyable class type with an eligible (non-deleted) default constructor.
+*/
+{
+  a_boolean  result;
+
+  if (is_immediate_class_type(tp)) {
+    a_class_symbol_supplement_ptr  cssp = class_symbol_supp(symbol_for(tp));
+    result = has_trivial_default_constructor(cssp) &&
+             is_trivially_copyable_type(tp);
+    if (result && cssp->trivial_default_constructor != NULL) {
+      a_routine_ptr  rp = cssp->trivial_default_constructor
+                              ->variant.routine.ptr;
+      if ((rp->is_deleted && !gpp_version_is(>=50000) && !clang_mode) ||
+          rp->is_ineligible) {
+        /* A deleted trivial default constructor makes the type non-trivial
+           (Clang and some versions of GCC do not consider that).  Similarly,
+           a failed constraint (indicated by is_ineligible) also makes it
+           non-trivial. */
+        result = FALSE;
+      }  /* if */
+    }  /* if */
+  } else {
+    unexpected_condition();
+  }  /* if */
+  return result;
+}  /* is_trivial_class */
+
+
 a_boolean is_pod_class(a_type_ptr  tp)
 /*
 Return TRUE if the given class type is a POD class type.  The definition of
@@ -2270,15 +2301,7 @@ POD changed between C++03 and C++11.
        class type is a trivially copyable type that has an eligible (e.g., not
        deleted) default constructor and no nontrivial default constructor. */
     a_class_symbol_supplement_ptr  cssp = class_symbol_supp(symbol_for(tp));
-    result = cssp->standard_layout && has_trivial_default_constructor(cssp) &&
-             is_trivially_copyable_type(tp);
-    if (result && cssp->trivial_default_constructor != NULL &&
-        cssp->trivial_default_constructor->variant.routine.ptr->is_deleted &&
-        !gpp_version_is(>=50000) && !clang_mode) {
-      /* A deleted trivial default constructor makes the type a non-POD (Clang
-         and some versions of GCC do not consider that). */
-      result = FALSE;
-    }  /* if */
+    result = cssp->standard_layout && is_trivial_class(tp);
     if (result) {
       /* Check that every field of class type (or array thereof) is of a POD
          class type. */

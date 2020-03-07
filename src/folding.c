@@ -8878,9 +8878,7 @@ and, if pos is not NULL, an error will be reported.
         result = (type->kind == (a_type_kind)tk_union);
         break;
       case bok_is_trivial:
-        check_assertion(cssp != NULL);  /* For Coverity. */
-        result = has_trivial_default_constructor(cssp) &&
-                 is_trivially_copyable_type(type);
+        result = is_trivial_class(type); 
         break;
       case bok_is_standard_layout:
         check_assertion(cssp != NULL);  /* For Coverity. */
