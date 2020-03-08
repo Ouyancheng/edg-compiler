@@ -25,7 +25,7 @@ sibling nested classes
 In C++-generating back end configurations in which template definitions are
 generated from the prototype instantiation IL and with
 DEFAULT_RECORD_FORM_OF_NAME_REFERENCE set to FALSE, the change for
-EDGcpfe/21785 (in version 5.0) caused a friend declaration naming a sibling
+EDGcpfe/21785 (in version 6.0) caused a friend declaration naming a sibling
 nested class template or member thereof to be put out using an
 unnecessarily-qualified name.  The generated code was correct, but it
 triggered a g++ bug that resulted in spurious compilation errors.  This has
