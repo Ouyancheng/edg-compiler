@@ -4971,6 +4971,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         }  /* if */
       }  /* if */
       if ((options & GN_FRIEND_DECL) &&
+          curr_name_context->class_type != NULL &&
           find_base_class_of(curr_name_context->class_type,
                              class_type) != NULL) {
         /* Befriending a member of a base class requires a qualifier, even
