@@ -18283,6 +18283,9 @@ one that yields the value) of a statement expression.
             push_function_prototype(&fpse, &octl);
             check_assertion(statement->variant.return_dynamic_init != NULL);
             write_space();
+            /* Process any tags declared within the initializer
+               (e.g., in casts). */
+            skip_embedded_declarations();
             gen_dynamic_init(statement->variant.return_dynamic_init,
                              return_type, (an_expr_node_ptr)NULL,
                              /*avoid_top_level_comma=*/FALSE,
