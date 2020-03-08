@@ -1,5 +1,30 @@
 Version 6.1
 
+3/7/10   [EDGcpfe/22441]
+C++-generating back end, g++ compatibility: friend declarations of members of
+sibling nested classes
+
+In C++-generating back end configurations in which template definitions are
+generated from the prototype instantiation IL and with
+DEFAULT_RECORD_FORM_OF_NAME_REFERENCE set to FALSE, the change for
+EDGcpfe/21785 (in version 5.0) caused a friend declaration naming a sibling
+nested class template or member thereof to be put out using an
+unnecessarily-qualified name.  The generated code was correct, but it
+triggered a g++ bug that resulted in spurious compilation errors.  This has
+now been fixed, and the generated code no longer uses the unnecessary name
+qualification.  For example:
+
+  template<typename T> struct A {
+    template<bool> class B;
+    class C;
+    };
+
+  template<typename T> class A<T>::C {
+    friend class B<false>;
+    // Previously named as "A<T>::template B<false>", which g++ rejected
+  };
+
+
 3/6/20   [EDGcpfe/22445]
 Memory corruption after call of expr_interpret_expression_operand
 

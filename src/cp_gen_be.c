@@ -4971,10 +4971,8 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         }  /* if */
       }  /* if */
       if ((options & GN_FRIEND_DECL) &&
-          class_is_in_name_context_stack(
-                                   scp_parent_class(scp),
-                                   /*include_base_classes=*/TRUE,
-                                   /*ignore_field_selection_contexts=*/TRUE)) {
+          find_base_class_of(curr_name_context->class_type,
+                             class_type) != NULL) {
         /* Befriending a member of a base class requires a qualifier, even
            if the name is otherwise visible. */
         a_type_ptr befriended_type =
