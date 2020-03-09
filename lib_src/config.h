@@ -444,6 +444,15 @@ abort should be displayed.
 #endif /* ifndef DISPLAY_ABORT_DESCRIPTION */
 
 /*
+Flag that is TRUE if the stdout/stderr should be flushed before calling
+abort.  In some cases, abort will already flush these streams, but in other
+cases any data written to the streams will not be flushed.
+*/
+#ifndef FLUSH_ON_ABORT
+#define FLUSH_ON_ABORT TRUE
+#endif /* ifndef FLUSH_ON_ABORT */
+
+/*
 Determine the type to be used in the non-IA-64 ABI to pass an element count
 to routines such as __vec_new.  For cfront-compatibility purposes the type
 of this parameter was originally "int".  Starting with version 3.10, the

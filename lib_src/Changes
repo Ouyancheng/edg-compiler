@@ -1,5 +1,14 @@
 Version 6.0, December 5, 2019
 
+3/9/20  [EDGcpfe/22450]
+Optionally flush streams on abort
+
+Older versions of the GNU library appear to flush IO streams when abort is
+called, but it appears that newer versions do not flush the IO streams.  A new
+configuration macro, FLUSH_ON_ABORT, has been added and when TRUE, the
+stdout and stderr IO streams are now flushed before calling abort.
+
+
 No changes.
 
 -------------------------------------------------------------------------------

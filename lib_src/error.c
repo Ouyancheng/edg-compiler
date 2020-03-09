@@ -109,6 +109,10 @@ EXTERN_C void __abort_execution(an_error_code	err_code)
   /* Display the reason for the abort. */
   display_abort_message(err_code);
 #endif /* DISPLAY_ABORT_DESCRIPTION */
+#if FLUSH_ON_ABORT
+  (void)fflush(stdout);
+  (void)fflush(stderr);
+#endif /* FLUSH_ON_ABORT */
   abort();
 }  /* abort_execution */
 
