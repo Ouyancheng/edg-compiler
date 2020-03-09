@@ -1,5 +1,43 @@
 Version 6.1
 
+3/8/20   [EDGcpfe/22434]
+C++-generating back end: scoped enum members of generated explicit
+specializations
+
+In C++-generating back end configurations with
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE, when
+the source contains a class template that defines a member scoped
+enumeration, a generated explicit specialization for the template had a
+non-defining declaration of the member enumeration inside the class and an
+out-of-class definition.  That code is well-formed and accepted by most
+compilers, but g++ issues a spurious error for an out-of-class definition
+in such cases.  The C++-generating back end has now been changed to emit
+the definitions of such member scoped enumerations inside the class
+definition when gcc_is_generated_code_target is TRUE.  For example, with
+--g++:
+
+  template<typename T> struct S {
+    enum class E : unsigned char { zero, one };
+    E m;
+  };
+  void f() {
+    S<int> s;
+    s.m = S<int>::E::zero;
+  }
+
+Previously, the generated code for this example contained the explicit
+specialization:
+
+  template<> struct S<int>  {
+    enum class E: unsigned char;  // Not defined inside class
+    E m;
+  };
+  enum class S<int>::E : unsigned char { zero, one };
+
+In code generated for g++, the scoped enumeration is now defined inside the
+class body.
+
+
 3/7/20   [EDGcpfe/22448]
 C++-generating back end: types defined in return statements
 

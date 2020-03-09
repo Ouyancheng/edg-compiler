@@ -8952,6 +8952,7 @@ is the one associated with the definition of the enum.
   write_tok_ch('}');
   gen_attributes(type->source_corresp.attributes, al_post_tag_definition,
                  /*primary_only=*/TRUE);
+  type->has_been_defined = TRUE;
   release_local_constant(&next_enum_value);
 }  /* gen_enum_definition */
 
@@ -10589,6 +10590,9 @@ this one is such a continuation.
   an_attribute_ptr             attributes = NULL;
   a_boolean                    saved_suppress_nontype_expr =
                                              octl.suppress_expr_in_nontype_arg;
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr  saved_sse = NULL;
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
   *another_decl_in_comma_list = FALSE;
   is_generated_explicit_specialization = FALSE;
@@ -10605,12 +10609,35 @@ this one is such a continuation.
 #if GNU_EXTENSIONS_ALLOWED
     marked_as_gnu_extension = sec_decl->marked_as_gnu_extension;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    is_specialization = sec_decl->specialized_with_new_syntax;
-    /* Only the "secondary declaration" path picks up attributes here, because
-       they must be passed to the call to gen_tag_reference below.  For
-       definitions, gen_enum_definition and gen_class_definition retrieve
-       the attributes from the type entry. */
-    attributes = sec_decl->attributes;
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    if (gcc_is_generated_code_target && is_immediate_enum_type(type) &&
+        type->source_corresp.is_class_member &&
+        !type->variant.integer.is_specialized) {
+      a_type_ptr parent_class = parent_class_of(type);
+      if (class_type_supp(parent_class)->template_arg_list != NULL &&
+          !type->variant.class_struct_union.is_specialized) {
+        /* This is a non-defining declaration of an enumeration, appearing
+           in a generated explicit specialization of a class template
+           instance. G++ has a bug that causes it to reject out-of-class
+           definitions of such member enumerations, so generate the
+           definition in place of this declaration. */
+        is_definition = TRUE;
+        friend_decl = FALSE;
+        saved_sse = curr_source_sequence_entry;
+        curr_source_sequence_entry =
+                                    type->source_corresp.source_sequence_entry;
+      }  /* if */
+    }  /* if */
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+    if (!is_definition) {
+      is_specialization = sec_decl->specialized_with_new_syntax;
+      /* Only the "secondary declaration" path picks up attributes here,
+         because they must be passed to the call to gen_tag_reference
+         below.  For definitions, gen_enum_definition and
+         gen_class_definition retrieve the attributes from the type
+         entry. */
+      attributes = sec_decl->attributes;
+    }  /* if */
   } else {
     if (ss_entry_kind(curr_source_sequence_entry) == iek_template) {
       assoc_template = ss_entry_ptr(curr_source_sequence_entry,
@@ -10680,21 +10707,7 @@ this one is such a continuation.
        put out in this location or it is a member of such an explicit
        specialization.  Just discard the class definition, if any. */
     if (is_definition) {
-      for (;;) {
-        if (ss_entry_kind(curr_source_sequence_entry) !=
-                                                iek_src_seq_end_of_construct) {
-          adv_curr_source_sequence_entry();
-        } else {
-          a_src_seq_end_of_construct_ptr ssecp =
-                                  ss_entry_ptr(curr_source_sequence_entry,
-                                               a_src_seq_end_of_construct_ptr);
-          adv_curr_source_sequence_entry();
-          if (ss_entry_kind(ssecp) == iek_type &&
-              ss_entry_ptr(ssecp, a_type_ptr) == type) {
-            break;
-          }  /* if */
-        }  /* if */
-      }  /* for */
+      skip_type_definition_source_sequence_entries(type);
     } else {
       adv_curr_source_sequence_entry();
     }  /* if */
@@ -10890,17 +10903,38 @@ this one is such a continuation.
       }  /* if */
     } else if (kind == (a_type_kind)tk_enum) {
       /* An enum type definition. */
-      if (template_decl != NULL) {
-        /* Advance past the entry for the template representation.  An entry
-           for the enumeration type should be next. */
-        adv_curr_source_sequence_entry();
-        check_assertion(curr_source_sequence_entry != NULL &&
-                        ss_entry_kind(curr_source_sequence_entry) ==
-                                                  iek_type &&
-                        ss_entry_ptr(curr_source_sequence_entry, a_type_ptr)
-                                                                     == type);
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      if (type->has_been_defined) {
+        /* The out-of-class definition of a member enumeration of a
+           generated explicit specialization was substituted for the
+           non-defining in-class declaration, and we've now encountered
+           the out-of-class definition.  Skip over it so we don't define
+           the type a second time. */
+        skip_type_definition_source_sequence_entries(type);
+      } else {
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+        if (template_decl != NULL) {
+          /* Advance past the entry for the template representation.  An
+             entry for the enumeration type should be next. */
+          adv_curr_source_sequence_entry();
+          check_assertion(curr_source_sequence_entry != NULL &&
+                          ss_entry_kind(curr_source_sequence_entry) ==
+                                                                    iek_type &&
+                          ss_entry_ptr(curr_source_sequence_entry, a_type_ptr)
+                                                                      == type);
+        }  /* if */
+        gen_enum_definition(type);
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       }  /* if */
-      gen_enum_definition(type);
+      if (saved_sse != NULL) {
+        /* The out-of-class definition of a member enumeration of a
+           generated explicit specialization was substituted for the
+           non-defining in-class declaration.  Restore the source sequence
+           scan to the entry following the in-class declaration. */
+        curr_source_sequence_entry = saved_sse;
+        adv_curr_source_sequence_entry();
+      }  /* if */
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     } else {
       check_assertion_str(is_class_type_kind(kind),
                           "gen_type_decl: bad type on list");
