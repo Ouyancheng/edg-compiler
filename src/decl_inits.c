@@ -9803,24 +9803,31 @@ default-initialized.
   a_class_symbol_supplement_ptr cssp = class_symbol_supp(class_sym);
   a_symbol_ptr                  ctor_sym = cssp->inh_ctor_def_ctor;
   a_routine_ptr                 def_ctor = ctor_sym->variant.routine.ptr;
+  a_dynamic_init_ptr            dip;
 
   check_assertion(
                 init->kind == (a_constructor_init_kind)cik_direct_base_class ||
                 init->kind == (a_constructor_init_kind)cik_virtual_base_class);
-  init->initializer = alloc_ctor_dynamic_init(def_ctor,
-                                              /*implied_source=*/FALSE,
-                                              /*evaluated=*/FALSE,
-                                              inh_ctor->is_consteval);
-  init->initializer->is_constructor_init = TRUE;
+  dip = alloc_ctor_dynamic_init(def_ctor, /*implied_source=*/FALSE,
+                                /*evaluated=*/FALSE, inh_ctor->is_consteval);
+  dip->is_constructor_init = TRUE;
   reference_to_implicitly_invoked_function(symbol_for(def_ctor),
                                            &pos_curr_token,
-                                           parent_class_of(ctor),
+                                           /*class_of_object=*/NULL,
                                            /*honor_virtual=*/FALSE,
                                            /*evaluated=*/TRUE,
                                            /*instantiate=*/TRUE,
                                            /*check_access=*/FALSE,
                                            /*elided_reference=*/FALSE,
                                            /*error_detected=*/NULL);
+  if (exceptions_enabled) {
+    a_routine_ptr dtor = select_destructor(class_type, parent_class_of(ctor),
+                                           &pos_curr_token);
+    record_dtor_in_dynamic_init(dtor, dip, /*evaluated=*/TRUE);
+    record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                       /*block_lifetime=*/TRUE);
+  }  /* if */
+  init->initializer = dip;
 }  /* inh_ctor_init_default_initialize_object */
 
 
@@ -9864,6 +9871,13 @@ being created.
     dip = alloc_ctor_dynamic_init(rp, /*implied_source=*/FALSE,
                                   /*evaluated=*/TRUE,
                                   ctor->is_consteval);
+  }  /* if */
+  if (exceptions_enabled) {
+    a_routine_ptr  dtor;
+    dtor = select_destructor(tp, parent_class_of(ctor), &pos_curr_token);
+    record_dtor_in_dynamic_init(dtor, dip, /*evaluated=*/TRUE);
+    record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                       /*block_lifetime=*/TRUE);
   }  /* if */
   dip->is_constructor_init = TRUE;
   init->initializer = dip;
@@ -9986,6 +10000,10 @@ constructor are initialized in the normal way.
       if (init->variant.base_class->type == ctor_owner) {
         init->initializer = dip;
         init->initializer->is_constructor_init = TRUE;
+        if (exceptions_enabled) {
+          record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                             /*block_lifetime=*/TRUE);
+        }  /* if */
       } else {
         inh_ctor_init_default_initialize_base(init.ptr(), ctor, ctor_routine,
                                               init->variant.base_class->type);

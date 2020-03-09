@@ -11729,6 +11729,7 @@ was used).
   } else if (dps->ineligible || dps->is_inh_ctor_def_init) {
     /* Create a symbol that will not go into the symbol table. */
     new_sym = make_symbol((a_symbol_kind)sk_member_function, locator);
+    new_sym->decl_scope = class_type_supp(class_type)->assoc_scope->number;
   } else {
     /* See if there's already a member function with this name. */
     sym = find_direct_member_function(locator, class_type);
@@ -23814,7 +23815,6 @@ initialization requirement.
   generate_special_function(cdsp, &decl_info, &func_info,
                             (a_param_type*)NULL);
   rout_sym = decl_info.decl_state.sym;
-  rout_sym->decl_scope = decl_scope_level;
   new_rp = rout_sym->variant.routine.ptr;
   new_rp->is_inh_ctor_def_init = TRUE;
   if (suppress_inh_ctor_default_ctor(class_type)) {
@@ -24285,7 +24285,7 @@ TRUE.
     if (same_entities(udp->qualifier.class_type, sym_parent_class(sym))) {
       if (udp->entity.kind == (a_byte_il_entry_kind)iek_base_class) {
         a_base_class_ptr bcp = (a_base_class_ptr)udp->entity.ptr;
-        scp = &(bcp->type->source_corresp);
+        scp = &bcp->type->source_corresp;
       } else {
         scp = source_corresp_for_il_entry(udp->entity.ptr,
                                           (an_il_entry_kind)udp->entity.kind);
@@ -30773,6 +30773,12 @@ wrap_up_class_definition.
       if (class_state->has_inheriting_constructors) {
         generate_inheriting_constructors(class_state);
       }  /* if */
+      if (inheriting_constructors_enabled) {
+        /* Create a constructor routine that handles the "as if by a defaulted
+           default constructor" initialization requirement for inheriting
+           constructors. */
+        cssp->inh_ctor_def_ctor = generate_inh_ctor_default_ctor(class_state);
+      }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cppcx_enabled) {
@@ -30884,12 +30890,6 @@ wrap_up_class_definition.
     wrapup_standard_layout_flag(class_type);
     if (!cssp->may_need_fixups) {
       wrap_up_class_definition(class_type);
-    }  /* if */
-    if (inheriting_constructors_enabled) {
-      /* Create a constructor routine that handles the "as if by a defaulted
-          default constructor" initialization requirement for inheriting
-          constructors. */
-      cssp->inh_ctor_def_ctor = generate_inh_ctor_default_ctor(class_state);
     }  /* if */
   }  /* if */
   error_position = saved_error_position;

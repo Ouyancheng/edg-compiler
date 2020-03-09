@@ -17136,7 +17136,12 @@ Generate code for a class member or nonmember using-declaration.
     set_output_position(&udp->position);
     /* Get the source correspondence entry for the entity. */
     entry_kind = (an_il_entry_kind)udp->entity.kind;
-    scp = source_corresp_for_il_entry(udp->entity.ptr, entry_kind);
+    if (udp->entity.kind == (a_byte_il_entry_kind)iek_base_class) {
+      a_base_class_ptr bcp = (a_base_class_ptr)udp->entity.ptr;
+      scp = &bcp->type->source_corresp;
+    } else {
+      scp = source_corresp_for_il_entry(udp->entity.ptr, entry_kind);
+    }  /* if */
     check_assertion(scp != NULL);
     if (udp->is_class_member) {
       /* A class member using-declaration. */

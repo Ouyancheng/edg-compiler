@@ -17091,7 +17091,7 @@ set_temp_init_dynamic_init_lifetime, among others).
 
   check_assertion(is_class_struct_union_type(class_type));
   /* Note how this routine interacts with fix_up_dynamic_init_dtors. */
-  if (!expr_stack->in_cctor_elision_initializer) {
+  if (expr_stack == NULL || !expr_stack->in_cctor_elision_initializer) {
     dtor = expr_select_destructor(class_type, object_class_type, position,
                                   /*honor_virtual=*/FALSE);
     record_dtor_in_dynamic_init(dtor, dip, expr_stack->potentially_evaluated);

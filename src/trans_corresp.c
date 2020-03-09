@@ -3477,8 +3477,11 @@ Return TRUE if the given using declarations refer to corresponding entities.
                          ud2->qualifier.class_type)) {
       /* If the qualifiers are not equivalent, there is no match. */
       result = FALSE;
-    } else if ((char*)ud1->qualifier.class_type == ud1->entity.ptr &&
-               (char*)ud2->qualifier.class_type == ud2->entity.ptr) {
+    } else if (ud1->entity.kind == (a_byte_il_entry_kind)iek_base_class &&
+               ((a_base_class_ptr)ud1->entity.ptr)->type ==
+                                                   ud1->qualifier.class_type &&
+               ((a_base_class_ptr)ud2->entity.ptr)->type ==
+                                                   ud2->qualifier.class_type) {
       /* Using-declarations that represent inherited constructors. */
       result = TRUE;
     } else if (ud1->entity.kind == (a_byte_il_entry_kind)iek_type) {

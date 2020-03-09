@@ -1026,7 +1026,7 @@ Dump information on a using-decl entry, for debug purposes.
   if (!udp->is_using_directive) {
     /* A using-declaration. */
     if (udp->entity.kind == (a_byte_il_entry_kind)iek_base_class) {
-      sc = &(((a_base_class_ptr)udp->entity.ptr)->type->source_corresp);
+      sc = &((a_base_class_ptr)udp->entity.ptr)->type->source_corresp;
     } else {
       sc = source_corresp_for_il_entry(udp->entity.ptr,
                                        (an_il_entry_kind)udp->entity.kind);

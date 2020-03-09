@@ -1044,8 +1044,16 @@ hidden name checking on its own members, too.
             for (udp = sp->using_declarations;
                  udp != NULL && !found_using_decl;
                  udp = udp->next) {
-              a_source_correspondence *sdp =
-                                    (a_source_correspondence *)udp->entity.ptr;
+              a_source_correspondence *sdp;
+              if (udp->entity.kind == (a_byte_il_entry_kind)iek_base_class) {
+                a_base_class_ptr bcp = (a_base_class_ptr)udp->entity.ptr;
+                sdp = &bcp->type->source_corresp;
+              } else {
+                sdp = source_corresp_for_il_entry(udp->entity.ptr,
+                                                  (an_il_entry_kind)udp->
+                                                                  entity.kind);
+              }  /* if */
+              check_assertion(sdp != NULL);
               if (((a_symbol_ptr)sdp->assoc_info)->header == sym_ptr->header &&
                   udp->qualifier.class_type == class_type) {
                 found_using_decl = TRUE;
