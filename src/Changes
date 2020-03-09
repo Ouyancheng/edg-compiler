@@ -42,9 +42,10 @@ class body.
 C++-generating back end: types defined in return statements
 
 The change for EDGcpfe/21366 (in version 6.0) caused a regression in which
-a type defined in a return statement was put out as a reference to an
-undeclared temporary name (of the form __T12345678).  This is now fixed.
-For example, with --gnu_version=90100 --c++14:
+the C++-generating back end put out a type defined in a return statement as
+a reference to an undeclared temporary name (of the form __T12345678)
+instead of the definition of the type.  This is now fixed.  For example,
+with --gnu_version=90100 --c++14:
 
   struct A {
     static inline const A f() {
