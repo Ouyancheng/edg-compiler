@@ -2280,6 +2280,7 @@ copyable class type with an eligible (non-deleted) default constructor.
       }  /* if */
     }  /* if */
   } else {
+    result = FALSE;  /* To silence spurious compiler warnings. */
     unexpected_condition();
   }  /* if */
   return result;
