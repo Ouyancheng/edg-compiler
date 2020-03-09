@@ -10575,7 +10575,7 @@ this one is such a continuation.
   a_src_seq_secondary_decl_ptr sec_decl;
   a_type_kind                  kind;
   a_boolean                    is_definition = FALSE, friend_decl;
-  a_boolean                    is_specialization;
+  a_boolean                    is_specialization = FALSE;
   a_boolean                    suppress_closing_punct = FALSE;
   a_boolean                    need_to_unset_typedefs = FALSE;
   a_template_arg_ptr           template_arg_list = NULL;
