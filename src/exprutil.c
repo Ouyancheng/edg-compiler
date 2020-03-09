@@ -19240,6 +19240,10 @@ in the source (and *operator_position gives its position).
             }  /* if */
           }  /* if */
           release_local_constant(&conaddr);
+        } else if (is_constant_operand(operand)) {
+          did_not_fold = FALSE;
+          template_constant = constant_is(&operand->variant.constant,
+                                          ck_template_param);
         }  /* if */
       }  /* if */
       if (did_not_fold && !template_constant &&

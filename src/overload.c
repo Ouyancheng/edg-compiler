@@ -22688,7 +22688,8 @@ appropriate.
 {
   a_boolean  invalid = FALSE;
 
-  if (is_expression_operand(source_operand)) {
+  if (is_expression_operand(source_operand) &&
+      !operand_is_instantiation_dependent(source_operand)) {
     an_expr_node_ptr  expr;
     if (generalized_nontype_arguments &&
         expr_interpret_expression_operand(source_operand,
@@ -22701,8 +22702,7 @@ appropriate.
         source_operand->type = type_pointed_to(source_operand->type);
       }  /* if */
       invalid = !is_valid_constant_for_nontype_ref_arg(
-                                         &source_operand->variant.constant) &&
-                !operand_is_instantiation_dependent(source_operand);
+                                           &source_operand->variant.constant);
       goto done;
     }  /* if */
     expr = skip_parens(source_operand->variant.expression);
