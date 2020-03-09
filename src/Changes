@@ -1,11 +1,11 @@
 Version 6.1
 
 3/9/20   [EDGcpfe/19963]
-Warnings when building the front end on later versions of GNU headers
+Define _DEFAULT_SOURCE to avoid deprecated warnings for _BSD_SOURCE
 
-With some versions of GNU headers, g++ issues a warning that "_BSD_SOURCE and
-_SVID_SOURCE are deprecated...".  The use of _BSD_SOURCE in the front end
-has now been removed.
+In later versions of the GNU headers, _BSD_SOURCE is deprecated, causing
+warnings when compiling the front end.  _DEFAULT_SOURCE is now defined in
+those cases, eliminating the warning.
 
 
 3/8/20   [EDGcpfe/22434]
