@@ -28,8 +28,8 @@ definition when gcc_is_generated_code_target is TRUE.  For example, with
 Previously, the generated code for this example contained the explicit
 specialization:
 
-  template<> struct S<int>  {
-    enum class E: unsigned char;  // Not defined inside class
+  template<> struct S<int> {
+    enum class E : unsigned char;  // Not defined inside class
     E m;
   };
   enum class S<int>::E : unsigned char { zero, one };
