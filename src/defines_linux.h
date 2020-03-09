@@ -44,14 +44,6 @@ FALSE in this header file.
 #endif /* ifndef COMPILE_MULTIPLE_SOURCE_FILES */
 
 /*
-When compiling with __STDC__ non-zero, set _BSD_SOURCE to get the
-declarations needed for the mmap routines.
-*/
-#if __STDC__ != 0
-#define _BSD_SOURCE
-#endif /* __STDC__ != 0 */
-
-/*
 TARG_SUPPORTS_X86_64 should be set when targeting the x86-64 variant of the x86
 platform.
 */
