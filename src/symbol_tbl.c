@@ -1001,6 +1001,7 @@ do_variable:
         if (rp->is_inline) put_string("inline");
         if (rp->is_deleted) put_string("=delete");
         if (rp->is_inheriting_ctor) put_string("inheriting");
+        if (rp->is_inh_ctor_def_init) put_string("inh ctor def init");
         if (rp->definition_for_inlining_only) {
           put_string("def. for inlining only");
         } else if (rp->suppress_inline_body) {
