@@ -29758,6 +29758,8 @@ not inherited) property or event named X.
 
   sym = class_qualified_id_lookup(ploc, class_type,
                                   IDL_DIRECT_CLASS_MEMBERS_ONLY);
+  /* A symbol found by this lookup should not influence subsequent lookups. */
+  clear_specific_symbol(*ploc);
   if (sym != NULL) {
     a_property_or_event_descr_ptr  pdp = NULL;
     a_boolean                      true_conflict = FALSE;
@@ -29990,6 +29992,7 @@ that are not irrelevant due to actual overrides.
     a_routine_ptr     base_rp = qodp->base_member->variant.routine.ptr;
     a_routine_ptr     orp = base_rp;
     a_base_class_ptr  obcp = qodp->base_class;
+    a_boolean         any_errors = FALSE;
     find_final_overrider(&obcp, &orp);
     if (orp != base_rp) {
       /* The "quasi-overridden" function is really overridden.  No
@@ -30002,22 +30005,27 @@ that are not irrelevant due to actual overrides.
                        &qodp->diag_pos, qodp->base_member,
                        skip_typerefs(base_rp->type)
                                                ->variant.routine.return_type);
+      any_errors = TRUE;
     } else if (qodp->missing_virtual_specifier) {
       an_error_code  err_code = ec_virtual_required_for_base_override;
       if (is_cli_interface_type(qodp->base_class->type)) {
         err_code = ec_virtual_required_for_interface_implementation;
       }  /* if */
       pos_sy_error(err_code, &qodp->diag_pos, qodp->base_member); 
+      any_errors = TRUE;
     } else if (qodp->reduced_access) {
       pos_sy_warning(ec_overriding_reduces_accessibility_in_managed_type,
                      &qodp->diag_pos, qodp->base_member); 
+      any_errors = TRUE;
     } else if (qodp->nonpublic_interface_match) {
       pos_sy_warning(ec_nonpublic_implicit_interface_match, &qodp->diag_pos,
                      qodp->base_member); 
+      any_errors = TRUE;
     } else {
       unexpected_condition();
     }  /* if */
-    if (!class_type->variant.class_struct_union.is_generic_constraint) {
+    if (!any_errors &&
+        !class_type->variant.class_struct_union.is_generic_constraint) {
       /* Since an interface member was not overridden, an error should be
          issued indicating that the interface was not implemented.
          (Generic constraint types aren't required to implement all
