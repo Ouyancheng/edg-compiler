@@ -23435,6 +23435,15 @@ templates from that base template.
          explicitly declared in the derived class. */
       break;
     }  /* if */
+    if (drp->is_inheriting_ctor &&
+        (bcp->is_virtual || inh_ctor_inherits_virtually(brp)) &&
+        inh_ctor_inherits_virtually(drp)) {
+      if (get_inh_ctor_originator(brp) == get_inh_ctor_originator(drp)) {
+        /* Don't inherit inheriting constructors that both inherit the same
+           original routine from a virtual base class. */
+        break;
+      }  /* if */
+    }  /* if */
   }  /* for */
   if (dctor == NULL) {
     /* There is no user-declared constructor template with this signature yet:
@@ -23749,6 +23758,10 @@ initialization requirement.
   rout_sym = decl_info.decl_state.sym;
   new_rp = rout_sym->variant.routine.ptr;
   new_rp->is_inh_ctor_def_init = TRUE;
+  new_rp->is_defaulted = TRUE;
+  if (!cdsp->default_ctor_is_nontrivial) {
+    new_rp->is_trivial_default_constructor = TRUE;
+  }  /* if */
   if (suppress_inh_ctor_default_ctor(class_type)) {
     new_rp->is_deleted = TRUE;
     new_rp->defined = TRUE;

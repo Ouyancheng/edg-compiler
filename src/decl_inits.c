@@ -9828,7 +9828,7 @@ default-initialized.
                                        /*block_lifetime=*/TRUE);
   }  /* if */
   init->initializer = dip;
-}  /* inh_ctor_init_default_initialize_object */
+}  /* inh_ctor_init_default_initialize_base */
 
 
 static void inh_ctor_init_default_initialize_field(
