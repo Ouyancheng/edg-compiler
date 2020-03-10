@@ -1,5 +1,19 @@
 Version 6.1
 
+3/10/20  [EDGcpfe/22389]
+Microsoft compatibility: nested empty macro expansions
+
+When the expansion of a macro invokes another macro that has an empty
+expansion and that macro invocation is followed in the expansion by white
+space, the front end could sometimes eliminate the white space following
+the empty macro expansion, resulting in incorrect token concatenation.
+This is now fixed.  For example, with --microsoft -E:
+
+  #define M1() 
+  #define M2 M1() y
+  -M2  // Previously expanded to "-y", now to "- y"
+
+
 3/10/20  [EDGcpfe/20641]
 Spurious error on lambda capturing "this" for C++/CX ref class
 

@@ -8226,7 +8226,21 @@ source text (end of token, start of expansion, end of expansion).
 
   /* Forget that we know where the current token's characters are. */
   start_of_curr_token = NULL;
-  kind_skipped = 0;  /* No white space skipped so far. */
+  if (preserve_white_space_kind) {
+    /* Do not reset the value of kind_of_white_space_skipped.  This is
+       needed by expand_top_level_pcc_macro for a case like
+         A() B()
+       where A and B are macros, "A()" expands to nothing, and B() has a
+       non-empty expansion.  In that case, get_token will return the first
+       token of B(), but skip_white_space will be called during its
+       expansion.  We must not lose track of the fact that there was a
+       space between A() and B(), in order to prevent incorrectly
+       concatenating the first token of B() with whatever preceded A(). */
+    kind_skipped = kind_of_white_space_skipped;
+  } else {
+    /* No white space skipped so far. */
+    kind_skipped = 0;
+  }  /* if */
 white_space_loop:
   /* Examine the current character to see if it is white space.  Throw away
      spaces quickly, since they are always white space and there are lots of
@@ -23758,6 +23772,7 @@ done to determine whether a precompiled header may be used.
   line_start_source_line_modif = NULL;
   sequence_id_for_source_line_modifs = 0;
   last_source_line_modif_exited_while_skipping_white_space = NULL;
+  preserve_white_space_kind = FALSE;
   delete_source_from_loc = NULL;
   curr_token_pragmas = NULL;
   at_end_of_source_file = FALSE;

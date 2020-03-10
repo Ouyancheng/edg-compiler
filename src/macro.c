@@ -2906,15 +2906,15 @@ Skip white space and set a flag indicating whether or not any was
 skipped.  Used within macro invocations.  Under pcc compatibility mode,
 comment-only white space is ignored.
 */
-#define macro_skip_white_space(any_skipped) \
-{ skip_white_space(); \
-  any_skipped = FALSE; \
-  if (kind_of_white_space_skipped != 0) { \
+#define macro_skip_white_space(any_skipped)                    \
+{ skip_white_space();                                          \
+  any_skipped = FALSE;                                         \
+  if (kind_of_white_space_skipped != 0) {                      \
     if (kind_of_white_space_skipped != WHITE_SPACE_COMMENTS || \
-        !pcc_preprocessing_mode) { \
-      any_skipped = TRUE; \
-    }  /* if */ \
-  }  /* if */ \
+        !pcc_preprocessing_mode) {                             \
+      any_skipped = TRUE;                                      \
+    }  /* if */                                                \
+  }  /* if */                                                  \
 }  /* macro_skip_white_space */
 
 
@@ -3307,6 +3307,8 @@ is not allowed.
   curr_char_loc = main_slmp->inserted_text;
   delete_source_from_loc = NULL;
   expand_macros = TRUE;
+  preserve_white_space_kind = TRUE;
+  kind_of_white_space_skipped = 0;
   /* Turn on some special processing at the end of the macro insertion
      to decide whether we need to continue into the primary line. */
   main_slmp->being_rescanned_for_token_pasting = TRUE;
@@ -3355,6 +3357,18 @@ is not allowed.
        we ran off the modification (an error would have been issued already
        in that case). */
     if (get_token() == tok_end_of_source || curr_token == tok_newline) break;
+    if (!any_white_space_skipped && kind_of_white_space_skipped != 0 &&
+        !(pcc_preprocessing_mode &&
+          kind_of_white_space_skipped == WHITE_SPACE_COMMENTS)) {
+      /* This situation can arise when the rescanned text is something like
+           M() x
+         where M() is a macro invocation with an empty expansion.  In that
+         case, curr_token will be the identifier "x" and we will have
+         skipped the blank preceding it, so we need to make sure to
+         preserve it. */
+      any_white_space_skipped = TRUE;
+    }  /* if */
+    kind_of_white_space_skipped = 0;
     if (inert_macro_escape != NULL) {
       /* We flagged the preceding identifier as an inert macro. */
       if (!any_white_space_skipped &&
@@ -3561,6 +3575,8 @@ end_loop:
   /* Restore the flags that were changed before the scan. */
   main_slmp->being_rescanned_for_token_pasting = FALSE;
   fetch_pp_tokens = save_fetch_pp_tokens;
+  preserve_white_space_kind = FALSE;
+  kind_of_white_space_skipped = 0;
   pop_lexical_state_stack();
   curr_char_loc = save_curr_char_loc;
   treat_newline_as_token = save_treat_newline_as_token;

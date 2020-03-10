@@ -1603,6 +1603,19 @@ EXTERN int	kind_of_white_space_skipped;
 #define WHITE_SPACE_OTHER    0x02
 
 EXTERN a_boolean
+		preserve_white_space_kind;
+			/* When TRUE, skip_white_space will not reset
+			   kind_of_white_space_skipped to 0, and the caller
+			   of skip_white_space will be responsible for
+			   resetting it to 0.  This allows
+			   expand_top_level_pcc_macro to be aware of white
+			   space skipped during a single call to get_token,
+			   which can occur when the next preprocessing
+			   token is a macro invocation whose expansion is
+			   empty, followed by a non-empty macro
+			   expansion. */
+
+EXTERN a_boolean
 		comma_is_from_argument;
 			/* Set to TRUE when an LE_COMMA_FROM_ARGUMENT is
 			   seen by skip_white_space.  It is the responsibility
