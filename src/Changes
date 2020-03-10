@@ -1,5 +1,21 @@
 Version 6.1
 
+3/10/20  [EDGcpfe/20641]
+Spurious error on lambda capturing "this" for C++/CX ref class
+
+The front end previously emitted a spurious error when a lambda expression
+attempts to capture "this" for a ref class.  For example (C++/CX mode):
+
+  ref class R {
+    property int i;
+    void f() {
+      auto a = [=](){ return i; };  // Previously an error.  Now okay.
+    }
+  };
+
+That problem is now fixed.
+
+
 3/9/20   [EDGcpfe/19963]
 Define _DEFAULT_SOURCE to avoid deprecated warnings for _BSD_SOURCE
 

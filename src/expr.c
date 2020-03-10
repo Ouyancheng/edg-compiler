@@ -36610,7 +36610,7 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
         check_assertion(!array_case);
         if (var != NULL && var->is_this_parameter &&
             lcp->capture_by_reference && is_an_lvalue(&operand) &&
-            !is_pointer_type(operand.type)) {
+            !is_pointer_or_handle_type(operand.type)) {
           /* Capturing "this", but operand really represents "*this" (possible
              if an enclosing lambda captured "*this").  Capture the address of
              *this. */
