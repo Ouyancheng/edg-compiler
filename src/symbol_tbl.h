@@ -6641,7 +6641,9 @@ extern a_boolean f_has_nontrivial_ctor(a_class_symbol_supplement_ptr  cssp);
    (!(cssp)->destructor->variant.routine.ptr->is_trivial_destructor ||  \
     (cssp)->destructor->variant.routine.ptr->is_deleted))
 
-extern a_routine_ptr get_inh_ctor_originator(a_routine_ptr ctor);
+extern a_routine_ptr get_inh_ctor_originator(
+                                         a_routine_ptr ctor,
+                                         a_boolean     ignore_virtual = FALSE);
 
 #define inh_ctor_inherited_ctor(ctor)                                         \
   (ctor->type->variant.routine.extra_info->inherited_routine)

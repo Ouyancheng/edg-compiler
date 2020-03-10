@@ -7161,13 +7161,19 @@ Return TRUE if any of the constructors associated with cssp is nontrivial.
 }  /* f_has_nontrivial_ctor */
 
 
-a_routine_ptr get_inh_ctor_originator(a_routine_ptr ctor)
+a_routine_ptr get_inh_ctor_originator(a_routine_ptr ctor,
+                                      a_boolean     ignore_virtual)
 /*
 ctor is a generated inheriting constructor.  Find and return the original class
-type from where the constructor came.
+type from where the constructor came.  If ignore_virtual is FALSE and ctor
+inherits virtually, return the virtual base constructor it inherited, whether
+or not that constructor is also inheriting (this is typically what's desired
+due to the way virtual bases are initialized).  Otherwise return the true
+originator of the inheriting constructor.
 */
 {
-  a_boolean inheriting_virtually = inh_ctor_inherits_virtually(ctor);
+  a_boolean inheriting_virtually = !ignore_virtual &&
+                                   inh_ctor_inherits_virtually(ctor);
 
   while (ctor->is_inheriting_ctor) {
     /* If the inheriting constructor is inheriting the constructor from a
@@ -12282,26 +12288,22 @@ functions befriending_list_test and class_scope_test.
         break;
       }  /* if */
       if (scope_routine != NULL && scope_routine->is_inheriting_ctor) {
-        a_routine_ptr inh_ctor = scope_routine;
-        /* Look through all the inherited constructors to see if any of them
-           have a befriending class that passes the test. */
-        do {
-          a_class_list_entry_ptr inh_ctor_friends = NULL;
-          inh_ctor = inh_ctor_inherited_ctor(inh_ctor);
-          if (inh_ctor->is_template_function) {
-            a_template_symbol_supplement_ptr tssp;
-            tssp = template_supplement_for_symbol(symbol_for(inh_ctor));
-            inh_ctor_friends = tssp->befriending_classes;
-          }  /* if */
-          if (inh_ctor_friends == NULL) {
-            inh_ctor_friends = inh_ctor->befriending_classes;
-          }  /* if */
-          if (befriending_list_test(inh_ctor_friends, class_type)) {
-            have_member_privilege = TRUE;
-            break;
-          }
-        } while (inh_ctor->is_inheriting_ctor);
-        if (have_member_privilege) {
+        /* See if the inherited constructor has a befriending class that passes
+           the test. */
+        a_routine_ptr inh_ctor =
+                             get_inh_ctor_originator(scope_routine,
+                                                     /*ignore_virtual=*/FALSE);
+        a_class_list_entry_ptr inh_ctor_friends = NULL;
+        if (inh_ctor->is_template_function) {
+          a_template_symbol_supplement_ptr tssp;
+          tssp = template_supplement_for_symbol(symbol_for(inh_ctor));
+          inh_ctor_friends = tssp->befriending_classes;
+        }  /* if */
+        if (inh_ctor_friends == NULL) {
+          inh_ctor_friends = inh_ctor->befriending_classes;
+        }  /* if */
+        if (befriending_list_test(inh_ctor_friends, class_type)) {
+          have_member_privilege = TRUE;
           break;
         }  /* if */
       }  /* if */
@@ -12347,20 +12349,18 @@ functions befriending_list_test and class_scope_test.
           break;
         }  /* if */
         if (scope_routine != NULL && scope_routine->is_inheriting_ctor) {
-          a_routine_ptr inh_ctor = scope_routine;
+          a_routine_ptr inh_ctor =
+                              get_inh_ctor_originator(scope_routine,
+                                                      /*ignore_virtual=*/TRUE);
           a_type_ptr    saved_scope_class = ssep->assoc_type;
-          /* Look through all the inherited constructors to see if any of them
-             pass the class scope test.  Note that this test assumes that the
-             scope stack is encoding the appropriate type - we'll need to save
-             it off so that we can restore it later. */
-          do {
-            inh_ctor = inh_ctor_inherited_ctor(inh_ctor);
-            ssep->assoc_type = parent_class_of(inh_ctor);
-            if (class_scope_test(class_type, ssep)) {
-              have_member_privilege = TRUE;
-              break;
-            }
-          } while (inh_ctor->is_inheriting_ctor);
+          /* See if the inherited constructor passes the class scope test.
+             Note that this test assumes that the scope stack is encoding the
+             appropriate type - we'll need to save it off so that we can
+             restore it later. */
+          ssep->assoc_type = parent_class_of(inh_ctor);
+          if (class_scope_test(class_type, ssep)) {
+            have_member_privilege = TRUE;
+          }  /* if */
           ssep->assoc_type = saved_scope_class;
           if (have_member_privilege) {
             break;
@@ -13154,20 +13154,19 @@ inheriting constructor where there is access to the inherited constructor.
   if (sym_ctor != NULL &&
       (scope_is(ssep, sck_function) || scope_is(ssep, sck_function_access)) &&
       ssep->assoc_routine->is_inheriting_ctor) {
-    a_routine_ptr ctor_orig = get_inh_ctor_originator(ssep->assoc_routine);
-    a_routine_ptr sym_orig = get_inh_ctor_originator(sym_ctor);
+    a_routine_ptr ctor_orig = get_inh_ctor_originator(ssep->assoc_routine,
+                                                      /*ignore_virtual=*/TRUE);
+    a_routine_ptr sym_orig = get_inh_ctor_originator(sym_ctor,
+                                                     /*ignore_virtual=*/TRUE);
     if (ctor_orig == sym_orig) {
       have_access = TRUE;
     }  /* if */
   } else if (sym_ctor != NULL && sym_ctor->is_inheriting_ctor) {
-    do {
-      sym_ctor = inh_ctor_inherited_ctor(sym_ctor);
-      symbol = symbol_for(sym_ctor);
-      if (have_access_across_derivations(symbol, symbol)) {
-        have_access = TRUE;
-        break;
-      }  /* if */
-    } while (sym_ctor->is_inheriting_ctor);
+    sym_ctor = get_inh_ctor_originator(sym_ctor, /*ignore_virtual=*/TRUE);
+    symbol = symbol_for(sym_ctor);
+    if (have_access_across_derivations(symbol, symbol)) {
+      have_access = TRUE;
+    }  /* if */
   }  /* if */
   return have_access;
 }  /* have_access_to_inherited_ctor */

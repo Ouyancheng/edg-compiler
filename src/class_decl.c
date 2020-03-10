@@ -23656,7 +23656,8 @@ constructor.
            declared in the derived class. */
         break;
       }  /* if */
-      if (drp->is_inheriting_ctor && inh_ctor_inherits_virtually(brp) &&
+      if (drp->is_inheriting_ctor &&
+          (bcp->is_virtual || inh_ctor_inherits_virtually(brp)) &&
           inh_ctor_inherits_virtually(drp)) {
         if (get_inh_ctor_originator(brp) == get_inh_ctor_originator(drp)) {
           /* Don't inherit inheriting constructors that both inherit the same
