@@ -444,9 +444,9 @@ abort should be displayed.
 #endif /* ifndef DISPLAY_ABORT_DESCRIPTION */
 
 /*
-Flag that is TRUE if the stdout/stderr should be flushed before calling
-abort.  In some cases, abort will already flush these streams, but in other
-cases any data written to the streams will not be flushed.
+Flag that is TRUE if the stdout/stderr IO streams should be flushed before
+calling abort.  In some cases, abort will already flush these streams, but in
+other cases any data written to the streams will not be flushed.
 */
 #ifndef FLUSH_ON_ABORT
 #define FLUSH_ON_ABORT TRUE
