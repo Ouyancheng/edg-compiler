@@ -134,6 +134,9 @@ static a_size_to_ptr_map
 			   of a given size.  This is NULL until it is first
 			   used. */
 
+#if DEBUG
+template void a_size_to_ptr_map::db_ptrs() const;
+#endif /* DEBUG */
 
 /*
 Size of a_mem_block_header after adjustment so that the storage following
@@ -1343,6 +1346,12 @@ needed (e.g., it has been written out to the IL file).
                      (unsigned long)allocated_in_region[region_number]);
   }  /* if */
 #endif /* DEBUG */
+  if (region_number == FRONT_END_REGION_NUMBER && freed_fe_map != NULL) {
+    /* We're about to free the front end memory region.  Also delete the
+       map of reusable entries in that region. */
+    delete_general(freed_fe_map);
+    freed_fe_map = NULL;
+  }  /* if */
   /* Traverse the list of blocks and free each one. */
   for (hdr = mem_region_table[region_number]; hdr != NULL;) {
     next_hdr = hdr->next;
@@ -1439,6 +1448,12 @@ end memory region.
        First we unlink blocks that don't represent malloc allocations because
        they might be part of a block for which the malloc was done in a
        different memory region. */
+    if (freed_fe_map != NULL) {
+      /* We're about to free the front end memory region.  Also delete the
+         map of reusable entries in that region. */
+      delete_general(freed_fe_map);
+      freed_fe_map = NULL;
+    }  /* if */
     for (region_number = highest_used_region_number;
          region_number != NULL_region_number;
          region_number--) {
@@ -1939,7 +1954,7 @@ is recorded for possible reuse later.
   freed_blocks = freed_fe_map->get(size);
   if (freed_blocks == NULL) {
     /* Create a new dynamic array and add it to the map. */
-    freed_blocks = new_general<a_dyn_array_of_void_ptrs>();
+    freed_blocks = new_general<a_dyn_array_of_void_ptrs>(1);
     freed_fe_map->map(size, freed_blocks);
   }  /* if */
   /* Add the new entry to the array. */
