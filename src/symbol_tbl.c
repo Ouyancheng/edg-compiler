@@ -13212,7 +13212,7 @@ will be performed (after overload resolution).
        of a class template as accessible in all cases. */
   } else if (have_access_across_derivations(fund_sym, symbol)) {
     /* have_access = TRUE */
-  } else if (have_access_to_inherited_ctor(symbol)) {
+  } else if (have_access_to_inherited_ctor(fund_sym)) {
     /* An inheriting constructor is allowed to access its inherited
        constructor, and inheriting constructors inherit friends for the
        purposes of accessing the inheriting constructor. */
