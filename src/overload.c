@@ -8248,6 +8248,41 @@ template is more specialized than the other.
 }  /* compare_function_templates_for_ovl_res */
 
 
+static a_boolean compare_inheriting_ctors_for_ovl_res(
+                                                 a_candidate_function_ptr cfp1,
+                                                 a_candidate_function_ptr cfp2)
+/*
+Helper function for compare_candidate_functions to check if the inheriting
+constructor tiebreaker applies.
+*/
+{
+  int                      result = 0;
+  an_arg_match_summary_ptr match1 = NULL, match2 = NULL;
+
+  if (!clang_version_is(any_version)) {
+    /* Clang doesn't apply the type check and simply prefers non-inheriting
+       constructors to inheriting ones. */
+    match1 = cfp1->arg_matches;
+    match2 = cfp2->arg_matches;
+    for (; match1 != NULL && match2 != NULL;
+         match1 = match1->next, match2 = match2->next) {
+      if (!identical_types(match1->param_type, match2->param_type)) {
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (match1 != NULL || match2 != NULL) {
+    /* At least one of the parameters is a different type - we can't use the
+       inheriting constructor tiebreaker. */
+  } else if (cfp1->is_inheriting_ctor) {
+    result = -1;
+  } else {
+    result = 1;
+  }  /* if */
+  return result;
+}  /* compare_inheriting_ctors_for_ovl_res */
+
+
 static a_boolean is_copy_deduction_candidate(a_routine_ptr  rp)
 /*
 Return TRUE if the given routine is a generated deduction guide known as "the
@@ -8435,14 +8470,10 @@ other.  Return
              (cmp = compare_function_templates_for_ovl_res(cfp1, cfp2)) != 0) {
     /* cfp1 and cfp2 are function templates and one is more specialized than
        the other. */
-  } else if (cfp1->is_inheriting_ctor != cfp2->is_inheriting_ctor) {
+  } else if (cfp1->is_inheriting_ctor != cfp2->is_inheriting_ctor &&
+             (cmp = compare_inheriting_ctors_for_ovl_res(cfp1, cfp2)) != 0) {
     /* One of the two functions is an inheriting constructor.  The one that
        isn't an inheriting constructor is better. */
-    if (cfp1->is_inheriting_ctor) {
-      cmp = -1;
-    } else {
-      cmp = 1;
-    }  /* if */
   } else if (cfp1->supplemental_comparison_candidate !=
                                     cfp2->supplemental_comparison_candidate) {
     /* For comparison operators, rewrites in terms of a different operator are
