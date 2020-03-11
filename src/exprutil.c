@@ -23601,7 +23601,7 @@ Concepts, constraints, and subsumption
 ======================================
 C++20 introduces a notion of "constrained templates", including a "concept"
 abstraction of constraints (predicated on template arguments) and a mechanism
-to compare constraint called "subsumption".
+to compare constraints called "subsumption".
 
 
 Constraints
@@ -23837,7 +23837,7 @@ Output a description of the given constraint chart.
 #endif /* DEBUG */
 
 using a_constraint_charts_map = Ptr_map<a_symbol_ptr, a_constraint_chart*>;
-			/* The type a map from constrained entity symbols to
+			/* The type a of map from constrained entity symbols to
 			   their associated constraint chart (if one has been
 			   constructed). */
 
@@ -23866,7 +23866,7 @@ static a_boolean process_disjunctive_clause(a_constraint_chart  *chart,
 /*
 Record the ANDed atomic constraints in the current disjunctive clause (E1[k]
 in the outline above) in expr_map, and update the flags for the next clause.
-Return TRUE if the next clause is the one will all flags cleared (which
+Return TRUE if the next clause is the one with all flags cleared (which
 indicates that this function processed the last disjunctive clause).
 */
 {
@@ -23880,8 +23880,8 @@ indicates that this function processed the last disjunctive clause).
     switch (constraint->kind) {
       case CK_ATOMIC:
         if (k >= next_active && !constraint->no_link()) {
-          /* Add the associated node the expression map.  This relies on the
-             fact that any node at position 0 would be one that appears
+          /* Add the associated node to the expression map.  This relies on
+             the fact that any node at position 0 would be one that appears
              directly in a requires clause (as opposed to through a concept)
              and therefore cannot be repeated (and thus need not be recorded).
              I.e., map_or_replace only returns 0 if the map does not already
@@ -23906,7 +23906,7 @@ indicates that this function processed the last disjunctive clause).
           next_active = constraint->link;
           if (flipping) {
             /* Flip the "one" to a "zero" (and keep flipping until we run into
-               "zero" that can be flipped to a "one". */
+               "zero" that can be flipped to a "one"). */
             constraint->flag = FALSE;
             ++k;
           } else {
@@ -23978,7 +23978,7 @@ conjunctive clause, and if the last clause was processed return TRUE.
           next_active = constraint->link;
           if (flipping) {
             /* Flip the "one" to a "zero" (and keep flipping until we run into
-               "zero" that can be flipped to a "one". */
+               "zero" that can be flipped to a "one"). */
             constraint->flag = FALSE;
             ++k;
           } else {
@@ -23999,7 +23999,7 @@ conjunctive clause, and if the last clause was processed return TRUE.
     }  /* switch */
   }  /* while */
   /* If we're still flipping flags at this stage, we've turned "111..." into
-     "000..." and thus the last disjunctive clause was produced. */
+     "000..." and thus the last conjunctive clause was produced. */
   return flipping;
 }  /* process_conjunctive_clause */
 
