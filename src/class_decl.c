@@ -23639,6 +23639,11 @@ constructor.
       if (brp->is_explicit_constructor) {
         new_rp->is_explicit_constructor = TRUE;
       }  /* if */
+      /* This may be a member function of a template class - copy the needed
+         bits to ensure we can do things like instantiate default arguments. */
+      new_rp->assoc_template = brp->assoc_template;
+      decl_info.decl_state.sym->variant.routine.instance_ptr =
+                                           bctor->variant.routine.instance_ptr;
       if (exceptions_enabled) {
         form_exception_specification_for_generated_function(new_rp, bctor);
       }  /* if */
