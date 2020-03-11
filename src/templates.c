@@ -39118,8 +39118,8 @@ pointed to by state.
 
 
 void complete_generated_member_template(a_tmpl_decl_state_ptr  decl_state,
-                                       a_func_info_block      *func_info,
-                                       a_symbol_ptr           sym)
+                                        a_func_info_block      *func_info,
+                                        a_symbol_ptr           sym)
 /*
 Complete the data structures representing a generated member template
 (including the associated IL a_template entry).  sym and func_info represent
@@ -39136,7 +39136,8 @@ the function template, and decl_state tracks its declaration.
      generated member templates, except for the case of a generic lambda
      call operator (which has an associated declarator in the source code). */
   saved_curr_default_args = curr_default_args;
-  if (tssp->variant.function.func_info.lambda == NULL) {
+  if (!decl_state->decl_parse.is_inheriting_ctor &&
+      tssp->variant.function.func_info.lambda == NULL) {
     curr_default_args = NULL;
   }  /* if */
   complete_function_template_decl(decl_state, sym, func_info, &tssp,

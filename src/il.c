@@ -13422,7 +13422,10 @@ more than the given number of parameter entries.
           /* This default argument hasn't been evaluated yet.  The fields
              needed to evaluate it later (has_unevaluated_template_default
              and orig_param_type_for_unevaluated_default_arg_expr) were copied
-             above. */
+             above.  In some cases (e.g., prototype instantiations), there may
+             still be a default arg expression pointer - NULL it out since we
+             aren't copying it here. */
+          new_ptp->default_arg_expr = NULL;
         } else if (ptp->default_arg_expr != NULL) {
           /* Expressions may not be shared -- that is, they may not be pointed
              to from more than one place.  Therefore a copy must be made of the

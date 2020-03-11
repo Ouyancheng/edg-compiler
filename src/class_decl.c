@@ -23452,7 +23452,11 @@ templates from that base template.
     a_member_decl_info  decl_info;
     a_func_info_block   func_info;
     a_symbol_locator    loc;
+    a_routine_ptr       new_rp;
     a_tmpl_decl_state   templ_decl_state;
+    a_def_arg_expr_fixup_ptr
+                        daefp, saved_curr_default_args = curr_default_args;
+    a_param_type_ptr    ptp;
     a_token_kind        final_token = tok_semicolon;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Don't issue source sequence entries for generated entities. */
@@ -23484,6 +23488,7 @@ templates from that base template.
     change_class_locator_into_constructor_locator(&loc, &udp->position,
                                                   /*is_static_ctor=*/FALSE);
     init_tmpl_decl_state_for_generated_member_template(&templ_decl_state);
+    templ_decl_state.decl_parse.is_inheriting_ctor = TRUE;
     templ_decl_state.final_token_ptr = &final_token;
     templ_decl_state.is_variadic = btssp->is_variadic;
     templ_decl_state.has_variadic_template_params =
@@ -23509,23 +23514,31 @@ templates from that base template.
     decl_member_function_template(&loc, new_tpl,
                                   templ_decl_state.il_template_entry,
                                   &func_info, cdsp, &decl_info);
-    if (symbol_is(decl_info.decl_state.sym, sk_function_template)) {
-      a_routine_ptr  new_rp;
-      new_tssp = decl_info.decl_state.sym->variant.template_info;
-      set_il_template_entry(&templ_decl_state, decl_info.decl_state.sym,
-                            new_tssp);
-      new_rp = new_tssp->variant.function.routine;
-      new_rp->generating_using_decl = udp;
-      new_rp->is_inheriting_ctor = TRUE;
-      new_rp->compiler_generated = TRUE;
-      if (brp->is_explicit_constructor) {
-        new_rp->is_explicit_constructor = TRUE;
-      }  /* if */
-      new_tssp->variant.function.decl_cache.decl_info =
-                                                    templ_decl_state.decl_info;
-      complete_generated_member_template(&templ_decl_state, &func_info,
-                                         decl_info.decl_state.sym);
+    check_assertion(symbol_is(decl_info.decl_state.sym, sk_function_template));
+    new_tssp = decl_info.decl_state.sym->variant.template_info;
+    set_il_template_entry(&templ_decl_state, decl_info.decl_state.sym,
+                          new_tssp);
+    new_rp = new_tssp->variant.function.routine;
+    new_rp->generating_using_decl = udp;
+    new_rp->is_inheriting_ctor = TRUE;
+    new_rp->compiler_generated = TRUE;
+    if (brp->is_explicit_constructor) {
+      new_rp->is_explicit_constructor = TRUE;
     }  /* if */
+    new_tssp->variant.function.decl_cache.decl_info=templ_decl_state.decl_info;
+    curr_default_args = copy_def_arg_expr_fixup_list(
+                                    btssp->variant.function.def_arg_expr_list);
+    daefp = curr_default_args;
+    ptp = new_rp->type->variant.routine.extra_info->param_type_list;
+    for (; ptp != NULL; ptp = ptp->next) {
+      if (ptp->has_default_arg) {
+        daefp->param_type = ptp;
+        daefp = daefp->next;
+      }  /* if */
+    }  /* for */
+    check_assertion(daefp == NULL && ptp == NULL);
+    complete_generated_member_template(&templ_decl_state, &func_info,
+                                       decl_info.decl_state.sym);
     pop_scope();
     done_with_func_info(func_info);
     update_template_param_symbols_for_param_list(btpl);
@@ -23536,6 +23549,7 @@ templates from that base template.
     scope_stack_top().source_sequence_entries_disallowed
                                     = saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    curr_default_args = saved_curr_default_args;
     templ_decl_state.final_token_ptr = NULL;
   }  /* if */
   cdsp->access = saved_access;
