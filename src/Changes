@@ -17,7 +17,7 @@ C++/CLI: Internal error checking for missing or incorrect overridden functions
 An internal error could occur in C++/CLI mode when checking for missing or
 incorrect overridden functions.  For example, an internal error could occur
 (in class_qualified_id_lookup) for the test case below.  In addition, an
-internal error could occur (in check_quasi_overrides) if an missing or
+internal error could occur (in check_quasi_overrides) if a missing or
 incorrect override resulted in a warning rather than an error.  These are
 now fixed.
 
