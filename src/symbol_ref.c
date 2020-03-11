@@ -1046,8 +1046,8 @@ hidden name checking on its own members, too.
                  udp = udp->next) {
               a_source_correspondence *sdp;
               if (udp->entity.kind == (a_byte_il_entry_kind)iek_base_class) {
-                a_base_class_ptr bcp = (a_base_class_ptr)udp->entity.ptr;
-                sdp = &bcp->type->source_corresp;
+                a_base_class_ptr udp_bcp = (a_base_class_ptr)udp->entity.ptr;
+                sdp = &udp_bcp->type->source_corresp;
               } else {
                 sdp = source_corresp_for_il_entry(udp->entity.ptr,
                                                   (an_il_entry_kind)udp->
