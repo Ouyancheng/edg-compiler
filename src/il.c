@@ -756,7 +756,8 @@ Dump a member function (a routine entry), for debug purposes.
   fputs("\" (", f_debug);
   db_name_linkage((a_name_linkage_kind)rp->source_corresp.name_linkage);
   fprintf(f_debug, " linkage)%s%s%s%s%s, sc_%s,\n    type = ",
-                   (rp->is_constexpr) ? ", constexpr" : "",
+                   (rp->is_consteval) ? ", consteval" :
+                                       (rp->is_constexpr) ? ", constexpr" : "",
                    (rp->is_inline) ? ", inline" : "",
                    (rp->is_deleted) ? ", =delete" : "",
                    (rp->is_inheriting_ctor) ? ", inheriting" : "",

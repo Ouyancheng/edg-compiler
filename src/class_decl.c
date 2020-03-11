@@ -15102,10 +15102,10 @@ implicitly declared member functions.
     class_state->any_defaulted_special_members = TRUE;
   }  /* if */
   if ((decl_state->dso_flags & (DSO_CONSTEXPR | DSO_CONSTEVAL)) != 0) {
-    if (decl_state->dso_flags & DSO_CONSTEXPR) {
-      rtn->is_declared_constexpr = TRUE;
-    } else {
+    if (decl_state->dso_flags & DSO_CONSTEVAL) {
       rtn->is_consteval = TRUE;
+    } else {
+      rtn->is_declared_constexpr = TRUE;
     }  /* if */
     rtn->is_constexpr = TRUE;
     if (!class_type->variant.class_struct_union.is_nonreal_class) {
@@ -16268,10 +16268,10 @@ decl_member_function, which handles in-class member function declarations.)
   func_info->keep_param_id_list = TRUE;
   cssp = symbol_supplement_for_class(class_type);
   if ((dps->dso_flags & (DSO_CONSTEXPR | DSO_CONSTEVAL)) != 0) {
-    if (dps->dso_flags & DSO_CONSTEXPR) {
-      rtn->is_declared_constexpr = TRUE;
-    } else {
+    if (dps->dso_flags & DSO_CONSTEVAL) {
       rtn->is_consteval = TRUE;
+    } else {
+      rtn->is_declared_constexpr = TRUE;
     }  /* if */
     rtn->is_constexpr = TRUE;
     if (!is_static_member) {

@@ -30706,10 +30706,10 @@ that follows.
              depending on the presence of the "constexpr" keyword (it is
              independent of that of the template). */
           if ((dps->dso_flags & (DSO_CONSTEXPR | DSO_CONSTEVAL)) != 0) {
-            if (dps->dso_flags & DSO_CONSTEXPR) {
-              rp->is_declared_constexpr = TRUE;
-            } else {
+            if (dps->dso_flags & DSO_CONSTEVAL) {
               rp->is_consteval = TRUE;
+            } else {
+              rp->is_declared_constexpr = TRUE;
             }  /* if */
             rp->is_constexpr = TRUE;
             /* constexpr implies inline. */

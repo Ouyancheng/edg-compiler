@@ -10025,10 +10025,10 @@ skip_overloading:;
   }  /* if */
   if (!redeclaration &&
       (dps->dso_flags & (DSO_CONSTEXPR | DSO_CONSTEVAL)) != 0) {
-    if (dps->dso_flags & DSO_CONSTEXPR) {
-      routine_ptr->is_declared_constexpr = TRUE;
-    } else {
+    if (dps->dso_flags & DSO_CONSTEVAL) {
       routine_ptr->is_consteval = TRUE;
+    } else {
+      routine_ptr->is_declared_constexpr = TRUE;
     }  /* if */
     routine_ptr->is_constexpr = TRUE;
     /* constexpr implies inline. */
@@ -10803,10 +10803,10 @@ definition of a member function of a class template.
     rout_ptr->has_deducible_return_type = dps->has_deducible_return_type;
     if (func_info->is_inline) set_inline_flag(rout_ptr, TRUE);
     if (dps->dso_flags & (DSO_CONSTEXPR | DSO_CONSTEVAL)) {
-      if (dps->dso_flags & DSO_CONSTEXPR) {
-        rout_ptr->is_declared_constexpr = TRUE;
-      } else {
+      if (dps->dso_flags & DSO_CONSTEVAL) {
         rout_ptr->is_consteval = TRUE;
+      } else {
+        rout_ptr->is_declared_constexpr = TRUE;
       }  /* if */
       rout_ptr->is_constexpr = TRUE;
       /* constexpr implies inline. */
