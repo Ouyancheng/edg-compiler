@@ -24027,7 +24027,7 @@ given index in the given constraint chart.
     sym = symbol_for(templ);
     orig_args = concept_id->variant.concept_id.args;
     if (concept_id->is_type_constraint) {
-      /* Make the implicit argument implicit. */
+      /* Make the implicit argument explicit. */
       a_template_arg_ptr  first_arg;
       params = sym->variant.template_info->cache.decl_info->parameters;
       first_arg = alloc_template_arg((a_templ_arg_kind)tak_type);
