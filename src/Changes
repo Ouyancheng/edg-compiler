@@ -8,7 +8,7 @@ a friend declaration naming a defaulted function.  This is now fixed.  For
 example, with --c++11:
 
   struct S { S() = default; };
-  struct T{ friend S::S(); };  // Previously included "= default"
+  struct T { friend S::S(); };  // Previously included "= default"
 
 
 3/10/20  [EDGcpfe/19162]
