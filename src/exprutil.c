@@ -23837,7 +23837,7 @@ Output a description of the given constraint chart.
 #endif /* DEBUG */
 
 using a_constraint_charts_map = Ptr_map<a_symbol_ptr, a_constraint_chart*>;
-			/* The type a of map from constrained entity symbols to
+			/* The type of a map from constrained entity symbols to
 			   their associated constraint chart (if one has been
 			   constructed). */
 
