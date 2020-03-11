@@ -21510,7 +21510,7 @@ handle_as_definition:
   if (rout->is_deleted) {
     /* A deleted function definition. */
     write_tok_str(" = delete;");
-  } else if (rout->is_defaulted &&
+  } else if (!friend_decl && rout->is_defaulted &&
              (is_definition || !rout->defined_outside_of_parent)) {
     /* A defaulted function definition.  (The test for
        !rout->defined_outside_of_parent covers the case when the function

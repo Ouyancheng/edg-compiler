@@ -1,5 +1,16 @@
 Version 6.1
 
+3/10/20  [EDGcpfe/22054]
+C++-generating back end: friend declaration of defaulted function
+
+The C++-generated back end previously included the "= default" notation in
+a friend declaration naming a defaulted function.  This is now fixed.  For
+example, with --c++11:
+
+  struct S { S() = default; };
+  struct T{ friend S::S(); };  // Previously included "= default"
+
+
 3/10/20  [EDGcpfe/19162]
 C++/CLI: Internal error checking for missing or incorrect overridden functions
 
