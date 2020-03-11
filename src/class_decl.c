@@ -21571,6 +21571,49 @@ in some Microsoft modes, record that its body cannot be generated).
 }  /* generate_default_constructor */
 
 
+static a_boolean default_ctor_can_be_constexpr(a_routine_ptr ctor_rp,
+                                               a_type_ptr    class_type,
+                                               a_boolean     check_bases)
+/*
+Determine whether the given default constructor for class_type satisfies the
+requirements for a constexpr default constructor.  If check_bases is FALSE,
+skip the base class portion of the check.
+*/
+{
+  a_boolean result = FALSE;
+  a_boolean limited_check = FALSE;
+
+  if ((ctor_rp->is_template_function && !ctor_rp->is_specialized) ||
+      ctor_rp->is_defaulted) {
+    /* Default constructors that are template instantiations or that are
+       defaulted should not elicit errors for certain constructs that guarantee
+       a nonconstant outcome. */
+    limited_check = TRUE;
+  }  /* if */
+  if (!class_type->variant.class_struct_union.any_virtual_base_classes) {
+    /* A generated default constructor is implicitly "constexpr" if (a) the
+       parent class has no virtual bases, (b) every field has a constant field
+       initializer, and (c) every direct base class has an unambiguous
+       constexpr default constructor.  In Microsoft mode, the generated default
+       constructor of a dllimport class is not "constexpr" either.  Don't
+       attempt to check this for nonreal classes because it is not always
+       meaningful and the downstream code cannot always handle such classes. */
+    if (!class_type->variant.class_struct_union.is_nonreal_class &&
+        fields_initialized_for_constexpr_constructor(class_type,
+                                                     limited_check) &&
+        (!check_bases ||
+         bases_initialized_for_constexpr_constructor(class_type))
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        && !(class_type_supp(class_type)->decl_modifiers & DM_DLLIMPORT)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                            ) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* default_ctor_can_be_constexpr */
+
+
 a_boolean check_if_constexpr_generated_default_constructor(
                                                        a_type_ptr  class_type)
 /*
@@ -21597,33 +21640,8 @@ issue an error if it is not actually constexpr.
     }
   }  /* if */
   if (ctor != NULL) {
-    if ((ctor_rp->is_template_function && !ctor_rp->is_specialized) ||
-        ctor_rp->is_defaulted) {
-      /* Default constructors that are template instantiations or that are
-         defaulted should not elicit errors for certain constructs that
-         guarantee a nonconstant outcome. */
-      limited_check = TRUE;
-    }  /* if */
-    if (!class_type->variant.class_struct_union.any_virtual_base_classes) {
-      /* A generated default constructor is implicitly "constexpr" if (a) the
-         parent class has no virtual bases, (b) every field has a constant
-         field initializer, and (c) every direct base class has an unambiguous
-         constexpr default constructor.  In Microsoft mode, the generated
-         default constructor of a dllimport class is not "constexpr" either.
-         Don't attempt to check this for nonreal classes because it is not
-         always meaningful and the downstream code cannot always handle such
-         classes. */
-      if (!class_type->variant.class_struct_union.is_nonreal_class &&
-          fields_initialized_for_constexpr_constructor(class_type,
-                                                       limited_check) &&
-          bases_initialized_for_constexpr_constructor(class_type)
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          && !(class_type_supp(class_type)->decl_modifiers & DM_DLLIMPORT)
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                          ) {
-        is_constexpr = TRUE;
-      }  /* if */
-    }  /* if */
+    is_constexpr = default_ctor_can_be_constexpr(ctor_rp, class_type,
+                                                 /*check_bases=*/TRUE);
     if (is_constexpr) {
       if (ctor_rp->compiler_generated || ctor_rp->is_defaulted) {
         ctor_rp->is_constexpr = TRUE;
@@ -23778,6 +23796,10 @@ initialization requirement.
   new_rp = rout_sym->variant.routine.ptr;
   new_rp->is_inh_ctor_def_init = TRUE;
   new_rp->is_defaulted = TRUE;
+  if (default_ctor_can_be_constexpr(new_rp, class_type,
+                                    /*check_bases=*/FALSE)) {
+    new_rp->is_constexpr = TRUE;
+  }  /* if */
   if (!cdsp->default_ctor_is_nontrivial) {
     new_rp->is_trivial_default_constructor = TRUE;
   }  /* if */
