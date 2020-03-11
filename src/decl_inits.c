@@ -8778,7 +8778,6 @@ initialized.  These are addressed in the course of the processing.
   a_boolean                     is_generated_cctor, is_generated_mctor;
   a_type_qualifier_set          required_qualifiers, object_qualifiers;
   a_type_ptr                    class_type, tp = NULL, array_type;
-  a_symbol_ptr                  sym;
   a_ctor_init_block             cib;
   a_constructor_init_ptr        cip, prev_cip, next_cip;
   a_base_class_ptr              bcp;
@@ -9666,6 +9665,7 @@ initialized.  These are addressed in the course of the processing.
     db_symbol((a_symbol_ptr)ctor_rout->source_corresp.assoc_info,
               "constructor: ", 2);
     for (cip = cib.cip_list; cip != NULL; cip = cip->next) {
+      a_symbol_ptr sym;
       if (cip->kind == (a_constructor_init_kind)cik_field) {
         sym = symbol_for(cip->variant.field);
       } else {
