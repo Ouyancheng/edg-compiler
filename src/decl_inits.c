@@ -9799,11 +9799,9 @@ inherited from inh_ctor.  class_type is the type of the class being
 default-initialized.
 */
 {
-  a_symbol_ptr                  class_sym = symbol_for(class_type);
-  a_class_symbol_supplement_ptr cssp = class_symbol_supp(class_sym);
-  a_symbol_ptr                  ctor_sym = cssp->inh_ctor_def_ctor;
-  a_routine_ptr                 def_ctor = ctor_sym->variant.routine.ptr;
-  a_dynamic_init_ptr            dip;
+  a_symbol_ptr        ctor_sym = generate_inh_ctor_default_ctor(class_type);
+  a_routine_ptr       def_ctor = ctor_sym->variant.routine.ptr;
+  a_dynamic_init_ptr  dip;
 
   check_assertion(
                 init->kind == (a_constructor_init_kind)cik_direct_base_class ||

@@ -20484,8 +20484,10 @@ operator should be created.  No routine body is generated at this time.
      modified (it may have been changed to an sk_overloaded_function, or
      it may have been empty), so update the class symbol supplement, just to
      be safe. */
-  (symbol_supplement_for_class(class_type))->symbols =
+  if (!decl_info->decl_state.is_inh_ctor_def_init) {
+    (symbol_supplement_for_class(class_type))->symbols =
             assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
+  }  /* if */
   check_assertion(decl_info->decl_state.sym != NULL);
   routine = decl_info->decl_state.sym->variant.routine.ptr;
   if (instantiate_extern_inline && !routine->is_prototype_instantiation &&
@@ -21627,7 +21629,7 @@ issue an error if it is not actually constexpr.
                  cssp = symbol_supplement_for_class(class_type);
   a_symbol_ptr   ctor = get_generated_default_ctor(cssp);
   a_routine_ptr  ctor_rp;
-  a_boolean      is_constexpr = FALSE, limited_check = FALSE;
+  a_boolean      is_constexpr = FALSE;
 
   check_assertion(constexpr_enabled);
   if (ctor != NULL) {
@@ -23771,26 +23773,31 @@ any needed inherited constructors.
 }  /* generate_inheriting_constructors */
 
 
-static a_symbol_ptr generate_inh_ctor_default_ctor(a_class_def_state_ptr cdsp)
+a_symbol_ptr generate_inh_ctor_default_ctor(a_type_ptr class_type)
 /*
-cdsp represents a class whose definition has just been completed, and whose
-implicitly-declared special members, if any, have been generated.  Generate
-a constructor routine to handle the inheriting constructor default
-initialization requirement.
+Generate a constructor routine for the given class to handle the inheriting
+constructor default initialization requirement.
 */
 {
-  a_type_ptr          class_type = cdsp->class_type;
   a_member_decl_info  decl_info;
   a_func_info_block   func_info;
   a_symbol_ptr        rout_sym;
   a_routine_ptr       new_rp;
+  a_class_def_state   class_state;
+  a_scope_ptr         class_scope = class_type_supp(class_type)->assoc_scope;
 
+  rout_sym = symbol_supplement_for_class(class_type)->inh_ctor_def_ctor;
+  if (rout_sym != NULL) {
+    goto done;
+  }  /* if */
+  push_class_reactivation_scope(class_type, /*extend_namespace=*/FALSE);
   initialize_member_decl_info(&decl_info,
                               &class_type->source_corresp.decl_position);
+  initialize_class_def_state(class_type, &class_state);
   decl_info.is_constructor = TRUE;
   decl_info.decl_state.is_inh_ctor_def_init = TRUE;
   clear_func_info(&func_info);
-  generate_special_function(cdsp, &decl_info, &func_info,
+  generate_special_function(&class_state, &decl_info, &func_info,
                             (a_param_type*)NULL);
   rout_sym = decl_info.decl_state.sym;
   new_rp = rout_sym->variant.routine.ptr;
@@ -23800,13 +23807,15 @@ initialization requirement.
                                     /*check_bases=*/FALSE)) {
     new_rp->is_constexpr = TRUE;
   }  /* if */
-  if (!cdsp->default_ctor_is_nontrivial) {
-    new_rp->is_trivial_default_constructor = TRUE;
-  }  /* if */
   if (suppress_inh_ctor_default_ctor(class_type)) {
     new_rp->is_deleted = TRUE;
     new_rp->defined = TRUE;
   }  /* if */
+  new_rp->next = class_scope->routines;
+  class_scope->routines = new_rp;
+  symbol_supplement_for_class(class_type)->inh_ctor_def_ctor = rout_sym;
+  pop_class_reactivation_scope();
+done:
   return rout_sym;
 }  /* generate_inh_ctor_default_ctor */
 
@@ -30758,12 +30767,6 @@ wrap_up_class_definition.
       check_special_member_functions(class_type, class_state);
       if (class_state->has_inheriting_constructors) {
         generate_inheriting_constructors(class_state);
-      }  /* if */
-      if (inheriting_constructors_enabled) {
-        /* Create a constructor routine that handles the "as if by a defaulted
-           default constructor" initialization requirement for inheriting
-           constructors. */
-        cssp->inh_ctor_def_ctor = generate_inh_ctor_default_ctor(class_state);
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
