@@ -22348,8 +22348,8 @@ C++ functional-notation type conversions, and C++ new-style casts.
              !is_managed_nullptr_type(type_cast_to) &&
              !is_array_type(type_cast_to) &&
              !(gpp_mode && !clang_mode &&
-               !expr_stack->potentially_evaluated &&
-               scope_is(&scope_stack_top(), sck_template_declaration))) {
+               (scope_is(&scope_stack_top(), sck_template_declaration) ||
+                scope_stack_top().template_param_decl_scope))) {
     /* Don't allow a cast to an incomplete type (e.g., an incomplete enum
        type), but allow certain exceptions.  One of those exceptions is that
        in GNU mode casts to incomplete class types are accepted in default
@@ -22366,6 +22366,7 @@ C++ functional-notation type conversions, and C++ new-style casts.
         err = TRUE;
       } else if (constexpr_enabled &&
                  expr_stack->potentially_evaluated &&
+                 !incomplete &&
                  !is_literal_type(type_cast_to) &&
                  construct_not_allowed_in_cpp11_constant_expr(
                                                           ec_expr_not_constant,
