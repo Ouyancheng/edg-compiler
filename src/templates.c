@@ -17826,7 +17826,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
                                         templ_sym, templ_arg_list, rout_type);
           }  /* if */
         }  /* if */
-        if (tcp->tokens.token_count != 0) {
+        if (tcp->tokens.first_token != NULL) {
           /* Flush to the end of the declaration cache. */
           while (curr_token != tok_end_of_source) (void)get_token();
           /* Skip past the tok_end_of_source. */
