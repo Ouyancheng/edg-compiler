@@ -2500,6 +2500,7 @@ beyond the operator has not yet been fetched.
                                      &locator_for_curr_id);
       } else {
         /* Second form -- "defined ( identifier )". */
+        int saved_white_space_kind = kind_of_white_space_skipped;
 #if CHECKING
         if (curr_token != tok_lparen) {
           internal_error("scan_defined_operator: next is not id or \"(\"");
@@ -2508,8 +2509,10 @@ beyond the operator has not yet been fetched.
         parenthesized_form = TRUE;
         /* Check to see if the left parenthesis is followed by white space,
            which is significant in emulating a Microsoft bug below. */
+        kind_of_white_space_skipped = 0;
         skip_white_space();
         paren_followed_by_whitespace = (kind_of_white_space_skipped != 0);
+        kind_of_white_space_skipped = saved_white_space_kind;
         if (get_token() != tok_identifier) {
           /* Error -- Expected an identifier. */
           pos_error(ec_exp_identifier, &error_position);
@@ -5240,6 +5243,8 @@ associated global variables will also have been set).
   a_boolean       saved_single_param_macro = single_param_macro;
   a_boolean       pragma_operator_seen = FALSE;
   a_boolean       empty_variadic_arg = FALSE;
+  int             saved_white_space_kind = kind_of_white_space_skipped;
+  a_boolean       saved_preserve_white_space_kind = preserve_white_space_kind;
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
@@ -5314,6 +5319,8 @@ associated global variables will also have been set).
   /* Push a new lexical state for tokens scanned as part of the macro
      argument list (if any). */
   push_lexical_state_stack();
+  preserve_white_space_kind = FALSE;
+  kind_of_white_space_skipped = 0;
   copy_source_position(pos_curr_token, start_pos);
   /* If possible, clear the macro buffer (a buffer where characters of
      expansions are put).  This is tricky in that we can't clear the
@@ -7529,6 +7536,8 @@ return_point:
   num_macro_invocations_in_process--;
   /* Restore the lexical state. */
   pop_lexical_state_stack();
+  kind_of_white_space_skipped = saved_white_space_kind;
+  preserve_white_space_kind = saved_preserve_white_space_kind;
   if (pragma_operator_seen && !caching_tokens) {
     /* If the pragma was an immediate pragma, process it now. */
     process_immediate_pragmas();
