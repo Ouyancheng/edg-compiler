@@ -23507,8 +23507,9 @@ templates from that base template.
     make_locator_for_symbol(symbol_for(cdsp->class_type), &loc);
     change_class_locator_into_constructor_locator(&loc, &udp->position,
                                                   /*is_static_ctor=*/FALSE);
-    init_tmpl_decl_state_for_generated_member_template(&templ_decl_state);
-    templ_decl_state.decl_parse.is_inheriting_ctor = TRUE;
+    init_tmpl_decl_state_for_generated_member_template(&templ_decl_state,
+                                                       &decl_info.decl_state);
+    templ_decl_state.decl_parse->is_inheriting_ctor = TRUE;
     templ_decl_state.final_token_ptr = &final_token;
     templ_decl_state.is_variadic = btssp->is_variadic;
     templ_decl_state.has_variadic_template_params =
@@ -25574,7 +25575,7 @@ routine.
 {
   a_decl_parse_state  *decl_state = &decl_info->decl_state;
   a_type_ptr           member_type = decl_state->specifiers_type;
-  a_source_position    *err_pos = &decl_state->start_pos;
+  a_source_position    *err_pos = &decl_state->specifiers_pos;
   a_decl_flag_set      dso_flags = decl_state->dso_flags;
   a_storage_class      storage_class = decl_state->storage_class;
 
@@ -28472,7 +28473,7 @@ that is provided if this is a member template declaration.
   a_boolean            mutable_specified;
   a_symbol_ptr         rout_sym;
   a_member_decl_info   decl_info;
-  a_decl_parse_state   *dps = &decl_info.decl_state;
+  a_decl_parse_state   *dps = &decl_info.decl_state, *templ_dps = NULL;
   a_boolean            is_member_template_rescan;
   a_type_qualifier_set saved_qualifiers;
   a_source_position    saved_qualifiers_pos;
@@ -28482,8 +28483,18 @@ that is provided if this is a member template declaration.
   clear_locator(&locator, &null_source_position);
   *skip_semicolon_check = FALSE;
   initialize_member_decl_info(&decl_info, &pos_curr_token);
-  is_member_template_rescan = (scope_stack[depth_scope_stack].kind ==
-                                 (a_scope_kind)sck_template_instantiation);
+  if (templ_state != NULL) {
+    /* Temporarily associate the template state with the parse state embedded
+       in the member declaration info.  Any changes will be merged back at the
+       end of this function. */
+    templ_dps = templ_state->decl_parse;
+    *dps = *templ_dps;
+    dps->init_state.decl_parse_state = dps;
+    dps->end_of_parse_actions = NULL;
+    templ_state->decl_parse = dps;
+  }  /* if */
+  is_member_template_rescan = scope_is(&scope_stack_top(),
+                                       sck_template_instantiation);
   dps->is_template_rescan = is_member_template_rescan;
   dps->is_lambda = type_is_lambda_closure(class_type);
   dps->is_implicit_type_context = TRUE;
@@ -28727,12 +28738,6 @@ that is provided if this is a member template declaration.
         scan_deduction_guide(dps, &func_info, &locator, decl_pos_block_ptr);
       } else {
         /* A deduction guide template. */
-        /* Transfer the declaration parse state to the template declaration
-           parse state, making sure that the list of end-of-parse actions is
-           only pointed to by the latter (otherwise, we will try to deallocate
-           the list twice). */
-        templ_state->decl_parse = *dps;
-        dps->end_of_parse_actions = NULL;
         scan_nested_deduction_guide_template(templ_state, class_type,
                                              decl_pos_block_ptr);
       }  /* if */
@@ -28926,7 +28931,7 @@ that is provided if this is a member template declaration.
         }  /* if */
         if (func_info.is_definition) {
           templ_state->defines_something = TRUE;
-          templ_state->decl_parse.is_definition = TRUE;
+          templ_dps->is_definition = TRUE;
         }  /* if */
         remove_stop_token(tok_comma);
         goto next_declaration;
@@ -29136,7 +29141,7 @@ that is provided if this is a member template declaration.
          member declaration as if "inline" had not been specified; this
          suppresses the diagnostic that would otherwise be reported on an
          initializer for the member. */
-      pos_error(ec_inline_nonstatic_data_mem, &dps->start_pos);
+      pos_error(ec_inline_nonstatic_data_mem, &dps->inline_pos);
       scan_nonstatic_data_member(&locator, class_state, &decl_info);
     } else if (decl_info.is_destructor
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -29274,7 +29279,7 @@ that is provided if this is a member template declaration.
         (dps->sym == NULL || !symbol_is(dps->sym, sk_variable_template))) {
       /* Invalid declaration of a member template. */
       if (!decl_info.invalid_member_template) {
-        pos_error(ec_bad_member_template_decl, &dps->start_pos);
+        pos_error(ec_bad_member_template_decl, &dps->specifiers_pos);
         decl_info.invalid_member_template = TRUE;
       }  /* if */
       remove_stop_token(tok_comma);
@@ -29337,6 +29342,15 @@ next_declaration:;
        for this declaration. */
     *decl_pos_block_ptr = decl_info.decl_pos_block;
   }  /* if */
+  if (templ_state != NULL) {
+    /* Merge back the parse state into the original overall template
+       declaration parse state. */
+    a_decl_parse_callback_ptr  actions = templ_dps->end_of_parse_actions;
+    *templ_dps = *dps;
+    templ_dps->init_state.decl_parse_state = templ_dps;
+    templ_dps->end_of_parse_actions = actions;
+    templ_state->decl_parse = templ_dps;
+  }  /* if */
   db_exit();
   return dps->sym;
 }  /* class_member_declaration */
@@ -29359,7 +29373,7 @@ template so far.
   a_scope_depth         scope_level;
   a_symbol_ptr          sym;
   a_type_ptr            dummy_type;
-  a_decl_parse_state    *dps = &templ_state->decl_parse;
+  a_decl_parse_state    *dps = templ_state->decl_parse;
 
   db_enter(3, "class_member_template_declaration");
   /* Get the class definition state, which is pointed to from the scope-stack
@@ -29367,6 +29381,8 @@ template so far.
   scope_level = class_type_supp(class_type)->assoc_scope->depth_in_scope_stack;
   check_assertion(scope_level != NO_SCOPE_DEPTH);
   class_state_ptr = scope_stack[scope_level].class_def_state;
+  dps->in_class_scope = TRUE;
+  dps->auto_type_allowed = auto_type_specifier_enabled;
   sym = class_member_declaration(class_state_ptr, templ_state,
                                  dps->ms_attributes,
                                  /*is_member_template=*/TRUE,
@@ -32484,7 +32500,7 @@ proper.
   dps->first_decl = TRUE;
   if (curr_token == tok_lt && generic_lambdas_enabled &&
       lambda_template_param_list_enabled) {
-    scan_lambda_template_param_list(templ_state);
+    scan_lambda_template_param_list(templ_state, dps);
     if (scope_stack_top().is_generic_lambda) {
       lambda->is_generic = TRUE;
     }  /* if */
@@ -32841,7 +32857,8 @@ decl_info/locator/func_info the member to be declared.
     a_symbol_ptr          templ_sym;
     call_op_tssp = symbol_for(lambda->lambda_routine->assoc_template)
                                                       ->variant.template_info;
-    init_tmpl_decl_state_for_generated_member_template(&templ_decl_state);
+    init_tmpl_decl_state_for_generated_member_template(&templ_decl_state,
+                                                       &decl_info->decl_state);
     templ_decl_state.final_token_ptr = &final_token;
     templ_decl_state.is_variadic = call_op_tssp->is_variadic;
     templ_decl_state.has_variadic_template_params =

@@ -686,11 +686,6 @@ typedef struct a_decl_parse_state {
 		declarator_pos;
 			/* The position of the declarator-id if there is one.
 			   Otherwise, same as declarator_start_pos. */
-  a_token_sequence_number
-		declarator_name_tsn;
-			/* The token sequence number of the identifier
-			   in the declarator or NO_TOKEN_SEQUENCE_NUMBER
-			   if there is none. */
   a_source_position
 		return_type_pos;
 			/* When the declarator is a function declarator, this
@@ -699,6 +694,16 @@ typedef struct a_decl_parse_state {
 			   is TRUE, it is the position of the trailing return
 			   type; otherwise, it is the same as
 			   specifiers_pos. */
+  a_token_sequence_number
+		start_tsn;
+			/* The token sequence number of the first token of the
+			   current declaration, if that declaration is being
+			   cached. */
+  a_token_sequence_number
+		declarator_name_tsn;
+			/* The token sequence number of the identifier
+			   in the declarator or NO_TOKEN_SEQUENCE_NUMBER
+			   if there is none. */
   a_type_qualifier_set
 		qualifiers;
 			/* Top-level type qualifiers (but not function type
@@ -1101,6 +1106,12 @@ typedef struct a_decl_parse_state {
 			/* TRUE for a non-template member function of a class
 			   template instance when the associated trailing
 			   requires clause was not satisfied. */
+  a_bit_field	is_abbr_func_template:1;
+			/* TRUE if this is an abbreviated function template
+			   declaration. */
+  a_bit_field	decl_being_cached:1;
+			/* TRUE if background caching was started (and not
+			   ended) for this declaration. */
   an_init_state
 		init_state;
 			/* Information about the initializer (if any)
@@ -1303,6 +1314,47 @@ typedef struct a_decl_parse_state {
 			   been freed, the next entry of the available entries
 			   list. */
 } a_decl_parse_state;
+
+
+inline void begin_potential_abbr_func_templ_caching(a_decl_parse_state  *dps)
+/*
+The current token is the start of a declaration in class or namespace scope.
+If that token does not exclude the possibility of an abbreviated function
+template declaration, begin background token caching.
+*/
+{
+  switch (curr_token) {
+    case tok_namespace:
+    case tok_semicolon:
+    case tok_static_assert:
+    case tok_template:
+    case tok_thread:
+    case tok_thread_local:
+    case tok_typedef:
+    case tok_using:
+      /* Declarations that start with these tokens cannot be abbreviated
+         function template declarations. */
+      break;
+    default:
+      dps->start_tsn = curr_token_sequence_number;
+      begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
+      dps->decl_being_cached = TRUE;
+      break;
+  }  /* if */
+}  /* begin_potential_abbr_func_templ_caching */
+
+
+inline void abort_potential_abbr_func_templ_caching(a_decl_parse_state  *dps)
+/*
+If the current declaration is being cached because it could potentially be an
+abbreviated function template declaration, abort that caching now.
+*/
+{
+  if (dps->decl_being_cached) {
+    end_caching_fetched_tokens();
+    dps->decl_being_cached = FALSE;
+  }  /* if */
+}  /* abort_potential_abbr_func_templ_caching */
 
 
 #if NULL_POINTER_IS_ZERO

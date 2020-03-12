@@ -36721,7 +36721,7 @@ Scan a C++ lambda expression, e.g., something like
                (scope_is(&scope_stack_top(), sck_func_prototype) ||
                 (scope_is(&scope_stack_top(), sck_template_declaration) &&
                  !scope_stack_top().tmpl_decl_state
-                                   ->decl_parse.is_template_declaration)) &&
+                                   ->decl_parse->is_template_declaration)) &&
                !(expr_stack->is_template_arg_expression &&
                  scope_is(&scope_stack_top(), sck_template_declaration))))) {
     /* Lambdas are not permitted in various contexts that might result in them
@@ -36775,7 +36775,7 @@ Scan a C++ lambda expression, e.g., something like
                 (scope_is(&scope_stack_top(), sck_template_declaration) &&
                  scope_stack_top().tmpl_decl_state != NULL &&
                  !scope_stack_top().tmpl_decl_state
-                                   ->decl_parse.is_template_declaration)) &&
+                                   ->decl_parse->is_template_declaration)) &&
                !(orig_expr_stack->is_template_arg_expression &&
                  scope_is(&scope_stack_top(), sck_template_declaration))))) {
     /* Lambdas are not permitted in various contexts that might result in them

@@ -2561,9 +2561,26 @@ scopes.  In neither C or C++ is a pragma scope is treated as a real scope.
         /* C++ -- class reactivations are not real scopes. */           \
         ((kind) != (a_scope_kind)sck_class_reactivation &&              \
          (kind) != (a_scope_kind)sck_namespace_reactivation &&          \
-         (kind) != (a_scope_kind)sck_instantiation_context &&          \
+         (kind) != (a_scope_kind)sck_instantiation_context &&		\
          (kind) != (a_scope_kind)sck_function_access &&			\
          (kind) != (a_scope_kind)sck_template_instantiation)))
+
+
+static inline void expand_scope_stack_if_needed(void)
+/*
+Ensure the scope stack is large enough to accommodate one more entry.
+*/
+{
+  if (depth_scope_stack+1 == (int)size_scope_stack) {
+    /* The stack is full; expand it by reallocating. */
+    sizeof_t new_size = size_scope_stack + SCOPE_STACK_INCREMENTAL_ALLOCATION;
+    scope_stack = (a_scope_stack_entry_ptr)realloc_buffer(
+                      (char *)scope_stack,
+                      (sizeof_t)(size_scope_stack*sizeof(a_scope_stack_entry)),
+                      (sizeof_t)(new_size*sizeof(a_scope_stack_entry)));
+    size_scope_stack = new_size;
+  }  /* if */
+}  /* expand_scope_stack_if_needed */
 
 
 static a_scope_ptr push_scope_full(
@@ -2604,9 +2621,10 @@ specific version of the template.  template_decl_info is used for template
 instantiation scopes, and describes the context being created by the
 instantiation scope (the template parameters to be used, etc.).
 template_decl_info is also used for template declaration scopes and points
-to the declaration information for the template declaration scope being pushed.
-lifetime, if non-NULL, is a previously allocated object lifetime to be
-used for the scope.
+to the declaration information for the template declaration scope being pushed
+(it can be NULL if this scope is being inserted for an abbreviated function
+template declaration).  lifetime, if non-NULL, is a previously allocated object
+lifetime to be used for the scope.
 
 scope_to_reactivate is non-NULL for block scopes that are being reactivated.
 For other kinds of reactivations, the scope pointer is obtained elsewhere.
@@ -2628,15 +2646,7 @@ the scope being pushed.
   a_boolean               is_alias_template_instantiation = FALSE;
 
   db_enter(3, "push_scope_full");
-  if (depth_scope_stack+1 == (int)size_scope_stack) {
-    /* The stack is full; expand it by reallocating. */
-    sizeof_t new_size = size_scope_stack + SCOPE_STACK_INCREMENTAL_ALLOCATION;
-    scope_stack = (a_scope_stack_entry_ptr)realloc_buffer(
-                      (char *)scope_stack,
-                      (sizeof_t)(size_scope_stack*sizeof(a_scope_stack_entry)),
-                      (sizeof_t)(new_size*sizeof(a_scope_stack_entry)));
-    size_scope_stack = new_size;
-  }  /* if */
+  expand_scope_stack_if_needed();
   /* Push the stack, initialize the new scope entry. */
   ssep = &scope_stack[++depth_scope_stack];
   memzero((char*)ssep, sizeof(*ssep));
@@ -5544,6 +5554,25 @@ default value for scope_number.
   push_template_declaration_scope_full(decl_info, NO_SCOPE_NUMBER,
                                        is_template_param_rescan);
 }  /* push_template_declaration_scope */
+
+
+extern void insert_template_decl_scope_under_func_prototype(void)
+/*
+The current scope is a sck_func_prototype scope that is not sitting on top of
+a template declaration scope.  Insert a template declaration scope under the
+current scope so that the declaration can be processed as an abbreviated
+function template declaration.
+*/
+{
+  a_scope_stack_entry  saved_func_proto_entry = scope_stack_top();
+
+  depth_scope_stack -= 1;
+  push_template_declaration_scope((a_template_decl_info_ptr)NULL,
+                                  /*is_template_param_rescan=*/FALSE);
+  expand_scope_stack_if_needed();
+  depth_scope_stack += 1;
+  scope_stack_top() = saved_func_proto_entry;
+}  /* insert_template_decl_scope_under_func_prototype */
 
 
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY

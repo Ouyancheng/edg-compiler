@@ -3794,11 +3794,19 @@ defined.  Detailed position information is recorded in *decl_pos_block.
       set_to_named_error_locator(locator);
     }  /* if */
   }  /* if */
-  if ((is_class_definition || definition_removed) &&
-      constexpr_enabled && !relaxed_constexpr_enabled && !gpp_mode &&
-      innermost_function_scope != NULL &&
-      innermost_function_scope->variant.routine.ptr->is_constexpr) {
-    pos_error(ec_tag_defined_in_constexpr_body, &decl_start_pos);
+  if ((is_class_definition || definition_removed)) {
+    if (dps->decl_being_cached) {
+      /* Class definitions cannot appear as part of function declarations.
+         There is therefore no need to keep caching tokens in case this turns
+         out to be an abbreviated function template declaration. */
+      end_caching_fetched_tokens();
+      dps->decl_being_cached = FALSE;
+    }  /* if */
+    if (constexpr_enabled && !relaxed_constexpr_enabled && !gpp_mode &&
+        innermost_function_scope != NULL &&
+        innermost_function_scope->variant.routine.ptr->is_constexpr) {
+      pos_error(ec_tag_defined_in_constexpr_body, &decl_start_pos);
+    }  /* if */
   }  /* if */
   if (is_class_definition && is_friend_decl) {
     /* This is an error.  Defer the diagnostic until we have a tag_sym
@@ -6232,29 +6240,38 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
       pos_error(ec_unnamed_scoped_enum, &pos_curr_token);
     }  /* if */
   }  /* if */
-  if (explicit_enum_base_enabled && is_definition) {
-    explicit_base_kind = scan_explicit_enum_base_type(&explicit_base,
-                                                      &pos_explicit_base);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && tag_sym != NULL && !tag_sym->defined &&
-        symbol_is(tag_sym, sk_enum_tag) &&
-        explicit_base_kind != (an_integer_kind)ik_none &&
-        explicit_base_kind != (an_integer_kind)ik_int) {
-      /* Microsoft compilers allow:
-            enum E ee; // E considered complete with underlying type int.
-            enum E: char { e };  // New type E (incompatible with previous E).
-         Ignore the previous declaration of E if necessary. */
-      a_type_ptr  prev_type = type_symbol_type(tag_sym);
-      if (is_immediate_enum_type(prev_type) &&
-          !prev_type->variant.integer.has_explicit_enum_base &&
-          !prev_type->variant.integer.is_scoped_enum) {
-        pos_sy_warning(ec_enum_type_replacement, &tag_position, tag_sym);
-        tag_sym->variant.enumeration.extra_info->replaced_enum_symbol = TRUE;
-        tag_sym->is_invisible = TRUE;
-        tag_sym = NULL;
-      }  /* if */
+  if (is_definition) {
+    if (dps->decl_being_cached) {
+      /* Enum definitions cannot appear as part of function declarations.
+         There is therefore no need to keep caching tokens in case this turns
+         out to be an abbreviated function template declaration. */
+      end_caching_fetched_tokens();
+      dps->decl_being_cached = FALSE;
     }  /* if */
+    if (explicit_enum_base_enabled) {
+      explicit_base_kind = scan_explicit_enum_base_type(&explicit_base,
+                                                        &pos_explicit_base);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_mode && tag_sym != NULL && !tag_sym->defined &&
+          symbol_is(tag_sym, sk_enum_tag) &&
+          explicit_base_kind != (an_integer_kind)ik_none &&
+          explicit_base_kind != (an_integer_kind)ik_int) {
+        /* Microsoft compilers allow:
+             enum E ee; // E considered complete with underlying type int.
+             enum E: char { e };  // New type E (incompatible with previous E).
+           Ignore the previous declaration of E if necessary. */
+        a_type_ptr  prev_type = type_symbol_type(tag_sym);
+        if (is_immediate_enum_type(prev_type) &&
+            !prev_type->variant.integer.has_explicit_enum_base &&
+            !prev_type->variant.integer.is_scoped_enum) {
+          pos_sy_warning(ec_enum_type_replacement, &tag_position, tag_sym);
+          tag_sym->variant.enumeration.extra_info->replaced_enum_symbol = TRUE;
+          tag_sym->is_invisible = TRUE;
+          tag_sym = NULL;
+        }  /* if */
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
   }  /* if */
   if (opaque_enum_decls_enabled &&
       ((explicit_base_kind != (an_integer_kind)ik_none &&
@@ -9319,12 +9336,13 @@ issued if it is not valid.
 }  /* check_gnu_c_auto_type */
 
 
-static a_boolean process_generic_lambda_param_type(a_decl_parse_state  *dps)
+static a_boolean process_auto_parameter(a_decl_parse_state  *dps)
 /*
 *dps describes the declaration of a parameter and the current token is "auto".
 If an implicit template type parameter created for this "auto" can be found
 (currently this is only possible with generic lambdas) return TRUE and set
 dps->specifiers_type to the corresponding type.  Otherwise, return FALSE.
+FIXME
 */
 {
   a_boolean                result = FALSE;
@@ -9334,6 +9352,11 @@ dps->specifiers_type to the corresponding type.  Otherwise, return FALSE.
 
   check_assertion(func_dps != NULL && curr_token == tok_auto &&
                   scope_is(ssep, sck_func_prototype));
+  if (/*FIXME*/0 && scope_is(ssep-1, sck_template_declaration)) {
+    check_assertion(func_dps->decl_being_cached);
+    func_dps->is_abbr_func_template = TRUE;
+    insert_template_decl_scope_under_func_prototype();
+  }  /* if */
   if (func_dps->is_lambda) {
     auto_param_descr = func_dps->variant.auto_params;
     if (auto_param_descr != NULL) {
@@ -9376,7 +9399,7 @@ dps->specifiers_type to the corresponding type.  Otherwise, return FALSE.
     }  /* if */
   }  /* if */
   return result;
-}  /* process_generic_lambda_param_type */
+}  /* process_auto_parameter */
 
 
 static void scan_specifier_attributes(a_decl_flag_set     flags,
@@ -10111,7 +10134,7 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
                                         ec_mult_storage_classes,
                                         &error_position);
         } else if (is_parameter && auto_type_allowed &&
-                   process_generic_lambda_param_type(state)) {
+                   process_auto_parameter(state)) {
           /* "auto" as a parameter type specifier in what is presumably a
              (generic) lambda parameter.  state->specifiers_type points to the
              corresponding type entry. */

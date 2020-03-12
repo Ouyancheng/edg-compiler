@@ -55,7 +55,7 @@ declarations.
 */
 typedef struct a_tmpl_decl_state {
   a_decl_parse_state
-		decl_parse;
+		*decl_parse;
 			/* General declaration information. */
   a_boolean	is_template_friend;
 			/* TRUE if this is a friend declaration. */
@@ -935,7 +935,8 @@ extern void template_directive_or_declaration(
 extern a_boolean is_template_friend_decl(void);
 
 #if !STANDALONE_UTILITY_PROGRAM
-extern void scan_lambda_template_param_list(a_tmpl_decl_state   *templ_state);
+extern void scan_lambda_template_param_list(a_tmpl_decl_state   *templ_state,
+                                            a_decl_parse_state  *dps);
 
 extern
 void set_up_generic_lambda_declarator_scan(a_decl_parse_state  *dps,
@@ -1262,7 +1263,8 @@ extern a_template_param_ptr copy_template_param_list(
                                                    a_template_param_ptr  tpl);
 
 extern void init_tmpl_decl_state_for_generated_member_template(
-                                                a_tmpl_decl_state_ptr  state);
+                                                a_tmpl_decl_state_ptr  state,
+                                                a_decl_parse_state     *dps);
 
 extern void complete_generated_member_template(
                                             a_tmpl_decl_state_ptr  decl_state,

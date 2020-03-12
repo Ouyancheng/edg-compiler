@@ -161,6 +161,7 @@ be restored).
     dps->start_pos = null_source_position;
     dps->specifiers_pos = null_source_position;
     dps->return_type_pos = null_source_position;
+    dps->start_tsn = NO_TOKEN_SEQUENCE_NUMBER;
     dps->qualifiers = TQ_NONE;
     dps->qualifiers_pos = null_source_position;
     dps->restrict_pos = null_source_position;
@@ -235,6 +236,7 @@ be restored).
     dps->type_is_injected_class_name = FALSE;
     dps->is_implicit_type_context = FALSE;
     dps->for_requires_expr_params = FALSE;
+    dps->decl_being_cached = FALSE;
     dps->prefix_attributes = NULL;
     dps->deferred_alignas_attributes = NULL;
     dps->specifier_attributes = NULL;
@@ -10325,7 +10327,7 @@ been previously declared (but not defined), and it may be an out-of-line
 definition of a member function of a class template.
 */
 {
-  a_decl_parse_state                *dps = &decl_state->decl_parse;
+  a_decl_parse_state                *dps = decl_state->decl_parse;
   a_type_ptr                        type_ptr = dps->type;
   a_storage_class                   storage_class = dps->storage_class;
   a_symbol_ptr                      sym = NULL;
@@ -19078,6 +19080,7 @@ processing should proceed after the call.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (curr_token == tok_static_assert) {
+    abort_potential_abbr_func_templ_caching(state);
     static_assert_declaration(/*leave_semicolon=*/TRUE);
     state->decl_okay_in_constexpr_body = TRUE;
     end_of_decl_action = eoda_check_semicolon;
@@ -19086,6 +19089,7 @@ processing should proceed after the call.
     if (curr_token == tok_extern && next_token() == tok_string_literal) {
       /* This looks like a C++ linkage specification, which is "extern"
          followed by a string literal (e.g., "C++" or "C"). */
+      abort_potential_abbr_func_templ_caching(state);
       if (state->prefix_attributes != NULL) {
         /* Attributes can normally not precede a linkage specification, but
            Microsoft and clang compilers appear to just ignore them instead of
@@ -19113,6 +19117,7 @@ processing should proceed after the call.
          final token of the declaration. */
       a_template_decl_options_set  td_flags = TDO_NO_OPTIONS;
       a_source_position	           directive_start_pos = pos_curr_token;
+      abort_potential_abbr_func_templ_caching(state);
       /* Attributes cannot precede the "template" keyword. */
       disallow_attributes(&state->prefix_attributes, es_error);
       if (curr_token == tok_extern) {
@@ -19144,6 +19149,7 @@ processing should proceed after the call.
       /* "namespace" or "inline namespace".  Attributes cannot begin
           a "namespace" declaration. */
       a_symbol_ptr dummy_sym;
+      abort_potential_abbr_func_templ_caching(state);
       disallow_attributes(&state->prefix_attributes, es_error);
       /* Process a namespace definition or a namespace alias declaration. */
       namespace_declaration(final_token, /*in_nested_namespace_decl=*/FALSE,
@@ -19162,6 +19168,7 @@ processing should proceed after the call.
          using-directive (which has the form "using namespace N;"), or a
          using-declaration ("using N::x;" or "using ::x;"). */
       a_source_position  using_pos, end_of_using_pos;
+      abort_potential_abbr_func_templ_caching(state);
       using_pos = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_of_using_pos = end_pos_curr_token;
@@ -19200,6 +19207,7 @@ processing should proceed after the call.
                 (curr_token == tok_export && next_token() == tok_module))) {
       /* A module declaration (global module fragment, module unit, private
          module fragment). */
+      abort_potential_abbr_func_templ_caching(state);
       disallow_attributes(&state->prefix_attributes, es_error);
       module_declaration();
       cannot_bind_to_curr_construct();
@@ -19221,6 +19229,7 @@ processing should proceed after the call.
                is_file_or_namespace_scope(&scope_stack_top()) &&
                check_for_cli_delegate_definition()) {
       /* Scan a C++/CLI delegate definition. */
+      abort_potential_abbr_func_templ_caching(state);
       scan_and_record_cli_delegate_definition(state, (a_type_ptr)NULL);
       cannot_bind_to_curr_construct();
       end_of_decl_action = eoda_check_semicolon;
@@ -19238,6 +19247,7 @@ processing should proceed after the call.
        latter is only possible in contexts that permit function definitions. */
     a_boolean  is_asm_decl = curr_token == tok_microsoft_asm ||
                              !state->function_definition_allowed;
+    abort_potential_abbr_func_templ_caching(state);
     if (!is_asm_decl) {
       a_token_cache  cache;
       clear_token_cache(&cache, /*reusable=*/FALSE);
@@ -19416,7 +19426,8 @@ type of the guide.
     } else if (!is_immediate_class_type(rtp) ||
                !rtp->variant.class_struct_union.is_template_class) {
       issue_error = TRUE;
-    } else if (symbol_for(class_type_supp(rtp)->assoc_template) != ct_sym) {
+    } else if (symbol_for(class_type_supp(rtp)->assoc_template) !=
+                                              prototype_template_of(ct_sym)) {
       issue_error = TRUE;
     }  /* if */
     if (issue_error) {
@@ -19894,6 +19905,9 @@ invalid cases like "decltype(auto) f()->int", which are diagnosed elsewhere).
           vp = variable_for_symbol(dps->sym);
           p_type = &vp->type;
           break;
+        case sk_function_template:
+          p_type = NULL;
+          break;
         default:
           unexpected_condition_str(
                                  "check_use_of_placeholder_type: bad symbol");
@@ -20005,6 +20019,7 @@ parameters are scanned by scan_a_template_parameter_declaration.
   a_decl_pos_block             decl_pos_block;
   a_type_qualifier_set         saved_qualifiers;
   a_source_position            saved_qualifiers_pos;
+  a_scope_stack_entry_ptr      ssep = &scope_stack_top();
   a_boolean                    is_old_style_param_decl =
                                                  dps->is_old_style_param_decl;
 
@@ -20020,8 +20035,7 @@ parameters are scanned by scan_a_template_parameter_declaration.
   }  /* if */
   if (depth_stmt_stack >= 0 &&
       struct_stmt_stack_top().record_declared_entities &&
-      (scope_is(&scope_stack_top(), sck_function) ||
-       scope_is(&scope_stack_top(), sck_block))) {
+      (scope_is(ssep, sck_function) || scope_is(ssep, sck_block))) {
     /* This is the declaration in a declaration statement. */
     /* Set up a pointer to entities declared from this point on. */
     an_il_entity_list_entry_ptr
@@ -20055,10 +20069,10 @@ parameters are scanned by scan_a_template_parameter_declaration.
     dps->restore_name_linkage = TRUE;
     /* The caller already has a declaration parse state.  It may have Microsoft
        attributes; if so, move them to the current state. */
-    check_assertion(scope_stack_top().decl_parse_state != NULL);
+    check_assertion(ssep->decl_parse_state != NULL);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    dps->ms_attributes = scope_stack_top().decl_parse_state->ms_attributes;
-    scope_stack_top().decl_parse_state->ms_attributes = NULL;
+    dps->ms_attributes = ssep->decl_parse_state->ms_attributes;
+    ssep->decl_parse_state->ms_attributes = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Called in the midst of an ``extern "C"'' declaration, so
        select_curr_construct_pragmas has already been called. */
@@ -20079,6 +20093,11 @@ parameters are scanned by scan_a_template_parameter_declaration.
        entry so they can be examined and acted upon in subsequent
        processing. */
     (void)select_curr_construct_pragmas(/*add_to_list=*/FALSE);
+    /* If there are any pk_immediate pragmas associated with the current
+       token, process them now, before the current token is cached, instead
+       of in get_token, as is usually done. */
+    process_curr_token_pragmas();
+    begin_potential_abbr_func_templ_caching(dps);
   }  /* if */
   if (dps->function_definition_allowed) {
     /* This is a file scope or namespace scope declaration.  Indicate
@@ -20253,6 +20272,11 @@ parameters are scanned by scan_a_template_parameter_declaration.
     }  /* if */
     remove_stop_token(tok_assign);
     dps->need_assign_remove_stop_token = FALSE;
+    if (dps->is_abbr_func_template) {
+      /* FIXME */
+    } else {
+      abort_potential_abbr_func_templ_caching(dps);
+    }  /* if */
     if (is_function) {
       switch (function_declaration(dps, &func_info, &locator,
                                    &decl_pos_block, &final_token)) {
@@ -20297,6 +20321,7 @@ parameters are scanned by scan_a_template_parameter_declaration.
     /* Keep scanning the list of declarators. */
   } while (loop_token(tok_comma));
 deferred_fixups:
+  abort_potential_abbr_func_templ_caching(dps);
   if (microsoft_bugs) {
     /* In Microsoft bugs mode, the typedef is processed before member function
        bodies etc. are rescanned.  This makes e.g. the following legal:
@@ -20327,6 +20352,7 @@ advance_past_final_token:
     /* Advance past the final token of the declaration (which should be a
        ';' or '}').  However, if the current declaration is a top-level
        declaration, set a global flag to enable checking for a header stop. */
+    abort_potential_abbr_func_templ_caching(dps);
     if (dps->is_top_level_declaration) {
       next_token_is_top_level_decl_start = TRUE;
     }  /* if */
@@ -20334,6 +20360,7 @@ advance_past_final_token:
     next_token_is_top_level_decl_start = FALSE;
   }  /* if */
 return_point:
+  abort_potential_abbr_func_templ_caching(dps);
   run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
   check_pending_qualifiers_used(dps);
   if (access_checks_deferred) {

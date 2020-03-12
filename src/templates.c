@@ -495,15 +495,15 @@ static void add_instantiation(
 		a_template_arg_ptr			template_arg_list);
 
 
-static void init_templ_decl_state(a_tmpl_decl_state_ptr	tdsp)
+static void init_templ_decl_state(a_tmpl_decl_state_ptr	tdsp,
+                                  a_decl_parse_state    *dps)
 /*
 Initialize a template declaration state block.
 */
 {
-  init_decl_parse_state(&tdsp->decl_parse);
-  tdsp->decl_parse.function_definition_allowed = TRUE;
-  tdsp->decl_parse.trailing_return_type_allowed =
-                                                trailing_return_types_enabled;
+  tdsp->decl_parse = dps;
+  dps->function_definition_allowed = TRUE;
+  dps->trailing_return_type_allowed = trailing_return_types_enabled;
   tdsp->is_template_friend = FALSE;
   tdsp->is_member_decl = FALSE;
   tdsp->is_specialization = FALSE;
@@ -838,7 +838,7 @@ may be a friend template.
     il_header.any_templates_seen = TRUE;
   }  /* if */
   tp = alloc_template();
-  tp->source_corresp.decl_position = decl_state->decl_parse.start_pos;
+  tp->source_corresp.decl_position = decl_state->decl_parse->start_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   tp->export_position = decl_state->export_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -2122,6 +2122,7 @@ compatibility checking.
   a_template_decl_info_ptr		tdip;
   a_symbol_ptr				sym;
   a_template_symbol_supplement_ptr	tssp;
+  a_decl_parse_state			dps;
   a_tmpl_decl_state			decl_state;
 
   sym = alloc_symbol((a_symbol_kind)sk_class_template,
@@ -2135,7 +2136,8 @@ compatibility checking.
   tdip->parameters = templ_param_list;
   tssp->variant.class_template.type_kind = (a_type_kind)tk_class;
   tssp->variant.class_template.invented_template = TRUE;
-  init_templ_decl_state(&decl_state);
+  init_decl_parse_state(&dps);
+  init_templ_decl_state(&decl_state, &dps);
   decl_state.il_template_entry = alloc_template();
   decl_state.decl_info = tdip;
   create_prototype_type(&decl_state, sym, tssp, (a_symbol_ptr)NULL,
@@ -4188,6 +4190,7 @@ by "decl_info".
 
 static void create_decl_state_for_partial_spec_rescan(
 			a_tmpl_decl_state_ptr			tdsp,
+			a_decl_parse_state			*dps,
 			an_out_of_class_partial_spec_ptr	oocpsp,
 			a_template_decl_info_ptr		decl_info,
 			a_type_ptr				class_type)
@@ -4204,7 +4207,7 @@ is the template declaration information of the partial specialization.
 {
   a_tmpl_decl_state_ptr	orig_tdsp = oocpsp->tmpl_decl_state;
 
-  init_templ_decl_state(tdsp);
+  init_templ_decl_state(tdsp, dps);
   tdsp->is_member_decl = TRUE;
   tdsp->nesting_depth = orig_tdsp->nesting_depth;
   tdsp->decl_info = decl_info;
@@ -4239,6 +4242,7 @@ with "instance_sym".
   a_template_symbol_supplement_ptr	new_tssp;
   a_boolean				resolution;
   a_symbol_ptr				new_sym;
+  a_decl_parse_state			dps;
   a_tmpl_decl_state			decl_state;
   a_symbol_ptr				ooc_sym = oocpsp->symbol;
 
@@ -4260,7 +4264,8 @@ with "instance_sym".
   /* The rescan requires a template declaration state block.  Build
      one to represent the state in which the partial specialization
      is to be processed. */
-  create_decl_state_for_partial_spec_rescan(&decl_state, oocpsp,
+  init_decl_parse_state(&dps);
+  create_decl_state_for_partial_spec_rescan(&decl_state, &dps, oocpsp,
                                             decl_info, class_type);
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
@@ -5589,7 +5594,7 @@ A pointer to the head of the list is returned in tcsp.
     ctsp->ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     attach_tag_attributes(tssp->attributes, prototype_type,
-                          &decl_state->decl_parse, /*is_definition=*/TRUE,
+                          decl_state->decl_parse, /*is_definition=*/TRUE,
                           /*is_forward_decl=*/FALSE,
                           /*ignore_gnu_attributes=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
@@ -5606,7 +5611,7 @@ A pointer to the head of the list is returned in tcsp.
      will not be done until the instantiation scope has been popped. */
   curr_class_fixup_header(/*for_instantiation=*/TRUE)->
                                                    pending_class_definitions++;
-  (void)scan_class_definition(prototype_type, &decl_state->decl_parse,
+  (void)scan_class_definition(prototype_type, decl_state->decl_parse,
                               depth_innermost_namespace_scope,
                               /*is_partial=*/FALSE,
                               /*is_local_class=*/FALSE,
@@ -6016,7 +6021,7 @@ user later during real instantiations.
   a_template_instance_ptr	    tip;
   a_boolean			    instantiation_scope_needed;
   a_boolean			    scope_pushed = FALSE;
-  a_decl_parse_state                *dps = &decl_state->decl_parse;
+  a_decl_parse_state                *dps = decl_state->decl_parse;
   a_boolean                         is_variable_template;
   a_symbol_ptr                      proto_sym;
   a_boolean                         is_definition = FALSE;
@@ -6038,7 +6043,7 @@ user later during real instantiations.
   }  /* if */
   proto_sym = symbol_for(var_ptr);
   check_assertion(proto_sym != NULL);
-  decl_state->decl_parse.sym = proto_sym;
+  dps->sym = proto_sym;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (dps->declared_type != NULL) {
     /* For in-class definitions, the declared type is set in
@@ -16096,7 +16101,7 @@ instantiation of an exception specification cached in the new template
 declaration.
 */
 {
-  a_decl_parse_state             *dps = &decl_state->decl_parse;
+  a_decl_parse_state             *dps = decl_state->decl_parse;
   a_routine_type_supplement_ptr  rtsp;
 
   check_assertion(is_function_or_template_symbol(sym));
@@ -17820,6 +17825,12 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
             complete_closure_entry_point_deduction(
                                         templ_sym, templ_arg_list, rout_type);
           }  /* if */
+        }  /* if */
+        if (tcp->tokens.token_count != 0) {
+          /* Flush to the end of the declaration cache. */
+          while (curr_token != tok_end_of_source) (void)get_token();
+          /* Skip past the tok_end_of_source. */
+          (void)get_token();
         }  /* if */
       } else {
         /* Obtain the type of the instance by rescanning the declaration
@@ -20907,7 +20918,7 @@ initially used when processing the declaration of a partial specialization.
                           tssp->variant.class_template.prototype_instantiation
                               ->variant.class_struct_union.type;
       a_decl_parse_state
-                  *dps = &decl_state->decl_parse;
+                  *dps = decl_state->decl_parse;
       if (cli_or_cx_enabled) {
         /* Record C++/CLI-specific properties in the prototype type. */
         class_type_supp(class_type)->cli_class_type_kind =
@@ -21919,7 +21930,7 @@ Return a pointer to the class template symbol used to represent the generic
 delegate.
 */
 {
-  a_decl_parse_state                    *dps = &decl_state->decl_parse;
+  a_decl_parse_state                    *dps = decl_state->decl_parse;
   a_symbol_locator			locator;
   a_symbol_ptr				sym = NULL;
   a_template_symbol_supplement_ptr	tssp;
@@ -22543,7 +22554,8 @@ declaration of a partial specialization declared outside of its class.
              decl_state->cli_class_type_kind ==
                                        (a_cli_class_type_kind)cctk_standard) {
     /* A template cannot be declared in a managed class. */
-    pos_error(ec_template_in_managed_class, &decl_state->decl_parse.start_pos);
+    pos_error(ec_template_in_managed_class,
+              &decl_state->decl_parse->start_pos);
     decl_state->decl_scope_err = TRUE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -22655,7 +22667,7 @@ declaration of a partial specialization declared outside of its class.
             /* If the symbol is not marked as a prototype instantiation yet,
                then this is the first time we're marking it as a partial
                specialization. */
-            decl_state->decl_parse.first_decl = TRUE;
+            decl_state->decl_parse->first_decl = TRUE;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -23292,7 +23304,7 @@ friend_template_checks_done:
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ms_extensions) {
-    a_decl_parse_state *dps = &decl_state->decl_parse;
+    a_decl_parse_state *dps = decl_state->decl_parse;
     if (dps->ms_attributes != NULL) {
       /* Apply Microsoft bracketed attributes. */
       a_type_ptr prototype_type = prototype_instantiation_for_template(sym);
@@ -24671,13 +24683,14 @@ depends on a template parameter.
 
 static void set_decl_state_for_template_param(
 				a_tmpl_decl_state_ptr	curr_state,
-				a_tmpl_decl_state_ptr	new_state)
+				a_tmpl_decl_state_ptr	new_state,
+				a_decl_parse_state	*new_dps)
 /*
 Create a new template declaration state for scanning a template template
 parameter based on the current state.
 */
 {
-  init_templ_decl_state(new_state);
+  init_templ_decl_state(new_state, new_dps);
   new_state->in_prototype_instantiation =
                                         curr_state->in_prototype_instantiation;
   new_state->nesting_depth = 0;
@@ -24740,6 +24753,7 @@ depends on a another template parameter.
   a_template_ptr			templ_ptr;
   a_template_symbol_supplement_ptr	tssp;
   a_boolean				is_named;
+  a_decl_parse_state			local_dps;
   a_tmpl_decl_state			local_decl_state;
   a_boolean				is_pack = FALSE;
   a_decl_pos_block			decl_pos_block;
@@ -24751,7 +24765,9 @@ depends on a another template parameter.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Create a new set of declaration state information to be used while
      scanning the template template parameter. */
-  set_decl_state_for_template_param(parent_decl_state, &local_decl_state);
+  init_decl_parse_state(&local_dps);
+  set_decl_state_for_template_param(parent_decl_state,
+                                    &local_decl_state, &local_dps);
   scan_template_param_clauses(&local_decl_state, /*is_template_param=*/TRUE);
   /* Pop all of the template declaration scopes that were pushed earlier. */
   for (; local_decl_state.number_of_template_decl_scopes != 0;
@@ -25101,7 +25117,7 @@ to represent the template parameters.
   remove_stop_token(tok_semicolon);
   if (param_state.list_pos > USHRT_MAX) {
     pos_st_catastrophe(ec_templ_param_list_too_long,
-                       &decl_state->decl_parse.start_pos, (char*)NULL);
+                       &decl_state->decl_parse->start_pos, (char*)NULL);
   } else {
     decl_state->decl_info->n_params = param_state.list_pos;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -25271,6 +25287,7 @@ the resulting constant is stored in the pointer pointed to by "constant".
 
 static void set_decl_state_for_template_template_rescan(
 				a_tmpl_decl_state_ptr	new_state,
+				a_decl_parse_state	*new_dps,
 				a_template_param_ptr	param)
 /*
 Create a new template declaration state for rescanning a template template
@@ -25280,7 +25297,7 @@ template template parameter.
 {
   a_scope_stack_entry_ptr	ssep;
 
-  init_templ_decl_state(new_state);
+  init_templ_decl_state(new_state, new_dps);
   ssep = &scope_stack[depth_scope_stack];
   new_state->in_prototype_instantiation = ssep->in_prototype_instantiation;
   new_state->param_list_cache = param->cache.tokens;
@@ -25334,6 +25351,7 @@ template parameters that depend on other template parameters.
     new_template = error_class_template()->
                                       variant.template_info->il_template_entry;
   } else {
+    a_decl_parse_state          parent_dps;
     a_tmpl_decl_state		parent_decl_state;
     a_template_param_ptr	new_param;
     a_tmpl_param_state		param_state;
@@ -25355,7 +25373,9 @@ template parameters that depend on other template parameters.
     rescan_reusable_cache(&param_ptr->cache.tokens);
     /* Create a template declaration state that can be passed into the
        template template parameter scanning routine. */
-    set_decl_state_for_template_template_rescan(&parent_decl_state, param_ptr);
+    init_decl_parse_state(&parent_dps);
+    set_decl_state_for_template_template_rescan(&parent_decl_state,
+                                                &parent_dps, param_ptr);
     /* Rescan the template template parameter declaration. */
     init_tmpl_param_state(&param_state);
     param_state.list_pos = param_ptr->variant.templ->
@@ -25972,7 +25992,7 @@ set, and its source sequence entry, if any, has been put out.)
           il_template_entry->canonical_template =
                      sym->variant.static_data_member.variable->template_info
                                                              ->assoc_template;
-          if (decl_state->decl_parse.has_initializer ||
+          if (decl_state->decl_parse->has_initializer ||
               !sym->variant.static_data_member.variable
                   ->initializer_in_class) {
             il_template_entry->canonical_template->definition_template =
@@ -26198,7 +26218,7 @@ Create the variable entry variable template specified by template_sym.
   a_template_param_ptr			templ_param_list;
   a_template_arg_ptr			templ_arg_list;
   a_symbol_ptr				prototype_sym;
-  a_decl_parse_state			*dps = &decl_state->decl_parse;
+  a_decl_parse_state			*dps = decl_state->decl_parse;
 
   check_assertion(symbol_is(template_sym, sk_variable_template));
   tssp = template_sym->variant.template_info;
@@ -26399,7 +26419,7 @@ return NULL.
       a_variable_template_info_ptr	vtip;
       a_variable_ptr			ps_var;
       a_template_symbol_supplement_ptr	tssp;
-      decl_state->decl_parse.first_decl = TRUE;
+      decl_state->decl_parse->first_decl = TRUE;
       ps_sym = create_variable_template_symbol(decl_state, locator);
       ps_sym->decl_scope = primary_sym->decl_scope;
       tssp = ps_sym->variant.template_info;
@@ -26458,7 +26478,7 @@ supplement for this template should be returned to the caller.
   a_boolean                        has_parenthesized_initializer = FALSE;
   a_template_symbol_supplement_ptr tssp = NULL;
   a_template_decl_info_ptr         tdip = NULL;
-  a_decl_parse_state               *dps = &decl_state->decl_parse;
+  a_decl_parse_state               *dps = decl_state->decl_parse;
   a_boolean                        is_variable_template;
   a_boolean                        is_initial_decl = FALSE;
   a_variable_ptr                   var = NULL;
@@ -26611,7 +26631,7 @@ supplement for this template should be returned to the caller.
 #endif /* CHECKING */
     /* Make sure the declaration did not use features only valid for
        functions (e.g., "inline" in pre-C++17 dialects). */
-    check_nonfunction_declaration_errors(&decl_state->decl_parse, locator,
+    check_nonfunction_declaration_errors(dps, locator,
                                          /*is_variable_decl=*/TRUE);
     tssp = template_supplement_for_symbol(sym);
     var_sym = symbol_for(tssp->variant.variable.prototype_variable);
@@ -26857,7 +26877,7 @@ new declaration and set *p_tssp to the new template symbol supplement.
 {
   a_symbol_locator			locator;
   a_func_info_block			func_info;
-  a_decl_parse_state			*dps = &decl_state->decl_parse;
+  a_decl_parse_state			*dps = decl_state->decl_parse;
   a_symbol_ptr				sym;
   a_template_symbol_supplement_ptr	tssp;
 
@@ -27414,7 +27434,8 @@ caller.
   }  /* if */
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_function_template) {
     if (sym->is_class_member && !decl_state->is_template_friend &&
-        !rout_ptr->is_inheriting_ctor) {
+        !rout_ptr->is_inheriting_ctor &&
+        !special_kind_is(rout_ptr, sfk_deduction_guide)) {
       if (in_prototype_instantiation_or_cli_generic(decl_state)) {
         /* Save the token sequence number associated with this declaration.
            This is done here for function templates that are class members.
@@ -27724,7 +27745,7 @@ optionally prefixed with the keyword "explicit".
 */
 {
   a_boolean			defaulted;
-  a_decl_parse_state_ptr	dps = &decl_state->decl_parse;
+  a_decl_parse_state_ptr	dps = decl_state->decl_parse;
   a_symbol_ptr			sym, proto_sym;
   a_template_ptr                templ = decl_state->il_template_entry;
   a_routine_ptr			proto;
@@ -27831,7 +27852,7 @@ decl_state tracks the state of the template declaration and decl_pos_block
 records additional position information.
 */
 {
-  a_decl_parse_state  *dps = &decl_state->decl_parse;
+  a_decl_parse_state  *dps = decl_state->decl_parse;
   a_type_ptr          new_type_ptr;
   a_decl_flag_set     di_flags = DI_IS_TEMPLATE_DECLARATION |
                                  DI_IS_DEDUCTION_GUIDE;
@@ -27879,7 +27900,7 @@ declared.  func_info points to the block of information for the current
 function declaration.
 */
 {
-  a_decl_parse_state  *dps = &decl_state->decl_parse;
+  a_decl_parse_state  *dps = decl_state->decl_parse;
   a_symbol_ptr        sym = NULL;
   a_boolean           defaulted;
 
@@ -27889,8 +27910,7 @@ function declaration.
   }  /* if */
   /* Set some flags in func_info as appropriate. */
   if (curr_token == tok_lbrace || curr_token == tok_try ||
-      (curr_token == tok_colon &&
-       (decl_state->decl_parse.do_flags & DO_IS_CONSTRUCTOR) != 0)) {
+      (curr_token == tok_colon && (dps->do_flags & DO_IS_CONSTRUCTOR) != 0)) {
     func_info->is_definition = TRUE;
   } else if (curr_token == tok_assign &&
              deleted_or_defaulted_def_next(&defaulted)) {
@@ -28961,7 +28981,7 @@ parameter lists that were scanned.
   a_boolean			    prototype_okay = FALSE;
   a_boolean			    is_class_template = FALSE;
   a_boolean			    invalid_decl = FALSE;
-  a_decl_parse_state                *dps = &decl_state->decl_parse;
+  a_decl_parse_state                *dps = decl_state->decl_parse;
 
   db_enter(3, "template_declaration");
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -29107,7 +29127,7 @@ parameter lists that were scanned.
               p_template_body_cache = &tssp->cache.tokens;
             }  /* if */
           } else if (!symbol_is(sym, sk_static_data_member) ||
-                     decl_state->decl_parse.has_initializer) {
+                     dps->has_initializer) {
             p_template_body_cache = &tssp->cache.tokens;
           }  /* if */
         }  /* if */
@@ -29822,7 +29842,7 @@ create a corresponding routine fixup to scan the definition after the class is
 completed.  The closing brace is left for the caller to consume.
 */
 {
-  a_decl_parse_state  *dps = &decl_state->decl_parse;
+  a_decl_parse_state  *dps = decl_state->decl_parse;
   a_token_cache	      body_cache;
 
   clear_token_cache(&body_cache, /*reusable=*/TRUE);
@@ -29891,7 +29911,7 @@ that follows.
 {
   a_symbol_locator              locator;
   a_decl_flag_set               do_flags, dso_flags, di_flags, dsi_flags;
-  a_decl_parse_state            *dps = &decl_state->decl_parse;
+  a_decl_parse_state            *dps = decl_state->decl_parse;
   a_symbol_ptr		        sym;
   a_func_info_block             func_info;
   a_boolean			keep_func_info = FALSE;
@@ -29924,7 +29944,7 @@ that follows.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   clear_decl_pos_block(&decl_pos_block);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  decl_pos_block.extra_positions = decl_state->decl_parse.extra_positions;
+  decl_pos_block.extra_positions = dps->extra_positions;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (deduced_return_types_enabled) {
     dps->auto_type_allowed = TRUE;
@@ -29948,7 +29968,7 @@ that follows.
   }  /* if */
   if (decl_state->is_member_decl) {
     dsi_flags |= DSI_IS_MEMBER_DECLARATION;
-    decl_state->decl_parse.in_class_scope = TRUE;
+    dps->in_class_scope = TRUE;
   }  /* if */
   /* Strictly speaking, storage-class-specifiers are not permitted
      in specializations, but in practice, certain storage-class-specifiers
@@ -32107,6 +32127,7 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
 */
 {
   a_tmpl_decl_state		decl_state;
+  a_decl_parse_state            dps;
   a_def_arg_expr_fixup_ptr	saved_curr_default_args;
   a_scope_depth			orig_depth = depth_scope_stack;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -32117,7 +32138,8 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
                        (curr_token == tok_identifier && is_generic),
                        "template_or_specialization_declaration:",
                        "expected tok_template or generic identifier");
-  init_templ_decl_state(&decl_state);
+  init_decl_parse_state(&dps);
+  init_templ_decl_state(&decl_state, &dps);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   header_pos = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -32168,7 +32190,7 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
   scan_template_param_clauses(&decl_state, /*is_template_param=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (decl_state.is_generic) {
-    decl_state.decl_parse.is_generic_declaration = TRUE;
+    dps.is_generic_declaration = TRUE;
     /* For C++/CLI generics, scan any constraints that may be present. */
     scan_generic_constraint_clauses(&decl_state);
   }  /* if */
@@ -32186,7 +32208,7 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
   if (decl_state.effective_decl_level == NO_SCOPE_DEPTH) {
     pos_error(decl_state.is_generic ? ec_bad_generic_declaration_scope
                                     : ec_bad_template_declaration_scope,
-              &decl_state.decl_parse.start_pos);
+              &dps.start_pos);
     decl_state.decl_scope_err = TRUE;
     /* Set the effective declaration level to a valid value for the remainder
        of the processing. */
@@ -32202,16 +32224,16 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
     pos_error(decl_state.is_generic
                                   ? ec_interface_cannot_have_member_generics
                                   : ec_interface_cannot_have_member_templates,
-              &decl_state.decl_parse.start_pos);
+              &dps.start_pos);
   } else if (decl_state.is_generic && decl_state.is_member_decl &&
              !is_valid_cli_generic_declaration_context()) {
     /* A generic cannot be declared in a template. */
-    pos_error(ec_generic_in_template, &decl_state.decl_parse.start_pos);
+    pos_error(ec_generic_in_template, &dps.start_pos);
     decl_state.decl_scope_err = TRUE;
   } else if (!decl_state.is_generic && decl_state.is_member_decl &&
              is_cli_generic_definition_context()) {
     /* A template cannot be declared in a generic. */
-    pos_error(ec_template_in_generic, &decl_state.decl_parse.start_pos);
+    pos_error(ec_template_in_generic, &dps.start_pos);
     decl_state.decl_scope_err = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -32259,7 +32281,7 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
     } else {
       if (!decl_state.decl_scope_err) {
         pos_error(ec_explicit_specialization_not_in_namespace_scope,
-                  &decl_state.decl_parse.start_pos);
+                  &dps.start_pos);
         decl_state.decl_scope_err = TRUE;
       }  /* if */
     }  /* if */
@@ -32272,7 +32294,7 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     add_element_position(epk_specialization_header, &header_pos,
-                         &decl_state.decl_parse.extra_positions);
+                         &dps.extra_positions);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* The background cache is not needed for a full specialization. */
     end_caching_template_decl(&decl_state);
@@ -32317,15 +32339,17 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
 }  /* template_or_specialization_declaration */
 
 
-static void start_generic_lambda_state(a_tmpl_decl_state  *templ_state)
+static void start_generic_lambda_state(a_tmpl_decl_state   *templ_state,
+                                       a_decl_parse_state  *dps)
 /*
 Initialize *templ_state for a generic lambda's call operator template and push
-a corresponding template declaration scope.
+a corresponding template declaration scope.  dps is the parse state associated
+with the lambda declarator.
 */
 {
   a_template_decl_info_ptr  template_decl_info;
 
-  init_tmpl_decl_state_for_generated_member_template(templ_state);
+  init_tmpl_decl_state_for_generated_member_template(templ_state, dps);
   templ_state->is_lambda = TRUE;
   templ_state->starting_token_sequence_number = curr_token_sequence_number;
   templ_state->in_prototype_instantiation =
@@ -32368,13 +32392,15 @@ a corresponding template declaration scope.
 }  /* start_generic_lambda_state */
 
 
-void scan_lambda_template_param_list(a_tmpl_decl_state   *templ_state)
+void scan_lambda_template_param_list(a_tmpl_decl_state   *templ_state,
+                                     a_decl_parse_state  *dps)
 /*
 The current token is the left angle bracket introducing a C++20-style template
 parameter list for a lambda (e.g., "<int N>" in "[]<int N>(){}").  Set up IL
 and front end structures to declare a member template for the lambda's call
 operator.  In particular, push a template declaration scope and initialize and
-update *templ_state accordingly.  Then scan the template parameter list.
+update *templ_state accordingly.  Then scan the template parameter list.  dps
+is the parse state associated with the lambda declarator.
 */
 {
   a_boolean          is_dependent = FALSE;
@@ -32388,7 +32414,7 @@ update *templ_state accordingly.  Then scan the template parameter list.
     (void)get_token();
     goto done;
   }  /* if */
-  start_generic_lambda_state(templ_state);
+  start_generic_lambda_state(templ_state, dps);
   /* Bypass the "<". */
   (void)get_token();
   scan_template_param_list(templ_state);
@@ -32427,7 +32453,7 @@ parameters described by dps->auto_params.  Update *templ_state accordingly.
   char                         param_name[100] = AUTO_PARAM_NAME_PREFIX;
 
   if (!scope_stack_top().is_generic_lambda) {
-    start_generic_lambda_state(templ_state);
+    start_generic_lambda_state(templ_state, dps);
   } else {
     a_template_param_ptr  tpp = templ_state->decl_info->parameters;
     for (; tpp != NULL; tpp = tpp->next) {
@@ -39091,19 +39117,20 @@ creating a compiler-generated template.
 
 
 void init_tmpl_decl_state_for_generated_member_template(
-                                                 a_tmpl_decl_state_ptr  state)
+                                                 a_tmpl_decl_state_ptr  state,
+                                                 a_decl_parse_state     *dps)
 /*
 Create a new template declaration state for declaring a compiler-generated
 member template (e.g., an inheriting constructor template).  This includes the
 allocation and initialization of an object of type a_template_decl_info
-pointed to by state.
+pointed to by state.  dps is the parse state for the member template.
 */
 {
   a_scope_stack_entry_ptr   ssep = &scope_stack_top();
   a_template_decl_info_ptr  templ_decl_info;
 
   check_assertion(scope_is(ssep, sck_class_struct_union));
-  init_templ_decl_state(state);
+  init_templ_decl_state(state, dps);
   state->effective_decl_level = depth_scope_stack;
   state->is_member_decl = TRUE;
   state->in_prototype_instantiation = ssep->in_prototype_instantiation;
@@ -39136,7 +39163,7 @@ the function template, and decl_state tracks its declaration.
      generated member templates, except for the case of a generic lambda
      call operator (which has an associated declarator in the source code). */
   saved_curr_default_args = curr_default_args;
-  if (!decl_state->decl_parse.is_inheriting_ctor &&
+  if (!decl_state->decl_parse->is_inheriting_ctor &&
       tssp->variant.function.func_info.lambda == NULL) {
     curr_default_args = NULL;
   }  /* if */
