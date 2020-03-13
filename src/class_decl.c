@@ -17282,7 +17282,7 @@ template declaration and is NULL otherwise.
   a_decl_parse_state       *decl_state = &decl_info->decl_state;
   a_type_ptr               class_type = class_state->class_type;
   a_type_ptr               member_type = decl_state->type;
-  a_source_position        *start_pos = &decl_state->start_pos;
+  a_source_position        *start_pos = &decl_state->specifiers_pos;
   a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
   a_scope_depth            effective_decl_level;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
