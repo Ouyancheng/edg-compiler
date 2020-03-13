@@ -1115,6 +1115,9 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_is_same_as, "__is_same_as");
       if (gpp_version_is(>= 80000)) {
         enter_keyword((a_token_kind)tok_integer_pack, "__integer_pack");
+        if (gpp_version_is(>= 100000)) {
+          enter_keyword((a_token_kind)tok_is_same, "__is_same");
+        }  /* if */
       }  /* if */
     }  /* if */
     if (gnu_version >= 90000) {
