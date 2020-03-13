@@ -2313,17 +2313,17 @@ call.
     if (function_sym != NULL) {
       a_boolean        inh_ctor_case = FALSE;
       a_using_decl_ptr udp;
-      a_symbol_ptr     proj_sym = fundamental_symbol_of(function_sym);
+      a_symbol_ptr     fund_sym = fundamental_symbol_of(function_sym);
       /* Normal function case. */
       if (is_ambiguous_by_inheritance(function_sym)) {
         /* Function symbol is ambiguous by inheritance.  Use a special
            message.  This happens for conversion functions inherited
            into a derived class. */
         err_code = ec_ambiguous_by_inheritance_add_on;
-      } else if (proj_sym->variant.routine.ptr->is_inheriting_ctor) {
+      } else if (func_sym_routine(fund_sym)->is_inheriting_ctor) {
         /* This is an inheriting constructor - get the inherited constructor
            symbol. */
-        a_routine_ptr rp = func_sym_routine(proj_sym);
+        a_routine_ptr rp = func_sym_routine(fund_sym);
         udp = rp->generating_using_decl;
         rp = get_inh_ctor_originator(rp);
         function_sym = symbol_for(rp);
