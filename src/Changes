@@ -1,5 +1,24 @@
 Version 6.1
 
+3/13/20  [EDGcpfe/21752]
+Spurious error on unevaluated expression in dependent constant contexts
+
+Consider:
+
+  template<typename T> struct Cond {
+    static constexpr bool value = (sizeof(T) == 17);
+  };
+  template<typename T> constexpr int g() {
+    constexpr bool r = Cond<T>::value && check(D());  // Previously an error.
+    return 42;                                        // Now okay.
+  }
+  constexpr int r = g<int>();
+
+Previously, the front produced a spurious error about the initializer for r
+not being constant because D() introduces a destructor call.  However, that
+call is not necessarily evaluated (depending on T).  That is now fixed.
+
+
 3/13/20  [EDGcpfe/22451]
 Potential memory corruption when compiling multiple source files
 
