@@ -10615,7 +10615,7 @@ this one is such a continuation.
         !type->variant.integer.is_specialized) {
       a_type_ptr parent_class = parent_class_of(type);
       if (class_type_supp(parent_class)->template_arg_list != NULL &&
-          !type->variant.class_struct_union.is_specialized) {
+          !parent_class->variant.class_struct_union.is_specialized) {
         /* This is a non-defining declaration of an enumeration, appearing
            in a generated explicit specialization of a class template
            instance. G++ has a bug that causes it to reject out-of-class
