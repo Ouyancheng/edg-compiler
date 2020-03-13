@@ -221,6 +221,7 @@ be restored).
     dps->range_based_for = FALSE;
     dps->decl_okay_in_constexpr_body = FALSE;
     dps->is_inheriting_ctor = FALSE;
+    dps->inherits_virtually = FALSE;
     dps->is_inh_ctor_def_init = FALSE;
     dps->is_explicit_override = FALSE;
     dps->is_init_capture = FALSE;
@@ -253,6 +254,7 @@ be restored).
     dps->prev_type = NULL;
     dps->auto_type = NULL;
     dps->deduced_auto_type = NULL;
+    dps->inherited_routine = NULL;
     dps->param_id = NULL;
     dps->variant.param_id_list = NULL;
     dps->upc_block_size = UPC_BLOCK_SIZE_NONE;

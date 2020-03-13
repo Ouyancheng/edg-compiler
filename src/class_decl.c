@@ -10795,7 +10795,7 @@ When templates_only is TRUE, only function templates members are considered.
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
-    if (match && orig_rts->inherited_routine != new_rts->inherited_routine) {
+    if (match && inh_ctor_inherited_ctor(routine) != dps->inherited_routine) {
       /* At least one routine is an inheriting constructor, but they do not
          inherit the same routine. */
       match = FALSE;
@@ -15060,6 +15060,8 @@ implicitly declared member functions.
     if (list_init_enabled) {
       set_initializer_list_ctor_flags(rtn, class_type);
     }  /* if */
+    rtn->variant.ctor_dtor.inherits_virtually = decl_state->inherits_virtually;
+    rtn->variant.ctor_dtor.inherited_routine = decl_state->inherited_routine;
   } else if (decl_info->is_destructor) {
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_destructor);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -16369,6 +16371,8 @@ decl_member_function, which handles in-class member function declarations.)
       if (list_init_enabled) {
         set_initializer_list_ctor_flags(rtn, class_type);
       }  /* if */
+      rtn->variant.ctor_dtor.inherited_routine = dps->inherited_routine;
+      rtn->variant.ctor_dtor.inherits_virtually = dps->inherits_virtually;
     }  /* if */
     attach_decl_attributes(dps, (a_boolean)func_info->is_definition);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -23371,8 +23375,7 @@ routines are generated as part of this call.
 
 
 static a_type_ptr create_inheriting_ctor_type(a_routine_ptr brp,
-                                              a_type_ptr    class_type,
-                                              a_boolean     inherits_virtually)
+                                              a_type_ptr    class_type)
 /*
 brp is a base class constructor (possibly a base class constructor prototype
 instantiation) from which an inheriting constructor (or constructor template)
@@ -23386,11 +23389,6 @@ will be generated for the given class type.
   copy_type(brp->type, new_tp);
   new_rtsp->exception_specification = NULL;
   new_rtsp->this_class = class_type;
-  new_rtsp->assoc_routine = NULL;
-  new_rtsp->inherited_routine = brp;
-  if (inherits_virtually || inh_ctor_inherits_virtually(brp)) {
-    new_rtsp->inherits_virtually = TRUE;
-  }  /* if */
   return new_tp;
 }  /* create_inheriting_ctor_type */
 
@@ -23423,7 +23421,7 @@ templates from that base template.
   btssp = bctor->variant.template_info;
   btpl = btssp->variant.function.decl_cache.decl_info->parameters;
   brp = btssp->variant.function.routine;
-  new_tp = create_inheriting_ctor_type(brp, cdsp->class_type, bcp->is_virtual);
+  new_tp = create_inheriting_ctor_type(brp, cdsp->class_type);
   /* Check if the derived class already contains a user-declared constructor
      with this signature: */
   dctor = class_symbol_supp(symbol_for(cdsp->class_type))->constructor;
@@ -23489,6 +23487,10 @@ templates from that base template.
     initialize_member_decl_info(&decl_info, &udp->position);
     decl_info.is_constructor = TRUE;
     decl_info.decl_state.is_inheriting_ctor = TRUE;
+    decl_info.decl_state.inherited_routine = brp;
+    if (bcp->is_virtual || inh_ctor_inherits_virtually(brp)) {
+      decl_info.decl_state.inherits_virtually = TRUE;
+    }  /* if */
     decl_info.decl_state.first_decl = TRUE;
     decl_info.decl_state.type = new_tp;
     if (brp->is_constexpr) {
@@ -23510,6 +23512,9 @@ templates from that base template.
     init_tmpl_decl_state_for_generated_member_template(&templ_decl_state,
                                                        &decl_info.decl_state);
     templ_decl_state.decl_parse->is_inheriting_ctor = TRUE;
+    templ_decl_state.decl_parse->inherited_routine = brp;
+    templ_decl_state.decl_parse->inherits_virtually =
+                                       decl_info.decl_state.inherits_virtually;
     templ_decl_state.final_token_ptr = &final_token;
     templ_decl_state.is_variadic = btssp->is_variadic;
     templ_decl_state.has_variadic_template_params =
@@ -23607,8 +23612,7 @@ constructor.
                                 /*is_declarative_context=*/TRUE)) {
     a_type_ptr        new_tp;
     a_symbol_ptr      dctor;
-    new_tp = create_inheriting_ctor_type(brp, cdsp->class_type,
-                                         bcp->is_virtual);
+    new_tp = create_inheriting_ctor_type(brp, cdsp->class_type);
     /* Check if the derived class already contains a constructor with this
        signature: */
     dctor = class_symbol_supp(symbol_for(cdsp->class_type))->constructor;
@@ -23652,6 +23656,10 @@ constructor.
       initialize_member_decl_info(&decl_info, &udp->position);
       decl_info.is_constructor = TRUE;
       decl_info.decl_state.is_inheriting_ctor = TRUE;
+      decl_info.decl_state.inherited_routine = brp;
+      if (bcp->is_virtual || inh_ctor_inherits_virtually(brp)) {
+        decl_info.decl_state.inherits_virtually = TRUE;
+      }  /* if */
       decl_info.decl_state.first_decl = TRUE;
       decl_info.decl_state.type = new_tp;
       if (brp->is_constexpr) {

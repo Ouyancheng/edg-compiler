@@ -13128,8 +13128,14 @@ C++ mode.
         distinguishable = TRUE;
         goto distinguishable_determined;
       }  /* if */
+      if (inh_ctor_inherited_ctor(old_rp) != dps->inherited_routine) {
+        /* At least one routine is an inherited constructor, and they don't
+           inherit the same routine - therefore they are distinguishable. */
+        distinguishable = TRUE;
+        goto distinguishable_determined;
+      }  /* if */
       distinguishable = FALSE;
-    /* Get the old routine type. */
+      /* Get the old routine type. */
       old_type = skip_typerefs(old_rp->type);
     }  /* if */
     old_extra_info = old_type->variant.routine.extra_info;
@@ -13211,13 +13217,6 @@ C++ mode.
         !compatible_enable_if_attributes(new_type, old_type)) {
       /* If the enable_if attributes do not match, the types are
          distinguishable. */
-      distinguishable = TRUE;
-      goto distinguishable_determined;
-    }  /* if */
-    if (old_extra_info->inherited_routine !=
-        new_extra_info->inherited_routine) {
-      /* At least one routine is an inherited constructor, and they don't
-         inherit the same routine - therefore they are distinguishable. */
       distinguishable = TRUE;
       goto distinguishable_determined;
     }  /* if */

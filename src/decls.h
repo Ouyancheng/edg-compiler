@@ -1041,6 +1041,10 @@ typedef struct a_decl_parse_state {
   a_bit_field	is_inheriting_ctor:1;
 			/* TRUE if this is the declaration of an inheriting
 			   constructor. */
+  a_bit_field	inherits_virtually:1;
+			/* TRUE if is_inheriting_ctor is TRUE and the inherited
+			   constructor comes from a virtual base class of the
+			   class that owns the constructor being declared. */
   a_bit_field	is_inh_ctor_def_init:1;
 			/* TRUE if this is the declaration of a default-
 			   initialization constructor for inheriting
@@ -1197,6 +1201,11 @@ typedef struct a_decl_parse_state {
 		deduced_auto_type;
 			/* The type that "auto" was deduced to after scanning
 			   the initializer. */
+  a_routine_ptr
+		inherited_routine;
+			/* If is_inheriting_ctor is TRUE, this points to the
+			   routine that is being inherited.  Otherwise, it is
+			   NULL. */
   an_initializer_cache
 		prescanned_initializer_cache;
 			/* A cache containing an expression scanned early

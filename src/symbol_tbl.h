@@ -6646,10 +6646,12 @@ extern a_routine_ptr get_inh_ctor_originator(
                                          a_boolean     ignore_virtual = FALSE);
 
 #define inh_ctor_inherited_ctor(ctor)                                         \
-  (ctor->type->variant.routine.extra_info->inherited_routine)
+  (special_kind_is((ctor), sfk_constructor) ?                                 \
+   (ctor)->variant.ctor_dtor.inherited_routine : NULL)
 
 #define inh_ctor_inherits_virtually(ctor)                                     \
-  (ctor->type->variant.routine.extra_info->inherits_virtually)
+  (special_kind_is((ctor), sfk_constructor) &&                                \
+   (ctor)->variant.ctor_dtor.inherits_virtually)
 
 /* Return TRUE if a symbol is a conversion operator symbol. */
 #define is_conversion_function_symbol(sym)                            \

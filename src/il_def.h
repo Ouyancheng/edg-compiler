@@ -6654,14 +6654,6 @@ typedef struct a_routine_type_supplement {
 			   a special member with an "indeterminate" exception
 			   specification, this points to the associated
 			   function.  Otherwise, it is NULL. */
-  a_routine_ptr inherited_routine;
-                        /* If this type is the type for a function that is an
-			   inheriting constructor, this points to the routine
-			   that was inherited.  Otherwise, it is NULL. */
-  a_bit_field	inherits_virtually:1;
-                        /* TRUE if inherited_routine is non-NULL and it comes
-                           from a virtual base class of the class that owns
-                           this type. */
   a_bit_field	has_ellipsis:1;
                         /* TRUE if there is an ellipsis ("...") at the end of
                            the prototyped parameter list, indicating a
@@ -11227,9 +11219,9 @@ typedef struct a_routine {
 			   builtin function; bfk_none for an ordinary
 			   function. */ 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-#if IA64_ABI && DO_IL_LOWERING
     /* When special_kind == sfk_constructor or sfk_destructor. */
     struct {
+#if IA64_ABI && DO_IL_LOWERING
       a_routine_list_entry_ptr
 		alternate_entry_points;
 			/* For a constructor or destructor with entry points,
@@ -11244,8 +11236,18 @@ typedef struct a_routine {
 			   constructor/destructor.  (This value is used when
 			   calculating the mangled names for alternate entry
 			   points.) */
-    } ctor_dtor;
 #endif /* IA64_ABI && DO_IL_LOWERING */
+      a_routine_ptr
+		inherited_routine;
+			/* For an inheriting constructor, this points to the
+			   routine that was inherited.  Otherwise, it is
+			   NULL. */
+      a_bit_field
+		inherits_virtually:1;
+			/* TRUE if inherited_routine is non-NULL and it comes
+			   from a virtual base class of the class that owns
+			   this constructor. */
+    } ctor_dtor;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* When special_kind == sfk_property_get, sfk_property_set, sfk_event_add,
        sfk_event_remove, or sfk_event_raise. */

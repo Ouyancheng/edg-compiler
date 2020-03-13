@@ -2084,8 +2084,6 @@ to default values.
 #endif /* DEBUG */
       rtsp->param_type_list          = NULL;
       rtsp->assoc_routine            = NULL;
-      rtsp->inherited_routine        = NULL;
-      rtsp->inherits_virtually       = FALSE;
       rtsp->has_ellipsis             = FALSE;
       rtsp->prototyped               = FALSE;
       rtsp->old_style_params_scanned = FALSE;
@@ -2875,6 +2873,8 @@ value.  Also clear related variant fields to default values.
                                                 (a_routine_list_entry_ptr)NULL;
       rp->variant.ctor_dtor.base_name_offset = 0;
 #endif /* IA64_ABI && DO_IL_LOWERING */
+      rp->variant.ctor_dtor.inherited_routine = NULL;
+      rp->variant.ctor_dtor.inherits_virtually = FALSE;
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case sfk_static_constructor:
