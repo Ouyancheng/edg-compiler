@@ -3174,6 +3174,7 @@ ec_invalid_bit_cast_type;;"a union, pointer, or pointer-to-member type %t preven
 ec_ambiguous_inh_constructor_add_on;INTERNAL;"%npT (inherited via using decl %p)"
 ec_deleted_inh_def_constructor;;"the sub-object construction of %t for inheriting constructors cannot be performed -- the implicit default constructor is deleted"
 ec_promise_type_returns_return_void;;"%n must return void"
+ec_invalid_start_of_member_declaration;;"invalid start of member declaration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

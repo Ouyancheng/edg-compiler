@@ -3632,7 +3632,13 @@ nested class.
                               SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
                               SFB_PRAGMA_PACK_IS_LOCAL));
           /* scan_function_body does not scan past the right brace. */
-          if (curr_token == tok_rbrace) (void)get_token();
+          if (curr_token == tok_rbrace) {
+            (void)get_token();
+            if (curr_token != tok_end_of_source) {
+              pos_error(ec_invalid_start_of_member_declaration,
+                        &pos_curr_token);
+            }  /* if */
+          }  /* if */
           if (rfp->function_body_token_cache.is_reusable) {
             discard_token_cache(&rfp->function_body_token_cache);
           }  /* if */
