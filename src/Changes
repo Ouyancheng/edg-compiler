@@ -1,5 +1,16 @@
 Version 6.1
 
+3/13/20  [EDGcpfe/22451]
+Potential memory corruption when compiling multiple source files
+
+In version 6.0, the front end memory allocator was extended to enable freeing
+and reusing front end memory allocations.  Unfortunately, the added data
+structure added to enable this reuse was not correctly reset when compiling
+multiple source files (in configurations with COMPILE_MULTIPLE_SOURCE_FILES
+set to TRUE), which could result in memory corruption mostly likely to result
+in aborts.  That is now fixed.
+ 
+
 3/10/20  [EDGcpfe/22054]
 C++-generating back end: friend declaration of defaulted function
 
