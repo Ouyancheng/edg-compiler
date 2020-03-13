@@ -25985,7 +25985,8 @@ cleared.
     /* Go through the list of classes that have specified friend_rout as a
        friend, find the entry that matches class_type, and link around it. */
     prev_clep = NULL;
-    clep = friend_rout->befriending_classes;
+    clep = rout_befriending_classes(friend_rout);
+    check_assertion(!(friend_rout->is_inheriting_ctor && clep != NULL));
     for (; clep != NULL; clep = next_clep) {
       next_clep = clep->next;
       if (clep->class_type == class_type) {
@@ -26001,12 +26002,12 @@ cleared.
             fputc('\n', f_debug);
             if (db_flag_is_set("friendship")) {
               fprintf(f_debug, "befriending_classes of friend routine:\n");
-              db_class_list(friend_rout->befriending_classes);
+              db_class_list(rout_befriending_classes(friend_rout));
             }  /* if */
           }  /* if */
 #endif /* DEBUG */
         if (prev_clep == NULL) {
-          friend_rout->befriending_classes = next_clep;
+          friend_rout->friends_or_originator.befriending_classes = next_clep;
         } else {
           prev_clep->next = next_clep;
         }  /* if */
@@ -26026,7 +26027,7 @@ cleared.
       db_name_full(&friend_rout->source_corresp, iek_routine);
       fprintf(f_debug, "\n");
       fprintf(f_debug, "befriending_classes of friend rout:\n");
-      db_class_list(friend_rout->befriending_classes);
+      db_class_list(rout_befriending_classes(friend_rout));
 #endif /* DEBUG */
         unexpected_condition_str2(
                "eliminate_references_from_befriended_entities",

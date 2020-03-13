@@ -9088,7 +9088,8 @@ for use in generating cross-reference output describing this declaration.
                          ec_friend_cannot_add_default_arguments,
                          &locator->source_position);
         }  /* if */
-        if (strict_ansi_mode && routine_ptr->befriending_classes != NULL &&
+        if (strict_ansi_mode &&
+            routine_ptr->friends_or_originator.befriending_classes != NULL &&
             old_decl_has_body && linked_symbol->is_invisible) {
           /* In strict mode, friend declarations can have default arguments
              only if the friend declaration is also a definition (checked

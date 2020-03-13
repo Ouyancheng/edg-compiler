@@ -2873,8 +2873,6 @@ value.  Also clear related variant fields to default values.
                                                 (a_routine_list_entry_ptr)NULL;
       rp->variant.ctor_dtor.base_name_offset = 0;
 #endif /* IA64_ABI && DO_IL_LOWERING */
-      rp->variant.ctor_dtor.inherited_routine = NULL;
-      rp->variant.ctor_dtor.inherits_virtually = FALSE;
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case sfk_static_constructor:
@@ -2960,6 +2958,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_initializer_list_ctor    = FALSE;
   rp->is_delegating_ctor          = FALSE;
   rp->is_inheriting_ctor          = FALSE;
+  rp->inherits_virtually          = FALSE;
   rp->is_inh_ctor_def_init        = FALSE;
 #if ASSIGNMENT_TO_THIS_ALLOWED
   rp->assignment_to_this_done     = FALSE;
@@ -3114,7 +3113,10 @@ to it.  The entry is allocated in the file scope memory region.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   rp->overridden_functions        = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  rp->befriending_classes         = NULL;
+  rp->friends_or_originator.befriending_classes
+                                  = NULL;
+  rp->friends_or_originator.inherited_routine
+                                  = NULL;
   rp->template_arg_list           = NULL;
   rp->assoc_template              = NULL;
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED

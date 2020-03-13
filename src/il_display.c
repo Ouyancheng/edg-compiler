@@ -3814,8 +3814,8 @@ Display the indicated routine.
     disp_entity_list("overridden_functions", ptr->overridden_functions);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (ptr->befriending_classes != NULL) {
-    disp_class_list("befriending_classes", ptr->befriending_classes);
+  if (rout_befriending_classes(ptr) != NULL) {
+    disp_class_list("befriending_classes", rout_befriending_classes(ptr));
   }  /* if */
   if (ptr->assoc_template != NULL) {
     disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);

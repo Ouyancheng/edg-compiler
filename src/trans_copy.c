@@ -1602,7 +1602,9 @@ to the secondary translation unit.
       any_members_to_process = TRUE;
       /* Clear befriending lists so they are not copied.  They will be
          rebuilt later. */
-      routine->befriending_classes = NULL;
+      if (!routine->is_inheriting_ctor) {
+        routine->friends_or_originator.befriending_classes = NULL;
+      }  /* if */
     } else {
       /* Remove this entry from the list. */
       keep_body = FALSE;
@@ -2015,7 +2017,9 @@ the secondary translation unit IL).
                                  primary_rout->instantiation_needed_bit_number;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   a_class_list_entry_ptr saved_befriending_classes =
-                                             primary_rout->befriending_classes;
+                                        rout_befriending_classes(primary_rout);
+  a_routine_ptr          saved_inh_ctor_orig =
+                                         inh_ctor_inherited_ctor(primary_rout);
   a_boolean saved_on_inline_function_list =
                                          primary_rout->on_inline_function_list;
 #if MAINTAIN_NEEDED_FLAGS
@@ -2042,7 +2046,12 @@ the secondary translation unit IL).
   primary_rout->instantiation_needed_bit_number =
                                          saved_instantiation_needed_bit_number;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-  primary_rout->befriending_classes = saved_befriending_classes;
+  if (primary_rout->is_inheriting_ctor) {
+    primary_rout->friends_or_originator.inherited_routine= saved_inh_ctor_orig;
+  } else {
+    primary_rout->friends_or_originator.befriending_classes =
+                                                     saved_befriending_classes;
+  }  /* if */
   primary_rout->on_inline_function_list = saved_on_inline_function_list;
 #if MAINTAIN_NEEDED_FLAGS
   primary_rout->definition_needed = saved_definition_needed;
@@ -2886,10 +2895,13 @@ Rebuild the befriending lists for classes on the indicated list of types.
            rlep != NULL;
            rlep = rlep->next) {
         a_routine_ptr friend_routine = rlep->routine;
+        check_assertion(!friend_routine->is_inheriting_ctor);
         befriending_clep = alloc_list_entry_for_class();
         befriending_clep->class_type = type;
-        befriending_clep->next = friend_routine->befriending_classes;
-        friend_routine->befriending_classes = befriending_clep;
+        befriending_clep->next =
+                     friend_routine->friends_or_originator.befriending_classes;
+        friend_routine->friends_or_originator.befriending_classes =
+                                                              befriending_clep;
       }  /* for */
       if (ctsp->assoc_scope != NULL) {
         rebuild_scope_befriending_lists(ctsp->assoc_scope);
@@ -3313,7 +3325,9 @@ do the termination test.
       ctsp->befriending_classes = NULL;
     } else if (kind == iek_routine) {
       a_routine_ptr routine = (a_routine_ptr)ptr;
-      routine->befriending_classes = NULL;
+      if (!routine->is_inheriting_ctor) {
+        routine->friends_or_originator.befriending_classes = NULL;
+      }  /* if */
     }  /* if */
   }  /* if */
   return prune;

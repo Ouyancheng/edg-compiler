@@ -11237,16 +11237,6 @@ typedef struct a_routine {
 			   calculating the mangled names for alternate entry
 			   points.) */
 #endif /* IA64_ABI && DO_IL_LOWERING */
-      a_routine_ptr
-		inherited_routine;
-			/* For an inheriting constructor, this points to the
-			   routine that was inherited.  Otherwise, it is
-			   NULL. */
-      a_bit_field
-		inherits_virtually:1;
-			/* TRUE if inherited_routine is non-NULL and it comes
-			   from a virtual base class of the class that owns
-			   this constructor. */
     } ctor_dtor;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* When special_kind == sfk_property_get, sfk_property_set, sfk_event_add,
@@ -11425,6 +11415,10 @@ typedef struct a_routine {
   a_bit_field	is_inheriting_ctor:1;
 			/* TRUE if this routine is an inheriting
 			   constructor. */
+  a_bit_field	inherits_virtually:1;
+			/* TRUE if is_inheriting_ctor is TRUE and the inherited
+			   constructor comes from a virtual base class of the
+			   class that owns this constructor. */
   a_bit_field	is_inh_ctor_def_init:1;
 			/* TRUE if this routine is a default-initialization
 			   constructor for inheriting constructors. */
@@ -12007,7 +12001,9 @@ typedef struct a_routine {
 			   represented by a ck_template_param/tpck_member
 			   constant. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_class_list_entry_ptr
+  union {
+    /* When is_inheriting_ctor == FALSE. */
+    a_class_list_entry_ptr
                 befriending_classes;
 			/* A linked list of entries identifying classes that
 			   have declared the current routine a friend (i.e.,
@@ -12017,6 +12013,13 @@ typedef struct a_routine {
 			   befriended routine is declared in the befriending
 			   class; this list records the befriending class
 			   in the befriended routine. */
+    /* When is_inheriting_ctor == TRUE. */
+    a_routine_ptr
+		inherited_routine;
+			/* For an inheriting constructor, this points to the
+			   routine that was inherited.  Otherwise, it is
+			   NULL. */
+  } friends_or_originator;
   a_template_arg_ptr
 		template_arg_list;
 			/* For routines that are instantiations of a function

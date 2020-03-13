@@ -17947,6 +17947,10 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     rp->compiler_generated = templ_rout->compiler_generated;
     rp->is_initializer_list_ctor = templ_rout->is_initializer_list_ctor;
     rp->is_inheriting_ctor = templ_rout->is_inheriting_ctor;
+    if (rp->is_inheriting_ctor) {
+      rp->friends_or_originator.inherited_routine =
+                                           inh_ctor_inherited_ctor(templ_rout);
+    }  /* if */
     rp->is_inh_ctor_def_init = templ_rout->is_inh_ctor_def_init;
     rp->generating_using_decl = templ_rout->generating_using_decl;
     set_inline_flag(rp, (a_boolean)templ_rout->is_inline);

@@ -10961,8 +10961,10 @@ that the routine indicated by rout_ptr is a friend.
   a_class_type_supplement_ptr ctsp;
   a_routine_list_entry_ptr    rlep;
 
+  check_assertion(!rout_ptr->is_inheriting_ctor);
   /* Issue a remark if this is a duplicate friend declaration. */
-  for (clep = rout_ptr->befriending_classes; clep != NULL; clep = clep->next) {
+  for (clep = rout_befriending_classes(rout_ptr);
+       clep != NULL; clep = clep->next) {
     if (clep->class_type == class_type) {
       pos_remark(ec_duplicate_friend_decl, &error_position);
       break;
@@ -10971,8 +10973,8 @@ that the routine indicated by rout_ptr is a friend.
   /* Add a friend declaration to the befriending_classes list. */
   clep = alloc_list_entry_for_class_full(&rout_ptr->source_corresp);
   clep->class_type = class_type;
-  clep->next = rout_ptr->befriending_classes;
-  rout_ptr->befriending_classes = clep;
+  clep->next = rout_befriending_classes(rout_ptr);
+  rout_ptr->friends_or_originator.befriending_classes = clep;
   /* Now add the routine to the friends list for the current class. */
   ctsp = class_type->variant.class_struct_union.extra_info;
   rlep = alloc_list_entry_for_routine();
@@ -10990,7 +10992,7 @@ that the routine indicated by rout_ptr is a friend.
       fprintf(f_debug, "befriending_classes list of ");
       db_name_full(&rout_ptr->source_corresp, iek_routine);
       fprintf(f_debug, ":\n");
-      db_class_list(rout_ptr->befriending_classes);
+      db_class_list(rout_befriending_classes(rout_ptr));
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
@@ -15066,8 +15068,11 @@ implicitly declared member functions.
     if (list_init_enabled) {
       set_initializer_list_ctor_flags(rtn, class_type);
     }  /* if */
-    rtn->variant.ctor_dtor.inherits_virtually = decl_state->inherits_virtually;
-    rtn->variant.ctor_dtor.inherited_routine = decl_state->inherited_routine;
+    rtn->inherits_virtually = decl_state->inherits_virtually;
+    if (decl_state->is_inheriting_ctor) {
+      rtn->friends_or_originator.inherited_routine =
+                                                 decl_state->inherited_routine;
+    }  /* if */
   } else if (decl_info->is_destructor) {
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_destructor);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -16377,8 +16382,10 @@ decl_member_function, which handles in-class member function declarations.)
       if (list_init_enabled) {
         set_initializer_list_ctor_flags(rtn, class_type);
       }  /* if */
-      rtn->variant.ctor_dtor.inherited_routine = dps->inherited_routine;
-      rtn->variant.ctor_dtor.inherits_virtually = dps->inherits_virtually;
+      rtn->inherits_virtually = dps->inherits_virtually;
+      if (dps->is_inheriting_ctor) {
+        rtn->friends_or_originator.inherited_routine = dps->inherited_routine;
+      }  /* if */
     }  /* if */
     attach_decl_attributes(dps, (a_boolean)func_info->is_definition);
 #if MICROSOFT_EXTENSIONS_ALLOWED

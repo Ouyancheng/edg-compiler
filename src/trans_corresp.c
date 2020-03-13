@@ -2305,7 +2305,7 @@ symbols are listed under the same header).
       if (!(sym1->is_class_member ||
             sym1->kind == (a_symbol_kind)sk_member_function ||
             (sym1->kind == (a_symbol_kind)sk_routine &&
-             sym1->variant.routine.ptr->befriending_classes != NULL))) {
+             rout_befriending_classes(sym1->variant.routine.ptr) != NULL))) {
 #if DEBUG
         db_sym(sym1);
         db_sym(sym2);

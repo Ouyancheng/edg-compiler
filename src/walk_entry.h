@@ -1457,13 +1457,19 @@ debug builds) don't recognize that these variables are mutually-exclusive.
 #if !NEEDED_FLAG_WALK
 #if KEEP_IN_IL_WALK
         /* Visit befriending classes for the "keep_in_il" sweep. */
-        set_keep_in_il_on_befriending_classes(eptr->befriending_classes);
+        set_keep_in_il_on_befriending_classes(rout_befriending_classes(eptr));
 #else /* !KEEP_IN_IL_WALK */
         /* All cases except NEEDED_FLAG_WALK and KEEP_IN_IL_WALK. */
-        walk_list(eptr->befriending_classes, a_class_list_entry_ptr,
-                  iek_class_list_entry);
+        if (!eptr->is_inheriting_ctor) {
+          walk_list(eptr->friends_or_originator.befriending_classes,
+                    a_class_list_entry_ptr, iek_class_list_entry);
+        }  /* if */
 #endif /* KEEP_IN_IL_WALK */
 #endif /* !NEEDED_FLAG_WALK */
+        if (eptr->is_inheriting_ctor) {
+          walk_ptr_not_needed(eptr->friends_or_originator.inherited_routine,
+                              a_routine_ptr, iek_routine);
+        }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         walk_ptr(eptr->declared_type, a_type_ptr, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

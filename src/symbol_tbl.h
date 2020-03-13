@@ -6646,12 +6646,15 @@ extern a_routine_ptr get_inh_ctor_originator(
                                          a_boolean     ignore_virtual = FALSE);
 
 #define inh_ctor_inherited_ctor(ctor)                                         \
-  (special_kind_is((ctor), sfk_constructor) ?                                 \
-   (ctor)->variant.ctor_dtor.inherited_routine : NULL)
+  ((ctor)->is_inheriting_ctor ?                                               \
+   (ctor)->friends_or_originator.inherited_routine : NULL)
 
 #define inh_ctor_inherits_virtually(ctor)                                     \
-  (special_kind_is((ctor), sfk_constructor) &&                                \
-   (ctor)->variant.ctor_dtor.inherits_virtually)
+  ((ctor)->inherits_virtually)                                                \
+
+#define rout_befriending_classes(rout)                                        \
+  (!(rout)->is_inheriting_ctor ?                                              \
+   (rout)->friends_or_originator.befriending_classes : NULL)
 
 /* Return TRUE if a symbol is a conversion operator symbol. */
 #define is_conversion_function_symbol(sym)                            \

@@ -12300,7 +12300,7 @@ functions befriending_list_test and class_scope_test.
       /* If the befriending information was not set above, get it from the
          routine entry. */
       if (befriending_classes == NULL && scope_routine != NULL) {
-        befriending_classes = scope_routine->befriending_classes;
+        befriending_classes = rout_befriending_classes(scope_routine);
       }  /* if */
       if (befriending_list_test(befriending_classes, class_type)) {
         /* We are inside a function that is a friend of class_type. */
@@ -12312,7 +12312,7 @@ functions befriending_list_test and class_scope_test.
            the test. */
         a_routine_ptr inh_ctor =
                              get_inh_ctor_originator(scope_routine,
-                                                     /*ignore_virtual=*/FALSE);
+                                                     /*ignore_virtual=*/TRUE);
         a_class_list_entry_ptr inh_ctor_friends = NULL;
         if (inh_ctor->is_template_function) {
           a_template_symbol_supplement_ptr tssp;
@@ -12320,7 +12320,7 @@ functions befriending_list_test and class_scope_test.
           inh_ctor_friends = tssp->befriending_classes;
         }  /* if */
         if (inh_ctor_friends == NULL) {
-          inh_ctor_friends = inh_ctor->befriending_classes;
+          inh_ctor_friends = rout_befriending_classes(inh_ctor);
         }  /* if */
         if (befriending_list_test(inh_ctor_friends, class_type)) {
           have_member_privilege = TRUE;
