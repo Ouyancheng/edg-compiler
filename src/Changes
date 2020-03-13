@@ -1,5 +1,20 @@
 Version 6.1
 
+3/13/20  [EDGcpfe/22460]
+GNU compatibility: Deferred evaluation of function template parameter default
+arguments
+
+GCC defers validation of a function template parameter's default argument until
+it's required, even when the argument is non-dependent.  For example:
+
+  struct X;
+  struct A {
+    template<class c> A(c &&, X = X()); // Incomplete type error for "X"
+  };
+
+This is now accepted in GNU emulation mode.
+
+
 3/13/20  [EDGcpfe/22297]
 Coroutines: Mandate the return type for return_value and return_void to be void
 
