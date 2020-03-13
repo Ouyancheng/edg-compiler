@@ -1842,9 +1842,13 @@ formal parameters.
 */
 {
   a_candidate_function_ptr candidate;
+  a_symbol_ptr             fund_sym = fundamental_symbol_of(function_symbol);
 
   candidate = alloc_candidate_function();
   candidate->function_symbol = function_symbol;
+  if (func_sym_routine(fund_sym)->is_inheriting_ctor) {
+    candidate->is_inheriting_ctor = TRUE;
+  }  /* if */
   candidate->overloaded_function_symbol = overloaded_function_symbol;
   candidate->is_function_template = TRUE;
   candidate->expl_template_arg_list_used = expl_template_arg_list_used;
