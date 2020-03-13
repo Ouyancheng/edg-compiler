@@ -28699,12 +28699,12 @@ that is provided if this is a member template declaration.
           !typeref_is_typedef(dps->type)) {
         if (gnu_mode && gnu_version < 30400) {
           pos_warning(ec_nonstandard_anonymous_union_qualifier,
-                      &dps->start_pos);
+                      &dps->specifiers_pos);
         } else {
           dps->type = skip_typerefs(dps->type);
           dps->specifiers_type = dps->type;
           pos_warning(ec_anonymous_union_qualifier_ignored,
-                      &dps->start_pos);
+                      &dps->specifiers_pos);
         }  /* if */
       }  /* if */
     } else {
@@ -28787,7 +28787,7 @@ that is provided if this is a member template declaration.
       function_def_present = func_info.is_definition;
       if (mutable_specified) {
         /* "mutable" is only allowed on nonstatic data member decls. */
-        pos_error(ec_mutable_not_allowed, &dps->start_pos);
+        pos_error(ec_mutable_not_allowed, &dps->specifiers_pos);
       }  /* if */
       if (!type_explicitly_specified) {
         /* No type specifier. */
@@ -28850,7 +28850,7 @@ that is provided if this is a member template declaration.
              "static" (except in C++/CLI mode, but "static constructors" do
              not have the is_constructor flag set to TRUE).  C++/CLI
              finalizers cannot be static either. */
-          pos_error(ec_static_not_allowed, &dps->start_pos);
+          pos_error(ec_static_not_allowed, &dps->specifiers_pos);
           dps->storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
         if ((decl_info.is_constructor &&
@@ -29124,10 +29124,10 @@ that is provided if this is a member template declaration.
       }  /* if */
     } else if (dso_flags & (DSO_FRIEND | DSO_VIRTUAL)) {
       if (dso_flags & DSO_FRIEND) {
-        pos_error(ec_bad_friend_decl, &dps->start_pos);
+        pos_error(ec_bad_friend_decl, &dps->specifiers_pos);
       }  /* if */
       if (dso_flags & DSO_VIRTUAL) {
-        pos_error(ec_virtual_not_allowed, &dps->start_pos);
+        pos_error(ec_virtual_not_allowed, &dps->specifiers_pos);
       }  /* if */
       remove_stop_token(tok_comma);
       discard_curr_construct_pragmas();
@@ -29223,7 +29223,7 @@ that is provided if this is a member template declaration.
       /* A static or nonstatic data member. */
       if (mutable_specified && is_const_qualified_type(dps->type)) {
         /* "mutable" and top-level "const" are not allowed together. */
-        pos_error(ec_mutable_not_allowed, &dps->start_pos);
+        pos_error(ec_mutable_not_allowed, &dps->specifiers_pos);
       }  /* if */
       if (!type_explicitly_specified) {
         report_missing_type_specifier(&declarator_start_pos,
