@@ -1,5 +1,29 @@
 Version 6.1
 
+3/15/20  [EDGcpfe/22407]
+Matching of template template parameters
+
+A change in version 5.0 (see EDGcpfe/19716) loosened the matching of template
+template arguments with their associated template template parameter in g++
+and clang modes when not using the new C++17 style matching.  The looser
+checking is now done in all modes except Microsoft mode.   In addition, the
+clang version check has been changed to >= 30800 (from >= 50000 previously).
+The clang version change was made because clang versions 3.8 and newer use
+the looser behavior for the builtin template __make_integer_seq, but not for
+other cases.  Rather than special-case __make_integer_seq, we expanded the
+versions to which the special processing applies.
+
+  template <template <typename U, U...> class S, typename T, T> using MIS = T;
+  template <int... _Indexes> struct A { };
+  template <int N> struct B {
+    template <typename, int... Is>
+    using X = A<Is...>;
+    // Now accepted in default mode and when clang_version >= 30800 (and, as
+    // before, when gnu_version >= 60000)
+    using type = MIS<X, int, N>;
+  };
+
+
 3/13/20  [EDGcpfe/17687]
 C++17 inheriting constructors
 
