@@ -149,7 +149,7 @@ for EDGcpfe/21327, etc.)
 
 
 3/13/20  [EDGcpfe/21752]
-Spurious error on unevaluated expression in dependent constant contexts
+Spurious error on unevaluated expression in constant contexts
 
 Consider:
 

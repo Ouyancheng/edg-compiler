@@ -12928,13 +12928,9 @@ expression (and the expression is evaluated).
   a_boolean err = FALSE;
 
   /* Constant expressions allow invalid operators/constructs in unevaluated
-     subexpressions, including dead operands of "?", "&&", and "||".  (In
-     template-dependent contexts we cannot reliably determine whether an
-     operand is a dead operand.) */
-  if (constexpr_enabled &&
-      curr_expr_is_evaluated() &&
-      !(expr_stack->inside_conditional_expression &&
-        is_template_dependent_context()) &&
+     subexpressions, including dead operands of "?", "&&", and "||". */
+  if (constexpr_enabled && curr_expr_is_evaluated() &&
+      !expr_stack->inside_conditional_expression &&
       !curr_expr_is_potentially_unevaluated()) {
     expr_stack->constant_expr_ruled_out = TRUE;
     if (curr_expr_kind_is_const()) {
@@ -17158,16 +17154,13 @@ If it indicates a destructor, add it to the current object lifetime.
        cleanup code. */
     if (curr_expr_kind_is_const()) {
       /* In constant-expression contexts, we do not have to generate code for
-         the destruction either.  (Pre-C++20 that is an error if the
-         destruction is non-trivial and evaluated.  Note that in template-
-         dependent contexts we cannot reliably determine whether an
-         expression is evaluated.) */
+         the destruction either.  (Pre-C++11 that is an error if the
+         destruction is non-trivial and evaluated.  In C++11 a destruction in
+         a sub-expression is permitted if that sub-expression is not actually
+         evaluated.) */
 #if CHECKING
       if ((dip->destructor != NULL || is_dynamic_init_for_vla(dip)) &&
-          !constexpr_dynamic_alloc_enabled &&
-          expr_stack->evaluated &&
-          !(expr_stack->inside_conditional_expression &&
-            is_template_dependent_context())) {
+          !constexpr_enabled && expr_stack->evaluated) {
         expect_error();
       }  /* if */
 #endif /* CHECKING */
@@ -17316,15 +17309,13 @@ When init_kind == dik_constructor, does not expand constexpr calls
   /* Allocate the dynamic initialization entry. */
   *dip = alloc_dtor_dynamic_init(init_kind, temp_type, position);
   if (curr_expr_kind_is_const() && (*dip)->destructor != NULL &&
-      ((curr_expr_is_evaluated() &&
-        !(expr_stack->inside_conditional_expression &&
-          is_template_dependent_context())) ||
-       !cpp11_mode)) {
+      !constexpr_enabled && curr_expr_is_evaluated()) {
     /* An operation with a destruction is not allowed in an evaluated
        subexpression of a constant expression and we would get into trouble
-       trying to attach the dynamic init to a lifetime.  (In template-
-       dependent contexts, we cannot reliably tell whether an operand is
-       evaluated.)  */
+       trying to attach the dynamic init to a lifetime.  When constexpr is
+       enabled, an operation with a destruction can appear as a sub-expression
+       provided that sub-expression is never evaluated (the constexpr
+       interpreter will catch such cases). */
     expr_pos_error(ec_expr_not_constant, position);
     (*dip)->destructor = NULL;
   }  /* if */
