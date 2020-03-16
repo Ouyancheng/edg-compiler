@@ -2325,8 +2325,9 @@ POD changed between C++03 and C++11.
 
 a_boolean is_literal_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is a literal type.  If given type cannot be
-incomplete class type (or an array thereof) in a valid program.
+Return TRUE if the given type is a literal type.  The given type cannot be an
+incomplete class type (or an array thereof) in a valid program; as a matter of
+error recovery, this function returns FALSE for incomplete class types.
 */
 {
   a_boolean  result;
