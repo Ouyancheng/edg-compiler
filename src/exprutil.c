@@ -12929,11 +12929,10 @@ expression (and the expression is evaluated).
 
   /* Constant expressions allow invalid operators/constructs in unevaluated
      subexpressions, including dead operands of "?", "&&", and "||". */
-  if (constexpr_enabled && curr_expr_is_evaluated() &&
-      !expr_stack->inside_conditional_expression &&
-      !curr_expr_is_potentially_unevaluated()) {
+  if (constexpr_enabled && curr_expr_is_evaluated()) {
     expr_stack->constant_expr_ruled_out = TRUE;
-    if (curr_expr_kind_is_const()) {
+    if (curr_expr_kind_is_const() &&
+        !expr_stack->inside_conditional_expression) {
       /* We're in a constant expression, so this construct is an error. */
       expr_pos_error(err_code, pos);
       err = TRUE;
