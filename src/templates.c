@@ -13492,10 +13492,17 @@ If there is an error in the copying, set *copy_error to TRUE.
     if (tpp != NULL && tpp->is_pack) is_variadic = TRUE;
     /* For partial specialization checking, consider the context variadic
        if the template template parameter has a template parameter that is
-       a pack. */
-    if (ttp_tpp != NULL && ttp_tpp->is_pack &&
-        (options & CTWS_IS_PARTIAL_SPECIALIZATION_CHECK) != 0) {
-      is_variadic = TRUE;
+       a pack.  Also consider it as variadic if an argument is a pack.  This
+       occurs when one ore more (possibly empty) packs appear as arguments
+       for a non-variadic parameter. */
+    if ((options & CTWS_IS_PARTIAL_SPECIALIZATION_CHECK) != 0) {
+      if (ttp_tpp != NULL && ttp_tpp->is_pack) {
+        is_variadic = TRUE;
+      } else if (tap != NULL &&
+                 (is_start_of_pack_expansion_templ_arg(tap) ||
+                  tap->is_pack)) {
+        is_variadic = TRUE;
+      }  /* if */
     }  /* if */
     /* If we have run out of parameters and this is not a variadic template,
        consider this a copy error.  Note that above, we consider the presence
