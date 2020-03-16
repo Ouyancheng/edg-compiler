@@ -1,5 +1,16 @@
 Version 6.1
 
+3/16/20  [EDGcpfe/22484]
+Missing diagnostic and/or abort on function template definition via decltype
+
+The front end failed to issue a diagnostic on a function template definition
+whose type was obtained using decltype.  In C++17 mode, this could also
+result in an abort (in form_exception_specification).  Now fixed.
+
+  int f();
+  template <typename> decltype(f) g{};
+
+
 3/16/20  [EDGcpfe/22055]
 C++-generating back end: incorrect generated code for decltype as qualified
 

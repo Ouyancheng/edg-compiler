@@ -17188,7 +17188,8 @@ to an entry used to record detailed source position information.
        definition. */
     if (is_function_type(state->type)) {
       if (state->type->kind == (a_type_kind)tk_typeref &&
-          is_possibly_qualified_typedef(state->type)) {
+          (is_possibly_qualified_typedef(state->type) ||
+           typeref_is_type_operator(state->type))) {
         func_info->function_type_from_typedef = TRUE;
       }  /* if */
       if (parent_class == NULL && locator != NULL &&
@@ -27691,6 +27692,11 @@ caller.
          members (an adjustment may be required for packing). */
       tssp->variant.function.func_info.max_member_alignment =
                              current_max_alignment_for_class_members();
+    }  /* if */
+    if (func_info != NULL && func_info->function_type_from_typedef) {
+      /* A function template's type cannot come from a typedef.  This flag
+         is also set if the type came from decltype. */
+      pos_error(ec_function_type_must_come_from_declarator, decl_pos);
     }  /* if */
   }  /* if */
   if (err) {
