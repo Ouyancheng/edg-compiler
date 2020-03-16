@@ -4553,6 +4553,33 @@ call to set_up_param_ref_for_this_ptr.  Restore any earlier binding if needed.
 }  /* unmap_param_ref_for_this_ptr */
 
 
+static a_byte_count compute_interpreter_base_offset(a_base_class_ptr  bcp,
+                                                    a_base_class_ptr  *p_dbcp)
+/*
+Return the offset of the given base class as laid out by the interpreter.
+This function works even for indirect base classes (for direct base classes,
+a single lookup in the persistent_map is sufficient).  If p_dbcp is non-NULL,
+set *p_dbcp to the direct base class for the last step of the derivation path
+(if bcp is a direct base, it's bcp itself).
+*/
+{
+  a_byte_count           offset;
+  a_derivation_step_ptr  dsp = bcp->derivation->path;
+  a_type_ptr             prev_type = dsp->base_class->type;
+
+  get_mapped_byte_count(&persistent_map, dsp->base_class, offset);
+  for (dsp = dsp->next; dsp != NULL; dsp = dsp->next) {
+    a_byte_count      step;
+    bcp = find_direct_base_class_of(prev_type, dsp->base_class->type);
+    prev_type = dsp->base_class->type;
+    get_mapped_byte_count(&persistent_map, bcp, step);
+    offset += step;
+  }  /* for */
+  if (p_dbcp != NULL) *p_dbcp = bcp;
+  return offset;
+}  /* compute_interpreter_base_offset */
+
+
 /*
 Macro to set result_storage from the value of the specified constant.
 Duplicates some cases from extract_value_from_constant for performance
@@ -4917,19 +4944,10 @@ formats as necessary.  Return FALSE if the constant is an error constant.
         if (bcp != NULL) {
           /* We cannot look up bcp's offset in the persistent map directly
              because it may be an indirect base class. */
-          a_derivation_step_ptr  dsp = bcp->derivation->path;
-          a_type_ptr             prev_type = dsp->base_class->type;
           /* Ensure the derived class has been laid out. */
           (void)f_value_bytes_for_type(ips, bcp->derived_class, &result);
-          get_mapped_byte_count(&persistent_map, dsp->base_class, offset);
-          for (dsp = dsp->next; dsp != NULL; dsp = dsp->next) {
-            a_base_class_ptr  sbcp;
-            a_byte_count      step;
-            sbcp = find_direct_base_class_of(prev_type, dsp->base_class->type);
-            prev_type = dsp->base_class->type;
-            get_mapped_byte_count(&persistent_map, sbcp, step);
-            offset += step;
-          }  /* for */
+          offset = compute_interpreter_base_offset(
+                                                bcp, (a_base_class_ptr*)NULL);
         }  /* if */
         pm_value->this_class_adjustment = offset;
         pm_value->subtract_adjustment =
@@ -9487,7 +9505,12 @@ the body of the (constructor) function proper.
       } else {
         a_base_class_ptr  bcp = ctor_init->variant.base_class;
         tp = bcp->type;
-        get_mapped_byte_count(&persistent_map, bcp, offset);
+        if (bcp->direct) {
+          get_mapped_byte_count(&persistent_map, bcp, offset);
+        } else {
+          /* Inherited constructors may involve indirect base classes. */
+          offset = compute_interpreter_base_offset(bcp, &bcp);
+        }  /* if */
         /* Record the derivation step. */
         record_subobject_derivation(result_storage+offset, bcp);
         sub_dip = ctor_init->initializer;
