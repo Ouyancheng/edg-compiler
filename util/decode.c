@@ -2254,8 +2254,9 @@ template parameters.
     /* Name beginning with two underscores. */
     p = ptr + 2;
     if (start_of_id_is("ct__", p, dctl) ||
+        start_of_id_is("ci__", p, dctl) ||
         start_of_id_is("st__", p, dctl)) {
-      /* Constructor or C++/CLI static constructor. */
+      /* Constructor, inheriting constructor, or C++/CLI static constructor. */
       end_ptr = p + 2;
       if (mclass == NULL) {
         /* The mangled name for the class is not provided, so handle this as
@@ -2271,6 +2272,9 @@ template parameters.
         if (start_of_id_is("st__", p, dctl)) {
           /* Add an indication that this is a C++/CLI static constructor. */
           write_id_str("[static]", dctl);
+        } else if (start_of_id_is("ci__", p, dctl)) {
+          /* Add an indication that this is an inherited constructor. */
+          write_id_str("[inherited]", dctl);
         }  /* if */
       }  /* if */
     } else if (start_of_id_is("dt__", p, dctl) ||
@@ -4295,12 +4299,13 @@ typedef struct a_func_block {
 		ref_qual;
 			/* If the function is a ref-qualified member function,
 			   the ref-qualifier.  0 otherwise. */
-  char		ctor_dtor_kind;
-			/* If the function is a constructor or destructor,
-			   the character from the mangled name identifying its
-			   kind, e.g., '2' for a subobject constructor/
-			   destructor.  ' ' if the function is not a
-			   constructor or destructor. */
+  a_const_char	*ctor_dtor_kind;
+			/* If the function is a constructor or destructor, a
+			   pointer to the character from the mangled name
+			   identifying its kind, e.g., '2' for a subobject
+			   constructor/destructor.  Can point to 'I' for
+			   inheriting constructors.  NULL if the function is
+			   not a constructor or destructor. */
 } a_func_block;
 
 
@@ -4424,7 +4429,7 @@ static a_const_char *demangle_nested_name_components(
                               unsigned long              num_levels,
                               a_boolean                  *is_no_return_name,
                               a_boolean                  *has_templ_arg_list,
-                              char                       *ctor_dtor_kind,
+                              a_const_char               **ctor_dtor_kind,
                               a_const_char               **last_component_name,
                               a_decode_control_block_ptr dctl);
 static a_const_char *demangle_unscoped_name(
@@ -4450,7 +4455,7 @@ Clear a function information block to default values.
   func_block->no_return_type = FALSE;
   func_block->cv_quals = 0;
   func_block->ref_qual = REFQ_NONE;
-  func_block->ctor_dtor_kind = ' ';
+  func_block->ctor_dtor_kind = NULL;
 }  /* clear_func_block */
 
 
@@ -4667,7 +4672,7 @@ type the substitution represents).
           case subk_prefix:
           case subk_template_prefix:
             { a_boolean is_no_return_name, has_templ_arg_list;
-              char      ctor_dtor_kind;
+              a_const_char *ctor_dtor_kind;
               output_cv_qualifiers(cv_quals, TRUE, dctl);
               /* Take the right number of levels of the name.  Note that a
                  substitution counts as one level even if it represents
@@ -7311,7 +7316,7 @@ static a_const_char *demangle_nested_name_components(
                               unsigned long              num_levels,
                               a_boolean                  *is_no_return_name,
                               a_boolean                  *has_templ_arg_list,
-                              char                       *ctor_dtor_kind,
+                              a_const_char               **ctor_dtor_kind,
                               a_const_char               **last_component_name,
                               a_decode_control_block_ptr dctl)
 /*
@@ -7328,7 +7333,7 @@ component scanned is a function name of a kind that does not take a
 return type (constructor, destructor, or conversion function).
 *has_templ_arg_list is returned TRUE if the final component includes a
 template argument list.  If the final component is a constructor or
-destructor name, *ctor_dtor_kind is set to the character identifying
+destructor name, *ctor_dtor_kind is set to point to the character identifying
 the kind of constructor or destructor.  If last_component_name is non-NULL,
 *last_component_name will be set to the start position of the encoding
 for the name of the last component.  If the last component is a
@@ -7341,7 +7346,7 @@ substitution, the name of the last component in the substitution is used.
 
   *is_no_return_name = FALSE;
   *has_templ_arg_list = FALSE;
-  *ctor_dtor_kind = ' ';
+  *ctor_dtor_kind = NULL;
   for (;;) {
     /* Demangle one level of the nested name. */
     a_boolean is_substitution = FALSE;
@@ -7404,7 +7409,7 @@ substitution, the name of the last component in the substitution is used.
           /* Rescan and output the class name (no template argument list). */
           (void)demangle_unqualified_name(prev_component_name, &dummy, dctl);
           /* Check that the second character of the constructor/destructor
-             name is a valid digit. */
+             name is a valid digit (or an "I" followed by a valid digit). */
           /* "C3" is for an allocating constructor (not generated by the
              EDG Front End but part of the ABI spec). */
           /* "D7" is the code used by the EDG C++ Front End for C++/CLI
@@ -7417,12 +7422,19 @@ substitution, the name of the last component in the substitution is used.
           /* "D9" is the code used by the EDG C++ Front End for the
              delegation destructor alternate entry point.  It's not part
              of the ABI spec. */
+          /* Inherited constructors use "CI" followed by a "1" or "2". */
           if (ptr[1] == '1' || ptr[1] == '2' || ptr[1] == '9' ||
-              (ptr[0] == 'C' ? (ptr[1] == '3' || ptr[1] == '8') :
+              (ptr[0] == 'C' ? (ptr[1] == '3' || ptr[1] == '8' ||
+                                (ptr[1] == 'I' &&
+                                 (ptr[2] == '1' || ptr[2] == '2'))) :
                                (ptr[1] == '0' || ptr[1] == '7'))) {
             /* Okay. */
-            *ctor_dtor_kind = ptr[1];
-            ptr += 2;
+            *ctor_dtor_kind = &ptr[1];
+            if (ptr[1] == 'I') {
+              ptr += 3;
+            } else {
+              ptr += 2;
+            }  /* if */
             if (*ptr == 'B') {
               /* A 'B' suffix for a <source-name> is a GNU-specific extension
                  for an abi_tag attribute. */
@@ -8141,9 +8153,9 @@ non-template functions).
       output_ref_qualifier(func_block.ref_qual, dctl);
     }  /* if */
   }  /* if */
-  if (func_block.ctor_dtor_kind != ' ') {
+  if (func_block.ctor_dtor_kind != NULL) {
     /* Identify the kind of constructor or destructor if necessary. */
-    switch (func_block.ctor_dtor_kind) {
+    switch (*func_block.ctor_dtor_kind) {
       case '0':
         write_id_str(" [deleting]", dctl);
         break;
@@ -8169,6 +8181,19 @@ non-template functions).
            called by delegating constructor alternate entry points, and
            "D9" for (corresponding) delegation destructors. */
         write_id_str(" [delegation]", dctl);
+        break;
+      case 'I':
+        /* Inheriting constructor. */
+        switch (func_block.ctor_dtor_kind[1]) {
+          case '1':
+            write_id_str(" [complete inheriting]", dctl);
+            break;
+          case '2':
+            write_id_str(" [base inheriting]", dctl);
+            break;
+          default:
+            bad_mangled_name(dctl);
+        }  /* switch */
         break;
       default:
         /* Bad character.  This shouldn't happen, because the character

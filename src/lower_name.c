@@ -156,6 +156,7 @@ BEGIN_EDG_NAMESPACE
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #define MANGLING_STRING_FOR_CONSTRUCTOR "C1"
+#define MANGLING_STRING_FOR_INHERITING_CONSTRUCTOR "CI1"
 #define MANGLING_STRING_FOR_DESTRUCTOR "D1"
 #define MANGLING_STRING_FOR_CONVERSION_FUNC "cv"
 #define MANGLING_STRING_FOR_LITERAL_OPERATORS "li"
@@ -398,6 +399,7 @@ Z = template parameter (demangle_type_name)
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #define MANGLING_STRING_FOR_CONSTRUCTOR "ct"
+#define MANGLING_STRING_FOR_INHERITING_CONSTRUCTOR "ci"
 #define MANGLING_STRING_FOR_DESTRUCTOR "dt"
 #define MANGLING_STRING_FOR_CONVERSION_FUNC "op"
 #define MANGLING_STRING_FOR_LITERAL_OPERATORS "li"
@@ -738,7 +740,7 @@ static a_boolean add_substitution_if_available_full(
                             a_boolean                *is_standard_substitution,
                             a_mangling_control_block *mctl);
 #if DO_IL_LOWERING
-static char ctor_dtor_kind_char(a_ctor_or_dtor_kind ctor_dtor_kind);
+static char ctor_dtor_kind_char(a_routine_ptr routine);
 static void overwrite_ctor_dtor_mangled_name_kind(char          *name,
                                                   a_routine_ptr routine,
                                                   char          ch);
@@ -11647,15 +11649,27 @@ literal operator.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case sfk_constructor:
         name = MANGLING_STRING_FOR_CONSTRUCTOR;
+        { a_routine_ptr routine = (a_routine_ptr)scp;
 #if IA64_ABI
-        switch (ctor_dtor_kind) {
-          case cdk_none:                   break;
-          case cdk_complete:               break;
-          case cdk_subobject: name = "C2"; break;
-          case cdk_delegation:name = "C9"; break;
-          default:            unexpected_condition();
-        }  /* switch */
+          if (routine->is_inheriting_ctor || routine->is_inh_ctor_def_init) {
+            /* Inheriting constructors use "CI" rather than "C". */
+            name = MANGLING_STRING_FOR_INHERITING_CONSTRUCTOR;
+          } else {
+            switch (ctor_dtor_kind) {
+              case cdk_none:                   break;
+              case cdk_complete:               break;
+              case cdk_subobject: name = "C2"; break;
+              case cdk_delegation:name = "C9"; break;
+              default:            unexpected_condition();
+            }  /* switch */
+          }  /* if */
+#else /* !IA64_ABI */
+          if (routine->is_inh_ctor_def_init) {
+            /* Use "ci" for an inheriting constructor to distinguish it. */
+            name = MANGLING_STRING_FOR_INHERITING_CONSTRUCTOR;
+          }  /* if */
 #endif /* IA64_ABI */
+        }
         break;
       case sfk_destructor:
         name = MANGLING_STRING_FOR_DESTRUCTOR;
@@ -12001,12 +12015,6 @@ determination is made by the callee.
   }  /* if */
 #endif /* !IA64_ABI */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  if (routine->is_inh_ctor_def_init) {
-    /* This is a generated routine that looks like a default constructor but
-       doesn't replace the default constructor.  As such, it's possible to have
-       both symbols in the same program.  Give it a unique prefix. */
-    add_str_to_mangled_name("__inhctordefinit_", mctl);
-  }  /* if */
   mangled_function_base_name(&routine->source_corresp, routine->special_kind,
                              opname_kind, ctor_dtor_kind,
                              num_operands, conversion_type,
@@ -12474,8 +12482,11 @@ made into an external) if necessary.
       add_to_text_buffer(mangling_text_buffer, mangled_name,
                          strlen(mangled_name)+1);
       mangled_name = mangling_text_buffer->buffer;
+      a_ctor_or_dtor_kind save_ctor_dtor_kind = routine->ctor_dtor_kind;
+      routine->ctor_dtor_kind = ((a_ctor_or_dtor_kind)cdk_complete);
       overwrite_ctor_dtor_mangled_name_kind(mangled_name, routine,
-                       ctor_dtor_kind_char((a_ctor_or_dtor_kind)cdk_complete));
+                                            ctor_dtor_kind_char(routine));
+      routine->ctor_dtor_kind = save_ctor_dtor_kind;
       pop_mangling_text_buffer();
     }  /* if */
 #endif /* IA64_ABI && DO_IL_LOWERING */
@@ -12508,7 +12519,7 @@ made into an external) if necessary.
       /* For a constructor or destructor, save the unique mangling character
          in case it needs to be used for differentiating alternate entry points
          if the mangled name is truncated. */
-      mctl.ctor_dtor_char = ctor_dtor_kind_char(routine->ctor_dtor_kind);
+      mctl.ctor_dtor_char = ctor_dtor_kind_char(routine);
     }  /* if */
 #endif /* IA64_ABI && DO_IL_LOWERING */
     mangled_name = end_mangling(/*final=*/TRUE, &mctl);
@@ -13187,7 +13198,7 @@ encoding if suppress_parent_encoding is TRUE.
       /* For a constructor or destructor, save the unique mangling character
          in case it needs to be used for differentiating alternate entry points
          if the mangled name is truncated. */
-      mctl.ctor_dtor_char = ctor_dtor_kind_char(routine->ctor_dtor_kind);
+      mctl.ctor_dtor_char = ctor_dtor_kind_char(routine);
     }  /* if */
 #endif /* DO_IL_LOWERING */
     (void)end_mangling_full(&routine->source_corresp, /*final=*/TRUE, &mctl);
@@ -14335,12 +14346,18 @@ past the end of the mangled name.
 #if EXPENSIVE_CHECKING
     check_assertion(routine->variant.ctor_dtor.base_name_offset< strlen(name));
 #endif /* EXPENSIVE_CHECKING */
-    name[routine->variant.ctor_dtor.base_name_offset + 1] = ch;
+    sizeof_t idx = routine->variant.ctor_dtor.base_name_offset + 1;
+    if (routine->is_inheriting_ctor || routine->is_inh_ctor_def_init) {
+      /* Inheriting constructors have "CI" before the unique character. */
+      check_assertion(name[idx] == 'I');
+      idx++;
+    }  /* if */
+    name[idx] = ch;
   }  /* if */
 }  /* overwrite_ctor_dtor_mangled_name_kind */
 
 
-static char ctor_dtor_kind_char(a_ctor_or_dtor_kind ctor_dtor_kind)
+static char ctor_dtor_kind_char(a_routine_ptr routine)
 /*
 Returns the character to be used in mangling to identify the type of
 constructor/destructor alternate entry point specified by ctor_dtor_kind.
@@ -14350,13 +14367,21 @@ when ctor_dtor_kind is cdk_complete.
 {
   char ch;
 
-  switch (ctor_dtor_kind) {
-    case cdk_complete:  ch = '1';               break;
-    case cdk_subobject: ch = '2';               break;
-    case cdk_deleting:  ch = '0';               break;
-    case cdk_delegation:ch = '9';               break;
-    default:            unexpected_condition();
-  }  /* switch */
+  if (routine->is_inheriting_ctor) {
+    /* A "complete object inheriting constructor" (appears after "CI"). */
+    ch = '1';
+  } else if (routine->is_inh_ctor_def_init) {
+    /* A "base object inheriting constructor" (appears after "CI"). */
+    ch = '2';
+  } else {
+    switch (routine->ctor_dtor_kind) {
+      case cdk_complete:  ch = '1';               break;
+      case cdk_subobject: ch = '2';               break;
+      case cdk_deleting:  ch = '0';               break;
+      case cdk_delegation:ch = '9';               break;
+      default:            unexpected_condition();
+    }  /* switch */
+  }  /* if */
   return ch;
 }  /* ctor_dtor_kind_char */
 
@@ -14378,8 +14403,7 @@ a single character of the mangled name (as pointed to by base_name_offset).
                   routine->variant.ctor_dtor.base_name_offset != 0);
   overwrite_ctor_dtor_mangled_name_kind((char *)routine->source_corresp.name,
                                         routine,
-                                        ctor_dtor_kind_char(
-                                                     routine->ctor_dtor_kind));
+                                        ctor_dtor_kind_char(routine));
 }  /* set_ctor_dtor_mangled_name_kind */
 
 
