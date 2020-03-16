@@ -2351,6 +2351,9 @@ typedef struct a_name_reference {
   a_bit_field	is_super_qualified:1;
 			/* TRUE if the name is prefixed by the Microsoft
 			   __super keyword (e.g., __super::x). */
+  a_bit_field	is_decltype_qualified:1;
+			/* TRUE if a qualified name began with a decltype
+			   specifier. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_bit_field	used_in_primary_declarator:1;
 			/* TRUE if the primary declaration specified the

@@ -5220,6 +5220,7 @@ Initialize the fields of a name reference entry.
   nrp->is_global_qualified_name = FALSE;
   nrp->is_template_id = FALSE;
   nrp->is_super_qualified = FALSE;
+  nrp->is_decltype_qualified = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   nrp->used_in_primary_declarator = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

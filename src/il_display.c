@@ -619,6 +619,7 @@ Display a_name_reference entry.
                (a_boolean)ptr->is_global_qualified_name);
   disp_boolean("is_template_id", (a_boolean)ptr->is_template_id);
   disp_boolean("is_super_qualified", (a_boolean)ptr->is_super_qualified);
+  disp_boolean("is_decltype_qualified", (a_boolean)ptr->is_decltype_qualified);
   disp_boolean("from_prototype_instantiation",
                (a_boolean)ptr->from_prototype_instantiation);
 #if GENERATE_SOURCE_SEQUENCE_LISTS

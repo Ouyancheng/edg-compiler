@@ -18705,6 +18705,7 @@ describes the name specified by "locator".
   nrp->is_global_qualified_name = locator->is_global_qualified_name;
   nrp->is_template_id = locator->is_template_id;
   nrp->is_super_qualified = locator->is_super_qualified;
+  nrp->is_decltype_qualified = locator->is_decltype_qualified;
   nrp->from_prototype_instantiation = is_prototype_instantiation_context();
   if (is_dtor_like_locator(*locator)) {
     a_type_ptr	dtor_type = locator->variant.destructor_type;
@@ -18772,6 +18773,7 @@ a previously created entry that can be reused.
         nrp->num_template_arguments == entry_to_copy->num_template_arguments &&
         nrp->is_global_qualified_name ==
                                      entry_to_copy->is_global_qualified_name &&
+        nrp->is_decltype_qualified ==  entry_to_copy->is_decltype_qualified &&
         nrp->is_template_id == entry_to_copy->is_template_id &&
         nrp->special_kind == entry_to_copy->special_kind &&
 #if MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING
@@ -20195,6 +20197,9 @@ selection operator, in which case it points to the type of the left operand.
                                 decltype_type);
           }  /* if */
         }  /* if */
+        /* Clear the decltype_type so it won't be used in subsequent
+           iterations. */
+        decltype_type = NULL;
         /* Skip over the class-name, and the "::".  After the two get_token
            calls, the current token will be whatever follows the
            qualifier. */

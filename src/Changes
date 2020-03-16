@@ -1,5 +1,21 @@
 Version 6.1
 
+3/16/20  [EDGcpfe/22055]
+C++-generating back end: incorrect generated code for decltype as qualified
+
+When DEFAULT_RECORD_FORM_OF_NAME_REFERENCE is TRUE, a qualified name
+that uses decltype, and which contains more than one level of qualification,
+could be incorrectly emitted by the C++-generating back end.  Now fixed.
+
+  struct S {
+    struct T {
+      static int m;
+    };
+  };
+  S s;
+  auto &x = decltype(s)::T::m;
+
+
 3/16/20  [EDGcpfe/22375]
 Partial specialization issue with pack expansions passed to non-variadic
 
