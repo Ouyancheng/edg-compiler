@@ -1,5 +1,24 @@
 Version 6.1
 
+3/15/20  [EDGcpfe/22292]
+C++-generating back end: calls via constexpr function pointer/reference
+
+When a function call uses a constexpr pointer or reference to a function,
+overload resolution is done to select the appropriate function for the
+initialization.  The C++-generating back end, however, generated a function
+call through such a pointer or reference using the name of the function
+with which the constexpr variable is initialized, which could lead to
+overload resolution failures compiling the generated code.  This has now
+been fixed, and the name of the constexpr pointer or reference is preserved
+in the generated code.  For example, with --c++14:
+
+  int f(long double);
+  float f(unsigned long long);
+
+  constexpr int (*p)(long double) = f;  // Selects f(long double)
+  int x = p(1);  // Previously generated as f(1), which is ambiguous
+
+
 3/15/20  [EDGcpfe/22407]
 Matching of template template parameters
 
