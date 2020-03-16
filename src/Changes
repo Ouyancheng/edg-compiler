@@ -127,9 +127,9 @@ This is now fixed.
 3/13/20  [EDGcpfe/22452]
 GNU C++ compatibility: __is_same
 
-In GNU C++ modes with gnu_version ?= 100000 the type traits helper __is_same
+In GNU C++ modes with gnu_version >= 100000 the type traits helper __is_same
 is now accepted as a synonym for __is_same_as.  (See the changes of 10/23/19
-for EDGcpfe/21327, etc.
+for EDGcpfe/21327, etc.)
 
 
 3/13/20  [EDGcpfe/21752]
