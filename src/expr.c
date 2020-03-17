@@ -22368,6 +22368,7 @@ C++ functional-notation type conversions, and C++ new-style casts.
         err = TRUE;
       } else if (constexpr_enabled &&
                  expr_stack->potentially_evaluated &&
+                 !expr_stack->potentially_unevaluated &&
                  !incomplete && /* checked above already */
                  !is_literal_type(type_cast_to) &&
                  construct_not_allowed_in_cpp11_constant_expr(
