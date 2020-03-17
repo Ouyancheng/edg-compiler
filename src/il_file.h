@@ -94,7 +94,7 @@ file-scope entry number in an encoded IL entry number.
 */
 #define FUNC_ENTRY_NUMBER_BIT                                                 \
   ((an_encoded_entry_number) 0x1 <<                                           \
-                             ((CHAR_BIT * sizeof(an_encoded_entry_number)) - 1)
+                            ((CHAR_BIT * sizeof(an_encoded_entry_number)) - 1))
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
 /* Conditionally close the "edg" namespace. */
