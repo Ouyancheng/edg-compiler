@@ -15436,9 +15436,11 @@ enum a_constructor_init_kind_tag {
      are initialized before nonstatic data members). */
   cik_virtual_base_class,
 			/* Object to be initialized is a virtual base class. */
-  cik_direct_base_class,
-			/* Object to be initialized is a nonvirtual direct
-			   base class. */
+  cik_nonvirtual_base_class,
+			/* Object to be initialized is a nonvirtual base class.
+			   Typically the object is a direct base class, except
+			   with inheriting constructors where the object may be
+			   an indirect base class as well. */
   cik_field,		/* Object to be initialized is a field. */
   cik_delegation	/* Initialization is delegated to another
 			   constructor. */
@@ -15476,7 +15478,7 @@ typedef struct a_constructor_init {
 			   to point to a copy of the field initializer in
 			   lowering configurations. */
   union {
-    /* When kind is cik_virtual_base_class or cik_direct_base_class: */
+    /* When kind is cik_virtual_base_class or cik_nonvirtual_base_class: */
     a_base_class_ptr
 		base_class;
 			/* The base class to be initialized. */

@@ -7153,7 +7153,7 @@ complete.  The function returns the newly created a_constructor_init.
 */
 {
   a_constructor_init_ptr new_cip = alloc_ctor_init(
-                        (a_constructor_init_kind)cik_direct_base_class);
+                           (a_constructor_init_kind)cik_nonvirtual_base_class);
   complete_class_type_is_needed(init_type);
   new_cip->variant.base_class = alloc_base_class();
   new_cip->variant.base_class->type = init_type;
@@ -8887,8 +8887,8 @@ initialized.  These are addressed in the course of the processing.
          Create the constructor init entry now; the dynamic init will be added
          later. */
       cip = alloc_ctor_init((a_constructor_init_kind)(bcp->is_virtual ?
-                                                      cik_virtual_base_class :
-                                                      cik_direct_base_class));
+                                                   cik_virtual_base_class :
+                                                   cik_nonvirtual_base_class));
       cip->variant.base_class = bcp;
       /* Mark the constructor initializer as compiler-generated (i.e., not
          representing an explicit entry in the ctor-initializer list); clear
@@ -9814,8 +9814,8 @@ default-initialized.
   a_dynamic_init_ptr  dip;
 
   check_assertion(
-                init->kind == (a_constructor_init_kind)cik_direct_base_class ||
-                init->kind == (a_constructor_init_kind)cik_virtual_base_class);
+            init->kind == (a_constructor_init_kind)cik_nonvirtual_base_class ||
+            init->kind == (a_constructor_init_kind)cik_virtual_base_class);
   dip = alloc_ctor_dynamic_init(def_ctor, /*implied_source=*/FALSE,
                                 /*evaluated=*/FALSE, inh_ctor->is_consteval);
   dip->is_constructor_init = TRUE;
@@ -9956,7 +9956,7 @@ constructor are initialized in the normal way.
   }  /* for */
   for (auto& base : direct_bases) {
     a_constructor_init_ptr cip;
-    cip = alloc_ctor_init((a_constructor_init_kind)cik_direct_base_class);
+    cip = alloc_ctor_init((a_constructor_init_kind)cik_nonvirtual_base_class);
     cip->variant.base_class = base.ptr();
     cip->compiler_generated = TRUE;
     *next_init = cip;
@@ -10041,10 +10041,9 @@ though neither constructors nor initialization is involved here.)
            dynamic init entry will be required. */
         rp = select_destructor(bcp->type, class_type, &source_pos);
         if (rp != NULL) {
-          cip = alloc_ctor_init((a_constructor_init_kind)
-                                                    (bcp->is_virtual ?
-                                                     cik_virtual_base_class :
-                                                     cik_direct_base_class));
+          cip = alloc_ctor_init((a_constructor_init_kind)bcp->is_virtual ?
+                                                    cik_virtual_base_class :
+                                                    cik_nonvirtual_base_class);
           cip->variant.base_class = bcp;
           cip->compiler_generated = TRUE;
           /* Create a dynamic init entry. */

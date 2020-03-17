@@ -4238,7 +4238,7 @@ pointer to it.
   cip->use_field_initializer = FALSE;
   switch (kind) {
     case cik_virtual_base_class:
-    case cik_direct_base_class:
+    case cik_nonvirtual_base_class:
       cip->variant.base_class = NULL;
       break;
     case cik_field:

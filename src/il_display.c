@@ -7187,8 +7187,8 @@ Display the indicated constructor init entry.
     case cik_virtual_base_class:
       (void)printf("cik_virtual_base_class\n");
       goto do_base_class;
-    case cik_direct_base_class:
-      (void)printf("cik_direct_base_class\n");
+    case cik_nonvirtual_base_class:
+      (void)printf("cik_nonvirtual_base_class\n");
 do_base_class:
       disp_ptr("base_class", (char *)ptr->variant.base_class,
                iek_base_class);

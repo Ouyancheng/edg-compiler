@@ -20159,8 +20159,11 @@ a constructor.
                                              saved_visible_as_unqualified_name;
           }
           break;
-        case cik_direct_base_class:
-          /* Initializing a direct base class. */
+        case cik_nonvirtual_base_class:
+          /* Initializing a direct base class.  We shouldn't get here with
+             indirect base classes as these only occur with generated
+             inheriting constructors. */
+          check_assertion(ctor_init->variant.base_class->direct);
           type = ctor_init->orig_type == NULL ?
                                           ctor_init->variant.base_class->type :
                                           ctor_init->orig_type;

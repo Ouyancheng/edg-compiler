@@ -1126,13 +1126,14 @@ the amount of indentation.
   db_indent(level);
   switch (cip->kind) {
     case cik_virtual_base_class:
-    case cik_direct_base_class:
-      fprintf(f_debug, "%s base ",
-              cip->kind == (a_constructor_init_kind)cik_virtual_base_class ?
-                                                         "virtual" : "direct");
-      db_name(&cip->variant.base_class->type->source_corresp);
-      fputc('\n', f_debug);
-      break;
+    case cik_nonvirtual_base_class:
+      { a_base_class_ptr bcp = cip->variant.base_class;
+        fprintf(f_debug, "%s base ", bcp->is_virtual ? "virtual"
+                                     : bcp->direct ? "direct" : "indirect");
+        db_name(&cip->variant.base_class->type->source_corresp);
+        fputc('\n', f_debug);
+        break;
+      }
     case cik_field:
       fputs("field ", f_debug);
       db_name(&cip->variant.field->source_corresp);
