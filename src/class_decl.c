@@ -16138,9 +16138,10 @@ decl_member_function, which handles in-class member function declarations.)
   check_operator_function_params(member_type, class_type, locator);
   if (!is_error_locator(*locator)) {
     sym = find_direct_member_function(locator, class_type);
-    if (sym != NULL) {
+    if (sym != NULL && !decl_info->decl_state.is_inheriting_ctor) {
       /* Be sure the declaration does not conflict with a previous member
-         function template declaration in the current class. */
+         function template declaration in the current class.  Inheriting
+         constructors are allowed to conflict. */
       a_boolean  is_list =
                       (sym->kind == (a_symbol_kind)sk_overloaded_function);
       other_sym = is_list ? sym->variant.overloaded_function.symbols : sym;
@@ -16209,15 +16210,8 @@ decl_member_function, which handles in-class member function declarations.)
                        equiv_requires_clauses(
                                            other_rp->trailing_requires_clause,
                                            dps->trailing_requires_clause)) {
-              if (dps->is_inheriting_ctor && other_rp->is_inheriting_ctor) {
-                error_code = ec_inheriting_ctor_conflict;
-                pos_syty_error(error_code, &locator->source_position,
-                               fund_sym, other_rp->generating_using_decl
-                                                 ->qualifier.class_type);
-              } else {
-                error_code = ec_member_function_redeclaration;
-                pos_sy_error(error_code, &locator->source_position, other_sym);
-              }  /* if */
+              error_code = ec_member_function_redeclaration;
+              pos_sy_error(error_code, &locator->source_position, other_sym);
             }  /* if */
             if (error_code != ec_no_error) {
               set_to_named_error_locator(*locator);

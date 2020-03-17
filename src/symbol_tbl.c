@@ -12316,7 +12316,10 @@ functions befriending_list_test and class_scope_test.
         a_class_list_entry_ptr inh_ctor_friends = NULL;
         if (inh_ctor->is_template_function) {
           a_template_symbol_supplement_ptr tssp;
-          tssp = template_supplement_for_symbol(symbol_for(inh_ctor));
+          a_symbol_ptr                     template_sym;
+          template_sym = symbol_for(inh_ctor)->variant.routine.instance_ptr->
+                                                                  template_sym;
+          tssp = template_supplement_for_symbol(template_sym);
           inh_ctor_friends = tssp->befriending_classes;
         }  /* if */
         if (inh_ctor_friends == NULL) {
