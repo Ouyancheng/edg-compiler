@@ -115,11 +115,11 @@ This is now implemented.
 
 
 3/13/20  [EDGcpfe/22460]
-GNU compatibility: Deferred evaluation of function template parameter default
-arguments
+GNU compatibility: Deferred evaluation of default function arguments for
+function templates
 
-GCC defers validation of a function template parameter's default argument until
-it's required, even when the argument is non-dependent.  For example:
+GCC defers validation of a default function argument for a function template
+until it's required, even when the argument is non-dependent.  For example:
 
   struct X;
   struct A {
