@@ -168,6 +168,8 @@ Consider:
   template<typename T> struct Cond {
     static constexpr bool value = (sizeof(T) == 17);
   };
+  struct D { ~D(); };
+  constexpr bool check(D const&) { return true; }
   template<typename T> constexpr int g() {
     constexpr bool r = Cond<T>::value && check(D());  // Previously an error.
     return 42;                                        // Now okay.
