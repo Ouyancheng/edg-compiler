@@ -13493,7 +13493,7 @@ If there is an error in the copying, set *copy_error to TRUE.
     /* For partial specialization checking, consider the context variadic
        if the template template parameter has a template parameter that is
        a pack.  Also consider it as variadic if an argument is a pack.  This
-       occurs when one ore more (possibly empty) packs appear as arguments
+       occurs when one or more (possibly empty) packs appear as arguments
        for a non-variadic parameter. */
     if ((options & CTWS_IS_PARTIAL_SPECIALIZATION_CHECK) != 0) {
       if (ttp_tpp != NULL && ttp_tpp->is_pack) {

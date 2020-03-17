@@ -28,7 +28,7 @@ could be incorrectly emitted by the C++-generating back end.  Now fixed.
 
 
 3/16/20  [EDGcpfe/22375]
-Partial specialization issue with pack expansions passed to non-variadic
+Partial specialization issue with pack expansions and non-variadic templates
 
 If multiple pack expansions were passed to a non-variadic template (as in the
 case of the use of A<Ns..., T...> in C<T>::D below) partial specialization
