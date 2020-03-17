@@ -50,14 +50,15 @@ could produce an incorrect result.  Now fixed.
 3/15/20  [EDGcpfe/22292]
 C++-generating back end: calls via constexpr function pointer/reference
 
-When a function call uses a constexpr pointer or reference to a function,
-overload resolution is done to select the appropriate function for the
-initialization.  The C++-generating back end, however, generated a function
-call through such a pointer or reference using the name of the function
-with which the constexpr variable is initialized, which could lead to
-overload resolution failures compiling the generated code.  This has now
-been fixed, and the name of the constexpr pointer or reference is preserved
-in the generated code.  For example, with --c++14:
+When a constexpr function pointer or reference to a function is
+initialized, overload resolution is done to select the appropriate function
+for the initialization.  If that constexpr variable is then used in a
+function call, however, the C++-generating back end generated the call
+using the name of the function with which the constexpr variable is
+initialized in place of the variable name, which could lead to overload
+resolution failures compiling the generated code.  This has now been fixed,
+and the name of the constexpr pointer or reference is preserved in the
+generated code.  For example, with --c++14:
 
   int f(long double);
   float f(unsigned long long);
