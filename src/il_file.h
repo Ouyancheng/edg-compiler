@@ -86,13 +86,15 @@ In the alternate file format, pointers in the IL entries are replaced by
 integers that encode the entry number.  This type is the container for
 the encoded form; it is converted to "char *" when stored in memory.
 */
-typedef unsigned long
+typedef TYPE_FOR_PREFIX_ENTRY_NUMBER
 		an_encoded_entry_number;
 /*
 Tag bit used to indicate a function-scope entry number instead of a
 file-scope entry number in an encoded IL entry number.
 */
-#define FUNC_ENTRY_NUMBER_BIT ((unsigned long)LONG_MAX+1)
+#define FUNC_ENTRY_NUMBER_BIT                                                 \
+  ((an_encoded_entry_number) 0x1 <<                                           \
+                             ((CHAR_BIT * sizeof(an_encoded_entry_number)) - 1)
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
 /* Conditionally close the "edg" namespace. */
