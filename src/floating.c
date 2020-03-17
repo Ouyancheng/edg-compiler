@@ -1784,7 +1784,7 @@ STATIC void fp_emul_add_int(an_fp_binary  *left,
 */
 {
   if (right != 0) {
-    an_fp_binary bin;
+    an_fp_binary bin = {};
     int          i;
 
     bin.type = fpt_number;
