@@ -21590,9 +21590,9 @@ in some Microsoft modes, record that its body cannot be generated).
 }  /* generate_default_constructor */
 
 
-static a_boolean default_ctor_can_be_constexpr(a_routine_ptr ctor_rp,
-                                               a_type_ptr    class_type,
-                                               a_boolean     check_bases)
+a_boolean default_ctor_can_be_constexpr(a_routine_ptr ctor_rp,
+                                        a_type_ptr    class_type,
+                                        a_boolean     check_bases)
 /*
 Determine whether the given default constructor for class_type satisfies the
 requirements for a constexpr default constructor.  If check_bases is FALSE,

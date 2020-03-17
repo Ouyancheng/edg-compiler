@@ -3629,6 +3629,16 @@ empty statement block.
     a_type_ptr   rtp = skip_typerefs(rout_ptr->type);
     scope = begin_definition_of_generated_function(rout_ptr, rtp, class_type,
                                                    &context);
+    if (rout_ptr->is_inheriting_ctor && rout_ptr->is_constexpr &&
+        !default_ctor_can_be_constexpr(rout_ptr, class_type,
+                                      /*check_bases=*/FALSE)) {
+      /* class_type was incomplete at the time the inheriting constructor was
+         generated.  The inheriting constructor also needs to behave as if it
+         were a default constructor for the purposes of initializing the most-
+         derived subobject.  Determine if it can still be a constexpr
+         constructor and if not, clear those flags. */
+      rout_ptr->is_declared_constexpr = rout_ptr->is_constexpr = FALSE;
+    }  /* if */
     if (has_indeterminate_exception_spec(rout_ptr)) {
       /* A default constructor whose exception specification hasn't been
          determined yet because it depended on field initializers.  In GNU C++

@@ -91,6 +91,10 @@ extern void ensure_inclass_static_member_constant_initializer_is_scanned(
 
 extern void resolve_indeterminate_exception_specification(a_routine_ptr  rp);
 
+extern a_boolean default_ctor_can_be_constexpr(a_routine_ptr ctor_rp,
+                                               a_type_ptr    class_type,
+                                               a_boolean     check_bases);
+
 extern a_boolean check_if_constexpr_generated_default_constructor(
                                                        a_type_ptr  class_type);
 
