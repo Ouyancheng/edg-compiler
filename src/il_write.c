@@ -375,7 +375,7 @@ corresponding encoded entry number, and return that number cast to "char *".
   /* For CodeCenter -- suppress warning about bad pointer.  Version 3.0
      warning number. */
   /*SUPPRESS 80*/
-  return ((char *)encoded_number);
+  return ((char *)(ptrdiff_t)encoded_number);
 }  /* remap_ptr_to_entry_number */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
