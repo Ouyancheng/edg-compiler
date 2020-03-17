@@ -12,7 +12,7 @@ result in an abort (in form_exception_specification).  Now fixed.
 
 
 3/16/20  [EDGcpfe/22055]
-C++-generating back end: incorrect generated code for decltype as qualified
+C++-generating back end: incorrect generated code for decltype as qualifier
 
 When DEFAULT_RECORD_FORM_OF_NAME_REFERENCE is TRUE, a qualified name
 that uses decltype, and which contains more than one level of qualification,
