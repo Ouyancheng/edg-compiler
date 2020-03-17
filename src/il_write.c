@@ -482,6 +482,7 @@ Write the initial information to the IL file, if there is one.
   }
   check_assertion(sizeof(an_encoded_entry_number) >=
                   sizeof(an_il_entry_number));
+  check_assertion(sizeof(an_encoded_entry_number) <= sizeof(char*));
 #endif /* CHECKING */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 }  /* start_il_file */
