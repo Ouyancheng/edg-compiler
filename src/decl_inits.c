@@ -9839,24 +9839,6 @@ default-initialized.
 }  /* inh_ctor_init_default_initialize_base */
 
 
-static void inh_ctor_init_default_initialize_field(
-                                             a_constructor_init_ptr init,
-                                             a_type_ptr             class_type)
-/*
-Initialize the provided field given by init as if by a defaulted default
-constructor.  class_type is the type of the class being default-initialized.
-*/
-{
-  a_field_ptr   field = init->variant.field;
-
-  check_assertion(init->kind==(a_constructor_init_kind)cik_field);
-  check_assertion(field->has_initializer);
-  init->use_field_initializer = TRUE;
-  /* Ensure the field initializer is scanned if necessary. */
-  scan_field_initializer_if_needed(field, class_type);
-}  /* inh_ctor_init_default_initialize_field */
-
-
 static void inh_ctor_init_call_default_ctor(a_constructor_init_ptr init,
                                             a_routine_ptr          ctor,
                                             a_type_ptr             class_type)
