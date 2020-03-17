@@ -13950,9 +13950,10 @@ call.
 
     if (backing_expr != func_expr) {
       /* Don't use the routine node from the constant; it could cause an
-         ambiguous overload in the generated code if the constant is the
-         result of assigning an overload set to a constexpr function
-         pointer or reference. */
+         ambiguous or incorrect call in the generated code if the constant
+         is the result of initializing a constexpr function pointer or
+         reference from an overload set, since the overload resolution from
+         the call could be different from that of the initialization. */
       rout = NULL;
     } else {
       rout = routine_and_node_from_function_expr(func_expr, &routine_node);
