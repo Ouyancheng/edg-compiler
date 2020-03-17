@@ -25716,7 +25716,8 @@ routine.
          declaration includes attributes, adapt the diagnostic wording
          accordingly. */
       if (decl_state->prefix_attributes != NULL) {
-        pos_warning(ec_attributes_with_no_decl, err_pos);
+        pos_warning(ec_attributes_with_no_decl,
+                    &decl_state->prefix_attributes->position);
       } else {
         pos_warning(ec_useless_decl, err_pos);
       }  /* if */
@@ -25745,7 +25746,8 @@ routine.
                decl_state->prefix_attributes != NULL) {
       /* An empty declaration with attributes: Issue a diagnostic that mentions
          the attributes. */
-      pos_warning(ec_attributes_with_no_decl, err_pos);
+      pos_warning(ec_attributes_with_no_decl,
+                  &decl_state->prefix_attributes->position);
     } else {
       /* Issue a warning (or error in -A mode) on the useless declaration. */
       pos_diagnostic(strict_ansi_mode ?
