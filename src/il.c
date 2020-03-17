@@ -1114,6 +1114,76 @@ If tp is a routine type, dump the function parameters, for debug purposes.
 }  /* db_function_param_list */
 
 
+void db_ctor_init(a_constructor_init_ptr cip,
+                         int                    level)
+/*
+Dump information on a constructor initializer, for debug purposes.  level is
+the amount of indentation.
+*/
+{
+  a_dynamic_init_ptr dip = cip->initializer;
+
+  db_indent(level);
+  switch (cip->kind) {
+    case cik_virtual_base_class:
+    case cik_direct_base_class:
+      fprintf(f_debug, "%s base ",
+              cip->kind == (a_constructor_init_kind)cik_virtual_base_class ?
+                                                         "virtual" : "direct");
+      db_name(&cip->variant.base_class->type->source_corresp);
+      fputc('\n', f_debug);
+      break;
+    case cik_field:
+      fputs("field ", f_debug);
+      db_name(&cip->variant.field->source_corresp);
+      fputc('\n', f_debug);
+      if (cip->use_field_initializer) {
+        dip = cip->variant.field->initializer;
+      }  /* if */
+      break;
+    case cik_delegation:
+      fputs("delegate constructor", f_debug);
+      break;
+    default:
+      unexpected_condition_str("Unexpected constructor init kind");
+  }  /* switch */
+  db_dynamic_initializer(dip, level + 2);
+}  /* db_ctor_init */
+
+
+void db_cip(a_constructor_init_ptr cip)
+/*
+A wrapper for db_ctor_init that uses no initial indentation.
+*/
+{
+  db_ctor_init(cip, 0);
+}  /* db_cip */
+
+
+void db_ctor_init_list(a_constructor_init_ptr cip_list,
+                              int                    level)
+/*
+Dump information on all the constructor initializers in a list, for debug
+purposes.  level is the amount of indentation.
+*/
+{
+  db_indent(level);
+  fputs("ctor init list:\n", f_debug);
+  for (; cip_list != NULL; cip_list = cip_list->next) {
+    db_ctor_init(cip_list, level + 2);
+  }  /* for */
+}  /* db_ctor_init_list */
+
+
+void db_cip_list(a_constructor_init_ptr cip_list)
+/*
+A wrapper for db_ctor_init_list that uses no initial indentation.
+*/
+{
+  db_ctor_init_list(cip_list, 0);
+}  /* db_cip_list */
+
+
 static void db_add_qualifier_to_string(a_type_qualifier_set	qualifier,
 				       a_type_qualifier_set	qualifiers,
 				       a_const_char		*name)
@@ -2558,6 +2628,7 @@ Dump a dynamic initializer entry for debug purposes.
   }  /* if */
   switch (dip->kind) {
     case dik_constant:
+      db_indent(level);
       db_static_initializer(dip->variant.constant.ptr);
       if (dip->destructor != NULL) {
         fputs("; ", f_debug);

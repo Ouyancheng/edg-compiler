@@ -102,10 +102,8 @@ extern a_constructor_init_ptr ctor_inits_for_fields(
                                        a_constructor_init_ptr *end_of_list);
 
 extern a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout,
-                                               a_boolean      user_defined);
-
-extern a_constructor_init_ptr ctor_inits_for_inh_ctor_def_init(
-                                                           a_routine_ptr ctor);
+                                               a_boolean      user_defined,
+                                               a_boolean      fields_only);
 
 extern a_constructor_init_ptr ctor_inits_for_inheriting_ctor(
                                                            a_routine_ptr ctor);

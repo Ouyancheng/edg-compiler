@@ -13166,14 +13166,18 @@ inheriting constructor where there is access to the inherited constructor.
 {
   a_boolean               have_access = FALSE;
   a_scope_stack_entry_ptr ssep = &scope_stack_top();
-  a_routine_ptr           sym_ctor = NULL;
+  a_routine_ptr           sym_ctor = NULL, scope_rout = NULL;
 
   if (is_constructor_symbol(symbol)) {
     sym_ctor = func_sym_routine(symbol);
   }  /* if */
-  if (sym_ctor != NULL &&
-      (scope_is(ssep, sck_function) || scope_is(ssep, sck_function_access)) &&
-      ssep->assoc_routine->is_inheriting_ctor) {
+  if (scope_is(ssep, sck_function)) {
+    scope_rout = ssep->il_scope->variant.routine.ptr;
+  } else if (scope_is(ssep, sck_function_access)) {
+    scope_rout = ssep->assoc_routine;
+  }  /* if */
+  if (sym_ctor != NULL && scope_rout != NULL &&
+      scope_rout->is_inheriting_ctor) {
     a_routine_ptr ctor_orig = get_inh_ctor_originator(ssep->assoc_routine,
                                                       /*ignore_virtual=*/TRUE);
     a_routine_ptr sym_orig = get_inh_ctor_originator(sym_ctor,

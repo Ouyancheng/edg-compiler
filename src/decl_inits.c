@@ -8744,7 +8744,8 @@ non-NULL, set *end_of_list to the last initializer in the list.
 
 
 a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout,
-                                        a_boolean      user_defined)
+                                        a_boolean      user_defined,
+                                        a_boolean      fields_only)
 /*
 Process the explicit and implicit constructor initializations for constructor
 routine ctor_rout.  If user_defined is TRUE, the context is that of an
@@ -8756,6 +8757,12 @@ for data members and/or base classes, if any.  If present, the current
 token should be the colon introducing that list.  The special case of
 a delegating constructor (a feature introduced in C++11) is also handled
 here.
+
+If fields_only is TRUE, do not generate any initializers for base classes.
+This is needed for inheriting constructors where the initialization for
+subobjects that participated in the constructor inheritance but aren't
+initialized by the constructor call are instead initialized "as if by a
+defaulted default constructor".
 
 The implicit initializations are performed for base classes and class-type
 data members for which no explicit initializers were specified and for which
@@ -8780,7 +8787,7 @@ initialized.  These are addressed in the course of the processing.
   a_type_ptr                    class_type, tp = NULL, array_type;
   a_ctor_init_block             cib;
   a_constructor_init_ptr        cip, prev_cip, next_cip;
-  a_base_class_ptr              bcp;
+  a_base_class_ptr              bcp = NULL;
   a_class_type_supplement_ptr   ctsp;
   a_class_symbol_supplement_ptr cssp;
   a_routine_ptr                 rp = NULL;
@@ -8869,7 +8876,10 @@ initialized.  These are addressed in the course of the processing.
   /* Handle the first two lists together. */
   /* Scan the list of base classes, which may include some that are
      ineligible for initialization. */
-  for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+  if (!fields_only) {
+    bcp = ctsp->base_classes;
+  }  /* if */
+  for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->direct || bcp->is_virtual) {
       cssp = symbol_supplement_for_class(bcp->type);
       /* If the virtual base class or direct base class has a constructor, a
@@ -9882,27 +9892,6 @@ being created.
 }  /* inh_ctor_init_call_default_ctor */
 
 
-a_constructor_init_ptr ctor_inits_for_inh_ctor_def_init(a_routine_ptr ctor)
-/*
-ctor is a generated constructor for the sub-object being initialized "as if by
-a defaulted default constructor" for an inheriting constructor call.  Generate
-and return the required constructor initializations.
-*/
-{
-  a_constructor_init_ptr cip, inits;
-  a_type_ptr             class_type = parent_class_of(ctor);
-
-  check_assertion(ctor->is_inh_ctor_def_init);
-  inits = ctor_inits_for_fields(ctor, class_type, /*all_fields=*/FALSE,
-                                /*only_init_fields=*/TRUE, /*has_field=*/NULL,
-                                /*end_of_list=*/NULL);
-  for (cip = inits; cip != NULL; cip = cip->next) {
-    inh_ctor_init_default_initialize_field(cip, class_type);
-  }  /* for */
-  return inits;
-}  /* ctor_inits_for_inh_ctor_def_init */
-
-
 a_constructor_init_ptr ctor_inits_for_inheriting_ctor(a_routine_ptr ctor)
 /*
 ctor is a generated inheriting constructor.  Generate and return the required
@@ -10011,14 +10000,8 @@ constructor are initialized in the normal way.
     }  /* if */
   }  /* for */
   /* Generate initializers for the fields of the class. */
-  *next_init = ctor_inits_for_fields(ctor_routine, class_type,
-                                     /*all_fields=*/FALSE,
-                                     /*only_init_fields=*/TRUE,
-                                     /*has_field*=*/NULL,
-                                     /*end_of_list*=*/NULL);
-  for (a_constructor_init_ptr cip = *next_init; cip != NULL; cip = cip->next) {
-    inh_ctor_init_default_initialize_field(cip, class_type);
-  }  /* for */
+  *next_init = ctor_initializer(ctor, /*user_defined=*/FALSE,
+                                /*fields_only=*/TRUE);
   check_assertion(inits.length() > 0);
   return ctor_inits;
 }  /* class_initializers_for_inherited_ctor */

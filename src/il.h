@@ -2943,6 +2943,16 @@ extern void db_expr_range(an_expr_node_ptr node);
 
 extern void db_expr_summary(an_expr_node_ptr  node);
 
+extern void db_ctor_init(a_constructor_init_ptr cip,
+                         int                    level);
+
+extern void db_cip(a_constructor_init_ptr cip);
+
+extern void db_ctor_init_list(a_constructor_init_ptr cip_list,
+                              int                    level);
+
+extern void db_cip_list(a_constructor_init_ptr cip_list);
+
 extern void db_dynamic_initializer(a_dynamic_init_ptr  dip,
                                    int                 level);
 

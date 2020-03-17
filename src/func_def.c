@@ -1795,7 +1795,8 @@ of lambda expressions.
     if (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor) {
       scope_ptr->variant.routine.constructor_inits =
                                       ctor_initializer(rout_ptr,
-                                                       /*user_defined=*/TRUE);
+                                                       /*user_defined=*/TRUE,
+                                                       /*fields_only=*/FALSE);
     } else if (rout_ptr->special_kind ==
                                    (a_special_function_kind)sfk_destructor) {
       scope_ptr->variant.routine.constructor_inits =
@@ -3016,11 +3017,11 @@ construction (if any is needed).
   }  /* if */    
   /* Create entries describing constructions to be done in the wrapper code. */
   if (rp->is_inh_ctor_def_init) {
-    cip = ctor_inits_for_inh_ctor_def_init(rp);
+    cip = ctor_initializer(rp, /*user_defined=*/FALSE, /*fields_only=*/TRUE);
   } else if (rp->is_inheriting_ctor) {
     cip = ctor_inits_for_inheriting_ctor(rp);
   } else {
-    cip = ctor_initializer(rp, /*user_defined=*/FALSE);
+    cip = ctor_initializer(rp, /*user_defined=*/FALSE, /*fields_only=*/FALSE);
   }  /* if */
   scope->variant.routine.constructor_inits = cip;
   /* Create a statement block that is empty except for the return statement. */

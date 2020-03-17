@@ -47791,6 +47791,7 @@ inherits.  ctor is the inheriting constructor that inherited from inh_ctor.
   clear_init_state(&is);
   is.direct_init = TRUE;
   is.force_dynamic_init = TRUE;
+  is.is_base_init = TRUE;
   /* Create the inheriting constructor's parameter variables and the
      corresponding argument list for the constructor call. */
   check_assertion(innermost_function_scope != NULL &&
