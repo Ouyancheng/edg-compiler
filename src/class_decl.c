@@ -24570,19 +24570,22 @@ search_done:
 
 
 static void record_inheriting_ctor_using_decl(a_class_def_state_ptr  cdsp,
-                                              a_source_position      *pos)
+                                              a_source_position      *pos,
+                                              a_using_decl_ptr       *result)
 /*
 A member using-declaration appears to introduce inheriting constructors into
 the class type being defined (described by cdsp).   pos is the position of the
 "using" keyword.  Create the a_using_decl entry for this construct.  The
 actual constructors will be synthesized later (after special members have been
-declared).
+declared).  If a using declaration is created, result will point to it.
+Otherwise result will be NULL.
 */
 {
   a_type_ptr        class_type = cdsp->class_type;
   a_type_ptr        parent_class = qualifier_class_type(locator_for_curr_id);
   a_base_class_ptr  bcp = base_classes_of(class_type);
 
+  *result = NULL;
   /* Ensure the name qualifier is a direct base class. */
   if (!is_class_struct_union_type(parent_class)) {
     /* If the base class is a template parameter, get the associated proxy
@@ -24632,6 +24635,7 @@ declared).
       cannot_bind_to_curr_construct();
       report_gnu_cpp11_extension_if_needed(
                                      pos, ec_inheriting_constructor_is_cpp11);
+      *result = udp;
     }  /* if */
   }  /* if */
   /* Bypass the identifier. */
@@ -24663,7 +24667,7 @@ declaration from a using-declaration.)
   a_boolean            check_for_packs = FALSE, any_more = TRUE;
   a_boolean            empty_pack = FALSE;
   a_symbol_locator     locator;
-  a_using_decl_ptr     prev_udp = NULL;
+  a_using_decl_ptr     prev_udp = NULL, inh_ctor_udp = NULL;
   a_source_position    decl_pos, using_pos, end_of_using_pos;
   a_boolean            saved_record_form_of_name_reference;
   a_boolean            saved_record_dependent_name_references;
@@ -24828,7 +24832,7 @@ declaration from a using-declaration.)
             (is_ctor || locator_for_curr_id.is_inheriting_ctor ||
              is_injected_class_symbol(declared_sym))) {
           /* A using-declaration for inheriting constructors. */
-          record_inheriting_ctor_using_decl(cdsp, &using_pos);
+          record_inheriting_ctor_using_decl(cdsp, &using_pos, &inh_ctor_udp);
           goto next_using_declarator_if_any;
         } else if (is_ctor || is_destructor_symbol(declared_sym)) {
           /* A using-declaration may not specify a constructor or
@@ -25033,8 +25037,14 @@ next_using_declarator_if_any:
     if (!check_for_packs) break;
     pedep = end_potential_pack_expansion_context(pesep,
                                                  /*is_declarator=*/FALSE);
-    if (pedep != NULL && prev_udp != NULL) {
-      prev_udp->is_pack_expansion = TRUE;
+    if (pedep != NULL) {
+      if (prev_udp != NULL) {
+        prev_udp->is_pack_expansion = TRUE;
+      }  /* if */
+      if (inh_ctor_udp != NULL) {
+        inh_ctor_udp->is_pack_expansion = TRUE;
+        inh_ctor_udp = NULL;
+      }  /* if */
     }  /* if */
     any_more = advance_to_next_pack_element(pesep);
     if (!any_more) {

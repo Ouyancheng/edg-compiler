@@ -1,5 +1,21 @@
 Version 6.1
 
+3/18/20  [EDGcpfe/22053]
+Missing pack expansion flag on inheriting constructor using declarations
+
+When an inheriting constructor using declaration contains a pack expansion, the
+front end was previously failing to record this information.  This could lead
+to back end failures where this information was important.  For example, with
+the C++-generating back end, the output using declaration was ill-formed as it
+was missing the ellipses.  For example:
+
+  template <class... T> struct S : public T... {
+    using T::T...; // C++-generating back end was outputting "using T::T;"
+  };
+
+This is now fixed.
+
+
 3/18/20  [EDGcpfe/22291]
 C++-generating back end: missing qualifier on pointer-to-member
 
