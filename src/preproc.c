@@ -1438,8 +1438,8 @@ Import the given module.  assoc_sym is the associated symbol for the module.
 }  /* import_module */
 
 
-void proc_modules_import(a_pp_directive_kind   ppd,
-                         a_source_position_ptr start_pos)
+void proc_modules_import(ARG_UNUSED a_pp_directive_kind ppd,
+                         a_source_position_ptr          start_pos)
 /*
 Process an import directive for a module.  ppd can be either ppd_import or
 ppd_export_import (if the import is exported).  Module imports can take the
@@ -1469,7 +1469,7 @@ can only occur inside a global module fragment.
   if (get_header_name()) {
     check_assertion(curr_token == tok_header_name);
     midp->module_name_position = pos_curr_token;
-    midp->module_info = alloc_module(mk_header);
+    midp->module_info = alloc_module((a_module_kind)mk_header);
     midp->module_info->name = copy_header_name(/*process_escapes=*/FALSE);
   } else {
     a_symbol_ptr      primary_name, partition_name;
@@ -1494,7 +1494,7 @@ can only occur inside a global module fragment.
     /* FIXME: attach symbol to the appropriate place */
     /* We don't currently know what kind of module this is. */
     midp->module_name_position = pos;
-    midp->module_info = alloc_module(mk_none);
+    midp->module_info = alloc_module((a_module_kind)mk_none);
     midp->module_info->name = module_sym->header->identifier;
   }  /* if */
   if (!err) {
@@ -1508,7 +1508,7 @@ can only occur inside a global module fragment.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (!err) {
     error_position = midp->module_name_position;
-    if (midp->module_info->kind == (a_module_kind_tag)mk_header) {
+    if (midp->module_info->kind == (a_module_kind)mk_header) {
       import_header_module(midp);
     } else {
       import_module(midp, module_sym);

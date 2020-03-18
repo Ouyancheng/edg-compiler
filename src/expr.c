@@ -13715,8 +13715,8 @@ cases).
         } else if (symbol_is(operand.symbol, sk_function_template)) {
           a_template_ptr tp =
                       operand.symbol->variant.template_info->il_template_entry;
-          if (tp->kind == templk_function ||
-              tp->kind == templk_member_function) {
+          if (tp->kind == (a_template_kind)templk_function ||
+              tp->kind == (a_template_kind)templk_member_function) {
             arg1 = function_lvalue_expr(tp->prototype_instantiation.routine);
           } else {
             unexpected_condition();
@@ -13891,8 +13891,8 @@ std::bit_cast.
                (is_template_dependent_type(type_arg) ||
                 is_template_dependent_type(op2.type))) {
       /* Skip remaining checks because at least one type is dependent. */
-    } else if (size_of_type(skip_typerefs(type_arg)) !=
-               size_of_type(skip_typerefs(op2.type))) {
+    } else if (size_of_type(f_skip_typerefs(type_arg)) !=
+               size_of_type(f_skip_typerefs(op2.type))) {
       /* Give an error if the size of the type of the second operand is not the
          same as the size of the type specified as the first operand. */
       expr_pos_ty2_error(ec_types_must_have_same_size, &op2.position, type_arg,

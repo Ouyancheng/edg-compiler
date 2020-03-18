@@ -7877,7 +7877,7 @@ module.  pos is the position where the module name started.
     str[id_len] = '\0';
     sym_hdr->identifier_length = id_len;
   }  /* if */
-  sym = alloc_symbol(sk_module, sym_hdr, pos);
+  sym = alloc_symbol((a_symbol_kind)sk_module, sym_hdr, pos);
   sym->variant.module_info.primary_name = primary_name;
   sym->variant.module_info.partition_name = partition_name;
   return sym;

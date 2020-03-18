@@ -102,7 +102,7 @@ typedef enum a_diag_fill_in_kind {
 			/* A symbol name (and possibly type). */
   dfk_type,
 			/* A type name. */
-			/*lint -esym(749,a_diag_fill_in_kind::dfk_last)*/
+			/*lint -esym(749,*a_diag_fill_in_kind::dfk_last)*/
   dfk_last		/* Must be last. */
 } a_diag_fill_in_kind;
 

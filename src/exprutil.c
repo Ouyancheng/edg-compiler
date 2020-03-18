@@ -917,7 +917,7 @@ given constant.
 }  /* arg_operand_for_constant */
 
 
-/*lint -ecall(523,free_attachments_to_operand)*/
+/*lint -ecall(523,*free_attachments_to_operand)*/
 void free_attachments_to_operand(ARG_UNUSED an_operand *operand)
 /*
 Free any dynamically-allocated attachments to the indicated operand.
@@ -24746,9 +24746,9 @@ template arguments for the given parameters is successful.
           a_ctws_options_set  ctws_options = CTWS_NO_OPTIONS;
           a_ctws_state        ctws_state;
           init_ctws_state(&ctws_state);
-          copy_type_with_substitution(tp, templ_args, templ_params,
-                                      &req->position, ctws_options,
-                                      &copy_error, &ctws_state);
+          (void)copy_type_with_substitution(tp, templ_args, templ_params,
+                                            &req->position, ctws_options,
+                                            &copy_error, &ctws_state);
           if (copy_error) {
             result = FALSE;
           }  /* if */

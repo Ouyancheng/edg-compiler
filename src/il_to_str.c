@@ -1520,6 +1520,9 @@ to source correspondence entries, and we consult the map prior to emitting
 a_type or a_constant entries that stand for template parameters.
 */
 
+#if !BACK_END_IS_CP_GEN_BE
+/*lint -esym(751,*a_template_param_map_level)*/
+#endif /* !BACK_END_IS_CP_GEN_BE */
 typedef struct a_template_param_map_level *a_template_param_map_level_ptr;
 typedef struct a_template_param_map_level {
   /* A growable structure mapping (for a certain template nesting depth) the

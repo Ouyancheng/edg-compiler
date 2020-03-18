@@ -94,7 +94,7 @@ EXTERN a_const_char
     "unassert",
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
     "import",
-    "export import"
+    "export import",
 #if MICROSOFT_EXTENSIONS_ALLOWED
     "using",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

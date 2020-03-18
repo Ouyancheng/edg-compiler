@@ -38,16 +38,16 @@ struct a_module_file_suffix {
 };  /* a_module_file_suffix */
 
 constexpr a_module_file_suffix module_file_suffixes[] = {
-  { "edgm", mk_edg },
+  { "edgm", (a_module_kind)mk_edg },
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  { "ifc", mk_ifc }
+  { "ifc", (a_module_kind)mk_ifc }
 #endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
 };
 
-constexpr char edg_magic_numbers[] = { '\x9A', '\x13', '\x37', '\x7D' };
+constexpr a_byte edg_magic_numbers[] = { 0x9A, 0x13, 0x37, 0x7D };
 
-inline a_boolean magic_numbers_match(const char magic[4],
-                                     const char expected[4])
+inline a_boolean magic_numbers_match(const a_byte magic[4],
+                                     const a_byte expected[4])
 /*
 Return true if the provided magic numbers match their expected magic numbers.
 */
@@ -153,7 +153,7 @@ be kept long-term.
   reset_text_buffer(module_partition_name_buffer);
   for (; *name != '\0'; ++name) {
     if (*name == ':') {
-      ++name;
+      ++name; /*lint !e850*/
       name_len = strlen(name);
       break;
     }  /* if */
@@ -195,16 +195,16 @@ Given an already open file pointer, determine what kind of module file is open
 (if any).  Return the kind of module file.
 */
 {
-  a_module_kind kind = mk_none;
-  char          magic[4];
+  a_module_kind kind = (a_module_kind)mk_none;
+  a_byte        magic[4];
 
   /* Ensure we're at the start of the file. */
   fseek(file, 0, SEEK_SET);
   if (fread(magic, (size_t)1, sizeof(magic), file) == sizeof(magic)) {
     if (magic_numbers_match(magic, edg_magic_numbers)) {
-      kind = mk_edg;
+      kind = (a_module_kind)mk_edg;
     } else if (magic_numbers_match(magic, ifc_magic_numbers)) {
-      kind = mk_ifc;
+      kind = (a_module_kind)mk_ifc;
     }  /* if */
   }  /* if */
   return kind;
@@ -356,7 +356,7 @@ otherwise.
     remove_null_terminator_from_text_buffer(module_search_buffer);
     add_to_text_buffer(module_search_buffer, ".ext", 5);
     for (const auto& suffix : module_file_suffixes) {
-      if (kind != mk_none && suffix.kind != kind) continue;
+      if (kind != (a_module_kind)mk_none && suffix.kind != kind) continue;
       replace_file_name_suffix(suffix.suffix, module_search_buffer);
       if (check_module_file(suffix.kind, module_search_buffer->buffer)) {
         found = TRUE;
@@ -398,7 +398,7 @@ Import the module file specified in the module-import-declaration.
       unexpected_condition_str("Unexpected module kind for import.");
   }  /* switch */
   midp->module_info->module_interface = iface;
-  iface->import(midp);
+  (void)iface->import(midp);
 }  /* import_module_file */
 
 
@@ -438,6 +438,7 @@ scope.
             process_ifc_declaration(mep, /*defer=*/FALSE, (a_type_ptr)NULL);
           break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        case mk_edg:
         default:
           unexpected_condition();
       }  /* switch */
@@ -530,7 +531,7 @@ the specified module.
     (*p)->module_info = mod;
     (*p)->scope = NULL;
     (*p)->entity.ptr = NULL;
-    (*p)->entity.kind = iek_none;
+    (*p)->entity.kind = (a_byte_il_entry_kind)iek_none;
     (*p)->file_offset = file_offset;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     (*p)->variant.ifc_partition = ifc_none;
@@ -545,6 +546,7 @@ a_module_interface::~a_module_interface() noexcept = default;
 
 #else /* !USE_VIRTUAL_FUNCTIONS */
 
+/*lint -save -e1540*/
 a_module_interface::~a_module_interface() noexcept
 {
   switch (mod_kind) {
@@ -563,6 +565,7 @@ a_module_interface::~a_module_interface() noexcept
       unexpected_condition();
   }  /* switch */
 }  /* ~a_module_interface */
+/*lint -restore*/
 
 
 a_boolean a_module_interface::is_open() const noexcept
@@ -591,7 +594,8 @@ Dispatch the is_open() call to the variant for the actual object.
 }  /* is_open */
 
 
-a_boolean a_module_interface::import(a_module_import_decl_ptr midp) noexcept
+a_boolean a_module_interface::import(a_module_import_decl_ptr midp)
+                                                                const noexcept
 /*
 Dispatch the import() call to the variant for the actual object.
 */
@@ -617,7 +621,7 @@ Dispatch the import() call to the variant for the actual object.
 }  /* import */
 
 
-void a_module_interface::close() noexcept
+void a_module_interface::close() const noexcept
 /*
 Dispatch the close() call to the variant for the actual object.
 */
@@ -640,7 +644,8 @@ Dispatch the close() call to the variant for the actual object.
 }  /* close */
 
 
-void a_module_interface::pch_reset(a_module_import_decl_ptr midp) noexcept
+void a_module_interface::pch_reset(a_module_import_decl_ptr midp)
+                                                                 const noexcept
 /*
 Dispatch the pch_reset() call to the variant for the actual object.
 */

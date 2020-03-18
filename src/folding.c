@@ -10212,7 +10212,7 @@ in the stack).
 }  /* copy_constant_for_constexpr_evaluation */
 
 
-/*lint -ecall(523,folding_fails)*/
+/*lint -ecall(523,*folding_fails)*/
 static void folding_fails(void)
 /*
 Exists as a useful place to set a breakpoint to catch the first point

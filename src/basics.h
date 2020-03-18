@@ -46,6 +46,7 @@ The EDG code can either go into the global namespace or the "edg" namespace.
 #define BEGIN_EDG_NAMESPACE namespace edg {
 #define END_EDG_NAMESPACE }  /* edg */
 #define EDG_QUAL edg::
+/*lint -estring(823,USING_NAMESPACE_EDG)*/
 #define USING_NAMESPACE_EDG namespace edg{} using namespace edg;
 #else /* !USE_EDG_NAMESPACE */
 #define BEGIN_EDG_NAMESPACE /* nothing */

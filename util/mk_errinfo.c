@@ -821,7 +821,7 @@ Write the tag lookup table to the error data file.
   }  /* for */
   fprintf(data_output_file, "\n}\n");
   fprintf(data_output_file, "#else /* ifdef _lint */\n");
-  fprintf(data_output_file, "/*lint -esym(728,error_tags)*/\n");
+  fprintf(data_output_file, "/*lint -esym(728,*error_tags)*/\n");
   fprintf(data_output_file, "#endif /* ifndef _lint */\n");
   fprintf(data_output_file, ";\n");
 }  /* me_write_tag_table */

@@ -23405,7 +23405,8 @@ scanned (a tok_identifier if the name is non-empty).
   a_symbol_ptr result = NULL, *next_sym = &result;
 
   while (curr_token == tok_identifier) {
-    (*next_sym) = alloc_symbol(sk_undefined, locator_for_curr_id.symbol_header,
+    (*next_sym) = alloc_symbol((a_symbol_kind)sk_undefined,
+                               locator_for_curr_id.symbol_header,
                                &pos_curr_token);
     next_sym = &(*next_sym)->next;
     (void)get_token(); /* Advance past the identifier. */

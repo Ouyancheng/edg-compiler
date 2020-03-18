@@ -18979,7 +18979,7 @@ error is issued and the translation unit stage is left unchanged.
 }  /* decl_private_module_fragment */
 
 
-static void decl_module(a_boolean is_interface)
+static void decl_module(ARG_UNUSED a_boolean is_interface)
 /*
 Declare a module and set the translation stage accordingly.
 

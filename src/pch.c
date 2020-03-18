@@ -109,7 +109,7 @@ static an_error_code
 			/* An error code that specifies why a given
 			   precompiled header file could not be used. */
 
-/*lint -esym(728,il_header_from_pch)*/
+/*lint -esym(728,*il_header_from_pch)*/
 static an_il_header
 		il_header_from_pch;
 			/* Copy of the IL header from the compilation that

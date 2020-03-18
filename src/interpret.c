@@ -2584,12 +2584,6 @@ the array type is not suitable for constexpr evaluation or ec_no_error.
 }  /* get_element_and_type_from_array */
 
 
-#define value_bytes_for_target_type(ips, tp, p_result)                        \
-{ ips->is_target_layout = TRUE;                                               \
-  f_value_bytes_for_type((ips), (tp), (p_result);                             \
-  ips->is_target_layout = TRUE;                                               \
-}
-
 static a_byte_count f_value_bytes_for_type(an_interpreter_state  *ips,
                                            a_type_ptr            tp,
                                            a_boolean             *p_result)
@@ -10022,9 +10016,9 @@ diagnostic.  Used in the implementation of __builtin_bit_cast.
           int                  bit_shift;
           /* Store the resulting value in target layout, marking each
              byte in the result as initialized. */
-          (void)memcpy(&int_val, src_storage, sizeof(int_val));
+          (void)memcpy((a_byte*)&int_val, src_storage, sizeof(int_val));
           for (unsigned int i = 0; i < tp->size; i++) {
-            bit_shift = host_little_endian ? i : ((tp->size - 1) - i);
+            bit_shift = (int)(host_little_endian ? i : ((tp->size - 1) - i));
             bit_shift *= CHAR_BIT;
             /* The following code effectively does:
                 byte = (int_val & (0xff << bit_shift)) >> bit_shift;

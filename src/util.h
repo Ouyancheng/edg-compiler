@@ -169,6 +169,7 @@ Swap the values pointed to by p1 and p2.
 }  /* swap_at */
 
 
+/*lint -e{1537}*/
 template<typename a_Ptr>
 struct Ptr_with_flag {
   /* An iterator and boolean value combined.  This is meant to be returnable
@@ -377,7 +378,7 @@ general memory.
 }  /* delete_general */
 
 
-/*lint -esym(1510,Dyn_array)*/
+/*lint -esym(1510,*Dyn_array)*/
 template<typename an_Elem, typename an_Allocator = FE_allocator<an_Elem>>
 struct Dyn_array: private an_Allocator {
   /* A dynamically growable array-like class type. */
@@ -417,6 +418,7 @@ struct Dyn_array: private an_Allocator {
   void reserve(a_size);
   void shrink_wrap();
   /* Interfaces to allow range-based for loop. */
+  /*lint -e{1535}*/
   inline auto begin() -> an_elem*
     { return this->elems; }
   inline auto begin() const -> const an_elem*
@@ -533,10 +535,11 @@ Destructor.
     destroy(arr_elems+k);
   }  /* for */
   this->dealloc(an_allocation{ arr_elems, this->n_allocated });
+  this->elems = NULL;
 }  /* Dyn_array::~Dyn_array */
 
 
-/*lint -esym(1529,Dyn_array::operator=)*/
+/*lint -e{1529}*/
 template<typename an_Elem, typename an_Allocator>
 inline auto Dyn_array<an_Elem, an_Allocator>::operator=(const Dyn_array &b)
             -> Dyn_array&
@@ -1968,6 +1971,7 @@ Release the storage for the map.
     this->table[0].next = a_free_table_cache::list[mask_width];
     a_free_table_cache::list[mask_width] = this->table;
   }  /* if */
+  this->table = NULL;
 }  /* Ptr_map::~Ptr_map */
 
 

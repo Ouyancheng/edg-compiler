@@ -3748,7 +3748,7 @@ by the argument.  If needed, push the new scope(s) and return TRUE.
   if (scope_stack_top().il_scope != scope) {
     push_new_top_level_declaration();
     if (scope_is(scope, sck_namespace)) {
-      (void)push_namespace_extension_scope(scope->variant.assoc_namespace);
+      push_namespace_extension_scope(scope->variant.assoc_namespace);
     }  /* if */
     decl_scope_level = depth_innermost_namespace_scope;
     result = TRUE;

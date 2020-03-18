@@ -10042,9 +10042,9 @@ though neither constructors nor initialization is involved here.)
            dynamic init entry will be required. */
         rp = select_destructor(bcp->type, class_type, &source_pos);
         if (rp != NULL) {
-          cip = alloc_ctor_init((a_constructor_init_kind)bcp->is_virtual ?
-                                                    cik_virtual_base_class :
-                                                    cik_nonvirtual_base_class);
+          cip = alloc_ctor_init((a_constructor_init_kind)(bcp->is_virtual ?
+                                                   cik_virtual_base_class :
+                                                   cik_nonvirtual_base_class));
           cip->variant.base_class = bcp;
           cip->compiler_generated = TRUE;
           /* Create a dynamic init entry. */

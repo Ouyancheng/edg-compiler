@@ -3513,14 +3513,13 @@ page size.
 }  /* map_file_region */
 
 
-/*ARGSUSED*/ /* <-- Because "map_object" is not used. */
-a_void_ptr map_input_file_to_region(FILE             *file,
-                                    a_windows_handle  map_object,
-                                    a_boolean         read_only,
-                                    sizeof_t          offset,
-                                    sizeof_t          size,
-                                    a_void_ptr        address,
-                                    a_const_char      *file_name)
+a_void_ptr map_input_file_to_region(FILE                        *file,
+                                    ARG_UNUSED a_windows_handle map_object,
+                                    a_boolean                   read_only,
+                                    sizeof_t                    offset,
+                                    sizeof_t                    size,
+                                    a_void_ptr                  address,
+                                    a_const_char                *file_name)
 /*
 Map the data pointed to by "file", starting at "offset" bytes, for "size" bytes
 to the address specified by "address".  map_object is unused.  When read_only

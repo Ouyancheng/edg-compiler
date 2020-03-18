@@ -3891,7 +3891,7 @@ otherwise implicitly enabled cfront mode.
 }  /* exclude_cfront_mode */
 
 
-/*lint -ecall(523,exclude_microsoft_mode)*/
+/*lint -ecall(523,*exclude_microsoft_mode)*/
 static void exclude_microsoft_mode(ARG_UNUSED an_error_code  error_code)
 /*
 Microsoft mode is incompatible with other settings.  Either issue the given
@@ -5111,7 +5111,7 @@ selected either.
 }  /* exclude_gnu_specific_options */
 
 
-/*lint -ecall(523,exclude_sun_specific_options)*/
+/*lint -ecall(523,*exclude_sun_specific_options)*/
 static void exclude_sun_specific_options(void)
 /*
 Sun mode is not selected: Make sure no option specific to Sun mode was
@@ -5121,7 +5121,7 @@ selected either.
 }  /* exclude_sun_specific_options */
 
 
-/*lint -ecall(523,check_embedded_c_options)*/
+/*lint -ecall(523,*check_embedded_c_options)*/
 static void check_embedded_c_options(void)
 /*
 An ANSI C dialect has been selected.  If any options were selected to enable
@@ -5467,7 +5467,7 @@ file.
 #define define_string_valued_macro(X) \
   fprintf(f_error, "#define %s %s\n", #X, stringize(X))
 /* Write a comment giving the option name and its (non-numeric) value: */
-/*lint -esym(750,comment_string_valued_macro)*/
+/*lint -esym(750,*comment_string_valued_macro)*/
 #define comment_string_valued_macro(X) \
   fprintf(f_error, "/*      %s %s */\n", #X, stringize(X))
 /* Write a #define directive for the option, which has a numeric value: */

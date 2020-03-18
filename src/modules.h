@@ -66,7 +66,7 @@ FIXME: For PCH, f_module needs to be re-opened and mmap_addr recomputed.
 */
 struct a_module_interface {
 #if !USE_VIRTUAL_FUNCTIONS
-  a_module_kind	mod_kind = mk_none;
+  a_module_kind	mod_kind = (a_module_kind)mk_none;
 			/* What kind of module this interface is for.  This
 			   indicates which class has inherited this module and
 			   is used to emulate virtual function dispatch. */
@@ -109,9 +109,11 @@ struct a_module_interface {
   VIRTUAL a_boolean is_open() const noexcept ABSTRACT;
 
 /* Disk interface functions. */
-  VIRTUAL a_boolean import(a_module_import_decl_ptr midp) noexcept ABSTRACT;
-  VIRTUAL void close() noexcept ABSTRACT;
-  VIRTUAL void pch_reset(a_module_import_decl_ptr midp) noexcept ABSTRACT;
+  VIRTUAL a_boolean import(a_module_import_decl_ptr midp)
+                                                       const noexcept ABSTRACT;
+  VIRTUAL void close() const noexcept ABSTRACT;
+  VIRTUAL void pch_reset(a_module_import_decl_ptr midp)
+                                                       const noexcept ABSTRACT;
 
 /* Module interface functions. */
   void set_name(a_const_char *module_name) noexcept;
@@ -157,32 +159,37 @@ extern a_module_entity_ptr get_module_entity_ptr(a_module_ptr mod,
 /*
 EDG implementation of modules.
 */
+/*lint -save -e1511 -e1790*/
 struct an_edg_module : public a_module_interface {
-  an_edg_module() noexcept : a_module_interface(mk_edg) {}
+  an_edg_module() noexcept : a_module_interface((a_module_kind)mk_edg) {}
   ~an_edg_module() noexcept = default;
 
   a_boolean is_open() const noexcept OVERRIDE
-    { unexpected_condition_str("Unimplemented"); return FALSE; }
+    { unexpected_condition_str("Unimplemented"); /*lint -e527*/ return FALSE; }
 
-  a_boolean import(a_module_import_decl_ptr midp) noexcept OVERRIDE
-    { unexpected_condition_str("Unimplemented"); return FALSE; }
-  void close() noexcept OVERRIDE
+  a_boolean import(ARG_UNUSED a_module_import_decl_ptr midp)
+                                                        const noexcept OVERRIDE
+    { unexpected_condition_str("Unimplemented"); /*lint -e527*/ return FALSE; }
+  void close() const noexcept OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
-  void pch_reset(a_module_import_decl_ptr midp) noexcept OVERRIDE
+  void pch_reset(ARG_UNUSED a_module_import_decl_ptr midp)
+                                                        const noexcept OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
 
-  void get_definition_of_module_class(a_module_entity_ptr mep,
-                                              a_text_buffer       *buffer)
+  void get_definition_of_module_class(ARG_UNUSED a_module_entity_ptr mep,
+                                      ARG_UNUSED a_text_buffer       *buffer)
                                                         const noexcept OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
 
 #if DEBUG
   void debug() const noexcept OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
-  void db_module_entity(a_module_entity_ptr mep) const noexcept OVERRIDE
+  void db_module_entity(ARG_UNUSED a_module_entity_ptr mep)
+                                                        const noexcept OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
 #endif /* DEBUG */
 };  /* an_edg_module */
+/*lint -restore*/
 
 #if DEBUG
 extern void db_module(a_module_ptr mod);

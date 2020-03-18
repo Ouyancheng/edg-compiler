@@ -332,10 +332,10 @@ typedef a_byte an_operand_state;
 /* Data structure used to represent an expression within the expression
    routines: */
 typedef struct an_operand {
-  /*lint -esym(1401,an_operand::an_operand)*/
+  /*lint -e{1401}*/
   inline an_operand() {}
   inline an_operand(const an_operand  &src) { this->copy_from(&src); }
-  /*lint -esym(1529,an_operand::operator=)*/
+  /*lint -e{1529}*/
   inline an_operand& operator=(const an_operand  &src)
     { this->copy_from(&src); return *this; }
   inline void copy_from(an_operand const  *src);

@@ -3699,7 +3699,8 @@ Allocate and initialize an expression node.
       num_expr_nodes_allocated += 1;
       { /* Increment num_rescan_fs_expr_nodes_allocated if we're in an
            expression rescan context (this is approximate). */
-        extern void count_rescan_fs_expr_nodes(unsigned long*); /*lint !e2701*/
+        /*lint -e2701 -e1798*/
+        extern void count_rescan_fs_expr_nodes(unsigned long*);
         count_rescan_fs_expr_nodes(&num_rescan_fs_expr_nodes_allocated);
       }
 #endif /* DEBUG */

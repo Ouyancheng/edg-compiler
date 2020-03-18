@@ -4617,15 +4617,15 @@ typedef enum {
   ehsek_old_try_block,	/* Used for a try block up to version 3.10. */
   ehsek_function,
   ehsek_throw_spec,
-  /*lint -esym(749,ehsek_throw_processing_marker)*/
+  /*lint -esym(749,*ehsek_throw_processing_marker)*/
   ehsek_throw_processing_marker,	/* Used by runtime. */
-  /*lint -esym(749,ehsek_vec_new_or_delete)*/
+  /*lint -esym(749,*ehsek_vec_new_or_delete)*/
   ehsek_vec_new_or_delete,		/* Used by runtime. */
 #if ABI_COMPATIBILITY_VERSION <= 310
   ehsek_try_block = ehsek_old_try_block,
 #else /* ABI_COMPATIBILITY_VERSION > 310 */
   ehsek_try_block,
-  /*lint -esym(749,ehsek_old_try_block)*/
+  /*lint -esym(749,*ehsek_old_try_block)*/
 #endif /* ABI_COMPATIBILITY_VERSION <= 310 */
   ehsek_noexcept
 } an_eh_stack_entry_kind;

@@ -97,16 +97,16 @@ be written.
 typedef enum /* a_template_info_line_type */ {
   /* Lint comments to disable warnings that the driver line types are
      not used. */
-  /*lint -esym(749,tilt_command_line)*/
-  /*lint -esym(749,tilt_curr_dir)*/
-  /*lint -esym(749,tilt_file_name)*/
-  /*lint -esym(749,tilt_instantiation_dir_name)*/
-  /*lint -esym(749,tilt_secondary_trans_units)*/
+  /*lint -esym(749,*tilt_command_line)*/
+  /*lint -esym(749,*tilt_curr_dir)*/
+  /*lint -esym(749,*tilt_file_name)*/
+  /*lint -esym(749,*tilt_instantiation_dir_name)*/
+  /*lint -esym(749,*tilt_secondary_trans_units)*/
   /* The Instantiation file name is only used when one instantiation per
      object mode is used. */
-  /*lint -esym(749,tilt_instantiation_file_name)*/
+  /*lint -esym(749,*tilt_instantiation_file_name)*/
   /* Entry points are only used in INSTANTIATE_EXTERN_INLINE mode. */
-  /*lint -esym(749,tilt_entry_point)*/
+  /*lint -esym(749,*tilt_entry_point)*/
   tilt_command_line,		/* Used by driver. */
   tilt_curr_dir,		/* Used by driver. */
   tilt_file_name,		/* Used by driver. */
@@ -10337,8 +10337,8 @@ use the current global value of the template template parameter.
         prototype_sym = tssp->variant.class_template.prototype_instantiation;
         if (prototype_sym == NULL) {
           /* This can happen with template template arguments. */
-          sym_kind = sk_class_or_struct_tag;
-          type_kind = tk_struct;
+          sym_kind = (a_symbol_kind)sk_class_or_struct_tag;
+          type_kind = (a_type_kind)tk_struct;
         } else {
           /* Determine whether to create a sk_type, sk_class_or_struct, or
              sk_union symbol. */

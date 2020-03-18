@@ -28957,6 +28957,7 @@ that is provided if this is a member template declaration.
           }  /* if */
         }  /* if */
         if (func_info.is_definition) {
+          check_assertion(templ_dps != NULL);
           templ_state->defines_something = TRUE;
           templ_dps->is_definition = TRUE;
         }  /* if */
@@ -29372,6 +29373,7 @@ next_declaration:;
   if (templ_state != NULL) {
     /* Merge back the parse state into the original overall template
        declaration parse state. */
+    check_assertion(templ_dps != NULL);
     a_decl_parse_callback_ptr  actions = templ_dps->end_of_parse_actions;
     *templ_dps = *dps;
     templ_dps->init_state.decl_parse_state = templ_dps;

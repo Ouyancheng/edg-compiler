@@ -1122,7 +1122,7 @@ Add the indicated null-terminated string to the mangled name.
 }  /* add_str_to_mangled_name */
 
 
-/*lint -ecall(523,add_mangled_name_prefix)*/
+/*lint -ecall(523,*add_mangled_name_prefix)*/
 static void add_mangled_name_prefix(
                                   ARG_UNUSED a_mangling_control_block_ptr mctl)
 /*

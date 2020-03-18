@@ -21,13 +21,14 @@ ifc_modules.h -- Declarations relating to ifc_modules.c (having to do with
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+/*lint -e1751*/
 namespace {
 /*
 Magic numbers that identify the beginning of an IFC file.  Declared outside of
 MICROSOFT_EXTENSIONS_ALLOWED to facilitate identifying the kind of a mismatched
 module file.
 */
-constexpr char ifc_magic_numbers[] = { '\x54', '\x51', '\x45', '\x1A' };
+constexpr a_byte ifc_magic_numbers[] = { 0x54, 0x51, 0x45, 0x1A };
 }  /* namespace */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
