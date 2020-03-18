@@ -7157,6 +7157,7 @@ complete.  The function returns the newly created a_constructor_init.
   complete_class_type_is_needed(init_type);
   new_cip->variant.base_class = alloc_base_class();
   new_cip->variant.base_class->type = init_type;
+  new_cip->variant.base_class->direct = TRUE;
   if (cibp->direct_list == NULL) {
     /* Start a new list. */
     cibp->direct_list = new_cip;
@@ -7567,7 +7568,7 @@ underlying element type and the array type itself is returned through
       for (; new_cip != NULL; new_cip = new_cip->next) {
         if (new_cip->variant.base_class == bcp) break;
       }  /* for */
-      if (new_cip != NULL &&
+      if (new_cip == NULL &&
           class_type->variant.class_struct_union.is_prototype_instantiation) {
         new_cip = add_new_unresolved_base_ctor_init(cibp,init_type);
       }
