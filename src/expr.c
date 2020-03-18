@@ -10662,6 +10662,7 @@ error indication in *rcblock).
       }  /* if */
       if (!processed) {
         a_boolean was_prvalue = is_a_prvalue(&operand);
+        an_operand orig_operand = operand;
         /* Non-operator-function cases. */
         /* As of this writing, this call suppresses every known transformation,
            but it's here to allow for future transformations. */
@@ -10730,6 +10731,7 @@ error indication in *rcblock).
           }  /* if */
           /* Note that the copy preserves ref_entries_list. */
           copy_operand(&operand, result);
+          restore_operand_form_of_name_reference(result, &orig_operand);
         } else if (is_a_function_designator(&operand)) {
           /* "&" of a function designator.  Change it to a pointer to the
              function.  This includes overloaded functions. */
@@ -10739,12 +10741,14 @@ error indication in *rcblock).
                                                       /*will_call=*/FALSE);
           /* Note that the copy preserves ref_entries_list. */
           copy_operand(&operand, result);
+          restore_operand_form_of_name_reference(result, &orig_operand);
         } else if (is_sym_for_member_operand(&operand)) {
           /* The operand is the name of a nonstatic data member, so
              the "&" operator returns a pointer-to-member. */
           conv_sym_for_member_operand_to_ptr_to_member(&operand,
                                                        &operator_position);
           copy_operand(&operand, result);
+          restore_operand_form_of_name_reference(result, &orig_operand);
         } else if (is_constant_operand(&operand) &&
                    constant_is(&operand.variant.constant, ck_template_param) &&
                    tpck_is(&operand.variant.constant, tpck_expression)) {
@@ -10754,6 +10758,7 @@ error indication in *rcblock).
                                     /*rvalue_expected=*/FALSE);
           take_address_of_lvalue(&operand, &operator_position);
           copy_operand(&operand, result);
+          restore_operand_form_of_name_reference(result, &orig_operand);
         } else {
           /* "&" applied to something that is not an lvalue or a function
              designator or another permitted case. */
@@ -10769,9 +10774,11 @@ error indication in *rcblock).
             result->variant.constant.kind ==
                                       (a_constant_repr_kind)ck_ptr_to_member) {
           a_constant_ptr  constant = &result->variant.constant;
-          constant->variant.ptr_to_member.name_reference =
-                                make_name_reference(&locator_for_curr_id,
-                                                    &constant->source_corresp);
+          if (result->name_reference_set) {
+            constant->variant.ptr_to_member.name_reference =
+	      find_allocated_name_reference(&constant->source_corresp,
+                                            &result->name_reference);
+          }  /* if */
         }  /* if */
       }  /* if */
       if (address_of_id_expression) {
@@ -34991,6 +34998,7 @@ normal_function:
               make_sym_for_member_operand(projection_sym_ptr,
                                           /*is_qualified_name=*/TRUE,
                                           rep, result);
+              set_operand_name_reference_from_locator(result, &locator);
             } else {
               /* Normal case: "x" is interpreted as "this->x". */
               an_expr_node_ptr node;
@@ -35114,6 +35122,7 @@ normal_function:
             make_sym_for_member_operand(projection_sym_ptr,
                                         (a_boolean)locator.is_qualified_name,
                                         rep, result);
+            set_operand_name_reference_from_locator(result, &locator);
           }  /* if */
           break;
         case sk_overloaded_function:

@@ -1,5 +1,20 @@
 Version 6.1
 
+3/18/20  [EDGcpfe/22291]
+C++-generating back end: missing qualifier on pointer-to-member
+
+When DEFAULT_RECORD_FORM_OF_NAME_REFERENCE is TRUE, the name reference
+for a pointer-to-member address constant could be incorrect. Typically, the
+name reference would indicate that no qualifier was present, causing an
+invalid pointer-to-member reference to be generated.  Now fixed.
+
+  const bool X = true;
+  template <class T> struct S {
+    void f() noexcept(X) {}
+  };
+  void (S<int>::*x)() noexcept(X) = &S<int>::f;
+
+
 3/17/20  [EDGcpfe/22489]
 Update an_encoded_entry_number to use TYPE_FOR_PREFIX_ENTRY_NUMBER as its type
 
