@@ -109,11 +109,9 @@ struct a_module_interface {
   VIRTUAL a_boolean is_open() const noexcept ABSTRACT;
 
 /* Disk interface functions. */
-  VIRTUAL a_boolean import(a_module_import_decl_ptr midp)
-                                                       const noexcept ABSTRACT;
-  VIRTUAL void close() const noexcept ABSTRACT;
-  VIRTUAL void pch_reset(a_module_import_decl_ptr midp)
-                                                       const noexcept ABSTRACT;
+  VIRTUAL a_boolean import(a_module_import_decl_ptr midp) noexcept ABSTRACT;
+  VIRTUAL void close() noexcept ABSTRACT;
+  VIRTUAL void pch_reset(a_module_import_decl_ptr midp) noexcept ABSTRACT;
 
 /* Module interface functions. */
   void set_name(a_const_char *module_name) noexcept;
@@ -167,13 +165,11 @@ struct an_edg_module : public a_module_interface {
   a_boolean is_open() const noexcept OVERRIDE
     { unexpected_condition_str("Unimplemented"); /*lint -e527*/ return FALSE; }
 
-  a_boolean import(ARG_UNUSED a_module_import_decl_ptr midp)
-                                                        const noexcept OVERRIDE
+  a_boolean import(ARG_UNUSED a_module_import_decl_ptr midp) noexcept OVERRIDE
     { unexpected_condition_str("Unimplemented"); /*lint -e527*/ return FALSE; }
-  void close() const noexcept OVERRIDE
+  void close() noexcept OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
-  void pch_reset(ARG_UNUSED a_module_import_decl_ptr midp)
-                                                        const noexcept OVERRIDE
+  void pch_reset(ARG_UNUSED a_module_import_decl_ptr midp) noexcept OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
 
   void get_definition_of_module_class(ARG_UNUSED a_module_entity_ptr mep,

@@ -594,8 +594,7 @@ Dispatch the is_open() call to the variant for the actual object.
 }  /* is_open */
 
 
-a_boolean a_module_interface::import(a_module_import_decl_ptr midp)
-                                                                const noexcept
+a_boolean a_module_interface::import(a_module_import_decl_ptr midp) noexcept
 /*
 Dispatch the import() call to the variant for the actual object.
 */
@@ -621,7 +620,7 @@ Dispatch the import() call to the variant for the actual object.
 }  /* import */
 
 
-void a_module_interface::close() const noexcept
+void a_module_interface::close() noexcept
 /*
 Dispatch the close() call to the variant for the actual object.
 */
@@ -644,8 +643,7 @@ Dispatch the close() call to the variant for the actual object.
 }  /* close */
 
 
-void a_module_interface::pch_reset(a_module_import_decl_ptr midp)
-                                                                 const noexcept
+void a_module_interface::pch_reset(a_module_import_decl_ptr midp) noexcept
 /*
 Dispatch the pch_reset() call to the variant for the actual object.
 */
