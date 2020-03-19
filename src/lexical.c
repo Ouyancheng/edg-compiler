@@ -17368,6 +17368,70 @@ occurs when scanning type-constraints).
 }  /* scan_concept_arg_list */
 
 
+static a_boolean is_class_template_member_def(a_symbol_ptr template_sym,
+                                              a_boolean    *is_outermost_tmc)
+/*
+Determine whether the template being used (template_sym) is either the class
+associated with a member that is being defined, or a template enclosing that
+class.  The result of this determination is returned.  *is_outermost_tmc
+is TRUE if in a name such as A<T>::B<U>::..., the template symbol is
+that of the initial qualifier (i.e., A in this case).  The value of
+*is_outermost_tmc should only be used when this routine returns TRUE.
+*/
+{
+  a_boolean			is_templ_member_class_sym = FALSE;
+  a_type_ptr			type;
+
+  *is_outermost_tmc = TRUE;
+  /* Determine whether the template being used is either the class associated
+     with a member that is being defined, or a template enclosing that
+     class. */
+  if (depth_template_declaration_scope != NO_SCOPE_DEPTH &&
+      scope_stack[depth_template_declaration_scope].templ_member_class_sym
+                                                                    != NULL) {
+    a_symbol_ptr  tmc_sym = scope_stack[depth_template_declaration_scope]
+                                                      .templ_member_class_sym;
+    for (;;) {
+      a_template_symbol_supplement_ptr	tmc_tssp;
+      /* Get the symbol associated with the nearest enclosing class
+         template. */
+      type = type_symbol_type(tmc_sym);
+      while (type->source_corresp.is_class_member &&
+             class_type_supp(type)->template_arg_list == NULL) {
+        type = parent_class_of(type);
+        *is_outermost_tmc = FALSE;
+      }  /* while */
+      /* Exit the loop if the type has no template argument list. */
+      if (class_type_supp(type)->template_arg_list == NULL) {
+        break;
+      }  /* if */
+      tmc_sym = class_symbol_supp(symbol_for(type))->class_template;
+      tmc_tssp = tmc_sym->variant.template_info;
+      /* If the template of which a member is being defined is a partial
+         specialization, use the primary template instead for the purpose
+         of determining whether the template being used matches the template
+         of which a member is being defined. */
+      if (tmc_tssp->primary_template_sym != NULL) {
+        tmc_sym = tmc_tssp->primary_template_sym;
+      }  /* if */
+      if (tmc_sym == template_sym) {
+        is_templ_member_class_sym = TRUE;
+        break;
+      }  /* if */
+      /* Continue processing with the next parent type. */
+      if (tmc_sym->is_class_member) {
+        type = sym_parent_class(tmc_sym);
+        tmc_sym = symbol_for(type);
+        *is_outermost_tmc = FALSE;
+      } else {
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return is_templ_member_class_sym;
+}  /* is_class_template_member_def */
+
+
 a_symbol_ptr coalesce_template_class_reference(
 			a_symbol_ptr			template_sym,
 			an_identifier_options_set	options,
@@ -17658,6 +17722,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
        followed by a template argument list, we need to substitute the
        class template symbol for the injected symbol. */
     template_sym = class_template_for_injected_template_symbol(template_sym);
+    tssp = template_supplement_for_symbol(template_sym);
   }  /* if */
   if (template_sym != NULL) {
     record_potential_pack_reference(template_sym, &start_position);
@@ -17732,56 +17797,16 @@ a routine to lookup the appropriate instance (or generate one if needed).
        B.  We find the prototype instantiation unless we are currently
        inside the instantiation of a different class. */
     a_boolean			prototype_allowed;
-    a_boolean			is_templ_member_class_sym = FALSE;
+    a_boolean			is_templ_member_class_sym;
     a_type_ptr			type;
-    a_boolean			is_outermost_tmc = TRUE;
+    a_boolean			is_outermost_tmc;
     int32_t			*p_min_template_arguments;
     a_boolean			instantiate_nonreal = FALSE;
     /* Determine whether the template being used is either the class associated
        with a member that is being defined, or a template enclosing that
        class. */
-    if (depth_template_declaration_scope != NO_SCOPE_DEPTH &&
-        scope_stack[depth_template_declaration_scope].templ_member_class_sym
-                                                                    != NULL) {
-      a_symbol_ptr  tmc_sym = scope_stack[depth_template_declaration_scope]
-                                                      .templ_member_class_sym;
-      for (;;) {
-        a_template_symbol_supplement_ptr	tmc_tssp;
-        /* Get the symbol associated with the nearest enclosing class
-           template. */
-        type = type_symbol_type(tmc_sym);
-        while (type->source_corresp.is_class_member &&
-               class_type_supp(type)->template_arg_list == NULL) {
-          type = parent_class_of(type);
-          is_outermost_tmc = FALSE;
-        }  /* while */
-        /* Exit the loop if the type has no template argument list. */
-        if (class_type_supp(type)->template_arg_list == NULL) {
-          break;
-        }  /* if */
-        tmc_sym = class_symbol_supp(symbol_for(type))->class_template;
-        tmc_tssp = tmc_sym->variant.template_info;
-        /* If the template of which a member is being defined is a partial
-           specialization, use the primary template instead for the purpose
-           of determining whether the template being used matches the template
-           of which a member is being defined. */
-        if (tmc_tssp->primary_template_sym != NULL) {
-          tmc_sym = tmc_tssp->primary_template_sym;
-        }  /* if */
-        if (tmc_sym == template_sym) {
-          is_templ_member_class_sym = TRUE;
-          break;
-        }  /* if */
-        /* Continue processing with the next parent type. */
-        if (tmc_sym->is_class_member) {
-          type = sym_parent_class(tmc_sym);
-          tmc_sym = symbol_for(type);
-          is_outermost_tmc = FALSE;
-        } else {
-          break;
-        }  /* if */
-      }  /* for */
-    }  /* if */
+    is_templ_member_class_sym = is_class_template_member_def(
+                                              template_sym, &is_outermost_tmc);
     prototype_allowed = ((options & GID_USE_PROTOTYPE_NOT_NONREAL) != 0) ||
                         is_templ_member_class_sym;
     /* Find or create the template class for these arguments.  In Microsoft
@@ -17820,6 +17845,44 @@ a routine to lookup the appropriate instance (or generate one if needed).
                       &arg_start_pos);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if ((options & GID_IS_CLASS_TEMPLATE_DECL) == 0 &&
+        tssp->variant.class_template.is_alias_template) {
+      /* A class template member can be defined using an alias template as
+         the qualifier in the qualified name.  For example:
+           template<typename T, typename U> struct A;
+           template<typename T> struct A<T, int> {
+             A(int);
+           };
+           template <typename T> using B = A<T, int>;
+           template <typename T> B<T>::A(int) { }
+         Check whether the type referred to by the alias B<T> is a nonreal
+         class type, and if so, look for a matching prototype instantiation.
+         Note that is_class_template_member_def is called again to see if
+         the class template (A in this case) matches the declarator found
+         during the prescan.  During the prescan, we this code will be
+         used because of the GID_USE_PROTOTYPE_NOT_NONREAL flag. */
+      a_type_ptr  new_tp = type_symbol_type(new_sym);
+      new_tp = skip_typerefs(new_tp);
+      if (is_immediate_class_type(new_tp) &&
+          new_tp->variant.class_struct_union.is_nonreal_class) {
+        a_class_symbol_supplement_ptr cssp;
+        cssp = symbol_supplement_for_class(new_tp);
+        is_templ_member_class_sym = is_class_template_member_def(
+                                      cssp->class_template, &is_outermost_tmc);
+        prototype_allowed = ((options & GID_USE_PROTOTYPE_NOT_NONREAL) != 0) ||
+                            is_templ_member_class_sym;
+        if (prototype_allowed) {
+          arg_list = copy_template_arg_list(
+             new_tp->variant.class_struct_union.extra_info->template_arg_list);
+          new_sym = find_template_class(cssp->class_template, &arg_list,
+                                        prototype_allowed,
+                                        current_instantiation_sym,
+                                        instantiate_nonreal,
+                                        (options & GID_IN_IF_EXISTS) != 0,
+                                        /*in_substitution=*/FALSE);
+        }  /* if */
+      }  /* if */
+    }  /* if */
     if (gpp_version_is(< 40300) && prototype_allowed &&
         scope_is(&scope_stack_top(), sck_template_declaration) &&
         (!is_templ_member_class_sym || !is_outermost_tmc) &&
