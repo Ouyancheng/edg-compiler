@@ -170,6 +170,8 @@ appropriately and including ifc_map.h.  The net result is something like:
   };
 */
 
+/*lint -estring(823,IFC_DECL_FIELD)*/
+/*lint -estring(823,IFC_DECL_END)*/
 #define IFC_DECL_START(name) \
   struct concat(an_ifc_, name) {
 #define IFC_DECL_FIELD(field, type) \
@@ -177,8 +179,11 @@ appropriately and including ifc_map.h.  The net result is something like:
 #define IFC_DECL_END(name) \
   };  /* #name */
 
-#include "ifc_map.h"  /*lint !e451 included more than once. */
+/*lint -e451 included more than once. */
+#include "ifc_map.h"
+/*lint +e451*/
 
+/*lint -save -e835*/ /* Allow 1 << 0 in the code below. */
 /* Enumeration for Architectures. */
 enum ifc_Architecture : uint8_t {
   ifc_Architecture_Unknown = 0,
@@ -308,6 +313,7 @@ enum ifc_ScopeTraits : uint8_t {
   ifc_ScopeTraits_ClosureType   = 1 << 3,
   ifc_ScopeTraits_Vendor        = 1 << 7,
 };
+/*lint -restore*/
 
 /* Macros used to access UnitIndex::tag and UnitIndex::value. */
 #define unit_tag(unit) ((ifc_UnitSort)((unit) & 0x00000007))
@@ -357,8 +363,8 @@ enum ifc_TypeSort : ifc_Sort_type {
   ifc_TypeSort_Tuple,
   ifc_TypeSort_Forall,
   ifc_TypeSort_SyntaxTree,
-  /* Must always equal the last enumerator above. */
-  ifc_TypeSort_Last = ifc_TypeSort_SyntaxTree
+  /* Must be last. */
+  ifc_TypeSort_Last
 };
 
 /* Macros used to access StmtIndex::tag and StmtIndex::value. */
@@ -383,8 +389,8 @@ enum ifc_StmtSort : ifc_Sort_type {
   ifc_StmtSort_Return,
   ifc_StmtSort_VariableDecl,
   ifc_StmtSort_SyntaxTree,
-  /* Must always equal the last enumerator above. */
-  ifc_StmtSort_Last = ifc_StmtSort_SyntaxTree
+  /* Must be last. */
+  ifc_StmtSort_Last
 };
 
 /* Macros used to access ExprIndex::tag and ExprIndex::value. */
@@ -449,8 +455,8 @@ enum ifc_ExprSort : ifc_Sort_type {
   ifc_ExprSort_Requires,
   ifc_ExprSort_UnaryFold,
   ifc_ExprSort_BinaryFold,
-  /* Must always equal the last enumerator above. */
-  ifc_ExprSort_Last = ifc_ExprSort_BinaryFold,
+  /* Must be last. */
+  ifc_ExprSort_Last
 };
 
 /* Enumeration for ReadConversionSort (i.e., kinds of read conversions). */
@@ -557,8 +563,8 @@ enum ifc_DeclSort : ifc_Sort_type {
   ifc_DeclSort_Friend,
   ifc_DeclSort_SyntaxTree,
   ifc_DeclSort_Tuple,
-  /* Must always equal the last enumerator above. */
-  ifc_DeclSort_Last = ifc_DeclSort_Tuple
+  /* Must be last. */
+  ifc_DeclSort_Last
 };
 
 /* Macros used to access NameIndex::tag and NameIndex::value. */
@@ -574,8 +580,8 @@ enum ifc_NameSort : ifc_Sort_type {
   ifc_NameSort_Template,
   ifc_NameSort_Specialization,
   ifc_NameSort_SourceFile,
-  /* Must always equal the last enumerator above. */
-  ifc_NameSort_Last = ifc_NameSort_SourceFile
+  /* Must be last. */
+  ifc_NameSort_Last
 };
 
 /* Macros used to access LitIndex::tag and LitIndex::index. */
@@ -787,7 +793,7 @@ enum ifc_ChartSort : ifc_Sort_type {
   ifc_ChartSort_None,
   ifc_ChartSort_Unilevel,
   ifc_ChartSort_Multilevel,
-  /* Must always equal the last enumerator above. */
+  /* Must be last. */
   ifc_ChartSort_Last
 };
 
@@ -1015,8 +1021,8 @@ enum ifc_SyntaxSort : ifc_Sort_type {
              /* A structured binding */
   ifc_SyntaxSort_StructuredBindingIdentifier,
              /* A structured binding identifier */
-  /* Must always equal the last enumerator above. */
-  ifc_SyntaxSort_Last = ifc_SyntaxSort_StructuredBindingIdentifier
+  /* Must be last. */
+  ifc_SyntaxSort_Last
 };
 
 /*
@@ -1026,6 +1032,7 @@ a particular set of partitions, group those together in such a way that the
 tag can be added to a base value to get the proper partition.  This is
 essential when using get_tag_from_partition.
 */
+/*lint -save -e488 -e641*/
 enum an_ifc_partition_kind_tag {
   ifc_none,
   /* Group all DeclIndex::tag partitions together. */
@@ -1062,7 +1069,7 @@ enum an_ifc_partition_kind_tag {
   ifc_decl_friend = ifc_decl_start + ifc_DeclSort_Friend,
   ifc_decl_syntax_tree = ifc_decl_start + ifc_DeclSort_SyntaxTree,
   ifc_decl_tuple = ifc_decl_start + ifc_DeclSort_Tuple,
-  ifc_decl_end = ifc_decl_start + ifc_DeclSort_Last,
+  ifc_decl_end = ifc_decl_start + (ifc_DeclSort_Last-1),
   /* Group all TypeIndex::tag partitions together. */
   ifc_type_start,
   ifc_type_vendor_extension = ifc_type_start + ifc_TypeSort_VendorExtension,
@@ -1086,7 +1093,7 @@ enum an_ifc_partition_kind_tag {
   ifc_type_tuple = ifc_type_start + ifc_TypeSort_Tuple,
   ifc_type_forall = ifc_type_start + ifc_TypeSort_Forall,
   ifc_type_syntax_tree = ifc_type_start + ifc_TypeSort_SyntaxTree,
-  ifc_type_end = ifc_type_start + ifc_TypeSort_Last,
+  ifc_type_end = ifc_type_start + (ifc_TypeSort_Last-1),
   /* Group all ifc_NameSort_ifc_NameSort_Identifier. */
   ifc_name_start,
   ifc_name_operator = ifc_name_start + ifc_NameSort_Operator,
@@ -1095,7 +1102,7 @@ enum an_ifc_partition_kind_tag {
   ifc_name_template = ifc_name_start + ifc_NameSort_Template,
   ifc_name_specialization = ifc_name_start + ifc_NameSort_Specialization,
   ifc_name_source_file = ifc_name_start + ifc_NameSort_SourceFile,
-  ifc_name_end = ifc_name_start + ifc_NameSort_Last,
+  ifc_name_end = ifc_name_start + (ifc_NameSort_Last-1),
   /* Group all ExprSort::tag partitions together. */
   ifc_expr_start,
   ifc_expr_vendor_extension = ifc_expr_start + ifc_ExprSort_VendorExtension,
@@ -1159,7 +1166,7 @@ enum an_ifc_partition_kind_tag {
   ifc_expr_requires = ifc_expr_start + ifc_ExprSort_Requires,
   ifc_expr_unaryfold = ifc_expr_start + ifc_ExprSort_UnaryFold,
   ifc_expr_binaryfold = ifc_expr_start + ifc_ExprSort_BinaryFold,
-  ifc_expr_end = ifc_expr_start + ifc_ExprSort_Last,
+  ifc_expr_end = ifc_expr_start + (ifc_ExprSort_Last-1),
   /* Group all StmtSort::Tag partitions together. */
   ifc_stmt_start,
   ifc_stmt_vendor_extension = ifc_stmt_start + ifc_StmtSort_VendorExtension,
@@ -1178,13 +1185,13 @@ enum an_ifc_partition_kind_tag {
   ifc_stmt_return = ifc_stmt_start + ifc_StmtSort_Return,
   ifc_stmt_variable = ifc_stmt_start + ifc_StmtSort_VariableDecl,
   ifc_stmt_syntax_tree = ifc_stmt_start + ifc_StmtSort_SyntaxTree,
-  ifc_stmt_end = ifc_stmt_start + ifc_StmtSort_Last,
+  ifc_stmt_end = ifc_stmt_start + (ifc_StmtSort_Last-1),
   /* Group all ChartSort::Tag partitions together. */
   ifc_chart_start,
   ifc_chart_none = ifc_chart_start + ifc_ChartSort_None,
   ifc_chart_multilevel = ifc_chart_start + ifc_ChartSort_Multilevel,
   ifc_chart_unilevel = ifc_chart_start + ifc_ChartSort_Unilevel,
-  ifc_chart_end = ifc_chart_start + ifc_ChartSort_Last,
+  ifc_chart_end = ifc_chart_start + (ifc_ChartSort_Last-1),
   /* Group all SyntaxSort::Tag partitions together. */
   ifc_syntax_start,
   ifc_syntax_vendor_extension = ifc_syntax_start +
@@ -1373,7 +1380,7 @@ enum an_ifc_partition_kind_tag {
                                    ifc_SyntaxSort_StructuredBindingDeclaration,
   ifc_syntax_structured_binding_identifier = ifc_syntax_start +
                                     ifc_SyntaxSort_StructuredBindingIdentifier,
-  ifc_syntax_end = ifc_syntax_start + ifc_SyntaxSort_Last,
+  ifc_syntax_end = ifc_syntax_start + (ifc_SyntaxSort_Last-1),
   /* No particular grouping. */
   ifc_cmd_line,
   ifc_const_f64,
@@ -1414,6 +1421,7 @@ enum an_ifc_partition_kind_tag {
   ifc_word,
   ifc_last
 };
+/*lint -restore*/
 
 typedef uint32_t an_ifc_partition_kind;
 
@@ -1449,6 +1457,7 @@ struct an_ifc_partition_map {
 		kind;	/* The internal representation of the partition. */
 };  /* an_ifc_partition_map */
 
+/*lint -save -e641*/
 EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
 #if VAR_INITIALIZERS
 = {
@@ -1762,6 +1771,7 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
 }
 #endif /* VAR_INITIALIZERS */
  ;
+/*lint -restore*/
 
 /*
 An internal representation of an IFC partition.
@@ -1781,6 +1791,7 @@ struct a_partial_scope_stack_state;
 /*
 Information specific to an IFC module.
 */
+/*lint -save -e1511 -e1790 -e1540*/
 struct an_ifc_module : public a_module_interface {
   an_ifc_File_Header
                 header = {};
@@ -1800,7 +1811,7 @@ struct an_ifc_module : public a_module_interface {
                            compute).  Dynamically allocated once the number of
                            source files is known. */
 
-  an_ifc_module() noexcept : a_module_interface(mk_ifc) {}
+  an_ifc_module() noexcept : a_module_interface((a_module_kind)mk_ifc) {}
   VIRTUAL ~an_ifc_module() noexcept = default;
 
   inline a_boolean is_open() const noexcept OVERRIDE {
@@ -1928,6 +1939,7 @@ private:
   void db_ifc_file_header() const noexcept;
 #endif /* DEBUG */
 };  /* an_ifc_module */
+/*lint -restore*/
 
 /* Expected instantiations of an_ifc_module::str_ifc_associated_trait<T>: */
 template<>

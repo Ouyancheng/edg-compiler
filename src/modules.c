@@ -29,7 +29,6 @@ BEGIN_EDG_NAMESPACE
 
 namespace {
 
-typedef struct a_module_file_suffix *a_module_file_suffix_ptr;
 struct a_module_file_suffix {
   a_const_char	*suffix;
 			/* The suffix associated with the module file. */

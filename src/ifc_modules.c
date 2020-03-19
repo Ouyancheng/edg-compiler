@@ -27,6 +27,13 @@ ifc_modules.c -- Microsoft-specific IFC module code
 BEGIN_EDG_NAMESPACE
 
 /*
+The methods used by this file to access the contents of IFC modules (using
+macro names) are not always lint-friendly, so disable some lint messages for
+the duration of this file.
+*/
+/*lint -save -e534 -e641 -e1576 -e1502*/
+
+/*
 Macro that is TRUE if the host has big-endian byte ordering.
 FIXME: Move this, set automatically, add to dump_config, dettarg
 */
@@ -118,6 +125,7 @@ that returns an unsigned char.
 */
 {
   unexpected_condition();
+  /*lint -e527*/
   return 0;
 }  /* buffer_overrun */
 
@@ -138,6 +146,7 @@ of the buffer to be read.  length is its size, in bytes.
 Macro to fetch a byte from a memory buffer and check for reading past
 the end of the buffer.
 */
+/*lint -esym(750,get_byte_from_buffer)*/
 #define get_byte_from_buffer()						\
   (byte_buffer <= buffer_end ? *byte_buffer++ : buffer_overrun())
 
@@ -153,7 +162,7 @@ past the end of the buffer.
   if (((unsigned char*)byte_buffer + length - 1) > buffer_end) {
     (void)buffer_overrun();
   }  /* if */
-  memcpy(addr, byte_buffer, length);
+  memcpy((a_byte*)addr, byte_buffer, length);
   byte_buffer += length;
 }  /* get_bytes_from_buffer */
 
@@ -161,6 +170,7 @@ past the end of the buffer.
 /*
 Macro to fetch a byte from memory.
 */
+/*lint -esym(750,get_byte)*/
 #define get_byte(byte)							\
 {									\
   int	ch;								\
@@ -237,10 +247,10 @@ Utility to print some debug information for every access to an IFC module file.
     }  /* if */
     switch (length) {
       case 1:
-        (void)fprintf(f_debug, "0x%02x", *((uint8_t*)addr));
+        (void)fprintf(f_debug, "0x%02hhx", *((uint8_t*)addr));
         break;
       case 2:
-        (void)fprintf(f_debug, "0x%04x", *((uint16_t*)addr));
+        (void)fprintf(f_debug, "0x%04hx", *((uint16_t*)addr));
         break;
       case 4:
         (void)fprintf(f_debug, "0x%08x", *((uint32_t*)addr));
@@ -295,6 +305,7 @@ they change the value of their argument.
 
 #define GET_256bit_int(value)                                           \
   (check_size(value, 32)                                                \
+   /*lint -e545*/                                                       \
    get_big_endian_bytes(&(value), 32)                                   \
    db_get_byte(stringize(value), &(value), 32))
 
@@ -361,6 +372,7 @@ Handle nested structures differently (and check for padding).
 #define GET_Qualifiers(x)         GET_byte(x)
 #define GET_ReadConversionSort(x) GET_byte(x)
 #define GET_ScopeTraits(x)        GET_byte(x)
+/*lint -esym(750,GET_SyntaxSort)*/
 #define GET_SyntaxSort(x)         GET_byte(x)
 #define GET_TypeBasis(x)          GET_byte(x)
 #define GET_TypePrecision(x)      GET_byte(x)
@@ -375,6 +387,7 @@ Handle nested structures differently (and check for padding).
 
 #define GET_Sequence(x)        (GET_Index((x).start), \
                                 GET_Cardinality((x).cardinality))
+/*lint -esym(750,GET_ModuleReference)*/
 #define GET_ModuleReference(x) (GET_TextOffset((x).owner), \
                                 GET_TextOffset((x).partition))
 #define GET_SourceLocation(x)  (GET_LineIndex((x).line), \
@@ -457,9 +470,8 @@ For example, when "name" is "foo", this routine effectively boils down to:
   }
 */
 #define IFC_DECL_START(name) \
-  /*ARGSUSED*/ \
   static concat(an_ifc_, name) * concat(get_, name) \
-                                                 (concat(an_ifc_, name) *ptr) \
+                                      (ARG_UNUSED concat(an_ifc_, name) *ptr) \
   { \
     ptr = ( concat(an_ifc_, name) *)byte_buffer; \
     byte_buffer = byte_buffer + sizeof(concat(an_ifc_, name)); \
@@ -496,7 +508,9 @@ two fields, "field1" and "field2", whose types are "field1_type" and
   }
 #endif /* USE_MMAP_POINTERS_TO_IFC */
 
-#include "ifc_map.h"  /*lint !e451 included more than once. */
+/*lint -e451 included more than once. */
+#include "ifc_map.h"
+/*lint +e451*/
 
 /*
 A macro to return a pointer to the IFC string table for a given IFC module
@@ -596,6 +610,7 @@ Map an IFC OperatorCategory to an_opname_kind.
   an_opname_kind op;
 
   /* FIXME: Note that some of these get mapped to the same entry. */
+  /*lint -e{641}*/
   switch (category) {
     case ifc_OperatorCategory_Bitand:       op = onk_ampersand; break;
     case ifc_OperatorCategory_LogicAnd:     op = onk_and_and; break;
@@ -754,7 +769,7 @@ been confirmed to exist and the path stored in midp.
   unsigned int i;
   a_boolean    result = FALSE;
 
-  check_assertion(midp->module_info->kind == mk_ifc);
+  check_assertion(midp->module_info->kind == (a_module_kind)mk_ifc);
   check_assertion(mod->name != NULL && mod->full_name != NULL);
   check_assertion(mod->module_interface == this);
   if (open_and_map_ifc_module_file(midp)) {
@@ -768,13 +783,13 @@ been confirmed to exist and the path stored in midp.
     /* Prepare to read the partitions (by "seeking" to the IFC Table of
        Contents). */
     init_byte_buffer((char*)mmap_addr + header.toc,
-                     mmap_size - header.toc);
+                     mmap_size - (size_t)header.toc);
 #if DEBUG
     if (db_flag_is_set("ifc_modules")) {
       db_module(mod);
     }  /* if */
 #endif /* DEBUG */
-    for (i = 0; i < header.partition_count; i++) {
+    for (i = 0; i < (unsigned int)header.partition_count; i++) {
       an_ifc_Partition     partition, *ifc_pp;
       an_ifc_partition     *pp;
       a_const_char         *name_str;
@@ -786,7 +801,7 @@ been confirmed to exist and the path stored in midp.
 #if DEBUG
       if (db_flag_is_set("ifc_modules")) {
         (void)fprintf(f_debug,
-            "partition %d \"%s\" offset 0x%08x cardinality %d entry_size %d\n",
+            "partition %u \"%s\" offset 0x%08x cardinality %u entry_size %u\n",
             i, name_str, ifc_pp->offset, ifc_pp->cardinality,
             ifc_pp->entry_size);
       }  /* if */
@@ -2309,8 +2324,8 @@ void an_ifc_module::str_ifc_text_offset(ifc_TextOffset      offset,
 Add the string at the specified offset to the output buffer.
 */
 {
-  add_string_to_text_buffer(scbp->text_buffer,
-                            get_string_at_offset(offset));
+  a_const_char *str = get_string_at_offset(offset);
+  add_string_to_text_buffer(scbp->text_buffer, str);
 }  /* str_ifc_text_offset */
 
 
@@ -2321,9 +2336,9 @@ void an_ifc_module::str_ifc_name_index(ifc_NameIndex       name_index,
 Add the string represented by name_index to the current output buffer.
 */
 {
-  add_string_to_text_buffer(scbp->text_buffer,
-                            string_from_name_index(name_index,
-                                                   (a_symbol_locator*)NULL));
+  a_const_char *str = string_from_name_index(name_index,
+                                             (a_symbol_locator*)NULL);
+  add_string_to_text_buffer(scbp->text_buffer, str);
 }  /* str_ifc_name_index */
 
 
@@ -2361,8 +2376,9 @@ Add the decimal representation of value to the output buffer.
 }  /* str_ifc_add_number */
 
 
-void an_ifc_module::str_ifc_source_location(ifc_SourceLocation  *locus,
-                                            a_str_control_block *scbp)
+void an_ifc_module::str_ifc_source_location(
+                                        ARG_UNUSED ifc_SourceLocation  *locus,
+                                        ARG_UNUSED a_str_control_block *scbp)
                                                                  const noexcept
 /*
 Add source location to the current string.
@@ -3376,7 +3392,7 @@ FIXME: more specific
     default:
 #if DEBUG
       if (db_flag_is_set("ms_ignore")) {
-        (void)fprintf(f_debug, "Unsupported type: %d, %d\n",
+        (void)fprintf(f_debug, "Unsupported type: %d, %u\n",
                       tag, type_value(type_index));
       }  /* if */
 #endif /* DEBUG */
@@ -3446,7 +3462,7 @@ FIXME: more specific
     default:
 #if DEBUG
       if (db_flag_is_set("ms_ignore")) {
-        (void)fprintf(f_debug, "Unsupported type: %d, %d\n",
+        (void)fprintf(f_debug, "Unsupported type: %d, %u\n",
                       tag, type_value(type_index));
       }  /* if */
 #endif /* DEBUG */
@@ -3872,7 +3888,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
     default:
 #if DEBUG
       if (db_flag_is_set("ms_ignore")) {
-        (void)fprintf(f_debug, "[unsupported declaration: %s, %d]\n",
+        (void)fprintf(f_debug, "[unsupported declaration: %s, %u]\n",
                       db_decl_tag(tag), decl_value(decl_index));
       }  /* if */
 #endif /* DEBUG */
@@ -3887,8 +3903,10 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
 }  /* str_ifc_declaration */
 
 
-void an_ifc_module::str_ifc_statement(ifc_StmtIndex       stmt_index,
-                                      a_str_control_block *scbp) const noexcept
+void an_ifc_module::str_ifc_statement(
+                                     ifc_StmtIndex                  stmt_index,
+                                     ARG_UNUSED a_str_control_block *scbp)
+                                                                 const noexcept
 /*
 Generate a string for the specified statement.
 */
@@ -4034,14 +4052,15 @@ Generate a string for the specified string literal.
                                         get_string_at_offset(str_lit.start),
                                         str_lit.length);
   if (str_lit.suffix != 0) {
-    add_string_to_text_buffer(scbp->text_buffer,
-                              get_string_at_offset(str_lit.suffix));
+    a_const_char *str = get_string_at_offset(str_lit.suffix);
+    add_string_to_text_buffer(scbp->text_buffer, str);
   }  /* if */
 }  /* str_ifc_string_literal */
 
 
-void an_ifc_module::str_ifc_chart(ifc_ChartIndex      chart_index,
-                                  a_str_control_block *scbp) const noexcept
+void an_ifc_module::str_ifc_chart(ifc_ChartIndex                 chart_index,
+                                  ARG_UNUSED a_str_control_block *scbp)
+                                                                 const noexcept
 /*
 Generate a string for the specified chart.
 */
@@ -4076,8 +4095,8 @@ Generate a string for the specified chart.
 
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Deprecated>
-                                            (ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp)
+                                    (ifc_DeclIndex                  decl_index,
+                                     ARG_UNUSED a_str_control_block *scbp)
                                                                 const noexcept
 /*
 Generate a string for the specified associated deprecation trait.
@@ -4093,8 +4112,8 @@ Generate a string for the specified associated deprecation trait.
 
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Specialization>
-                                            (ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp)
+                                    (ifc_DeclIndex                  decl_index,
+                                     ARG_UNUSED a_str_control_block *scbp)
                                                                 const noexcept
 /*
 Generate a string for the specified associated template specialization trait.
@@ -4111,8 +4130,8 @@ Generate a string for the specified associated template specialization trait.
 
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Friend>
-                                            (ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp)
+                                    (ifc_DeclIndex                  decl_index,
+                                     ARG_UNUSED a_str_control_block *scbp)
                                                                 const noexcept
 /*
 Generate a string for the specified associated class friend trait.
@@ -4128,8 +4147,8 @@ Generate a string for the specified associated class friend trait.
 
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ConstexprFunction>
-                                            (ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp)
+                                    (ifc_DeclIndex                  decl_index,
+                                     ARG_UNUSED a_str_control_block *scbp)
                                                                 const noexcept
 /*
 Generate a string for the specified associated constexpr function trait.
@@ -4146,8 +4165,8 @@ Generate a string for the specified associated constexpr function trait.
 
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_FunctionTemplate>
-                                            (ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp)
+                                    (ifc_DeclIndex                  decl_index,
+                                     ARG_UNUSED a_str_control_block *scbp)
                                                                 const noexcept
 /*
 Generate a string for the specified associated function template trait.
@@ -4164,8 +4183,8 @@ Generate a string for the specified associated function template trait.
 
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ClassTemplate>
-                                            (ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp)
+                                    (ifc_DeclIndex                  decl_index,
+                                     ARG_UNUSED a_str_control_block *scbp)
                                                                 const noexcept
 /*
 Generate a string for the specified associated class template trait.
@@ -4181,8 +4200,8 @@ Generate a string for the specified associated class template trait.
 
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_AliasTemplate>
-                                            (ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp)
+                                    (ifc_DeclIndex                  decl_index,
+                                     ARG_UNUSED a_str_control_block *scbp)
                                                                 const noexcept
 /*
 Generate a string for the specified associated template alias trait.
@@ -4198,8 +4217,8 @@ Generate a string for the specified associated template alias trait.
 
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_VariableTemplate>
-                                            (ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp)
+                                    (ifc_DeclIndex                  decl_index,
+                                     ARG_UNUSED a_str_control_block *scbp)
                                                                 const noexcept
 /*
 Generate a string for the specified associated variable template trait.
@@ -4245,13 +4264,14 @@ Generate a string for the specified associated MSVC UUID trait.
 
   read_ifc_partition_at_index(ifc_msvc_trait_uuid, decl_index);
   get_Trait_MsvcUuid(&itmsvcuuid);
-  snprintf(str, sizeof(str), "%04x", itmsvcuuid.uuid);
+  snprintf(str, sizeof(str), "%04hx", itmsvcuuid.uuid);
   add_string_to_text_buffer(scbp->text_buffer, str);
 }  /* str_ifc_associated_trait<an_ifc_Trait_MsvcUuid> */
 
 
-void an_ifc_module::str_ifc_syntax_node(ifc_SyntaxIndex     syntax_index,
-                                        a_str_control_block *scbp)
+void an_ifc_module::str_ifc_syntax_node(
+                                   ifc_SyntaxIndex                syntax_index,
+                                   ARG_UNUSED a_str_control_block *scbp)
                                                                  const noexcept
 /*
 Generate a string for the specified syntax tree node.
@@ -5031,8 +5051,10 @@ Generate a string for the specified syntax tree node.
 }  /* str_ifc_syntax_node */
 
 
-void an_ifc_module::str_ifc_sentence(ifc_SentenceIndex   sentence_index,
-                                     a_str_control_block *scbp) const noexcept
+void an_ifc_module::str_ifc_sentence(
+                                ifc_SentenceIndex               sentence_index,
+                                ARG_UNUSED a_str_control_block *scbp)
+                                                                 const noexcept
 /*
 Generate a string for the specified sentence.
 */
@@ -5045,8 +5067,9 @@ Generate a string for the specified sentence.
 }  /* str_ifc_sentence*/
 
 
-void an_ifc_module::str_ifc_word(ifc_WordIndex       word_index,
-                                 a_str_control_block *scbp) const noexcept
+void an_ifc_module::str_ifc_word(ifc_WordIndex                  word_index,
+                                 ARG_UNUSED a_str_control_block *scbp)
+                                                                 const noexcept
 /*
 Generate a string for the specified word.
 */
@@ -5071,17 +5094,17 @@ Display the contents of the IFC file header.
   (void)fprintf(f_debug, "  minor_version = %hhu\n", header.minor_version);
   (void)fprintf(f_debug, "  abi = %hhu\n", header.abi);
   (void)fprintf(f_debug, "  arch = %d\n", header.arch);
-  (void)fprintf(f_debug, "  dialect = %d\n", header.dialect);
+  (void)fprintf(f_debug, "  dialect = %u\n", header.dialect);
   (void)fprintf(f_debug, "  string_table_bytes = 0x%08x\n",
                                                     header.string_table_bytes);
-  (void)fprintf(f_debug, "  string_table_size = %d\n",
+  (void)fprintf(f_debug, "  string_table_size = %u\n",
                                                      header.string_table_size);
-  (void)fprintf(f_debug, "  unit = %d\n", header.unit);
+  (void)fprintf(f_debug, "  unit = %u\n", header.unit);
   (void)fprintf(f_debug, "  src_path = 0x%08x \"%s\"\n", header.src_path,
                                      get_string_at_offset(header.src_path));
-  (void)fprintf(f_debug, "  global_scope = %d\n", header.global_scope);
+  (void)fprintf(f_debug, "  global_scope = %u\n", header.global_scope);
   (void)fprintf(f_debug, "  toc = 0x%08x\n", header.toc);
-  (void)fprintf(f_debug, "  partition_count = %d\n", header.partition_count);
+  (void)fprintf(f_debug, "  partition_count = %u\n", header.partition_count);
   (void)fprintf(f_debug, "  internal = %d\n", header.internal);
 }  /* db_ifc_File_header */
 
@@ -5117,6 +5140,8 @@ for each compilation.
   debug_mod = NULL;
 #endif /* DEBUG && EXPENSIVE_CHECKING */
 }  /* ifc_modules_init */
+
+/*lint -restore*/
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

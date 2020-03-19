@@ -10227,7 +10227,7 @@ cannot be performed.  Used in the implementation of __builtin_bit_cast.
               initialized = FALSE;
             }  /* if */
             byte = *src_storage++;
-            bit_shift = host_little_endian ? i : ((tp->size - 1) - i);
+            bit_shift = (int)(host_little_endian ? i : ((tp->size - 1) - i));
             bit_shift *= CHAR_BIT;
             /* The code below effectively does this:
                  int_val |= byte << bit_shift;
@@ -10246,7 +10246,7 @@ cannot be performed.  Used in the implementation of __builtin_bit_cast.
             sign_extend_integer_value(&int_val,
                                       (int)(tp->size * targ_char_bit));
           }  /* if */
-          (void)memcpy(dest_storage, &int_val, sizeof(int_val));
+          (void)memcpy(dest_storage, (a_byte*)&int_val, sizeof(int_val));
         }
         break;
       case tk_float:
@@ -10447,8 +10447,8 @@ complete_object).  Otherwise, return FALSE and record a diagnostic in *ips.
   if (result) {
     /* Now transform the interpreter-formatted object format into the
        target representation. */
-    alloc_stack_bytes(ips, type_size, target_result_storage);
-    alloc_stack_bytes(ips, type_size, target_result_bitmap);
+    alloc_stack_bytes(ips, (a_byte_count)type_size, target_result_storage);
+    alloc_stack_bytes(ips, (a_byte_count)type_size, target_result_bitmap);
     debug_scramble(target_result_storage, type_size);
     memzero((char*)target_result_bitmap, type_size);
     if (!translate_interpreter_object_to_target_bytes(ips, src_type,
@@ -18064,7 +18064,7 @@ Return TRUE if (and only if) the given routine is std::is_constant_evaluated().
   a_byte_count  impl_idx = (a_byte_count)cit_error;
 
   get_mapped_byte_count(&persistent_map, rp, impl_idx);
-  return impl_idx == cit_std_is_constant_evaluated;
+  return impl_idx == (a_byte_count)cit_std_is_constant_evaluated;
 }  /* is_std_is_constant_evaluated */
 
 #if DEBUG
