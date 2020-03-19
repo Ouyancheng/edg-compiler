@@ -38279,7 +38279,8 @@ scan_new:
       /* The syntax does not allow a postfix-precedence operator following a
          new, e.g., new (double *)[17]. */
       if (!token_ends_expr(curr_token, PREC_PREFIX, local_options)) {
-        expr_pos_diagnostic(es_discretionary_error, ec_operator_not_allowed,
+        expr_pos_diagnostic(es_discretionary_error,
+                            ec_operator_not_allowed_after_new,
                             &pos_curr_token);
       }  /* if */
       break;
