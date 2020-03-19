@@ -5580,11 +5580,16 @@ function template declaration.
   a_scope_stack_entry  saved_func_proto_entry = scope_stack_top();
 
   depth_scope_stack -= 1;
+  depth_of_initial_lookup_scope = depth_scope_stack;
+  decl_scope_level = depth_scope_stack;
   push_template_declaration_scope((a_template_decl_info_ptr)NULL,
                                   /*is_template_param_rescan=*/FALSE);
   expand_scope_stack_if_needed();
   depth_scope_stack += 1;
+  depth_of_initial_lookup_scope = depth_scope_stack;
   scope_stack_top() = saved_func_proto_entry;
+  scope_stack_top().previous_scope = depth_scope_stack-1;
+  scope_stack_top().depth_template_declaration_scope = depth_scope_stack-1;
 }  /* insert_template_decl_scope_under_func_prototype */
 
 

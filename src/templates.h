@@ -359,6 +359,11 @@ typedef int an_equiv_templ_arg_options_set;
 			/* TRUE if, when dependent decltypes appear in a type,
 			   they must appear in both entities being compared
 			   and the expressions must match. */
+#define ETA_ALLOW_EQUIV_NESTING_DEPTHS 0x80
+			/* By default, when comparing template parameter types,
+			   their nesting depth must match exactly.  When this
+			   flag is specified, equiv_nesting_depths is used to
+			   compare nesting depths instead. */
 
 /*
 Flags used to specify options to equiv_template_param_lists.
@@ -495,6 +500,8 @@ extern a_boolean template_arg_list_is_dependent(
 
 extern a_boolean template_arg_list_involves_error_entity(
                                         a_template_arg_ptr	tap);
+
+extern an_expr_node_ptr scan_type_constraint(a_symbol_ptr  concept_templ);
 
 extern a_boolean check_template_constraints(a_symbol_ptr        template_sym,
                                             a_template_arg_ptr  args,
@@ -935,6 +942,17 @@ extern void template_directive_or_declaration(
 extern a_boolean is_template_friend_decl(void);
 
 #if !STANDALONE_UTILITY_PROGRAM
+
+extern void decl_abbr_func_template(a_decl_parse_state  *dps,
+                                    a_symbol_locator    *loc,
+                                    a_func_info_block   *func_info,
+                                    a_decl_pos_block    *decl_pos_block);
+
+extern void decl_abbr_func_template_param(a_decl_parse_state  *dps,
+                                          an_expr_node_ptr    constraint);
+
+extern void start_abbr_func_template_state(a_decl_parse_state  *dps);
+
 extern void scan_lambda_template_param_list(a_tmpl_decl_state   *templ_state,
                                             a_decl_parse_state  *dps);
 

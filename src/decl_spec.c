@@ -9336,7 +9336,65 @@ issued if it is not valid.
 }  /* check_gnu_c_auto_type */
 
 
-static a_boolean process_auto_parameter(a_decl_parse_state  *dps)
+static a_boolean auto_for_trailing_return_type(void)
+/*
+The caller has determined that the current token is "auto".  Return TRUE if it
+appears to be the introducer for a trailing return type.
+*/
+{
+  a_boolean      result;
+  a_token_cache  cache;
+
+  clear_token_cache(&cache, /*is_reusable=*/FALSE);
+  /* Cache the "auto" token. */
+  cache_curr_token(&cache);
+  (void)get_token();
+  if (curr_token == tok_lparen) {
+    /* A left parenthesis can be:
+         (a) the start of a function declarator,
+         (b) the start of a parenthesized initializer, or
+         (c) the start of a parenthesized declarator component.
+       In case (a), a trailing return type can be recognized by a "->" token
+       that immediately follows.  Case (b) cannot immediately be followed by a
+       "->", nor can it be followed by cases (a) or (c).  Case (c) can be
+       followed by case (a) (and potentially a trailing return type), or by
+       case (b) (which cannot have a trailing return type).  So our algorithm
+       can be:
+         - skip one (case (a)) or two (case (c)+(a)) parenthesized token
+           sequences
+         - return whether the next token is "->".
+       For example:
+         void f(auto(*)());       // Return FALSE.  (Abbreviated template.)
+         void f(auto(*)()->int);  // Return TRUE.  (Not a template.)
+         void f(auto()->int);     // Return TRUE.  (Not a template.)
+    */        
+    result = FALSE;
+    for (int n = 0; n<2; ++n) {
+      if (cache_token_stream_until_matching_token(&cache, CTS_NO_OPTIONS)) {
+        /* Did not find a matching tok_rparen. */
+        break;
+      } else  {
+        /* Put the current token (tok_rparen) in the cache. */
+        cache_curr_token(&cache);
+        (void)get_token();
+        if (curr_token == tok_arrow) {
+          result = TRUE;
+          break;
+        } else if (curr_token != tok_lparen) {
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  } else {
+    result = FALSE;
+  }  /* if */
+  rescan_cached_tokens(&cache);
+  return result;
+}  /* auto_for_trailing_return_type */
+
+
+static a_boolean process_auto_parameter(a_decl_parse_state  *dps,
+                                        a_symbol_ptr        concept_sym)
 /*
 *dps describes the declaration of a parameter and the current token is "auto".
 If an implicit template type parameter created for this "auto" can be found
@@ -9350,13 +9408,6 @@ FIXME
   an_auto_param_descr      *auto_param_descr;
   a_scope_stack_entry_ptr  ssep = &scope_stack_top();
 
-  check_assertion(func_dps != NULL && curr_token == tok_auto &&
-                  scope_is(ssep, sck_func_prototype));
-  if (/*FIXME*/0 && scope_is(ssep-1, sck_template_declaration)) {
-    check_assertion(func_dps->decl_being_cached);
-    func_dps->is_abbr_func_template = TRUE;
-    insert_template_decl_scope_under_func_prototype();
-  }  /* if */
   if (func_dps->is_lambda) {
     auto_param_descr = func_dps->variant.auto_params;
     if (auto_param_descr != NULL) {
@@ -9395,6 +9446,44 @@ FIXME
         result = TRUE;
       } else {
         expect_error();
+      }  /* if */
+    }  /* if */
+  } else if (!auto_storage_class_specifier_enabled) {
+    check_assertion(func_dps != NULL && scope_is(ssep, sck_func_prototype) &&
+                    (concept_sym != NULL) != (curr_token == tok_auto));
+    if (scope_is(ssep-1, sck_template_instantiation)) {
+      a_template_param_ptr  tpp = (ssep-1)->template_decl_info->parameters;
+      if (concept_sym != NULL) {
+        // FIXME: Skip tokens instead of scanning the constraint
+        (void)scan_type_constraint(concept_sym);
+      }  /* if */
+      if (curr_token == tok_auto &&
+          !auto_for_trailing_return_type()) {
+        for (; tpp != NULL; tpp = tpp->next) {
+          a_symbol_ptr  sym = tpp->param_symbol;
+          if (sym->token_sequence_number == curr_token_sequence_number) {
+            dps->specifiers_type = type_symbol_type(sym);
+            result = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    } else if (func_dps->decl_being_cached ||
+               func_dps->is_template_declaration) {
+// FIXME: Unify lambda case later
+      an_expr_node_ptr  constraint = concept_sym != NULL ?
+                                     scan_type_constraint(concept_sym) : NULL;
+      if (curr_token == tok_auto) {
+        if (!auto_for_trailing_return_type()) {
+          if (!func_dps->is_abbr_func_template &&
+              !func_dps->is_template_declaration) {
+            start_abbr_func_template_state(func_dps);
+          }  /* if */
+          decl_abbr_func_template_param(dps, constraint);
+          result = TRUE;
+        }  /* if */
+      } else {
+        pos_error(ec_exp_auto, &pos_curr_token);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -10134,7 +10223,7 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
                                         ec_mult_storage_classes,
                                         &error_position);
         } else if (is_parameter && auto_type_allowed &&
-                   process_auto_parameter(state)) {
+                   process_auto_parameter(state, /*concept_sym=*/NULL)) {
           /* "auto" as a parameter type specifier in what is presumably a
              (generic) lambda parameter.  state->specifiers_type points to the
              corresponding type entry. */
@@ -11554,7 +11643,19 @@ process_enum_specifier:
                                      /*in_type_check=*/FALSE,
                                      state->is_implicit_type_context &&
                                          relaxed_typename_enabled,
-                                     /*is_sizeof_context=*/FALSE);
+                                     /*is_sizeof_context=*/FALSE,
+                                     /*concept_okay=*/is_parameter &&
+                                                      concepts_enabled);
+        if (curr_token_type_symbol != NULL &&
+            symbol_is(curr_token_type_symbol, sk_concept_template) &&
+            process_auto_parameter(state, curr_token_type_symbol)) {
+          state->auto_pos = pos_curr_token;
+          state->has_deduced_type = TRUE;
+          state->auto_type_specifier_seen = TRUE;
+          basic_type = bt_typedef;
+          decl_specifiers_seen |= DS_TYPE;
+          break;
+        }  /* if */
         if (!C_mode() && is_member_decl &&
             (decl_specifiers_seen & DS_TYPE) == 0 &&
             curr_token_type_symbol != NULL &&

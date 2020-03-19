@@ -7519,8 +7519,12 @@ the same constant.
   is_prototype = (options & ETA_IS_PROTOTYPE) != 0;
   exact_match_required = (options & ETA_EXACT_MATCH_REQUIRED) != 0;
   itf_options = exact_match_required ? (ITF_EXACT_EQUIVALENCE |
+                                        ITF_SEEK_CORRESP |
                                         ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)
-                                     : ITF_NO_FLAGS;
+                                     : ITF_SEEK_CORRESP;
+  if (!(options & ETA_ALLOW_EQUIV_NESTING_DEPTHS)) {
+    itf_options |= ITF_EXACT_NESTING_DEPTHS_REQUIRED;
+  }  /* if */
   cc_options = exact_match_required
                          ? (CC_EXACT_EQUIVALENCE |
                             CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)
@@ -7629,10 +7633,7 @@ the same constant.
         /* Only one is unspecified -- this is a mismatch. */
         equiv = FALSE;
       } else if (type1 == type2 ||
-                 f_identical_types(type1, type2,
-                                   itf_options |
-                                   ITF_SEEK_CORRESP |
-                                   ITF_EXACT_NESTING_DEPTHS_REQUIRED)) {
+                 f_identical_types(type1, type2, itf_options)) {
         /* Okay. */
       } else if (error_matches_anything &&
                  (is_error_type(type1) || is_error_type(type2))) {
@@ -7640,11 +7641,7 @@ the same constant.
       } else {
         a_type_ptr	tp1 = skip_typerefs(type1);
         a_type_ptr	tp2 = skip_typerefs(type2);
-        if (ignore_qualifiers &&
-                 f_identical_types(tp1, tp2,
-                                   itf_options |
-                                   ITF_SEEK_CORRESP |
-                                   ITF_EXACT_NESTING_DEPTHS_REQUIRED)) {
+        if (ignore_qualifiers && f_identical_types(tp1, tp2, itf_options)) {
           /* In Microsoft bugs mode top level qualifiers are ignored when
              comparing two argument lists. */
           /* Okay. */
@@ -24274,6 +24271,58 @@ position information.
 }  /* decl_type_template_param */
 
 
+an_expr_node_ptr scan_type_constraint(a_symbol_ptr  concept_templ)
+/*
+The current token is names a concept template represented by concept_templ.
+Scan that token and an optional template argument list that follows to form
+a type constraint.  Return that constraint.  In error cases, return NULL.
+*/
+{
+  an_expr_node_ptr  constraint;
+  a_boolean         err = FALSE;
+  a_template_symbol_supplement_ptr
+                    tssp = concept_templ->variant.template_info;
+
+  constraint = alloc_expr_node((an_expr_node_kind)enk_concept_id);
+  constraint->type = bool_type();
+  constraint->is_type_constraint = TRUE;
+  constraint->position = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  constraint->expr_range.start = pos_curr_token;
+  constraint->expr_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  constraint->variant.concept_id.concept_template = tssp->il_template_entry;
+  /* Bypass the concept name. */
+  (void)get_token();
+  if (curr_token == tok_lt) {
+    (void)get_token();
+    add_stop_token(tok_gt);
+    constraint->variant.concept_id.args =
+                         scan_concept_arg_list(
+                              concept_templ, /*skip_first_param=*/TRUE, &err);
+    (void)required_token(tok_gt, ec_exp_gt);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    constraint->expr_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    remove_stop_token(tok_gt);
+  } else {
+    a_template_param_ptr  tpp = tssp->cache.decl_info->parameters;
+    if (tpp == NULL || tpp->next != NULL) {
+      /* If no concept arguments are specified, the concept should have
+         exactly one parameter. */
+      pos_error(ec_exp_lt, &pos_curr_token);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (err) {
+    /* Ignore the constraint. */
+    constraint = NULL;
+    concept_templ = NULL;
+  }  /* if */
+  return constraint;
+}  /* scan_type_constraint */
+
+
 static a_template_param_ptr scan_type_template_param(
                                         a_tmpl_decl_state_ptr   decl_state,
                                         a_tmpl_param_state_ptr  param_state,
@@ -24296,38 +24345,7 @@ represents the associated concept template.
   decl_pos_block.specifiers_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (concept_templ != NULL) {
-    a_boolean   err = FALSE;
-    a_template_symbol_supplement_ptr
-                tssp = concept_templ->variant.template_info;
-    constraint = alloc_expr_node((an_expr_node_kind)enk_concept_id);
-    constraint->type = bool_type();
-    constraint->is_type_constraint = TRUE;
-    constraint->position = pos_curr_token;
-    constraint->variant.concept_id.concept_template = tssp->il_template_entry;
-    /* Bypass the concept name. */
-    (void)get_token();
-    if (curr_token == tok_lt) {
-      (void)get_token();
-      add_stop_token(tok_gt);
-      constraint->variant.concept_id.args =
-                         scan_concept_arg_list(
-                              concept_templ, /*skip_first_param=*/TRUE, &err);
-      (void)required_token(tok_gt, ec_exp_gt);
-      remove_stop_token(tok_gt);
-    } else {
-      a_template_param_ptr  tpp = tssp->cache.decl_info->parameters;
-      if (tpp == NULL || tpp->next != NULL) {
-        /* If no concept arguments are specified, the concept should have
-           exactly one parameter. */
-        pos_error(ec_exp_lt, &pos_curr_token);
-        err = TRUE;
-      }  /* if */
-    }  /* if */
-    if (err) {
-      /* Ignore the constraint. */
-      constraint = NULL;
-      concept_templ = NULL;
-    }  /* if */
+    constraint = scan_type_constraint(concept_templ);
   } else {
     /* Bypass "class" or "typename". */
     (void)get_token();
@@ -32356,6 +32374,173 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
 }  /* template_or_specialization_declaration */
 
 
+void decl_abbr_func_template(a_decl_parse_state  *dps,
+                             a_symbol_locator    *loc,
+                             a_func_info_block   *func_info,
+                             a_decl_pos_block    *decl_pos_block)
+/*
+The declarator of an abbreviated function template has been scanned.  Such a
+declarator is characterized by the presence of at least one "auto" parameter,
+and as part of processing such parameters a template context has been started
+(see start_abbr_func_template_state) and template parameters have been added
+(see decl_abbr_func_template_param).  Complete the function template
+declaration.  The syntactic elements of the declaration are described by dps,
+loc, func_info, and decl_pos_block.
+*/
+{
+  a_scope_stack_entry_ptr   ssep = &scope_stack_top();
+  a_tmpl_decl_state         *state = ssep->tmpl_decl_state;
+  a_template_decl_info_ptr  templ_decl_info = ssep->template_decl_info;
+  a_token_kind              final_token = tok_error;
+  a_template_symbol_supplement_ptr
+                            tssp = NULL;
+
+  state->pragmas_bound_to_template = extract_curr_construct_pragmas();
+  state->first_decl_cache_tsn = dps->start_tsn;
+  state->final_token_ptr = &final_token;
+  remove_declarator_sse(dps, depth_scope_stack);
+  templ_decl_info->declaration_scope = scope_stack_top().number;
+  create_template_decl(state, &null_source_position);
+  decl_level_of_template(state);
+  state->il_template_entry->template_decl = state->template_decl;
+  complete_template_parameter_clauses(state);
+  dps->sym = function_template_declaration(state, loc, func_info);
+  complete_function_template_decl(state, dps->sym, func_info, &tssp,
+                                  &loc->source_position);
+
+  complete_il_template_entry(state, dps->sym);
+  wrapup_templ_decl_state(state);
+  /* Pop the implicit template declaration scope. */
+  pop_scope();
+  if (curr_token == final_token) {
+    (void)get_token();
+  }  /* if */
+  state->final_token_ptr = NULL;
+}  /* decl_abbr_func_template */
+
+
+void decl_abbr_func_template_param(a_decl_parse_state  *dps,
+                                   an_expr_node_ptr    constraint)
+/*
+The current token "auto", which was optionally preceded by a type constraint
+represented by constraint.  Declare an associated template type parameter and
+set dps->specifiers_type to that type.
+*/
+{
+#define AUTO_PARAM_NAME_PREFIX "<auto-"
+#define AUTO_PARAM_NAME_SUFFIX ">"
+  char                       param_name[100] = AUTO_PARAM_NAME_PREFIX;
+  a_symbol_locator           param_loc;
+  a_decl_pos_block           decl_pos_block;
+  sizeof_t                   len;
+  a_template_param_ptr       templ_param, *p_end_templ_params;
+  a_template_param_list_pos  param_pos = 1;
+  a_scope_stack_entry_ptr    ssep = &scope_stack_top();
+  a_tmpl_decl_state          *state;
+
+  check_assertion(scope_is(ssep, sck_func_prototype) &&
+                  scope_is(ssep-1, sck_template_declaration));
+  state = (ssep-1)->tmpl_decl_state;
+  p_end_templ_params = &state->decl_info->parameters;
+  while (*p_end_templ_params != NULL) {
+    param_pos += 1;
+    p_end_templ_params = &(*p_end_templ_params)->next;
+  }  /* while */
+  /* Create a locator for the synthesized parameter. */
+  clear_locator(&param_loc, &pos_curr_token);
+  clear_decl_pos_block(&decl_pos_block);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_pos_block.identifier_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_pos_block.identifier_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  (void)unsigned_to_string_buf((a_host_large_unsigned)param_pos,
+                               param_name+sizeof(AUTO_PARAM_NAME_PREFIX)-1);
+  len = strlen(param_name);
+  strcpy(param_name+len, AUTO_PARAM_NAME_SUFFIX);
+  len += sizeof(AUTO_PARAM_NAME_SUFFIX)-1;
+  (void)find_symbol(param_name, len, &param_loc);
+  templ_param = decl_type_template_param(param_pos, &param_loc,
+                                         /*is_named=*/FALSE, /*is_pack=*/FALSE,
+                                         constraint, state, &decl_pos_block);
+  templ_param->param_symbol->is_invisible = TRUE;
+  templ_param->param_symbol->token_sequence_number =
+                                                   curr_token_sequence_number;
+  templ_param->variant.type->variant.template_param.is_auto_param = TRUE;
+  templ_param->param_num = param_pos;
+  dps->specifiers_type = templ_param->variant.type;
+  /* Append the template parameter entry to the list pointed to by
+     state->decl_info. */
+  *p_end_templ_params = templ_param;
+#undef AUTO_PARAM_NAME_PREFIX
+#undef AUTO_PARAM_NAME_SUFFIX
+}  /* decl_abbr_func_template_param */
+
+
+void start_abbr_func_template_state(a_decl_parse_state  *dps)
+/*
+dps is the parsing state associated with a function declarator that appears to
+declare an abbreviated function template.  The current scope is a function
+prototype scope and the caller has already inserted a template declaration
+scope underneath it.  Create and initialize a template declaration state, a
+template declaration info block, and a template IL entry for the abbreviated
+template.  Point the template declaration scope (sck_template_declaration) to
+the allocated state.
+*/
+{
+  a_tmpl_decl_state         *state = alloc_fe_of_type(a_tmpl_decl_state);
+  a_scope_stack_entry_ptr   ssep = &scope_stack_top();
+  a_template_decl_info_ptr  templ_decl_info = alloc_template_decl_info();
+
+  dps->is_abbr_func_template = TRUE;
+  check_assertion(dps->decl_being_cached &&
+                  scope_is(ssep, sck_func_prototype));
+  init_templ_decl_state(state, dps);
+  /* Background caching was already started by top-level declaration
+     processing. */
+  state->caching_tokens = TRUE;
+  state->pragmas_bound_to_template =
+                          extract_curr_construct_pragmas(depth_scope_stack-1);
+  insert_template_decl_scope_under_func_prototype();
+  /* Reload the scope stack top. */
+  ssep = &scope_stack_top();
+  state->effective_decl_level = depth_scope_stack-2;
+  state->in_prototype_instantiation = (ssep-2)->in_prototype_instantiation;
+  state->in_generic_definition = (ssep-2)->in_generic_definition;
+  state->enclosing_scope = (ssep-2)->il_scope;
+  state->starting_token_sequence_number = dps->start_tsn;
+  if (scope_is(ssep-2, sck_class_struct_union)) {
+    state->is_member_decl = TRUE;
+    state->class_declared_in = ssep->assoc_type;
+  }  /* if */
+  /* Determine the nesting depth to be used for the member template. */
+  nesting_depth_of_template(state);
+  state->nesting_depth += 1;
+  state->number_of_template_param_clauses += 1;
+  state->il_template_entry = alloc_template();
+  templ_decl_info = alloc_template_decl_info();
+  state->decl_info = templ_decl_info;
+  templ_decl_info->enclosing_scope = state->enclosing_scope;
+  templ_decl_info->name_linkage = ssep->default_name_linkage;
+  templ_decl_info->decl_seq = ++*(ssep-2)->decl_seq_counter;
+  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+    a_scope_stack_entry_ptr
+                  issep = &scope_stack[depth_innermost_instantiation_scope];
+    a_symbol_ptr  instance_sym = issep->instance_sym;
+    templ_decl_info->enclosing_template_decl = issep->template_decl_info;
+    if (instance_sym != NULL && !instance_sym->is_class_member &&
+        is_template_variable_symbol(instance_sym)) {
+      /* If the innermost instantiation scope is associated with a variable
+         template, save the instance that is being instantiated. */
+      templ_decl_info->variable_instance_sym = instance_sym;
+    }  /* if */
+  }  /* if */
+  (ssep-1)->tmpl_decl_state = state;
+  (ssep-1)->template_decl_info = templ_decl_info;
+}  /* start_abbr_func_template_state */
+
+
 static void start_generic_lambda_state(a_tmpl_decl_state   *templ_state,
                                        a_decl_parse_state  *dps)
 /*
@@ -32369,8 +32554,6 @@ with the lambda declarator.
   init_tmpl_decl_state_for_generated_member_template(templ_state, dps);
   templ_state->is_lambda = TRUE;
   templ_state->starting_token_sequence_number = curr_token_sequence_number;
-  templ_state->in_prototype_instantiation =
-                    scope_stack_top().in_prototype_instantiation;
   templ_state->in_generic_definition = scope_stack_top().in_generic_definition;
   templ_state->enclosing_scope = scope_stack_top().il_scope;
   /* Determine the nesting depth to be used for the member template. */
@@ -32381,7 +32564,6 @@ with the lambda declarator.
   /* Background caching was already started by top-level lambda processing. */
   templ_state->caching_tokens = TRUE;
   template_decl_info = templ_state->decl_info;
-  template_decl_info->enclosing_scope = templ_state->enclosing_scope;
   if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
     a_scope_stack_entry_ptr	ssep =
                              &scope_stack[depth_innermost_instantiation_scope];
@@ -32517,7 +32699,7 @@ parameters described by dps->auto_params.  Update *templ_state accordingly.
       end_template_param_list->next = template_param;
     }  /* if */
     end_template_param_list = template_param;
-  }  /* if */
+  }  /* for */
   template_decl_info->declaration_scope = scope_stack_top().number;
   create_template_decl(templ_state, &null_source_position);
   /* Cache the declarator part of the lambda. */

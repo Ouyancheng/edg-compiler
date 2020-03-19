@@ -937,7 +937,8 @@ a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name,
                               a_boolean in_prescan,
                               a_boolean in_type_check,
                               a_boolean is_implicit_type_context,
-                              a_boolean is_sizeof_context)
+                              a_boolean is_sizeof_context,
+                              a_boolean concept_okay)
 /*
 If the current token is an identifier or, in C++, the "::" at the start of a
 global qualified name, and if it starts the name of a type (a typedef name or,
@@ -952,6 +953,8 @@ this is a context where a dependent qualified name is implicitly considered
 to be a type name (e.g., based on the C++20 rules).  is_sizeof_context is TRUE
 if this is called indirectly from scan_sizeof_operator and the name being
 scanned should not be treated as a type for dependent name purposes.
+If concept_okay is TRUE, and the current token names a concept template,
+return the symbol representing that template.
 */
 {
   a_symbol_ptr               assoc_symbol;
@@ -1022,9 +1025,15 @@ scanned should not be treated as a type for dependent name purposes.
              restore the symbol header (if a constructor was found, it may have
              been changed to a special header that is not part of the main
              symbol table). */
-          assoc_symbol = NULL;
-          clear_specific_symbol(locator_for_curr_id);
-          locator_for_curr_id.symbol_header = saved_header;
+          if (symbol_is(assoc_symbol, sk_concept_template) &&
+              concept_okay) {
+            /* This is a special case where a concept template may be
+               returned. */
+          } else {
+            assoc_symbol = NULL;
+            clear_specific_symbol(locator_for_curr_id);
+            locator_for_curr_id.symbol_header = saved_header;
+          }  /* if */
         }  /* if */
       }  /* if */
       /* Check to see if this is a pack reference. */
@@ -1099,9 +1108,10 @@ and associated routines.
                                   (ids_options &
                                         IDS_IMPLICIT_TYPENAME_CONTEXT) != 0 &&
                                     relaxed_typename_enabled,
-                                  (ids_options & IDS_IS_SIZEOF) != 0);
+                                  (ids_options & IDS_IS_SIZEOF) != 0,
+                                  /*concept_okay=*/TRUE);
       if (class_template_arg_deduction_enabled && is_expr_context &&
-          type_sym != NULL) {
+          type_sym != NULL && !symbol_is(type_sym, sk_concept_template)) {
         /* Check for the case of a class template name used as a placeholder
            type followed by a left parenthesis or brace: That is a functional
            notation cast. */
@@ -20221,6 +20231,10 @@ parameters are scanned by scan_a_template_parameter_declaration.
 #endif /* ASM_FUNCTION_ALLOWED */
     declarator(di_flags, dps, /*member_parent_type=*/(a_type_ptr)NULL,
                &locator, &func_info, &decl_pos_block);
+    if (dps->is_abbr_func_template) {
+      decl_abbr_func_template(dps, &locator, &func_info, &decl_pos_block);
+      goto advance_past_final_token;
+    }  /* if */
     is_function = (dps->declared_storage_class !=
                                                 (a_storage_class)sc_typedef &&
                    !is_old_style_param_decl &&
@@ -20275,11 +20289,7 @@ parameters are scanned by scan_a_template_parameter_declaration.
     }  /* if */
     remove_stop_token(tok_assign);
     dps->need_assign_remove_stop_token = FALSE;
-    if (dps->is_abbr_func_template) {
-      /* FIXME */
-    } else {
-      abort_potential_abbr_func_templ_caching(dps);
-    }  /* if */
+    abort_potential_abbr_func_templ_caching(dps);
     if (is_function) {
       switch (function_declaration(dps, &func_info, &locator,
                                    &decl_pos_block, &final_token)) {

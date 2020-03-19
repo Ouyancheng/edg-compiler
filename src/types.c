@@ -6994,7 +6994,8 @@ check_typerefs:
                             (flags & ITF_IGNORE_NESTING_DEPTH) != 0)));
                 if (identical &&
                     depth1 != CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH &&
-                    depth2 != CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH) {
+                    depth2 != CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH &&
+                    (flags & ITF_EXACT_NESTING_DEPTHS_REQUIRED) != 0) {
                   /* Check that the constraints match. */
                   an_expr_node_ptr  constr1, constr2;
                   constr1 = tptsp_1->constraint.type_constraint;

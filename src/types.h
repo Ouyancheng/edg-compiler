@@ -768,27 +768,24 @@ typedef unsigned int an_itf_flag_set;
 			   IL-identical if no cast is needed to assign
 			   a value of one type to an entity of the
 			   other type. */
-
 #define ITF_UNKNOWN_THIS_CLASS_TYPE 0x02
 			/* TRUE if the this class type may not
 			   be known yet.  When this flag is set, a
 			   NULL "this" class type is ignored. */
-
 #define ITF_SEEK_CORRESP 0x04
 			/* The given types are expected to be compatible and
 			   if they are, the first type (and its components)
 			   should have its correspondence pointer point to
 			   the corresponding component of the second type
 			   (only applies to enum and struct/union types). */
-
 #define ITF_IGNORE_NESTING_DEPTH 0x08
 			/* TRUE if the nesting depths of template parameters
 			   should be ignored for purposes of this
 			   comparison. */
-
 #define ITF_EXACT_NESTING_DEPTHS_REQUIRED 0x10
 			/* TRUE if the nesting depths of template parameters
-			   must match exactly. */
+			   must match exactly.  In that case, constraints on
+			   template parameters must match too. */
 #define ITF_IGNORE_TOP_LEVEL_QUALIFIERS 0x20
 			/* TRUE if top-level qualifiers do not have to
 			   match.  (In the case of arrays in C++, the top-level

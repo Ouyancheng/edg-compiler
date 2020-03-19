@@ -1448,14 +1448,14 @@ current construct pragmas is simply cleared.
 }  /* discard_curr_construct_pragmas */
 
 
-a_pending_pragma_ptr extract_curr_construct_pragmas(void)
+a_pending_pragma_ptr extract_curr_construct_pragmas(a_scope_depth  depth)
 /*
-This routine gets the pointer to the list of current construct
-pragmas, goes through the list and clears any removes any source
-sequence entries that may exist, clears the current construct pragma
-entry on the scope stack, and returns the pragma list to the caller.
-This is used for saving the current construct pragma list so that
-the pragmas may be applied to each instance of a template.
+This routine gets the pointer to the list of current construct pragmas for the
+given scope depth, goes through the list and clears/removes any source sequence
+entries that may exist, clears the current construct pragma entry on the scope
+stack, and returns the pragma list to the caller.  This is used for saving the
+current construct pragma list so that the pragmas may be applied to each
+instance of a template.
 */
 {
   a_pending_pragma_ptr	ppp;
@@ -1463,7 +1463,7 @@ the pragmas may be applied to each instance of a template.
   a_pending_pragma_ptr  list_head;
 
   db_enter(4, "extract_curr_construct_pragmas");
-  scope_list_addr = curr_list_of_curr_construct_pragmas();
+  scope_list_addr = &scope_stack[depth].curr_construct_pragmas;
   /* Get the list head and clear the list pointer in the scope stack. */
   ppp = *scope_list_addr;
   list_head = ppp;
@@ -1477,7 +1477,7 @@ the pragmas may be applied to each instance of a template.
                                              (a_byte_il_entry_kind)iek_none,
                            "extract_curr_construct_pragmas:",
                            "source sequence entry already in use");
-      remove_from_src_seq_list(ppp->source_sequence_entry);
+      f_remove_from_src_seq_list(ppp->source_sequence_entry, depth);
       ppp->source_sequence_entry = NULL;
     }  /* if */
     ppp = ppp->next;

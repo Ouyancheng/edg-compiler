@@ -3091,8 +3091,9 @@ an error if a default argument expression is encountered.
         param_state.is_param_decl = TRUE;
         param_state.is_pack_element = is_pack_element;
         param_state.assoc_func_decl_state = state;
-        param_state.auto_type_allowed = generic_lambdas_enabled &&
-                                        state->is_lambda;
+        param_state.auto_type_allowed = concepts_enabled ||
+                                        (generic_lambdas_enabled &&
+                                         state->is_lambda);
         param_state.trailing_return_type_allowed =
                                                 trailing_return_types_enabled;
         param_state.pack_ellipsis_allowed = is_variadic_template_context();

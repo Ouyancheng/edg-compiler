@@ -24025,25 +24025,16 @@ given index in the given constraint chart.
     a_template_ptr        templ, parent_templ;
     a_symbol_ptr          sym, parent_sym;
     a_template_arg_ptr    orig_args, parent_remapped_args;
-    a_template_param_ptr  params, parent_params;
     templ = concept_id->variant.concept_id.concept_template;
     sym = symbol_for(templ);
     orig_args = concept_id->variant.concept_id.args;
-    if (concept_id->is_type_constraint) {
-      /* Make the implicit argument explicit. */
-      a_template_arg_ptr  first_arg;
-      params = sym->variant.template_info->cache.decl_info->parameters;
-      first_arg = alloc_template_arg((a_templ_arg_kind)tak_type);
-      first_arg->variant.type = params->variant.type;
-      first_arg->next = orig_args;
-      orig_args = first_arg;
-    }  /* if */
     if (constraint->no_link()) {
       /* A top-level concept-id: No remapping is needed. */
       result = orig_args;
     } else {
       a_ctws_state          ctws_state;
       a_boolean             copy_error = FALSE;
+      a_template_param_ptr  params, parent_params;
       params = sym->variant.template_info->cache.decl_info->parameters;
       check_assertion(!constraint->no_link());
       parent_constraint = &array[constraint->link];
@@ -24102,7 +24093,8 @@ parameter mapping.
       args1 = get_remapped_args(chart1, array1[idx1].link);
       // FIXME: Only check the arguments used by the atomic constraint
       //        expression (presumably using a bit map).
-      if (equiv_template_arg_lists(args1, args2, ETA_NO_OPTIONS)) {
+      if (equiv_template_arg_lists(args1, args2,
+                                   ETA_ALLOW_EQUIV_NESTING_DEPTHS)) {
         incompatible = FALSE;
         break;
       }  /* if */
@@ -24214,10 +24206,27 @@ where both alternatives recursively set not_subsuming to FALSE.
     array.push_back(a_charted_constraint{ CK_CONCEPT, (uint32_t)parent_idx,
                                           { (uint32_t)0 }, expr });
     array[new_parent_idx].remapped_args = nullptr;
+    if (parent_idx == -1) {
+      /* A concept at the top level creates a potential for subsuming another
+         template. */
+      *not_subsuming = FALSE;
+      /* If this constraint is a type constraint, record the concept-id
+         arguments (which need no remapping since they're at the top level).
+         For a type constraint, the first argument was made explicit in
+         constraint_chart_of, but it should be made implicit again in the
+         concept-id node. */
+      a_template_arg_ptr  args = expr->variant.concept_id.args;
+      array[new_parent_idx].remapped_args = args;
+      if (expr->is_type_constraint) {
+        expr->variant.concept_id.args = args->next;
+      }  /* if */
+    } else {
+      /* Remapped arguments will be computed if needed later on. */
+      array[new_parent_idx].remapped_args = nullptr;
+    }  /* if */
     chart_constraint(expr->variant.concept_id.concept_template
                          ->prototype_instantiation.constraint,
                      chart, new_parent_idx, not_subsumable, not_subsuming);
-    if (parent_idx == -1) *not_subsuming = FALSE;
   } else if (is_operation_node(expr) && node_operator_is(expr, eok_land)) {
     int32_t    idx = (int32_t)array.length();
     a_boolean  left_not_subsuming = TRUE, right_not_subsuming = TRUE;
@@ -24276,13 +24285,19 @@ generate that chart.
         a_template_param_ptr  tpp, params = tssp->cache.decl_info->parameters;
         for (tpp = params; tpp != NULL; tpp = tpp->next) {
           an_expr_node_ptr  type_constraint = NULL;
-          a_symbol_ptr      param_sym = tpp->param_symbol;
-          if (symbol_is(param_sym, sk_type)) {
-            type_constraint = param_sym->variant.type.ptr
-                                       ->variant.template_param.extra_info
-                                       ->constraint.type_constraint;
+          if (symbol_is(tpp->param_symbol, sk_type)) {
+            a_type_ptr  tp = tpp->variant.type;
+            type_constraint = tp->variant.template_param.extra_info
+                                ->constraint.type_constraint;
             if (type_constraint != NULL) {
               constraints.push_back(type_constraint);
+              /* Temporarily make the first template argument explicit.  This
+                 will be restored in chart_constraint. */
+              a_template_arg_ptr  first_arg;
+              first_arg = alloc_template_arg((a_templ_arg_kind)tak_type);
+              first_arg->variant.type = tp;
+              first_arg->next = type_constraint->variant.concept_id.args;
+              type_constraint->variant.concept_id.args = first_arg;
             }  /* if */
           }  /* if */
         }  /* for */
@@ -24292,7 +24307,7 @@ generate that chart.
         constraints.push_back(tdp->constraint.requires_clause->constraint);
       }  /* if */
       if (symbol_is(sym, sk_function_template)) {
-        // FIXME: Add parameter constraints when supported
+        // FIXME: Move parameter constraints to after the requires clause
         a_routine_ptr  rp = tssp->variant.function.routine;
         if (rp->trailing_requires_clause != NULL) {
           constraints.push_back(rp->trailing_requires_clause->constraint);

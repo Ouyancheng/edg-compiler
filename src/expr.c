@@ -36930,7 +36930,7 @@ If *is_dependent is FALSE and <expr> or the optional template arguments are
 instantiation-dependent, set *is_dependent to TRUE.
 */
 {
-  an_expr_node_ptr     result, expr, constraint;
+  an_expr_node_ptr     result, expr;
   an_operand           operand;
   an_expr_stack_entry  *saved_expr_stack;
   an_expr_stack_entry  expr_stack_entry;
@@ -36972,14 +36972,10 @@ instantiation-dependent, set *is_dependent to TRUE.
 
   /* Scan an optional type constraint. */
   if (curr_token == tok_arrow) {
-    a_boolean          err = FALSE;
-    a_symbol_ptr       concept_templ = NULL;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    a_source_position  start_pos = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    an_identifier_options_set
-                       gid_options = GID_IS_EXPR_CONTEXT |
-                                     GID_TEMPLATE_ARGS_OPTIONAL;
+    a_boolean                  err = FALSE;
+    a_symbol_ptr               concept_templ = NULL;
+    an_identifier_options_set  gid_options = GID_IS_EXPR_CONTEXT |
+                                             GID_TEMPLATE_ARGS_OPTIONAL;
     (void)get_token();
     if (curr_token == tok_identifier) {
       concept_templ = coalesce_and_lookup_generalized_identifier(
@@ -36989,34 +36985,7 @@ instantiation-dependent, set *is_dependent to TRUE.
        !symbol_is(concept_templ, sk_concept_template)) {
       syntax_error(ec_exp_concept_name);
     } else {
-      a_template_symbol_supplement_ptr
-                                tssp = concept_templ->variant.template_info;
-      constraint = alloc_expr_node((an_expr_node_kind)enk_concept_id);
-      constraint->type = bool_type();
-      constraint->position = pos_curr_token;
-      constraint->variant.concept_id.concept_template =
-                                                      tssp->il_template_entry;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      curr_construct_end_position = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      (void)get_token();
-      if (curr_token == tok_lt) {
-        (void)get_token();
-        add_stop_token(tok_gt);
-        constraint->variant.concept_id.args =
-                           scan_concept_arg_list(
-                              concept_templ, /*skip_first_param=*/TRUE, &err);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        curr_construct_end_position = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        (void)required_token(tok_gt, ec_exp_gt);
-        remove_stop_token(tok_gt);
-      }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      constraint->expr_range.start = start_pos;
-      constraint->expr_range.end = curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      expr->next = constraint;
+      expr->next = scan_type_constraint(concept_templ);
     }  /* if */
   }  /* if */
 

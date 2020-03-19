@@ -67,7 +67,8 @@ a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name,
                               a_boolean in_prescan,
                               a_boolean in_type_check,
                               a_boolean is_implicit_type_context,
-                              a_boolean is_sizeof_context);
+                              a_boolean is_sizeof_context,
+                              a_boolean concept_okay = FALSE);
 
 /*
 Macro that is TRUE if the current token (which must be an identifier or
@@ -1356,10 +1357,11 @@ template declaration, begin background token caching.
 inline void abort_potential_abbr_func_templ_caching(a_decl_parse_state  *dps)
 /*
 If the current declaration is being cached because it could potentially be an
-abbreviated function template declaration, abort that caching now.
+abbreviated function template declaration but the declaration is not actually
+an abbreviated function template declaration, abort that caching now.
 */
 {
-  if (dps->decl_being_cached) {
+  if (dps->decl_being_cached && !dps->is_abbr_func_template) {
     end_caching_fetched_tokens();
     dps->decl_being_cached = FALSE;
   }  /* if */
