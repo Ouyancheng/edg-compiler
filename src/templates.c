@@ -6467,6 +6467,8 @@ supplement already associated with ft_symbol.
     /* Copy the default argument information from the prototype template. */
     tssp->variant.function.def_arg_expr_list =
                                 orig_tssp->variant.function.def_arg_expr_list;
+    /* Copy the befriending class list. */
+    tssp->befriending_classes = orig_tssp->befriending_classes;
     /* Get the declaration sequence number from the prototype template. */
     decl_state->decl_info->decl_seq =
                     orig_tssp->variant.function.decl_cache.decl_info->decl_seq;
