@@ -1264,17 +1264,18 @@ in the correct place.
   /* Create the statement for the function body try block first, as we need to
      transfer the function body's lifetime into that block. */
   func_body = wrap_coroutine_body_in_try_block(coroutine, func_body, cr_desc,
-                                               cr_desc->initial_suspend_call);
-  func_lifetime = sp->lifetime->child_lifetime;
+                                               cr_desc->initial_suspend_call,
+                                               &func_lifetime);
   /* Now that we have the function body wrapped and saved off, generate the
      variable decls and initial statements as if they preceded the function
      try/catch block. */
-  sp->lifetime->child_lifetime = NULL;
   copy_coroutine_parameters(coroutine, cr_desc);
   stmt = add_coroutine_variable_decls(stmt, cr_desc, sp);
   /* Add back in the function body. */
   stmt = stmt->next = func_body;
-  coroutine->contains_try_block = TRUE;
+  if (exceptions_enabled) {
+    coroutine->contains_try_block = TRUE;
+  }  /* if */
   func_lifetime->next = sp->lifetime->child_lifetime;
   sp->lifetime->child_lifetime = func_lifetime;
   sp->lifetime->child_lifetime->parent_destruction_sublist =

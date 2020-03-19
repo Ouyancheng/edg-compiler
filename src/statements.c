@@ -4867,14 +4867,16 @@ try/catch block.  Return the created block.
 
 
 a_statement_ptr wrap_coroutine_body_in_try_block(
-                                            a_routine_ptr         coroutine,
-                                            a_statement_ptr       func_body,
-                                            a_coroutine_descr_ptr cr_desc,
-                                            an_expr_node_ptr      init_suspend)
+                                         a_routine_ptr          coroutine,
+                                         a_statement_ptr        func_body,
+                                         a_coroutine_descr_ptr  cr_desc,
+                                         an_expr_node_ptr       init_suspend,
+                                         an_object_lifetime_ptr *func_lifetime)
 /*
 Given a function body for a given coroutine, wrap that function body in a
 try/catch block and add the initial suspend call contained in init_suspend.
-Return the statement for the try/catch.
+Return the statement for the try/catch.  Return the lifetime for the block in
+*func_lifetime.
 */
 {
   a_statement_ptr try_catch_stmt;
@@ -4893,23 +4895,37 @@ Return the statement for the try/catch.
   }  /* if */
   try_catch_stmt->variant.block.statements = func_body;
   func_body = try_catch_stmt;
-  try_catch_stmt = alloc_statement((a_statement_kind)stmk_try_block);
-  try_catch_stmt->variant.try_block->statement = func_body;
-  func_body->parent = try_catch_stmt;
-  /* Prepare try block scope */
-  push_object_lifetime(iek_try_supplement,
-                       (char*)try_catch_stmt->variant.try_block,
-                       (an_object_lifetime_kind)olk_try_block);
+  if (exceptions_enabled) {
+    try_catch_stmt = alloc_statement((a_statement_kind)stmk_try_block);
+    try_catch_stmt->variant.try_block->statement = func_body;
+    func_body->parent = try_catch_stmt;
+    /* Prepare try block scope */
+    push_object_lifetime(iek_try_supplement,
+                         (char*)try_catch_stmt->variant.try_block,
+                         (an_object_lifetime_kind)olk_try_block);
+  } else {
+    try_catch_stmt = func_body;
+    push_object_lifetime(iek_block, (char*)func_body,
+                         (an_object_lifetime_kind)olk_block);
+  }  /* if */
   transfer_coroutine_lifetime(sp->lifetime);
-  /* Create the handler for the try. */
-  (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
-                   /*assoc_type=*/NULL, /*assoc_routine=*/NULL);
-  try_catch_stmt->variant.try_block->handlers = handler = alloc_handler();
-  set_block_scope_handler(handler);
-  handler->statement = create_coroutine_handler_block(cr_desc);
-  handler->statement->parent = try_catch_stmt;
-  pop_scope();
-  (void)pop_object_lifetime();
+  if (exceptions_enabled) {
+    /* Create the handler for the try. */
+    (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
+                     /*assoc_type=*/NULL, /*assoc_routine=*/NULL);
+    try_catch_stmt->variant.try_block->handlers = handler = alloc_handler();
+    set_block_scope_handler(handler);
+    handler->statement = create_coroutine_handler_block(cr_desc);
+    handler->statement->parent = try_catch_stmt;
+    pop_scope();
+  }  /* if */
+  /* We need to save off the lifetime and "pop" the lifetime that we pushed.
+     To ensure lifetime ordering is correct once the coroutine frame's
+     variables are added, we can't pop this in the usual way. */
+  *func_lifetime = sp->lifetime->child_lifetime;
+  check_assertion(sp->lifetime->child_lifetime->next == NULL);
+  sp->lifetime->child_lifetime = NULL;
+  curr_object_lifetime = curr_object_lifetime->parent_lifetime;
   return try_catch_stmt;
 }  /* wrap_coroutine_body_in_try_block */
 

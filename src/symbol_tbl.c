@@ -9514,11 +9514,13 @@ coroutine as described in N4810 (or N4775+P0912R5).
     check_assertion(sym != NULL);
     pos_sy_error(ec_final_suspend_cannot_throw, &sym->decl_position, sym);
   }  /* if */
-  make_coroutine_promise_call_operand(&operand, "unhandled_exception",
-                                      promise_var, /*add_await=*/FALSE,
-                                      /*init_suspend=*/FALSE);
-  cr_desc->unhandled_exception_call = expr_node_from_operand(&operand);
-  set_possibly_null_expr_result_not_used(cr_desc->unhandled_exception_call);
+  if (exceptions_enabled) {
+    make_coroutine_promise_call_operand(&operand, "unhandled_exception",
+                                        promise_var, /*add_await=*/FALSE,
+                                        /*init_suspend=*/FALSE);
+    cr_desc->unhandled_exception_call = expr_node_from_operand(&operand);
+    set_possibly_null_expr_result_not_used(cr_desc->unhandled_exception_call);
+  }  /* if */
   /* Resolve the call to p.get_return_object and convert it to the return type
      of the coroutine. */
   make_coroutine_promise_call_operand(&operand, "get_return_object",

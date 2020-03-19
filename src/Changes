@@ -1,5 +1,13 @@
 Version 6.1
 
+3/19/20  [EDGcpfe/22404]
+Coroutines: Allow exceptions to be disabled
+
+Coroutines require that the promise type have an "unhandled_exception" method
+and that the function body be wrapped in a try/catch block.  These requirements
+are now ignored in modes where exceptions are disabled.
+
+
 3/18/20  [EDGcpfe/22418]
 Operator precedence rules with operator new
 
