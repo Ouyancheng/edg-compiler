@@ -12370,6 +12370,7 @@ functions befriending_list_test and class_scope_test.
       /* A class or class reactivation. */
       scope_class_type = ssep->assoc_type;
       if (skip_to_class != NULL &&
+          !(scope_routine != NULL && scope_routine->is_inheriting_ctor) &&
           !same_entities(scope_class_type, skip_to_class)) {
         /* We're skipping to the class skip_to_class, so ignore this entry.
            Note that in the normal standard language this won't happen,
@@ -12377,7 +12378,10 @@ functions befriending_list_test and class_scope_test.
            parents.  However, this code may be useful if someone puts
            in an extension like allowing definition of a member function
            in a friend declaration inside another class, where the lookup
-           nesting does not match the access nesting. */
+           nesting does not match the access nesting.
+           Don't skip to a specific class with inheriting constructors as we
+           could be in either the originator's context or the inheriting
+           constructor's context. */
       } else {
         /* Check for access granted by being a member of the class. */
         if (class_scope_test(class_type, ssep)) {
