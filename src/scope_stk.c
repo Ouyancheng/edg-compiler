@@ -4996,7 +4996,7 @@ class to be defined.
   a_template_decl_info_ptr	enclosing_tdip;
   a_symbol_ptr			enclosing_instance_sym;
   a_type_ptr			enclosing_assoc_type;
-  a_routine_ptr			enclosing_assoc_routine;
+  a_routine_ptr			enclosing_assoc_routine, inh_ctor_orig = NULL;
   a_boolean			use_existing_context = FALSE;
   a_boolean			is_lambda_body = FALSE;
   a_boolean			is_real_lambda_instantiation = FALSE;
@@ -5051,8 +5051,13 @@ class to be defined.
   if (template_sym != NULL && symbol_is(template_sym, sk_function_template)) {
     /* Determine if this is a generic lambda instantiation. */
     a_template_symbol_supplement_ptr	tssp;
+    a_routine_ptr			rout;
     tssp = template_sym->variant.template_info;
-    is_lambda_body = tssp->variant.function.routine->is_lambda_body;
+    rout = tssp->variant.function.routine;
+    is_lambda_body = rout->is_lambda_body;
+    if (rout->is_inheriting_ctor) {
+      inh_ctor_orig = get_inh_ctor_originator(rout, /*ignore_virtual=*/TRUE);
+    }  /* if */
   }  /* if */
   if (is_lambda_body) {
     /* For a generic lambda, get the scope in which the lambda was declared.
@@ -5061,6 +5066,14 @@ class to be defined.
     lambda_class = sym_parent_class(template_sym);
     lambda_scope = get_parent_scope_of(lambda_class);
     context_scope = lambda_scope;
+  } else if (inh_ctor_orig != NULL) {
+    a_symbol_ptr                     base_template_sym;
+    a_template_symbol_supplement_ptr base_tssp;
+    base_template_sym = symbol_for(inh_ctor_orig)->
+                                    variant.routine.instance_ptr->template_sym;
+    base_tssp = template_supplement_for_symbol(base_template_sym);
+    context_scope = base_tssp->variant.function.decl_cache.decl_info->
+                                                               enclosing_scope;
   } else {
     context_scope = decl_info->enclosing_scope;
   }  /* if */
