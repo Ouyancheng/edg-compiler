@@ -4829,13 +4829,52 @@ the relationships appropriately.
 }  /* transfer_coroutine_lifetime */
 
 
+static a_statement_ptr create_coroutine_handler_block(
+                                                 a_coroutine_descr_ptr cr_desc)
+/*
+Create and fill in the contents of the catch block for a coroutine's generated
+try/catch block.  Return the created block.
+*/
+{
+  a_statement_ptr block = alloc_statement((a_statement_kind)stmk_block);
+  a_statement_ptr *handler_stmt = &block->variant.block.statements;
+  a_statement_ptr stmt;
+
+  block->variant.block.extra_info->assoc_scope = scope_stack_top().il_scope;
+  /* Create the if (initial-await-resume-called) throw; statement. */
+  stmt = alloc_statement((a_statement_kind)stmk_if);
+  *handler_stmt = stmt;
+  handler_stmt = &stmt->next;
+  stmt->parent = block;
+  stmt->expr = var_lvalue_expr(cr_desc->init_await_resume);
+  stmt->variant.if_stmt.then_statement =
+                        alloc_statement((a_statement_kind)stmk_expr);
+  stmt = stmt->variant.if_stmt.then_statement;
+  stmt->expr = alloc_expr_node((an_expr_node_kind)enk_throw);
+  stmt->expr->type = void_type();
+  stmt->expr->variant.throw_info = NULL;
+  stmt->expr->result_is_not_used = TRUE;
+  /* Create the unhandled exception call. */
+  if (cr_desc->unhandled_exception_call != NULL) {
+    stmt = alloc_statement((a_statement_kind)stmk_expr);
+    *handler_stmt = stmt;
+    handler_stmt = &stmt->next;
+    stmt->expr = cr_desc->unhandled_exception_call;
+    stmt->parent = block;
+  }  /* if */
+  return block;
+}  /* create_coroutine_handler_block */
+
+
 a_statement_ptr wrap_coroutine_body_in_try_block(
-                                               a_routine_ptr         coroutine,
-                                               a_statement_ptr       func_body,
-                                               a_coroutine_descr_ptr cr_desc)
+                                            a_routine_ptr         coroutine,
+                                            a_statement_ptr       func_body,
+                                            a_coroutine_descr_ptr cr_desc,
+                                            an_expr_node_ptr      init_suspend)
 /*
 Given a function body for a given coroutine, wrap that function body in a
-try/catch block.  Return the statement for the try/catch.
+try/catch block and add the initial suspend call contained in init_suspend.
+Return the statement for the try/catch.
 */
 {
   a_statement_ptr try_catch_stmt;
@@ -4844,8 +4883,15 @@ try/catch block.  Return the statement for the try/catch.
 
   /* Move the function body into the block of the try. */
   try_catch_stmt = alloc_statement((a_statement_kind)stmk_block);
-  try_catch_stmt->variant.block.statements = func_body;
   func_body->parent = try_catch_stmt;
+  if (init_suspend != NULL) {
+    a_statement_ptr stmt = alloc_statement((a_statement_kind)stmk_expr);
+    stmt->expr = init_suspend;
+    stmt->parent = try_catch_stmt;
+    stmt->next = func_body;
+    func_body = stmt;
+  }  /* if */
+  try_catch_stmt->variant.block.statements = func_body;
   func_body = try_catch_stmt;
   try_catch_stmt = alloc_statement((a_statement_kind)stmk_try_block);
   try_catch_stmt->variant.try_block->statement = func_body;
@@ -4860,17 +4906,8 @@ try/catch block.  Return the statement for the try/catch.
                    /*assoc_type=*/NULL, /*assoc_routine=*/NULL);
   try_catch_stmt->variant.try_block->handlers = handler = alloc_handler();
   set_block_scope_handler(handler);
-  handler->statement = alloc_statement((a_statement_kind)stmk_block);
+  handler->statement = create_coroutine_handler_block(cr_desc);
   handler->statement->parent = try_catch_stmt;
-  handler->statement->variant.block.extra_info->assoc_scope =
-                                                    scope_stack_top().il_scope;
-  if (cr_desc->unhandled_exception_call != NULL) {
-    handler->statement->variant.block.statements =
-                                  alloc_statement((a_statement_kind)stmk_expr);
-    handler->statement->variant.block.statements->expr =
-                                             cr_desc->unhandled_exception_call;
-    handler->statement->variant.block.statements->parent = handler->statement;
-  }  /* if */
   pop_scope();
   (void)pop_object_lifetime();
   return try_catch_stmt;

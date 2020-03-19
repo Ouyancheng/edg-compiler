@@ -19286,6 +19286,9 @@ variables and other references needed for the coroutine.
   if (cr_desc->handle != NULL) {
     lower_variable(cr_desc->handle);
   }  /* if */
+  if (cr_desc->init_await_resume != NULL) {
+    lower_variable(cr_desc->init_await_resume);
+  }  /* if */
   if (cr_desc->this_param_copy != NULL) {
     lower_variable(cr_desc->this_param_copy);
   }  /* if */

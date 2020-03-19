@@ -9213,11 +9213,12 @@ member functions), or the default constructor.
 static void make_coroutine_promise_call_operand(an_operand        *result,
                                                 a_const_char      *func_name,
                                                 a_variable_ptr    promise_var,
-                                                a_boolean         add_await)
+                                                a_boolean         add_await,
+                                                a_boolean         init_suspend)
 /*
 Create a call to promise_var's given member function, returning the resulting
 operand in result.  If add_await is TRUE, treat it as if the call was preceded
-by "co_await".
+by "co_await".  If init_suspend is TRUE, this is the call to "initial_suspend".
 */
 {
   an_operand          promise_operand;
@@ -9236,7 +9237,7 @@ by "co_await".
   if (add_await && !is_error_operand(result)) {
     add_await_to_operand(result, pos, NO_TOKEN_SEQUENCE_NUMBER,
                          /*for_yield=*/FALSE, /*generated_suspend_point=*/TRUE,
-                         result);
+                         /*initial_suspend_point=*/init_suspend, result);
   }
   pop_expr_stack();
   expr_stack = saved_expr_stack;
@@ -9456,7 +9457,8 @@ and if so, resolve and record the appropriate call.
     make_coroutine_promise_call_operand(
                                      &operand,
                                      "get_return_object_on_allocation_failure",
-                                     promise_var, /*add_await=*/FALSE);
+                                     promise_var, /*add_await=*/FALSE,
+                                     /*init_suspend=*/FALSE);
     prep_elision_initializer_operand(&operand, coroutine->type->
                                                    variant.routine.return_type,
                                      /*fill_in_dtor=*/FALSE,
@@ -9492,11 +9494,13 @@ coroutine as described in N4810 (or N4775+P0912R5).
   initialize_coroutine_promise_variable(promise_var, coroutine);
   /* Resolve the needed calls that use the promise variable. */
   make_coroutine_promise_call_operand(&operand, "initial_suspend",
-                                      promise_var, /*add_await=*/TRUE);
+                                      promise_var, /*add_await=*/TRUE,
+                                      /*init_suspend=*/TRUE);
   cr_desc->initial_suspend_call = expr_node_from_operand(&operand);
   set_possibly_null_expr_result_not_used(cr_desc->initial_suspend_call);
   make_coroutine_promise_call_operand(&operand, "final_suspend",
-                                      promise_var, /*add_await=*/TRUE);
+                                      promise_var, /*add_await=*/TRUE,
+                                      /*init_suspend=*/FALSE);
   cr_desc->final_suspend_call = expr_node_from_operand(&operand);
   set_possibly_null_expr_result_not_used(cr_desc->final_suspend_call);
   if (cr_desc->final_suspend_call != NULL &&
@@ -9511,13 +9515,15 @@ coroutine as described in N4810 (or N4775+P0912R5).
     pos_sy_error(ec_final_suspend_cannot_throw, &sym->decl_position, sym);
   }  /* if */
   make_coroutine_promise_call_operand(&operand, "unhandled_exception",
-                                      promise_var, /*add_await=*/FALSE);
+                                      promise_var, /*add_await=*/FALSE,
+                                      /*init_suspend=*/FALSE);
   cr_desc->unhandled_exception_call = expr_node_from_operand(&operand);
   set_possibly_null_expr_result_not_used(cr_desc->unhandled_exception_call);
   /* Resolve the call to p.get_return_object and convert it to the return type
      of the coroutine. */
   make_coroutine_promise_call_operand(&operand, "get_return_object",
-                                      promise_var, /*add_await=*/FALSE);
+                                      promise_var, /*add_await=*/FALSE,
+                                      /*init_suspend=*/FALSE);
   prep_elision_initializer_operand(&operand, coroutine->type->
                                                    variant.routine.return_type,
                                    /*fill_in_dtor=*/FALSE,
@@ -9623,6 +9629,12 @@ a nonstatic member function, P1 is the type of this.)
                                 NO_SCOPE_DEPTH);
     cdp->handle->source_corresp.decl_position=rp->source_corresp.decl_position;
   }
+  /* Create a placeholder variable for "init-await-resume-called". */
+  cdp->init_await_resume = make_variable(bool_type(), (a_storage_class)sc_auto,
+                                         NO_SCOPE_DEPTH);
+  cdp->init_await_resume->source_corresp.decl_position =
+                                              rp->source_corresp.decl_position;
+  cdp->init_await_resume->init_kind = (an_init_kind)initk_zero;
   if (is_error_type(promise_type) || is_error_type(handle_type)) {
     expect_error();
     cdp->error_descr = TRUE;

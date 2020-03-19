@@ -17649,6 +17649,8 @@ function body before the implicit statements were added.
     }  /* if */
   }  /* for */
   check_assertion(statement != NULL);
+  /* The first statement is the evaluation of the initial suspend point. */
+  statement = statement->next;
   gen_statement_list(statement, /*is_stmt_expression=*/FALSE);
 }  /* gen_coroutine_statement */
 

@@ -41045,6 +41045,7 @@ void add_await_to_operand(an_operand_ptr          operand,
                           a_token_sequence_number tok_seq_number,
                           a_boolean               for_yield,
                           a_boolean               generated_suspend_point,
+                          a_boolean               initial_suspend_point,
                           an_operand_ptr          result)
 /*
 If *operand represents an expression "X", produce an operand in *result
@@ -41053,6 +41054,8 @@ tok_seq_number to decide which token position to look up associated
 functions (like await_resume) from.  for_yield is TRUE if this is called
 to implement a co_yield expression.  generated_suspend_point is true if this
 is called to implement the generated suspend points implied by the coroutine.
+initial_suspend_point is true if the generated suspend point is the initial
+suspend point.
 */
 {
   an_operand        ready_operand, ready_call;
@@ -41190,8 +41193,22 @@ is called to implement the generated suspend points implied by the coroutine.
   node->variant.await_info.operand = make_node_from_operand(operand);
   node->variant.await_info.ready_resume_suspend =
                                           make_node_from_operand(&ready_call);
-  node->variant.await_info.ready_resume_suspend->next =
+  if (initial_suspend_point) {
+    /* We need to set the "initial-await-resume-called" variable to true
+       immediately before evaluating "await-resume". */
+    an_expr_node_ptr resume_expr, assign_expr;
+    resume_expr = make_node_from_operand(&resume_call);
+    assign_expr = make_assignment_expr(var_lvalue_expr(cdp->init_await_resume),
+                                       (an_expr_operator_kind)eok_assign,
+                                       make_one_expr(bool_type()));
+    assign_expr->next = resume_expr;
+    node->variant.await_info.ready_resume_suspend->next =
+                           make_operator_node((an_expr_operator_kind)eok_comma,
+                                              resume_expr->type, assign_expr);
+  } else {
+    node->variant.await_info.ready_resume_suspend->next =
                                          make_node_from_operand(&resume_call);
+  }  /* if */
   node->variant.await_info.ready_resume_suspend->next->next =
                                         make_node_from_operand(&suspend_call);
   make_expression_operand(node, result);
@@ -41371,7 +41388,8 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
   if (use_await) {
     add_await_to_operand(&operand, expr_position, tok_seq_number,
                          /*for_yield=*/FALSE,
-                         /*generated_suspend_point=*/FALSE, &operand);
+                         /*generated_suspend_point=*/FALSE,
+                         /*initial_suspend_point=*/FALSE, &operand);
   }  /* if */
   if (passed) {
     if (is_error_operand(&operand)) {
@@ -41690,6 +41708,7 @@ initializer of *loop_var.
       add_await_to_operand(&member_call_operand, &member_call_operand.position,
                            tok_seq_number, /*for_yield=*/FALSE,
                            /*generated_suspend_point=*/FALSE,
+                           /*initial_suspend_point=*/FALSE,
                            &member_call_operand);
     }  /* if */
     /* Make the variable and initialize it from the expression just made. */
@@ -43341,7 +43360,8 @@ initializer of *variable.
     if (use_await) {
       add_await_to_operand(&result, &result.position, tok_seq_number,
                            /*for_yield=*/FALSE,
-                           /*generated_suspend_point=*/FALSE, &result);
+                           /*generated_suspend_point=*/FALSE,
+                           /*initial_suspend_point=*/FALSE, &result);
     }  /* if */
     if (func_call_node != NULL) {
       /* Make the variable and initialize it with the result of the call
@@ -44711,7 +44731,7 @@ rcblock parameter for this function).
   } else {
     add_await_to_operand(result, &operator_position, operator_tok_seq_number,
                          /*for_yield=*/TRUE, /*generated_suspend_point=*/FALSE,
-                         result);
+                         /*initial_suspend_point=*/FALSE, result);
   }  /* if */
   check_assertion(current_routine_entry()->is_coroutine);
 done:
@@ -44746,7 +44766,7 @@ rcblock parameter for this function).
   scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
   add_await_to_operand(&operand, &operator_position, operator_tok_seq_number,
                        /*for_yield=*/FALSE, /*generated_suspend_point=*/FALSE,
-                       result);
+                       /*initial_suspend_point=*/FALSE, result);
   set_operand_position(result, &operator_position, &operand.end_position,
                        &operator_position);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);

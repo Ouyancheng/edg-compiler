@@ -4900,6 +4900,8 @@ Display the indicated coroutine description.
   disp_ptr("traits", (char*)cdp->traits, iek_type);
   disp_ptr("handle", (char*)cdp->handle, iek_variable);
   disp_ptr("promise", (char*)cdp->promise, iek_variable);
+  disp_ptr("initial-await-resume-called", (char*)cdp->init_await_resume,
+           iek_variable);
   if (cdp->has_return_void) {
     disp_boolean("has_return_void", TRUE);
   }  /* if */

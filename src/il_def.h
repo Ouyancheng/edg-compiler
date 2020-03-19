@@ -15007,6 +15007,11 @@ typedef struct a_coroutine_descr {
 			/* A placeholder variable representing the promise
 			   for the coroutine invocation. */
   a_variable_ptr
+		init_await_resume;
+			/* A placeholder variable representing the
+			   "initial-await-resume-called" variable for the
+			   coroutine invocation. */
+  a_variable_ptr
 		this_param_copy;
 			/* A copy of the implicit "this" parameter of the
 			   coroutine, if present.  NULL otherwise.  See

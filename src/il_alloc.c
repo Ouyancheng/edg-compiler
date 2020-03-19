@@ -3983,6 +3983,7 @@ a pointer to it.
   cdp->traits = NULL;
   cdp->handle = NULL;
   cdp->promise = NULL;
+  cdp->init_await_resume = NULL;
   cdp->this_param_copy = NULL;
   cdp->parameter_copies = NULL;
   cdp->final_suspend_label = NULL;

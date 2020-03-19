@@ -3936,6 +3936,7 @@ after_entry_from_class:
         remap_ptr(eptr->traits, a_type_ptr, iek_type);
         walk_ptr(eptr->handle, a_variable_ptr, iek_variable);
         walk_ptr(eptr->promise, a_variable_ptr, iek_variable);
+        walk_ptr(eptr->init_await_resume, a_variable_ptr, iek_variable);
         walk_ptr(eptr->this_param_copy, a_variable_ptr, iek_variable);
         // scope->nonstatic_variables points to the same list, so the list
         // has already been walked.

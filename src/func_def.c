@@ -1220,11 +1220,20 @@ coroutine behaves as if its body were:
   {
     <parameter copies>
     P p(<constructor args>);
-    co_await p.initial_suspend();
-    try { F } catch(...) { p.unhandled_exception(); }
+    try {
+      co_await p.initial_suspend();
+      F
+    } catch(...) {
+      if (!initial-await-resume-called) throw;
+      p.unhandled_exception();
+    }
   final_suspend:
     co_await p.final_suspend();
   }
+The pseudo-variable "initial-await-resume-called" is initially false and set to
+true immediately before the evaluation of await-resume for the initial suspend
+point.
+
 The coroutine descriptor block contains expressions for the various calls and
 the needed variables, but hasn't constructed any of the statements.  Generate
 the necessary statements for the coroutine and insert the variable destructors
@@ -1254,7 +1263,8 @@ in the correct place.
   cr_desc = stmt->variant.coroutine.descr;
   /* Create the statement for the function body try block first, as we need to
      transfer the function body's lifetime into that block. */
-  func_body = wrap_coroutine_body_in_try_block(coroutine, func_body, cr_desc);
+  func_body = wrap_coroutine_body_in_try_block(coroutine, func_body, cr_desc,
+                                               cr_desc->initial_suspend_call);
   func_lifetime = sp->lifetime->child_lifetime;
   /* Now that we have the function body wrapped and saved off, generate the
      variable decls and initial statements as if they preceded the function
@@ -1262,7 +1272,6 @@ in the correct place.
   sp->lifetime->child_lifetime = NULL;
   copy_coroutine_parameters(coroutine, cr_desc);
   stmt = add_coroutine_variable_decls(stmt, cr_desc, sp);
-  stmt = add_coroutine_expr_statement(stmt, cr_desc->initial_suspend_call);
   /* Add back in the function body. */
   stmt = stmt->next = func_body;
   coroutine->contains_try_block = TRUE;
