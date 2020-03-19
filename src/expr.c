@@ -38307,15 +38307,11 @@ handle_safe_cast:
 scan_new:
       /* C++ "new" operator. */
       scan_new_operator((a_rescan_control_block *)NULL, &local_result);
-      if (strict_ansi_mode) {
-        /* The syntax does not allow a postfix-precedence operator following
-           a new, e.g., new (double *)[17].  Give the syntax error only
-           in strict mode. */
-        if (!token_ends_expr(curr_token, PREC_PREFIX, local_options)) {
-          expr_pos_diagnostic(strict_ansi_discretionary_severity,
-                              ec_operator_not_allowed,
-                              &pos_curr_token);
-        }  /* if */
+      /* The syntax does not allow a postfix-precedence operator following a
+         new, e.g., new (double *)[17]. */
+      if (!token_ends_expr(curr_token, PREC_PREFIX, local_options)) {
+        expr_pos_diagnostic(es_discretionary_error, ec_operator_not_allowed,
+                            &pos_curr_token);
       }  /* if */
       break;
     case tok_delete:

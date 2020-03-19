@@ -1,5 +1,23 @@
 Version 6.1
 
+3/18/20  [EDGcpfe/22418]
+Operator precedence rules with operator new
+
+The standard does not allow a postfix operator to follows a "new" expression.
+For example:
+
+  struct E {
+    int x;
+  };
+  int main() {
+    new E()->x = 7;   // Ill-formed according to the standard
+    (new E())->x = 7; // Well-formed
+  }
+
+Previously the front end only diagnosed this in strict ANSI mode.  Now the
+front end will diagnose this as a discretionary error.
+
+
 3/19/20  [EDGcpfe/19781,EDGcpfe/22052]
 Incorrect inheriting constructor template instantiation context scopes
 
