@@ -4555,7 +4555,7 @@ static a_feature_support feature_support_list[] = {
     201103,
     &inheriting_constructors_enabled,
     "__cpp_inheriting_constructors",
-    "200802L" },
+    "201511L" },
   { "cxx_init_capture",
     201402,
     &init_capture_enabled,
