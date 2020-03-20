@@ -17859,7 +17859,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
          class type, and if so, look for a matching prototype instantiation.
          Note that is_class_template_member_def is called again to see if
          the class template (A in this case) matches the declarator found
-         during the prescan.  During the prescan, we this code will be
+         during the prescan.  During the prescan, this code will be
          used because of the GID_USE_PROTOTYPE_NOT_NONREAL flag. */
       a_type_ptr  new_tp = type_symbol_type(new_sym);
       new_tp = skip_typerefs(new_tp);
