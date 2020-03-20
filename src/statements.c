@@ -4826,6 +4826,11 @@ the relationships appropriately.
   new_lifetime->destructions = lifetime->destructions;
   lifetime->destructions = NULL;
   new_lifetime->parent_destruction_sublist = NULL;
+  new_lifetime->has_block_after_label_child_lifetime =
+                                lifetime->has_block_after_label_child_lifetime;
+  lifetime->has_block_after_label_child_lifetime = FALSE;
+  new_lifetime->has_implicit_child = lifetime->has_implicit_child;
+  lifetime->has_implicit_child = FALSE;
 }  /* transfer_coroutine_lifetime */
 
 
@@ -4867,16 +4872,14 @@ try/catch block.  Return the created block.
 
 
 a_statement_ptr wrap_coroutine_body_in_try_block(
-                                         a_routine_ptr          coroutine,
-                                         a_statement_ptr        func_body,
-                                         a_coroutine_descr_ptr  cr_desc,
-                                         an_expr_node_ptr       init_suspend,
-                                         an_object_lifetime_ptr *func_lifetime)
+                                            a_routine_ptr         coroutine,
+                                            a_statement_ptr       func_body,
+                                            a_coroutine_descr_ptr cr_desc,
+                                            an_expr_node_ptr      init_suspend)
 /*
 Given a function body for a given coroutine, wrap that function body in a
 try/catch block and add the initial suspend call contained in init_suspend.
-Return the statement for the try/catch.  Return the lifetime for the block in
-*func_lifetime.
+Return the statement for the try/catch.
 */
 {
   a_statement_ptr try_catch_stmt;
@@ -4918,14 +4921,9 @@ Return the statement for the try/catch.  Return the lifetime for the block in
     handler->statement = create_coroutine_handler_block(cr_desc);
     handler->statement->parent = try_catch_stmt;
     pop_scope();
+    coroutine->contains_try_block = TRUE;
   }  /* if */
-  /* We need to save off the lifetime and "pop" the lifetime that we pushed.
-     To ensure lifetime ordering is correct once the coroutine frame's
-     variables are added, we can't pop this in the usual way. */
-  *func_lifetime = sp->lifetime->child_lifetime;
-  check_assertion(sp->lifetime->child_lifetime->next == NULL);
-  sp->lifetime->child_lifetime = NULL;
-  curr_object_lifetime = curr_object_lifetime->parent_lifetime;
+  pop_object_lifetime();
   return try_catch_stmt;
 }  /* wrap_coroutine_body_in_try_block */
 

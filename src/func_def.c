@@ -1264,22 +1264,23 @@ in the correct place.
   /* Create the statement for the function body try block first, as we need to
      transfer the function body's lifetime into that block. */
   func_body = wrap_coroutine_body_in_try_block(coroutine, func_body, cr_desc,
-                                               cr_desc->initial_suspend_call,
-                                               &func_lifetime);
+                                               cr_desc->initial_suspend_call);
+  func_lifetime = sp->lifetime->child_lifetime;
   /* Now that we have the function body wrapped and saved off, generate the
      variable decls and initial statements as if they preceded the function
      try/catch block. */
+  sp->lifetime->child_lifetime = NULL;
   copy_coroutine_parameters(coroutine, cr_desc);
   stmt = add_coroutine_variable_decls(stmt, cr_desc, sp);
   /* Add back in the function body. */
   stmt = stmt->next = func_body;
-  if (exceptions_enabled) {
-    coroutine->contains_try_block = TRUE;
+  if (func_lifetime != NULL) {
+    /* Add the original function's lifetime back into the appropriate location
+       of the modified function's lifetime. */
+    func_lifetime->next = sp->lifetime->child_lifetime;
+    func_lifetime->parent_destruction_sublist = sp->lifetime->destructions;
+    sp->lifetime->child_lifetime = func_lifetime;
   }  /* if */
-  func_lifetime->next = sp->lifetime->child_lifetime;
-  sp->lifetime->child_lifetime = func_lifetime;
-  sp->lifetime->child_lifetime->parent_destruction_sublist =
-                                                    sp->lifetime->destructions;
   /* Finally, add the final_suspend label and call to p.final_suspend() */
   stmt = add_coroutine_label(stmt, cr_desc->final_suspend_label);
   stmt = add_coroutine_expr_statement(stmt, cr_desc->final_suspend_call);

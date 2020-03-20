@@ -25034,6 +25034,15 @@ with it.  Entries associated with scopes must also have no child entries.
              undone and set up to restart if an exception is thrown during
              the initialization. */
           do_child_check = FALSE;
+        } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_block &&
+                   olp->child_lifetime != NULL &&
+                   depth_innermost_function_scope == depth_scope_stack &&
+                   innermost_function_scope->variant.routine.ptr->
+                                                                is_coroutine) {
+          /* This is the block lifetime for a coroutine.  Since the coroutine
+             body is moved around, the lifetime is needed to preserve
+             destruction order. */
+          do_child_check = FALSE;
         }  /* if */
         if (do_child_check) {
           /* A block lifetime bound to a scope but not covered by the

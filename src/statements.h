@@ -526,11 +526,10 @@ extern void start_of_function_try_block(void);
 extern a_statement_ptr function_try_block(a_boolean  explicit_return_type);
 
 extern a_statement_ptr wrap_coroutine_body_in_try_block(
-                                        a_routine_ptr          coroutine,
-                                        a_statement_ptr        func_body,
-                                        a_coroutine_descr_ptr  cr_desc,
-                                        an_expr_node_ptr       init_suspend,
-                                        an_object_lifetime_ptr *func_lifetime);
+                                           a_routine_ptr         coroutine,
+                                           a_statement_ptr       func_body,
+                                           a_coroutine_descr_ptr cr_desc,
+                                           an_expr_node_ptr      init_suspend);
 
 extern void wrapup_control_flow_processing(a_scope_ptr  scope_ptr);
 

@@ -17639,16 +17639,32 @@ implied statements added - skip over these and just generate the original
 function body before the implicit statements were added.
 */
 {
+  a_statement_kind match_kind;
+
+  match_kind = (a_statement_kind)(exceptions_enabled ? stmk_try_block
+                                                     : stmk_block);
   /* Look for the try/catch block that was generated - there should be exactly
      one of these in the generated code. */
   for (; statement != NULL; statement = statement->next) {
-    if (statement->kind == (a_statement_kind)stmk_try_block) {
-      statement = statement->variant.try_block->statement
+    if (statement->kind == match_kind) {
+      if (exceptions_enabled) {
+        statement = statement->variant.try_block->statement
                                                     ->variant.block.statements;
+      } else {
+        statement = statement->variant.block.statements;
+      }  /* if */
       break;
     }  /* if */
   }  /* for */
   check_assertion(statement != NULL);
+#if EXPENSIVE_CHECKING
+  for (a_statement_ptr checker = statement->next; checker != NULL;
+       checker = checker->next) {
+    if (checker->kind == match_kind) {
+      unexpected_condition_str("Found more than one matching block");
+    }  /* if */
+  }  /* for */
+#endif /* EXPENSIVE_CHECKING */
   /* The first statement is the evaluation of the initial suspend point. */
   statement = statement->next;
   gen_statement_list(statement, /*is_stmt_expression=*/FALSE);
