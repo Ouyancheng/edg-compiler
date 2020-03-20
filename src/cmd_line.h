@@ -1346,6 +1346,11 @@ EXTERN a_boolean
 			/* TRUE if C++20-style concepts are enabled. */
 
 EXTERN a_boolean
+		abbr_func_templates_enabled;
+			/* TRUE if C++20-style abbreviated function templates
+			   are enabled. */
+
+EXTERN a_boolean
 		lambdas_enabled;
 			/* TRUE if C++11 lambdas should be accepted in C++. */
 

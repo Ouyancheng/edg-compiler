@@ -3654,6 +3654,7 @@ default mode (e.g., exception handling).
         }  /* if */
         destroying_operator_delete_enabled = TRUE;
         concepts_enabled = TRUE;
+        abbr_func_templates_enabled = TRUE;
         if (!option_kind_used[(int)optk_modules]) {
           modules_enabled = TRUE;
         }  /* if */
@@ -12147,6 +12148,7 @@ variables declared in cmd_line.h.
   mangle_had_been_implicitly_const = FALSE;
   coroutines_enabled = FALSE;
   concepts_enabled = FALSE;
+  abbr_func_templates_enabled = FALSE;
 #if BUILTIN_FUNCTIONS_ENABLED
   builtin_functions_enabled = FALSE;
   preload_builtin_functions = FALSE;

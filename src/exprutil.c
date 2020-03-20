@@ -24281,7 +24281,7 @@ generate that chart.
       a_template_ptr         il_entry = tssp->il_template_entry;
       a_template_decl_ptr    tdp = il_entry->template_decl;
       a_requires_clause_ptr  rcp = NULL;
-      if (tdp != NULL && if_microsoft_extensions(!tdp->is_generic)) {
+      if (tdp != NULL if_microsoft_extensions(&& !tdp->is_generic)) {
         rcp = tdp->constraint.requires_clause;
       }  /* if */
       if (tssp->has_template_param_constraint) {

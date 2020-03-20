@@ -10069,7 +10069,7 @@ TRUE, issue a diagnostic explaining the failure.
   a_source_position    diag_pos = error_position;
   a_requires_clause_ptr  rcp = NULL;
 
-  if (tdp != NULL && if_microsoft_extensions(!tdp->is_generic)) {
+  if (tdp != NULL if_microsoft_extensions(&& !tdp->is_generic)) {
     rcp = tdp->constraint.requires_clause;
   }  /* if */
   if (tssp->has_template_param_constraint) {

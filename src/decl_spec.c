@@ -9336,6 +9336,32 @@ issued if it is not valid.
 }  /* check_gnu_c_auto_type */
 
 
+static void cache_attributes(a_token_cache  *cache)
+/*
+If the current tokens introduce GNU or standard attributes, cache those
+attributes in the given cache.  If the attributes are malformed, an arbitrary
+number of tokens might be cached instead.
+*/
+{
+  for (;;) {
+    if (curr_token == tok_attribute) {
+      /* Skip past the __attribute__ token to the left parenthesis that
+         presumably follows. */
+      cache_curr_token(cache);
+      (void)get_token();
+      if (curr_token != tok_lparen) break;
+    } else if (std_attribute_tokens_next()) {
+    } else {
+      break;
+    }  /* if */
+    (void)cache_token_stream_until_matching_token(cache, CTS_NO_OPTIONS); 
+    /* Skip past the closing ')' or ']'. */
+    cache_curr_token(cache);
+    (void)get_token();
+  }  /* for */
+}  /* cache_attributes */
+
+
 static a_boolean auto_for_trailing_return_type(void)
 /*
 The caller has determined that the current token is "auto".  Return TRUE if it
@@ -9349,6 +9375,7 @@ appears to be the introducer for a trailing return type.
   /* Cache the "auto" token. */
   cache_curr_token(&cache);
   (void)get_token();
+  cache_attributes(&cache);
   if (curr_token == tok_lparen) {
     /* A left parenthesis can be:
          (a) the start of a function declarator,
@@ -9377,6 +9404,7 @@ appears to be the introducer for a trailing return type.
         /* Put the current token (tok_rparen) in the cache. */
         cache_curr_token(&cache);
         (void)get_token();
+        cache_attributes(&cache);
         if (curr_token == tok_arrow) {
           result = TRUE;
           break;
@@ -9391,6 +9419,7 @@ appears to be the introducer for a trailing return type.
     /* Put the identifier in the cache. */
     cache_curr_token(&cache);
     (void)get_token();
+    cache_attributes(&cache);
     if (curr_token == tok_lparen) {
       result = FALSE;
       if (!cache_token_stream_until_matching_token(&cache, CTS_NO_OPTIONS)) {
@@ -9398,6 +9427,7 @@ appears to be the introducer for a trailing return type.
            a "->" token. */
         cache_curr_token(&cache);
         (void)get_token();
+        cache_attributes(&cache);
         if (curr_token == tok_arrow) {
           result = TRUE;
         }  /* if */
@@ -9469,8 +9499,9 @@ FIXME
         expect_error();
       }  /* if */
     }  /* if */
-  } else if (!auto_storage_class_specifier_enabled &&
-             dps->is_top_level_param_decl) {
+  } else if (dps->is_top_level_param_decl &&
+             abbr_func_templates_enabled &&
+             !auto_storage_class_specifier_enabled) {
     check_assertion(func_dps != NULL && scope_is(ssep, sck_func_prototype) &&
                     (concept_sym != NULL) != (curr_token == tok_auto));
     if (scope_is(ssep-1, sck_template_instantiation)) {
