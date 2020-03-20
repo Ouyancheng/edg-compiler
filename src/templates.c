@@ -14318,7 +14318,8 @@ is_type is TRUE if the child entity is known to be a type.
         /* The symbol found is a class template symbol but the original symbol
            was just a class.  Get the corresponding instance using the template
            argument list from the original parent class. */
-        if (!is_any_template_instance_class_symbol(sym)) {
+        if (!is_any_template_instance_class_symbol(sym) &&
+            !is_template_alias_instance_symbol(sym)) {
           /* The original symbol was not a template instance.  This is an
              error. */
           subst_fail(*copy_error);
