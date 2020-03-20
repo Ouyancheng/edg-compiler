@@ -145,7 +145,7 @@ invalid pointer-to-member reference to be generated.  Now fixed.
 Update an_encoded_entry_number to use TYPE_FOR_PREFIX_ENTRY_NUMBER as its type
 
 EDGcpfe/11767 introduced the TYPE_FOR_PREFIX_ENTRY_NUMBER configuration macro
-to enable greater flexibility, however in configurations where
+to enable greater flexibility; however, in configurations where
 ALTERNATE_IL_FILE_FORMAT is TRUE, this flexibility was lost as
 an_encoded_entry_number still continued to use a hard-coded type.
 an_encoded_entry_number now uses TYPE_FOR_PREFIX_ENTRY_NUMBER as its type to
