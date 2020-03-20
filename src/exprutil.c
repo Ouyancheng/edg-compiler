@@ -24277,11 +24277,16 @@ generate that chart.
     int32_t                      n_constraints;
     if (is_template_symbol(sym)) {
       a_template_symbol_supplement_ptr
-                           tssp = sym->variant.template_info;
-      a_template_ptr       il_entry = tssp->il_template_entry;
-      a_template_decl_ptr  tdp = il_entry->template_decl;
+                             tssp = sym->variant.template_info;
+      a_template_ptr         il_entry = tssp->il_template_entry;
+      a_template_decl_ptr    tdp = il_entry->template_decl;
+      a_requires_clause_ptr  rcp = NULL;
+      if (tdp != NULL && if_microsoft_extensions(!tdp->is_generic)) {
+        rcp = tdp->constraint.requires_clause;
+      }  /* if */
       if (tssp->has_template_param_constraint) {
         /* Collect any type constraints on the parameters. */
+        a_boolean             auto_param_seen = FALSE;
         a_template_param_ptr  tpp, params = tssp->cache.decl_info->parameters;
         for (tpp = params; tpp != NULL; tpp = tpp->next) {
           an_expr_node_ptr  type_constraint = NULL;
@@ -24289,6 +24294,16 @@ generate that chart.
             a_type_ptr  tp = tpp->variant.type;
             type_constraint = tp->variant.template_param.extra_info
                                 ->constraint.type_constraint;
+            if (!auto_param_seen && tp->variant.template_param.is_auto_param) {
+              /* The template requires clause comes between ordinary template
+                 parameter type constraints and type constraints resulting from
+                 abbreviated function template "auto" parameters. */
+              if (rcp != NULL) {
+                constraints.push_back(rcp->constraint);
+                rcp = NULL;
+              }  /* if */
+              auto_param_seen = TRUE;
+            }  /* if */
             if (type_constraint != NULL) {
               constraints.push_back(type_constraint);
               /* Temporarily make the first template argument explicit.  This
@@ -24301,6 +24316,9 @@ generate that chart.
             }  /* if */
           }  /* if */
         }  /* for */
+      }  /* if */
+      if (rcp != NULL) {
+        constraints.push_back(rcp->constraint);
       }  /* if */
       if (tdp != NULL && if_microsoft_extensions(!tdp->is_generic &&)
           tdp->constraint.requires_clause != NULL) {

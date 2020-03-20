@@ -782,6 +782,14 @@ typedef struct a_decl_parse_state {
 			   parameter declaration in a function declarator (not
 			   an old-style parameter declaration). */
   a_bit_field
+		is_top_level_param_decl:1;
+			/* TRUE if this information block is one created for a
+			   parameter declaration of a top-level function
+			   type.  E.g.:
+			      void func(int x); // TRUE for "int x"
+			      void (*p)(int y); // FALSE for "int y"
+			*/
+  a_bit_field
 		trailing_return_type_allowed:1;
 			/* TRUE if the current context allows a trailing
 			   return type. */
@@ -831,8 +839,8 @@ typedef struct a_decl_parse_state {
 			   type"). */
   a_bit_field
 		function_declarator_seen:1;
-			/* TRUE after a top-level function declarator has been
-			   been scanned. */
+			/* TRUE after a function declarator has been
+			   scanned. */
   a_bit_field
 		unused_qualifiers:1;
 			/* TRUE if there are pending qualifiers that have

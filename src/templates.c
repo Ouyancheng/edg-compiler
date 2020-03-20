@@ -10067,9 +10067,14 @@ TRUE, issue a diagnostic explaining the failure.
   a_template_ptr       il_entry = tssp->il_template_entry;
   a_template_decl_ptr  tdp = il_entry->template_decl;
   a_source_position    diag_pos = error_position;
+  a_requires_clause_ptr  rcp = NULL;
 
+  if (tdp != NULL && if_microsoft_extensions(!tdp->is_generic)) {
+    rcp = tdp->constraint.requires_clause;
+  }  /* if */
   if (tssp->has_template_param_constraint) {
     /* Check type constraints of template arguments. */
+    a_boolean             auto_param_seen = FALSE;
     a_diag_list           diag_list, *p_diag_list = NULL;
     a_template_arg_ptr    tap = args;
     a_template_param_ptr  tpp, params = tssp->cache.decl_info->parameters;
@@ -10079,12 +10084,27 @@ TRUE, issue a diagnostic explaining the failure.
     }  /* if */
     begin_template_arg_list_traversal(params, tap, &tpp, &tap);
     for (; tpp != NULL; advance_to_next_template_arg(&tpp, &tap)) {
-      an_expr_node_ptr  type_constraint = NULL;
       a_symbol_ptr      param_sym = tpp->param_symbol;
       if (symbol_is(param_sym, sk_type)) {
-        type_constraint = param_sym->variant.type.ptr
-                                   ->variant.template_param.extra_info
-                                   ->constraint.type_constraint;
+        a_type_ptr        tp = tpp->variant.type;
+        an_expr_node_ptr  type_constraint;
+        if (!auto_param_seen && tp->variant.template_param.is_auto_param) {
+          /* The template requires clause comes between ordinary template
+             parameter type constraints and type constraints resulting from
+             abbreviated function template "auto" parameters. */
+          if (rcp != NULL) {
+            if (!requires_constraint_satisfied(template_sym, rcp, args,
+                                               diagnose)) {
+              result = FALSE;
+              break;
+            }  /* if */
+            /* Clear rcp so it won't be checked again below. */
+            rcp = NULL;
+          }  /* if */
+          auto_param_seen = TRUE;
+        }  /* if */
+        type_constraint = tp->variant.template_param.extra_info
+                            ->constraint.type_constraint;
         if (type_constraint != NULL) {
           if (!check_type_constraint(tap->variant.type, type_constraint,
                                      args, params, p_diag_list)) {
@@ -10111,13 +10131,14 @@ TRUE, issue a diagnostic explaining the failure.
   }  /* if */
   if (!result) {
     /* Nothing more to check. */
-  } else if (tdp != NULL && if_microsoft_extensions(!tdp->is_generic &&)
-             tdp->constraint.requires_clause != NULL &&
-             !requires_constraint_satisfied(template_sym,
-                                            tdp->constraint.requires_clause,
-                                            args, diagnose)) {
+  } else if (rcp != NULL && !requires_constraint_satisfied(
+                                         template_sym, rcp, args, diagnose)) {
+    /* If there were no type constraints introduced by function "auto"
+       parameters, the template requires clause is checked here.  Otherwise,
+       it would have been checked above. */
     result = FALSE;
   } else if (is_simple_function_or_template_symbol(template_sym)) {
+    /* Check the trailing requires clause. */
     a_routine_ptr  rp = tssp->variant.function.routine;
     if (rp->trailing_requires_clause != NULL &&
         !requires_constraint_satisfied(template_sym,
@@ -32400,7 +32421,11 @@ loc, func_info, and decl_pos_block.
   state->pragmas_bound_to_template = extract_curr_construct_pragmas();
   state->first_decl_cache_tsn = dps->start_tsn;
   state->final_token_ptr = &final_token;
-  remove_declarator_sse(dps, depth_scope_stack);
+  /* Since this is an abbreviated function template declaration, its
+     declarator-id was encountered before the template declaration scope
+     was pushed.  So the source sequence to remove is tracked by the stack
+     entry below the current one. */
+  remove_declarator_sse(dps, depth_scope_stack-1);
   templ_decl_info->declaration_scope = scope_stack_top().number;
   create_template_decl(state, &null_source_position);
   decl_level_of_template(state);
@@ -32520,7 +32545,7 @@ the allocated state.
   nesting_depth_of_template(state);
   state->nesting_depth += 1;
   state->number_of_template_param_clauses += 1;
-  state->il_template_entry = alloc_template();
+  state->il_template_entry = make_il_template_entry(state);
   templ_decl_info = alloc_template_decl_info();
   state->decl_info = templ_decl_info;
   templ_decl_info->enclosing_scope = state->enclosing_scope;

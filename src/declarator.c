@@ -3089,11 +3089,13 @@ an error if a default argument expression is encountered.
         add_stop_token(tok_comma);
         init_decl_parse_state(&param_state);
         param_state.is_param_decl = TRUE;
+        param_state.is_top_level_param_decl = is_top_level_declarator;
         param_state.is_pack_element = is_pack_element;
         param_state.assoc_func_decl_state = state;
-        param_state.auto_type_allowed = concepts_enabled ||
-                                        (generic_lambdas_enabled &&
-                                         state->is_lambda);
+        param_state.auto_type_allowed = is_top_level_declarator &&
+                                        (concepts_enabled ||
+                                         (generic_lambdas_enabled &&
+                                          state->is_lambda));
         param_state.trailing_return_type_allowed =
                                                 trailing_return_types_enabled;
         param_state.pack_ellipsis_allowed = is_variadic_template_context();
@@ -4174,7 +4176,6 @@ the corresponding param-type entries.
 */
 {
   a_decl_parse_state  dps;
-  a_func_info_block   func_info;
   a_type_ptr          func_type = void_type();
   a_decl_pos_block    decl_pos_block;
   a_param_type_ptr    result = NULL;
@@ -4182,14 +4183,14 @@ the corresponding param-type entries.
 
   init_decl_parse_state(&dps);
   dps.for_requires_expr_params = TRUE;
-  clear_func_info(&func_info);
   clear_decl_pos_block(&decl_pos_block);
   check_assertion(curr_token == tok_lparen);
   make_opname_locator((an_opname_kind)onk_function_call, &loc,
                       &pos_curr_token);
   add_stop_token(tok_rparen);
   (void)get_token();
-  function_declarator(&dps, DI_NO_INPUT_FLAGS, &func_type, &func_info, &loc,
+  function_declarator(&dps, DI_NO_INPUT_FLAGS, &func_type,
+                      (a_func_info_block*)NULL, &loc,
                       /*parent_type=*/(a_type_ptr)NULL,
                       /*is_nonstatic_member=*/FALSE, /*is_constructor=*/FALSE, 
                       /*is_static_constructor=*/FALSE, /*is_destructor=*/FALSE,
@@ -7430,7 +7431,7 @@ etc.).
              is_template_dependent_context()) ||
             (!must_be_function_declarator(input_flags) &&
              !is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
-                              DFS_REAL_DECLARATOR_ALLOWED))) {
+                               DFS_REAL_DECLARATOR_ALLOWED))) {
           a_boolean  is_function_decl = FALSE;
           /* This appears to be a parenthesized initializer.  However, it
              might also be a function definition with an old-style parameter

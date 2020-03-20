@@ -9385,6 +9385,27 @@ appears to be the introducer for a trailing return type.
         }  /* if */
       }  /* if */
     }  /* for */
+  } else if (curr_token == tok_identifier) {
+    /* This identifier could be the name of a function/parameter, followed by
+       a parenthesized parameter list, followed by a trailing return type. */
+    /* Put the identifier in the cache. */
+    cache_curr_token(&cache);
+    (void)get_token();
+    if (curr_token == tok_lparen) {
+      result = FALSE;
+      if (!cache_token_stream_until_matching_token(&cache, CTS_NO_OPTIONS)) {
+        /* Found a matching tok_rparen: Cache it to see if it is follow by
+           a "->" token. */
+        cache_curr_token(&cache);
+        (void)get_token();
+        if (curr_token == tok_arrow) {
+          result = TRUE;
+        }  /* if */
+      }  /* if */
+    } else {
+      /* No function declarator. */
+      result = FALSE;
+    }  /* if */
   } else {
     result = FALSE;
   }  /* if */
@@ -9448,7 +9469,8 @@ FIXME
         expect_error();
       }  /* if */
     }  /* if */
-  } else if (!auto_storage_class_specifier_enabled) {
+  } else if (!auto_storage_class_specifier_enabled &&
+             dps->is_top_level_param_decl) {
     check_assertion(func_dps != NULL && scope_is(ssep, sck_func_prototype) &&
                     (concept_sym != NULL) != (curr_token == tok_auto));
     if (scope_is(ssep-1, sck_template_instantiation)) {

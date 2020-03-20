@@ -179,6 +179,7 @@ be restored).
     dps->is_alias_template_type = FALSE;
     dps->is_template_type_argument = FALSE;
     dps->is_param_decl = FALSE;
+    dps->is_top_level_param_decl = FALSE;
     dps->trailing_return_type_allowed = FALSE;
     dps->has_trailing_return_type = FALSE;
     dps->is_new_expr_type = FALSE;
@@ -1103,13 +1104,15 @@ and associated routines.
     /* Check if the current token is a type name, and, if so, set type_sym to
        the corresponding type symbol. */
     if (is_generalized_identifier_start(gid_options)) {
+      a_boolean  concept_okay =
+                             (ids_options & IDS_REAL_DECLARATOR_ALLOWED) != 0;
       type_sym = curr_type_symbol(/*is_new_type_name=*/FALSE, is_prescan,
                                   /*in_type_check=*/TRUE,
                                   (ids_options &
                                         IDS_IMPLICIT_TYPENAME_CONTEXT) != 0 &&
                                     relaxed_typename_enabled,
                                   (ids_options & IDS_IS_SIZEOF) != 0,
-                                  /*concept_okay=*/TRUE);
+                                  concept_okay);
       if (class_template_arg_deduction_enabled && is_expr_context &&
           type_sym != NULL && !symbol_is(type_sym, sk_concept_template)) {
         /* Check for the case of a class template name used as a placeholder
