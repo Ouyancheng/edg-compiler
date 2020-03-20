@@ -10776,8 +10776,8 @@ error indication in *rcblock).
           a_constant_ptr  constant = &result->variant.constant;
           if (result->name_reference_set) {
             constant->variant.ptr_to_member.name_reference =
-	      find_allocated_name_reference(&constant->source_corresp,
-                                            &result->name_reference);
+                       find_allocated_name_reference(&constant->source_corresp,
+                                                     &result->name_reference);
           }  /* if */
         }  /* if */
       }  /* if */

@@ -130,7 +130,7 @@ This is now fixed.
 C++-generating back end: missing qualifier on pointer-to-member
 
 When DEFAULT_RECORD_FORM_OF_NAME_REFERENCE is TRUE, the name reference
-for a pointer-to-member address constant could be incorrect. Typically, the
+for a pointer-to-member address constant could be incorrect.  Typically, the
 name reference would indicate that no qualifier was present, causing an
 invalid pointer-to-member reference to be generated.  Now fixed.
 
