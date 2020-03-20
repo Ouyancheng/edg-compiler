@@ -9501,6 +9501,7 @@ FIXME
     }  /* if */
   } else if (dps->is_top_level_param_decl &&
              abbr_func_templates_enabled &&
+             is_file_or_namespace_scope(ssep-1) && // FIXME
              !auto_storage_class_specifier_enabled) {
     check_assertion(func_dps != NULL && scope_is(ssep, sck_func_prototype) &&
                     (concept_sym != NULL) != (curr_token == tok_auto));
@@ -9534,9 +9535,19 @@ FIXME
           }  /* if */
           decl_abbr_func_template_param(dps, constraint);
           result = TRUE;
+        } else if (constraint != NULL) {
+          /* Something like "void f(Concept auto f()->int);".  The concept is
+             meaningless in that context. */
+          pos_error(ec_invalid_use_of_concept, &dps->specifiers_pos);
+          dps->auto_pos = pos_curr_token;
+          dps->auto_type = make_auto_type(&dps->auto_pos,
+                                          /*is_decltype_auto=*/FALSE);
+          dps->specifiers_type = dps->auto_type;
+          dps->auto_type_specifier_seen = TRUE;
         }  /* if */
       } else {
         pos_error(ec_exp_auto, &pos_curr_token);
+        dps->specifiers_type = error_type();
       }  /* if */
     }  /* if */
   }  /* if */
@@ -11700,11 +11711,14 @@ process_enum_specifier:
                                      /*concept_okay=*/is_parameter &&
                                                       concepts_enabled);
         if (curr_token_type_symbol != NULL &&
-            symbol_is(curr_token_type_symbol, sk_concept_template) &&
-            process_auto_parameter(state, curr_token_type_symbol)) {
-          state->auto_pos = pos_curr_token;
-          state->has_deduced_type = TRUE;
-          state->auto_type_specifier_seen = TRUE;
+            symbol_is(curr_token_type_symbol, sk_concept_template)) {
+          if (process_auto_parameter(state, curr_token_type_symbol)) {
+            state->auto_pos = pos_curr_token;
+            state->has_deduced_type = TRUE;
+            state->auto_type_specifier_seen = TRUE;
+          } else {
+            expect_error();
+          }  /* if */
           basic_type = bt_typedef;
           decl_specifiers_seen |= DS_TYPE;
           break;

@@ -3177,6 +3177,7 @@ ec_promise_type_returns_return_void;;"%n must return void"
 ec_invalid_start_of_member_declaration;;"invalid start of member declaration"
 ec_exp_auto;;"expected \"auto\""
 ec_operator_not_allowed_after_new;;"this operator is not allowed at this point; parenthesize the preceding new-expression"
+ec_invalid_use_of_concept;;"invalid use of concept"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
