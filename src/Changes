@@ -1,7 +1,7 @@
 Version 6.1
 
 3/19/20  [EDGcpfe/22488]
-Failure to inherit befriending classes on a function template member of a
+Failure to propagate befriending classes of a function template member of a
 nested class
 
 The front end was failing to propagate befriending class information along to
