@@ -107,7 +107,7 @@ block, and the catch block checks an implicit boolean variable
 "initial-await-resume-called" that is initially false and set to true
 immediately before the "await-resume" of the initial suspend point.  If
 "initial-await-resume-called" is false when an exception is caught, it is
-rethrown.  Otherwise behaviour continues as previously defined.
+rethrown.  Otherwise, behavior continues as previously defined.
 
 
 3/18/20  [EDGcpfe/22053]
