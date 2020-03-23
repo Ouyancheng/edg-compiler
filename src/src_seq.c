@@ -740,6 +740,7 @@ templ_entry is NULL.
         if (moved_list == NULL) {
           moved_list = head_to_move;
         } else {
+          check_assertion(end_moved_list != NULL);
           end_moved_list->next = head_to_move;
         }  /* if */
         end_moved_list = tail_to_move;
@@ -1660,7 +1661,7 @@ innermost such class.
     fputs("finding insert point for ", f_debug);
     db_source_sequence_entry(ssep);
     fputs("  original ref scope: ", f_debug);
-    db_scope_stack_entry_at_depth(curr_sse_ptr - scope_stack);
+    db_scope_stack_entry_at_depth((a_scope_depth)(curr_sse_ptr - scope_stack));
     fputs("\n", f_debug);
   }  /* if */
 #endif /* DEBUG */
@@ -1876,7 +1877,7 @@ src_ssep to dst_ssep.
 */
 {
   if (src_ssep->classes_in_ss_list != NULL) {
-    a_scope_depth          dst_depth = dst_ssep-scope_stack;
+    a_scope_depth          dst_depth = (a_scope_depth)(dst_ssep - scope_stack);
     a_type_list_entry_ptr  next_tlep = src_ssep->classes_in_ss_list, last_tlep;
     do {
       last_tlep = next_tlep;
