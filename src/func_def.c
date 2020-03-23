@@ -1040,6 +1040,7 @@ the provided param_var.  Use pos as the position of this generated variable.
     expr = var_rvalue_expr(param_var);
     if (is_any_reference_type(ctype)) {
       expr = add_ref_indirection_to_node(expr);
+      expr->is_lvalue = FALSE;
     }  /* if */
     if (is_lvalue_reference_type(ctype)) {
       expr->is_lvalue = TRUE;

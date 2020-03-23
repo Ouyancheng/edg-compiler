@@ -1,5 +1,14 @@
 Version 6.1
 
+3/23/20  [EDGcpfe/22354,EDGcpfe/22505]
+Coroutines: Potentially inconsistent value category for a parameter-copy
+initializer
+
+When a coroutine parameter is a non-lvalue reference type, the initializer for
+the parameter's copy was incorrectly marked as both an lvalue and an xvalue.
+This is now fixed.
+
+
 3/23/20  [EDGcpfe/22437]
 C++-generating back end: Abort on attempt to render an exception specification
 
