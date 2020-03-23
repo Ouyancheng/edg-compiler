@@ -12378,10 +12378,9 @@ functions befriending_list_test and class_scope_test.
            parents.  However, this code may be useful if someone puts
            in an extension like allowing definition of a member function
            in a friend declaration inside another class, where the lookup
-           nesting does not match the access nesting.
-           Don't skip to a specific class with inheriting constructors as we
-           could be in either the originator's context or the inheriting
-           constructor's context. */
+           nesting does not match the access nesting.  Don't skip to a specific
+           class with inheriting constructors as we could be in either the
+           originator's context or the inheriting constructor's context. */
       } else {
         /* Check for access granted by being a member of the class. */
         if (class_scope_test(class_type, ssep)) {
