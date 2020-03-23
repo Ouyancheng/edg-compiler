@@ -50,6 +50,7 @@ avoid deprecated warnings for _BSD_SOURCE in later versions of the GNU headers.
 */
 #if __STDC__ != 0
 #define _BSD_SOURCE
+/*lint -esym(755,_DEFAULT_SOURCE)*/
 #define _DEFAULT_SOURCE
 #endif /* __STDC__ != 0 */
 

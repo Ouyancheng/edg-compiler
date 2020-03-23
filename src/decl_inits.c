@@ -8614,7 +8614,7 @@ end_of_routine:
 }  /* delegating_ctor_initializer */
 
 
-a_constructor_init_ptr ctor_inits_for_fields(
+static a_constructor_init_ptr ctor_inits_for_fields(
                                        a_routine_ptr          ctor_rout,
                                        a_type_ptr             class_type,
                                        a_boolean              all_fields,

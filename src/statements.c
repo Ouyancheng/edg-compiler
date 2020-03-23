@@ -4923,7 +4923,7 @@ Return the statement for the try/catch.
     pop_scope();
     coroutine->contains_try_block = TRUE;
   }  /* if */
-  pop_object_lifetime();
+  (void)pop_object_lifetime();
   return try_catch_stmt;
 }  /* wrap_coroutine_body_in_try_block */
 

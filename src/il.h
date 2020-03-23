@@ -1395,11 +1395,6 @@ extern a_type_ptr copy_array_type_replacing_element_type(
                                                      a_type_ptr  old_array,
                                                      a_type_ptr  element_type);
 
-extern a_param_type_ptr copy_param_type_list(
-                                         a_param_type_ptr  ptp,
-                                         a_boolean         copy_default_args,
-                                         uint32_t          max_params);
-
 extern a_type_ptr copy_routine_type_with_param_types(
                                                a_type_ptr  from_type,
                                                a_boolean   copy_default_args);

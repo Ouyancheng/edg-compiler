@@ -1152,6 +1152,7 @@ the amount of indentation.
 }  /* db_ctor_init */
 
 
+/*lint -esym(714,*db_cip)*/
 void db_cip(a_constructor_init_ptr cip)
 /*
 A wrapper for db_ctor_init that uses no initial indentation.
@@ -1176,6 +1177,7 @@ purposes.  level is the amount of indentation.
 }  /* db_ctor_init_list */
 
 
+/*lint -esym(714,*db_cip_list)*/
 void db_cip_list(a_constructor_init_ptr cip_list)
 /*
 A wrapper for db_ctor_init_list that uses no initial indentation.
@@ -13364,6 +13366,89 @@ discarding typedefs.
 }  /* skip_common_type_qualifiers */
 
 
+static a_param_type_ptr copy_param_type_list(
+                                           a_param_type_ptr  ptp,
+                                           a_boolean         copy_default_args,
+                                           uint32_t          max_params)
+/*
+Copy the param-type list pointed to by ptp and return a pointer to the new
+list.  If copy_default_args is TRUE, copy any default argument expressions
+into the new param types.  If it is FALSE, the default_arg_expr field
+in the new param types will be NULL.  If max_params is not zero, copy no
+more than the given number of parameter entries.
+*/
+{
+  a_param_type_ptr  new_list = NULL, new_ptp, prev_new_ptp = NULL;
+  uint32_t          n_copied = 0;
+  for (; ptp != NULL; ptp = ptp->next) {
+    /* Pass a NULL source position to make_param_type to avoid inappropriate
+       diagnostics on a type that doesn't correspond directly to a source
+       construct. */
+    new_ptp = make_param_type(ptp->type, &null_source_position);
+    /* Do a struct copy from the old param type to the new. */
+    *new_ptp = *ptp;
+    if (ptp->has_default_arg) {
+      /* This parameter has a default argument.  Copy it or not, as
+         directed. */
+      if (copy_default_args) {
+        if (ptp->has_unevaluated_template_default) {
+          /* This default argument hasn't been evaluated yet.  The fields
+             needed to evaluate it later (has_unevaluated_template_default
+             and orig_param_type_for_unevaluated_default_arg_expr) were copied
+             above.  In some cases (e.g., prototype instantiations), there may
+             still be a default arg expression pointer - NULL it out since we
+             aren't copying it here. */
+          new_ptp->default_arg_expr = NULL;
+        } else if (ptp->default_arg_expr != NULL) {
+          /* Expressions may not be shared -- that is, they may not be pointed
+             to from more than one place.  Therefore a copy must be made of the
+             expression node for the default arg (if one exists). */
+          new_ptp->default_arg_expr =
+                         duplicate_default_arg_expr(ptp->default_arg_expr);
+        } else {
+          check_assertion(total_errors != 0);
+        }  /* if */
+      } else {
+        /* The default argument should not be copied. */
+        new_ptp->has_default_arg = FALSE;
+        new_ptp->default_arg_expr = NULL;
+        new_ptp->has_unevaluated_template_default = FALSE;
+        new_ptp->orig_param_type_for_unevaluated_default_arg_expr = NULL;
+      }  /* if */
+    } else {
+      /* This parameter has no default argument. */
+      check_assertion(ptp->default_arg_expr == NULL &&
+                      !ptp->has_unevaluated_template_default &&
+                      ptp->orig_param_type_for_unevaluated_default_arg_expr ==
+                                                                         NULL);
+    }  /* if */
+    new_ptp->attributes = copy_of_attributes_list(ptp->attributes);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Duplicate the Microsoft attributes list (if any). */
+    if (ptp->ms_attributes != NULL) {
+      new_ptp->ms_attributes = duplicate_ms_attributes(ptp->ms_attributes,
+                                                       (char*)new_ptp);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Note: the name associated with the original param type entry is
+       preserved in the copy. */
+    if (new_list == NULL) {
+      new_list = new_ptp;
+    } else {
+      check_assertion(prev_new_ptp != NULL);
+      prev_new_ptp->next = new_ptp;
+    }  /* if */
+    prev_new_ptp = new_ptp;
+    ++n_copied;
+    if (n_copied == max_params) {
+      new_ptp->next = NULL;
+      break;
+    }  /* if */
+  }  /* for */
+  return new_list;
+}  /* copy_param_type_list */
+
+
 static void copy_type_full(a_type_ptr from,
                            a_type_ptr to,
                            a_boolean  copy_default_args)
@@ -13473,88 +13558,6 @@ Copy the type entry "from" to "to".
 {
   copy_type_full(from, to, /*copy_default_args=*/TRUE);
 }  /* copy_type */
-
-
-a_param_type_ptr copy_param_type_list(a_param_type_ptr  ptp,
-                                      a_boolean         copy_default_args,
-                                      uint32_t          max_params)
-/*
-Copy the param-type list pointed to by ptp and return a pointer to the new
-list.  If copy_default_args is TRUE, copy any default argument expressions
-into the new param types.  If it is FALSE, the default_arg_expr field
-in the new param types will be NULL.  If max_params is not zero, copy no
-more than the given number of parameter entries.
-*/
-{
-  a_param_type_ptr  new_list = NULL, new_ptp, prev_new_ptp = NULL;
-  uint32_t          n_copied = 0;
-  for (; ptp != NULL; ptp = ptp->next) {
-    /* Pass a NULL source position to make_param_type to avoid inappropriate
-       diagnostics on a type that doesn't correspond directly to a source
-       construct. */
-    new_ptp = make_param_type(ptp->type, &null_source_position);
-    /* Do a struct copy from the old param type to the new. */
-    *new_ptp = *ptp;
-    if (ptp->has_default_arg) {
-      /* This parameter has a default argument.  Copy it or not, as
-         directed. */
-      if (copy_default_args) {
-        if (ptp->has_unevaluated_template_default) {
-          /* This default argument hasn't been evaluated yet.  The fields
-             needed to evaluate it later (has_unevaluated_template_default
-             and orig_param_type_for_unevaluated_default_arg_expr) were copied
-             above.  In some cases (e.g., prototype instantiations), there may
-             still be a default arg expression pointer - NULL it out since we
-             aren't copying it here. */
-          new_ptp->default_arg_expr = NULL;
-        } else if (ptp->default_arg_expr != NULL) {
-          /* Expressions may not be shared -- that is, they may not be pointed
-             to from more than one place.  Therefore a copy must be made of the
-             expression node for the default arg (if one exists). */
-          new_ptp->default_arg_expr =
-                         duplicate_default_arg_expr(ptp->default_arg_expr);
-        } else {
-          check_assertion(total_errors != 0);
-        }  /* if */
-      } else {
-        /* The default argument should not be copied. */
-        new_ptp->has_default_arg = FALSE;
-        new_ptp->default_arg_expr = NULL;
-        new_ptp->has_unevaluated_template_default = FALSE;
-        new_ptp->orig_param_type_for_unevaluated_default_arg_expr = NULL;
-      }  /* if */
-    } else {
-      /* This parameter has no default argument. */
-      check_assertion(ptp->default_arg_expr == NULL &&
-                      !ptp->has_unevaluated_template_default &&
-                      ptp->orig_param_type_for_unevaluated_default_arg_expr ==
-                                                                         NULL);
-    }  /* if */
-    new_ptp->attributes = copy_of_attributes_list(ptp->attributes);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    /* Duplicate the Microsoft attributes list (if any). */
-    if (ptp->ms_attributes != NULL) {
-      new_ptp->ms_attributes = duplicate_ms_attributes(ptp->ms_attributes,
-                                                       (char*)new_ptp);
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Note: the name associated with the original param type entry is
-       preserved in the copy. */
-    if (new_list == NULL) {
-      new_list = new_ptp;
-    } else {
-      check_assertion(prev_new_ptp != NULL);
-      prev_new_ptp->next = new_ptp;
-    }  /* if */
-    prev_new_ptp = new_ptp;
-    ++n_copied;
-    if (n_copied == max_params) {
-      new_ptp->next = NULL;
-      break;
-    }  /* if */
-  }  /* for */
-  return new_list;
-}  /* copy_param_type_list */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 

@@ -533,7 +533,7 @@ the specified module.
     (*p)->entity.kind = (a_byte_il_entry_kind)iek_none;
     (*p)->file_offset = file_offset;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    (*p)->variant.ifc_partition = ifc_none;
+    (*p)->variant.ifc_partition = (an_ifc_partition_kind)ifc_none;
 #endif /* MICROSOFT_EXTENSIONS_ALLWED */
   }  /* if */
   return *p;
@@ -567,6 +567,7 @@ a_module_interface::~a_module_interface() noexcept
 /*lint -restore*/
 
 
+/*lint -esym(1714,*a_module_interface::is_open)*/ /* FIXME: temporary*/
 a_boolean a_module_interface::is_open() const noexcept
 /*
 Dispatch the is_open() call to the variant for the actual object.
@@ -781,6 +782,7 @@ Display debug information about the specified module.
 }  /* db_module */
 
 
+/*lint -esym(714,*db_module_entity)*/
 void db_module_entity(a_module_entity_ptr mep)
 /*
 Display information about a module entity.

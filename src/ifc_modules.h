@@ -21,6 +21,9 @@ ifc_modules.h -- Declarations relating to ifc_modules.c (having to do with
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+/* FIXME: Temporarily disable "not referenced" warnings until completed. */
+/*lint -save -e755 -e758 -e768 -e769*/
+
 /*lint -e1751*/
 namespace {
 /*
@@ -1998,6 +2001,8 @@ extern void ifc_modules_one_time_init();
 extern void ifc_modules_init();
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*lint -restore*/ /* FIXME: temporary. */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

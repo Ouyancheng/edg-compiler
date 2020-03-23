@@ -32,6 +32,7 @@ macro names) are not always lint-friendly, so disable some lint messages for
 the duration of this file.
 */
 /*lint -save -e534 -e641 -e1576 -e1502*/
+/*lint -save -e1714*/ /* FIXME: temporarily disable "not referenced" */
 
 /*
 Macro that is TRUE if the host has big-endian byte ordering.
@@ -5141,6 +5142,7 @@ for each compilation.
 #endif /* DEBUG && EXPENSIVE_CHECKING */
 }  /* ifc_modules_init */
 
+/*lint -restore*/ /* FIXME: temporary */
 /*lint -restore*/
 
 /* Conditionally close the "edg" namespace. */

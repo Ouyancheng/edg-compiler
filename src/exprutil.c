@@ -7158,7 +7158,7 @@ the avail_fs_nodes list.
 }  /* reclaim_fs_node */
 
 
-void reclaim_fs_nodes_of_expr_tree(an_expr_node  *expr_tree)
+static void reclaim_fs_nodes_of_expr_tree(an_expr_node  *expr_tree)
 /*
 Traverse the given expression tree and reclaim every file-scope-memory node it
 contains for potential reuse later on.
@@ -23802,6 +23802,7 @@ struct a_constraint_chart {
 
 #if DEBUG
 
+/*lint -esym(714,*db_constraint_chart)*/
 void db_constraint_chart(a_constraint_chart  *chart)
 /*
 Output a description of the given constraint chart.

@@ -157,7 +157,7 @@ extern a_module_entity_ptr get_module_entity_ptr(a_module_ptr mod,
 /*
 EDG implementation of modules.
 */
-/*lint -save -e1511 -e1790*/
+/*lint -save -e1511 -e1762 -e1790*/
 struct an_edg_module : public a_module_interface {
   an_edg_module() noexcept : a_module_interface((a_module_kind)mk_edg) {}
   ~an_edg_module() noexcept = default;
