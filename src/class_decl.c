@@ -23456,7 +23456,7 @@ templates from that base template.
                                 TCF_IGNORE_NESTING_DEPTH |
                                 TCF_IGNORE_THIS_CLASS_TYPE |
                                 TCF_IGNORE_TOP_LEVEL_NOEXCEPT)) {
-      /* Don't inherit constructors templates that match a constructor template
+      /* Don't inherit constructor templates that match a constructor template
          explicitly declared in the derived class. */
       break;
     }  /* if */

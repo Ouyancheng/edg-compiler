@@ -1119,7 +1119,7 @@ typedef struct a_scope_stack_entry {
 			   the enum type. */
   a_routine_ptr	assoc_routine;
 			/* When kind == sck_function, kind ==
-			   sck_function_access or when kind ==
+			   sck_function_access, or when kind ==
 			   sck_template_instantiation for a function
 			   instantiation, this points to the routine
 			   whose scope this is. */

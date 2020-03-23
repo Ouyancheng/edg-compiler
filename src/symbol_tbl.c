@@ -7179,7 +7179,7 @@ originator of the inheriting constructor.
     /* If the inheriting constructor is inheriting the constructor from a
        virtual base, and the virtual base's inheriting constructor does *not*
        inherit from a virtual base, consider the virtual base's constructor to
-       be the originator.  This may not be wholly true, however initialization
+       be the originator.  This may not be wholly true; however, initialization
        of the virtual base behaves as if the constructor originated from the
        virtual base. */
     ctor = inh_ctor_inherited_ctor(ctor);
