@@ -945,8 +945,7 @@ extern a_boolean is_template_friend_decl(void);
 
 extern void decl_abbr_func_template(a_decl_parse_state  *dps,
                                     a_symbol_locator    *loc,
-                                    a_func_info_block   *func_info,
-                                    a_decl_pos_block    *decl_pos_block);
+                                    a_func_info_block   *func_info);
 
 extern void decl_abbr_func_template_param(a_decl_parse_state  *dps,
                                           an_expr_node_ptr    constraint);

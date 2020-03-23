@@ -24374,6 +24374,7 @@ generate that chart.
   return result;
 }  /* constraint_chart_of */
 
+#if /*FIXME: No longer needed */0
 
 a_boolean is_more_constrained(a_symbol_ptr  sym1,
                               a_symbol_ptr  sym2)
@@ -24401,6 +24402,7 @@ Return TRUE if sym1 is more constrained than sym2.
   return result;
 }  /* is_more_constrained */
 
+#endif /* 0 */
 
 int compare_constraints(a_symbol_ptr  sym1,
                         a_symbol_ptr  sym2)

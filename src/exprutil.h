@@ -3112,9 +3112,6 @@ extern void make_upc_thread_operand(an_operand            *operand,
 extern a_boolean type_has_nodiscard_attribute(a_type_ptr   type,
                                               a_const_char **reason);
 
-extern a_boolean is_more_constrained(a_symbol_ptr  sym1,
-                                     a_symbol_ptr  sym2);
-
 extern int compare_constraints(a_symbol_ptr  sym1,
                                a_symbol_ptr  sym2);
 

@@ -20235,7 +20235,7 @@ parameters are scanned by scan_a_template_parameter_declaration.
     declarator(di_flags, dps, /*member_parent_type=*/(a_type_ptr)NULL,
                &locator, &func_info, &decl_pos_block);
     if (dps->is_abbr_func_template) {
-      decl_abbr_func_template(dps, &locator, &func_info, &decl_pos_block);
+      decl_abbr_func_template(dps, &locator, &func_info);
       goto advance_past_final_token;
     }  /* if */
     is_function = (dps->declared_storage_class !=

@@ -32400,8 +32400,7 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
 
 void decl_abbr_func_template(a_decl_parse_state  *dps,
                              a_symbol_locator    *loc,
-                             a_func_info_block   *func_info,
-                             a_decl_pos_block    *decl_pos_block)
+                             a_func_info_block   *func_info)
 /*
 The declarator of an abbreviated function template has been scanned.  Such a
 declarator is characterized by the presence of at least one "auto" parameter,
