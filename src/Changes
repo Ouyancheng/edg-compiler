@@ -15,7 +15,7 @@ specifier made use of a member alias template instance.  Now fixed.
   int main() {
     B<int> b;
     b.f();
-}
+  }
 
 
 3/19/20  [EDGcpfe/22488]
