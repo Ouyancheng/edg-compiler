@@ -17639,20 +17639,15 @@ implied statements added - skip over these and just generate the original
 function body before the implicit statements were added.
 */
 {
-  a_statement_kind match_kind;
-
-  match_kind = (a_statement_kind)(exceptions_enabled ? stmk_try_block
-                                                     : stmk_block);
   /* Look for the try/catch block that was generated - there should be exactly
      one of these in the generated code. */
   for (; statement != NULL; statement = statement->next) {
-    if (statement->kind == match_kind) {
-      if (exceptions_enabled) {
-        statement = statement->variant.try_block->statement
+    if (statement->kind == (a_statement_kind)stmk_try_block) {
+      statement = statement->variant.try_block->statement
                                                     ->variant.block.statements;
-      } else {
-        statement = statement->variant.block.statements;
-      }  /* if */
+      break;
+    } else if (statement->kind == (a_statement_kind)stmk_block) {
+      statement = statement->variant.block.statements;
       break;
     }  /* if */
   }  /* for */
@@ -17660,7 +17655,8 @@ function body before the implicit statements were added.
 #if EXPENSIVE_CHECKING
   for (a_statement_ptr checker = statement->next; checker != NULL;
        checker = checker->next) {
-    if (checker->kind == match_kind) {
+    if (checker->kind == (a_statement_kind)stmk_try_block ||
+        checker->kind == (a_statement_kind)stmk_block) {
       unexpected_condition_str("Found more than one matching block");
     }  /* if */
   }  /* for */
