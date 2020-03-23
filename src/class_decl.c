@@ -21605,12 +21605,13 @@ skip the base class portion of the check.
   }  /* if */
   if (!class_type->variant.class_struct_union.any_virtual_base_classes) {
     /* A generated default constructor is implicitly "constexpr" if (a) the
-       parent class has no virtual bases, (b) every field has a constant field
-       initializer, and (c) every direct base class has an unambiguous
-       constexpr default constructor.  In Microsoft mode, the generated default
-       constructor of a dllimport class is not "constexpr" either.  Don't
-       attempt to check this for nonreal classes because it is not always
-       meaningful and the downstream code cannot always handle such classes. */
+       parent class has no virtual bases, (b) every field has either a constant
+       field initializer or the type has a constexpr default constructor, and
+       (c) every direct base class has an unambiguous constexpr default
+       constructor.  In Microsoft mode, the generated default constructor of a
+       dllimport class is not "constexpr" either.  Don't attempt to check this
+       for nonreal classes because it is not always meaningful and the
+       downstream code cannot always handle such classes. */
     if (!class_type->variant.class_struct_union.is_nonreal_class &&
         fields_initialized_for_constexpr_constructor(class_type,
                                                      limited_check) &&
