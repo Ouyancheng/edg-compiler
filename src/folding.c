@@ -947,13 +947,13 @@ otherwise).
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case abk_cli_array:
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Use the address constant as the "base object" for a C++/CLI
            constant array construct.  It's weird, but we need to return a
            non-NULL base object for this case, and the constant seems like
            the best of the possibilities. */
         object = (char *)constant;
         break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case abk_label:
         object = (char *)constant->variant.address.variant.label;
         break;
