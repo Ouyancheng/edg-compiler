@@ -4000,6 +4000,7 @@ if C11 mode was enabled explicitly.
 }  /* exclude_c99_mode */
 
 
+/*lint -esym(523,*exclude_gcc_mode)*/
 static void exclude_gcc_mode(ARG_UNUSED an_error_code  error_code)
 /*
 GNU C mode is incompatible with other settings.  Either issue the given
@@ -4026,6 +4027,7 @@ an otherwise implicitly enabled GNU C mode.
 }  /* exclude_gcc_mode */
 
 
+/*lint -esym(523,*exclude_gpp_mode)*/
 static void exclude_gpp_mode(ARG_UNUSED an_error_code  error_code)
 /*
 GNU C++ mode is incompatible with other settings.  Either issue the given
@@ -5088,6 +5090,7 @@ before this routine is called.
 }  /* check_and_set_gpp_mode_options */
 
 
+/*lint -esym(523,*exclude_gnu_specific_options)*/
 static void exclude_gnu_specific_options(void)
 /*
 No GNU mode was selected: Make sure no option specific to GNU mode is

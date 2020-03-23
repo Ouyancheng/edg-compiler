@@ -116,6 +116,7 @@ global variables to the values given by the legacy configuration macros
 #define TARGET_MAP_ROUTINE_NAME(config) \
   set_legacy_target_config(void)
 /* Assign the legacy macro value to the associated global variable. */
+/*lint -esym(823,TARGET_MAP_MACRO)*/
 #define TARGET_MAP_MACRO(config_macro, global_var, config) \
   (global_var) = (config_macro);
 END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
@@ -129,6 +130,7 @@ BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 Define a macro to initialize an a_target_configuration entry
 */
 #if DUMP_CONFIG_ENABLED
+/*lint -esym(750,DEFINE_TARGET_CONFIGURATION)*/
 #define DEFINE_TARGET_CONFIGURATION(name) \
   { stringize(name), \
     concat(set_target_config_, name), \
@@ -140,7 +142,6 @@ Define a macro to initialize an a_target_configuration entry
     concat(set_target_config_, name) \
   }
 #endif /* DUMP_CONFIG_ENABLED */
-/*lint -esym(750,DEFINE_TARGET_CONFIGURATION)*/
 
 /*
 This array contains an entry for each target configuration defined when the

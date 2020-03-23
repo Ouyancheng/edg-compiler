@@ -28908,6 +28908,7 @@ that is provided if this is a member template declaration.
         rout_sym = decl_friend_function(&locator, class_state, &func_info,
                                         &decl_info);
       } else if (is_member_template_rescan) {
+        check_assertion(instance != NULL);
         *member_template_instance_type = dps->type;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Set the declared type immediately, before the func_info block is

@@ -6971,6 +6971,7 @@ macro invocation; in such cases, that position (kept in the global variable
 pos_of_macro_invocation) is used directly to avoid the overhead of calling
 conv_line_loc_to_source_pos.
 */
+/*lint -emacro(835,macro_line_loc_to_source_pos)*/
 #define macro_line_loc_to_source_pos(loc_in_line, position_var) \
 { if (no_modifs_to_curr_source_line || \
       (within_curr_source_line(loc_in_line) && \
@@ -8217,6 +8218,7 @@ source text (end of token, start of expansion, end of expansion).
    or_in_asm_function_body())
 /* Macro used to check whether the comment start position has been determined
    and to determine it if not already done. */
+/*lint -emacro(835,determine_comment_pos_if_not_yet_done)*/
 #define determine_comment_pos_if_not_yet_done()				\
 { if (!comment_pos_determined) {					\
     macro_line_loc_to_source_pos(comment_start_loc, comment_start_pos);	\

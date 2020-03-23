@@ -166,9 +166,9 @@ C code.  They use the "needed" flag if that is being maintained and the
 #else /* !MAINTAIN_NEEDED_FLAGS */
 #define scp_is_needed_in_generated_code(scp) (scp)->referenced
 #endif /* MAINTAIN_NEEDED_FLAGS */
+/*lint -esym(750,*entity_needed_in_generated_code)*/
 #define entity_needed_in_generated_code(entityp)               \
   scp_is_needed_in_generated_code(&(entityp)->source_corresp)
-/*lint -esym(750,entity_needed_in_generated_code)*/
 
 /*
 Macro to simplify the test for cases where the module id is needed in
@@ -10433,8 +10433,8 @@ is put in the pragma, otherwise "name" is used.
 
 #if !USE_INIT_SECTION_IN_GENERATED_C
 
-static void dump_gcc_init_sequence(a_routine_ptr            rout,
-                                   a_const_char             *name,
+static void dump_gcc_init_sequence(ARG_UNUSED a_routine_ptr rout,
+                                   ARG_UNUSED a_const_char  *name,
                                    ARG_UNUSED unsigned long init_priority)
 /*
 Put out GCC-specific code to invoke the specified routine at initialization
