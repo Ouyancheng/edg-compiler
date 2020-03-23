@@ -7696,7 +7696,7 @@ that a function might throw.
 {
   an_exception_specification_type_ptr estp;
 
-  if (esp->arg_cached) {
+  if (esp->arg_cached || esp->copy_from_prototype) {
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     /* Instantiations are rendered as specializations, but the exception
        specification of a member function of a class template is parsed only if
@@ -7707,9 +7707,9 @@ that a function might throw.
            };
            S<int> s; // S<int>::f never used.
        In cases where the exception specification was never parsed (which is
-       what a TRUE arg_cached flag indicates), we simply don't render that
-       exception specification (if it were needed, it would have been
-       instantiated). */
+       what a TRUE arg_cached or copy_from_prototype flag indicates), we simply
+       don't render that exception specification (if it were needed, it would
+       have been instantiated). */
     check_assertion(curr_name_context_is_a_class() &&
                     curr_name_context_class()
                               ->variant.class_struct_union.is_template_class);

@@ -6409,7 +6409,7 @@ typedef struct an_exception_specification {
 		routine;
 			/* Pointer to the subordinate prototype instantiation
 			   for which the exception specification must be
-			   copied.  This is for front-end use only. */
+			   copied. */
     /* When is_noexcept is FALSE (and arg_cached and copy_from_prototype are
        FALSE). */
     an_exception_specification_type_ptr
