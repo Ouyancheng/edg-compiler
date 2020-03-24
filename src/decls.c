@@ -7451,9 +7451,26 @@ for use in generating cross-reference output describing this declaration.
       (((depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) &&
         (decl_scope_level == (a_scope_kind) sck_file) ) ||
        (variable_ptr->source_corresp.name_linkage ==
-        (a_name_linkage_kind)nlk_external)
-      ) && (strcmp(locator->symbol_header->identifier, "main") == 0)){
-    pos_error(ec_invalid_variable_main, &locator->source_position);
+        (a_name_linkage_kind)nlk_external)) &&
+      (strcmp(locator->symbol_header->identifier, "main") == 0)) {
+    an_error_severity sev = es_none;
+    if (C_mode() && (gnu_mode || clang_mode)) {
+      /* All versions of gcc accept this, though a warning is issued with
+         -Wall.  Clang issues a warning in all modes. */
+      sev = es_warning;
+    } else if (gpp_version_is(<60000) || clang_version_is(<30800)) {
+      /* No diagnostic is issued for early versions of g++ and clang. */
+      sev = es_none;
+    } else if (!C_mode() && strict_ansi_mode) {
+      /* Should always be an error in strict mode. */
+      sev = es_error;
+    } else {
+      /* Issue a discretionary error otherwise. */
+      sev = es_discretionary_error;
+    }  /* if */
+    if (sev != es_none) {
+      pos_diagnostic(sev, ec_invalid_variable_main, &locator->source_position);
+    }  /* if */
   }
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (is_variable_def || (!redeclaration && !linked_to_previous_variable)) {
