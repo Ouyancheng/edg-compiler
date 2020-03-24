@@ -627,7 +627,7 @@ IFC_DECL_END(ExprSort_Monad)
 /* ExprSort::Dyad */
 IFC_DECL_START(ExprSort_Dyad)
   IFC_DECL_FIELD(type, TypeIndex)
-  /* IFC_DECL_FIELD(arguments[2], ExprIndex)  needs to be re-written: */
+  /* IFC_DECL_FIELD(arguments[2], ExprIndex)  needs to be rewritten: */
   IFC_DECL_FIELD(arguments_0, ExprIndex)
   IFC_DECL_FIELD(arguments_1, ExprIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
@@ -637,7 +637,7 @@ IFC_DECL_END(ExprSort_Dyad)
 /* ExprSort::Triad */
 IFC_DECL_START(ExprSort_Triad)
   IFC_DECL_FIELD(type, TypeIndex)
-  /* IFC_DECL_FIELD(arguments[3], ExprIndex)  needs to be re-written: */
+  /* IFC_DECL_FIELD(arguments[3], ExprIndex)  needs to be rewritten: */
   IFC_DECL_FIELD(arguments_0, ExprIndex)
   IFC_DECL_FIELD(arguments_1, ExprIndex)
   IFC_DECL_FIELD(arguments_2, ExprIndex)
