@@ -28289,7 +28289,8 @@ NULL, return in *p_none_viable whether no viable spaceship operator was found.
                                      opnd1, opnd2, operator_pos, operator_tsn,
                                      (a_nondependent_call_depth)0,
                                      (a_source_position*)NULL, result,
-                                     p_none_viable, &processed);
+                                     p_none_viable,
+                                     (a_candidate_function*)NULL, &processed);
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
@@ -28693,34 +28694,35 @@ done:
 }  /* check_defaulted_eq_properties */
 
 
-void check_defaulted_ne_properties(a_type_ptr     class_tp,
-                                   a_routine_ptr  nrp)
+void check_defaulted_secondary_comp(a_type_ptr     class_tp,
+                                    a_routine_ptr  crp)
 /*
-nrp is a defaulted operator!= for the given class type.  Mark it as deleted if
-appropraite (if an "x == x" for lvalues of the given class type does not find
-a usable best candidate, or if that overload does not produce a "bool" result).
-Also check whether the operator should be made constexpr (if it is implicitly
-declared) or issue an error if it was declared constexpr but it would call a
-non-constexpr comparison operator.
+crp is a defaulted secondary comparison operator (!=, <, <=, >=, or >) for the
+given class type.  Mark it as deleted if appropriate.  Also check whether the
+operator should be made constexpr or issue an error if it was declared
+constexpr but it would call a non-constexpr comparison operator.
+
+P2002R1 specifies a defaulted secondary operator@ to be deleted if:
+  - overload resolution, as applied to x @ y, does not result in a usable
+    function candidate, or
+  - the candidate selected by overload resolution is not a rewritten
+    candidate.
 */
 {
   a_boolean             is_deleted = FALSE;
   a_type_ptr            ptr_class_tp;
   a_constant_ptr        zero_ptr;
-  an_operand            opnd1, opnd2;
+  an_operand            opnd1, opnd2, result;
   an_expr_stack_entry   expr_stack_entry, *saved_expr_stack;
-  a_candidate_function_ptr
-                        candidates;
-  an_arg_list_elem_ptr  arg_list = NULL;
-  a_boolean             dependent_call = FALSE, defer_resolution = FALSE,
-                        undecidable = FALSE, ambiguous = FALSE;
-  a_symbol_ptr          inaccessible_match = NULL;
+  a_boolean             none_viable, processed;
+  a_candidate_function  rewritten_candidate;
   a_routine_ptr         called_nonconstexpr_rout = NULL,
                         *saved_p_called_nonconstexpr_routine =
                                                 p_called_nonconstexpr_routine;
 
-
-  check_assertion(curr_il_region_number == file_scope_region_number);
+  check_assertion(curr_il_region_number == file_scope_region_number &&
+                  special_kind_is(crp, sfk_operator) &&
+                  is_immediate_class_type(class_tp));
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
@@ -28729,73 +28731,51 @@ non-constexpr comparison operator.
   expr_stack->suppress_constexpr_call_folding = TRUE;
   expr_stack->record_first_nonconstexpr_call = TRUE;
   p_called_nonconstexpr_routine = &called_nonconstexpr_rout;
+  clear_candidate_function(&rewritten_candidate);
   zero_ptr = local_constant();
-  check_assertion(is_immediate_class_type(class_tp));
-  ptr_class_tp = make_qualified_type(class_tp,
-                                     (a_type_qualifier_set)TQ_CONST);
+  ptr_class_tp = make_qualified_type(class_tp, (a_type_qualifier_set)TQ_CONST);
   ptr_class_tp = make_pointer_type(ptr_class_tp);
   make_zero_of_proper_type(ptr_class_tp, zero_ptr);
   make_glvalue_from_null_ptr_constant(zero_ptr, &opnd1);
   make_glvalue_from_null_ptr_constant(zero_ptr, &opnd2);
-  candidates = select_overloaded_operator((an_opname_kind)onk_eq,
-                                          /*unary_operator=*/FALSE,
-                                          /*must_be_member_function=*/FALSE,
-                                          /*try_conversions=*/FALSE,
-                                          /*selector_is_handle=*/FALSE,
-                                          &opnd1, &opnd2, &error_position,
-                                          curr_token_sequence_number,
-                                          (a_nondependent_call_depth)0,
-                                          /*p_none_viable=*/(a_boolean*)NULL,
-                                          &dependent_call, &defer_resolution,
-                                          &undecidable, &ambiguous,
-                                          &arg_list, &inaccessible_match);
-  check_assertion(arg_list != NULL && !dependent_call &&
-                  !defer_resolution);
-  free_arg_list(arg_list);
-  if (undecidable || ambiguous || candidates == NULL) {
-    /* No unambiguous, accessible, best match. */
+  f_check_for_operator_overloading(crp->variant.opname_kind,
+                                   /*unary_operator=*/FALSE,
+                                   /*must_be_member_function=*/FALSE,
+                                   /*try_conversions=*/TRUE,
+                                   /*has_predef_meaning=*/FALSE,
+                                   &opnd1, &opnd2, &error_position,
+                                   curr_token_sequence_number,
+                                   (a_nondependent_call_depth)0,
+                                   (a_source_position*)NULL, &result,
+                                   &none_viable, &rewritten_candidate,
+                                   &processed);
+  if (!processed || expr_stack->any_suppressed_error ||
+      rewritten_candidate.function_symbol == NULL) {
+    /* No unambiguous, accessible, best match in terms of an operator
+       rewrite. */
     is_deleted = TRUE;
-  } else {
-    a_symbol_ptr   sym = candidates->function_symbol;
-    check_assertion(sym != NULL);
-    if (sym->is_class_member &&
-        !have_access_to_symbol_full(sym, /*ignore_func_templ=*/FALSE)) {
-      is_deleted = TRUE;
-    } else {
-      a_routine_ptr  rp;
-      sym = fundamental_symbol_of(candidates->function_symbol);
-      rp = func_sym_routine(sym);
-      if (rp->is_deleted) {
-        is_deleted = TRUE;
-      } else {
-        a_type_ptr  rtp = skip_typerefs(rp->type);
-        if (!is_bool_type(rtp->variant.routine.return_type)) {
-          is_deleted = TRUE;
-        }  /* if */
-      }  /* if */
-    }  /* if */
   }  /* if */
   release_local_constant(&zero_ptr);
   if (is_deleted) {
-    nrp->is_deleted = TRUE;
-    nrp->defined = TRUE;
+    crp->is_deleted = TRUE;
+    crp->defined = TRUE;
   } else {
     /* Check constexpr-ness. */
     if (called_nonconstexpr_rout != NULL) {
-      if (nrp->is_constexpr && !nrp->compiler_generated) {
-        if (!rout_is_template_instance(nrp)) {
+      if (crp->is_constexpr && !crp->compiler_generated) {
+        if (!rout_is_template_instance(crp)) {
           pos_sy_error(ec_constexpr_comparison_calls_nonconstexpr_function,
-                       &nrp->source_corresp.decl_position,
+                       &crp->source_corresp.decl_position,
                        symbol_for(called_nonconstexpr_rout));
         }  /* if */
-        nrp->is_constexpr = FALSE;
+        crp->is_constexpr = FALSE;
       }  /* if */
     } else {
-      nrp->is_constexpr = TRUE;
+      crp->is_constexpr = TRUE;
     }  /* if */
   }  /* if */
   p_called_nonconstexpr_routine = saved_p_called_nonconstexpr_routine;
-}  /* check_defaulted_ne_properties */
+}  /* check_defaulted_secondary_comp */
 
 
 /*
@@ -28996,106 +28976,6 @@ set_return_type:
   }  /* if */
   p_called_nonconstexpr_routine = saved_p_called_nonconstexpr_routine;
 }  /* determine_defaulted_spaceship_return_type */
-
-
-void check_defaulted_rel_op_properties(a_type_ptr     class_tp,
-                                       a_routine_ptr  rrp)
-/*
-rrp is a defaulted <, <=, >, or >= operator for the given class type.  Mark it
-as deleted if appropriate (if an "x <=> x" for lvalues of the given class type
-does not find usable best candidate).  Also check whether the operator should
-be made constexpr (if it is implicitly declared) or issue an error if it was
-declared constexpr but it would call a non-constexpr comparison operator.
-*/
-{
-  a_boolean             is_deleted = FALSE;
-  a_type_ptr            ptr_class_tp;
-  a_constant_ptr        zero_ptr;
-  an_operand            opnd1, opnd2;
-  an_expr_stack_entry   expr_stack_entry, *saved_expr_stack;
-  a_candidate_function_ptr
-                        candidates;
-  an_arg_list_elem_ptr  arg_list = NULL;
-  a_boolean             dependent_call = FALSE, defer_resolution = FALSE,
-                        undecidable = FALSE, ambiguous = FALSE;
-  a_symbol_ptr          inaccessible_match = NULL;
-  a_routine_ptr         called_nonconstexpr_rout = NULL,
-                        *saved_p_called_nonconstexpr_routine =
-                                                p_called_nonconstexpr_routine;
-
-
-  check_assertion(curr_il_region_number == file_scope_region_number);
-  save_expr_stack(&saved_expr_stack);
-  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/TRUE);
-  expr_stack->suppress_diagnostics = TRUE;
-  expr_stack->suppress_constexpr_call_folding = TRUE;
-  expr_stack->record_first_nonconstexpr_call = TRUE;
-  p_called_nonconstexpr_routine = &called_nonconstexpr_rout;
-  zero_ptr = local_constant();
-  check_assertion(is_immediate_class_type(class_tp));
-  ptr_class_tp = make_qualified_type(class_tp,
-                                     (a_type_qualifier_set)TQ_CONST);
-  ptr_class_tp = make_pointer_type(ptr_class_tp);
-  make_zero_of_proper_type(ptr_class_tp, zero_ptr);
-  make_glvalue_from_null_ptr_constant(zero_ptr, &opnd1);
-  make_glvalue_from_null_ptr_constant(zero_ptr, &opnd2);
-  candidates = select_overloaded_operator((an_opname_kind)onk_spaceship,
-                                          /*unary_operator=*/FALSE,
-                                          /*must_be_member_function=*/FALSE,
-                                          /*try_conversions=*/FALSE,
-                                          /*selector_is_handle=*/FALSE,
-                                          &opnd1, &opnd2, &error_position,
-                                          curr_token_sequence_number,
-                                          (a_nondependent_call_depth)0,
-                                          /*p_none_viable=*/(a_boolean*)NULL,
-                                          &dependent_call, &defer_resolution,
-                                          &undecidable, &ambiguous,
-                                          &arg_list, &inaccessible_match);
-  check_assertion(arg_list != NULL && !dependent_call &&
-                  !defer_resolution);
-  free_arg_list(arg_list);
-  if (undecidable || ambiguous || candidates == NULL) {
-    /* No unambiguous, accessible, best match. */
-    is_deleted = TRUE;
-  } else {
-    a_symbol_ptr   sym = candidates->function_symbol;
-    check_assertion(sym != NULL);
-    if (!have_access_to_symbol_full(sym, /*ignore_func_templ=*/FALSE)) {
-      is_deleted = TRUE;
-    } else {
-      a_routine_ptr  rp;
-      sym = fundamental_symbol_of(candidates->function_symbol);
-      rp = func_sym_routine(sym);
-      if (rp->is_deleted) {
-        is_deleted = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  release_local_constant(&zero_ptr);
-  pop_expr_stack();
-  restore_expr_stack(saved_expr_stack);
-  if (is_deleted) {
-    rrp->is_deleted = TRUE;
-    rrp->defined = TRUE;
-  } else {
-    /* Check constexpr-ness. */
-    if (called_nonconstexpr_rout != NULL) {
-      if (rrp->is_constexpr && !rrp->compiler_generated) {
-        if (!rout_is_template_instance(rrp)) {
-          pos_sy_error(ec_constexpr_comparison_calls_nonconstexpr_function,
-                       &rrp->source_corresp.decl_position,
-                       symbol_for(called_nonconstexpr_rout));
-        }  /* if */
-        rrp->is_constexpr = FALSE;
-      }  /* if */
-    } else {
-      rrp->is_constexpr = TRUE;
-    }  /* if */
-  }  /* if */
-  p_called_nonconstexpr_routine = saved_p_called_nonconstexpr_routine;
-}  /* check_defaulted_rel_op_properties */
 
 
 an_expr_node_ptr make_eq_comparison(an_expr_node_ptr  arg1,

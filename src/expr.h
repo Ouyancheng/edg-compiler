@@ -392,14 +392,11 @@ extern void complete_comparison_rewrite(an_opname_kind           opname,
 extern void check_defaulted_eq_properties(a_type_ptr     class_tp,
                                           a_routine_ptr  erp);
 
-extern void check_defaulted_ne_properties(a_type_ptr     class_tp,
-                                          a_routine_ptr  nrp);
+extern void check_defaulted_secondary_comp(a_type_ptr     class_tp,
+                                           a_routine_ptr  nrp);
 
 extern void determine_defaulted_spaceship_return_type(a_routine_ptr  srp,
                                                       a_type_ptr     class_tp);
-
-extern void check_defaulted_rel_op_properties(a_type_ptr     class_tp,
-                                              a_routine_ptr  rrp);
 
 extern an_expr_node_ptr make_eq_comparison(an_expr_node_ptr  arg1,
                                            an_expr_node_ptr  arg2);

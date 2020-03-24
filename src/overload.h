@@ -125,6 +125,10 @@ typedef struct a_conv_descr {
 		std;	/* The standard conversion part of the conversion. */
 } a_conv_descr;
 
+#define clear_conv_descr(p_conv_descr)                           \
+  (memzero((char*)(p_conv_descr), sizeof(a_conv_descr)))
+
+
 /*
 Macro that tests for a conversion description with a null user-defined
 part.
@@ -506,6 +510,9 @@ typedef struct a_candidate_function {
 #endif /* BACK_END_IS_CP_GEN_BE */
 } a_candidate_function;
 
+#define clear_candidate_function(p_cand)                           \
+  (memzero((char*)(p_cand), sizeof(a_candidate_function)))
+
 
 EXTERN a_candidate_function_ptr
 		avail_candidate_functions;
@@ -654,7 +661,6 @@ typedef struct an_arg_check_block {
 			   the call. */
 } an_arg_check_block;
 
-extern void clear_conv_descr(a_conv_descr_ptr conv);
 
 extern a_symbol_ptr set_up_overload_set_traversal(
                           a_symbol_ptr                    sym,
@@ -949,6 +955,7 @@ extern void f_check_for_operator_overloading(
                              a_source_position         *operator_position_2,
                              an_operand                *result,
                              a_boolean                 *p_none_viable,
+                             a_candidate_function_ptr  rewritten_candidate,
                              a_boolean                 *processed);
 
 #define check_for_operator_overloading(                                       \
@@ -961,7 +968,8 @@ extern void f_check_for_operator_overloading(
                        try_conversions, has_predef_meaning, operand_1,        \
                        operand_2, operator_position, operator_tok_seq_number, \
                        call_depth, operator_position_2, result,               \
-                       (a_boolean*)NULL, processed)
+                       (a_boolean*)NULL, (a_candidate_function_ptr)NULL,      \
+                       processed)
     
 
 extern a_boolean conversion_to_class_possible(

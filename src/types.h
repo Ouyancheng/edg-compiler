@@ -1243,8 +1243,10 @@ typedef struct a_std_conv_descr {
 			   elements initialized by the braced-init-list. */
 } a_std_conv_descr;
 
+#define clear_std_conv_descr(p_std_conv)                           \
+  (memzero((char*)(p_std_conv), sizeof(a_std_conv_descr)))
 
-extern void clear_std_conv_descr(a_std_conv_descr_ptr std_conv);
+
 extern a_boolean is_nothrow_spec(an_exception_specification_ptr  esp);
 extern a_boolean is_nothrow_type(a_type_ptr  type);
 extern a_boolean is_non_throwing_routine(a_routine_ptr rp);

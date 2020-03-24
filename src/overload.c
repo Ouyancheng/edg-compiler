@@ -276,28 +276,6 @@ declaration, when friend injection is turned off.
   ((sym)->is_invisible && !(sym)->is_class_member)
 
 
-void clear_conv_descr(a_conv_descr_ptr conv)
-/*
-Clear a conversion description.
-*/
-{
-  conv->routine                        = NULL;
-  conv->routine_symbol                 = NULL;
-  conv->class_identity_or_bitwise_copy = FALSE;
-  conv->should_elide_ctor              = FALSE;
-  conv->result_is_a_glvalue            = FALSE;
-  conv->unusable                       = FALSE;
-  conv->class_object_adjustment_required = FALSE;
-  conv->conversion_for_direct_reference_binding = FALSE;
-  conv->copy_initialization_done_as_direct = FALSE;
-  conv->user_conversion_for_class_copy_must_be_determined = FALSE;
-  conv->unknown_dependent_conversion   = FALSE;
-  conv->is_explicit_cast               = FALSE;
-  conv->is_base_init                   = FALSE;
-  clear_std_conv_descr(&conv->std);
-}  /* clear_conv_descr */
-
-
 static void clear_overload_set_traversal_block(
                           a_candidate_function_ptr        *candidate_functions,
                           ARG_UNUSED a_symbol_ptr         *inaccessible_match,
@@ -1608,32 +1586,7 @@ are used in resolving calls to overloaded functions.
     num_candidate_functions_allocated++;
 #endif /* DEBUG */
   }  /* if */
-  cfp->next = NULL;
-  cfp->function_symbol = NULL;
-  cfp->overloaded_function_symbol = NULL;
-  cfp->is_function_template = FALSE;
-  cfp->expl_template_arg_list_used = FALSE;
-  cfp->template_arg_list = NULL;
-  cfp->operand_type_pattern = NULL;
-  cfp->surrogate_function_conv_sym = NULL;
-  clear_conv_descr(&cfp->conversion);
-  cfp->specific_type = NULL;
-  cfp->arg_matches = NULL;
-  cfp->current_arg_match = NULL;
-  cfp->next_in_arg_best_match_set = NULL;
-  cfp->opname_kind = (an_opname_kind)onk_none;
-  cfp->supplemental_comparison_candidate = FALSE;
-  cfp->supplemental_reversed_candidate = FALSE;
-  cfp->uses_microsoft_explicit_anachronism = FALSE;
-  cfp->init_list_ctor_case = FALSE;
-  cfp->is_inheriting_ctor = FALSE;
-  cfp->is_user_conversion = FALSE;
-  cfp->in_best_match_set = FALSE;
-  cfp->in_best_match_set_for_some_argument = FALSE;
-  cfp->in_best_match_set_for_curr_argument = FALSE;
-#if BACK_END_IS_CP_GEN_BE
-  cfp->found_through_adl = FALSE;
-#endif /* BACK_END_IS_CP_GEN_BE */
+  clear_candidate_function(cfp);
   return cfp;
 }  /* alloc_candidate_function */
 
@@ -5578,6 +5531,21 @@ in a new-expression).
     }  /* if */
     function_symbol = fundamental_symbol_of(proj_function_symbol);
     function_template_case = symbol_is(function_symbol, sk_function_template);
+    if (!function_template_case) {
+      /* The symbol is not a function template (i.e., it's a normal
+         function). */
+      routine = function_symbol->variant.routine.ptr;
+      if (is_overloaded_operator && routine->is_defaulted &&
+          special_kind_is(routine, sfk_operator) &&
+          (opname_kind_is(routine, onk_ne) ||
+           opname_kind_is_rel_op(routine))) {
+        /* Default secondary operators are not considered for the overload
+           resolution of the corresponding operator (P2002R1).  Instead, the
+           operator should be handled using rewrite rules. */
+        goto reject_function;
+      }  /* if */
+      routine_type = routine->type;
+    }  /* if */
     if (is_ambiguous_by_inheritance(proj_function_symbol) &&
         !func_sym_routine(function_symbol)->is_inheriting_ctor) {
       /* The symbol is ambiguous, and as such is an arbitrary representative
@@ -5590,12 +5558,7 @@ in a new-expression).
          ambiguous. */
       goto accept_function;
     }  /* if */
-    if (!function_template_case) {
-      /* The symbol is not a function template (i.e., it's a normal
-         function). */
-      routine = function_symbol->variant.routine.ptr;
-      routine_type = routine->type;
-    } else {
+    if (function_template_case) {
       /* The symbol is a function template. */
       a_template_symbol_supplement_ptr
               tssp = function_symbol->variant.template_info;
@@ -17758,6 +17721,7 @@ void f_check_for_operator_overloading(
                              a_source_position         *operator_position_2,
                              an_operand                *result,
                              a_boolean                 *p_none_viable,
+                             a_candidate_function_ptr  rewritten_candidate,
                              a_boolean                 *processed)
 /*
 operand_1 and operand_2 are the operands of an operator indicated by kind.
@@ -17793,7 +17757,11 @@ apply, but we can't tell).  operand_2 is allowed to be a braced-init-list
 operand when initializer lists are enabled.  If p_none_viable is non-NULL,
 set *p_none_viable to TRUE if no viable candidate was found, the call is not
 dependent, and overload resolution should not be deferred; otherwise, set it
-to FALSE.
+to FALSE.  If rewritten_candidate is not NULL, this call is only to determine
+whether a defaulted secondary comparison operator (i.e., a defaulted operator
+!=, <, <=, >=, or > in C++20 mode) is deleted or not.  In that case, *result
+should be discarded, and if a specific rewritten operator candidate was
+selected, it is stored in *rewritten_candidate.
 */
 {
   an_arg_list_elem_ptr     arg_list, arg_list_elem;
@@ -18160,9 +18128,9 @@ no_applicable_operator_function:
 #endif /* BACK_END_IS_CP_GEN_BE */
           arg_match = candidate_functions->arg_matches;
           if (proj_function_symbol == NULL) {
+            /* A built-in operator was selected. */
             a_boolean op_1_inside_conditional = FALSE,
                       op_2_inside_conditional = FALSE;
-            /* A built-in operator was selected. */
 #if DEBUG
             if (debug_level >= 4 || db_flag_is_set("overload")) {
               db_display_overload_level();
@@ -18172,32 +18140,34 @@ no_applicable_operator_function:
 #endif /* DEBUG */
             /* *processed is left FALSE so the caller will try the built-in
                meaning. */
-            /* Determine if either operand is conditional. */
-            if (kind == (an_opname_kind)onk_and_and ||
-                kind == (an_opname_kind)onk_or_or) {
-              op_2_inside_conditional = TRUE;
-            } else if (kind == (an_opname_kind)onk_question) {
-              /* Operands 1 and 2 under a "?" here are really the second and
-                 third operands. */
-              op_1_inside_conditional = TRUE;
-              op_2_inside_conditional = TRUE;
-            }  /* if */
-            /* Convert the operands to the proper types. */
-            adjust_operand_for_builtin_operator(operand_1,
-                                                candidate_functions, 1,
-                                                op_1_inside_conditional,
-                                                arg_match);
-            if (!unary_operator) {
-              check_assertion(!is_braced_init_list_operand(operand_2));
-              adjust_operand_for_builtin_operator(operand_2,
-                                                  candidate_functions, 2,
-                                                  op_2_inside_conditional,
-                                                  arg_match->next);
+            if (rewritten_candidate == NULL) {
+              /* Determine if either operand is conditional. */
+              if (kind == (an_opname_kind)onk_and_and ||
+                  kind == (an_opname_kind)onk_or_or) {
+                op_2_inside_conditional = TRUE;
+              } else if (kind == (an_opname_kind)onk_question) {
+                /* Operands 1 and 2 under a "?" here are really the second and
+                   third operands. */
+                op_1_inside_conditional = TRUE;
+                op_2_inside_conditional = TRUE;
+              }  /* if */
+              /* Convert the operands to the proper types. */
+              adjust_operand_for_builtin_operator(operand_1,
+                                                  candidate_functions, 1,
+                                                  op_1_inside_conditional,
+                                                  arg_match);
+              if (!unary_operator) {
+                check_assertion(!is_braced_init_list_operand(operand_2));
+                adjust_operand_for_builtin_operator(operand_2,
+                                                    candidate_functions, 2,
+                                                    op_2_inside_conditional,
+                                                    arg_match->next);
+              }  /* if */
             }  /* if */
           } else {
+            /* An operator function was selected. */
             a_boolean  bitwise_assignment = FALSE, have_selector;
             a_type_ptr routine_type;
-            /* An operator function was selected. */
 #if DEBUG
             if (debug_level >= 4 || db_flag_is_set("overload")) {
               db_display_overload_level();
@@ -18441,23 +18411,27 @@ no_applicable_operator_function:
                 /* A candidate was selected that represents a rewrite of a
                    comparison operator.  Another operation has to be applied
                    to the result. */
-                a_symbol_ptr   sym = fundamental_symbol_of(
-                                        candidate_functions->function_symbol);
-                a_routine_ptr  rp = func_sym_routine(sym);
-                a_type_ptr     rtp = skip_typerefs(rp->type);
-                if (!is_bool_type(rtp->variant.routine.return_type) &&
-                    (opname_is_eq_op(kind) || opname_is_rel_op(kind))) {
-                  if (expr_error_should_be_issued()) {
-                    pos_sy_error(ec_cmp_operator_does_not_return_bool,
-                                 operator_position, sym);
-                  }  /* if */
-                  conv_to_error_operand(result);
+                if (rewritten_candidate != NULL) {
+                  *rewritten_candidate = *candidate_functions;
                 } else {
-                  a_boolean  reversed = candidate_functions
+                  a_symbol_ptr   sym = fundamental_symbol_of(
+                                        candidate_functions->function_symbol);
+                  a_routine_ptr  rp = func_sym_routine(sym);
+                  a_type_ptr     rtp = skip_typerefs(rp->type);
+                  if (!is_bool_type(rtp->variant.routine.return_type) &&
+                      (opname_is_eq_op(kind) || opname_is_rel_op(kind))) {
+                    if (expr_error_should_be_issued()) {
+                      pos_sy_error(ec_cmp_operator_does_not_return_bool,
+                                   operator_position, sym);
+                    }  /* if */
+                    conv_to_error_operand(result);
+                  } else {
+                    a_boolean  reversed = candidate_functions
                                             ->supplemental_reversed_candidate;
-                  complete_comparison_rewrite(orig_kind, call_node,
-                                              operator_tok_seq_number,
-                                              result, reversed);
+                    complete_comparison_rewrite(orig_kind, call_node,
+                                                operator_tok_seq_number,
+                                                result, reversed);
+                  }  /* if */
                 }  /* if */
               }  /* if */
             }  /* if */

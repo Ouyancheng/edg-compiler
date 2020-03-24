@@ -21244,13 +21244,9 @@ operators as deleted if appropriate.
           }  /* if */
         } else if (opname_kind_is(rp, onk_eq)) {
           check_defaulted_eq_properties(class_type, rp);
-        } else if (opname_kind_is(rp, onk_ne)) {
-          check_defaulted_ne_properties(class_type, rp);
-        } else if (opname_kind_is(rp, onk_lt) ||
-                   opname_kind_is(rp, onk_le) ||
-                   opname_kind_is(rp, onk_ge) ||
-                   opname_kind_is(rp, onk_gt)) {
-          check_defaulted_rel_op_properties(class_type, rp);
+        } else if (opname_kind_is(rp, onk_ne) ||
+                   opname_kind_is_rel_op(rp)) {
+          check_defaulted_secondary_comp(class_type, rp);
         }  /* if */
       } else if (special_kind_is(rp, sfk_destructor)) {
         if (gsfd->suppress_dtor) {
@@ -21268,8 +21264,9 @@ operators as deleted if appropriate.
       if (rp->is_defaulted && special_kind_is(rp, sfk_operator)) {
         if (opname_kind_is(rp, onk_eq)) {
           check_defaulted_eq_properties(class_type, rp);
-        } else if (opname_kind_is(rp, onk_ne)) {
-          check_defaulted_ne_properties(class_type, rp);
+        } else if (opname_kind_is(rp, onk_ne) ||
+                   opname_kind_is_rel_op(rp)) {
+          check_defaulted_secondary_comp(class_type, rp);
         }  /* if */
       }  /* if */
     }  /* if */

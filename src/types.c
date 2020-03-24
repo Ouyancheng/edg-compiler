@@ -8117,38 +8117,6 @@ that is not required to be checked by the ANSI C standard.
 }  /* interchangeable_types */
 
 
-void clear_std_conv_descr(a_std_conv_descr_ptr std_conv)
-/*
-Clear a standard conversion description to default values.
-*/
-{
-  std_conv->cast_base_class = NULL;
-  std_conv->reversed_cast = FALSE;
-  std_conv->type_qualifiers_added = FALSE;
-  std_conv->secondary_type_qualifiers_added = FALSE;
-  std_conv->null_pointer_constant = FALSE;
-  std_conv->pointer_normalization_needed = FALSE;
-  std_conv->nontrivial_conversion = FALSE;
-  std_conv->promotion = FALSE;
-  std_conv->fixed_enum_promotion = FALSE;
-  std_conv->ptr_or_pm_to_bool = FALSE;
-  std_conv->boxing_conversion = FALSE;
-  std_conv->exception_spec_incompatibility = FALSE;
-  std_conv->conv_of_string_literal_to_ptr_to_nonconst = FALSE;
-  std_conv->warning_suggested = ec_no_error;
-  std_conv->is_mild_warning = FALSE;
-  std_conv->cli_array_covariance_conversion = FALSE;
-  std_conv->gpp_conv_of_real_to_complex = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  std_conv->conv_of_string_literal_to_cli_string = FALSE;
-  std_conv->param_array_conversion = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  std_conv->conv_to_std_initializer_list = FALSE;
-  std_conv->conv_to_array = FALSE;
-  std_conv->num_elements_initialized = 0;
-}  /* clear_std_conv_descr */
-
-
 static a_boolean dest_of_ptr_cast_big_enough(a_type_ptr source_type,
                                              a_type_ptr dest_type)
 /*
