@@ -184,7 +184,7 @@ When an inheriting constructor using declaration contains a pack expansion, the
 front end was previously failing to record this information.  This could lead
 to back end failures where this information was important.  For example, with
 the C++-generating back end, the output using declaration was ill-formed as it
-was missing the ellipses.  For example:
+was missing the ellipsis.  For example:
 
   template <class... T> struct S : public T... {
     using T::T...; // C++-generating back end was outputting "using T::T;"

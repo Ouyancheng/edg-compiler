@@ -24578,8 +24578,8 @@ A member using-declaration appears to introduce inheriting constructors into
 the class type being defined (described by cdsp).   pos is the position of the
 "using" keyword.  Create the a_using_decl entry for this construct.  The
 actual constructors will be synthesized later (after special members have been
-declared).  If a using declaration is created, result will point to it.
-Otherwise result will be NULL.
+declared).  If a using declaration is created, *result will point to it.
+Otherwise, *result will be NULL.
 */
 {
   a_type_ptr        class_type = cdsp->class_type;
