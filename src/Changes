@@ -29,10 +29,10 @@ typedef is now declared in the global namespace as well.
 
 
 3/23/20  [EDGcpfe/22354,EDGcpfe/22505]
-Coroutines: Potentially inconsistent value category for a parameter-copy
+Coroutines: Potentially-inconsistent value category for a parameter-copy
 initializer
 
-When a coroutine parameter is a non-lvalue reference type, the initializer for
+When a coroutine parameter is an rvalue reference type, the initializer for
 the parameter's copy was incorrectly marked as both an lvalue and an xvalue.
 This is now fixed.
 
