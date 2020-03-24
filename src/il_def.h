@@ -347,7 +347,6 @@ typedef struct a_cli_metadata_file {
 		assembly_index;
 			/* The index of the assembly given by the metadata
 			   reader. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   a_source_file_ptr
 		assembly_file;
 			/* The source file entry associated with this
@@ -357,7 +356,6 @@ typedef struct a_cli_metadata_file {
 			/* The sequence number to be used for every token
 			   scanned from this assembly (so the sequence
 			   number can be mapped back to this assembly). */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field   as_friend:1;
 			/* TRUE if the #using that named this file included
 			   the as_friend keyword, making all types from

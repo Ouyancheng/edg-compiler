@@ -829,8 +829,8 @@ extensions are enabled.
 /*
 Flag that is TRUE if C++/CX extensions (aka. C++/WinRT) can be accepted.
 (Setting the flag to TRUE enables the command-line options --cppcx and
---no_cppcx.)  If the flag is TRUE, MICROSOFT_EXTENSIONS_ALLOWED must be
-TRUE as well.
+--no_cppcx.)  If the flag is TRUE, both MICROSOFT_EXTENSIONS_ALLOWED and
+CPPCLI_ENABLING_POSSIBLE must be TRUE as well.
 */
 #ifndef CPPCX_ENABLING_POSSIBLE
 #define CPPCX_ENABLING_POSSIBLE FALSE
@@ -851,6 +851,10 @@ extensions are enabled.
 #if DEFAULT_CPPCX_ENABLED && !CPPCX_ENABLING_POSSIBLE
  #error -- DEFAULT_CPPCX_ENABLED requires CPPCX_ENABLING_POSSIBLE
 #endif /* DEFAULT_CPPCX_ENABLED && !CPPCX_ENABLING_POSSIBLE */
+
+#if CPPCX_ENABLING_POSSIBLE && !CPPCLI_ENABLING_POSSIBLE
+ #error -- CPPCX_ENABLING_POSSIBLE requires CPPCX_ENABLING_POSSIBLE
+#endif /* CPPCX_ENABLING_POSSIBLE && !CPPCLI_ENABLING_POSSIBLE */
 
 /*
 Flag that is TRUE if the front end is configured to write C++/CLI portable

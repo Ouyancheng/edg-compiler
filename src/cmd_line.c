@@ -569,7 +569,7 @@ Initialize the option information table.
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
 #endif /* CPPCX_ENABLING_POSSIBLE */
-#if CPPCLI_ENABLING_POSSIBLE || CPPCX_ENABLING_POSSIBLE
+#if CPPCLI_ENABLING_POSSIBLE
   add_option_description(optk_preusing, "preusing",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
@@ -587,7 +587,7 @@ Initialize the option information table.
   add_option_description(optk_mscorlib_file_name, "mscorlib_file_name",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
-#endif /* CPPCLI_ENABLING_POSSIBLE || CPPCX_ENABLING_POSSIBLE */
+#endif /* CPPCLI_ENABLING_POSSIBLE */
   add_option_description(optk_ms_permissive, "ms_permissive",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
@@ -11122,7 +11122,7 @@ enable_microsoft_mode:
        enabled. */
     allow_nonconst_ref_anachronism = TRUE;
   }  /* if */
-#if DO_IL_LOWERING && (CPPCLI_ENABLING_POSSIBLE || CPPCX_ENABLING_POSSIBLE)
+#if DO_IL_LOWERING && CPPCLI_ENABLING_POSSIBLE
   /* IL lowering cannot handle C++/CLI or C++/CX constructs, so if we are
      accepting those extensions disable lowering.  (This is possible only when
      a special "trust me" macro is set explicitly.) */
@@ -11139,7 +11139,7 @@ enable_microsoft_mode:
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
     for_each_statement_enabled = TRUE;
   }  /* if */
-#endif /* DO_IL_LOWERING && (CPPCLI_ENABLING_POSSIBLE || ...) */
+#endif /* DO_IL_LOWERING && CPPCLI_ENABLING_POSSIBLE */
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_RTTI
 #if SUPPRESS_TYPEINFO_VARIABLES_WHEN_RTTI_DISABLED
   /* Suppress typeinfo variables when RTTI is disabled. */

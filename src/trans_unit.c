@@ -402,7 +402,7 @@ pointed to by the translation unit entry.
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   il_header.nontag_types_used_in_exception_or_rtti =
                          tup->il_header.nontag_types_used_in_exception_or_rtti;
-#if CPPCLI_ENABLING_POSSIBLE || CPPCX_ENABLING_POSSIBLE
+#if CPPCLI_ENABLING_POSSIBLE
   if (cli_or_cx_enabled) {
     a_cli_metadata_file_ptr cmfp;
     a_boolean               is_duplicate;
@@ -434,7 +434,7 @@ pointed to by the translation unit entry.
       cmfp = cmfp->next;
     }  /* while */
   }  /* if */
-#endif /* CPPCLI_ENABLING_POSSIBLE || CPPCX_ENABLING_POSSIBLE */
+#endif /* CPPCLI_ENABLING_POSSIBLE */
   /* Restore the depth_in_scope stack field of any scopes on the scope
      stack. */
   if (depth_scope_stack != NO_SCOPE_DEPTH) {

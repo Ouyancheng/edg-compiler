@@ -22919,8 +22919,6 @@ C++/CLI delegate class types.)
   a_symbol_ptr			class_sym_for_context;
   a_template_decl_info_ptr	tdip;
   a_boolean			define_class = FALSE;
-  an_assembly_scope_index	assembly_scope_index = 0;
-  a_cpp_cli_token		metadata_type_def_token = 0;
   sizeof_t			size = 0;
   a_type_ptr			class_type_for_context = class_type;
   a_source_position		position_for_tokens;
@@ -22929,7 +22927,7 @@ C++/CLI delegate class types.)
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean			saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if CPPCLI_ENABLING_POSSIBLE
   a_boolean			saved_scanning_generated_code_from_metadata;
   a_boolean			saved_scanning_generated_code;
   a_boolean			is_delegate;
@@ -22937,10 +22935,13 @@ C++/CLI delegate class types.)
   a_class_type_supplement_ptr	ctsp = class_type_supp(class_type);
   an_assembly_index             assembly_index = 0;
   an_assembly_index             saved_assembly_index = curr_assembly_index;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  an_assembly_scope_index	assembly_scope_index = 0;
+  a_cpp_cli_token		metadata_type_def_token = 0;
+#endif /* CPPCLI_ENABLING_POSSIBLE */
 
   class_sym = symbol_for(class_type);
   if (class_type->incomplete && !class_type->definition_pending) {
+#if CPPCLI_ENABLING_POSSIBLE
     if (ctsp->assembly_scope_index != 0 &&
         ctsp->metadata_type_def_token != 0) {
       /* The class is from an assembly.  Load the definition of the class
@@ -22959,6 +22960,7 @@ C++/CLI delegate class types.)
         define_class = TRUE;
       }  /* if */
     }  /* if */
+#endif /* CPPCLI_ENABLING_POSSIBLE */
   }  /* if */
   /* This routine cannot handle local classes. */
   if (class_type->source_corresp.is_local_to_function) {
@@ -22986,7 +22988,7 @@ C++/CLI delegate class types.)
   scope_stack_top().source_sequence_entries_disallowed = TRUE;
   source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if CPPCLI_ENABLING_POSSIBLE
   curr_assembly_index = assembly_index;
   saved_scanning_generated_code_from_metadata 
                                        = scanning_generated_code_from_metadata;
@@ -23004,7 +23006,7 @@ C++/CLI delegate class types.)
     class_type_for_context = NULL;
     class_sym_for_context = NULL;
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* CPPCLI_ENABLING_POSSIBLE */
   tdip = alloc_template_decl_info();
   set_template_decl_info_for_class_definition(tdip, class_type_for_context);
   (void)push_template_instantiation_scope(
@@ -23064,7 +23066,7 @@ C++/CLI delegate class types.)
      the opening brace of the class) and ends with the closing brace and
      semicolon. */
 #endif /* CPPCLI_ENABLING_POSSIBLE */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if CPPCLI_ENABLING_POSSIBLE
   if (assembly_index != 0) {
     /* The definition is coming from an assembly file; set the position
        information to reflect that. */
@@ -23072,7 +23074,7 @@ C++/CLI delegate class types.)
     check_assertion(cmfp != NULL);
     position_for_tokens = cmfp->inserted_position;
   } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* CPPCLI_ENABLING_POSSIBLE */
   /* Do not insert code here. */
   {
     /* Insert the definition as though it's at the current token. */
@@ -23085,6 +23087,7 @@ C++/CLI delegate class types.)
                                   /*p_expand_macros=*/FALSE,
                                   /*suspend_caching=*/FALSE,
                                   position_for_tokens);
+#if CPPCLI_ENABLING_POSSIBLE
   /* Generics are processed differently than other types.  They are cached
      for instantiation purposes, then an initial scan is done to do the
      semantic analysis of the generic definition. */
@@ -23095,7 +23098,10 @@ C++/CLI delegate class types.)
        not handled by the call to scan_class_definition below. */
     scan_cli_delegate_definition_from_assembly_import(class_type);
     (void)get_token();
-  } else {
+  } else
+#endif /* CPPCLI_ENABLING_POSSIBLE */
+  /* Do not insert code here. */
+  {
     (void)scan_class_definition(
                     class_type, (a_decl_parse_state*)NULL,
                     depth_innermost_namespace_scope,
@@ -23121,12 +23127,12 @@ C++/CLI delegate class types.)
      "class X"). */
   class_type->has_been_declared = TRUE;
 #endif /* BACK_END_IS_CP_GEN_BE */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if CPPCLI_ENABLING_POSSIBLE
   scanning_generated_code_from_metadata 
                                  = saved_scanning_generated_code_from_metadata;
   scanning_generated_code = saved_scanning_generated_code;
   curr_assembly_index = saved_assembly_index;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* CPPCLI_ENABLING_POSSIBLE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   source_sequence_entries_disallowed =
                                       saved_source_sequence_entries_disallowed;

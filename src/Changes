@@ -1,5 +1,19 @@
 Version 6.1
 
+3/24/20  [EDGcpfe/22537]
+Invalid code in get_definition_of_class
+
+When GET_DEFINITION_OF_CLASS_NEEDED is TRUE but MICROSOFT_EXTENSIONS_ALLOWED
+is FALSE, get_definition_of_class failed to compile.  In addition,
+get_definition_of_class mixed checked for MICROSOFT_EXTENSIONS_ALLOWED with
+checks for CPPCLI_ENABLING_POSSIBLE.  This has now been fixed.
+
+As part of this change, it was discovered that most code assumed that
+CPPCLI_ENABLING_POSSIBLE is TRUE whenever CPPCX_ENABLING_POSSIBLE is TRUE.
+This has now been formally made a requirement and it is now an error if
+CPPCLI_ENABLING_POSSIBLE is FALSE while CPPCX_ENABLING_POSSIBLE is TRUE.
+
+
 3/24/20  [EDGcpfe/22536]
 GNU/Clang compatibility: Use of "main" as a variable
 
