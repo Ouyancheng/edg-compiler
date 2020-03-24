@@ -21047,6 +21047,9 @@ handle_as_definition:
              typedef void (&&__T12345678)();
              template<> __T12345678 f<void ()>();
            which is digestible by MSVC. */
+        adjust_namespace_state_for_specialization(&rout->source_corresp,
+                                                  &common_scope, &orig_scope,
+                                                  name_ref);
         establish_replacement_typedef(ret_type, /*set=*/TRUE);
         replacement_ret_type = ret_type;
       }  /* if */
@@ -21144,7 +21147,7 @@ handle_as_definition:
       enable_line_wrapping();
     }  /* if */
   }  /* if */
-  if (is_specialization) {
+  if (is_specialization && orig_scope == NULL) {
     adjust_namespace_state_for_specialization(&rout->source_corresp,
                                               &common_scope, &orig_scope,
                                               name_ref);

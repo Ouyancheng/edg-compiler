@@ -1,5 +1,33 @@
 Version 6.1
 
+3/23/20  [EDGcpfe/22517]
+C++-generating back end: namespace of typedef return type of generated
+explicit specializations
+
+As noted in the changes for EDGcpfe/20209 and EDGcpfe/22369, C++-generating
+back end configurations with
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE
+sometimes declare generated function template explicit specializations
+using a generated typedef as the return type in order to work around a bug
+in MSVC.  In cases where the use of the function template appears in a
+different namespace from that of the template itself, this generated
+typedef could be incorrectly placed into the namespace where the use occurs
+rather than the namespace containing the function template, resulting in
+errors compiling the generated code.  This is now fixed.  For example:
+
+  template<typename T, unsigned N> char (*f(T(&)[N]))[N];
+  namespace NS {
+    char arr[256];
+    int i = sizeof(*f(arr));
+  }
+
+Previously, the code generated for this example used a generated typedef
+for the return type of the explicit specialization for "f", but the
+declaration of that typedef appeared in namespace NS while the explicit
+specialization itself is a member of the global namespace.  The generated
+typedef is now declared in the global namespace as well.
+
+
 3/23/20  [EDGcpfe/22354,EDGcpfe/22505]
 Coroutines: Potentially inconsistent value category for a parameter-copy
 initializer
