@@ -389,14 +389,17 @@ extern void complete_comparison_rewrite(an_opname_kind           opname,
                                         an_operand_ptr           result,
                                         a_boolean                reversed);
 
-extern a_boolean generated_eq_is_deleted(a_type_ptr  class_tp);
+extern void check_defaulted_eq_properties(a_type_ptr     class_tp,
+                                          a_routine_ptr  erp);
 
-extern a_boolean generated_ne_is_deleted(a_type_ptr  class_tp);
+extern void check_defaulted_ne_properties(a_type_ptr     class_tp,
+                                          a_routine_ptr  nrp);
 
 extern void determine_defaulted_spaceship_return_type(a_routine_ptr  srp,
                                                       a_type_ptr     class_tp);
 
-extern a_boolean generated_rel_op_is_deleted(a_type_ptr  class_tp);
+extern void check_defaulted_rel_op_properties(a_type_ptr     class_tp,
+                                              a_routine_ptr  rrp);
 
 extern an_expr_node_ptr make_eq_comparison(an_expr_node_ptr  arg1,
                                            an_expr_node_ptr  arg2);
@@ -407,9 +410,9 @@ a_variable_ptr make_spaceship_cmp_variable(an_expr_node_ptr  arg1,
                                            a_type_ptr        tp,
                                            an_expr_node_ptr  *p_ne_expr);
 
-extern
-a_boolean nondeduced_generated_spaceship_is_deleted(a_routine_ptr  srp,
-                                                    a_type_ptr     class_tp);
+extern void check_nondeduced_defaulted_spaceship_properties(
+                                                      a_routine_ptr  srp,
+                                                      a_type_ptr     class_tp);
 
 extern
 void make_defaulted_final_spaceship_return(a_type_ptr       func_tp,

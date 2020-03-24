@@ -822,6 +822,14 @@ typedef struct a_dynamic_init_dtor_fixup {
 /* an_initializer_cache is in decls.h because of header ordering reasons. */
 typedef struct an_initializer_cache an_initializer_cache_dummy_typedef;
 
+
+EXTERN a_routine_ptr
+		*p_called_nonconstexpr_routine;
+			/* Pointer to the location where a non-constexpr
+			   routine should be recorded if it is called (when
+			   the flag record_first_nonceonstexpr_call is TRUE
+			   in the expression stack). */
+
 /*
 Entry in a stack used during expression processing to record transitions
 into substantially disjunct pieces of the expression (e.g., inside a
@@ -967,6 +975,11 @@ typedef struct an_expr_stack_entry {
 			   the next expression stack push should consider that
 			   we are still in the same expression even if we went
 			   into declaration processing and came back. */
+  a_bit_field
+		record_first_nonconstexpr_call:1;
+			/* TRUE if the first encountered call to a non-
+			   constexpr function should be recorded (in
+			   *p_called_nonconstexpr_routine). */
   a_bit_field
 		constant_expr_ruled_out:1;
 			/* TRUE if the expression contains something that

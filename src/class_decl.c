@@ -13468,14 +13468,20 @@ the position of the "= default" construct.
     pos_error(ec_bad_scope_for_defaulted_comparison, def_pos);
     err = TRUE;
   } else {
-    a_type_ptr        rtp = skip_typerefs(rp->type);
     a_type_ptr        class_type = scope_stack_top().assoc_type;
-    a_param_type_ptr  ptp = function_type_params(rtp);
-    a_boolean         is_member =
-                           rtp->variant.routine.extra_info->this_class != NULL;
-    if (is_member && rtp->variant.routine.extra_info->qualifiers != TQ_CONST) {
-      pos_error(ec_nonconst_defaulted_member_comparison, def_pos);
-      err = TRUE;
+    a_type_ptr        rtp = skip_typerefs(rp->type);
+    a_routine_type_supplement_ptr
+                      rtsp = rout_type_supp(rtp);
+    a_param_type_ptr  ptp = rtsp->param_type_list;
+    a_boolean         is_member = rtsp->this_class != NULL;
+    if (is_member) {
+      if (rtsp->qualifiers != TQ_CONST) {
+        pos_error(ec_nonconst_defaulted_member_comparison, def_pos);
+        err = TRUE;
+      } else if (rtsp->ref_qualifiers == (a_ref_qualifier_kind)rqk_rvalue) {
+        pos_error(ec_rvalue_defaulted_member_comparison, def_pos);
+        err = TRUE;
+      }  /* if */
     }  /* if */
     check_assertion(ptp != NULL &&
                     ((is_member && ptp->next == NULL) ||
@@ -13511,10 +13517,6 @@ the position of the "= default" construct.
                   def_pos);
         err = TRUE;
       }  /* if */
-      if (cdsp->defaulted_spaceship) {
-        pos_error(ec_duplicate_defaulted_spaceship, def_pos);
-        err = TRUE;
-      }  /* if */
       if (!err) {
         cdsp->defaulted_spaceship = TRUE;
       }  /* if */
@@ -13537,8 +13539,6 @@ the position of the "= default" construct.
   } else {
     scope_stack_top().class_def_state->any_defaulted_special_members = TRUE;
     rp->is_defaulted = TRUE;
-    /* Assume the function will be constexpr. */
-    rp->is_constexpr = TRUE;
   }  /* if */
 }  /* check_defaulted_comparison */
 
@@ -13639,10 +13639,10 @@ IL entry accordingly.  def_pos is the position of the "= default;" or
                            : ec_invalid_constructor_to_be_defaulted;
         diag_pos = &dps->declarator_pos;
       }  /* if */
-    } else if (rp->special_kind == (a_special_function_kind)sfk_destructor) {
+    } else if (special_kind_is(rp, sfk_destructor)) {
       rp->is_defaulted = TRUE;
-    } else if (rp->special_kind == (a_special_function_kind)sfk_operator &&
-               rp->variant.opname_kind == (an_opname_kind)onk_assign) {
+    } else if (special_kind_is(rp, sfk_operator) &&
+               opname_kind_is(rp, onk_assign)) {
       a_boolean  is_deleted;
       if (assignment_operator_can_be_defaulted(sym, &is_deleted)) {
         rp->is_defaulted = TRUE;
@@ -21243,23 +21243,14 @@ operators as deleted if appropriate.
             }  /* if */
           }  /* if */
         } else if (opname_kind_is(rp, onk_eq)) {
-          if (generated_eq_is_deleted(class_type)) {
-            rp->is_deleted = TRUE;
-            rp->defined = TRUE;
-          }  /* if */
+          check_defaulted_eq_properties(class_type, rp);
         } else if (opname_kind_is(rp, onk_ne)) {
-          if (generated_ne_is_deleted(class_type)) {
-            rp->is_deleted = TRUE;
-            rp->defined = TRUE;
-          }  /* if */
+          check_defaulted_ne_properties(class_type, rp);
         } else if (opname_kind_is(rp, onk_lt) ||
                    opname_kind_is(rp, onk_le) ||
                    opname_kind_is(rp, onk_ge) ||
                    opname_kind_is(rp, onk_gt)) {
-          if (generated_rel_op_is_deleted(class_type)) {
-            rp->is_deleted = TRUE;
-            rp->defined = TRUE;
-          }  /* if */
+          check_defaulted_rel_op_properties(class_type, rp);
         }  /* if */
       } else if (special_kind_is(rp, sfk_destructor)) {
         if (gsfd->suppress_dtor) {
@@ -21276,15 +21267,9 @@ operators as deleted if appropriate.
       rp = rlep->routine;
       if (rp->is_defaulted && special_kind_is(rp, sfk_operator)) {
         if (opname_kind_is(rp, onk_eq)) {
-          if (generated_eq_is_deleted(class_type)) {
-            rp->is_deleted = TRUE;
-            rp->defined = TRUE;
-          }  /* if */
+          check_defaulted_eq_properties(class_type, rp);
         } else if (opname_kind_is(rp, onk_ne)) {
-          if (generated_ne_is_deleted(class_type)) {
-            rp->is_deleted = TRUE;
-            rp->defined = TRUE;
-          }  /* if */
+          check_defaulted_ne_properties(class_type, rp);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -23896,10 +23881,7 @@ declared, declare one that matches the spaceship operator.
       }  /* if */
     }  /* if */
   } else {
-    if (nondeduced_generated_spaceship_is_deleted(srp, class_type)) {
-      srp->is_deleted = TRUE;
-      srp->defined = TRUE;
-    }  /* if */
+    check_nondeduced_defaulted_spaceship_properties(srp, class_type);
   }  /* if */
   if (erp == NULL) {
     /* No equality operator was found: Implicitly declare a defaulted one. */
@@ -23924,10 +23906,7 @@ declared, declare one that matches the spaceship operator.
     }  /* if */
     erp = decl_info.decl_state.sym->variant.routine.ptr;
     erp->compiler_generated = TRUE;
-    erp->is_constexpr = TRUE;
-    if (generated_eq_is_deleted(class_type)) {
-      erp->is_deleted = TRUE;
-    }  /* if */
+    check_defaulted_eq_properties(class_type, erp);
     done_with_func_info(func_info);
   }  /* if */
 }  /* check_implicit_comparison_operators */

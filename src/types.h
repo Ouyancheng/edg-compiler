@@ -115,6 +115,7 @@ extern a_boolean is_incomplete_type(a_type_ptr tp);
 extern a_boolean is_incomplete_array_type(a_type_ptr tp);
 extern a_boolean is_flexible_array_type(a_type_ptr tp);
 extern a_boolean class_type_has_body(a_type_ptr tp);
+extern a_boolean class_type_has_variant_member(a_type_ptr tp);
 extern a_boolean is_object_type(a_type_ptr tp);
 extern a_boolean is_complete_object_type(a_type_ptr tp);
 extern a_boolean is_void_type(a_type_ptr tp);
@@ -353,6 +354,13 @@ extern a_boolean check_for_vla_in_pointer_to_member(a_type_ptr         type,
                                                     a_source_position  *pos);
 
 extern a_type_ptr type_specifier_of_type(a_type_ptr type);
+
+/*
+Return a pointer to the associated routine type supplement.
+*/
+#define rout_type_supp(tp)                                                   \
+  ((tp)->variant.routine.extra_info)
+
 
 inline a_boolean is_immediate_class_type(a_type_ptr  type)
 /*
@@ -1467,8 +1475,7 @@ The type must be known to be a routine type (not, for example, an error type),
 but it may have typerefs on top of it.
 */
 #define routine_type_is_nonstatic_member_function(routine_type)       \
- (f_skip_typerefs(routine_type)->                                     \
-          variant.routine.extra_info->this_class != NULL)
+ (rout_type_supp(skip_typerefs(routine_type))->this_class != NULL)
 
 extern a_type_ptr f_implicit_this_param_type_of(a_type_ptr  routine_type);
 
@@ -1707,7 +1714,7 @@ extern a_boolean virtual_base_class_is_indirect(a_base_class_ptr vbcp,
                                                 a_type_ptr       class_type);
 
 #define function_type_params(rtp)                                       \
-  ((rtp)->variant.routine.extra_info->param_type_list)
+  (rout_type_supp(rtp)->param_type_list)
 
 extern void types_early_init(void);
 

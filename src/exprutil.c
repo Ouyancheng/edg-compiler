@@ -1851,6 +1851,7 @@ is pushed regardless of any of the other factors.
                               is_template_deduction_context();
   new_entry->in_static_initializer = FALSE;
   new_entry->next_stack_push_considered_same_expression = FALSE;
+  new_entry->record_first_nonconstexpr_call = FALSE;
   new_entry->constant_expr_ruled_out = FALSE;
   new_entry->traditional_const_expr_required = FALSE;
   new_entry->in_noexcept_operand_expression = FALSE;
@@ -17974,6 +17975,10 @@ error cases.
         /* Note this for processing later. */
         expr_stack->nodiscard_expr_seen = TRUE;
       }  /* if */
+    }  /* if */
+    if (expr_stack->record_first_nonconstexpr_call && !rout->is_constexpr) {
+      *p_called_nonconstexpr_routine = rout;
+      expr_stack->record_first_nonconstexpr_call = FALSE;
     }  /* if */
   }  /* if */
   /* Determine the operator to use for the call, and the return type. */

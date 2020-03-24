@@ -28577,16 +28577,19 @@ by adding an "indirection" operator on top of it.  Use the constant directly
 }  /* make_glvalue_from_null_ptr_constant */
 
 
-a_boolean generated_eq_is_deleted(a_type_ptr  class_tp)
+void check_defaulted_eq_properties(a_type_ptr     class_tp,
+                                   a_routine_ptr  erp)
 /*
-Return TRUE if a generated operator== for the given class type should be
-deleted.  This is the case if the class type has direct bases or fields that
-cannot be compared using the "==" operator (which is the case in particular
-for reference members and anonymous unions) or whose comparison result is not
-contextually convertible to bool.
+erp is a defaulted equality operator for the given class type.  Mark it as
+deleted if the class type has direct bases or fields that cannot be compared
+using the "==" operator (which is the case in particular for reference members
+and variant member) or whose comparison result is not contextually convertible
+to bool.  Also check whether the operator should be made constexpr (if it is
+implicitly declared) or issue an error if it was declared constexpr but it
+would call a non-constexpr comparison operator.
 */
 {
-  a_boolean            result = FALSE;
+  a_boolean            is_deleted = FALSE;
   a_type_ptr           ptr_class_tp;
   a_base_class_ptr     bcp;
   a_symbol_ptr         member_sym;
@@ -28594,13 +28597,15 @@ contextually convertible to bool.
   a_constant_ptr       zero_ptr;
   an_operand           opnd1, opnd2, cmp_opnd;
   an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
+  a_routine_ptr        called_nonconstexpr_rout = NULL,
+                       *saved_p_called_nonconstexpr_routine =
+                                                p_called_nonconstexpr_routine;
 
-  if (type_is(class_tp, tk_union) ||
-      class_type_supp(class_tp)->has_anonymous_union_member ||
+  if (class_type_has_variant_member(class_tp) ||
       class_symbol_supp(symbol_for(class_tp))->any_ref_member) {
-    /* Unions, union-like classes, and classes with reference members generate
-       deleted comparison operators. */
-    result = TRUE;
+    /* Classes with variant members and/or reference members generate deleted
+       equality operators. */
+    is_deleted = TRUE;
     goto done;
   }  /* if */
   check_assertion(curr_il_region_number == file_scope_region_number);
@@ -28610,8 +28615,9 @@ contextually convertible to bool.
                   /*suppress_object_lifetime=*/TRUE);
   expr_stack->suppress_diagnostics = TRUE;
   expr_stack->suppress_constexpr_call_folding = TRUE;
+  expr_stack->record_first_nonconstexpr_call = TRUE;
+  p_called_nonconstexpr_routine = &called_nonconstexpr_rout;
   zero_ptr = local_constant();
-  check_assertion(is_immediate_class_type(class_tp));
   for (bcp = base_classes_of(class_tp); bcp != NULL; bcp = bcp->next) {
     if (!bcp->direct) continue;
     ptr_class_tp = make_qualified_type(bcp->type,
@@ -28626,7 +28632,7 @@ contextually convertible to bool.
     process_boolean_controlling_expression(&cmp_opnd);
     reclaim_fs_nodes_of_operand(&cmp_opnd);
     if (expr_stack->any_suppressed_error) {
-      result = TRUE;
+      is_deleted = TRUE;
       goto done_with_subobjects;
     }  /* if */
   }  /* for */
@@ -28652,11 +28658,11 @@ contextually convertible to bool.
     make_glvalue_from_null_ptr_constant(zero_ptr, &opnd2);
     process_eq_operator(&opnd1, &opnd2, tok_eq, &pos_curr_token,
                         curr_token_sequence_number, &cmp_opnd);
-    /* Contextually convert *result to bool. */
+    /* Contextually convert cmp_opnd to bool. */
     process_boolean_controlling_expression(&cmp_opnd);
     reclaim_fs_nodes_of_operand(&cmp_opnd);
     if (expr_stack->any_suppressed_error) {
-      result = TRUE;
+      is_deleted = TRUE;
       goto done_with_subobjects;
     }  /* if */
   }  /* for */
@@ -28665,19 +28671,40 @@ done_with_subobjects:
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
 done:
-  return result;
-}  /* generated_eq_is_deleted */
+  if (is_deleted) {
+    erp->is_deleted = TRUE;
+    erp->defined = TRUE;
+  } else {
+    /* Check constexpr-ness. */
+    if (called_nonconstexpr_rout != NULL) {
+      if (erp->is_constexpr && !erp->compiler_generated) {
+        if (!rout_is_template_instance(erp)) {
+          pos_sy_error(ec_constexpr_comparison_calls_nonconstexpr_function,
+                       &erp->source_corresp.decl_position,
+                       symbol_for(called_nonconstexpr_rout));
+        }  /* if */
+        erp->is_constexpr = FALSE;
+      }  /* if */
+    } else {
+      erp->is_constexpr = TRUE;
+    }  /* if */
+  }  /* if */
+  p_called_nonconstexpr_routine = saved_p_called_nonconstexpr_routine;
+}  /* check_defaulted_eq_properties */
 
 
-a_boolean generated_ne_is_deleted(a_type_ptr  class_tp)
+void check_defaulted_ne_properties(a_type_ptr     class_tp,
+                                   a_routine_ptr  nrp)
 /*
-Return TRUE if a generated operator!= for the given class type should be
-deleted.  This is the case if an "x == x" for lvalues of the given class type
-does not find a usable best candidate, or if that overload does not produce a
-"bool" result.
+nrp is a defaulted operator!= for the given class type.  Mark it as deleted if
+appropraite (if an "x == x" for lvalues of the given class type does not find
+a usable best candidate, or if that overload does not produce a "bool" result).
+Also check whether the operator should be made constexpr (if it is implicitly
+declared) or issue an error if it was declared constexpr but it would call a
+non-constexpr comparison operator.
 */
 {
-  a_boolean             result = FALSE;
+  a_boolean             is_deleted = FALSE;
   a_type_ptr            ptr_class_tp;
   a_constant_ptr        zero_ptr;
   an_operand            opnd1, opnd2;
@@ -28688,22 +28715,20 @@ does not find a usable best candidate, or if that overload does not produce a
   a_boolean             dependent_call = FALSE, defer_resolution = FALSE,
                         undecidable = FALSE, ambiguous = FALSE;
   a_symbol_ptr          inaccessible_match = NULL;
+  a_routine_ptr         called_nonconstexpr_rout = NULL,
+                        *saved_p_called_nonconstexpr_routine =
+                                                p_called_nonconstexpr_routine;
+
 
   check_assertion(curr_il_region_number == file_scope_region_number);
-  if (type_is(class_tp, tk_union) ||
-      class_type_supp(class_tp)->has_anonymous_union_member ||
-      class_symbol_supp(symbol_for(class_tp))->any_ref_member) {
-    /* Unions, union-like classes, and classes with reference members generate
-       deleted comparison operators. */
-    result = TRUE;
-    goto done;
-  }  /* if */
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
   expr_stack->suppress_diagnostics = TRUE;
   expr_stack->suppress_constexpr_call_folding = TRUE;
+  expr_stack->record_first_nonconstexpr_call = TRUE;
+  p_called_nonconstexpr_routine = &called_nonconstexpr_rout;
   zero_ptr = local_constant();
   check_assertion(is_immediate_class_type(class_tp));
   ptr_class_tp = make_qualified_type(class_tp,
@@ -28729,31 +28754,48 @@ does not find a usable best candidate, or if that overload does not produce a
   free_arg_list(arg_list);
   if (undecidable || ambiguous || candidates == NULL) {
     /* No unambiguous, accessible, best match. */
-    result = TRUE;
+    is_deleted = TRUE;
   } else {
     a_symbol_ptr   sym = candidates->function_symbol;
     check_assertion(sym != NULL);
     if (sym->is_class_member &&
         !have_access_to_symbol_full(sym, /*ignore_func_templ=*/FALSE)) {
-      result = TRUE;
+      is_deleted = TRUE;
     } else {
       a_routine_ptr  rp;
       sym = fundamental_symbol_of(candidates->function_symbol);
       rp = func_sym_routine(sym);
       if (rp->is_deleted) {
-        result = TRUE;
+        is_deleted = TRUE;
       } else {
         a_type_ptr  rtp = skip_typerefs(rp->type);
         if (!is_bool_type(rtp->variant.routine.return_type)) {
-          result = TRUE;
+          is_deleted = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
   release_local_constant(&zero_ptr);
-done:
-  return result;
-}  /* generated_ne_is_deleted */
+  if (is_deleted) {
+    nrp->is_deleted = TRUE;
+    nrp->defined = TRUE;
+  } else {
+    /* Check constexpr-ness. */
+    if (called_nonconstexpr_rout != NULL) {
+      if (nrp->is_constexpr && !nrp->compiler_generated) {
+        if (!rout_is_template_instance(nrp)) {
+          pos_sy_error(ec_constexpr_comparison_calls_nonconstexpr_function,
+                       &nrp->source_corresp.decl_position,
+                       symbol_for(called_nonconstexpr_rout));
+        }  /* if */
+        nrp->is_constexpr = FALSE;
+      }  /* if */
+    } else {
+      nrp->is_constexpr = TRUE;
+    }  /* if */
+  }  /* if */
+  p_called_nonconstexpr_routine = saved_p_called_nonconstexpr_routine;
+}  /* check_defaulted_ne_properties */
 
 
 /*
@@ -28806,7 +28848,9 @@ void determine_defaulted_spaceship_return_type(a_routine_ptr  srp,
 /*
 srp represents a defaulted operator<=> with a deducible return type for the
 given class type (whose declared data members are all known).  Determine the
-actual return type and mark the routine as deleted if appropriate.
+actual return type. Also mark the routine as deleted if appropriate, and check
+its "constexpr" property.  Issue an error if it is declared constexpr but it
+would call a non-constexpr subobject comparison function
 */
 {
   a_type_ptr           return_tp, ptr_class_tp;
@@ -28818,6 +28862,9 @@ actual return type and mark the routine as deleted if appropriate.
   an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
   a_comparison_category_set
                        ccs = (a_comparison_category_set)ccs_none;
+  a_routine_ptr        called_nonconstexpr_rout = NULL,
+                       *saved_p_called_nonconstexpr_routine =
+                                                p_called_nonconstexpr_routine;
 
   if (class_symbol_supp(class_sym)->any_ref_member ||
       class_type_supp(class_tp)->has_anonymous_union_member) {
@@ -28831,6 +28878,8 @@ actual return type and mark the routine as deleted if appropriate.
                   /*suppress_object_lifetime=*/TRUE);
   expr_stack->suppress_diagnostics = TRUE;
   expr_stack->suppress_constexpr_call_folding = TRUE;
+  expr_stack->record_first_nonconstexpr_call = TRUE;
+  p_called_nonconstexpr_routine = &called_nonconstexpr_rout;
   zero_ptr = local_constant();
   check_assertion(is_immediate_class_type(class_tp));
   for (bcp = base_classes_of(class_tp); bcp != NULL; bcp = bcp->next) {
@@ -28931,17 +28980,35 @@ set_return_type:
     return_tp = strong_ordering_type();
   }  /* if */
   set_deduced_return_type(return_tp, &srp->source_corresp.decl_position, srp);
+  if (!srp->is_deleted) {
+    if (called_nonconstexpr_rout != NULL) {
+      if (srp->is_constexpr && !srp->compiler_generated) {
+        if (!rout_is_template_instance(srp)) {
+          pos_sy_error(ec_constexpr_comparison_calls_nonconstexpr_function,
+                       &srp->source_corresp.decl_position,
+                       symbol_for(called_nonconstexpr_rout));
+        }  /* if */
+        srp->is_constexpr = FALSE;
+      }  /* if */
+    } else {
+      srp->is_constexpr = TRUE;
+    }  /* if */
+  }  /* if */
+  p_called_nonconstexpr_routine = saved_p_called_nonconstexpr_routine;
 }  /* determine_defaulted_spaceship_return_type */
 
 
-a_boolean generated_rel_op_is_deleted(a_type_ptr  class_tp)
+void check_defaulted_rel_op_properties(a_type_ptr     class_tp,
+                                       a_routine_ptr  rrp)
 /*
-Return TRUE if a generated relational operator for the given class type should
-be deleted.  This is the case if an "x <=> x" for lvalues of the given class
-type does not find usable best candidate.
+rrp is a defaulted <, <=, >, or >= operator for the given class type.  Mark it
+as deleted if appropriate (if an "x <=> x" for lvalues of the given class type
+does not find usable best candidate).  Also check whether the operator should
+be made constexpr (if it is implicitly declared) or issue an error if it was
+declared constexpr but it would call a non-constexpr comparison operator.
 */
 {
-  a_boolean             result = FALSE;
+  a_boolean             is_deleted = FALSE;
   a_type_ptr            ptr_class_tp;
   a_constant_ptr        zero_ptr;
   an_operand            opnd1, opnd2;
@@ -28952,15 +29019,11 @@ type does not find usable best candidate.
   a_boolean             dependent_call = FALSE, defer_resolution = FALSE,
                         undecidable = FALSE, ambiguous = FALSE;
   a_symbol_ptr          inaccessible_match = NULL;
+  a_routine_ptr         called_nonconstexpr_rout = NULL,
+                        *saved_p_called_nonconstexpr_routine =
+                                                p_called_nonconstexpr_routine;
 
-  if (type_is(class_tp, tk_union) ||
-      class_type_supp(class_tp)->has_anonymous_union_member ||
-      class_symbol_supp(symbol_for(class_tp))->any_ref_member) {
-    /* Unions, union-like classes, and classes with reference members generate
-       deleted comparison operators. */
-    result = TRUE;
-    goto done;
-  }  /* if */
+
   check_assertion(curr_il_region_number == file_scope_region_number);
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
@@ -28968,6 +29031,8 @@ type does not find usable best candidate.
                   /*suppress_object_lifetime=*/TRUE);
   expr_stack->suppress_diagnostics = TRUE;
   expr_stack->suppress_constexpr_call_folding = TRUE;
+  expr_stack->record_first_nonconstexpr_call = TRUE;
+  p_called_nonconstexpr_routine = &called_nonconstexpr_rout;
   zero_ptr = local_constant();
   check_assertion(is_immediate_class_type(class_tp));
   ptr_class_tp = make_qualified_type(class_tp,
@@ -28993,27 +29058,44 @@ type does not find usable best candidate.
   free_arg_list(arg_list);
   if (undecidable || ambiguous || candidates == NULL) {
     /* No unambiguous, accessible, best match. */
-    result = TRUE;
+    is_deleted = TRUE;
   } else {
     a_symbol_ptr   sym = candidates->function_symbol;
     check_assertion(sym != NULL);
     if (!have_access_to_symbol_full(sym, /*ignore_func_templ=*/FALSE)) {
-      result = TRUE;
+      is_deleted = TRUE;
     } else {
       a_routine_ptr  rp;
       sym = fundamental_symbol_of(candidates->function_symbol);
       rp = func_sym_routine(sym);
       if (rp->is_deleted) {
-        result = TRUE;
+        is_deleted = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
   release_local_constant(&zero_ptr);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
-done:
-  return result;
-}  /* generated_rel_op_is_deleted */
+  if (is_deleted) {
+    rrp->is_deleted = TRUE;
+    rrp->defined = TRUE;
+  } else {
+    /* Check constexpr-ness. */
+    if (called_nonconstexpr_rout != NULL) {
+      if (rrp->is_constexpr && !rrp->compiler_generated) {
+        if (!rout_is_template_instance(rrp)) {
+          pos_sy_error(ec_constexpr_comparison_calls_nonconstexpr_function,
+                       &rrp->source_corresp.decl_position,
+                       symbol_for(called_nonconstexpr_rout));
+        }  /* if */
+        rrp->is_constexpr = FALSE;
+      }  /* if */
+    } else {
+      rrp->is_constexpr = TRUE;
+    }  /* if */
+  }  /* if */
+  p_called_nonconstexpr_routine = saved_p_called_nonconstexpr_routine;
+}  /* check_defaulted_rel_op_properties */
 
 
 an_expr_node_ptr make_eq_comparison(an_expr_node_ptr  arg1,
@@ -29398,12 +29480,14 @@ synthesized operator<=> returning the type of the given comparison category.
 }  /* spaceship_synthesis_impossible */
 
 
-a_boolean nondeduced_generated_spaceship_is_deleted(a_routine_ptr  srp,
-                                                    a_type_ptr     class_tp)
+void check_nondeduced_defaulted_spaceship_properties(a_routine_ptr  srp,
+                                                     a_type_ptr     class_tp)
 /*
-Return TRUE if the given defaulted operator<=> whose type is explicitly
-specified (i.e., not a deduced return type) should be deleted.  This is the
-case if a comparison of subobjects does not find a usable best candidate.
+srp is a default operator<=> for the given class type, and its return type
+is not deduced.  Mark it as deleted if a comparison of subobjects does not
+find a usable best candidate.  Also determine whether it should be constexpr,
+and issue an error if it was declared constexpr but its calls a non-constexpr
+operator function for the comparison of subobjects.
 */
 {
   a_boolean            is_deleted = FALSE;
@@ -29414,12 +29498,14 @@ case if a comparison of subobjects does not find a usable best candidate.
   an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
   a_comparison_category_set
                        ccs = (a_comparison_category_set)ccs_none;
+  a_routine_ptr        called_nonconstexpr_rout = NULL,
+                       *saved_p_called_nonconstexpr_routine =
+                                                p_called_nonconstexpr_routine;
 
-  if (type_is(class_tp, tk_union) ||
-      class_type_supp(class_tp)->has_anonymous_union_member ||
+  if (class_type_has_variant_member(class_tp) ||
       class_symbol_supp(symbol_for(class_tp))->any_ref_member) {
-    /* Unions, union-like classes, and classes with reference members generate
-       deleted comparison operators. */
+    /* Classes with variant members and/or reference members generate deleted
+       spaceship operators. */
     is_deleted = TRUE;
     goto done;
   }  /* if */
@@ -29438,7 +29524,8 @@ case if a comparison of subobjects does not find a usable best candidate.
                   /*suppress_object_lifetime=*/TRUE);
   expr_stack->suppress_diagnostics = TRUE;
   expr_stack->suppress_constexpr_call_folding = TRUE;
-  check_assertion(is_immediate_class_type(class_tp));
+  expr_stack->record_first_nonconstexpr_call = TRUE;
+  p_called_nonconstexpr_routine = &called_nonconstexpr_rout;
   for (bcp = base_classes_of(class_tp); bcp != NULL; bcp = bcp->next) {
     if (!bcp->direct) continue;
     if (spaceship_synthesis_impossible(bcp->type, ccs)) {
@@ -29467,8 +29554,26 @@ done_with_subobjects:
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
 done:;
-  return is_deleted;
-}  /* nondeduced_generated_spaceship_is_deleted */
+  if (is_deleted) {
+    srp->is_deleted = TRUE;
+    srp->defined = TRUE;
+  } else {
+    /* Check constexpr-ness. */
+    if (called_nonconstexpr_rout != NULL) {
+      if (srp->is_constexpr && !srp->compiler_generated) {
+        if (!rout_is_template_instance(srp)) {
+          pos_sy_error(ec_constexpr_comparison_calls_nonconstexpr_function,
+                       &srp->source_corresp.decl_position,
+                       symbol_for(called_nonconstexpr_rout));
+        }  /* if */
+        srp->is_constexpr = FALSE;
+      }  /* if */
+    } else if (srp->compiler_generated) {
+      srp->is_constexpr = TRUE;
+    }  /* if */
+  }  /* if */
+  p_called_nonconstexpr_routine = saved_p_called_nonconstexpr_routine;
+}  /* check_nondeduced_defaulted_spaceship_properties */
 
 
 void make_defaulted_final_spaceship_return(a_type_ptr       func_tp,

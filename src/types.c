@@ -484,6 +484,29 @@ incomplete (because the definition is not done yet).
 }  /* class_type_has_body */
 
 
+a_boolean class_type_has_variant_member(a_type_ptr  tp)
+/*
+Return TRUE if the given class type has a variant member.
+*/
+{
+  a_boolean  result = FALSE;
+  a_boolean  is_union = type_is(tp, tk_union);
+
+  check_assertion(is_immediate_class_type(tp));
+  if (is_union || class_type_supp(tp)->has_anonymous_union_member) {
+    a_symbol_ptr  sym = class_symbol_supp(symbol_for(tp))->symbols;
+    for (; sym != NULL; sym = sym->next_in_scope) {
+      if (symbol_is(sym, sk_field) &&
+          (is_union || sym->variant.field.extra_info->is_variant_member)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* class_type_has_variant_member */
+
+
 a_boolean is_object_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an object type.  In C, that is always a
