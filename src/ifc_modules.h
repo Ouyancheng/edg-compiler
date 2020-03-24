@@ -1099,6 +1099,7 @@ enum an_ifc_partition_kind_tag {
   ifc_type_end = ifc_type_start + (ifc_TypeSort_Last-1),
   /* Group all ifc_NameSort_ifc_NameSort_Identifier. */
   ifc_name_start,
+  ifc_name_identifier = ifc_name_start + ifc_NameSort_Identifier,
   ifc_name_operator = ifc_name_start + ifc_NameSort_Operator,
   ifc_name_conversion = ifc_name_start + ifc_NameSort_Conversion,
   ifc_name_literal = ifc_name_start + ifc_NameSort_Literal,
@@ -1192,8 +1193,8 @@ enum an_ifc_partition_kind_tag {
   /* Group all ChartSort::Tag partitions together. */
   ifc_chart_start,
   ifc_chart_none = ifc_chart_start + ifc_ChartSort_None,
-  ifc_chart_multilevel = ifc_chart_start + ifc_ChartSort_Multilevel,
   ifc_chart_unilevel = ifc_chart_start + ifc_ChartSort_Unilevel,
+  ifc_chart_multilevel = ifc_chart_start + ifc_ChartSort_Multilevel,
   ifc_chart_end = ifc_chart_start + (ifc_ChartSort_Last-1),
   /* Group all SyntaxSort::Tag partitions together. */
   ifc_syntax_start,
@@ -1282,6 +1283,7 @@ enum an_ifc_partition_kind_tag {
                                               ifc_SyntaxSort_ContinueStatement,
   ifc_syntax_switch_statement = ifc_syntax_start +
                                                 ifc_SyntaxSort_SwitchStatement,
+  ifc_syntax_goto_statement = ifc_syntax_start + ifc_SyntaxSort_GotoStatement,
   ifc_syntax_declaration_statement = ifc_syntax_start +
                                            ifc_SyntaxSort_DeclarationStatement,
   ifc_syntax_expression_statement = ifc_syntax_start +
@@ -1318,6 +1320,8 @@ enum an_ifc_partition_kind_tag {
                                                 ifc_SyntaxSort_RequirementBody,
   ifc_syntax_type_template_parameter = ifc_syntax_start +
                                           ifc_SyntaxSort_TypeTemplateParameter,
+  ifc_syntax_type_template_template_parameter = ifc_syntax_start +
+                                      ifc_SyntaxSort_TemplateTemplateParameter,
   ifc_syntax_type_template_argument = ifc_syntax_start +
                                            ifc_SyntaxSort_TypeTemplateArgument,
   ifc_syntax_non_type_template_argument = ifc_syntax_start +
@@ -1524,6 +1528,7 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   /* Not mentioned in spec.  ExprSort::Array is not elaborated. */
   { "expr.array-value",                ifc_expr_array },
   { "expr.assign-initializer",         ifc_expr_assign_initializer },
+  { "expr.binary-fold-expression",     ifc_expr_binaryfold },
   { "expr.call",                       ifc_expr_call },
   { "expr.cast",                       ifc_expr_cast },
   /* Not mentioned in spec.  ExprSort::Subobject is not elaborated. */
@@ -1670,6 +1675,7 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "syntax.function-declarator",      ifc_syntax_function_declarator },
   { "syntax.function-definition",      ifc_syntax_function_definition },
   { "syntax.function-try-block",       ifc_syntax_function_try_block },
+  { "ifc_syntax_goto_statement",       ifc_syntax_goto_statement },
   { "syntax.handler",                  ifc_syntax_handler },
   { "syntax.handler-seq",              ifc_syntax_handler_seq },
   { "syntax.if-statement",             ifc_syntax_if_statement },
@@ -1718,6 +1724,8 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "syntax.template-declaration",     ifc_syntax_template_declaration },
   { "syntax.template-id",              ifc_syntax_template_id },
   { "syntax.template-parameter-list",  ifc_syntax_template_parameter_list },
+  { "ifc_syntax_type_template_template_parameter",
+                                 ifc_syntax_type_template_template_parameter },
   { "syntax.this-capture",             ifc_syntax_this_capture },
   { "syntax.trailing-return-type",     ifc_syntax_trailing_return_type },
   { "syntax.try-block",                ifc_syntax_try_block },
@@ -1770,6 +1778,9 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "type.typename",                   ifc_type_typename },
   { "type.unaligned",                  ifc_type_unaligned },
   { "type.vendor-extension",           ifc_type_vendor_extension },
+  { NULL,                              ifc_none },
+  /* No special partition - name identifiers use the string table. */
+  { NULL,                              ifc_name_identifier },
   { NULL,                              ifc_last } /* Must be last. */
 }
 #endif /* VAR_INITIALIZERS */

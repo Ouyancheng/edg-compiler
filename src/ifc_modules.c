@@ -1429,7 +1429,7 @@ buffer.
   idssp = get_DeclSort_Scope(&idss);
   str_ifc_class_definition(idssp, &scb);
   add_char_to_text_buffer(buffer, ';');
-}  /* get_definition_of_module_class_from_ifc */
+}  /* get_definition_of_module_class */
 
 #if DEBUG
 

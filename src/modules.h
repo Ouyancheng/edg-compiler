@@ -142,9 +142,6 @@ extern void import_module_file(a_module_import_decl_ptr midp);
 extern void define_names_from_scope(a_scope_ptr     scope,
                                     a_symbol_header *sym_hdr);
 
-extern void get_definition_of_module_class(a_type_ptr    class_type,
-                                           a_text_buffer *buffer);
-
 extern a_hash_value hash_module_entity(a_void_ptr  key);
 
 extern a_boolean compare_for_module_entity(a_void_ptr  entry,

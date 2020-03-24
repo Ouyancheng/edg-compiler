@@ -449,8 +449,9 @@ scope.
 }  /* define_names_from_scope */
 
 
-void get_definition_of_module_class(a_type_ptr    class_type,
-                                    a_text_buffer *buffer)
+/*lint -esym(714,*get_definition_of_module_class)*/  /* FIXME: Temporary */
+static void get_definition_of_module_class(a_type_ptr    class_type,
+                                           a_text_buffer *buffer)
 /*
 This routine is called (from get_definition_of_class) when the front end has
 determined that the class is defined in a module and now needs a definition.
@@ -594,6 +595,7 @@ Dispatch the is_open() call to the variant for the actual object.
 }  /* is_open */
 
 
+/*lint -esym(1762,*a_module_interface::import)*/ /* FIXME: temporary*/
 a_boolean a_module_interface::import(a_module_import_decl_ptr midp) noexcept
 /*
 Dispatch the import() call to the variant for the actual object.
@@ -620,6 +622,7 @@ Dispatch the import() call to the variant for the actual object.
 }  /* import */
 
 
+/*lint -esym(1762,*a_module_interface::close)*/ /* FIXME: temporary*/
 void a_module_interface::close() noexcept
 /*
 Dispatch the close() call to the variant for the actual object.
@@ -643,6 +646,7 @@ Dispatch the close() call to the variant for the actual object.
 }  /* close */
 
 
+/*lint -esym(1762,*a_module_interface::pch_reset)*/ /* FIXME: temporary*/
 void a_module_interface::pch_reset(a_module_import_decl_ptr midp) noexcept
 /*
 Dispatch the pch_reset() call to the variant for the actual object.
@@ -854,6 +858,9 @@ Do one-time initialization of static variables defined in this file.
   module_file_name_buffer = alloc_text_buffer(64);
   module_primary_name_buffer = alloc_text_buffer(64);
   module_partition_name_buffer = alloc_text_buffer(64);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ifc_modules_one_time_init();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* modules_one_time_init */
 
 
@@ -866,6 +873,9 @@ for each compilation.
 {
   curr_module_sym = NULL;
   module_entity_hash_table = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ifc_modules_init();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* modules_init */
 
 
