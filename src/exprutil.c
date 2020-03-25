@@ -6517,7 +6517,7 @@ function).  In such cases, record a pending diagnostic if appropriate.
         /* An error should have been issued already.  An additional one is
            not really helpful. */
         expect_error();
-      } else if (expr_stack->suppress_diagnostics) {
+      } else if (expr_stack != NULL && expr_stack->suppress_diagnostics) {
         record_suppressed_error();
       } else {
         a_diagnostic_ptr  dp;
