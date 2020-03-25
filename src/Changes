@@ -1,5 +1,24 @@
 Version 6.1
 
+3/25/20  [EDGcpfe/22519]
+Abort in variable_this_exists_full on complex lambda use
+
+The front end previously could abort with an internal error in
+variable_this_exists_full (overload.c) when a lambda appearing in a member
+function of a class itself appearing in a default member initializer.
+
+  struct X {
+    int x = []() {
+              struct N {
+                void f() { return [=](){ return x; }(); }
+                  // Previously triggered an internal error.
+              };
+            }();
+  };
+
+That is now fixed.
+
+
 3/25/20  [EDGcpfe/22527]
 Missing diagnostic on use of template variable in its own initializer
 

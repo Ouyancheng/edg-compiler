@@ -11455,16 +11455,7 @@ implicit "this" is available, e.g., during overload resolution.
         encl_rout = closure_class->source_corresp.enclosing_routine;
       }  /* while */
       ctsp = class_type_supp(closure_class);
-      if (ctsp->defined_in_field_initializer) {
-        /* The lambda occurred in a field initializer, which is a context that
-           permits references to "this" (but there is no associated variable
-           yet). */
-        this_exists = TRUE;
-        check_assertion(closure_class->source_corresp.is_class_member);
-        local_this_type = parent_class_of(closure_class);
-        local_this_type = add_right_pointer_type_to_this(local_this_type,
-                                                         local_this_type);
-      } else if (encl_rout != NULL) {
+      if (encl_rout != NULL) {
         /* There is a routine that encloses the lambda.  See if it is a
             nonstatic member function. */
         if (routine_type_is_nonstatic_member_function(encl_rout->type)) {
@@ -11475,6 +11466,15 @@ implicit "this" is available, e.g., during overload resolution.
           check_assertion(local_this_var != NULL);
           this_exists = TRUE;
         }  /* if */
+      } else if (ctsp->defined_in_field_initializer) {
+        /* The lambda occurred in a field initializer, which is a context that
+           permits references to "this" (but there is no associated variable
+           yet). */
+        this_exists = TRUE;
+        check_assertion(closure_class->source_corresp.is_class_member);
+        local_this_type = parent_class_of(closure_class);
+        local_this_type = add_right_pointer_type_to_this(local_this_type,
+                                                         local_this_type);
       }  /* if */
     } else if (!is_lambda_body) {
       /* Normal case, not inside a lambda (but inside a function body). */
