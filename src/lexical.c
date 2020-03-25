@@ -22921,6 +22921,7 @@ C++/CLI delegate class types.)
   a_boolean			define_class = FALSE;
   sizeof_t			size = 0;
   a_type_ptr			class_type_for_context = class_type;
+  a_class_type_supplement_ptr	ctsp = class_type_supp(class_type);
   a_source_position		position_for_tokens;
   a_scope_depth			saved_non_local_class_fixup_depth =
                                                    non_local_class_fixup_depth;
@@ -22930,9 +22931,8 @@ C++/CLI delegate class types.)
 #if CPPCLI_ENABLING_POSSIBLE
   a_boolean			saved_scanning_generated_code_from_metadata;
   a_boolean			saved_scanning_generated_code;
-  a_boolean			is_delegate;
-  a_boolean			is_generic_definition;
-  a_class_type_supplement_ptr	ctsp = class_type_supp(class_type);
+  a_boolean			is_delegate = FALSE;
+  a_boolean			is_generic_definition = FALSE;
   an_assembly_index             assembly_index = 0;
   an_assembly_index             saved_assembly_index = curr_assembly_index;
   an_assembly_scope_index	assembly_scope_index = 0;
@@ -22959,8 +22959,12 @@ C++/CLI delegate class types.)
       } else {
         define_class = TRUE;
       }  /* if */
-    }  /* if */
+    } else
 #endif /* CPPCLI_ENABLING_POSSIBLE */
+    /* Do not insert code here. */
+    if (ctsp->module_entity != NULL) {
+      define_class = TRUE;
+    }  /* if */
   }  /* if */
   /* This routine cannot handle local classes. */
   if (class_type->source_corresp.is_local_to_function) {
@@ -22992,9 +22996,7 @@ C++/CLI delegate class types.)
   curr_assembly_index = assembly_index;
   saved_scanning_generated_code_from_metadata 
                                        = scanning_generated_code_from_metadata;
-  saved_scanning_generated_code = scanning_generated_code;
   scanning_generated_code_from_metadata = TRUE;
-  scanning_generated_code = TRUE;
   is_generic_definition = class_type->
                               variant.class_struct_union.is_generic_definition;
   /* For nested classes of generic definitions, don't attempt to push an
@@ -23007,6 +23009,8 @@ C++/CLI delegate class types.)
     class_sym_for_context = NULL;
   }  /* if */
 #endif /* CPPCLI_ENABLING_POSSIBLE */
+  saved_scanning_generated_code = scanning_generated_code;
+  scanning_generated_code = TRUE;
   tdip = alloc_template_decl_info();
   set_template_decl_info_for_class_definition(tdip, class_type_for_context);
   (void)push_template_instantiation_scope(
@@ -23027,44 +23031,54 @@ C++/CLI delegate class types.)
                                       class_type->source_corresp.name_linkage;
   if (class_def_buffer == NULL) class_def_buffer = alloc_text_buffer(1024);
   reset_text_buffer(class_def_buffer);
+  if (ctsp->module_entity != NULL) {
+    /* This class was declared in a module.  Load its definition now. */
+    get_definition_of_module_class(class_type, class_def_buffer);
+  }  /* if */
 #if CPPCLI_ENABLING_POSSIBLE
-  /* Get the definition from metadata.  */
-  size = class_def_buffer->allocated_size;
-  import_class_definition(assembly_scope_index, 
-                          metadata_type_def_token,
-                          class_def_buffer->buffer, &size, &is_delegate);
-  if (size <= class_def_buffer->allocated_size) {
-    /* The buffer fits.  Mark the size that has been written. */
-    class_def_buffer->size = size;
-  } else {
-    /* Expand the buffer */
-    reset_text_buffer(class_def_buffer);
-    expand_text_buffer(class_def_buffer, size);
+  /* Do not insert code here. */
+  else {
+    /* Get the definition from metadata.  */
+    size = class_def_buffer->allocated_size;
     import_class_definition(assembly_scope_index, 
                             metadata_type_def_token,
                             class_def_buffer->buffer, &size, &is_delegate);
-    check_assertion(size <= class_def_buffer->allocated_size);
-    class_def_buffer->size = size;
-  }  /* if */
+    if (size <= class_def_buffer->allocated_size) {
+      /* The buffer fits.  Mark the size that has been written. */
+      class_def_buffer->size = size;
+    } else {
+      /* Expand the buffer */
+      reset_text_buffer(class_def_buffer);
+      expand_text_buffer(class_def_buffer, size);
+      import_class_definition(assembly_scope_index,
+                              metadata_type_def_token,
+                              class_def_buffer->buffer, &size, &is_delegate);
+      check_assertion(size <= class_def_buffer->allocated_size);
+      class_def_buffer->size = size;
+    }  /* if */
 #if DEBUG
-  if (db_flag_is_set("dump_metadata") || db_flag_is_set("dump_full_metadata")){
-    fprintf(f_debug, "Class definition for 0x%x/0x%08x: ",
-            assembly_scope_index, metadata_type_def_token);
-    db_dump_metadata(class_def_buffer, db_flag_is_set("dump_metadata") ? 256 :
-                                                                         0);
-  }  /* if */
+    if (db_flag_is_set("dump_metadata") || db_flag_is_set("dump_full_metadata")){
+      fprintf(f_debug, "Class definition for 0x%x/0x%08x: ",
+              assembly_scope_index, metadata_type_def_token);
+      db_dump_metadata(class_def_buffer, db_flag_is_set("dump_metadata") ? 256 :
+                                                                           0);
+    }  /* if */
 #endif /* DEBUG */
+  }  /* if */
 #else /* !CPPCLI_ENABLING_POSSIBLE */
-  /* Add code here to construct in the text buffer the string to be used to
-     define the class.  It may also be desirable to disable macro expansion
-     while the tokens are being scanned.  This shows a simple class
-     definition: 
-       add_string_to_text_buffer(class_def_buffer,
-                                 "{int i; void f(int j=1){} };");
-     Note that the definition starts with what would appear after the
-     class name in a normal class definition (i.e., the base classes or
-     the opening brace of the class) and ends with the closing brace and
-     semicolon. */
+  /* Do not insert code here. */
+  else {
+    /* Add code here to construct in the text buffer the string to be used to
+       define the class.  It may also be desirable to disable macro expansion
+       while the tokens are being scanned.  This shows a simple class
+       definition:
+         add_string_to_text_buffer(class_def_buffer,
+                                   "{int i; void f(int j=1){} };");
+       Note that the definition starts with what would appear after the
+       class name in a normal class definition (i.e., the base classes or
+       the opening brace of the class) and ends with the closing brace and
+       semicolon. */
+  }  /* if */
 #endif /* CPPCLI_ENABLING_POSSIBLE */
 #if CPPCLI_ENABLING_POSSIBLE
   if (assembly_index != 0) {
@@ -23130,7 +23144,6 @@ C++/CLI delegate class types.)
 #if CPPCLI_ENABLING_POSSIBLE
   scanning_generated_code_from_metadata 
                                  = saved_scanning_generated_code_from_metadata;
-  scanning_generated_code = saved_scanning_generated_code;
   curr_assembly_index = saved_assembly_index;
 #endif /* CPPCLI_ENABLING_POSSIBLE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -23139,6 +23152,7 @@ C++/CLI delegate class types.)
   scope_stack_top().source_sequence_entries_disallowed 
                                     = saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  scanning_generated_code = saved_scanning_generated_code;
 done:
   return;
 }  /* get_definition_of_class */

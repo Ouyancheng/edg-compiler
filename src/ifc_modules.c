@@ -2037,6 +2037,10 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
           /* Note that inscp->encoded contains the mangled name of the
              conversion function, so use the name from the type instead. */
           result = target_type->source_corresp.name;
+          if (result == NULL) {
+            fill_in_type_name(target_type);
+            result = target_type->source_corresp.name;
+          }  /* if */
           if (loc != NULL) {
             /* Set the locator as appropriate for a conversion function. */
             make_type_conversion_locator(target_type, loc,
@@ -2082,17 +2086,17 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
         unexpected_condition();
     }  /* switch */
   }  /* if */
-  if (prefix != NULL) {
-    /* If a prefix was specified, add it now. */
-    if (operator_text_buffer == NULL) {
-      operator_text_buffer = alloc_text_buffer(20);
-    }  /* if */
-    reset_text_buffer(operator_text_buffer);
-    add_string_to_text_buffer(operator_text_buffer, prefix);
-    add_string_to_text_buffer(operator_text_buffer, result);
-    add_char_to_text_buffer(operator_text_buffer, '\0');
-    result = operator_text_buffer->buffer;
+  if (operator_text_buffer == NULL) {
+    operator_text_buffer = alloc_text_buffer(20);
   }  /* if */
+  reset_text_buffer(operator_text_buffer);
+  /* If a prefix was specified, add it now. */
+  if (prefix != NULL) {
+    add_string_to_text_buffer(operator_text_buffer, prefix);
+  }  /* if */
+  add_string_to_text_buffer(operator_text_buffer, result);
+  add_char_to_text_buffer(operator_text_buffer, '\0');
+  result = operator_text_buffer->buffer;
   return result;
 }  /* string_from_name_index */
 
@@ -3241,12 +3245,15 @@ FIXME: more specific
         str_ifc_declaration(itsdp->decl, /*is_designated_type=*/TRUE, scbp);
       }
       break;
-    case ifc_TypeSort_Method: /* FIXME: for now (same structures)?): */
-      { an_ifc_TypeSort_Method itsm;
-        get_TypeSort_Method(&itsm);
-        /* FIXME: Handle this. */
+    case ifc_TypeSort_Method:  /* FIXME: Merge with below. */
+      { an_ifc_TypeSort_Method itsm, *itsmp;
+        itsmp = get_TypeSort_Method(&itsm);
+        /* FIXME: Need more here. */
+        str_ifc_function_type_traits(itsmp->traits, scbp);
+        /* Emit return type on the first pass (parameters are emitted on the
+           second pass). */
+        str_ifc_type_index(itsmp->target, scbp);
       }
-      unexpected_condition(); /* FIXME: No longer same structures. */
       break;
     case ifc_TypeSort_Function:
       { an_ifc_TypeSort_Function itsf, *itsfp;
@@ -3427,8 +3434,20 @@ FIXME: more specific
     case ifc_TypeSort_Base:
       /* Handled in str_ifc_type_index_first_part. */
       break;
-    case ifc_TypeSort_Method: /* FIXME: for now (same structures)?): */
-      unexpected_condition(); /* FIXME: No longer same structures. */
+    case ifc_TypeSort_Method:  /* FIXME: Merge with below. */
+      { an_ifc_TypeSort_Method itsm, *itsmp;
+        itsmp = get_TypeSort_Method(&itsm);
+        /* FIXME: lots here. */
+        if (itsmp->source == 0) {
+          /* No parameters. */
+          add_string_to_text_buffer(scbp->text_buffer, "()");
+        } else {
+          add_char_to_text_buffer(scbp->text_buffer, '(');
+          str_ifc_type_index(itsmp->source, scbp);
+          add_char_to_text_buffer(scbp->text_buffer, ')');
+        }  /* if */
+        str_ifc_noexcept_specification(&itsmp->eh_spec, scbp);
+      }
       break;
     case ifc_TypeSort_Function:
       { an_ifc_TypeSort_Function itsf, *itsfp;

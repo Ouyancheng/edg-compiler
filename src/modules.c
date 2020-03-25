@@ -450,8 +450,8 @@ scope.
 
 
 /*lint -esym(714,*get_definition_of_module_class)*/  /* FIXME: Temporary */
-static void get_definition_of_module_class(a_type_ptr    class_type,
-                                           a_text_buffer *buffer)
+void get_definition_of_module_class(a_type_ptr    class_type,
+                                    a_text_buffer *buffer)
 /*
 This routine is called (from get_definition_of_class) when the front end has
 determined that the class is defined in a module and now needs a definition.

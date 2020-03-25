@@ -1062,6 +1062,8 @@ extern void do_based_type_fixup(void);
 
 extern void record_fundamental_types_copied_from_secondary_IL(void);
 
+extern void fill_in_type_name(a_type_ptr tp);
+
 extern a_type_ptr integer_type(an_integer_kind kind);
 
 extern a_type_ptr signed_integer_type(an_integer_kind kind);
