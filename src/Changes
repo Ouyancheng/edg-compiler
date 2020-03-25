@@ -41,7 +41,7 @@ Invalid code in get_definition_of_class
 
 When GET_DEFINITION_OF_CLASS_NEEDED is TRUE but MICROSOFT_EXTENSIONS_ALLOWED
 is FALSE, get_definition_of_class failed to compile.  In addition,
-get_definition_of_class mixed checked for MICROSOFT_EXTENSIONS_ALLOWED with
+get_definition_of_class mixed checks for MICROSOFT_EXTENSIONS_ALLOWED with
 checks for CPPCLI_ENABLING_POSSIBLE.  This has now been fixed.
 
 As part of this change, it was discovered that most code assumed that
