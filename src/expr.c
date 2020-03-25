@@ -28584,7 +28584,7 @@ void check_defaulted_eq_properties(a_type_ptr     class_tp,
 erp is a defaulted equality operator for the given class type.  Mark it as
 deleted if the class type has direct bases or fields that cannot be compared
 using the "==" operator (which is the case in particular for reference members
-and variant member) or whose comparison result is not contextually convertible
+and variant members) or whose comparison result is not contextually convertible
 to bool.  Also check whether the operator should be made constexpr (if it is
 implicitly declared) or issue an error if it was declared constexpr but it
 would call a non-constexpr comparison operator.
@@ -28828,9 +28828,9 @@ void determine_defaulted_spaceship_return_type(a_routine_ptr  srp,
 /*
 srp represents a defaulted operator<=> with a deducible return type for the
 given class type (whose declared data members are all known).  Determine the
-actual return type. Also mark the routine as deleted if appropriate, and check
-its "constexpr" property.  Issue an error if it is declared constexpr but it
-would call a non-constexpr subobject comparison function
+actual return type.  Also, mark the routine as deleted if appropriate, and
+check its "constexpr" property.  Issue an error if it is declared constexpr
+but it would call a non-constexpr subobject comparison function.
 */
 {
   a_type_ptr           return_tp, ptr_class_tp;
@@ -29365,8 +29365,8 @@ void check_nondeduced_defaulted_spaceship_properties(a_routine_ptr  srp,
 /*
 srp is a default operator<=> for the given class type, and its return type
 is not deduced.  Mark it as deleted if a comparison of subobjects does not
-find a usable best candidate.  Also determine whether it should be constexpr,
-and issue an error if it was declared constexpr but its calls a non-constexpr
+find a usable best candidate.  Also, determine whether it should be constexpr,
+and issue an error if it was declared constexpr but it calls a non-constexpr
 operator function for the comparison of subobjects.
 */
 {

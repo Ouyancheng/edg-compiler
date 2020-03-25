@@ -637,11 +637,10 @@ specialization nor a prototype instantiation).
 
 /*
 Produce TRUE if a given routine is an instance (a template function that is not
-an explicit specialization.
+an explicit specialization).
 */
 #define rout_is_template_instance(rp)                                   \
-  ((rp)->is_template_function &&                                        \
-   !(rp)->is_specialized)
+  ((rp)->is_template_function && !(rp)->is_specialized)
 
 
 /*
