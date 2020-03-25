@@ -13229,10 +13229,11 @@ parameters.
   } else if (is_nontype_templ_arg(tap)) {
     /* Perform the substitution on the type of the constant. */
     a_type_ptr	const_type;
-    a_type_ptr	new_const_type;
+    a_type_ptr	new_const_type, template_param_type;
     /* Pass in the expected type of the constant, i.e., the type of
        the template parameter after substitution.  A NULL pointer is
        passed if we do not know the parameter type. */
+    template_param_type = NULL;
     new_const_type = NULL;
     if (have_params) {
       /* Substitute the type of the nontype parameter. */
@@ -13240,6 +13241,7 @@ parameters.
       if (tpp->uses_auto) {
         /* Get the type from the argument.  This will be checked below. */
         new_const_type = tap->variant.constant->type;
+        template_param_type = NULL;
       } else {
         new_const_type = const_type;
         if (tpp->variant.constant.type_involves_template_param) {
@@ -13263,6 +13265,7 @@ parameters.
                                                      source_pos, options,
                                                      copy_error, ctws_state);
         if (*copy_error) goto done;
+        template_param_type = new_const_type;
       }  /* if */
       /* Make sure the new type is a valid type for a nontype template
          parameter. */
@@ -13285,7 +13288,7 @@ parameters.
          copy_template_param_con_with_substitution(tap->variant.constant,
                                                    templ_arg_list,
                                                    templ_param_list,
-						   new_const_type,
+						   template_param_type,
                                                    source_pos,
                                                    options |
                                                      CTWS_NONTYPE_TEMPLATE_ARG,
