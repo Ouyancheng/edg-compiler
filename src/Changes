@@ -1,13 +1,13 @@
 Version 6.1
 
 3/25/20  [EDGcpfe/22464]
-Microsoft compatibility: C features
+Microsoft compatibility: Enable C features with new command-line option
 
 A change has been made to enable certain C11 features when microsoft_version
 >= 1927 and a new command-line option, --ms_c_experimental, is specified.
-This change enables _Alignof, _Alignas, _Noreturn, compound literals, and
-restricted pointers at the current time.  For example, this test case is
-accepted with --ms_c_experimental --microsoft_version=1927:
+This change enables _Alignof, _Alignas, _Noreturn, and restricted pointers.
+For example, this test case is accepted with --ms_c_experimental
+--microsoft_version=1927:
 
   char *restrict rp;
   _Noreturn void f();

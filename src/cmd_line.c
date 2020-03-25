@@ -2275,12 +2275,10 @@ option values if they were not already set by a command line option.
     universal_character_names_allowed = TRUE;
     if (ms_c_experimental && microsoft_version >= 1927) {
       /* Visual Studio version 16.7. */
-#if COMPOUND_LITERAL_ENABLING_POSSIBLE
-      if (!(option_kind_used[(int)optk_compound_literals])) {
-        compound_literals_allowed = TRUE;
+      /* Note that compound literals are already enabled above. */
+      if (!(option_kind_used[(int)optk_restrict])) {
+        restrict_keyword_enabled = TRUE;
       }  /* if */
-#endif /* COMPOUND_LITERAL_ENABLING_POSSIBLE */
-      restrict_keyword_enabled = TRUE;
       noreturn_keyword_enabled = TRUE;
       alignas_enabled = TRUE;
       alignof_enabled = TRUE;
