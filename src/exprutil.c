@@ -20834,7 +20834,16 @@ it might produce an error).
         case eok_dot_static:
         case eok_points_to_static:
           /* Static field selection operator.  Apply the transformation to the
-             second operand. */
+             second operand, unless the first operand is template-dependent. */
+          if (expr_is_instantiation_dependent(op1)) {
+            /* Wait until substitution to perform the transformation. */
+            op2->is_lvalue = op2->is_xvalue = FALSE;
+            op2->type = prvalue_node_type;
+            node->is_lvalue = node->is_xvalue = FALSE;
+            node->type = prvalue_node_type;
+            processed = TRUE;
+            break;
+          }  /* if */
           op2 = conv_glvalue_expr_to_prvalue(op2, allow_folding,
                                              (a_constant_ptr *)NULL,
                                              err_pos);
