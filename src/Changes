@@ -10,9 +10,11 @@ function of a class itself appearing in a default member initializer.
   struct X {
     int x = []() {
               struct N {
-                void f() { return [=](){ return x; }(); }
+                int x;
+                int f() { return [=](){ return x; }(); }
                   // Previously triggered an internal error.
               };
+              return 42;
             }();
   };
 
