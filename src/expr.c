@@ -28675,6 +28675,7 @@ done:
   if (is_deleted) {
     erp->is_deleted = TRUE;
     erp->defined = TRUE;
+    erp->is_constexpr = TRUE;
   } else {
     /* Check constexpr-ness. */
     if (called_nonconstexpr_rout != NULL) {
@@ -28759,6 +28760,7 @@ P2002R1 specifies a defaulted secondary operator@ to be deleted if:
   if (is_deleted) {
     crp->is_deleted = TRUE;
     crp->defined = TRUE;
+    crp->is_constexpr = TRUE;
   } else {
     /* Check constexpr-ness. */
     if (called_nonconstexpr_rout != NULL) {
@@ -28945,6 +28947,8 @@ set_return_type:
   if (ccs & (a_comparison_category_set)ccs_other) {
     return_tp = void_type();
     srp->is_deleted = TRUE;
+    srp->defined = TRUE;
+    srp->is_constexpr = TRUE;
   } else if ((ccs & (a_comparison_category_set)ccs_weak_equality) ||
              ((ccs & (a_comparison_category_set)ccs_strong_equality) &&
               (ccs & ((a_comparison_category_set)ccs_partial_ordering |
@@ -29437,6 +29441,7 @@ done:;
   if (is_deleted) {
     srp->is_deleted = TRUE;
     srp->defined = TRUE;
+    srp->is_constexpr = TRUE;
   } else {
     /* Check constexpr-ness. */
     if (called_nonconstexpr_rout != NULL) {

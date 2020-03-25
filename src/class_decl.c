@@ -23856,7 +23856,7 @@ declared, declare one that matches the spaceship operator.
     rp = rlep->routine;
     if (special_kind_is(rp, sfk_operator)) {
       if (opname_kind_is(rp, onk_eq)) {
-        /* There is an equality member operator. */
+        /* There is an equality friend operator. */
         erp = rp;
       } else if (opname_kind_is(rp, onk_spaceship) && rp->is_defaulted) {
         srp = rp;

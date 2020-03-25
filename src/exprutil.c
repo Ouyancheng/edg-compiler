@@ -6512,11 +6512,13 @@ function).  In such cases, record a pending diagnostic if appropriate.
       result = FALSE;
     } else {
       /* This is a context where consteval calls must produce a constant value:
-         Issue an error. */
+         Issue an error if appropriate. */
       if (rp->is_deleted) {
         /* An error should have been issued already.  An additional one is
            not really helpful. */
         expect_error();
+      } else if (expr_stack->suppress_diagnostics) {
+        record_suppressed_error();
       } else {
         a_diagnostic_ptr  dp;
         dp = pos_sy_start_error(ec_consteval_call_nonconstant, pos,

@@ -9040,6 +9040,13 @@ otherwise, return FALSE and update *ips accordingly.
       info_with_pos_sym(ec_constexpr_function_undefined,
                         &callee_node->position, symbol_for(callee), ips);
       do_constexpr_fail(result);
+      if (callee->is_deleted) {
+        /* An error has presumably been issued earlier (use of a deleted
+           function).  Treat this as an input error to avoid extraneous
+           diagnostics. */
+        expect_error();
+        ips->input_error = TRUE;
+      }  /* if */
       goto done;
     }  /* if */
     /* Don't attempt to interpret a non-constexpr function.  The flag
@@ -9254,6 +9261,13 @@ the body of the (constructor) function proper.
     info_with_pos_sym(ec_constexpr_function_undefined, pos,
                       symbol_for(callee), ips);
     do_constexpr_fail(result);
+    if (callee->is_deleted) {
+      /* An error has presumably been issued earlier (use of a deleted
+         function).  Treat this as an input error to avoid extraneous
+         diagnostics. */
+      expect_error();
+      ips->input_error = TRUE;
+    }  /* if */
   } else if (callee->is_prototype_instantiation) {
     info_with_pos_sym(ec_constexpr_call_not_interpretable, pos,
                       symbol_for(callee), ips);
@@ -9691,6 +9705,13 @@ This is similar to do_constexpr_ctor.
     info_with_pos_sym(ec_constexpr_function_undefined, pos,
                       symbol_for(callee), ips);
     do_constexpr_fail(result);
+    if (callee->is_deleted) {
+      /* An error has presumably been issued earlier (use of a deleted
+         function).  Treat this as an input error to avoid extraneous
+         diagnostics. */
+      expect_error();
+      ips->input_error = TRUE;
+    }  /* if */
   } else if (callee->is_prototype_instantiation) {
     info_with_pos_sym(ec_constexpr_call_not_interpretable, pos,
                       symbol_for(callee), ips);
