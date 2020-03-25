@@ -868,7 +868,7 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_builtin_complex, "__builtin_complex");
   }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-  if (c11_mode || gcc_version_is(>= 40700) || clang_version_is(>= 30300)) {
+  if (noreturn_keyword_enabled) {
     /* Enable the C11 _Noreturn keyword (accepted by default in some GNU C
        modes as well as some clang C and C++ modes). */
     enter_keyword((a_token_kind)tok_noreturn, "_Noreturn");

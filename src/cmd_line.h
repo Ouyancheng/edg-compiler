@@ -125,6 +125,7 @@ typedef enum /*an_option_kind*/ {
   optk_microsoft_cpp17_mode,
   optk_microsoft_cpp20_mode,
   optk_microsoft_cpplatest_mode,
+  optk_microsoft_c_experimental,
 #if NEAR_AND_FAR_ALLOWED
   optk_microsoft_16_mode,
 #endif /* NEAR_AND_FAR_ALLOWED */
@@ -1273,6 +1274,11 @@ EXTERN a_boolean
 			/* TRUE if support for the restricted pointers is
 			   provided, in which case "restrict" is recognized
 			   as a keyword. */
+
+EXTERN a_boolean
+		noreturn_keyword_enabled;
+			/* TRUE if support for the _Noreturn keyword is
+			   provided. */
 
 EXTERN a_boolean
 		gnu_restrict_keyword_enabled;

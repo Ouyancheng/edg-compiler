@@ -530,6 +530,9 @@ Initialize the option information table.
   add_option_description(optk_microsoft_cpplatest_mode, "ms_c++latest",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_microsoft_c_experimental, "ms_c_experimental",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #if NEAR_AND_FAR_ALLOWED
   add_option_description(optk_microsoft_16_mode, "microsoft_16",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -2236,12 +2239,18 @@ option values if they were not already set by a command line option.
   }  /* if */
   if (C_mode()) {
     /* Microsoft C mode. */
+    a_boolean ms_c_experimental = FALSE;
     /* Allow nonconstant expressions in aggregate initializers for automatic
        variables. */
     allow_nonconstant_auto_aggr_init_in_c_mode = TRUE;
     if (!option_kind_used[(int)optk_func_prototype_tags]) {
       /* Microsoft C never enters tag names in function prototype scopes. */
       func_prototype_tags_enabled = FALSE;
+    }  /* if */
+    if (option_kind_used[(int)optk_microsoft_c_experimental]) {
+      /* Enables "the latest C features" supported by a particular version
+         of Visual Studio. */
+      ms_c_experimental = TRUE;
     }  /* if */
     /* Recent Microsoft C compilers enable the C++ spelling of static_assert
        (i.e., not _Static_assert). */
@@ -2264,6 +2273,18 @@ option values if they were not already set by a command line option.
       }  /* if */
     }  /* if */
     universal_character_names_allowed = TRUE;
+    if (ms_c_experimental && microsoft_version >= 1927) {
+      /* Visual Studio version 16.7. */
+#if COMPOUND_LITERAL_ENABLING_POSSIBLE
+      if (!(option_kind_used[(int)optk_compound_literals])) {
+        compound_literals_allowed = TRUE;
+      }  /* if */
+#endif /* COMPOUND_LITERAL_ENABLING_POSSIBLE */
+      restrict_keyword_enabled = TRUE;
+      noreturn_keyword_enabled = TRUE;
+      alignas_enabled = TRUE;
+      alignof_enabled = TRUE;
+    }  /* if */
   } else {
     /* Microsoft C++ mode. */
     a_boolean ms_cpp14_mode = !cpp_mode_specified() &&
@@ -3098,6 +3119,7 @@ Set the various flags appropriate to C99 mode or later standard modes.
       uliterals_enabled = TRUE;
     }  /* if */
     c11_atomic_enabled = TRUE;
+    noreturn_keyword_enabled = TRUE;
   }  /* if */
 }  /* check_and_set_new_c_mode_options */
 
@@ -4625,6 +4647,9 @@ This function is also called in clang mode.
     bit_field_promotion_applies_to_some_operations = FALSE;
   }  /* if */
   if (clang_mode) {
+    if (clang_version >= 30300) {
+      noreturn_keyword_enabled = TRUE;
+    }  /* if */
     if (clang_version >= 30700) {
       nullability_qualifiers_enabled = TRUE;
     }  /* if */
@@ -4700,10 +4725,16 @@ This function is also called in clang mode.
       c11_atomic_classes_disabled = TRUE;
       std_thread_local_storage_specifier_enabled = TRUE;
     }  /* if */
+    if (clang_version >= 30300) {
+      noreturn_keyword_enabled = TRUE;
+    }  /* if */
   } else {
     /* GCC (not Clang) mode. */
     if (gnu_version >= 40600) {
       static_assert_enabled = TRUE;
+    }  /* if */
+    if (gnu_version >= 40700) {
+      noreturn_keyword_enabled = TRUE;
     }  /* if */
     if (gnu_version >= 40900) {
       std_thread_local_storage_specifier_enabled = TRUE;
@@ -9966,6 +9997,13 @@ enable_microsoft_mode:
         set_C_dialect(C_dialect_cplusplus);
         opt_value = TRUE;
         goto enable_microsoft_mode;
+      case optk_microsoft_c_experimental:
+        /* A placeholder for an as-yet-unnamed command-line option
+           similar to /std:c++latest, but enables "the latest C features"
+           as supported by a particular microsoft version. */
+        set_C_dialect(C_dialect_ANSI);
+        opt_value = TRUE;
+        goto enable_microsoft_mode;
       case optk_ms_permissive:
         /* Emulate Microsoft's /permissive[-] switch (which also implies
            Microsoft mode). */
@@ -11812,6 +11850,7 @@ variables declared in cmd_line.h.
   c11_atomic_classes_disabled = FALSE;
   restrict_enabled = FALSE;
   restrict_keyword_enabled = DEFAULT_RESTRICT_ENABLED;
+  noreturn_keyword_enabled = FALSE;
   gnu_restrict_keyword_enabled = FALSE;
   nonstd_gnu_keywords_enabled = FALSE;
   long_lifetime_temps = FALSE;
