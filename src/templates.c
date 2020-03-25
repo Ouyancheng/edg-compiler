@@ -7067,6 +7067,13 @@ expression context) rather than a declaration.
   /* Scan or rescan the declaration of the variable template or static
      data member. */
   scan_template_variable_declaration(tip, var_sym, decl_cache, &dps);
+  if (dps.decltype_auto_specifier_seen) {
+    var_ptr->declared_with_decltype_auto = TRUE;
+  } else if (dps.auto_type_specifier_seen) {
+    var_ptr->declared_with_auto_type_specifier = TRUE;
+  } else if (dps.has_deducible_class_templ_args) {
+    var_ptr->declared_with_class_template_placeholder = TRUE;
+  }  /* if */
   if (var_ptr->initializer_in_class &&
       gpp_mode && gnu_version >= 40100 && !clang_mode) {
     /* In GNU C++ mode, in-class initializers are instantiated only when
@@ -10651,7 +10658,7 @@ instance symbol.
   switch_to_file_scope_region(&region_to_switch_back_to);
   check_assertion(symbol_is(template_sym, sk_variable_template));
   tssp = template_sym->variant.template_info;
-  /* Create the symbol for the prototype instantiation. */
+  /* Create the symbol for the instantiation. */
   new_sym = make_template_variable_symbol(template_sym);
   var = alloc_variable((a_storage_class)sc_extern);
   var->is_template_variable = TRUE;
@@ -26288,6 +26295,13 @@ Create the variable entry variable template specified by template_sym.
   var->is_nonreal = TRUE;
   var->type = dps->type;
   var->storage_class = dps->storage_class;
+  if (dps->decltype_auto_specifier_seen) {
+    var->declared_with_decltype_auto = TRUE;
+  } else if (dps->auto_type_specifier_seen) {
+    var->declared_with_auto_type_specifier = TRUE;
+  } else if (dps->has_deducible_class_templ_args) {
+    var->declared_with_class_template_placeholder = TRUE;
+  }  /* if */
   if (prototype_instantiations_in_il || tssp->is_generic) {
     if (decl_state->decl_scope_err) {
       /* Don't add the type to the type list in error cases.  This is done

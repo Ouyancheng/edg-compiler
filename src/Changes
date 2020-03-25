@@ -1,5 +1,19 @@
 Version 6.1
 
+3/25/20  [EDGcpfe/22527]
+Missing diagnostic on use of template variable in its own initializer
+
+The front end previously failed to diagnose a template variable declared with
+a placeholder type and used in its own initializer.  In some configurations,
+an abort could ensue.  For example:
+
+  template<typename T> auto &&x = !x<T>;
+  bool b = x<int>;  // Previously not diagnosed (sometimes aborted).
+                    //  Now an error.
+
+That is now fixed.
+
+
 3/25/20  [EDGcpfe/22464]
 Microsoft compatibility: Enable C features with new command-line option
 
