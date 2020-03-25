@@ -28598,7 +28598,7 @@ would call a non-constexpr comparison operator.
   a_constant_ptr       zero_ptr;
   an_operand           opnd1, opnd2, cmp_opnd;
   an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
-  a_routine_ptr        called_nonconstexpr_rout = NULL,
+  a_routine_ptr        nonconstexpr_rout = NULL,
                        *saved_p_called_nonconstexpr_routine =
                                                 p_called_nonconstexpr_routine;
 
@@ -28617,7 +28617,7 @@ would call a non-constexpr comparison operator.
   expr_stack->suppress_diagnostics = TRUE;
   expr_stack->suppress_constexpr_call_folding = TRUE;
   expr_stack->record_first_nonconstexpr_call = TRUE;
-  p_called_nonconstexpr_routine = &called_nonconstexpr_rout;
+  p_called_nonconstexpr_routine = &nonconstexpr_rout;  /*lint !e733 !e789*/
   zero_ptr = local_constant();
   for (bcp = base_classes_of(class_tp); bcp != NULL; bcp = bcp->next) {
     if (!bcp->direct) continue;
@@ -28678,12 +28678,12 @@ done:
     erp->is_constexpr = TRUE;
   } else {
     /* Check constexpr-ness. */
-    if (called_nonconstexpr_rout != NULL) {
+    if (nonconstexpr_rout != NULL) {
       if (erp->is_constexpr && !erp->compiler_generated) {
         if (!rout_is_template_instance(erp)) {
           pos_sy_error(ec_constexpr_comparison_calls_nonconstexpr_function,
                        &erp->source_corresp.decl_position,
-                       symbol_for(called_nonconstexpr_rout));
+                       symbol_for(nonconstexpr_rout));
         }  /* if */
         erp->is_constexpr = FALSE;
       }  /* if */
@@ -28717,7 +28717,7 @@ P2002R1 specifies a defaulted secondary operator@ to be deleted if:
   an_expr_stack_entry   expr_stack_entry, *saved_expr_stack;
   a_boolean             none_viable, processed;
   a_candidate_function  rewritten_candidate;
-  a_routine_ptr         called_nonconstexpr_rout = NULL,
+  a_routine_ptr         nonconstexpr_rout = NULL,
                         *saved_p_called_nonconstexpr_routine =
                                                 p_called_nonconstexpr_routine;
 
@@ -28731,7 +28731,7 @@ P2002R1 specifies a defaulted secondary operator@ to be deleted if:
   expr_stack->suppress_diagnostics = TRUE;
   expr_stack->suppress_constexpr_call_folding = TRUE;
   expr_stack->record_first_nonconstexpr_call = TRUE;
-  p_called_nonconstexpr_routine = &called_nonconstexpr_rout;
+  p_called_nonconstexpr_routine = &nonconstexpr_rout;  /*lint !e733 !e789*/
   clear_candidate_function(&rewritten_candidate);
   zero_ptr = local_constant();
   ptr_class_tp = make_qualified_type(class_tp, (a_type_qualifier_set)TQ_CONST);
@@ -28763,12 +28763,12 @@ P2002R1 specifies a defaulted secondary operator@ to be deleted if:
     crp->is_constexpr = TRUE;
   } else {
     /* Check constexpr-ness. */
-    if (called_nonconstexpr_rout != NULL) {
+    if (nonconstexpr_rout != NULL) {
       if (crp->is_constexpr && !crp->compiler_generated) {
         if (!rout_is_template_instance(crp)) {
           pos_sy_error(ec_constexpr_comparison_calls_nonconstexpr_function,
                        &crp->source_corresp.decl_position,
-                       symbol_for(called_nonconstexpr_rout));
+                       symbol_for(nonconstexpr_rout));
         }  /* if */
         crp->is_constexpr = FALSE;
       }  /* if */
@@ -28844,7 +28844,7 @@ but it would call a non-constexpr subobject comparison function.
   an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
   a_comparison_category_set
                        ccs = (a_comparison_category_set)ccs_none;
-  a_routine_ptr        called_nonconstexpr_rout = NULL,
+  a_routine_ptr        nonconstexpr_rout = NULL,
                        *saved_p_called_nonconstexpr_routine =
                                                 p_called_nonconstexpr_routine;
 
@@ -28861,7 +28861,7 @@ but it would call a non-constexpr subobject comparison function.
   expr_stack->suppress_diagnostics = TRUE;
   expr_stack->suppress_constexpr_call_folding = TRUE;
   expr_stack->record_first_nonconstexpr_call = TRUE;
-  p_called_nonconstexpr_routine = &called_nonconstexpr_rout;
+  p_called_nonconstexpr_routine = &nonconstexpr_rout;  /*lint !e733 !e789*/
   zero_ptr = local_constant();
   check_assertion(is_immediate_class_type(class_tp));
   for (bcp = base_classes_of(class_tp); bcp != NULL; bcp = bcp->next) {
@@ -28965,12 +28965,12 @@ set_return_type:
   }  /* if */
   set_deduced_return_type(return_tp, &srp->source_corresp.decl_position, srp);
   if (!srp->is_deleted) {
-    if (called_nonconstexpr_rout != NULL) {
+    if (nonconstexpr_rout != NULL) {
       if (srp->is_constexpr && !srp->compiler_generated) {
         if (!rout_is_template_instance(srp)) {
           pos_sy_error(ec_constexpr_comparison_calls_nonconstexpr_function,
                        &srp->source_corresp.decl_position,
-                       symbol_for(called_nonconstexpr_rout));
+                       symbol_for(nonconstexpr_rout));
         }  /* if */
         srp->is_constexpr = FALSE;
       }  /* if */
@@ -29382,7 +29382,7 @@ operator function for the comparison of subobjects.
   an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
   a_comparison_category_set
                        ccs = (a_comparison_category_set)ccs_none;
-  a_routine_ptr        called_nonconstexpr_rout = NULL,
+  a_routine_ptr        nonconstexpr_rout = NULL,
                        *saved_p_called_nonconstexpr_routine =
                                                 p_called_nonconstexpr_routine;
 
@@ -29409,7 +29409,7 @@ operator function for the comparison of subobjects.
   expr_stack->suppress_diagnostics = TRUE;
   expr_stack->suppress_constexpr_call_folding = TRUE;
   expr_stack->record_first_nonconstexpr_call = TRUE;
-  p_called_nonconstexpr_routine = &called_nonconstexpr_rout;
+  p_called_nonconstexpr_routine = &nonconstexpr_rout;  /*lint !e733 !e789*/
   for (bcp = base_classes_of(class_tp); bcp != NULL; bcp = bcp->next) {
     if (!bcp->direct) continue;
     if (spaceship_synthesis_impossible(bcp->type, ccs)) {
@@ -29444,12 +29444,12 @@ done:;
     srp->is_constexpr = TRUE;
   } else {
     /* Check constexpr-ness. */
-    if (called_nonconstexpr_rout != NULL) {
+    if (nonconstexpr_rout != NULL) {
       if (srp->is_constexpr && !srp->compiler_generated) {
         if (!rout_is_template_instance(srp)) {
           pos_sy_error(ec_constexpr_comparison_calls_nonconstexpr_function,
                        &srp->source_corresp.decl_position,
-                       symbol_for(called_nonconstexpr_rout));
+                       symbol_for(nonconstexpr_rout));
         }  /* if */
         srp->is_constexpr = FALSE;
       }  /* if */

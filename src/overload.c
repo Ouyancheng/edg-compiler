@@ -17176,7 +17176,7 @@ operators.
 }  /* reverse_binary_match_descriptions */
 
 
-a_candidate_function_ptr select_overloaded_operator(
+static a_candidate_function_ptr select_overloaded_operator(
                            an_opname_kind             kind,
                            a_boolean                  unary_operator,
                            a_boolean                  must_be_member_function,
