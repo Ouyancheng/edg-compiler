@@ -57,7 +57,7 @@ an abort could ensue.  For example:
 
   template<typename T> auto &&x = !x<T>;
   bool b = x<int>;  // Previously not diagnosed (sometimes aborted).
-                    //  Now an error.
+                    // Now an error.
 
 That is now fixed.
 
