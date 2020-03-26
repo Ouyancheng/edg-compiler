@@ -31,7 +31,7 @@ That is now fixed.
 Abort in variable_this_exists_full on complex lambda use
 
 The front end previously could abort with an internal error in
-variable_this_exists_full (overload.c) when a lambda appearing in a member
+variable_this_exists_full (overload.c) when a lambda appears in a member
 function of a class itself appearing in a default member initializer.
 
   struct X {
