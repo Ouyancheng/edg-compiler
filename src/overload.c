@@ -11446,17 +11446,21 @@ implicit "this" is available, e.g., during overload resolution.
       a_routine_ptr encl_rout= closure_class->source_corresp.enclosing_routine;
       a_class_type_supplement_ptr
                     ctsp;
-      while (encl_rout != NULL && encl_rout->is_lambda_body &&
-             !closure_class->source_corresp.is_class_member) {
+      while (encl_rout != NULL && encl_rout->is_lambda_body) {
         /* We can reach out past intermediate lambdas, but we don't want to
            reach out past an enclosing class if the intermediate lambda happens
            to contain one. */
+        if (closure_class->source_corresp.is_class_member &&
+            !type_is_lambda_closure(parent_class_of(closure_class))) {
+          break;
+        }  /* if */
         closure_class = parent_class_of(encl_rout);
         encl_rout = closure_class->source_corresp.enclosing_routine;
       }  /* while */
       ctsp = class_type_supp(closure_class);
       if (encl_rout != NULL && 
-          !closure_class->source_corresp.is_class_member) {
+          !(closure_class->source_corresp.is_class_member &&
+            !type_is_lambda_closure(parent_class_of(closure_class)))) {
         /* There is a routine that encloses the lambda.  See if it is a
             nonstatic member function. */
         if (routine_type_is_nonstatic_member_function(encl_rout->type)) {
