@@ -11558,6 +11558,19 @@ generated as an expression and the expression is a named variable.
 }  /* constant_has_effective_name */
 
 
+static an_expr_node_ptr skip_lvalue_nodes(an_expr_node_ptr  expr)
+/*
+If the given node is an eok_lvalue node, return the underlying node that is not
+such a node.  Otherwise, return the given node.
+*/
+{
+  while (is_operation_node(expr) &&
+         expr->variant.operation.kind == (an_expr_operator_kind)eok_lvalue) {
+    expr = expr->variant.operation.operands;
+  }  /* while */
+  return expr;
+}  /* skip_lvalue_nodes */
+
 static void gen_dot_static(an_expr_node_ptr operand_1,
                            a_const_char     *opstr,
                            an_expr_node_ptr operand_2)
@@ -11589,6 +11602,7 @@ indicated by opstr.
   /* If the second operand has been turned into a constant (i.e., it
      was a const-valued variable), use a comma operator in the output
      to avoid generating something like "x.2". */
+  operand_2 = skip_lvalue_nodes(operand_2);
   if (!is_glvalue_node(operand_2) && is_constant_node(operand_2)) {
     con = node_constant(operand_2);
     /* For unknown functions, we need to use the field-selection form,
@@ -11704,11 +11718,7 @@ it is a tpck_unknown_function constant and to NULL otherwise.
     *unknown_function = NULL;
   }  /* if */
   /* Strip eok_lvalue nodes. */
-  expr = skip_parens(expr);
-  while (is_operation_node(expr) &&
-         expr->variant.operation.kind == (an_expr_operator_kind)eok_lvalue) {
-    expr = expr->variant.operation.operands;
-  }  /* while */
+  expr = skip_lvalue_nodes(skip_parens(expr));
   if (is_operation_node(expr) &&
       (expr->variant.operation.kind ==
                                (an_expr_operator_kind)eok_points_to_static ||
