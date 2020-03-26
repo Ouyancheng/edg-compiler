@@ -11455,7 +11455,8 @@ implicit "this" is available, e.g., during overload resolution.
         encl_rout = closure_class->source_corresp.enclosing_routine;
       }  /* while */
       ctsp = class_type_supp(closure_class);
-      if (encl_rout != NULL && !encl_rout->is_lambda_body) {
+      if (encl_rout != NULL && 
+          !closure_class->source_corresp.is_class_member) {
         /* There is a routine that encloses the lambda.  See if it is a
             nonstatic member function. */
         if (routine_type_is_nonstatic_member_function(encl_rout->type)) {
