@@ -17827,7 +17827,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
           (templ_rout->compiler_generated &&
            (templ_rout->is_inheriting_ctor ||
             (special_kind_is(templ_rout, sfk_conversion) &&
-            class_type_supp(parent_class)->is_lambda_closure_class) ||
+             class_type_supp(parent_class)->is_lambda_closure_class) ||
             special_kind_is(templ_rout, sfk_lambda_entry_point)))) {
         /* For generated member templates (inheriting constructors, conversion
            templates of generic lambdas), we cannot obtain the type of the
