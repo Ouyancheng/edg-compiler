@@ -2656,7 +2656,12 @@ redo:
     case tk_struct:
       get_mapped_byte_count(&persistent_map, tp, result);
       if (result == 0) {
-        if (!tp->incomplete) {
+        if (tp->variant.class_struct_union.is_nonreal_class) {
+          info_with_pos_type(ec_constexpr_type_invalid, &ips->position, tp,
+                             ips);
+          do_constexpr_fail(*p_result);
+          result = MAX_CONSTEXPR_TYPE_SIZE+1;
+        } else if (!tp->incomplete) {
           result = lay_out_class_type(ips, tp, p_result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (tp == type_of_guid) {
@@ -2683,7 +2688,12 @@ redo:
     case tk_union:
       get_mapped_byte_count(&persistent_map, tp, result);
       if (result == 0) {
-        if (!tp->incomplete) {
+        if (tp->variant.class_struct_union.is_nonreal_class) {
+          info_with_pos_type(ec_constexpr_type_invalid, &ips->position, tp,
+                             ips);
+          do_constexpr_fail(*p_result);
+          result = MAX_CONSTEXPR_TYPE_SIZE+1;
+        } else if (!tp->incomplete) {
           result = lay_out_union_type(ips, tp, p_result);
         } else {
           a_source_position  *pos = &tp->source_corresp.decl_position;
