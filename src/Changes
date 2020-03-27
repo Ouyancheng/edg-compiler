@@ -1,5 +1,23 @@
 Version 6.1
 
+3/27/20  [EDGcpfe/22538]
+IA-64 ABI: discriminators for enumerators of scope enumerations in functions
+
+As a result of the changes for EDGcpfe/11127 (in version 6.0), enumerators
+of scoped enumerations had, in some cases, been given multiple discriminators
+resulting in mangled names that could not be demangled.  Those discriminators
+are now suppressed (the mangled names are unique because the mangled name
+of the enumeration is part of the name).  Note that even though this changes
+the mangled names, this change is not conditional on ABI_COMPATIBILITY_VERSION
+because it only affects scoped enumerators in local functions.  For example,
+with --c++11:
+
+  void f() {
+    { enum class E { e }; }
+    { enum class E { e }; }
+  }
+
+
 3/25/20  [EDGcpfe/22520]
 Abort in symbol_for_template_param_unknown_entity_rescan
 

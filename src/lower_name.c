@@ -12745,7 +12745,12 @@ to the mangled name.
                          /*is_pack_expansion=*/FALSE, mctl);
     }  /* if */
 #if ABI_COMPATIBILITY_VERSION >= 520
-    add_discriminator_if_necessary(scp, mctl);
+    if (!(kind == iek_constant && scp_is_enum_member(scp))) {
+      /* There's no need for a discriminator on an enumerator of a scoped
+         enumeration (the mangled enumeration name itself is already
+         unique). */
+      add_discriminator_if_necessary(scp, mctl);
+    }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 520 */
 skip_mangling:;
 #endif /* IA64_ABI && ABI_COMPATIBILITY_VERSION >= 510 */
@@ -13091,14 +13096,6 @@ member constant, or (as an extension) a declared class member constant.
     mangled_name_with_possible_qualification(&con->source_corresp,
                                              iek_constant,
                                              (a_template_ptr)NULL, &mctl);
-#if IA64_ABI
-    if (scp_is_enum_member(&con->source_corresp) &&
-        con->source_corresp.is_local_to_function &&
-        !con->type->source_corresp.is_class_member) {
-      /* A discriminator is necessary if this is a local scoped enumerator. */
-      add_discriminator_if_necessary(&con->source_corresp, &mctl);
-    }  /* if */
-#endif /* IA64_ABI */
     (void)end_mangling_full(&con->source_corresp, /*final=*/TRUE, &mctl);
   }  /* if */
 }  /* mangle_member_constant_name */
