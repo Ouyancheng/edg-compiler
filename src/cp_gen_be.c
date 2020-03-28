@@ -21157,10 +21157,12 @@ handle_as_definition:
       enable_line_wrapping();
     }  /* if */
   }  /* if */
-  if (is_specialization && orig_scope == NULL) {
-    adjust_namespace_state_for_specialization(&rout->source_corresp,
-                                              &common_scope, &orig_scope,
-                                              name_ref);
+  if (is_specialization) {
+    if (orig_scope == NULL) {
+      adjust_namespace_state_for_specialization(&rout->source_corresp,
+                                                &common_scope, &orig_scope,
+                                                name_ref);
+    }  /* if */
     /* For a specialization, put out "template<>" at the beginning. */
     gen_template_specialization_header(&rout->source_corresp,
 #if MICROSOFT_EXTENSIONS_ALLOWED
