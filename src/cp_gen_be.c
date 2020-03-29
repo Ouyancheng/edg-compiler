@@ -19988,7 +19988,8 @@ this one is such a continuation.
      variable template, unless it's a specialization or partial
      specialization. */
   saved_template_info = var->template_info;
-  if (!var->is_specialized && !is_specialization &&
+  if (!var->is_specialized &&
+      (!is_specialization || var->is_prototype_instantiation) &&
       !(var->template_info != NULL && var->is_prototype_instantiation &&
         var->template_info->partial_spec_template_arg_list != NULL)) {
     var->template_info = NULL;
