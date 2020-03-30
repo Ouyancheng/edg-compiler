@@ -2632,7 +2632,7 @@ interpreter.
     for (; fp != NULL; fp = next_alloc_field(fp->next)) {
       a_type_ptr  tp = skip_typerefs(skip_array_types(fp->type));
       if (is_immediate_class_type(fp->type)) {
-        if (has_dependent_layout(bcp->type)) {
+        if (has_dependent_layout(fp->type)) {
           result = TRUE;
           break;
         }  /* if */
