@@ -2589,9 +2589,7 @@ static a_field_ptr next_alloc_field(a_field_ptr  field)
 Given a pointer to a field (or NULL), return a pointer to the first field at
 or after the given field that is allocated as such in the interpreter.
 Unnamed bit fields, for example, are not allocated, and are skipped by
-initialization processing.  If there is no next such field, return NULL.  This
-is similar to next_alloc_field except it also skips fields generated
-by lowering.
+initialization processing.  If there is no next such field, return NULL.
 */
 {
   for (; field != NULL; field = field->next) {
