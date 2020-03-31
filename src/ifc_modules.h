@@ -173,8 +173,12 @@ appropriately and including ifc_map.h.  The net result is something like:
   };
 */
 
+/*lint -estring(823,IFC_DECL_START)*/
 /*lint -estring(823,IFC_DECL_FIELD)*/
 /*lint -estring(823,IFC_DECL_END)*/
+/*lint -estring(823,IFC_LE_DECL_START)*/
+/*lint -estring(823,IFC_LE_DECL_FIELD)*/
+/*lint -estring(823,IFC_LE_DECL_END)*/
 #define IFC_DECL_START(name) \
   struct concat(an_ifc_, name) {
 #define IFC_DECL_FIELD(field, type) \
@@ -1827,16 +1831,16 @@ struct an_ifc_module : public a_module_interface {
 private:
 #if USE_MMAP_FOR_MEMORY_REGIONS
   mutable unsigned char
-		*byte_buffer;
+		*byte_buffer = NULL;
 			/* Pointer to the current position in the buffer
 			   used by get_byte, etc. */
   mutable unsigned char
-		*buffer_end;
+		*buffer_end = NULL;
 			/* Pointer to the last byte of the buffer used by
 			   get_byte, etc. */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   a_const_char
-		*string_table;
+		*string_table = NULL;
 			/* The string table of the IFC file. */
 
 public:
@@ -1989,7 +1993,9 @@ private:
                                                                 const noexcept;
   #define IFC_DECL_FIELD(field, type) /**/
   #define IFC_DECL_END(name) /**/
+  /*lint -e451 included more than once. */
   #include "ifc_map.h"
+  /*lint +e451*/
 };  /* an_ifc_module */
 /*lint -restore*/
 

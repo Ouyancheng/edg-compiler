@@ -126,8 +126,8 @@ the buffer.
 Macro to fetch a single byte from the IFC file.
 */
 #define get_byte(byte)                                                        \
-  *((unsigned char*)byte) = (byte_buffer <= buffer_end ? *byte_buffer++       \
-                                                       : buffer_overrun())
+  (*((unsigned char*)(byte)) = (byte_buffer <= buffer_end ? *byte_buffer++    \
+                                                          : buffer_overrun()))
 
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
@@ -389,8 +389,8 @@ Handle nested structures differently (and check for padding).
                                    (GET_TextOffset((x).owner, from_header), \
                                     GET_TextOffset((x).partition, from_header))
 #define GET_SourceLocation(x, from_header) \
-                                        (GET_LineIndex((x).line, from_header), \
-                                         GET_Column((x).column, from_header))
+                                       (GET_LineIndex((x).line, from_header), \
+                                        GET_Column((x).column, from_header))
 /* Note that this includes padding: */
 #define GET_NoexceptSpecification(x, from_header) \
                                   (GET_SentenceIndex((x).words, from_header), \
@@ -498,7 +498,7 @@ For example, when "name" is "foo", this routine effectively boils down to:
       check_assertion(byte_buffer + sizeof(concat(an_ifc_, name)) <= \
                                                              (buffer_end+1)); \
       if (fill_storage) { \
-        memcpy(ptr, byte_buffer, sizeof(concat(an_ifc_, name))); \
+        memcpy((void*)ptr, (void*)byte_buffer, sizeof(concat(an_ifc_, name)));\
       } else { \
         ptr = ( concat(an_ifc_, name) *)byte_buffer; \
       }  /* if */ \
@@ -525,7 +525,7 @@ little-endian.
       check_assertion(byte_buffer + sizeof(concat(an_ifc_, name)) <= \
                                                              (buffer_end+1)); \
       if (fill_storage) { \
-        memcpy(ptr, byte_buffer, sizeof(concat(an_ifc_, name))); \
+        memcpy((void*)ptr, (void*)byte_buffer, sizeof(concat(an_ifc_, name)));\
       } else { \
         ptr = ( concat(an_ifc_, name) *)byte_buffer; \
       }  /* if */ \
