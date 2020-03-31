@@ -178,7 +178,7 @@ mkdir $eccp_tmpdir
 if [ $? -ne 0 ] ; then
   echo eccp: could not create temporary directory $eccp_tmpdir.
 fi
-eccp_tmpdir=`native_path $eccp_tmpdir`
+eccp_tmpdir=`native_path "$eccp_tmpdir"`
 #
 # Suffix to be applied to the standard C++ library (libC.a) to select a
 # special version.
@@ -1094,21 +1094,21 @@ process_option()
 #     Explicitly name the executable.
       used_two_params=1
       executable=$curr_param
-      executable=`native_path $executable`
+      executable=`native_path "$executable"`
       output_file_specified=1
       add_to_instantiation_command=0
       ;;
     -o*)
 #     Explicitly name the executable.
       executable=`expr $arg : '-o\(.*\)'`    # Get the string after the -o
-      executable=`native_path $executable`
+      executable=`native_path "$executable"`
       output_file_specified=1
       add_to_instantiation_command=0
       ;;
     --output=*)
 #     Explicitly name the executable.
       executable=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
-      executable=`native_path $executable`
+      executable=`native_path "$executable"`
       output_file_specified=1
       add_to_instantiation_command=0
       ;;
@@ -1240,14 +1240,14 @@ process_option()
 #     front end, but that option controls where the .int.c files are
 #     written, while this option controls where the .o files are written.
       instantiation_dir=$curr_param
-      instantiation_dir=`native_path $instantiation_dir`
+      instantiation_dir=`native_path "$instantiation_dir"`
       use_default_instantiation_dir=0
       used_two_params=1
       ;;
     --instantiation_dir=*)
       arg_value=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
       instantiation_dir=$arg_value
-      instantiation_dir=`native_path $instantiation_dir`
+      instantiation_dir=`native_path "$instantiation_dir"`
       use_default_instantiation_dir=0
       ;;
     --multi_trans_unit)
@@ -1321,7 +1321,7 @@ process_option()
       ;;
     *\.c | *\.C | *\.cc | *\.cpp | *\.CPP | *\.cxx | *\.CXX | *\.ixx | *\.IXX | *\.s)
 #     Collect a list of .c files.
-      arg=`native_path $arg`
+      arg=`native_path "$arg"`
       if [ "$cfiles" ]; then more_than_one_c_file=1; fi;
       if [ $multi_trans_unit -eq 0 -o $any_c_files -eq 0 ] ; then
         # In --multi_trans_unit mode only include the first object file
@@ -1343,7 +1343,7 @@ process_option()
       ;;
     *\.o)
 #     Collect a list of .o files.
-      arg=`native_path $arg`
+      arg=`native_path "$arg"`
       object_files=$object_files" "$arg
       any_l_or_o_files=1
       add_to_instantiation_command=0
@@ -1776,7 +1776,7 @@ process_option()
               curr_param=$curr_dir/$curr_param
             fi
           fi
-          curr_param=`native_path $curr_param`
+          curr_param=`native_path "$curr_param"`
           ;;
         --target)
           # Capture the specified target configuration.
@@ -1793,7 +1793,7 @@ process_option()
          --pch_dir | \
          --create_pch | \
          --use_pch)
-      curr_param=`native_path $curr_param`
+      curr_param=`native_path "$curr_param"`
       feoptions=$curr_arg" `escape_if_needed "$curr_param"` $feoptions"
       used_two_params=1
      ;;
@@ -1871,7 +1871,7 @@ process_option()
               fi
             fi
           fi
-          curr_arg=-I`native_path $dir_name`
+          curr_arg=-I`native_path "$dir_name"`
           ;;
         --sys_include=* | \
         --include_directory=* | \
@@ -1890,7 +1890,7 @@ process_option()
               fi
             fi
           fi
-          curr_arg=$opt_name=`native_path $dir_name`
+          curr_arg=$opt_name=`native_path "$dir_name"`
           ;;
         --target=*)
           # Capture the specified target configuration.
@@ -1910,7 +1910,7 @@ process_option()
          --use_pch=*)
       opt_value=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
       opt_name=`expr $arg : '\(.*\)=.*'`    # Get the before the =
-      opt_value=`native_path $opt_value`
+      opt_value=`native_path "$opt_value"`
       feoptions=$opt_name=`escape_if_needed "$opt_value"`" $feoptions"
       ;;
 ###############################################################################
