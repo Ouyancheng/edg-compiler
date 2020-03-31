@@ -108,7 +108,9 @@ Definitions for Windows (WIN32)
 #define USING_ISO_C 1
 #define C_GEN_BE_GENERATES_ANSI_C 1
 #define MAKE_ALL_FUNCTIONS_UNPROTOTYPED 0
+#ifndef USE_MMAP_FOR_MEMORY_REGIONS
 #define USE_MMAP_FOR_MEMORY_REGIONS 1
+#endif /* ifndef USE_MMAP_FOR_MEMORY_REGIONS */
 #define MICROSOFT_EXTENSIONS_ALLOWED 1
 #define CFRONT_2_1_OBJECT_CODE_COMPATIBILITY 0
 #define CFRONT_3_0_OBJECT_CODE_COMPATIBILITY 0
@@ -150,8 +152,10 @@ target).
 Use fixed address for mmap to work around issues with address space
 layout randomization (ASLR) on Windows Vista.
 */
+#if USE_MMAP_FOR_MEMORY_REGIONS
 #define USE_FIXED_ADDRESS_FOR_MMAP 1
 #define FIXED_ADDRESS_FOR_MMAP 0x21000000
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
 #ifndef CP_GEN_BE_VERSION
 /*

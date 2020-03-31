@@ -10377,16 +10377,18 @@ primary translation unit.
 }  /* record_fundamental_types_copied_from_secondary_IL */
 
 
-void fill_in_type_name(a_type_ptr tp)
+a_const_char* get_type_name(a_type_ptr tp)
 /*
-If the given type does not have a name associated with it (as is often the case
-with compiler-generated/builtin types such as pointers, ints, floats, etc.),
-form the type's name and associate it with the type.
+If the given type already has an associated name, return that.  Otherwise,
+generate a name in a temporary buffer and return that.  Names allocated in a
+temporary buffer need to be copied if they are to be permanent.
 */
 {
-  an_il_to_str_output_control_block  octl;
+  a_const_char *result;
 
-  if (tp->source_corresp.name == NULL) {
+  result = tp->source_corresp.name;
+  if (result == NULL) {
+    an_il_to_str_output_control_block octl;
     octl.output_str = put_str_to_temp_text_buffer_octl;
     octl.gen_compilable_code = TRUE;
     pos_in_temp_text_buffer = 0;
@@ -10394,12 +10396,10 @@ form the type's name and associate it with the type.
                                 /*need_trailing_space=*/FALSE, &octl);
     form_type_second_part_simple(tp, /*under_lhs_declarator=*/FALSE, &octl);
     put_ch_to_temp_text_buffer('\0');
-    tp->source_corresp.name =
-                      copy_string_of_length_to_region(file_scope_region_number,
-                                                      temp_text_buffer,
-                                                      pos_in_temp_text_buffer);
+    result = temp_text_buffer;
   }  /* if */
-}  /* fill_in_type_name */
+  return result;
+}  /* get_type_name */
 
 
 a_type_ptr integer_type(an_integer_kind kind)

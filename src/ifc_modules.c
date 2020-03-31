@@ -35,31 +35,6 @@ the duration of this file.
 /*lint -save -e1714*/ /* FIXME: temporarily disable "not referenced" */
 
 /*
-Macro that is TRUE if the host has big-endian byte ordering.
-FIXME: Move this, set automatically, add to dump_config, dettarg
-*/
-#ifndef HOST_BIG_ENDIAN
-#define HOST_BIG_ENDIAN FALSE
-#endif /* HOST_BIG_ENDIAN */
-
-/*
-When set to FALSE, the macros that access the bytes of the IFC file are
-conservative in that they access the file one byte at a time and optionally
-swap bytes as needed.  When TRUE, it is assumed that the host's architecture
-and layout match those of the machine on which the IFC file was created and
-data is accessed directly from a memory-mapped version of the IFC file.
-The safe value is FALSE.
-FIXME: Move this and add to dump_config
-*/
-#ifndef USE_MMAP_POINTERS_TO_IFC
-#define USE_MMAP_POINTERS_TO_IFC FALSE
-#endif /* USE_MMAP_POINTERS_TO_IFC */
-
-#if USE_MMAP_POINTERS_TO_IFC && HOST_BIG_ENDIAN
-  #error USE_MMAP_POINTERS_TO_IFC cannot be TRUE on big-endian host
-#endif /* USE_MMAP_POINTERS_TO_IFC && HOST_BIG_ENDIAN */
-
-/*
 A control block used when turning IFC declarations into a textual
 representation.
 */
@@ -95,24 +70,10 @@ access to the fields of an IFC file regardless of endianness, padding, or
 alignment issues.
 */
 
-static unsigned char
-		*byte_buffer;
-			/* Pointer to the current position in the buffer
-			   used by get_byte, etc. */
-
-static unsigned char
-		*buffer_end;
-			/* Pointer to the last byte of the buffer used by
-			   get_byte, etc. */
-
 #if DEBUG && EXPENSIVE_CHECKING
 static const an_ifc_partition
 		*debug_partition;
 			/* Points to information about the partition currently
-			   being read (for debugging purposes only). */
-static const a_module
-		*debug_mod;
-			/* Points to information about the module currently
 			   being read (for debugging purposes only). */
 #endif /* DEBUG && EXPENSIVE_CHECKING */
 
@@ -130,73 +91,88 @@ that returns an unsigned char.
   return 0;
 }  /* buffer_overrun */
 
+#if USE_MMAP_FOR_MEMORY_REGIONS
 
-static void init_byte_buffer(void*	memory,
-			     size_t	length)
+inline void an_ifc_module::init_byte_buffer(size_t offset,
+                                            size_t length) const noexcept
 /*
-Initialize the state information used by "get_bytes", etc.  memory is the start
-of the buffer to be read.  length is its size, in bytes.
+Initialize the state information used by "get_bytes", etc.  offset is the
+offset from the start of the memory mapped region to be read.  length is its
+size, in bytes.
 */
 {
-  byte_buffer = (unsigned char*)memory;
+  byte_buffer = (unsigned char*)mmap_addr + offset;
   buffer_end = byte_buffer + length - 1;
 }  /* init_byte_buffer */
 
 
+inline void an_ifc_module::get_bytes_from_buffer(void   *entity,
+                                                 size_t length) const noexcept
 /*
-Macro to fetch a byte from a memory buffer and check for reading past
-the end of the buffer.
-*/
-/*lint -esym(750,get_byte_from_buffer)*/
-#define get_byte_from_buffer()						\
-  (byte_buffer <= buffer_end ? *byte_buffer++ : buffer_overrun())
-
-
-static void get_bytes_from_buffer(void		*addr,
-				  size_t	length)
-/*
-Fetch a block of bytes from a memory buffer, and check for reading
-past the end of the buffer.
+Fetch a block of bytes from the IFC file, and check for reading past the end of
+the buffer.
 */
 {
   /* Check for fetching too many bytes. */
   if (((unsigned char*)byte_buffer + length - 1) > buffer_end) {
     (void)buffer_overrun();
   }  /* if */
-  memcpy((a_byte*)addr, byte_buffer, length);
+  memcpy((a_byte*)entity, byte_buffer, length);
   byte_buffer += length;
 }  /* get_bytes_from_buffer */
 
 
 /*
-Macro to fetch a byte from memory.
+Macro to fetch a single byte from the IFC file.
 */
-/*lint -esym(750,get_byte)*/
-#define get_byte(byte)							\
-{									\
-  int	ch;								\
-  ch = get_byte_from_buffer();						\
-  *byte = ch;								\
-}  /* get_byte */
+#define get_byte(byte)                                                        \
+  *((unsigned char*)byte) = (byte_buffer <= buffer_end ? *byte_buffer++       \
+                                                       : buffer_overrun())
+
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+
+inline void an_ifc_module::init_byte_buffer(size_t            offset,
+                                            ARG_UNUSED size_t length)
+                                                                 const noexcept
+/*
+Initialize the state information used by "get_bytes", etc.  offset is the
+offset from the start of the module file to be read.  length is its size, in
+bytes.
+*/
+{
+  fseek(f_module, offset, SEEK_SET);
+}  /* init_byte_buffer */
+
+
+inline void an_ifc_module::get_bytes_from_buffer(void   *entity,
+                                                 size_t length) const noexcept
+/*
+Fetch a block of bytes from the IFC file, and check for reading past the end of
+the buffer.
+*/
+{
+  /* Check for fetching too many bytes. */
+  if (fread(entity, 1, length, f_module) != length) {
+    (void)buffer_overrun();
+  }  /* if */
+}  /* get_bytes_from_buffer */
+
 
 /*
-Macro to get a sequence of bytes from memory.
+Macro to fetch a single byte.
 */
-#define get_bytes(value, length)					\
-  get_bytes_from_buffer((void*)value, (size_t)length)
+#define get_byte(byte)                                                        \
+  get_bytes_from_buffer(byte, 1)
 
-/*
-Get length bytes in big-endian form and convert them to the host byte order.
-*/
-#if HOST_BIG_ENDIAN
-#define get_big_endian_bytes(entity, length)				\
-  f_get_big_endian_bytes((void*)entity, length)
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
-static void f_get_big_endian_bytes(void		*entity,
-                                   size_t	length)
+inline void an_ifc_module::get_mismatched_endian_bytes(void   *entity,
+                                                       size_t length)
+                                                                 const noexcept
 /*
-Get length bytes from memory and convert them to the host byte order.  This
-routine is used only when the host byte order is big-endian.
+Get length bytes from the IFC file and convert them to the host byte order.
+This routine is used only when the host byte order does not match the byte
+order for the entity being read.
 */
 {
   unsigned char	*ptr;
@@ -206,12 +182,26 @@ routine is used only when the host byte order is big-endian.
        length--, ptr--) {
     get_byte(ptr);
   }  /* for */
-}  /* f_get_big_endian_bytes */
+}  /* get_mismatched_endian_bytes */
 
-#else /* !HOST_BIG_ENDIAN */
-#define get_big_endian_bytes(entity, length)				\
-  get_bytes(entity, length)
-#endif /* !HOST_BIG_ENDIAN */
+
+inline void an_ifc_module::get_bytes(void      *entity,
+                                     size_t    length,
+                                     a_boolean header_bytes) const noexcept
+/*
+Get length bytes from the IFC file.  If there's an endian mismatch between
+what's being read and the host, convert the bytes to the host byte order.  If
+header_bytes is TRUE, the bytes being retrieved correspond to the IFC file
+header or table of contents (and are therefore known to be little-endian).
+*/
+{
+  if (host_little_endian && (targ_little_endian || header_bytes)) {
+    get_bytes_from_buffer(entity, length);
+  } else {
+    get_mismatched_endian_bytes(entity, length);
+  }  /* if */
+}  /* get_bytes */
+
 
 /*
 Verify that the variable being used to read a value is the same size as the
@@ -229,9 +219,9 @@ Debug hook to print all accesses to IFC partitions.
 #if DEBUG && EXPENSIVE_CHECKING
 #define db_get_byte(value_str, addr, len) ,f_db_get_byte(value_str, addr, len)
 
-static void f_db_get_byte(a_const_char *value_str,
-                          void         *addr,
-                          size_t       length)
+void an_ifc_module::f_db_get_byte(a_const_char *value_str,
+                                  void         *addr,
+                                  size_t       length) const noexcept
 /*
 Utility to print some debug information for every access to an IFC module file.
 */
@@ -240,10 +230,12 @@ Utility to print some debug information for every access to an IFC module file.
     if (debug_partition != NULL) {
       (void)fprintf(f_debug, "[%s:0x%08lx:%d] = ",
                     debug_partition->name,
+#if USE_MMAP_FOR_MEMORY_REGIONS
                     ((char *)byte_buffer -
-                     ((char *)(debug_mod->module_interface->mmap_addr) +
-                      debug_partition->offset)
-                     - length),
+                       ((char *)mmap_addr + debug_partition->offset) - length),
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+                    (size_t)(ftell(f_module)) -debug_partition->offset -length,
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
                     (int)length);
     }  /* if */
     switch (length) {
@@ -283,31 +275,30 @@ read_ifc_partition_at_offset or read_ifc_partition_at_index), in the proper
 endianness.  These macros have the GET capitalized as a visual indicator that
 they change the value of their argument.
 */
-/* FIXME: Header/TOC is little-endian, partitions use big-endian */
-#define GET_byte(value)						        \
+#define GET_byte(value, from_header)                                    \
   (check_size(value, 1)                                                 \
-   get_big_endian_bytes(&(value), 1)                                    \
+   get_bytes(&(value), 1, from_header)                                  \
    db_get_byte(stringize(value), &(value), 1))
 
-#define GET_short(value)						\
+#define GET_short(value, from_header)                                   \
   (check_size(value, 2)                                                 \
-   get_big_endian_bytes(&(value), 2)                                    \
+   get_bytes(&(value), 2, from_header)                                  \
    db_get_byte(stringize(value), &(value), 2))
 
-#define GET_int(value)							\
+#define GET_int(value, from_header)                                     \
   (check_size(value, 4)                                                 \
-   get_big_endian_bytes(&(value), 4)                                    \
+   get_bytes(&(value), 4, from_header)                                  \
    db_get_byte(stringize(value), &(value), 4))
 
-#define GET_64bit_int(value)						\
+#define GET_64bit_int(value, from_header)                               \
   (check_size(value, 8)                                                 \
-   get_big_endian_bytes(&(value), 8)                                    \
+   get_bytes(&(value), 8, from_header)                                  \
    db_get_byte(stringize(value), &(value), 8))
 
-#define GET_256bit_int(value)                                           \
+#define GET_256bit_int(value, from_header)                              \
   (check_size(value, 32)                                                \
    /*lint -e545*/                                                       \
-   get_big_endian_bytes(&(value), 32)                                   \
+   get_bytes(&(value), 32, from_header)                                 \
    db_get_byte(stringize(value), &(value), 32))
 
 
@@ -316,7 +307,11 @@ For what appear to be nested structures in the IFC specification, if the
 inner structures aren't a multiple of four bytes, padding is present in the
 IFC file and must be explicitly skipped when accessing the bytes linearly.
 */
+#if USE_MMAP_FOR_MEMORY_REGIONS
 #define pad(bytes) (byte_buffer += (bytes))
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+#define pad(bytes) (fseek(f_module, bytes, SEEK_CUR))
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
 /*
 For each fundamental type in an IFC module, define a macro to interpret the
@@ -326,87 +321,91 @@ visual indicator that they change the value of their argument.
 Handle nested structures differently (and check for padding).
 */
 
-#define GET_ByteOffset(x)         GET_int(x)
-#define GET_Cardinality(x)        GET_int(x)
-#define GET_ChartIndex(x)         GET_int(x)
-#define GET_Column(x)             GET_int(x)
-#define GET_DeclIndex(x)          GET_int(x)
-#define GET_EntitySize(x)         GET_int(x)
-#define GET_ExprIndex(x)          GET_int(x)
-#define GET_Index(x)              GET_int(x)
-#define GET_LanguageVersion(x)    GET_int(x)
-#define GET_LineIndex(x)          GET_int(x)
-#define GET_LineNumber(x)         GET_int(x)
-#define GET_LitIndex(x)           GET_int(x)
-#define GET_MsvcTraits(x)         GET_int(x)
-#define GET_NameIndex(x)          GET_int(x)
-#define GET_Offset(x)             GET_int(x)
-#define GET_ParameterLevel(x)     GET_int(x)
-#define GET_ParameterPosition(x)  GET_int(x)
-#define GET_ScopeIndex(x)         GET_int(x)
-#define GET_SentenceIndex(x)      GET_int(x)
-#define GET_StmtIndex(x)          GET_int(x)
-#define GET_StringIndex(x)        GET_int(x)
-#define GET_SyntaxIndex(x)        GET_int(x)
-#define GET_TextOffset(x)         GET_int(x)
-#define GET_TypeIndex(x)          GET_int(x)
-#define GET_UniqueID(x)           GET_int(x)
-#define GET_UnitIndex(x)          GET_int(x)
-#define GET_WordIndex(x)          GET_int(x)
+#define GET_ByteOffset(x, from_header)         GET_int(x, from_header)
+#define GET_Cardinality(x, from_header)        GET_int(x, from_header)
+#define GET_ChartIndex(x, from_header)         GET_int(x, from_header)
+#define GET_Column(x, from_header)             GET_int(x, from_header)
+#define GET_DeclIndex(x, from_header)          GET_int(x, from_header)
+#define GET_EntitySize(x, from_header)         GET_int(x, from_header)
+#define GET_ExprIndex(x, from_header)          GET_int(x, from_header)
+#define GET_Index(x, from_header)              GET_int(x, from_header)
+#define GET_LanguageVersion(x, from_header)    GET_int(x, from_header)
+#define GET_LineIndex(x, from_header)          GET_int(x, from_header)
+#define GET_LineNumber(x, from_header)         GET_int(x, from_header)
+#define GET_LitIndex(x, from_header)           GET_int(x, from_header)
+#define GET_MsvcTraits(x, from_header)         GET_int(x, from_header)
+#define GET_NameIndex(x, from_header)          GET_int(x, from_header)
+#define GET_Offset(x, from_header)             GET_int(x, from_header)
+#define GET_ParameterLevel(x, from_header)     GET_int(x, from_header)
+#define GET_ParameterPosition(x, from_header)  GET_int(x, from_header)
+#define GET_ScopeIndex(x, from_header)         GET_int(x, from_header)
+#define GET_SentenceIndex(x, from_header)      GET_int(x, from_header)
+#define GET_StmtIndex(x, from_header)          GET_int(x, from_header)
+#define GET_StringIndex(x, from_header)        GET_int(x, from_header)
+#define GET_SyntaxIndex(x, from_header)        GET_int(x, from_header)
+#define GET_TextOffset(x, from_header)         GET_int(x, from_header)
+#define GET_TypeIndex(x, from_header)          GET_int(x, from_header)
+#define GET_UniqueID(x, from_header)           GET_int(x, from_header)
+#define GET_UnitIndex(x, from_header)          GET_int(x, from_header)
+#define GET_WordIndex(x, from_header)          GET_int(x, from_header)
 
-#define GET_Alignment(x)          GET_short(x)
-#define GET_EHFlags(x)            GET_short(x)
-#define GET_FunctionTraits(x)     GET_short(x)
-#define GET_OperatorCategory(x)   GET_short(x)
-#define GET_PackSize(x)           GET_short(x)
-#define GET_WordCategory(x)       GET_short(x)
+#define GET_Alignment(x, from_header)          GET_short(x, from_header)
+#define GET_EHFlags(x, from_header)            GET_short(x, from_header)
+#define GET_FunctionTraits(x, from_header)     GET_short(x, from_header)
+#define GET_OperatorCategory(x, from_header)   GET_short(x, from_header)
+#define GET_PackSize(x, from_header)           GET_short(x, from_header)
+#define GET_WordCategory(x, from_header)       GET_short(x, from_header)
 
-#define GET_Abi(x)                GET_byte(x)
-#define GET_Access(x)             GET_byte(x)
-#define GET_Architecture(x)       GET_byte(x)
-#define GET_BasicSpecifiers(x)    GET_byte(x)
-#define GET_CallingConvention(x)  GET_byte(x)
-#define GET_FunctionTypeTraits(x) GET_byte(x)
-#define GET_NoexceptSort(x)       GET_byte(x)
-#define GET_ObjectTraits(x)       GET_byte(x)
-#define GET_ParameterSort(x)      GET_byte(x)
-#define GET_Qualifiers(x)         GET_byte(x)
-#define GET_ReadConversionSort(x) GET_byte(x)
-#define GET_ScopeTraits(x)        GET_byte(x)
+#define GET_Abi(x, from_header)                GET_byte(x, from_header)
+#define GET_Access(x, from_header)             GET_byte(x, from_header)
+#define GET_Architecture(x, from_header)       GET_byte(x, from_header)
+#define GET_BasicSpecifiers(x, from_header)    GET_byte(x, from_header)
+#define GET_CallingConvention(x, from_header)  GET_byte(x, from_header)
+#define GET_FunctionTypeTraits(x, from_header) GET_byte(x, from_header)
+#define GET_NoexceptSort(x, from_header)       GET_byte(x, from_header)
+#define GET_ObjectTraits(x, from_header)       GET_byte(x, from_header)
+#define GET_ParameterSort(x, from_header)      GET_byte(x, from_header)
+#define GET_Qualifiers(x, from_header)         GET_byte(x, from_header)
+#define GET_ReadConversionSort(x, from_header) GET_byte(x, from_header)
+#define GET_ScopeTraits(x, from_header)        GET_byte(x, from_header)
 /*lint -esym(750,GET_SyntaxSort)*/
-#define GET_SyntaxSort(x)         GET_byte(x)
-#define GET_TypeBasis(x)          GET_byte(x)
-#define GET_TypePrecision(x)      GET_byte(x)
-#define GET_TypeSign(x)           GET_byte(x)
-#define GET_Version(x)            GET_byte(x)
+#define GET_SyntaxSort(x, from_header)         GET_byte(x, from_header)
+#define GET_TypeBasis(x, from_header)          GET_byte(x, from_header)
+#define GET_TypePrecision(x, from_header)      GET_byte(x, from_header)
+#define GET_TypeSign(x, from_header)           GET_byte(x, from_header)
+#define GET_Version(x, from_header)            GET_byte(x, from_header)
 
-#define GET_bool(x)               GET_byte(x)
-#define GET_uint8_t(x)            GET_byte(x)
-#define GET_uint16_t(x)           GET_short(x)
+#define GET_bool(x, from_header)               GET_byte(x, from_header)
+#define GET_uint8_t(x, from_header)            GET_byte(x, from_header)
+#define GET_uint16_t(x, from_header)           GET_short(x, from_header)
 
-#define GET_Checksum(x)           GET_256bit_int(x)
+#define GET_Checksum(x, from_header)           GET_256bit_int(x, from_header)
 
-#define GET_Sequence(x)        (GET_Index((x).start), \
-                                GET_Cardinality((x).cardinality))
+#define GET_Sequence(x, from_header) \
+                                (GET_Index((x).start, from_header), \
+                                 GET_Cardinality((x).cardinality, from_header))
 /*lint -esym(750,GET_ModuleReference)*/
-#define GET_ModuleReference(x) (GET_TextOffset((x).owner), \
-                                GET_TextOffset((x).partition))
-#define GET_SourceLocation(x)  (GET_LineIndex((x).line), \
-                                GET_Column((x).column))
+#define GET_ModuleReference(x, from_header) \
+                                   (GET_TextOffset((x).owner, from_header), \
+                                    GET_TextOffset((x).partition, from_header))
+#define GET_SourceLocation(x, from_header) \
+                                        (GET_LineIndex((x).line, from_header), \
+                                         GET_Column((x).column, from_header))
 /* Note that this includes padding: */
-#define GET_NoexceptSpecification(x) (GET_SentenceIndex((x).words), \
-                                      GET_NoexceptSort((x).sort), \
-                                      pad(3))
-#define GET_ParameterizedEntity(x) (GET_Index((x).index), \
-                                    GET_SentenceIndex((x).head), \
-                                    GET_SentenceIndex((x).body), \
-                                    GET_SentenceIndex((x).attributes))
+#define GET_NoexceptSpecification(x, from_header) \
+                                  (GET_SentenceIndex((x).words, from_header), \
+                                   GET_NoexceptSort((x).sort, from_header), \
+                                   pad(3))
+#define GET_ParameterizedEntity(x, from_header) \
+                               (GET_Index((x).index, from_header), \
+                                GET_SentenceIndex((x).head, from_header), \
+                                GET_SentenceIndex((x).body, from_header), \
+                                GET_SentenceIndex((x).attributes, from_header))
 
 /* Utility to save the current partition (for display during debugging). */
 #if DEBUG && EXPENSIVE_CHECKING
 #define set_debug_partition(kind) \
-  (debug_mod = assoc_module_info, \
-   debug_partition = &partitions[(kind)]),
+  debug_partition = &partitions[(kind)],
 #else /* !(DEBUG && EXPENSIVE_CHECKING) */
 #define set_debug_partition(kind) /**/
 #endif /* DEBUG && EXPENSIVE_CHECKING */
@@ -440,8 +439,7 @@ or index, in preparation for a call to GET_byte, GET_short, or GET_int.
 */
 #define read_ifc_partition_at_offset(kind, offset) \
   (set_debug_partition(kind) \
-   init_byte_buffer(((char*)mmap_addr + (offset)), \
-                    partitions[kind].size))
+   init_byte_buffer(offset, partitions[kind].size))
 
 #define read_ifc_partition_at_index(kind, idx) \
   read_ifc_partition_at_offset((kind),\
@@ -455,59 +453,128 @@ ifc_map.h.  Make sure to use the pointer that is returned by these functions
 (and not the pointer that is passed as an argument).
 */
 
-#if USE_MMAP_POINTERS_TO_IFC
+#if USE_MMAP_FOR_MODULES
+
 /*
-In this configuration, the file layout and the alignment/padding of the host
-must have exactly the same characteristics.  Simply return a pointer to a
-suitably-cast byte_buffer and increment it as appropriate (the local storage
-argument, ptr, is unused in this scenario).
+IFC files have the file header and table of contents stored in little-endian
+format, while multibyte scalar values within the partitions are stored with
+the endianness of the target architecture.
+
+If both the host and the target have the same endianness, then the file layout
+and the alignment/padding of the host must have exactly the same
+characteristics.  In this case, simply return a pointer to a suitably-cast
+byte_buffer and increment it as appropriate (the local storage argument, ptr,
+is unused in this scenario).  Otherwise, the storage passed in to the function
+is used to store copies of each field of the structure and each field is
+indivually copied (and byte-swapped if necessary).  If fill_storage is TRUE,
+copy the data into *ptr.
 
 For example, when "name" is "foo", this routine effectively boils down to:
 
-  static an_ifc_foo *get_foo(an_ifc_foo *ptr) {
-    ptr = (an_ifc_foo*)byte_buffer;
-    byte_buffer = byte_buffer + sizeof(an_ifc_foo);
+  static an_ifc_foo *get_foo(an_ifc_foo *ptr,
+                             a_boolean  fill_storage) const noexcept
+  {
+    if (targ_little_endian == host_little_endian) {
+      if (fill_storage) {
+        memcpy(ptr, byte_buffer, sizeof(an_ifc_foo);
+      } else {
+        ptr = (an_ifc_foo*)byte_buffer;
+      }
+      byte_buffer = byte_buffer + sizeof(an_ifc_foo);
+    } else {
+      GET_field1_type(ptr->field1);
+      GET_field2_type(ptr->field2);
+    }
     return ptr;
   }
 */
 #define IFC_DECL_START(name) \
-  static concat(an_ifc_, name) * concat(get_, name) \
-                                      (ARG_UNUSED concat(an_ifc_, name) *ptr) \
+  inline concat(an_ifc_, name) * an_ifc_module::concat(get_, name) ( \
+                                  concat(an_ifc_, name) *ptr, \
+                                  a_boolean             fill_storage) \
+                                                               const noexcept \
   { \
-    ptr = ( concat(an_ifc_, name) *)byte_buffer; \
-    byte_buffer = byte_buffer + sizeof(concat(an_ifc_, name)); \
-    check_assertion(byte_buffer <= (buffer_end+1));
-#define IFC_DECL_FIELD(field, type) /**/
+    if (targ_little_endian == host_little_endian) { \
+      check_assertion(byte_buffer + sizeof(concat(an_ifc_, name)) <= \
+                                                             (buffer_end+1)); \
+      if (fill_storage) { \
+        memcpy(ptr, byte_buffer, sizeof(concat(an_ifc_, name))); \
+      } else { \
+        ptr = ( concat(an_ifc_, name) *)byte_buffer; \
+      }  /* if */ \
+      byte_buffer = byte_buffer + sizeof(concat(an_ifc_, name)); \
+    } else {
+#define IFC_DECL_FIELD(field, type) \
+      concat(GET_, type)(ptr->field, /*from_header=*/FALSE);
 #define IFC_DECL_END(name) \
+    }  /* if */ \
     return ptr; \
   }
-#else /* !USE_MMAP_POINTERS_TO_IFC */
+
+/*
+The variant for when the endianness of the IFC entity is guaranteed to be
+little-endian.
+*/
+#define IFC_LE_DECL_START(name) \
+  inline concat(an_ifc_, name) * an_ifc_module::concat(get_, name) ( \
+                                  concat(an_ifc_, name) *ptr, \
+                                  a_boolean             fill_storage) \
+                                                               const noexcept \
+  { \
+    if (host_little_endian) { \
+      check_assertion(byte_buffer + sizeof(concat(an_ifc_, name)) <= \
+                                                             (buffer_end+1)); \
+      if (fill_storage) { \
+        memcpy(ptr, byte_buffer, sizeof(concat(an_ifc_, name))); \
+      } else { \
+        ptr = ( concat(an_ifc_, name) *)byte_buffer; \
+      }  /* if */ \
+      byte_buffer = byte_buffer + sizeof(concat(an_ifc_, name)); \
+    } else {
+#define IFC_LE_DECL_FIELD(field, type) \
+      concat(GET_, type)(ptr->field, /*from_header=*/TRUE);
+
+#else /* !USE_MMAP_FOR_MODULES */
+
 /*
 Use this case when each field must be treated separately because of endianness
 or alignment/padding differences.  In this case, the storage passed in to the
 function is used to store copies of each field of the structure and each field
-is individually copied (and byte-swapped if necessary).
+is individually copied (and byte-swapped if necessary).  Since the local
+storage argument *ptr is always filled out by this, fill_storage is unused.
 
 For example, when "name" is "foo", and the macro is applied to an entry with
 two fields, "field1" and "field2", whose types are "field1_type" and
 "field2_type" respectively, the following is generated:
 
-  static an_ifc_foo *get_foo(an_ifc_foo *ptr) {
+  static an_ifc_foo *get_foo(an_ifc_foo *ptr,
+                             a_boolean  fill_storage) const noexcept
+  {
     GET_field1_type(ptr->field1);
     GET_field2_type(ptr->field2);
     return ptr;
   }
 */
 #define IFC_DECL_START(name) \
-  static concat(an_ifc_, name) * concat(get_, name) \
-                                                 (concat(an_ifc_, name) *ptr) \
+  inline concat(an_ifc_, name) * an_ifc_module::concat(get_, name) ( \
+                                  concat(an_ifc_, name) *ptr, \
+                                  ARG_UNUSED a_boolean  fill_storage) \
+                                                               const noexcept \
   {
 #define IFC_DECL_FIELD(field, type) \
-    concat(GET_, type)(ptr->field);
+    concat(GET_, type)(ptr->field, /*from_header=*/FALSE);
 #define IFC_DECL_END(name) \
     return ptr; \
   }
-#endif /* USE_MMAP_POINTERS_TO_IFC */
+
+/*
+The variant for when the endianness of the IFC entity is guaranteed to be
+little-endian.
+*/
+#define IFC_LE_DECL_FIELD(field, type) \
+    concat(GET_, type)(ptr->field, /*from_header=*/TRUE);
+
+#endif /* USE_MMAP_FOR_MODULES */
 
 /*lint -e451 included more than once. */
 #include "ifc_map.h"
@@ -525,9 +592,7 @@ FIXME: may want to store mmap_addr + string_table_bytes somewhere
 #define verify_offset(offset) /**/
 #endif /* EXPENSIVE_CHECKING */
 #define get_string_at_offset(offset) \
-  (verify_offset(offset) \
-   (a_const_char*)((char*)(mmap_addr) + \
-    header.string_table_bytes + (offset)))
+  (verify_offset(offset) string_table + (offset))
 
 #if DEBUG
 
@@ -778,13 +843,22 @@ been confirmed to exist and the path stored in midp.
     assoc_module_info = mod;
     set_name(mod->name);
     /* Read the IFC file header (which starts after the magic number). */
-    init_byte_buffer((char*)mmap_addr + 4, mmap_size - 4);
-    memcpy(&header, get_File_Header(&header), sizeof(header));
+    init_byte_buffer(4, f_size - 4);
+    get_File_Header(&header, /*fill_storage=*/TRUE);
     /* FIXME: The checksum is not yet checked. */
+#if USE_MMAP_FOR_MEMORY_REGIONS
+    string_table = (a_const_char*)mmap_addr + header.string_table_bytes;
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+    string_table = alloc_il(header.string_table_size);
+    fseek(f_module, header.string_table_bytes, SEEK_SET);
+    if (fread((void*)string_table, 1, header.string_table_size, f_module) !=
+                                                    header.string_table_size) {
+      unexpected_condition_str("Failed to load the IFC module string table");
+    }  /* if */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
     /* Prepare to read the partitions (by "seeking" to the IFC Table of
        Contents). */
-    init_byte_buffer((char*)mmap_addr + header.toc,
-                     mmap_size - (size_t)header.toc);
+    init_byte_buffer(header.toc, f_size - (size_t)header.toc);
 #if DEBUG
     if (db_flag_is_set("ifc_modules")) {
       db_module(mod);
@@ -861,11 +935,13 @@ Close the module file specified in the module-import-declaration.
   if (f_module != NULL) {
     (void)fclose(f_module);
     f_module = NULL;
+#if USE_MMAP_FOR_MEMORY_REGIONS
 #if EDG_WIN32
     close_mapped_input_file(mapped_input, map_object);
     mapped_input = NULL;
     map_object = NULL;
 #endif /* EDG_WIN32 */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   }  /* if */
 }  /* close_ifc_module_file */
 
@@ -1473,7 +1549,7 @@ otherwise.
   a_module_ptr  mod = midp->module_info;
   a_boolean     err = FALSE;
   FILE          *file;
-  char          magic[4];
+  a_byte        magic[4];
   struct stat   stat_buf;
 
   check_assertion(mod != NULL && mod->full_name != NULL);
@@ -1499,13 +1575,7 @@ otherwise.
     }  /* if */
     /* Verify the magic number (this works for both big and little endian
        machines). */
-    if (!err &&
-        (magic[0] != 0x54 ||
-         magic[1] != 0x51 ||
-         magic[2] != 0x45 ||
-         magic[3] != 0x1A)) {
-      /* FIXME: Visual Studio silently ignores this case (and continues to
-         search for a proper IFC file). */
+    if (!err && !magic_numbers_match(magic, ifc_magic_numbers)) {
       err = TRUE;
     }  /* if */
     if (!err) {
@@ -1525,6 +1595,10 @@ otherwise.
                                            /*read_only=*/TRUE, (sizeof_t)0,
                                            mmap_size, NULL, mod->full_name);
       check_assertion(mmap_addr != NULL);
+      f_size = mmap_size;
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+      fseek(file, 0, SEEK_END);
+      f_size = (size_t)ftell(file);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
       f_module = file;
     }  /* if */
@@ -1861,7 +1935,7 @@ an "ellipsis type").
                 ifc_TypeIndex ti;
                 read_ifc_partition_at_index(ifc_heap_type,
                                             itstp->start + i);
-                GET_TypeIndex(ti);
+                GET_TypeIndex(ti, /*from_header=*/FALSE);
                 param_type = type_for_ifc_type_index(ti);
                 if (param_type == NULL) {
                   /* This happens when an ellipsis is present as the last
@@ -2038,8 +2112,7 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
              conversion function, so use the name from the type instead. */
           result = target_type->source_corresp.name;
           if (result == NULL) {
-            fill_in_type_name(target_type);
-            result = target_type->source_corresp.name;
+            result = get_type_name(target_type);
           }  /* if */
           if (loc != NULL) {
             /* Set the locator as appropriate for a conversion function. */
@@ -2299,7 +2372,7 @@ FIXME: what other expressions can we get here?
               cp = alloc_constant(ck_integer);
               read_ifc_partition_at_index(ifc_const_i64,
                                           literal_index(ieslp->value));
-              GET_64bit_int(value);
+              GET_64bit_int(value, /*from_header=*/FALSE);
               stripped_type = skip_typerefs(constant_type);
               check_assertion(stripped_type->kind == (a_type_kind)tk_integer);
               set_unsigned_integer_constant(cp,
@@ -2703,7 +2776,7 @@ the output buffer.
             { a_host_large_unsigned value;
               read_ifc_partition_at_index(ifc_const_i64,
                                           literal_index(ieslp->value));
-              GET_64bit_int(value);
+              GET_64bit_int(value, /*from_header=*/FALSE);
               str_ifc_add_number(value, scbp);
             }
             break;
@@ -3311,7 +3384,7 @@ FIXME: more specific
           ifc_TypeIndex ti;
           read_ifc_partition_at_index(ifc_heap_type,
                                       itstp->start + i);
-          GET_TypeIndex(ti);
+          GET_TypeIndex(ti, /*from_header=*/FALSE);
           str_ifc_type_index(ti, scbp);
           /* FIXME: not really sure what the separator should be here: */
           if (i+1 < itstp->cardinality) {
@@ -5153,11 +5226,8 @@ Initialize static variables related to this file that must be initialized
 for each compilation.
 */
 {
-  byte_buffer = NULL;
-  buffer_end = NULL;
 #if DEBUG && EXPENSIVE_CHECKING
   debug_partition = NULL;
-  debug_mod = NULL;
 #endif /* DEBUG && EXPENSIVE_CHECKING */
 }  /* ifc_modules_init */
 

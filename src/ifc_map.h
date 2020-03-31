@@ -27,34 +27,49 @@ from these entities.
 
 When including this header file, the caller must provide macro definitions for
 IFC_DECL_START, IFC_DECL_FIELD, and IFC_DECL_END (which are #undef'ed at the
-end of this file).
+end of this file).  In addition, if behavior differs when the entity in
+question is known to be stored in a little-endian formet, IFC_LE_DECL_XXX
+variants must also be defined.  If these variants are not defined, the regular
+version is used.
 */
 
+#ifndef IFC_LE_DECL_START
+#define IFC_LE_DECL_START(name) IFC_DECL_START(name)
+#endif /* ifndef IFC_LE_DECL_START */
+
+#ifndef IFC_LE_DECL_FIELD
+#define IFC_LE_DECL_FIELD(field, type) IFC_DECL_FIELD(field, type)
+#endif /* ifndef IFC_LE_DECL_FIELD */
+
+#ifndef IFC_LE_DECL_END
+#define IFC_LE_DECL_END(name) IFC_DECL_END(name)
+#endif /* ifndef IFC_LE_DECL_END */
+
 /* File_Header */
-IFC_DECL_START(File_Header)
-  IFC_DECL_FIELD(checksum, Checksum)
-  IFC_DECL_FIELD(major_version, Version)
-  IFC_DECL_FIELD(minor_version, Version)
-  IFC_DECL_FIELD(abi, Abi)
-  IFC_DECL_FIELD(arch, Architecture)
-  IFC_DECL_FIELD(dialect, LanguageVersion)
-  IFC_DECL_FIELD(string_table_bytes, ByteOffset)
-  IFC_DECL_FIELD(string_table_size, Cardinality)
-  IFC_DECL_FIELD(unit, UnitIndex)
-  IFC_DECL_FIELD(src_path, TextOffset)
-  IFC_DECL_FIELD(global_scope, ScopeIndex)
-  IFC_DECL_FIELD(toc, ByteOffset)
-  IFC_DECL_FIELD(partition_count, Cardinality)
-  IFC_DECL_FIELD(internal, bool)
-IFC_DECL_END(File_Header)
+IFC_LE_DECL_START(File_Header)
+  IFC_LE_DECL_FIELD(checksum, Checksum)
+  IFC_LE_DECL_FIELD(major_version, Version)
+  IFC_LE_DECL_FIELD(minor_version, Version)
+  IFC_LE_DECL_FIELD(abi, Abi)
+  IFC_LE_DECL_FIELD(arch, Architecture)
+  IFC_LE_DECL_FIELD(dialect, LanguageVersion)
+  IFC_LE_DECL_FIELD(string_table_bytes, ByteOffset)
+  IFC_LE_DECL_FIELD(string_table_size, Cardinality)
+  IFC_LE_DECL_FIELD(unit, UnitIndex)
+  IFC_LE_DECL_FIELD(src_path, TextOffset)
+  IFC_LE_DECL_FIELD(global_scope, ScopeIndex)
+  IFC_LE_DECL_FIELD(toc, ByteOffset)
+  IFC_LE_DECL_FIELD(partition_count, Cardinality)
+  IFC_LE_DECL_FIELD(internal, bool)
+IFC_LE_DECL_END(File_Header)
 
 /* Partition */
-IFC_DECL_START(Partition)
-  IFC_DECL_FIELD(name, TextOffset)
-  IFC_DECL_FIELD(offset, ByteOffset)
-  IFC_DECL_FIELD(cardinality, Cardinality)
-  IFC_DECL_FIELD(entry_size, EntitySize)
-IFC_DECL_END(Partition)
+IFC_LE_DECL_START(Partition)
+  IFC_LE_DECL_FIELD(name, TextOffset)
+  IFC_LE_DECL_FIELD(offset, ByteOffset)
+  IFC_LE_DECL_FIELD(cardinality, Cardinality)
+  IFC_LE_DECL_FIELD(entry_size, EntitySize)
+IFC_LE_DECL_END(Partition)
 
 /* Scope::Descriptor */
 IFC_DECL_START(Scope_Descriptor)
@@ -1449,6 +1464,9 @@ IFC_DECL_END(Word)
 #undef IFC_DECL_START
 #undef IFC_DECL_FIELD
 #undef IFC_DECL_END
+#undef IFC_LE_DECL_START
+#undef IFC_LE_DECL_FIELD
+#undef IFC_LE_DECL_END
 
 
 /******************************************************************************

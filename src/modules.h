@@ -81,6 +81,9 @@ struct a_module_interface {
 			   this module interface. */
   FILE		*f_module = NULL;
 			/* The file descriptor for the file. */
+  size_t	f_size = 0;
+			/* The size of the module file. */
+#if USE_MMAP_FOR_MEMORY_REGIONS
   void		*mmap_addr = NULL;
 			/* A pointer to the memory-mapped beginning of the
 			   module file. */
@@ -96,6 +99,7 @@ struct a_module_interface {
 			/* A HANDLE returned by CreateFileMapping during the
 			   mapping process on Windows. */
 #endif /* EDG_WIN32 */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
   a_module_interface() noexcept = delete;
   a_module_interface(a_module_kind iface_kind) noexcept
@@ -128,6 +132,18 @@ struct a_module_interface {
 
 /* If in a module unit, the current module symbol. */
 EXTERN a_symbol_ptr    curr_module_sym;
+
+inline a_boolean magic_numbers_match(const a_byte magic[4],
+                                     const a_byte expected[4])
+/*
+Return true if the provided magic numbers match their expected magic numbers.
+*/
+{
+  return magic[0] == expected[0] &&
+         magic[1] == expected[1] &&
+         magic[2] == expected[2] &&
+         magic[3] == expected[3];
+}  /* magic_numbers_match */
 
 extern a_boolean check_module_has_interface_dependency(
                                            a_symbol_ptr          module_sym,

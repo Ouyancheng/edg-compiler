@@ -45,19 +45,6 @@ constexpr a_module_file_suffix module_file_suffixes[] = {
 
 constexpr a_byte edg_magic_numbers[] = { 0x9A, 0x13, 0x37, 0x7D };
 
-inline a_boolean magic_numbers_match(const a_byte magic[4],
-                                     const a_byte expected[4])
-/*
-Return true if the provided magic numbers match their expected magic numbers.
-*/
-{
-  return magic[0] == expected[0] &&
-         magic[1] == expected[1] &&
-         magic[2] == expected[2] &&
-         magic[3] == expected[3];
-}  /* magic_numbers_match */
-
-
 a_text_buffer_ptr module_search_buffer, module_file_name_buffer;
 a_text_buffer_ptr module_primary_name_buffer, module_partition_name_buffer;
 

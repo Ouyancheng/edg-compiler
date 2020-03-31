@@ -1824,7 +1824,22 @@ struct an_ifc_module : public a_module_interface {
                            line in each file and that's time-consuming to
                            compute).  Dynamically allocated once the number of
                            source files is known. */
+private:
+#if USE_MMAP_FOR_MEMORY_REGIONS
+  mutable unsigned char
+		*byte_buffer;
+			/* Pointer to the current position in the buffer
+			   used by get_byte, etc. */
+  mutable unsigned char
+		*buffer_end;
+			/* Pointer to the last byte of the buffer used by
+			   get_byte, etc. */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+  a_const_char
+		*string_table;
+			/* The string table of the IFC file. */
 
+public:
   an_ifc_module() noexcept : a_module_interface((a_module_kind)mk_ifc) {}
   VIRTUAL ~an_ifc_module() noexcept = default;
 
@@ -1850,6 +1865,14 @@ struct an_ifc_module : public a_module_interface {
 #endif /* DEBUG */
 
 private:
+  inline void init_byte_buffer(size_t offset, size_t length) const noexcept;
+  inline void get_bytes_from_buffer(void   *addr,
+                                    size_t length) const noexcept;
+  inline void get_mismatched_endian_bytes(void   *entity,
+                                          size_t length) const noexcept;
+  inline void get_bytes(void      *entity,
+                        size_t    length,
+                        a_boolean header_bytes) const noexcept;
   a_boolean open_and_map_ifc_module_file(a_module_import_decl_ptr midp)
                                                                       noexcept;
   static an_ifc_partition_map *find_ifc_partition(a_const_char *name) noexcept;
@@ -1951,7 +1974,22 @@ private:
 
 #if DEBUG
   void db_ifc_file_header() const noexcept;
+#if EXPENSIVE_CHECKING
+  void f_db_get_byte(a_const_char *value_str,
+                     void         *addr,
+                     size_t       length) const noexcept;
+#endif /* EXPENSIVE_CHECKING */
 #endif /* DEBUG */
+
+  /* Generate prefixes for the entity getters. */
+  #define IFC_DECL_START(name) \
+  inline concat(an_ifc_, name) * concat(get_, name) ( \
+                                  concat(an_ifc_, name) *ptr, \
+                                  ARG_UNUSED a_boolean  fill_storage = FALSE) \
+                                                                const noexcept;
+  #define IFC_DECL_FIELD(field, type) /**/
+  #define IFC_DECL_END(name) /**/
+  #include "ifc_map.h"
 };  /* an_ifc_module */
 /*lint -restore*/
 

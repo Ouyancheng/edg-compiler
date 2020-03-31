@@ -2021,7 +2021,7 @@ Precompiled header file suffix.
 #endif /* ifndef PCH_FILE_SUFFIX */
 
 /*
-USE_MMAP_FOR_MEMORY_REGIONS is TRUE if memory mapping available for use
+USE_MMAP_FOR_MEMORY_REGIONS is TRUE if memory mapping is available for use
 in allocating memory regions.  By default, it is assumed to be available
 on systems other than MS-DOS.  When compiling a standalone utility
 program, use of mmap is disabled by default.
@@ -2044,6 +2044,9 @@ assigns the address.
 #define USE_FIXED_ADDRESS_FOR_MMAP FALSE
 #endif /* ifndef USE_FIXED_ADDRESS_FOR_MMAP */
 
+#if USE_FIXED_ADDRESS_FOR_MMAP && !USE_MMAP_FOR_MEMORY_REGIONS
+  #error USE_FIXED_ADDRESS_FOR_MMAP requires USE_MMAP_FOR_MEMORY_REGIONS
+#endif /* USE_FIXED_ADDRESS_FOR_MMAP && !USE_MMAP_FOR_MEMORY_REGIONS */
 
 /*
 When using mapped memory at a fixed address, the fixed address must be
@@ -2064,6 +2067,32 @@ EXTERN a_const_char
 			   initially set to FIXED_ADDRESS_FOR_MMAP and may be
 			   modified by command line option. */
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
+
+/*
+When set to FALSE, accesses to the bytes of the module file are conservative in
+that they access the file one byte at a time and optionally swap bytes as
+needed.  When TRUE, it is assumed that the module file's architecture and
+layout match those of the target and that data can accessed directly from a
+memory-mapped version of the module file.
+The safe value is FALSE.
+
+Note that this does not guarantee that pointers to module entities are in a
+memory mapped region - other considerations (such as whether the target and
+host are big- or little-endian) are taken into account, and copies will occur
+where necessary.  If this flag is TRUE, USE_MMAP_FOR_MEMORY_REGIONS must also
+be TRUE.
+*/
+#ifndef USE_MMAP_FOR_MODULES
+#if USE_MMAP_FOR_MEMORY_REGIONS
+#define USE_MMAP_FOR_MODULES TRUE
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+#define USE_MMAP_FOR_MODULES FALSE
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+#endif /* USE_MMAP_FOR_MODULES */
+
+#if USE_MMAP_FOR_MODULES && !USE_MMAP_FOR_MEMORY_REGIONS
+  #error USE_MMAP_FOR_MODULES requires USE_MMAP_FOR_MEMORY_REGIONS
+#endif /* USE_MMAP_FOR_MODULES && !USE_MMAP_FOR_MEMORY_REGIONS */
 
 /*
 When using precompiled headers, it must be possible to duplicate the memory
