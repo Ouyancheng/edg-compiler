@@ -1,5 +1,20 @@
 Version 6.1
 
+3/31/20  [EDGcpfe/22562]
+Microsoft compatibility with C++-generating back end: incorrect default
+template argument in generated code
+
+In Microsoft mode, when using a C++-generating back end configured with
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE,
+an incorrect default template argument could be emitted in a generated
+explicit specialization of a member template of a class template.  Now fixed.
+
+  template<typename T> struct A {
+    template<typename U = T> A() { }
+  };
+  A<int> ai;
+
+
 3/31/20  [EDGcpfe/22561]
 Constant-evaluation of __builtin_memcmp
 

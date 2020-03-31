@@ -2206,6 +2206,11 @@ typedef struct a_template_param {
 			   the actual argument corresponding to this parameter
 			   is omitted. */
   } default_arg;
+  a_template_parameter_ptr
+		il_template_parameter;
+			/* When all_template_info_in_il is TRUE this points to
+			   the IL template parameter entry if one has been
+			   created.  NULL otherwise. */
   /* When def_arg_involves_template_param is TRUE. */
   a_template_cache
 		default_arg_cache;

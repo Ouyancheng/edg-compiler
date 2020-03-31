@@ -494,6 +494,8 @@ static void add_instantiation(
 		a_symbol_ptr				instance_sym,
 		a_template_arg_ptr			template_arg_list);
 
+static void update_il_template_parameter(a_template_param_ptr     tpp);
+
 
 static void init_templ_decl_state(a_tmpl_decl_state_ptr	tdsp,
                                   a_decl_parse_state    *dps)
@@ -1926,6 +1928,11 @@ value specified by tap.
       unexpected_condition();
       break;
   }  /* switch */
+  if (tpp->il_template_parameter != NULL) {
+    /* Copy the updated default argument information to the IL template
+       parameter entry. */
+    update_il_template_parameter(tpp);
+  }  /* if */
 }  /* set_template_default_arg_value */
 
 
@@ -20026,6 +20033,9 @@ error_severity is the severity at which any diagnostics should be issued.
             to_tpp->default_arg.templ = from_tpp->default_arg.templ;
           }  /* if */
         }
+        /* Note that update_il_teplate_parameter is not called here because
+           the default did not appear in the actual declaration of the
+           template. */
       }  /* if */
       old_tpp = old_tpp->next;
       new_tpp = new_tpp->next;
@@ -25741,6 +25751,11 @@ the template parameter list of which tpp is an element.
         break;
     }  /* switch */
   }  /* if */
+  if (tpp->il_template_parameter != NULL) {
+    /* Copy the updated default argument information to the IL template
+       parameter entry. */
+    update_il_template_parameter(tpp);
+  }  /* if */
   for (tpp_to_mark = param_list; tpp_to_mark != NULL;
        tpp_to_mark = tpp_to_mark->next) {
     tpp_to_mark->param_symbol->is_invisible = FALSE;
@@ -28287,6 +28302,49 @@ instantiation, then you don't know what X is.
 }  /* prescan_nonclass_template_declaration */
 
 
+static void update_il_template_parameter(a_template_param_ptr     tpp)
+/*
+Copy information from the front end template parameter entry (tpp) to the IL
+template parameter entry.  This is usually called once when the template
+declaration is processed, but is sometimes called again if the default
+argument information in the front end template parameter entry is updated.
+*/
+{
+  a_template_parameter_ptr il_tpp = tpp->il_template_parameter;
+
+  check_assertion(il_tpp != NULL);
+  il_tpp->is_pack = tpp->is_pack;
+  switch (tpp->param_symbol->kind) {
+    case sk_type:
+      il_tpp->kind = (a_template_parameter_kind)tpk_type;
+      il_tpp->variant.type.ptr = tpp->variant.type;
+      il_tpp->variant.type.default_arg_type = tpp->default_arg.type;
+      il_tpp->source_corresp = *source_corresp_for_il_entry(
+                                      (char*)tpp->variant.type, iek_type);
+      break;
+    case sk_constant:
+      il_tpp->kind = (a_template_parameter_kind)tpk_nontype;
+      il_tpp->variant.nontype.constant = tpp->variant.constant.ptr;
+      il_tpp->variant.nontype.default_arg_constant = tpp->default_arg.constant;
+      il_tpp->source_corresp = *source_corresp_for_il_entry(
+                          (char*)tpp->variant.constant.ptr, iek_constant);
+      break;
+    case sk_class_template:
+      il_tpp->kind = (a_template_parameter_kind)tpk_template;
+      il_tpp->variant.templ.class_template = 
+                                         tpp->variant.templ->il_template_entry;
+      il_tpp->variant.templ.default_arg_template = tpp->default_arg.templ;
+      /* coverity[returned_null] */  /* coverity[dereference] */
+      il_tpp->source_corresp = *source_corresp_for_il_entry(
+                  (char*)il_tpp->variant.templ.class_template, iek_template);
+      break;
+    default:
+      unexpected_condition_str2("update_il_templae_parameter:",
+                                "unexpected symbol kind");
+  }  /* switch */
+}  /* update_il_template_parameter */
+
+
 static void complete_template_decl(a_template_decl_ptr	tdp,
 			       a_template_param_ptr	tp_list)
 /*
@@ -28302,37 +28360,8 @@ parameter list to be copied to tdp.
   /* Copy the template parameter list into the IL: */
   for (sym_tpp = tp_list; sym_tpp != NULL; sym_tpp = sym_tpp->next) {
     a_template_parameter_ptr  new_tpp = alloc_template_parameter();
-    new_tpp->is_pack = sym_tpp->is_pack;
-    switch (sym_tpp->param_symbol->kind) {
-      case sk_type:
-        new_tpp->kind = (a_template_parameter_kind)tpk_type;
-        new_tpp->variant.type.ptr = sym_tpp->variant.type;
-        new_tpp->variant.type.default_arg_type = sym_tpp->default_arg.type;
-        new_tpp->source_corresp = *source_corresp_for_il_entry(
-                                      (char*)sym_tpp->variant.type, iek_type);
-        break;
-      case sk_constant:
-        new_tpp->kind = (a_template_parameter_kind)tpk_nontype;
-        new_tpp->variant.nontype.constant = sym_tpp->variant.constant.ptr;
-        new_tpp->variant.nontype.default_arg_constant =
-                                                sym_tpp->default_arg.constant;
-        new_tpp->source_corresp = *source_corresp_for_il_entry(
-                          (char*)sym_tpp->variant.constant.ptr, iek_constant);
-        break;
-      case sk_class_template:
-        new_tpp->kind = (a_template_parameter_kind)tpk_template;
-        new_tpp->variant.templ.class_template = 
-                                    sym_tpp->variant.templ->il_template_entry;
-        new_tpp->variant.templ.default_arg_template =
-                                                   sym_tpp->default_arg.templ;
-         /* coverity[returned_null] */  /* coverity[dereference] */
-        new_tpp->source_corresp = *source_corresp_for_il_entry(
-                  (char*)new_tpp->variant.templ.class_template, iek_template);
-        break;
-      default:
-        unexpected_condition_str2("complete_template_decl:",
-                                  "unexpected symbol kind");
-    }  /* switch */
+    sym_tpp->il_template_parameter = new_tpp;
+    update_il_template_parameter(sym_tpp);
     if (il_tpp == NULL) {
       tdp->param_list = new_tpp;
     } else {

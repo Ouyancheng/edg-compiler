@@ -16444,6 +16444,7 @@ and return a pointer to it.
     check_assertion(sym->kind == (a_symbol_kind)sk_class_template);
     ptr->variant.templ = sym->variant.template_info;
   }  /* if */
+  ptr->il_template_parameter = NULL;
   clear_template_param_default_arg_info(ptr);
   ptr->param_num = 0;
   db_exit();
