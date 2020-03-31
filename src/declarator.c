@@ -3391,6 +3391,11 @@ an error if a default argument expression is encountered.
               scope_is(&scope_stack_top()-1, sck_template_instantiation)) {
             default_arg_allowed_on_curr_param = FALSE;
           }  /* if */
+          if (param_state.variant.auto_params != NULL &&
+              param_state.has_pack_ellipsis) {
+            /* A variadic "auto" parameter in the initial scan. */
+            param_state.variant.auto_params->is_parameter_pack = TRUE;
+          }  /* if */
         }  /* if */
         if (generic_lambdas_enabled && state->is_lambda &&
             param_state.has_deduced_type) {

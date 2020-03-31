@@ -618,6 +618,10 @@ typedef struct an_auto_param_descr {
   uint32_t	param_num;
 			/* The parameter number for which "auto" was seen as a
 			   type specifier. */
+  an_expr_node_ptr
+		type_constraint;
+			/* The type constraint preceding the "auto" token
+			   (NULL if none). */
   a_bit_field	is_parameter_pack:1;
 			/* TRUE if the parameter declarator included an
 			   ellipsis indicating a parameter pack. */
@@ -631,7 +635,8 @@ typedef struct an_auto_param_descr {
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } an_auto_param_descr;
 
-extern void record_auto_param_descr(a_decl_parse_state_ptr  dps);
+extern void record_auto_param_descr(a_decl_parse_state_ptr  dps,
+                                    an_expr_node_ptr        constraint);
 
 extern void free_auto_param_descriptions(a_decl_parse_state_ptr  dps);
 
@@ -1121,10 +1126,13 @@ typedef struct a_decl_parse_state {
 			   requires clause was not satisfied. */
   a_bit_field	is_abbr_func_template:1;
 			/* TRUE if this is an abbreviated function template
-			   declaration. */
+			   declaration being parse after the template
+			   parameters associated with the "auto" function
+			   parameters have been declared. */
   a_bit_field	decl_being_cached:1;
 			/* TRUE if background caching was started (and not
-			   ended) for this declaration. */
+			   ended) for this declaration even though it does not
+			   start with a "template" token. */
   an_init_state
 		init_state;
 			/* Information about the initializer (if any)
@@ -1242,25 +1250,26 @@ typedef struct a_decl_parse_state {
 			   when is_old_style_param_decl is TRUE in error
 			   cases. */
   union {
-    /* When is_lambda and is_struct_binding_decl are FALSE: */
+    /* When is_old_style_param_decl is TRUE: */
     a_param_id_ptr
 		param_id_list;
 			/* When calling scan_nonmember_declaration to parse an
 			   old-style C parameter definition this points to the
 			   list of parameter id entries encountered in the
 			   associated function declarator.  Otherwise, NULL. */
-    /* When is_lambda is TRUE: */
-    an_auto_param_descr_ptr
-		auto_params;
-			/* A list of entries describing "auto" type specifiers
-			   encountered while prescanning a function declarator
-			   (for a C++14 generic lambda). */
     /* When is_struct_binding_decl is TRUE: */
     a_token_cache_ptr
 		struct_bindings_cache;
 			/* A token cache holding the bracket-enclosed list of
 			   identifiers (presumably) denoting one or more
 			   structured bindings. */
+    /* When is_old_style_param_decl and is_struct_binding_decl are FALSE: */
+    an_auto_param_descr_ptr
+		auto_params;
+			/* A list of entries describing "auto" type specifiers
+			   encountered while prescanning a function declarator
+			   (for a C++14 generic lambda or C++20 abbreviated
+			   function template). */
   } variant;
   a_targ_alignment
 		alignment;
@@ -1459,7 +1468,9 @@ extern void add_end_of_parse_action(
 extern void run_end_of_parse_actions(a_decl_parse_state  *dps,
                                      a_boolean           more_declarators);
 
-extern void discard_end_of_parse_actions(a_decl_parse_state  *dps);
+extern void discard_end_of_parse_actions(
+                                  a_decl_parse_state     *dps,
+                                  a_decl_parse_callback  *until_action = NULL);
 
 
 extern an_attribute_ptr f_find_decl_attribute(a_byte_attribute_kind  kind,

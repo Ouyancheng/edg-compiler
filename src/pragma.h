@@ -420,8 +420,7 @@ extern void cannot_bind_to_curr_construct(void);
 
 extern void discard_curr_construct_pragmas(void);
 
-extern a_pending_pragma_ptr extract_curr_construct_pragmas(
-                                     a_scope_depth  depth = depth_scope_stack);
+extern a_pending_pragma_ptr extract_curr_construct_pragmas();
 
 extern
 void reactivate_curr_construct_pragmas(a_pending_pragma_ptr pragma_list);

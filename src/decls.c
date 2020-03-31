@@ -313,6 +313,7 @@ be restored).
   dps->vla_field_treated_as_zero_length_array = FALSE;
   dps->is_struct_binding_decl = FALSE;
   dps->ineligible = FALSE;
+  dps->is_abbr_func_template = FALSE;
   clear_init_state(&dps->init_state);
   dps->id_attributes = NULL;
   dps->asm_name = NULL;
@@ -470,25 +471,29 @@ some associated callback entries should not be freed).
 }  /* run_end_of_parse_actions */
 
 
-void discard_end_of_parse_actions(a_decl_parse_state  *dps)
+void discard_end_of_parse_actions(a_decl_parse_state     *dps,
+                                  a_decl_parse_callback  *until_action)
 /*
 Discard the end-of-parse callbacks registered for the declaration described by
-*dps without executing them.
+*dps without executing them.  The callbacks are removed in reverse order of
+being added.  If a callback equal to until_action is encountered, that
+callback and the ones added before it are not discarded.  A NULL value for
+until_action indicates that all callbacks should be discarded.
 */
 {
   a_decl_parse_callback_ptr  action = dps->end_of_parse_actions;
 
   /* Loop through the list of actions to clear the callback pointers and
      find the last element. */
-  if (action != NULL) {
+  if (action != until_action) {
     for (;; action = action->next) {
       action->callback_fn = NULL;
-      if (action->next == NULL) {
+      if (action->next == until_action) {
         /* Last element found: Move the actions to the available list and
            we're done. */
         action->next = avail_decl_parse_callbacks;
         avail_decl_parse_callbacks = dps->end_of_parse_actions;
-        dps->end_of_parse_actions = NULL;
+        dps->end_of_parse_actions = until_action;
         break;
       }  /* if */
     }  /* for */
@@ -507,12 +512,14 @@ static unsigned long
 #endif /* DEBUG */
 
 
-void record_auto_param_descr(a_decl_parse_state_ptr  dps)
+void record_auto_param_descr(a_decl_parse_state_ptr  dps,
+                             an_expr_node_ptr        constraint)
 /*
 Allocate an entry to describe an "auto" type specifier encountered while
 prescanning a function declarator (for a C++14 generic lambda) and add it to
 the front of the list pointed to by dps->variant.auto_params.  The "auto"
-specifier must be the current token.
+specifier must be the current token.  constraint is the type constraint
+preceding the "auto" token (NULL if none).
 */
 {
   an_auto_param_descr_ptr  entry;
@@ -531,6 +538,7 @@ specifier must be the current token.
   entry->template_type_parameter = NULL;
   entry->auto_tsn = curr_token_sequence_number;
   entry->param_num = 0;
+  entry->type_constraint = constraint;
   entry->is_parameter_pack = FALSE;
   entry->start_pos = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -546,7 +554,8 @@ Return the "an_auto_param_descr" entries pointed to by dps to the list of
 available entries.
 */
 {
-  if (dps->is_lambda && dps->variant.auto_params != NULL) {
+  if (!dps->is_old_style_param_decl && !dps->is_struct_binding_decl &&
+      dps->variant.auto_params != NULL) {
     an_auto_param_descr_ptr  last = dps->variant.auto_params;
     while (last->next != NULL) last = last->next;
     last->next = avail_auto_param_descriptions;
@@ -13611,14 +13620,10 @@ specifier is restored.  dps describes the linkage-specification declaration.
     add_stop_token(tok_rbrace);
     /* Go through the declarations. */
     while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
-      a_param_id_ptr  param_id_list = NULL;
-      if (!dps->is_lambda && !dps->is_struct_binding_decl) {
-        param_id_list = dps->variant.param_id_list;
-      }  /* if */
       declaration(dps->function_definition_allowed,
                   dps->is_old_style_param_decl,
                   /*is_top_level_declaration=*/FALSE,
-                  /*marked_as_gnu_extension=*/FALSE, param_id_list,
+                  /*marked_as_gnu_extension=*/FALSE, (a_param_id_ptr)NULL,
                   (a_source_range *)NULL);
     }  /* while */
     /* Restore the default linkage to the value it had before the declaration
@@ -13662,14 +13667,10 @@ specifier is restored.  dps describes the linkage-specification declaration.
          defined and not just declared," and of the example following it,
          where without the braces the variable is not defined. */
       a_decl_parse_state  *saved_dps = scope_stack_top().decl_parse_state;
-      a_param_id_ptr  param_id_list = NULL;
-      if (!dps->is_lambda && !dps->is_struct_binding_decl) {
-        param_id_list = dps->variant.param_id_list;
-      }  /* if */
       scope_stack_top().decl_parse_state = dps;
       declaration(dps->function_definition_allowed,
                   dps->is_old_style_param_decl, dps->is_top_level_declaration,
-                  /*marked_as_gnu_extension=*/FALSE, param_id_list,
+                  /*marked_as_gnu_extension=*/FALSE, (a_param_id_ptr)NULL,
                   &linkage_spec_range);
       scope_stack_top().decl_parse_state = saved_dps;
       /* pop_name_linkage will already have been called in declaration
@@ -20251,14 +20252,14 @@ parameters are scanned by scan_a_template_parameter_declaration.
 #endif /* ASM_FUNCTION_ALLOWED */
     declarator(di_flags, dps, /*member_parent_type=*/(a_type_ptr)NULL,
                &locator, &func_info, &decl_pos_block);
-    if (dps->is_abbr_func_template) {
-      decl_abbr_func_template(dps, &locator, &func_info);
-      goto advance_past_final_token;
-    }  /* if */
     is_function = (dps->declared_storage_class !=
                                                 (a_storage_class)sc_typedef &&
                    !is_old_style_param_decl &&
                    is_function_type(dps->type));
+    if (is_function && dps->variant.auto_params != NULL) {
+      reparse_abbr_func_template(dps, &final_token);
+      goto advance_past_final_token;
+    }  /* if */
     if (is_function && clang_mode) {
       /* In most modes, checking for an abstract class return type is done
          when the function type is validated.  Clang, however, only reports
@@ -20439,10 +20440,10 @@ parse state with fields described by the corresponding given parameters.
   /* Initialize a structure tracking the state of declaration processing. */
   init_decl_parse_state(&dps);
   dps.function_definition_allowed = function_definition_allowed;
-  dps.is_old_style_param_decl = is_old_style_param_decl;
   dps.is_top_level_declaration = is_top_level_declaration;
   dps.marked_as_gnu_extension = marked_as_gnu_extension;
-  if (param_id_list != NULL) {
+  if (is_old_style_param_decl) {
+    dps.is_old_style_param_decl = TRUE;
     dps.variant.param_id_list = param_id_list;
   }  /* if */
   if (is_top_level_declaration &&

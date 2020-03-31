@@ -699,7 +699,8 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
         if (auto_type_specifier_enabled) type_specifier_seen = TRUE;
         if (record_auto_params) {
           check_assertion(state->decl_parse_state != NULL);
-          record_auto_param_descr(state->decl_parse_state);
+          record_auto_param_descr(state->decl_parse_state,
+                                  /*type_constraint=*/NULL);
         }  /* if */
         break;
       case tok_c11_atomic:

@@ -659,6 +659,7 @@ vpip may be NULL, in which case nothing is done.
 /* Forward declaration. */
 static void scan_template_param_clauses(
 				a_tmpl_decl_state_ptr	decl_state,
+				a_decl_parse_state	*orig_dps,
 				a_boolean		is_template_param);
 
 static a_partial_order_candidate_ptr alloc_partial_order_candidate(void)
@@ -17078,6 +17079,10 @@ declared and before the partial instantiation of the function was done.
 }  /* verify_routine_type_matches_template */
 
 
+static void add_implicit_templ_params_for_auto_func_params(
+                                             a_tmpl_decl_state   *templ_state,
+                                             a_decl_parse_state  *dps);
+
 static void scan_template_declaration(
                                 a_decl_parse_state         *state,
                                 a_boolean                  is_initial_decl,
@@ -17202,6 +17207,9 @@ to an entry used to record detailed source position information.
       }  /* if */
       state->type = new_type_ptr;
     } else {
+reparse_declarator:
+      a_token_sequence_number  reparse_tsn = curr_token_sequence_number;
+      a_decl_parse_callback    *reparse_actions = state->end_of_parse_actions;
       declarator(di_flags, state, parent_class, locator, func_info,
                  decl_pos_block);
       if (decl_scope_err) {
@@ -17209,6 +17217,33 @@ to an entry used to record detailed source position information.
            is not equipped to handle it, create an error locator based on the
            previously reported error. */
         set_to_named_error_locator(*locator);
+      } else if (state->variant.auto_params != NULL &&
+                 !state->is_abbr_func_template) {
+        /* Some "auto" function parameters were encountered while parsing the
+           function declarator.  Those imply additional template parameters:
+           Declare those template parameters now, and restart parsing of the
+           declarator so that the "auto" specifiers will be mapped to the new
+           template parameters. */
+        a_tmpl_decl_state_ptr  tmpl_state;
+        a_token_cache          reparse_cache;
+        tmpl_state = scope_stack[depth_template_declaration_scope]
+                                                             .tmpl_decl_state;
+        add_implicit_templ_params_for_auto_func_params(tmpl_state, state);
+        /* Clear the declaration parse state associated with the declarator.
+           This is most easily done by pretending we are about to scan a
+           secondary declarator. */
+        discard_end_of_parse_actions(state, /*until_action=*/reparse_actions);
+        start_secondary_declarator(state);
+        state->secondary_declarator = FALSE;
+        state->is_abbr_func_template = TRUE;
+        clear_func_info(func_info);
+        /* Create a cache with the declarator tokens. */
+        clear_token_cache(&reparse_cache, /*reusable=*/FALSE);
+        copy_tokens_from_cache(curr_lexical_state_cache(),
+                               reparse_tsn, curr_token_sequence_number,
+                               /*include_last_token=*/FALSE, &reparse_cache);
+        rescan_cached_tokens(&reparse_cache);
+        goto reparse_declarator;
       }  /* if */
       check_for_declaration_errors(state, locator);
     }  /* if */
@@ -24832,7 +24867,9 @@ depends on a another template parameter.
   init_decl_parse_state(&local_dps);
   set_decl_state_for_template_param(parent_decl_state,
                                     &local_decl_state, &local_dps);
-  scan_template_param_clauses(&local_decl_state, /*is_template_param=*/TRUE);
+  scan_template_param_clauses(&local_decl_state,
+                              (a_decl_parse_state*)NULL,
+                              /*is_template_param=*/TRUE);
   /* Pop all of the template declaration scopes that were pushed earlier. */
   for (; local_decl_state.number_of_template_decl_scopes != 0;
          local_decl_state.number_of_template_decl_scopes--) {
@@ -27461,13 +27498,11 @@ static void complete_function_template_decl(
                      a_template_symbol_supplement_ptr *p_tssp,
                      a_source_position		      *decl_pos)
 /*
-Complete the processing for a function template declaration.  sym is a symbol
-indicating the template.  func_info points to the block of information for
-the current function declaration.  template_decl_info points to the template
-declaration information (parameter list, declaration scope, etc.) for this
-template declaration.  p_tssp points to the location in which the
-template symbol supplement for this template should be returned to the
-caller.
+Complete the processing for a function template declaration described by
+decl_state.  sym is a symbol indicating the template.  func_info points to the
+block of information for the current function declaration.  p_tssp points to
+the location in which the template symbol supplement for this template should
+be returned to the caller.
 */
 {
   a_boolean                        err = sym == NULL || sym->is_error;
@@ -28330,8 +28365,180 @@ a generated declaration for an inheriting constructor template).
 }  /* create_template_decl */
 
 
+static a_template_param_ptr implicit_templ_param_for_auto_func_param(
+                                   a_tmpl_decl_state             *templ_state,
+                                   an_expr_node_ptr              constraint,
+                                   a_boolean                     is_pack,
+                                   a_token_sequence_number       auto_tsn,
+                                   uint32_t                      param_num,
+                                   uint32_t                      auto_num,
+                                   a_source_position             *start_pos,
+                                   ARG_UNUSED a_source_position  *end_pos)
+/*
+Create and record a template parameter corresponding to an "auto" function
+parameter (for an abbreviated function template or a generic lambda).
+templ_state is the template being declared.  is_pack is TRUE if the parameter
+should be variadic.  auto_tsn is the token sequence number of the "auto" token
+(used to resolved occurrences of that particular token to its corresponding
+template parameter during rescans).  param_num is the position of the new
+parameter in the template parameter list overall, and auto_num is the position
+among "auto" parameters.  start_pos and end_pos describe the source position
+of the "auto" token.
+*/
+{
+  a_template_param_ptr  param;
+  a_symbol_locator      param_loc;
+  a_decl_pos_block      decl_pos_block;
+  sizeof_t              len;
+#define AUTO_PARAM_NAME_PREFIX "<auto-"
+#define AUTO_PARAM_NAME_SUFFIX ">"
+  char                  param_name[100] = AUTO_PARAM_NAME_PREFIX;
+
+  clear_decl_pos_block(&decl_pos_block);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_pos_block.identifier_range.start = *start_pos;
+  decl_pos_block.identifier_range.end = *end_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Create a locator for the synthesized parameter. */
+  clear_locator(&param_loc, start_pos);
+  (void)unsigned_to_string_buf((a_host_large_unsigned)auto_num,
+                               param_name+sizeof(AUTO_PARAM_NAME_PREFIX)-1);
+  len = strlen(param_name);
+  strcpy(param_name+len, AUTO_PARAM_NAME_SUFFIX);
+  len += sizeof(AUTO_PARAM_NAME_SUFFIX)-1;
+  (void)find_symbol(param_name, len, &param_loc);
+#undef AUTO_PARAM_NAME_PREFIX
+#undef AUTO_PARAM_NAME_SUFFIX
+  param = decl_type_template_param(param_num, &param_loc, /*is_named=*/FALSE,
+                                   is_pack, constraint, templ_state,
+                                   &decl_pos_block);
+  param->param_symbol->is_invisible = TRUE;
+  param->param_symbol->token_sequence_number = auto_tsn;
+  param->variant.type->variant.template_param.is_auto_param = TRUE;
+  param->param_num = param_num;
+  return param;
+}  /* implicit_templ_param_for_auto_func_param */
+
+
+static void add_implicit_templ_params_for_auto_func_params(
+                                             a_tmpl_decl_state   *templ_state,
+                                             a_decl_parse_state  *dps)
+                                   
+/*
+Add the template parameters described by dps->variant.auto_params to the
+template declaration described by templ_state.  Each parameter is one
+introduced implicitly by the use of "auto" in a function declarator (e.g.,
+in a abbreviated function template or a generic lambda).
+*/
+{
+  uint32_t                 param_num = 1, auto_num = 1;
+  a_template_param_ptr     *p_tpp = &templ_state->decl_info->parameters;
+  an_auto_param_descr_ptr  apdp = dps->variant.auto_params;
+
+  for (; *p_tpp != NULL; p_tpp = &(*p_tpp)->next) {
+    param_num += 1;
+  }  /* for */
+  /* Create template type parameters for the "auto" parameters (if any). */
+  for (; apdp != NULL; apdp = apdp->next, ++param_num, ++auto_num) {
+    *p_tpp = implicit_templ_param_for_auto_func_param(
+                                      templ_state, apdp->type_constraint,
+                                      apdp->is_parameter_pack, apdp->auto_tsn,
+                                      param_num, auto_num, &apdp->start_pos,
+                                      end_position_or_null(&apdp->end_pos));
+    apdp->template_type_parameter = *p_tpp;
+    p_tpp = &(*p_tpp)->next;
+  }  /* for */
+  if (!dps->is_lambda) { // FIXME: After lambda unification
+    free_auto_param_descriptions(dps);
+  }  /* if */
+}  /* add_implicit_templ_params_for_auto_func_params */
+
+
+a_type_ptr add_templ_param_for_auto_func_param(a_scope_stack_entry  *ssep,
+                                               an_expr_node_ptr     constraint)
+/*
+Add an additional template parameter to the current template declaration (whose
+template declaration scope is described by ssep) for an "auto" function
+parameter where the current token is the associated "auto" token.  constraint
+describes the associated type constraint (NULL if none).
+
+This function is called for "auto" parameters in non-abbreviated function
+templates.  E.g.:
+
+	template<typename T> int f(T, auto ... ps);
+*/
+{
+  a_tmpl_decl_state_ptr  state = ssep->tmpl_decl_state;
+  a_template_param_ptr   tpp = state->decl_info->parameters;
+  uint32_t               param_num = 2, auto_num = 1;
+
+  check_assertion(tpp != NULL);
+  /* Find the end of the list of template parameters and count the position of
+     the new parameter overall and among the "auto" parameters specifically. */
+  for (; tpp->next != NULL; tpp = tpp->next) {
+    if (symbol_is(tpp->next->param_symbol, sk_type) &&
+        tpp->next->variant.type->variant.template_param.is_auto_param) {
+      /* A preceding "auto" parameter. */
+      auto_num += 1;
+    }  /* if */
+    param_num += 1;
+  }  /* for */
+  /* Declare the additional parameter. */
+  tpp->next = implicit_templ_param_for_auto_func_param(
+                                   state, constraint, /*is_pack=*/TRUE,
+                                   curr_token_sequence_number,
+                                   param_num, auto_num, &pos_curr_token,
+                                   end_position_or_null(&end_pos_curr_token));
+  return tpp->next->variant.type;
+}  /* add_templ_param_for_auto_func_param */
+
+
+static void set_up_template_decl(a_tmpl_decl_state         *state,
+                                 a_source_position         *template_pos,
+                                 a_template_decl_info_ptr  *p_templ_decl_info)
+/*
+Set up a level of parameterization for the template declaration associated
+with state.  Traditionally, this corresponds to a "template< param-list >"
+construct (in which case *template_pos is the position of the "template"
+keyword), but in C++20 it can also correspond to an abbreviated function
+template (implied by "auto" function parameters; in that case, *template_pos
+is a null source position).  Create and record in *state an entry of type
+a_template_decl_info to represent this parameterization.  The caller sets
+*p_templ_decl_info to the "enclosing" a_template_decl_info entry, and this
+routine sets it to the newly created entry.
+*/
+{
+  a_template_decl_info_ptr  info;
+
+  /* Create a template declaration information entry for this declaration.
+     A pointer to this entry will be stored in the template cache entries
+     that contain tokens from this declaration. */
+  info = alloc_template_decl_info();
+  state->decl_info = info;
+  info->enclosing_scope = state->enclosing_scope;
+  /* If there are multiple template parameter clauses in a single declaration,
+     create a link to the template parameter list declaration that preceded
+     the current one. */
+  info->enclosing_template_decl = *p_templ_decl_info;
+  /* Record the default name linkage at the point of declaration. */
+  info->name_linkage = scope_stack[depth_scope_stack].default_name_linkage;
+  /* Push a new scope for the template parameters. */
+  push_template_declaration_scope(info,
+                                  state->is_template_template_param_rescan);
+  check_assertion(!state->is_full_specialization);
+  state->number_of_template_decl_scopes += 1;
+  create_template_decl(state, template_pos);
+  /* Save a pointer to the template declaration information in the
+     scope stack entry. */
+  scope_stack_top().tmpl_decl_state = state;
+  info->declaration_scope = scope_stack[decl_scope_level].number;
+  *p_templ_decl_info = info;
+}  /* set_up_template_decl */
+
+
 static void scan_template_param_clauses(
 				a_tmpl_decl_state_ptr	decl_state,
+				a_decl_parse_state	*orig_dps,
 				a_boolean		is_template_param)
 /*
 Note that this routine has a forward declaration.
@@ -28357,10 +28564,10 @@ of the parsing of the template clause so far (and this routine adds to that
 information).  See the definition of a_tmpl_decl_state for details.
 */
 {
-  a_template_decl_info_ptr     prev_template_decl_info = NULL;
-  a_template_decl_info_ptr     template_decl_info = NULL;
-  a_boolean                    param_list_seen = FALSE;
-  a_source_position            template_pos;
+  a_boolean                 param_list_seen = FALSE;
+  a_source_position         template_pos;
+  a_template_decl_info_ptr  template_decl_info = NULL,
+                            prev_template_decl_info = NULL;
 
   /* Loop until there are no more template parameter clauses.  Note that
      this routine is not called for explicit instantiations, in which
@@ -28388,31 +28595,8 @@ information).  See the definition of a_tmpl_decl_state for details.
       /* Bypass the "<". */
       (void)get_token();
       if (curr_token != tok_gt) {
-        /* Create a template declaration information entry for this
-           declaration. A pointer to this entry will be stored in the
-           template cache entries that contain tokens from this declaration. */
-        template_decl_info = alloc_template_decl_info();
-        decl_state->decl_info = template_decl_info;
-        template_decl_info->enclosing_scope = decl_state->enclosing_scope;
-        /* If there are multiple template parameter clauses in a single
-           declaration, create a link to the template parameter list
-           declaration that preceded the current one. */
-        template_decl_info->enclosing_template_decl = prev_template_decl_info;
-        prev_template_decl_info = template_decl_info;
-        /* Record the default name linkage at the point of declaration. */
-        template_decl_info->name_linkage =
-                         scope_stack[depth_scope_stack].default_name_linkage;
-        push_template_declaration_scope(
-            template_decl_info, decl_state->is_template_template_param_rescan);
-        check_assertion(!decl_state->is_full_specialization);
-        decl_state->number_of_template_decl_scopes++;
-        create_template_decl(decl_state, &template_pos);
-        /* Save a pointer to the template declaration information in the
-           scope stack entry. */
-        scope_stack[depth_scope_stack].tmpl_decl_state = decl_state;
+        set_up_template_decl(decl_state, &template_pos, &template_decl_info);
         scan_template_param_list(decl_state);
-        template_decl_info->declaration_scope =
-                                         scope_stack[decl_scope_level].number;
         if (curr_token == tok_requires && !decl_state->is_generic) {
           decl_state->template_decl->constraint.requires_clause =
                                       scan_requires_clause(/*discard=*/FALSE);
@@ -28445,6 +28629,21 @@ information).  See the definition of a_tmpl_decl_state for details.
       pos_error(ec_missing_template_param_list, &error_position);
     }  /* if */
   }  /* while */
+  if (orig_dps != NULL) {
+    /* A C++20-style abbreviated function template declaration.  Simulate a
+       template<...> clause using the information in orig_dps->auto_params. */
+    check_assertion(orig_dps->variant.auto_params != NULL);
+    if (decl_state->is_specialization) {
+      /* FIXME: Issue error and set up for "auto" to produce error types? */
+    } else {
+      /* Create an implicit parameterization level and add parameters to it
+         corresponding to the "auto" parameters encountered earlier. */
+      set_up_template_decl(decl_state, &null_source_position,
+                           &template_decl_info);
+      add_implicit_templ_params_for_auto_func_params(decl_state, orig_dps);
+      decl_state->decl_parse->is_abbr_func_template = TRUE;
+    }  /* if */
+  }  /* if */
   decl_state->decl_info = template_decl_info;
   if (is_template_param &&
       decl_state->number_of_template_param_clauses > 1) {
@@ -32183,10 +32382,11 @@ following a template parameter clause.  Parse and record the concept.
 
 
 static void template_or_specialization_declaration(
-				a_token_kind		*final_token,
-				a_boolean		export_present,
-				a_source_position	*export_pos,
-				a_boolean		is_generic)
+                                           a_token_kind        *final_token,
+                                           a_boolean           export_present,
+                                           a_source_position   *export_pos,
+                                           a_boolean           is_generic,
+                                           a_decl_parse_state  *orig_dps)
 /*
 Scan a template declaration or a template specialization declaration.
 
@@ -32197,9 +32397,17 @@ all of the template parameter clauses contain empty template parameter
 lists (e.g., "template <>").  Declarations that are not full specializations
 are either the specialization of a template or a template declaration.
 
+*final_token should be tok_semicolon and might be updated to tok_rbrace.
+
 export_present is TRUE if the template keyword was preceded by "export".
 If export_present is TRUE, export_pos is the position of the export
 keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
+
+This function is also called abbreviated function templates.  That case is
+characterized by orig_dps being non-NULL and pointing to the parse state
+achieved with an initial attempt to parse the declaration as a non-template.
+In particular, orig_dps->variant.auto_params points to a list of descriptions
+of the "auto" parameters.
 */
 {
   a_tmpl_decl_state		decl_state;
@@ -32210,7 +32418,7 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
   a_source_position             header_pos;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
-  check_assertion_str2(curr_token == tok_template ||
+  check_assertion_str2(curr_token == tok_template || orig_dps != NULL ||
                        (curr_token == tok_identifier && is_generic),
                        "template_or_specialization_declaration:",
                        "expected tok_template or generic identifier");
@@ -32263,7 +32471,8 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
      list looks like "template < param-list >".  The param-list is
      optional (but once a parameter list has been specified, all subsequent
      param-lists must be present). */
-  scan_template_param_clauses(&decl_state, /*is_template_param=*/FALSE);
+  scan_template_param_clauses(&decl_state, orig_dps,
+                              /*is_template_param=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (decl_state.is_generic) {
     dps.is_generic_declaration = TRUE;
@@ -32415,174 +32624,28 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
 }  /* template_or_specialization_declaration */
 
 
-void decl_abbr_func_template(a_decl_parse_state  *dps,
-                             a_symbol_locator    *loc,
-                             a_func_info_block   *func_info)
+void reparse_abbr_func_template(a_decl_parse_state  *orig_dps,
+                                a_token_kind        *final_token)
 /*
-The declarator of an abbreviated function template has been scanned.  Such a
-declarator is characterized by the presence of at least one "auto" parameter,
-and as part of processing such parameters a template context has been started
-(see start_abbr_func_template_state) and template parameters have been added
-(see decl_abbr_func_template_param).  Complete the function template
-declaration.  The syntactic elements of the declaration are described by dps,
-loc, func_info, and decl_pos_block.
+orig_dps describes a declaration that was parsed as an ordinary (non-template)
+declaration, but which ended up having "auto" parameters and is thus a C++20
+abbreviated function template.  Restart parsing, but set up a template
+declaration context first.  *final_token should be tok_semicolon and might be
+updated to tok_rbrace.
 */
 {
-  a_scope_stack_entry_ptr   ssep = &scope_stack_top();
-  a_tmpl_decl_state         *state = ssep->tmpl_decl_state;
-  a_template_decl_info_ptr  templ_decl_info = ssep->template_decl_info;
-  a_token_kind              final_token = tok_error;
-  a_template_symbol_supplement_ptr
-                            tssp = NULL;
+  a_token_cache  reparse_cache;
 
-  state->pragmas_bound_to_template = extract_curr_construct_pragmas();
-  state->first_decl_cache_tsn = dps->start_tsn;
-  state->final_token_ptr = &final_token;
-  /* Since this is an abbreviated function template declaration, its
-     declarator-id was encountered before the template declaration scope
-     was pushed.  So the source sequence to remove is tracked by the stack
-     entry below the current one. */
-  remove_declarator_sse(dps, depth_scope_stack-1);
-  templ_decl_info->declaration_scope = scope_stack_top().number;
-  create_template_decl(state, &null_source_position);
-  decl_level_of_template(state);
-  state->il_template_entry->template_decl = state->template_decl;
-  complete_template_parameter_clauses(state);
-  dps->sym = function_template_declaration(state, loc, func_info);
-  complete_function_template_decl(state, dps->sym, func_info, &tssp,
-                                  &loc->source_position);
-
-  complete_il_template_entry(state, dps->sym);
-  wrapup_templ_decl_state(state);
-  /* Pop the implicit template declaration scope. */
-  pop_scope();
-  if (curr_token == final_token) {
-    (void)get_token();
-  }  /* if */
-  state->final_token_ptr = NULL;
-}  /* decl_abbr_func_template */
-
-
-void decl_abbr_func_template_param(a_decl_parse_state  *dps,
-                                   an_expr_node_ptr    constraint)
-/*
-The current token "auto", which was optionally preceded by a type constraint
-represented by constraint.  Declare an associated template type parameter and
-set dps->specifiers_type to that type.
-*/
-{
-#define AUTO_PARAM_NAME_PREFIX "<auto-"
-#define AUTO_PARAM_NAME_SUFFIX ">"
-  char                       param_name[100] = AUTO_PARAM_NAME_PREFIX;
-  a_symbol_locator           param_loc;
-  a_decl_pos_block           decl_pos_block;
-  sizeof_t                   len;
-  a_template_param_ptr       templ_param, *p_end_templ_params;
-  a_template_param_list_pos  param_pos = 1;
-  a_scope_stack_entry_ptr    ssep = &scope_stack_top();
-  a_tmpl_decl_state          *state;
-
-  check_assertion(scope_is(ssep, sck_func_prototype) &&
-                  scope_is(ssep-1, sck_template_declaration));
-  state = (ssep-1)->tmpl_decl_state;
-  p_end_templ_params = &state->decl_info->parameters;
-  while (*p_end_templ_params != NULL) {
-    param_pos += 1;
-    p_end_templ_params = &(*p_end_templ_params)->next;
-  }  /* while */
-  /* Create a locator for the synthesized parameter. */
-  clear_locator(&param_loc, &pos_curr_token);
-  clear_decl_pos_block(&decl_pos_block);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  decl_pos_block.identifier_range.start = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  decl_pos_block.identifier_range.end = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  (void)unsigned_to_string_buf((a_host_large_unsigned)param_pos,
-                               param_name+sizeof(AUTO_PARAM_NAME_PREFIX)-1);
-  len = strlen(param_name);
-  strcpy(param_name+len, AUTO_PARAM_NAME_SUFFIX);
-  len += sizeof(AUTO_PARAM_NAME_SUFFIX)-1;
-  (void)find_symbol(param_name, len, &param_loc);
-  templ_param = decl_type_template_param(param_pos, &param_loc,
-                                         /*is_named=*/FALSE, /*is_pack=*/FALSE,
-                                         constraint, state, &decl_pos_block);
-  templ_param->param_symbol->is_invisible = TRUE;
-  templ_param->param_symbol->token_sequence_number =
-                                                   curr_token_sequence_number;
-  templ_param->variant.type->variant.template_param.is_auto_param = TRUE;
-  templ_param->param_num = param_pos;
-  dps->specifiers_type = templ_param->variant.type;
-  /* Append the template parameter entry to the list pointed to by
-     state->decl_info. */
-  *p_end_templ_params = templ_param;
-#undef AUTO_PARAM_NAME_PREFIX
-#undef AUTO_PARAM_NAME_SUFFIX
-}  /* decl_abbr_func_template_param */
-
-
-void start_abbr_func_template_state(a_decl_parse_state  *dps)
-/*
-dps is the parsing state associated with a function declarator that appears to
-declare an abbreviated function template.  The current scope is a function
-prototype scope and the caller has already inserted a template declaration
-scope underneath it.  Create and initialize a template declaration state, a
-template declaration info block, and a template IL entry for the abbreviated
-template.  Point the template declaration scope (sck_template_declaration) to
-the allocated state.
-*/
-{
-  a_tmpl_decl_state         *state = alloc_fe_of_type(a_tmpl_decl_state);
-  a_scope_stack_entry_ptr   ssep = &scope_stack_top();
-  a_template_decl_info_ptr  templ_decl_info = alloc_template_decl_info();
-
-  dps->is_abbr_func_template = TRUE;
-  check_assertion(dps->decl_being_cached &&
-                  scope_is(ssep, sck_func_prototype));
-  init_templ_decl_state(state, dps);
-  /* Background caching was already started by top-level declaration
-     processing. */
-  state->caching_tokens = TRUE;
-  state->pragmas_bound_to_template =
-                          extract_curr_construct_pragmas(depth_scope_stack-1);
-  insert_template_decl_scope_under_func_prototype();
-  /* Reload the scope stack top. */
-  ssep = &scope_stack_top();
-  state->effective_decl_level = depth_scope_stack-2;
-  state->in_prototype_instantiation = (ssep-2)->in_prototype_instantiation;
-  state->in_generic_definition = (ssep-2)->in_generic_definition;
-  state->enclosing_scope = (ssep-2)->il_scope;
-  state->starting_token_sequence_number = dps->start_tsn;
-  if (scope_is(ssep-2, sck_class_struct_union)) {
-    state->is_member_decl = TRUE;
-    state->class_declared_in = ssep->assoc_type;
-  }  /* if */
-  /* Determine the nesting depth to be used for the member template. */
-  nesting_depth_of_template(state);
-  state->nesting_depth += 1;
-  state->number_of_template_param_clauses += 1;
-  state->il_template_entry = make_il_template_entry(state);
-  templ_decl_info = alloc_template_decl_info();
-  state->decl_info = templ_decl_info;
-  templ_decl_info->enclosing_scope = state->enclosing_scope;
-  templ_decl_info->name_linkage = ssep->default_name_linkage;
-  templ_decl_info->decl_seq = ++*(ssep-2)->decl_seq_counter;
-  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
-    a_scope_stack_entry_ptr
-                  issep = &scope_stack[depth_innermost_instantiation_scope];
-    a_symbol_ptr  instance_sym = issep->instance_sym;
-    templ_decl_info->enclosing_template_decl = issep->template_decl_info;
-    if (instance_sym != NULL && !instance_sym->is_class_member &&
-        is_template_variable_symbol(instance_sym)) {
-      /* If the innermost instantiation scope is associated with a variable
-         template, save the instance that is being instantiated. */
-      templ_decl_info->variable_instance_sym = instance_sym;
-    }  /* if */
-  }  /* if */
-  (ssep-1)->tmpl_decl_state = state;
-  (ssep-1)->template_decl_info = templ_decl_info;
-}  /* start_abbr_func_template_state */
+  clear_token_cache(&reparse_cache, /*reusable=*/FALSE);
+  copy_tokens_from_cache(curr_lexical_state_cache(),
+                         orig_dps->start_tsn, curr_token_sequence_number,
+                         /*include_last_token=*/FALSE, &reparse_cache);
+  rescan_cached_tokens(&reparse_cache);
+  template_or_specialization_declaration(final_token, /*export_present=*/FALSE,
+                                         &null_source_position,
+                                         /*is_generic=*/FALSE, orig_dps);
+  discard_end_of_parse_actions(orig_dps);
+}  /* reparse_abbr_func_template */
 
 
 static void start_generic_lambda_state(a_tmpl_decl_state   *templ_state,
@@ -32686,64 +32749,14 @@ list).  Then declare template parameters corresponding to the prescanned "auto"
 parameters described by dps->auto_params.  Update *templ_state accordingly.
 */
 {
-  a_template_decl_info_ptr     template_decl_info;
-  a_template_param_ptr         template_param, end_template_param_list = NULL;
-  an_auto_param_descr_ptr      apdp = dps->variant.auto_params;
-  a_template_param_list_pos    param_pos = 1;
-  uint32_t                     param_pos_offset = 0;
-#define AUTO_PARAM_NAME_PREFIX "<auto-"
-#define AUTO_PARAM_NAME_SUFFIX ">"
-  char                         param_name[100] = AUTO_PARAM_NAME_PREFIX;
+  a_template_decl_info_ptr  template_decl_info;
 
   if (!scope_stack_top().is_generic_lambda) {
     start_generic_lambda_state(templ_state, dps);
-  } else {
-    a_template_param_ptr  tpp = templ_state->decl_info->parameters;
-    for (; tpp != NULL; tpp = tpp->next) {
-      param_pos_offset += 1;
-      end_template_param_list = tpp;
-    }  /* for */
   }  /* if */
   template_decl_info = templ_state->decl_info;
   /* Create template type parameters for the "auto" parameters (if any). */
-  for (; apdp != NULL; apdp = apdp->next, ++param_pos) {
-    a_symbol_locator  param_loc;
-    a_decl_pos_block  decl_pos_block;
-    sizeof_t          len;
-    clear_decl_pos_block(&decl_pos_block);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    decl_pos_block.identifier_range.start = apdp->start_pos;
-    decl_pos_block.identifier_range.end = apdp->end_pos;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    /* Create a locator for the synthesized parameter. */
-    clear_locator(&param_loc, &apdp->start_pos);
-    (void)unsigned_to_string_buf((a_host_large_unsigned)param_pos,
-                                 param_name+sizeof(AUTO_PARAM_NAME_PREFIX)-1);
-    len = strlen(param_name);
-    strcpy(param_name+len, AUTO_PARAM_NAME_SUFFIX);
-    len += sizeof(AUTO_PARAM_NAME_SUFFIX)-1;
-    (void)find_symbol(param_name, len, &param_loc);
-#undef AUTO_PARAM_NAME_PREFIX
-#undef AUTO_PARAM_NAME_SUFFIX
-    template_param = decl_type_template_param(param_pos+param_pos_offset,
-                                              &param_loc, /*is_named=*/FALSE,
-                                              apdp->is_parameter_pack,
-                                              (an_expr_node_ptr)NULL,
-                                              templ_state, &decl_pos_block);
-    template_param->param_symbol->is_invisible = TRUE;
-    template_param->param_symbol->token_sequence_number = apdp->auto_tsn;
-    template_param->variant.type->variant.template_param.is_auto_param = TRUE;
-    template_param->param_num = param_pos+param_pos_offset;
-    apdp->template_type_parameter = template_param;
-    /* Append the template parameter entry to the list pointed to by
-       templ_state->decl_info. */
-    if (end_template_param_list == NULL) {
-      templ_state->decl_info->parameters = template_param;
-    } else {
-      end_template_param_list->next = template_param;
-    }  /* if */
-    end_template_param_list = template_param;
-  }  /* for */
+  add_implicit_templ_params_for_auto_func_params(templ_state, dps);
   template_decl_info->declaration_scope = scope_stack_top().number;
   create_template_decl(templ_state, &null_source_position);
   /* Cache the declarator part of the lambda. */
@@ -38553,7 +38566,7 @@ directive_start_pos points to the beginning of the directive or declaration
     *final_token = curr_token;
   } else if (next_token() == tok_lt) {
     /* The template keyword is followed by a template parameter list.
-       This is a template declaration or a specialization using the new
+       This is a template declaration or a specialization using the standard
        specialization syntax. */
     a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
     a_name_linkage_kind      saved_name_linkage =
@@ -38581,7 +38594,8 @@ directive_start_pos points to the beginning of the directive or declaration
     }  /* if */
     /* Scan the declaration. */
     template_or_specialization_declaration(final_token, export_present,
-                                           &export_pos, is_generic);
+                                           &export_pos, is_generic,
+                                           (a_decl_parse_state*)NULL);
     if (err) {
       /* Get a new pointer in case the scope stack was reallocated. */
       ssep = &scope_stack[depth_scope_stack];

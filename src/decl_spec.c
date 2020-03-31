@@ -9501,18 +9501,26 @@ FIXME
     }  /* if */
   } else if (dps->is_top_level_param_decl &&
              abbr_func_templates_enabled &&
-             is_file_or_namespace_scope(ssep-1) && // FIXME
              !auto_storage_class_specifier_enabled) {
+    an_expr_node_ptr  constraint;
     check_assertion(func_dps != NULL && scope_is(ssep, sck_func_prototype) &&
                     (concept_sym != NULL) != (curr_token == tok_auto));
-    if (scope_is(ssep-1, sck_template_instantiation)) {
-      a_template_param_ptr  tpp = (ssep-1)->template_decl_info->parameters;
-      if (concept_sym != NULL) {
-        // FIXME: Skip tokens instead of scanning the constraint
-        (void)scan_type_constraint(concept_sym);
-      }  /* if */
-      if (curr_token == tok_auto &&
-          !auto_for_trailing_return_type()) {
+    constraint = concept_sym != NULL ? scan_type_constraint(concept_sym)
+                                     : NULL;
+    if (func_dps->is_template_rescan || func_dps->is_abbr_func_template) {
+      /* An instantiation ("rescan") of a template or the reparsing of a
+         declaration that was found to have "auto" parameters and for which
+         the corresponding template parameters have now been declared. */
+      if (curr_token == tok_auto && !auto_for_trailing_return_type()) {
+        /* Search for the corresponding template parameter. */
+        a_template_param_ptr  tpp;
+        if (func_dps->is_template_rescan) {
+          ssep = &scope_stack[depth_innermost_instantiation_scope];
+        } else {
+          ssep = &scope_stack[depth_template_declaration_scope];
+        }  /* if */
+        /* Search for the parameter that corresponds to this "auto" token. */
+        tpp = ssep->template_decl_info->parameters;
         for (; tpp != NULL; tpp = tpp->next) {
           a_symbol_ptr  sym = tpp->param_symbol;
           if (sym->token_sequence_number == curr_token_sequence_number) {
@@ -9521,19 +9529,37 @@ FIXME
             break;
           }  /* if */
         }  /* for */
+        check_assertion(tpp != NULL);
+        if (tpp->is_pack) {
+          record_potential_pack_reference(tpp->param_symbol, &pos_curr_token);
+        }  /* if */
       }  /* if */
     } else if (func_dps->decl_being_cached ||
                func_dps->is_template_declaration) {
-// FIXME: Unify lambda case later
-      an_expr_node_ptr  constraint = concept_sym != NULL ?
-                                     scan_type_constraint(concept_sym) : NULL;
+      /* Either a declaration that is being cached even though it didn't start
+         with a "template" token, or a template declaration that started with
+         "template" but which hasn't been marked as an "abbreviated function
+         template" yet.  Record the presence of an "auto" parameter if
+         appropriate: When the function complete declarator has been parsed,
+         template parameters will be declared for each "auto" parameter and
+         parsing will be restarted. */
       if (curr_token == tok_auto) {
         if (!auto_for_trailing_return_type()) {
-          if (!func_dps->is_abbr_func_template &&
-              !func_dps->is_template_declaration) {
-            start_abbr_func_template_state(func_dps);
-          }  /* if */
-          decl_abbr_func_template_param(dps, constraint);
+          /* An auto parameter: Record a description of this to declare
+             template parameters later on. */
+          record_auto_param_descr(func_dps, constraint);
+          /* Also point to the description from the parse state of the
+             parameter, in case this turns out to be a parameter pack later
+             on. */
+          dps->variant.auto_params = func_dps->variant.auto_params;
+          /* Record the type as an ordinary "auto" type specifier.  It will
+             eventually be discarded since we will reparse the declaration in
+             a context where the "auto" can be mapped to a specific template
+             parameter (see above). */
+          dps->auto_pos = pos_curr_token;
+          dps->auto_type = make_auto_type(&dps->auto_pos,
+                                          /*is_decltype_auto=*/FALSE);
+          dps->specifiers_type = dps->auto_type;
           result = TRUE;
         } else if (constraint != NULL) {
           /* Something like "void f(Concept auto f()->int);".  The concept is
@@ -9549,6 +9575,9 @@ FIXME
         pos_error(ec_exp_auto, &pos_curr_token);
         dps->specifiers_type = error_type();
       }  /* if */
+    } else {
+      expect_error();
+      dps->specifiers_type = error_type();
     }  /* if */
   }  /* if */
   return result;
