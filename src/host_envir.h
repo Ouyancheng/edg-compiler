@@ -2088,11 +2088,22 @@ be TRUE.
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
 #define USE_MMAP_FOR_MODULES FALSE
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-#endif /* USE_MMAP_FOR_MODULES */
+#endif /* ifndef USE_MMAP_FOR_MODULES */
 
 #if USE_MMAP_FOR_MODULES && !USE_MMAP_FOR_MEMORY_REGIONS
   #error USE_MMAP_FOR_MODULES requires USE_MMAP_FOR_MEMORY_REGIONS
 #endif /* USE_MMAP_FOR_MODULES && !USE_MMAP_FOR_MEMORY_REGIONS */
+
+/*
+When TRUE, assume that the contents of all Microsoft IFC files are little-
+endian, regardless of the target endianness.  Otherwise, the contents of IFC
+files are assumed to match the target endianness.  Setting this to TRUE may be
+useful when transporting IFC files that were created on a little-endian machine
+to one that's big-endian.
+*/
+#ifndef ASSUME_LITTLE_ENDIAN_IFC_MODULES
+#define ASSUME_LITTLE_ENDIAN_IFC_MODULES FALSE
+#endif /* ifndef ASSUME_LITTLE_ENDIAN_IFC_MODULES */
 
 /*
 When using precompiled headers, it must be possible to duplicate the memory

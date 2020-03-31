@@ -9196,6 +9196,11 @@ file.
 #else /* !defined(USE_MMAP_FOR_MODULES) */
   comment_undefined_macro_name(USE_MMAP_FOR_MODULES);
 #endif /* defined(USE_MMAP_FOR_MODULES) */
+#if defined(ASSUME_LITTLE_ENDIAN_IFC_MODULES)
+  define_numeric_valued_macro(ASSUME_LITTLE_ENDIAN_IFC_MODULES);
+#else /* !defined(ASSUME_LITTLE_ENDIAN_IFC_MODULES) */
+  comment_undefined_macro_name(ASSUME_LITTLE_ENDIAN_IFC_MODULES);
+#endif /* defined(ASSUME_LITTLE_ENDIAN_IFC_MODULES) */
 #if defined(USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING)
   define_numeric_valued_macro(USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING);
 #else /* !defined(USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING) */

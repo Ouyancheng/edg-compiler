@@ -2260,6 +2260,13 @@ Allow export to be enabled and enable it by default.
 #endif /* !defined(SEQUENCING_DIAGNOSTICS_ENABLED) */
 
 /*
+Assume all IFC module files are little-endian, regardless of the target.
+*/
+#ifndef ASSUME_LITTLE_ENDIAN_IFC_MODULES
+#define ASSUME_LITTLE_ENDIAN_IFC_MODULES 1
+#endif /* ifndef ASSUME_LITTLE_ENDIAN_IFC_MODULES */
+
+/*
 If using lint on a non-Sun platform, define some features that are in the
 SUN_TEST_VERSION but not the EDG_TEST_VERSION.
 */

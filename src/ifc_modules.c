@@ -195,7 +195,9 @@ header_bytes is TRUE, the bytes being retrieved correspond to the IFC file
 header or table of contents (and are therefore known to be little-endian).
 */
 {
-  if (host_little_endian && (targ_little_endian || header_bytes)) {
+  a_boolean reading_little_endian = ASSUME_LITTLE_ENDIAN_IFC_MODULES ||
+                                            targ_little_endian || header_bytes;
+  if (reading_little_endian == host_little_endian) {
     get_bytes_from_buffer(entity, length);
   } else {
     get_mismatched_endian_bytes(entity, length);
@@ -494,7 +496,8 @@ For example, when "name" is "foo", this routine effectively boils down to:
                                   a_boolean             fill_storage) \
                                                                const noexcept \
   { \
-    if (targ_little_endian == host_little_endian) { \
+    if ((ASSUME_LITTLE_ENDIAN_IFC_MODULES || targ_little_endian) \
+                                                     == host_little_endian) { \
       check_assertion(byte_buffer + sizeof(concat(an_ifc_, name)) <= \
                                                              (buffer_end+1)); \
       if (fill_storage) { \
@@ -583,7 +586,6 @@ little-endian.
 /*
 A macro to return a pointer to the IFC string table for a given IFC module
 file and TextOffset.  Strings in the IFC file are NULL-terminated.
-FIXME: may want to store mmap_addr + string_table_bytes somewhere
 */
 #if EXPENSIVE_CHECKING
 #define verify_offset(offset) \
