@@ -28566,8 +28566,7 @@ information).  See the definition of a_tmpl_decl_state for details.
 {
   a_boolean                 param_list_seen = FALSE;
   a_source_position         template_pos;
-  a_template_decl_info_ptr  template_decl_info = NULL,
-                            prev_template_decl_info = NULL;
+  a_template_decl_info_ptr  template_decl_info = NULL;
 
   /* Loop until there are no more template parameter clauses.  Note that
      this routine is not called for explicit instantiations, in which
@@ -28579,11 +28578,11 @@ information).  See the definition of a_tmpl_decl_state for details.
     if (!is_template_param) decl_state->nesting_depth++;
     decl_state->number_of_template_param_clauses++;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (decl_state->is_generic && prev_template_decl_info != NULL) {
+    if (decl_state->is_generic && template_decl_info != NULL) {
       /* When there are multiple template parameter clauses, assign generic
          sequence numbers to all but the final one. */
       assign_generic_param_seq_numbers(decl_state,
-                                       prev_template_decl_info->parameters);
+                                       template_decl_info->parameters);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Bypass "template".  The next token should be "<".  This is done
