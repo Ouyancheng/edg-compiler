@@ -9501,6 +9501,10 @@ FIXME
     }  /* if */
   } else if (dps->is_top_level_param_decl &&
              abbr_func_templates_enabled &&
+             (func_dps->decl_being_cached ||
+              func_dps->is_template_declaration ||
+              func_dps->is_template_rescan ||
+              func_dps->is_abbr_func_template) &&
              !auto_storage_class_specifier_enabled) {
     an_expr_node_ptr  constraint;
     check_assertion(func_dps != NULL && scope_is(ssep, sck_func_prototype) &&

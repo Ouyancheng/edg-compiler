@@ -28664,6 +28664,8 @@ information).  See the definition of a_tmpl_decl_state for details.
     if (decl_state->is_specialization) {
       /* FIXME: Issue error and set up for "auto" to produce error types? */
     } else {
+      if (!is_template_param) decl_state->nesting_depth++;
+      decl_state->number_of_template_param_clauses++;
       /* Create an implicit parameterization level and add parameters to it
          corresponding to the "auto" parameters encountered earlier. */
       set_up_template_decl(decl_state, &null_source_position,

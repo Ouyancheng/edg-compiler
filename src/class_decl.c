@@ -28484,6 +28484,10 @@ that is provided if this is a member template declaration.
   a_symbol_locator     locator;
 
   db_enter(3, "class_member_declaration");
+  /* If there are any pk_immediate pragmas associated with the current
+     token, process them now, before the current token is cached, instead
+     of in get_token, as is usually done. */
+  process_curr_token_pragmas();
   clear_locator(&locator, &null_source_position);
   *skip_semicolon_check = FALSE;
   initialize_member_decl_info(&decl_info, &pos_curr_token);
@@ -28505,6 +28509,12 @@ that is provided if this is a member template declaration.
   dps->function_definition_allowed = TRUE;
   if (!dps->is_lambda) {
     /* Normal case: Scan attributes and declaration specifiers. */
+    if (!C_mode() && !is_member_template && !is_member_template_rescan) {
+      /* Start caching the current declaration in case it turns out to be a
+         abbreviated function template, which will have to be re-parsed as a
+         template. */
+      begin_potential_abbr_func_templ_caching(dps);
+    }  /* if */
     /* First, scan prefix attributes. */
     dps->prefix_attributes = scan_attributes(al_prefix);
     /* Set the flags to control the calls to decl_specifiers. */
@@ -28650,28 +28660,30 @@ that is provided if this is a member template declaration.
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (!C_mode() && (dso_flags & DSO_DEFINES_SOMETHING) &&
-      !is_error_type(dps->type)) {
+  if (!C_mode() && (dso_flags & DSO_DEFINES_SOMETHING)) {
     /* Should be a class, struct, union, or enum definition. */
     a_type_ptr    tp = skip_typerefs(dps->type);
-    a_symbol_ptr  sym = symbol_for(tp);
-    if (is_member_template) {
-      if (curr_token == tok_semicolon && !is_typedef) {
-        /* Issue an error later, based on the symbol. */
-        dps->sym = sym;
-      }  /* if */
+    abort_potential_abbr_func_templ_caching(dps);
+    if (!is_error_type(dps->type)) {
+      a_symbol_ptr  sym = symbol_for(tp);
+      if (is_member_template) {
+        if (curr_token == tok_semicolon && !is_typedef) {
+          /* Issue an error later, based on the symbol. */
+          dps->sym = sym;
+        }  /* if */
 #if CHECKING
-    } else if (!sym->is_error) {
-      /* A nested class, struct, union, or enum definition.  Be sure the
-         parent class was marked correctly.  In GNU or Microsoft modes, this
-         could also be a delayed nested class definition appearing in a class
-         scope. */
-      check_assertion_str2(sym->is_class_member &&
-                           (sym_parent_class(sym) == class_type ||
-                            microsoft_mode || gpp_mode),
-                           "class_member_declaration:",
-                           "bad parent type on nested type");
+      } else if (!sym->is_error) {
+        /* A nested class, struct, union, or enum definition.  Be sure the
+           parent class was marked correctly.  In GNU or Microsoft modes, this
+           could also be a delayed nested class definition appearing in a class
+           scope. */
+        check_assertion_str2(sym->is_class_member &&
+                             (sym_parent_class(sym) == class_type ||
+                              microsoft_mode || gpp_mode),
+                             "class_member_declaration:",
+                             "bad parent type on nested type");
 #endif /* CHECKING */
+      }  /* if */
     }  /* if */
   } /* if */
   if (dso_flags & DSO_DANGLING_TYPE_SPECIFIER) {
@@ -28694,6 +28706,7 @@ that is provided if this is a member template declaration.
     missing_declarator = TRUE;
     if (decl_info.is_anonymous_union) {
       /* decl_nonstatic_data_member needs to be called. */
+      abort_potential_abbr_func_templ_caching(dps);
       class_type_supp(class_type)->has_anonymous_union_member = TRUE;
       /* Ignore any top-level cv-qualifiers in Microsoft mode and in some
          GNU modes.  (In GNU modes prior to 3.4, the qualifiers are accepted
@@ -28780,6 +28793,20 @@ that is provided if this is a member template declaration.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       goto next_declaration;
     }
+    if (!C_mode() && is_function &&
+        !dps->is_lambda && dps->variant.auto_params != NULL) {
+      /* We ran into "auto" parameters: Reparse the declaration as a template
+         (i.e., this is an abbreviated function template). */
+      a_token_kind  final_token = tok_semicolon;
+      reparse_abbr_func_template(dps, &final_token);
+      if (final_token == tok_rbrace) {
+        required_token(tok_rbrace, ec_exp_rbrace);
+        *skip_semicolon_check = TRUE;
+      }  /* if */
+      goto next_declaration;
+    } else {
+      abort_potential_abbr_func_templ_caching(dps);
+    }  /* if */
     if (!C_mode() && is_function) {
       /* Member or friend function. */
       a_boolean  function_def_present;
@@ -29329,6 +29356,7 @@ that is provided if this is a member template declaration.
   } while (loop_token(tok_comma));
 next_declaration:;
   if (!C_mode()) {
+    abort_potential_abbr_func_templ_caching(dps);
     check_use_of_placeholder_type(dps);
   }  /* if */
   run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
@@ -31765,7 +31793,7 @@ classes.
         (void)class_member_declaration(&class_state,
                                        (a_tmpl_decl_state_ptr)NULL,
                                        ms_attributes,
-                                       /*is_template_member=*/FALSE,
+                                       /*is_member_template=*/FALSE,
                                        (a_template_param_ptr)NULL,
                                        &skip_semicolon_check, &dummy_type,
                                        (a_template_instance_ptr)NULL,

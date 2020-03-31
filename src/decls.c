@@ -20131,6 +20131,9 @@ parameters are scanned by scan_a_template_parameter_declaration.
        token, process them now, before the current token is cached, instead
        of in get_token, as is usually done. */
     process_curr_token_pragmas();
+    /* Start caching the current declaration in case it turns out to be a
+       abbreviated function template, which will have to be re-parsed as a
+       template. */
     begin_potential_abbr_func_templ_caching(dps);
   }  /* if */
   if (dps->function_definition_allowed) {
@@ -20257,9 +20260,12 @@ parameters are scanned by scan_a_template_parameter_declaration.
                    !is_old_style_param_decl &&
                    is_function_type(dps->type));
     if (is_function && dps->variant.auto_params != NULL) {
+      /* We ran into "auto" parameters: Reparse the declaration as a template
+         (i.e., this is an abbreviated function template). */
       reparse_abbr_func_template(dps, &final_token);
       goto advance_past_final_token;
     }  /* if */
+    abort_potential_abbr_func_templ_caching(dps);
     if (is_function && clang_mode) {
       /* In most modes, checking for an abstract class return type is done
          when the function type is validated.  Clang, however, only reports
@@ -20310,7 +20316,6 @@ parameters are scanned by scan_a_template_parameter_declaration.
     }  /* if */
     remove_stop_token(tok_assign);
     dps->need_assign_remove_stop_token = FALSE;
-    abort_potential_abbr_func_templ_caching(dps);
     if (is_function) {
       switch (function_declaration(dps, &func_info, &locator,
                                    &decl_pos_block, &final_token)) {
