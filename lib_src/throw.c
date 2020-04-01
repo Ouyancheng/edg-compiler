@@ -569,7 +569,7 @@ Print the contents of a region description entry.
       }  /* if */
     }  /* if */
     fprintf(__f_debug, "  destr/delete=%p\n",
-            (void*)(unsigned long)ehrdp->destructor_or_delete_routine);
+            (void*)ehrdp->destructor_or_delete_routine);
 #if 0
     if (ehrdp->array_size != 0) {
       fprintf(__f_debug, "  array_size=%ld\n", ehrdp->array_size);
