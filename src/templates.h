@@ -946,10 +946,6 @@ extern a_boolean is_template_friend_decl(void);
 extern void reparse_abbr_func_template(a_decl_parse_state  *orig_dps,
 			               a_token_kind        *final_token);
 
-extern a_type_ptr add_templ_param_for_auto_func_param(
-                                             a_scope_stack_entry  *ssep,
-                                             an_expr_node_ptr     constraint);
-
 extern void scan_lambda_template_param_list(a_tmpl_decl_state   *templ_state,
                                             a_decl_parse_state  *dps);
 

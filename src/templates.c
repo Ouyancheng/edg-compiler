@@ -28508,45 +28508,6 @@ in a abbreviated function template or a generic lambda).
 }  /* add_implicit_templ_params_for_auto_func_params */
 
 
-a_type_ptr add_templ_param_for_auto_func_param(a_scope_stack_entry  *ssep,
-                                               an_expr_node_ptr     constraint)
-/*
-Add an additional template parameter to the current template declaration (whose
-template declaration scope is described by ssep) for an "auto" function
-parameter where the current token is the associated "auto" token.  constraint
-describes the associated type constraint (NULL if none).
-
-This function is called for "auto" parameters in non-abbreviated function
-templates.  E.g.:
-
-	template<typename T> int f(T, auto ... ps);
-*/
-{
-  a_tmpl_decl_state_ptr  state = ssep->tmpl_decl_state;
-  a_template_param_ptr   tpp = state->decl_info->parameters;
-  uint32_t               param_num = 2, auto_num = 1;
-
-  check_assertion(tpp != NULL);
-  /* Find the end of the list of template parameters and count the position of
-     the new parameter overall and among the "auto" parameters specifically. */
-  for (; tpp->next != NULL; tpp = tpp->next) {
-    if (symbol_is(tpp->next->param_symbol, sk_type) &&
-        tpp->next->variant.type->variant.template_param.is_auto_param) {
-      /* A preceding "auto" parameter. */
-      auto_num += 1;
-    }  /* if */
-    param_num += 1;
-  }  /* for */
-  /* Declare the additional parameter. */
-  tpp->next = implicit_templ_param_for_auto_func_param(
-                                   state, constraint, /*is_pack=*/TRUE,
-                                   curr_token_sequence_number,
-                                   param_num, auto_num, &pos_curr_token,
-                                   end_position_or_null(&end_pos_curr_token));
-  return tpp->next->variant.type;
-}  /* add_templ_param_for_auto_func_param */
-
-
 static void set_up_template_decl(a_tmpl_decl_state         *state,
                                  a_source_position         *template_pos,
                                  a_template_decl_info_ptr  *p_templ_decl_info)

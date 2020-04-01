@@ -28800,7 +28800,7 @@ that is provided if this is a member template declaration.
       a_token_kind  final_token = tok_semicolon;
       reparse_abbr_func_template(dps, &final_token);
       if (final_token == tok_rbrace) {
-        required_token(tok_rbrace, ec_exp_rbrace);
+        (void)required_token(tok_rbrace, ec_exp_rbrace);
         *skip_semicolon_check = TRUE;
       }  /* if */
       goto next_declaration;

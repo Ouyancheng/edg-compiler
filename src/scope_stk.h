@@ -2135,8 +2135,6 @@ extern void push_template_declaration_scope(
 		a_template_decl_info_ptr	decl_info,
 		a_boolean			is_template_param_rescan);
 
-extern void insert_template_decl_scope_under_func_prototype(void);
-
 extern a_scope_ptr push_for_init_scope(
                                     a_scope_pointers_block_ptr pointers_block);
 
