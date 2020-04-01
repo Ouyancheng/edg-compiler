@@ -7576,6 +7576,7 @@ expression node and interpreter state.
     conv_integer_value_to_host_large_integer((an_integer_value *)arg3_bytes,
                                              is_signed_integral_type(arg3_tp),
                                              &length_val, &ovflo);
+                                             /*lint !e2666*/
     if (!ovflo && length_val == 0) {
       goto return_result;
     }  /* if */
