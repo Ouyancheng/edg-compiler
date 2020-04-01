@@ -3639,7 +3639,10 @@ nested class.
                         &pos_curr_token);
             }  /* if */
           }  /* if */
-          if (rfp->function_body_token_cache.is_reusable) {
+          /* Keep the token cache for a friend function defined in a class
+             template as it will be used later for instantiations. */
+          if (!(is_nonreal_template_instantiation && is_friend) &&
+              rfp->function_body_token_cache.is_reusable) {
             discard_token_cache(&rfp->function_body_token_cache);
           }  /* if */
           /* In the normal case the current token should be end_of_source,

@@ -1,5 +1,29 @@
 Version 6.1
 
+4/1/20   [EDGcpfe/22274]
+Use of freed cached tokens and internal error on constexpr if in friend
+of class template
+
+In some cases, the token cache that contains a friend function defined in a
+class template could be freed too early.  This could occur after the prototype
+instantiation and before it is rescanned for a real instantiation.  One
+possible consequence of this is an internal error (in if_statement) when a
+constexpr if was used in a friend function of a class template.  Now fixed.
+
+  struct A { };
+  template <typename> struct B : A {
+    friend void f(B) {
+      if constexpr (g() == 1) ;
+    }
+    constexpr static int g() { return 1; }
+  };
+  A a;
+  B<int> g = static_cast<B<int> &>(a);
+  int main() {
+    f(g);
+  }
+
+
 3/31/20  [EDGcpfe/22562]
 Microsoft compatibility with C++-generating back end: incorrect default
 template argument in generated code
