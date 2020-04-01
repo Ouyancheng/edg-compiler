@@ -20058,7 +20058,7 @@ error_severity is the severity at which any diagnostics should be issued.
             to_tpp->default_arg.templ = from_tpp->default_arg.templ;
           }  /* if */
         }
-        /* Note that update_il_teplate_parameter is not called here because
+        /* Note that update_il_template_parameter is not called here because
            the default did not appear in the actual declaration of the
            template. */
       }  /* if */
