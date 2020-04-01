@@ -7273,9 +7273,12 @@ etc.).
            Something like a template parameter "int ...N" is a pack declaration
            and not an expansion.  But for a template parameter that expands
            an enclosing pack (e.g., "Enclosing_T ... N"), it is a pack
-           expansion. */
-        if ((input_flags & DI_IS_TEMPLATE_PARAM_DECL) != 0 &&
-            (input_flags & DI_IS_TEMPLATE_PARAM_PACK_EXPANSION) == 0) {
+           expansion.  Also, when scanning an "auto" parameter declaration for
+           the first time, there is no associated template parameter yet to
+           record the ellipsis. */
+        if (((input_flags & DI_IS_TEMPLATE_PARAM_DECL) != 0 &&
+             (input_flags & DI_IS_TEMPLATE_PARAM_PACK_EXPANSION) == 0) ||
+            (state->variant.auto_params != NULL)) {
           (void)get_token();
         } else {
           record_pack_expansion_ellipsis();

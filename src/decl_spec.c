@@ -9556,6 +9556,7 @@ FIXME
              parameter, in case this turns out to be a parameter pack later
              on. */
           dps->variant.auto_params = func_dps->variant.auto_params;
+          dps->pack_ellipsis_allowed = TRUE;
           /* Record the type as an ordinary "auto" type specifier.  It will
              eventually be discarded since we will reparse the declaration in
              a context where the "auto" can be mapped to a specific template

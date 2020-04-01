@@ -28312,6 +28312,9 @@ flag if error recovery should be performed as if the specifier didn't occur.
       }  /* if */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+reparse_declarator:
+    a_token_sequence_number  reparse_tsn = curr_token_sequence_number;
+    a_decl_parse_callback    *reparse_actions = dps->end_of_parse_actions;
     /* Pass the class's type pointer to declarator if this might be a
        nonstatic member function, in which case its presence will cause an
        implicit "this" parameter type to be created. (Static member
@@ -28320,6 +28323,15 @@ flag if error recovery should be performed as if the specifier didn't occur.
     declarator(di_flags, dps, class_type, locator, func_info,
                &decl_info->decl_pos_block);
     if (!C_mode()) {
+      if (scope_is(&scope_stack_top(), sck_template_declaration) &&
+          dps->variant.auto_params != NULL && !dps->is_abbr_func_template) {
+        /* "auto" parameters were encountered that have no associated template
+           parameters.  Generate those template parameters now and prepare to
+           repeat the declarator parsing. */
+        prepare_to_reparse_func_template_declarator_with_auto_params(
+                                     reparse_tsn, reparse_actions, func_info);
+        goto reparse_declarator;
+      }  /* if */
       remove_stop_token(tok_lbrace);
       check_completed_member_type(locator, class_state, decl_info);
       if (is_member_template_rescan) {

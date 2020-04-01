@@ -17115,6 +17115,46 @@ static void add_implicit_templ_params_for_auto_func_params(
                                              a_tmpl_decl_state   *templ_state,
                                              a_decl_parse_state  *dps);
 
+void prepare_to_reparse_func_template_declarator_with_auto_params(
+                                    a_token_sequence_number  reparse_tsn,
+                                    a_decl_parse_callback    *reparse_actions,
+                                    a_func_info_block        *func_info)
+/*
+Some "auto" function parameters were encountered while parsing a function
+declarator for a function template.  Those imply additional template
+parameters: Declare those template parameters now, and prepare to re-parse the
+declarator so that the "auto" specifiers will be mapped to the new template
+parameters.  reparse_tsn is the token sequence number of the first token of
+the declarator.  reparse_actions is the last end-of-parse action recorded
+before the prior parsing of the declarator.  And func_info is the function
+information block that was used during that parsing (and is about to be reused
+during the re-parsing).
+*/
+{
+  a_tmpl_decl_state   *tmpl_state;
+  a_decl_parse_state  *dps;
+  a_token_cache       reparse_cache;
+
+  tmpl_state = scope_stack[depth_template_declaration_scope].tmpl_decl_state;
+  dps = tmpl_state->decl_parse;
+  add_implicit_templ_params_for_auto_func_params(tmpl_state, dps);
+  /* Clear the declaration parse state associated with the declarator.
+     This is most easily done by pretending we are about to scan a
+     secondary declarator. */
+  discard_end_of_parse_actions(dps, /*until_action=*/reparse_actions);
+  start_secondary_declarator(dps);
+  dps->secondary_declarator = FALSE;
+  dps->is_abbr_func_template = TRUE;
+  clear_func_info(func_info);
+  /* Create a cache with the declarator tokens. */
+  clear_token_cache(&reparse_cache, /*reusable=*/FALSE);
+  copy_tokens_from_cache(curr_lexical_state_cache(),
+                         reparse_tsn, curr_token_sequence_number,
+                         /*include_last_token=*/FALSE, &reparse_cache);
+  rescan_cached_tokens(&reparse_cache);
+}  /* prepare_to_reparse_func_template_declarator_with_auto_params */
+                                             
+
 static void scan_template_declaration(
                                 a_decl_parse_state         *state,
                                 a_boolean                  is_initial_decl,
@@ -17147,7 +17187,6 @@ to an entry used to record detailed source position information.
                                   DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
                                   DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
 
-  state->is_template_declaration = TRUE;
   state->is_template_rescan = !is_initial_decl;
   state->prefix_attributes = scan_attributes(al_prefix);
   if (deduced_return_types_enabled) {
@@ -17251,30 +17290,11 @@ reparse_declarator:
         set_to_named_error_locator(*locator);
       } else if (state->variant.auto_params != NULL &&
                  !state->is_abbr_func_template) {
-        /* Some "auto" function parameters were encountered while parsing the
-           function declarator.  Those imply additional template parameters:
-           Declare those template parameters now, and restart parsing of the
-           declarator so that the "auto" specifiers will be mapped to the new
-           template parameters. */
-        a_tmpl_decl_state_ptr  tmpl_state;
-        a_token_cache          reparse_cache;
-        tmpl_state = scope_stack[depth_template_declaration_scope]
-                                                             .tmpl_decl_state;
-        add_implicit_templ_params_for_auto_func_params(tmpl_state, state);
-        /* Clear the declaration parse state associated with the declarator.
-           This is most easily done by pretending we are about to scan a
-           secondary declarator. */
-        discard_end_of_parse_actions(state, /*until_action=*/reparse_actions);
-        start_secondary_declarator(state);
-        state->secondary_declarator = FALSE;
-        state->is_abbr_func_template = TRUE;
-        clear_func_info(func_info);
-        /* Create a cache with the declarator tokens. */
-        clear_token_cache(&reparse_cache, /*reusable=*/FALSE);
-        copy_tokens_from_cache(curr_lexical_state_cache(),
-                               reparse_tsn, curr_token_sequence_number,
-                               /*include_last_token=*/FALSE, &reparse_cache);
-        rescan_cached_tokens(&reparse_cache);
+        /* "auto" parameters were encountered that have no associated template
+           parameters.  Generate those template parameters now and prepare to
+           repeat the declarator parsing. */
+        prepare_to_reparse_func_template_declarator_with_auto_params(
+                                     reparse_tsn, reparse_actions, func_info);
         goto reparse_declarator;
       }  /* if */
       check_for_declaration_errors(state, locator);
@@ -29275,6 +29295,7 @@ parameter lists that were scanned.
   a_decl_parse_state                *dps = decl_state->decl_parse;
 
   db_enter(3, "template_declaration");
+  dps->is_template_declaration = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ms_extensions && dps->ms_attributes != NULL) {
     /* Dispose of any Microsoft attributes that appeared before the template
