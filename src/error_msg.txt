@@ -3181,6 +3181,7 @@ ec_invalid_use_of_concept;;"invalid use of concept"
 ec_rvalue_defaulted_member_comparison;;"a defaulted member comparison operator cannot be \"&&\"-qualified"
 ec_constexpr_comparison_calls_nonconstexpr_function;;"default constexpr comparison function calls non-constexpr function %nd"
 ec_invalid_constexpr_memcmp;;"constexpr memory comparison is only supported for top-level integer or array-of-integer objects"
+ec_constraint_concept_template;;"a concept template cannot have associated constraints"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

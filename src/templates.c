@@ -10002,22 +10002,47 @@ is the template of which sym is an instance.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_boolean type_template_has_constraints(
-                                      a_template_symbol_supplement_ptr  tssp)
+static a_boolean template_has_constraints(
+                                       a_template_ptr     il_entry,
+                                       a_source_position  **p_diag_pos = NULL)
 /*
-Return TRUE if the template associated with tssp has constraints.
+Return TRUE if the template associated with il_entry has type parameters with
+type-constraints or a requires clause on the template parameters list (note
+that this does not include checking for a trailing requires clause).  If
+p_diag_pos is non-NULL, st *p_diag_pos to point to the position of one of
+the constraints.
 */
 {
   a_boolean            result = FALSE;
-  a_template_ptr       il_entry = tssp->il_template_entry;
   a_template_decl_ptr  tdp = il_entry->template_decl;
 
-  if (tdp != NULL && if_microsoft_extensions(!tdp->is_generic &&)
-      tdp->constraint.requires_clause != NULL) {
-    result = TRUE;
+  if (tdp != NULL if_microsoft_extensions(&& !tdp->is_generic)) {
+    if (tdp->constraint.requires_clause != NULL) {
+      result = TRUE;
+      if (p_diag_pos != NULL) {
+        *p_diag_pos = &tdp->constraint.requires_clause->requires_pos;
+      }  /* if */
+    } else {
+      a_template_parameter_ptr  tpp = tdp->param_list;
+      for (; tpp != NULL; tpp = tpp->next) {
+        if (tpp->kind == (a_template_parameter_kind)tpk_type) {
+          a_type_ptr        tp = tpp->variant.type.ptr;
+          an_expr_node_ptr  constraint;
+          constraint = tp->variant.template_param.extra_info
+                         ->constraint.type_constraint;
+          if (constraint != NULL) {
+            result = TRUE;
+            if (p_diag_pos != NULL) {
+              *p_diag_pos = &constraint->position;
+            }  /* if */
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
   return result;
-}  /* type_template_has_constraints */
+}  /* template_has_constraints */
 
 
 static a_boolean requires_constraint_satisfied(
@@ -13914,7 +13939,7 @@ to an alias template, the substituted type is returned in *new_type
       /* Some error with the template arguments to an internal template. */
       new_sym = NULL;
       subst_fail(*copy_error);
-    } else if (type_template_has_constraints(tssp) &&
+    } else if (template_has_constraints(tssp->il_template_entry) &&
                !template_arg_list_is_dependent(new_list) &&
                !check_template_constraints(template_sym, new_list,
                                            /*diagnose=*/FALSE)) {
@@ -32322,12 +32347,16 @@ The current token is the leading "concept" token in a concept-definition
 following a template parameter clause.  Parse and record the concept.
 */
 {
-  a_source_position  concept_pos = pos_curr_token;
+  a_source_position  concept_pos = pos_curr_token, *diag_pos;
   a_symbol_locator   loc;
   a_symbol_ptr       sym;
   an_expr_node_ptr   expr;
 
   add_stop_token(tok_semicolon);
+  /* Concept templates cannot themselves be constrained. */
+  if (template_has_constraints(decl_state->il_template_entry, &diag_pos)) {
+    pos_error(ec_constraint_concept_template, diag_pos);
+  }  /* if */
   check_assertion(curr_token == tok_concept);
   (void)get_token();
   add_stop_token(tok_assign);
