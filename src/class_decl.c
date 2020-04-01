@@ -28806,6 +28806,7 @@ that is provided if this is a member template declaration.
         (void)required_token(tok_rbrace, ec_exp_rbrace);
         *skip_semicolon_check = TRUE;
       }  /* if */
+      remove_stop_token(tok_comma);
       goto next_declaration;
     } else {
       abort_potential_abbr_func_templ_caching(dps);

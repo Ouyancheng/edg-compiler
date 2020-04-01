@@ -3082,7 +3082,7 @@ an error if a default argument expression is encountered.
         if (!is_non_initial_pack_element) param_number++;
         /* In a real instantiation, the tokens of the parameter will have been
            skipped. */
-        if (pesep && !any_variadic_params) continue;
+        if (pesep != NULL && !any_variadic_params) continue;
         if (std_attributes_enabled)  dsi_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
         if (gnu_attributes_enabled) dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
         if (ms_extensions) dsi_flags |= DSI_MICROSOFT_ATTRIBUTES_ALLOWED;
@@ -3108,13 +3108,20 @@ an error if a default argument expression is encountered.
         clear_decl_pos_block(&local_decl_pos_block);
         /* Scan prefix attributes. */
         param_state.prefix_attributes = scan_attributes(al_prefix);
-        /* Scan a parameter-declaration. */
+        /* Scan the specifiers of a parameter-declaration. */
         decl_specifiers(dsi_flags, &param_state, &local_decl_pos_block);
         dso_flags = param_state.dso_flags;
         param_storage_class = param_state.declared_storage_class;
         dangling_type_specifier =
                                (dso_flags & DSO_DANGLING_TYPE_SPECIFIER) != 0;
         defines_something = (dso_flags & DSO_DEFINES_SOMETHING) != 0;
+        if (param_state.variant.auto_params != NULL && pesep != NULL) {
+          /* If we encountered an "auto" parameter not yet associated with a
+             synthesized template parameter, do not issue an error about a
+             function parameter pack declaration not referencing a template
+             parameter pack. */
+          pesep->expansion_with_no_packs_diagnostic_issued = TRUE;
+        }  /* if */
         if (last_param_type == NULL && curr_token == tok_rparen) {
           if (dso_flags & DSO_JUST_VOID) {
             /* The first and only parameter-declaration is just "void", which
@@ -3391,11 +3398,11 @@ an error if a default argument expression is encountered.
               scope_is(&scope_stack_top()-1, sck_template_instantiation)) {
             default_arg_allowed_on_curr_param = FALSE;
           }  /* if */
-          if (param_state.variant.auto_params != NULL &&
-              param_state.has_pack_ellipsis) {
-            /* A variadic "auto" parameter in the initial scan. */
-            param_state.variant.auto_params->is_parameter_pack = TRUE;
-          }  /* if */
+        }  /* if */
+        if (param_state.variant.auto_params != NULL &&
+            param_state.has_pack_ellipsis) {
+          /* A variadic "auto" parameter in the initial scan. */
+          param_state.variant.auto_params->is_parameter_pack = TRUE;
         }  /* if */
         if (generic_lambdas_enabled && state->is_lambda &&
             param_state.has_deduced_type) {
