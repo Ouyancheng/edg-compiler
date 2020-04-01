@@ -3650,14 +3650,15 @@ after_entry_from_class:
         /* Types get walked instead of remapped because some types defined
            in prototype scopes in C (e.g., in a cast) get eliminated from the
            IL.  Secondary declarations, end of construct entries, instantiation
-           directives, static assertions, and linkage specification blocks get
-           walked because they are in effect supplements to the source sequence
-           entry rather than freestanding IL entries; they aren't pointed to
-           from elsewhere in the IL tree. */
+           directives, module import declarations, static assertions, and
+           linkage specification blocks get walked because they are in effect
+           supplements to the source sequence entry rather than freestanding IL
+           entries; they aren't pointed to from elsewhere in the IL tree. */
         if (kind == iek_type ||
             kind == iek_src_seq_secondary_decl ||
             kind == iek_src_seq_end_of_construct ||
             kind == iek_instantiation_directive ||
+            kind == iek_module_import_decl ||
 #if GENERATE_LINKAGE_SPEC_BLOCKS
             kind == iek_linkage_spec_block ||
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
@@ -3992,14 +3993,16 @@ after_entry_from_class:
         /* FIXME: make sure all fields are walked appropriately. */
         walk_string_ptr(eptr->name, iek_other_text, 0);
         walk_string_ptr(eptr->full_name, iek_other_text, 0);
-        conditionally_clear_fe_pointer(eptr->module_interface->f_module);
+        if (eptr->module_interface != NULL) {
+          conditionally_clear_fe_pointer(eptr->module_interface->f_module);
 #if USE_MMAP_FOR_MEMORY_REGIONS
-        conditionally_clear_fe_pointer(eptr->module_interface->mmap_addr);
+          conditionally_clear_fe_pointer(eptr->module_interface->mmap_addr);
 #if EDG_WIN32
-        conditionally_clear_fe_pointer(eptr->module_interface->mapped_input);
-        conditionally_clear_fe_pointer(eptr->module_interface->map_object);
+          conditionally_clear_fe_pointer(eptr->module_interface->mapped_input);
+          conditionally_clear_fe_pointer(eptr->module_interface->map_object);
 #endif /* EDG_WIN32 */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+        }  /* if */
 #undef eptr
       }
       break;
