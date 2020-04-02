@@ -1,5 +1,17 @@
 Version 6.1
 
+4/2/20   [EDGcpfe/22575]
+Spurious error on namespace extension without inline keyword
+
+The C++ standard allows a namespace extension of an inline namespace to
+omit the inline keyword.  Previously an error was generated (in strict mode
+and a warning otherwise) for this case; now a remark is issued.  For example,
+with --c++17:
+
+  inline namespace N {}
+  namespace N {}       // previously an error in strict mode; now a remark
+
+
 4/2/20   [EDGcpfe/20832,EDGcpfe/22458]
 Spurious ambiguity error on partial specialization selection
 

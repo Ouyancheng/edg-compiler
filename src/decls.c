@@ -15403,13 +15403,20 @@ it's a definition and NULL otherwise).
         process_curr_construct_pragmas(ns_sym, (a_statement_ptr)NULL);
       }  /* if */
       nsp = ns_sym->variant.namespace_info.ptr;
-      /* If any declaration of a namespace is inline, all declarations
-         must be. */
+      /* See if there is a mismatch between inline setting of original and
+         extended namespace. */
       if (nsp->is_inline != is_inline) {
-        an_error_code	error_code = is_inline ? ec_prev_ns_not_inline
-                                               : ec_prev_ns_inline;
-        pos_sy_diagnostic(strict_ansi_discretionary_severity, error_code,
-                          &start_pos, ns_sym);
+        if (is_inline) {
+          /* Can't use inline on a namespace extension if the original
+             declaration didn't specify it. */
+          pos_sy_diagnostic(strict_ansi_discretionary_severity,
+                            ec_prev_ns_not_inline, &start_pos, ns_sym);
+        } else {
+          /* The inline keyword does not need to be given on a namespace
+             extension of an inline namespace; issue a remark for the
+             mismatch. */
+          pos_sy_diagnostic(es_remark, ec_prev_ns_inline, &start_pos, ns_sym);
+        }  /* if */
         if (gpp_mode && is_inline) {
           /* g++ allows a namespace extension to make a namespace inline. */
           nsp->is_inline = TRUE;
