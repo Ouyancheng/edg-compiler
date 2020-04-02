@@ -1074,6 +1074,22 @@ underflow.  If the conversion can be done, return the result in "result".
 #endif /* !USE_DOUBLE_FOR_HOST_FP_VALUE */
 #if HOST_FP_VALUE_IS_128BIT
 
+static inline void zero_unused_bits_in_long_double(long double *ldbl)
+/*
+If the configuration is such that long double has unused bits, zero those
+so that a reliable hash can be computed from the resulting value.
+*/
+{
+  if (targ_ldbl_mant_dig == 64) {
+    /* Zero any unused bytes that exist in the 80-bit extended long double
+       (that's 6 unused bytes in a 64-bit config and 2 bytes in a 32-bit
+       config). */
+    char *unused = (char *)ldbl + (host_little_endian ? 10 : 0);
+    memzero(unused, targ_sizeof_long_double - 10U);
+  }  /* if */
+}  /* zero_unused_bits_in_long_double */
+
+
 static void conv_host_fp_to_long_double(a_host_fp_value  val,
                                         a_boolean        *err,
                                         long double      *result)
@@ -1089,9 +1105,6 @@ underflow.  If the conversion can be done, return the result in "result".
   a_host_fp_value  round_trip_val;
 #endif /* !USE_SOFTFLOAT */
 
-  /* Zero all bits (the assignment that follows does not always set every
-     bit in the destination). */
-  memzero((char *)&ldbl_val, sizeof(ldbl_val));
 #if USE_SOFTFLOAT
   /* "long double" can have various formats; handle the 80-, and 128-bit
      cases here (this should not be called for the 64-bit case). */
@@ -1120,6 +1133,11 @@ underflow.  If the conversion can be done, return the result in "result".
     local_err = TRUE;
   }  /* if */
 #endif /* USE_SOFTFLOAT */
+  /* In cases where 80-bit extended long double is used, the unused bits
+     are indeterminate after the assignment above (especially in configurations
+     that do optimization).  Zero those bits so that a reliable hash can be
+     constructed (as even the unused bits are used by fp_hash). */
+  zero_unused_bits_in_long_double(&ldbl_val);
   if (local_err) {
     *err = TRUE;
   } else {
