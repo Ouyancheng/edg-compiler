@@ -4201,8 +4201,12 @@ cast in some modes.  orig_operand_expr can be NULL.
           /* These operations are always implicit.  Keep stripping. */
           break;
         default:
-          /* Keep stripping for an implicit cast node. */
-          if (expr->compiler_generated && is_cast_operation_node(expr)) break;
+          if (expr->compiler_generated &&
+              (is_cast_operation_node(expr) ||
+               expr->variant.operation.is_conversion_call)) {
+            /* Keep stripping for an implicit cast node. */
+            break;
+          }  /* if */
           /* Something else.  Stop stripping. */
           goto end_of_loop;
       }  /* switch */
