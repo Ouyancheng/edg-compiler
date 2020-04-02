@@ -14767,7 +14767,8 @@ namespace declares at least one name.  If has_internal_linkage is non-NULL, set
   }  /* if */
 done:
   if (non_empty != NULL) *non_empty = local_non_empty;
-  if (has_internal_linkage != NULL) *has_internal_linkage = local_internal_linkage;
+  if (has_internal_linkage != NULL) *has_internal_linkage =
+                                                        local_internal_linkage;
   if (local_internal_linkage) {
     /*result = FALSE;*/
   } else if (nsp->source_corresp.name != NULL || local_non_empty) {
@@ -15657,9 +15658,6 @@ created and activated for the current scope.
       make_using_directive(sym->variant.namespace_info.ptr, depth_scope_stack,
                            using_pos, /*compiler_generated=*/FALSE,
                            /*inline_namespace=*/FALSE, attributes);
-      if (sym->variant.namespace_info.ptr == NULL) {
-        db_sym(sym);
-      }
       if (scope_stack_top().exporting_decl) {
         a_boolean non_empty = FALSE, has_internal_linkage = FALSE;
         (void)namespace_is_exportable(sym->variant.namespace_info.ptr,
