@@ -20759,7 +20759,7 @@ is_transparent.  conv_context describes the context of the conversion.
                                     &conversion,
                                     &local_conversion)) {
     /* The types are compatible.  Do the conversion. */
-    if (conv_context & CCO_CAST) {
+    if (conv_context & CCO_EXPLICIT_CAST) {
       conversion->is_explicit_cast = TRUE;
     }  /* if */
     if (conv_context & CCO_BASE_INIT) {
@@ -24781,11 +24781,11 @@ will be an lvalue instead of the usual prvalue.
           cast_operand_for_reference_cast(&operand,
                                           dest_type,
                                           /*check_cast_access=*/TRUE,
-                                          /*is_implicit_cast=*/FALSE,
+                                          !(conv_context & CCO_EXPLICIT_CAST),
                                           /*reinterpret_semantics=*/FALSE);
         } else {
           prep_reference_initializer_operand(&operand, dest_type,
-                                         /*conversion=*/(a_conv_descr_ptr)NULL,
+                                             (a_conv_descr_ptr)NULL,
                                              leave_as_object,
                                              conv_context,
                                              ec_bad_initializer_type);
@@ -25014,8 +25014,9 @@ will be an lvalue instead of the usual prvalue.
             an_expr_node_ptr expr;
             a_constant_ptr   con = local_constant();
             dip_to_reuse = dip_to_mark = dip;
-            expr = alloc_temp_init_node(dest_type, dip, make_lvalue_temp,
-                                        /*is_explicit_cast=*/is_cast);
+            expr = alloc_temp_init_node(
+                                     dest_type, dip, make_lvalue_temp,
+                                     (conv_context & CCO_EXPLICIT_CAST) != 0);
             make_template_param_expr_constant(expr, con);
             constant = move_local_constant_to_il(&con);
             dip = NULL;
@@ -25082,7 +25083,7 @@ will be an lvalue instead of the usual prvalue.
         make_initializer_list_object(icp,
                                      element_type,
                                      dest_type,
-                                     is_cast,
+                                     (conv_context & CCO_EXPLICIT_CAST) != 0,
                                      iconv_context,
                                      &dip,
                                      (an_operand *)NULL,
@@ -25094,7 +25095,7 @@ will be an lvalue instead of the usual prvalue.
         make_initializer_list_object(icp,
                                      element_type,
                                      dest_type,
-                                     is_cast,
+                                     (conv_context & CCO_EXPLICIT_CAST) != 0,
                                      iconv_context,
                                      (a_dynamic_init_ptr *)NULL,
                                      &operand,
@@ -25508,13 +25509,13 @@ will be an lvalue instead of the usual prvalue.
         set_temp_init_dynamic_init_lifetime(expr);
       } else {
         expr = alloc_temp_init_node(dest_type, dip, make_lvalue_temp,
-                                    /*is_explicit_cast=*/is_cast ||
-                                                        dip->is_explicit_cast);
+                                    (conv_context & CCO_EXPLICIT_CAST) != 0 ||
+                                                       dip->is_explicit_cast);
       }  /* if */
       make_lvalue_or_rvalue_expression_operand(expr, result);
     } else if (constant != NULL) {
       check_assertion(!force_temp);
-      if (is_cast) {
+      if ((conv_context & CCO_EXPLICIT_CAST) != 0) {
         constant->explicit_cast_applied = TRUE;
       }  /* if */
       make_constant_operand(constant, result);
@@ -25634,7 +25635,7 @@ will be an lvalue instead of the usual prvalue.
        already set.  An explicitly-cast operand implicitly converted to
        the same type is still marked as an explicit cast.  Likewise for
        the is_braced_initializer flag. */
-    if (is_cast) {
+    if ((conv_context & CCO_EXPLICIT_CAST) != 0) {
       dip->is_explicit_cast = TRUE;
       skip_constexpr_init_folding(dip)->is_explicit_cast = TRUE;
     }  /* if */

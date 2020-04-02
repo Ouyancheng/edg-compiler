@@ -22899,7 +22899,8 @@ called only in C++ mode.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_conv_descr conversion, ctor_arg_conversion;
   a_conv_context_set
-               conv_context = (CCO_CAST | CCO_DIRECT_INITIALIZATION),
+               conv_context = (CCO_CAST | CCO_EXPLICIT_CAST |
+                               CCO_DIRECT_INITIALIZATION),
                conv_context_temp = CCO_DEFAULT;
 
   *processed = FALSE;
@@ -26011,7 +26012,7 @@ deduction purposes).
 */
 {
   an_init_component_ptr icp;
-  a_conv_context_set    conv_context = CCO_CAST;
+  a_conv_context_set    conv_context = CCO_CAST | CCO_EXPLICIT_CAST;
   a_boolean             error_on_narrowing;
   an_expr_node_ptr      expr;
   an_init_state         is, *p_is;
@@ -47004,6 +47005,9 @@ function or template.
       a_conv_context_set  conv_context = CCO_NONTYPE_TEMPLATE_ARG;
       if (rcblock->options & CTWS_CAST_OPERAND) {
         conv_context |= CCO_CAST;
+        if (rcblock->options & CTWS_EXPLICIT_CAST_OPERAND) {
+          conv_context |= CCO_EXPLICIT_CAST;
+        }  /* if */
       }  /* if */
       prep_initializer_operand(&result, guide_type, (a_boolean *)NULL,
                                (a_conv_descr_ptr)NULL,
@@ -47011,7 +47015,8 @@ function or template.
                                conv_context,
                                ec_bad_nontype_template_arg);
     } else {
-      a_boolean  is_cast = (rcblock->options & CTWS_CAST_OPERAND) != 0;
+      a_boolean  is_cast =
+                         (rcblock->options & CTWS_EXPLICIT_CAST_OPERAND) != 0;
       cast_overloaded_function(guide_type, &result, is_cast,
                                /*is_static_cast=*/FALSE,
                                /*skip_final_adjustment=*/FALSE);

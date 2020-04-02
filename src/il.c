@@ -7291,7 +7291,6 @@ are done.
                            node2->variant.operation.is_const_cast &&
             node1->variant.operation.is_reinterpret_cast ==
                            node2->variant.operation.is_reinterpret_cast &&
-            node1->compiler_generated == node2->compiler_generated &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
             node1->variant.operation.requires_runtime_cast_check ==
                         node2->variant.operation.requires_runtime_cast_check &&
@@ -7302,6 +7301,9 @@ are done.
                            node2->variant.operation.is_reference_cast &&
             node1->variant.operation.is_rvalue_reference_cast ==
                            node2->variant.operation.is_rvalue_reference_cast) {
+          if (node1->compiler_generated != node2->compiler_generated) {
+            break;
+          }  /* if */
           an_expr_node_ptr   op1 = node1->variant.operation.operands;
           an_expr_node_ptr   op2 = node2->variant.operation.operands;
 
@@ -18893,9 +18895,10 @@ produced by a call to is_template_param_cast_constant).  See
 copy_template_param_con for the meaning of the remaining parameters.
 */
 {
-  a_type_ptr      new_type, copied_con_type;
-  a_constant_ptr  src_con, other_con, con_copy = con;
-  a_boolean       reinterpret_cast_needed = FALSE;
+  a_type_ptr          new_type, copied_con_type;
+  a_constant_ptr      src_con, other_con, con_copy = con;
+  a_boolean           reinterpret_cast_needed = FALSE;
+  a_ctws_options_set  cast_options = CTWS_CAST_OPERAND;
 
   new_type = copy_type_with_substitution(con->type,
                                          template_arg_list,
@@ -18905,13 +18908,14 @@ copy_template_param_con for the meaning of the remaining parameters.
                                          copy_error,
                                          ctws_state);
   if (*copy_error) goto done;
+  if (explicit_cast) cast_options |= CTWS_EXPLICIT_CAST_OPERAND;
   other_con = copy_template_param_con(
                                base_con,
                                template_arg_list,
                                template_param_list,
                                new_type,
                                source_pos,
-                               options | CTWS_CAST_OPERAND,
+                               options | cast_options,
                                copy_error,
                                ctws_state,
                                constant);
@@ -19371,10 +19375,12 @@ name lookup options.
           /* The cast is not valid. */
           subst_fail(*copy_error);
         } else {
+          a_ctws_options_set  new_options = options | CTWS_CAST_OPERAND |
+                                            CTWS_EXPLICIT_CAST_OPERAND;
           other_con = copy_template_param_con(
                              src_con, template_arg_list, template_param_list,
-                             new_type, source_pos, options | CTWS_CAST_OPERAND,
-                             copy_error, ctws_state, constant);
+                             new_type, source_pos, new_options, copy_error,
+                             ctws_state, constant);
           if (other_con != NULL) {
             copy_constant(other_con, constant);
           }  /* if */

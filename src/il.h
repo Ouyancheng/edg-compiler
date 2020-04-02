@@ -2110,6 +2110,9 @@ typedef int a_conv_context_set;
 			/* Used to indicate that in this context calls to
 			   std::is_constant_evaluated() should produce
 			   "true". */
+#define CCO_EXPLICIT_CAST ((a_conv_context_set)0x1000000)
+			/* Used in combination with CCO_CAST to indicate that
+			   a cast appeared explicitly in the source code. */
 
 
 /*
@@ -2183,6 +2186,9 @@ typedef int a_ctws_options_set;
 			/* TRUE if the result of substituting an expression may
 			   itself be subject to substitution ("rescanning")
 			   later on. */
+#define CTWS_EXPLICIT_CAST_OPERAND	0x8000
+			/* TRUE when CTWS_CAST_OPERAND is TRUE and the
+			   associated cast is explicit in the source. */
 
 /*
 Structure used to represent a set of function parameters that resulted from
