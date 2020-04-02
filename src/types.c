@@ -2329,8 +2329,9 @@ POD changed between C++03 and C++11.
     if (result) {
       /* Check that every field of class type (or array thereof) is of a POD
          class type. */
-      a_field_ptr fp = tp->variant.class_struct_union.field_list;
-      for (; fp != NULL; fp = fp->next) {
+      a_field_ptr  fp = tp->variant.class_struct_union.field_list;
+      fp = next_proper_initializable_field(fp);
+      for (; fp != NULL; fp = next_proper_initializable_field(fp->next)) {
         a_type_ptr ftp = skip_array_types(fp->type);
         ftp = skip_typerefs(ftp);
         if (is_immediate_class_type(ftp) && !is_pod_class(ftp)) {
@@ -2338,6 +2339,16 @@ POD changed between C++03 and C++11.
           break;
         }  /* if */
       }  /* for */
+      if (result) {
+        /* Check base classes. */
+        a_base_class_ptr  bcp = base_classes_of(tp);
+        for (; bcp != NULL; bcp = bcp->next) {
+          if (is_immediate_class_type(bcp->type) && !is_pod_class(bcp->type)) {
+            result = FALSE;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
     }  /* if */
   } else {
     result = class_symbol_supp(symbol_for(tp))->is_cpp03_POD;
