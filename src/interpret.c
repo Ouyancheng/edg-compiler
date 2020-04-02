@@ -7573,10 +7573,11 @@ expression node and interpreter state.
     a_boolean  ovflo;
     check_assertion(arg3_tp != NULL &&
                     type_is(skip_typerefs(arg3_tp), tk_integer));
-    conv_integer_value_to_host_large_integer((an_integer_value *)arg3_bytes,
-                                             is_signed_integral_type(arg3_tp),
-                                             &length_val, &ovflo);
-                                             /*lint !e2666*/
+    conv_integer_value_to_host_large_integer(
+                              (an_integer_value *)arg3_bytes,
+                              is_signed_integral_type(arg3_tp)/*lint !e2666*/,
+                              &length_val, &ovflo);
+                                             
     if (!ovflo && length_val == 0) {
       goto return_result;
     }  /* if */
