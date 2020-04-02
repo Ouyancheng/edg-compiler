@@ -1195,9 +1195,6 @@ of declarations that are permitted.
   } else if (curr_token == tok_template || curr_token == tok_cpp98_export) {
     /* Probably an error. */
     is_start = TRUE;
-  } else if (curr_token == tok_export) {
-    /* A modules export declaration. */
-    is_start = TRUE;
   } else if (curr_token == tok_static_assert) {
     /* static_assert is (syntactically) a declarative construct. */
     is_start = TRUE;
@@ -14658,6 +14655,128 @@ final token.
 }  /* static_assert_declaration */
 
 
+static a_boolean entity_list_has_internal_linkage(char*            entity,
+                                                  an_il_entry_kind kind)
+/*
+Determine whether the given entity list has any elements with internal linkage.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (entity != NULL) {
+    a_source_correspondence_ptr scp=source_corresp_for_il_entry(entity, kind);
+    check_assertion(scp != NULL);
+    if (scp->name_linkage == nlk_internal) {
+      result = TRUE;
+    }  /* if */
+    if (!result) {
+      switch (kind) {
+        case iek_type:
+          result = entity_list_has_internal_linkage(
+                                             (char*)((a_type_ptr)entity)->next,
+                                             kind);
+          break;
+        case iek_variable:
+          result = entity_list_has_internal_linkage(
+                                         (char*)((a_variable_ptr)entity)->next,
+                                         kind);
+          break;
+        case iek_routine:
+          result = entity_list_has_internal_linkage(
+                                          (char*)((a_routine_ptr)entity)->next,
+                                          kind);
+          break;
+        case iek_asm_entry:
+          result = entity_list_has_internal_linkage(
+                                       (char*)((an_asm_entry_ptr)entity)->next,
+                                       kind);
+          break;
+        case iek_namespace:
+          result = entity_list_has_internal_linkage(
+                                        (char*)((a_namespace_ptr)entity)->next,
+                                        kind);
+          break;
+        case iek_template:
+          result = entity_list_has_internal_linkage(
+                                         (char*)((a_template_ptr)entity)->next,
+                                         kind);
+          break;
+        default:
+          unexpected_condition_str("Unexpected kind");
+      }  /* switch */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* entity_list_has_internal_linkage */
+
+
+static a_boolean namespace_is_exportable(a_namespace_ptr nsp,
+                                         a_boolean       *non_empty,
+                                         a_boolean       *has_internal_linkage)
+/*
+Determine whether the provided namespace is exportable for a module.  A
+namespace is exportable only if it contains at least one name and no names have
+internal linkage.  If non_empty is non-NULL, set *non_empty to TRUE if the
+namespace declares at least one name.  If has_internal_linkage is non-NULL, set
+*has_internal_linkage to TRUE if any entities have internal linkage.
+*/
+{
+  a_boolean   result = FALSE;
+  a_boolean   local_non_empty = FALSE, local_internal_linkage = FALSE;
+  a_scope_ptr scope = skip_namespace_aliases(nsp)->variant.assoc_scope;
+
+  if (scope->types != NULL || scope->variables != NULL ||
+      scope->routines != NULL || scope->asm_entries != NULL) {
+    local_non_empty = TRUE;
+    if (nsp->source_corresp.name == NULL) {
+      /* An anonymous namespace with at least one name declared - these have
+         internal linkage.  This can't be determined simply by looking at the
+         name linkage for the entity in question as it does not necessarily
+         get marked as having internal linkage. */
+      local_internal_linkage = TRUE;
+      /* We already have our answer - skip to the end. */
+      goto done;
+    }  /* if */
+  }  /* if */
+  for (a_namespace_ptr nested_nsp = scope->namespaces; nested_nsp != NULL;
+       nested_nsp = nested_nsp->next) {
+    if (nested_nsp->source_corresp.name != NULL) {
+      local_non_empty = TRUE;
+    }
+    if (nested_nsp->source_corresp.name == NULL || nested_nsp->is_inline) {
+      (void)namespace_is_exportable(nested_nsp, &local_non_empty,
+                                    &local_internal_linkage);
+    }  /* if */
+    if (local_non_empty && local_internal_linkage) {
+      /* We have our answer - skip to the end. */
+      goto done;
+    }  /* if */
+  }  /* for */
+  if (local_non_empty) {
+    /* The namespace declares at least one name.  Look for any with internal
+       linkage. */
+    if (entity_list_has_internal_linkage((char*)scope->types, iek_type) ||
+        entity_list_has_internal_linkage((char*)scope->variables,
+                                         iek_variable) ||
+        entity_list_has_internal_linkage((char*)scope->routines,
+                                         iek_routine) ||
+        entity_list_has_internal_linkage((char*)scope->asm_entries,
+                                         iek_asm_entry)) {
+      local_internal_linkage = TRUE;
+    }  /* if */
+  }  /* if */
+done:
+  if (non_empty != NULL) *non_empty = local_non_empty;
+  if (has_internal_linkage != NULL) *has_internal_linkage = local_internal_linkage;
+  if (local_internal_linkage) {
+    /*result = FALSE;*/
+  } else if (nsp->source_corresp.name != NULL || local_non_empty) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* namespace_is_exportable */
+
+
 void add_to_inline_namespace_list(a_scope_stack_entry_ptr	ssep,
 				  a_using_decl_ptr		udp)
 /*
@@ -14834,6 +14953,7 @@ it's a definition and NULL otherwise).
   a_boolean                   nested_namespace_is_inline = FALSE;
   a_source_position           attr_token_pos = null_source_position;
   a_boolean                   using_namespace_alias = FALSE;
+  a_boolean                   exporting_decl=scope_stack_top().exporting_decl;
 
   db_enter(3, "namespace_declaration");
   *ns_definition_sym = NULL;
@@ -15351,6 +15471,7 @@ it's a definition and NULL otherwise).
     } else if (!required_token(tok_lbrace, ec_exp_lbrace)) {
       discard_curr_construct_pragmas();
     } else {
+      a_decl_sequence_number old_decl_seq_counter = decl_seq_counter;
       /* Scan the namespace body. */
       add_stop_token(tok_rbrace);
       while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
@@ -15361,6 +15482,10 @@ it's a definition and NULL otherwise).
                     (a_param_id_ptr)NULL, (a_source_range *)NULL);
       }  /* while */
       remove_stop_token(tok_rbrace);
+      if (exporting_decl && is_unnamed_namespace &&
+          decl_seq_counter == old_decl_seq_counter) {
+        pos_error(ec_export_must_introduce_name, &namespace_pos);
+      }  /* if */
       /* Process pragmas associated with the closing brace before the current
          scope is popped and before add_end_of_construct_source_sequence_entry
          is called. */
@@ -15532,6 +15657,19 @@ created and activated for the current scope.
       make_using_directive(sym->variant.namespace_info.ptr, depth_scope_stack,
                            using_pos, /*compiler_generated=*/FALSE,
                            /*inline_namespace=*/FALSE, attributes);
+      if (sym->variant.namespace_info.ptr == NULL) {
+        db_sym(sym);
+      }
+      if (scope_stack_top().exporting_decl) {
+        a_boolean non_empty = FALSE, has_internal_linkage = FALSE;
+        (void)namespace_is_exportable(sym->variant.namespace_info.ptr,
+                                      &non_empty, &has_internal_linkage);
+        if (!non_empty) {
+          pos_error(ec_export_must_introduce_name, using_pos);
+        } else if (has_internal_linkage) {
+          pos_error(ec_export_internal_linkage, using_pos);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   remove_stop_token(tok_semicolon);
@@ -15619,6 +15757,15 @@ none).
       udp->qualifier.class_type = class_type;
     } else {
       udp->qualifier.namespace_ptr = nsp;
+    }  /* if */
+    if (scope_stack_top().exporting_decl &&
+        source_corresp_entry_for_symbol(fund_sym)->name_linkage
+                                                             == nlk_internal) {
+      a_diagnostic_ptr dp;
+      dp = pos_start_diagnostic(es_error, ec_export_internal_linkage,
+                                &error_position);
+      sym_add_diag_info(dp, ec_export_internal_linkage_using_sym, sym);
+      end_diagnostic(dp);
     }  /* if */
     /* Update cross-reference and source-sequence info, if required. */
     record_using_decl(fund_sym, &decl_pos, udp, *prev_udp);
@@ -18965,6 +19112,72 @@ decl_pos_block.
 }  /* typedef_declaration */
 
 
+static void export_declaration()
+/*
+Process an "export" declaration.
+
+An export declaration can take the following forms:
+        export <declaration>;              // Single-declaration export
+        export { <declaration-seq> }       // Multiple-declaration export
+        export <module-import-declaration> // Imported module re-export
+*/
+{
+  a_boolean         saved_in_export_block;
+  a_boolean         block_export = FALSE;
+  a_source_position export_pos = pos_curr_token;
+
+  db_enter(3, "export_declaration");
+  /* Advance past the "export" token. */
+  (void)get_token();
+  if (curr_token == tok_lbrace) {
+    block_export = TRUE;
+    saved_in_export_block = scope_stack_top().in_export_block;
+    scope_stack_top().in_export_block = TRUE;
+    add_stop_token(tok_rbrace);
+  }  /* if */
+  if (scope_stack_top().exporting_decl) {
+    pos2_diagnostic(es_error, ec_export_cannot_contain_export, &export_pos,
+                    &scope_stack_top().export_pos);
+  } else {
+    scope_stack_top().exporting_decl = TRUE;
+    scope_stack_top().export_pos = export_pos;
+  }  /* if */
+  if (!(tu_stage_is(tud_module_unit) &&
+        curr_module_sym->variant.module_info.is_interface_unit)
+      && curr_token != tok_module) {
+    pos_error(ec_export_only_in_modules, &export_pos);
+  }  /* if */
+  if (block_export) {
+    a_decl_sequence_number old_decl_seq_counter = decl_seq_counter;
+    /* Advance past the "{". */
+    (void)get_token();
+    while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
+      declaration(/*function_definition_allowed=*/TRUE,
+                  /*is_old_style_param_decl=*/FALSE,
+                  /*is_top_level_declaration=*/FALSE,
+                  /*marked_as_gnu_extension=*/FALSE,
+                  (a_param_id_ptr)NULL, (a_source_range *)NULL);
+    } /* while */
+    remove_stop_token(tok_rbrace);
+    required_token(tok_rbrace, ec_exp_rbrace);
+    if (decl_seq_counter == old_decl_seq_counter) {
+      pos_error(ec_export_must_introduce_name, &export_pos);
+    }  /* if */
+    scope_stack_top().in_export_block = saved_in_export_block;
+  } else {
+    declaration(/*function_definition_allowed=*/TRUE,
+                /*is_old_style_param_decl=*/FALSE,
+                /*is_top_level_declaration=*/FALSE,
+                /*marked_as_gnu_extension=*/FALSE,
+                (a_param_id_ptr)NULL, (a_source_range *)NULL);
+  }  /* if */
+  if (!scope_stack_top().in_export_block) {
+    scope_stack_top().exporting_decl = FALSE;
+  }  /* if */
+  db_exit();
+}  /* export_declaration */
+
+
 static void decl_global_module_fragment(a_source_position_ptr module_pos)
 /*
 Declare a global module fragment and set the translation unit stage
@@ -19010,9 +19223,10 @@ error is issued and the translation unit stage is left unchanged.
 }  /* decl_private_module_fragment */
 
 
-static void decl_module(ARG_UNUSED a_boolean is_interface)
+static void decl_module(a_boolean is_interface)
 /*
-Declare a module and set the translation stage accordingly.
+Declare a module and set the translation stage accordingly.  is_interface is
+TRUE if this is the interface unit for the module.
 
 A module declaration can be preceded only by a global module fragment.  If it's
 preceded by anything else, an error is issued and the translation unit stage is
@@ -19034,7 +19248,7 @@ left unchanged.
   } else {
     check_assertion(curr_module_sym == NULL);
     curr_module_sym = make_module_symbol(primary_name, partition_name,
-                                         &module_pos);
+                                         is_interface, &module_pos);
     set_tu_stage(tud_module_unit);
   }  /* if */
 }  /* decl_module */
@@ -19042,7 +19256,9 @@ left unchanged.
 
 static void module_declaration()
 /*
-Scan a module declaration.  A module declaration can take the following forms:
+Scan a module declaration.
+
+A module declaration can take the following forms:
         module;                            // Global module fragment
         [export] module A[.B]*[:PA[.PB]*]; // Module unit
         module : private;                  // Private module fragment
@@ -19051,28 +19267,25 @@ A well formed module declaration will change the translation unit stage to
 match what has been declared.
 */
 {
-  a_boolean         exported = FALSE;
-  a_source_position export_pos, module_pos;
+  a_source_position module_pos;
+  a_boolean         exported = scope_stack_top().exporting_decl;
 
-  if (curr_token == tok_export) {
-    exported = TRUE;
-    export_pos = pos_curr_token;
-    (void)get_token();
-  }  /* if */
   check_assertion(curr_token == tok_module);
   module_pos = pos_curr_token;
   (void)get_token();
   if (curr_token == tok_semicolon) {
     /* A global module fragment. */
     if (exported) {
-      pos_st_error(ec_cannot_export_fgmt, &export_pos, "global");
+      pos_st_error(ec_cannot_export_fgmt, &scope_stack_top().export_pos,
+                   "global");
     }  /* if */
     decl_global_module_fragment(&module_pos);
   } else if (curr_token == tok_colon && next_token() == tok_private) {
     /* A private module fragment. */
     (void)get_token(); /* Advance to tok_private. */
     if (exported) {
-      pos_st_error(ec_cannot_export_fgmt, &export_pos, "private");
+      pos_st_error(ec_cannot_export_fgmt, &scope_stack_top().export_pos,
+                   "private");
     }  /* if */
     decl_private_module_fragment();
   } else {
@@ -19115,6 +19328,9 @@ processing should proceed after the call.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (curr_token == tok_static_assert) {
     abort_potential_abbr_func_templ_caching(state);
+    if (scope_stack_top().exporting_decl) {
+      pos_error(ec_export_must_introduce_name, &pos_curr_token);
+    }  /* if */
     static_assert_declaration(/*leave_semicolon=*/TRUE);
     state->decl_okay_in_constexpr_body = TRUE;
     end_of_decl_action = eoda_check_semicolon;
@@ -19236,9 +19452,7 @@ processing should proceed after the call.
       }  /* if */
       cannot_bind_to_curr_construct();
       end_of_decl_action = eoda_check_semicolon;
-    } else if (modules_enabled &&
-               (curr_token == tok_module ||
-                (curr_token == tok_export && next_token() == tok_module))) {
+    } else if (modules_enabled && curr_token == tok_module) {
       /* A module declaration (global module fragment, module unit, private
          module fragment). */
       abort_potential_abbr_func_templ_caching(state);
@@ -19247,10 +19461,22 @@ processing should proceed after the call.
       cannot_bind_to_curr_construct();
       end_of_decl_action = eoda_check_semicolon;
       goto done;
+    } else if (curr_token == tok_export) {
+      /* An "export" declaration.  Attributes cannot begin an "export"
+         declaration. */
+      abort_potential_abbr_func_templ_caching(state);
+      disallow_attributes(&state->prefix_attributes, es_error);
+      discard_curr_construct_pragmas();
+      export_declaration();
+      cannot_bind_to_curr_construct();
+      end_of_decl_action = eoda_skip_final_token;
     } else if (cpp11_mode && curr_token == tok_semicolon) {
       /* C++11 allows empty declarations. */
       cannot_bind_to_curr_construct();
       attach_decl_attributes(state, /*primary_decl=*/FALSE);
+      if (scope_stack_top().exporting_decl) {
+        pos_error(ec_export_must_introduce_name, &pos_curr_token);
+      }  /* if */
       end_of_decl_action = eoda_check_semicolon;
     } else if (check_for_overload_anachronism()) {
       /* We check for and discard declarations of the form "overload f;" --
@@ -19322,6 +19548,9 @@ processing should proceed after the call.
     } else {
       /* Look for some cases that are obviously not the start of a declaration,
          and give a more specific "Expected a declaration" message. */
+      if (scope_stack_top().exporting_decl) {
+        pos_error(ec_export_must_introduce_name, &pos_curr_token);
+      }  /* if */
       if (curr_token == tok_semicolon) {
         if (state->is_linkage_spec_decl) {
           /* Something like: ``extern "C";'' -- Issue an error. */
@@ -20458,6 +20687,11 @@ parse state with fields described by the corresponding given parameters.
     dps.is_implicit_type_context = TRUE;
   }  /* if */
   scan_nonmember_declaration(&dps, linkage_spec_range_ptr);
+  if (dps.sym != NULL &&
+      scope_stack_top().exporting_decl &&
+      source_corresp_entry_for_symbol(dps.sym)->name_linkage == nlk_internal) {
+    pos_error(ec_export_internal_linkage, &dps.declarator_pos);
+  }  /* if */
   db_exit();
   return;
 }  /* declaration */

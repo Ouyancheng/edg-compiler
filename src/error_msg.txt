@@ -3182,6 +3182,14 @@ ec_rvalue_defaulted_member_comparison;;"a defaulted member comparison operator c
 ec_constexpr_comparison_calls_nonconstexpr_function;;"default constexpr comparison function calls non-constexpr function %nd"
 ec_invalid_constexpr_memcmp;;"constexpr memory comparison is only supported for top-level integer or array-of-integer objects"
 ec_constraint_concept_template;;"a concept template cannot have associated constraints"
+ec_export_not_allowed;;"\"export\" is not allowed"
+ec_export_class_members;;"exporting individual class members is not allowed"
+ec_export_must_introduce_name;;"an exported declaration must introduce a name"
+ec_export_cannot_contain_export;;"an export declaration cannot contain an export declaration (previous declaration %p)"
+ec_export_cannot_contain_import;;"an export declaration cannot contain a module import declaration"
+ec_export_only_in_modules;;"an export declaration can only appear in a module interface unit"
+ec_export_internal_linkage;;"an export declaration cannot export a name with internal linkage"
+ec_export_internal_linkage_using_sym;INTERNAL;"using declaration includes %nfd"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

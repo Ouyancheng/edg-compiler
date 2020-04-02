@@ -402,9 +402,6 @@ extern void decl_spec_one_time_init(void);
 #define DSO_THREAD_LOCAL 	((a_decl_flag_set)0x200000)
 			/* If this bit is set the storage class specifier
 			   "local_thread" was found. */
-#define DSO_EXPORT		((a_decl_flag_set)0x400000)
-			/* If this bit is set the specifier "export" was
-			   found. */
 #define DSO_LAST DSO_THREAD_LOCAL
 			/* Last bit in the bit vector that is in use. */
 

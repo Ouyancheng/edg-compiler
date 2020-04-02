@@ -31611,10 +31611,17 @@ classes.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       do {
         an_ms_attribute_ptr  ms_attributes = NULL;
+        a_boolean            bad_export = FALSE;
+        a_source_position    export_pos;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         a_source_position    decl_start_pos;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         add_stop_token(tok_semicolon);
+        if (curr_token == tok_export) {
+          bad_export = TRUE;
+          export_pos = pos_curr_token;
+          (void)get_token();
+        }  /* if */
         /* This is a valid location for an __if_exists pragma to appear when
            creating source sequence entries for __if_exists. */
         check_for_if_exists_pragmas();
@@ -31633,9 +31640,14 @@ classes.
              declarations.  Check for it each time through the loop, and adjust
              the value of class_state.access accordingly. */
           if (scan_access_specification(&class_state)) {
-            /* An access specifier was found.  This next check catches cases
-               like "...public: }" (which is okay if the brace closes a C++/CLI
-               property definition). */
+            /* An access specifier was found. */
+            if (bad_export) {
+              pos_error(ec_export_not_allowed, &export_pos);
+              /* Prevent additional diagnostics for the same export keyword. */
+              bad_export = FALSE;
+            }  /* if */
+            /* This next check catches cases like "...public: }" (which is okay
+               if the brace closes a C++/CLI property definition). */
             if (curr_token == tok_rbrace) {
               /* Issue diagnostics on pragmas that are trying to bind to a
                  nonexistent declaration. */
@@ -31657,6 +31669,16 @@ classes.
             }  /* if */
           }  /* if */
         }  /* if */
+        if (curr_token == tok_export) {
+          /* The consumption of the access specification may have brought us to
+             an "export" keyword. */
+          bad_export = TRUE;
+          export_pos = pos_curr_token;
+          (void)get_token();
+        }  /* if */
+        if (bad_export) {
+          pos_error(ec_export_class_members, &export_pos);
+        } /* if */
         /* Scan a member declaration. */
         if (curr_token == tok_semicolon && 
             (C_dialect == C_dialect_cplusplus ||

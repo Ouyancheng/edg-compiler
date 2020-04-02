@@ -1466,6 +1466,9 @@ can only occur inside a global module fragment.
 
   midp = alloc_module_import_decl();
   midp->position = *start_pos;
+  if (scope_stack_top().in_export_block) {
+    pos_error(ec_export_cannot_contain_import, start_pos);
+  }  /* if */
   if (get_header_name()) {
     check_assertion(curr_token == tok_header_name);
     midp->module_name_position = pos_curr_token;
@@ -1490,7 +1493,8 @@ can only occur inside a global module fragment.
       pos_error(ec_cannot_import_module_with_no_name, &pos);
       err = TRUE;
     }  /* if */
-    module_sym = make_module_symbol(primary_name, partition_name, &pos);
+    module_sym = make_module_symbol(primary_name, partition_name,
+                                    /*is_interface=*/TRUE, &pos);
     /* FIXME: attach symbol to the appropriate place */
     /* We don't currently know what kind of module this is. */
     midp->module_name_position = pos;

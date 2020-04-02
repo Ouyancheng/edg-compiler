@@ -3938,6 +3938,12 @@ typedef struct a_symbol {
 			   "module A.B.C:D.E.F", "A.B.C" is the qualified
 			   module name and "D.E.F" is the qualified partition
 			   name. */
+      a_bit_field
+		is_interface_unit:1;
+			/* TRUE if this is a module interface unit. */
+      a_bit_field
+		is_header_unit:1;
+			/* TRUE if this is a module header unit. */
     } module_info;
 #if NAMED_ADDRESS_SPACES_ALLOWED
     /* When kind == sk_named_address_space: */
@@ -4851,8 +4857,9 @@ a_symbol_ptr make_unnamed_symbol(a_symbol_kind		kind,
 				 a_source_position	*pos);
 
 extern a_symbol_ptr make_module_symbol(a_symbol_ptr      primary_name,
-                                            a_symbol_ptr      partition_name,
-                                            a_source_position *pos);
+                                       a_symbol_ptr      partition_name,
+                                       a_boolean         is_interface,
+                                       a_source_position *pos);
 
 extern a_symbol_ptr unnamed_field_symbol(void);
 

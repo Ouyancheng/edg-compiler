@@ -4034,6 +4034,8 @@ state.
     case sk_module:
       sym_ptr->variant.module_info.primary_name = NULL;
       sym_ptr->variant.module_info.partition_name = NULL;
+      sym_ptr->variant.module_info.is_interface_unit = FALSE;
+      sym_ptr->variant.module_info.is_header_unit = FALSE;
       break;
 #if NAMED_ADDRESS_SPACES_ALLOWED
     case sk_named_address_space:
@@ -7841,12 +7843,14 @@ NULL) that can fit in the string.
 
 a_symbol_ptr make_module_symbol(a_symbol_ptr      primary_name,
                                 a_symbol_ptr      partition_name,
+                                a_boolean         is_interface,
                                 a_source_position *pos)
 /*
 Create a symbol to represent a module.  Synthesize the identifier in the
 symbol header from the primary and partition names.  primary_name is the
 primary name of the module and partition_name is the partition name of the
-module.  pos is the position where the module name started.
+module.  is_interface is TRUE if the module is an interface unit.  pos is the
+position where the module name started.
 */
 {
   a_symbol_ptr        sym;
@@ -7880,6 +7884,7 @@ module.  pos is the position where the module name started.
   sym = alloc_symbol((a_symbol_kind)sk_module, sym_hdr, pos);
   sym->variant.module_info.primary_name = primary_name;
   sym->variant.module_info.partition_name = partition_name;
+  sym->variant.module_info.is_interface_unit = is_interface;
   return sym;
 }  /* make_module_symbol */
 

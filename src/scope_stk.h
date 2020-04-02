@@ -1060,6 +1060,16 @@ typedef struct a_scope_stack_entry {
   a_bit_field	in_ctor_initializer:1;
 			/* TRUE while scanning the arguments of a constructor
 			   initializer. */
+  a_bit_field	exporting_decl:1;
+			/* TRUE if the current declaration should be
+			   exported. */
+  a_bit_field	in_export_block:1;
+			/* TRUE while scanning a block export declaration.
+			   exporting_decl is also TRUE while this is TRUE. */
+  a_source_position
+		export_pos;
+			/* When in_export_block is TRUE this is the position of
+			   the "export" keyword. */
   a_decl_sequence_number
 		*decl_seq_counter;
 			/* Pointer to the decl_seq_counter to be used within
