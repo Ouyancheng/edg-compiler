@@ -47002,7 +47002,10 @@ function or template.
       /* For template arguments, certain conversions are not permitted.
          (For example, certain pointer-to-member function conversions.)
          Use prep_initializer_operand to catch such cases. */
-      a_conv_context_set  conv_context = CCO_NONTYPE_TEMPLATE_ARG;
+      a_conv_context_set  conv_context = CCO_DEFAULT;
+      if (nontype_template_arg) {
+        conv_context |= CCO_NONTYPE_TEMPLATE_ARG;
+      }  /* if */
       if (rcblock->options & CTWS_CAST_OPERAND) {
         conv_context |= CCO_CAST;
         if (rcblock->options & CTWS_EXPLICIT_CAST_OPERAND) {
