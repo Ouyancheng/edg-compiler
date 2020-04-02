@@ -14666,7 +14666,7 @@ Determine whether the given entity list has any elements with internal linkage.
   if (entity != NULL) {
     a_source_correspondence_ptr scp=source_corresp_for_il_entry(entity, kind);
     check_assertion(scp != NULL);
-    if (scp->name_linkage == nlk_internal) {
+    if (scp->name_linkage == (a_name_linkage_kind)nlk_internal) {
       result = TRUE;
     }  /* if */
     if (!result) {
@@ -15765,7 +15765,7 @@ none).
     }  /* if */
     if (scope_stack_top().exporting_decl &&
         source_corresp_entry_for_symbol(fund_sym)->name_linkage
-                                                             == nlk_internal) {
+                                        == (a_name_linkage_kind)nlk_internal) {
       a_diagnostic_ptr dp;
       dp = pos_start_diagnostic(es_error, ec_export_internal_linkage,
                                 &error_position);
@@ -19164,7 +19164,7 @@ An export declaration can take the following forms:
                   (a_param_id_ptr)NULL, (a_source_range *)NULL);
     } /* while */
     remove_stop_token(tok_rbrace);
-    required_token(tok_rbrace, ec_exp_rbrace);
+    (void)required_token(tok_rbrace, ec_exp_rbrace);
     if (decl_seq_counter == old_decl_seq_counter) {
       pos_error(ec_export_must_introduce_name, &export_pos);
     }  /* if */
@@ -20694,7 +20694,8 @@ parse state with fields described by the corresponding given parameters.
   scan_nonmember_declaration(&dps, linkage_spec_range_ptr);
   if (dps.sym != NULL &&
       scope_stack_top().exporting_decl &&
-      source_corresp_entry_for_symbol(dps.sym)->name_linkage == nlk_internal) {
+      source_corresp_entry_for_symbol(dps.sym)->name_linkage ==
+                                           (a_name_linkage_kind)nlk_internal) {
     pos_error(ec_export_internal_linkage, &dps.declarator_pos);
   }  /* if */
   db_exit();
