@@ -1,14 +1,10 @@
 Version 6.1
 
 4/1/20   [EDGcpfe/22274]
-Use of freed cached tokens and internal error on constexpr if in friend
-of class template
+Internal error on constexpr if in friend of class template
 
-In some cases, the token cache that contains a friend function defined in a
-class template could be freed too early.  This could occur after the prototype
-instantiation and before it is rescanned for a real instantiation.  One
-possible consequence of this is an internal error (in if_statement) when a
-constexpr if was used in a friend function of a class template.  Now fixed.
+An internal error could occur (in if_statement) when a constexpr if was
+used in a friend function of a class template.  Now fixed.
 
   struct A { };
   template <typename> struct B : A {
