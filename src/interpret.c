@@ -14865,6 +14865,8 @@ the value representation of the integer value.
                      more. */
                   (void)memcpy(result_storage, dst_storage,
                                size_t_arg(n_bytes));
+                  mark_whole_subobject_initialized(ips, result_storage, tp,
+                                                   complete_object);
                 }  /* if */
                 if (!lhs_initialized) {
                   mark_whole_subobject_initialized(ips, dst_storage, tp,
