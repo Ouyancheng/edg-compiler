@@ -236,7 +236,7 @@ Utility to print some debug information for every access to an IFC module file.
                     ((char *)byte_buffer -
                        ((char *)mmap_addr + debug_partition->offset) - length),
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-                    (size_t)(ftell(f_module)) -debug_partition->offset -length,
+                    (long)(ftell(f_module)) - debug_partition->offset - length,
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
                     (int)length);
     }  /* if */
@@ -496,7 +496,7 @@ For example, when "name" is "foo", this routine effectively boils down to:
                                   a_boolean             fill_storage) \
                                                                const noexcept \
   { \
-    if ((ASSUME_LITTLE_ENDIAN_IFC_MODULES || targ_little_endian) \
+    if ((a_boolean)(ASSUME_LITTLE_ENDIAN_IFC_MODULES || targ_little_endian) \
                                                      == host_little_endian) { \
       check_assertion(byte_buffer + sizeof(concat(an_ifc_, name)) <= \
                                                              (buffer_end+1)); \
