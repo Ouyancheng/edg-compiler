@@ -12032,7 +12032,7 @@ tok_ud_literal; otherwise, return tok_string_literal.
 */
 {
   a_character_kind              character_kind;
-  a_string_or_char_literal_kind lit_kind;
+  a_string_or_char_literal_kind lit_kind = SCLK_ORDINARY_STRING_LITERAL;
   a_string_or_char_literal_kind encoding = SCLK_ORDINARY_LITERAL;
   a_boolean                     raw_string_seen = FALSE;
   a_token_cache                 cache;

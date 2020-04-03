@@ -35941,6 +35941,23 @@ returned is not in the IL and must be copied if needed there.
 }  /* spelling_for_function_name_token */
 
 
+static void finalize_function_name_string(a_const_char *name_str)
+/*
+Ensure that temp_text_buffer contains name_str (copying it if it is not
+already there) and add a trailing quote to terminate the string.
+*/
+{
+  if (name_str != temp_text_buffer) {
+    put_str_to_temp_text_buffer(name_str);
+  }  /* if */
+  if (pos_in_temp_text_buffer > 0 &&
+      temp_text_buffer[pos_in_temp_text_buffer - 1] == 0) {
+    --pos_in_temp_text_buffer;
+  }  /* if */
+  put_str_to_temp_text_buffer("\"");
+}  /* finalize_function_name_string */
+
+
 void set_curr_token_to_function_name_string(
                                        a_boolean                     do_concat,
                                        a_string_or_char_literal_kind lit_kind)
@@ -35986,8 +36003,7 @@ subsequent string literals.
           octl.output_str = put_str_to_temp_text_buffer_octl;
           octl.suppress_typedefs = TRUE;
           form_name(&rp->source_corresp, (an_il_entry_kind)iek_routine, &octl);
-          /* Add the closing quote. */
-          put_ch_to_temp_text_buffer('"');
+          finalize_function_name_string(temp_text_buffer);
           name_str = temp_text_buffer; 
         } else {
 simple_name:
@@ -35995,8 +36011,7 @@ simple_name:
           if (has_name(rp)) {
             put_str_to_temp_text_buffer(
                                        unmangled_name_of(&rp->source_corresp));
-            /* Add the closing quote. */
-            put_ch_to_temp_text_buffer('"');
+            finalize_function_name_string(temp_text_buffer);
             name_str = temp_text_buffer;
           } else {
             name_str = "\"";
@@ -36007,17 +36022,15 @@ simple_name:
         /* In GNU C mode, __PRETTY_FUNCTION__ is the same as __FUNCTION__. */
         if (gcc_mode) goto simple_name;
         /* The name of the function with parameter and return types. */
-        put_str_to_temp_text_buffer(get_pretty_function_name(rp));
-        /* Add the closing quote. */
-        put_ch_to_temp_text_buffer('"');
+        name_str = get_pretty_function_name(rp);
+        finalize_function_name_string(name_str);
         name_str = temp_text_buffer;
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_decorated_function_name:
         /* The "decorated" name of the function, i.e., the mangled name. */
-        put_str_to_temp_text_buffer(get_decorated_function_name(rp));
-        /* Add the closing quote. */
-        put_ch_to_temp_text_buffer('"');
+        name_str = get_decorated_function_name(rp);
+        finalize_function_name_string(name_str);
         name_str = temp_text_buffer;
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
