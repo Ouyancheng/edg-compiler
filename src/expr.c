@@ -36214,6 +36214,7 @@ following the operator, and should not be discarded.
   a_source_position             start_position;
   a_string_or_char_literal_kind lit_kind = SCLK_STRING_LITERAL;
   a_string_or_char_literal_kind orig_lit_kind;
+  a_boolean                     processed = FALSE;
 
   /* Set the kind of literal to be produced based on which __xPREFIX
      operator was specified. */
@@ -36230,37 +36231,46 @@ following the operator, and should not be discarded.
   /* Check for the opening "(". */
   (void)required_token_no_advance(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
-  /* Check the next token, which must be either a string literal or one of
-     the function-name tokens.  We use skip_white_space and check
-     *curr_char_loc directly instead of fetching a token so we can do the
-     initial scan of a string literal with the literal kind specified by
-     the __xPREFIX operator. */
-  skip_white_space();
-  if (*curr_char_loc == '"') {
-    orig_lit_kind = SCLK_ORDINARY_STRING_LITERAL;
-  } else {
-    orig_lit_kind = scan_encoding_prefix(curr_char_loc);
-  }  /* if */
-  if (orig_lit_kind != SCLK_NOT_A_LITERAL &&
-      (orig_lit_kind & SCLK_STRING_LITERAL) != 0) {
-    /* Copy the raw string indicator from the original encoding prefix, but
-       otherwise use the literal kind implied by the __xPREFIX operator. */
-    lit_kind |= (orig_lit_kind & SCLK_RAW_STRING_LITERAL);
-    start_of_curr_token = curr_char_loc;
-    conv_line_loc_to_source_pos(curr_char_loc, &pos_curr_token);
-    /* Skip over the original encoding prefix, if any, and the initial
-       quote. */
-    curr_char_loc += /*lint !e679*/
-                 offset_to_start_of_literal_value(orig_lit_kind);
-    /* Scan the string literal and set const_for_curr_token based on the
-       revised literal kind. */
-    curr_token = scan_string_literal(lit_kind);
-    end_of_curr_token = curr_char_loc - 1;
+  if (get_token_cache_being_scanned() == NULL) {
+    /* We are scanning from source, so check to see if the next token is a
+       string literal.  We use skip_white_space and check *curr_char_loc
+       directly instead of fetching a token so we can do the initial scan
+       of a string literal with the literal kind specified by the __xPREFIX
+       operator.  (We must avoid checks involving curr_char_loc when we are
+       fetching tokens from a cache, as where it points is unrelated to the
+       current token stream and can give incorrect results.  We should not
+       end up here for __xPREFIX("string") in any event, because the
+       construct will already have been converted to a string literal of
+       the requisite literal kind.) */
+    skip_white_space();
+    if (*curr_char_loc == '"') {
+      orig_lit_kind = SCLK_ORDINARY_STRING_LITERAL;
+    } else {
+      orig_lit_kind = scan_encoding_prefix(curr_char_loc);
+    }  /* if */
+    if (orig_lit_kind != SCLK_NOT_A_LITERAL &&
+        (orig_lit_kind & SCLK_STRING_LITERAL) != 0) {
+      /* Copy the raw string indicator from the original encoding prefix, but
+         otherwise use the literal kind implied by the __xPREFIX operator. */
+      lit_kind |= (orig_lit_kind & SCLK_RAW_STRING_LITERAL);
+      start_of_curr_token = curr_char_loc;
+      conv_line_loc_to_source_pos(curr_char_loc, &pos_curr_token);
+      /* Skip over the original encoding prefix, if any, and the initial
+         quote. */
+      curr_char_loc += /*lint !e679*/
+                   offset_to_start_of_literal_value(orig_lit_kind);
+      /* Scan the string literal and set const_for_curr_token based on the
+         revised literal kind. */
+      curr_token = scan_string_literal(lit_kind);
+      end_of_curr_token = curr_char_loc - 1;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    conv_line_loc_to_source_pos(end_of_curr_token, &end_pos_curr_token);
+      conv_line_loc_to_source_pos(end_of_curr_token, &end_pos_curr_token);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  } else {
-    /* See what the operand token is. */
+      processed = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!processed) {
+    /* The operand was not a string; see what it is. */
     (void)get_token();
     if (token_is_function_name_string_literal(curr_token) &&
         curr_token != tok_pretty_function_name) {
