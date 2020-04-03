@@ -36250,8 +36250,8 @@ following the operator, and should not be discarded.
     conv_line_loc_to_source_pos(curr_char_loc, &pos_curr_token);
     /* Skip over the original encoding prefix, if any, and the initial
        quote. */
-    curr_char_loc +=
-                 offset_to_start_of_literal_value(orig_lit_kind);/*lint !e679*/
+    curr_char_loc += /*lint !e679*/
+                 offset_to_start_of_literal_value(orig_lit_kind);
     /* Scan the string literal and set const_for_curr_token based on the
        revised literal kind. */
     curr_token = scan_string_literal(lit_kind);

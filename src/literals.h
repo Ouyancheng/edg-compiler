@@ -158,7 +158,6 @@ extern void conv_string_literal(
                           unsigned long                 num_chars,
                           an_error_code                 *err_code,
                           a_const_char                  **err_pos);
-extern void widen_string_literal(a_constant_ptr con);
 extern void concat_string_literals(a_token_cache_ptr cache,
                                    a_character_kind  kind);
 extern void literals_one_time_init(void);

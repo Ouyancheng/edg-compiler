@@ -1862,7 +1862,7 @@ sufficient to hold len characters of the indicated kind.
 }  /* widening_copy */
 
 
-void widen_string_literal(a_constant_ptr con)
+static void widen_string_literal(a_constant_ptr con)
 /*
 Change the indicated narrow string literal into a wide string (wchar_t)
 literal.
