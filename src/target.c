@@ -647,6 +647,15 @@ are diagnosed.
                    "unexpected host/target endian mismatch");
   }  /* if */
 #endif /* !HOST_TARGET_ENDIAN_MISMATCH_OKAY */
+#if !USE_SOFTFLOAT
+  if (sizeof(long double) == sizeof(double) &&
+      targ_ldbl_mant_dig == 64) {
+    /* Trying to emulate 80-bit long double on a host system that doesn't
+       support that type only works if using SoftFloat. */
+    internal_error("check_target_config: "
+                   "must use SoftFloat library for this configuration");
+  }  /* if */
+#endif /* !USE_SOFTFLOAT */
 }  /* check_target_configuration */
 
 #endif /* CHECKING */

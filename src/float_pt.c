@@ -1090,21 +1090,16 @@ so that a reliable hash can be computed from the resulting value.
 }  /* zero_unused_bits_in_long_double */
 
 
-static void conv_host_fp_to_long_double(a_host_fp_value  val,
-                                        a_boolean        *err,
-                                        long double      *result)
+static void conv_host_fp_to_long_double(a_host_fp_value         val,
+                                        a_boolean               *err,
+                                        an_internal_float_value *result)
 /*
-Convert val from a_host_fp_value (__float128 or float128_t in this case) to
-long double.  Set "err" if the conversion would result in overflow or
-underflow.  If the conversion can be done, return the result in "result".
+Convert val from a_host_fp_value (__float128 or float128_t in this case) to a
+target long double format.  Set "err" if the conversion would result in
+overflow or underflow.  If the conversion can be done, return the result in
+"result".
 */
 {
-  long double      ldbl_val;
-  a_boolean        local_err = FALSE;
-#if !USE_SOFTFLOAT
-  a_host_fp_value  round_trip_val;
-#endif /* !USE_SOFTFLOAT */
-
 #if USE_SOFTFLOAT
   /* "long double" can have various formats; handle the 80-, and 128-bit
      cases here (this should not be called for the 64-bit case). */
@@ -1112,10 +1107,10 @@ underflow.  If the conversion can be done, return the result in "result".
   check_assertion(targ_ldbl_mant_dig != 53);
   if (targ_ldbl_mant_dig == 64) {
     /* long double is 80 bits. */
-    f128M_to_extF80M(&val, (extFloat80_t*)&ldbl_val);
+    f128M_to_extF80M(&val, (extFloat80_t*)result);
   } else if (targ_ldbl_mant_dig == 113) {
     /* long double is 128 bits. */
-    (void)memcpy((char *)&ldbl_val, (char *)&val, sizeof(ldbl_val));
+    (void)memcpy((char *)result, (char *)&val, sizeof(val));
   } else {
     unexpected_condition();
   }  /* if */
@@ -1124,27 +1119,30 @@ underflow.  If the conversion can be done, return the result in "result".
       (softfloat_exceptionFlags & softfloat_flag_overflow) != 0 &&
       !gnu_mode) {
     /* An overflow. */
-    local_err = TRUE;
+    *err = TRUE;
   }  /* if */
 #else /* !USE_SOFTFLOAT */
-  ldbl_val = (long double)val;
-  round_trip_val = ldbl_val;
+  /* Use host conversion routines to convert from 128-bit float to long double.
+     Note that this assumes that the host's long double format is the
+     same as the target.  For cases where this doesn't hold (e.g., if the
+     host is using 64-bit long double), the SoftFloat routines need to be used
+     to do that conversion (a check is made in check_target_configuration). */
+  long double     ldbl_val = (long double)val;
+  a_host_fp_value round_trip_val = ldbl_val;
   if (is_finite(val) && !is_finite(round_trip_val) && !gnu_mode) {
-    local_err = TRUE;
+    *err = TRUE;
   }  /* if */
-#endif /* USE_SOFTFLOAT */
   /* In cases where 80-bit extended long double is used, the unused bits
      are indeterminate after the assignment above (especially in configurations
      that do optimization).  Zero those bits so that a reliable hash can be
      constructed (as even the unused bits are used by fp_hash). */
   zero_unused_bits_in_long_double(&ldbl_val);
-  if (local_err) {
-    *err = TRUE;
-  } else {
+  if (!*err) {
     /* Use memcpy to copy all of the bits (an assignment may copy 12 bytes
        in some cases). */
     (void)memcpy(result, &ldbl_val, sizeof(ldbl_val));
   }  /* if */
+#endif /* USE_SOFTFLOAT */
 }  /* conv_host_fp_to_long_double */
 
 #endif /* HOST_FP_VALUE_IS_128BIT */
@@ -1186,13 +1184,11 @@ before setting it if there are unused bits.
 #endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
 #if HOST_FP_VALUE_IS_128BIT
     } else if (kind == (a_float_kind)fk_long_double) {
-      /* Convert from an internal __float128 to a long double. */
-      long double  long_double_temp;
-      conv_host_fp_to_long_double(temp, err, &long_double_temp);
-      if (!*err) {
-        (void)memcpy((char *)float_value, (char *)&long_double_temp,
-                     sizeof(long double));
-      }  /* if */
+      /* Convert from an internal __float128 to a target long double.  This
+         can't be converted to a host long double (similar to the float and
+         double cases above) because the long double format may differ between
+         the host and the target. */
+      conv_host_fp_to_long_double(temp, err, float_value);
 #endif /* HOST_FP_VALUE_IS_128BIT */
     } else {
       /* Store a host floating value into a float_value of the same kind
