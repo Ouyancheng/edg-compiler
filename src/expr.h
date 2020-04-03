@@ -475,10 +475,12 @@ extern a_boolean is_expr_start_token(a_token_kind tok);
 
 extern a_boolean token_is_function_name_string_literal(a_token_kind token);
 
-extern void set_curr_token_to_function_name_string(a_boolean do_concat);
+extern void set_curr_token_to_function_name_string(
+                                       a_boolean                     do_concat,
+                                       a_string_or_char_literal_kind lit_kind);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern a_boolean set_curr_token_to_microsoft_lprefix_operator_string(void);
+extern a_boolean set_curr_token_to_microsoft_xprefix_operator_string(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_const_char *spelling_for_function_name_token(a_token_kind token);

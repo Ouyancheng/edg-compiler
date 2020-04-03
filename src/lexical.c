@@ -10852,10 +10852,18 @@ and return FALSE.
 }  /* scan_raw_string_delimiter */
 
 
-static a_token_kind scan_string_literal(a_string_or_char_literal_kind lit_kind)
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/* In Microsoft mode, scan_string_literal is used for the __xPREFIX
+   extension; otherwise, it is called only within this file. */
+static
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+a_token_kind scan_string_literal(a_string_or_char_literal_kind lit_kind)
 /*
 Scan a string literal token, described by lit_kind, and return the token
-kind or tok_error.  The token can be a normal or wide string literal.
+kind or tok_error.  If fetch_pp_tokens is FALSE, set const_for_curr_token
+to contain the value of the string.  The token can be any kind of string
+literal.  On entry, curr_char_loc points to the first character after the
+opening quotation mark; on exit, it points after the closing quote.
 */
 {
   a_token_kind               ctoken = tok_string_literal;
@@ -10874,8 +10882,6 @@ kind or tok_error.  The token can be a normal or wide string literal.
                             start_of_raw_string_delimiter_reg);
   register_pointer_variable(start_of_string_value, start_of_string_value_reg);
   check_assertion(lit_kind & SCLK_STRING_LITERAL);
-  /* Skip over the prefix, if any, and the leading quote. */
-  curr_char_loc += offset_to_start_of_literal_value(lit_kind); /*lint !e679*/
   start_of_string_value = curr_char_loc;
   if (lit_kind & SCLK_RAW_STRING_LITERAL) {
     /* The literal appears to be a raw string.  Scan the delimiter and
@@ -12158,11 +12164,11 @@ tok_ud_literal; otherwise, return tok_string_literal.
            as the first literal is handled in expression processing;
            cases where they appear after a string are handled by
            calling here. */
-        set_curr_token_to_function_name_string(/*do_concat=*/FALSE);
+        set_curr_token_to_function_name_string(/*do_concat=*/FALSE, lit_kind);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (curr_token == tok_microsoft_lprefix) {
-        /* Similar handling for the Microsoft __LPREFIX operator. */
-        (void)set_curr_token_to_microsoft_lprefix_operator_string();
+      } else if (is_microsoft_string_prefix_operator(curr_token)) {
+        /* Similar handling for the Microsoft __xPREFIX operators. */
+        (void)set_curr_token_to_microsoft_xprefix_operator_string();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */
@@ -13658,6 +13664,9 @@ literal_prefix_scan:
            the test. */
         check_for_invalid_macro_concatenation_if_needed(
                                                  /*end_token_is_valid=*/FALSE);
+        /* Skip over the prefix, if any, and the leading quote. */
+        curr_char_loc +=
+                     offset_to_start_of_literal_value(lit_kind); /*lint !e679*/
         ctoken = scan_string_literal(lit_kind);
         goto concatenate_adjacent_string_literals;
       }  /* if */
@@ -14010,6 +14019,8 @@ end_id_scan:
            the test. */
         check_for_invalid_macro_concatenation_if_needed(
                                                  /*end_token_is_valid=*/FALSE);
+        /* Skip over the leading quote. */
+        ++curr_char_loc;
         ctoken = scan_string_literal(SCLK_ORDINARY_STRING_LITERAL);
         goto concatenate_adjacent_string_literals;
       }  /* if */

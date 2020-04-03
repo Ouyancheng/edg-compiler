@@ -3739,28 +3739,42 @@ static a_token_kind func_name_token[] = {tok_function_name,
 static a_boolean is_microsoft_function_name_paste(a_macro_arg_ptr map,
                                                   a_const_char    *prev_text,
                                                   sizeof_t        prev_len,
+                                                  a_const_char    **tok_text,
+                                                  int             *prefix_len,
                                                   a_const_char    **post_end)
 /*
 We are in Microsoft preprocessor mode and we are doing a token paste in a
-macro expansion.  Return TRUE if the paste operation is pasting "L" to one
-of the Microsoft function-name keywords like __FUNCTION__.  The raw value
-of the macro argument map is the text following the "##", and prev_text (of
-length prev_len) is the text preceding the ##.  If TRUE is returned,
-*post_end is set to the character position after the end of the
-function-name keyword.
+macro expansion.  If the paste operation is pasting a string encoding
+prefix - "L", "U", "u", or "u8" - to one of the Microsoft function-name
+keywords like __FUNCTION__, return TRUE, set *prefix_len to the number of
+characters in the prefix (1 or 2), and set *tok_text to the spelling of the
+__xPREFIX__ token corresponding to the given encoding prefix; otherwise,
+return FALSE.  The raw value of the macro argument map is the text
+following the "##", and prev_text (of length prev_len) is the text
+preceding the ##.  If TRUE is returned, *post_end is set to the character
+position after the end of the function-name keyword.
 */
 {
-  a_boolean result = FALSE;
+  int result = 0;
 
   check_assertion(ms_extensions);
-  /* MSVC++ 7.0 and 7.1 do this special pasting. */
-  if (microsoft_version >= 1300 &&
-      prev_len >= 1 && prev_text[prev_len-1] == 'L') {
-    if (prev_len == 1 ||
-        (prev_len >= LE_ESCAPE_LEN+1 &&
-         prev_text[prev_len-LE_ESCAPE_LEN-1] == LE_ESCAPE &&
-         prev_text[prev_len-LE_ESCAPE_LEN  ] == LE_END_OF_TOKEN)) {
-      /* The preceding text ends with a token that is "L". */
+  *tok_text = NULL;
+  *prefix_len = 0;
+  /* MSVC++ versions since 7.0 do this special pasting. */
+  if (microsoft_version >= 1300 && prev_len >= 1 &&
+      (prev_text[prev_len-1] == 'L' ||
+       prev_text[prev_len-1] == 'U' ||
+       prev_text[prev_len-1] == 'u' ||
+       (prev_len >= 2 &&
+        prev_text[prev_len-2] == 'u' &&
+        prev_text[prev_len-1] == '8'))) {
+    int pfx_len = (prev_text[prev_len-1] == '8') ? 2 : 1;
+    if (prev_len == pfx_len ||
+        (prev_len >= LE_ESCAPE_LEN+pfx_len &&
+         prev_text[prev_len-LE_ESCAPE_LEN-pfx_len]   == LE_ESCAPE &&
+         prev_text[prev_len-LE_ESCAPE_LEN-pfx_len+1] == LE_END_OF_TOKEN)) {
+      /* The preceding text ends with a token that is an encoding
+         prefix. */
       if (map->raw_len >= 3 &&
           map->raw_text[0] == '_' &&
           map->raw_text[1] == '_') {
@@ -3780,6 +3794,23 @@ function-name keyword.
                  map->raw_text[tok_len+1] == LE_END_OF_TOKEN)) {
               /* Yes, everything is as required. */
               result = TRUE;
+              switch (prev_text[prev_len-1]) {
+                case 'L':
+                  *tok_text = token_names[(int)tok_microsoft_Lprefix];
+                  break;
+                case 'U':
+                  *tok_text = token_names[(int)tok_microsoft_Uprefix];
+                  break;
+                case 'u':
+                  *tok_text = token_names[(int)tok_microsoft_uprefix];
+                  break;
+                case '8':
+                  *tok_text = token_names[(int)tok_microsoft_lprefix];
+                  break;
+                default:
+                  unexpected_condition();
+              }  /* switch */
+              *prefix_len = pfx_len;
               *post_end = map->raw_text + tok_len;
               break;
             }  /* if */
@@ -3973,16 +4004,22 @@ treatment of rt_optional_text.
               map->raw_text[1] == LE_INERT_MACRO) sect_len -= LE_ESCAPE_LEN;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           { a_const_char *post_end;
+            a_const_char *tok_text;
+            int          prefix_len;
             /* coverity[var_deref_model] */
             if (ms_extensions && prev_section_is_paste &&
                 is_microsoft_function_name_paste(map,
                                                  prev_text,
                                                  prev_len,
+                                                 &tok_text,
+                                                 &prefix_len,
                                                  &post_end)) {
-              /* This is token pasting of L##__FUNCTION__ or the like, which
-                 will be replaced by __LPREFIX(__FUNCTION__).  The "L" is
+              /* This is token pasting of L##__FUNCTION__ or the like,
+                 which will be replaced by __xPREFIX(__FUNCTION__), where
+                 string prefixes of u8, U, and u are mapped to __lPREFIX,
+                 __UPREFIX, and __uPREFIX, respectively.  The prefix is
                  also removed. */
-              result += strlen(token_names[(int)tok_microsoft_lprefix])+2-1;
+              result += strlen(tok_text)+2-prefix_len;
             }  /* if */
           }
           prev_text = map->raw_text;
@@ -7064,22 +7101,26 @@ end_arg_expansion:;
             }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
             { a_const_char *post_end;
+              a_const_char *tok_text;
+              int          prefix_len;
               if (ms_extensions && prev_section_is_paste &&
                   is_microsoft_function_name_paste(map,
                                                    rescan_loc,
                                                    (sizeof_t)(src_loc-
                                                               rescan_loc),
+                                                   &tok_text,
+                                                   &prefix_len,
                                                    &post_end)) {
-                /* This is token pasting of L##__FUNCTION__ or the like, which
-                   is replaced by __LPREFIX(__FUNCTION__).  Note that
-                   length_of_replacement_text has to do the right length
-                   computation for this. */
-                a_const_char *tok = token_names[(int)tok_microsoft_lprefix];
-                sizeof_t     tok_len = strlen(tok);
+                /* This is token pasting of L##__FUNCTION__ or the like,
+                   which is replaced by __LPREFIX(__FUNCTION__), etc.  Note
+                   that length_of_replacement_text has to do the right
+                   length computation for this. */
+                sizeof_t     tok_len = strlen(tok_text);
                 sizeof_t     fnk_len;
-                src_loc--;  /* Back up to remove the "L". */
-                /* Add "__LPREFIX(". */
-                (void)memcpy(src_loc, tok, size_t_arg(tok_len));
+                /* Back up to remove the encoding prefix. */
+                src_loc -= prefix_len;
+                /* Add "__xPREFIX(". */
+                (void)memcpy(src_loc, tok_text, size_t_arg(tok_len));
                 src_loc += tok_len;
                 *src_loc++ = '(';
                 /* Copy the function-name keyword. */
@@ -8168,6 +8209,47 @@ repl_text_length does not include the rt_null terminator.
 }  /* equiv_replacement_text */
 
 
+static a_boolean is_microsoft_prefixed_stringize()
+/*
+Return TRUE if the current token is one of the prefixes that can be used
+with the stringize operator in Microsoft mode to produce a string literal
+with an encoding prefix and it is immediately followed by '#'.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (start_of_curr_token[len_of_curr_token] == '#') {
+    if (*start_of_curr_token == 'L' ||
+        *start_of_curr_token == 'U') {
+      if (len_of_curr_token == 1) {
+        /* L#x, U#x */
+        result = TRUE;
+      } else if (start_of_curr_token[1] == 'R' &&
+                 len_of_curr_token == 2) {
+        /* LR#x, UR#x */
+        result = TRUE;
+      }  /* if */
+    } else if (*start_of_curr_token == 'u') {
+      if (len_of_curr_token == 1) {
+        /* u#x */
+        result = TRUE;
+      } else if (start_of_curr_token[1] == 'R' &&
+                 len_of_curr_token == 2) {
+        /* uR#x */
+        result = TRUE;
+      } else if (start_of_curr_token[1] == '8' &&
+                 (len_of_curr_token = 2 ||
+                  (start_of_curr_token[2] == 'R' &&
+                   len_of_curr_token == 3))) {
+        /* u8#x, u8R#x */
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_microsoft_prefixed_stringize */
+
+
 a_symbol_ptr proc_define(void)
 /*
 Scan and process a #define directive.
@@ -8808,11 +8890,11 @@ process_va_opt:
              put out later unless the next thing is "##" or the end of the
              replacement text. */
           need_end_of_token_marker = TRUE;
-          if (ms_compat && !ms_std_preproc &&
-              len_of_curr_token == 1 && *start_of_curr_token == 'L' &&
-              start_of_curr_token[1] == '#') {
-            /* In Microsoft traditional preprocessor mode, L#param can be
-               used to create a wide string literal. */
+          if (ms_compat && !ms_std_preproc && len_of_curr_token <= 3 &&
+              is_microsoft_prefixed_stringize()) {
+            /* In Microsoft traditional preprocessor mode, a prefixed
+               stringize operator (e.g., L#param or u8R#param) can be used
+               to create a prefixed string literal. */
             need_end_of_token_marker = FALSE;
           }  /* if */
           /* Generate a remark on an invalid token.  Suppress this remark if

@@ -456,7 +456,10 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_microsoft_sptr */
    (an_opname_kind)onk_none,          /* tok_microsoft_uptr */
    (an_opname_kind)onk_none,          /* tok_microsoft_w64 */
+   (an_opname_kind)onk_none,          /* tok_microsoft_Lprefix */
    (an_opname_kind)onk_none,          /* tok_microsoft_lprefix */
+   (an_opname_kind)onk_none,          /* tok_microsoft_Uprefix */
+   (an_opname_kind)onk_none,          /* tok_microsoft_uprefix */
    (an_opname_kind)onk_none,          /* tok_microsoft_identifier */
    (an_opname_kind)onk_none,          /* tok_uuid */
    (an_opname_kind)onk_none,          /* tok_in */
@@ -3045,6 +3048,17 @@ extern void check_for_unclosed_if_exists_blocks(void);
 #endif /* !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+/*
+Return TRUE if tok is one of the Microsoft __xPREFIX string operators.
+*/
+#define is_microsoft_string_prefix_operator(tok)                       \
+  ((tok) == tok_microsoft_Lprefix || (tok) == tok_microsoft_lprefix || \
+   (tok) == tok_microsoft_Uprefix || (tok) == tok_microsoft_uprefix)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_microsoft_string_prefix_operator(tok) FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
 extern void init_whitespace_keywords(void);
 
 extern char *generate_top_level_metadata_code(an_assembly_index index);
@@ -3071,6 +3085,9 @@ extern a_partial_class_body_ptr cache_partial_class_body(
                                                        a_type_ptr class_type);
 
 extern void replace_curr_token(a_token_kind  new_token);
+
+extern a_token_kind scan_string_literal(
+                                       a_string_or_char_literal_kind lit_kind);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Conditionally close the "edg" namespace. */

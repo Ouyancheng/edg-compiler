@@ -37,8 +37,6 @@ expr.c -- Expression scanning routines.
    mangled name of the current function.  Hence, we may need access to the
    mangling routines. */
 #include "lower_name.h"
-/* widen_string_literal is used by scan_microsoft_lprefix_operator. */
-#include "literals.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #include "statements.h"
 
@@ -29946,7 +29944,10 @@ of:
     case tok_fixed_point_constant:
     case tok_float_constant:
 #if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_microsoft_Lprefix:
     case tok_microsoft_lprefix:
+    case tok_microsoft_Uprefix:
+    case tok_microsoft_uprefix:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_string_literal:
 #if GNU_EXTENSIONS_ALLOWED
@@ -32473,7 +32474,10 @@ Return TRUE if the indicated token is one that could start an expression.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_uuidof:
+    case tok_microsoft_Lprefix:
     case tok_microsoft_lprefix:
+    case tok_microsoft_Uprefix:
+    case tok_microsoft_uprefix:
     case tok_super:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
@@ -35899,12 +35903,9 @@ caching the tokens of a member function.
 
   check_assertion(curr_token == tok_string_literal);
   nextt = next_token();
-  if (token_is_function_name_string_literal(nextt)
-      || nextt == tok_string_literal
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      || nextt == tok_microsoft_lprefix
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                       ) {
+  if (token_is_function_name_string_literal(nextt) ||
+      nextt == tok_string_literal ||
+      is_microsoft_string_prefix_operator(nextt)) {
     (void)concat_adjacent_string_literals(/*function_name_case=*/TRUE);
     concat_done = TRUE;
   }  /* if */
@@ -35940,17 +35941,25 @@ returned is not in the IL and must be copied if needed there.
 }  /* spelling_for_function_name_token */
 
 
-void set_curr_token_to_function_name_string(a_boolean do_concat)
+void set_curr_token_to_function_name_string(
+                                       a_boolean                     do_concat,
+                                       a_string_or_char_literal_kind lit_kind)
 /*
-Set the current token to a string literal constant for the name
-of the current function in the form appropriate for the function-name
-keyword identified by curr_token (e.g., __FUNCTION__, __PRETTY_FUNCTION__).
-If do_concat is TRUE, do concatenation of any subsequent string literals.
+Set the current token to a string literal constant of the specified literal
+kind for the name of the current function in the form appropriate for the
+function-name keyword identified by curr_token (e.g., __FUNCTION__,
+__PRETTY_FUNCTION__).  If do_concat is TRUE, do concatenation of any
+subsequent string literals.
 */
 {
   a_const_char  *name_str = NULL;
   a_targ_size_t length;
+  a_const_char  *saved_curr_char_loc = curr_char_loc;
 
+  /* Set up name_str to point to a string suitable for processing by
+     scan_string_literal - that is, beginning with the first character
+     after the (assumed) leading quote and ending with the closing
+     quote. */     
   if (innermost_function_scope == NULL) {
     /* We are outside of a function.  This is allowed in GNU mode.
        The name is empty. */
@@ -35960,9 +35969,10 @@ If do_concat is TRUE, do concatenation of any subsequent string literals.
       pos_st_error(ec_id_can_only_appear_in_function, &pos_curr_token,
                    token_spelling);
     }  /* if */
-    name_str = "";
+    name_str = "\"";
   } else {
     a_routine_ptr rp = innermost_function_scope->variant.routine.ptr;
+    pos_in_temp_text_buffer = 0;
     switch (curr_token) {
       case tok_func_name:
       case tok_function_name:
@@ -35976,17 +35986,21 @@ If do_concat is TRUE, do concatenation of any subsequent string literals.
           clear_il_to_str_output_control_block(&octl);
           octl.output_str = put_str_to_temp_text_buffer_octl;
           octl.suppress_typedefs = TRUE;
-          pos_in_temp_text_buffer = 0;
           form_name(&rp->source_corresp, (an_il_entry_kind)iek_routine, &octl);
+          /* Add the closing quote. */
+          put_ch_to_temp_text_buffer('"');
           name_str = temp_text_buffer; 
         } else {
 simple_name:
           /* The simple name of the function. */
           if (has_name(rp)) {
-            name_str = unmangled_name_of(&rp->source_corresp);
-            check_assertion(name_str != NULL);
+            put_str_to_temp_text_buffer(
+                                       unmangled_name_of(&rp->source_corresp));
+            /* Add the closing quote. */
+            put_ch_to_temp_text_buffer('"');
+            name_str = temp_text_buffer;
           } else {
-            name_str = "";
+            name_str = "\"";
           }  /* if */
         }  /* if */
         break;
@@ -35994,12 +36008,18 @@ simple_name:
         /* In GNU C mode, __PRETTY_FUNCTION__ is the same as __FUNCTION__. */
         if (gcc_mode) goto simple_name;
         /* The name of the function with parameter and return types. */
-        name_str = get_pretty_function_name(rp);
+        put_str_to_temp_text_buffer(get_pretty_function_name(rp));
+        /* Add the closing quote. */
+        put_ch_to_temp_text_buffer('"');
+        name_str = temp_text_buffer;
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_decorated_function_name:
         /* The "decorated" name of the function, i.e., the mangled name. */
-        name_str = get_decorated_function_name(rp);
+        put_str_to_temp_text_buffer(get_decorated_function_name(rp));
+        /* Add the closing quote. */
+        put_ch_to_temp_text_buffer('"');
+        name_str = temp_text_buffer;
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
@@ -36007,15 +36027,9 @@ simple_name:
     }  /* switch */
   }  /* if */
   /* Create a string literal constant for name_str in const_for_curr_token. */
-  length = ((a_targ_size_t)strlen(name_str))+1;
-  clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_string);
-  const_for_curr_token.type = string_type(length);
-  const_for_curr_token.variant.string.length = length;
-  const_for_curr_token.variant.string.value =
-                               alloc_text_of_string_literal((sizeof_t)length);
-  (void)memcpy((char *)const_for_curr_token.variant.string.value, name_str,
-               size_t_arg(length));
-  curr_token = tok_string_literal;
+  curr_char_loc = name_str;
+  curr_token = scan_string_literal(lit_kind);
+  curr_char_loc = saved_curr_char_loc;
   if (do_concat) {
     /* Make sure that adjacent strings are concatenated. */
     (void)concat_adjacent_string_literals(/*function_name_case=*/TRUE);
@@ -36101,7 +36115,8 @@ which of the various keywords was used.
   }  /* if */
   /* Produce a string literal for the name of the current function as
      the current token. */
-  set_curr_token_to_function_name_string(/*do_concat=*/is_string);
+  set_curr_token_to_function_name_string(/*do_concat=*/is_string,
+                                         SCLK_ORDINARY_STRING_LITERAL);
   if (is_string) {
     /* The construct is to be treated as a string literal. */
     make_string_constant_operand(&const_for_curr_token, result);
@@ -36170,28 +36185,73 @@ end_of_routine:
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-a_boolean set_curr_token_to_microsoft_lprefix_operator_string(void)
+a_boolean set_curr_token_to_microsoft_xprefix_operator_string(void)
 /*
-Scan the Microsoft __LPREFIX operator.  __LPREFIX("string") is treated
-as L"string".  This is used when token pasting is done on L##__FUNCTION__
-and the other function-name tokens.  Set the current token to the
-string literal that results and return TRUE.  If there is an error in
-scanning, return FALSE; in that case the current token is the next
-token following the operator, and should not be discarded.
+Scan the Microsoft __xPREFIX operator.  __xPREFIX("string") adds an
+encoding-prefix to the string operand specified by the choice of "x" - L,
+U, and u add that letter as an encoding prefix, and l adds u8; for example,
+__LPREFIX("a") is equivalent to L"a", and __lPREFIX("a") is the same as
+u8"a".  This is used when token pasting is done on L##__FUNCTION__ and the
+other encoding-prefixes and function-name tokens.  Set the current token to
+the string literal that results and return TRUE.  If there is an error in
+scanning, return FALSE; in that case the current token is the next token
+following the operator, and should not be discarded.
 */
 {
-  a_boolean         err = FALSE;
-  a_source_position start_position;
+  a_boolean                     err = FALSE;
+  a_source_position             start_position;
+  a_string_or_char_literal_kind lit_kind = SCLK_STRING_LITERAL;
+  a_string_or_char_literal_kind orig_lit_kind;
 
+  /* Set the kind of literal to be produced based on which __xPREFIX
+     operator was specified. */
+  switch (curr_token) {
+    case tok_microsoft_Lprefix: lit_kind |= SCLK_WIDE_LITERAL;     break;
+    case tok_microsoft_lprefix: lit_kind |= SCLK_UTF8_LITERAL;     break;
+    case tok_microsoft_Uprefix: lit_kind |= SCLK_CHAR32_T_LITERAL; break;
+    case tok_microsoft_uprefix: lit_kind |= SCLK_CHAR16_T_LITERAL; break;
+    default:                    unexpected_condition();            break;
+  }  /* switch */
   start_position = pos_curr_token;
   /* Get past the opening __LPREFIX token. */
-  check_assertion(curr_token == tok_microsoft_lprefix);
   (void)get_token();
   /* Check for the opening "(". */
-  (void)required_token(tok_lparen, ec_exp_lparen);
+  (void)required_token_no_advance(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
-  if (token_is_function_name_string_literal(curr_token)) {
-    set_curr_token_to_function_name_string(/*do_concat=*/FALSE);
+  /* Check the next token, which must be either a string literal or one of
+     the function-name tokens.  We use skip_white_space and check
+     *curr_char_loc directly instead of fetching a token so we can do the
+     initial scan of a string literal with the literal kind specified by
+     the __xPREFIX operator. */
+  skip_white_space();
+  if (*curr_char_loc == '"') {
+    orig_lit_kind = SCLK_ORDINARY_STRING_LITERAL;
+  } else {
+    orig_lit_kind = scan_encoding_prefix(curr_char_loc);
+  }  /* if */
+  if (orig_lit_kind != SCLK_NOT_A_LITERAL &&
+      (orig_lit_kind & SCLK_STRING_LITERAL) != 0) {
+    /* Copy the raw string indicator from the original encoding prefix, but
+       otherwise use the literal kind implied by the __xPREFIX operator. */
+    lit_kind |= (orig_lit_kind & SCLK_RAW_STRING_LITERAL);
+    start_of_curr_token = curr_char_loc;
+    conv_line_loc_to_source_pos(curr_char_loc, &pos_curr_token);
+    /* Skip over the original encoding prefix, if any, and the initial
+       quote. */
+    curr_char_loc +=
+                 offset_to_start_of_literal_value(orig_lit_kind);/*lint !e679*/
+    /* Scan the string literal and set const_for_curr_token based on the
+       revised literal kind. */
+    curr_token = scan_string_literal(lit_kind);
+    end_of_curr_token = curr_char_loc - 1;
+    conv_line_loc_to_source_pos(end_of_curr_token, &end_pos_curr_token);
+  } else {
+    /* See what the operand token is. */
+    (void)get_token();
+    if (token_is_function_name_string_literal(curr_token) &&
+        curr_token != tok_pretty_function_name) {
+      set_curr_token_to_function_name_string(/*do_concat=*/FALSE, lit_kind);
+    }  /* if */
   }  /* if */
   if (curr_token != tok_string_literal) {
     expr_syntax_error(ec_exp_string_literal);
@@ -36204,26 +36264,6 @@ token following the operator, and should not be discarded.
     } else {
       check_assertion(const_for_curr_token.kind ==
                                               (a_constant_repr_kind)ck_string);
-      /* Widen the string unless it's already wide. */
-      switch (const_for_curr_token.character_kind) {
-        case chk_char:
-          /* The normal case: Widen the string. */
-          widen_string_literal(&const_for_curr_token);
-          break;
-        case chk_wchar_t:
-          /* Already an L"..." string: Nothing to do. */
-          break;
-        case chk_char8_t:
-        case chk_char16_t:
-        case chk_char32_t:
-          /* u"..." and U"..." strings are invalid here. */
-          expr_pos_error(ec_lprefix_and_uliteral, &pos_curr_token);
-          set_error_constant(&const_for_curr_token);
-          err = TRUE;
-          break;
-        default:
-          unexpected_condition();
-      }  /* switch */
       if (next_token() == tok_rparen && !err) {
         /* Everything looks good. */
         /* Save the string literal token so we can restore it below. */
@@ -36260,14 +36300,16 @@ token following the operator, and should not be discarded.
   }  /* if */
   remove_stop_token(tok_rparen);
   return !err;
-}  /* set_curr_token_to_microsoft_lprefix_operator_string */
+}  /* set_curr_token_to_microsoft_xprefix_operator_string */
 
 
-static void scan_microsoft_lprefix_operator(an_operand *result)
+static void scan_microsoft_xprefix_operator(an_operand *result)
 /*
-Scan the Microsoft __LPREFIX operator.  __LPREFIX("string") is treated
-as L"string".  This is used when token pasting is done on L##__FUNCTION__
-and the other function-name tokens.
+Scan the Microsoft __xPREFIX operators.  __xPREFIX("string") adds an
+encoding-prefix to the string operand corresponding to the choice of "x":
+the same letter for L, U, and u, and u8 for l.  This is used when token
+pasting is done on L##__FUNCTION__ and the other encoding-prefixes and
+function-name tokens.
 */
 {
   a_boolean         err = FALSE;
@@ -36289,7 +36331,7 @@ and the other function-name tokens.
   }  /* if */
   /* Scan the operator and operand, and set the current token to
      a constant string literal for the result. */
-  if (set_curr_token_to_microsoft_lprefix_operator_string()) {
+  if (set_curr_token_to_microsoft_xprefix_operator_string()) {
     (void)do_expression_level_string_literal_concatenation();
     make_string_constant_operand(&const_for_curr_token, result);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -36311,7 +36353,7 @@ and the other function-name tokens.
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
-}  /* scan_microsoft_lprefix_operator */
+}  /* scan_microsoft_xprefix_operator */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -37741,11 +37783,16 @@ handle_identifier:
       make_function_name_operand(&local_result);
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_microsoft_Lprefix:
     case tok_microsoft_lprefix:
-      /* Microsoft __LPREFIX.  __LPREFIX("string") is treated as L"string".
-         This is used when token pasting is done on L##__FUNCTION__ and
-         the other function-name tokens. */
-      scan_microsoft_lprefix_operator(&local_result);
+    case tok_microsoft_Uprefix:
+    case tok_microsoft_uprefix:
+      /* Microsoft __xPREFIX.  __xPREFIX("string") is treated as L"string",
+         u8"string", U"string", or u"string" when "x" is L, l, U, or u,
+         respectively.  This is used when token pasting is done on
+         L##__FUNCTION__ and the other encoding-prefixes and function-name
+         tokens. */
+      scan_microsoft_xprefix_operator(&local_result);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if TARG_HAS_IEEE_FLOATING_POINT
