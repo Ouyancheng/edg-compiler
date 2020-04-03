@@ -43,12 +43,19 @@ a_boolean interpret_constexpr_call(an_expr_node_ptr  call_expr,
                                    a_constant_ptr    result_con,
                                    a_diag_list_ptr   diag_list);
 
-a_boolean interpret_dynamic_init(a_dynamic_init_ptr  dip,
-                                 a_source_position   *pos,
-                                 a_type_ptr          result_type,
-                                 a_boolean           is_constant_evaluated,
-                                 a_constant_ptr      result_con,
-                                 a_diag_list_ptr     diag_list);
+a_boolean interpret_dynamic_init_full(
+                                  a_dynamic_init_ptr  dip,
+                                  a_source_position   *pos,
+                                  a_type_ptr          result_type,
+                                  a_boolean           is_constant_evaluated,
+                                  a_constant_ptr      result_con,
+                                  a_diag_list_ptr     diag_list,
+                                  a_boolean           allow_reinterpret_cast);
+
+#define interpret_dynamic_init(dip, pos, result_type, is_constant_evaluated, \
+                               result_con, diag_list)                        \
+  (interpret_dynamic_init_full(dip, pos, result_type, is_constant_evaluated, \
+                               result_con, diag_list, FALSE))
 
 a_boolean interpret_constexpr_ctor(a_dynamic_init_ptr  dip,
                                    a_boolean           is_constant_evaluated,

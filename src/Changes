@@ -1,5 +1,35 @@
 Version 6.1
 
+4/3/20   [EDGcpfe/22457]
+Folding initializers for large objects
+
+The front end generally attempts to fold initializers for static-lifetime
+variables.  Previously, this required the entire initialized object to be
+represented in the constexpr interpreter.  If the initialized object was
+larger than the interpreter can handle (by default, 1MB in terms of interpreter
+representation), this folding always failed and the initialization was treated
+as a dynamic initialization.  Now, if the initializer is already an aggregate
+initializer, the front end attempts to fold its dynamic sub-elements, which
+may be smaller and therefore representable in the interpreter.  For example,
+in GNU C++ mode (to enable folding of reinterpret_cast) when type long has
+the size of a pointer:
+
+  struct X {
+    X();
+    void *p1, *p2;
+  };
+  unsigned* g() {
+    static unsigned table[1000000] = {
+      static_cast<unsigned>(
+                 reinterpret_cast<long>(&(reinterpret_cast<X*>(0x1234)->p2)))
+    };
+    return &table[0];
+  }
+
+Previously, the initialization of "table" was a dynamic initialization.  Now
+it is a static initialization.
+
+
 4/3/20   [EDGcpfe/22439]
 Segfault when converting 128-bit floating-point to long double on some configs
 

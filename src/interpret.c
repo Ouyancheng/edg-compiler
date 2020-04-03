@@ -49,7 +49,7 @@ The Interpreter
 ---------------
 The interpreter itself traverses the IL in typical "recursive descent" fashion.
 The principal entry points are interpret_expr, interpret_constexpr_call,
-interpret_dynamic_init, and interpret_constexpr_ctor.  These set up an
+interpret_dynamic_init_full, and interpret_constexpr_ctor.  These set up an
 "interpreter state" that is carried through the interpretation process (this
 state includes local allocations and mappings, the call stack, diagnostic
 records, etc.).
@@ -17858,18 +17858,76 @@ done:
 }  /* interpret_constexpr_call */
 
 
-a_boolean interpret_dynamic_init(a_dynamic_init_ptr  dip,
-                                 a_source_position   *pos,
-                                 a_type_ptr          result_type,
-                                 a_boolean           is_constant_evaluated,
-                                 a_constant_ptr      result_con,
-                                 a_diag_list_ptr     diag_list)
+static a_boolean interpret_dynamic_sub_initializers(
+                                    a_constant_ptr     aggr_con,
+                                    a_source_position  *pos,
+                                    a_type_ptr         result_type,
+                                    a_boolean          allow_reinterpret_cast,
+                                    a_diag_list_ptr    diag_list)
+/*
+aggr_con is a ck_aggregate constant that might directly or indirectly contain
+ck_dynamic_init elements.  Attempt to interpret those elements to produce an
+aggregate with no dynamic components and return TRUE if successful.  If not
+successful, some of the dynamic components may nonetheless have been folded.
+See interpret_dynamic_init_full for the meaning of the pos, result_type,
+allow_reinterpret_cast, and diag_list parameters.
+*/
+{
+  a_boolean       result = TRUE;
+  a_constant_ptr  elem_con;
+
+  check_assertion(constant_is(aggr_con, ck_aggregate));
+  elem_con = aggr_con->variant.aggregate.first_constant;
+  for (; elem_con != NULL; elem_con = elem_con->next) {
+    if (constant_is(elem_con, ck_dynamic_init)) {
+      a_constant_ptr  cp = local_constant();
+      if (!interpret_dynamic_init_full(elem_con->variant.dynamic_init.ptr,
+                                       &elem_con->source_corresp.decl_position,
+                                       elem_con->type,
+                                       /*is_constant_evaluated=*/TRUE, cp,
+                                       diag_list, allow_reinterpret_cast)) {
+        result = FALSE;
+        release_local_constant(&cp);
+        break;
+      } else {
+        a_constant_ptr  saved_next = elem_con->next;
+        *elem_con = *cp;
+        elem_con->next = saved_next;
+        release_local_constant(&cp);
+      }  /* if */
+    } else if (constant_is(elem_con, ck_aggregate) &&
+               elem_con->variant.aggregate.has_dynamic_init_component) {
+      if (!interpret_dynamic_sub_initializers(
+                         elem_con, &elem_con->source_corresp.decl_position, 
+                         elem_con->type, allow_reinterpret_cast, diag_list)) {
+        result = FALSE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  if (result) {
+    aggr_con->variant.aggregate.has_dynamic_init_component = FALSE;
+  }  /* if */
+  return result;
+}  /* interpret_dynamic_sub_initializers */
+
+
+a_boolean interpret_dynamic_init_full(
+                                   a_dynamic_init_ptr  dip,
+                                   a_source_position   *pos,
+                                   a_type_ptr          result_type,
+                                   a_boolean           is_constant_evaluated,
+                                   a_constant_ptr      result_con,
+                                   a_diag_list_ptr     diag_list,
+                                   a_boolean           allow_reinterpret_cast)
 /*
 Attempt to interpret the given dynamic initialization entry.  Return TRUE if
 successful, and produce the resulting value (of the given type) in result_con.
 Otherwise, return FALSE, and record diagnostic info in *diag_list.  pos is the
 source position of the initialization.  is_constant_evaluated indicates the
-value produced by std::is_constant_evaluated().
+value produced by std::is_constant_evaluated().  allow_reinterpret_cast is TRUE
+if the caller has determined that reinterpret_cast expressions can be folded
+(when FALSE, this function can still determine that they can be folded).
 */
 {
   a_boolean             result = TRUE;
@@ -17889,6 +17947,7 @@ value produced by std::is_constant_evaluated().
     trans_unit_initialization_needed = FALSE;
   }  /* if */
   init_interpreter_state(&ips, is_constant_evaluated);
+  ips.allow_reinterpret_cast = allow_reinterpret_cast;
   ips.position = *pos;
   result_type = skip_typerefs(result_type);
   if (dip->variable != NULL) {
@@ -17929,6 +17988,19 @@ value produced by std::is_constant_evaluated().
          with an error constant, but treat interpretation as successful. */
       set_error_constant(result_con);
       result = TRUE;
+    } else if (is_constant_evaluated &&
+               dyn_init_is(dip, dik_nonconstant_aggregate)) {
+      /* A failure at this point is most likely due to an attempt to fold an
+         initializer for an object that's too large for the interpreter.  E.g.:
+             struct S { int i, x[10000000]; } = { f(), {} };
+         It might still be possible to fold the sub-initializers for such a
+         case, however, thereby producing a simple aggregate constant. */
+      result = interpret_dynamic_sub_initializers(dip->variant.constant.ptr,
+                                                  pos, result_type,
+                                                  ips.allow_reinterpret_cast,
+                                                  diag_list);
+      (void)copy_constant_full(dip->variant.constant.ptr, result_con,
+                               CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR);
     }  /* if */
     /* Nothing more to be done. */
   } else {
@@ -18011,7 +18083,7 @@ value produced by std::is_constant_evaluated().
   release_interpreter_state(&ips);
 done:
   return result;
-}  /* interpret_dynamic_init */
+}  /* interpret_dynamic_init_full */
 
 
 a_boolean interpret_constexpr_ctor(a_dynamic_init_ptr  dip,
