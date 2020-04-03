@@ -1862,27 +1862,6 @@ sufficient to hold len characters of the indicated kind.
 }  /* widening_copy */
 
 
-static void widen_string_literal(a_constant_ptr con)
-/*
-Change the indicated narrow string literal into a wide string (wchar_t)
-literal.
-*/
-{
-  a_targ_size_t  narrow_str_len = con->variant.string.length;
-  a_const_char   *narrow_str = con->variant.string.value;
-
-  clear_constant(con, (a_constant_repr_kind)ck_string);
-  con->type = string_literal_type((a_character_kind)chk_wchar_t,
-                                  narrow_str_len);
-  con->character_kind = (a_character_kind)chk_wchar_t;
-  con->variant.string.length = narrow_str_len * targ_sizeof_wchar_t;
-  con->variant.string.value = alloc_text_of_string_literal(
-                                        (sizeof_t)con->variant.string.length);
-  widening_copy(narrow_str, (char *)con->variant.string.value,
-                narrow_str_len, (a_character_kind)chk_wchar_t);
-}  /* widen_string_literal */
-
-
 void concat_string_literals(a_token_cache_ptr cache,
                             a_character_kind  character_kind)
 /*
