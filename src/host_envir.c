@@ -5892,11 +5892,14 @@ This is done before command line processing.
   reset_cpu_time_limit();
 #endif /* !EDG_WIN32 */
 #endif /* DEBUG */
+#if MICROSOFT_EXTENSIONS_ALLOWED && (!CPPCLI_ENABLING_POSSIBLE || !EDG_WIN32)
 #if READ_CPPCLI_PORTABLE_ASSEMBLIES && !STANDALONE_UTILITY_PROGRAM
   portable_assembly_table = NULL;
   pa_table_entries = 0;
   pa_cur_table_entry = 0;
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES && !STANDALONE_UTILITY_PROGRAM */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED &&
+          (!CPPCLI_ENABLING_POSSIBLE || !EDG_WIN32) */
   /* Make sure the predefined macro mode enumeration and the array of
      mode names match. */
   check_assertion_str2(predef_macro_mode_names[(int)pmm_last] != NULL &&
