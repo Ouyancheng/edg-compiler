@@ -10852,11 +10852,6 @@ and return FALSE.
 }  /* scan_raw_string_delimiter */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/* In Microsoft mode, scan_string_literal is used for the __xPREFIX
-   extension; otherwise, it is called only within this file. */
-static
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_token_kind scan_string_literal(a_string_or_char_literal_kind lit_kind)
 /*
 Scan a string literal token, described by lit_kind, and return the token

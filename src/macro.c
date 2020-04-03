@@ -3768,7 +3768,7 @@ position after the end of the function-name keyword.
        (prev_len >= 2 &&
         prev_text[prev_len-2] == 'u' &&
         prev_text[prev_len-1] == '8'))) {
-    int pfx_len = (prev_text[prev_len-1] == '8') ? 2 : 1;
+    unsigned int pfx_len = (prev_text[prev_len-1] == '8') ? 2 : 1;
     if (prev_len == pfx_len ||
         (prev_len >= LE_ESCAPE_LEN+pfx_len &&
          prev_text[prev_len-LE_ESCAPE_LEN-pfx_len]   == LE_ESCAPE &&
@@ -8238,7 +8238,7 @@ with an encoding prefix and it is immediately followed by '#'.
         /* uR#x */
         result = TRUE;
       } else if (start_of_curr_token[1] == '8' &&
-                 (len_of_curr_token = 2 ||
+                 (len_of_curr_token == 2 ||
                   (start_of_curr_token[2] == 'R' &&
                    len_of_curr_token == 3))) {
         /* u8#x, u8R#x */

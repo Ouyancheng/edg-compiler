@@ -3080,14 +3080,14 @@ extern a_boolean compare_unique_file_id(a_void_ptr	entry,
                                         a_void_ptr	key);
 #endif /* UNIQUE_FILE_IDENTIFIER_AVAILABLE */
 
+extern a_token_kind scan_string_literal(
+                                       a_string_or_char_literal_kind lit_kind);
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_partial_class_body_ptr cache_partial_class_body(
                                                        a_type_ptr class_type);
 
 extern void replace_curr_token(a_token_kind  new_token);
-
-extern a_token_kind scan_string_literal(
-                                       a_string_or_char_literal_kind lit_kind);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Conditionally close the "edg" namespace. */

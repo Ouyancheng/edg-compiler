@@ -35953,7 +35953,6 @@ subsequent string literals.
 */
 {
   a_const_char  *name_str = NULL;
-  a_targ_size_t length;
   a_const_char  *saved_curr_char_loc = curr_char_loc;
 
   /* Set up name_str to point to a string suitable for processing by
@@ -36244,7 +36243,9 @@ following the operator, and should not be discarded.
        revised literal kind. */
     curr_token = scan_string_literal(lit_kind);
     end_of_curr_token = curr_char_loc - 1;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
     conv_line_loc_to_source_pos(end_of_curr_token, &end_pos_curr_token);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
     /* See what the operand token is. */
     (void)get_token();
