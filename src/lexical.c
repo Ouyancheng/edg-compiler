@@ -23063,11 +23063,12 @@ C++/CLI delegate class types.)
       class_def_buffer->size = size;
     }  /* if */
 #if DEBUG
-    if (db_flag_is_set("dump_metadata") || db_flag_is_set("dump_full_metadata")){
+    if (db_flag_is_set("dump_metadata") ||
+        db_flag_is_set("dump_full_metadata")) {
       fprintf(f_debug, "Class definition for 0x%x/0x%08x: ",
               assembly_scope_index, metadata_type_def_token);
-      db_dump_metadata(class_def_buffer, db_flag_is_set("dump_metadata") ? 256 :
-                                                                           0);
+      db_dump_metadata(class_def_buffer, db_flag_is_set("dump_metadata") ? 256
+                                                                         : 0);
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
