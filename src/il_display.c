@@ -6484,6 +6484,9 @@ Display the indicated namespace entry.
   if (ptr->is_inline) {
     disp_boolean("is_inline", TRUE);
   }  /* if */
+  if (ptr->has_internal_linkage) {
+    disp_boolean("internal_linkage", TRUE);
+  }  /* if */
   if (ptr->named_in_strong_using) {
     disp_boolean("named_in_strong_using", TRUE);
   }  /* if */

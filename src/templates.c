@@ -6062,9 +6062,15 @@ user later during real instantiations.
   /* Set the storage class for the prototype instantiation to indicate that
      it has been defined. */
   if (dps->storage_class != (a_storage_class)sc_extern) {
-    var_ptr->storage_class = (a_storage_class)sc_unspecified;
-    var_ptr->source_corresp.name_linkage =
-                                  (a_name_linkage_kind)nlk_cplusplus_external;
+    if (cpp11_mode && !microsoft_mode &&
+        scope_stack[depth_innermost_namespace_scope].within_unnamed_namespace){
+      var_ptr->storage_class = (a_storage_class)sc_static;
+      var_ptr->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+    } else {
+      var_ptr->storage_class = (a_storage_class)sc_unspecified;
+      var_ptr->source_corresp.name_linkage =
+                                   (a_name_linkage_kind)nlk_cplusplus_external;
+    }  /* if */
   }  /* if */
   var_ptr->is_template_variable = TRUE;
   if (!is_variable_template) {
@@ -6226,6 +6232,57 @@ template was defined in a friend declaration.
     rout_ptr->defined_in_friend_decl = TRUE;
   }  /* if */
 }  /* check_for_definition_in_friend_declaration */
+
+
+static a_boolean template_arg_list_has_internal_linkage(
+                                                   a_template_arg_ptr arg_list)
+/*
+Determine whether any of the arguments in arg_list have internal linkage.
+*/
+{
+  a_boolean result = FALSE;
+
+  for (; arg_list != NULL; arg_list = arg_list->next) {
+    a_name_linkage_kind linkage = (a_name_linkage_kind)nlk_none;
+    a_type_ptr          arg_type = NULL;
+    if (arg_list->kind == (a_templ_arg_kind)tak_type) {
+      arg_type = arg_list->variant.type;
+    } else if (arg_list->kind == (a_templ_arg_kind)tak_nontype &&
+               !arg_list->is_array_bound_of_unknown_type) {
+      arg_type = arg_list->variant.constant->type;
+    } else if (arg_list->kind == (a_templ_arg_kind)tak_template) {
+      a_template_ptr tmpl = arg_list->variant.templ.ptr;
+      if (tmpl->template_info == NULL) continue;
+      switch (tmpl->kind) {
+        case templk_class:
+        case templk_member_class:
+        case templk_member_enum:
+          linkage = tmpl->template_info->variant.class_template.name_linkage;
+          break;
+        case templk_function:
+        case templk_member_function:
+          linkage = tmpl->template_info->variant.function.routine->
+                                                   source_corresp.name_linkage;
+          break;
+        case templk_variable:
+        case templk_static_data_member:
+          linkage = tmpl->template_info->variant.variable.prototype_variable->
+                                                   source_corresp.name_linkage;
+          break;
+        default:;
+      }  /* switch */
+    }  /* if */
+    if (arg_type != NULL) {
+      arg_type = skip_typerefs(arg_type);
+      linkage = arg_type->source_corresp.name_linkage;
+    }  /* if */
+    if (linkage == (a_name_linkage_kind)nlk_internal) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* template_arg_list_has_internal_linkage */
 
 
 static void create_variadic_param_info_for_routine(
@@ -6748,7 +6805,8 @@ cases).
   set_routine_declared_type(rout_ptr, tip->declared_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Set the linkage and storage class. */
-  if (instantiation_mode == tim_local) {
+  if (instantiation_mode == tim_local ||
+      template_arg_list_has_internal_linkage(rout_ptr->template_arg_list)) {
     /* Put out template function as internally linked. */
     rout_ptr->storage_class = (a_storage_class)sc_static;
     rout_ptr->source_corresp.name_linkage =
@@ -7106,7 +7164,8 @@ expression context) rather than a declaration.
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (!template_sym->is_class_member &&
-      is_const_qualified_type(var_ptr->type)) {
+      (is_const_qualified_type(var_ptr->type) ||
+       template_arg_list_has_internal_linkage(templ_arg_list))) {
     var_ptr->storage_class = (a_storage_class)sc_static;
     var_ptr->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
   }  /* if */
@@ -9115,10 +9174,14 @@ a type in certain ways (see template_arg_list_is_dependent).
   /* A template instantiation will have the same name-linkage (C++ or
      internal) as the template itself has.  In some error cases, it is
      simpler to force C++ linkage to avoid linkage-related errors during
-     error recovery. */
+     error recovery.  If the template arguments contain one or more arguments
+     that have internal linkage then set this instance to have internal linkage
+     as well, since it cannot be referred to by name outside of this TU. */
   if (tssp->is_error) {
     class_type->source_corresp.name_linkage =
                                  (a_name_linkage_kind)nlk_cplusplus_external;
+  } else if (template_arg_list_has_internal_linkage(template_arg_list)) {
+    class_type->source_corresp.name_linkage =(a_name_linkage_kind)nlk_internal;
   } else {
     class_type->source_corresp.name_linkage =
                                    tssp->variant.class_template.name_linkage;
@@ -10685,6 +10748,8 @@ instance symbol.
   a_variable_template_info_ptr		vtip;
   a_symbol_ptr				new_sym;
   a_template_instance_ptr		tip;
+  a_storage_class			storage_class;
+  a_namespace_ptr			enclosing_nsp;
   a_memory_region_number		region_to_switch_back_to;
 
   /* Variable template instances must be allocated in the file scope. */
@@ -10693,11 +10758,28 @@ instance symbol.
   tssp = template_sym->variant.template_info;
   /* Create the symbol for the instantiation. */
   new_sym = make_template_variable_symbol(template_sym);
-  var = alloc_variable((a_storage_class)sc_extern);
+  if (new_sym->is_class_member) {
+    enclosing_nsp = namespace_enclosing_class(sym_parent_class(new_sym));
+  } else {
+    enclosing_nsp = sym_parent_namespace_or_null(new_sym);
+  }  /* if */
+  if (cpp11_mode && !microsoft_mode && enclosing_nsp != NULL &&
+      enclosing_nsp->has_internal_linkage) {
+    /* Starting with C++11, members of unnamed namespaces have internal
+       linkage.*/
+    storage_class = (a_storage_class)sc_static;
+  } else {
+    storage_class = (a_storage_class)sc_extern;
+  }  /* if */
+  var = alloc_variable(storage_class);
   var->is_template_variable = TRUE;
   var->template_info = alloc_variable_template_info();
-  var->source_corresp.name_linkage =
+  if (storage_class == (a_storage_class)sc_static) {
+    var->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+  } else {
+    var->source_corresp.name_linkage =
                                   (a_name_linkage_kind)nlk_cplusplus_external;
+  }  /* if */
   vtip = var->template_info;
   new_sym->variant.variable.ptr = var;
   vtip->assoc_template = tssp->il_template_entry;
@@ -23333,9 +23415,16 @@ friend_template_checks_done:
                                     decl_state->has_template_param_constraint;
     /* Set the name-linkage for this template -- it will be propagated
        into the instances. */
-    /* Normally, a template has C++ linkage. */
-    tssp->variant.class_template.name_linkage =
-                            (a_name_linkage_kind)nlk_cplusplus_external;
+    /* Normally, a template has C++ linkage, however, starting with C++11 if
+       it's a member of an anonymous namespace, it has internal linkage. */
+    if (cpp11_mode && !microsoft_mode &&
+        scope_stack[depth_innermost_namespace_scope].within_unnamed_namespace){
+      tssp->variant.class_template.name_linkage =
+                                             (a_name_linkage_kind)nlk_internal;
+    } else {
+      tssp->variant.class_template.name_linkage =
+                                   (a_name_linkage_kind)nlk_cplusplus_external;
+    }  /* if */
     /* Save the IL template entry pointer for this symbol. */
     set_il_template_entry(decl_state, sym, tssp);
     is_redecl = FALSE;
@@ -26055,8 +26144,17 @@ set, and its source sequence entry, if any, has been put out.)
     if (sym != NULL) {
       /* Set the name linkage.  This may be updated below for a static
          function template. */
-      il_template_entry->source_corresp.name_linkage =
+      if (cpp11_mode && !microsoft_mode &&
+          scope_stack[depth_innermost_namespace_scope].
+                                                    within_unnamed_namespace) {
+        /* Starting with C++11 members of anonymous namespaces have internal
+           linkage. */
+        il_template_entry->source_corresp.name_linkage =
+                                             (a_name_linkage_kind)nlk_internal;
+      } else {
+        il_template_entry->source_corresp.name_linkage =
                                    (a_name_linkage_kind)nlk_cplusplus_external;
+      }  /* if */
       tssp = template_supplement_for_symbol(sym);
       /* Set the template kind. */
       switch (sym->kind) {

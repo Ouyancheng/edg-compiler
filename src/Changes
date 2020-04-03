@@ -1,5 +1,21 @@
 Version 6.1
 
+4/3/20   [EDGcpfe/18674]
+Linkage of members of anonymous namespaces
+
+Starting with C++11, members of anonymous namespaces have internal linkage.
+The front end now implements this.  In addition, template instantiations where
+one or more template arguments have internal linkage now causes that particular
+instantiation to also have internal linkage.  For example:
+
+  namespace {
+    int var; // Now has internal linkage in C++11 modes
+    struct S {};
+  }
+  template<typename> struct X {}; // Has external linkage
+  X<S> xs; // X<S> has internal linkage
+
+
 4/3/20   [EDGcpfe/22457]
 Folding initializers for large objects
 

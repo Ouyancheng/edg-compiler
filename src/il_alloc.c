@@ -4502,6 +4502,7 @@ is_alias is TRUE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   nsp->is_namespace_alias = is_alias;
   nsp->is_inline = FALSE;
+  nsp->has_internal_linkage = FALSE;
   nsp->named_in_strong_using = FALSE;
   nsp->is_std = FALSE;
 #if BACK_END_IS_CP_GEN_BE

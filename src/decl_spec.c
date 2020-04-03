@@ -4281,6 +4281,13 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     srk_flags = SRK_DECLARATION;
     if (is_class_definition && !is_partial) srk_flags |= SRK_DEFINITION;
     if (is_friend_decl) srk_flags |= SRK_FRIEND;
+    if (cpp11_mode && !microsoft_mode &&
+        scope_stack[depth_innermost_namespace_scope].within_unnamed_namespace){
+      /* Starting with C++11 unnamed namespaces and their members have internal
+         linkage. */
+      class_type->source_corresp.name_linkage =
+                                             (a_name_linkage_kind)nlk_internal;
+    }  /* if */
     record_symbol_declaration(srk_flags, tag_sym, &locator.source_position,
                               (a_source_sequence_entry_ptr)NULL);
     /* If this declaration is associated with a declaration statement, update

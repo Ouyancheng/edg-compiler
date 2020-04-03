@@ -14734,23 +14734,25 @@ issued at the given position.
   a_name_linkage_kind  def_name_linkage;
   a_routine_ptr        rtn = sym->variant.routine.ptr;
   a_type_ptr           class_type = sym->parent.class_type;
+  a_namespace_ptr      nsp = namespace_enclosing_class(class_type);
 
   /* Member functions should have the same name linkage as the class of
      which they are members.  (In cfront mode that may mean internal
      linkage -- if and when its linkage is promoted to C++, the linkage of
      the member functions will also be changed. */
   def_name_linkage = class_type->source_corresp.name_linkage;
+  if ((cpp11_mode && !microsoft_mode && nsp != NULL &&
+       nsp->has_internal_linkage)
 #if GNU_EXTENSIONS_ALLOWED
-  if (class_type->variant.class_struct_union.has_internal_linkage_attribute) {
-    /* The member function is in a class with the "internal_linkage"
-       attribute. */
+      || class_type->variant.class_struct_union.has_internal_linkage_attribute
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      ) {
+    /* In C++11, member functions of classes declared in unnamed namespace
+       scope or with the "internal_linkage" attribute have internal linkage. */
     rtn->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
     rtn->storage_class = (a_storage_class)sc_static;
-  } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Do not insert code here */
-  if (def_name_linkage == (a_name_linkage_kind)nlk_none ||
-      def_name_linkage == (a_name_linkage_kind)nlk_internal) {
+  } else if (def_name_linkage == (a_name_linkage_kind)nlk_none ||
+             def_name_linkage == (a_name_linkage_kind)nlk_internal) {
     /* Either this is a local class (nlk_none) or a cfront-compatible
        declaration (nlk_internal). */
     rtn->source_corresp.name_linkage = def_name_linkage;
@@ -17296,6 +17298,7 @@ template declaration and is NULL otherwise.
   a_decl_parse_state       *decl_state = &decl_info->decl_state;
   a_type_ptr               class_type = class_state->class_type;
   a_type_ptr               member_type = decl_state->type;
+  a_namespace_ptr          nsp = namespace_enclosing_class(class_type);
   a_source_position        *start_pos = &decl_state->specifiers_pos;
   a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
   a_scope_depth            effective_decl_level;
@@ -17515,16 +17518,17 @@ template declaration and is NULL otherwise.
     var->is_prototype_instantiation = TRUE;
     var->is_nonreal = TRUE;
   }  /* if */
+  if ((cpp11_mode && !microsoft_mode && nsp != NULL &&
+       nsp->has_internal_linkage)
 #if GNU_EXTENSIONS_ALLOWED
-  if (class_type->variant.class_struct_union.has_internal_linkage_attribute) {
-    /* A static data member in a class with the "internal_linkage"
-       attribute. */
+      || class_type->variant.class_struct_union.has_internal_linkage_attribute
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      ) {
+    /* A static data member in a class declared in an anonymous namespace or
+       with the "internal_linkage" attribute. */
     var->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
     var->storage_class = (a_storage_class)sc_static;
-  } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
-  {
+  } else {
     /* Static data members will have the same name linkage as the class of
        which they are members.  (In cfront mode that may mean internal linkage
        -- if and when its linkage is promoted to C++, the linkage of the static

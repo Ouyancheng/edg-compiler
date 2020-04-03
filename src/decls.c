@@ -3818,6 +3818,11 @@ information in the specified id-linkage block.
          linkage. */
       idlbp->linkage = idl_internal;
       const_variable = TRUE;
+    } else if (cpp11_mode && !microsoft_mode &&
+               idlbp->within_unnamed_namespace) {
+      /* In C++11 (and later) unnamed namespace scopes cause their members to
+         have internal linkage. */
+      idlbp->linkage = idl_internal;
     } else {
       idlbp->linkage = idl_external;
     }  /* if */
@@ -10394,7 +10399,9 @@ definition of a member function of a class template.
 
   db_enter(3, "decl_function_template");
   check_assertion(scope_is(&scope_stack_top(), sck_template_declaration));
-  if (func_info->is_inline && !extern_inline_allowed) {
+  if ((func_info->is_inline && !extern_inline_allowed) ||
+      (cpp11_mode && !microsoft_mode &&
+       scope_stack[depth_innermost_namespace_scope].within_unnamed_namespace)){
     storage_class = (a_storage_class)sc_static;
   } else if (storage_class == (a_storage_class)sc_unspecified) {
     /* Default. */
@@ -15370,6 +15377,15 @@ it's a definition and NULL otherwise).
                                               ->within_unnamed_namespace)) {
         ns_sym->variant.namespace_info.extra_info->
                                            within_unnamed_namespace = TRUE;
+        if (cpp11_mode && !microsoft_mode) {
+          /* Starting with C++11, unnamed namespaces and their members have
+             internal linkage. */
+          nsp->has_internal_linkage = TRUE;
+          /* Even though there is no name, set this so that generic IL
+             examinations that look at just the source correspondence can
+             see the internal linkage expectation. */
+          nsp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+        }  /* if */
       }  /* if */
       add_to_namespaces_list(nsp);
       if (!is_enclosing_namespace_specifier) {
