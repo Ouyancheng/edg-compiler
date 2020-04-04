@@ -35943,8 +35943,10 @@ returned is not in the IL and must be copied if needed there.
 
 static void finalize_function_name_string(a_const_char *name_str)
 /*
-Ensure that temp_text_buffer contains name_str (copying it if it is not
-already there) and add a trailing quote to terminate the string.
+name_str points either to the beginning of the temporary text buffer or to
+a string to be added to it.  Copy name_str into the temporary text buffer
+if necessary and then add a trailing quote character to terminate the
+string.
 */
 {
   if (name_str != temp_text_buffer) {
@@ -35952,6 +35954,7 @@ already there) and add a trailing quote to terminate the string.
   }  /* if */
   if (pos_in_temp_text_buffer > 0 &&
       temp_text_buffer[pos_in_temp_text_buffer - 1] == 0) {
+    /* The quote must overwrite the terminating null character. */
     --pos_in_temp_text_buffer;
   }  /* if */
   put_str_to_temp_text_buffer("\"");
@@ -36200,14 +36203,14 @@ end_of_routine:
 a_boolean set_curr_token_to_microsoft_xprefix_operator_string(void)
 /*
 Scan the Microsoft __xPREFIX operator.  __xPREFIX("string") adds an
-encoding-prefix to the string operand specified by the choice of "x" - L,
-U, and u add that letter as an encoding prefix, and l adds u8; for example,
-__LPREFIX("a") is equivalent to L"a", and __lPREFIX("a") is the same as
-u8"a".  This is used when token pasting is done on L##__FUNCTION__ and the
-other encoding-prefixes and function-name tokens.  Set the current token to
-the string literal that results and return TRUE.  If there is an error in
-scanning, return FALSE; in that case the current token is the next token
-following the operator, and should not be discarded.
+encoding-prefix to the string operand depending on what "x" is: L, U, and u
+each add that same letter as an encoding prefix, and l adds u8; for
+example, __LPREFIX("a") is equivalent to L"a", and __lPREFIX("a") is the
+same as u8"a".  This is used when token pasting is done on L##__FUNCTION__
+and the other encoding-prefixes and function-name tokens.  Set the current
+token to the string literal that results and return TRUE.  If there is an
+error in scanning, return FALSE; in that case the current token is the next
+token following the operator, and should not be discarded.
 */
 {
   a_boolean                     err = FALSE;
@@ -36239,9 +36242,9 @@ following the operator, and should not be discarded.
        operator.  (We must avoid checks involving curr_char_loc when we are
        fetching tokens from a cache, as where it points is unrelated to the
        current token stream and can give incorrect results.  We should not
-       end up here for __xPREFIX("string") in any event, because the
+       encounter __xPREFIX("string") in a cache in any event, because the
        construct will already have been converted to a string literal of
-       the requisite literal kind.) */
+       the requisite literal kind when it was encached.) */
     skip_white_space();
     if (*curr_char_loc == '"') {
       orig_lit_kind = SCLK_ORDINARY_STRING_LITERAL;
@@ -36250,15 +36253,16 @@ following the operator, and should not be discarded.
     }  /* if */
     if (orig_lit_kind != SCLK_NOT_A_LITERAL &&
         (orig_lit_kind & SCLK_STRING_LITERAL) != 0) {
-      /* Copy the raw string indicator from the original encoding prefix, but
-         otherwise use the literal kind implied by the __xPREFIX operator. */
+      /* Copy the raw string indicator from the original encoding prefix,
+         but otherwise use the literal kind implied by the __xPREFIX
+         operator. */
       lit_kind |= (orig_lit_kind & SCLK_RAW_STRING_LITERAL);
       start_of_curr_token = curr_char_loc;
       conv_line_loc_to_source_pos(curr_char_loc, &pos_curr_token);
       /* Skip over the original encoding prefix, if any, and the initial
          quote. */
       curr_char_loc += /*lint !e679*/
-                   offset_to_start_of_literal_value(orig_lit_kind);
+                               offset_to_start_of_literal_value(orig_lit_kind);
       /* Scan the string literal and set const_for_curr_token based on the
          revised literal kind. */
       curr_token = scan_string_literal(lit_kind);

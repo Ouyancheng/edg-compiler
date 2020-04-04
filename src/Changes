@@ -58,7 +58,7 @@ fixed, but such a configuration is only allowed when USE_SOFTFLOAT is TRUE
 
 
 4/2/20   [EDGcpfe/16268]
-Microsoft compatibility: additional encoding-prefix operators
+Microsoft compatibility: additional encoding-prefix string literal operators
 
 As described in the entries of 2/18/98 and 5/12/04, the front end supports
 several Microsoft extensions for producing wide string literals: prefixing

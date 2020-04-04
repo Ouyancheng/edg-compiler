@@ -13661,7 +13661,7 @@ literal_prefix_scan:
                                                  /*end_token_is_valid=*/FALSE);
         /* Skip over the prefix, if any, and the leading quote. */
         curr_char_loc += /*lint !e679*/
-                     offset_to_start_of_literal_value(lit_kind);
+                                    offset_to_start_of_literal_value(lit_kind);
         ctoken = scan_string_literal(lit_kind);
         goto concatenate_adjacent_string_literals;
       }  /* if */

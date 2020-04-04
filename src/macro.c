@@ -4016,9 +4016,9 @@ treatment of rt_optional_text.
                                                  &post_end)) {
               /* This is token pasting of L##__FUNCTION__ or the like,
                  which will be replaced by __xPREFIX(__FUNCTION__), where
-                 string prefixes of u8, U, and u are mapped to __lPREFIX,
-                 __UPREFIX, and __uPREFIX, respectively.  The prefix is
-                 also removed. */
+                 string prefixes of L, u8, U, and u are mapped to
+                 __LPREFIX, __lPREFIX, __UPREFIX, and __uPREFIX,
+                 respectively.  The prefix is also removed. */
               result += strlen(tok_text)+2-prefix_len;
             }  /* if */
           }
@@ -8213,7 +8213,8 @@ static a_boolean is_microsoft_prefixed_stringize()
 /*
 Return TRUE if the current token is one of the prefixes that can be used
 with the stringize operator in Microsoft mode to produce a string literal
-with an encoding prefix and it is immediately followed by '#'.
+with an encoding prefix and the prefix is immediately followed (with no
+intervening white space) by '#'.
 */
 {
   a_boolean result = FALSE;
