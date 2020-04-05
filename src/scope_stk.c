@@ -12604,8 +12604,7 @@ form.
           }  /* if */
           check_assertion(depth != NO_SCOPE_DEPTH);
           if ((pack_symbol != NULL &&
-               pack_symbol->decl_scope != scope_stack[depth].number) ||
-              pack_symbol->is_pack_element) {
+               pack_symbol->decl_scope != scope_stack[depth].number)) {
             prp->uses_enclosing_pack = TRUE;
           } else {
             if (scope_is(&scope_stack_top(), sck_func_prototype)) {

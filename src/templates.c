@@ -2015,6 +2015,7 @@ template argument matching.
        prev_tap = tap,
          special_variadic_advance_to_next_template_arg(&tpp, &tap)) {
     a_boolean	has_value;
+    uint32_t	param_num = tpp->param_num;
     /* If a start-of-expansion argument was returned, advance to the first
        element of the pack. */
     if (is_start_of_pack_expansion_templ_arg(tap)) {
@@ -2024,77 +2025,93 @@ template argument matching.
         continue;
       }  /* if */
     }  /* if */
-    has_value = template_arg_has_value(tap);
-    if (tpp == NULL) {
-      if (is_templ_templ_param_check) {
-        if (!tap->is_pack_element) result = FALSE;
-      } else {
-        result = FALSE;
-      }  /* if */
-      break;
-    }  /* if */
-    if (default_allowed && !has_value) {
-      /* See if the template parameter has a default value that can be used. */
-      get_template_arg_value_from_default(template_sym, tap, tpp,
-                                          templ_param_list);
+    /* Iterate over the arguments and parameters that are associated with
+       a given template parameter pack that is an expansion.  See the test
+       at the bottom of the loop. */
+    for (;; tap = tap->next, tpp = tpp->next) {
       has_value = template_arg_has_value(tap);
-      if (has_value && tpp->def_arg_involves_template_param) {
-        /* If a default argument value was used, substitute the argument
-           values in case the default depends on one of the previous
-           template parameters. */
-        a_boolean	copy_error = FALSE;
-        a_ctws_state	ctws_state;
-        init_ctws_state(&ctws_state);
-        substitute_template_argument(tap, tpp, templ_arg_list,
-                                     templ_param_list,
-                                     templ_arg_list, templ_param_list,
-                                     &template_sym->decl_position,
-                                     ctws_options, /*is_generic=*/FALSE,
-                                     &copy_error, &ctws_state);
-        if (copy_error ||
-            (!implicit_guide && !is_templ_templ_param_check &&
-             template_arg_is_dependent(tap))) {
-          /* If the copy failed, or resulted in an argument that is still
-             dependent, don't use the resulting value.  A dependent value
-             is okay for deduction guide substitution and for template
-             template parameter checking. */
+      if (tpp == NULL) {
+        if (is_templ_templ_param_check) {
+          if (!tap->is_pack_element) result = FALSE;
+        } else {
+          result = FALSE;
+        }  /* if */
+        break;
+      }  /* if */
+      if (default_allowed && !has_value) {
+        /* See if the template parameter has a default value that can be
+           used. */
+        get_template_arg_value_from_default(template_sym, tap, tpp,
+                                            templ_param_list);
+        has_value = template_arg_has_value(tap);
+        if (has_value && tpp->def_arg_involves_template_param) {
+          /* If a default argument value was used, substitute the argument
+             values in case the default depends on one of the previous
+             template parameters. */
+          a_boolean	copy_error = FALSE;
+          a_ctws_state	ctws_state;
+          init_ctws_state(&ctws_state);
+          substitute_template_argument(tap, tpp, templ_arg_list,
+                                       templ_param_list,
+                                       templ_arg_list, templ_param_list,
+                                       &template_sym->decl_position,
+                                       ctws_options, /*is_generic=*/FALSE,
+                                       &copy_error, &ctws_state);
+          if (copy_error ||
+              (!implicit_guide && !is_templ_templ_param_check &&
+               template_arg_is_dependent(tap))) {
+            /* If the copy failed, or resulted in an argument that is still
+               dependent, don't use the resulting value.  A dependent value
+               is okay for deduction guide substitution and for template
+               template parameter checking. */
+            result = FALSE;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (!has_value) {
+        a_boolean	okay_if_no_value = FALSE;
+        if (is_templ_templ_param_check) {
+          if (prev_tap != NULL && prev_tap->is_pack_element) {
+            okay_if_no_value = TRUE;
+            prev_tap->next = tap->next;
+          }  /* if */
+        } else if (is_partial_order_check) {
+          /* We are doing a check during the wrapup processing for partial
+             ordering of function templates.  A parameter can remain without
+             a value provided it is not used in the types being used for the
+             partial ordering comparison. */
+          if (is_conversion_operator) {
+            check_assertion(rout_type != NULL);
+            if (!template_param_used_in_type(
+                    tpp->param_symbol, rout_type->variant.routine.return_type,
+                    /*deduced_only=*/FALSE)) {
+              okay_if_no_value = TRUE;
+            }  /* if */
+          } else {
+            if (!template_param_appears_in_param_list(
+                         tpp->param_symbol, rout_type, /*deduced_only=*/FALSE,
+                         param_count)) {
+              okay_if_no_value = TRUE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        if (!okay_if_no_value) {
           result = FALSE;
           break;
         }  /* if */
       }  /* if */
-    }  /* if */
-    if (!has_value) {
-      a_boolean	okay_if_no_value = FALSE;
-      if (is_templ_templ_param_check) {
-        if (prev_tap != NULL && prev_tap->is_pack_element) {
-          okay_if_no_value = TRUE;
-          prev_tap->next = tap->next;
-        }  /* if */
-      } else if (is_partial_order_check) {
-        /* We are doing a check during the wrapup processing for partial
-           ordering of function templates.  A parameter can remain without
-           a value provided it is not used in the types being used for the
-           partial ordering comparison. */
-        if (is_conversion_operator) {
-          check_assertion(rout_type != NULL);
-          if (!template_param_used_in_type(
-                  tpp->param_symbol, rout_type->variant.routine.return_type,
-                  /*deduced_only=*/FALSE)) {
-            okay_if_no_value = TRUE;
-          }  /* if */
-        } else {
-          if (!template_param_appears_in_param_list(
-                       tpp->param_symbol, rout_type, /*deduced_only=*/FALSE,
-                       param_count)) {
-            okay_if_no_value = TRUE;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      if (!okay_if_no_value) {
-        result = FALSE;
+      if (param_num > 0 &&
+          tap != NULL && tap->is_pack_element &&
+          tpp->next != NULL && tpp->next->param_num == param_num) {
+        /* There are more arguments and parameters associated with a given
+           template parameter that is an expansion.  Do another iteration
+           of the loop. */
+      } else {
         break;
       }  /* if */
-    }  /* if */
+    }  /* for */
+    if (tap == NULL) break;
   }  /* for */
   /* In variadic cases there can be fewer arguments than parameters. */
   if (tpp != NULL && !tpp->is_pack) result = FALSE;
@@ -11101,7 +11118,7 @@ doing C++17-style template template parameter matching.
       }  /* if */
       /* Don't create an empty argument for a parameter pack with no
          specified arguments. */
-      if (tpp->is_pack && specified_tap == NULL) continue;
+      if ((tpp->is_pack || is_special_pack) && specified_tap == NULL) continue;
       if (specified_tap != NULL &&
           is_start_of_pack_expansion_templ_arg(specified_tap)) {
         tap =
@@ -12510,8 +12527,12 @@ points to the template parameter list.
              and are always treated as a match at this point.  Otherwise, this
              should only happen if templ_type is a type from a prototype
              instantiation that includes a template parameter type in the
-             parent class. */
-          match = is_auto_type(templ_type) ||
+             parent class.  This is accepted for a template parameter pack.
+             This comes up in cases where both a pack from an enclosing
+             template and a deduced pack from the current template are used
+             in the same expansion. */
+          match = templ_type->variant.template_param.is_pack ||
+                  is_auto_type(templ_type) ||
                   is_auto_template_param_type(templ_type) ||
                   identical_types(type, templ_type);
         } else {

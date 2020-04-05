@@ -1,5 +1,25 @@
 Version 6.1
 
+4/5/20   [EDGcpfe/22204]
+Pack deduction in expansion that uses enclosing packs
+
+Template argument deduction for a parameter pack did not work properly when
+an expansion used both template parameter packs from an enclosing template and
+template parameter packs from the current declaration.  This could result in
+an internal error (in get_curr_variadic_arg_for_param) or a deduction failure.
+Now fixed.
+
+  template<typename ...T> struct A {
+    template<T ...N> A(const T (&...p)[N]) { }
+  };
+  template<typename ...T> struct B {
+    template<int ...N> B(const T (&...p)[N]) { }
+  };
+  int array[10];
+  A<int> a(array);  // internal error
+  B<int> b(array);  // deduction failure
+
+
 4/5/20   [EDGcpfe/22582]
 C++-generating back end: namespace of friend functions of class templates
 
