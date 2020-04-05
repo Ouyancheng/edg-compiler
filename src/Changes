@@ -1,5 +1,29 @@
 Version 6.1
 
+4/5/20   [EDGcpfe/22582]
+C++-generating back end: namespace of friend functions of class templates
+
+In C++-generating back end configurations with
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE, the
+definition of a friend function defined inside a class template could
+sometimes be placed into the wrong namespace in the generated code.  For
+example:
+
+  namespace N {
+    template<typename> class S {
+      friend void f(S) { g(); }
+      static void g() { }
+    };
+  }
+  void h() {
+    f(N::S<int>());
+  }
+
+For this example, the definition of f(<N::S<int>) in the generated code was
+previously incorrectly emitted in the global namespace instead of in
+namespace N as it should have been.
+
+
 4/3/20   [EDGcpfe/18674]
 Linkage of members of anonymous namespaces
 

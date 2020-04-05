@@ -21182,6 +21182,13 @@ handle_as_definition:
          appropriate form. */
       rout->expl_template_arg_list_used = TRUE;
     }  /* if */
+  } else if (friend_decl && is_definition &&
+             !curr_name_context_is_a_class() && orig_scope == NULL) {
+    /* This is the definition of a friend function outside its class, so
+       we need to make sure that it appears in the correct namespace. */
+    adjust_namespace_state_for_specialization(&rout->source_corresp,
+                                              &common_scope, &orig_scope,
+                                              name_ref);
   }  /* if */
   if (curr_name_context_is_a_class()) {
     /* A function or function template declaration in a class definition. */
