@@ -36276,8 +36276,7 @@ token following the operator, and should not be discarded.
   if (!processed) {
     /* The operand was not a string; see what it is. */
     (void)get_token();
-    if (token_is_function_name_string_literal(curr_token) &&
-        curr_token != tok_pretty_function_name) {
+    if (token_is_function_name_string_literal(curr_token)) {
       set_curr_token_to_function_name_string(/*do_concat=*/FALSE, lit_kind);
     }  /* if */
   }  /* if */
