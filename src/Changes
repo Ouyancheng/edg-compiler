@@ -98,7 +98,7 @@ internal host floating-point value, if the target configuration specifies
 an 80-bit long double type, but the host long double type is only 64-bits,
 a segfault (in conv_host_fp_to_long_double) could occur.  That has now been
 fixed, but such a configuration is only allowed when USE_SOFTFLOAT is TRUE
-(since the host has no way to convert to an un-supported 80-bit long double).
+(since the host has no way to convert to an unsupported 80-bit long double).
 
 
 4/2/20   [EDGcpfe/16268]

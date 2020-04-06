@@ -2775,18 +2775,6 @@ the cv-qualifiers and passes the type through.
       }  /* if */
     }  /* if */
   }  /* if */
-#else /* !GENERATE_EH_TABLES */
-#if IA64_ABI
-  /* The IA-64 ABI has no typeinfo encoding for a reference type, so
-     don't try to make one.  Mark Mitchell reports that this is probably a
-     bug in g++, but until the ABI spec is changed to provide a
-     representation for a reference avoid aborts by skipping down to
-     the underlying type.  Customers who roll their own IA-64 ABI
-     exception handling may or may not want this code. */
-  if (is_reference_type(eff_type)) {
-    eff_type = type_pointed_to(eff_type);
-  }  /* if */
-#endif /* IA64_ABI */
 #endif /* GENERATE_EH_TABLES */
   /* Strip typerefs but watch out for rewritten pointers-to-members or
      nullptrs. */
