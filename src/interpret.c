@@ -17859,18 +17859,16 @@ done:
 
 
 static a_boolean interpret_dynamic_sub_initializers(
-                                    a_constant_ptr     aggr_con,
-                                    a_source_position  *pos,
-                                    a_type_ptr         result_type,
-                                    a_boolean          allow_reinterpret_cast,
-                                    a_diag_list_ptr    diag_list)
+                                      a_constant_ptr   aggr_con,
+                                      a_boolean        allow_reinterpret_cast,
+                                      a_diag_list_ptr  diag_list)
 /*
 aggr_con is a ck_aggregate constant that might directly or indirectly contain
 ck_dynamic_init elements.  Attempt to interpret those elements to produce an
 aggregate with no dynamic components and return TRUE if successful.  If not
 successful, some of the dynamic components may nonetheless have been folded.
-See interpret_dynamic_init_full for the meaning of the pos, result_type,
-allow_reinterpret_cast, and diag_list parameters.
+See interpret_dynamic_init_full for the meaning of the diag_list and
+allow_reinterpret_cast parameters.
 */
 {
   a_boolean       result = TRUE;
@@ -17898,8 +17896,7 @@ allow_reinterpret_cast, and diag_list parameters.
     } else if (constant_is(elem_con, ck_aggregate) &&
                elem_con->variant.aggregate.has_dynamic_init_component) {
       if (!interpret_dynamic_sub_initializers(
-                         elem_con, &elem_con->source_corresp.decl_position, 
-                         elem_con->type, allow_reinterpret_cast, diag_list)) {
+                               elem_con, allow_reinterpret_cast, diag_list)) {
         result = FALSE;
         break;
       }  /* if */
@@ -17996,7 +17993,6 @@ if the caller has determined that reinterpret_cast expressions can be folded
          It might still be possible to fold the sub-initializers for such a
          case, however, thereby producing a simple aggregate constant. */
       result = interpret_dynamic_sub_initializers(dip->variant.constant.ptr,
-                                                  pos, result_type,
                                                   ips.allow_reinterpret_cast,
                                                   diag_list);
       (void)copy_constant_full(dip->variant.constant.ptr, result_con,
