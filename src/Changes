@@ -182,7 +182,7 @@ with --c++17:
 Spurious ambiguity error on partial specialization selection
 
 In some cases where a nontype template argument is implicitly converted to the
-corresponding parameters type, the front end failed to select among partial
+corresponding parameter's type, the front end failed to select among partial
 specializations that are not in fact ambiguous.  For example:
 
   enum E { e, f };
