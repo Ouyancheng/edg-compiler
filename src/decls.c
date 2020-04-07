@@ -10399,9 +10399,7 @@ definition of a member function of a class template.
 
   db_enter(3, "decl_function_template");
   check_assertion(scope_is(&scope_stack_top(), sck_template_declaration));
-  if ((func_info->is_inline && !extern_inline_allowed) ||
-      (cpp11_mode && !microsoft_mode &&
-       scope_stack[depth_innermost_namespace_scope].within_unnamed_namespace)){
+  if (func_info->is_inline && !extern_inline_allowed) {
     storage_class = (a_storage_class)sc_static;
   } else if (storage_class == (a_storage_class)sc_unspecified) {
     /* Default. */
@@ -10657,6 +10655,9 @@ definition of a member function of a class template.
       /* id_linkage will set sym to point to an existing symbol when we have
          a redeclaration of a function template. */
       id_linkage(&idlb, dps);
+      if (idlb.storage_class != (a_storage_class)sc_unspecified) {
+        storage_class = idlb.storage_class;
+      }  /* if */
       sym = idlb.linked_symbol;
       homonym_symbol = idlb.homonym_symbol;
       overload_symbol = idlb.overload_symbol;
@@ -15381,9 +15382,6 @@ it's a definition and NULL otherwise).
           /* Starting with C++11, unnamed namespaces and their members have
              internal linkage. */
           nsp->has_internal_linkage = TRUE;
-          /* Even though there is no name, set this so that generic IL
-             examinations that look at just the source correspondence can
-             see the internal linkage expectation. */
           nsp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
         }  /* if */
       }  /* if */

@@ -1695,6 +1695,9 @@ extern a_boolean expr_tree_contains_template_param_constant(
                                              an_expr_node_ptr  node,
                                              a_constant_ptr    cp);
 
+extern a_source_correspondence_ptr nontype_templ_arg_constant_corresp(
+                                                      a_constant_ptr constant);
+
 extern a_boolean nontype_templ_arg_constant_involves_invalid_linkage(
                                                       a_constant_ptr constant);
 

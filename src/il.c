@@ -8196,15 +8196,14 @@ contains it among its operands (in a position that can be deduced from).
 }  /* expr_tree_contains_template_param_constant */
 
 
-a_boolean nontype_templ_arg_constant_involves_invalid_linkage(
+a_source_correspondence_ptr nontype_templ_arg_constant_corresp(
                                                        a_constant_ptr constant)
 /*
-Return TRUE if the indicated constant is not valid as a nontype template
-argument because it references a non-external entity, e.g., a local variable.
+Return the source correspondence entry of the non-type template argument
+constant, if it exists.
 */
 {
-  a_boolean               invalid = FALSE;
-  a_source_correspondence *scp = NULL;
+  a_source_correspondence_ptr scp = NULL;
 
   if (constant->kind == (a_constant_repr_kind)ck_address) {
     /* An address constant.  See if the object referenced is external. */
@@ -8213,13 +8212,6 @@ argument because it references a non-external entity, e.g., a local variable.
     switch (abk) {
       case abk_routine:
         scp = &constant->variant.address.variant.routine->source_corresp;
-        if (microsoft_mode) {
-          /* Microsoft compilers do not appear to check the linkage of a
-             routine whose address is used as a template argument (e.g., the
-             address of a static member function of a local class is
-             accepted). */
-          scp = NULL;
-        }  /* if */
         break;
       case abk_variable:
         scp = &constant->variant.address.variant.variable->source_corresp;
@@ -8232,6 +8224,56 @@ argument because it references a non-external entity, e.g., a local variable.
         if (constant->variant.address.variant.type != NULL) {
           scp = &constant->variant.address.variant.type->source_corresp;
         }  /* if */
+        break;
+      case abk_label:
+        scp = &constant->variant.address.variant.label->source_corresp;
+        break;
+      case abk_typeid:
+        break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case abk_cli_typeid:
+      case abk_cli_array:
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      default:
+        unexpected_condition_str2(
+                  "nontype_templ_arg_constant_corresp:", "bad address kind");
+    }  /* switch */
+  }  /* if */
+  return scp;
+}  /* nontype_templ_arg_constant_corresp */
+
+
+a_boolean nontype_templ_arg_constant_involves_invalid_linkage(
+                                                       a_constant_ptr constant)
+/*
+Return TRUE if the indicated constant is not valid as a nontype template
+argument because it references a non-external entity, e.g., a local variable.
+*/
+{
+  a_boolean               invalid = FALSE;
+  a_source_correspondence *scp = NULL;
+
+  scp = nontype_templ_arg_constant_corresp(constant);
+  if (constant->kind == (a_constant_repr_kind)ck_address) {
+    /* An address constant.  See if the object referenced is external. */
+    /* Get a pointer to the source correspondence for the entity. */
+    an_address_base_kind  abk = constant->variant.address.kind;
+    switch (abk) {
+      case abk_routine:
+        if (microsoft_mode) {
+          /* Microsoft compilers do not appear to check the linkage of a
+             routine whose address is used as a template argument (e.g., the
+             address of a static member function of a local class is
+             accepted). */
+          scp = NULL;
+        }  /* if */
+        break;
+      case abk_variable:
+      case abk_constant:
+      case abk_temporary:
+      case abk_uuidof:
+      case abk_label:
         break;
       case abk_typeid:
         /* A typeid operation in a nontype template argument (accepted in
@@ -8248,9 +8290,6 @@ argument because it references a non-external entity, e.g., a local variable.
         invalid = TRUE;
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      case abk_label:
-        scp = &constant->variant.address.variant.label->source_corresp;
-        break;
       default:
         unexpected_condition_str2(
                   "nontype_templ_arg_constant_involves_invalid_linkage:",

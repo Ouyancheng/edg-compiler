@@ -49,8 +49,8 @@ Linkage of members of anonymous namespaces
 
 Starting with C++11, members of anonymous namespaces have internal linkage.
 The front end now implements this.  In addition, template instantiations where
-one or more template arguments have internal linkage now causes that particular
-instantiation to also have internal linkage.  For example:
+one or more template arguments have internal linkage now also have internal
+linkage.  For example:
 
   namespace {
     int var; // Now has internal linkage in C++11 modes

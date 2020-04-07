@@ -5745,6 +5745,7 @@ body.  Only called in C++ mode.
                                &sym->decl_position, sym);
               }  /* if */
             } else if (rp->source_corresp.referenced &&
+                       !is_member_of_unnamed_namespace(&rp->source_corresp) &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
                        !(ms_extensions &&
                          (rp->decl_modifiers & DM_DLLIMPORT)) &&
@@ -5755,14 +5756,18 @@ body.  Only called in C++ mode.
                        (rp->is_inline ||
                         rp->storage_class != (a_storage_class)sc_extern)) {
               /* A referenced but undefined member function that is either
-                 extern-inline or has internal linkage. */
+                 extern-inline or has internal linkage.  If the class is a
+                 member of an anonymous namespace this diagnostic has already
+                 been issued. */
               an_error_severity  severity = es_discretionary_error;
               if (microsoft_mode ||
+                  (!rp->is_inline && gnu_mode) ||
                   (gpp_mode && rp->is_inline &&
                    rp->storage_class == (a_storage_class)sc_extern)) {
                 /* Microsoft compilers do not diagnose these sorts of
                    situations.  Similarly, GNU C++ accepts undefined extern
-                   inline functions even though they are used. */
+                   inline functions even though they are used, and accepts
+                   undefined functions with internal linkage. */
                 severity = (an_error_severity)es_warning;
               }  /* if */
               pos_sy_diagnostic(severity, ec_never_defined,
@@ -5877,6 +5882,10 @@ the outermost class was defined in an unnamed namespace.
           /* If the enclosing class is unreferenced, the lack of a definition
              for a virtual function is rarely a serious problem. */
           sev = es_remark;
+        } else if (gnu_mode || microsoft_mode) {
+          /* GCC, Clang and MSVC either don't diagnose this or only issue
+             warnings. */
+          sev = es_warning;
         }  /* if */
         pos_sy_diagnostic(sev,
                           rp->is_virtual ? ec_virtual_function_never_defined
@@ -5937,11 +5946,13 @@ an unnamed namespace.
   if (unnamed_ns_member) {
     /* A member of an unnamed namespace must be defined if used.  We also
        give a diagnostic if a member is declared but not used. */
-    if (vp->used &&
-        vp->storage_class == (a_storage_class)sc_extern &&
-        !vp->is_member_constant) {
-      pos_sy_error(ec_never_defined, &vp->source_corresp.decl_position,
-                   var_sym);
+    if (vp->used && !vp->is_member_constant && !var_sym->defined) {
+      an_error_severity severity = es_discretionary_error;
+      if (gnu_mode || microsoft_mode) {
+        severity = es_warning;
+      }  /* if */
+      pos_sy_diagnostic(severity, ec_never_defined,
+                        &vp->source_corresp.decl_position, var_sym);
     } else if (!vp->source_corresp.referenced) {
       report_unreferenced(var_sym, ec_declared_but_not_referenced, es_warning);
     }  /* if */
@@ -6056,6 +6067,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
   a_type_ptr      var_type;
   a_variable_ptr  var_ptr;
   a_routine_ptr   rout_ptr;
+  a_boolean       anon_ns_mem;
 #if CHECKING
   a_source_correspondence  *scp = NULL;
 #endif /* CHECKING */
@@ -6065,6 +6077,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
       /* Variable or parameter. */
       var_ptr = sym->variant.variable.ptr;
       storage_class = var_ptr->storage_class;
+      anon_ns_mem = is_member_of_unnamed_namespace(&var_ptr->source_corresp);
       if (scope_kind == (a_scope_kind)sck_file &&
           var_ptr->used && var_ptr->is_inline &&
           (storage_class == (a_storage_class)sc_unspecified ||
@@ -6074,31 +6087,30 @@ curr_routine points to the routine entry; otherwise, it is NULL.
            translation unit. */
         pos_sy_error(ec_extern_inline_never_defined, &sym->decl_position,
                      sym);
-      } else if (storage_class == (a_storage_class)sc_unspecified &&
-                 (!is_member_of_unnamed_namespace(&var_ptr->source_corresp) ||
-                  var_ptr->source_corresp.name_linkage ==
+      } else if ((storage_class == (a_storage_class)sc_unspecified ||
+                  storage_class == (a_storage_class)sc_extern) &&
+                 (!anon_ns_mem || var_ptr->source_corresp.name_linkage ==
                                          (a_name_linkage_kind)nlk_external)) {
-        /* Note that if this test succeeds (i.e., the variable has
+        /* Note that if this test succeeds (e.g., the variable has
            storage class sc_unspecified), we do not do the test for
            referenced.  That's because an external variable can be assumed
            to be referenced from another compilation unit.  The referenced
            flag in the IL entry is set slightly later, in the
-           sk_extern_variable processing. */
-      } else if (storage_class == (a_storage_class)sc_extern) {
-        /* Usually, we issue no warning for unused "extern" variables; this is
-           a long-standing C convention.  In unnamed namespaces, however, a
-           warning is issued for unused declarations, and an error for missing
-           definitions that were referenced. */
-        if (is_member_of_unnamed_namespace(&var_ptr->source_corresp) &&
-            var_ptr->source_corresp.name_linkage !=
-                                         (a_name_linkage_kind)nlk_external) {
-          if (sym->referenced) {
-            pos_sy_diagnostic(es_discretionary_error, ec_never_defined,
-                              &sym->decl_position, sym);
-          } else {
-            report_unreferenced(sym, ec_declared_but_not_referenced,
-                                es_warning);
+           sk_extern_variable processing.  Usually, we issue no warning for
+           unused "extern" variables; this is a long-standing C convention. */
+      } else if (anon_ns_mem) {
+        /* In unnamed namespaces a warning is issued for unused declarations,
+           and an error for missing definitions that were referenced. */
+        if (var_ptr->used && !sym->defined) {
+          an_error_severity severity = es_discretionary_error;
+          if (gnu_mode || microsoft_mode) {
+            severity = es_warning;
           }  /* if */
+          pos_sy_diagnostic(severity, ec_never_defined, &sym->decl_position,
+                            sym);
+        } else if (!sym->referenced) {
+          report_unreferenced(sym, ec_declared_but_not_referenced,
+                              es_warning);
         }  /* if */
       } else if (is_const_qualified_type(var_ptr->type) &&
                  (sym->referenced ||
@@ -6390,8 +6402,12 @@ curr_routine points to the routine entry; otherwise, it is NULL.
           /* If an attempt was made to explicitly instantiate the function
              template, an error will have been issued already. */
           if (tip != NULL && !tip->explicit_instantiation) {
-            pos_sy_diagnostic(es_discretionary_error, ec_never_defined,
-                              &sym->decl_position, sym);
+            an_error_severity severity = es_discretionary_error;
+            if (gnu_mode || microsoft_mode) {
+              severity = es_warning;
+            }  /* if */
+            pos_sy_diagnostic(severity, ec_never_defined, &sym->decl_position,
+                              sym);
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (ms_extensions &&

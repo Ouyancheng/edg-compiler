@@ -6261,12 +6261,16 @@ Determine whether any of the arguments in arg_list have internal linkage.
 
   for (; arg_list != NULL; arg_list = arg_list->next) {
     a_name_linkage_kind linkage = (a_name_linkage_kind)nlk_none;
-    a_type_ptr          arg_type = NULL;
     if (arg_list->kind == (a_templ_arg_kind)tak_type) {
-      arg_type = arg_list->variant.type;
+      linkage = skip_typerefs(arg_list->variant.type)->
+                                                   source_corresp.name_linkage;
     } else if (arg_list->kind == (a_templ_arg_kind)tak_nontype &&
                !arg_list->is_array_bound_of_unknown_type) {
-      arg_type = arg_list->variant.constant->type;
+      a_source_correspondence_ptr scp;
+      scp = nontype_templ_arg_constant_corresp(arg_list->variant.constant);
+      if (scp != NULL) {
+        linkage = scp->name_linkage;
+      }  /* if */
     } else if (arg_list->kind == (a_templ_arg_kind)tak_template) {
       a_template_ptr tmpl = arg_list->variant.templ.ptr;
       if (tmpl->template_info == NULL) continue;
@@ -6288,10 +6292,6 @@ Determine whether any of the arguments in arg_list have internal linkage.
           break;
         default:;
       }  /* switch */
-    }  /* if */
-    if (arg_type != NULL) {
-      arg_type = skip_typerefs(arg_type);
-      linkage = arg_type->source_corresp.name_linkage;
     }  /* if */
     if (linkage == (a_name_linkage_kind)nlk_internal) {
       result = TRUE;
@@ -6822,8 +6822,7 @@ cases).
   set_routine_declared_type(rout_ptr, tip->declared_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Set the linkage and storage class. */
-  if (instantiation_mode == tim_local ||
-      template_arg_list_has_internal_linkage(rout_ptr->template_arg_list)) {
+  if (instantiation_mode == tim_local) {
     /* Put out template function as internally linked. */
     rout_ptr->storage_class = (a_storage_class)sc_static;
     rout_ptr->source_corresp.name_linkage =
@@ -10766,7 +10765,6 @@ instance symbol.
   a_symbol_ptr				new_sym;
   a_template_instance_ptr		tip;
   a_storage_class			storage_class;
-  a_namespace_ptr			enclosing_nsp;
   a_memory_region_number		region_to_switch_back_to;
 
   /* Variable template instances must be allocated in the file scope. */
@@ -10775,18 +10773,14 @@ instance symbol.
   tssp = template_sym->variant.template_info;
   /* Create the symbol for the instantiation. */
   new_sym = make_template_variable_symbol(template_sym);
-  if (new_sym->is_class_member) {
-    enclosing_nsp = namespace_enclosing_class(sym_parent_class(new_sym));
-  } else {
-    enclosing_nsp = sym_parent_namespace_or_null(new_sym);
-  }  /* if */
-  if (cpp11_mode && !microsoft_mode && enclosing_nsp != NULL &&
-      enclosing_nsp->has_internal_linkage) {
-    /* Starting with C++11, members of unnamed namespaces have internal
-       linkage.*/
-    storage_class = (a_storage_class)sc_static;
-  } else {
-    storage_class = (a_storage_class)sc_extern;
+  storage_class = (a_storage_class)sc_extern;
+  if (!new_sym->is_class_member && cpp11_mode && !microsoft_mode) {
+    a_namespace_ptr enclosing_nsp = sym_parent_namespace_or_null(new_sym);
+    if (enclosing_nsp != NULL && enclosing_nsp->has_internal_linkage) {
+      /* Starting with C++11, members of unnamed namespaces have internal
+         linkage.*/
+      storage_class = (a_storage_class)sc_static;
+    }  /* if */
   }  /* if */
   var = alloc_variable(storage_class);
   var->is_template_variable = TRUE;
@@ -18203,6 +18197,11 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     }  /* if */
     set_membership_in_source_corresp(&rp->source_corresp, sym);
     rp->source_corresp.name_linkage = templ_rout->source_corresp.name_linkage;
+    if (rp->source_corresp.name_linkage != (a_name_linkage_kind)nlk_internal &&
+        template_arg_list_has_internal_linkage(templ_arg_list)) {
+      rp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+      rp->storage_class = (a_storage_class)sc_static;
+    }  /* if */
     rp->source_corresp.access = templ_rout->source_corresp.access;
     rp->template_arg_list = templ_arg_list;
     rp->assoc_template = tssp->il_template_entry;
