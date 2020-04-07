@@ -4,17 +4,19 @@ Version 6.1
 C++-generating back end, clang compatibility: injected-class-name of class
 template
 
-Versions of clang before 5.0 interpreted a use of the injected-class-name
-of a class template exclusively as a type and gave an error if the context
-required a template name.  The C++-generating back end has now been updated
+Versions of clang before 5.0 did not allow use of the injected-class-name
+of a class template as a template template argument, treating it as a type
+instead of as a template.  The C++-generating back end has now been updated
 to work around this limitation when clang_is_generated_code_target and
-clang_target_version_number is less than 50000 by using a qualified name to
-refer to a class template wherever the template's injected-class-name is in
-scope.  For example, with --c++14 --clang_version=40000:
+clang_target_version_number is less than 50000 by using a qualified name
+when a class template name appears as a template template argument within
+the scope of the template's injected-class-name.  For example, with --c++14
+--clang_version=40000:
 
   template <template <class> class> struct A;
   template <class> class B {
-    B<A<::B>> f();  // Previously generated as B<A<B>>
+    B<A<::B>> f();  // Previously always generated as B<A<B>>; now the
+                    // qualified form is used for older clang versions
   };
 
 
