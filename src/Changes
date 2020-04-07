@@ -1,5 +1,23 @@
 Version 6.1
 
+4/6/20   [EDGcpfe/22478]
+C++-generating back end, clang compatibility: injected-class-name of class
+template
+
+Versions of clang before 5.0 interpreted a use of the injected-class-name
+of a class template exclusively as a type and gave an error if the context
+required a template name.  The C++-generating back end has now been updated
+to work around this limitation when clang_is_generated_code_target and
+clang_target_version_number is less than 50000 by using a qualified name to
+refer to a class template wherever the template's injected-class-name is in
+scope.  For example, with --c++14 --clang_version=40000:
+
+  template <template <class> class> struct A;
+  template <class> class B {
+    B<A<::B>> f();  // Previously generated as B<A<B>>
+  };
+
+
 4/5/20   [EDGcpfe/22204]
 Pack deduction in expansion that uses enclosing packs
 

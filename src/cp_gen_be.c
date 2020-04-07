@@ -7516,6 +7516,23 @@ template.
     if (octl.force_qualified_name) {
       options |= GN_FORCE_QUALIFIED_NAME;
       octl.force_qualified_name = FALSE;
+    } else if (clang_is_generated_code_target &&
+               clang_target_version_number < 50000) {
+      /* Versions of clang before 5.0 had a bug that prevented use of the
+         injected-class-name of a class template as a template name;
+         instead, the template name needed to be referred to using a
+         qualified-id.  Check to see if this template reference is in the
+         context of the corresponding class type. */
+      a_template_ptr     tplp = (a_template_ptr)scp;
+      a_name_context_ptr ncp;
+      for (ncp = curr_name_context; ncp != NULL; ncp = ncp->next) {
+        if (ncp->class_type != NULL &&
+            ncp->class_type->variant.class_struct_union.extra_info->
+                                                      assoc_template == tplp) {
+          options |= GN_FORCE_QUALIFIED_NAME;
+          break;
+        }  /* if */
+      }  /* for */
     }  /* if */
     gen_name((a_source_correspondence *)entry, kind, options,
              (a_boolean *)NULL);
