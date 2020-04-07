@@ -428,6 +428,7 @@ struct Dyn_array: private an_Allocator {
   inline auto end() const -> const an_elem*
     { return this->elems+this->n_elems; }
 private:
+  typedef typename an_allocator::an_allocation an_allocation;
   an_elem	*elems;
 			/* Pointer to the allocated elements. */
   a_size	n_allocated;
@@ -436,7 +437,6 @@ private:
   a_size	n_elems;
 			/* Number of initialized elements.  This is also known
 			   as the "length". */
-  typedef typename an_allocator::an_allocation an_allocation;
   void grow();
 };  /* Dyn_array */
 
@@ -1853,21 +1853,6 @@ Version of hash_ptr for native pointers.  This assumes IL-aligned pointers.
 }  /* hash_ptr */
 
 
-#define MAX_WIDTH_REUSABLE_PTR_MAP_TABLE 10
-template<int  entry_size>
-struct Free_ptr_map_tables {
-  static void	*list[MAX_WIDTH_REUSABLE_PTR_MAP_TABLE+1];
-			/* A array of pointers to map tables available for
-			   reuse.  list[n] points to a list of tables allocated
-			   for 1<<n entries of size entry_size.  Larger tables
-			   use alloc_general and free_general. */
-};  /* Free_ptr_map_tables */
-
-template<int  entry_size>
-void *Free_ptr_map_tables<entry_size>::list[
-                                           MAX_WIDTH_REUSABLE_PTR_MAP_TABLE+1];
-
-
 /*lint -esym(758,Ptr_map_entry<*, *>::(anonymous))*/
 template<typename a_Ptr_key, typename a_Value>
 struct Ptr_map_entry {
@@ -1887,16 +1872,20 @@ struct Ptr_map_entry {
 };  /* Ptr_map_entry */
 
 
-template<typename a_Ptr_key, typename a_Value>
-struct Ptr_map {
+template<typename a_Ptr_key, typename a_Value,
+         typename an_Allocator =
+                               FE_allocator<Ptr_map_entry<a_Ptr_key, a_Value>>>
+struct Ptr_map: private an_Allocator {
   /* A flat hash table whose keys are non-null scalar values (usually native
      pointers, but integers can be used too).  This implementation is optimized
      for lookups that generally succeed and small associated values (i.e., the
-     key and value are kept together). */
+     key and value are kept together).  The allocator must allocate exactly the
+     number of requested elements. */
   typedef a_Ptr_key a_key;
   typedef a_Value a_value;
+  typedef an_Allocator an_allocator;
   typedef unsigned int an_index;
-  inline Ptr_map(unsigned int mask_width);
+  inline Ptr_map(unsigned int mask_width, an_allocator a = an_allocator());
   inline ~Ptr_map();
   inline auto get(a_key  key) const -> a_value;
   inline void map(a_key  key, const a_value &value);
@@ -1908,6 +1897,7 @@ struct Ptr_map {
 #endif /* DEBUG */
 private:
   typedef Ptr_map_entry<a_key, a_value> an_entry;
+  typedef typename an_allocator::an_allocation an_allocation;
   an_entry	*table;
 			/* Pointer to the hash table. */
   an_index	hash_mask;
@@ -1924,59 +1914,47 @@ private:
 };  /* Ptr_map */
 
 
-template<typename a_Ptr_key, typename a_Value>
-inline Ptr_map<a_Ptr_key, a_Value>::Ptr_map(unsigned int  mask_width)
+template<typename a_Ptr_key, typename a_Value, typename an_Allocator>
+inline Ptr_map<a_Ptr_key, a_Value, an_Allocator>::Ptr_map(
+                                                      unsigned int  mask_width,
+                                                      an_allocator  a)
 /*
 Initialize the given pointer map with a capacity for 1<<mask_width slots.
 */
+  : an_allocator(a)
 {
   unsigned  n_slots = (1<<mask_width);
   an_index  size = (an_index)(n_slots*sizeof(an_entry));
+  an_allocation  allocation = this->alloc(n_slots);
 
-  if (mask_width > MAX_WIDTH_REUSABLE_PTR_MAP_TABLE) {
-    this->table = (an_entry*)alloc_general(size);
-  } else {
-    typedef Free_ptr_map_tables<(int)sizeof(an_entry)>  a_free_table_cache;
-    if (a_free_table_cache::list[mask_width] != NULL) {
-      this->table = (an_entry*)a_free_table_cache::list[mask_width];
-      a_free_table_cache::list[mask_width] = this->table->next;
-    } else {
-      this->table = (an_entry*)alloc_general(size);
-    }  /* if */
-  }  /* if */
+  check_assertion(allocation.n_allocated == n_slots);
+  this->table = allocation.start;
   memzero((char*)this->table, size_t_arg(size));
   this->hash_mask = n_slots-1;
   this->n_elements = 0;
 }  /* Ptr_map::Ptr_map */
 
 
-template<typename a_Ptr_key, typename a_Value>
-inline Ptr_map<a_Ptr_key, a_Value>::~Ptr_map()
+template<typename a_Ptr_key, typename a_Value, typename an_Allocator>
+inline Ptr_map<a_Ptr_key, a_Value, an_Allocator>::~Ptr_map()
 /*
 Release the storage for the map.
 */
 {
   an_index  mask = this->hash_mask;
   an_index  n_slots = mask+1;
-  an_index  size = (an_index)(n_slots*sizeof(an_entry));
-  an_index  mask_width = count_ones(mask);
 
   for (an_index k = 0; k<n_slots; ++k) {
     if (table[k].ptr != a_key()) destroy(&table[k].value);
   }  /* for */
-  if (mask_width > MAX_WIDTH_REUSABLE_PTR_MAP_TABLE) {
-    free_general(this->table, size);
-  } else {
-    typedef Free_ptr_map_tables<(int)sizeof(an_entry)>  a_free_table_cache;
-    this->table[0].next = a_free_table_cache::list[mask_width];
-    a_free_table_cache::list[mask_width] = this->table;
-  }  /* if */
+  this->dealloc(an_allocation{ this->table, n_slots });
   this->table = NULL;
 }  /* Ptr_map::~Ptr_map */
 
 
-template<typename a_Ptr_key, typename a_Value>
-inline auto Ptr_map<a_Ptr_key, a_Value>::get(a_key  key) const -> a_value
+template<typename a_Ptr_key, typename a_Value, typename an_Allocator>
+inline auto Ptr_map<a_Ptr_key, a_Value, an_Allocator>::get(a_key  key) const
+                                                       -> a_value
 /*
 Look up key in the map and return the associated value if found, or a_value()
 if not found.
@@ -2025,8 +2003,8 @@ removed from a Ptr_map instance.
 #define check_traced_key_ptr(ptr, msg) /* Nothing */
 #endif /* ifdef TRACE_PTR_MAP */
 
-template<typename a_Ptr_key, typename a_Value>
-inline void Ptr_map<a_Ptr_key, a_Value>::map(a_key          key,
+template<typename a_Ptr_key, typename a_Value, typename an_Allocator>
+inline void Ptr_map<a_Ptr_key, a_Value, an_Allocator>::map(a_key          key,
                                              const a_value  &value)
 /*
 Associate a copy of value with the given key.
@@ -2051,9 +2029,10 @@ Associate a copy of value with the given key.
 }  /* Ptr_map::map */
 
 
-template<typename a_Ptr_key, typename a_Value>
-inline void Ptr_map<a_Ptr_key, a_Value>::replace(a_key          key,
-                                                 const a_value  &value)
+template<typename a_Ptr_key, typename a_Value, typename an_Allocator>
+inline void Ptr_map<a_Ptr_key, a_Value, an_Allocator>::replace(
+                                                        a_key          key,
+                                                        const a_value  &value)
 /*
 Replace the value associated with the given key by the given value.
 */
@@ -2077,8 +2056,9 @@ Replace the value associated with the given key by the given value.
 }  /* Ptr_map::replace */
 
 
-template<typename a_Ptr_key, typename a_Value>
-inline auto Ptr_map<a_Ptr_key, a_Value>::map_or_replace(a_key          key,
+template<typename a_Ptr_key, typename a_Value, typename an_Allocator>
+inline auto Ptr_map<a_Ptr_key, a_Value, an_Allocator>::map_or_replace(
+                                                        a_key          key,
                                                         const a_value  &value)
                                          -> a_value
 /*
@@ -2128,8 +2108,8 @@ associate it with the given value, and return a_value().
 }  /* Ptr_map::map_or_replace */
 
 
-template<typename a_Ptr_key, typename a_Value>
-inline void Ptr_map<a_Ptr_key, a_Value>::unmap(a_key  key)
+template<typename a_Ptr_key, typename a_Value, typename an_Allocator>
+inline void Ptr_map<a_Ptr_key, a_Value, an_Allocator>::unmap(a_key  key)
 /*
 Remove the given key from the table (it must exist).
 */
@@ -2156,8 +2136,9 @@ Remove the given key from the table (it must exist).
 }  /* Ptr_map::unmap */
 
 
-template<typename a_Ptr_key, typename a_Value>
-void Ptr_map<a_Ptr_key, a_Value>::map_colliding_key(a_key          new_key,
+template<typename a_Ptr_key, typename a_Value, typename an_Allocator>
+void Ptr_map<a_Ptr_key, a_Value, an_Allocator>::map_colliding_key(
+                                                    a_key          new_key,
                                                     const a_value  &new_value,
                                                     an_index       idx)
 /*
@@ -2192,30 +2173,21 @@ new value at the given location.
 }  /* Ptr_map::map_colliding_key */
 
 
-template<typename a_Ptr_key, typename a_Value>
-void Ptr_map<a_Ptr_key, a_Value>::expand_table()
+template<typename a_Ptr_key, typename a_Value, typename an_Allocator>
+void Ptr_map<a_Ptr_key, a_Value, an_Allocator>::expand_table()
 /*
 Double the size of the hash table (and rehash entries as needed).
 */
 {
-  an_entry  *new_table, *old_table = this->table;
-  an_index  mask = this->hash_mask;
-  an_index  n_slots = mask+1;
-  an_index  old_size = n_slots*(an_index)sizeof(an_entry);
-  an_index  new_size = 2*old_size;
-  int       new_width = count_ones(mask)+1, old_width;
+  an_entry       *new_table, *old_table = this->table;
+  an_index       mask = this->hash_mask;
+  an_index       n_slots = mask+1;
+  an_index       old_size = n_slots*(an_index)sizeof(an_entry);
+  an_allocation  allocation = this->alloc(2*n_slots);
 
-  typedef Free_ptr_map_tables<(int)sizeof(an_entry)>  a_free_table_cache;
-  if (new_width > MAX_WIDTH_REUSABLE_PTR_MAP_TABLE) {
-    new_table = (an_entry*)alloc_general(new_size);
-  } else if (a_free_table_cache::list[new_width] != NULL) {
-    new_table = (an_entry*)a_free_table_cache::list[new_width];
-    a_free_table_cache::list[new_width] =
-                       ((an_entry*)a_free_table_cache::list[new_width])->next;
-  } else {
-    new_table = (an_entry*)alloc_general(new_size);
-  }  /* if */
-  memzero((char*)new_table, size_t_arg(new_size));
+  check_assertion(allocation.n_allocated == 2*n_slots);
+  new_table = allocation.start;
+  memzero((char*)new_table, size_t_arg(2*old_size));
   mask = mask*2+1;
   for (an_index k = 0; k<n_slots; ++k) {
     a_key  ptr = old_table[k].ptr;
@@ -2229,18 +2201,13 @@ Double the size of the hash table (and rehash entries as needed).
   }  /* for */
   this->table = new_table;
   this->hash_mask = mask;
-  old_width = new_width-1;
-  if (old_width > MAX_WIDTH_REUSABLE_PTR_MAP_TABLE) {
-    free_general(old_table, old_size);
-  } else {
-    old_table[0].next = a_free_table_cache::list[old_width];
-    a_free_table_cache::list[old_width] = old_table;
-  }  /* if */
+  this->dealloc(an_allocation{ old_table, n_slots });
 }  /* Ptr_map::expand_table */
 
 
-template<typename a_Ptr_key, typename a_Value>
-void Ptr_map<a_Ptr_key, a_Value>::check_deleted_slot(an_index  idx0)
+template<typename a_Ptr_key, typename a_Value, typename an_Allocator>
+void Ptr_map<a_Ptr_key, a_Value, an_Allocator>::check_deleted_slot(
+                                                                an_index  idx0)
 /*
 Slot idx0 has been cleared (i.e., this->table[idx0].ptr has been set to null).
 The next slot is not empty.  There may therefore exist entries that are
@@ -2292,8 +2259,8 @@ done:;
 
 #if DEBUG
 
-template<typename a_Ptr_key, typename a_Value>
-void Ptr_map<a_Ptr_key, a_Value>::db_ptrs() const
+template<typename a_Ptr_key, typename a_Value, typename an_Allocator>
+void Ptr_map<a_Ptr_key, a_Value, an_Allocator>::db_ptrs() const
 /*
 Output some information about the map's key contents to f_debug.
 */

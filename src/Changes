@@ -1,5 +1,17 @@
 Version 6.1
 
+4/7/20   [EDGcpfe/22587]
+Ptr_map memory allocation strategy
+
+The Ptr_map template previously always used "general" memory to allocate its
+associated hash tables.  Now, a template parameter has been added to control
+that allocation.  Furthermore, Ptr_map's attempt to keep a list of previously-
+allocated tables for potential reuse has now been removed: It did not work
+correctly when the front end was invoked multiple times in configurations with
+MAKE_FRONT_END_CALLABLE set to TRUE; doing so resulted in memory corruption
+and likely aborts.
+
+
 4/6/20   [EDGcpfe/22478]
 C++-generating back end, clang compatibility: injected-class-name of class
 template
