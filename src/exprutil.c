@@ -24932,6 +24932,7 @@ Do one-time initialization of variables related to expression processing.
       pch_saved_var_array_elem(avail_dynamic_init_dtor_fixups),
       pch_saved_var_array_elem(avail_arg_match_summaries),
       pch_saved_var_array_elem(avail_candidate_functions),
+      pch_saved_var_array_elem(constraint_charts),
 #if TARG_HAS_IEEE_FLOATING_POINT
       pch_saved_var_array_elem(nan_constant),
       pch_saved_var_array_elem(infinity_constant),
@@ -25033,7 +25034,7 @@ for each compilation.
 #endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
   num_dynamic_init_dtor_fixups_allocated = 0;
 #endif /* DEBUG */
-  constraint_charts = alloc_general_of_type(a_constraint_charts_map);
+  constraint_charts = alloc_fe_of_type(a_constraint_charts_map);
   construct(constraint_charts, /*mask_width=*/10);
   /* Do initialization for overload.c: */
   overload_init();
