@@ -1947,7 +1947,7 @@ Release the storage for the map.
   for (an_index k = 0; k<n_slots; ++k) {
     if (table[k].ptr != a_key()) destroy(&table[k].value);
   }  /* for */
-  this->dealloc(an_allocation{ this->table, n_slots });
+  this->dealloc(an_allocation{ this->table, (a_ptrdiff)n_slots });
   this->table = NULL;
 }  /* Ptr_map::~Ptr_map */
 
@@ -2201,7 +2201,7 @@ Double the size of the hash table (and rehash entries as needed).
   }  /* for */
   this->table = new_table;
   this->hash_mask = mask;
-  this->dealloc(an_allocation{ old_table, n_slots });
+  this->dealloc(an_allocation{ old_table, (a_ptrdiff)n_slots });
 }  /* Ptr_map::expand_table */
 
 
