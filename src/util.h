@@ -1872,6 +1872,7 @@ struct Ptr_map_entry {
 };  /* Ptr_map_entry */
 
 
+/*lint -esym(1510,*Ptr_map)*/
 template<typename a_Ptr_key, typename a_Value,
          typename an_Allocator =
                                FE_allocator<Ptr_map_entry<a_Ptr_key, a_Value>>>
