@@ -3020,6 +3020,7 @@ by a command line option.
     implicit_noexcept_enabled = FALSE;
   }  /* if */
   type_keyword_in_dtor_allowed = TRUE;
+  template_linkage_depends_on_instantiation_args = FALSE;
 }  /* set_cfront_mode_flags */
 
 
@@ -11820,6 +11821,7 @@ variables declared in cmd_line.h.
   instantiation_mode = DEFAULT_INSTANTIATION_MODE;
   instantiate_before_pch_creation = INSTANTIATE_BEFORE_PCH_CREATION;
   null_template_ptr_arg_enabled = FALSE;
+  template_linkage_depends_on_instantiation_args = TRUE;
   no_very_expensive_checking = FALSE;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   automatic_instantiation_mode = DEFAULT_AUTOMATIC_INSTANTIATION_MODE;

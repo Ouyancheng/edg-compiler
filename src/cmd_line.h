@@ -769,6 +769,13 @@ EXTERN a_boolean
 			   normally permit them. */
 
 EXTERN a_boolean
+		template_linkage_depends_on_instantiation_args;
+			/* TRUE when a template instantiation should examine
+			   the instantiation arg list for entities with
+			   internal linkage and adjust the linkage of the
+			   instantiation accordingly. */
+
+EXTERN a_boolean
 		skip_module_imports;
 			/* TRUE when the front end should not attempt to
 			   import a module and instead behave as if the module

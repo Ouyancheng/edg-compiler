@@ -7181,7 +7181,8 @@ expression context) rather than a declaration.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (!template_sym->is_class_member &&
       (is_const_qualified_type(var_ptr->type) ||
-       template_arg_list_has_internal_linkage(templ_arg_list))) {
+       (template_linkage_depends_on_instantiation_args &&
+        template_arg_list_has_internal_linkage(templ_arg_list)))) {
     var_ptr->storage_class = (a_storage_class)sc_static;
     var_ptr->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
   }  /* if */
@@ -9196,7 +9197,8 @@ a type in certain ways (see template_arg_list_is_dependent).
   if (tssp->is_error) {
     class_type->source_corresp.name_linkage =
                                  (a_name_linkage_kind)nlk_cplusplus_external;
-  } else if (template_arg_list_has_internal_linkage(template_arg_list)) {
+  } else if (template_linkage_depends_on_instantiation_args &&
+             template_arg_list_has_internal_linkage(template_arg_list)) {
     class_type->source_corresp.name_linkage =(a_name_linkage_kind)nlk_internal;
   } else {
     class_type->source_corresp.name_linkage =
@@ -18197,7 +18199,8 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     }  /* if */
     set_membership_in_source_corresp(&rp->source_corresp, sym);
     rp->source_corresp.name_linkage = templ_rout->source_corresp.name_linkage;
-    if (rp->source_corresp.name_linkage != (a_name_linkage_kind)nlk_internal &&
+    if (template_linkage_depends_on_instantiation_args &&
+        rp->source_corresp.name_linkage != (a_name_linkage_kind)nlk_internal &&
         template_arg_list_has_internal_linkage(templ_arg_list)) {
       rp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
       rp->storage_class = (a_storage_class)sc_static;
