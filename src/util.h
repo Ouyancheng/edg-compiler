@@ -1924,8 +1924,8 @@ Initialize the given pointer map with a capacity for 1<<mask_width slots.
 */
   : an_allocator(a)
 {
-  unsigned  n_slots = (1<<mask_width);
-  an_index  size = (an_index)(n_slots*sizeof(an_entry));
+  unsigned       n_slots = (1<<mask_width);
+  an_index       size = (an_index)(n_slots*sizeof(an_entry));
   an_allocation  allocation = this->alloc(n_slots);
 
   check_assertion(allocation.n_allocated == n_slots);
