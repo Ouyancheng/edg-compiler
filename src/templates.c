@@ -28643,7 +28643,10 @@ in a abbreviated function template or a generic lambda).
     apdp->template_type_parameter = *p_tpp;
     p_tpp = &(*p_tpp)->next;
   }  /* for */
-  if (!dps->is_lambda) { // FIXME: After lambda unification
+  if (!dps->is_lambda) {
+    /* Free the list of auto parameters descriptions.  We don't do this for
+       lambdas, because it may be reused in some cases.  See
+       scan_lambda_declarator. */
     free_auto_param_descriptions(dps);
   }  /* if */
 }  /* add_implicit_templ_params_for_auto_func_params */
@@ -32321,7 +32324,6 @@ prototype instantiation, if necessary.  If there is an enclosing decl_info,
 do a recursive call to process it.  If any template parameter is found to
 be dependent by recursive calls of this routine, *is_dependent is set
 to TRUE.
-
 */
 {
   a_template_param_ptr tpp;
@@ -32883,6 +32885,7 @@ is the parse state associated with the lambda declarator.
     goto done;
   }  /* if */
   start_generic_lambda_state(templ_state, dps);
+  begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
   /* Bypass the "<". */
   (void)get_token();
   scan_template_param_list(templ_state);
@@ -32895,6 +32898,7 @@ is the parse state associated with the lambda declarator.
   update_param_depth_and_default_args(templ_state, templ_state->decl_info,
                                       /*update_nesting_depths=*/FALSE,
                                       &is_dependent);
+  templ_state->first_decl_cache_tsn = curr_token_sequence_number;
 done:;
 }  /* scan_lambda_template_param_list */
 

@@ -423,12 +423,17 @@ void report_incomplete_function_return_type(a_type_ptr         return_type,
 
 extern void scan_lambda_declarator(a_decl_parse_state  *dps,
                                    a_func_info_block   *func_info,
+                                   a_tmpl_decl_state   *templ_state,
                                    a_decl_pos_block    *decl_pos_block);
 
 
 extern a_param_type_ptr scan_requires_expr_parameters(void);
 
 extern void make_param_syms_invisible(a_boolean  is_invisible);
+
+extern void declarator_one_time_init(void);
+
+extern void declarator_init(void);
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

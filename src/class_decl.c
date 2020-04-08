@@ -16481,7 +16481,6 @@ decl_member_function_template.
 */
 {
   a_decl_parse_state  *dps = &decl_info->decl_state;
-  a_boolean           generic_lambda_completed = FALSE;
 
   if (!is_error_type(dps->type)) {
     a_symbol_locator    loc;
@@ -16520,7 +16519,6 @@ decl_member_function_template.
       rp->type->variant.routine.extra_info->assoc_routine = rp;
       complete_generated_member_template(templ_state, (a_func_info_block*)NULL,
                                          dps->sym);
-      generic_lambda_completed = TRUE;
       templ_state->final_token_ptr = NULL;
     } else {
       /* The ordinary (i.e., non-generic case): Call decl_member_function. */
@@ -16564,10 +16562,6 @@ decl_member_function_template.
     /* A generic lambda: Pop the template declaration scope. */
     check_assertion(scope_is(&scope_stack_top(), sck_template_declaration));
     pop_scope();
-    if (!generic_lambda_completed) {
-      /* In non-error cases, this will have been done indirectly above. */
-      end_caching_fetched_tokens();
-    }  /* if */
   }  /* if */
 }  /* decl_call_operator_for_lambda */
 
@@ -28215,7 +28209,8 @@ flag if error recovery should be performed as if the specifier didn't occur.
   } else if (dps->is_lambda) {
     /* A generic lambda declarator rescan. */
     check_assertion(is_member_template_rescan);
-    scan_lambda_declarator(dps, func_info, &decl_info->decl_pos_block);
+    scan_lambda_declarator(dps, func_info, (a_tmpl_decl_state*)NULL,
+                           &decl_info->decl_pos_block);
     *is_function = dps->type->kind == (a_type_kind)tk_routine;
   } else if (no_decl_specifiers && !decl_info->is_constructor &&
              !decl_info->is_destructor &&
@@ -28679,7 +28674,7 @@ that is provided if this is a member template declaration.
   if (!C_mode() && (dso_flags & DSO_DEFINES_SOMETHING)) {
     /* Should be a class, struct, union, or enum definition. */
     a_type_ptr    tp = skip_typerefs(dps->type);
-    abort_potential_abbr_func_templ_caching(dps);
+    end_potential_abbr_func_templ_caching(dps);
     if (!is_error_type(dps->type)) {
       a_symbol_ptr  sym = symbol_for(tp);
       if (is_member_template) {
@@ -28722,7 +28717,7 @@ that is provided if this is a member template declaration.
     missing_declarator = TRUE;
     if (decl_info.is_anonymous_union) {
       /* decl_nonstatic_data_member needs to be called. */
-      abort_potential_abbr_func_templ_caching(dps);
+      end_potential_abbr_func_templ_caching(dps);
       class_type_supp(class_type)->has_anonymous_union_member = TRUE;
       /* Ignore any top-level cv-qualifiers in Microsoft mode and in some
          GNU modes.  (In GNU modes prior to 3.4, the qualifiers are accepted
@@ -28822,7 +28817,7 @@ that is provided if this is a member template declaration.
       remove_stop_token(tok_comma);
       goto next_declaration;
     } else {
-      abort_potential_abbr_func_templ_caching(dps);
+      end_potential_abbr_func_templ_caching(dps);
     }  /* if */
     if (!C_mode() && is_function) {
       /* Member or friend function. */
@@ -29373,7 +29368,7 @@ that is provided if this is a member template declaration.
   } while (loop_token(tok_comma));
 next_declaration:;
   if (!C_mode()) {
-    abort_potential_abbr_func_templ_caching(dps);
+    end_potential_abbr_func_templ_caching(dps);
     check_use_of_placeholder_type(dps);
   }  /* if */
   run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
@@ -31114,6 +31109,11 @@ classes.
   a_type_list_entry_ptr           *classes_that_may_need_fixups;
 
   db_enter(3, "scan_class_definition");
+  if (dps != NULL) {
+    /* A class definition cannot be followed by an abbreviated function
+       template declarator. */
+    end_potential_abbr_func_templ_caching(dps);
+  }  /* if */
   classes_that_may_need_fixups = 
                    &curr_class_fixup_header(/*for_instantiation=*/FALSE)->
                                                   classes_that_may_need_fixups;
@@ -32580,32 +32580,8 @@ proper.
     }  /* if */
   }  /* if */
   if (curr_token == tok_lparen) {
-    /* A parameter list presumably follows. */
     add_stop_token(tok_lbrace);
-    if (generic_lambdas_enabled) {
-      /* Prescan the parameter list to look for one or more "auto" parameters
-         that would make this a generic lambda. */
-      prescan_lambda_parameter_clause(dps);
-      if (dps->variant.auto_params != NULL) {
-        /* At least one "auto" parameter was seen: This is a generic lambda. */
-        lambda->is_generic = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  if (lambda->is_generic) {
-    class_type_supp(lambda->closure_class)
-                                 ->is_generic_lambda_closure_class = TRUE;
-    if (!generic_lambdas_can_implicitly_capture &&
-        lambda->has_capture_default) {
-      /* In some modes, generic lambdas may not implicitly capture local
-         variables. */
-      pos_error(ec_generic_lambda_cannot_capture, &lambda->start_position);
-    }  /* if */
-    set_up_generic_lambda_declarator_scan(dps, templ_state);
-    function_contains_generic_lambda();
-  }  /* if */
-  if (curr_token == tok_lparen) {
-    scan_lambda_declarator(dps, func_info, decl_pos_block);
+    scan_lambda_declarator(dps, func_info, templ_state, decl_pos_block);
     lambda->has_parameter_decl = TRUE;
     lambda->explicit_return_type = dps->has_trailing_return_type;
     remove_stop_token(tok_lbrace);
@@ -32628,6 +32604,18 @@ proper.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     func_info->declared_type = dps->type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  }  /* if */
+  if (scope_stack_top().is_generic_lambda) {
+    lambda->is_generic = TRUE;
+    class_type_supp(lambda->closure_class)
+                                 ->is_generic_lambda_closure_class = TRUE;
+    function_contains_generic_lambda();
+    if (!generic_lambdas_can_implicitly_capture &&
+        lambda->has_capture_default) {
+      /* In some modes, generic lambdas may not implicitly capture local
+         variables. */
+      pos_error(ec_generic_lambda_cannot_capture, &lambda->start_position);
+    }  /* if */
   }  /* if */
 }  /* scan_optional_lambda_declarator */
 
@@ -33272,7 +33260,6 @@ For example:
   check_assertion(curr_token == tok_lbracket);
   lambda->start_position = pos_curr_token;
   report_gnu_cpp11_extension_if_needed(&pos_curr_token, ec_lambdas_is_cpp11);
-  begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
   /* Initialize the closure class and set up a context in which members
      can be added. */
   decl_level = decl_level_for_lambda_closure_class(&bad_scope);
@@ -33298,10 +33285,6 @@ For example:
   scan_optional_lambda_declarator(lambda, &func_info, &decl_info,
                                   &templ_state);
   record_end_of_lambda_header(lambda);
-  if (!lambda->is_generic) {
-    /* Stop background caching if this is not a generic lambda. */
-    end_caching_fetched_tokens();
-  }  /* if */
   /* Declare the call operator for the closure class. */
   decl_call_operator_for_lambda(lambda, &class_state, &decl_info, &func_info,
                                 &templ_state);

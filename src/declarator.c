@@ -1708,7 +1708,7 @@ actually declares a function, member function, or function template).
       if (is_top_level_declarator &&
           !((dps->dso_flags & DSO_FRIEND) != 0 &&
             !is_template_friend_decl()) &&
-          (!dps->is_lambda || dps->variant.auto_params != NULL)) {
+          (!dps->is_lambda || dps->is_abbr_func_template)) {
         /* A noexcept argument should generally be cached for later
            instantiation if we are in a template or class definition.  However,
            that's not the case if we're in an ordinary friend function
@@ -3249,10 +3249,13 @@ an error if a default argument expression is encountered.
                 ellipsis declares a parameter pack only if the specifiers type
                 is a pattern type (i.e., contains an unexpanded template
                 parameter pack) or if we are in an instantiation of a pack
-                element. */
+                element.  During the tentative parsing of an abbreviated
+                function template (or generic lambda), an "auto" specifier also
+                causes the ellipsis to be treated as introducing a pack. */
              (variadic_templates_enabled &&
               ((curr_token == tok_ellipsis &&
-                (next_token() != tok_rparen || any_packs_referenced())) ||
+                (next_token() != tok_rparen || any_packs_referenced() ||
+                 param_state.variant.auto_params != NULL)) ||
                is_pack_element))) {
           a_decl_flag_set  param_di_flags = DI_IS_PARAMETER_DECL |
                                             DI_REAL_DECLARATOR_ALLOWED |
@@ -4079,6 +4082,15 @@ an error if a default argument expression is encountered.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (C_dialect == C_dialect_cplusplus) {
+    if (state->variant.auto_params != NULL && state->decl_being_cached) {
+      /* If we ran into "auto" parameters, do not complete parsing of the
+         function declarator because trailing components might refer to those
+         "auto" parameters in ways that cannot be resolved at this time.  E.g.:
+             void f(auto ... ps)->decltype((0 + ... + ps));
+         Here the pack expansion in the trailing return type cannot be
+         performed until the template declaration context is set up. */
+      goto done;
+    }  /* if */
     cplusplus_function_declarator_trailer(state, *new_type_ptr, func_info,
                                           locator, parent_type,
                                           is_top_level_declarator,
@@ -4105,6 +4117,7 @@ an error if a default argument expression is encountered.
     }  /* if */
   }  /* if */
   scan_declarator_attributes(state, new_type_ptr);
+done:
   /* Pop the function prototype scope if needed. */
   if (must_pop_function_prototype_scope) pop_scope();
   if (!is_top_level_declarator) {
@@ -4115,49 +4128,137 @@ an error if a default argument expression is encountered.
   db_exit();
 }  /* function_declarator */
 
+typedef Ptr_map<a_token_sequence_number, an_auto_param_descr*> 
+		an_abbr_lambda_descr_map;
+
+static an_abbr_lambda_descr_map
+		*abbr_lambda_descrs;
+			/* Map from token sequence numbers to "auto" parameter
+			   lists for lambdas that appear in templates (i.e.,
+			   in prototype instantiations.  The lists can then be
+			   reused in real instantiations.  That is not only a
+			   performance optimization, but it also avoids issues
+			   with "auto..." parameter packs that would otherwise
+			   accidentally be expanded to empty lists because of
+			   the missing template declaration context. */
 
 void scan_lambda_declarator(a_decl_parse_state  *dps,
                             a_func_info_block   *func_info,
+                            a_tmpl_decl_state   *templ_state,
                             a_decl_pos_block    *decl_pos_block)
 /*
 Scan the "declarator" part of a C++ lambda construct. That includes the
 parameter list, optionally followed by "mutable", an exception specification,
 and/or a lambda return type.  The caller must ensure that the current token is
 the left parenthesis introducing the declarator-like construct.
+dps, func_info, templ_state, and decl_pos_block describe the lambda declarator
+(templ_state is provided in case this is a generic lambda).
 */
 {
   a_type_ptr               func_type = void_type(), closure_class;
   a_decl_flag_set          di_flags = DI_NONSTATIC_MEMBER;
   a_symbol_locator         loc;
   a_scope_stack_entry_ptr  ssep = &scope_stack_top();
+  a_token_sequence_number  reparse_tsn = curr_token_sequence_number;
+  a_decl_parse_callback    *reparse_actions = dps->end_of_parse_actions;
+  a_boolean                already_template = FALSE,
+                           in_prototype_instantiation =
+                                  scope_stack_top().in_prototype_instantiation;
 
-  check_assertion(curr_token == tok_lparen);
-  make_opname_locator((an_opname_kind)onk_function_call, &loc,
-                      &pos_curr_token);
-  add_stop_token(tok_rparen);
-  (void)get_token();
   if (scope_is(ssep, sck_class_struct_union)) {
+    /* We haven't determined yet whether this is a generic lambda. */
     closure_class = ssep->assoc_type;
+    dps->variant.auto_params = abbr_lambda_descrs->get(reparse_tsn);
+    if (dps->variant.auto_params != NULL) {
+      /* This is a lambda declarator that was previously encountered in a
+         prototype instantiation and found to have "auto" parameters.  Set up
+         a template declaration context up front. */
+      set_up_generic_lambda_declarator_scan(dps, templ_state);
+      dps->is_abbr_func_template = TRUE;
+      dps->variant.auto_params = NULL;
+      dps->start_tsn = reparse_tsn;
+      begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
+    } else if (generic_lambdas_enabled) {
+      begin_potential_abbr_func_templ_caching(dps);
+    }  /* if */
   } else if ((scope_is(ssep, sck_template_declaration) &&
               scope_is(ssep-1, sck_class_struct_union)) ||
              (scope_is(ssep, sck_template_instantiation) &&
               scope_is(ssep-1, sck_class_reactivation))) {
     /* A generic lambda (first scan, or instantiation). */
+    if (scope_is(ssep, sck_template_declaration) && generic_lambdas_enabled) {
+      /* Presumably a lambda with C++20-style explicit template parameters.
+         We may still encounter additional "auto" parameters, which would
+         require re-parsing the declarator. */
+      begin_potential_abbr_func_templ_caching(dps);
+      already_template = TRUE;
+    }  /* if */
     closure_class = (ssep-1)->assoc_type;
   } else {
     expect_error();
     closure_class = error_type();
   }  /* if */
+reparse_declarator:
+  check_assertion(curr_token == tok_lparen);
+  make_opname_locator((an_opname_kind)onk_function_call, &loc,
+                      &pos_curr_token);
+  add_stop_token(tok_rparen);
+  (void)get_token();
   function_declarator(dps, di_flags, &func_type, func_info, &loc,
                       closure_class,
                       /*is_nonstatic_member=*/TRUE, /*is_constructor=*/FALSE, 
                       /*is_static_constructor=*/FALSE, /*is_destructor=*/FALSE,
                       /*is_finalizer=*/FALSE, !lambda_default_args_enabled,
                       /*disallow_exception_spec=*/FALSE, decl_pos_block);
+  remove_stop_token(tok_rparen);
+  if (dps->decl_being_cached) {
+    /* We called begin_potential_abbr_func_templ_caching in case "auto"
+       parameters would be encountered. */
+    if (dps->variant.auto_params != NULL) {
+      /* At least one "auto" parameter was encountered: Reparse the declarator
+         in the corresponding template declaration context. */
+      a_token_cache  reparse_cache;
+      a_lambda_ptr   lambda = func_info->lambda;
+      /* Create a cache with the declarator tokens. */
+      clear_token_cache(&reparse_cache, /*reusable=*/FALSE);
+      copy_tokens_from_cache(curr_lexical_state_cache(),
+                             reparse_tsn, curr_token_sequence_number,
+                             /*include_last_token=*/FALSE, &reparse_cache);
+      end_potential_abbr_func_templ_caching(dps);
+      rescan_cached_tokens(&reparse_cache);
+      set_up_generic_lambda_declarator_scan(dps, templ_state);
+      /* Clear the declaration parse state associated with the declarator.
+         This is most easily done by pretending we are about to scan a
+         secondary declarator. */
+      discard_end_of_parse_actions(dps, /*until_action=*/reparse_actions);
+      start_secondary_declarator(dps);
+      dps->secondary_declarator = FALSE;
+      dps->is_abbr_func_template = TRUE;
+      clear_func_info(func_info);
+      func_info->lambda = lambda;
+      if (!already_template) {
+        begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
+      }  /* if */
+      if (in_prototype_instantiation) {
+        /* We encountered "auto" parameters in a lambda inside a template.
+           Save the associated "auto" parameter descriptions so we can use them
+           to create the needed template declaration up front, without a
+           tentative parse.  This is not just a performance improvement: It
+           ensures that "auto ..." parameter packs aren't mistakenly skipped as
+           empty packs during real instantiations of the enclosing template. */
+        abbr_lambda_descrs->map(reparse_tsn, dps->variant.auto_params);
+        dps->variant.auto_params = NULL;
+      } else {
+        free_auto_param_descriptions(dps);
+      }  /* if */
+      goto reparse_declarator;
+    } else {
+      end_potential_abbr_func_templ_caching(dps);
+    }  /* if */
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   func_info->declared_type = func_type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  remove_stop_token(tok_rparen);
   /* Record whether an explicit return type was specified. */
   if (dps->has_trailing_return_type) {
     if (!is_error_type(func_type)) {
@@ -7260,9 +7361,11 @@ etc.).
        only if the specifiers type is a pattern.  E.g.:
          template<typename ... T> void f(T ...);  // Parameter pack.
          template<typename T>     void f(T ...);  // Classic vararg function.
-       */
+       During a tentative scan of an abbreviated function template or generic
+       lambda, an "auto" parameter is treated as a pattern. */
     if (variadic_templates_enabled && curr_token == tok_ellipsis &&
-        (next_token() != tok_rparen || any_packs_referenced())) {
+        (next_token() != tok_rparen || any_packs_referenced() ||
+         state->variant.auto_params != NULL)) {
       /* An ellipsis at this point can indicate a parameter pack. */
       if (state->pack_ellipsis_allowed) {
         state->has_pack_ellipsis = TRUE;
@@ -8301,6 +8404,31 @@ the parameters.
     }  /* if */
   }  /* if */
 }  /* declarator */
+
+void declarator_one_time_init(void)
+/*
+Do one-time initialization of static variables defined in this file.
+*/
+{
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(abbr_lambda_descrs),
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+}  /* declarator_one_time_init */
+
+
+void declarator_init(void)
+/*
+Do initialization of static variables defined in this file that require
+initialization for each compilation.
+*/
+{
+  abbr_lambda_descrs = alloc_fe_of_type(an_abbr_lambda_descr_map);
+  construct(abbr_lambda_descrs, /*mask_width=*/10);
+}  /* declarator_init */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

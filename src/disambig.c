@@ -63,9 +63,6 @@ typedef struct a_disambig_state {
   a_boolean	saved_in_disambiguation;
 			/* The value of the scope stack in_disambiguation
 			   flag at the start of disambiguation. */
-  a_boolean	saved_in_auto_prescan;
-			/* The value of the scope stack in_auto_prescan
-			   flag at the start of disambiguation. */
   a_boolean	saved_source_sequence_entries_disallowed;
 			/* The value of the scope stack
 			   source_sequence_entries_disallowed flag at the
@@ -125,7 +122,6 @@ cache of the tokens fetched for disambiguation should be created.
   /* dsp->variadic_prototype_instantiation set below. */
   dsp->cache_tokens = cache_tokens;
   /* dsp->saved_in_disambiguation set below. */
-  /* dsp->saved_in_auto_prescan set below. */
   /* dsp->saved_source_sequence_entries_disallowed set below. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   dsp->find_static_specifier_only = FALSE;
@@ -142,7 +138,6 @@ cache of the tokens fetched for disambiguation should be created.
   begin_prescan_context(suppress_packs, &dsp->variadic_prototype_instantiation,
                         &dsp->pack_expansion_stack_entry,
                         &dsp->saved_in_disambiguation,
-                        &dsp->saved_in_auto_prescan,
                         &dsp->saved_source_sequence_entries_disallowed);
 }  /* init_disambig_state */
 
@@ -176,7 +171,6 @@ Perform any operations that must be done to clean up after disambiguation.
   end_prescan_context(dsp->variadic_prototype_instantiation,
                       dsp->pack_expansion_stack_entry,
                       dsp->saved_in_disambiguation,
-                      dsp->saved_in_auto_prescan,
                       dsp->saved_source_sequence_entries_disallowed);
 }  /* wrapup_disambig_state */
 
@@ -2077,52 +2071,6 @@ Microsoft compilers accept it nonetheless.
 }  /* elaborated_cli_typeid_next */
         
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-void prescan_lambda_parameter_clause(a_decl_parse_state  *dps)
-/*
-The current token is the left parenthesis of a lambda declarator described by
-*dps.  Prescan that declarator to identify any "auto" parameters and record
-those parameters in a list pointed to by dps->auto_params.  Such parameters
-indicate that the lambda is a C++14 generic lambda.
-*/
-{
-  a_disambig_state		state;
-  a_template_decl_info_ptr	tdip;
-
-  /* Push a template declaration scope so that any packs in the lambda
-     declarator will be handled properly.  Note that we need to push a scope
-     even if we're already in a template-dependent context so that any symbols
-     that may have suppressed errors associated with them can be treated as
-     newly discovered upon the actual scanning of the parameters. */
-  tdip = alloc_template_decl_info();
-  push_template_declaration_scope(tdip, /*is_template_param_rescan=*/FALSE);
-  /* Initialize the disambiguation state block. */
-  init_disambig_state(&state, /*check_if_is_decl=*/FALSE,
-                      /*suppress_packs=*/FALSE,
-                      /*cache_tokens=*/TRUE);
-  scope_stack_top().in_auto_prescan = TRUE;
-  state.decl_parse_state = dps;
-  state.record_auto_parameters = TRUE;
-  check_assertion(curr_token == tok_lparen);
-  get_token_and_coalesce_if_identifier(DFS_RECORD_AUTO_PARAMS);
-  prescan_function_declarator(&state, DFS_RECORD_AUTO_PARAMS);
-  if (dps->variant.auto_params != NULL) {
-    /* Any "auto" parameter descriptions will have been recorded in reverse
-       order of appearance (because it simplifies list management).  Reverse
-       the list to get back to the normal order. */
-    an_auto_param_descr_ptr  ptr = dps->variant.auto_params, new_start = NULL;
-    do {
-      an_auto_param_descr_ptr  next = ptr->next;
-      ptr->next = new_start;
-      new_start = ptr;
-      ptr = next;
-    } while (ptr != NULL);
-    dps->variant.auto_params = new_start;
-  }  /* if */
-  check_assertion_or_expect_error(state.may_be_decl);
-  wrapup_disambig_state(&state);
-  pop_scope();
-}  /* prescan_lambda_parameter_clause */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

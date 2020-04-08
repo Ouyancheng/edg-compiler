@@ -998,9 +998,11 @@ typedef struct a_scope_stack_entry {
   a_bit_field	in_disambiguation:1;
 			/* TRUE if we are currently doing disambiguation
 			   processing. */
-  a_bit_field	in_auto_prescan:1;
-			/* TRUE if we are currently doing the prescan of
-			   a potential generic lambda declarator. */
+  a_bit_field	in_tentative_decl:1;
+			/* TRUE if we are currently attempting a tentative
+			   declaration scan where "auto" parameters may appear
+			   (which will require to be re-parsed in a template
+			   declaration context). */
   a_bit_field	is_rescan:1;
 			/* TRUE if the scope being pushed is an instantiation
 			   scope for template rescan purposes. */
@@ -1126,7 +1128,9 @@ typedef struct a_scope_stack_entry {
 			   kind == sck_class_struct_union or
 			   kind == sck_class_reactivation, this points to the
 			   class type.  When kind == sck_enum, this points to
-			   the enum type. */
+			   the enum type.  This may also be set for
+			   sck_template_instantiation scopes when a class type
+			   is instantiated. */
   a_routine_ptr	assoc_routine;
 			/* When kind == sck_function, kind ==
 			   sck_function_access, or when kind ==
@@ -2359,18 +2363,14 @@ extern void begin_prescan_context(
 	a_pack_expansion_stack_entry_ptr
 				*pack_expansion_stack_entry,
 	a_boolean		*saved_in_disambiguation,
-	a_boolean		*saved_in_auto_prescan,
-	a_boolean
-				*saved_source_sequence_entries_disallowed);
+	a_boolean		*saved_source_sequence_entries_disallowed);
 
 extern void end_prescan_context(
 	a_boolean		packs_suppressed,
 	a_pack_expansion_stack_entry_ptr
 				pack_expansion_stack_entry,
 	a_boolean		saved_in_disambiguation,
-	a_boolean		saved_in_auto_prescan,
-	a_boolean
-				saved_source_sequence_entries_disallowed);
+	a_boolean		saved_source_sequence_entries_disallowed);
 
 extern a_boolean in_generic_lambda_in_prototype_instantiation(void);
 

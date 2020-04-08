@@ -2836,12 +2836,13 @@ the scope being pushed.
       kind == (a_scope_kind)sck_instantiation_context ||
       kind == (a_scope_kind)sck_pragma) {
     ssep->implicit_typename = implicit_typename_enabled;
+    ssep->in_tentative_decl = FALSE;
     ssep->decl_seq_counter = &decl_seq_counter;
   } else {
     ssep->in_template_arg_list = (ssep-1)->in_template_arg_list;
     ssep->implicit_typename = (ssep-1)->implicit_typename;
     ssep->in_disambiguation = (ssep-1)->in_disambiguation;
-    ssep->in_auto_prescan = (ssep-1)->in_auto_prescan;
+    ssep->in_tentative_decl = (ssep-1)->in_tentative_decl;
     ssep->in_field_initializer = (ssep-1)->in_field_initializer;
 #if GNU_EXTENSIONS_ALLOWED
     ssep->in_gnu_abi_tag_namespace =
@@ -11580,19 +11581,17 @@ void begin_prescan_context(
     a_boolean                        *packs_suppressed,
     a_pack_expansion_stack_entry_ptr *pack_expansion_stack_entry,
     a_boolean                        *saved_in_disambiguation,
-    a_boolean                        *saved_in_auto_prescan,
     ARG_UNUSED a_boolean             *saved_source_sequence_entries_disallowed)
 /*
 Update the scope stack to indicate that we are in a prescan or
 disambiguation context.  suppress_packs is TRUE if a pack suppression
 context should be pushed if we are in a variadic prototype instantiation.
 *packs_suppressed is set to TRUE if a variadic pack suppression was pushed.
-*saved_in_disambiguation *saved_in_auto_prescan, and
-*saved_source_sequence_entries_disallowed are used to record the previous
-value of the corresponding scope stack flags.  pack_expansion_stack_entry
-points to the location used for the pack expansion stack entry pointer
-returned if a pack suppression needs to pushed, and can be NULL if
-suppress_packs is FALSE.
+*saved_in_disambiguation and *saved_source_sequence_entries_disallowed are
+used to record the previous value of the corresponding scope stack flags.
+pack_expansion_stack_entry points to the location used for the pack expansion
+stack entry pointer returned if a pack suppression needs to pushed, and can be
+NULL if suppress_packs is FALSE.
 */
 {
   a_scope_stack_entry_ptr	ssep;
@@ -11607,7 +11606,6 @@ suppress_packs is FALSE.
   }  /* if */
   ssep = &scope_stack_top();
   *saved_in_disambiguation = ssep->in_disambiguation;
-  *saved_in_auto_prescan = ssep->in_auto_prescan;
   ssep->in_disambiguation = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   *saved_source_sequence_entries_disallowed =
@@ -11624,14 +11622,12 @@ void end_prescan_context(
      a_boolean                        packs_suppressed,
      a_pack_expansion_stack_entry_ptr pack_expansion_stack_entry,
      a_boolean                        saved_in_disambiguation,
-     a_boolean                        saved_in_auto_prescan,
      ARG_UNUSED a_boolean             saved_source_sequence_entries_disallowed)
 /*
 Update the scope stack to indicate that we are no longer in a prescan or
 disambiguation context.  packs_suppressed, pack_expansion_stack_entry,
-saved_in_disambiguation, saved_in_auto_prescan and
-saved_source_sequence_entried_disallowed are the values returned by the
-begin_prescan_context call.
+saved_in_disambiguation and saved_source_sequence_entried_disallowed are the
+values returned by the begin_prescan_context call.
 */
 {
   if (packs_suppressed) {
@@ -11639,7 +11635,6 @@ begin_prescan_context call.
     pop_expansion_suppression(pack_expansion_stack_entry);
   }  /* if */
   scope_stack_top().in_disambiguation = saved_in_disambiguation;
-  scope_stack_top().in_auto_prescan = saved_in_auto_prescan;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   scope_stack_top().source_sequence_entries_disallowed =
                                       saved_source_sequence_entries_disallowed;

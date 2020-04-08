@@ -371,6 +371,49 @@ entries.
 }  /* free_decl_parse_state */
 
 
+void begin_potential_abbr_func_templ_caching(a_decl_parse_state  *dps)
+/*
+The current token is the start of a declaration in class or namespace scope.
+If that token does not exclude the possibility of an abbreviated function
+template declaration, begin background token caching.
+*/
+{
+  switch (curr_token) {
+    case tok_namespace:
+    case tok_semicolon:
+    case tok_static_assert:
+    case tok_template:
+    case tok_thread:
+    case tok_thread_local:
+    case tok_typedef:
+    case tok_using:
+      /* Declarations that start with these tokens cannot be abbreviated
+         function template declarations. */
+      break;
+    default:
+      dps->start_tsn = curr_token_sequence_number;
+      begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
+      dps->decl_being_cached = TRUE;
+      scope_stack_top().in_tentative_decl = TRUE;
+      break;
+  }  /* if */
+}  /* begin_potential_abbr_func_templ_caching */
+
+
+void end_potential_abbr_func_templ_caching(a_decl_parse_state  *dps)
+/*
+If the current declaration is being cached because it could potentially be an
+abbreviated function template declaration, end that caching now.
+*/
+{
+  if (dps->decl_being_cached && !dps->is_abbr_func_template) {
+    end_caching_fetched_tokens();
+    dps->decl_being_cached = FALSE;
+    scope_stack_top().in_tentative_decl = FALSE;
+  }  /* if */
+}  /* end_potential_abbr_func_templ_caching */
+
+
 void discard_placeholder_type(a_decl_parse_state  *dps)
 /*
 Something went wrong with a placeholder type ("auto", "decltype(auto)", or a
@@ -19346,7 +19389,7 @@ processing should proceed after the call.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (curr_token == tok_static_assert) {
-    abort_potential_abbr_func_templ_caching(state);
+    end_potential_abbr_func_templ_caching(state);
     if (scope_stack_top().exporting_decl) {
       pos_error(ec_export_must_introduce_name, &pos_curr_token);
     }  /* if */
@@ -19358,7 +19401,7 @@ processing should proceed after the call.
     if (curr_token == tok_extern && next_token() == tok_string_literal) {
       /* This looks like a C++ linkage specification, which is "extern"
          followed by a string literal (e.g., "C++" or "C"). */
-      abort_potential_abbr_func_templ_caching(state);
+      end_potential_abbr_func_templ_caching(state);
       if (state->prefix_attributes != NULL) {
         /* Attributes can normally not precede a linkage specification, but
            Microsoft and clang compilers appear to just ignore them instead of
@@ -19386,7 +19429,7 @@ processing should proceed after the call.
          final token of the declaration. */
       a_template_decl_options_set  td_flags = TDO_NO_OPTIONS;
       a_source_position	           directive_start_pos = pos_curr_token;
-      abort_potential_abbr_func_templ_caching(state);
+      end_potential_abbr_func_templ_caching(state);
       /* Attributes cannot precede the "template" keyword. */
       disallow_attributes(&state->prefix_attributes, es_error);
       if (curr_token == tok_extern) {
@@ -19418,7 +19461,7 @@ processing should proceed after the call.
       /* "namespace" or "inline namespace".  Attributes cannot begin
           a "namespace" declaration. */
       a_symbol_ptr dummy_sym;
-      abort_potential_abbr_func_templ_caching(state);
+      end_potential_abbr_func_templ_caching(state);
       disallow_attributes(&state->prefix_attributes, es_error);
       /* Process a namespace definition or a namespace alias declaration. */
       namespace_declaration(final_token, /*in_nested_namespace_decl=*/FALSE,
@@ -19437,7 +19480,7 @@ processing should proceed after the call.
          using-directive (which has the form "using namespace N;"), or a
          using-declaration ("using N::x;" or "using ::x;"). */
       a_source_position  using_pos, end_of_using_pos;
-      abort_potential_abbr_func_templ_caching(state);
+      end_potential_abbr_func_templ_caching(state);
       using_pos = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_of_using_pos = end_pos_curr_token;
@@ -19474,7 +19517,7 @@ processing should proceed after the call.
     } else if (modules_enabled && curr_token == tok_module) {
       /* A module declaration (global module fragment, module unit, private
          module fragment). */
-      abort_potential_abbr_func_templ_caching(state);
+      end_potential_abbr_func_templ_caching(state);
       disallow_attributes(&state->prefix_attributes, es_error);
       module_declaration();
       cannot_bind_to_curr_construct();
@@ -19483,7 +19526,7 @@ processing should proceed after the call.
     } else if (curr_token == tok_export) {
       /* An "export" declaration.  Attributes cannot begin an "export"
          declaration. */
-      abort_potential_abbr_func_templ_caching(state);
+      end_potential_abbr_func_templ_caching(state);
       disallow_attributes(&state->prefix_attributes, es_error);
       discard_curr_construct_pragmas();
       export_declaration();
@@ -19508,7 +19551,7 @@ processing should proceed after the call.
                is_file_or_namespace_scope(&scope_stack_top()) &&
                check_for_cli_delegate_definition()) {
       /* Scan a C++/CLI delegate definition. */
-      abort_potential_abbr_func_templ_caching(state);
+      end_potential_abbr_func_templ_caching(state);
       scan_and_record_cli_delegate_definition(state, (a_type_ptr)NULL);
       cannot_bind_to_curr_construct();
       end_of_decl_action = eoda_check_semicolon;
@@ -19526,7 +19569,7 @@ processing should proceed after the call.
        latter is only possible in contexts that permit function definitions. */
     a_boolean  is_asm_decl = curr_token == tok_microsoft_asm ||
                              !state->function_definition_allowed;
-    abort_potential_abbr_func_templ_caching(state);
+    end_potential_abbr_func_templ_caching(state);
     if (!is_asm_decl) {
       a_token_cache  cache;
       clear_token_cache(&cache, /*reusable=*/FALSE);
@@ -20513,7 +20556,7 @@ parameters are scanned by scan_a_template_parameter_declaration.
       reparse_abbr_func_template(dps, &final_token);
       goto advance_past_final_token;
     }  /* if */
-    abort_potential_abbr_func_templ_caching(dps);
+    end_potential_abbr_func_templ_caching(dps);
     if (is_function && clang_mode) {
       /* In most modes, checking for an abstract class return type is done
          when the function type is validated.  Clang, however, only reports
@@ -20608,7 +20651,7 @@ parameters are scanned by scan_a_template_parameter_declaration.
     /* Keep scanning the list of declarators. */
   } while (loop_token(tok_comma));
 deferred_fixups:
-  abort_potential_abbr_func_templ_caching(dps);
+  end_potential_abbr_func_templ_caching(dps);
   if (microsoft_bugs) {
     /* In Microsoft bugs mode, the typedef is processed before member function
        bodies etc. are rescanned.  This makes e.g. the following legal:
@@ -20639,7 +20682,7 @@ advance_past_final_token:
     /* Advance past the final token of the declaration (which should be a
        ';' or '}').  However, if the current declaration is a top-level
        declaration, set a global flag to enable checking for a header stop. */
-    abort_potential_abbr_func_templ_caching(dps);
+    end_potential_abbr_func_templ_caching(dps);
     if (dps->is_top_level_declaration) {
       next_token_is_top_level_decl_start = TRUE;
     }  /* if */
@@ -20647,7 +20690,7 @@ advance_past_final_token:
     next_token_is_top_level_decl_start = FALSE;
   }  /* if */
 return_point:
-  abort_potential_abbr_func_templ_caching(dps);
+  end_potential_abbr_func_templ_caching(dps);
   run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
   check_pending_qualifiers_used(dps);
   if (access_checks_deferred) {

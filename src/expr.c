@@ -14994,15 +14994,12 @@ name.  We do not advance to the token after the decltype in this case.
   saved_in_decltype_context = scope_stack_top().in_decltype_context;
   saved_suppress_diagnostics = expr_stack->suppress_diagnostics;
   scope_stack_top().in_decltype_context = TRUE;
-  if (scope_stack_top().in_auto_prescan || scope_stack_top().is_rescan) {
-    /* During the prescan of what could be a generic lambda declarator,
-       suppress diagnostics because some constructs (such as references to
-       earlier parameters) cannot be properly processed yet.  Similarly,
-       suppress diagnostics if we're in a rescan context.  The latter is
-       usually not needed here because in most cases, rcblock will be non-NULL
-       and this will be taken care of by make_rescan_operand below.  However,
-       in Microsoft bugs mode default template arguments are sometimes
-       rescanned from tokens with scope_stack_top().is_rescan set to TRUE (see
+  if (scope_stack_top().is_rescan) {
+    /* Suppress diagnostics if we're in a rescan context.  This is usually not
+       needed here because in most cases, rcblock will be non-NULL and this
+       will be taken care of by make_rescan_operand below.  However, in
+       Microsoft bugs mode default template arguments are sometimes rescanned
+       from tokens with scope_stack_top().is_rescan set to TRUE (see
        rescan_template_type_default_arg). */
     expr_stack->suppress_diagnostics = TRUE;
   }  /* if */

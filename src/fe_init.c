@@ -126,6 +126,7 @@ END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include "decl_inits.h"
 #include "decl_spec.h"
 #include "decls.h"
+#include "declarator.h"
 #include "def_arg.h"
 #include "expr.h"
 #include "exprutil.h"
@@ -1589,6 +1590,7 @@ after the command-line processing has been done.
   class_decl_one_time_init();
   decl_spec_one_time_init();
   decls_one_time_init();
+  declarator_one_time_init();
   decl_inits_one_time_init();
   def_arg_one_time_init();
   error_one_time_init();
@@ -1707,6 +1709,7 @@ source file's compilation.
   symbol_tbl_init();
   scope_stk_init();
   decls_init();
+  declarator_init();
   decl_inits_init();
   class_decl_init();
   layout_init();

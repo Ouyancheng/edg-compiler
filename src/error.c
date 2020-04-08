@@ -3264,11 +3264,11 @@ Return TRUE if one is found.
 static a_boolean diagnostic_already_issued_for_prototype(
 						a_diagnostic_ptr	dp)
 /*
-This routine is used to prevent duplication of diagnostics in
-templates.  When a diagnostic is issued during a prototype instantiation
-a record is kept based on the error code, severity, and position.  If
-a matching diagnostic is issued during a real instantiation, it is
-suppressed.
+This routine is used to prevent duplication of diagnostics in templates and
+other contexts that may be parsed multiple times (e.g., for disambiguation).
+When a diagnostic is issued during a prototype instantiation a record is kept
+based on the error code, severity, and position.  If a matching diagnostic is
+issued during a real instantiation, it is suppressed.
 
 Return TRUE if the diagnostic should be suppressed.
 */
@@ -3285,6 +3285,7 @@ Return TRUE if the diagnostic should be suppressed.
 #if MICROSOFT_EXTENSIONS_ALLOWED
              scope_stack_top().in_generic_definition ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+             scope_stack_top().in_tentative_decl ||
              scope_stack_top().in_disambiguation) {
     record_prototype_diagnostic(dp->error_code, dp->severity, &dp->position);
   }  /* if */

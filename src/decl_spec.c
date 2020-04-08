@@ -3795,13 +3795,10 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     }  /* if */
   }  /* if */
   if ((is_class_definition || definition_removed)) {
-    if (dps->decl_being_cached) {
-      /* Class definitions cannot appear as part of function declarations.
-         There is therefore no need to keep caching tokens in case this turns
-         out to be an abbreviated function template declaration. */
-      end_caching_fetched_tokens();
-      dps->decl_being_cached = FALSE;
-    }  /* if */
+    /* Class definitions cannot appear as part of function declarations.
+       There is therefore no need to keep caching tokens in case this turns
+       out to be an abbreviated function template declaration. */
+    end_potential_abbr_func_templ_caching(dps);
     if (constexpr_enabled && !relaxed_constexpr_enabled && !gpp_mode &&
         innermost_function_scope != NULL &&
         innermost_function_scope->variant.routine.ptr->is_constexpr) {
@@ -6248,13 +6245,10 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
     }  /* if */
   }  /* if */
   if (is_definition) {
-    if (dps->decl_being_cached) {
-      /* Enum definitions cannot appear as part of function declarations.
-         There is therefore no need to keep caching tokens in case this turns
-         out to be an abbreviated function template declaration. */
-      end_caching_fetched_tokens();
-      dps->decl_being_cached = FALSE;
-    }  /* if */
+    /* Enum definitions cannot appear as part of function declarations.  There
+       is therefore no need to keep caching tokens in case this turns out to
+       be an abbreviated function template declaration. */
+    end_potential_abbr_func_templ_caching(dps);
     if (explicit_enum_base_enabled) {
       explicit_base_kind = scan_explicit_enum_base_type(&explicit_base,
                                                         &pos_explicit_base);
@@ -9453,64 +9447,27 @@ static a_boolean process_auto_parameter(a_decl_parse_state  *dps,
                                         a_symbol_ptr        concept_sym)
 /*
 *dps describes the declaration of a parameter and the current token is "auto".
-If an implicit template type parameter created for this "auto" can be found
-(currently this is only possible with generic lambdas) return TRUE and set
-dps->specifiers_type to the corresponding type.  Otherwise, return FALSE.
-FIXME
+If we are in a non-template context that might be turned into an implicit
+template context because of a "auto" parameter, record the presence of the
+"auto" parameter, set dps->specifiers_type to an "auto" type, and return TRUE.
+If we are in a template declaration or rescanning context, set
+dps->specifiers_type to the template parameter type previously created for
+occurrence of "auto" (determined through its token sequence number) and return
+TRUE.  Otherwise, return FALSE.
 */
 {
   a_boolean                result = FALSE;
   a_decl_parse_state       *func_dps = dps->assoc_func_decl_state;
-  an_auto_param_descr      *auto_param_descr;
   a_scope_stack_entry_ptr  ssep = &scope_stack_top();
 
-  if (func_dps->is_lambda) {
-    auto_param_descr = func_dps->variant.auto_params;
-    if (auto_param_descr != NULL) {
-      /* We're scanning the parameter of a lambda and a prescan previously
-         determined it was a generic lambda.  This is essentially a template
-         declaration context. */
-      /* Find the prescanned "auto" parameter description corresponding to this
-         parameter. */
-      while (auto_param_descr != NULL &&
-             auto_param_descr->auto_tsn != curr_token_sequence_number) {
-        auto_param_descr = auto_param_descr->next;
-      }  /* while */
-      if (auto_param_descr != NULL) {
-        a_template_param_ptr  tpp = auto_param_descr->template_type_parameter;
-        if (auto_param_descr->is_parameter_pack) {
-          record_potential_pack_reference(tpp->param_symbol, &pos_curr_token);
-        }  /* if */
-        dps->specifiers_type = tpp->variant.type;
-        result = TRUE;
-      } else {
-        expect_error();
-      }  /* if */
-    } else if (scope_is(ssep-1, sck_template_instantiation)) {
-      a_template_param_ptr  tpp = (ssep-1)->template_decl_info->parameters;
-      /* Find the template parameter corresponding to the current token. */
-      for (; tpp != NULL; tpp = tpp->next) {
-        a_symbol_ptr  sym = tpp->param_symbol;
-        check_assertion(sym != NULL);
-        if (sym->token_sequence_number == curr_token_sequence_number) {
-          check_assertion(symbol_is(sym, sk_type));
-          break;
-        }  /* if */
-      }  /* for */
-      if (tpp != NULL) {
-        dps->specifiers_type = tpp->param_symbol->variant.type.ptr;
-        result = TRUE;
-      } else {
-        expect_error();
-      }  /* if */
-    }  /* if */
-  } else if (dps->is_top_level_param_decl &&
-             abbr_func_templates_enabled &&
-             (func_dps->decl_being_cached ||
-              func_dps->is_template_declaration ||
-              func_dps->is_template_rescan ||
-              func_dps->is_abbr_func_template) &&
-             !auto_storage_class_specifier_enabled) {
+  if (dps->is_top_level_param_decl &&
+      (abbr_func_templates_enabled ||
+       (func_dps->is_lambda && generic_lambdas_enabled)) &&
+      (func_dps->decl_being_cached ||
+       func_dps->is_template_declaration ||
+       func_dps->is_template_rescan ||
+       func_dps->is_abbr_func_template) &&
+      !auto_storage_class_specifier_enabled) {
     an_expr_node_ptr  constraint;
     check_assertion(func_dps != NULL && scope_is(ssep, sck_func_prototype) &&
                     (concept_sym != NULL) != (curr_token == tok_auto));

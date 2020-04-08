@@ -1343,48 +1343,6 @@ typedef struct a_decl_parse_state {
 } a_decl_parse_state;
 
 
-inline void begin_potential_abbr_func_templ_caching(a_decl_parse_state  *dps)
-/*
-The current token is the start of a declaration in class or namespace scope.
-If that token does not exclude the possibility of an abbreviated function
-template declaration, begin background token caching.
-*/
-{
-  switch (curr_token) {
-    case tok_namespace:
-    case tok_semicolon:
-    case tok_static_assert:
-    case tok_template:
-    case tok_thread:
-    case tok_thread_local:
-    case tok_typedef:
-    case tok_using:
-      /* Declarations that start with these tokens cannot be abbreviated
-         function template declarations. */
-      break;
-    default:
-      dps->start_tsn = curr_token_sequence_number;
-      begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
-      dps->decl_being_cached = TRUE;
-      break;
-  }  /* if */
-}  /* begin_potential_abbr_func_templ_caching */
-
-
-inline void abort_potential_abbr_func_templ_caching(a_decl_parse_state  *dps)
-/*
-If the current declaration is being cached because it could potentially be an
-abbreviated function template declaration but the declaration is not actually
-an abbreviated function template declaration, abort that caching now.
-*/
-{
-  if (dps->decl_being_cached && !dps->is_abbr_func_template) {
-    end_caching_fetched_tokens();
-    dps->decl_being_cached = FALSE;
-  }  /* if */
-}  /* abort_potential_abbr_func_templ_caching */
-
-
 #if NULL_POINTER_IS_ZERO
 
 #if UPC_EXTENSIONS_ALLOWED
@@ -1451,6 +1409,10 @@ Macro to initialize the "init state" pointed to by the argument.
 extern a_decl_parse_state_ptr alloc_decl_parse_state(void);
 
 extern void free_decl_parse_state(a_decl_parse_state_ptr  dps);
+
+extern void begin_potential_abbr_func_templ_caching(a_decl_parse_state  *dps);
+
+extern void end_potential_abbr_func_templ_caching(a_decl_parse_state  *dps);
 
 /*
 Macro to record in a parsing state that a type error was encountered.
