@@ -5947,7 +5947,8 @@ an unnamed namespace.
   if (unnamed_ns_member) {
     /* A member of an unnamed namespace must be defined if used.  We also
        give a diagnostic if a member is declared but not used. */
-    if (vp->used && !vp->is_member_constant && !var_sym->defined) {
+    if ((vp->used || var_sym->value_has_been_set) &&
+        !vp->is_member_constant && !var_sym->defined) {
       an_error_severity severity = es_discretionary_error;
       if (gnu_mode || microsoft_mode) {
         severity = es_warning;
@@ -5963,7 +5964,7 @@ an unnamed namespace.
      The not_needed_or_will_be_instantiated check is used so that a template
      that could be instantiated is considered defined. */
   if (decls_using_types_without_linkage_allowed &&
-      vp->used &&
+      (vp->used || var_sym->value_has_been_set) &&
       (vp->storage_class == (a_storage_class)sc_extern &&
        (!vp->is_template_variable ||
         vp->is_nonreal ||
@@ -6102,7 +6103,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
       } else if (anon_ns_mem) {
         /* In unnamed namespaces a warning is issued for unused declarations,
            and an error for missing definitions that were referenced. */
-        if (var_ptr->used && !sym->defined) {
+        if ((var_ptr->used || sym->value_has_been_set) && !sym->defined) {
           an_error_severity severity = es_discretionary_error;
           if (gnu_mode || microsoft_mode) {
             severity = es_warning;
