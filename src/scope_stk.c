@@ -5947,16 +5947,16 @@ an unnamed namespace.
   if (unnamed_ns_member) {
     /* A member of an unnamed namespace must be defined if used.  We also
        give a diagnostic if a member is declared but not used. */
-    if ((vp->used || var_sym->value_has_been_set) &&
-        !vp->is_member_constant && !var_sym->defined) {
+    if (!var_sym->referenced) {
+      report_unreferenced(var_sym, ec_declared_but_not_referenced, es_warning);
+    } else if ((vp->used || var_sym->value_has_been_set) &&
+               !vp->is_member_constant && !var_sym->defined) {
       an_error_severity severity = es_discretionary_error;
       if (gnu_mode || microsoft_mode) {
         severity = es_warning;
       }  /* if */
       pos_sy_diagnostic(severity, ec_never_defined,
                         &vp->source_corresp.decl_position, var_sym);
-    } else if (!var_sym->referenced) {
-      report_unreferenced(var_sym, ec_declared_but_not_referenced, es_warning);
     }  /* if */
   }  /* if */
   /* Check if this variable was declared using a type with no linkage.  The
@@ -6103,16 +6103,17 @@ curr_routine points to the routine entry; otherwise, it is NULL.
       } else if (anon_ns_mem) {
         /* In unnamed namespaces a warning is issued for unused declarations,
            and an error for missing definitions that were referenced. */
-        if ((var_ptr->used || sym->value_has_been_set) && !sym->defined) {
+        if (!sym->referenced) {
+          report_unreferenced(sym, ec_declared_but_not_referenced,
+                              es_warning);
+        } else if ((var_ptr->used || sym->value_has_been_set) &&
+                   !sym->defined) {
           an_error_severity severity = es_discretionary_error;
           if (gnu_mode || microsoft_mode) {
             severity = es_warning;
           }  /* if */
           pos_sy_diagnostic(severity, ec_never_defined, &sym->decl_position,
                             sym);
-        } else if (!sym->referenced) {
-          report_unreferenced(sym, ec_declared_but_not_referenced,
-                              es_warning);
         }  /* if */
       } else if (is_const_qualified_type(var_ptr->type) &&
                  (sym->referenced ||
