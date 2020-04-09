@@ -169,6 +169,26 @@ Swap the values pointed to by p1 and p2.
 }  /* swap_at */
 
 
+template<typename a_List_elem>
+a_List_elem* reverse_simple_list(a_List_elem  *list)
+/*
+list points to a singly-linked list of elements connected through an accessible
+"next" pointer field.  Reverse the list and return a pointer to the new start
+of the list.  list can be NULL.
+*/
+{
+  a_List_elem  *new_list = NULL, *next;
+
+  while (list) {
+    next = list->next;
+    list->next = new_list;
+    new_list = list;
+    list = next;
+  }
+  return new_list;
+}  /* reverse_simple_list */
+
+
 /*lint -e{1537}*/
 template<typename a_Ptr>
 struct Ptr_with_flag {

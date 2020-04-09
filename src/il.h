@@ -3351,16 +3351,13 @@ extern void eval_order_for_binary_node_kind(
                                     a_boolean             *eval_left_to_right,
                                     a_boolean             *eval_right_to_left);
 
-extern an_expr_node_ptr reverse_expr_list(an_expr_node_ptr  list);
-
 /*
-Utility to reverse an expression list only if flag is TRUE.  Note that "list"
-is modified.  When called a second time it restores the list to its original
-state.
+Utility to reverse a list only if flag is TRUE.  Note that "list" is modified.
+When called a second time it restores the list to its original state.
 */
-#define reverse_expr_list_if(flag, list)                                      \
-  if ((flag)) {					                              \
-    (list) = reverse_expr_list((list));				              \
+#define reverse_simple_list_if(flag, list)                                    \
+  if ((flag)) {                                                               \
+    (list) = reverse_simple_list((list));                                     \
   }  /* if */
 
 /* Conditionally close the "edg" namespace. */

@@ -29451,25 +29451,6 @@ sequenced either way.
   }  /* switch */
 }  /* eval_order_for_binary_node_kind */
 
-
-an_expr_node_ptr reverse_expr_list(an_expr_node_ptr  list)
-/*
-Reverse the given list of initializer components, and return a pointer to the
-new start of the list.  list can be NULL.
-*/
-{
-  an_expr_node_ptr  new_list = NULL, next;
-
-  while (list) {
-    next = list->next;
-    list->next = new_list;
-    new_list = list;
-    list = next;
-  }
-  return new_list;
-}  /* reverse_expr_list */
-
-
 #if !STANDALONE_UTILITY_PROGRAM
 
 void il_one_time_init(void)

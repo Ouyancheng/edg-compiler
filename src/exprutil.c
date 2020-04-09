@@ -1313,24 +1313,6 @@ Output a list of initializer components for debugging purposes.
 
 #endif /* DEBUG */
 
-an_arg_list_elem_ptr reverse_init_component_list(an_arg_list_elem_ptr  list)
-/*
-Reverse the given list of initializer components, and return a pointer to the
-new start of the list.  list can be NULL.
-*/
-{
-  an_arg_list_elem_ptr  new_list = NULL, next;
-
-  while (list) {
-    next = list->next;
-    list->next = new_list;
-    new_list = list;
-    list = next;
-  }
-  return new_list;
-}  /* reverse_init_component_list */
-
-
 void conv_braced_init_component_to_error_expression(an_arg_list_elem_ptr alep)
 /*
 Convert a braced-init-list component to an error expression component.
@@ -2899,13 +2881,13 @@ as part of looking for unordered temp inits or unsequenced side-effects.
       /* For operations that are evaluated right-to-left, temporarily reverse
 	 the order of the list so that destructors will be handled in the
 	 correct order. */
-      reverse_expr_list_if(expr->variant.operation.eval_right_to_left,
-			   opnd_list);
+      reverse_simple_list_if(expr->variant.operation.eval_right_to_left,
+                             opnd_list);
       (void)examine_expr_list_for_unordered_issues(opnd_list, sequenced,
                                                    tblock);
       /* Restore the list order if necessary. */
-      reverse_expr_list_if(expr->variant.operation.eval_right_to_left,
-			   opnd_list);
+      reverse_simple_list_if(expr->variant.operation.eval_right_to_left,
+                             opnd_list);
 #if SEQUENCING_DIAGNOSTICS_ENABLED
       if (sequencing_diagnostics_enabled &&
           !tblock->set_unordered_on_dynamic_inits) {

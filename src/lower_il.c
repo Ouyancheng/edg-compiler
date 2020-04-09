@@ -10269,7 +10269,7 @@ right-to-left order rather than the typical left-to-right order.
   an_expr_node_ptr expr;
 
   /* Reorder the expression list if necessary. */
-  reverse_expr_list_if(eval_right_to_left, expr_list);
+  reverse_simple_list_if(eval_right_to_left, expr_list);
   for(expr = expr_list; expr != NULL; expr = expr->next) {
     /* Lower the expression on the list. */
     if (is_bool_controlling_expr_mask & 1) {
@@ -10282,7 +10282,7 @@ right-to-left order rather than the typical left-to-right order.
     assume_expr_is_non_null_mask >>= 1;
   }  /* for */
   /* Reorder the expression list if necessary. */
-  reverse_expr_list_if(eval_right_to_left, expr_list);
+  reverse_simple_list_if(eval_right_to_left, expr_list);
 }  /* lower_expr_list */
 
 
@@ -10509,7 +10509,7 @@ the call (and can be NULL in cases where maintain_sequencing is FALSE).
   /* Reorder the expression list to match the order in which the expressions
      should be evaluated (lowering them in that order is necessary so
      that any side-effects happen in the correct order). */
-  reverse_expr_list_if(eval_right_to_left, expr_list);
+  reverse_simple_list_if(eval_right_to_left, expr_list);
   called_rout_type = skip_typerefs(called_rout_type);
   /* Get the first parameter type. */
   if (param != NULL) {
@@ -10603,7 +10603,7 @@ the call (and can be NULL in cases where maintain_sequencing is FALSE).
     }  /* if */
   }  /* for */
   /* Reorder the expression list if necessary. */
-  reverse_expr_list_if(eval_right_to_left, expr_list);
+  reverse_simple_list_if(eval_right_to_left, expr_list);
 }  /* lower_arg_expr_list */
 
 

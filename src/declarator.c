@@ -3407,8 +3407,7 @@ an error if a default argument expression is encountered.
           /* A variadic "auto" parameter in the initial scan. */
           param_state.variant.auto_params->is_parameter_pack = TRUE;
         }  /* if */
-        if (generic_lambdas_enabled && state->is_lambda &&
-            param_state.has_deduced_type) {
+        if (param_state.has_deduced_type) {
           ptp->is_auto_param = TRUE;
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3541,7 +3540,14 @@ an error if a default argument expression is encountered.
             cache_default_arg = TRUE;
           }  /* if */
           is_member_or_friend_function = FALSE;
-          ignore_default_arg_expr = !default_arg_allowed_on_curr_param;
+          /* Default argument expressions are scanned, but not converted to
+             their destination type if (a) they're not permitted on the current
+             parameter (because additional errors about a failing conversion
+             would not be helpful), or (b) if we've seen an "auto" parameter
+             (because the destination type is unknown and the work is not
+             needed). */
+          ignore_default_arg_expr = !default_arg_allowed_on_curr_param ||
+                                    state->variant.auto_params != NULL;
           parent_ssep = &scope_stack[depth_scope_stack-1];
           parent_scope_kind = parent_ssep->kind;
           if (default_arg_allowed_on_curr_param) {
@@ -4082,7 +4088,7 @@ an error if a default argument expression is encountered.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (C_dialect == C_dialect_cplusplus) {
-    if (state->variant.auto_params != NULL && state->decl_being_cached) {
+    if (state->decl_being_cached && state->variant.auto_params != NULL) {
       /* If we ran into "auto" parameters, do not complete parsing of the
          function declarator because trailing components might refer to those
          "auto" parameters in ways that cannot be resolved at this time.  E.g.:
@@ -4125,6 +4131,16 @@ done:
   }  /* if */
   copy_source_position(start_pos, error_position);
   state->function_declarator_seen = TRUE;
+  if (!state->is_old_style_param_decl && !state->is_param_decl &&
+      state->variant.auto_params != NULL) {
+    /* The "auto" parameters were recorded by inserting elements at the front
+       of the list.  Reverse the list so they appear in lexical order.  (A
+       parameter can also point to its corresponding "auto" param description,
+       but even if that parameter involves a function declarator, it shouldn't
+       treat that pointer as a pointer to a list.) */
+    state->variant.auto_params =
+                              reverse_simple_list(state->variant.auto_params);
+  }  /* if */
   db_exit();
 }  /* function_declarator */
 
@@ -4234,6 +4250,8 @@ reparse_declarator:
       start_secondary_declarator(dps);
       dps->secondary_declarator = FALSE;
       dps->is_abbr_func_template = TRUE;
+      dps->declarator_start_pos = pos_curr_token;
+      dps->declarator_pos = pos_curr_token;
       clear_func_info(func_info);
       func_info->lambda = lambda;
       if (!already_template) {

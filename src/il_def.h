@@ -5718,8 +5718,7 @@ typedef struct a_param_type {
 			   variadic template. */
   a_bit_field	is_auto_param:1;
 			/* TRUE if the parameter is declared with an "auto"
-			   type specifier (i.e., a parameter of a generic
-			   lambda). */
+			   type specifier. */
   a_bit_field	qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
 			/* Top-level type qualifiers that have been removed
 			   from the parameter type; always TQ_NONE except in

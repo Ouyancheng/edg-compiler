@@ -17173,7 +17173,7 @@ operators.
 {
   an_arg_match_summary_ptr  amsp = cfp->arg_matches;
 
-  if (amsp-> next != NULL) {
+  if (amsp->next != NULL) {
     cfp->arg_matches = amsp->next;
     cfp->arg_matches->next = amsp;
     amsp->next = NULL;
@@ -17664,7 +17664,7 @@ find_more_operator_candidates:
           cfp->supplemental_reversed_candidate = TRUE;
           p_cfp = &cfp->next;
         }  /* while */
-        arg_list = reverse_init_component_list(arg_list);
+        arg_list = reverse_simple_list(arg_list);
         kind = orig_kind;
       } else if (find_supplemental_candidates ||
                  kind == (an_opname_kind)onk_eq ||
@@ -17680,7 +17680,7 @@ find_more_operator_candidates:
             p_cfp = &cfp->next;
           }  /* while */
         }  /* if */
-        arg_list = reverse_init_component_list(arg_list);
+        arg_list = reverse_simple_list(arg_list);
         arg_list2 = arg_list->next;
         find_reversed_candidates = TRUE;
         goto find_more_operator_candidates;
@@ -18124,7 +18124,7 @@ no_applicable_operator_function:
             if (candidate_functions->supplemental_reversed_candidate) {
               /* Reverse the argument list and the corresponding match
                  descriptions. */
-              arg_list = reverse_init_component_list(arg_list);
+              arg_list = reverse_simple_list(arg_list);
               reverse_binary_match_descriptions(candidate_functions);
             }  /* if */
           }  /* if */

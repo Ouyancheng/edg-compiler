@@ -49852,7 +49852,7 @@ selector is returned through bound_function_selector.
   an_arg_list_elem_ptr  alep;
 
   /* Reverse the list of operands so we can get to the "last" elements. */
-  opnd_list = reverse_init_component_list(opnd_list);
+  opnd_list = reverse_simple_list(opnd_list);
   alep = opnd_list;
   opnd_list = opnd_list->next;
   alep->next = NULL;
