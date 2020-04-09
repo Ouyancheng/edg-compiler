@@ -399,11 +399,11 @@ general memory.
 
 
 /*lint -esym(1510,*Dyn_array)*/
-template<typename an_Elem, typename an_Allocator = FE_allocator<an_Elem>>
-struct Dyn_array: private an_Allocator {
+template<typename an_Elem, template<typename> class Allocator = FE_allocator>
+struct Dyn_array: private Allocator<an_Elem> {
   /* A dynamically growable array-like class type. */
   typedef an_Elem an_elem;
-  typedef an_Allocator an_allocator;
+  typedef Allocator<an_Elem> an_allocator;
   typedef typename an_allocator::a_size a_size;
   typedef a_ptrdiff an_index;
   inline Dyn_array(a_size       cap = 0,
@@ -461,9 +461,9 @@ private:
 };  /* Dyn_array */
 
 
-template<typename an_Elem, typename an_Allocator>
-inline Dyn_array<an_Elem, an_Allocator>::Dyn_array(a_size       cap,
-                                                   an_allocator a)
+template<typename an_Elem, template<typename> class Allocator>
+inline Dyn_array<an_Elem, Allocator>::Dyn_array(a_size       cap,
+                                                an_allocator a)
 /*
 Initialize a Dyn_array with a minimum of cap elements whose allocation is
 managed by the given allocator.
@@ -479,10 +479,10 @@ managed by the given allocator.
 }  /* Dyn_array::Dyn_array */
 
 
-template<typename an_Elem, typename an_Allocator>
-inline Dyn_array<an_Elem, an_Allocator>::Dyn_array(a_size         cap,
-                                                   const an_elem& v,
-                                                   an_allocator   a)
+template<typename an_Elem, template<typename> class Allocator>
+inline Dyn_array<an_Elem, Allocator>::Dyn_array(a_size         cap,
+                                                const an_elem& v,
+                                                an_allocator   a)
 /*
 Initialize a Dyn_array with a minimum of cap elements whose allocation is
 managed by the given allocator.  Initialize the first cap elements to v.
@@ -501,8 +501,8 @@ managed by the given allocator.  Initialize the first cap elements to v.
 }  /* Dyn_array::Dyn_array */
 
 
-template<typename an_Elem, typename an_Allocator>
-inline Dyn_array<an_Elem, an_Allocator>::Dyn_array(const Dyn_array&  src)
+template<typename an_Elem, template<typename> class Allocator>
+inline Dyn_array<an_Elem, Allocator>::Dyn_array(const Dyn_array&  src)
 /*
 Copy constructor.
 */
@@ -526,8 +526,8 @@ Copy constructor.
 }  /* Dyn_array::Dyn_array */
 
 
-template<typename an_Elem, typename an_Allocator>
-inline Dyn_array<an_Elem, an_Allocator>::Dyn_array(Dyn_array&&  src)
+template<typename an_Elem, template<typename> class Allocator>
+inline Dyn_array<an_Elem, Allocator>::Dyn_array(Dyn_array&&  src)
 /*
 Move constructor.
 */
@@ -542,8 +542,8 @@ Move constructor.
 }  /* Dyn_array::Dyn_array */
 
 
-template<typename an_Elem, typename an_Allocator>
-inline Dyn_array<an_Elem, an_Allocator>::~Dyn_array()
+template<typename an_Elem, template<typename> class Allocator>
+inline Dyn_array<an_Elem, Allocator>::~Dyn_array()
 /*
 Destructor.
 */
@@ -560,8 +560,8 @@ Destructor.
 
 
 /*lint -e{1529}*/
-template<typename an_Elem, typename an_Allocator>
-inline auto Dyn_array<an_Elem, an_Allocator>::operator=(const Dyn_array &b)
+template<typename an_Elem, template<typename> class Allocator>
+inline auto Dyn_array<an_Elem, Allocator>::operator=(const Dyn_array &b)
             -> Dyn_array&
 /*
 Copy assignment operator.  
@@ -598,8 +598,8 @@ Copy assignment operator.
 }  /* Dyn_array::operator= */
 
 
-template<typename an_Elem, typename an_Allocator>
-inline auto Dyn_array<an_Elem, an_Allocator>::operator=(Dyn_array &&b)
+template<typename an_Elem, template<typename> class Allocator>
+inline auto Dyn_array<an_Elem, Allocator>::operator=(Dyn_array &&b)
             -> Dyn_array&
 /*
 Move assignment operator.  
@@ -613,8 +613,8 @@ Move assignment operator.
 }  /* Dyn_array::operator= */
 
 
-template<typename an_Elem, typename an_Allocator>
-inline void Dyn_array<an_Elem, an_Allocator>::push_back(const an_elem &value)
+template<typename an_Elem, template<typename> class Allocator>
+inline void Dyn_array<an_Elem, Allocator>::push_back(const an_elem &value)
 /*
 Copy the given value into the position after the currently-last element.
 Allocate new storage if needed.
@@ -630,8 +630,8 @@ Allocate new storage if needed.
 }  /* Dyn_array::push_back */
 
 
-template<typename an_Elem, typename an_Allocator>
-inline void Dyn_array<an_Elem, an_Allocator>::push_back(an_elem &&value)
+template<typename an_Elem, template<typename> class Allocator>
+inline void Dyn_array<an_Elem, Allocator>::push_back(an_elem &&value)
 /*
 Move the given value into the position after the currently-last element.
 Allocate new storage if needed.
@@ -647,9 +647,9 @@ Allocate new storage if needed.
 }  /* Dyn_array::push_back */
 
 
-template<typename an_Elem, typename an_Allocator>
-inline void Dyn_array<an_Elem, an_Allocator>::insert(an_index      i,
-                                                     const an_elem &value)
+template<typename an_Elem, template<typename> class Allocator>
+inline void Dyn_array<an_Elem, Allocator>::insert(an_index      i,
+                                                  const an_elem &value)
 /*
 Copy-insert the given value at the given index.  All subsequent values (if any)
 are first moved one position up.
@@ -670,9 +670,9 @@ are first moved one position up.
 }  /* Dyn_array::insert */
 
 
-template<typename an_Elem, typename an_Allocator>
-inline void Dyn_array<an_Elem, an_Allocator>::insert(an_index  i,
-                                                     an_elem   &&value)
+template<typename an_Elem, template<typename> class Allocator>
+inline void Dyn_array<an_Elem, Allocator>::insert(an_index  i,
+                                                  an_elem   &&value)
 /*
 Move-insert the given value at the given index.  All subsequent values (if any)
 are first moved one position up.
@@ -693,8 +693,8 @@ are first moved one position up.
 }  /* Dyn_array::insert */
 
 
-template<typename an_Elem, typename an_Allocator>
-inline void Dyn_array<an_Elem, an_Allocator>::remove(an_index  i)
+template<typename an_Elem, template<typename> class Allocator>
+inline void Dyn_array<an_Elem, Allocator>::remove(an_index  i)
 /*
 Destroy the entry at the given index.  All subsequent values (if any) are moved
 one position down.
@@ -711,8 +711,8 @@ one position down.
 }  /* Dyn_array::remove */
 
 
-template<typename an_Elem, typename an_Allocator>
-void Dyn_array<an_Elem, an_Allocator>::reserve(a_size  new_cap)
+template<typename an_Elem, template<typename> class Allocator>
+void Dyn_array<an_Elem, Allocator>::reserve(a_size  new_cap)
 /*
 Increase the capacity to the given value if that given value is larger than
 the current capacity.
@@ -729,8 +729,8 @@ the current capacity.
 }  /* Dyn_array::reserve */
 
 
-template<typename an_Elem, typename an_Allocator>
-void Dyn_array<an_Elem, an_Allocator>::grow()
+template<typename an_Elem, template<typename> class Allocator>
+void Dyn_array<an_Elem, Allocator>::grow()
 /*
 Grow the capacity of the array by about half, unless the capacity is less than
 2, in which case the capacity is set to 2.
@@ -745,20 +745,21 @@ Grow the capacity of the array by about half, unless the capacity is less than
 }  /* Dyn_array::grow */
 
 
-template<typename an_Object, typename a_Deallocator = FE_allocator<an_Object>>
-struct Owning_ptr: private a_Deallocator {
+template<typename an_Object,
+         template<typename> class Deallocator = FE_allocator>
+struct Owning_ptr: private Deallocator<an_Object> {
   /* A smart pointer managing an object it owns. */
   typedef an_Object an_object;
-  typedef a_Deallocator a_deallocator;
+  typedef Deallocator<an_Object> a_deallocator;
   inline Owning_ptr()
-    : a_Deallocator(), ptr(NULL) {}
+    : a_deallocator(), ptr(NULL) {}
   inline Owning_ptr(an_object *p, const a_deallocator &d = a_deallocator())
-    : a_Deallocator(d), ptr(p) {}
+    : a_deallocator(d), ptr(p) {}
   inline Owning_ptr(a_nullptr, const a_deallocator &d = a_deallocator())
-    : a_Deallocator(d), ptr(NULL) {}
+    : a_deallocator(d), ptr(NULL) {}
   inline Owning_ptr(const Owning_ptr&) = delete;
   inline Owning_ptr(Owning_ptr&& src)
-    : a_Deallocator(move_from(&src)), ptr(src.ptr) { src.ptr = NULL; }
+    : a_deallocator(move_from(&src)), ptr(src.ptr) { src.ptr = NULL; }
   inline ~Owning_ptr();
   inline auto operator=(const Owning_ptr&) -> Owning_ptr& = delete;
   inline auto operator=(Owning_ptr&& src) -> Owning_ptr&;
@@ -772,8 +773,8 @@ private:
 };  /* Owning_ptr */
 
 
-template<typename an_Object, typename a_Deallocator>
-inline Owning_ptr<an_Object, a_Deallocator>::~Owning_ptr()
+template<typename an_Object, template<typename> class Deallocator>
+inline Owning_ptr<an_Object, Deallocator>::~Owning_ptr()
 /*
 Destroy and deallocate the pointed-to object, if any.
 */
@@ -788,9 +789,9 @@ Destroy and deallocate the pointed-to object, if any.
 }  /* Owning_ptr::~Owning_ptr */
 
 
-template<typename an_Object, typename a_Deallocator>
-inline auto Owning_ptr<an_Object, a_Deallocator>::operator=(Owning_ptr &&src)
-                                                  -> Owning_ptr&
+template<typename an_Object, template<typename> class Deallocator>
+inline auto Owning_ptr<an_Object, Deallocator>::operator=(Owning_ptr &&src)
+                                                -> Owning_ptr&
 /*
 Move src to *this, then return *this.
 */
@@ -803,9 +804,9 @@ Move src to *this, then return *this.
 }  /* Owning_ptr::operator= */
 
 
-template<typename an_Object, typename a_Deallocator>
-inline auto Owning_ptr<an_Object, a_Deallocator>::operator=(a_nullptr)
-                                                  -> Owning_ptr&
+template<typename an_Object, template<typename> class Deallocator>
+inline auto Owning_ptr<an_Object, Deallocator>::operator=(a_nullptr)
+                                                -> Owning_ptr&
 /*
 Destroy and deallocate the pointed-to object, if any.  Then, set the owning
 pointer to a null value.  Return *this.
@@ -1894,9 +1895,8 @@ struct Ptr_map_entry {
 
 /*lint -esym(1510,*Ptr_map)*/
 template<typename a_Ptr_key, typename a_Value,
-         typename an_Allocator =
-                               FE_allocator<Ptr_map_entry<a_Ptr_key, a_Value>>>
-struct Ptr_map: private an_Allocator {
+         template<typename> class Allocator = FE_allocator>
+struct Ptr_map: private Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> {
   /* A flat hash table whose keys are non-null scalar values (usually native
      pointers, but integers can be used too).  This implementation is optimized
      for lookups that generally succeed and small associated values (i.e., the
@@ -1904,7 +1904,7 @@ struct Ptr_map: private an_Allocator {
      number of requested elements. */
   typedef a_Ptr_key a_key;
   typedef a_Value a_value;
-  typedef an_Allocator an_allocator;
+  typedef Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> an_allocator;
   typedef unsigned int an_index;
   inline Ptr_map(unsigned int mask_width, an_allocator a = an_allocator());
   inline ~Ptr_map();
@@ -1935,10 +1935,11 @@ private:
 };  /* Ptr_map */
 
 
-template<typename a_Ptr_key, typename a_Value, typename an_Allocator>
-inline Ptr_map<a_Ptr_key, a_Value, an_Allocator>::Ptr_map(
-                                                      unsigned int  mask_width,
-                                                      an_allocator  a)
+template<typename a_Ptr_key, typename a_Value,
+         template<typename> class Allocator>
+inline Ptr_map<a_Ptr_key, a_Value, Allocator>::Ptr_map(
+                                                     unsigned int  mask_width,
+                                                     an_allocator  a)
 /*
 Initialize the given pointer map with a capacity for 1<<mask_width slots.
 */
@@ -1956,8 +1957,9 @@ Initialize the given pointer map with a capacity for 1<<mask_width slots.
 }  /* Ptr_map::Ptr_map */
 
 
-template<typename a_Ptr_key, typename a_Value, typename an_Allocator>
-inline Ptr_map<a_Ptr_key, a_Value, an_Allocator>::~Ptr_map()
+template<typename a_Ptr_key, typename a_Value,
+         template<typename> class Allocator>
+inline Ptr_map<a_Ptr_key, a_Value, Allocator>::~Ptr_map()
 /*
 Release the storage for the map.
 */
@@ -1973,9 +1975,10 @@ Release the storage for the map.
 }  /* Ptr_map::~Ptr_map */
 
 
-template<typename a_Ptr_key, typename a_Value, typename an_Allocator>
-inline auto Ptr_map<a_Ptr_key, a_Value, an_Allocator>::get(a_key  key) const
-                                                       -> a_value
+template<typename a_Ptr_key, typename a_Value,
+         template<typename> class Allocator>
+inline auto Ptr_map<a_Ptr_key, a_Value, Allocator>::get(a_key  key) const
+                                                    -> a_value
 /*
 Look up key in the map and return the associated value if found, or a_value()
 if not found.
@@ -2024,9 +2027,10 @@ removed from a Ptr_map instance.
 #define check_traced_key_ptr(ptr, msg) /* Nothing */
 #endif /* ifdef TRACE_PTR_MAP */
 
-template<typename a_Ptr_key, typename a_Value, typename an_Allocator>
-inline void Ptr_map<a_Ptr_key, a_Value, an_Allocator>::map(a_key          key,
-                                             const a_value  &value)
+template<typename a_Ptr_key, typename a_Value,
+         template<typename> class Allocator>
+inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::map(a_key          key,
+                                                        const a_value  &value)
 /*
 Associate a copy of value with the given key.
 */
@@ -2050,8 +2054,9 @@ Associate a copy of value with the given key.
 }  /* Ptr_map::map */
 
 
-template<typename a_Ptr_key, typename a_Value, typename an_Allocator>
-inline void Ptr_map<a_Ptr_key, a_Value, an_Allocator>::replace(
+template<typename a_Ptr_key, typename a_Value,
+         template<typename> class Allocator>
+inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::replace(
                                                         a_key          key,
                                                         const a_value  &value)
 /*
@@ -2077,11 +2082,12 @@ Replace the value associated with the given key by the given value.
 }  /* Ptr_map::replace */
 
 
-template<typename a_Ptr_key, typename a_Value, typename an_Allocator>
-inline auto Ptr_map<a_Ptr_key, a_Value, an_Allocator>::map_or_replace(
+template<typename a_Ptr_key, typename a_Value,
+         template<typename> class Allocator>
+inline auto Ptr_map<a_Ptr_key, a_Value, Allocator>::map_or_replace(
                                                         a_key          key,
                                                         const a_value  &value)
-                                         -> a_value
+                                                    -> a_value
 /*
 If the given key is already mapped, replace its associated value by the given
 value and return the previously associated value.  Otherwise, record a new key,
@@ -2129,8 +2135,9 @@ associate it with the given value, and return a_value().
 }  /* Ptr_map::map_or_replace */
 
 
-template<typename a_Ptr_key, typename a_Value, typename an_Allocator>
-inline void Ptr_map<a_Ptr_key, a_Value, an_Allocator>::unmap(a_key  key)
+template<typename a_Ptr_key, typename a_Value,
+         template<typename> class Allocator>
+inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::unmap(a_key  key)
 /*
 Remove the given key from the table (it must exist).
 */
@@ -2157,8 +2164,9 @@ Remove the given key from the table (it must exist).
 }  /* Ptr_map::unmap */
 
 
-template<typename a_Ptr_key, typename a_Value, typename an_Allocator>
-void Ptr_map<a_Ptr_key, a_Value, an_Allocator>::map_colliding_key(
+template<typename a_Ptr_key, typename a_Value,
+         template<typename> class Allocator>
+void Ptr_map<a_Ptr_key, a_Value, Allocator>::map_colliding_key(
                                                     a_key          new_key,
                                                     const a_value  &new_value,
                                                     an_index       idx)
@@ -2194,8 +2202,9 @@ new value at the given location.
 }  /* Ptr_map::map_colliding_key */
 
 
-template<typename a_Ptr_key, typename a_Value, typename an_Allocator>
-void Ptr_map<a_Ptr_key, a_Value, an_Allocator>::expand_table()
+template<typename a_Ptr_key, typename a_Value,
+         template<typename> class Allocator>
+void Ptr_map<a_Ptr_key, a_Value, Allocator>::expand_table()
 /*
 Double the size of the hash table (and rehash entries as needed).
 */
@@ -2226,9 +2235,9 @@ Double the size of the hash table (and rehash entries as needed).
 }  /* Ptr_map::expand_table */
 
 
-template<typename a_Ptr_key, typename a_Value, typename an_Allocator>
-void Ptr_map<a_Ptr_key, a_Value, an_Allocator>::check_deleted_slot(
-                                                                an_index  idx0)
+template<typename a_Ptr_key, typename a_Value,
+         template<typename> class Allocator>
+void Ptr_map<a_Ptr_key, a_Value, Allocator>::check_deleted_slot(an_index  idx0)
 /*
 Slot idx0 has been cleared (i.e., this->table[idx0].ptr has been set to null).
 The next slot is not empty.  There may therefore exist entries that are
@@ -2280,8 +2289,9 @@ done:;
 
 #if DEBUG
 
-template<typename a_Ptr_key, typename a_Value, typename an_Allocator>
-void Ptr_map<a_Ptr_key, a_Value, an_Allocator>::db_ptrs() const
+template<typename a_Ptr_key, typename a_Value,
+         template<typename> class Allocator>
+void Ptr_map<a_Ptr_key, a_Value, Allocator>::db_ptrs() const
 /*
 Output some information about the map's key contents to f_debug.
 */

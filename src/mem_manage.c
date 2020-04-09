@@ -117,20 +117,13 @@ static a_boolean
 			   mmap memory) is being used for memory region
 			   blocks. */
 
-typedef Dyn_array<a_void_ptr, General_allocator<a_void_ptr>>
+typedef Dyn_array<a_void_ptr, General_allocator>
 		a_dyn_array_of_void_ptrs;
 			/* A dynamic array of void* pointers. */
 
 typedef a_dyn_array_of_void_ptrs *a_dyn_array_of_void_ptrs_ptr;
 
-typedef General_allocator<Ptr_map_entry<sizeof_t,
-                                        a_dyn_array_of_void_ptrs_ptr>>
-		a_size_to_ptr_map_allocator;
-			/* Allocator type for a map from nonzero sizeof_t keys
-			   to a_dyn_array_of_void_ptrs_ptr values. */
-
-typedef Ptr_map<sizeof_t, a_dyn_array_of_void_ptrs_ptr,
-                a_size_to_ptr_map_allocator>
+typedef Ptr_map<sizeof_t, a_dyn_array_of_void_ptrs_ptr, General_allocator>
 		a_size_to_ptr_map;
 			/* A map to an array of pointers to blocks of memory
 			   of a given size. */
