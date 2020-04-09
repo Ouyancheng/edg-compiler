@@ -1,5 +1,30 @@
 Version 6.1
 
+4/8/20   [EDGcpfe/22580]
+C++-generating back end: alias declaration in nested class of class template
+
+Consider the following example, compiled with --c++14 --gnu_version=80300:
+
+   template<typename> struct A {
+     struct B { };
+     struct C {
+       using B = typename A::B;
+     };
+   };
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end previously put out
+the alias declaration for A::C::B as
+
+  using B = B;
+
+Although this declaration is correct, since the point of declaration of
+the name in an alias declaration is after the type-id, g++ issued a
+spurious error when compiling the generated code.  In g++ mode, the
+C++-generating back end now uses a qualified name for the type-id in such
+alias declarations.
+
+
 4/7/20   [EDGcpfe/22587]
 Ptr_map memory allocation strategy
 

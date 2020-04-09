@@ -1244,9 +1244,23 @@ C++-generating back end.
   }  /* if */
   if (old_sym_ptr == NULL) {
     /* There is no symbol that may potentially be hidden. */
-  } else if (old_sym_ptr->is_nonreal_member) {
+  } else if (old_sym_ptr->is_nonreal_member &&
+             !(gpp_mode && sym_ptr->kind == (a_symbol_kind)sk_type &&
+               sym_ptr->variant.type.ptr->kind == (a_type_kind)tk_typeref &&
+               sym_ptr->variant.type.ptr->variant.typeref.is_alias)) {
     /* Ignore members of proxy and nonreal classes: they don't correspond to
-       actual declarations and therefore cannot be hidden. */
+       actual declarations and therefore cannot be hidden.  The exception
+       handles a case like:
+         template<typename> struct A {
+           struct B { };
+           struct C {
+             using B = typename A::B;
+           };
+         };
+       In g++ mode, C::B must be recorded as hiding A::B, lest the
+       C++-generating back end write that as
+         using B = B;
+       which, although valid, g++ complains about. */
   } else {
     tag_sym = NULL;
     if (is_injected_class_symbol(sym_ptr) &&
