@@ -9422,7 +9422,7 @@ appears to be the introducer for a trailing return type.
     if (curr_token == tok_lparen) {
       result = FALSE;
       if (!cache_token_stream_until_matching_token(&cache, CTS_NO_OPTIONS)) {
-        /* Found a matching tok_rparen: Cache it to see if it is follow by
+        /* Found a matching tok_rparen: Cache it to see if it is followed by
            a "->" token. */
         cache_curr_token(&cache);
         (void)get_token();
@@ -9446,14 +9446,17 @@ appears to be the introducer for a trailing return type.
 static a_boolean process_auto_parameter(a_decl_parse_state  *dps,
                                         a_symbol_ptr        concept_sym)
 /*
-*dps describes the declaration of a parameter and the current token is "auto".
+*dps describes the declaration of a parameter and the current token is "auto"
+(if concept_sym is NULL) or a type constraint associated with concept_sym
+(in which case the type constraint must be followed by an "auto" token).
 If we are in a non-template context that might be turned into an implicit
-template context because of a "auto" parameter, record the presence of the
-"auto" parameter, set dps->specifiers_type to an "auto" type, and return TRUE.
-If we are in a template declaration or rescanning context, set
-dps->specifiers_type to the template parameter type previously created for
-occurrence of "auto" (determined through its token sequence number) and return
-TRUE.  Otherwise, return FALSE.
+template context because of an "auto" parameter, record the presence of the
+"auto" parameter and (optionally) its associated type constraint, set
+dps->specifiers_type to an "auto" type, and return TRUE.  If we are in a
+template declaration or rescanning context, set dps->specifiers_type to the
+template parameter type previously created for this occurrence of "auto"
+(determined through its token sequence number) and return TRUE.  Otherwise,
+return FALSE.  
 */
 {
   a_boolean                result = FALSE;
@@ -9506,7 +9509,7 @@ TRUE.  Otherwise, return FALSE.
          with a "template" token, or a template declaration that started with
          "template" but which hasn't been marked as an "abbreviated function
          template" yet.  Record the presence of an "auto" parameter if
-         appropriate: When the function complete declarator has been parsed,
+         appropriate: When the function parameters have all been parsed,
          template parameters will be declared for each "auto" parameter and
          parsing will be restarted. */
       if (curr_token == tok_auto) {

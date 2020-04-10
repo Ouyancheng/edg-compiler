@@ -4151,7 +4151,7 @@ static an_abbr_lambda_descr_map
 		*abbr_lambda_descrs;
 			/* Map from token sequence numbers to "auto" parameter
 			   lists for lambdas that appear in templates (i.e.,
-			   in prototype instantiations.  The lists can then be
+			   in prototype instantiations).  The lists can then be
 			   reused in real instantiations.  That is not only a
 			   performance optimization, but it also avoids issues
 			   with "auto..." parameter packs that would otherwise

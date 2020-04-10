@@ -1126,7 +1126,7 @@ typedef struct a_decl_parse_state {
 			   requires clause was not satisfied. */
   a_bit_field	is_abbr_func_template:1;
 			/* TRUE if this is an abbreviated function template
-			   declaration being parse after the template
+			   declaration being parsed after the template
 			   parameters associated with the "auto" function
 			   parameters have been declared. */
   a_bit_field	decl_being_cached:1;

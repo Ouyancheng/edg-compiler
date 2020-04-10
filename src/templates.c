@@ -4220,13 +4220,14 @@ static void create_decl_state_for_partial_spec_rescan(
 			a_template_decl_info_ptr		decl_info,
 			a_type_ptr				class_type)
 /*
-We are about to rescan the declaration of a partial specialization that
-was declared outside of the class template of which it is a member.
+We are about to rescan the declaration of a partial specialization that was
+declared outside of the class template of which it is a member.
 
-Construct a template declaration state block that can be used for this
-rescan.  "tdsp" is the declaration state being created.  "oocpsp" is the
-entry created to describe this out-of-class specialization.  "decl_info"
-is the template declaration information of the partial specialization.
+Construct a template declaration state block that can be used for this rescan.
+"tdsp" is the declaration state being created, and dps is the parse state
+associated with the underlying parameterized declaration.  "oocpsp" is the
+entry created to describe this out-of-class specialization.  "decl_info" is
+the template declaration information of the partial specialization.
 "class_type" is the parent class type.
 */
 {
@@ -10090,7 +10091,7 @@ static a_boolean template_has_constraints(
 Return TRUE if the template associated with il_entry has type parameters with
 type-constraints or a requires clause on the template parameters list (note
 that this does not include checking for a trailing requires clause).  If
-p_diag_pos is non-NULL, st *p_diag_pos to point to the position of one of
+p_diag_pos is non-NULL, set *p_diag_pos to point to the position of one of
 the constraints.
 */
 {
@@ -17225,7 +17226,7 @@ parameters: Declare those template parameters now, and prepare to re-parse the
 declarator so that the "auto" specifiers will be mapped to the new template
 parameters.  reparse_tsn is the token sequence number of the first token of
 the declarator.  reparse_actions is the last end-of-parse action recorded
-before the prior parsing of the declarator.  And func_info is the function
+before the prior parsing of the declarator and func_info is the function
 information block that was used during that parsing (and is about to be reused
 during the re-parsing).
 */
@@ -24509,7 +24510,7 @@ position information.
 
 an_expr_node_ptr scan_type_constraint(a_symbol_ptr  concept_templ)
 /*
-The current token is names a concept template represented by concept_templ.
+The current token names a concept template represented by concept_templ.
 Scan that token and an optional template argument list that follows to form
 a type constraint.  Return that constraint.  In error cases, return NULL.
 */
@@ -25619,7 +25620,7 @@ template parameters that depend on other template parameters.
     new_template = error_class_template()->
                                       variant.template_info->il_template_entry;
   } else {
-    a_decl_parse_state          parent_dps;
+    a_decl_parse_state		parent_dps;
     a_tmpl_decl_state		parent_decl_state;
     a_template_param_ptr	new_param;
     a_tmpl_param_state		param_state;
@@ -27683,7 +27684,9 @@ Complete the processing for a function template declaration described by
 decl_state.  sym is a symbol indicating the template.  func_info points to the
 block of information for the current function declaration.  p_tssp points to
 the location in which the template symbol supplement for this template should
-be returned to the caller.
+be returned to the caller.  decl_pos is the main position associated with the
+template declaration (usually the position of the declarator-id, but not for
+generic lambda call operators since they have no declarator-ids).
 */
 {
   a_boolean                        err = sym == NULL || sym->is_error;
@@ -28572,7 +28575,8 @@ static a_template_param_ptr implicit_templ_param_for_auto_func_param(
 /*
 Create and record a template parameter corresponding to an "auto" function
 parameter (for an abbreviated function template or a generic lambda).
-templ_state is the template being declared.  is_pack is TRUE if the parameter
+templ_state is the template being declared.  constraint is the type-constraint
+specified on the parameter or NULL if none.  is_pack is TRUE if the parameter
 should be variadic.  auto_tsn is the token sequence number of the "auto" token
 (used to resolved occurrences of that particular token to its corresponding
 template parameter during rescans).  param_num is the position of the new
@@ -28644,7 +28648,7 @@ in a abbreviated function template or a generic lambda).
     p_tpp = &(*p_tpp)->next;
   }  /* for */
   if (!dps->is_lambda) {
-    /* Free the list of auto parameters descriptions.  We don't do this for
+    /* Free the list of auto parameter descriptions.  We don't do this for
        lambdas, because it may be reused in some cases.  See
        scan_lambda_declarator. */
     free_auto_param_descriptions(dps);
@@ -32567,7 +32571,7 @@ export_present is TRUE if the template keyword was preceded by "export".
 If export_present is TRUE, export_pos is the position of the export
 keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
 
-This function is also called abbreviated function templates.  That case is
+This function is also called for abbreviated function templates.  That case is
 characterized by orig_dps being non-NULL and pointing to the parse state
 achieved with an initial attempt to parse the declaration as a non-template.
 In particular, orig_dps->variant.auto_params points to a list of descriptions
@@ -32575,7 +32579,7 @@ of the "auto" parameters.
 */
 {
   a_tmpl_decl_state		decl_state;
-  a_decl_parse_state            dps;
+  a_decl_parse_state		dps;
   a_def_arg_expr_fixup_ptr	saved_curr_default_args;
   a_scope_depth			orig_depth = depth_scope_stack;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
