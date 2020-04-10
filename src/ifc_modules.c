@@ -341,6 +341,8 @@ Handle nested structures differently (and check for padding).
 #define GET_ParameterLevel(x, from_header)     GET_int(x, from_header)
 #define GET_ParameterPosition(x, from_header)  GET_int(x, from_header)
 #define GET_ScopeIndex(x, from_header)         GET_int(x, from_header)
+#define GET_SegmentTraits(x, from_header)      GET_int(x, from_header)
+#define GET_SegmentType(x, from_header)        GET_int(x, from_header)
 #define GET_SentenceIndex(x, from_header)      GET_int(x, from_header)
 #define GET_StmtIndex(x, from_header)          GET_int(x, from_header)
 #define GET_StringIndex(x, from_header)        GET_int(x, from_header)
@@ -363,11 +365,13 @@ Handle nested structures differently (and check for padding).
 #define GET_Architecture(x, from_header)       GET_byte(x, from_header)
 #define GET_BasicSpecifiers(x, from_header)    GET_byte(x, from_header)
 #define GET_CallingConvention(x, from_header)  GET_byte(x, from_header)
+#define GET_ExpansionMode(x, from_header)      GET_byte(x, from_header)
 #define GET_FunctionTypeTraits(x, from_header) GET_byte(x, from_header)
 #define GET_NoexceptSort(x, from_header)       GET_byte(x, from_header)
 #define GET_ObjectTraits(x, from_header)       GET_byte(x, from_header)
 #define GET_ParameterSort(x, from_header)      GET_byte(x, from_header)
 #define GET_Qualifiers(x, from_header)         GET_byte(x, from_header)
+#define GET_ReachableProperties(x, from_header)GET_byte(x, from_header)
 #define GET_ReadConversionSort(x, from_header) GET_byte(x, from_header)
 #define GET_ScopeTraits(x, from_header)        GET_byte(x, from_header)
 /*lint -esym(750,GET_SyntaxSort)*/
@@ -376,6 +380,7 @@ Handle nested structures differently (and check for padding).
 #define GET_TypePrecision(x, from_header)      GET_byte(x, from_header)
 #define GET_TypeSign(x, from_header)           GET_byte(x, from_header)
 #define GET_Version(x, from_header)            GET_byte(x, from_header)
+#define GET_WordSort(x, from_header)           GET_byte(x, from_header)
 
 #define GET_bool(x, from_header)               GET_byte(x, from_header)
 #define GET_uint8_t(x, from_header)            GET_byte(x, from_header)
@@ -1096,7 +1101,7 @@ constants for that type).
           idssp = get_DeclSort_Scope(&idss);
           /* Should be no unnamed namespaces or types. */
           check_assertion(idssp->name != 0);
-          init_locator_from_name(idssp->name, (ifc_TextOffset)0, &idssp->locus,
+          init_locator_from_name((ifc_NameIndex)0, idssp->name, &idssp->locus,
                                  &loc);
           /* Look at the "type" to determine whether we have a namespace or
              not. */
@@ -1291,7 +1296,8 @@ class_struct_union_case:
             a_type_ptr   enum_type;
             a_symbol_ptr tag_sym;
             check_assertion(idsep->base != 0);
-            init_dps(&dps, &idsep->locus, idsep->base, idsep->alignment,
+            /* FIXME: idsep->alignment exists but is an ExprIndex. */
+            init_dps(&dps, &idsep->locus, idsep->base, (ifc_Alignment)0,
                      ifc_ObjectTraits_None, ifc_MsvcTraits_None,
                      idsep->specifiers, idsep->access, &psss);
             clear_decl_pos_block(&decl_pos_block);
@@ -2438,7 +2444,7 @@ by home_scope to the output buffer.
                               decl_value(home_scope));
   check_assertion(tag == ifc_DeclSort_Scope);
   idssp = get_DeclSort_Scope(&idss);
-  str_ifc_name_index(idssp->name, scbp);
+  str_ifc_text_offset(idssp->name, scbp);
 }  /* str_ifc_class_name */
 
 
@@ -2988,9 +2994,9 @@ the output buffer.
         /* FIXME: Handle this. */
       }
       break;
-    case ifc_ExprSort_SizeofTypeId:
-      { an_ifc_ExprSort_SizeofTypeId iesotid;
-        get_ExprSort_SizeofTypeId(&iesotid);
+    case ifc_ExprSort_SizeofType:
+      { an_ifc_ExprSort_SizeofType iesotid;
+        get_ExprSort_SizeofType(&iesotid);
         /* FIXME: Handle this. */
       }
       break;
@@ -3072,33 +3078,33 @@ the output buffer.
         /* FIXME: Handle this. */
       }
       break;
-    case ifc_ExprSort_Product:
-      { an_ifc_ExprSort_Product iep;
-        get_ExprSort_Product(&iep);
+    case ifc_ExprSort_ProductTypeValue:
+      { an_ifc_ExprSort_ProductTypeValue iep;
+        get_ExprSort_ProductTypeValue(&iep);
         /* FIXME: Handle this. */
       }
       break;
-    case ifc_ExprSort_Sum:
+    case ifc_ExprSort_SumTypeValue:
       { an_ifc_ExprSort_SumTypeValue iestv;
         get_ExprSort_SumTypeValue(&iestv);
         /* FIXME: Handle this. */
       }
       break;
-    case ifc_ExprSort_Subobject:
-      { an_ifc_ExprSort_Subobject ieso;
-        get_ExprSort_Subobject(&ieso);
+    case ifc_ExprSort_SubobjectValue:
+      { an_ifc_ExprSort_SubobjectValue ieso;
+        get_ExprSort_SubobjectValue(&ieso);
         /* FIXME: Handle this. */
       }
       break;
-    case ifc_ExprSort_Array:
-      { an_ifc_ExprSort_Array iea;
-        get_ExprSort_Array(&iea);
+    case ifc_ExprSort_ArrayValue:
+      { an_ifc_ExprSort_ArrayValue iea;
+        get_ExprSort_ArrayValue(&iea);
         /* FIXME: Handle this. */
       }
       break;
-    case ifc_ExprSort_VirtualFunction:
-      { an_ifc_ExprSort_VirtualFunction ievf;
-        get_ExprSort_VirtualFunction(&ievf);
+    case ifc_ExprSort_VirtualFunctionConversion:
+      { an_ifc_ExprSort_VirtualFunctionConversion ievf;
+        get_ExprSort_VirtualFunctionConversion(&ievf);
         /* FIXME: Handle this. */
       }
       break;
@@ -3679,7 +3685,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
           str_ifc_type_index(idssp->type, scbp);
         }  /* if */
         add_char_to_text_buffer(scbp->text_buffer, ' ');
-        str_ifc_name_index(idssp->name, scbp);
+        str_ifc_text_offset(idssp->name, scbp);
         add_char_to_text_buffer(scbp->text_buffer, ' ');
         if (is_designated_type) {
           /* When using a designated type, only the type name needs to be
@@ -3694,8 +3700,9 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
     case ifc_DeclSort_Field:
       { an_ifc_DeclSort_Field idsf, *idsfp;
         idsfp = get_DeclSort_Field(&idsf);
+        /* FIXME: idsfp->alignment exists but is an ExprIndex. */
         str_ifc_common_decl(&idsfp->locus, idsfp->access, idsfp->specifier,
-                            idsfp->traits, idsfp->alignment, scbp);
+                            idsfp->traits, (ifc_Alignment)0, scbp);
         str_ifc_type_index(idsfp->type, scbp);
         add_char_to_text_buffer(scbp->text_buffer, ' ');
         str_ifc_text_offset(idsfp->name, scbp);
@@ -3822,9 +3829,10 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         an_ifc_TypeSort_Fundamental itsf, *itsfp;
         idsep = get_DeclSort_Enumeration(&idse);
         /* Emit an enumeration declaration. */
+        /* FIXME: idsep->alignment exists but is an ExprIndex. */
         str_ifc_common_decl(&idsep->locus, idsep->access, idsep->specifiers,
                             (ifc_ObjectTraits)ifc_ObjectTraits_None,
-                            idsep->alignment, scbp);
+                            (ifc_Alignment)0, scbp);
         check_assertion(type_tag(idsep->type) == ifc_TypeSort_Fundamental);
         /* Read the type to see what kind it is. */
         read_ifc_partition_at_index(ifc_type_fundamental,
@@ -4398,10 +4406,10 @@ Generate a string for the specified syntax tree node.
                                  " is currently unspecified.");
       }
       break;
-    case ifc_SyntaxSort_DecltypeAutoSpecifier:
-      { an_ifc_SyntaxSort_DecltypeAutoSpecifier issdas;
-        get_SyntaxSort_DecltypeAutoSpecifier(&issdas);
-        unexpected_condition_str("SyntaxSort::DecltypeAutoSpecifier"
+    case ifc_SyntaxSort_PlaceholderTypeSpecifier:
+      { an_ifc_SyntaxSort_PlaceholderTypeSpecifier isspts;
+        get_SyntaxSort_PlaceholderTypeSpecifier(&isspts);
+        unexpected_condition_str("SyntaxSort::PlaceholderTypeSpecifier"
                                  " is currently unspecified.");
       }
       break;
@@ -5136,6 +5144,13 @@ Generate a string for the specified syntax tree node.
       { an_ifc_SyntaxSort_StructuredBindingIdentifier isssbi;
         get_SyntaxSort_StructuredBindingIdentifier(&isssbi);
         unexpected_condition_str("SyntaxSort::StructuredBindingIdentifier"
+                                 " is currently unspecified.");
+      }
+      break;
+    case ifc_SyntaxSort_UsingEnumDeclaration:
+      { an_ifc_SyntaxSort_UsingEnumDeclaration issued;
+        get_SyntaxSort_UsingEnumDeclaration(&issued);
+        unexpected_condition_str("SyntaxSort::UsingEnumDeclaration"
                                  " is currently unspecified.");
       }
       break;
