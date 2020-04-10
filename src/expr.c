@@ -5116,6 +5116,16 @@ typedef struct a_builtin_call_adjustment {
                         /* If non-NULL, the return type of the builtin.  If
                            the return type of the routine is dependent on its
                            arguments, this field will be NULL. */
+  a_symbol_ptr
+              overloaded_function_symbol;
+                        /* If non-NULL, the symbol for operator new/delete
+                           to be used in place of __builtin_operator_new/
+                           builtin_operator_delete. */
+  a_name_reference_ptr
+              name_reference;
+                        /* If non-NULL, the special name reference to use
+                           to represent __builtin_operator_new/
+                           __builtin_operator_delete to a back end. */
   int         n_args;   /* The number of arguments the builtin expects. */
   int         dispatch_arg;
                         /* The argument number of the "dispatch type", if any.
@@ -5186,6 +5196,8 @@ and adjust the argument and routine types as needed.
 
   /* Initialize all fields in *bcap. */
   bcap->result_type = NULL;
+  bcap->overloaded_function_symbol = NULL;
+  bcap->name_reference = NULL;
   bcap->n_args = 0;
   bcap->dispatch_arg = 1;
   bcap->replace_routine_type = FALSE;
@@ -5324,6 +5336,22 @@ and adjust the argument and routine types as needed.
       bcap->n_args = 2;
       bcap->dispatch_arg = 2;
       break;
+    case bfk_operator_delete:
+    case bfk_operator_new:
+      /* Replace the reference to __builtin_operator_delete/
+         __builtin_operator_new with a reference to the appropriate global
+         operator.  The caller will perform overload resolution to select the
+         proper variant of the function. */
+      bcap->overloaded_function_symbol =
+        opname_function_symbol(bfk == bfk_operator_new ? onk_new : onk_delete);
+      /* Allocate a name reference to indicate to a back end that this
+         transformation has occurred (so the original source can be recreated
+         by a back end). */
+      bcap->name_reference = alloc_name_reference();
+      bcap->name_reference->special_kind = (bfk == bfk_operator_new) ?
+                          (a_special_function_kind)sfk_builtin_operator_new :
+                          (a_special_function_kind)sfk_builtin_operator_delete;
+      break;
     default:
       /* Nothing more to be done. */
       break;
@@ -5331,7 +5359,7 @@ and adjust the argument and routine types as needed.
   if (bcap->is_c11_atomic) {
     bcap->replace_routine_type = TRUE;
   }  /* if */
-  return (bcap->n_args != 0);
+  return bcap->n_args != 0 || bcap->overloaded_function_symbol != NULL;
 }  /* builtin_call_needs_adjustment */
 
 
@@ -5516,7 +5544,7 @@ indicated type.
       an_operand        orig_operand;
       sizeof_t          name_len =
                 strlen(unmangled_or_fabricated_name_of(&rout->source_corresp));
-      a_name_reference  *nrp = alloc_name_reference();;
+      a_name_reference  *nrp = alloc_name_reference();
       if (bcap->replace_routine_type) {
         /* The type of the builtin is dynamic and depends on the "dispatch
            type".  Most of the cases here are currently for the __c11_atomic_*
@@ -6484,10 +6512,18 @@ are expected to be NULL in that case.
        meaningless.  If adjustment is needed, the concrete routine to call will
        not be known until after the arguments are scanned. */
     if (builtin_call_needs_adjustment(routine, &bca)) {
-      builtin_needs_adjustment = TRUE;
       bcap = &bca;
       routine_type = NULL;
       routine = NULL;
+      if (bcap->overloaded_function_symbol != NULL) {
+        /* The builtin is being replaced by a call to an overloaded operator
+           function; use that symbol to do the overload resolution. */
+        overloaded_function_symbol = bcap->overloaded_function_symbol;
+        overloaded_function_case = TRUE;
+      } else {
+        /* Some adjustment is needed after scanning the arguments. */
+        builtin_needs_adjustment = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
@@ -6726,10 +6762,18 @@ are expected to be NULL in that case.
     rule_out_expr_kinds(ROEK_CONSTANT, result);
   }  /* if */
 #if BUILTIN_FUNCTIONS_ENABLED
-  if (bcap != NULL && bcap->result_type != NULL) {
-    /* Cast the call result to the right type for certain builtin function
-       calls. */
-    cast_operand(bcap->result_type, result, /*is_implicit_cast=*/TRUE);
+  if (bcap != NULL) {
+    if (bcap->result_type != NULL) {
+      /* Cast the call result to the right type for certain builtin function
+         calls. */
+      cast_operand(bcap->result_type, result, /*is_implicit_cast=*/TRUE);
+    }  /* if */
+    if (bcap->name_reference != NULL) {
+      /* The builtin call has been replaced by a call to the appropriate
+         operator new/delete; use a name reference to communicate this to the
+         back end so the original source can be recreated. */
+      operand_node->variant.routine.name_reference = bcap->name_reference;
+    }  /* if */
   }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 done:

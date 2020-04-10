@@ -3209,6 +3209,12 @@ Print the name of a special function kind.
     case sfk_gnu_atomic_generic_function:
                                 s = "sfk_gnu_atomic_generic_function";
                                                                break;
+    case sfk_builtin_operator_new:
+                                s = "sfk_builtin_operator_new";
+                                                               break;
+    case sfk_builtin_operator_delete:
+                                s = "sfk_builtin_operator_delete";
+                                                               break;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
     default:                     s = "**BAD SPECIAL FUNCTION KIND**";
   }  /* switch */

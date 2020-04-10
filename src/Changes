@@ -1,5 +1,31 @@
 Version 6.1
 
+4/10/20  [EDGcpfe/22516]
+Clang compatibility: __builtin_operator_new/__builtin_operator_delete
+
+Previously (see EDGcpfe/16734), __builtin_operator_new and
+__builtin_operator_delete were added as builtin operators in clang emulation
+modes, and the aliased_routine was used, in some cases, to point to the
+appropriate operator new/delete routine as appropriate.  The aliased_routine
+mechanism did not work well because that allows only a single alias per
+builtin function and these builtins are overloaded so a builtin call may
+refer to one function at one call site and another at a subsequent call
+site.  Additionally, the call now invokes the appropriate global operator
+new/delete directly as appropriate.  For example, with --clang --c++17:
+
+  namespace std {
+    typedef decltype(sizeof(0)) size_t;
+    enum class align_val_t : size_t;
+  }
+  void f(std::size_t s) {
+    __builtin_operator_delete(__builtin_operator_new(s));
+        // Invokes _Znwm and _ZdlPv on IA-64 ABI configs
+    __builtin_operator_delete(__builtin_operator_new(s, std::align_val_t(2)),
+                              std::align_val_t(2));
+        // Invokes _ZnwmSt11align_val_t and _ZdlPvSt11align_val_t
+  }
+
+
 4/8/20   [EDGcpfe/22580]
 C++-generating back end: alias declaration in nested class of class template
 

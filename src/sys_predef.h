@@ -402,12 +402,14 @@ EXTERN a_builtin_user_descr builtin_user_table[]
   /* Clang apparently supports at least some of the overloaded versions of
      __builtin_operator_new and __builtin_operator_delete, but the signatures
      for these have only a single operator.  Add an ellipsis to allow parsing
-     of additional arguments. */
-  { "__builtin_operator_delete", "Lx(-39999)",
+     of additional arguments.  Note that there is special processing for these
+     builtins -- they are essentially processed as their corresponding
+     global operator delete/new operators (so they can be overloaded). */
+  { "__builtin_operator_delete", "L+(-39999)",
     "void (void*,...)", bfk_operator_delete },
-  { "__builtin_operator_delete", "Lx(40000-)",
+  { "__builtin_operator_delete", "L+(40000-)",
     "void (void*,...) __edg_throw__()", bfk_operator_delete },
-  { "__builtin_operator_new", "Lx", "void* (__edg_size_type__,...)",
+  { "__builtin_operator_new", "L+", "void* (__edg_size_type__,...)",
     bfk_operator_new },
 
   { NULL, NULL, 0, bfk_none }   /* end of table marker */

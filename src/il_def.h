@@ -2285,6 +2285,12 @@ enum a_special_function_kind_tag {
 			/* Represents a generic GNU __atomic_... function.
 			   Generic functions have an initial size_t argument
 			   added by the front end. */
+  sfk_builtin_operator_new,
+			/* Represents __builtin_operator_new (which has been
+			   replaced by operator new). */
+  sfk_builtin_operator_delete,
+			/* Represents __builtin_operator_delete (which has been
+			   replaced by operator delete). */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
   sfk_last		/* Must be last. */
 };
@@ -4140,6 +4146,8 @@ EXTERN a_const_char *db_special_function_kinds[(int)sfk_last + 1]
    "gnu sync concrete function",
    "gnu atomic nongeneric function",
    "gnu atomic generic function",
+   "__builtin_operator_new",
+   "__builtin_operator_delete",
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
    "last" /* used to check that initialization is right. */
 }
