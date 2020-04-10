@@ -19190,7 +19190,11 @@ An export declaration can take the following forms:
   if (!(tu_stage_is(tud_module_unit) &&
         curr_module_sym->variant.module_info.is_interface_unit)
       && curr_token != tok_module) {
-    pos_error(ec_export_only_in_modules, &export_pos);
+    an_error_severity severity = es_discretionary_error;
+    if (microsoft_mode) {
+      severity = es_warning;
+    }  /* if */
+    pos_diagnostic(severity, ec_export_only_in_modules, &export_pos);
   }  /* if */
   if (block_export) {
     a_decl_sequence_number old_decl_seq_counter = decl_seq_counter;
@@ -19286,12 +19290,16 @@ left unchanged.
     pos_error(ec_module_req_primary_name, &module_pos);
   }  /* if */
   if (!(tu_stage_is(tud_none) || tu_stage_is(tud_global_module_fgmt))) {
-    an_error_code err_code = tu_stage_is(tud_module_unit) ?
+    an_error_severity severity = es_discretionary_error;
+    an_error_code     err_code = tu_stage_is(tud_module_unit) ?
                                              ec_more_than_one_module_decl :
                                              ec_module_decl_only_after_glb_mod;
-    pos_error(err_code, &module_pos);
-  } else {
-    check_assertion(curr_module_sym == NULL);
+    if (microsoft_mode && tu_stage_is(tud_basic_tu)) {
+      severity = es_warning;
+    }  /* if */
+    pos_diagnostic(severity, err_code, &module_pos);
+  }
+  if (curr_module_sym == NULL) {
     curr_module_sym = make_module_symbol(primary_name, partition_name,
                                          is_interface, &module_pos);
     set_tu_stage(tud_module_unit);
