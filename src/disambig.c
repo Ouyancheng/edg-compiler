@@ -67,10 +67,6 @@ typedef struct a_disambig_state {
 			/* The value of the scope stack
 			   source_sequence_entries_disallowed flag at the
 			   start of disambiguation. */
-  a_boolean	record_auto_parameters;
-			/* TRUE if "auto" typed parameters should be recorded
-			   in *decl_parse_state (which must be non-NULL in
-			   that case). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean	find_static_specifier_only;
 			/* TRUE if we are only scanning for the presence of a
@@ -90,13 +86,6 @@ typedef struct a_disambig_state {
 		pack_expansion_stack_entry;
 			/* If variadic_prototype_instantiation is TRUE,
 			   this is the pack suppression entry pushed. */
-  a_decl_parse_state_ptr
-		decl_parse_state;
-			/* A pointer to a block of state describing a
-			   declaration for which some additional disambiguation
-			   work is needed.  Currently only non-NULL when
-			   prescanning lambda declarators to distinguish
-			   ordinary lambdas from generic lambdas. */
 } a_disambig_state;
 
 
@@ -133,7 +122,6 @@ cache of the tokens fetched for disambiguation should be created.
   if (cache_tokens) {
     begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
   }  /* if */
-  dsp->decl_parse_state = NULL;
   /* Indicate that we are in a prescan context. */
   begin_prescan_context(suppress_packs, &dsp->variadic_prototype_instantiation,
                         &dsp->pack_expansion_stack_entry,
@@ -678,24 +666,17 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
   a_boolean     type_specifier_seen = FALSE;
   a_boolean     is_ctor_dtor_or_finalizer_name = FALSE;
   a_boolean     is_typename = FALSE;
-  a_boolean     record_auto_params = (flags & DFS_RECORD_AUTO_PARAMS) != 0;
   a_symbol_ptr  sym;
 
   /* Disambiguation code should never be called in C mode.  (Otherwise, we
      would have to add things like tok_c99_bool to the cases below.) */
   check_assertion(!C_mode());
-  if (record_auto_params) flags &= ~DFS_RECORD_AUTO_PARAMS;
   for (;;) {
     a_boolean	next_token_fetched = FALSE;
     switch (curr_token) {
       /* "auto" is sometimes a storage class and sometimes a type specifier. */
       case tok_auto:
         if (auto_type_specifier_enabled) type_specifier_seen = TRUE;
-        if (record_auto_params) {
-          check_assertion(state->decl_parse_state != NULL);
-          record_auto_param_descr(state->decl_parse_state,
-                                  /*type_constraint=*/NULL);
-        }  /* if */
         break;
       case tok_c11_atomic:
         get_token_and_coalesce_if_identifier(flags);
@@ -920,17 +901,6 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
            here because the prescanning routines are sometimes used to
            scan what may be a function parameter which could look like
            "int ...". */
-        if (record_auto_params) {
-          an_auto_param_descr_ptr  apdp;
-          a_decl_parse_state       *dps = state->decl_parse_state;
-          check_assertion(dps != NULL && dps->is_lambda);
-          apdp = dps->variant.auto_params;
-          if (apdp != NULL && apdp->param_num == 0) {
-            /* The ellipsis follows an "auto" parameter in a lambda declarator.
-               Record the fact that it is a parameter pack. */
-            apdp->is_parameter_pack = TRUE;
-          }  /* if */
-        }  /* if */
         break;
       case tok_decltype:
       case tok_underlying_type:
@@ -1016,10 +986,6 @@ is used by the disambiguation routines.  If a construct that cannot be
 part of a function declarator is found, may_be_decl is set to FALSE.
 */
 {
-  uint32_t   param_num = 0;
-  a_boolean  record_auto_params = (flags & DFS_RECORD_AUTO_PARAMS) != 0;
-
-  if (record_auto_params) flags &= ~DFS_RECORD_AUTO_PARAMS;
   /* Scan the function argument list. */
   while (curr_token != tok_rparen) {
     a_pack_expansion_stack_entry_ptr	pesep = NULL;
@@ -1041,19 +1007,11 @@ part of a function declarator is found, may_be_decl is set to FALSE.
         a_disambig_flag_set  param_flags = DFS_ABSTRACT_DECLARATOR_ALLOWED |
                                            DFS_REAL_DECLARATOR_ALLOWED |
                                            DFS_SINGLE_TYPE_REQUIRED;
-        if (record_auto_params) param_flags |= DFS_RECORD_AUTO_PARAMS;
         if (relaxed_typename_enabled) {
           param_flags |= DFS_IMPLICIT_TYPENAME_CONTEXT;
         }  /* if */
         prescan_declaration(state, param_flags, /*is_top_level=*/FALSE);
-        if (record_auto_params) {
-          a_decl_parse_state_ptr   dps = state->decl_parse_state;
-          an_auto_param_descr_ptr  apdp = dps->variant.auto_params;
-          param_num += 1;
-          if (apdp != NULL && apdp->param_num == 0) {
-            apdp->param_num = param_num;
-          }  /* if */
-        } else if (terminate_disambiguation(state)) {
+        if (terminate_disambiguation(state)) {
           abandon_potential_pack_expansion_context(pesep);
           goto done;
         }  /* if */
@@ -1090,8 +1048,7 @@ part of a function declarator is found, may_be_decl is set to FALSE.
      "auto" parameters (and could trigger errors if the exception
      specification refers back to parameters, which haven't been declared
      yet). */
-  if ((curr_token == tok_throw || curr_token == tok_noexcept) &&
-      !record_auto_params) {
+  if (curr_token == tok_throw || curr_token == tok_noexcept) {
     /* Advance past the throw or noexcept keyword. */
     a_boolean  arg_optional = curr_token == tok_noexcept;
     get_token_and_coalesce_if_identifier(flags);
@@ -1112,8 +1069,7 @@ part of a function declarator is found, may_be_decl is set to FALSE.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (trailing_return_types_enabled && curr_token == tok_arrow &&
-      !record_auto_params) {
+  if (trailing_return_types_enabled && curr_token == tok_arrow) {
     /* Cache the trailing return type.  This is not needed when the prescan is
        to identify "auto" parameters (and could trigger errors if the trailing
        return type refers back to parameters, which haven't been declared
@@ -1327,16 +1283,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
     a_boolean	is_name_start;
     /* An ellipsis indicating a parameter pack declaration might be next. */
     if (curr_token == tok_ellipsis && variadic_templates_enabled) {
-      a_decl_parse_state  *dps = state->decl_parse_state;
       get_token_and_coalesce_if_identifier(flags);
-      if (dps != NULL && dps->is_lambda) {
-        an_auto_param_descr_ptr  apdp = dps->variant.auto_params;
-        if (apdp != NULL && apdp->param_num == 0) {
-          /* The current declarator is for an "auto" parameter in a lambda
-             declarator.  Record the fact that it is a parameter pack. */
-          apdp->is_parameter_pack = TRUE;
-        }  /* if */
-      }  /* if */
     }  /* if */
     /* An identifier is expected next, but is omitted in the 
        abstract declarator.  All tokens that could start an identifier will
@@ -1467,16 +1414,11 @@ Assuming that we are in the midst of a declaration, we scan ahead to find
 evidence to the contrary. 
 */
 {
-  a_boolean			record_auto_params =
-                                         (flags & DFS_RECORD_AUTO_PARAMS) != 0;
   an_identifier_options_set	gid_flags = GID_TEMPLATE_ARGS_OPTIONAL |
                                             GID_IS_EXPR_CONTEXT;
 
 
   db_enter(3, "prescan_declaration");
-  /* Do not pass DFS_RECORD_AUTO_PARAMS through to all disambiguation routines,
-     only to prescan_decl_specifiers. */
-  flags &= ~DFS_RECORD_AUTO_PARAMS;
   if (curr_token == tok_extension) {
     /* Skip over a leading GNU __extension__ keyword. */
     (void)get_token();
@@ -1493,7 +1435,6 @@ evidence to the contrary.
     /* Prescan leading bracket-enclosed attributes (if any). */
     prescan_any_prefix_bracketed_attributes(flags);
     /* Scan the decl specifiers. */
-    if (record_auto_params) decl_spec_flags |= DFS_RECORD_AUTO_PARAMS;
     prescan_decl_specifiers(state, decl_spec_flags);
     if (curr_token == tok_lbrace && (flags & DFS_POSSIBLE_ENUM_BASE) == 0) {
       /* A set of specifiers followed by a brace is a C++11-style functional-
