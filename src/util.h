@@ -1879,15 +1879,9 @@ template<typename a_Ptr_key, typename a_Value>
 struct Ptr_map_entry {
   typedef a_Ptr_key a_key;
   typedef a_Value a_value;
-  union {
-    a_key	ptr;
+  a_key		ptr;
 			/* The pointer value mapped by this entry.  (A "key" in
 			   the hash table.) */
-    void	*next;
-			/* Pointer to the next free block when this is the
-			   leading entry in a table currently available for
-			   reuse. */
-  };
   a_value	value;
 			/* A value associated with ptr. */
 };  /* Ptr_map_entry */
