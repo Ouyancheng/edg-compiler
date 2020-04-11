@@ -2111,7 +2111,7 @@ template argument matching.
         break;
       }  /* if */
     }  /* for */
-    if (tap == NULL) break;
+    if (tap == NULL || !result) break;
   }  /* for */
   /* In variadic cases there can be fewer arguments than parameters. */
   if (tpp != NULL && !tpp->is_pack) result = FALSE;
