@@ -5613,50 +5613,59 @@ qualified is TRUE, force the generation of a qualified name.
     }  /* if */
 #if BUILTIN_FUNCTIONS_ENABLED
     if (is_routine_node(node) &&
-        (nrp = node->variant.routine.name_reference) != NULL) {
-      if (special_kind_is(nrp, sfk_gnu_sync_concrete_function) ||
-          special_kind_is(nrp, sfk_gnu_atomic_nongeneric_function)) {
-        /* This is a concrete __sync_... or __atomic_... builtin function
-           that was transformed from the name that appeared in the source.
-           We need to restore the original name here because the concrete
-           versions have different parameter types, and the cast nodes
-           converting the arguments to the concrete parameter types are
-           marked as compiler-generated, preventing them from appearing in
-           the generated code.  The original form of the name is simply the
-           concrete form after dropping the trailing "_" and digit(s) and,
-           for the non-generic atomic functions like __atomic_load_n,
-           appending "_n".  For example, we need to put out
-           __sync_val_compare_and_swap in place of the concrete name
-           __sync_val_compare_and_swap_4. */
-        sizeof_t     i;
-        a_const_char *name = unmangled_name_of(&rout->source_corresp);
-        check_assertion(name != NULL);
-        for (i = strlen(name) - 1;
-             i > 0 && isdigit((unsigned char)name[i]);
-             --i) {}
-        check_assertion(name[i] == '_');
-        if (special_kind_is(nrp, sfk_gnu_atomic_nongeneric_function)) {
-          /* The digit(s) must be replaced with 'n'. */
-          char c1 = name[i + 1];
-          char c2 = name[i + 2];
-          *(char *)(name + i + 1) = 'n';
-          *(char *)(name + i + 2) = '\0';
-          write_tok_str(name);
-          *(char *)(name + i + 1) = c1;
-          *(char *)(name + i + 2) = c2;
-        } else {
-          /* The name must be truncated at the '_'. */
-          *(char *)(name + i) = '\0';
-          write_tok_str(name);
-          *(char *)(name + i) = '_';
-        }  /* if */
-      } else if (special_kind_is(nrp, sfk_builtin_operator_new)) {
-        write_tok_str("__builtin_operator_new");
-      } else if (special_kind_is(nrp, sfk_builtin_operator_delete)) {
-        write_tok_str("__builtin_operator_delete");
-      } else {
-        unexpected_condition();
-      }  /* if */
+        (nrp = node->variant.routine.name_reference) != NULL &&
+        (special_kind_is(nrp, sfk_gnu_sync_concrete_function) ||
+         special_kind_is(nrp, sfk_gnu_atomic_nongeneric_function) ||
+         special_kind_is(nrp, sfk_builtin_operator_new) ||
+         special_kind_is(nrp, sfk_builtin_operator_delete))) {
+      switch (nrp->special_kind) {
+        case sfk_gnu_sync_concrete_function:
+        case sfk_gnu_atomic_nongeneric_function:
+          { /* This is a concrete __sync_... or __atomic_... builtin function
+               that was transformed from the name that appeared in the source.
+               We need to restore the original name here because the concrete
+               versions have different parameter types, and the cast nodes
+               converting the arguments to the concrete parameter types are
+               marked as compiler-generated, preventing them from appearing in
+               the generated code.  The original form of the name is simply the
+               concrete form after dropping the trailing "_" and digit(s) and,
+               for the non-generic atomic functions like __atomic_load_n,
+               appending "_n".  For example, we need to put out
+               __sync_val_compare_and_swap in place of the concrete name
+               __sync_val_compare_and_swap_4. */
+            sizeof_t     i;
+            a_const_char *name = unmangled_name_of(&rout->source_corresp);
+            check_assertion(name != NULL);
+            for (i = strlen(name) - 1;
+                 i > 0 && isdigit((unsigned char)name[i]);
+                 --i) {}
+            check_assertion(name[i] == '_');
+            if (special_kind_is(nrp, sfk_gnu_atomic_nongeneric_function)) {
+              /* The digit(s) must be replaced with 'n'. */
+              char c1 = name[i + 1];
+              char c2 = name[i + 2];
+              *(char *)(name + i + 1) = 'n';
+              *(char *)(name + i + 2) = '\0';
+              write_tok_str(name);
+              *(char *)(name + i + 1) = c1;
+              *(char *)(name + i + 2) = c2;
+            } else {
+              /* The name must be truncated at the '_'. */
+              *(char *)(name + i) = '\0';
+              write_tok_str(name);
+              *(char *)(name + i) = '_';
+            }  /* if */
+          }
+          break;
+        case sfk_builtin_operator_new:
+          write_tok_str("__builtin_operator_new");
+          break;
+        case sfk_builtin_operator_delete:
+          write_tok_str("__builtin_operator_delete");
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
     } else
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
     /* Do not insert code here. */
