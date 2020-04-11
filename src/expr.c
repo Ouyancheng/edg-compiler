@@ -5343,12 +5343,16 @@ and adjust the argument and routine types as needed.
          operator.  The caller will perform overload resolution to select the
          proper variant of the function. */
       bcap->overloaded_function_symbol =
-        opname_function_symbol(bfk == bfk_operator_new ? onk_new : onk_delete);
+        opname_function_symbol(
+                            bfk == (a_builtin_function_kind)bfk_operator_new ?
+                                                   (an_opname_kind)onk_new :
+                                                   (an_opname_kind)onk_delete);
       /* Allocate a name reference to indicate to a back end that this
          transformation has occurred (so the original source can be recreated
          by a back end). */
       bcap->name_reference = alloc_name_reference();
-      bcap->name_reference->special_kind = (bfk == bfk_operator_new) ?
+      bcap->name_reference->special_kind =
+                        (bfk == (a_builtin_function_kind)bfk_operator_new) ?
                           (a_special_function_kind)sfk_builtin_operator_new :
                           (a_special_function_kind)sfk_builtin_operator_delete;
       break;
