@@ -358,7 +358,6 @@ Handle nested structures differently (and check for padding).
 #define GET_FunctionTraits(x, from_header)     GET_short(x, from_header)
 #define GET_OperatorCategory(x, from_header)   GET_short(x, from_header)
 #define GET_PackSize(x, from_header)           GET_short(x, from_header)
-#define GET_WordCategory(x, from_header)       GET_short(x, from_header)
 
 #define GET_Abi(x, from_header)                GET_byte(x, from_header)
 #define GET_Access(x, from_header)             GET_byte(x, from_header)
