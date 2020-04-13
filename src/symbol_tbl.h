@@ -6465,7 +6465,8 @@ list for the given symbol.
   ((sym)->kind == (a_symbol_kind)sk_type ||                           \
    (C_dialect == C_dialect_cplusplus && is_tag_symbol(sym)))
 
-/* Return TRUE if a symbol is a class or function template symbol. */
+/* Return TRUE if a symbol represents a class, function, or variable
+   template. */
 #define is_template_symbol(sym)                                           \
   ((sym)->kind == (a_symbol_kind)sk_class_template ||                     \
    (sym)->kind == (a_symbol_kind)sk_variable_template ||                  \

@@ -4777,6 +4777,12 @@ this is not allowed, an error will be issued by the caller.
            can be part of an overload set, but otherwise there can be no
            declaration of the same name. */
         /* err = TRUE; */
+      } else if ((symbol_is(fund_new_sym, sk_concept_template) ||
+                  symbol_is(fund_old_sym, sk_concept_template)) &&
+                 !(gpp_mode && !clang_mode)) {
+        /* Concept templates must be unique in their scope, but GCC allows
+           to coexist with tag types. */
+        /* err = TRUE; */
       } else if (is_tag_symbol(fund_new_sym) &&
                  !is_type_symbol(fund_old_sym) &&
                  !is_class_template_symbol(fund_old_sym)) {
