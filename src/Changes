@@ -1,5 +1,32 @@
 Version 6.1
 
+4/13/20  [EDGcpfe/22442]
+SFINAE failure on substitution of pointer-to-member template argument
+
+Consider:
+
+  template <typename U, typename Signature>
+  struct has_member_f {
+    template<Signature> struct helper;
+    template<typename T> static char check(helper<&T::f>*);  // (1)
+    template<typename T> static long check(...);             // (2)
+    static const bool value = sizeof(check<U>(0)) == sizeof(char);
+  };
+  template<typename> struct B { int f(); };
+  template<typename T> struct D: B<T> {};
+  int x [!has_member_f<D<int>, int (D<int>::*)()>::value];
+
+This example requires substituting &T::f with T == D<int>, which produces a
+pointer-to-member constant of type int (B<int>::*)().  However, that is not
+a match for helper<&T::f> because Signature == int (D<int>::*)() and a
+conversion from int (B<int>::*)() to int (D<int>::*)() is not permitted for
+nontype template arguments.  Previously, the front end failed to check that
+conversion during SFINAE processing in some non-C++11 modes that enable
+C++11-style SFINAE (e.g., some GNU C++03 modes), causing it to select (1)
+instead of (2) in this example.  However, during actual instantiation the
+erroneous conversion was diagnosed.  That is now fixed.
+
+
 4/10/20  [EDGcpfe/22516]
 Clang compatibility: __builtin_operator_new/__builtin_operator_delete
 

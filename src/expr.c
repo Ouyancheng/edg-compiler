@@ -47113,7 +47113,8 @@ function or template.
                                          &result,
                                          (an_operand *)NULL);
   if (!rcblock->error_detected && guide_type != NULL &&
-      (is_indefinite_function_operand(&result) || constexpr_enabled)) {
+      (is_indefinite_function_operand(&result) || constexpr_enabled ||
+       nontype_template_arg)) {
     /* Resolve the instance of an overloaded function or template based
        on the destination guide type.  If constexpr is enabled, also consider
        user-defined conversion functions. */
