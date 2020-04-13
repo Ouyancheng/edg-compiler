@@ -1,5 +1,17 @@
 Version 6.1
 
+4/13/20  [EDGcpfe/18507]
+Array declarators with embedded lambda expressions
+
+Consider:
+
+  int (*x)[[]{ return 42; }()];  // Now a discretionary error.
+
+Previously this was accepted in C++ modes that accept lambdas.  Now it is a
+discretionary error because the standard only permits two consecutive left
+brackets to introduce attributes.
+
+
 4/13/20  [EDGcpfe/22442]
 SFINAE failure on substitution of pointer-to-member template argument
 

@@ -4453,6 +4453,10 @@ constant.
   copy_source_position(pos_curr_token, start_pos);
   /* Pass over the initial left bracket. */
   (void)get_token();
+  if (curr_token == tok_lbracket && std_attributes_enabled) {
+    pos_diagnostic(es_discretionary_error, ec_must_introduce_attribute,
+                   &start_pos);
+  }  /* if */
   add_stop_token(tok_rbracket);
   if (c99_mode && top_level_param_decl && curr_token == tok_static) {
     /* In C99, "static" in an array declarator in a parameter declaration
