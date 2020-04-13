@@ -37156,7 +37156,7 @@ set *is_dependent to TRUE.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
   /* Scan the expression. */
-  scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
   result = make_node_from_operand(&operand);
   result = wrap_up_full_expression(result);
   pop_expr_stack();
