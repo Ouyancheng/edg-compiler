@@ -10465,7 +10465,7 @@ use the current global value of the template template parameter.
     } else if (!in_substitution &&
                !tssp->variant.class_template.invented_template &&
                !check_template_constraints(template_sym,
-                                           list_for_instantiation,
+                                           *new_list,
                                            /*diagnose=*/TRUE)) {
       /* The template arguments do not satisfy the constraints.  Create a
          dummy symbol referring to an error type. */
