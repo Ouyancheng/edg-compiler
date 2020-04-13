@@ -6353,17 +6353,17 @@ are expected to be NULL in that case.
       /* routine_type = NULL;  -- already set. */
       if (overloaded_function_symbol->is_class_member) {
         if (symbol_is(overloaded_function_symbol, sk_function_template) &&
-          /* This is an explicit call to a conversion function template in a
-             dependent context, i.e., something like:
-                 return operator T();
-             where T is a template parameter.  Such a case cannot be handled by
-             the normal deduction machinery and is therefore handled as an
-             unknown dependent function instead. */
             is_template_dependent_context()) {
           a_routine_ptr  rp = overloaded_function_symbol
                                                    ->variant.template_info
                                                    ->variant.function.routine;
           if (special_kind_is(rp, sfk_conversion)) {
+            /* This is an explicit call to a conversion function template in a
+               dependent context, i.e., something like:
+                   return operator T();
+               where T is a template parameter.  Such a case cannot be handled
+               by the normal deduction machinery and is therefore handled as an
+               unknown dependent function instead. */
             prep_generic_operand(operand);
             unknown_dependent_function = TRUE;
             overloaded_function_case = FALSE;
