@@ -47203,10 +47203,14 @@ dynamic initialization after substitution.
     /* The dynamic init is not an explicit cast or a compound literal, so
        it's an implicit operation.  Fetch and return its operand. */
     an_expr_node_ptr expr;
-    if (dip->kind == (a_dynamic_init_kind)dik_constant) {
+    if (dyn_init_is(dip, dik_constant)) {
       /* For a constant (due to constexpr), use the backing expression. */
       expr = dip->variant.constant.ptr->expr;
       check_assertion(expr != NULL);
+    } else if (dyn_init_is(dip, dik_lambda)) {
+      /* Lambdas are currently not substitutable. */
+      record_suppressed_error();
+      expr = error_node();
     } else {
       expr = arg_list_from_dyn_init(dip);
     }  /* if */
