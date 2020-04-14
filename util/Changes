@@ -1,5 +1,14 @@
 Version 6.1
 
+4/14/20  [EDGcpfe/22614]
+Have dettarg consider long long integer types
+
+The dettarg program determines various host-specific configuration
+information for use in configuring the front end.  Previously the "long long"
+integer type had not been considered as a possible integer type for various
+types (e.g., size_t) and is now (when HAVE_LONG_LONG is TRUE).
+
+
 3/16/20  [EDGcpfe/17687]
 Demangling for inheriting constructors
 

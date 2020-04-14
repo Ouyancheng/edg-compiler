@@ -202,6 +202,15 @@ if no such integer kind exists.
     } else {
       s = "ik_unsigned_long";
     }  /* if */
+#if HAVE_LONG_LONG
+  } else if (size == targ_sizeof_long_long &&
+             alignment == targ_alignof_long_long) {
+    if (is_signed) {
+      s = "ik_long_long";
+    } else {
+      s = "ik_unsigned_long_long";
+    }  /* if */
+#endif /* HAVE_LONG_LONG */
   } else {
     *error = 1;
     s = "";
@@ -293,6 +302,14 @@ int main() {
     printf("#define TARG_SIZEOF_LONG %lu\n", targ_sizeof_long);
     printf("#define TARG_ALIGNOF_LONG %lu\n", targ_alignof_long);
   }
+#if HAVE_LONG_LONG
+  { struct {char c; long long s;} v;
+    targ_sizeof_long_long = sizeof(long long);
+    targ_alignof_long_long = alignment((char *)&v.s, (char *)&v);
+    printf("#define TARG_SIZEOF_LONG_LONG %lu\n", targ_sizeof_long_long);
+    printf("#define TARG_ALIGNOF_LONG_LONG %lu\n", targ_alignof_long_long);
+  }
+#endif /* HAVE_LONG_LONG */
   /* Pointer size and alignment. */
   { struct {char c; char *s;} v;
     targ_sizeof_pointer = sizeof(char *);
@@ -388,14 +405,6 @@ int main() {
     }  /* if */
   }
 #endif /* HAVE_PTRDIFF_T */
-#if HAVE_LONG_LONG
-  { struct {char c; long long s;} v;
-    targ_sizeof_long_long = sizeof(long long);
-    targ_alignof_long_long = alignment((char *)&v.s, (char *)&v);
-    printf("#define TARG_SIZEOF_LONG_LONG %lu\n", targ_sizeof_long_long);
-    printf("#define TARG_ALIGNOF_LONG_LONG %lu\n", targ_alignof_long_long);
-  }
-#endif /* HAVE_LONG_LONG */
   { unsigned long max_alignment = 1;
     if (max_alignment < targ_alignof_short) max_alignment = targ_alignof_short;
     if (max_alignment < targ_alignof_int)   max_alignment = targ_alignof_int;
