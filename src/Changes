@@ -1,5 +1,19 @@
 Version 6.1
 
+4/14/20  [EDGcpfe/22608]
+Spurious deduction failure in C++17 mode with pointer to dependent array
+
+A spurious deduction failure could occur in C++17 mode when a function
+template has a parameter that is dependent only because an array bound
+uses a template parameter and the parameter is a pointer to the array
+type.  Now fixed.
+
+  template <typename... Ts> void f(int (*p)[sizeof ... (Ts)]){}
+  int main() {
+    f<int>(0);
+  }
+
+
 4/13/20  [EDGcpfe/18507]
 Array declarators with embedded lambda expressions
 

@@ -14320,8 +14320,16 @@ its parameters?).
         }  /* if */
 	break;
       case tk_pointer:
-        tp = type_ptr->variant.pointer.type;
-        status = traverse_type_tree(tp, func, flags);
+        {
+          a_type_tree_traversal_flag_set local_flags = flags;
+          tp = type_ptr->variant.pointer.type;
+          if (is_pointer(type_ptr)) {
+            /* Don't consider things like a dependent array bound as
+               deducible under a pointer. */
+            local_flags &= ~TTT_TYPE_OF_NONTYPE_ARG;
+          }  /* if */
+          status = traverse_type_tree(tp, func, local_flags);
+        }
         break;
       case tk_routine:
         /* Conditional traversal of contained types. */
