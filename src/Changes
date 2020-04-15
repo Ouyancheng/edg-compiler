@@ -1,5 +1,15 @@
 Version 6.1
 
+4/15/20  [EDGcpfe/19376,EDGcpfe/19754,EDGcpfe/22618]
+Abort on invalid template declaration
+
+An abort could occur (in variable_template_declaration) on a template
+declaration where the declarator-id was followed by "(;" in configurations
+with EXTRA_SOURCE_POSITIONS_IN_IL == TRUE .  Now fixed.
+
+  template <typename T> void f(;
+
+
 4/14/20  [EDGcpfe/22608]
 Spurious deduction failure in C++17 mode with pointer to dependent array
 

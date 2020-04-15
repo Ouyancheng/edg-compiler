@@ -27025,17 +27025,18 @@ supplement for this template should be returned to the caller.
        the semicolon (or the end-of-source, if a semicolon was omitted). */
     { a_cached_token_ptr  ctp = p_token_cache->first_token;
       a_token_kind        next_tok;
+      a_source_position   end_pos = end_pos_curr_token;
 
-      for (;;) {
-        check_assertion(ctp->next != NULL);
+      check_assertion_or_expect_error(ctp != NULL);
+      for (; ctp != NULL ; ctp = ctp->next) {
+        check_assertion_or_expect_error(ctp->next != NULL);
         next_tok = (a_token_kind)ctp->next->token;
         if (next_tok == tok_semicolon || next_tok == tok_end_of_source) {
-          decl_state->decl_pos_block.var_init_range.end =
-                                                ctp->end_source_position;
+          end_pos = ctp->end_source_position;
           break;
         }  /* if */
-        ctp = ctp->next;
       }  /* for */
+      decl_state->decl_pos_block.var_init_range.end = end_pos;
     }
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (err) {
