@@ -154,7 +154,8 @@ IFC_DECL_END(DeclSort_Bitfield)
 
 /* DeclSort::Scope */
 IFC_DECL_START(DeclSort_Scope)
-  IFC_DECL_FIELD(name, TextOffset)
+/* Spec says this is a TextOffset, but IFC files seem to be using NameIndex. */
+  IFC_DECL_FIELD(name, NameIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(base, TypeIndex)

@@ -273,9 +273,9 @@ Utility to print some debug information for every access to an IFC module file.
 /*
 Macros used to retrieve the next 1, 2, 4, or 8 bytes from the current buffer
 (as set by init_byte_buffer, which is typically called through
-read_ifc_partition_at_offset or read_ifc_partition_at_index), in the proper
-endianness.  These macros have the GET capitalized as a visual indicator that
-they change the value of their argument.
+read_partition_at_offset or read_partition_at_index), in the proper endianness.
+These macros have the GET capitalized as a visual indicator that they change
+the value of their argument.
 */
 #define GET_byte(value, from_header)                                    \
   (check_size(value, 1)                                                 \
@@ -407,50 +407,6 @@ Handle nested structures differently (and check for padding).
                                 GET_SentenceIndex((x).head, from_header), \
                                 GET_SentenceIndex((x).body, from_header), \
                                 GET_SentenceIndex((x).attributes, from_header))
-
-/* Utility to save the current partition (for display during debugging). */
-#if DEBUG && EXPENSIVE_CHECKING
-#define set_debug_partition(kind) \
-  debug_partition = &partitions[(kind)],
-#else /* !(DEBUG && EXPENSIVE_CHECKING) */
-#define set_debug_partition(kind) /**/
-#endif /* DEBUG && EXPENSIVE_CHECKING */
-
-
-/*
-Returns the IFC file offset of the specified index into the "kind" partition
-of the module specified by "mod".  This value is used as a key to uniquely
-identify the IFC entity (and is purposely not kept as a pointer because
-the underlying address space is typically memory-mapped and could change
-during PCH file processing).
-*/
-#define full_ifc_file_offset_of(kind, idx) \
-   (partitions[kind].offset + \
-    (idx) * partitions[(kind)].entry_size)
-
-#if EXPENSIVE_CHECKING
-#define ifc_file_offset_of(kind, _offset) \
-  (check_assertion(partitions[(kind)].offset != 0 && \
-                   partitions[(kind)].size != 0 && \
-                   partitions[(kind)].size > (_offset)), \
-   full_ifc_file_offset_of(kind, _offset))
-#else /* !EXPENSIVE_CHECKING */
-#define ifc_file_offset_of(kind, offset) \
- full_ifc_file_offset_of(kind, offset)
-#endif /* EXPENSIVE_CHECKING */
-
-/*
-Utilities to set the buffer to the specified partition at the desired offset
-or index, in preparation for a call to GET_byte, GET_short, or GET_int.
-*/
-#define read_ifc_partition_at_offset(kind, offset) \
-  (set_debug_partition(kind) \
-   init_byte_buffer(offset, partitions[kind].size))
-
-#define read_ifc_partition_at_index(kind, idx) \
-  read_ifc_partition_at_offset((kind),\
-                               ifc_file_offset_of((kind), (idx)))
-
 
 /*
 Create get_* functions (which "read" each entity into a structure) for each of
@@ -586,6 +542,14 @@ little-endian.
 /*lint -e451 included more than once. */
 #include "ifc_map.h"
 /*lint +e451*/
+
+/*
+Utility to return a "tag" given a partition (an_ifc_partition_kind) value
+and the starting partition for the particular case (e.g., ifc_type_start
+for TypeSort).  Relies on an_ifc_partition_kind being ordered properly (see
+the comments there).
+*/
+#define get_tag_from_partition(partition, start) ((partition) - (start))
 
 /*
 A macro to return a pointer to the IFC string table for a given IFC module
@@ -997,8 +961,7 @@ constants for that type).
   if (mep->entity.ptr == NULL) {
     check_assertion(mep->scope != NULL);
     /* Prepare to read from the proper partition for this declaration. */
-    read_ifc_partition_at_offset(mep->variant.ifc_partition,
-                                 mep->file_offset);
+    read_partition_at_offset(mep->variant.ifc_partition, mep->file_offset);
     tag = (ifc_DeclSort)get_tag_from_partition(mep->variant.ifc_partition,
                                                ifc_decl_start);
     switch (tag) {
@@ -1100,13 +1063,13 @@ constants for that type).
           idssp = get_DeclSort_Scope(&idss);
           /* Should be no unnamed namespaces or types. */
           check_assertion(idssp->name != 0);
-          init_locator_from_name((ifc_NameIndex)0, idssp->name, &idssp->locus,
+          init_locator_from_name(idssp->name, (ifc_TextOffset)0, &idssp->locus,
                                  &loc);
           /* Look at the "type" to determine whether we have a namespace or
              not. */
           check_assertion(type_tag(idssp->type) == ifc_TypeSort_Fundamental);
-          read_ifc_partition_at_index(ifc_type_fundamental,
-                                      type_value(idssp->type));
+          read_partition_at_index(ifc_type_fundamental,
+                                  type_value(idssp->type));
           itsfp = get_TypeSort_Fundamental(&itsf);
           switch (itsfp->basis) {
             case ifc_TypeBasis_Namespace:
@@ -1236,8 +1199,8 @@ class_struct_union_case:
           } else {
             check_assertion(type_tag(idstap->type)== ifc_TypeSort_Fundamental);
             /* Read the type to see what kind it is. */
-            read_ifc_partition_at_index(ifc_type_fundamental,
-                                        type_value(idstap->type));
+            read_partition_at_index(ifc_type_fundamental,
+                                    type_value(idstap->type));
             itsfp = get_TypeSort_Fundamental(&itsf);
             if (itsfp->basis == ifc_TypeBasis_Typename) {
               /* A type alias; declare a typedef for this case. */
@@ -1268,8 +1231,8 @@ class_struct_union_case:
           idsep = get_DeclSort_Enumeration(&idse);
           check_assertion(type_tag(idsep->type) == ifc_TypeSort_Fundamental);
           /* See if this is a scoped enumeration or not. */
-          read_ifc_partition_at_index(ifc_type_fundamental,
-                                      type_value(idsep->type));
+          read_partition_at_index(ifc_type_fundamental,
+                                  type_value(idsep->type));
           itsfp = get_TypeSort_Fundamental(&itsf);
           if (itsfp->basis == ifc_TypeBasis_Enum) {
             /* A classic enumeration.  Don't bother to defer in this case
@@ -1362,7 +1325,7 @@ class_struct_union_case:
                    compute one so we can invoke ourselves recursively to
                    process the enumerators. */
                 a_module_entity_ptr emep;
-                emep = get_decl_module_entity_ptr(make_decl_index(
+                emep = get_ifc_module_entity_ptr(make_decl_index(
                                                 ifc_DeclSort_Enumerator,
                                                 idsep->initializer.start + i));
                 emep->scope = enum_scope;
@@ -1438,6 +1401,96 @@ class_struct_union_case:
           }  /* if */
         }
         break;
+      case ifc_DeclSort_Template:
+        { an_ifc_DeclSort_Template idst, *idstp;
+          idstp = get_DeclSort_Template(&idst);
+          check_assertion(idstp->name != 0);
+          init_locator_from_name(idstp->name, (ifc_TextOffset)0, &idstp->locus,
+                                 &loc);
+          if (defer) {
+            defer_symbol_creation(mep, &loc);
+          } else {
+            a_decl_parse_state          dps;
+            a_tmpl_decl_state           decl_state;
+            a_template_decl_info_ptr    tdip = NULL;
+            a_template_param_ptr        *next_param;
+            a_partial_scope_stack_state psss;
+            ifc_ChartSort               chart_sort = chart_tag(idstp->chart);
+            ifc_SentenceIndex           body = idstp->entity.body;
+            ifc_DeclIndex               entity_decl =
+                                            (ifc_DeclIndex)idstp->entity.index;
+            a_module_entity_ptr         dmep;
+
+            /* FIXME: Is this setting dps.start_pos correctly? */
+            init_dps(&dps, &idstp->locus, (ifc_TypeIndex)0,
+                     (ifc_Alignment)0, ifc_ObjectTraits_None,
+                     ifc_MsvcTraits_None, idstp->specifiers, idstp->access,
+                     &psss);
+            /* This declaration holds the underlying type of the template. */
+            dmep = get_ifc_module_entity_ptr(entity_decl);
+            dmep->scope = mep->scope;
+            process_ifc_declaration(dmep, /*defer=*/FALSE, (a_type_ptr)NULL);
+            /* Prepare the template declaration. */
+            init_templ_decl_state(&decl_state, &dps);
+            decl_state.enclosing_scope = mep->scope;
+            decl_state.il_template_entry = make_il_template_entry(&decl_state);
+            /* Get the template parameters. */
+            next_param = &decl_state.decl_info->parameters;
+            (void)next_param; /* FIXME: Remove this. */
+            read_partition_at_index(chart_sort, chart_value(idstp->chart));
+            switch (chart_sort) {
+              case ifc_ChartSort_None:
+                /* No arguments to the template (i.e., specialization). */
+                decl_state.is_specialization = TRUE;
+                break;
+              case ifc_ChartSort_Unilevel:
+                { an_ifc_ChartSort_Unilevel icsu, *icsup;
+                  icsup = get_ChartSort_Unilevel(&icsu);
+                  set_up_template_decl(&decl_state, &dps.start_pos, &tdip);
+                  for (ifc_Index_type idx = 0; idx < icsup->cardinality;
+                       ++idx) {
+                    a_module_entity_ptr pmep = get_ifc_module_entity_ptr(
+                                        make_decl_index(ifc_DeclSort_Parameter,
+                                                        icsup->start + idx));
+                    pmep->scope = scope_stack_top().il_scope;
+                    process_ifc_declaration(pmep, /*defer=*/FALSE,
+                                            (a_type_ptr)NULL);
+                    check_assertion(pmep->entity.kind == iek_type);
+                    /* FIXME: Construct the parameter list. */
+                  }  /* for */
+                  check_assertion(decl_state.decl_info->n_params ==
+                                                           icsup->cardinality);
+                }
+                break;
+              case ifc_ChartSort_Multilevel:
+                unexpected_condition_str("ChartSort::Multilevel "
+                                         "not handled here");
+                break;
+              default:
+                unexpected_condition_str("Unexpected ChartSort");
+            }  /* switch */
+            /* FIXME: Finish processing the template declaration. */
+            (void)body;
+            for (; decl_state.number_of_template_decl_scopes != 0;
+                   decl_state.number_of_template_decl_scopes--) {
+              pop_scope();
+            }  /* for */
+            restore_partial_scope_stack_if_necessary(&psss);
+            unexpected_condition_str("Non-deferred DeclSort::Template "
+                                     "is not yet handled.");
+          }  /* if */
+        }
+        break;
+      case ifc_DeclSort_Parameter:
+        { an_ifc_DeclSort_Parameter idsp, *idspp;
+          idspp = get_DeclSort_Parameter(&idsp);
+          check_assertion(idspp->name != 0);
+          init_locator_from_name((ifc_NameIndex)0, idspp->name, &idspp->locus,
+                                 &loc);
+          unexpected_condition_str("DeclSort::Parameter "
+                                   "not yet properly handled");
+        }
+        break;
       case ifc_DeclSort_Method:
       case ifc_DeclSort_Constructor:
       case ifc_DeclSort_Destructor:
@@ -1449,9 +1502,7 @@ class_struct_union_case:
            class. */
         unexpected_condition();
       case ifc_DeclSort_VendorExtension:
-      case ifc_DeclSort_Parameter:
       case ifc_DeclSort_Temploid:
-      case ifc_DeclSort_Template:
       case ifc_DeclSort_PartialSpecialization:
       case ifc_DeclSort_ExplicitSpecialization:
       case ifc_DeclSort_ExplicitInstantiation:
@@ -1507,8 +1558,7 @@ buffer.
 
   clear_str_control_block(&scb, mod, buffer);
   scb.is_generated_code = TRUE;
-  read_ifc_partition_at_offset(mep->variant.ifc_partition,
-                               mep->file_offset);
+  read_partition_at_offset(mep->variant.ifc_partition, mep->file_offset);
   idssp = get_DeclSort_Scope(&idss);
   str_ifc_class_definition(idssp, &scb);
   add_char_to_text_buffer(buffer, ';');
@@ -1647,9 +1697,9 @@ pointer to that entry or NULL if it could not be found.
 void an_ifc_module::process_ifc_scope(ifc_ScopeIndex scope_index,
                                       a_scope_ptr    scope) const noexcept
 /*
-Process the IFC scope specified by scope_index in the module file pointed to
-by mod.  All items in the IFC scope will be members of scope and their
-definitions will be deferred until they are referenced.
+Process the IFC scope specified by scope_index in the module file.  All items
+in the IFC scope will be members of scope and their definitions will be
+deferred until they are referenced.
 */
 {
   an_ifc_Scope_Descriptor isd, *isdp;
@@ -1663,14 +1713,14 @@ definitions will be deferred until they are referenced.
   if (scope_index != 0) {
     scope_pushed = push_module_declaration_context(scope);
     /* Scope indices are 1-based, so subtract one. */
-    read_ifc_partition_at_index(ifc_scope_desc, scope_index - 1);
+    read_partition_at_index(ifc_scope_desc, scope_index - 1);
     isdp = get_Scope_Descriptor(&isd);
     for (i = 0; i < isdp->cardinality; i++) {
       /* Re-enable access to scope.member partition (it changes during the
          loop). */
-      read_ifc_partition_at_index(ifc_scope_member, isdp->start + i);
+      read_partition_at_index(ifc_scope_member, isdp->start + i);
       ismp = get_Scope_Member(&ism);
-      dmep = get_decl_module_entity_ptr(ismp->index);
+      dmep = get_ifc_module_entity_ptr(ismp->index);
       dmep->scope = scope;
       process_ifc_declaration(dmep, /*defer=*/TRUE, (a_type_ptr)NULL);
     }  /* for */
@@ -1681,19 +1731,19 @@ definitions will be deferred until they are referenced.
 
 a_module_entity_ptr an_ifc_module::get_ifc_module_entity_ptr(
                                         an_ifc_partition_kind partition,
-                                        size_t                partition_offset)
+                                        ifc_Index_type        index)
                                                                  const noexcept
 /*
 Utility to return a module entity pointer given a module, IFC partition, and
-offset within that partition.  For cases where the module entity has
-just been created, the partition is set according to the partition supplied
-by the caller.
+index into that partition.  For cases where the module entity has just been
+created, the partition is set according to the partition supplied by the
+caller.
 */
 {
   a_module_entity_ptr mep;
 
   mep = get_module_entity_ptr(assoc_module_info,
-                              ifc_file_offset_of(partition, partition_offset));
+                              file_offset_of(partition, index));
   if (mep->variant.ifc_partition == ifc_none) {
     mep->variant.ifc_partition = partition;
   } else {
@@ -1703,16 +1753,46 @@ by the caller.
 }  /* get_ifc_module_entity_ptr */
 
 
-a_type_ptr an_ifc_module::type_for_ifc_type_index(ifc_TypeIndex type_index)
+inline a_module_entity_ptr an_ifc_module::get_ifc_module_entity_ptr(
+                                                           ifc_TypeIndex index)
+                                                                 const noexcept
+/*
+Overload wrapper for "get_ifc_module_entity_ptr" that extracts the type sort
+and index from the provided index.
+*/
+{
+  an_ifc_partition_kind partition = (an_ifc_partition_kind)(ifc_type_start +
+                                                              type_tag(index));
+
+  return get_ifc_module_entity_ptr(partition, type_value(index));
+}  /* get_ifc_module_entity_ptr */
+
+
+inline a_module_entity_ptr an_ifc_module::get_ifc_module_entity_ptr(
+                                                           ifc_DeclIndex index)
+                                                                 const noexcept
+/*
+Overload wrapper for "get_ifc_module_entity_ptr" that extracts the decl sort
+and index from the provided index.
+*/
+{
+  an_ifc_partition_kind partition = (an_ifc_partition_kind)(ifc_decl_start +
+                                                              decl_tag(index));
+
+  return get_ifc_module_entity_ptr(partition, decl_value(index));
+}  /* get_ifc_module_entity_ptr */
+
+
+a_type_ptr an_ifc_module::type_for_type_index(ifc_TypeIndex type_index)
                                                                  const noexcept
 /*
 Returns the type that corresponds to the specified TypeIndex in the module
-file indicated by mod.  Note that NULL is a valid return (and represents
-an "ellipsis type").
+file indicated.  Note that NULL is a valid return (and represents an "ellipsis
+type").
 */
 {
   a_type_ptr          result = NULL;
-  a_module_entity_ptr mep = get_type_module_entity_ptr(type_index);
+  a_module_entity_ptr mep = get_ifc_module_entity_ptr(type_index);
   ifc_TypeSort        tag;
 
   if (mep->entity.ptr != NULL) {
@@ -1721,8 +1801,7 @@ an "ellipsis type").
     result = (a_type_ptr)mep->entity.ptr;
   } else {
     /* Prepare to read from the proper partition for this type. */
-    read_ifc_partition_at_offset(mep->variant.ifc_partition,
-                                 mep->file_offset);
+    read_partition_at_offset(mep->variant.ifc_partition, mep->file_offset);
     tag = (ifc_TypeSort)get_tag_from_partition(mep->variant.ifc_partition,
                                                ifc_type_start);
     switch (tag) {
@@ -1879,29 +1958,27 @@ an "ellipsis type").
           if (itsqp->qualifiers & ifc_Qualifier_Restrict) {
             qualifiers |= TQ_RESTRICT;
           }  /* if */
-          result = make_qualified_type(
-                                   type_for_ifc_type_index(itsqp->unqualified),
-                                   qualifiers);
+          result = make_qualified_type(type_for_type_index(itsqp->unqualified),
+                                       qualifiers);
         }
         break;
       case ifc_TypeSort_Pointer:
         { an_ifc_TypeSort_Pointer itsp, *itspp;
           itspp = get_TypeSort_Pointer(&itsp);
-          result = make_pointer_type(type_for_ifc_type_index(itspp->pointee));
+          result = make_pointer_type(type_for_type_index(itspp->pointee));
         }
         break;
       case ifc_TypeSort_LvalueReference:
         { an_ifc_TypeSort_LvalueReference itslr, *itslrp;
           itslrp = get_TypeSort_LvalueReference(&itslr);
-          result =
-                 make_reference_type(type_for_ifc_type_index(itslrp->referee));
+          result = make_reference_type(type_for_type_index(itslrp->referee));
         }
         break;
       case ifc_TypeSort_RvalueReference:
         { an_ifc_TypeSort_RvalueReference itsrr, *itsrrp;
           itsrrp = get_TypeSort_RvalueReference(&itsrr);
           result = make_rvalue_reference_type(
-                                     type_for_ifc_type_index(itsrrp->referee));
+                                         type_for_type_index(itsrrp->referee));
         }
         break;
       case ifc_TypeSort_Array:
@@ -1909,7 +1986,7 @@ an "ellipsis type").
           itsap = get_TypeSort_Array(&itsa);
           result = alloc_type((a_type_kind)tk_array);
           result->variant.array.element_type =
-                                       type_for_ifc_type_index(itsap->element);
+                                           type_for_type_index(itsap->element);
           /* FIXME: this is wrong: */
           result->variant.array.variant.number_of_elements = itsap->extent;
         }
@@ -1921,7 +1998,7 @@ an "ellipsis type").
         { an_ifc_TypeSort_Function itsf, *itsfp;
           itsfp = get_TypeSort_Function(&itsf);
           /* Create a routine type with no parameters to start. */
-          result = make_routine_type(type_for_ifc_type_index(itsfp->target),
+          result = make_routine_type(type_for_type_index(itsfp->target),
                                      (a_type_ptr)NULL, (a_type_ptr)NULL,
                                      (a_type_ptr)NULL, (a_type_ptr)NULL);
           /* FIXME: need a thorough review of this. */
@@ -1935,15 +2012,15 @@ an "ellipsis type").
             a_type_ptr                    param_type;
             if (type_tag(itsfp->source) == ifc_TypeSort_Tuple) {
               /* A list of parameters. */
-              read_ifc_partition_at_index(ifc_type_tuple,
-                                          type_value(itsfp->source));
+              read_partition_at_index(ifc_type_tuple,
+                                      type_value(itsfp->source));
               itstp = get_TypeSort_Tuple(&itst);
               for (i = 0; i < itstp->cardinality; i++) {
                 ifc_TypeIndex ti;
-                read_ifc_partition_at_index(ifc_heap_type,
-                                            itstp->start + i);
+                read_partition_at_index(ifc_heap_type,
+                                        itstp->start + i);
                 GET_TypeIndex(ti, /*from_header=*/FALSE);
-                param_type = type_for_ifc_type_index(ti);
+                param_type = type_for_type_index(ti);
                 if (param_type == NULL) {
                   /* This happens when an ellipsis is present as the last
                      parameter. */
@@ -1958,7 +2035,7 @@ an "ellipsis type").
               }  /* for */
             } else {
               /* A single parameter. */
-              param_type = type_for_ifc_type_index(itsfp->source);
+              param_type = type_for_type_index(itsfp->source);
               if (param_type == NULL) {
                 /* A single ellipsis parameter. */
                 rtsp->has_ellipsis = TRUE;
@@ -1982,7 +2059,7 @@ an "ellipsis type").
                           decl_tag(itsdp->decl) == ifc_DeclSort_Enumeration);
           /* Find the type of the scope declaration by processing it (in
              case it has been deferred). */
-          dmep = get_decl_module_entity_ptr(itsdp->decl);
+          dmep = get_ifc_module_entity_ptr(itsdp->decl);
           // FIXME: scope is unknown means bad news.
           check_assertion(dmep->scope != NULL);
           process_ifc_declaration(dmep, /*defer=*/FALSE, (a_type_ptr)NULL);
@@ -1993,19 +2070,115 @@ an "ellipsis type").
         }
         break;
       case ifc_TypeSort_Deduced:
+        { an_ifc_TypeSort_Deduced itsd, *itsdp;
+          itsdp = get_TypeSort_Deduced(&itsd);
+          (void)itsdp;
+          unexpected_condition_str("TypeSort::Deduced "
+                                   "is not yet implemented.");
+        }
+        break;
       case ifc_TypeSort_PointerToMember:
+        { an_ifc_TypeSort_PointerToMember itsptm, *itsptmp;
+          itsptmp = get_TypeSort_PointerToMember(&itsptm);
+          (void)itsptmp;
+          unexpected_condition_str("TypeSort::PointerToMember "
+                                   "is not yet implemented.");
+        }
+        break;
       case ifc_TypeSort_Tuple:
+        { an_ifc_TypeSort_Tuple itst, *itstp;
+          itstp = get_TypeSort_Tuple(&itst);
+          (void)itstp;
+          unexpected_condition_str("TypeSort::Tuple "
+                                   "is not yet implemented.");
+        }
+        break;
       case ifc_TypeSort_Forall:
+        { an_ifc_TypeSort_Forall itsfa, *itsfap;
+          itsfap = get_TypeSort_Forall(&itsfa);
+          (void)itsfap;
+          unexpected_condition_str("TypeSort::Forall "
+                                   "is not yet implemented.");
+        }
+        break;
       case ifc_TypeSort_VendorExtension:
+        { an_ifc_TypeSort_VendorExtension itsve, *itsvep;
+          itsvep = get_TypeSort_VendorExtension(&itsve);
+          (void)itsvep;
+          unexpected_condition_str("TypeSort::VendorExtension "
+                                   "is not yet implemented.");
+        }
+        break;
       case ifc_TypeSort_Syntactic:
+        { an_ifc_TypeSort_Syntactic itss, *itssp;
+          itssp = get_TypeSort_Syntactic(&itss);
+          ifc_ExprSort tag = expr_tag(itssp->expr);
+          ifc_Index    value = expr_value(itssp->expr);
+          read_partition_at_index(tag, value);
+          switch (tag) {
+            case ifc_ExprSort_TemplateId:
+              { an_ifc_ExprSort_TemplateId iestid, *iestidp;
+                iestidp = get_ExprSort_TemplateId(&iestid);
+                result = type_for_template_id(iestidp);
+              }
+              unexpected_condition_str("ExprSort::TemplateId not yet handled "
+                                       "for TypeSort::Syntactic");
+              break;
+            default:
+              unexpected_condition_str("Unexpected ExprSort kind for "
+                                       "TypeSort::Syntactic.");
+          }  /* switch */
+        }
+        break;
       case ifc_TypeSort_Expansion:
+        { an_ifc_TypeSort_Expansion itse, *itsep;
+          itsep = get_TypeSort_Expansion(&itse);
+          (void)itsep;
+          unexpected_condition_str("TypeSort::Expansion "
+                                   "is not yet implemented.");
+        }
+        break;
       case ifc_TypeSort_Typename:
+        { an_ifc_TypeSort_Typename itstn, *itstnp;
+          itstnp = get_TypeSort_Typename(&itstn);
+          (void)itstnp;
+          unexpected_condition_str("TypeSort::Typename "
+                                   "is not yet implemented.");
+        }
+        break;
       case ifc_TypeSort_Base:
+        { an_ifc_TypeSort_Base itsb, *itsbp;
+          itsbp = get_TypeSort_Base(&itsb);
+          (void)itsbp;
+          unexpected_condition_str("TypeSort::Base "
+                                   "is not yet implemented.");
+        }
+        break;
       case ifc_TypeSort_Unaligned:
+        { an_ifc_TypeSort_Unaligned itsu, *itsup;
+          itsup = get_TypeSort_Unaligned(&itsu);
+          (void)itsup;
+          unexpected_condition_str("TypeSort::Unaligned "
+                                   "is not yet implemented.");
+        }
+        break;
       case ifc_TypeSort_Decltype:
+        { an_ifc_TypeSort_Decltype itsd, *itsdp;
+          itsdp = get_TypeSort_Decltype(&itsd);
+          (void)itsdp;
+          unexpected_condition_str("TypeSort::Decltype "
+                                   "is not yet implemented.");
+        }
+        break;
       case ifc_TypeSort_SyntaxTree:
+        { an_ifc_TypeSort_SyntaxTree itsst, *itsstp;
+          itsstp = get_TypeSort_SyntaxTree(&itsst);
+          (void)itsstp;
+          unexpected_condition_str("TypeSort::SyntaxTree "
+                                   "is not yet implemented.");
+        }
+        break;
       default:
-        /* FIXME: not yet implemented. */
 #if DEBUG
         if (db_flag_is_set("ms_ignore")) {
           (void)fprintf(f_debug, "Unsupported type: ");
@@ -2023,7 +2196,35 @@ an "ellipsis type").
     mep->entity.kind = iek_type;
   }  /* if */
   return result;
-}  /* type_for_ifc_type_index */
+}  /* type_for_type_index */
+
+
+a_type_ptr an_ifc_module::type_for_template_id(
+                                          an_ifc_ExprSort_TemplateId *templ_id)
+                                                                 const noexcept
+/*
+Returns the type that corresponds to the provided ExprSort::TemplateId in the
+module file.
+*/
+{
+  a_type_ptr          result = NULL;
+  //ifc_ExprSort        arg_tag = expr_tag(templ_id->arguments);
+  ifc_ExprSort        pri_tag = expr_tag(templ_id->primary);
+  an_ifc_ExprSort_NamedDecl iesnd, *iesndp;
+
+  read_partition_at_index(pri_tag, expr_value(templ_id->primary));
+  iesndp = get_ExprSort_NamedDecl(&iesnd);
+  check_assertion(pri_tag == ifc_ExprSort_NamedDecl);
+  if (iesndp->type != 0) {
+    result = type_for_type_index(iesndp->type);
+    unexpected_condition_str("Unexpected type for ExprSort::NamedDecl");
+  } else {
+    a_module_entity_ptr mep = get_ifc_module_entity_ptr(iesndp->resolution);
+    process_ifc_declaration(mep, /*defer=*/FALSE, (a_type_ptr)NULL);
+    unexpected_condition();
+  }  /* if */
+  return result;
+}  /* type_for_template_id */
 
 
 void an_ifc_module::source_position_from_locus(a_source_position  *pos,
@@ -2039,7 +2240,7 @@ Map the IFC locus source position information into the source position at pos.
 #endif /* CHECKING */
   a_seq_number         *seq;
 
-  read_ifc_partition_at_index(ifc_src_line, locus->line);
+  read_partition_at_index(ifc_src_line, locus->line);
   islp = get_Source_Line(&isl);
 #if CHECKING
   tag = name_tag(islp->file);
@@ -2087,7 +2288,7 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
     /* NameSort::Identifiers just refer to the string table. */
     result = get_string_at_offset(name_value(name_index));
   } else {
-    read_ifc_partition_at_index(ifc_name_start + tag, name_value(name_index));
+    read_partition_at_index(tag, name_value(name_index));
     switch (tag) {
       case ifc_NameSort_SourceFile:
         { an_ifc_NameSort_SourceFile inssf, *inssfp;
@@ -2114,7 +2315,7 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
           a_type_ptr                 target_type;
           inscp = get_NameSort_Conversion(&insc);
           prefix = "operator ";
-          target_type = type_for_ifc_type_index(inscp->target);
+          target_type = type_for_type_index(inscp->target);
           /* Note that inscp->encoded contains the mangled name of the
              conversion function, so use the name from the type instead. */
           result = target_type->source_corresp.name;
@@ -2204,7 +2405,7 @@ after the declaration has been processed.
   init_decl_parse_state(dps);
   if (psssp != NULL) psssp->saved = FALSE;
   if (type_index != 0) {
-    dps->type = type_for_ifc_type_index(type_index);
+    dps->type = type_for_type_index(type_index);
   }  /* if */
   source_position_from_locus(&dps->start_pos, locus);
   check_assertion(alignment < targ_maximum_pack_alignment);
@@ -2341,7 +2542,7 @@ FIXME: what other expressions can we get here?
   a_constant_ptr            cp = NULL;
 
   /* Prepare to read from the proper partition for this expression. */
-  read_ifc_partition_at_index(ifc_expr_start + tag, expr_value(expr_index));
+  read_partition_at_index(tag, expr_value(expr_index));
   switch (tag) {
     case ifc_ExprSort_Literal:
       { an_ifc_ExprSort_Literal iesl, *ieslp;
@@ -2353,7 +2554,7 @@ FIXME: what other expressions can we get here?
           check_assertion(default_type != NULL);
           constant_type = default_type;
         } else {
-          constant_type = type_for_ifc_type_index(ieslp->type);
+          constant_type = type_for_type_index(ieslp->type);
         }  /* if */
         switch (literal_tag(ieslp->value)) {
           case ifc_LiteralSort_Immediate:
@@ -2377,8 +2578,8 @@ FIXME: what other expressions can we get here?
             /* An integer larger than 30 bits. */
             { a_host_large_unsigned value;
               cp = alloc_constant(ck_integer);
-              read_ifc_partition_at_index(ifc_const_i64,
-                                          literal_index(ieslp->value));
+              read_partition_at_index(ifc_const_i64,
+                                      literal_index(ieslp->value));
               GET_64bit_int(value, /*from_header=*/FALSE);
               stripped_type = skip_typerefs(constant_type);
               check_assertion(stripped_type->kind == (a_type_kind)tk_integer);
@@ -2400,6 +2601,149 @@ FIXME: what other expressions can we get here?
   }  /* switch */
   return cp;
 }  /* constant_for_expr_index */
+
+
+inline size_t an_ifc_module::file_offset_of(an_ifc_partition_kind partition,
+                                            ifc_Index_type        index)
+                                                                 const noexcept
+/*
+Returns the IFC file offset of the specified index into the given partition
+of the module.  This value is used as a key to uniquely identify the IFC entity
+(and is purposely not kept as a pointer because the underlying address space is
+typically memory-mapped and could change during PCH file processing).
+*/
+{
+  size_t part_offset = index * partitions[partition].entry_size;
+
+#if EXPENSIVE_CHECKING
+  check_assertion(partitions[partition].offset != 0 &&
+                  partitions[partition].size != 0 &&
+                  partitions[partition].size > part_offset);
+#endif /* EXPENSIVE_CHECKING */
+  return partitions[partition].offset + part_offset;
+}  /* file_offset_of */
+
+
+inline void an_ifc_module::read_partition_at_offset(
+                                               an_ifc_partition_kind partition,
+                                               size_t                offset)
+                                                                 const noexcept
+/*
+Sets the read buffer to the provided offset for the given partition in
+preparation for a call to GET_byte, GET_short, etc.
+*/
+{
+#if DEBUG && EXPENSIVE_CHECKING
+  debug_partition = &partitions[partition];
+#endif /* DEBUG && EXPENSIVE_CHECKING */
+  init_byte_buffer(offset, partitions[partition].size);
+}  /* read_partition_at_offset */
+
+
+inline void an_ifc_module::read_partition_at_index(
+                                               an_ifc_partition_kind partition,
+                                               ifc_Index_type        index)
+                                                                 const noexcept
+/*
+Sets the read buffer to the appropriate offset for an entity at the provided
+index into the given partition in preparation for a call to GET_byte,
+GET_short, etc.
+*/
+{
+  read_partition_at_offset(partition, file_offset_of(partition, index));
+}  /* read_partition_at_index */
+
+
+inline void an_ifc_module::read_partition_at_index(ifc_TypeSort   type_kind,
+                                                   ifc_Index_type index)
+                                                                 const noexcept
+/*
+Overload wrapper for "read_partition_at_index" that converts an "ifc_TypeSort"
+kind into an "an_ifc_partition_kind" kind for convenience.
+*/
+{
+  read_partition_at_index((an_ifc_partition_kind)(ifc_type_start + type_kind),
+                          index);
+}  /* read_partition_at_index */
+
+
+inline void an_ifc_module::read_partition_at_index(ifc_ExprSort   expr_kind,
+                                                   ifc_Index_type index)
+                                                                 const noexcept
+/*
+Overload wrapper for "read_partition_at_index" that converts an "ifc_ExprSort"
+kind into an "an_ifc_partition_kind" kind for convenience.
+*/
+{
+  read_partition_at_index((an_ifc_partition_kind)(ifc_expr_start + expr_kind),
+                          index);
+}  /* read_partition_at_index */
+
+
+inline void an_ifc_module::read_partition_at_index(ifc_StmtSort   stmt_kind,
+                                                   ifc_Index_type index)
+                                                                 const noexcept
+/*
+Overload wrapper for "read_partition_at_index" that converts an "ifc_StmtSort"
+kind into an "an_ifc_partition_kind" kind for convenience.
+*/
+{
+  read_partition_at_index((an_ifc_partition_kind)(ifc_stmt_start + stmt_kind),
+                          index);
+}  /* read_partition_at_index */
+
+
+inline void an_ifc_module::read_partition_at_index(ifc_DeclSort   decl_kind,
+                                                   ifc_Index_type index)
+                                                                 const noexcept
+/*
+Overload wrapper for "read_partition_at_index" that converts an "ifc_DeclSort"
+kind into an "an_ifc_partition_kind" kind for convenience.
+*/
+{
+  read_partition_at_index((an_ifc_partition_kind)(ifc_decl_start + decl_kind),
+                          index);
+}  /* read_partition_at_index */
+
+
+inline void an_ifc_module::read_partition_at_index(ifc_NameSort   name_kind,
+                                                   ifc_Index_type index)
+                                                                 const noexcept
+/*
+Overload wrapper for "read_partition_at_index" that converts an "ifc_NameSort"
+kind into an "an_ifc_partition_kind" kind for convenience.
+*/
+{
+  read_partition_at_index((an_ifc_partition_kind)(ifc_name_start + name_kind),
+                          index);
+}  /* read_partition_at_index */
+
+
+inline void an_ifc_module::read_partition_at_index(ifc_ChartSort  chart_kind,
+                                                   ifc_Index_type index)
+                                                                 const noexcept
+/*
+Overload wrapper for "read_partition_at_index" that converts an "ifc_ChartSort"
+kind into an "an_ifc_partition_kind" kind for convenience.
+*/
+{
+  read_partition_at_index((an_ifc_partition_kind)(ifc_chart_start +chart_kind),
+                          index);
+}  /* read_partition_at_index */
+
+
+inline void an_ifc_module::read_partition_at_index(ifc_SyntaxSort syntax_kind,
+                                                   ifc_Index_type index)
+                                                                 const noexcept
+/*
+Overload wrapper for "read_partition_at_index" that converts an
+"ifc_SyntaxSort" kind into an "an_ifc_partition_kind" kind for convenience.
+*/
+{
+  read_partition_at_index((an_ifc_partition_kind)(ifc_syntax_start +
+                                                                  syntax_kind),
+                          index);
+}  /* read_partition_at_index */
 
 
 void an_ifc_module::str_ifc_text_offset(ifc_TextOffset      offset,
@@ -2439,11 +2783,10 @@ by home_scope to the output buffer.
   an_ifc_DeclSort_Scope idss, *idssp;
 
   /* Prepare to read from the proper partition for this declaration. */
-  read_ifc_partition_at_index(ifc_decl_start + tag,
-                              decl_value(home_scope));
+  read_partition_at_index(tag, decl_value(home_scope));
   check_assertion(tag == ifc_DeclSort_Scope);
   idssp = get_DeclSort_Scope(&idss);
-  str_ifc_text_offset(idssp->name, scbp);
+  str_ifc_name_index(idssp->name, scbp);
 }  /* str_ifc_class_name */
 
 
@@ -2473,7 +2816,7 @@ Add source location to the current string.
   an_ifc_Source_Line isl, *islp;
 
   if (!scbp->is_generated_code) {
-    read_ifc_partition_at_index(scbp->module_info, ifc_src_line, locus->line);
+    read_partition_at_index(scbp->module_info, ifc_src_line, locus->line);
     islp = get_Source_Line(&isl);
     add_string_to_text_buffer(scbp->text_buffer, "/*file:");
     str_ifc_name_index(islp->file, scbp);
@@ -2761,7 +3104,7 @@ the output buffer.
   ifc_ExprSort      tag = expr_tag(expr_index);
 
   /* Prepare to read from the proper partition for this expression. */
-  read_ifc_partition_at_index(ifc_expr_start + tag, expr_value(expr_index));
+  read_partition_at_index(tag, expr_value(expr_index));
   switch (tag) {
     case ifc_ExprSort_Literal:
       { an_ifc_ExprSort_Literal iesl, *ieslp;
@@ -2781,8 +3124,8 @@ the output buffer.
             break;
           case ifc_LiteralSort_Integer:
             { a_host_large_unsigned value;
-              read_ifc_partition_at_index(ifc_const_i64,
-                                          literal_index(ieslp->value));
+              read_partition_at_index(ifc_const_i64,
+                                      literal_index(ieslp->value));
               GET_64bit_int(value, /*from_header=*/FALSE);
               str_ifc_add_number(value, scbp);
             }
@@ -3150,14 +3493,12 @@ output buffer.
      is nothing further to do. */
   if (scope_index != 0) {
     /* Scope indices are 1-based, so subtract one. */
-    read_ifc_partition_at_index(ifc_scope_desc,
-                                scope_index - 1);
+    read_partition_at_index(ifc_scope_desc, scope_index - 1);
     isdp = get_Scope_Descriptor(&isd);
     for (i = 0; i < isdp->cardinality; i++) {
       /* Re-enable access to scope.member partition (it changes during the
          loop). */
-      read_ifc_partition_at_index(ifc_scope_member,
-                                  isdp->start + i);
+      read_partition_at_index(ifc_scope_member, isdp->start + i);
       ismp = get_Scope_Member(&ism);
       str_ifc_declaration(ismp->index, /*is_designated_type=*/FALSE, scbp);
     }  /* for */
@@ -3177,7 +3518,7 @@ FIXME: more specific
   ifc_TypeSort tag = type_tag(type_index);
 
   /* Prepare to read from the proper partition for this type. */
-  read_ifc_partition_at_index(ifc_type_start + tag, type_value(type_index));
+  read_partition_at_index(tag, type_value(type_index));
   switch (tag) {
     case ifc_TypeSort_Fundamental:
       { a_const_char *basis_str = NULL;
@@ -3389,8 +3730,8 @@ FIXME: more specific
         /* A list of types. */
         for (i = 0; i < itstp->cardinality; i++) {
           ifc_TypeIndex ti;
-          read_ifc_partition_at_index(ifc_heap_type,
-                                      itstp->start + i);
+          read_partition_at_index(ifc_heap_type,
+                                  itstp->start + i);
           GET_TypeIndex(ti, /*from_header=*/FALSE);
           str_ifc_type_index(ti, scbp);
           /* FIXME: not really sure what the separator should be here: */
@@ -3501,7 +3842,7 @@ FIXME: more specific
   ifc_TypeSort tag = type_tag(type_index);
 
   /* Prepare to read from the proper partition for this type. */
-  read_ifc_partition_at_index(ifc_type_start + tag, type_value(type_index));
+  read_partition_at_index(tag, type_value(type_index));
   switch (tag) {
     case ifc_TypeSort_Fundamental:
     case ifc_TypeSort_Designated:
@@ -3657,7 +3998,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
   a_boolean                end_decl = TRUE;
 
   /* Prepare to read from the proper partition for this declaration. */
-  read_ifc_partition_at_index(ifc_decl_start + tag, decl_value(decl_index));
+  read_partition_at_index(tag, decl_value(decl_index));
   switch (tag) {
     case ifc_DeclSort_Variable:
       { an_ifc_DeclSort_Variable idsv, *idsvp;
@@ -3684,7 +4025,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
           str_ifc_type_index(idssp->type, scbp);
         }  /* if */
         add_char_to_text_buffer(scbp->text_buffer, ' ');
-        str_ifc_text_offset(idssp->name, scbp);
+        str_ifc_name_index(idssp->name, scbp);
         add_char_to_text_buffer(scbp->text_buffer, ' ');
         if (is_designated_type) {
           /* When using a designated type, only the type name needs to be
@@ -3805,8 +4146,8 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         /* FIXME: lots missing */
         check_assertion(type_tag(idstap->type) == ifc_TypeSort_Fundamental);
         /* Read the type to see what kind it is. */
-        read_ifc_partition_at_index(ifc_type_fundamental,
-                                    type_value(idstap->type));
+        read_partition_at_index(ifc_type_fundamental,
+                                type_value(idstap->type));
         itsfp = get_TypeSort_Fundamental(&itsf);
         if (itsfp->basis == ifc_TypeBasis_Typename) {
           /* A type alias. */
@@ -3834,8 +4175,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
                             (ifc_Alignment)0, scbp);
         check_assertion(type_tag(idsep->type) == ifc_TypeSort_Fundamental);
         /* Read the type to see what kind it is. */
-        read_ifc_partition_at_index(ifc_type_fundamental,
-                                    type_value(idsep->type));
+        read_partition_at_index(ifc_type_fundamental, type_value(idsep->type));
         itsfp = get_TypeSort_Fundamental(&itsf);
         add_string_to_text_buffer(scbp->text_buffer, "enum ");
         if (itsfp->basis == ifc_TypeBasis_Class) {
@@ -4015,7 +4355,7 @@ Generate a string for the specified statement.
 {
   ifc_StmtSort tag = stmt_tag(stmt_index);
 
-  read_ifc_partition_at_index(ifc_stmt_start + tag, stmt_value(stmt_index));
+  read_partition_at_index(tag, stmt_value(stmt_index));
   switch (tag) {
     case ifc_StmtSort_VendorExtension:
       { an_ifc_StmtSort_VendorExtension issve;
@@ -4145,7 +4485,7 @@ Generate a string for the specified string literal.
   ifc_StringSort        tag = str_tag(str_index);
   an_ifc_String_Literal str_lit;
 
-  read_ifc_partition_at_index(ifc_const_str, str_value(str_index));
+  read_partition_at_index(ifc_const_str, str_value(str_index));
   get_String_Literal(&str_lit);
   if (tag != ifc_StringSort_Ordinary) {
     unexpected_condition_str("Non-ordinary strings are not yet handled.");
@@ -4169,7 +4509,7 @@ Generate a string for the specified chart.
 {
   ifc_ChartSort tag = chart_tag(chart_index);
 
-  read_ifc_partition_at_index(ifc_chart_start + tag, chart_value(chart_index));
+  read_partition_at_index(tag, chart_value(chart_index));
   switch (tag) {
     case ifc_ChartSort_None:
       { an_ifc_ChartSort_None icsn;
@@ -4206,7 +4546,7 @@ Generate a string for the specified associated deprecation trait.
 {
   an_ifc_Trait_Deprecated itd;
 
-  read_ifc_partition_at_index(ifc_trait_deprecated, decl_index);
+  read_partition_at_index(ifc_trait_deprecated, decl_index);
   get_Trait_Deprecated(&itd);
   unexpected_condition_str("AssociatedTrait<Deprecated> is not specified.");
 }  /* str_ifc_associated_trait<an_ifc_Trait_Deprecated> */
@@ -4223,7 +4563,7 @@ Generate a string for the specified associated template specialization trait.
 {
   an_ifc_Trait_Specialization its;
 
-  read_ifc_partition_at_index(ifc_trait_specialization, decl_index);
+  read_partition_at_index(ifc_trait_specialization, decl_index);
   get_Trait_Specialization(&its);
   unexpected_condition_str("AssociatedTrait<Specialization>"
                            " is not specified.");
@@ -4241,7 +4581,7 @@ Generate a string for the specified associated class friend trait.
 {
   an_ifc_Trait_Friend itf;
 
-  read_ifc_partition_at_index(ifc_trait_friend, decl_index);
+  read_partition_at_index(ifc_trait_friend, decl_index);
   get_Trait_Friend(&itf);
   unexpected_condition_str("AssociatedTrait<Friend> is not specified.");
 }  /* str_ifc_associated_trait<an_ifc_Trait_Friend> */
@@ -4258,7 +4598,7 @@ Generate a string for the specified associated constexpr function trait.
 {
   an_ifc_Trait_ConstexprFunction itcf;
 
-  read_ifc_partition_at_index(ifc_trait_constexpr_function, decl_index);
+  read_partition_at_index(ifc_trait_constexpr_function, decl_index);
   get_Trait_ConstexprFunction(&itcf);
   unexpected_condition_str("AssociatedTrait<ConstexprFunction>"
                            " is not specified.");
@@ -4276,7 +4616,7 @@ Generate a string for the specified associated function template trait.
 {
   an_ifc_Trait_FunctionTemplate itft;
 
-  read_ifc_partition_at_index(ifc_trait_function_template, decl_index);
+  read_partition_at_index(ifc_trait_function_template, decl_index);
   get_Trait_FunctionTemplate(&itft);
   unexpected_condition_str("AssociatedTrait<FunctionTemplate>"
                            " is not specified.");
@@ -4294,7 +4634,7 @@ Generate a string for the specified associated class template trait.
 {
   an_ifc_Trait_ClassTemplate itct;
 
-  read_ifc_partition_at_index(ifc_trait_class_template, decl_index);
+  read_partition_at_index(ifc_trait_class_template, decl_index);
   get_Trait_ClassTemplate(&itct);
   unexpected_condition_str("AssociatedTrait<ClassTemplate> is not specified.");
 }  /* str_ifc_associated_trait<an_ifc_Trait_ClassTemplate> */
@@ -4311,7 +4651,7 @@ Generate a string for the specified associated template alias trait.
 {
   an_ifc_Trait_AliasTemplate itat;
 
-  read_ifc_partition_at_index(ifc_trait_alias_template, decl_index);
+  read_partition_at_index(ifc_trait_alias_template, decl_index);
   get_Trait_AliasTemplate(&itat);
   unexpected_condition_str("AssociatedTrait<AliasTemplate> is not specified.");
 }  /* str_ifc_associated_trait<an_ifc_Trait_AliasTemplate> */
@@ -4328,7 +4668,7 @@ Generate a string for the specified associated variable template trait.
 {
   an_ifc_Trait_VariableTemplate itvt;
 
-  read_ifc_partition_at_index(ifc_trait_variable_template, decl_index);
+  read_partition_at_index(ifc_trait_variable_template, decl_index);
   get_Trait_VariableTemplate(&itvt);
   unexpected_condition_str("AssociatedTrait<VariableTemplate>"
                            " is not specified.");
@@ -4346,7 +4686,7 @@ Generate a string for the specified associated MSVC Vendor trait.
 {
   an_ifc_Trait_MsvcVendorTrait itmsvct;
 
-  read_ifc_partition_at_index(ifc_msvc_trait_vendor_traits, decl_index);
+  read_partition_at_index(ifc_msvc_trait_vendor_traits, decl_index);
   get_Trait_MsvcVendorTrait(&itmsvct);
   str_ifc_msvc_traits(itmsvct.trait, scbp);
 }  /* str_ifc_associated_trait<an_ifc_Trait_MsvcVendorTrait> */
@@ -4364,7 +4704,7 @@ Generate a string for the specified associated MSVC UUID trait.
   an_ifc_Trait_MsvcUuid itmsvcuuid;
   char                  str[16];
 
-  read_ifc_partition_at_index(ifc_msvc_trait_uuid, decl_index);
+  read_partition_at_index(ifc_msvc_trait_uuid, decl_index);
   get_Trait_MsvcUuid(&itmsvcuuid);
   snprintf(str, sizeof(str), "%04hx", itmsvcuuid.uuid);
   add_string_to_text_buffer(scbp->text_buffer, str);
@@ -4381,8 +4721,7 @@ Generate a string for the specified syntax tree node.
 {
   ifc_SyntaxSort tag = syntax_tag(syntax_index);
 
-  read_ifc_partition_at_index(ifc_syntax_start + tag,
-                              syntax_value(syntax_index));
+  read_partition_at_index(tag, syntax_value(syntax_index));
   switch (tag) {
     case ifc_SyntaxSort_VendorExtension:
       { an_ifc_SyntaxSort_VendorExtension issve;
@@ -5170,7 +5509,7 @@ Generate a string for the specified sentence.
 {
   an_ifc_Sentence is;
 
-  read_ifc_partition_at_index(ifc_sentence, sentence_index);
+  read_partition_at_index(ifc_sentence, sentence_index);
   get_Sentence(&is);
   unexpected_condition_str("IFC Sentences currently unspecified.");
 }  /* str_ifc_sentence*/
@@ -5185,7 +5524,7 @@ Generate a string for the specified word.
 {
   an_ifc_Word iw;
 
-  read_ifc_partition_at_index(ifc_word, word_index);
+  read_partition_at_index(ifc_word, word_index);
   get_Word(&iw);
   unexpected_condition_str("IFC Words currently unspecified.");
 }  /* str_ifc_word */

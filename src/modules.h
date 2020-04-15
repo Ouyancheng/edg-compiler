@@ -21,7 +21,7 @@ modules.h -- Declarations related to module handling.
 BEGIN_EDG_NAMESPACE
 
 /* FIXME: Also defined in ifc_modules.h */
-typedef uint32_t an_ifc_partition_kind;
+enum an_ifc_partition_kind : uint32_t;
 
 /*
 The following structure is associated with every entity in a module file that
@@ -167,7 +167,7 @@ extern a_boolean compare_for_module_entity(a_void_ptr  entry,
                                            a_void_ptr  key);
 
 extern a_module_entity_ptr get_module_entity_ptr(a_module_ptr mod,
-                                                 size_t        file_offset);
+                                                 size_t       file_offset);
 
 
 /*

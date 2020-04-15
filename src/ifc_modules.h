@@ -572,10 +572,12 @@ enum ifc_TypeSign : uint8_t {
 };
 
 /* Macros used to access DeclIndex::tag and DeclIndex::value. */
-#define decl_tag(decl) ((ifc_DeclSort)((decl) & 0x0000001F))
-#define decl_value(decl) ((ifc_Index)((decl) >> 5))
+/* Note: IFC spec says the tag has a width of 5 bits, not 6 - IFC files
+   seem to indicate otherwise. */
+#define decl_tag(decl) ((ifc_DeclSort)((decl) & 0x0000003F))
+#define decl_value(decl) ((ifc_Index)((decl) >> 6))
 #define make_decl_index(tag, idx) \
-  ((ifc_DeclIndex)(((idx) << 5) | ((tag) & 0x0000001F)))
+  ((ifc_DeclIndex)(((idx) << 6) | ((tag) & 0x0000003F)))
 
 /* Enumeration for DeclSort (i.e., types of declarations). */
 enum ifc_DeclSort : ifc_Sort_type {
@@ -1316,7 +1318,7 @@ tag can be added to a base value to get the proper partition.  This is
 essential when using get_tag_from_partition.
 */
 /*lint -save -e488 -e641*/
-enum an_ifc_partition_kind_tag {
+enum an_ifc_partition_kind : uint32_t {
   ifc_none,
   /* Group all DeclIndex::tag partitions together. */
   ifc_decl_start,
@@ -1724,28 +1726,6 @@ enum an_ifc_partition_kind_tag {
 };
 /*lint -restore*/
 
-typedef uint32_t an_ifc_partition_kind;
-
-
-/*
-Utility to return a "tag" given a partition (an_ifc_partition_kind) value
-and the starting partition for the particular case (e.g., ifc_type_start
-for TypeSort).  Relies on an_ifc_partition_kind being ordered properly (see
-the comments there).
-*/
-#define get_tag_from_partition(partition, start) ((partition) - (start))
-
-/*
-Some convenience macros to get module entities of various IFC sorts when
-the sort is known by the context.
-*/
-#define get_decl_module_entity_ptr(decl_index) \
-  (get_ifc_module_entity_ptr(ifc_decl_start + decl_tag((decl_index)), \
-                             decl_value((decl_index))))
-
-#define get_type_module_entity_ptr(type_index) \
-  (get_ifc_module_entity_ptr(ifc_type_start + type_tag((type_index)), \
-                             type_value((type_index))))
 
 /*
 A method for mapping partition names to an_ifc_partition_kind values.  Used
@@ -2190,11 +2170,18 @@ private:
   static an_ifc_partition_map *find_ifc_partition(a_const_char *name) noexcept;
   void process_ifc_scope(ifc_ScopeIndex scope_index,
                          a_scope_ptr    scope) const noexcept;
+  /* Module entity getters. */
   a_module_entity_ptr get_ifc_module_entity_ptr(
                                        an_ifc_partition_kind partition,
-                                       size_t                partition_offset)
+                                       ifc_Index_type        index)
                                                                 const noexcept;
-  a_type_ptr type_for_ifc_type_index(ifc_TypeIndex type_index) const noexcept;
+  inline a_module_entity_ptr get_ifc_module_entity_ptr(ifc_TypeIndex index)
+                                                                const noexcept;
+  inline a_module_entity_ptr get_ifc_module_entity_ptr(ifc_DeclIndex index)
+                                                                const noexcept;
+  a_type_ptr type_for_type_index(ifc_TypeIndex type_index) const noexcept;
+  a_type_ptr type_for_template_id(an_ifc_ExprSort_TemplateId *templ_id)
+                                                                const noexcept;
   void source_position_from_locus(a_source_position  *pos,
                                   ifc_SourceLocation *locus) const noexcept;
   a_const_char *string_from_name_index(ifc_NameIndex    name_index,
@@ -2215,6 +2202,30 @@ private:
   a_constant_ptr constant_for_expr_index(ifc_ExprIndex expr_index,
                                          a_type_ptr    default_type)
                                                                 const noexcept;
+  /* Readers and reading helpers. */
+  inline size_t file_offset_of(an_ifc_partition_kind partition,
+                               ifc_Index_type        index) const noexcept;
+  inline void read_partition_at_offset(an_ifc_partition_kind partition,
+                                       size_t                offset)
+                                                                const noexcept;
+  inline void read_partition_at_index(an_ifc_partition_kind partition,
+                                      ifc_Index_type        index)
+                                                                const noexcept;
+  inline void read_partition_at_index(ifc_TypeSort   type_kind,
+                                      ifc_Index_type index) const noexcept;
+  inline void read_partition_at_index(ifc_ExprSort   expr_kind,
+                                      ifc_Index_type index) const noexcept;
+  inline void read_partition_at_index(ifc_StmtSort   stmt_kind,
+                                      ifc_Index_type index) const noexcept;
+  inline void read_partition_at_index(ifc_DeclSort   decl_kind,
+                                      ifc_Index_type index) const noexcept;
+  inline void read_partition_at_index(ifc_NameSort   name_kind,
+                                      ifc_Index_type index) const noexcept;
+  inline void read_partition_at_index(ifc_ChartSort  chart_kind,
+                                      ifc_Index_type index) const noexcept;
+  inline void read_partition_at_index(ifc_SyntaxSort syntax_kind,
+                                      ifc_Index_type index) const noexcept;
+  /* Stringizers. */
   void str_ifc_text_offset(ifc_TextOffset     offset,
                            a_str_control_block *scbp) const noexcept;
   void str_ifc_name_index(ifc_NameIndex       name_index,

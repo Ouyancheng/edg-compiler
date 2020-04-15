@@ -521,7 +521,7 @@ the specified module.
     (*p)->entity.kind = (a_byte_il_entry_kind)iek_none;
     (*p)->file_offset = file_offset;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    (*p)->variant.ifc_partition = (an_ifc_partition_kind)ifc_none;
+    (*p)->variant.ifc_partition = ifc_none;
 #endif /* MICROSOFT_EXTENSIONS_ALLWED */
   }  /* if */
   return *p;

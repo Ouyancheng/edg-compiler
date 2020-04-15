@@ -497,8 +497,8 @@ static void add_instantiation(
 static void update_il_template_parameter(a_template_param_ptr     tpp);
 
 
-static void init_templ_decl_state(a_tmpl_decl_state_ptr	tdsp,
-                                  a_decl_parse_state    *dps)
+void init_templ_decl_state(a_tmpl_decl_state_ptr	tdsp,
+                           a_decl_parse_state    *dps)
 /*
 Initialize a template declaration state block.
 */
@@ -826,7 +826,7 @@ Return TRUE if the template specified by sym is exported.
 } /* template_is_exported */
 
 
-static a_template_ptr make_il_template_entry(a_tmpl_decl_state_ptr decl_state)
+a_template_ptr make_il_template_entry(a_tmpl_decl_state_ptr decl_state)
 /*  
 Allocate an IL template entry.  Don't add the entry to the templates list
 of its scope: the appropriate scope is not known for sure yet, since this
@@ -28665,9 +28665,9 @@ in a abbreviated function template or a generic lambda).
 }  /* add_implicit_templ_params_for_auto_func_params */
 
 
-static void set_up_template_decl(a_tmpl_decl_state         *state,
-                                 a_source_position         *template_pos,
-                                 a_template_decl_info_ptr  *p_templ_decl_info)
+void set_up_template_decl(a_tmpl_decl_state         *state,
+                          a_source_position         *template_pos,
+                          a_template_decl_info_ptr  *p_templ_decl_info)
 /*
 Set up a level of parameterization for the template declaration associated
 with state.  Traditionally, this corresponds to a "template< param-list >"
