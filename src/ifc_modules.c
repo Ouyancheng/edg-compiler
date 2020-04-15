@@ -2094,9 +2094,8 @@ type").
         }
         break;
       case ifc_TypeSort_VendorExtension:
-        { an_ifc_TypeSort_VendorExtension itsve, *itsvep;
-          itsvep = get_TypeSort_VendorExtension(&itsve);
-          (void)itsvep;
+        { an_ifc_TypeSort_VendorExtension itsve;
+          get_TypeSort_VendorExtension(&itsve);
           unexpected_condition_str("TypeSort::VendorExtension "
                                    "is not yet implemented.");
         }
