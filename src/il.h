@@ -2193,6 +2193,13 @@ typedef int a_ctws_options_set;
 			/* TRUE when CTWS_CAST_OPERAND is TRUE and the
 			   associated cast is explicit in the source. */
 
+#define CTWS_IN_PARENT_SUBSTITUTION	0x10000
+			/* TRUE when substitution is being recursively
+			   performed on parent template parameters and
+			   arguments (for example, as is done in
+			   substitute_constant). */
+
+
 /*
 Structure used to represent a set of function parameters that resulted from
 a pack expansion during the type substitution process.

@@ -19629,7 +19629,8 @@ substitution. *p_error is set to TRUE if a substitution error occurs.
     a_template_arg_ptr    parent_t_args = NULL;
     a_template_param_ptr  parent_t_params;
     a_ctws_state          parent_ctws_state;
-    a_ctws_options_set    parent_options = CTWS_PARTIAL_ARG_LIST_OKAY;
+    a_ctws_options_set    parent_options = CTWS_PARTIAL_ARG_LIST_OKAY |
+                                           CTWS_IN_PARENT_SUBSTITUTION;
     init_ctws_state(&parent_ctws_state);
     parent_ctws_state.ignore_enclosing_expansions = TRUE;
     get_substitution_pairs_for_template_class(parent_class, &parent_t_params,

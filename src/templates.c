@@ -13691,6 +13691,14 @@ If there is an error in the copying, set *copy_error to TRUE.
                                                      &pesep, options,
                                                      ctws_state, &err);
       pack_tap = tap;
+      if (!any_more && !have_params &&
+	  (options & CTWS_IN_PARENT_SUBSTITUTION) != 0) {
+        /* In cases where we are doing parent substitution we can encounter
+           a template argument list for which we don't have parameters and
+           that will be substituted in a later iteration.  Keep the
+           pack in that case. */
+        preserve_packs = TRUE;
+      }  /* if */
       /* Check if an error occurred (such as mismatched parameter pack
          lengths). */
       if (err) subst_fail(*copy_error);
