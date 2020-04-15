@@ -975,7 +975,8 @@ constants for that type).
           } else {
             /* FIXME: lots more to do here. */
             a_variable_ptr vp;
-            init_dps(&dps, &idsvp->locus, idsvp->type, idsvp->alignment,
+            /* FIXME: idsvp->alignment exists but is an ExprIndex. */
+            init_dps(&dps, &idsvp->locus, idsvp->type, (ifc_Alignment)0,
                      idsvp->traits, ifc_MsvcTraits_None, idsvp->specifier,
                      idsvp->access, &psss);
             clear_decl_pos_block(&decl_pos_block);
@@ -1413,10 +1414,8 @@ class_struct_union_case:
             a_decl_parse_state          dps;
             a_tmpl_decl_state           decl_state;
             a_template_decl_info_ptr    tdip = NULL;
-            a_template_param_ptr        *next_param;
             a_partial_scope_stack_state psss;
             ifc_ChartSort               chart_sort = chart_tag(idstp->chart);
-            ifc_SentenceIndex           body = idstp->entity.body;
             ifc_DeclIndex               entity_decl =
                                             (ifc_DeclIndex)idstp->entity.index;
             a_module_entity_ptr         dmep;
@@ -1435,8 +1434,6 @@ class_struct_union_case:
             decl_state.enclosing_scope = mep->scope;
             decl_state.il_template_entry = make_il_template_entry(&decl_state);
             /* Get the template parameters. */
-            next_param = &decl_state.decl_info->parameters;
-            (void)next_param; /* FIXME: Remove this. */
             read_partition_at_index(chart_sort, chart_value(idstp->chart));
             switch (chart_sort) {
               case ifc_ChartSort_None:
@@ -1470,7 +1467,6 @@ class_struct_union_case:
                 unexpected_condition_str("Unexpected ChartSort");
             }  /* switch */
             /* FIXME: Finish processing the template declaration. */
-            (void)body;
             for (; decl_state.number_of_template_decl_scopes != 0;
                    decl_state.number_of_template_decl_scopes--) {
               pop_scope();
@@ -2070,33 +2066,29 @@ type").
         }
         break;
       case ifc_TypeSort_Deduced:
-        { an_ifc_TypeSort_Deduced itsd, *itsdp;
-          itsdp = get_TypeSort_Deduced(&itsd);
-          (void)itsdp;
+        { an_ifc_TypeSort_Deduced itsd;
+          get_TypeSort_Deduced(&itsd);
           unexpected_condition_str("TypeSort::Deduced "
                                    "is not yet implemented.");
         }
         break;
       case ifc_TypeSort_PointerToMember:
-        { an_ifc_TypeSort_PointerToMember itsptm, *itsptmp;
-          itsptmp = get_TypeSort_PointerToMember(&itsptm);
-          (void)itsptmp;
+        { an_ifc_TypeSort_PointerToMember itsptm;
+          get_TypeSort_PointerToMember(&itsptm);
           unexpected_condition_str("TypeSort::PointerToMember "
                                    "is not yet implemented.");
         }
         break;
       case ifc_TypeSort_Tuple:
-        { an_ifc_TypeSort_Tuple itst, *itstp;
-          itstp = get_TypeSort_Tuple(&itst);
-          (void)itstp;
+        { an_ifc_TypeSort_Tuple itst;
+          get_TypeSort_Tuple(&itst);
           unexpected_condition_str("TypeSort::Tuple "
                                    "is not yet implemented.");
         }
         break;
       case ifc_TypeSort_Forall:
-        { an_ifc_TypeSort_Forall itsfa, *itsfap;
-          itsfap = get_TypeSort_Forall(&itsfa);
-          (void)itsfap;
+        { an_ifc_TypeSort_Forall itsfa;
+          get_TypeSort_Forall(&itsfa);
           unexpected_condition_str("TypeSort::Forall "
                                    "is not yet implemented.");
         }
@@ -2131,49 +2123,43 @@ type").
         }
         break;
       case ifc_TypeSort_Expansion:
-        { an_ifc_TypeSort_Expansion itse, *itsep;
-          itsep = get_TypeSort_Expansion(&itse);
-          (void)itsep;
+        { an_ifc_TypeSort_Expansion itse;
+          get_TypeSort_Expansion(&itse);
           unexpected_condition_str("TypeSort::Expansion "
                                    "is not yet implemented.");
         }
         break;
       case ifc_TypeSort_Typename:
-        { an_ifc_TypeSort_Typename itstn, *itstnp;
-          itstnp = get_TypeSort_Typename(&itstn);
-          (void)itstnp;
+        { an_ifc_TypeSort_Typename itstn;
+          get_TypeSort_Typename(&itstn);
           unexpected_condition_str("TypeSort::Typename "
                                    "is not yet implemented.");
         }
         break;
       case ifc_TypeSort_Base:
-        { an_ifc_TypeSort_Base itsb, *itsbp;
-          itsbp = get_TypeSort_Base(&itsb);
-          (void)itsbp;
+        { an_ifc_TypeSort_Base itsb;
+          get_TypeSort_Base(&itsb);
           unexpected_condition_str("TypeSort::Base "
                                    "is not yet implemented.");
         }
         break;
       case ifc_TypeSort_Unaligned:
-        { an_ifc_TypeSort_Unaligned itsu, *itsup;
-          itsup = get_TypeSort_Unaligned(&itsu);
-          (void)itsup;
+        { an_ifc_TypeSort_Unaligned itsu;
+          get_TypeSort_Unaligned(&itsu);
           unexpected_condition_str("TypeSort::Unaligned "
                                    "is not yet implemented.");
         }
         break;
       case ifc_TypeSort_Decltype:
-        { an_ifc_TypeSort_Decltype itsd, *itsdp;
-          itsdp = get_TypeSort_Decltype(&itsd);
-          (void)itsdp;
+        { an_ifc_TypeSort_Decltype itsd;
+          get_TypeSort_Decltype(&itsd);
           unexpected_condition_str("TypeSort::Decltype "
                                    "is not yet implemented.");
         }
         break;
       case ifc_TypeSort_SyntaxTree:
-        { an_ifc_TypeSort_SyntaxTree itsst, *itsstp;
-          itsstp = get_TypeSort_SyntaxTree(&itsst);
-          (void)itsstp;
+        { an_ifc_TypeSort_SyntaxTree itsst;
+          get_TypeSort_SyntaxTree(&itsst);
           unexpected_condition_str("TypeSort::SyntaxTree "
                                    "is not yet implemented.");
         }
@@ -4004,8 +3990,9 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
       { an_ifc_DeclSort_Variable idsv, *idsvp;
         idsvp = get_DeclSort_Variable(&idsv);
         /* Emit a variable declaration. */
+        /* FIXME: idsvp->alignment exists but is an ExprIndex. */
         str_ifc_common_decl(&idsvp->locus, idsvp->access, idsvp->specifier,
-                            idsvp->traits, idsvp->alignment, scbp);
+                            idsvp->traits, (ifc_Alignment)0, scbp);
         str_ifc_type_index(idsvp->type, scbp);
         add_char_to_text_buffer(scbp->text_buffer, ' ');
         str_ifc_name_index(idsvp->name, scbp);
