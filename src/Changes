@@ -1,5 +1,14 @@
 Version 6.1
 
+4/16/20  [EDGcpfe/21671,EDGcpfe/22290]
+Abort in corresponding_base_class during interpreter evaluation
+
+In some fairly complex cases (arising, e.g., from instantiating certain Boost
+templates), the front end could abort with an internal error in
+corresponding_base_class (types.c, "base class not found") when interpreting
+a conversion to a base class.  That problem is now fixed.
+
+
 4/16/20  [EDGcpfe/22615]
 Clang compatibility: Clang 10.0.0 builtins
 

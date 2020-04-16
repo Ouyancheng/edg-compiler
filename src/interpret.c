@@ -10174,6 +10174,11 @@ pointed to by ips->constants.
   *new_con = *con;
   new_con->next = ips->constants;
   ips->constants = new_con;
+  if (constant_is(new_con, ck_address) &&
+      new_con->variant.address.subobject_path != NULL) {
+    new_con->variant.address.subobject_path =
+                 copy_subobject_path(new_con->variant.address.subobject_path);
+  }  /* if */
   return new_con;
 }  /* make_interpreter_copy_of_constant */
 
@@ -11416,6 +11421,7 @@ for the given position and return FALSE.  Otherwise, return TRUE.
   a_boolean         ovflo;
   a_constant_ptr    addr_con = cap->variant.addr_con;
 
+  /* Make a copy of the constant since we're about to modify it. */
   addr_con = make_interpreter_copy_of_constant(ips, addr_con);
   cap->variant.addr_con = addr_con;
   set_integer_value(&delta, count);
@@ -11425,10 +11431,6 @@ for the given position and return FALSE.  Otherwise, return TRUE.
     /* Nothing more to do. */
   } else if (constant_is(addr_con, ck_address)) {
     a_subobject_path_ptr  spp;
-    /* Make a copy of the subobject path since we may potentially add entries
-       to it. */
-    addr_con->variant.address.subobject_path =
-                copy_subobject_path(addr_con->variant.address.subobject_path);
     spp = get_trailing_subobject_path_entry(addr_con, /*is_offset=*/TRUE,
                                             /*is_base_class=*/FALSE);
     spp->variant.ptr_offset += subtract ? -count : count;
@@ -11743,11 +11745,9 @@ represented by an entry of type a_constant (ck_address or ck_integer).
                                baseward_bcp->type, ips);
             goto done;
           } else {
-            new_con = make_interpreter_copy_of_constant(ips, addr_con);
             /* Make a copy of the address constant and its subobject path
                since we may potentially add entries to the path. */
-            new_con->variant.address.subobject_path =
-                 copy_subobject_path(new_con->variant.address.subobject_path);
+            new_con = make_interpreter_copy_of_constant(ips, addr_con);
             spp = get_trailing_subobject_path_entry(
                         new_con, /*is_offset=*/FALSE, /*is_base_class=*/TRUE);
             prev_bcp = spp->variant.base_class;
@@ -11777,8 +11777,6 @@ represented by an entry of type a_constant (ck_address or ck_integer).
           /* Make a copy of the address constant and its subobject path since
              we may potentially add entries to the path. */
           new_con = make_interpreter_copy_of_constant(ips, addr_con);
-          new_con->variant.address.subobject_path =
-                 copy_subobject_path(new_con->variant.address.subobject_path);
           spp = get_trailing_subobject_path_entry(
                         new_con, /*is_offset=*/FALSE, /*is_base_class=*/TRUE);
           prev_bcp = spp->variant.base_class;
@@ -12784,9 +12782,9 @@ the value representation of the integer value.
                                 addr_con = result_addr->variant.addr_con;
                 a_boolean       nonconstant;
                 an_error_code   err_code;
-                /* Temporarily clear the backing expression to avoid
-                   maintaining it at this stage. */
-                an_expr_node_ptr  backing_expr = addr_con->expr;
+                /* Create a copy of the address constant because we might
+                   change its subobject path. */
+                addr_con = make_interpreter_copy_of_constant(ips, addr_con);
                 addr_con->expr = NULL;
                 fold_base_class_cast(
                     addr_con, bcp, btp, new_con, /*check_cast_access=*/FALSE,
@@ -12796,7 +12794,6 @@ the value representation of the integer value.
                                                .implicit_in_member_naming,
                     /*omit_back_expr=*/TRUE,
                     &nonconstant, &expr->position, &err_code);
-                addr_con->expr = backing_expr;
                 if (nonconstant || err_code != ec_no_error) {
                   do_constexpr_fail(result);
                   info_with_pos(ec_constexpr_access_to_runtime_storage,
