@@ -37196,6 +37196,10 @@ Record the representation or the requires-expression in *result.
     an_expr_node_ptr  node = alloc_expr_node((an_expr_node_kind)enk_requires),
                       *p_last_req = &node->variant.requires_expr.requirements;
     node->variant.requires_expr.parameters = params;
+    if (curr_token == tok_rbrace) {
+      expr_pos_diagnostic(es_discretionary_error, ec_empty_requires_expression,
+                          &pos_curr_token);
+    }  /* if */
     for (;;) {
       switch (curr_token) {
         case tok_typename:
