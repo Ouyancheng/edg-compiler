@@ -16874,6 +16874,7 @@ instantiation is available.
       write_tok_str(" = ");
       adv_curr_source_sequence_entry();
       gen_expression(tp->prototype_instantiation.constraint);
+      write_tok_str("; ");
       result = TRUE;
       break;
     default:
