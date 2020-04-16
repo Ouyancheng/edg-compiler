@@ -3190,6 +3190,7 @@ ec_export_cannot_contain_import;;"an export declaration cannot contain a module 
 ec_export_only_in_modules;;"an export declaration can only appear in a module interface unit"
 ec_export_internal_linkage;;"an export declaration cannot export a name with internal linkage"
 ec_export_internal_linkage_using_sym;INTERNAL;"using declaration includes %nfd"
+ec_builtin_needs_fp16;;"builtin function is not available because __fp16 floating-point types are not supported"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

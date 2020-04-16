@@ -2147,8 +2147,8 @@ by octl.
          be deferred to meet GCC requirements (which happens when vector_size
          occurs in a typedef definition).  It is also possible to have vector
          types rendered as "__edg_vector_type__(T, N)" by setting the global
-         variable gen_edg_vector_type to TRUE. */
-      if (gen_edg_vector_type) {
+         variable gen_edg_special_types to TRUE. */
+      if (gen_edg_special_types) {
         a_type_ptr  etype = type->variant.vector.element_type;
         octl->output_str("__edg_vector_type__(", octl);
         form_type(etype, octl);

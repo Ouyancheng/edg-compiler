@@ -22121,7 +22121,10 @@ Initialize for the C++/C-generating back end.
   octl.output_expression = f_gen_expression;
   octl.output_name_reference = gen_name_from_name_reference;
   octl.output_attributes = gen_attributes;
-  octl.is_typedef_invisible = is_typedef_invisible_in_cp_gen_be;
+  if (!gen_edg_special_types) {
+    /* If generating the builtin table, emit all typedefs. */
+    octl.is_typedef_invisible = is_typedef_invisible_in_cp_gen_be;
+  }  /* if */
   octl.has_unprotected_gt_or_comma_operation =
                                          has_unprotected_gt_or_comma_operation;
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS

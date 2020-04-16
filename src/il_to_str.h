@@ -577,12 +577,12 @@ extern void form_sun_link_scope_specifiers(
 extern void il_to_str_one_time_init(void);
 extern void il_to_str_init(void);
 
-#if GNU_VECTOR_TYPES_ALLOWED
 EXTERN a_boolean
-		gen_edg_vector_type;
+		gen_edg_special_types;
 			/* If TRUE, use the __edg_vector_type__ keyword to
-			   render vector types (instead of a GNU attribute). */
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
+			   render vector types (instead of a GNU attribute)
+			   and __edg_fp16__ rather than its underlying
+			   type.  Used when generating the builtin table. */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

@@ -10161,6 +10161,11 @@ current scope stack entry.
 }  /* insert_typeref_for_naming_if_needed */
 
 
+static a_type_ptr
+                edg_fp16_typedef;
+                        /* Dummy typedef for __fp16 type used in builtins. */
+
+
 void decl_specifiers(a_decl_flag_set       input_flags,
                      a_decl_parse_state    *state,
                      a_decl_pos_block_ptr  decl_pos_block)
@@ -11433,6 +11438,22 @@ process_enum_specifier:
         decl_specifiers_seen |= DS_TYPE;
         basic_type = bt_typedef;
         break;
+      case tok_edg_fp16_type:
+        /* An EDG-specific way to specify a __fp16 type.  This is currently
+           not implemented, so substitute a typedef for "float" for now (so
+           builtins can be scanned -- even if not used). */
+        if (edg_fp16_typedef == NULL) {
+          edg_fp16_typedef = alloc_type((a_type_kind)tk_typeref);
+          edg_fp16_typedef->variant.typeref.type =
+                                          float_type((a_float_kind)fk_float);
+          set_source_corresp_name(&(edg_fp16_typedef->source_corresp),
+                                  locator_for_curr_id.symbol_header);
+          add_to_types_list(edg_fp16_typedef, decl_scope_level);
+        }  /* if */
+        *type_ptr = edg_fp16_typedef;
+        decl_specifiers_seen |= DS_TYPE;
+        basic_type = bt_typedef;
+        break;
       case tok_edg_vector_type:
         *type_ptr = scan_edg_vector_type();
         decl_specifiers_seen |= DS_TYPE;
@@ -12538,6 +12559,7 @@ decl-specifiers.
       largest_enum_int_kind = (an_integer_kind)ik_unsigned_long;
     }  /* if */
   }  /* if */
+  edg_fp16_typedef = NULL;
 
   /* Save variables from decl_spec.c that are needed for precompiled
      headers */

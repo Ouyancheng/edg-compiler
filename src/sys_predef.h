@@ -65,7 +65,7 @@ typedef struct a_builtin_user_descr {
                              - mode ('c', '+', or 'x')
                              - arch ('4' or '8') [optional]
                              - version (version range in parens) [optional]
-                             - restrictions ['v', 'i', 'f'] [optional]
+                             - restrictions ['v', 'i', 'f', 'h'] [optional]
 
                            A prefix of 'S' indicates that the name in the
                            entry (which must start with "__builtin_") also
@@ -99,6 +99,8 @@ typedef struct a_builtin_user_descr {
                            sequence of the following characters:
                              'f' - indicates that the signature depends on
                                    128-bit floating-point types
+                             'h' - indicates that the signature depends on
+                                   __fp16 floating-point types
                              'i' - indicates that the signature depends on
                                    128-bit integer types
                              'v' - the signature depends on vector types

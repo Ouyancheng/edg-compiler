@@ -1,5 +1,12 @@
 Version 6.1
 
+4/16/20  [EDGcpfe/22615]
+Clang compatibility: Clang 10.0.0 builtins
+
+Builtin signatures have been updated to reflect builtins from clang version
+10.0.0.
+
+
 4/15/20  [EDGcpfe/19376,EDGcpfe/19754,EDGcpfe/22618]
 Abort on invalid template declaration
 

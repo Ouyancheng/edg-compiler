@@ -2144,9 +2144,7 @@ static a_flag_name
 #if BUILTIN_FUNCTIONS_ENABLED
   { "preload_builtin_functions", &preload_builtin_functions },
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-#if GNU_VECTOR_TYPES_ALLOWED
-  { "gen_edg_vector_type", &gen_edg_vector_type },
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
+  { "gen_edg_special_types", &gen_edg_special_types },
   { "lazy_field_initializers", &always_delay_field_initializer_processing },
   { "core_constant_expr_is_noexcept", &core_constant_expr_is_noexcept },
   { "null_template_ptr_arg_enabled", &null_template_ptr_arg_enabled },
@@ -11680,9 +11678,7 @@ variables declared in cmd_line.h.
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   gen_old_style_line_dirs = FALSE;
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
-#if GNU_VECTOR_TYPES_ALLOWED
-  gen_edg_vector_type = FALSE;
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
+  gen_edg_special_types = FALSE;
   gen_line_info_in_pp_output = FALSE;
   f_pp_output = NULL;
   pp_file_name = NULL;
