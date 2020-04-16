@@ -1249,25 +1249,25 @@ Fetch the value from float_value (of kind kind) and return it.
 #endif /* !USE_DOUBLE_FOR_HOST_FP_VALUE */
 #if HOST_FP_VALUE_IS_128BIT
   } else if (kind == (a_float_kind)fk_long_double) {
-    long double	long_double_temp;
     /* Convert from long double to a_host_fp_value (e.g., __float128). */
-    /* Use memcpy to copy the value since float_value might not be correctly
-       aligned. */
-    (void)memcpy((char *)&long_double_temp, (char *)float_value,
-                 sizeof(long double));
 #if USE_SOFTFLOAT
     check_assertion(targ_ldbl_mant_dig != 53);
     if (targ_ldbl_mant_dig == 64) {
       /* long double is 80 bits. */
-      extF80M_to_f128M((extFloat80_t *)&long_double_temp, &temp);
+      extF80M_to_f128M((extFloat80_t *)float_value, &temp);
     } else if (targ_ldbl_mant_dig == 113) {
       /* long double is 128 bits. */
-      (void)memcpy((char *)&temp, (char *)&long_double_temp,
-                   sizeof(long double));
+      (void)memcpy((char *)&temp, (char *)float_value,
+                   targ_sizeof_long_double);
     } else {
       unexpected_condition();
     }  /* if */
 #else /* !USE_SOFTFLOAT */
+    long double	long_double_temp;
+    /* Use memcpy to copy the value since float_value might not be correctly
+       aligned. */
+    (void)memcpy((char *)&long_double_temp, (char *)float_value,
+                 sizeof(long double));
     temp = long_double_temp;
 #endif /* USE_SOFTFLOAT */
 #endif /* HOST_FP_VALUE_IS_128BIT */
