@@ -7,6 +7,30 @@ Builtin signatures have been updated to reflect builtins from clang version
 10.0.0.
 
 
+4/15/20  [EDGcpfe/22373]
+Incorrect substitution of pack in noexcept of member template
+
+In modes where exceptions specifications are part of the type (i.e., most
+C++17 modes) the substitution of a pack expansion in a noexcept specifier
+of a member function template could produce an incorrect result.  In the
+example below (reduced from a use of g++ 9.1 tuple) U... was substituted
+as an empty pack result in a pack length mismatch error in the instantiation
+of g.  Now fixed.
+
+  template <class... T> struct B {};
+  template <class... T> constexpr bool h(T...){return true;}
+  template <class ...T> struct A {
+    template <class... U> static constexpr bool g() {
+      return h(B<T,U>()...);
+    }
+    template <class... U> static void f(U...) noexcept(g<U...>()){}
+  };
+  int main() {
+    A<int> ai;
+    ai.f(1);
+  }
+
+
 4/15/20  [EDGcpfe/19376,EDGcpfe/19754,EDGcpfe/22618]
 Abort on invalid template declaration
 
