@@ -353,7 +353,6 @@ Handle nested structures differently (and check for padding).
 #define GET_UnitIndex(x, from_header)          GET_int(x, from_header)
 #define GET_WordIndex(x, from_header)          GET_int(x, from_header)
 
-#define GET_Alignment(x, from_header)          GET_short(x, from_header)
 #define GET_EHFlags(x, from_header)            GET_short(x, from_header)
 #define GET_FunctionTraits(x, from_header)     GET_short(x, from_header)
 #define GET_OperatorCategory(x, from_header)   GET_short(x, from_header)
@@ -1411,10 +1410,8 @@ class_struct_union_case:
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
-            a_decl_parse_state          dps;
             a_tmpl_decl_state           decl_state;
             a_template_decl_info_ptr    tdip = NULL;
-            a_partial_scope_stack_state psss;
             ifc_ChartSort               chart_sort = chart_tag(idstp->chart);
             ifc_DeclIndex               entity_decl =
                                             (ifc_DeclIndex)idstp->entity.index;
@@ -2103,10 +2100,10 @@ type").
       case ifc_TypeSort_Syntactic:
         { an_ifc_TypeSort_Syntactic itss, *itssp;
           itssp = get_TypeSort_Syntactic(&itss);
-          ifc_ExprSort tag = expr_tag(itssp->expr);
+          ifc_ExprSort etag = expr_tag(itssp->expr);
           ifc_Index    value = expr_value(itssp->expr);
-          read_partition_at_index(tag, value);
-          switch (tag) {
+          read_partition_at_index(etag, value);
+          switch (etag) {
             case ifc_ExprSort_TemplateId:
               { an_ifc_ExprSort_TemplateId iestid, *iestidp;
                 iestidp = get_ExprSort_TemplateId(&iestid);
