@@ -6272,7 +6272,7 @@ See alloc_unshared_constant for more details.
 }  /* alloc_unshared_constant_in_region */
 
 
-static a_subobject_path_ptr copy_subobject_path(a_subobject_path_ptr  path)
+a_subobject_path_ptr copy_subobject_path(a_subobject_path_ptr  path)
 /*
 Return a copy of the given subobject path.
 */
@@ -19445,6 +19445,22 @@ name lookup options.
         constant->type = new_type;
         constant->expr = NULL;
       }  /* if */
+      con_copy = NULL;
+    }  /* if */
+  } else {
+    /* The original constant is returned. */
+    if (con_copy->expr != NULL &&
+        (options & CTWS_INSIDE_EXPR_RESCAN) != 0 &&
+        (options & (CTWS_PRESERVE_DEDUCED_PACKS |
+                    CTWS_PARTIAL_ARG_LIST_OKAY |
+                    CTWS_MAY_BE_RESCANNED |
+                    CTWS_DEDUCTION_GUIDE)) == 0) {
+      /* This is an expression rescan and its result will not itself be
+         rescanned.  In that case, we must copy the constant and clear the
+         backing expression because the backing expression nodes may be
+         reclaimed later on. */ 
+      copy_constant(con_copy, constant);
+      constant->expr = NULL;
       con_copy = NULL;
     }  /* if */
   }  /* if */

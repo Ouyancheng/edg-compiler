@@ -1530,6 +1530,8 @@ extern a_scope_ptr new_function_scope(a_scope_number           scope_number,
                                       a_routine_ptr            assoc_routine,
                                       a_memory_region_number   memory_region);
 
+extern a_subobject_path_ptr copy_subobject_path(a_subobject_path_ptr  path);
+
 extern void copy_constant(a_constant *from,
                           a_constant *to);
 

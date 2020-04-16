@@ -20772,7 +20772,7 @@ is_transparent.  conv_context describes the context of the conversion.
       a_type_ptr  src_type = source_operand->type, eff_src_type = src_type;
       an_operand  src_copy, *src_to_test;
       a_boolean   constant_src;
-      if (!is_template_dependent_context()) {
+      if (!is_prototype_instantiation_context()) {
         force_operand_to_constant_if_possible(source_operand);
       }  /* if */
       src_to_test = source_operand;
@@ -23513,6 +23513,7 @@ end_of_routine:
 
 void value_initialization(a_type_ptr            dest_type,
                           a_boolean             copy_init_context,
+                          a_boolean             generate_il,
                           a_source_position     *pos,
                           a_routine_ptr         *ctor_called,
                           a_boolean             *is_constant,
@@ -23521,7 +23522,7 @@ void value_initialization(a_type_ptr            dest_type,
                           an_init_state         *is,
                           a_boolean             *error_detected)
 /*
-Perform semantic analysis and, if appropriate, create IL for the value-
+Perform semantic analysis and, if generate_il is TRUE, create IL for the value-
 initialization (C++ standard [dcl.init]) of an entity of type dest_type.
 Value-initialization comes up with an initializer of "{}" or "()".  The result,
 if any, is returned as either a constant (*is_constant is set to TRUE, and
@@ -23545,18 +23546,16 @@ TRUE, the result *p_dip and *p_constant are not constructed.
   a_type_ptr         orig_dest_type = dest_type;
   a_type_ptr         unqual_dest_type;
   a_boolean          array_case = FALSE;
-  a_boolean          err = FALSE, generate_il, issue_errors;
+  a_boolean          err = FALSE, issue_errors;
   an_expr_node_ptr   expr;
   a_constant_ptr     con = local_constant();
   a_dynamic_init_ptr dip = NULL;
 
   if (is != NULL) {
-    generate_il = !is->check_validity_only;
     issue_errors = !is->no_diagnostics;
     check_assertion(issue_errors == (error_detected == NULL));
   } else {
     issue_errors = (error_detected == NULL);
-    generate_il = issue_errors;
   }  /* if */
   if (ctor_called != NULL) *ctor_called = NULL;
   if (is_array_type(dest_type)) {
@@ -25044,12 +25043,13 @@ will be an lvalue instead of the usual prvalue.
         arg_match_err = TRUE;
       } else {
         a_routine_ptr ctor_called;
-        if ((is != NULL && is->no_diagnostics) || arg_match != NULL) {
+        if ((is != NULL && is->no_diagnostics) || arg_match != NULL ||
+            expr_stack->suppress_diagnostics) {
           p_error_detected = &error_detected;
         } else {
           p_error_detected = NULL;
         }  /* if */
-        value_initialization(dest_type, !is_direct_init,
+        value_initialization(dest_type, !is_direct_init, generate_il,
                              &icp->variant.braced.start_pos,
                              &ctor_called, &is_constant, &dip, &constant, is,
                              p_error_detected);
@@ -25327,7 +25327,7 @@ will be an lvalue instead of the usual prvalue.
       } else {
         p_error_detected = NULL;
       }  /* if */
-      value_initialization(dest_type, !is_direct_init,
+      value_initialization(dest_type, !is_direct_init, generate_il,
                            &icp->variant.braced.start_pos,
                            (a_routine **)NULL, &is_constant, &dip, &constant,
                            is, p_error_detected);
@@ -25671,6 +25671,9 @@ will be an lvalue instead of the usual prvalue.
       if (expr_stack->any_suppressed_error) is->init_error = TRUE;
       expr_stack->any_suppressed_error = saved_any_suppressed_error;
     }  /* if */
+  } else if (arg_match_err &&
+             expr_stack != NULL && expr_stack->suppress_diagnostics) {
+    record_suppressed_error();
   }  /* if */
   append_elem(icp, icp_next);
 }  /* prep_list_initializer */

@@ -11425,6 +11425,10 @@ for the given position and return FALSE.  Otherwise, return TRUE.
     /* Nothing more to do. */
   } else if (constant_is(addr_con, ck_address)) {
     a_subobject_path_ptr  spp;
+    /* Make a copy of the subobject path since we may potentially add entries
+       to it. */
+    addr_con->variant.address.subobject_path =
+                copy_subobject_path(addr_con->variant.address.subobject_path);
     spp = get_trailing_subobject_path_entry(addr_con, /*is_offset=*/TRUE,
                                             /*is_base_class=*/FALSE);
     spp->variant.ptr_offset += subtract ? -count : count;
@@ -11725,9 +11729,7 @@ represented by an entry of type a_constant (ck_address or ck_integer).
         a_constant_ptr        new_con;
         a_subobject_path_ptr  spp;
         a_base_class_ptr      prev_bcp, baseward_bcp;
-
-        baseward_bcp = find_base_in_type(opnd_type, tp);
-        if (type_is(tp, tk_void) &&
+        if (!type_is(tp, tk_void) &&
             (baseward_bcp = find_base_in_type(opnd_type, tp))!= NULL) {
           /* The dynamic cast is actually a (static) derived-to-base cast. */
           if (baseward_bcp->ambiguous) {
@@ -11742,6 +11744,10 @@ represented by an entry of type a_constant (ck_address or ck_integer).
             goto done;
           } else {
             new_con = make_interpreter_copy_of_constant(ips, addr_con);
+            /* Make a copy of the address constant and its subobject path
+               since we may potentially add entries to the path. */
+            new_con->variant.address.subobject_path =
+                 copy_subobject_path(new_con->variant.address.subobject_path);
             spp = get_trailing_subobject_path_entry(
                         new_con, /*is_offset=*/FALSE, /*is_base_class=*/TRUE);
             prev_bcp = spp->variant.base_class;
@@ -11768,7 +11774,11 @@ represented by an entry of type a_constant (ck_address or ck_integer).
         } else {
           a_base_class_ptr  new_bcp = NULL;
           /* A base-to-derived cast or a "sideways" cast. */
+          /* Make a copy of the address constant and its subobject path since
+             we may potentially add entries to the path. */
           new_con = make_interpreter_copy_of_constant(ips, addr_con);
+          new_con->variant.address.subobject_path =
+                 copy_subobject_path(new_con->variant.address.subobject_path);
           spp = get_trailing_subobject_path_entry(
                         new_con, /*is_offset=*/FALSE, /*is_base_class=*/TRUE);
           prev_bcp = spp->variant.base_class;

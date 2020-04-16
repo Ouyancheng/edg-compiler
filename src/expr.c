@@ -26058,8 +26058,6 @@ deduction purposes).
   a_conv_context_set    conv_context = CCO_CAST | CCO_EXPLICIT_CAST;
   a_boolean             error_on_narrowing;
   an_expr_node_ptr      expr;
-  an_init_state         is, *p_is;
-  an_operand            *result_opnd;
 
   check_assertion(list_init_enabled);
   /* Issue an error on narrowing conversions in strict mode (just a warning
@@ -26071,15 +26069,9 @@ deduction purposes).
   if (source_form == csf_functional) conv_context |= CCO_FUNC_NOTATION_CAST;
   if (rescan_icp != NULL) {
     icp = rescan_icp;
-    expr_clear_init_state(&is);
-    is.no_diagnostics = suppress_diagnostics;
-    p_is = &is;
-    result_opnd = NULL;
   } else {
     icp = parse_braced_init_list(/*bundle=*/FALSE);
-    p_is = NULL;
     check_assertion(result != NULL);  /* For lint. */
-    result_opnd = result;
   }  /* if */
   if (is_void_type(type_cast_to) && is_braced_init_component(icp) &&
       icp->variant.braced.list == NULL) {
@@ -26096,22 +26088,8 @@ deduction purposes).
                           /*force_temp=*/
                                      is_class_struct_union_type(type_cast_to),
                           /*make_lvalue_temp=*/FALSE,
-                          result_opnd, p_is, (an_arg_match_summary *)NULL);
-    if (result_opnd == NULL) {
-      if (is.init_error) {
-        make_error_operand(result);
-      } else if (is.init_con != NULL) {
-        is.init_con->explicit_cast_applied = TRUE;
-        is.init_con->explicit_braces_on_aggregate = TRUE;
-        make_constant_operand(is.init_con, result);
-      } else {
-        an_expr_node_ptr  node;
-        node = alloc_temp_init_node(type_cast_to, is.init_dip,
-                                    /*make_lvalue_temp=*/FALSE,
-                                    /*is_explicit_cast=*/TRUE);
-        make_lvalue_or_rvalue_expression_operand(node, result);
-      }  /* if */
-    }  /* if */
+                          result, (an_init_state*)NULL,
+                          (an_arg_match_summary *)NULL);
   }  /* if */
   expr = expr_node_from_operand(result);
   if (expr != NULL) {
@@ -47007,8 +46985,10 @@ alternative callable from outside, see rescan_expr_with_substitution.
      so that a call generated for the operation can permit an incomplete
      type.  Clear the flag in case that was done. */
   expr_stack->allow_call_with_incomplete_return_type = FALSE;
-  if (result->bound_function &&
-      bound_function_selector == &local_bound_function_selector) {
+  if (rcblock->error_detected) {
+    make_error_operand(result);
+  } else if (result->bound_function &&
+             bound_function_selector == &local_bound_function_selector) {
     /* The rescan returned a bound function, but the caller is not prepared
        to accept one, so this is an error. */
     conv_to_error_operand(result);
@@ -47797,7 +47777,8 @@ position.
                                   (an_expression_kind)ek_normal,
                                   /*is_full_expr=*/TRUE,
                                   (a_decl_parse_state*)NULL, is);
-  value_initialization(type, /*copy_init_context=*/FALSE, diag_pos,
+  value_initialization(type, /*copy_init_context=*/FALSE,
+                       /*generate_il=*/TRUE, diag_pos,
                        (a_routine**)NULL, &is_constant,
                        &is->init_dip, &is->init_con, is, (a_boolean*)NULL);
   if (is->init_dip != NULL) {
