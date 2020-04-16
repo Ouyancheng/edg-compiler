@@ -1,5 +1,31 @@
 Version 6.1
 
+4/16/29  [EDGcpfe/22408]
+Spurious interpreter error after access of array member
+
+In some configurations certain accesses to array members were not handled
+correctly by the constexpr interpreter, which in turn could result in spurious
+failures to evaluate constant expressions.
+
+  constexpr int check(bool const *first, bool const *last,
+                      bool const& value) {
+    for (; first != last; ++first)
+       if (*first == value) return 42;
+    return 0;
+  }
+  struct A {
+    bool ab[2];
+    constexpr bool const* begin() const { return ab; }
+    constexpr bool const* end() const { return ab+2; }
+  };
+  struct S {
+    static constexpr A x{{ false, false }};
+    static constexpr int b = check(x.begin(), x.end(), true);
+             // Evaluation of call to check(...) previously produced a
+  };         // spurious error in some configurations.  Now okay.
+
+That is now fixed.
+
 4/16/20  [EDGcpfe/21671,EDGcpfe/22290]
 Abort in corresponding_base_class during interpreter evaluation
 

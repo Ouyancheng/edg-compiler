@@ -4419,31 +4419,14 @@ variant path.
   a_subobject_path_ptr  spp = con->variant.address.subobject_path;
   a_byte_count          i_offset;
 
-  if (spp == NULL) {
-    if (obj_type->kind == (a_type_kind)tk_array) {
-      /* con points to an array as a whole or to just its first element.
-         Set the CA_ARRAY_ELEMENT flag in the latter case. */
-      a_type_ptr  con_addr_type = type_pointed_to(con->type);
-      if (!identical_types(obj_type, con_addr_type)) {
-        cap->flags |= CA_ARRAY_ELEMENT;
-        cap->length = (unsigned int)num_array_elements(obj_type);
-        if (is_variant_path(cap)) {
-          cap->variant.variant_path->base_address = cap->address;
-        } else {
-          cap->variant.base_address = cap->address;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-    goto done;
-  }  /* if */
   for (; spp != NULL; spp = spp->next) {
     if (spp->is_offset) {
       a_byte_count  array_size, elem_size;
       array_size = value_bytes_for_type(ips, obj_type, &result); 
-      if (obj_type->kind == (a_type_kind)tk_array) {
+      if (type_is(obj_type, tk_array)) {
         do {
           obj_type = skip_typerefs(obj_type->variant.array.element_type);
-        } while (obj_type->kind == (a_type_kind)tk_array);
+        } while (type_is(obj_type, tk_array));
         elem_size = value_bytes_for_type(ips, obj_type, &result); 
         cap->flags |= CA_ARRAY_ELEMENT;
         cap->length = array_size/elem_size;
@@ -4487,7 +4470,7 @@ variant path.
       cap->flags &= ~CA_ARRAY_ELEMENT;
     } else {
       a_field_ptr  fp = spp->variant.field;
-      if (obj_type->kind == (a_type_kind)tk_union) {
+      if (type_is(obj_type, tk_union)) {
         /* Update the variant path.  Do not use add_to_variant_path because
            it implicitly handles anonymous unions, whereas this process
            traverses them explicitly (we'd account for them twice). */
@@ -4520,7 +4503,20 @@ variant path.
     }  /* if */
     cap->address += i_offset;
   }  /* for */
-done:
+  if (type_is(obj_type, tk_array)) {
+    /* con points to an array as a whole or to just its first element.
+       Set the CA_ARRAY_ELEMENT flag in the latter case. */
+    a_type_ptr  con_addr_type = type_pointed_to(con->type);
+    if (!identical_types(obj_type, con_addr_type)) {
+      cap->flags |= CA_ARRAY_ELEMENT;
+      cap->length = (unsigned int)num_array_elements(obj_type);
+      if (is_variant_path(cap)) {
+        cap->variant.variant_path->base_address = cap->address;
+      } else {
+        cap->variant.base_address = cap->address;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   return result;
 }  /* translate_il_address_offset */
 
