@@ -46087,12 +46087,14 @@ TRUE if the operator is a unary operator, FALSE otherwise.
     case bok_is_assignable:
       operator_token = tok_is_assignable;
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
     case bok_is_assignable_no_precondition_check:
       operator_token = tok_is_assignable_no_precondition_check;
       break;
     case bok_is_trivially_copy_assignable:
       operator_token = tok_is_trivially_copy_assignable;
       break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case bok_intaddr:
       operator_token = tok_intaddr;
       break;
@@ -47015,18 +47017,18 @@ alternative callable from outside, see rescan_expr_with_substitution.
         scan_builtin_complex(rcblock, result);
         break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      case tok_is_trivially_copy_assignable:
-      case tok_is_assignable:
-        /* __is_assignable/__is_trivially_copy_assignable construct: */
-        scan_is_assignable(bok_is_assignable, rcblock, result);
-        break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_is_assignable_no_precondition_check:
         /* __is_assignable_no_precondition_check construct: */
         scan_is_assignable(bok_is_assignable_no_precondition_check, rcblock,
                            result);
         break;
+      case tok_is_trivially_copy_assignable:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      case tok_is_assignable:
+        /* __is_assignable/__is_trivially_copy_assignable construct: */
+        scan_is_assignable(bok_is_assignable, rcblock, result);
+        break;
       case tok_builtin_bit_cast:
         scan_builtin_bit_cast(rcblock, result);
         break;
