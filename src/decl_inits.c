@@ -4212,9 +4212,12 @@ the type pointed to is opaque to declaration processing.
     case tk_class:
     case tk_struct:
     case tk_union:
-      if (dtype->variant.class_struct_union.is_nonreal_class) {
-        /* A nonreal class: Treat it like a template parameter since we don't
-           really know its structure.. */
+      if (dtype->variant.class_struct_union.is_nonreal_class ||
+          (gpp_mode && is_prototype_instantiation_context())) {
+        /* Treat nonreal classes like a template parameter since we don't
+           really know their structure.  GCC also appears not to match the
+           initializer to the class structure in template definitions, even
+           in some cases where the class type is non-dependent. */
         aggr_init_generic_element(icp, dtype, is, &is->init_con);
       } else {
         check_assertion(is_aggregate_type(dtype));
