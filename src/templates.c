@@ -15408,9 +15408,7 @@ make_new_type:
                   }  /* if */
                 }  /* if */
               }  /* if */
-              if (is_void_type(tp) ||
-                  (!microsoft_mode && !gpp_mode &&
-                   is_abstract_class_type(tp))) {
+              if (is_invalid_parameter_type(tp)) {
                 /* The result of the substitution is a void type or abstract
                    class type.  This is not allowed. */
                 subst_fail(*copy_error);

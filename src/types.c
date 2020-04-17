@@ -14704,6 +14704,22 @@ type).
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+a_boolean is_invalid_parameter_type(a_type_ptr  param_type)
+/*
+Return TRUE if the given adjusted parameter type is not valid for a function
+parameter.  This includes void types and, in normal modes, abstract class
+types.
+*/
+{
+  param_type = skip_typerefs(param_type);
+
+  return type_is(param_type, tk_void) ||
+         (is_class_struct_union(param_type) &&
+          param_type->variant.class_struct_union.abstract &&
+          !microsoft_mode && !gpp_mode);
+}  /* is_invalid_parameter_type */
+
+
 a_boolean is_invalid_template_arg_type(a_type_ptr  type_ptr,
                                        a_boolean   *is_unnamed,
                                        a_boolean   *is_local,

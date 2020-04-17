@@ -24821,6 +24821,7 @@ template arguments for the given parameters is successful.
                                   req->variant.nested_req.constraint,
                                   templ_args, templ_params,
                                   /*map_failure_is_fatal=*/TRUE, &diag_list);
+          discard_more_info_list(&diag_list);
         }
         break;
       default:
@@ -24833,6 +24834,29 @@ template arguments for the given parameters is successful.
         break;
     }  /* switch */
   }  /* for */
+  if (result) {
+    /* Check that the parameter list can successfully be substituted.  (The
+       C++20 standard is not perfectly clear that this is required, but it
+       appears to be common practice.) */
+    a_param_type_ptr    ptp = requires_expr->variant.requires_expr.parameters;
+    a_boolean           copy_error = FALSE;
+    a_ctws_options_set  ctws_options = CTWS_NO_OPTIONS;
+    a_ctws_state        ctws_state;
+    init_ctws_state(&ctws_state);
+    for (; ptp != NULL; ptp = ptp->next) {
+      a_type_ptr  tp = param_type_restoring_orig_templ_array(ptp);
+      tp = copy_type_with_substitution(tp, templ_args, templ_params,
+                                       &req->position, ctws_options,
+                                       &copy_error, &ctws_state);
+      if (copy_error) break;
+      adjust_parameter_type(&tp);
+      if (is_invalid_parameter_type(tp)) {
+        copy_error = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+    if (copy_error) result = FALSE;
+  }  /* if */
   return result;
 }  /* requires_expr_satisfied */
 

@@ -6250,7 +6250,7 @@ insert_after is NULL.
 }  /* insert_diag_list */
 
 
-void discard_more_info_list(a_diag_list_ptr		dlp)
+void discard_more_info_list(a_diag_list_ptr	dlp)
 /*
 Discard the list of "more information" diagnostics specified by dlp.  The
 list is freed and the list passed in is reset.

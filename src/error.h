@@ -744,7 +744,7 @@ extern void splice_diag_list(a_diag_list_ptr   src,
                              a_diag_list_ptr   dst,
                              a_diagnostic_ptr  insert_after);
 
-extern void discard_more_info_list(a_diag_list_ptr		dlp);
+extern void discard_more_info_list(a_diag_list_ptr	dlp);
 
 extern void pch_message(an_error_code error_code,
    		        a_const_char  *fill_in_str);
