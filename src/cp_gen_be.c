@@ -14829,7 +14829,10 @@ Render the given requires-expression.
     switch (req->kind) {
       case enk_type_operand:
         write_tok_str("typename ");
-        gen_type(req->variant.type_operand.type);
+        /* Don't call gen_type or gen_type_reference since that might emit an
+           extra "typename" prefix. */
+        gen_name(&req->variant.type_operand.type->source_corresp,
+                 iek_type, GN_NO_OPTIONS, (a_boolean *)NULL);
         break;
       case enk_compound_req:
         { an_expr_node_ptr  nodes =
