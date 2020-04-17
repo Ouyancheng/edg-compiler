@@ -10205,7 +10205,7 @@ TRUE, issue a diagnostic explaining the failure.
       p_diag_list = &diag_list;
     }  /* if */
     begin_template_arg_list_traversal(params, tap, &tpp, &tap);
-    for (; tpp != NULL; advance_to_next_template_arg(&tpp, &tap)) {
+    while (tpp != NULL && tap != NULL) {
       a_symbol_ptr      param_sym = tpp->param_symbol;
       if (symbol_is(param_sym, sk_type)) {
         a_type_ptr        tp = tpp->variant.type;
@@ -10249,6 +10249,7 @@ TRUE, issue a diagnostic explaining the failure.
           }  /* if */
         }  /* if */
       }  /* if */
+      advance_to_next_template_arg(&tpp, &tap);
     }  /* for */
   }  /* if */
   if (!result) {
