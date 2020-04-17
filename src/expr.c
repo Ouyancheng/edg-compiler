@@ -46389,6 +46389,12 @@ set accordingly.
         default:
           break;
       }  /* switch */
+    } else if (expr->extra.rescan_info != NULL &&
+               !is_template_dependent_type(con->type)) {
+      /* A plain nondependent constant.  Use "tok_int_constant" to represent
+         that whole class of (not necessarily integer) constants.
+         "Rescanning" will amount to just copying the constant. */
+      operator_token = tok_int_constant;
     }  /* if */
     if (operator_token == tok_error) {
       rescannable = FALSE;
@@ -46676,6 +46682,12 @@ alternative callable from outside, see rescan_expr_with_substitution.
                              (local_options & EOPT_OPERAND_OF_ADDRESS_OF) != 0;
     make_operand_for_rescanned_identifier(expr, rcblock,
                                           is_operand_of_address_of, result);
+  } else if (operator_token == tok_int_constant) {
+    /* A plain, nondependent constant. */
+    make_constant_operand(node_constant(expr), result);
+    /* Clear the backing expression, if any (nodes in rescanned results may
+       be reclaimed, but the expression is from the original constant). */
+    if (is_constant_operand(result)) result->variant.constant.expr = NULL;
   } else if (unary) {
     /* Unary operators. */
     /* The switch statement here should look a lot like the one at the top of
