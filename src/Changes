@@ -40,7 +40,9 @@ a conversion to a base class.  That problem is now fixed.
 Clang compatibility: Clang 10.0.0 builtins
 
 Builtin signatures have been updated to reflect builtins from clang version
-10.0.0.
+10.0.0.  Note that some new builtins use the 16-bit __fp16 floating-point
+type which is as yet unimplemented in the EDG front end; any attempted
+use of those builtins will elicit an error.
 
 
 4/15/20  [EDGcpfe/22373]
