@@ -1,6 +1,6 @@
 Version 6.1
 
-4/16/29  [EDGcpfe/22408]
+4/16/20  [EDGcpfe/22408]
 Spurious interpreter error after access of array member
 
 In some configurations certain accesses to array members were not handled
