@@ -694,6 +694,7 @@ Map an IFC OperatorCategory to an_opname_kind.
     case ifc_OperatorCategory_UnaryMinus:   op = onk_minus; break;
     case ifc_OperatorCategory_Address:      op = onk_ampersand; break;
     case ifc_OperatorCategory_UnaryPlus:    op = onk_plus; break;
+    case ifc_OperatorCategory_Dereference:  op = onk_star; break;
 
     /* These don't have direct mappings:*/
     case ifc_OperatorCategory_Percent:           /*    operator% */
@@ -794,7 +795,7 @@ field is encountered, an IL entity and symbol are created at that time.
 #endif /* DEBUG */
 }  /* defer_symbol_creation */
 
-#if EXPENSIVE_CHECKING
+#if CHECKING
 
 static void validate_partition_size(an_ifc_partition      *pp,
                                     an_ifc_partition_kind kind)
@@ -1374,11 +1375,11 @@ corresponding data structure for that partition.
 #undef CHECK_SIZE
 }
 
-#else /* !EXPENSIVE_CHECKING */
+#else /* !CHECKING */
 
 #define validate_partition_size(pp, kind) /* Nothing */
 
-#endif /* EXPENSIVE_CHECKING */
+#endif /* CHECKING */
 
 a_boolean an_ifc_module::import(a_module_import_decl_ptr midp) noexcept
 /*
@@ -1545,7 +1546,6 @@ constants for that type).
   a_byte_il_entry_kind     kind = iek_none;
 
   if (mep->entity.ptr == NULL) {
-    check_assertion(mep->scope != NULL);
     /* Prepare to read from the proper partition for this declaration. */
     read_partition_at_offset(mep->variant.ifc_partition, mep->file_offset);
     tag = (ifc_DeclSort)get_tag_from_partition(mep->variant.ifc_partition,
@@ -1652,6 +1652,10 @@ constants for that type).
           check_assertion(idssp->name != 0);
           init_locator_from_name(idssp->name, (ifc_TextOffset)0, &idssp->locus,
                                  &loc);
+          if (mep->scope == NULL) {
+            mep->scope = get_ifc_scope(idssp->home_scope);
+          }  /* if */
+          check_assertion(mep->scope != NULL);
           /* Look at the "type" to determine whether we have a namespace or
              not. */
           check_assertion(type_tag(idssp->type) == ifc_TypeSort_Fundamental);
@@ -2000,19 +2004,30 @@ class_struct_union_case:
             a_tmpl_decl_state           decl_state;
             a_template_decl_info_ptr    tdip = NULL;
             ifc_ChartSort               chart_sort = chart_tag(idstp->chart);
-            ifc_DeclIndex               entity_decl =
-                                            (ifc_DeclIndex)idstp->entity.index;
             a_module_entity_ptr         dmep;
+            a_type_ptr                  type;
 
-            /* FIXME: Is this setting dps.start_pos correctly? */
             init_dps(&dps, &idstp->locus, (ifc_TypeIndex)0,
                      (ifc_Alignment)0, ifc_ObjectTraits_None,
                      ifc_MsvcTraits_None, idstp->specifiers, idstp->access,
                      &psss);
-            /* This declaration holds the underlying type of the template. */
-            dmep = get_ifc_module_entity_ptr(entity_decl);
-            dmep->scope = mep->scope;
-            process_ifc_declaration(dmep, /*defer=*/FALSE, (a_type_ptr)NULL);
+            /* Type here can be a "typename", which indicates a template alias,
+               a class/struct/union, function, or variable template. */
+            type = type_for_type_index(idstp->type);
+            /* If the type is "typename" then entity.index is a TypeIndex.
+               Otherwise, it's a DeclIndex. */
+            if (idstp->entity.index != 0) {
+              if (type->kind == (a_type_kind)tk_unknown) {
+                type_for_type_index((ifc_TypeIndex)idstp->entity.index);
+                dmep = get_ifc_module_entity_ptr(
+                                           (ifc_TypeIndex)idstp->entity.index);
+              } else {
+                dmep = get_ifc_module_entity_ptr(
+                                           (ifc_DeclIndex)idstp->entity.index);
+                process_ifc_declaration(dmep, /*defer=*/FALSE,
+                                        (a_type_ptr)NULL);
+              }  /* if */
+            }  /* if */
             /* Prepare the template declaration. */
             init_templ_decl_state(&decl_state, &dps);
             decl_state.enclosing_scope = mep->scope;
@@ -2118,6 +2133,9 @@ class_struct_union_case:
 #endif /* DEBUG */
     }  /* if */
   }  /* if */
+  /* In some cases we may enter this routine without having a scope, but we
+     should not exit it without having one. */
+  check_assertion(mep->scope != NULL);
 }  /* process_ifc_declaration */
 
 
@@ -2363,6 +2381,25 @@ and index from the provided index.
 }  /* get_ifc_module_entity_ptr */
 
 
+a_scope_ptr an_ifc_module::get_ifc_scope(ifc_DeclIndex scope_index)
+                                                                 const noexcept
+/*
+Given a scope index find and return the associated scope.
+*/
+{
+  a_scope_ptr result;
+
+  if (scope_index == 0) {
+    result = il_header.primary_scope;
+  } else {
+    a_module_entity_ptr         mep = get_ifc_module_entity_ptr(scope_index);
+    process_ifc_declaration(mep, /*defer=*/FALSE, /*enumeration_type=*/NULL);
+    result = get_assoc_scope_of_il_entry(mep->entity.ptr, mep->entity.kind);
+  }  /* if */
+  return result;
+}  /* get_ifc_scope */
+
+
 a_type_ptr an_ifc_module::type_for_type_index(ifc_TypeIndex type_index)
                                                                  const noexcept
 /*
@@ -2507,21 +2544,37 @@ type").
               result = NULL;
               break;
             case ifc_TypeBasis_Class:
+              unexpected_condition_str("TypeBasis::Class not yet handled");
             case ifc_TypeBasis_Struct:
+              unexpected_condition_str("TypeBasis::Struct not yet handled");
             case ifc_TypeBasis_Union:
+              unexpected_condition_str("TypeBasis::Union not yet handled");
             case ifc_TypeBasis_Auto:
+              unexpected_condition_str("TypeBasis::Auto not yet handled");
             case ifc_TypeBasis_DecltypeAuto:
+              unexpected_condition_str("TypeBasis::DecltypeAuto "
+                                       "not yet handled");
             case ifc_TypeBasis_Namespace:
+              unexpected_condition_str("TypeBasis::Namespace not yet handled");
             case ifc_TypeBasis_Interface:
+              unexpected_condition_str("TypeBasis::Function not yet handled");
             case ifc_TypeBasis_Enum:
+              unexpected_condition_str("TypeBasis::Enum not yet handled");
             case ifc_TypeBasis_Typename:
+              result = unknown_type();
+              break;
             case ifc_TypeBasis_SegmentType:
+              unexpected_condition_str("TypeBasis::SegmentType "
+                                       "not yet handled");
             case ifc_TypeBasis_Function:
+              unexpected_condition_str("TypeBasis::Function not yet handled");
             case ifc_TypeBasis_Empty:
+              unexpected_condition_str("TypeBasis::Empty not yet handled");
             case ifc_TypeBasis_VariableTemplate:
+              unexpected_condition_str("TypeBasis::VariableTemplate "
+                                       "not yet handled");
             default:
-              /* FIXME: not implemented yet. */
-              unexpected_condition();
+              unexpected_condition_str("Unexpected TypeBasis kind");
           }  /* switch */
         }
         break;
@@ -2632,16 +2685,17 @@ type").
         { an_ifc_TypeSort_Designated itsd, *itsdp;
           a_type_ptr                 class_or_enum_type;
           a_module_entity_ptr        dmep;
+
           itsdp = get_TypeSort_Designated(&itsd);
-          /* Prepare to read from the proper partition for the
-             type scope declaration. */
+          if (decl_tag(itsdp->decl) == ifc_DeclSort_Reference) {
+            unexpected_condition_str("DeclSort::Reference not yet handled "
+                                     "for TypeSort::Designated");
+          }  /* if */
           check_assertion(decl_tag(itsdp->decl) == ifc_DeclSort_Scope ||
                           decl_tag(itsdp->decl) == ifc_DeclSort_Enumeration);
           /* Find the type of the scope declaration by processing it (in
              case it has been deferred). */
           dmep = get_ifc_module_entity_ptr(itsdp->decl);
-          // FIXME: scope is unknown means bad news.
-          check_assertion(dmep->scope != NULL);
           process_ifc_declaration(dmep, /*defer=*/FALSE, (a_type_ptr)NULL);
           class_or_enum_type = (a_type_ptr)dmep->entity.ptr;
           check_assertion(class_or_enum_type != NULL &&
@@ -2789,8 +2843,11 @@ module file.
     unexpected_condition_str("Unexpected type for ExprSort::NamedDecl");
   } else {
     a_module_entity_ptr mep = get_ifc_module_entity_ptr(iesndp->resolution);
+    /* FIXME: Placeholder - need to get the correct scope. */
+    mep->scope=il_header.primary_scope;
     process_ifc_declaration(mep, /*defer=*/FALSE, (a_type_ptr)NULL);
-    unexpected_condition();
+    unexpected_condition_str("ExprSort::NamedDecl::resolution "
+                             "not yet handled.");
   }  /* if */
   return result;
 }  /* type_for_template_id */
@@ -2836,6 +2893,10 @@ Map the IFC locus source position information into the source position at pos.
     pos->seq = *seq;
   }  /* if */
   pos->column = locus->column;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  pos->orig_seq = pos->seq;
+  pos->orig_column = pos->column;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 }  /* source_position_from_locus */
 
 

@@ -676,6 +676,8 @@ enum ifc_OperatorCategory : ifc_Category_type {
   ifc_OperatorCategory_Await,                      /* operator co_await */
   ifc_OperatorCategory_Yield,                      /* operator co_yield */
   ifc_OperatorCategory_StaticAssert = 282,         /* operator static_assert */
+  /* Not mentioned in the spec, found in IFC files. */
+  ifc_OperatorCategory_Dereference = 332,
   ifc_OperatorCategory_PostIncrement = 363,        /* operator++ */
   ifc_OperatorCategory_PostDecrement,              /* operator-- */
   ifc_OperatorCategory_SlashEq,                    /* operator/= */
@@ -695,8 +697,10 @@ enum ifc_OperatorCategory : ifc_Category_type {
   ifc_OperatorCategory_PlusEq,                     /* operator+= */
   ifc_OperatorCategory_BitandEq,                   /* operator&= */
   ifc_OperatorCategory_BitxorEq,                   /* operator^= */
-  ifc_OperatorCategory_Lshift,                     /* operator<< */
+  /* Spec gives these in opposite order, but IFC files have this order for
+     << and >> */
   ifc_OperatorCategory_Rshift,                     /* operator>> */
+  ifc_OperatorCategory_Lshift,                     /* operator<< */
   ifc_OperatorCategory_Dot,                        /* operator. */
   ifc_OperatorCategory_Arrow,                      /* operator =  */
   ifc_OperatorCategory_PreDecrement = 387,         /* operator-- */
@@ -2180,6 +2184,7 @@ private:
                                                                 const noexcept;
   inline a_module_entity_ptr get_ifc_module_entity_ptr(ifc_DeclIndex index)
                                                                 const noexcept;
+  a_scope_ptr get_ifc_scope(ifc_DeclIndex scope_index) const noexcept;
   a_type_ptr type_for_type_index(ifc_TypeIndex type_index) const noexcept;
   a_type_ptr type_for_template_id(an_ifc_ExprSort_TemplateId *templ_id)
                                                                 const noexcept;

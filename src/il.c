@@ -13237,6 +13237,132 @@ memory).
 }  /* f_get_parent_scope_of */
 
 
+a_scope_ptr get_assoc_scope_of_il_entry(char                 *entity,
+                                        a_byte_il_entry_kind kind)
+/*
+Given an IL entity, return the associated scope (e.g., for a namespace, return
+the namespace's scope).  If there is no associated scope, return NULL.
+*/
+{
+  a_scope_ptr result = NULL;
+
+  switch (kind) {
+    case iek_routine:
+      { a_routine_ptr ptr = (a_routine_ptr)entity;
+        result = scope_for_routine_or_null(ptr);
+      }
+      break;
+    case iek_for_loop:
+      { a_for_loop_ptr ptr = (a_for_loop_ptr)entity;
+        result = ptr->for_init_scope;
+      }
+      break;
+    case iek_range_based_for_loop:
+      { a_range_based_for_loop_ptr ptr = (a_range_based_for_loop_ptr)entity;
+        result = ptr->range_based_for_scope;
+      }
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case iek_for_each_loop:
+      { a_for_each_loop_ptr ptr = (a_for_each_loop_ptr)entity;
+        result = ptr->for_each_scope;
+      }
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case iek_block:
+      { a_block_ptr ptr = (a_block_ptr)entity;
+        result = ptr->assoc_scope;
+      }
+      break;
+    case iek_statement:
+      { a_statement_ptr ptr = (a_statement_ptr)entity;
+        switch (ptr->kind) {
+          case stmk_block:
+            entity = (char*)ptr->variant.block.extra_info;
+            kind = iek_block;
+            break;
+          case stmk_for:
+#if UPC_EXTENSIONS_ALLOWED
+          case stmk_upc_forall:
+#endif /* UPC_EXTENSIONS_ALLOWED */
+            entity = (char*)ptr->variant.for_loop.extra_info;
+            kind = iek_for_loop;
+            break;
+          case stmk_range_based_for:
+            entity = (char*)ptr->variant.range_based_for_loop.extra_info;
+            kind = iek_range_based_for_loop;
+            break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          case stmk_for_each:
+            entity = (char*)ptr->variant.for_each_loop.extra_info;
+            kind = iek_for_each_loop;
+            break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          case stmk_try_block:
+            entity = (char*)ptr->variant.try_block;
+            kind = iek_try_supplement;
+            break;
+          case stmk_while:
+          case stmk_end_test_while:
+            entity = (char*)ptr->variant.loop_statement;
+            kind = iek_statement;
+            break;
+          default:
+            entity = NULL;
+            kind = iek_none;
+        }  /* switch */
+        if (entity != NULL) {
+          result = get_assoc_scope_of_il_entry(entity, kind);
+        }  /* if */
+      }
+      break;
+    case iek_try_supplement:
+      { a_try_supplement_ptr ptr = (a_try_supplement_ptr)entity;
+        result = get_assoc_scope_of_il_entry((char*)ptr->statement,
+                                             iek_statement);
+      }
+      break;
+    case iek_namespace:
+      { a_namespace_ptr ptr = (a_namespace_ptr)entity;
+        result = skip_namespace_aliases(ptr)->variant.assoc_scope;
+      }
+      break;
+    case iek_overriding_virtual_function:
+      { an_overriding_virtual_function_ptr ptr =
+                                    (an_overriding_virtual_function_ptr)entity;
+        result = get_assoc_scope_of_il_entry((char*)ptr->overriding_function,
+                                             iek_routine);
+      }
+      break;
+    case iek_template:
+      { a_template_ptr ptr = (a_template_ptr)entity;
+        result = get_assoc_scope_of_il_entry((char*)ptr->template_decl,
+                                             iek_template_decl);
+      }
+      break;
+    case iek_template_decl:
+      { a_template_decl_ptr ptr = (a_template_decl_ptr)entity;
+        result = ptr->scope;
+      }
+      break;
+    case iek_local_scope_ref:
+      { a_local_scope_ref_ptr ptr = (a_local_scope_ref_ptr)entity;
+        result = ptr->scope;
+      }
+      break;
+    case iek_lambda:
+      { a_lambda_ptr ptr = (a_lambda_ptr)entity;
+        result = get_assoc_scope_of_il_entry((char*)ptr->lambda_routine,
+                                             iek_routine);
+      }
+      break;
+    default:
+      break;
+  }  /* switch */
+  return result;
+}  /* get_assoc_scope_of_il_entry */
+
+
 a_routine_ptr lambda_body_for_closure(a_type_ptr  type)
 /*
 Return a pointer to the lambda body routine for the closure class specified by
@@ -27677,19 +27803,6 @@ needed_flag_bit_number plus bit_offset.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-#if !STANDALONE_UTILITY_PROGRAM
-
-a_boolean intf_rout_is_inline_template_function(a_routine_ptr rout)
-/*
-Interface routine to rout_is_inline_template_function in templates.c.
-Exists to avoid difficulties with referring to a function in
-templates.c from a macro (rout_is_inline) in il.h.
-*/
-{
-  return in_front_end && rout_is_inline_template_function(rout,
-                                                          /*in_class=*/FALSE);
-}  /* intf_rout_is_inline_template_function */
-
 
 a_namespace_ptr f_skip_namespace_aliases(a_namespace_ptr nsp)
 /*
@@ -27705,6 +27818,19 @@ is a namespace alias, a pointer to the real namespace is returned.
   }  /* while */
   return nsp;
 }  /* f_skip_namespace_aliases */
+
+#if !STANDALONE_UTILITY_PROGRAM
+
+a_boolean intf_rout_is_inline_template_function(a_routine_ptr rout)
+/*
+Interface routine to rout_is_inline_template_function in templates.c.
+Exists to avoid difficulties with referring to a function in
+templates.c from a macro (rout_is_inline) in il.h.
+*/
+{
+  return in_front_end && rout_is_inline_template_function(rout,
+                                                          /*in_class=*/FALSE);
+}  /* intf_rout_is_inline_template_function */
 
 
 a_boolean is_member_of_unnamed_namespace(a_source_correspondence  *scp)

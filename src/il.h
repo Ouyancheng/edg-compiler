@@ -312,6 +312,9 @@ entry of type a_local_scope_ref.)
 
 extern a_scope_ptr f_get_parent_scope_of(a_source_correspondence_ptr  scp);
 
+extern a_scope_ptr get_assoc_scope_of_il_entry(char                 *entity,
+                                               a_byte_il_entry_kind kind);
+
 /*
 Macro to get the parent scope of an IL entry.  This differs from the macro
 "parent_scope_of" (see above) in that it works even for entities in file scope
