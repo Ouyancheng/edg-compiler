@@ -5,7 +5,7 @@ Spurious interpreter error after access of array member
 
 In some configurations certain accesses to array members were not handled
 correctly by the constexpr interpreter, which in turn could result in spurious
-failures to evaluate constant expressions.
+failures to evaluate constant expressions.  For example:
 
   constexpr int check(bool const *first, bool const *last,
                       bool const& value) {
@@ -24,7 +24,8 @@ failures to evaluate constant expressions.
              // Evaluation of call to check(...) previously produced a
   };         // spurious error in some configurations.  Now okay.
 
-That is now fixed.
+This is a regression introduced in version 5.1 that is now fixed.
+
 
 4/16/20  [EDGcpfe/21671,EDGcpfe/22290]
 Abort in corresponding_base_class during interpreter evaluation
