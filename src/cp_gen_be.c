@@ -15545,7 +15545,10 @@ gen_expr that might end up generating this expr as a temporary.
               write_tok_str("->");
               type = type_pointed_to(type);
             } else {
-              write_tok_ch('.');
+              /* Add a space before "." to avoid putting out something like
+                 "0.C::~C()", since "0.C" is a user-defined floating point
+                 literal. */
+              write_tok_str(" .");
             }  /* if */
             /* Find a type that is usable at this point. */
             do {

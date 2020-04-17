@@ -1,5 +1,21 @@
 Version 6.1
 
+4/17/20  [EDGcpfe/22628]
+C++-generating back end: pseudo-destructor applied to integer constant
+
+The C++-generating back end generated incorrect code when the source
+contains a pseudo-destructor invocation in which the object expression is
+an integer literal, producing code that parsed as a user-defined floating
+point literal.  This is now fixed.  For example, with --c++20:
+
+  void f() {
+    using C = int;
+    0 .C::~C();  // Previously generated as "0.C::~C()", where "0.C" is
+                 // parsed as a user-defined floating point literal invoking
+                 // the (nonexistent) literal operator "C".
+  }
+
+
 4/17/20  [EDGcpfe/22474,EDGcpfe/22623]
 Spurious error in substitution failure of default nontype template argument
 
