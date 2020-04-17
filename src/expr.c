@@ -46048,6 +46048,93 @@ is TRUE if the expression is the immediate operand of an "&" operator.
 }  /* make_operand_for_rescanned_identifier */
 
 
+static a_token_kind operator_token_for_builtin_operator(
+                                               a_builtin_operation_kind kind,
+                                               a_boolean                *unary)
+/*
+Given a builtin operation kind return the operator token for it.  Set *unary to
+TRUE if the operator is a unary operator, FALSE otherwise.
+*/
+{
+  a_token_kind operator_token = tok_error;
+
+  *unary = FALSE;
+  switch (kind) {
+    case bok_offsetof:
+      operator_token = tok_builtin_offsetof;
+      break;
+    case bok_is_same:
+      operator_token = tok_is_same;
+      break;
+    case bok_is_same_as:
+      operator_token = tok_is_same_as;
+      break;
+    case bok_is_base_of:
+      operator_token = tok_is_base_of;
+      break;
+    case bok_is_convertible_to:
+      operator_token = tok_is_convertible_to;
+      break;
+    case bok_is_nothrow_assignable:
+      operator_token = tok_is_nothrow_assignable;
+      break;
+    case bok_is_trivially_assignable:
+      operator_token = tok_is_trivially_assignable;
+      break;
+    case bok_builtin_complex:
+      operator_token = tok_builtin_complex;
+      break;
+    case bok_is_assignable:
+      operator_token = tok_is_assignable;
+      break;
+    case bok_is_assignable_no_precondition_check:
+      operator_token = tok_is_assignable_no_precondition_check;
+      break;
+    case bok_is_trivially_copy_assignable:
+      operator_token = tok_is_trivially_copy_assignable;
+      break;
+    case bok_intaddr:
+      operator_token = tok_intaddr;
+      break;
+    case bok_is_constructible:
+      operator_token = tok_is_constructible;
+      break;
+    case bok_is_nothrow_constructible:
+      operator_token = tok_is_nothrow_constructible;
+      break;
+    case bok_reference_binds_to_temporary:
+      operator_token = tok_reference_binds_to_temporary;
+      break;
+    case bok_builtin_has_attribute:
+      operator_token = tok_builtin_has_attribute;
+      break;
+    case bok_builtin_bit_cast:
+      operator_token = tok_builtin_bit_cast;
+      break;
+#if GNU_VECTOR_TYPES_ALLOWED
+    case bok_builtin_shuffle:
+      operator_token = tok_builtin_shuffle;
+      break;
+    case bok_builtin_shufflevector:
+      operator_token = tok_builtin_shufflevector;
+      break;
+    case bok_builtin_convertvector:
+      operator_token = tok_builtin_convertvector;
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+    default:
+      operator_token = tok_has_assign;  /* Representing the generic case with a
+                                           single type operand. */
+      *unary = TRUE;
+      break;
+    case bok_types_compatible:
+      /* C only. */
+      unexpected_condition();
+  }  /* switch */
+  return operator_token;
+}  /* operator_token_for_builtin_operator */
+
+
 static a_token_kind operator_token_for_expr_rescan(
                                               an_expr_node_ptr expr,
                                               a_boolean        *unary,
@@ -46465,55 +46552,9 @@ set accordingly.
     operator_token = tok_throw;
     *unary = TRUE;
   } else if (expr->kind == (an_expr_node_kind)enk_builtin_operation) {
-    a_builtin_operation_kind kind = expr->variant.builtin_operation.kind;
-    switch (kind) {
-      case bok_offsetof:
-        operator_token = tok_builtin_offsetof;
-        break;
-      case bok_is_same:
-        operator_token = tok_is_same;
-        break;
-      case bok_is_same_as:
-        operator_token = tok_is_same_as;
-        break;
-      case bok_is_base_of:
-        operator_token = tok_is_base_of;
-        break;
-      case bok_is_convertible_to:
-        operator_token = tok_is_convertible_to;
-        break;
-      case bok_intaddr:
-        operator_token = tok_intaddr;
-        break;
-      case bok_is_constructible:
-        operator_token = tok_is_constructible;
-        break;
-      case bok_is_nothrow_constructible:
-        operator_token = tok_is_nothrow_constructible;
-        break;
-      case bok_reference_binds_to_temporary:
-        operator_token = tok_reference_binds_to_temporary;
-        break;
-#if GNU_VECTOR_TYPES_ALLOWED
-      case bok_builtin_shuffle:
-        operator_token = tok_builtin_shuffle;
-        break;
-      case bok_builtin_shufflevector:
-        operator_token = tok_builtin_shufflevector;
-        break;
-      case bok_builtin_convertvector:
-        operator_token = tok_builtin_convertvector;
-        break;
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-      default:
-        operator_token = tok_has_assign;  /* Representing the generic case
-                                             with a single type operand. */
-        break;
-      case bok_types_compatible:
-        /* C only. */
-        unexpected_condition();
-    }  /* switch */
-    *unary = TRUE;
+    operator_token = operator_token_for_builtin_operator(
+                                         expr->variant.builtin_operation.kind,
+                                         unary);
   } else if (expr->kind == (an_expr_node_kind)enk_param_ref) {
     /* A reference to a parameter name or "this" in the header of the
        function. */
@@ -46726,10 +46767,6 @@ alternative callable from outside, see rescan_expr_with_substitution.
       case tok_ext_alignof:
         scan_alignof_operator(rcblock, result);
         break;
-      case tok_builtin_offsetof:
-        /* __builtin_offsetof construct. */
-        scan_offsetof(rcblock, result);
-        break;
       case tok_builtin_addressof:
         /* __builtin_addressof construct. */
         scan_builtin_addressof(rcblock, result);
@@ -46763,9 +46800,6 @@ alternative callable from outside, see rescan_expr_with_substitution.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_reinterpret_cast:
         scan_reinterpret_cast_operator(rcblock, result);
-        break;
-      case tok_intaddr:
-        scan_intaddr_operator(rcblock, result);
         break;
       case tok_typename:
         /* Old-style or functional-notation cast.  The functional-notation
@@ -46803,14 +46837,6 @@ alternative callable from outside, see rescan_expr_with_substitution.
            to represent all these cases. */
         scan_unary_type_trait_helper(rcblock, result);
         break;
-      case tok_is_constructible:
-        /* __is_constructible construct: */
-        scan_is_constructible(bok_is_constructible, rcblock, result);
-        break;
-      case tok_is_nothrow_constructible:
-        /* __is_nothrow_constructible construct: */
-        scan_is_constructible(bok_is_nothrow_constructible, rcblock, result);
-        break;
       case tok_is_trivially_constructible:
         /* __is_trivially_constructible construct: */
         scan_is_constructible(bok_is_trivially_constructible, rcblock, result);
@@ -46827,24 +46853,9 @@ alternative callable from outside, see rescan_expr_with_substitution.
         /* __is_trivially_destructible construct: */
         scan_is_destructible(bok_is_nothrow_destructible, rcblock, result);
         break;
-      case tok_is_nothrow_assignable:
-        /* __is_nothrow_assignable construct: */
-        scan_is_assignable(bok_is_nothrow_assignable, rcblock, result);
-        break;
       case tok_is_valid_winrt_type:
         /* __is_valid_winrt_type construct: */
         scan_is_valid_winrt_type(bok_is_valid_winrt_type, rcblock, result);
-        break;
-      case tok_is_trivially_assignable:
-        /* __is_trivially_assignable construct: */
-        scan_is_assignable(bok_is_trivially_assignable, rcblock, result);
-        break;
-      case tok_is_same:
-      case tok_is_same_as:
-      case tok_is_base_of:
-      case tok_is_convertible_to:
-      case tok_reference_binds_to_temporary:
-        scan_binary_type_trait_helper(rcblock, result);
         break;
 #if C99_IL_EXTENSIONS_SUPPORTED && GNU_EXTENSIONS_ALLOWED
       case tok_gnu_real:
@@ -46853,34 +46864,6 @@ alternative callable from outside, see rescan_expr_with_substitution.
         scan_complex_projection(rcblock, result);
         break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED && GNU_EXTENSIONS_ALLOWED */
-#if GNU_VECTOR_TYPES_ALLOWED
-      case tok_builtin_shuffle:
-      case tok_builtin_shufflevector:
-        scan_builtin_shuffle(rcblock, result);
-        break;
-      case tok_builtin_convertvector:
-        scan_builtin_convertvector(rcblock, result);
-        break;
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-#if C99_IL_EXTENSIONS_SUPPORTED
-      case tok_builtin_complex:
-        scan_builtin_complex(rcblock, result);
-        break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      case tok_is_assignable:
-        /* __is_assignable/__is_trivially_copy_assignable construct: */
-        scan_is_assignable(bok_is_assignable, rcblock, result);
-        break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      case tok_is_assignable_no_precondition_check:
-        /* __is_assignable_no_precondition_check construct: */
-        scan_is_assignable(bok_is_assignable_no_precondition_check, rcblock,
-                           result);
-        break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      case tok_builtin_bit_cast:
-        scan_builtin_bit_cast(rcblock, result);
-        break;
       default:
         unexpected_condition();
     }  /* switch */
@@ -46987,6 +46970,65 @@ alternative callable from outside, see rescan_expr_with_substitution.
         break;
       case tok_ellipsis:
         rescan_fold_expression(rcblock, result, bound_function_selector);
+        break;
+      case tok_builtin_offsetof:
+        /* __builtin_offsetof construct. */
+        scan_offsetof(rcblock, result);
+        break;
+      case tok_is_same:
+      case tok_is_same_as:
+      case tok_is_base_of:
+      case tok_is_convertible_to:
+      case tok_reference_binds_to_temporary:
+        scan_binary_type_trait_helper(rcblock, result);
+        break;
+      case tok_intaddr:
+        scan_intaddr_operator(rcblock, result);
+        break;
+      case tok_is_constructible:
+        /* __is_constructible construct: */
+        scan_is_constructible(bok_is_constructible, rcblock, result);
+        break;
+      case tok_is_nothrow_constructible:
+        /* __is_nothrow_constructible construct: */
+        scan_is_constructible(bok_is_nothrow_constructible, rcblock, result);
+        break;
+#if GNU_VECTOR_TYPES_ALLOWED
+      case tok_builtin_shuffle:
+      case tok_builtin_shufflevector:
+        scan_builtin_shuffle(rcblock, result);
+        break;
+      case tok_builtin_convertvector:
+        scan_builtin_convertvector(rcblock, result);
+        break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+      case tok_is_nothrow_assignable:
+        /* __is_nothrow_assignable construct: */
+        scan_is_assignable(bok_is_nothrow_assignable, rcblock, result);
+        break;
+      case tok_is_trivially_assignable:
+        /* __is_trivially_assignable construct: */
+        scan_is_assignable(bok_is_trivially_assignable, rcblock, result);
+        break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case tok_builtin_complex:
+        scan_builtin_complex(rcblock, result);
+        break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      case tok_is_trivially_copy_assignable:
+      case tok_is_assignable:
+        /* __is_assignable/__is_trivially_copy_assignable construct: */
+        scan_is_assignable(bok_is_assignable, rcblock, result);
+        break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case tok_is_assignable_no_precondition_check:
+        /* __is_assignable_no_precondition_check construct: */
+        scan_is_assignable(bok_is_assignable_no_precondition_check, rcblock,
+                           result);
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      case tok_builtin_bit_cast:
+        scan_builtin_bit_cast(rcblock, result);
         break;
       default:
         unexpected_condition();
