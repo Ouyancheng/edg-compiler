@@ -1784,7 +1784,7 @@ wholly self-contained.
 {
   return str_for_integer_value(value, sign_of(*value),
                                /*non_arithmetic=*/FALSE,
-                               INTEGER_VALUE_REPRESENTATION_SIZE);
+                               sizeof(an_integer_value));
 }  /* str_for_integer_value */
 
 

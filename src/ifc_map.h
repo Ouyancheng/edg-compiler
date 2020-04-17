@@ -942,10 +942,10 @@ IFC_DECL_END(ExprSort_This)
 
 /* ExprSort::TemplateReference */
 IFC_DECL_START(ExprSort_TemplateReference)
-  IFC_DECL_FIELD(scope, TypeIndex)
-  IFC_DECL_FIELD(member, DeclIndex)
-  IFC_DECL_FIELD(arguments, ExprIndex)
+  IFC_DECL_FIELD(name, NameIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(scope, TypeIndex)
+  IFC_DECL_FIELD(arguments, ExprIndex)
 /* Spec stops here, but apparently there's an additional SourceLocation!. */
   IFC_DECL_FIELD(locus2, SourceLocation)
 IFC_DECL_END(ExprSort_TemplateReference)
