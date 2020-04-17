@@ -9059,6 +9059,38 @@ to be an unsigned kind.
                              (a_host_large_unsigned)value);
 }  /* set_unsigned_integer_constant */
 
+#if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+
+void set_integer_constant(a_constant			*cp,
+                          const an_integer_value	&value,
+                          an_integer_kind		kind)
+/*
+Set the constant entry *cp to the integer constant given by value.
+Its integer kind is as given by kind.  Note that the kind is not restricted
+to be a signed kind.
+*/
+{
+  clear_constant(cp, (a_constant_repr_kind)ck_integer);
+  cp->type = integer_type(kind);
+  set_integer_value(&cp->variant.integer_value, value);
+}  /* set_integer_constant */
+
+
+void set_unsigned_integer_constant(a_constant			*cp,
+                                   const an_integer_value	&value,
+                                   an_integer_kind		kind)
+/*
+Set the constant entry *cp to the integer constant given by value.
+Its integer kind is as given by kind.  Note that the kind is not restricted
+to be an unsigned kind.
+*/
+{
+  clear_constant(cp, (a_constant_repr_kind)ck_integer);
+  cp->type = integer_type(kind);
+  set_unsigned_integer_value(&cp->variant.integer_value, value);
+}  /* set_unsigned_integer_constant */
+
+#endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
 void make_zero_of_proper_type(a_type_ptr desired_type,
                               a_constant *zero_constant)

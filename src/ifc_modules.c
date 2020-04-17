@@ -383,6 +383,7 @@ Handle nested structures differently (and check for padding).
 #define GET_bool(x, from_header)               GET_byte(x, from_header)
 #define GET_uint8_t(x, from_header)            GET_byte(x, from_header)
 #define GET_uint16_t(x, from_header)           GET_short(x, from_header)
+#define GET_uint32_t(x, from_header)           GET_int(x, from_header)
 
 #define GET_Checksum(x, from_header)           GET_256bit_int(x, from_header)
 
@@ -793,6 +794,591 @@ field is encountered, an IL entity and symbol are created at that time.
 #endif /* DEBUG */
 }  /* defer_symbol_creation */
 
+#if EXPENSIVE_CHECKING
+
+static void validate_partition_size(an_ifc_partition      *pp,
+                                    an_ifc_partition_kind kind)
+/*
+Validate that the size of a partition's elements matches the size of the
+corresponding data structure for that partition.
+*/
+{
+/* Some data structures are still unspecified (sizeof == 1).  That allowance
+   should be removed once the spec is complete. */
+#define CHECK_SIZE(data) \
+  check_assertion(sizeof(an_ifc_##data) == 1 || \
+                  sizeof(an_ifc_##data) == pp->entry_size); break /* user ; */
+  switch (kind) {
+    case ifc_decl_vendor_extension:
+      CHECK_SIZE(DeclSort_VendorExtension);
+    case ifc_decl_enumerator:
+      CHECK_SIZE(DeclSort_Enumerator);
+    case ifc_decl_variable:
+      CHECK_SIZE(DeclSort_Variable);
+    case ifc_decl_parameter:
+      CHECK_SIZE(DeclSort_Parameter);
+    case ifc_decl_field:
+      CHECK_SIZE(DeclSort_Field);
+    case ifc_decl_bitfield:
+      CHECK_SIZE(DeclSort_Bitfield);
+    case ifc_decl_scope:
+      CHECK_SIZE(DeclSort_Scope);
+    case ifc_decl_enumeration:
+      CHECK_SIZE(DeclSort_Enumeration);
+    case ifc_decl_alias:
+      CHECK_SIZE(DeclSort_Alias);
+    case ifc_decl_temploid:
+      CHECK_SIZE(DeclSort_Temploid);
+    case ifc_decl_template:
+      CHECK_SIZE(DeclSort_Template);
+    case ifc_decl_partial_specialization:
+      CHECK_SIZE(DeclSort_PartialSpecialization);
+    case ifc_decl_explicit_specialization:
+      CHECK_SIZE(DeclSort_ExplicitSpecialization);
+    case ifc_decl_explicit_instantiation:
+      CHECK_SIZE(DeclSort_ExplicitInstantiation);
+    case ifc_decl_concept:
+      CHECK_SIZE(DeclSort_Concept);
+    case ifc_decl_function:
+      CHECK_SIZE(DeclSort_Function);
+    case ifc_decl_method:
+      CHECK_SIZE(DeclSort_Method);
+    case ifc_decl_constructor:
+      CHECK_SIZE(DeclSort_Constructor);
+    case ifc_decl_inh_ctor:
+      CHECK_SIZE(DeclSort_InheritedConstructor);
+    case ifc_decl_destructor:
+      CHECK_SIZE(DeclSort_Destructor);
+    case ifc_decl_reference:
+      CHECK_SIZE(DeclSort_Reference);
+    case ifc_decl_using_declaration:
+      CHECK_SIZE(DeclSort_UsingDeclaration);
+    case ifc_decl_using_directive:
+      CHECK_SIZE(DeclSort_UsingDirective);
+    case ifc_decl_friend:
+      CHECK_SIZE(DeclSort_Friend);
+    case ifc_decl_expansion:
+      CHECK_SIZE(DeclSort_Expansion);
+    case ifc_decl_deduction_guide:
+      CHECK_SIZE(DeclSort_DeductionGuide);
+    case ifc_decl_barren:
+      CHECK_SIZE(DeclSort_Barren);
+    case ifc_decl_tuple:
+      CHECK_SIZE(DeclSort_Tuple);
+    case ifc_decl_syntax_tree:
+      CHECK_SIZE(DeclSort_SyntaxTree);
+    case ifc_decl_intrinsic:
+      CHECK_SIZE(DeclSort_Intrinsic);
+    case ifc_decl_property:
+      CHECK_SIZE(DeclSort_Property);
+    case ifc_decl_segment:
+      CHECK_SIZE(DeclSort_OutputSegment);
+    case ifc_type_vendor_extension:
+      CHECK_SIZE(TypeSort_VendorExtension);
+    case ifc_type_fundamental:
+      CHECK_SIZE(TypeSort_Fundamental);
+    case ifc_type_designated:
+      CHECK_SIZE(TypeSort_Designated);
+    case ifc_type_deduced:
+      CHECK_SIZE(TypeSort_Deduced);
+    case ifc_type_syntactic:
+      CHECK_SIZE(TypeSort_Syntactic);
+    case ifc_type_expansion:
+      CHECK_SIZE(TypeSort_Expansion);
+    case ifc_type_pointer:
+      CHECK_SIZE(TypeSort_Pointer);
+    case ifc_type_pointer_to_member:
+      CHECK_SIZE(TypeSort_PointerToMember);
+    case ifc_type_lvalue_reference:
+      CHECK_SIZE(TypeSort_LvalueReference);
+    case ifc_type_rvalue_reference:
+      CHECK_SIZE(TypeSort_RvalueReference);
+    case ifc_type_function:
+      CHECK_SIZE(TypeSort_Function);
+    case ifc_type_method:
+      CHECK_SIZE(TypeSort_Method);
+    case ifc_type_array:
+      CHECK_SIZE(TypeSort_Array);
+    case ifc_type_typename:
+      CHECK_SIZE(TypeSort_Typename);
+    case ifc_type_qualified:
+      CHECK_SIZE(TypeSort_Qualified);
+    case ifc_type_base:
+      CHECK_SIZE(TypeSort_Base);
+    case ifc_type_decltype:
+      CHECK_SIZE(TypeSort_Decltype);
+    case ifc_type_placeholder:
+      CHECK_SIZE(TypeSort_Placeholder);
+    case ifc_type_tuple:
+      CHECK_SIZE(TypeSort_Tuple);
+    case ifc_type_forall:
+      CHECK_SIZE(TypeSort_Forall);
+    case ifc_type_unaligned:
+      CHECK_SIZE(TypeSort_Unaligned);
+    case ifc_type_syntax_tree:
+      CHECK_SIZE(TypeSort_SyntaxTree);
+    case ifc_name_identifier:
+      unexpected_condition_str("No partition for NameSort::Identifier");
+    case ifc_name_operator:
+      CHECK_SIZE(NameSort_Operator);
+    case ifc_name_conversion:
+      CHECK_SIZE(NameSort_Conversion);
+    case ifc_name_literal:
+      CHECK_SIZE(NameSort_Literal);
+    case ifc_name_template:
+      CHECK_SIZE(NameSort_Template);
+    case ifc_name_specialization:
+      CHECK_SIZE(NameSort_Specialization);
+    case ifc_name_source_file:
+      CHECK_SIZE(NameSort_SourceFile);
+    case ifc_expr_vendor_extension:
+      CHECK_SIZE(ExprSort_VendorExtension);
+    case ifc_expr_empty:
+      CHECK_SIZE(ExprSort_Empty);
+    case ifc_expr_literal:
+      CHECK_SIZE(ExprSort_Literal);
+    case ifc_expr_lambda:
+      CHECK_SIZE(ExprSort_Lambda);
+    case ifc_expr_type:
+      CHECK_SIZE(ExprSort_Type);
+    case ifc_expr_decl:
+      CHECK_SIZE(ExprSort_NamedDecl);
+    case ifc_expr_unresolved_id:
+      CHECK_SIZE(ExprSort_UnresolvedId);
+    case ifc_expr_template_id:
+      CHECK_SIZE(ExprSort_TemplateId);
+    case ifc_expr_identifier:
+      CHECK_SIZE(ExprSort_Identifier);
+    case ifc_expr_simple_identifier:
+      CHECK_SIZE(ExprSort_SimpleIdentifier);
+    case ifc_expr_pointer:
+      CHECK_SIZE(ExprSort_Pointer);
+    case ifc_expr_qualified_name:
+      CHECK_SIZE(ExprSort_QualifiedName);
+    case ifc_expr_path:
+      CHECK_SIZE(ExprSort_Path);
+    case ifc_expr_read:
+      CHECK_SIZE(ExprSort_Read);
+    case ifc_expr_monad:
+      CHECK_SIZE(ExprSort_Monad);
+    case ifc_expr_dyad:
+      CHECK_SIZE(ExprSort_Dyad);
+    case ifc_expr_triad:
+      CHECK_SIZE(ExprSort_Triad);
+    case ifc_expr_string:
+      CHECK_SIZE(ExprSort_String);
+    case ifc_expr_temporary:
+      CHECK_SIZE(ExprSort_Temporary);
+    case ifc_expr_call:
+      CHECK_SIZE(ExprSort_Call);
+    case ifc_expr_member_initializer:
+      CHECK_SIZE(ExprSort_MemberInitializer);
+    case ifc_expr_member_access:
+      CHECK_SIZE(ExprSort_MemberAccess);
+    case ifc_expr_inheritance_path:
+      CHECK_SIZE(ExprSort_InheritancePath);
+    case ifc_expr_initializer_list:
+      CHECK_SIZE(ExprSort_InitializerList);
+    case ifc_expr_cast:
+      CHECK_SIZE(ExprSort_Cast);
+    case ifc_expr_condition:
+      CHECK_SIZE(ExprSort_Condition);
+    case ifc_expr_expression_list:
+      CHECK_SIZE(ExprSort_ExpressionList);
+    case ifc_expr_sizeof_type:
+      CHECK_SIZE(ExprSort_SizeofType);
+    case ifc_expr_alignof_type:
+      CHECK_SIZE(ExprSort_Alignof);
+    case ifc_expr_new:
+      CHECK_SIZE(ExprSort_New);
+    case ifc_expr_delete:
+      CHECK_SIZE(ExprSort_Delete);
+    case ifc_expr_typeid:
+      CHECK_SIZE(ExprSort_Typeid);
+    case ifc_expr_destructor_call:
+      CHECK_SIZE(ExprSort_DestructorCall);
+    case ifc_expr_syntax_tree:
+      CHECK_SIZE(ExprSort_SyntaxTree);
+    case ifc_expr_function_string:
+      CHECK_SIZE(ExprSort_FunctionString);
+    case ifc_expr_compound_string:
+      CHECK_SIZE(ExprSort_CompoundString);
+    case ifc_expr_string_sequence:
+      CHECK_SIZE(ExprSort_StringSequence);
+    case ifc_expr_initializer:
+      CHECK_SIZE(ExprSort_Initializer);
+    case ifc_expr_requires:
+      CHECK_SIZE(ExprSort_Requires);
+    case ifc_expr_unaryfold:
+      CHECK_SIZE(ExprSort_UnaryFold);
+    case ifc_expr_binaryfold:
+      CHECK_SIZE(ExprSort_BinaryFold);
+    case ifc_expr_hierarchy_conversion:
+      CHECK_SIZE(ExprSort_HierarchyConversion);
+    case ifc_expr_product:
+      CHECK_SIZE(ExprSort_ProductTypeValue);
+    case ifc_expr_sum:
+      CHECK_SIZE(ExprSort_SumTypeValue);
+    case ifc_expr_subobject:
+      CHECK_SIZE(ExprSort_SubobjectValue);
+    case ifc_expr_array:
+      CHECK_SIZE(ExprSort_ArrayValue);
+    case ifc_expr_dynamic_dispatch:
+      CHECK_SIZE(ExprSort_DynamicDispatch);
+    case ifc_expr_virtual_function:
+      CHECK_SIZE(ExprSort_VirtualFunctionConversion);
+    case ifc_expr_placeholder:
+      CHECK_SIZE(ExprSort_Placeholder);
+    case ifc_expr_expansion:
+      CHECK_SIZE(ExprSort_Expansion);
+    case ifc_expr_generic:
+      CHECK_SIZE(ExprSort_Generic);
+    case ifc_expr_tuple:
+      CHECK_SIZE(ExprSort_Tuple);
+    case ifc_expr_nullptr:
+      CHECK_SIZE(ExprSort_Nullptr);
+    case ifc_expr_this:
+      CHECK_SIZE(ExprSort_This);
+    case ifc_expr_template_reference:
+      CHECK_SIZE(ExprSort_TemplateReference);
+    case ifc_expr_push_state:
+      CHECK_SIZE(ExprSort_PushState);
+    case ifc_expr_type_trait:
+      CHECK_SIZE(ExprSort_TypeTraitIntrinsic);
+    case ifc_expr_des_init:
+      CHECK_SIZE(ExprSort_DesignatedInitializer);
+    case ifc_expr_packed_template_arguments:
+      CHECK_SIZE(ExprSort_PackedTemplateArguments);
+    case ifc_expr_tokens:
+      CHECK_SIZE(ExprSort_Tokens);
+    case ifc_expr_assign_initializer:
+      CHECK_SIZE(ExprSort_AssignInitializer);
+    case ifc_stmt_vendor_extension:
+      CHECK_SIZE(StmtSort_VendorExtension);
+    case ifc_stmt_empty:
+      CHECK_SIZE(StmtSort_Empty);
+    case ifc_stmt_if:
+      CHECK_SIZE(StmtSort_If);
+    case ifc_stmt_for:
+      CHECK_SIZE(StmtSort_For);
+    case ifc_stmt_case:
+      CHECK_SIZE(StmtSort_Case);
+    case ifc_stmt_while:
+      CHECK_SIZE(StmtSort_While);
+    case ifc_stmt_block:
+      CHECK_SIZE(StmtSort_Block);
+    case ifc_stmt_break:
+      CHECK_SIZE(StmtSort_Break);
+    case ifc_stmt_switch:
+      CHECK_SIZE(StmtSort_Switch);
+    case ifc_stmt_do_while:
+      CHECK_SIZE(StmtSort_DoWhile);
+    case ifc_stmt_default:
+      CHECK_SIZE(StmtSort_Default);
+    case ifc_stmt_continue:
+      CHECK_SIZE(StmtSort_Continue);
+    case ifc_stmt_expression:
+      CHECK_SIZE(StmtSort_Expression);
+    case ifc_stmt_return:
+      CHECK_SIZE(StmtSort_Return);
+    case ifc_stmt_variable:
+      CHECK_SIZE(StmtSort_VariableDecl);
+    case ifc_stmt_expansion:
+      CHECK_SIZE(StmtSort_Expansion);
+    case ifc_stmt_syntax_tree:
+      CHECK_SIZE(StmtSort_SyntaxTree);
+    case ifc_chart_none:
+      CHECK_SIZE(ChartSort_None);
+    case ifc_chart_unilevel:
+      CHECK_SIZE(ChartSort_Unilevel);
+    case ifc_chart_multilevel:
+      CHECK_SIZE(ChartSort_Multilevel);
+    case ifc_syntax_vendor_extension:
+      CHECK_SIZE(SyntaxSort_VendorExtension);
+    case ifc_syntax_simple_type_specifier:
+      CHECK_SIZE(SyntaxSort_SimpleTypeSpecifier);
+    case ifc_syntax_decltype_specifier:
+      CHECK_SIZE(SyntaxSort_DecltypeSpecifier);
+    case ifc_syntax_placeholder_type_specifier:
+      CHECK_SIZE(SyntaxSort_PlaceholderTypeSpecifier);
+    case ifc_syntax_type_specifier_seq:
+      CHECK_SIZE(SyntaxSort_TypeSpecifierSeq);
+    case ifc_syntax_decl_specifier_seq:
+      CHECK_SIZE(SyntaxSort_DeclSpecifierSeq);
+    case ifc_syntax_virtual_specifier_seq:
+      CHECK_SIZE(SyntaxSort_VirtualSpecifierSeq);
+    case ifc_syntax_noexcept_specification:
+      CHECK_SIZE(SyntaxSort_NoexceptSpecification);
+    case ifc_syntax_explicit_specifier:
+      CHECK_SIZE(SyntaxSort_ExplicitSpecifier);
+    case ifc_syntax_enum_specifier:
+      CHECK_SIZE(SyntaxSort_EnumSpecifier);
+    case ifc_syntax_enumerator_definition:
+      CHECK_SIZE(SyntaxSort_EnumeratorDefinition);
+    case ifc_syntax_class_specifier:
+      CHECK_SIZE(SyntaxSort_VendorExtension);
+    case ifc_syntax_member_specification:
+      CHECK_SIZE(SyntaxSort_MemberSpecification);
+    case ifc_syntax_member_declaration:
+      CHECK_SIZE(SyntaxSort_MemberDeclaration);
+    case ifc_syntax_member_declarator:
+      CHECK_SIZE(SyntaxSort_MemberDeclarator);
+    case ifc_syntax_access_specifier:
+      CHECK_SIZE(SyntaxSort_AccessSpecifier);
+    case ifc_syntax_base_specifier_list:
+      CHECK_SIZE(SyntaxSort_BaseSpecifierList);
+    case ifc_syntax_base_specifier:
+      CHECK_SIZE(SyntaxSort_BaseSpecifier);
+    case ifc_syntax_type_id:
+      CHECK_SIZE(SyntaxSort_TypeId);
+    case ifc_syntax_trailing_return_type:
+      CHECK_SIZE(SyntaxSort_TrailingReturnType);
+    case ifc_syntax_declarator:
+      CHECK_SIZE(SyntaxSort_Declarator);
+    case ifc_syntax_pointer_declarator:
+      CHECK_SIZE(SyntaxSort_PointerDeclarator);
+    case ifc_syntax_array_declarator:
+      CHECK_SIZE(SyntaxSort_ArrayDeclarator);
+    case ifc_syntax_function_declarator:
+      CHECK_SIZE(SyntaxSort_FunctionDeclarator);
+    case ifc_syntax_array_or_function_declarator:
+      CHECK_SIZE(SyntaxSort_ArrayOrFunctionDeclarator);
+    case ifc_syntax_parameter_declarator:
+      CHECK_SIZE(SyntaxSort_ParameterDeclarator);
+    case ifc_syntax_init_declarator:
+      CHECK_SIZE(SyntaxSort_InitDeclarator);
+    case ifc_syntax_new_declarator:
+      CHECK_SIZE(SyntaxSort_NewDeclarator);
+    case ifc_syntax_simple_declaration:
+      CHECK_SIZE(SyntaxSort_SimpleDeclaration);
+    case ifc_syntax_exception_declaration:
+      CHECK_SIZE(SyntaxSort_ExceptionDeclaration);
+    case ifc_syntax_condition_declaration:
+      CHECK_SIZE(SyntaxSort_ConditionDeclaration);
+    case ifc_syntax_static_assert_declaration:
+      CHECK_SIZE(SyntaxSort_StaticAssertDeclaration);
+    case ifc_syntax_alias_declaration:
+      CHECK_SIZE(SyntaxSort_AliasDeclaration);
+    case ifc_syntax_concept_definition:
+      CHECK_SIZE(SyntaxSort_ConceptDefinition);
+    case ifc_syntax_compound_statement:
+      CHECK_SIZE(SyntaxSort_CompoundStatement);
+    case ifc_syntax_return_statement:
+      CHECK_SIZE(SyntaxSort_ReturnStatement);
+    case ifc_syntax_if_statement:
+      CHECK_SIZE(SyntaxSort_IfStatement);
+    case ifc_syntax_while_statement:
+      CHECK_SIZE(SyntaxSort_WhileStatement);
+    case ifc_syntax_do_statement:
+      CHECK_SIZE(SyntaxSort_DoWhileStatement);
+    case ifc_syntax_for_statement:
+      CHECK_SIZE(SyntaxSort_ForStatement);
+    case ifc_syntax_init_statement:
+      CHECK_SIZE(SyntaxSort_InitStatement);
+    case ifc_syntax_range_based_for_statement:
+      CHECK_SIZE(SyntaxSort_RangeBasedForStatement);
+    case ifc_syntax_for_range_declaration:
+      CHECK_SIZE(SyntaxSort_ForRangeDeclaration);
+    case ifc_syntax_labeled_statement:
+      CHECK_SIZE(SyntaxSort_LabeledStatement);
+    case ifc_syntax_break_statement:
+      CHECK_SIZE(SyntaxSort_BreakStatement);
+    case ifc_syntax_continue_statement:
+      CHECK_SIZE(SyntaxSort_ContinueStatement);
+    case ifc_syntax_switch_statement:
+      CHECK_SIZE(SyntaxSort_SwitchStatement);
+    case ifc_syntax_goto_statement:
+      CHECK_SIZE(SyntaxSort_GotoStatement);
+    case ifc_syntax_declaration_statement:
+      CHECK_SIZE(SyntaxSort_DeclarationStatement);
+    case ifc_syntax_expression_statement:
+      CHECK_SIZE(SyntaxSort_ExpressionStatement);
+    case ifc_syntax_try_block:
+      CHECK_SIZE(SyntaxSort_TryBlock);
+    case ifc_syntax_handler:
+      CHECK_SIZE(SyntaxSort_Handler);
+    case ifc_syntax_handler_seq:
+      CHECK_SIZE(SyntaxSort_HandlerSeq);
+    case ifc_syntax_function_try_block:
+      CHECK_SIZE(SyntaxSort_FunctionTryBlock);
+    case ifc_syntax_type_id_list_element:
+      CHECK_SIZE(SyntaxSort_TypeIdListElement);
+    case ifc_syntax_dynamic_exception_spec:
+      CHECK_SIZE(SyntaxSort_DynamicExceptionSpec);
+    case ifc_syntax_statement_seq:
+      CHECK_SIZE(SyntaxSort_StatementSeq);
+    case ifc_syntax_function_body:
+      CHECK_SIZE(SyntaxSort_FunctionBody);
+    case ifc_syntax_expression:
+      CHECK_SIZE(SyntaxSort_Expression);
+    case ifc_syntax_function_definition:
+      CHECK_SIZE(SyntaxSort_FunctionDefinition);
+    case ifc_syntax_member_function_declaration:
+      CHECK_SIZE(SyntaxSort_MemberFunctionDeclaration);
+    case ifc_syntax_template_declaration:
+      CHECK_SIZE(SyntaxSort_TemplateDeclaration);
+    case ifc_syntax_requires_clause:
+      CHECK_SIZE(SyntaxSort_RequiresClause);
+    case ifc_syntax_simple_requirement:
+      CHECK_SIZE(SyntaxSort_SimpleRequirement);
+    case ifc_syntax_type_requirement:
+      CHECK_SIZE(SyntaxSort_TypeRequirement);
+    case ifc_syntax_compound_requirement:
+      CHECK_SIZE(SyntaxSort_CompoundRequirement);
+    case ifc_syntax_nested_requirement:
+      CHECK_SIZE(SyntaxSort_NestedRequirement);
+    case ifc_syntax_requirement_body:
+      CHECK_SIZE(SyntaxSort_RequirementBody);
+    case ifc_syntax_type_template_parameter:
+      CHECK_SIZE(SyntaxSort_TypeTemplateParameter);
+    case ifc_syntax_template_template_parameter:
+      CHECK_SIZE(SyntaxSort_TemplateTemplateParameter);
+    case ifc_syntax_type_template_argument:
+      CHECK_SIZE(SyntaxSort_TypeTemplateArgument);
+    case ifc_syntax_non_type_template_argument:
+      CHECK_SIZE(SyntaxSort_NonTypeTemplateArgument);
+    case ifc_syntax_template_parameter_list:
+      CHECK_SIZE(SyntaxSort_TemplateParameterList);
+    case ifc_syntax_template_argument_list:
+      CHECK_SIZE(SyntaxSort_TemplateArgumentList);
+    case ifc_syntax_template_id:
+      CHECK_SIZE(SyntaxSort_TemplateId);
+    case ifc_syntax_mem_initializer:
+      CHECK_SIZE(SyntaxSort_MemInitializer);
+    case ifc_syntax_ctor_initializer:
+      CHECK_SIZE(SyntaxSort_CtorInitializer);
+    case ifc_syntax_lambda_introducer:
+      CHECK_SIZE(SyntaxSort_LambdaIntroducer);
+    case ifc_syntax_lambda_declarator:
+      CHECK_SIZE(SyntaxSort_LambdaDeclarator);
+    case ifc_syntax_capture_default:
+      CHECK_SIZE(SyntaxSort_CaptureDefault);
+    case ifc_syntax_simple_capture:
+      CHECK_SIZE(SyntaxSort_SimpleCapture);
+    case ifc_syntax_init_capture:
+      CHECK_SIZE(SyntaxSort_InitCapture);
+    case ifc_syntax_this_capture:
+      CHECK_SIZE(SyntaxSort_ThisCapture);
+    case ifc_syntax_attributed_statement:
+      CHECK_SIZE(SyntaxSort_AttributedStatement);
+    case ifc_syntax_attributed_declaration:
+      CHECK_SIZE(SyntaxSort_AttributedDeclaration);
+    case ifc_syntax_attribute_specifier_seq:
+      CHECK_SIZE(SyntaxSort_AttributeSpecifierSeq);
+    case ifc_syntax_attribute_specifier:
+      CHECK_SIZE(SyntaxSort_AttributeSpecifier);
+    case ifc_syntax_attribute_using_prefix:
+      CHECK_SIZE(SyntaxSort_AttributeUsingPrefix);
+    case ifc_syntax_attribute:
+      CHECK_SIZE(SyntaxSort_Attribute);
+    case ifc_syntax_attribute_argument_clause:
+      CHECK_SIZE(SyntaxSort_AttributeArgumentClause);
+    case ifc_syntax_alignas:
+      CHECK_SIZE(SyntaxSort_Alignas);
+    case ifc_syntax_using_declaration:
+      CHECK_SIZE(SyntaxSort_UsingDeclaration);
+    case ifc_syntax_using_declarator:
+      CHECK_SIZE(SyntaxSort_UsingDeclarator);
+    case ifc_syntax_using_directive:
+      CHECK_SIZE(SyntaxSort_UsingDirective);
+    case ifc_syntax_array_index:
+      CHECK_SIZE(SyntaxSort_ArrayIndex);
+    case ifc_syntax_seh_try:
+      CHECK_SIZE(SyntaxSort_SEHTry);
+    case ifc_syntax_seh_except:
+      CHECK_SIZE(SyntaxSort_SEHExcept);
+    case ifc_syntax_seh_finally:
+      CHECK_SIZE(SyntaxSort_SEHFinally);
+    case ifc_syntax_seh_leave:
+      CHECK_SIZE(SyntaxSort_SEHLeave);
+    case ifc_syntax_type_trait_intrinsic:
+      CHECK_SIZE(SyntaxSort_TypeTraitIntrinsic);
+    case ifc_syntax_tuple:
+      CHECK_SIZE(SyntaxSort_Tuple);
+    case ifc_syntax_asm_statement:
+      CHECK_SIZE(SyntaxSort_AsmStatement);
+    case ifc_syntax_namespace_alias_definition:
+      CHECK_SIZE(SyntaxSort_NamespaceAliasDefinition);
+    case ifc_syntax_super:
+      CHECK_SIZE(SyntaxSort_Super);
+    case ifc_syntax_unary_fold_expression:
+      CHECK_SIZE(SyntaxSort_UnaryFoldExpression);
+    case ifc_syntax_binary_fold_expression:
+      CHECK_SIZE(SyntaxSort_BinaryFoldExpression);
+    case ifc_syntax_empty_statement:
+      CHECK_SIZE(SyntaxSort_EmptyStatement);
+    case ifc_syntax_structured_binding_declaration:
+      CHECK_SIZE(SyntaxSort_StructuredBindingDeclaration);
+    case ifc_syntax_structured_binding_identifier:
+      CHECK_SIZE(SyntaxSort_StructuredBindingIdentifier);
+    case ifc_syntax_using_enum_decl:
+      CHECK_SIZE(SyntaxSort_UsingEnumDeclaration);
+    case ifc_scope_desc:
+      CHECK_SIZE(Scope_Descriptor);
+    case ifc_scope_member:
+      CHECK_SIZE(Scope_Member);
+    case ifc_sentence:
+      CHECK_SIZE(Sentence);
+    case ifc_src_line:
+      CHECK_SIZE(Source_Line);
+    case ifc_trait_alias_template:
+      CHECK_SIZE(Trait_AliasTemplate);
+    case ifc_trait_class_template:
+      CHECK_SIZE(Trait_ClassTemplate);
+    case ifc_trait_constexpr_function:
+      CHECK_SIZE(Trait_ConstexprFunction);
+    case ifc_trait_deprecated:
+      CHECK_SIZE(Trait_Deprecated);
+    case ifc_trait_friend:
+      CHECK_SIZE(Trait_Friend);
+    case ifc_trait_function_template:
+      CHECK_SIZE(Trait_FunctionTemplate);
+    case ifc_trait_specialization:
+      CHECK_SIZE(Trait_Specialization);
+    case ifc_trait_variable_template:
+      CHECK_SIZE(Trait_VariableTemplate);
+    case ifc_word:
+      CHECK_SIZE(Word);
+    case ifc_trait_requires:
+    case ifc_cmd_line:
+    case ifc_const_f64:
+    case ifc_const_i64:
+    case ifc_const_str:
+    case ifc_form_spec:
+    case ifc_heap_chart:
+    case ifc_heap_decl:
+    case ifc_heap_expr:
+    case ifc_heap_stmt:
+    case ifc_heap_syn:
+    case ifc_heap_type:
+    case ifc_macro_func_like:
+    case ifc_macro_obj_like:
+    case ifc_msvc_trait_code_segment:
+    case ifc_msvc_trait_codegen_expr_trees:
+    case ifc_msvc_trait_named_func_params:
+    case ifc_msvc_trait_spec_encodings:
+    case ifc_msvc_trait_suppressed_warnings:
+    case ifc_msvc_trait_templ_templ_param_classes:
+    case ifc_msvc_trait_uuid:
+    case ifc_msvc_trait_vendor_traits:
+    case ifc_module_exported:
+    case ifc_module_imported:
+    case ifc_pragma_state:
+      /* No data structure associated with these. */
+      break;
+    case ifc_none:
+    case ifc_last:
+    default:
+      unexpected_condition();
+  }  /* switch */
+#undef CHECK_SIZE
+}
+
+#else /* !EXPENSIVE_CHECKING */
+
+#define validate_partition_size(pp, kind) /* Nothing */
+
+#endif /* EXPENSIVE_CHECKING */
 
 a_boolean an_ifc_module::import(a_module_import_decl_ptr midp) noexcept
 /*
@@ -862,6 +1448,7 @@ been confirmed to exist and the path stored in midp.
         pp->offset = ifc_pp->offset;
         pp->size = ifc_pp->cardinality * ifc_pp->entry_size;
         pp->entry_size = ifc_pp->entry_size;
+        validate_partition_size(pp, map_ptr->kind);
       }  /* if */
     }  /* for */
     (void)fseek(f_module, 0L, SEEK_SET);
@@ -2558,15 +3145,20 @@ FIXME: what other expressions can we get here?
             break;
           case ifc_LiteralSort_Integer:
             /* An integer larger than 30 bits. */
-            { a_host_large_unsigned value;
+            { an_integer_value value;
+              char             raw_val[64/CHAR_BIT];
+
               cp = alloc_constant(ck_integer);
               read_partition_at_index(ifc_const_i64,
                                       literal_index(ieslp->value));
-              GET_64bit_int(value, /*from_header=*/FALSE);
+              GET_64bit_int(raw_val, /*from_header=*/FALSE);
+              if (!conv_bytes_to_integer_value(&value, raw_val,
+                                               sizeof(raw_val))) {
+                unexpected_condition_str("Failed to get 64-bit integer");
+              }  /* if */
               stripped_type = skip_typerefs(constant_type);
               check_assertion(stripped_type->kind == (a_type_kind)tk_integer);
-              set_unsigned_integer_constant(cp,
-                                      (a_host_large_unsigned)value,
+              set_unsigned_integer_constant(cp, value,
                                       stripped_type->variant.integer.int_kind);
               cp->type = constant_type;
             }
@@ -2577,6 +3169,14 @@ FIXME: what other expressions can we get here?
             unexpected_condition();
         }  /* switch */
       }
+      break;
+    case ifc_ExprSort_ArrayValue:
+      unexpected_condition_str("Constant from ExprSort::ArrayValue "
+                               "not yet implemented");
+      break;
+    case ifc_ExprSort_ProductTypeValue:
+      unexpected_condition_str("Constant from ExprSort::ProductTypeValue "
+                               "not yet implemented");
       break;
     default:
       unexpected_condition();
@@ -2785,6 +3385,22 @@ Add the decimal representation of value to the output buffer.
   add_to_text_buffer(scbp->text_buffer, buffer, len);
 }  /* str_ifc_add_number */
 
+#if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+
+void an_ifc_module::str_ifc_add_number(an_integer_value    &value,
+                                       a_str_control_block *scbp)
+                                                                 const noexcept
+/*
+Add the decimal representation of value to the output buffer.
+*/
+{
+  char*    str = str_for_integer_value(&value);
+  sizeof_t len = strlen(str);
+
+  add_to_text_buffer(scbp->text_buffer, str, len);
+}  /* str_ifc_add_number */
+
+#endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
 void an_ifc_module::str_ifc_source_location(
                                         ARG_UNUSED ifc_SourceLocation  *locus,
@@ -3105,7 +3721,7 @@ the output buffer.
                             scbp);
             break;
           case ifc_LiteralSort_Integer:
-            { a_host_large_unsigned value;
+            { an_integer_value value;
               read_partition_at_index(ifc_const_i64,
                                       literal_index(ieslp->value));
               GET_64bit_int(value, /*from_header=*/FALSE);

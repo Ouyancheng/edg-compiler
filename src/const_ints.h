@@ -110,8 +110,14 @@ BEGIN_EDG_NAMESPACE
 extern void set_integer_value(an_integer_value		*intval,
                               a_host_large_integer	value);
 
+extern void set_integer_value(an_integer_value		*intval,
+                              const an_integer_value	&value);
+
 extern void set_unsigned_integer_value(an_integer_value		*intval,
                                        a_host_large_unsigned	value);
+
+extern void set_unsigned_integer_value(an_integer_value		*intval,
+                                       const an_integer_value	&value);
 
 extern void conv_integer_value_to_host_large_integer(
                                              an_integer_value        *intval,
@@ -186,6 +192,8 @@ extern a_boolean is_max_value_for_integer_kind(a_constant      *con,
                                                an_integer_kind ikind);
 
 extern int bits_required_to_represent_integer_constant(a_constant *cp);
+
+extern char *str_for_integer_value(an_integer_value *value);
 
 extern char *str_for_integer_constant(a_constant *cp);
 
@@ -310,6 +318,10 @@ extern a_boolean swap_bytes_in_unsigned_integer(unsigned int     bytes,
                                                 an_integer_value *value,
                                                 an_integer_value *swapped);
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+
+extern a_boolean conv_bytes_to_integer_value(an_integer_value *value,
+                                             char             *bytes,
+                                             size_t           num_bytes);
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

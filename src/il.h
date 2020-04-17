@@ -1746,6 +1746,16 @@ extern void set_unsigned_integer_constant(a_constant		*cp,
                                           a_host_large_unsigned	value,
                                           an_integer_kind	kind);
 
+#if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+extern void set_integer_constant(a_constant		*cp,
+                                 const an_integer_value	&value,
+                                 an_integer_kind	kind);
+
+extern void set_unsigned_integer_constant(a_constant			*cp,
+                                          const an_integer_value	&value,
+                                          an_integer_kind		kind);
+#endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+
 /* Macro to retrieve the list of constants associated with an enum type.  The
    location of the list is different depending on whether it's a scoped enum
    or not. */

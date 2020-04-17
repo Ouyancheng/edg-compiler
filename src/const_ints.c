@@ -49,6 +49,18 @@ Set the integer value entry *intval to the signed value "value".
 }  /* set_integer_value */
 
 
+void set_integer_value(an_integer_value		*intval,
+                       const an_integer_value	&value)
+/*
+Set the integer value entry *intval to the signed value "value".
+*/
+{
+  for (unsigned int i = 0; i < INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
+    intval->part[i] = value.part[i];
+  }  /* if */
+}  /* set_integer_value */
+
+
 void set_unsigned_integer_value(an_integer_value	*intval,
                                 a_host_large_unsigned	value)
 /*
@@ -62,6 +74,18 @@ Set the integer value entry *intval to the unsigned value "value".
     this_part = value & MAX_UINT_VALUE_PART;
     intval->part[i] = (an_int_value_part)this_part;
     value = value >> BITS_IN_INT_VALUE_PART;
+  }  /* if */
+}  /* set_unsigned_integer_value */
+
+
+void set_unsigned_integer_value(an_integer_value	*intval,
+                                const an_integer_value	&value)
+/*
+Set the integer value entry *intval to the unsigned value "value".
+*/
+{
+  for (unsigned int i = 0; i < INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
+    intval->part[i] = value.part[i];
   }  /* if */
 }  /* set_unsigned_integer_value */
 
@@ -1752,6 +1776,18 @@ buffer.  If an arithmetic value is negative, it is preceded by a "-".
 }  /* str_for_integer_value */
 
 
+char *str_for_integer_value(an_integer_value *value)
+/*
+Interface to str_for_integer_value for integer values whose interpretation is
+wholly self-contained.
+*/
+{
+  return str_for_integer_value(value, sign_of(*value),
+                               /*non_arithmetic=*/FALSE,
+                               INTEGER_VALUE_REPRESENTATION_SIZE);
+}  /* str_for_integer_value */
+
+
 char *str_for_integer_constant(a_constant *cp)
 /*
 Interface to str_for_integer_value that extracts the value, signedness,
@@ -2157,6 +2193,35 @@ Assumes bytes are 8 bits.
 }  /* swap_bytes_in_unsigned_integer */
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+
+a_boolean conv_bytes_to_integer_value(an_integer_value *value,
+                                      char             *bytes,
+                                      size_t           num_bytes)
+/*
+Given an array of bytes that represent an integer of arbitrary size,
+encode those bytes into an integer value (*value).  Returns TRUE
+unless num_bytes is larger than the largest integer or an error is
+encountered.
+*/
+{
+  a_boolean        result = TRUE, err;
+  an_integer_value byte_val;
+
+  if (num_bytes > TARG_SIZEOF_LARGEST_INTEGER) {
+    result = FALSE;
+  } else {
+    set_unsigned_integer_value(value, (a_host_large_unsigned)0);
+    for (; num_bytes > 0; --num_bytes, ++bytes) {
+      a_host_large_unsigned bval = (unsigned char)*bytes;
+      set_unsigned_integer_value(&byte_val, bval);
+      shift_left_integer_value(value, CHAR_BIT, &err);
+      result = result && !err;
+      add_integer_values(value, &byte_val, /*is_signed=*/FALSE, &err);
+      result = result && !err;
+    }  /* for */
+  }  /* if */
+  return result;
+}
 
 static void init_int_kind_min_max_values(an_integer_kind ikind)
 /*

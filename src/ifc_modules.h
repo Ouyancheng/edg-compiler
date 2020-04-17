@@ -126,6 +126,7 @@ enum ifc_UnitSort : ifc_Sort_type;
 typedef uint8_t  ifc_bool;
 typedef uint8_t  ifc_uint8_t;
 typedef uint16_t ifc_uint16_t;
+typedef uint32_t ifc_uint32_t;
 
 /* SHA256 checksum. */
 typedef uint8_t sha256_t[32];
@@ -1329,7 +1330,7 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_decl_field = ifc_decl_start + ifc_DeclSort_Field,
   ifc_decl_bitfield = ifc_decl_start + ifc_DeclSort_Bitfield,
   ifc_decl_scope = ifc_decl_start + ifc_DeclSort_Scope,
-  ifc_decl_enum = ifc_decl_start + ifc_DeclSort_Enumeration,
+  ifc_decl_enumeration = ifc_decl_start + ifc_DeclSort_Enumeration,
   ifc_decl_alias = ifc_decl_start + ifc_DeclSort_Alias,
   ifc_decl_temploid = ifc_decl_start + ifc_DeclSort_Temploid,
   ifc_decl_template = ifc_decl_start + ifc_DeclSort_Template,
@@ -1371,7 +1372,7 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_type_lvalue_reference = ifc_type_start + ifc_TypeSort_LvalueReference,
   ifc_type_rvalue_reference = ifc_type_start + ifc_TypeSort_RvalueReference,
   ifc_type_function = ifc_type_start + ifc_TypeSort_Function,
-  ifc_type_nonstatic_member_function = ifc_type_start + ifc_TypeSort_Method,
+  ifc_type_method = ifc_type_start + ifc_TypeSort_Method,
   ifc_type_array = ifc_type_start + ifc_TypeSort_Array,
   ifc_type_typename = ifc_type_start + ifc_TypeSort_Typename,
   ifc_type_qualified = ifc_type_start + ifc_TypeSort_Qualified,
@@ -1401,7 +1402,7 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_expr_lambda = ifc_expr_start + ifc_ExprSort_Lambda,
   ifc_expr_type = ifc_expr_start + ifc_ExprSort_Type,
   ifc_expr_decl = ifc_expr_start + ifc_ExprSort_NamedDecl,
-  ifc_expr_unresolved = ifc_expr_start + ifc_ExprSort_UnresolvedId,
+  ifc_expr_unresolved_id = ifc_expr_start + ifc_ExprSort_UnresolvedId,
   ifc_expr_template_id = ifc_expr_start + ifc_ExprSort_TemplateId,
   ifc_expr_identifier = ifc_expr_start + ifc_ExprSort_Identifier,
   ifc_expr_simple_identifier = ifc_expr_start + ifc_ExprSort_SimpleIdentifier,
@@ -1412,7 +1413,7 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_expr_monad = ifc_expr_start + ifc_ExprSort_Monad,
   ifc_expr_dyad = ifc_expr_start + ifc_ExprSort_Dyad,
   ifc_expr_triad = ifc_expr_start + ifc_ExprSort_Triad,
-  ifc_expr_strings = ifc_expr_start + ifc_ExprSort_String,
+  ifc_expr_string = ifc_expr_start + ifc_ExprSort_String,
   ifc_expr_temporary = ifc_expr_start + ifc_ExprSort_Temporary,
   ifc_expr_call = ifc_expr_start + ifc_ExprSort_Call,
   ifc_expr_member_initializer = ifc_expr_start +
@@ -1775,7 +1776,7 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "decl.constructor",                ifc_decl_constructor },
   { "decl.deduction-guide",            ifc_decl_deduction_guide },
   { "decl.destructor",                 ifc_decl_destructor },
-  { "decl.enum",                       ifc_decl_enum },
+  { "decl.enum",                       ifc_decl_enumeration },
   { "decl.enumerator",                 ifc_decl_enumerator },
   { "decl.expansion",                  ifc_decl_expansion },
   { "decl.explicit-instantiation",     ifc_decl_explicit_instantiation },
@@ -1848,7 +1849,7 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   /* Spec says expr.sizeof-type-id, IFC files have this, however. */
   { "expr.sizeof-type",                ifc_expr_sizeof_type },
   { "expr.string-sequence",            ifc_expr_string_sequence },
-  { "expr.strings",                    ifc_expr_strings },
+  { "expr.strings",                    ifc_expr_string },
   /* Not mentioned in spec.  ExprSort::SumTypeValue is not elaborated. */
   { "expr.sum-type-value",             ifc_expr_sum },
   { "expr.syntax-tree",                ifc_expr_syntax_tree },
@@ -1864,7 +1865,7 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "expr.typeid",                     ifc_expr_typeid },
   /* Not mentioned in spec.  ExprSort::UnaryFold is not elaborated. */
   { "expr.unary-fold-expression",      ifc_expr_unaryfold },
-  { "expr.unresolved",                 ifc_expr_unresolved },
+  { "expr.unresolved",                 ifc_expr_unresolved_id },
   { "expr.vendor-extension",           ifc_expr_vendor_extension },
   /* Not mentioned in spec.  ExprSort::VirtualFunctionConversion is not
      elaborated. */
@@ -2048,7 +2049,7 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "type.function",                   ifc_type_function },
   { "type.fundamental",                ifc_type_fundamental },
   { "type.lvalue-reference",           ifc_type_lvalue_reference },
-  { "type.nonstatic-member-function",  ifc_type_nonstatic_member_function },
+  { "type.nonstatic-member-function",  ifc_type_method },
   { "type.placeholder",                ifc_type_placeholder },
   { "type.pointer",                    ifc_type_pointer },
   /* Spec says this is the partition name for TypeSort::LvalueReference,
@@ -2234,6 +2235,10 @@ private:
                           a_str_control_block *scbp) const noexcept;
   void str_ifc_add_number(a_host_large_unsigned value,
                           a_str_control_block   *scbp) const noexcept;
+#if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+  void str_ifc_add_number(an_integer_value    &value,
+                          a_str_control_block *scbp) const noexcept;
+#endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   void str_ifc_source_location(ifc_SourceLocation  *locus,
                                a_str_control_block *scbp) const noexcept;
   void str_ifc_access(ifc_Access          access,

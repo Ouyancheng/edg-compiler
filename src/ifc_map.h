@@ -209,6 +209,8 @@ IFC_DECL_START(DeclSort_Template)
   IFC_DECL_FIELD(home_scope, DeclIndex)
   IFC_DECL_FIELD(chart, ChartIndex)
   IFC_DECL_FIELD(entity, ParameterizedEntity)
+/* Spec omits this and it may be removed. */
+  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
   IFC_DECL_FIELD(properties, ReachableProperties)
@@ -326,7 +328,8 @@ IFC_DECL_END(DeclSort_Destructor)
 IFC_DECL_START(DeclSort_Reference)
   IFC_DECL_FIELD(owner, TextOffset)
   IFC_DECL_FIELD(locus, SourceLocation)
-  IFC_DECL_FIELD(local_index, DeclIndex)
+/* Spec has this, IFC files seem to be omitting it. */
+  /*IFC_DECL_FIELD(local_index, DeclIndex)*/
 IFC_DECL_END(DeclSort_Reference)
 
 /* DeclSort::UsingDeclaration */
@@ -501,7 +504,9 @@ IFC_DECL_END(TypeSort_Base)
 /* TypeSort::Decltype */
 IFC_DECL_START(TypeSort_Decltype)
   IFC_DECL_FIELD(expr, SyntaxIndex)
-  IFC_DECL_FIELD(words, SentenceIndex)
+/* Spec claims this will be removed in the future - but it seems to already be
+   removed from current IFC files. */
+  /*IFC_DECL_FIELD(words, SentenceIndex)*/
 IFC_DECL_END(TypeSort_Decltype)
 
 /* TypeSort::Placeholder */
@@ -716,7 +721,8 @@ IFC_DECL_END(ExprSort_QualifiedName)
 IFC_DECL_START(ExprSort_Path)
   IFC_DECL_FIELD(scope, ExprIndex)
   IFC_DECL_FIELD(member, ExprIndex)
-  IFC_DECL_FIELD(locus, SourceLocation)
+/* Spec has this present, but IFC files don't seem to have it. */
+  /*IFC_DECL_FIELD(locus, SourceLocation)*/
 IFC_DECL_END(ExprSort_Path)
 
 /* ExprSort::Read */
@@ -789,7 +795,8 @@ IFC_DECL_END(ExprSort_MemberInitializer)
 /* ExprSort::MemberAccess */
 IFC_DECL_START(ExprSort_MemberAccess)
   IFC_DECL_FIELD(member, DeclIndex)
-  IFC_DECL_FIELD(offset, ExprIndex)
+/* Spec has this, but IFC files seem to be missing it. */
+  /*IFC_DECL_FIELD(offset, ExprIndex)*/
   IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_MemberAccess)
 
@@ -939,6 +946,8 @@ IFC_DECL_START(ExprSort_TemplateReference)
   IFC_DECL_FIELD(member, DeclIndex)
   IFC_DECL_FIELD(arguments, ExprIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+/* Spec stops here, but apparently there's an additional SourceLocation!. */
+  IFC_DECL_FIELD(locus2, SourceLocation)
 IFC_DECL_END(ExprSort_TemplateReference)
 
 /* ExprSort::PushState */
@@ -1028,6 +1037,8 @@ IFC_DECL_END(ChartSort_None)
 IFC_DECL_START(ChartSort_Unilevel)
   IFC_DECL_FIELD(start, Offset)
   IFC_DECL_FIELD(cardinality, Cardinality)
+/* Entity size in files indicates at least one field is missing. */
+  IFC_DECL_FIELD(__padding__, uint32_t)
 IFC_DECL_END(ChartSort_Unilevel)
 
 /* ChartSort::Multilevel */
@@ -1492,16 +1503,21 @@ IFC_DECL_END(Source_Line)
 /* Trait::Deprecated */
 IFC_DECL_START(Trait_Deprecated)
   IFC_DECL_FIELD(decl, DeclIndex)
+  IFC_DECL_FIELD(trait, uint32_t)
 IFC_DECL_END(Trait_Deprecated)
 
 /* Trait::Specialization */
 IFC_DECL_START(Trait_Specialization)
   IFC_DECL_FIELD(decl, DeclIndex)
+  IFC_DECL_FIELD(trait, uint32_t)
+  IFC_DECL_FIELD(__padding__, uint32_t)
 IFC_DECL_END(Trait_Specialization)
 
 /* Trait::Friend */
 IFC_DECL_START(Trait_Friend)
   IFC_DECL_FIELD(decl, DeclIndex)
+  IFC_DECL_FIELD(trait, uint32_t)
+  IFC_DECL_FIELD(__padding__, uint32_t)
 IFC_DECL_END(Trait_Friend)
 
 /* Trait::ConstexprFunction */
@@ -1517,21 +1533,25 @@ IFC_DECL_END(Trait_ConstexprFunction)
 /* Trait::FunctionTemplate */
 IFC_DECL_START(Trait_FunctionTemplate)
   IFC_DECL_FIELD(decl, DeclIndex)
+  IFC_DECL_FIELD(trait, uint32_t)
 IFC_DECL_END(Trait_FunctionTemplate)
 
 /* Trait::ClassTemplate */
 IFC_DECL_START(Trait_ClassTemplate)
   IFC_DECL_FIELD(decl, DeclIndex)
+  IFC_DECL_FIELD(trait, uint32_t)
 IFC_DECL_END(Trait_ClassTemplate)
 
 /* Trait::AliasTemplate */
 IFC_DECL_START(Trait_AliasTemplate)
   IFC_DECL_FIELD(decl, DeclIndex)
+  IFC_DECL_FIELD(trait, uint32_t)
 IFC_DECL_END(Trait_AliasTemplate)
 
 /* Trait::VariableTemplate */
 IFC_DECL_START(Trait_VariableTemplate)
   IFC_DECL_FIELD(decl, DeclIndex)
+  IFC_DECL_FIELD(trait, uint32_t)
 IFC_DECL_END(Trait_VariableTemplate)
 
 /* Trait::MsvcVendorTrait */
