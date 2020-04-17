@@ -26038,7 +26038,6 @@ one argument, return TRUE; otherwise, return FALSE.
 static void scan_braced_init_list_cast(a_type_ptr         type_cast_to,
                                        a_cast_source_form source_form,
                                        an_init_component  *rescan_icp,
-                                       a_boolean          suppress_diagnostics,
                                        an_operand         *result)
 /*
 Scan the C++11 braced list-initializer form of a cast, e.g., T{x, y} or
@@ -26049,9 +26048,7 @@ source_form identifies the source form of the cast (csf_functional
 or csf_old_style).  On return, the current token is the one following
 the closing brace.  If rescan_icp is non-NULL, this is a rescan
 and rescan_icp provides the copied and substituted version of the
-previously-scanned braced initializer.  suppress_diagnostics is TRUE
-if diagnostics should be suppressed (i.e., when the rescan is for
-deduction purposes).
+previously-scanned braced initializer.
 */
 {
   an_init_component_ptr icp;
@@ -26361,7 +26358,7 @@ freed by this routine.
                          braced_init_list != NULL)) {
     /* C++11 list-initializer syntax, e.g., T{x, y}. */
     scan_braced_init_list_cast(type_cast_to, csf_functional, braced_init_list,
-                               rcblock != NULL, result);
+                               result);
     if (rcblock != NULL && is_error_operand(result)) {
       subst_fail(rcblock->error_detected);
     }  /* if */
@@ -26456,7 +26453,7 @@ freed by this routine.
     unbundle_init_component_list_expressions(supplied_arg_list);
     if (aggr_init) {
       scan_braced_init_list_cast(type_cast_to, csf_functional,
-                                 supplied_arg_list, rcblock != NULL, result);
+                                 supplied_arg_list, result);
       if (rcblock == NULL) check_closing_paren_after_expr_list();
       if (arg_list_supplied) {
         /* The arg list was provided - don't free it here. */
@@ -26595,7 +26592,7 @@ freed by this routine.
     check_assertion(aggr_init);
     unbundle_init_component_list_expressions(supplied_arg_list);
     scan_braced_init_list_cast(type_cast_to, csf_functional,
-                               supplied_arg_list, rcblock != NULL, result);
+                               supplied_arg_list, result);
     if (rcblock == NULL) check_closing_paren_after_expr_list();
     if (arg_list_supplied) {
       /* The arg list was provided - don't free it here. */
