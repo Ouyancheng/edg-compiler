@@ -14742,27 +14742,6 @@ copy_type_with_substitution for the meaning of the parameters.
 }  /* copy_class_template_placeholder_with_substitution */
 
 
-static a_boolean type_is_class_template_instance(a_type_ptr	type)
-/*
-Return TRUE if type is a class template instance.
-*/
-{
-  a_boolean		result = FALSE;
-
-  if (is_immediate_class_type(type) &&
-      type->variant.class_struct_union.is_template_class) {
-    a_class_symbol_supplement_ptr	cssp;
-    a_symbol_ptr			template_sym;
-    cssp = symbol_supplement_for_class(type);
-    template_sym = cssp->class_template;
-    if (template_sym != NULL) {
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* type_is_class_template_instance */
-
-
 a_type_ptr copy_type_with_substitution(
 			a_type_ptr			type,
 			a_template_arg_ptr		templ_arg_list,
