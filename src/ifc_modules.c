@@ -2394,7 +2394,8 @@ Given a scope index find and return the associated scope.
   } else {
     a_module_entity_ptr         mep = get_ifc_module_entity_ptr(scope_index);
     process_ifc_declaration(mep, /*defer=*/FALSE, /*enumeration_type=*/NULL);
-    result = get_assoc_scope_of_il_entry(mep->entity.ptr, mep->entity.kind);
+    result = get_assoc_scope_of_il_entry(mep->entity.ptr,
+                                         (an_il_entry_kind)mep->entity.kind);
   }  /* if */
   return result;
 }  /* get_ifc_scope */

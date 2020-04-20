@@ -13237,8 +13237,8 @@ memory).
 }  /* f_get_parent_scope_of */
 
 
-a_scope_ptr get_assoc_scope_of_il_entry(char                 *entity,
-                                        a_byte_il_entry_kind kind)
+a_scope_ptr get_assoc_scope_of_il_entry(char             *entity,
+                                        an_il_entry_kind kind)
 /*
 Given an IL entity, return the associated scope (e.g., for a namespace, return
 the namespace's scope).  If there is no associated scope, return NULL.
