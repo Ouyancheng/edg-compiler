@@ -3953,7 +3953,7 @@ a ck_aggregate constant.
     etype = type_of_unknown_templ_param_nontype;
     base_etype = etype;
     pack_expansion = is->pack_expansion_handled = TRUE;
-  } else if (gpp_mode && is_prototype_instantiation_context() &&
+  } else if (gpp_mode && scope_stack_top().in_prototype_instantiation &&
              is_class_struct_union_type(etype)) {
     /* GCC doesn't attempt to match the initializer to the class type in
        template definitions, even if the type is fully known (i.e.,
@@ -4213,7 +4213,7 @@ the type pointed to is opaque to declaration processing.
     case tk_struct:
     case tk_union:
       if (dtype->variant.class_struct_union.is_nonreal_class ||
-          (gpp_mode && is_prototype_instantiation_context())) {
+          (gpp_mode && scope_stack_top().in_prototype_instantiation)) {
         /* Treat nonreal classes like a template parameter since we don't
            really know their structure.  GCC also appears not to match the
            initializer to the class structure in template definitions, even
