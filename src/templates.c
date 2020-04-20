@@ -14742,52 +14742,6 @@ copy_type_with_substitution for the meaning of the parameters.
 }  /* copy_class_template_placeholder_with_substitution */
 
 
-static a_type_ptr copy_type_with_substitution_special(
-			a_type_ptr			type,
-			a_type_ptr			parent_class,
-			a_template_arg_ptr		templ_arg_list,
-			a_template_param_ptr		templ_param_list,
-			a_source_position		*source_pos,
-			a_ctws_options_set		options,
-			a_boolean			*copy_error,
-			a_ctws_state_ptr		ctws_state)
-/*
-This is like copy_type_with_substitution, except that if the current context
-is within a member of a class template, substitution is also done of the
-enclosing template parameters.  parent_class is the parent class whose
-parameters should also be substituted, or NULL if there is no parent class
-(or it should not be substituted).
-*/
-{
-  if (parent_class != NULL &&
-      (parent_class->variant.class_struct_union.is_nonreal_class ||
-       is_cli_open_constructed_instance(parent_class)) &&
-      parent_class->variant.class_struct_union.is_template_class &&
-      !parent_class->variant.class_struct_union.is_specialized) {
-    /* If the parent class is itself a template instance (but not an explicit
-       specialization), first recursively substitute any parameters that it is
-       associated with. */
-    a_template_arg_ptr    parent_templ_args = NULL;
-    a_template_param_ptr  parent_templ_params;
-    get_substitution_pairs_for_template_class(parent_class,
-                                              &parent_templ_params,
-                                              &parent_templ_args);
-    if (parent_templ_args != NULL) {
-      type = copy_type_with_substitution_special(
-                        type, parent_class_or_null(parent_class),
-                        parent_templ_args, parent_templ_params, source_pos,
-                        options, copy_error, ctws_state);
-    }  /* if */
-  }  /* if */
-  if (!*copy_error) {
-    type = copy_type_with_substitution(
-                        type, templ_arg_list, templ_param_list,
-                        source_pos, options, copy_error, ctws_state);
-  }  /* if */
-  return type;
-}  /* copy_type_with_substitution_special */
-
-
 static a_boolean type_is_class_template_instance(a_type_ptr	type)
 /*
 Return TRUE if type is a class template instance.
@@ -15053,7 +15007,6 @@ a pointer over a reference type or creating an array of references.
           /* Substitution of __bases and __direct_bases is not supported. */
           subst_fail(*copy_error);
         } else {
-          a_type_ptr	parent_class_for_subst = NULL;
           if (type->variant.typeref.is_template_alias) {
             if (type->variant.typeref.is_dependent) {
               /* If the typeref is an alias template instance, substitute the
@@ -15085,9 +15038,6 @@ a pointer over a reference type or creating an array of references.
                               copy_error,
                               ctws_state);
                 new_type = type;
-                if (template_sym->is_class_member) {
-                  parent_class_for_subst = template_sym->parent.class_type;
-                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
@@ -15110,18 +15060,7 @@ a pointer over a reference type or creating an array of references.
                      !type_without_typerefs->variant.typeref.
                                                            is_template_alias &&
                      !typeref_is_type_operator(type_without_typerefs));
-            if (!type_is_class_template_instance(type_without_typerefs)) {
-              /* If the type is an instance of a class template we need to
-                 also substitute enclosing template parameters in case
-                 we have something like X<...> where X is a template
-                 template parameter of an enclosing class template.  If
-                 it is not an instance of a class template, clear the
-                 parent class saved above. */
-              parent_class_for_subst = NULL;
-            }  /* if */
-            tp = copy_type_with_substitution_special(
-                                             type_without_typerefs,
-                                             parent_class_for_subst,
+            tp = copy_type_with_substitution(type_without_typerefs,
                                              templ_arg_list,
                                              templ_param_list, source_pos,
                                              options, copy_error, ctws_state);
