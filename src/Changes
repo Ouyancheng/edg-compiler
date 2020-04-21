@@ -1,5 +1,19 @@
 Version 6.1
 
+4/21/20  [EDGcpfe/21168]
+Weak diagnostic on static/extern mismatch
+
+Consider:
+
+  extern void g(void); 
+  static void g(void) {}
+
+Previously this was accepted with a remark in nonstrict modes (because older
+compilers accepted it too).  Now, a discretionary error is issued by default,
+a warning in Microsoft modes and in GNU C modes with gnu_version < 40000, and
+a remark in Cfront and K&R C modes.
+
+
 4/21/20  [EDGcpfe/22642]
 Invalid memory reference on rescan of decltype in non-local generic lambda
 

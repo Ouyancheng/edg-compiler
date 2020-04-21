@@ -5370,12 +5370,15 @@ new declaration are given by *linkage and *storage_class.  Issue a diagnostic
     /* External versus internal linkage conflict. */
     if (!suppress_diagnostic) {
       /* There is a conflict between a prior declaration and the current one.
-         This is clearly an error in C++ (ARM 7.1.1, 7.1.2), but because of
-         prevailing practice we only issue a remark.  The same is done in
-         C mode, partly because it is common practice in pcc. */
-      pos_diagnostic((strict_ansi_mode ?
-                           strict_ansi_error_severity : es_remark),
-                     ec_linkage_conflict, position);
+         This is clearly an error, but older C and C++ compilers accepted
+         it. */
+      an_error_severity  sev = es_discretionary_error;
+      if (any_cfront_mode() || C_dialect == C_dialect_pcc) {
+        sev = es_remark;
+      } else if (gcc_version_is(<40000) || microsoft_mode || sun_mode) {
+        sev = es_warning;
+      }  /* if */
+      pos_diagnostic(sev, ec_linkage_conflict, position);
     }  /* if */
     /* If either declaration has unspecified storage class (i.e., it's an
        external definition), that takes precedence, and the entity should
@@ -8741,7 +8744,7 @@ for use in generating cross-reference output describing this declaration.
   a_boolean                redecl_error_already_issued = FALSE;
   a_boolean                linked_redecl_error = FALSE;
   a_boolean                old_decl_has_body = FALSE;
-  a_boolean                redeclaration = FALSE;
+  a_boolean                redeclaration = FALSE, is_guiding_decl = FALSE;
   a_routine_ptr            routine_ptr = NULL;
   an_id_linkage_kind       linkage;
   a_source_correspondence  *source_corresp_ptr;
@@ -9048,6 +9051,19 @@ for use in generating cross-reference output describing this declaration.
       /* "inline" was present in the declaration, but no storage class was
          specified. */
       definition_for_inlining_only = TRUE;
+    } else if (dps->declared_storage_class == (a_storage_class)sc_static &&
+               linked_symbol != NULL && symbol_is(linked_symbol, sk_routine) &&
+               gcc_mode && !clang_mode) {
+      /* Check for something like:
+           inline void g() {}
+           static void g();
+         GCC accepts this, even though it ought to be a linkage conflict. */
+      a_routine_ptr  rp = linked_symbol->variant.routine.ptr;
+      if (rp->definition_for_inlining_only) {
+        rp->definition_for_inlining_only = FALSE;
+        rp->suppress_inline_body = FALSE;
+        rp->storage_class = (a_storage_class)sc_static;
+      }  /* if */
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   } else if (use_gnu_c89_inlining &&
@@ -9549,6 +9565,7 @@ for use in generating cross-reference output describing this declaration.
                     add_symbol_to_overload_list(sym, symbol_for_overloading,
                                                 use_namespace, parent_nsp);
           sym->variant.routine.instance_ptr->is_guiding_decl = TRUE;
+          is_guiding_decl = TRUE;
         }  /* if */
         *old_type = routine_ptr->type;
         if (C_dialect == C_dialect_cplusplus) {
@@ -9881,7 +9898,7 @@ skip_overloading:;
     {
       check_for_linkage_conflict(&routine_ptr->storage_class, &linkage,
                                  &storage_class, &locator->source_position,
-                                 suppress_diagnostic);
+                                 suppress_diagnostic || is_guiding_decl);
       if (linkage != idlb.linkage) {
         /* The linkage has been changed, so change the "name linkage", too. */
         idlb.linkage = linkage;
