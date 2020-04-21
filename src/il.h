@@ -1716,15 +1716,11 @@ extern void add_backing_expression_for_named_constant(a_constant *cp);
 
 extern void add_scope_to_class_type(a_type_ptr  type);
 
-/* Make sure "a_scope_stack_entry" is known as a struct tag before its use
-   below.  Otherwise, the declaration would be in the prototype scope.  The
-   "struct" form is used instead of the typedef name to avoid having to
-   include symbol_tbl.h. */
-typedef struct a_scope_stack_entry a_scope_stack_entry_dummy_typedef;
-/* Likewise for a_template_param. */
-typedef struct a_template_param a_template_param_dummy_typedef;
+/* Forward declare some class types (and their associated pointer types). */
+typedef struct a_scope_stack_entry *a_scope_stack_entry_ptr;
+typedef struct a_template_param *a_template_param_ptr;
 
-extern a_scope_ptr ensure_il_scope_exists(struct a_scope_stack_entry *ssep);
+extern a_scope_ptr ensure_il_scope_exists(a_scope_stack_entry_ptr  ssep);
 
 extern void add_to_namespaces_list(a_namespace_ptr  nsp);
 
@@ -2254,21 +2250,21 @@ typedef struct a_ctws_state {
 			/* The end of the list of parameters created by
 			   variadic pack expansions during this
 			   substitution. */
-  struct a_template_param
-		*orig_class_templ_params;
+  a_template_param_ptr
+		orig_class_templ_params;
 			/* During the creation of a deduction guide template,
 			   pack expansion descriptors need to be copied and
 			   references to the original parameters replaced with
 			   references to the new versions.  This is the list
 			   of the original template parameters of the
 			   enclosing class template. */
-  struct a_template_param
-		*orig_ctor_templ_params;
+  a_template_param_ptr
+		orig_ctor_templ_params;
 			/* This is like orig_class_templ_params except it
 			   is the list of the original constructor template
 			   parameters. */
-  struct a_template_param
-		*new_templ_params;
+  a_template_param_ptr
+		new_templ_params;
 			/* This is the list of replacement parameters.  The
 			   first N correspond to the N elements of
 			   orig_class_templ_params.  The remaining elements
@@ -2306,17 +2302,55 @@ typedef struct a_ctws_state {
 extern a_constant_ptr strip_implicit_casts_if_template_param_constant(
 						a_constant_ptr	constant);
 
+/*
+A structure representing one set of substitution pairs (i.e., one list of
+template parameters and associated template arguments).
+*/
+struct a_subst_pairs_descr {
+  a_template_param_ptr
+		params;
+			/* The template parameters of the substitution. */
+  a_template_arg_ptr
+		args;
+			/* The template arguments of the substitution. */
+  a_bit_field	args_known_dependent:1;
+			/* TRUE if args is known to be
+			   instantiation-dependent. */
+  a_bit_field	args_known_nondependent:1;
+			/* TRUE if args is known not to be
+			   instantiation-dependent. */
+};
+
+typedef Dyn_array<a_subst_pairs_descr>
+		a_subst_pairs_array;
+			/* A type used to hold the complete set of substitution
+			   pairs for an entity.  The array has multiple entries
+			   if it results from a nested template. */
+
+
+extern a_constant_ptr copy_template_param_con(
+                                    a_constant_ptr        con,
+                                    a_template_arg_ptr    template_arg_list,
+                                    a_template_param_ptr  template_param_list,
+                                    a_type_ptr            guide_type,
+                                    a_source_position     *source_pos,
+                                    a_ctws_options_set    options,
+                                    a_boolean             *copy_error,
+                                    a_ctws_state_ptr      ctws_state,
+                                    a_constant_ptr        constant);
+
+
 extern an_expr_node_ptr copy_template_param_expr(
-                                 an_expr_node_ptr         expr,
-                                 a_template_arg_ptr       template_arg_list,
-                                 struct a_template_param  *template_param_list,
-                                 a_type_ptr               guide_type,
-                                 a_source_position        *source_pos,
-                                 a_ctws_options_set       options,
-                                 a_boolean                *copy_error,
-                                 a_ctws_state_ptr         ctws_state,
-                                 a_constant_ptr           constant,
-                                 a_constant_ptr           *alloc_con);
+                                    an_expr_node_ptr      expr,
+                                    a_template_arg_ptr    template_arg_list,
+                                    a_template_param_ptr  template_param_list,
+                                    a_type_ptr            guide_type,
+                                    a_source_position     *source_pos,
+                                    a_ctws_options_set    options,
+                                    a_boolean             *copy_error,
+                                    a_ctws_state_ptr      ctws_state,
+                                    a_constant_ptr        constant,
+                                    a_constant_ptr        *alloc_con);
 
 extern a_type_ptr type_of_decltype_expr_with_substitution(
                                  a_type_ptr               type,

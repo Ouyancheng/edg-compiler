@@ -17413,19 +17413,6 @@ to TRUE.  *source_pos gives the source position for errors.
 }  /* do_conversions_on_operands_of_copied_template_expr */
 
 
-/* Forward declarations needed because of mutual recursion. */
-static a_constant_ptr copy_template_param_con(
-                                  a_constant_ptr           con,
-                                  a_template_arg_ptr       template_arg_list,
-                                  a_template_param_ptr     template_param_list,
-                                  a_type_ptr               guide_type,
-                                  a_source_position        *source_pos,
-                                  a_ctws_options_set       options,
-                                  a_boolean                *copy_error,
-                                  a_ctws_state_ptr         ctws_state,
-                                  a_constant_ptr           constant);
-
-
 static an_expr_node_ptr alloc_copied_template_param_expr(
                                                     an_expr_node_ptr expr,
                                                     a_constant       *constant,
@@ -18062,12 +18049,12 @@ is a "guide" type for the expression, either the type of the template
 parameter or the destination type of a cast above this constant.
 source_pos provides the source position for any calls of
 copy_type_with_substitution.  If there is an error in the copying
-(specifically, if there is an error in doing substitution on a type),
+(e.g., if there is an error in doing substitution on a type),
 set *copy_error to TRUE.  If the expression after substitution is a
 constant, set *alloc_con to the address of the constant and return
 NULL.  If there is no allocated copy of the constant, set *alloc_con
 to NULL, set *constant to the constant value, and return NULL.
-options is a set of name lookup options.
+options is a set of substitution options.
 */
 {
   an_expr_node_ptr      expr_copy = NULL;
@@ -18566,8 +18553,8 @@ options is a set of name lookup options.
         clear_diag_list(&diag_list);
         val = requires_clause_satisfied(expr, template_arg_list,
                                         template_param_list,
-                                        /*map_failure_is_fatal=*/FALSE,
-                                        &diag_list);
+                                        /*map_failure_is_fatal=*/TRUE,
+                                        &diag_list, copy_error);
         make_bool_constant_value(val, constant);
         discard_more_info_list(&diag_list);
       }  /* if */
@@ -18578,9 +18565,13 @@ options is a set of name lookup options.
            parameter lists. */
         subst_fail(*copy_error);
       } else {
-        a_boolean    val;
-        val = requires_expr_satisfied(expr, template_arg_list,
-                                      template_param_list);
+        a_boolean            val;
+        a_subst_pairs_array  subst_pairs(1);
+        // FIXME: Record all substitution levels
+        subst_pairs.push_back(a_subst_pairs_descr{ template_param_list,
+                                                   template_arg_list,
+                                                   FALSE, FALSE });
+        val = requires_expr_satisfied(expr, subst_pairs);
         make_bool_constant_value(val, constant);
       }  /* if */
       break;
@@ -19165,7 +19156,7 @@ done:
 }  /* copy_template_param_cast_constant */
 
 
-static a_constant_ptr copy_template_param_con(
+a_constant_ptr copy_template_param_con(
                                   a_constant_ptr           con,
                                   a_template_arg_ptr       template_arg_list,
                                   a_template_param_ptr     template_param_list,
@@ -19186,9 +19177,9 @@ return NULL.  If guide_type is non-NULL, it is a "guide" type for the
 constant, either the type of the template parameter or the destination
 type of a cast above this constant.  source_pos provides the source
 position for any calls of copy_type_with_substitution.  If there is an
-error in the copying (specifically, if there is an error in doing
-substitution on a type), set *copy_error to TRUE.  options is a set of
-name lookup options.
+error in the copying (e.g., if there is an error in doing substitution
+on a type), set *copy_error to TRUE.  options is a set of substitution
+options.
 */
 {
   a_constant_ptr con_copy, other_con, src_con;

@@ -37167,89 +37167,120 @@ one of:
 Record the representation or the requires-expression in *result.
 */
 {
-  a_memory_region_number  il_region = curr_il_region_number;
-  a_source_position       start_pos = pos_curr_token;
-  a_boolean               is_dependent = FALSE;
-  a_param_type_ptr        params = NULL;         
+  a_memory_region_number   il_region = curr_il_region_number;
+  a_source_position        start_pos = pos_curr_token;
+  a_boolean                is_dependent = FALSE;
+  a_param_type_ptr         params = NULL;         
+  a_token_sequence_number  requires_tsn = curr_token_sequence_number;
+  a_requires_range_descr   rrd = requires_ranges->get(requires_tsn);
 
   (void)get_token();
-  add_stop_token(tok_rbrace);
-  if (curr_token == tok_lparen) {
-    /* Scan a function-like declarator. */
-    params = scan_requires_expr_parameters();
-  } else {
-    (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
-                     (a_type_ptr)NULL, (a_routine_ptr)NULL);
-  }  /* if */
-  if (is_template_dependent_context()) {
-    scope_stack_top().in_template_deduction_context = TRUE;
-  }  /* if */
-  if (il_region != file_scope_region_number) {
-    switch_il_region(il_region);
-  }  /* if */
-  if (!required_token(tok_lbrace, ec_exp_lbrace)) {
-    make_error_operand(result);
-  } else {
-    an_expr_node_ptr  node = alloc_expr_node((an_expr_node_kind)enk_requires),
-                      *p_last_req = &node->variant.requires_expr.requirements;
-    node->variant.requires_expr.parameters = params;
-    if (curr_token == tok_rbrace) {
-      expr_pos_diagnostic(es_discretionary_error, ec_empty_requires_expression,
-                          &pos_curr_token);
-    }  /* if */
-    for (;;) {
-      switch (curr_token) {
-        case tok_typename:
-          *p_last_req = scan_type_requirement(&is_dependent);
-          break;
-        case tok_lbrace:
-          *p_last_req = scan_compound_requirement(&is_dependent);
-          break;
-        case tok_requires:
-          *p_last_req = scan_nested_requirement(&is_dependent);
-          break;
-        case tok_end_of_source:
-        case tok_rbrace:
-          goto done_with_requirements;
-        default:
-          if (!is_expr_start_token(curr_token)) {
-            goto done_with_requirements;
-          } else {
-            *p_last_req = scan_simple_requirement(&is_dependent);
-          }  /* if */
-          break;
-      }  /* switch */
-      if (*p_last_req != NULL) {
-        p_last_req = &(*p_last_req)->next;
-      }  /* if */
-    }  /* for */
-done_with_requirements:
-    node->type = bool_type();
-    node->position = start_pos;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    curr_construct_end_position = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    (void)required_token(tok_rbrace, ec_exp_rbrace);
-    if (!is_dependent) {
-      /* A non-dependent requires-expression is a "true" constant. */
-      make_integer_constant_operand(result, (a_host_large_integer)1);
-      result->type = bool_type();
-      result->variant.constant.type = result->type;
-      result->variant.constant.expr = node;
+  if (rrd.next_tsn == a_token_sequence_number()) {
+    /* This is the first time this requires-expression is encountered: Parse
+       it. */
+    add_stop_token(tok_rbrace);
+    if (curr_token == tok_lparen) {
+      /* Scan a function-like declarator. */
+      params = scan_requires_expr_parameters();
     } else {
-      make_expression_operand(node, result);
-    }  /*if */
-  }  /* if */
-  /* Pop the function-prototype scope that was pushed earlier. */
-  check_assertion(scope_is(&scope_stack_top(), sck_func_prototype));
-  if (il_region != file_scope_region_number) {
-    if (params != NULL) {
-      possibly_add_orphaned_file_scope_il_entry((char*)params, iek_param_type);
+      (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
+                       (a_type_ptr)NULL, (a_routine_ptr)NULL);
     }  /* if */
-    switch_il_region(file_scope_region_number);
+    if (is_template_dependent_context()) {
+      scope_stack_top().in_template_deduction_context = TRUE;
+    }  /* if */
+    if (il_region != file_scope_region_number) {
+      switch_il_region(il_region);
+    }  /* if */
+    if (!required_token(tok_lbrace, ec_exp_lbrace)) {
+      make_error_operand(result);
+    } else {
+      an_expr_node  *node = alloc_expr_node((an_expr_node_kind)enk_requires),
+                    **p_last_req = &node->variant.requires_expr.requirements;
+      node->variant.requires_expr.parameters = params;
+      if (curr_token == tok_rbrace) {
+        expr_pos_diagnostic(es_discretionary_error,
+                            ec_empty_requires_expression, &pos_curr_token);
+      }  /* if */
+      for (;;) {
+        switch (curr_token) {
+          case tok_typename:
+            *p_last_req = scan_type_requirement(&is_dependent);
+            break;
+          case tok_lbrace:
+            *p_last_req = scan_compound_requirement(&is_dependent);
+            break;
+          case tok_requires:
+            *p_last_req = scan_nested_requirement(&is_dependent);
+            break;
+          case tok_end_of_source:
+          case tok_rbrace:
+            goto done_with_requirements;
+          default:
+            if (!is_expr_start_token(curr_token)) {
+              goto done_with_requirements;
+            } else {
+              *p_last_req = scan_simple_requirement(&is_dependent);
+            }  /* if */
+            break;
+        }  /* switch */
+        if (*p_last_req != NULL) {
+          p_last_req = &(*p_last_req)->next;
+        }  /* if */
+      }  /* for */
+done_with_requirements:
+      node->type = bool_type();
+      node->position = start_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      curr_construct_end_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      (void)required_token(tok_rbrace, ec_exp_rbrace);
+      if (!is_dependent) {
+        /* A non-dependent requires-expression is a "true" constant. */
+        make_integer_constant_operand(result, (a_host_large_integer)1);
+        result->type = bool_type();
+        result->variant.constant.type = result->type;
+        result->variant.constant.expr = node;
+      } else {
+        make_expression_operand(node, result);
+      }  /*if */
+      if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+        /* Associate with the token sequence number of the "requires" token
+           the sequence number of the token following the requires expression.
+           This is used to skip the clause in instantiations (see below). */
+        rrd.next_tsn = curr_token_sequence_number;
+        rrd.requires_expr = node;
+        (void)requires_ranges->map_or_replace(requires_tsn, rrd);
+      }  /* if */
+    }  /* if */
+    /* Pop the function-prototype scope that was pushed earlier. */
+    check_assertion(scope_is(&scope_stack_top(), sck_func_prototype));
+    if (il_region != file_scope_region_number) {
+      if (params != NULL) {
+        possibly_add_orphaned_file_scope_il_entry((char*)params,
+                                                  iek_param_type);
+      }  /* if */
+      switch_il_region(file_scope_region_number);
+    }  /* if */
+    pop_scope();
+    remove_stop_token(tok_rbrace);
+  } else {
+    /* This is a previously parsed requires-expression that we are encountering
+       during an instantiation.  Rather than instantiating it (i.e., parsing it
+       with template parameters mapped to real arguments), we substitute it. */
+    a_boolean  val;
+    check_assertion(rrd.next_tsn != a_token_sequence_number() &&
+                    is_nonspecialized_instantiation_context());
+    while (curr_token_sequence_number < rrd.next_tsn &&
+           curr_token != tok_end_of_source) {
+      (void)get_token();
+    }  /* while */
+    a_subst_pairs_array  subst_pairs = get_current_subst_pairs();
+    val = requires_expr_satisfied(rrd.requires_expr, subst_pairs);
+    make_integer_constant_operand(result, (a_host_large_integer)val);
+    result->type = bool_type();
+    result->variant.constant.type = result->type;
   }  /* if */
-  pop_scope();
-  remove_stop_token(tok_rbrace);
 }  /* scan_requires_expr */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -45790,35 +45821,55 @@ If discard is TRUE, discard the representation of the clause and return NULL.
 Otherwise, return a pointer to that representation.
 */
 {
-  an_expr_stack_entry_ptr saved_expr_stack;
-  an_expr_stack_entry     expr_stack_entry;
-  an_operand              opnd;
-  a_requires_clause_ptr   rcp = NULL;
+  a_requires_clause_ptr    rcp = NULL;
+  a_token_sequence_number  requires_tsn = curr_token_sequence_number;
+  a_requires_range_descr   rrd;
 
   check_assertion(curr_token == tok_requires);
+  (void)get_token();
   if (!discard) {
+    an_expr_stack_entry_ptr  saved_expr_stack;
+    an_expr_stack_entry      expr_stack_entry;
+    an_operand               opnd;
     rcp = alloc_requires_clause();
     rcp->requires_pos = pos_curr_token;
-  }  /* if */
-  (void)get_token();
-  save_expr_stack(&saved_expr_stack);
-  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/TRUE);
-  expr_stack_entry.possible_rescan_context = TRUE;
-  if (!token_starts_primary_expression(curr_token)) {
-    pos_error(ec_invalid_start_of_requires_clause_expr, &pos_curr_token);
-  }  /* if */
-  scan_expr(&opnd, PREC_QUEST_MARK,
-            EOPT_CONSTRAINT_EXPR | EOPT_REQUIRES_CLAUSE);
-  check_bool_constraint(&opnd, EOPT_CONSTRAINT_EXPR | EOPT_REQUIRES_CLAUSE);
-  if (!discard) {
-    rcp->constraint = make_node_from_operand(&opnd);
+    save_expr_stack(&saved_expr_stack);
+    push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/TRUE);
+    expr_stack_entry.possible_rescan_context = TRUE;
+    if (!token_starts_primary_expression(curr_token)) {
+      pos_error(ec_invalid_start_of_requires_clause_expr, &pos_curr_token);
+    }  /* if */
+    scan_expr(&opnd, PREC_QUEST_MARK,
+              EOPT_CONSTRAINT_EXPR | EOPT_REQUIRES_CLAUSE);
+    check_bool_constraint(&opnd, EOPT_CONSTRAINT_EXPR | EOPT_REQUIRES_CLAUSE);
+    if (!discard) {
+      rcp->constraint = make_node_from_operand(&opnd);
+    } else {
+      reclaim_fs_nodes_of_operand(&opnd);
+    }  /* if */
+    pop_expr_stack();
+    restore_expr_stack(saved_expr_stack);
+    /* Associate with the token sequence number of the "requires" token the
+       sequence number of the token following the requires clause.  This is
+       used to skip the clause in instantiations (see below). */
+    rrd.next_tsn = curr_token_sequence_number;
+    rrd.requires_clause = rcp;
+    (void)requires_ranges->map_or_replace(requires_tsn, rrd);
   } else {
-    reclaim_fs_nodes_of_operand(&opnd);
+    /* Discard the requires clause (presumably because this is a real
+       instantiation).  Retrieve from requires_ranges the token sequence
+       number of the token following the clause.  For trailing requires
+       clauses, that token might have been replaced by a tok_end_of_source
+       entry. */
+    rrd = requires_ranges->get(requires_tsn);
+    check_assertion(rrd.next_tsn != a_token_sequence_number());
+    while (curr_token_sequence_number < rrd.next_tsn &&
+           curr_token != tok_end_of_source) {
+      (void)get_token();
+    }  /* while */
   }  /* if */
-  pop_expr_stack();
-  restore_expr_stack(saved_expr_stack);
   return rcp;
 }  /* scan_requires_clause */
 

@@ -1418,6 +1418,42 @@ Otherwise, set *p_t_params and *p_t_args to NULL.
 }  /* get_substitution_pairs_for_template_class */
 
 
+a_subst_pairs_array get_current_subst_pairs(void)
+/*
+Return an array describing the substitution pairs for the entity currently
+being instantiated.  The caller is responsible for making sure that
+depth_innermost_instantiation_scope is non-NULL.
+FIXME: What should this do with lambdas appearing in templates?
+*/
+{
+  a_subst_pairs_array      result(1);
+  a_scope_stack_entry_ptr  issep;
+  a_symbol_ptr             sym;
+
+  issep = &scope_stack[depth_innermost_instantiation_scope];
+  sym = issep->instance_sym;
+  if (sym != NULL && sym->is_class_member) {
+    a_type_ptr  parent_class = sym_parent_class(sym);
+    do {
+      if (parent_class->variant.class_struct_union.is_template_class) {
+        a_subst_pairs_descr  pspd = { NULL, NULL, FALSE, FALSE };
+        get_substitution_pairs_for_template_class(parent_class, &pspd.params,
+                                                  &pspd.args);
+        result.push_back(pspd);
+      }  /* if */
+      parent_class = parent_class_or_null(parent_class);
+    } while (parent_class != NULL);
+    if (result.length() > 1) {
+      reverse_array(&result[0], result.length());
+    }  /* if */
+  }  /* if */
+  a_subst_pairs_descr  spd = { issep->template_decl_info->parameters,
+                               issep->template_arg_list, FALSE, FALSE };
+  result.push_back(spd);
+  return result;
+}  /* get_current_subst_pairs */
+
+
 static void update_befriending_classes_for_class
                            (a_template_symbol_supplement_ptr tssp,
 			    a_type_ptr                       class_type)
@@ -10228,8 +10264,12 @@ TRUE, issue a diagnostic explaining the failure.
         type_constraint = tp->variant.template_param.extra_info
                             ->constraint.type_constraint;
         if (type_constraint != NULL) {
+          // FIXME: Record all substitution levels
+          a_subst_pairs_array  subst_pairs(1);
+          subst_pairs.push_back(a_subst_pairs_descr{ params, args,
+                                                     FALSE, FALSE });
           if (!check_type_constraint(tap->variant.type, type_constraint,
-                                     args, params, p_diag_list)) {
+                                     subst_pairs, p_diag_list)) {
             if (diagnose) {
               a_diagnostic_ptr  dp;
               a_diag_list       lead_note;
@@ -15590,6 +15630,71 @@ done_with_routine:
   db_exit();
   return new_type;
 }  /* copy_type_with_substitution */
+
+
+a_type_ptr type_after_substitutions(a_type_ptr                 type,
+                                    a_subst_pairs_array const  &subst_pairs,
+                                    a_source_position          *source_pos,
+                                    a_ctws_options_set         options,
+                                    a_boolean                  *copy_error,
+                                    a_ctws_state_ptr           ctws_state)
+/*
+Return the given type after all its template parameters have been substituted
+as described by subst_pairs.  For source_pos, options, copy_error, and
+ctws_state, see copy_type_with_substitution.
+*/
+{
+  int  levels = (int)subst_pairs.length();
+
+  for (int k = 0; k < levels && !*copy_error; ++k) {
+    a_subst_pairs_descr const  *spd = &subst_pairs[k];
+    a_ctws_options_set         all_options = options;
+    if (k < levels-1) all_options |= CTWS_MAY_BE_RESCANNED;
+    type = copy_type_with_substitution(type, spd->args, spd->params,
+                                       source_pos, all_options, copy_error,
+                                       ctws_state);
+  }  /* for */
+  return type;
+}  /* type_after_substitutions */
+
+
+a_template_arg_ptr templ_args_after_substitutions(
+                               a_symbol_ptr               template_sym,
+                               a_template_arg_ptr         arg_list_to_copy,
+                               a_template_param_ptr       param_list_for_copy,
+                               a_template_param_ptr       ttp_list_for_copy,
+                               a_subst_pairs_array const  &subst_pairs,
+                               a_source_position          *source_pos,
+                               a_ctws_options_set         options,
+                               a_boolean                  *copy_error,
+                               a_ctws_state_ptr           ctws_state)
+/*
+Return a copy of arg_list_to_copy with all the substitutions described by
+subst_pairs applied.  For the meaning of the remaining parameters, see
+copy_template_arg_list_with_substitution.
+*/
+{
+  int                 levels = (int)subst_pairs.length();
+  a_template_arg_ptr  new_args;
+
+  check_assertion(levels > 0);
+  for (int k = 0; k < levels && !*copy_error; ++k) {
+    a_subst_pairs_descr const  *spd = &subst_pairs[k];
+    a_ctws_options_set         all_options = options;
+    if (k < levels-1) all_options |= CTWS_MAY_BE_RESCANNED;
+    new_args = copy_template_arg_list_with_substitution(
+                     template_sym,
+                     arg_list_to_copy, param_list_for_copy, ttp_list_for_copy,
+                     spd->args, spd->params,
+                     source_pos, all_options, copy_error, ctws_state);
+    if (k > 0) {
+      /* Free intermediate substituted lists. */
+      free_template_arg_list(arg_list_to_copy);
+    }  /* if */
+    arg_list_to_copy = new_args;
+  }  /* for */
+  return new_args;
+}  /* templ_args_after_substitutions */
 
 
 static a_boolean equiv_substituted_templ_param_lists(

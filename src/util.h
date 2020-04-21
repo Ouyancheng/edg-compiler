@@ -169,6 +169,22 @@ Swap the values pointed to by p1 and p2.
 }  /* swap_at */
 
 
+template<typename an_Object>
+void reverse_array(an_Object  *arr,
+                   a_ptrdiff  length)
+/*
+Reverse the length elements in the given array (or sub-array).
+*/
+{
+  if (length > 1) {
+    an_Object  *left = arr, *right = arr+(length-1);
+    for (; left < right; ++left, --right) {
+      swap_at(left, right);
+    }  /* for */
+  }  /* if */
+}  /* reverse_array */
+
+
 template<typename a_List_elem>
 a_List_elem* reverse_simple_list(a_List_elem  *list)
 /*

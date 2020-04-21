@@ -27,10 +27,6 @@ mem_manage.h -- Declarations relating to mem_manage.c (having to do with
 #include "mem_tables.h"
 #endif /* ifndef MEM_TABLES_H */
 
-#ifndef IL_H
-#include "il.h"
-#endif /* ifndef IL_H */
-
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 

@@ -8418,7 +8418,6 @@ the parameters.
                   state->function_definition_allowed) &&
          !discard_clause && !is_ordinary_member_instantiation)) {
       pos_error(ec_trailing_requires_clause_not_on_template, &pos_curr_token);
-      discard_clause = TRUE;
     }  /* if */
     state->trailing_requires_clause = scan_requires_clause(discard_clause);
     if (is_ordinary_member_instantiation) {

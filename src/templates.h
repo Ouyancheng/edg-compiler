@@ -490,6 +490,10 @@ extern void get_substitution_pairs_for_template_class(
                                            a_type_ptr            class_type,
                                            a_template_param_ptr  *p_t_params,
                                            a_template_arg_ptr    *p_t_args);
+
+extern a_subst_pairs_array get_current_subst_pairs(void);
+
+
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 extern a_src_seq_secondary_decl_ptr
                             secondary_src_seq_for_template(a_template_ptr  tp);
@@ -832,6 +836,24 @@ extern a_type_ptr copy_type_with_substitution(
 			a_boolean			*copy_error,
 			a_ctws_state_ptr		ctws_state);
 
+extern
+a_type_ptr type_after_substitutions(a_type_ptr                 type,
+                                    a_subst_pairs_array const  &subst_pairs,
+			            a_source_position          *source_pos,
+			            a_ctws_options_set         options,
+			            a_boolean                  *copy_error,
+			            a_ctws_state_ptr           ctws_state);
+
+extern a_template_arg_ptr templ_args_after_substitutions(
+                               a_symbol_ptr               template_sym,
+                               a_template_arg_ptr         arg_list_to_copy,
+                               a_template_param_ptr       param_list_for_copy,
+                               a_template_param_ptr       ttp_list_for_copy,
+                               a_subst_pairs_array const  &subst_pairs,
+                               a_source_position          *source_pos,
+                               a_ctws_options_set         options,
+                               a_boolean                  *copy_error,
+                               a_ctws_state_ptr           ctws_state);
 
 extern a_boolean equiv_template_arg_lists(
 				a_template_arg_ptr list1,
@@ -1312,6 +1334,7 @@ extern a_hash_value hash_substitution(a_symbol_ptr        template_sym,
 
 extern a_boolean compare_substituted_type_list_entry(a_void_ptr	entry,
 						     a_void_ptr	key);
+
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

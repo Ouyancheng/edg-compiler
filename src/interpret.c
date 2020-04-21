@@ -3418,7 +3418,7 @@ within the given complete object).
         a_boolean      result = TRUE;
         n_elems = tp->variant.array.variant.number_of_elements;
         elem_size = value_bytes_for_type(ips, etp, &result);
-        check_assertion(result);
+        if (!result) goto done;
         for (k = 0; k<n_elems; k += 1) {
           init_subobject_to_zero(ips, subobj, etp, complete_obj);
           subobj += elem_size;

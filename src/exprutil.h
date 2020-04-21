@@ -3134,16 +3134,50 @@ a_boolean requires_clause_satisfied(an_expr_node_ptr      constraint,
 extern void check_eligibility(a_decl_parse_state  *dps);
 
 extern
-a_boolean check_type_constraint(a_type_ptr            type,
-                                an_expr_node_ptr      constraint,
-                                a_template_arg_ptr    templ_args,
-                                a_template_param_ptr  templ_params,
-                                a_diag_list           *diag_list = NULL);
+a_boolean check_type_constraint(a_type_ptr                 type,
+                                an_expr_node_ptr           constraint,
+                                a_subst_pairs_array const  &subst_pairs,
+                                a_diag_list                *diag_list = NULL);
 
 extern
-a_boolean requires_expr_satisfied(an_expr_node_ptr      expr,
-                                  a_template_arg_ptr    template_arg_list,
-                                  a_template_param_ptr  template_param_list);
+a_boolean requires_expr_satisfied(an_expr_node_ptr           requires_expr,
+                                  a_subst_pairs_array const  &subst_pairs);
+
+
+/*
+Simple structure to track some information associated with "requires" tokens
+in C++20.  Specifically:
+    (a) where the associated construct (requires-clause or requires-expression
+        ends, and
+    (b) the representation of the unsubstituted construct.
+*/
+struct a_requires_range_descr {
+  a_token_sequence_number
+		next_tsn;
+			/* The token sequence number seen after originally
+			   parsing the construct. */
+  union {
+    a_requires_clause_ptr
+		requires_clause;
+			/* The unsubstituted requires-clause. */
+    an_expr_node_ptr
+		requires_expr;
+			/* The unsubstituted requires-expression. */
+  };
+};
+
+typedef Ptr_map<a_token_sequence_number, a_requires_range_descr>
+		a_requires_range_map;
+
+EXTERN a_requires_range_map
+		*requires_ranges;
+			/* A map from the token_sequence_number corresponding
+			   to a tok_requires token for a requires-expression
+			   or requires-clause, to the token sequence number
+			   that follows the corresponding construct.   This is
+			   used to skip over those constructs during
+			   instantiations. */
+
 
 #if DEBUG
 extern void count_rescan_fs_expr_nodes(unsigned long *p_count);

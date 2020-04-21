@@ -24377,35 +24377,6 @@ generate that chart.
   return result;
 }  /* constraint_chart_of */
 
-#if /*FIXME: No longer needed */0
-
-a_boolean is_more_constrained(a_symbol_ptr  sym1,
-                              a_symbol_ptr  sym2)
-/*
-Return TRUE if sym1 is more constrained than sym2.
-*/
-{
-  a_constraint_chart  *chart1, *chart2;
-  a_boolean           result;
-
-  sym1 = fundamental_symbol_of(sym1);
-  sym2 = fundamental_symbol_of(sym2);
-  chart1 = constraint_chart_of(sym1);
-  chart2 = constraint_chart_of(sym2);
-  if (chart1 == UNCONSTRAINED_CHART || chart2 == UNCONSTRAINED_CHART) {
-    /* sym1 is more constrained than sym2 if sym1 has constraints and sym2
-       doesn't. */
-    result = chart1 != UNCONSTRAINED_CHART;
-  } else {
-    /* Both declarations are constrained.  sym1 is more constrained than sym2
-       if its constraints subsumes those of sym2, but not vice versa. */
-    result = subsumes_constraint_chart(chart1, chart2) &&
-             !subsumes_constraint_chart(chart2, chart1);
-  }  /* if */
-  return result;
-}  /* is_more_constrained */
-
-#endif /* 0 */
 
 int compare_constraints(a_symbol_ptr  sym1,
                         a_symbol_ptr  sym2)
@@ -24522,8 +24493,8 @@ subject to SFINAE.
       a_diagnostic_ptr  prev_diags = diag_list->tail;
       an_expr_node_ptr  expr = templ->prototype_instantiation.constraint;
       result = requires_clause_satisfied(expr, new_args, params,
-                                         map_failure_is_fatal, diag_list,
-                                         p_fatal);
+                                         /*map_failure_is_fatal=*/FALSE,
+                                         diag_list, p_fatal);
       if (!result) {
         /* Insert a diagnostic before the ones detailing the constraint
            failure. */
@@ -24670,29 +24641,50 @@ is not satisfied, set dps->ineligible to TRUE.
 }  /* check_eligibility */
 
 
-static a_type_ptr check_requirement_expr(an_expr_node_ptr      req_expr,
-                                         a_template_arg_ptr    templ_args,
-                                         a_template_param_ptr  templ_params,
-                                         a_boolean             *p_is_noexcept)
+static a_type_ptr check_requirement_expr(
+                                    an_expr_node_ptr           req_expr,
+                                    a_subst_pairs_array const  &subst_pairs,
+                                    a_boolean                  *p_is_noexcept)
 /*
-Substitute the given template parameters with the given template arguments in
-the given expression.  If that substitution is invalid, return NULL.
-Otherwise, return the type of the substituted expression.  Set *p_is_noexcept
-to TRUE, unless the substitution was successful and the resulting expression
-is potentially throwing.
+Perform the substitutions indicated by subst_pairs on req_expr.  If that
+substitution is invalid, return NULL.  Otherwise, return the type of the
+substituted expression.  Set *p_is_noexcept to TRUE, unless the substitution
+was successful and the resulting expression is potentially throwing.
 */
 {
   a_type_ptr        result = NULL;
   a_boolean         err = FALSE, is_noexcept = TRUE;
   a_constant_ptr    cp = local_constant(), allocated_cp = NULL;
-  an_expr_node_ptr  expr;
+  an_expr_node_ptr  expr = req_expr;
   a_ctws_state      ctws_state;
+  int               levels = (int)subst_pairs.length();
 
   init_ctws_state(&ctws_state);
-  expr = copy_template_param_expr(
-                         req_expr, templ_args, templ_params, (a_type_ptr)NULL,
-                         &req_expr->position, CTWS_NON_CONSTANT_EXPR, &err,
-                         &ctws_state, cp, &allocated_cp);
+  for (int k = 0; k < levels && !err; ++k) {
+    a_subst_pairs_descr const  *spd = &subst_pairs[k];
+    a_ctws_options_set         options = CTWS_NON_CONSTANT_EXPR;
+    if (k < levels-1) {
+      options |= CTWS_MAY_BE_RESCANNED;
+    }  /* if */
+    if (expr != NULL) {
+      expr = copy_template_param_expr(
+                         expr, spd->args, spd->params, (a_type_ptr)NULL,
+                         &req_expr->position, options, &err, &ctws_state, cp,
+                         &allocated_cp);
+    } else if (allocated_cp != NULL) {
+      allocated_cp = copy_template_param_con(
+                         allocated_cp, spd->args, spd->params,
+                         (a_type_ptr)NULL, &req_expr->position, options, &err,
+                         &ctws_state, cp);
+    } else {
+      a_constant_ptr  src_cp = local_constant();
+      *src_cp = *cp;
+      allocated_cp = copy_template_param_con(
+                         src_cp, spd->args, spd->params, (a_type_ptr)NULL,
+                         &req_expr->position, options, &err, &ctws_state, cp);
+      release_local_constant(&src_cp);
+    }  /* if */
+  }  /* for */
   if (expr != NULL) {
     reclaim_fs_nodes_of_expr_tree(expr);
   }  /* if */
@@ -24715,17 +24707,17 @@ is potentially throwing.
 }  /* check_requirement_expr */
 
 
-a_boolean check_type_constraint(a_type_ptr            type,
-                                an_expr_node_ptr      constraint,
-                                a_template_arg_ptr    templ_args,
-                                a_template_param_ptr  templ_params,
-                                a_diag_list           *diag_list)
+a_boolean check_type_constraint(a_type_ptr                 type,
+                                an_expr_node_ptr           constraint,
+                                a_subst_pairs_array const  &subst_pairs,
+                                a_diag_list                *diag_list)
 /*
 constraint is an enk_concept_id node with a possibly-empty argument list
 <A1, ..., An>.  Let C be the associated concept and T the type represented
 by the given type.  Return TRUE if, after successful substitution of
-<A1, ..., An>, C<T, A1, ..., An> is satisfied.  Return FALSE otherwise and,
-if diag_list is non-NULL, update diag_list accordingly.
+<A1, ..., An> (using the substitutions described by subst_pairs),
+C<T, A1, ..., An> is satisfied.  Return FALSE otherwise and, if diag_list is
+non-NULL, update diag_list accordingly.
 */
 {
   a_boolean           result = TRUE, copy_error = FALSE;
@@ -24741,13 +24733,11 @@ if diag_list is non-NULL, update diag_list accordingly.
   first_arg = alloc_template_arg((a_templ_arg_kind)tak_type);
   first_arg->variant.type = type;
   first_arg->next = constraint->variant.concept_id.args;
-  new_args = copy_template_arg_list_with_substitution(
-                                                  sym, first_arg, params,
-                                                  (a_template_param_ptr)NULL,
-                                                  templ_args, templ_params,
-                                                  &constraint->position,
-                                                  CTWS_NO_OPTIONS,
-                                                  &copy_error, &ctws_state);
+  new_args = templ_args_after_substitutions(sym, first_arg, params,
+                                            (a_template_param_ptr)NULL,
+                                            subst_pairs, &constraint->position,
+                                            CTWS_NO_OPTIONS, &copy_error,
+                                            &ctws_state);
   if (copy_error) {
     result = FALSE;
   } else {
@@ -24765,12 +24755,12 @@ if diag_list is non-NULL, update diag_list accordingly.
 }  /* check_type_constraint */
 
 
-a_boolean requires_expr_satisfied(an_expr_node_ptr      requires_expr,
-                                  a_template_arg_ptr    templ_args,
-                                  a_template_param_ptr  templ_params)
+a_boolean requires_expr_satisfied(an_expr_node_ptr           requires_expr,
+                                  a_subst_pairs_array const  &subst_pairs)
 /*
-The given node is a requires-expression.  Return TRUE if substituting the given
-template arguments for the given parameters is successful.
+The given node is a requires-expression.  Return TRUE if substituting the
+template arguments of subst_pairs for the corresponding parameters of
+subst_pairs is successful.
 */
 {
   a_boolean         result = TRUE;
@@ -24781,15 +24771,12 @@ template arguments for the given parameters is successful.
       case enk_type_operand:
         { a_type_ptr          tp = req->variant.type_operand.type;
           a_boolean           copy_error = FALSE;
-          a_ctws_options_set  ctws_options = CTWS_NO_OPTIONS;
           a_ctws_state        ctws_state;
           init_ctws_state(&ctws_state);
-          (void)copy_type_with_substitution(tp, templ_args, templ_params,
-                                            &req->position, ctws_options,
-                                            &copy_error, &ctws_state);
-          if (copy_error) {
-            result = FALSE;
-          }  /* if */
+          tp = type_after_substitutions(tp, subst_pairs, &req->position,
+                                        CTWS_NO_OPTIONS, &copy_error,
+                                        &ctws_state);
+          if (copy_error) result = FALSE;
         }
         break;
       case enk_compound_req:
@@ -24797,18 +24784,17 @@ template arguments for the given parameters is successful.
           an_expr_node_ptr  req_expr =
                                 req->variant.compound_req.expr_and_constraint;
           a_type_ptr        expr_type;
-          expr_type = check_requirement_expr(req_expr, templ_args,
-                                             templ_params, &is_noexcept);
+          expr_type = check_requirement_expr(req_expr, subst_pairs,
+                                             &is_noexcept);
           if (expr_type == NULL) {
             result = FALSE;
           } else if (req->variant.compound_req.is_noexcept && !is_noexcept) {
             result = FALSE;
           } else {
             /* Check the type constraint. */
-            an_expr_node_ptr  req_constr = req_expr->next;
+            an_expr_node_ptr      req_constr = req_expr->next;
             if (req_constr != NULL &&
-                !check_type_constraint(expr_type, req_constr,
-                                       templ_args, templ_params)) {
+                !check_type_constraint(expr_type, req_constr, subst_pairs)) {
               result = FALSE;
             }  /* if */
           }  /* if */
@@ -24816,6 +24802,11 @@ template arguments for the given parameters is successful.
         break;
       case enk_nested_req:
         { a_diag_list  diag_list;
+          a_template_param_ptr  templ_params;
+          a_template_arg_ptr    templ_args;
+          // FIXME: Should consider all levels...
+          templ_params = subst_pairs.back_elem().params;
+          templ_args = subst_pairs.back_elem().args;
           clear_diag_list(&diag_list);
           result = requires_clause_satisfied(
                                   req->variant.nested_req.constraint,
@@ -24826,8 +24817,7 @@ template arguments for the given parameters is successful.
         break;
       default:
         { a_boolean  is_noexcept;
-          if (check_requirement_expr(req, templ_args, templ_params,
-                                     &is_noexcept) == NULL) {
+          if (check_requirement_expr(req, subst_pairs, &is_noexcept) == NULL) {
             result = FALSE;
           }  /* if */
         }
@@ -24840,14 +24830,12 @@ template arguments for the given parameters is successful.
        appears to be common practice.) */
     a_param_type_ptr    ptp = requires_expr->variant.requires_expr.parameters;
     a_boolean           copy_error = FALSE;
-    a_ctws_options_set  ctws_options = CTWS_NO_OPTIONS;
     a_ctws_state        ctws_state;
     init_ctws_state(&ctws_state);
     for (; ptp != NULL; ptp = ptp->next) {
       a_type_ptr  tp = param_type_restoring_orig_templ_array(ptp);
-      tp = copy_type_with_substitution(tp, templ_args, templ_params,
-                                       &req->position, ctws_options,
-                                       &copy_error, &ctws_state);
+      tp = type_after_substitutions(tp, subst_pairs, &req->position,
+                                    CTWS_NO_OPTIONS, &copy_error, &ctws_state);
       if (copy_error) break;
       adjust_parameter_type(&tp);
       if (is_invalid_parameter_type(tp)) {
@@ -24979,6 +24967,7 @@ Do one-time initialization of variables related to expression processing.
   register_trans_unit_variable(imaginary_unit);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   register_trans_unit_variable(pending_consteval_failure);
+  register_trans_unit_variable(requires_ranges);
 #if SEQUENCING_DIAGNOSTICS_ENABLED
   sequencing_diagnostics_enabled = is_effective_diagnostic(
                                                 ec_unsequenced_use_of_variable,
@@ -25009,6 +24998,8 @@ re-initialized for each translation unit.
   internal_opnd_array = NULL;
   n_internal_opnds = 0;
   pending_consteval_failure.routine = NULL;
+  requires_ranges = alloc_fe_of_type(a_requires_range_map);
+  construct(requires_ranges, /*mask_width=*/10);
 }  /* expr_trans_unit_init */
 
 
