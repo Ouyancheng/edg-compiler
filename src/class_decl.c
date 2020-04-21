@@ -24847,42 +24847,17 @@ declaration from a using-declaration.)
           if (bcp == NULL) {
             pos_error(ec_bad_base_class, &error_position);
             err = TRUE;
-          } else if (bcp->ambiguous) {
-            /* The base class is ambiguous, but only issue an error if the
-               member itself is ambiguous -- that is, the member must be
-               either a field or a nonstatic member function or an overload
-               set containing at least one nonstatic member function. */
-            sym = fund_sym;
-            if (sym->kind == (a_symbol_kind)sk_field) {
-              /* A field in an ambiguous base class is ambiguous. */
-              err = TRUE;
-            } else {
-              if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-                if (sym->variant.overloaded_function.mixed_static_nonstatic) {
-                  /* There must be at least one nonstatic member function in
-                     this overload set. */
-                  err = TRUE;
-                } else {
-                  /* Either all are static or all are nonstatic.  Decide which
-                     by looking at the first in the list. */
-                  sym = sym->variant.overloaded_function.symbols;
-                  sym = fundamental_symbol_of(sym);
-                }  /* if */
-              }  /* if */
-              if (sym->kind == (a_symbol_kind)sk_member_function &&
-                  routine_type_is_nonstatic_member_function(
-                                                  routine_symbol_type(sym))) {
-                /* A nonstatic member function in an ambiguous base classes is
-                   ambiguous. */
-                err = TRUE;
-              }  /* if */
+          } else {
+            /* We do not check for an ambiguous base class at this point.
+               Such a check is only needed if a derived to base conversion
+               is needed later (i.e., if the access is to a nonstatic
+               data member or nonstatic function). */
+            if (!(bcp->direct || any_cfront_mode() || gpp_mode ||
+                  (microsoft_mode && microsoft_version > 1200))) {
+              /* Base class members designated in a using-declaration must be
+                 visible in the scope of at least one direct base class. */
+              check_member_using_visibility(class_type, fund_sym, &err);
             }  /* if */
-            if (err) sym_error(ec_ambiguous_name, declared_sym);
-          } else if (!(bcp->direct || any_cfront_mode() || gpp_mode ||
-                       (microsoft_mode && microsoft_version > 1200))) {
-            /* Base class members designated in a using-declaration must be
-               visible in the scope of at least one direct base class. */
-            check_member_using_visibility(class_type, fund_sym, &err);
           }  /* if */
         }  /* if */
       }  /* if */

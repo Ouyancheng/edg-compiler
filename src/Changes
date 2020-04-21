@@ -1,5 +1,29 @@
 Version 6.1
 
+4/21/20  [EDGcpfe/22607]
+using-declaration of ambiguous base class member diagnosed only on use
+
+A using-declaration that refers to a member of an ambiguous base class
+should not result in an error at the point of the using-declaration,
+only at the point at which the use of the base class member would require
+a derived-to-base conversion to the ambiguous base class.  Formerly, an
+error was incorrectly issued on the using declaration.  Now fixed.  In
+addition, the diagnostic issued on the use now mentions the ambiguous
+base class instead of simply saying (for the example below) that D::i
+is ambiguous.
+
+  struct A {
+    int i;
+  };
+  struct B : A { };
+  struct C : A { };
+  struct D : B, C {
+    using A::i;  // error formerly issued here
+  };
+  D d;
+  int i = d.i;  // error still issued here (but different error)
+
+
 4/17/20  [EDGcpfe/22272]
 Template rescan treating builtin binary operators as unary
 
