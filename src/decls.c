@@ -9336,6 +9336,9 @@ for use in generating cross-reference output describing this declaration.
            have been changed by the call to reconcile_routine_types). */
         routine_ptr->type = *old_type;
         new_rp->next = NULL;
+        if (storage_class == (a_storage_class)sc_static) {
+          new_rp->storage_class = storage_class;
+        }  /* if */
         new_rp->gnu_extra_info = NULL;
         new_rp->source_corresp.decl_position = locator->source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
