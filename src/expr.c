@@ -14910,7 +14910,8 @@ function memory region.  For example:
   if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
     result = depth_innermost_function_scope;
   } else if (inside_local_class) {
-    while (scope_stack[result].depth_innermost_function_scope ==
+    while (result != NO_SCOPE_DEPTH &&
+           scope_stack[result].depth_innermost_function_scope ==
                                                              NO_SCOPE_DEPTH) {
       if (scope_is(&scope_stack[result], sck_template_instantiation)) {
         /* This is presumably a generic lambda instantiation: Skip the whole
@@ -14921,7 +14922,13 @@ function memory region.  For example:
         result = scope_stack[result].previous_scope;
       }  /* if */
     }  /* while */
-    result = scope_stack[result].depth_innermost_function_scope;
+    if (result == NO_SCOPE_DEPTH) {
+      /* This can happen if an instantiation scope for a lambda has been
+         pushed but the function scope for the call operator has not yet. */
+      result = DEPTH_OF_FILE_SCOPE;
+    } else {
+      result = scope_stack[result].depth_innermost_function_scope;
+    }  /* if */
   }  /* if */
   return result;
 }  /* scope_depth_to_allocate_decltype_expr */

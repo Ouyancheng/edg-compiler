@@ -1,5 +1,21 @@
 Version 6.1
 
+4/21/20  [EDGcpfe/22642]
+Invalid memory reference on rescan of decltype in non-local generic lambda
+
+During the rescan of a decltype expression in the function type of a generic
+lambda that was not declared in a local scope, an invalid scope stack index
+could be used in scope_depth_to_allocate_decltype_expr.  This was observed
+to sometimes cause an abort in switch_to_scope_region_and_lifetime.  Now
+fixed.
+
+  auto f() {
+    auto l = [](auto t) -> decltype(t) { return 0; };
+    return l;
+  }
+  auto x = f()(1);
+
+
 4/21/20  [EDGcpfe/22607]
 using-declaration of ambiguous base class member diagnosed only on use
 
