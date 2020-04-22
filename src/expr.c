@@ -45899,7 +45899,6 @@ expression.
                   /*suppress_object_lifetime=*/TRUE);
   expr_stack_entry.possible_rescan_context = TRUE;
   scan_expr(&opnd, PREC_QUEST_MARK, EOPT_CONSTRAINT_EXPR);
-  check_bool_constraint(&opnd, EOPT_CONSTRAINT_EXPR);
   result_node = make_node_from_operand(&opnd);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
