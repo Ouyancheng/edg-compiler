@@ -19981,8 +19981,6 @@ this one is such a continuation.
       } else {
         write_tok_str("constexpr ");
       }  /* if */
-    } else if (var->declared_constinit) {
-      write_tok_str((!gpp_mode || cpp20_mode) ? "constinit " : "__constinit ");
     }  /* if */
     if (var->is_inline) {
       write_tok_str("inline ");
