@@ -4306,7 +4306,9 @@ Sentence containing keyword.
       cache_token(cache, tok_int64, &pos);
       break;
     case ifc_SourceKeyword_MsvcInt128:
+#if INT128_EXTENSIONS_ALLOWED
       cache_token(cache, tok_int128, &pos);
+#endif /* INT128_EXTENSIONS_ALLOWED */
       break;
     case ifc_SourceKeyword_MsvcInterface:
       cache_token(cache, tok_interface, &pos);
@@ -4770,7 +4772,9 @@ of the entity referring to the type.
                 cache_token(cache, tok_int64, &pos);
                 break;
               case ifc_TypePrecision_Bit128:
+#if INT128_EXTENSIONS_ALLOWED
                 cache_token(cache, tok_int128, &pos);
+#endif /* INT128_EXTENSIONS_ALLOWED */
                 break;
               default:
                 unexpected_condition();
