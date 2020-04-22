@@ -9917,6 +9917,47 @@ the consteval specifier.  Issue an error if the specifier is not applicable.
 }  /* check_use_of_consteval */
 
 
+static void check_use_of_constinit(a_decl_parse_state  *dps)
+/*
+Callback routine called at the end of processing for a declaration containing
+the constinit specifier.  Issue an error if the specifier is not applicable.
+Otherwise, mark the associated variable as having been declared with
+"constinit".
+*/
+{
+  a_symbol_ptr   sym = dps->sym;
+
+  if (sym == NULL) {
+    /* No declaration is associated with "constinit": Issue an error. */
+    pos_error(ec_invalid_constinit, &dps->constexpr_pos);
+  } else if (sym->is_error ||
+             (dps->type != NULL && is_error_type(dps->type))) {
+    /* An error has presumably already been reported for this declaration.
+       An additional error is unlikely to be helpful. */
+    expect_error();
+  } else {
+    a_variable_ptr  vp = variable_for_symbol(sym);
+    if (vp == NULL) {
+      /* Only variables and static data members can be declared "constinit". */
+      pos_error(ec_invalid_constinit, &dps->constexpr_pos);
+    } else if (!var_has_static_or_thread_storage_duration(vp)) {
+      pos_error(ec_constinit_variable_storage, &dps->constexpr_pos);
+      vp->declared_constinit = FALSE;
+    } else {
+      an_init_kind        init_kind;
+      an_initializer_ptr  initializer;
+      get_variable_initializer(vp, (a_scope*)NULL, &init_kind, &initializer);
+      if (init_kind == (an_init_kind)initk_dynamic) {
+        pos_error(ec_constinit_variable_has_dynamic_init, &dps->constexpr_pos);
+        vp->declared_constinit = FALSE;
+      } else {
+        vp->declared_constinit = TRUE;
+      }  /* if  */
+    }  /* if  */
+  }  /* if */
+}  /* check_use_of_constinit */
+
+
 static void apply_c11_noreturn(a_decl_parse_state  *dps)
 /*
 Callback routine called at the end of processing for a declaration containing
@@ -10945,6 +10986,24 @@ storage_class_specifier:
           *output_flags |= DSO_CONSTEVAL;
           state->constexpr_pos = pos_curr_token;
           add_end_of_parse_action(check_use_of_consteval, state,
+                                  /*secondary_decls=*/TRUE);
+        }  /* if */
+        break;
+      case tok_constinit:
+        if (is_parameter) {
+          /* "consteval" may not appear in a function parameter declaration. */
+          pos_error(ec_bad_param_specifier, &error_position);
+          err = TRUE;
+        } else if (decl_specifiers_seen & DS_CONSTEXPR) {
+          pos_error((*output_flags & DSO_CONSTINIT) ?
+                                        ec_dupl_decl_specifier :
+                                        ec_constexpr_and_consteval_specifiers,
+                    &error_position);
+        } else {
+          decl_specifiers_seen |= DS_CONSTEXPR;
+          *output_flags |= DSO_CONSTINIT;
+          state->constexpr_pos = pos_curr_token;
+          add_end_of_parse_action(check_use_of_constinit, state,
                                   /*secondary_decls=*/TRUE);
         }  /* if */
         break;

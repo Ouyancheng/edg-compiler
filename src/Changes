@@ -1,5 +1,17 @@
 Version 6.1
 
+4/22/20  [EDGcpfe/21592,EDGcpfe/22467]
+C++20: constinit
+
+The front end now supports the "constinit" specifier in C++20 modes.  It is
+used to enforce static initialization of variable with static or thread
+storage duration.  For example:
+
+  constinit int x = 42;   // Okay.
+  int f();
+  constinit int y = f();  // Error: dynamic initialization.
+
+
 4/21/20  [EDGcpfe/21168]
 Weak diagnostic on static/extern mismatch
 

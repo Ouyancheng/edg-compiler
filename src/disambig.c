@@ -722,6 +722,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       /* Other specifiers. */
       case tok_constexpr:
       case tok_consteval:
+      case tok_constinit:
         break;
       /* Friend and typedef. */
       case tok_friend:

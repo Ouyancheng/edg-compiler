@@ -5694,6 +5694,13 @@ returned set to TRUE.
            is_integral_or_enum_type(vp->type)) ||
           is_any_reference_type(vp->type)) {
         is_constant_evaluated = TRUE;
+        if (dps->dso_flags & DSO_CONSTINIT) {
+          /* Set the "declared_constinit" flag, which will prevent the
+             interpreter from forcing static initialization for expressions
+             that it can fold, but which aren't actually constant according to
+             the standard. */
+          vp->declared_constinit = TRUE;
+        }  /* if */
       }  /* if */
       clear_diag_list(&diag_list);
       if (init_dip->variable == NULL) init_dip->variable = vp;

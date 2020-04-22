@@ -1358,6 +1358,9 @@ Install the keywords in the symbol table.
     if (consteval_enabled) {
       enter_keyword((a_token_kind)tok_consteval, "consteval");
     }  /* if */
+    if (constinit_enabled) {
+      enter_keyword((a_token_kind)tok_constinit, "constinit");
+    }  /* if */
     if (alignas_enabled) {
       enter_keyword((a_token_kind)tok_alignas, "alignas");
     }  /* if */

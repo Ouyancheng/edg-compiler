@@ -1280,6 +1280,7 @@ typedef enum /*a_token_kind*/ {
   tok_noexcept,
   tok_constexpr,
   tok_consteval,
+  tok_constinit,
   tok_alignof,
   tok_alignas,
 #if GNU_EXTENSIONS_ALLOWED
@@ -1484,6 +1485,7 @@ EXTERN a_const_char
    "noexcept",
    "constexpr",
    "consteval",
+   "constinit",
    "alignof",
    "alignas",
 #if GNU_EXTENSIONS_ALLOWED
@@ -10509,6 +10511,9 @@ typedef struct a_variable {
 			/* TRUE if this is a static data member declared with
 			   the "constexpr" specifier, or if this is another
 			   kind of variable defined with that specifier. */
+  a_bit_field	declared_constinit:1;
+			/* TRUE if this entity was declared with the C++20
+			   "constinit" keyword. */
   a_bit_field	is_inline:1;
 			/* TRUE if this is an inline variable (C++17).  This
 			   may be explicitly set or implicitly set (because

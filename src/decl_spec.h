@@ -399,7 +399,10 @@ extern void decl_spec_one_time_init(void);
 #define DSO_CONSTEVAL 		((a_decl_flag_set)0x100000)
 			/* If this bit is set the specifier "consteval" was
 			   found. */
-#define DSO_THREAD_LOCAL 	((a_decl_flag_set)0x200000)
+#define DSO_CONSTINIT 		((a_decl_flag_set)0x200000)
+			/* If this bit is set the specifier "constinit" was
+			   found. */
+#define DSO_THREAD_LOCAL 	((a_decl_flag_set)0x400000)
 			/* If this bit is set the storage class specifier
 			   "local_thread" was found. */
 #define DSO_LAST DSO_THREAD_LOCAL

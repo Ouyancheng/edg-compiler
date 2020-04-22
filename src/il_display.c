@@ -2995,6 +2995,9 @@ Display the indicated variable.
   if (ptr->is_constexpr) {
     disp_boolean("is_constexpr", TRUE);
   }  /* if */
+  if (ptr->declared_constinit) {
+    disp_boolean("declared_constinit", TRUE);
+  }  /* if */
   if (ptr->is_inline) {
     disp_boolean("is_inline", TRUE);
   }  /* if */

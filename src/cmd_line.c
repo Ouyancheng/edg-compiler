@@ -2820,6 +2820,7 @@ option values if they were not already set by a command line option.
         /* Visual Studio 2019 version 16.6. */
         if (ms_cpp20_mode) {
           consteval_enabled = TRUE;
+          constinit_enabled = TRUE;
         }  /* if */
       }  /* if */
     } else {
@@ -3650,6 +3651,7 @@ default mode (e.g., exception handling).
         constexpr_try_enabled = TRUE;
         constexpr_dynamic_alloc_enabled = TRUE;
         consteval_enabled = TRUE;
+        constinit_enabled = TRUE;
         if (!coroutines_enabled) {
           /* This may have been enabled already via --set_flag; we don't want
              to override that. */
@@ -11708,6 +11710,7 @@ variables declared in cmd_line.h.
   inheriting_constructors_enabled = FALSE;
   constexpr_enabled = FALSE;
   consteval_enabled = FALSE;
+  constinit_enabled = FALSE;
   relaxed_constexpr_enabled = FALSE;
   constexpr_virtual_enabled = FALSE;
   constexpr_try_enabled = FALSE;

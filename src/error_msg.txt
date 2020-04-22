@@ -3002,7 +3002,7 @@ ec_selection_initializer_nonstandard;;"C++17-style initializer is nonstandard in
 ec_star_this_capture_nonstandard;;"capturing *this is nonstandard in this mode"
 ec_using_attribute_nonstandard;;"C++17-style \"using\" attribute prefix is nonstandard in this mode"
 ec_nested_namespace_nonstandard;;"C++17-style nested namespaces are nonstandard in this mode"
-ec_constexpr_and_consteval_specifiers;;"\"constexpr\" and \"consteval\" cannot both appear on a declaration"
+ec_constexpr_and_consteval_specifiers;;"only one of \"constexpr\", \"consteval\", and \"constinit\" can appear on a declaration"
 ec_consteval_virtual_combination;;"a function cannot be both consteval and virtual in this mode"
 ec_consteval_explicit_instantiation;;"\"consteval\" is not allowed on an explicit instantiation directive"
 ec_invalid_consteval;;"\"consteval\" is not valid here"
@@ -3192,6 +3192,9 @@ ec_export_internal_linkage;;"an export declaration cannot export a name with int
 ec_export_internal_linkage_using_sym;INTERNAL;"using declaration includes %nfd"
 ec_builtin_needs_fp16;;"builtin function is not available because __fp16 floating-point types are not supported"
 ec_empty_requires_expression;;"a requires-expression must specify at least one requirement"
+ec_invalid_constinit;;"\"constinit\" is not valid here"
+ec_constinit_variable_storage;;"\"constinit\" is only valid for declarations of variables with static or thread storage duration"
+ec_constinit_variable_has_dynamic_init;;"constinit variable requires dynamic initialization"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

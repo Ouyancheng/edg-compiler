@@ -1124,7 +1124,7 @@ and associated routines.
          is_type_keyword(curr_token) && next_token() == tok_lbrace)) ||
       is_type_qualifier() || is_function_specifier() ||
       curr_token == tok_constexpr || curr_token == tok_consteval ||
-      curr_token == tok_friend) {
+      curr_token == tok_constinit || curr_token == tok_friend) {
     is_start = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cli_or_cx_enabled && is_expr_context && is_type_keyword(curr_token) &&

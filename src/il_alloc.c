@@ -2611,6 +2611,7 @@ Clear the fields of the given variable to default values.
   vp->is_anonymous_parent_object  = FALSE;
   vp->is_member_constant          = FALSE;
   vp->is_constexpr                = FALSE;
+  vp->declared_constinit          = FALSE;
   vp->is_inline                   = FALSE;
   vp->on_inline_variable_list     = FALSE;
   vp->suppress_inline_definition  = FALSE;

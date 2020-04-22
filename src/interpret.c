@@ -17959,7 +17959,7 @@ if the caller has determined that reinterpret_cast expressions can be folded
     result_storage = do_constexpr_alloc_variable(&ips, vp, &result);
     if (var_has_static_storage_duration(vp)) {
       ips.static_lifetime_init = TRUE;
-      if (!vp->is_constexpr) {
+      if (!vp->is_constexpr && !vp->declared_constinit) {
         /* For non-constexpr variables, allow some reinterpret_cast constructs
            in "constant expressions".  That causes us to sometimes promote to
            "static initialization" what would otherwise be a "dynamic
@@ -17970,7 +17970,11 @@ if the caller has determined that reinterpret_cast expressions can be folded
                  int aligner;
                } u;
                X &r = reinterpret_cast<X&>(u.buf); // (1)
-           Initialization (1) will be treated as a static initialization. */
+           Initialization (1) will be treated as a static initialization.
+           In this context, "constinit" variables are treated as "constexpr"
+           variables: We don't want to accept a "constant-initialized"
+           constinit variables whose initializer aren't really constant
+           expressions (in the standard sense). */
         ips.allow_reinterpret_cast = TRUE;
       }  /* if */
     }  /* if */

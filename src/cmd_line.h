@@ -569,6 +569,11 @@ EXTERN a_boolean
 			   feature). */
 
 EXTERN a_boolean
+		constinit_enabled;
+			/* TRUE if constinit variables are accepted (a C++20
+			   feature). */
+
+EXTERN a_boolean
 		relaxed_constexpr_enabled;
 			/* TRUE if the constexpr constraint relaxation allowed
 			   by C++14 is enabled (this, e.g., allows loop
