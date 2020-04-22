@@ -37204,6 +37204,7 @@ Record the representation or the requires-expression in *result.
     } else {
       an_expr_node  *node = alloc_expr_node((an_expr_node_kind)enk_requires),
                     **p_last_req = &node->variant.requires_expr.requirements;
+      a_boolean     nondependent_val = TRUE;
       node->variant.requires_expr.parameters = params;
       if (curr_token == tok_rbrace) {
         expr_pos_diagnostic(es_discretionary_error,
@@ -37216,6 +37217,15 @@ Record the representation or the requires-expression in *result.
             break;
           case tok_lbrace:
             *p_last_req = scan_compound_requirement(&is_dependent);
+            if (!is_dependent &&
+                (*p_last_req)->variant.compound_req.is_noexcept) {
+              /* A nondependent compound requirement can make the expression
+                 have a false value if it fails the noexcept constraint. */
+              if (expr_might_throw(
+                   (*p_last_req)->variant.compound_req.expr_and_constraint)) {
+                nondependent_val = FALSE;
+              }  /* if */
+            }  /* if */
             break;
           case tok_requires:
             *p_last_req = scan_nested_requirement(&is_dependent);
@@ -37243,8 +37253,10 @@ done_with_requirements:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       (void)required_token(tok_rbrace, ec_exp_rbrace);
       if (!is_dependent) {
-        /* A non-dependent requires-expression is a "true" constant. */
-        make_integer_constant_operand(result, (a_host_large_integer)1);
+        /* A non-dependent requires-expression is usually a "true" constant,
+           but it can be "false" if a noexcept constraint failed. */
+        make_integer_constant_operand(result,
+                                      (a_host_large_integer)nondependent_val);
         result->type = bool_type();
         result->variant.constant.type = result->type;
         result->variant.constant.expr = node;
