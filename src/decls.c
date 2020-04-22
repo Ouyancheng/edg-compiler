@@ -7329,16 +7329,18 @@ for use in generating cross-reference output describing this declaration.
       dps->first_decl = TRUE;
     }  /* if */
   } else {
+    a_boolean  suppress_linkage_diagnostic =
+                   linked_redecl_error || dps->declared_storage_class ==
+                                              (a_storage_class)sc_unspecified;
     /* There is an existing IL entry that we are reusing. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     linked_to_previous_variable = TRUE;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Check for internal linkage on the old but not the new, or
        vice-versa. */
-    check_for_linkage_conflict(&variable_ptr->storage_class,
-                               &linkage, &storage_class,
-                               &locator->source_position,
-                               /*suppress_diagnostic=*/linked_redecl_error);
+    check_for_linkage_conflict(&variable_ptr->storage_class, &linkage,
+                               &storage_class, &locator->source_position,
+                               suppress_linkage_diagnostic);
     if (variable_ptr->is_thread_local !=
         ((dps->dso_flags & DSO_THREAD_LOCAL) == DSO_THREAD_LOCAL)) {
       /* If "thread_local" is specified on one declaration, it must be
@@ -9841,7 +9843,8 @@ skip_overloading:;
     /* There is an existing IL entry that we are reusing. */
     /* Check for internal linkage on the old but not the new, or
        vice-versa. */
-    a_boolean suppress_diagnostic = linked_redecl_error;
+    a_boolean suppress_linkage_diagnostic = linked_redecl_error ||
+                                            is_guiding_decl;
 
     if (routine_ptr->compiler_generated) {
       /* This is an entry for an intrinsic function or operator (e.g., the
@@ -9856,7 +9859,7 @@ skip_overloading:;
       dps->first_decl = TRUE;
       dps->first_decl_of_predeclared_entity = TRUE;
       /* Don't diagnose linkage mismatches either. */
-      suppress_diagnostic = TRUE;
+      suppress_linkage_diagnostic = TRUE;
       /* Record the new source position, both in the symbol and in the
          routine entry (but update the symbol position later, so redeclaration
          diagnostics come out right in what follows). */
@@ -9901,7 +9904,7 @@ skip_overloading:;
     {
       check_for_linkage_conflict(&routine_ptr->storage_class, &linkage,
                                  &storage_class, &locator->source_position,
-                                 suppress_diagnostic || is_guiding_decl);
+                                 suppress_linkage_diagnostic);
       if (linkage != idlb.linkage) {
         /* The linkage has been changed, so change the "name linkage", too. */
         idlb.linkage = linkage;
