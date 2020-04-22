@@ -18,7 +18,7 @@ ifc_modules.h -- Declarations relating to ifc_modules.c (having to do with
 #ifndef IFC_MODULES_H
 #define IFC_MODULES_H 1
 
-#include <decls.h>
+#include "decls.h"
 
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE

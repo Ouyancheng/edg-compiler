@@ -3602,7 +3602,9 @@ Sentence containing directive.
       cache_pragma(cache, pk_push_macro, &pos);
       break;
     case ifc_SourceDirective_MsvcPragmaSetlocale:
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
       cache_pragma(cache, pk_setlocale, &pos);
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
       break;
     case ifc_SourceDirective_MsvcPragmaStartMapRegion:
       cache_pragma(cache, pk_start_map_region, &pos);
