@@ -17711,6 +17711,7 @@ template declaration and is NULL otherwise.
     var->init_kind = (an_init_kind)initk_static;
     var->initializer.constant = alloc_error_constant();
   } else if (var->is_inline) {
+    if (decl_state->dso_flags & DSO_CONSTINIT) var->declared_constinit = TRUE;
     if (is_any_reference_type(var->type)) {
       /* An inline static data member is a definition and thus a reference
          must be initialized. */

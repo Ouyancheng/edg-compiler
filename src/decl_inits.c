@@ -5722,7 +5722,7 @@ returned set to TRUE.
         }  /* if */
       } else {
         if (dps->init_state.initializer_must_be_constant ||
-            is_consteval_init) {
+            is_consteval_init || vp->declared_constinit) {
           /* A constant was required: Issue a diagnostic. */
           a_diagnostic_ptr  dp;
           dp = pos_start_error(ec_expr_not_constant, &pos_first_token);
@@ -6593,7 +6593,7 @@ FALSE is returned) for non-class objects.
             switch_back_to_original_region(region_to_switch_back_to);
           }  /* if */
         }  /* if */
-      } else if (var->is_constexpr) {
+      } else if (var->is_constexpr || var->declared_constinit) {
         check_assertion_or_expect_error(!has_nontrivial_destructor(cssp) ||
                                         constexpr_dynamic_alloc_enabled);
         if (ctor == NULL && dtor == NULL) {

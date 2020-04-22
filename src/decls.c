@@ -18979,6 +18979,7 @@ if one is present.
        the initializer. */
     a_boolean	def_init_okay, sym_invisible = state->sym->is_invisible;
     if (gpp_mode) state->sym->is_invisible = TRUE;
+    if (state->dso_flags & DSO_CONSTINIT) var_ptr->declared_constinit = TRUE;
     def_init_okay = def_initializer(state->sym, &locator->source_position);
     state->type = var_ptr->type;
     if (gpp_mode) state->sym->is_invisible = sym_invisible;

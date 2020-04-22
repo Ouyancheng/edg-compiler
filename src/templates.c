@@ -6218,6 +6218,7 @@ user later during real instantiations.
     a_boolean	def_init_okay;
     /* There's no explicit initializer.  See if the static data member
        can be default-initialized. */
+    if (dps->dso_flags & DSO_CONSTINIT) var_ptr->declared_constinit = TRUE;
     def_init_okay = def_initializer(proto_sym,
                                     &proto_sym->decl_position);
     if (!def_init_okay) {
@@ -7353,6 +7354,7 @@ expression context) rather than a declaration.
     if (var_ptr->storage_class == (a_storage_class)sc_extern) {
       var_ptr->storage_class = (a_storage_class)sc_unspecified;
     }  /* if */
+    if (dps.dso_flags & DSO_CONSTINIT) var_ptr->declared_constinit = TRUE;
     /* There's no explicit initializer.  See if the variable can be
        default-initialized. */
     def_init_okay = def_initializer(var_sym,
@@ -31104,6 +31106,9 @@ that follows.
               a_boolean	def_init_okay;
               /* There's no explicit initializer.  See if the static data
                  member can be default-initialized. */
+              if (dps->dso_flags & DSO_CONSTINIT) {
+                vp->declared_constinit = TRUE;
+              }  /* if */
               def_init_okay = def_initializer(sym, &sym->decl_position);
               if (!def_init_okay) {
                 /* It could not be default initialized.  See if an initializer

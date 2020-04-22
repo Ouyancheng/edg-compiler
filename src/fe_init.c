@@ -1360,6 +1360,9 @@ Install the keywords in the symbol table.
     }  /* if */
     if (constinit_enabled) {
       enter_keyword((a_token_kind)tok_constinit, "constinit");
+      if (gpp_version_is(>= 100000)) {
+        enter_keyword((a_token_kind)tok_constinit, "__constinit");
+      }  /* if */
     }  /* if */
     if (alignas_enabled) {
       enter_keyword((a_token_kind)tok_alignas, "alignas");
