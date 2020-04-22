@@ -11,6 +11,9 @@ storage duration.  For example:
   int f();
   constinit int y = f();  // Error: dynamic initialization.
 
+In GNU C++ modes (even non-C++20 modes), the __constinit keyword is accepted
+with similar semantics.
+
 
 4/21/20  [EDGcpfe/21168]
 Weak diagnostic on static/extern mismatch
