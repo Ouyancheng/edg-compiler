@@ -37,7 +37,7 @@ A using-declaration that refers to a member of an ambiguous base class
 should not result in an error at the point of the using-declaration,
 only at the point at which the use of the base class member would require
 a derived-to-base conversion to the ambiguous base class.  Formerly, an
-error was incorrectly issued on the using declaration.  Now fixed.  In
+error was incorrectly issued on the using-declaration.  Now fixed.  In
 addition, the diagnostic issued on the use now mentions the ambiguous
 base class instead of simply saying (for the example below) that D::i
 is ambiguous.
