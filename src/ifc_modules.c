@@ -2379,7 +2379,7 @@ Process the DeclSort::Template entry corresponding to the given module entity.
   a_type_ptr          type;
   a_non_type_kind     non_type_kind;
   a_boolean           is_alias_decl = FALSE;
-  a_boolean           is_redecl = FALSE, bad_sym = FALSE;
+  a_boolean           is_redecl = FALSE;
   a_symbol_ptr        sym, orig_decl_sym = NULL;
   a_template_symbol_supplement_ptr
                       tssp, orig_decl_tssp;
@@ -2935,7 +2935,6 @@ appropriate non-type kind and return NULL.
           a_module_entity_ptr        dmep;
 
           itsdp = get_TypeSort_Designated(&itsd);
-          ifc_DeclSort ds = decl_tag(itsdp->decl);
           if (decl_tag(itsdp->decl) == ifc_DeclSort_Reference) {
             unexpected_condition_str("DeclSort::Reference not yet handled "
                                      "for TypeSort::Designated");
@@ -3765,17 +3764,17 @@ pos is the position of the Sentence containing literal.
       unexpected_condition();
       break;
     case ifc_SourceLiteral_Scalar:
-      { ifc_ExprIndex expr = (ifc_ExprIndex)index;
+      { /* ifc_ExprIndex expr = (ifc_ExprIndex)index; */
         unexpected_condition_str("SourceLiteral::Scalar is not yet handled");
       }
       break;
     case ifc_SourceLiteral_String:
-      { ifc_StringIndex str = (ifc_StringIndex)index;
+      { /* ifc_StringIndex str = (ifc_StringIndex)index; */
         unexpected_condition_str("SourceLiteral::String is not yet handled");
       }
       break;
     case ifc_SourceLiteral_DefinedString:
-      { ifc_StringIndex str = (ifc_StringIndex)index;
+      { /* ifc_StringIndex str = (ifc_StringIndex)index; */
         unexpected_condition_str("SourceLiteral::DefinedString "
                                  "is not yet handled");
       }

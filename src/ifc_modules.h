@@ -18,10 +18,10 @@ ifc_modules.h -- Declarations relating to ifc_modules.c (having to do with
 #ifndef IFC_MODULES_H
 #define IFC_MODULES_H 1
 
-#include "decls.h"
-
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
+
+typedef struct a_tmpl_decl_state *a_tmpl_decl_state_ptr;
 
 /* FIXME: Temporarily disable "not referenced" warnings until completed. */
 /*lint -save -e755 -e758 -e768 -e769*/
