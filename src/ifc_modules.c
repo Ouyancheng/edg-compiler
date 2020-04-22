@@ -1565,6 +1565,9 @@ constants for that type).
             init_dps(&dps, &idsvp->locus, idsvp->type, (ifc_Alignment)0,
                      idsvp->traits, ifc_MsvcTraits_None, idsvp->specifier,
                      idsvp->access, &psss);
+            if (mep->scope == NULL) {
+              mep->scope = get_ifc_scope(idsvp->home_scope);
+            }  /* if */
             clear_decl_pos_block(&decl_pos_block);
             decl_variable(&loc, &dps, SRK_DEFINITION, &linkage_ptr, &ext_sym,
                           &decl_pos_block);
@@ -1599,6 +1602,9 @@ constants for that type).
             init_dps(&dps, &idsfp->locus, idsfp->type, (ifc_Alignment)0,
                      ifc_ObjectTraits_None, ifc_MsvcTraits_None,
                      idsfp->specifiers, idsfp->access, &psss);
+            if (mep->scope == NULL) {
+              mep->scope = get_ifc_scope(idsfp->home_scope);
+            }  /* if */
             clear_func_info(&func_info);
             clear_decl_pos_block(&decl_pos_block);
             decl_routine(&loc, &dps, &func_info, SRK_DECLARATION, &linkage_ptr,
@@ -2001,78 +2007,7 @@ class_struct_union_case:
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
-            a_tmpl_decl_state           decl_state;
-            a_template_decl_info_ptr    tdip = NULL;
-            ifc_ChartSort               chart_sort = chart_tag(idstp->chart);
-            a_module_entity_ptr         dmep;
-            a_type_ptr                  type;
-
-            init_dps(&dps, &idstp->locus, (ifc_TypeIndex)0,
-                     (ifc_Alignment)0, ifc_ObjectTraits_None,
-                     ifc_MsvcTraits_None, idstp->specifiers, idstp->access,
-                     &psss);
-            /* Type here can be a "typename", which indicates a template alias,
-               a class/struct/union, function, or variable template. */
-            type = type_for_type_index(idstp->type);
-            /* If the type is "typename" then entity.index is a TypeIndex.
-               Otherwise, it's a DeclIndex. */
-            if (idstp->entity.index != 0) {
-              if (type->kind == (a_type_kind)tk_unknown) {
-                type_for_type_index((ifc_TypeIndex)idstp->entity.index);
-                dmep = get_ifc_module_entity_ptr(
-                                           (ifc_TypeIndex)idstp->entity.index);
-              } else {
-                dmep = get_ifc_module_entity_ptr(
-                                           (ifc_DeclIndex)idstp->entity.index);
-                process_ifc_declaration(dmep, /*defer=*/FALSE,
-                                        (a_type_ptr)NULL);
-              }  /* if */
-            }  /* if */
-            /* Prepare the template declaration. */
-            init_templ_decl_state(&decl_state, &dps);
-            decl_state.enclosing_scope = mep->scope;
-            decl_state.il_template_entry = make_il_template_entry(&decl_state);
-            /* Get the template parameters. */
-            read_partition_at_index(chart_sort, chart_value(idstp->chart));
-            switch (chart_sort) {
-              case ifc_ChartSort_None:
-                /* No arguments to the template (i.e., specialization). */
-                decl_state.is_specialization = TRUE;
-                break;
-              case ifc_ChartSort_Unilevel:
-                { an_ifc_ChartSort_Unilevel icsu, *icsup;
-                  icsup = get_ChartSort_Unilevel(&icsu);
-                  set_up_template_decl(&decl_state, &dps.start_pos, &tdip);
-                  for (ifc_Index_type idx = 0; idx < icsup->cardinality;
-                       ++idx) {
-                    a_module_entity_ptr pmep = get_ifc_module_entity_ptr(
-                                        make_decl_index(ifc_DeclSort_Parameter,
-                                                        icsup->start + idx));
-                    pmep->scope = scope_stack_top().il_scope;
-                    process_ifc_declaration(pmep, /*defer=*/FALSE,
-                                            (a_type_ptr)NULL);
-                    check_assertion(pmep->entity.kind == iek_type);
-                    /* FIXME: Construct the parameter list. */
-                  }  /* for */
-                  check_assertion(decl_state.decl_info->n_params ==
-                                                           icsup->cardinality);
-                }
-                break;
-              case ifc_ChartSort_Multilevel:
-                unexpected_condition_str("ChartSort::Multilevel "
-                                         "not handled here");
-                break;
-              default:
-                unexpected_condition_str("Unexpected ChartSort");
-            }  /* switch */
-            /* FIXME: Finish processing the template declaration. */
-            for (; decl_state.number_of_template_decl_scopes != 0;
-                   decl_state.number_of_template_decl_scopes--) {
-              pop_scope();
-            }  /* for */
-            restore_partial_scope_stack_if_necessary(&psss);
-            unexpected_condition_str("Non-deferred DeclSort::Template "
-                                     "is not yet handled.");
+            process_template_decl(mep, idstp, &loc);
           }  /* if */
         }
         break;
@@ -2082,8 +2017,54 @@ class_struct_union_case:
           check_assertion(idspp->name != 0);
           init_locator_from_name((ifc_NameIndex)0, idspp->name, &idspp->locus,
                                  &loc);
-          unexpected_condition_str("DeclSort::Parameter "
-                                   "not yet properly handled");
+          /* FIXME: constraint_expr = expr_for_expr_index(idspp->constraint);*/
+          /* FIXME: init_expr = expr_for_expr_index(idspp->initializer); */
+          if (idspp->pack) {
+            unexpected_condition_str("Parameter packs not yet handled "
+                                     "for DeclSort::Parameter");
+          }  /* if */
+          switch (idspp->sort) {
+            case ifc_ParameterSort_Object:
+              unexpected_condition_str("ParameterSort::Object "
+                                       "not yet handled");
+              break;
+            case ifc_ParameterSort_Type:
+              unexpected_condition_str("ParameterSort::Type not yet handled");
+              break;
+            case ifc_ParameterSort_NonType:
+              { a_type_ptr               param_type;
+                a_template_param_ptr     param, *next_param;
+                a_template_parameter_ptr il_param;
+
+                param_type = type_for_type_index(idspp->type, /*kind=*/NULL);
+                /* FIXME: Handle unnamed parameters properly. */
+                param = make_nontype_template_param(idspp->level,
+                                                    idspp->position,
+                                                    /*is_unnamed=*/FALSE,
+                                                    idspp->pack,
+                                                    /*is_pack_element=*/FALSE,
+                                                    /*is_non_initial=*/FALSE,
+                                                    /*is_pack_expansion*/FALSE,
+                                                    &loc, param_type,
+                                                    curr_templ_decl_state);
+                next_param = &curr_templ_decl_state->decl_info->parameters;
+                for (; *next_param != NULL; next_param = &(*next_param)->next);
+                *next_param = param;
+                ++curr_templ_decl_state->decl_info->n_params;
+                il_param = alloc_template_parameter();
+                param->il_template_parameter = il_param;
+                param->param_symbol->is_invisible = FALSE;
+                il_entity = (char*)il_param;
+                kind = iek_template_parameter;
+              }
+              break;
+            case ifc_ParameterSort_Template:
+              unexpected_condition_str("ParameterSort::Template "
+                                       "not yet handled");
+              break;
+            default:
+              unexpected_condition_str("Unexpected ParameterSort");
+          }  /* switch */
         }
         break;
       case ifc_DeclSort_Method:
@@ -2123,7 +2104,7 @@ class_struct_union_case:
     }  /* switch */
     if (!defer) {
       /* Record the IL entity. */
-      mep->entity.ptr = (char *)il_entity;
+      mep->entity.ptr = il_entity;
       mep->entity.kind = kind;
 #if DEBUG
       if (db_flag_is_set("ms_symbols")) {
@@ -2327,6 +2308,233 @@ deferred until they are referenced.
 }  /* process_ifc_scope */
 
 
+void decl_level_of_ifc_template(a_tmpl_decl_state_ptr decl_state)
+/*
+Determine the effective declaration scope for a template declaration
+in this context.  This routine borrows heavily from decl_level_of_template.
+*/
+{
+  a_scope_depth			depth = decl_scope_level;
+  a_scope_stack_entry_ptr	ssep;
+  a_boolean			err = FALSE;
+
+  ssep = &scope_stack_top();
+  /* Skip past any template declaration scopes. */
+  while (ssep->kind == (a_scope_kind)sck_template_declaration ||
+         !(ssep->kind == (a_scope_kind)sck_class_struct_union ||
+           ssep->kind == (a_scope_kind)sck_namespace ||
+           ssep->kind == (a_scope_kind)sck_namespace_extension ||
+           ssep->kind == (a_scope_kind)sck_file)) {
+    /* Skip to depth of the previous decl_scope_level. */
+    ssep = scope_stack_entry_for(ssep->decl_scope_level);
+  }  /* while */
+  depth = scope_depth_of(ssep);
+  decl_state->is_member_decl =
+                           ssep->kind == (a_scope_kind)sck_class_struct_union;
+  /* Save the depth we found for potential use in error recovery before
+     it might be changed below. */
+  decl_state->err_decl_level = depth;
+  if (decl_state->is_member_decl) {
+    /* If this template declaration is within a class definition,
+       save a pointer to the class in which the definition appears. */
+    decl_state->class_declared_in = ssep->assoc_type;
+    decl_state->access = ssep->current_access;
+    /* If the current context is variadic, set is_variadic.  Note that
+       it could already be set based on the template parameters. */
+    if (ssep->in_variadic_template) decl_state->is_variadic = TRUE;
+  }  /* if */
+  if (!decl_state->is_member_decl && ssep->kind != (a_scope_kind)sck_file &&
+      ssep->kind != (a_scope_kind)sck_namespace &&
+      ssep->kind != (a_scope_kind)sck_namespace_extension) {
+    err = TRUE;
+  }  /* if */
+  if (err) depth = NO_SCOPE_DEPTH;
+  decl_state->orig_decl_level = depth;
+  if (!err && decl_state->is_template_friend) {
+    /* For friend declarations the effective declaration level is the nearest
+       namespace scope. */
+    depth = depth_innermost_namespace_scope;
+  }  /* if */
+  decl_state->effective_decl_level = depth;
+  decl_state->is_template_friend = decl_state->is_member_decl &&
+                                           decl_state->is_template_friend;
+}  /* decl_level_of_ifc_template */
+
+
+void an_ifc_module::process_template_decl(a_module_entity_ptr      mep,
+                                          an_ifc_DeclSort_Template *decl,
+                                          a_symbol_locator         *loc)
+                                                                 const noexcept
+/*
+Process the DeclSort::Template entry corresponding to the given module entity.
+*loc is the symbol locator for the template symbol.
+*/
+{
+  a_tmpl_decl_state   decl_state, *saved_decl_state;
+  a_decl_parse_state  dps;
+  a_template_decl_info_ptr
+                      tdip = NULL;
+  ifc_ChartSort       chart_sort = chart_tag(decl->chart);
+  a_module_entity_ptr dmep;
+  a_type_ptr          type;
+  a_non_type_kind     non_type_kind;
+  a_boolean           is_alias_decl = FALSE;
+  a_boolean           is_redecl = FALSE, bad_sym = FALSE;
+  a_symbol_ptr        sym, orig_decl_sym = NULL;
+  a_template_symbol_supplement_ptr
+                      tssp, orig_decl_tssp;
+  a_partial_scope_stack_state
+                      psss;
+
+  sym = loc->specific_symbol;
+  init_dps(&dps, &decl->locus, (ifc_TypeIndex)0, (ifc_Alignment)0,
+           ifc_ObjectTraits_None, ifc_MsvcTraits_None, decl->specifiers,
+           decl->access, &psss);
+  if (mep->scope == NULL) {
+    mep->scope = get_ifc_scope(decl->home_scope);
+  }  /* if */
+  /* Type here can be a "typename", which indicates a template alias, a
+     class/struct/union, function, or variable template. */
+  type = type_for_type_index(decl->type, &non_type_kind);
+  if (type != NULL && type_is(type, tk_unknown)) {
+    is_alias_decl = TRUE;
+  }  /* if */
+  /* If the type is "typename" then entity.index is a TypeIndex.  Otherwise,
+     it's a DeclIndex. */
+  if (decl->entity.index != 0) {
+    if (is_alias_decl) {
+      type_for_type_index((ifc_TypeIndex)decl->entity.index, &non_type_kind);
+      dmep = get_ifc_module_entity_ptr((ifc_TypeIndex)decl->entity.index);
+    } else {
+      dmep = get_ifc_module_entity_ptr((ifc_DeclIndex)decl->entity.index);
+      process_ifc_declaration(dmep, /*defer=*/FALSE,
+                              (a_type_ptr)NULL);
+    }  /* if */
+  }  /* if */
+  /* Prepare the template declaration. */
+  saved_decl_state = curr_templ_decl_state;
+  curr_templ_decl_state = &decl_state;
+  init_templ_decl_state(&decl_state, &dps);
+  decl_state.enclosing_scope = mep->scope;
+  decl_state.il_template_entry = make_il_template_entry(&decl_state);
+  /* Get the template parameters. */
+  read_partition_at_index(chart_sort, chart_value(decl->chart));
+  switch (chart_sort) {
+    case ifc_ChartSort_None:
+      /* No arguments to the template (i.e., specialization). */
+      decl_state.is_specialization = TRUE;
+      break;
+    case ifc_ChartSort_Unilevel:
+      { an_ifc_ChartSort_Unilevel icsu, *icsup;
+        icsup = get_ChartSort_Unilevel(&icsu);
+        set_up_template_decl(&decl_state, &dps.start_pos, &tdip);
+        for (ifc_Index_type idx = 0; idx < icsup->cardinality;
+              ++idx) {
+          a_module_entity_ptr pmep = get_ifc_module_entity_ptr(
+                                        make_decl_index(ifc_DeclSort_Parameter,
+                                                        icsup->start + idx));
+          pmep->scope = mep->scope;
+          process_ifc_declaration(pmep, /*defer=*/FALSE,
+                                  (a_type_ptr)NULL);
+        }  /* for */
+        check_assertion(decl_state.decl_info->n_params ==
+                                                  icsup->cardinality);
+      }
+      break;
+    case ifc_ChartSort_Multilevel:
+      unexpected_condition_str("ChartSort::Multilevel not handled here");
+      break;
+    default:
+      unexpected_condition_str("Unexpected ChartSort");
+  }  /* switch */
+  decl_level_of_ifc_template(&decl_state);
+  check_assertion(decl_state.orig_decl_level != NO_SCOPE_DEPTH);
+  if (is_alias_decl) {
+    if (sym != NULL) {
+      if (symbol_is(sym, sk_class_template) &&
+          sym->variant.template_info->
+                                    variant.class_template.is_alias_template) {
+        is_redecl = TRUE;
+        decl_state.is_alias_redecl = TRUE;
+        orig_decl_sym = sym;
+        sym = NULL;
+      }  /* if */
+    }  /* if */
+    if (is_redecl) {
+      sym = make_symbol((a_symbol_kind)sk_class_template, loc);
+      sym->decl_scope = orig_decl_sym->decl_scope;
+      decl_state.new_alias_symbol = sym;
+    } else {
+      sym = enter_symbol((a_symbol_kind)sk_class_template, loc,
+                         decl_state.effective_decl_level,
+                         /*suppress_error=*/FALSE);
+      orig_decl_sym = sym;
+      decl_state.defines_something = TRUE;
+    }  /* if */
+    tssp = sym->variant.template_info;
+    tssp->variant.class_template.is_alias_template = TRUE;
+    tssp->is_variadic = decl_state.is_variadic;
+    tssp->has_variadic_template_params=decl_state.has_variadic_template_params;
+    tssp->has_template_param_constraint =
+                                      decl_state.has_template_param_constraint;
+    /* FIXME: Get attributes. */
+    /* tssp->attributes = attributes_from_entity(decl->entity.attributes); */
+    orig_decl_tssp = orig_decl_sym->variant.template_info;
+    if (is_redecl) {
+      (void)check_requires_redecl(orig_decl_tssp->cache.decl_info, tdip, loc,
+                                  orig_decl_sym);
+    }  /* if */
+    set_membership_of_template(&decl_state, sym);
+    set_il_template_entry(&decl_state, orig_decl_sym, orig_decl_tssp);
+    clear_token_cache(&tssp->cache.tokens, /*reuseable=*/TRUE);
+    if (is_alias_decl) {
+      cache_type(&tssp->cache.tokens, (ifc_TypeIndex)decl->entity.index,
+                 &decl->locus);
+    }  /* if */
+    cache_sentence(&tssp->cache.tokens, decl->entity.body);
+    tssp->cache.decl_info = tdip;
+    if (!is_redecl) {
+      mark_defined(orig_decl_sym, &loc->source_position);
+    } else {
+      mark_declared(orig_decl_sym, &loc->source_position);
+    }  /* if */
+    if (decl_state.is_alias_redecl) {
+      (void)reconcile_template_param_lists(
+                                      tdip->parameters,
+                                      &decl_state, orig_decl_sym,
+                                      &sym->decl_position,
+                                      /*default_allowed=*/TRUE,
+                                      /*checking_parent_params=*/FALSE,
+                                      /*allow_missing_member_constraint=*/TRUE,
+                                      es_error);
+    }  /* if */
+    /* Create the symbol for the prototype instantiation. */
+    create_prototype_type(&decl_state, sym, tssp, (a_symbol_ptr)NULL,
+                          /*is_partial_specialization=*/FALSE);
+  } else {
+    unexpected_condition_str("Non-alias DeclSort::Templates "
+                             "are not yet handled");
+  }  /* if */
+  for (; decl_state.number_of_template_decl_scopes != 0;
+         decl_state.number_of_template_decl_scopes--) {
+    pop_scope();
+  }  /* for */
+  set_il_template_entry(&decl_state, sym, tssp);
+  complete_il_template_entry(&decl_state, sym);
+  if (is_alias_decl) {
+    if (is_redecl) {
+      alias_prototype_instantiation(&decl_state,
+                                    decl_state.new_alias_symbol);
+      check_alias_template_redecl(&decl_state, sym);
+    } else {
+      alias_prototype_instantiation(&decl_state, sym);
+    }  /* if */
+  }  /* if */
+  curr_templ_decl_state = saved_decl_state;
+  restore_partial_scope_stack_if_necessary(&psss);
+}  /* process_template_decl */
+
+
 a_module_entity_ptr an_ifc_module::get_ifc_module_entity_ptr(
                                         an_ifc_partition_kind partition,
                                         ifc_Index_type        index)
@@ -2401,18 +2609,22 @@ Given a scope index find and return the associated scope.
 }  /* get_ifc_scope */
 
 
-a_type_ptr an_ifc_module::type_for_type_index(ifc_TypeIndex type_index)
+a_type_ptr an_ifc_module::type_for_type_index(ifc_TypeIndex   type_index,
+                                              a_non_type_kind *kind)
                                                                  const noexcept
 /*
-Returns the type that corresponds to the specified TypeIndex in the module
-file indicated.  Note that NULL is a valid return (and represents an "ellipsis
-type").
+Return the type that corresponds to the specified TypeIndex in the module
+file indicated.  If there is no corresponding type, set *kind to the
+appropriate non-type kind and return NULL.
 */
 {
   a_type_ptr          result = NULL;
   a_module_entity_ptr mep = get_ifc_module_entity_ptr(type_index);
   ifc_TypeSort        tag;
 
+  if (kind != NULL) {
+    *kind = ntk_none;
+  }  /* if */
   if (mep->entity.ptr != NULL) {
     /* There is already an entry for this; return it. */
     check_assertion(mep->entity.kind == iek_type);
@@ -2539,41 +2751,66 @@ type").
               break;
             case ifc_TypeBasis_Ellipsis:
               check_assertion(itsfp->precision == ifc_TypePrecision_Default);
-              /* The IL doesn't have a way to represent an "ellipsis type", so
-                 return a NULL type and let the caller check explicitly for
-                 it. */
+              check_assertion(kind != NULL);
+              *kind = ntk_ellipsis;
               result = NULL;
               break;
             case ifc_TypeBasis_Class:
-              unexpected_condition_str("TypeBasis::Class not yet handled");
+              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+              result = alloc_type((a_type_kind)tk_class);
+              break;
             case ifc_TypeBasis_Struct:
-              unexpected_condition_str("TypeBasis::Struct not yet handled");
+              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+              result = alloc_type((a_type_kind)tk_struct);
+              break;
             case ifc_TypeBasis_Union:
-              unexpected_condition_str("TypeBasis::Union not yet handled");
+              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+              result = alloc_type((a_type_kind)tk_union);
+              break;
             case ifc_TypeBasis_Auto:
-              unexpected_condition_str("TypeBasis::Auto not yet handled");
+              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+              result = make_auto_type(&null_source_position,
+                                      /*is_decltype_auto=*/FALSE);
+              break;
             case ifc_TypeBasis_DecltypeAuto:
-              unexpected_condition_str("TypeBasis::DecltypeAuto "
-                                       "not yet handled");
+              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+              result = make_auto_type(&null_source_position,
+                                      /*is_decltype_auto=*/TRUE);
+              break;
             case ifc_TypeBasis_Namespace:
-              unexpected_condition_str("TypeBasis::Namespace not yet handled");
+              check_assertion(kind != NULL);
+              *kind = ntk_namespace;
+              result = NULL;
+              break;
             case ifc_TypeBasis_Interface:
-              unexpected_condition_str("TypeBasis::Function not yet handled");
+              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+              result = alloc_type((a_type_kind)tk_struct);
+              result->variant.class_struct_union.is_interface = TRUE;
+              break;
             case ifc_TypeBasis_Enum:
+              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
               unexpected_condition_str("TypeBasis::Enum not yet handled");
             case ifc_TypeBasis_Typename:
+              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
               result = unknown_type();
               break;
             case ifc_TypeBasis_SegmentType:
               unexpected_condition_str("TypeBasis::SegmentType "
                                        "not yet handled");
             case ifc_TypeBasis_Function:
-              unexpected_condition_str("TypeBasis::Function not yet handled");
+              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+              result = make_routine_type(unknown_type(), /*param1=*/NULL,
+                                         /*param2=*/NULL, /*param3=*/NULL,
+                                         /*param4=*/NULL);
+              break;
             case ifc_TypeBasis_Empty:
-              unexpected_condition_str("TypeBasis::Empty not yet handled");
+              check_assertion(kind != NULL);
+              *kind = ntk_empty_pack_expansion;
+              break;
             case ifc_TypeBasis_VariableTemplate:
-              unexpected_condition_str("TypeBasis::VariableTemplate "
-                                       "not yet handled");
+              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+              result = type_of_unknown_templ_param_nontype;
+              break;
             default:
               unexpected_condition_str("Unexpected TypeBasis kind");
           }  /* switch */
@@ -2592,27 +2829,31 @@ type").
           if (itsqp->qualifiers & ifc_Qualifier_Restrict) {
             qualifiers |= TQ_RESTRICT;
           }  /* if */
-          result = make_qualified_type(type_for_type_index(itsqp->unqualified),
+          result = make_qualified_type(type_for_type_index(itsqp->unqualified,
+                                                           /*kind=*/NULL),
                                        qualifiers);
         }
         break;
       case ifc_TypeSort_Pointer:
         { an_ifc_TypeSort_Pointer itsp, *itspp;
           itspp = get_TypeSort_Pointer(&itsp);
-          result = make_pointer_type(type_for_type_index(itspp->pointee));
+          result = make_pointer_type(type_for_type_index(itspp->pointee,
+                                                         /*kind=*/NULL));
         }
         break;
       case ifc_TypeSort_LvalueReference:
         { an_ifc_TypeSort_LvalueReference itslr, *itslrp;
           itslrp = get_TypeSort_LvalueReference(&itslr);
-          result = make_reference_type(type_for_type_index(itslrp->referee));
+          result = make_reference_type(type_for_type_index(itslrp->referee,
+                                                           /*kind=*/NULL));
         }
         break;
       case ifc_TypeSort_RvalueReference:
         { an_ifc_TypeSort_RvalueReference itsrr, *itsrrp;
           itsrrp = get_TypeSort_RvalueReference(&itsrr);
           result = make_rvalue_reference_type(
-                                         type_for_type_index(itsrrp->referee));
+                                           type_for_type_index(itsrrp->referee,
+                                                               /*kind=*/NULL));
         }
         break;
       case ifc_TypeSort_Array:
@@ -2620,19 +2861,21 @@ type").
           itsap = get_TypeSort_Array(&itsa);
           result = alloc_type((a_type_kind)tk_array);
           result->variant.array.element_type =
-                                           type_for_type_index(itsap->element);
+                                           type_for_type_index(itsap->element,
+                                                               /*kind=*/NULL);
           /* FIXME: this is wrong: */
           result->variant.array.variant.number_of_elements = itsap->extent;
         }
         break;
       case ifc_TypeSort_Method: /* FIXME: for now (same structures)?): */
-        unexpected_condition(); /* FIXME: No longer same structures. */
+        unexpected_condition_str("TypeSort::Method is not yet implemented");
         break;
       case ifc_TypeSort_Function:
         { an_ifc_TypeSort_Function itsf, *itsfp;
           itsfp = get_TypeSort_Function(&itsf);
           /* Create a routine type with no parameters to start. */
-          result = make_routine_type(type_for_type_index(itsfp->target),
+          result = make_routine_type(type_for_type_index(itsfp->target,
+                                                         /*kind=*/NULL),
                                      (a_type_ptr)NULL, (a_type_ptr)NULL,
                                      (a_type_ptr)NULL, (a_type_ptr)NULL);
           /* FIXME: need a thorough review of this. */
@@ -2644,6 +2887,8 @@ type").
             a_param_type_ptr              ptp, *prev = &rtsp->param_type_list;
             an_ifc_TypeSort_Tuple         itst, *itstp;
             a_type_ptr                    param_type;
+            a_non_type_kind               non_type_kind;
+
             if (type_tag(itsfp->source) == ifc_TypeSort_Tuple) {
               /* A list of parameters. */
               read_partition_at_index(ifc_type_tuple,
@@ -2654,11 +2899,12 @@ type").
                 read_partition_at_index(ifc_heap_type,
                                         itstp->start + i);
                 GET_TypeIndex(ti, /*from_header=*/FALSE);
-                param_type = type_for_type_index(ti);
+                param_type = type_for_type_index(ti, &non_type_kind);
                 if (param_type == NULL) {
                   /* This happens when an ellipsis is present as the last
                      parameter. */
-                  check_assertion(i == itstp->cardinality-1);
+                  check_assertion(non_type_kind == ntk_ellipsis &&
+                                  i == itstp->cardinality-1);
                   rtsp->has_ellipsis = TRUE;
                   break;
                 }  /* if */
@@ -2669,9 +2915,10 @@ type").
               }  /* for */
             } else {
               /* A single parameter. */
-              param_type = type_for_type_index(itsfp->source);
+              param_type = type_for_type_index(itsfp->source, &non_type_kind);
               if (param_type == NULL) {
                 /* A single ellipsis parameter. */
+                check_assertion(non_type_kind == ntk_ellipsis);
                 rtsp->has_ellipsis = TRUE;
               } else {
                 rtsp->param_type_list = make_param_type(param_type,
@@ -2688,8 +2935,13 @@ type").
           a_module_entity_ptr        dmep;
 
           itsdp = get_TypeSort_Designated(&itsd);
+          ifc_DeclSort ds = decl_tag(itsdp->decl);
           if (decl_tag(itsdp->decl) == ifc_DeclSort_Reference) {
             unexpected_condition_str("DeclSort::Reference not yet handled "
+                                     "for TypeSort::Designated");
+          }  /* if */
+          if (decl_tag(itsdp->decl) == ifc_DeclSort_Parameter) {
+            unexpected_condition_str("DeclSort::Parameter not yet handled "
                                      "for TypeSort::Designated");
           }  /* if */
           check_assertion(decl_tag(itsdp->decl) == ifc_DeclSort_Scope ||
@@ -2709,6 +2961,13 @@ type").
           get_TypeSort_Deduced(&itsd);
           unexpected_condition_str("TypeSort::Deduced "
                                    "is not yet implemented.");
+        }
+        break;
+      case ifc_TypeSort_Placeholder:
+        { an_ifc_TypeSort_Placeholder itsp;
+          get_TypeSort_Placeholder(&itsp);
+          unexpected_condition_str("TypeSort::Placeholder "
+                                   "is not yet implemented");
         }
         break;
       case ifc_TypeSort_PointerToMember:
@@ -2840,7 +3099,7 @@ module file.
   iesndp = get_ExprSort_NamedDecl(&iesnd);
   check_assertion(pri_tag == ifc_ExprSort_NamedDecl);
   if (iesndp->type != 0) {
-    result = type_for_type_index(iesndp->type);
+    result = type_for_type_index(iesndp->type, /*kind=*/NULL);
     unexpected_condition_str("Unexpected type for ExprSort::NamedDecl");
   } else {
     a_module_entity_ptr mep = get_ifc_module_entity_ptr(iesndp->resolution);
@@ -2946,7 +3205,7 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
           a_type_ptr                 target_type;
           inscp = get_NameSort_Conversion(&insc);
           prefix = "operator ";
-          target_type = type_for_type_index(inscp->target);
+          target_type = type_for_type_index(inscp->target, /*kind=*/NULL);
           /* Note that inscp->encoded contains the mangled name of the
              conversion function, so use the name from the type instead. */
           result = target_type->source_corresp.name;
@@ -3036,7 +3295,7 @@ after the declaration has been processed.
   init_decl_parse_state(dps);
   if (psssp != NULL) psssp->saved = FALSE;
   if (type_index != 0) {
-    dps->type = type_for_type_index(type_index);
+    dps->type = type_for_type_index(type_index, /*kind=*/NULL);
   }  /* if */
   source_position_from_locus(&dps->start_pos, locus);
   check_assertion(alignment < targ_maximum_pack_alignment);
@@ -3185,7 +3444,7 @@ FIXME: what other expressions can we get here?
           check_assertion(default_type != NULL);
           constant_type = default_type;
         } else {
-          constant_type = type_for_type_index(ieslp->type);
+          constant_type = type_for_type_index(ieslp->type, /*kind=*/NULL);
         }  /* if */
         switch (literal_tag(ieslp->value)) {
           case ifc_LiteralSort_Immediate:
@@ -3245,6 +3504,1421 @@ FIXME: what other expressions can we get here?
   }  /* switch */
   return cp;
 }  /* constant_for_expr_index */
+
+
+static void cache_token(a_token_cache_ptr     cache,
+                        a_token_kind          tok,
+                        a_source_position_ptr pos)
+/*
+Add tok to cache.  pos is the position of the token.
+*/
+{
+  a_cached_token_ptr      ctp;
+  a_token_sequence_number seq = NO_TOKEN_SEQUENCE_NUMBER;
+
+  if (tok != tok_error) {
+    seq = curr_token_sequence_number++;
+  }  /* if */
+  ctp = build_cached_token(tok, seq, pos);
+  if (cache->first_token == NULL) {
+    cache->first_token = ctp;
+  } else {
+    cache->last_token->next = ctp;
+  }  /* if */
+  cache->last_token = ctp;
+#if DEBUG
+  cache->token_count++;
+#endif /* DEBUG */
+}  /* cache_token */
+
+
+static void cache_pragma(a_token_cache_ptr     cache,
+                         a_pragma_kind         kind,
+                         a_source_position_ptr pos)
+/*
+Add the pragma given by kind to cache.  pos is the position of the pragma.
+*/
+{
+  a_pending_pragma_ptr          ppp, *next_pragma;
+  a_pragma_kind_description_ptr	pkdp;
+
+  pkdp = pragma_description_for_pragma_kind[(int)kind];
+  ppp = alloc_pending_pragma(pkdp);
+  ppp->id_position = *pos;
+  ppp->pragma_position = *pos;
+  /* Create a token to hold the pragmas if needed. */
+  if (cache->last_token == NULL ||
+      cache->last_token->extra_info_kind !=
+                                        (a_token_extra_info_kind)teik_pragma) {
+    cache_token(cache, tok_error, pos);
+  }  /* if */
+  next_pragma = &cache->last_token->variant.pragmas;
+  /* Find end of pragma list. */
+  for (; *next_pragma != NULL; next_pragma = &(*next_pragma)->next) {}
+  *next_pragma = ppp;
+#if DEBUG
+  add_to_pragmas_in_reuseable_cache_count(1);
+  cache->pragma_count++;
+#endif /* DEBUG */
+}  /* cache_pragma */
+
+
+void an_ifc_module::cache_source_directive(a_token_cache_ptr   cache,
+                                           ifc_SourceDirective directive,
+                                           ifc_SourceLocation  *locus)
+                                                                 const noexcept
+/*
+Add tokens corresponding to directive to cache.  pos is the position of the
+Sentence containing directive.
+*/
+{
+  a_source_position pos;
+
+  source_position_from_locus(&pos, locus);
+  switch (directive) {
+    case ifc_SourceDirective_Msvc:
+      break;
+    case ifc_SourceDirective_MsvcPragmaComment:
+      cache_pragma(cache, pk_comment, &pos);
+      break;
+    case ifc_SourceDirective_MsvcPragmaConform:
+      cache_pragma(cache, pk_conform, &pos);
+      break;
+    case ifc_SourceDirective_MsvcPragmaIdent:
+#if IDENT_DIRECTIVE_AND_PRAGMA
+      cache_pragma(cache, pk_ident_pragma, &pos);
+#endif /* IDENT_DIRECTIVE_AND_PRAGMA */
+      break;
+    case ifc_SourceDirective_MsvcPragmaIncludeAlias:
+      cache_pragma(cache, pk_include_alias, &pos);
+      break;
+    case ifc_SourceDirective_MsvcPragmaPack:
+      cache_pragma(cache, pk_pack, &pos);
+      break;
+    case ifc_SourceDirective_MsvcPragmaPopMacro:
+      cache_pragma(cache, pk_pop_macro, &pos);
+      break;
+    case ifc_SourceDirective_MsvcPragmaPushMacro:
+      cache_pragma(cache, pk_push_macro, &pos);
+      break;
+    case ifc_SourceDirective_MsvcPragmaSetlocale:
+      cache_pragma(cache, pk_setlocale, &pos);
+      break;
+    case ifc_SourceDirective_MsvcPragmaStartMapRegion:
+      cache_pragma(cache, pk_start_map_region, &pos);
+      break;
+    case ifc_SourceDirective_MsvcPragmaStopMapRegion:
+      cache_pragma(cache, pk_stop_map_region, &pos);
+      break;
+    case ifc_SourceDirective_MsvcPragmaPush:
+    case ifc_SourceDirective_MsvcPragmaPop:
+    case ifc_SourceDirective_MsvcDirectiveStart:
+    case ifc_SourceDirective_MsvcDirectiveEnd:
+    case ifc_SourceDirective_MsvcPragmaAllocText:
+    case ifc_SourceDirective_MsvcPragmaAutoInline:
+    case ifc_SourceDirective_MsvcPragmaBssSeg:
+    case ifc_SourceDirective_MsvcPragmaCheckStack:
+    case ifc_SourceDirective_MsvcPragmaCodeSeg:
+    case ifc_SourceDirective_MsvcPragmaComponent:
+    case ifc_SourceDirective_MsvcPragmaConstSeg:
+    case ifc_SourceDirective_MsvcPragmaDataSeg:
+    case ifc_SourceDirective_MsvcPragmaDeprecated:
+    case ifc_SourceDirective_MsvcPragmaDetectMismatch:
+    case ifc_SourceDirective_MsvcPragmaEndregion:
+    case ifc_SourceDirective_MsvcPragmaExecutionCharacterSet:
+    case ifc_SourceDirective_MsvcPragmaFenvAccess:
+    case ifc_SourceDirective_MsvcPragmaFileHash:
+    case ifc_SourceDirective_MsvcPragmaFloatControl:
+    case ifc_SourceDirective_MsvcPragmaFpContract:
+    case ifc_SourceDirective_MsvcPragmaFunction:
+    case ifc_SourceDirective_MsvcPragmaBGI:
+    case ifc_SourceDirective_MsvcPragmaImplementationKey:
+    case ifc_SourceDirective_MsvcPragmaInitSeq:
+    case ifc_SourceDirective_MsvcPragmaInlineDepth:
+    case ifc_SourceDirective_MsvcPragmaInlineRecursion:
+    case ifc_SourceDirective_MsvcPragmaIntrinsic:
+    case ifc_SourceDirective_MsvcPragmaLoop:
+    case ifc_SourceDirective_MsvcPragmaMakePublic:
+    case ifc_SourceDirective_MsvcPragmaManaged:
+    case ifc_SourceDirective_MsvcPragmaMessage:
+    case ifc_SourceDirective_MsvcPragmaOMP:
+    case ifc_SourceDirective_MsvcPragmaOptimize:
+    case ifc_SourceDirective_MsvcPragmaPointerToMembers:
+    case ifc_SourceDirective_MsvcPragmaPrefast:
+    case ifc_SourceDirective_MsvcPragmaRegion:
+    case ifc_SourceDirective_MsvcPragmaRuntimeChecks:
+    case ifc_SourceDirective_MsvcPragmaSameSeg:
+    case ifc_SourceDirective_MsvcPragmaSection:
+    case ifc_SourceDirective_MsvcPragmaSegment:
+    case ifc_SourceDirective_MsvcPragmaStrictGSCheck:
+    case ifc_SourceDirective_MsvcPragmaSystemHeader:
+    case ifc_SourceDirective_MsvcPragmaUnmanaged:
+    case ifc_SourceDirective_MsvcPragmaVtordisp:
+    case ifc_SourceDirective_MsvcPragmaWarning:
+    case ifc_SourceDirective_MsvcPragmaP0include:
+    case ifc_SourceDirective_MsvcPragmaP0line:
+      /* These pragmas have no corresponding EDG pragma. */
+      break;
+    default:
+      unexpected_condition_str("Unknown SourceDirective");
+  }  /* switch */
+}  /* cache_source_directive */
+
+
+void an_ifc_module::cache_source_punctuator(a_token_cache_ptr    cache,
+                                            ifc_SourcePunctuator punctuator,
+                                            ifc_SourceLocation   *locus)
+                                                                 const noexcept
+/*
+Add tokens corresponding to punctuator to cache.  pos is the position of the
+Sentence containing punctuator.
+*/
+{
+  a_source_position pos;
+
+  source_position_from_locus(&pos, locus);
+  switch (punctuator) {
+    case ifc_SourcePunctuator_Unknown:
+      unexpected_condition();
+      break;
+    case ifc_SourcePunctuator_LeftParenthesis:
+      cache_token(cache, tok_lparen, &pos);
+      break;
+    case ifc_SourcePunctuator_RightParenthesis:
+      cache_token(cache, tok_rparen, &pos);
+      break;
+    case ifc_SourcePunctuator_LeftBracket:
+      cache_token(cache, tok_lbracket, &pos);
+      break;
+    case ifc_SourcePunctuator_RightBracket:
+      cache_token(cache, tok_rbracket, &pos);
+      break;
+    case ifc_SourcePunctuator_LeftBrace:
+      cache_token(cache, tok_lbrace, &pos);
+      break;
+    case ifc_SourcePunctuator_RightBrace:
+      cache_token(cache, tok_rbrace, &pos);
+      break;
+    case ifc_SourcePunctuator_Colon:
+      cache_token(cache, tok_colon, &pos);
+      break;
+    case ifc_SourcePunctuator_Question:
+      cache_token(cache, tok_quest_mark, &pos);
+      break;
+    case ifc_SourcePunctuator_Semicolon:
+      cache_token(cache, tok_semicolon, &pos);
+      break;
+    case ifc_SourcePunctuator_ColonColon:
+      cache_token(cache, tok_colon_colon, &pos);
+      break;
+    case ifc_SourcePunctuator_Msvc:
+      unexpected_condition();
+      break;
+    case ifc_SourcePunctuator_MsvcZeroWidthSpace:
+      break;
+    case ifc_SourcePunctuator_MsvcEndOfPhrase:
+      unexpected_condition_str("SourcePunctuator::MsvcEndOfPhrase "
+                               "not yet handled");
+      break;
+    case ifc_SourcePunctuator_MsvcFullStop:
+      break;
+    case ifc_SourcePunctuator_MsvcNestedTemplateStart:
+      unexpected_condition_str("SourcePunctuator::MsvcNestedTemplateStart "
+                               "not yet handled");
+      break;
+    case ifc_SourcePunctuator_MsvcDefaultArgumentStart:
+      unexpected_condition_str("SourcePunctuator::MsvcDefaultArgumentStart "
+                               "not yet handled");
+      break;
+    case ifc_SourcePunctuator_MsvcAlignasEdictStart:
+      unexpected_condition_str("SourcePunctuator::MsvcAlignasEdictStart "
+                               "not yet handled");
+      break;
+    case ifc_SourcePunctuator_MsvcDefaultInitStart:
+      unexpected_condition_str("SourcePunctuator::MsvcDefaultInitStart "
+                               "not yet handled");
+      break;
+    default:
+      unexpected_condition_str("Unknown SourcePunctuator");
+  }  /* switch */
+}  /* cache_source_punctuator */
+
+
+void an_ifc_module::cache_source_literal(a_token_cache_ptr  cache,
+                                         ifc_SourceLiteral  literal,
+                                         ifc_Index          index,
+                                         ifc_SourceLocation *locus)
+                                                                 const noexcept
+/*
+Add tokens corresponding to literal to cache.  index is the index into the IFC
+file for the additional information needed, depending on the kind of literal.
+pos is the position of the Sentence containing literal.
+*/
+{
+  a_source_position pos;
+
+  source_position_from_locus(&pos, locus);
+  switch (literal) {
+    case ifc_SourceLiteral_Unknown:
+      unexpected_condition();
+      break;
+    case ifc_SourceLiteral_Scalar:
+      { ifc_ExprIndex expr = (ifc_ExprIndex)index;
+        unexpected_condition_str("SourceLiteral::Scalar is not yet handled");
+      }
+      break;
+    case ifc_SourceLiteral_String:
+      { ifc_StringIndex str = (ifc_StringIndex)index;
+        unexpected_condition_str("SourceLiteral::String is not yet handled");
+      }
+      break;
+    case ifc_SourceLiteral_DefinedString:
+      { ifc_StringIndex str = (ifc_StringIndex)index;
+        unexpected_condition_str("SourceLiteral::DefinedString "
+                                 "is not yet handled");
+      }
+      break;
+    case ifc_SourceLiteral_Msvc:
+      break;
+    case ifc_SourceLiteral_MsvcFunctionNameMacro:
+      { a_const_char *str = get_string_at_offset((ifc_TextOffset)index);
+        a_token_kind tok;
+        if (strncmp(str, "__func__", sizeof("__func__")) == 0) {
+          tok = tok_func_name;
+        } else if (strncmp(str, "__FUNCTION__", sizeof("__FUNCTION__")) == 0) {
+          tok = tok_function_name;
+        } else if (strncmp(str, "__FUNCDNAME__", sizeof("__FUNCDNAME__"))
+                                                                        == 0) {
+          tok = tok_decorated_function_name;
+        } else {
+          check_assertion(strncmp(str, "__FUNCSIG__", sizeof("__FUNCSIG__"))
+                                                                         == 0);
+          tok = tok_pretty_function_name;
+        }  /* if */
+        cache_token(cache, tok, &pos);
+      }
+      break;
+    case ifc_SourceLiteral_MsvcStringPrefixMacro:
+      { a_const_char *str = get_string_at_offset((ifc_TextOffset)index);
+        a_token_kind tok;
+        if (strncmp(str, "__LPREFIX", sizeof("__LPREFIX")) == 0) {
+          tok = tok_microsoft_Lprefix;
+        } else if (strncmp(str, "__lPREFIX", sizeof("__lPREFIX")) == 0) {
+          tok = tok_microsoft_lprefix;
+        } else if (strncmp(str, "__UPREFIX", sizeof("__UPREFIX"))
+                                                                        == 0) {
+          tok = tok_microsoft_Uprefix;
+        } else {
+          check_assertion(strncmp(str, "__uPREFIX", sizeof("__uPREFIX"))
+                                                                         == 0);
+          tok = tok_microsoft_uprefix;
+        }  /* if */
+        cache_token(cache, tok, &pos);
+      }
+      break;
+    case ifc_SourceLiteral_MsvcBinding:
+      unexpected_condition_str("SourceLiteral::MsvcBinding "
+                               "is not yet handled");
+      break;
+    default:
+      unexpected_condition_str("Unknown SourceLiteral");
+  }  /* switch */
+}  /* cache_source_literal */
+
+
+void an_ifc_module::cache_source_operator(a_token_cache_ptr  cache,
+                                          ifc_SourceOperator op,
+                                          ifc_SourceLocation *locus)
+                                                                 const noexcept
+/*
+Add tokens corresponding to op to cache.  pos is the position of the Sentence
+containing op.
+*/
+{
+  a_source_position pos;
+
+  source_position_from_locus(&pos, locus);
+  switch (op) {
+    case ifc_SourceOperator_Unknown:
+      unexpected_condition();
+      break;
+    case ifc_SourceOperator_Equal:
+      cache_token(cache, tok_assign, &pos);
+      break;
+    case ifc_SourceOperator_Comma:
+      cache_token(cache, tok_comma, &pos);
+      break;
+    case ifc_SourceOperator_Exclaim:
+      cache_token(cache, tok_not, &pos);
+      break;
+    case ifc_SourceOperator_Plus:
+      cache_token(cache, tok_plus, &pos);
+      break;
+    case ifc_SourceOperator_Dash:
+      cache_token(cache, tok_minus, &pos);
+      break;
+    case ifc_SourceOperator_Star:
+      cache_token(cache, tok_star, &pos);
+      break;
+    case ifc_SourceOperator_Slash:
+      cache_token(cache, tok_divide, &pos);
+      break;
+    case ifc_SourceOperator_Percent:
+      cache_token(cache, tok_remainder, &pos);
+      break;
+    case ifc_SourceOperator_LeftChevron:
+      cache_token(cache, tok_shift_left, &pos);
+      break;
+    case ifc_SourceOperator_RightChevron:
+      cache_token(cache, tok_shift_right, &pos);
+      break;
+    case ifc_SourceOperator_Tilde:
+      cache_token(cache, tok_compl, &pos);
+      break;
+    case ifc_SourceOperator_Caret:
+      cache_token(cache, tok_excl_or, &pos);
+      break;
+    case ifc_SourceOperator_Bar:
+      cache_token(cache, tok_or, &pos);
+      break;
+    case ifc_SourceOperator_Ampersand:
+      cache_token(cache, tok_ampersand, &pos);
+      break;
+    case ifc_SourceOperator_PlusPlus:
+      cache_token(cache, tok_plus_plus, &pos);
+      break;
+    case ifc_SourceOperator_DashDash:
+      cache_token(cache, tok_minus_minus, &pos);
+      break;
+    case ifc_SourceOperator_Less:
+      cache_token(cache, tok_lt, &pos);
+      break;
+    case ifc_SourceOperator_LessEqual:
+      cache_token(cache, tok_le, &pos);
+      break;
+    case ifc_SourceOperator_Greater:
+      cache_token(cache, tok_gt, &pos);
+      break;
+    case ifc_SourceOperator_GreaterEqual:
+      cache_token(cache, tok_ge, &pos);
+      break;
+    case ifc_SourceOperator_EqualEqual:
+      cache_token(cache, tok_eq, &pos);
+      break;
+    case ifc_SourceOperator_ExclaimEqual:
+      cache_token(cache, tok_ne, &pos);
+      break;
+    case ifc_SourceOperator_Diamond:
+      cache_token(cache, tok_spaceship, &pos);
+      break;
+    case ifc_SourceOperator_PlusEqual:
+      cache_token(cache, tok_plus_assign, &pos);
+      break;
+    case ifc_SourceOperator_DashEqual:
+      cache_token(cache, tok_minus_assign, &pos);
+      break;
+    case ifc_SourceOperator_StarEqual:
+      cache_token(cache, tok_times_assign, &pos);
+      break;
+    case ifc_SourceOperator_SlashEqual:
+      cache_token(cache, tok_divide_assign, &pos);
+      break;
+    case ifc_SourceOperator_PercentEqual:
+      cache_token(cache, tok_remainder_assign, &pos);
+      break;
+    case ifc_SourceOperator_AmpersandEqual:
+      cache_token(cache, tok_and_assign, &pos);
+      break;
+    case ifc_SourceOperator_BarEqual:
+      cache_token(cache, tok_or_assign, &pos);
+      break;
+    case ifc_SourceOperator_CaretEqual:
+      cache_token(cache, tok_excl_or_assign, &pos);
+      break;
+    case ifc_SourceOperator_LeftChevronEqual:
+      cache_token(cache, tok_shift_left_assign, &pos);
+      break;
+    case ifc_SourceOperator_RightChevronEqual:
+      cache_token(cache, tok_shift_right_assign, &pos);
+      break;
+    case ifc_SourceOperator_AmpersandAmpersand:
+      cache_token(cache, tok_and_and, &pos);
+      break;
+    case ifc_SourceOperator_BarBar:
+      cache_token(cache, tok_or_or, &pos);
+      break;
+    case ifc_SourceOperator_Ellipsis:
+      cache_token(cache, tok_ellipsis, &pos);
+      break;
+    case ifc_SourceOperator_Dot:
+      cache_token(cache, tok_period, &pos);
+      break;
+    case ifc_SourceOperator_Arrow:
+      cache_token(cache, tok_arrow, &pos);
+      break;
+    case ifc_SourceOperator_DotStar:
+      cache_token(cache, tok_period_star, &pos);
+      break;
+    case ifc_SourceOperator_ArrowStar:
+      cache_token(cache, tok_arrow_star, &pos);
+      break;
+    default:
+      unexpected_condition_str("Unknown SourceOperator");
+  }  /* switch */
+}  /* cache_source_operator */
+
+
+void an_ifc_module::cache_source_keyword(a_token_cache_ptr  cache,
+                                         ifc_SourceKeyword  keyword,
+                                         ifc_SourceLocation *locus)
+                                                                 const noexcept
+/*
+Add tokens corresponding to keyword to cache.  pos is the position of the
+Sentence containing keyword.
+*/
+{
+  a_source_position pos;
+
+  source_position_from_locus(&pos, locus);
+  switch (keyword) {
+    case ifc_SourceKeyword_Unknown:
+      unexpected_condition();
+      break;
+    case ifc_SourceKeyword_Alignas:
+      cache_token(cache, tok_alignas, &pos);
+      break;
+    case ifc_SourceKeyword_Alignof:
+      cache_token(cache, tok_alignof, &pos);
+      break;
+    case ifc_SourceKeyword_Asm:
+      cache_token(cache, tok_asm, &pos);
+      break;
+    case ifc_SourceKeyword_Auto:
+      cache_token(cache, tok_auto, &pos);
+      break;
+    case ifc_SourceKeyword_Bool:
+      cache_token(cache, tok_bool, &pos);
+      break;
+    case ifc_SourceKeyword_Break:
+      cache_token(cache, tok_break, &pos);
+      break;
+    case ifc_SourceKeyword_Case:
+      cache_token(cache, tok_case, &pos);
+      break;
+    case ifc_SourceKeyword_Catch:
+      cache_token(cache, tok_catch, &pos);
+      break;
+    case ifc_SourceKeyword_Char:
+      cache_token(cache, tok_char, &pos);
+      break;
+    case ifc_SourceKeyword_Char8T:
+      cache_token(cache, tok_char8_t, &pos);
+      break;
+    case ifc_SourceKeyword_Char16T:
+      cache_token(cache, tok_char16_t, &pos);
+      break;
+    case ifc_SourceKeyword_Char32T:
+      cache_token(cache, tok_char32_t, &pos);
+      break;
+    case ifc_SourceKeyword_Class:
+      cache_token(cache, tok_class, &pos);
+      break;
+    case ifc_SourceKeyword_Concept:
+      cache_token(cache, tok_concept, &pos);
+      break;
+    case ifc_SourceKeyword_Const:
+      cache_token(cache, tok_const, &pos);
+      break;
+    case ifc_SourceKeyword_Consteval:
+      cache_token(cache, tok_consteval, &pos);
+      break;
+    case ifc_SourceKeyword_Constexpr:
+      cache_token(cache, tok_constexpr, &pos);
+      break;
+    case ifc_SourceKeyword_Constinit:
+      /* FIXME: cache_token(cache, tok_constinit, &pos); */
+      unexpected_condition_str("SourceKeyword::Constinit "
+                               "is not yet supported");
+      break;
+    case ifc_SourceKeyword_ConstCast:
+      cache_token(cache, tok_const_cast, &pos);
+      break;
+    case ifc_SourceKeyword_Continue:
+      cache_token(cache, tok_continue, &pos);
+      break;
+    case ifc_SourceKeyword_CoAwait:
+      cache_token(cache, tok_coroutine_await, &pos);
+      break;
+    case ifc_SourceKeyword_CoReturn:
+      cache_token(cache, tok_coroutine_return, &pos);
+      break;
+    case ifc_SourceKeyword_CoYield:
+      cache_token(cache, tok_coroutine_yield, &pos);
+      break;
+    case ifc_SourceKeyword_Decltype:
+      cache_token(cache, tok_decltype, &pos);
+      break;
+    case ifc_SourceKeyword_Default:
+      cache_token(cache, tok_default, &pos);
+      break;
+    case ifc_SourceKeyword_Delete:
+      cache_token(cache, tok_delete, &pos);
+      break;
+    case ifc_SourceKeyword_Do:
+      cache_token(cache, tok_do, &pos);
+      break;
+    case ifc_SourceKeyword_Double:
+      cache_token(cache, tok_double, &pos);
+      break;
+    case ifc_SourceKeyword_DynamicCast:
+      cache_token(cache, tok_dynamic_cast, &pos);
+      break;
+    case ifc_SourceKeyword_Else:
+      cache_token(cache, tok_else, &pos);
+      break;
+    case ifc_SourceKeyword_Enum:
+      cache_token(cache, tok_enum, &pos);
+      break;
+    case ifc_SourceKeyword_Explicit:
+      cache_token(cache, tok_explicit, &pos);
+      break;
+    case ifc_SourceKeyword_Export:
+      cache_token(cache, tok_export, &pos);
+      break;
+    case ifc_SourceKeyword_Extern:
+      cache_token(cache, tok_extern, &pos);
+      break;
+    case ifc_SourceKeyword_False:
+      cache_token(cache, tok_false, &pos);
+      break;
+    case ifc_SourceKeyword_Float:
+      cache_token(cache, tok_float, &pos);
+      break;
+    case ifc_SourceKeyword_For:
+      cache_token(cache, tok_for, &pos);
+      break;
+    case ifc_SourceKeyword_Friend:
+      cache_token(cache, tok_friend, &pos);
+      break;
+    case ifc_SourceKeyword_Generic:
+      cache_token(cache, tok_c11_generic, &pos);
+      break;
+    case ifc_SourceKeyword_Goto:
+      cache_token(cache, tok_goto, &pos);
+      break;
+    case ifc_SourceKeyword_If:
+      cache_token(cache, tok_if, &pos);
+      break;
+    case ifc_SourceKeyword_Inline:
+      cache_token(cache, tok_inline, &pos);
+      break;
+    case ifc_SourceKeyword_Int:
+      cache_token(cache, tok_int, &pos);
+      break;
+    case ifc_SourceKeyword_Long:
+      cache_token(cache, tok_long, &pos);
+      break;
+    case ifc_SourceKeyword_Mutable:
+      cache_token(cache, tok_mutable, &pos);
+      break;
+    case ifc_SourceKeyword_Namespace:
+      cache_token(cache, tok_namespace, &pos);
+      break;
+    case ifc_SourceKeyword_New:
+      cache_token(cache, tok_new, &pos);
+      break;
+    case ifc_SourceKeyword_Noexcept:
+      cache_token(cache, tok_noexcept, &pos);
+      break;
+    case ifc_SourceKeyword_Nullptr:
+      cache_token(cache, tok_nullptr, &pos);
+      break;
+    case ifc_SourceKeyword_Operator:
+      cache_token(cache, tok_operator, &pos);
+      break;
+    case ifc_SourceKeyword_Pragma:
+      unexpected_condition_str("SourceKeyword::Pragma is not yet supported");
+      break;
+    case ifc_SourceKeyword_Private:
+      cache_token(cache, tok_private, &pos);
+      break;
+    case ifc_SourceKeyword_Protected:
+      cache_token(cache, tok_private, &pos);
+      break;
+    case ifc_SourceKeyword_Public:
+      cache_token(cache, tok_public, &pos);
+      break;
+    case ifc_SourceKeyword_Register:
+      cache_token(cache, tok_register, &pos);
+      break;
+    case ifc_SourceKeyword_ReinterpretCast:
+      cache_token(cache, tok_reinterpret_cast, &pos);
+      break;
+    case ifc_SourceKeyword_Requires:
+      cache_token(cache, tok_requires, &pos);
+      break;
+    case ifc_SourceKeyword_Restrict:
+      cache_token(cache, tok_restrict, &pos);
+      break;
+    case ifc_SourceKeyword_Return:
+      cache_token(cache, tok_return, &pos);
+      break;
+    case ifc_SourceKeyword_Short:
+      cache_token(cache, tok_short, &pos);
+      break;
+    case ifc_SourceKeyword_Signed:
+      cache_token(cache, tok_signed, &pos);
+      break;
+    case ifc_SourceKeyword_Sizeof:
+      cache_token(cache, tok_sizeof, &pos);
+      break;
+    case ifc_SourceKeyword_Static:
+      cache_token(cache, tok_static, &pos);
+      break;
+    case ifc_SourceKeyword_StaticAssert:
+      cache_token(cache, tok_static_assert, &pos);
+      break;
+    case ifc_SourceKeyword_StaticCast:
+      cache_token(cache, tok_static_cast, &pos);
+      break;
+    case ifc_SourceKeyword_Struct:
+      cache_token(cache, tok_struct, &pos);
+      break;
+    case ifc_SourceKeyword_Switch:
+      cache_token(cache, tok_switch, &pos);
+      break;
+    case ifc_SourceKeyword_Template:
+      cache_token(cache, tok_template, &pos);
+      break;
+    case ifc_SourceKeyword_This:
+      cache_token(cache, tok_this, &pos);
+      break;
+    case ifc_SourceKeyword_ThreadLocal:
+      cache_token(cache, tok_thread_local, &pos);
+      break;
+    case ifc_SourceKeyword_Throw:
+      cache_token(cache, tok_throw, &pos);
+      break;
+    case ifc_SourceKeyword_True:
+      cache_token(cache, tok_true, &pos);
+      break;
+    case ifc_SourceKeyword_Try:
+      cache_token(cache, tok_try, &pos);
+      break;
+    case ifc_SourceKeyword_Typedef:
+      cache_token(cache, tok_typedef, &pos);
+      break;
+    case ifc_SourceKeyword_Typeid:
+      cache_token(cache, tok_typeid, &pos);
+      break;
+    case ifc_SourceKeyword_Typename:
+      cache_token(cache, tok_typename, &pos);
+      break;
+    case ifc_SourceKeyword_Union:
+      cache_token(cache, tok_union, &pos);
+      break;
+    case ifc_SourceKeyword_Unsigned:
+      cache_token(cache, tok_unsigned, &pos);
+      break;
+    case ifc_SourceKeyword_Using:
+      cache_token(cache, tok_using, &pos);
+      break;
+    case ifc_SourceKeyword_Virtual:
+      cache_token(cache, tok_virtual, &pos);
+      break;
+    case ifc_SourceKeyword_Void:
+      cache_token(cache, tok_void, &pos);
+      break;
+    case ifc_SourceKeyword_Volatile:
+      cache_token(cache, tok_volatile, &pos);
+      break;
+    case ifc_SourceKeyword_WcharT:
+      cache_token(cache, tok_wchar_t, &pos);
+      break;
+    case ifc_SourceKeyword_While:
+      cache_token(cache, tok_while, &pos);
+      break;
+    case ifc_SourceKeyword_Msvc:
+      unexpected_condition();
+      break;
+    case ifc_SourceKeyword_MsvcAsm:
+      cache_token(cache, tok_microsoft_asm, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcAssume:
+      cache_token(cache, tok_assume, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcAlignof:
+      cache_token(cache, tok_alignof, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcBased:
+      cache_token(cache, tok_based, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcCdecl:
+      cache_token(cache, tok_cdecl, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcClrcall:
+      cache_token(cache, tok_clrcall, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcDeclspec:
+      cache_token(cache, tok_declspec, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcEabi:
+      unexpected_condition_str("SourceKeyword::MsvcEabi is not yet supported");
+      break;
+    case ifc_SourceKeyword_MsvcEvent:
+      cache_token(cache, tok_event, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcSehExcept:
+      cache_token(cache, tok_except, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcFastcall:
+      cache_token(cache, tok_fastcall, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcSehFinally:
+      cache_token(cache, tok_finally, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcForceinline:
+      cache_token(cache, tok_forceinline, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcHook:
+      unexpected_condition_str("SourceKeyword::MsvcHook is not yet supported");
+      break;
+    case ifc_SourceKeyword_MsvcIdentifier:
+      cache_token(cache, tok_microsoft_identifier, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIfExists:
+      cache_token(cache, tok_if_exists, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIfNotExists:
+      cache_token(cache, tok_if_not_exists, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcInt8:
+      cache_token(cache, tok_int8, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcInt16:
+      cache_token(cache, tok_int16, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcInt32:
+      cache_token(cache, tok_int32, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcInt64:
+      cache_token(cache, tok_int64, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcInt128:
+      cache_token(cache, tok_int128, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcInterface:
+      cache_token(cache, tok_interface, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcLeave:
+      cache_token(cache, tok_leave, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcMultipleInheritance:
+      unexpected_condition_str("SourceKeyword::MsvcMultipleInheritance "
+                               "is not yet supported");
+      break;
+    case ifc_SourceKeyword_MsvcNullptr:
+      cache_token(cache, tok_nullptr, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcNovtordisp:
+      unexpected_condition_str("SourceKeyword::MsvcNovtordisp "
+                               "is not yet supported");
+      break;
+    case ifc_SourceKeyword_MsvcPragma:
+      unexpected_condition_str("SourceKeyword::MsvcPragma "
+                               "is not yet supported");
+      break;
+    case ifc_SourceKeyword_MsvcPtr32:
+      cache_token(cache, tok_microsoft_ptr32, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcPtr64:
+      cache_token(cache, tok_microsoft_ptr64, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcRestrict:
+      cache_token(cache, tok_restrict, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcSingleInheritance:
+      unexpected_condition_str("SourceKeyword::MsvcSingleInheritance "
+                               "is not yet supported");
+      break;
+    case ifc_SourceKeyword_MsvcSptr:
+      cache_token(cache, tok_microsoft_sptr, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcStdcall:
+      cache_token(cache, tok_stdcall, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcSuper:
+      cache_token(cache, tok_super, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcThiscall:
+      cache_token(cache, tok_thiscall, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcSehTry:
+      cache_token(cache, tok_microsoft_try, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcUptr:
+      cache_token(cache, tok_microsoft_uptr, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcUuidof:
+      cache_token(cache, tok_uuidof, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcUnaligned:
+      cache_token(cache, tok_unaligned, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcUnhook:
+      unexpected_condition_str("SourceKeyword::MsvcUnhook "
+                               "is not yet supported");
+      break;
+    case ifc_SourceKeyword_MsvcVectorcall:
+      cache_token(cache, tok_vectorcall, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcVirtualInheritance:
+      unexpected_condition_str("SourceKeyword::MsvcVirtualInheritance "
+                               "is not yet supported");
+      break;
+    case ifc_SourceKeyword_MsvcW64:
+      cache_token(cache, tok_microsoft_w64, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsClass:
+      cache_token(cache, tok_is_class, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsUnion:
+      cache_token(cache, tok_is_union, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsEnum:
+      cache_token(cache, tok_is_enum, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsPolymorphic:
+      cache_token(cache, tok_is_polymorphic, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsEmpty:
+      cache_token(cache, tok_is_empty, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcHasTrivialConstructor:
+      cache_token(cache, tok_has_trivial_constructor, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsTriviallyConstructible:
+      cache_token(cache, tok_is_trivially_constructible, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsTriviallyCopyConstructible:
+      unexpected_condition_str(
+                             "SourceKeyword::MsvcIsTriviallyCopyConstructible "
+                             "is not yet supported");
+      break;
+    case ifc_SourceKeyword_MsvcIsTriviallyCopyAssignable:
+      cache_token(cache, tok_is_trivially_copy_assignable, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsTriviallyDestructible:
+      cache_token(cache, tok_is_trivially_destructible, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcHasVirtualDestructor:
+      cache_token(cache, tok_has_virtual_destructor, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsNothrowConstructible:
+      cache_token(cache, tok_is_nothrow_constructible, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsNothrowCopyConstructible:
+      unexpected_condition_str("SourceKeyword::MsvcIsNothrowCopyConstructible "
+                               "is not yet supported");
+      break;
+    case ifc_SourceKeyword_MsvcIsNothrowCopyAssignable:
+      unexpected_condition_str("SourceKeyword::MsvcIsNothrowCopyAssignable "
+                               "is not yet supported");
+      break;
+    case ifc_SourceKeyword_MsvcIsPod:
+      cache_token(cache, tok_is_pod, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsAbstract:
+      cache_token(cache, tok_is_abstract, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsBaseOf:
+      cache_token(cache, tok_is_base_of, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsConvertibleto:
+      cache_token(cache, tok_is_convertible_to, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsTrivial:
+      cache_token(cache, tok_is_trivial, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsTriviallyCopyable:
+      cache_token(cache, tok_is_trivially_copyable, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsStandardLayout:
+      cache_token(cache, tok_is_standard_layout, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsLiteralType:
+      cache_token(cache, tok_is_literal_type, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsTriviallyMoveConstructible:
+      unexpected_condition_str(
+                             "SourceKeyword::MsvcIsTriviallyMoveConstructible "
+                             "is not yet supported");
+      break;
+    case ifc_SourceKeyword_MsvcHasTrivialMoveAssign:
+      cache_token(cache, tok_has_trivial_move_assign, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsTriviallyMoveAssignable:
+      unexpected_condition_str("SourceKeyword::MsvcIsTriviallyMoveAssignable "
+                               "is not yet supported");
+      break;
+    case ifc_SourceKeyword_MsvcIsNothrowMoveAssignable:
+      unexpected_condition_str("SourceKeyword::MsvcIsNothrowMoveAssignable "
+                               "is not yet supported");
+      break;
+    case ifc_SourceKeyword_MsvcIsConstructible:
+      cache_token(cache, tok_is_constructible, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcUnderlyingType:
+      cache_token(cache, tok_underlying_type, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsTriviallyAssignable:
+      cache_token(cache, tok_is_trivially_assignable, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsNothrowAssignable:
+      cache_token(cache, tok_is_nothrow_assignable, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsDestructible:
+      cache_token(cache, tok_is_destructible, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsNothrowDestructible:
+      cache_token(cache, tok_is_nothrow_destructible, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsAssignable:
+      cache_token(cache, tok_is_assignable, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsAssignableNoCheck:
+      cache_token(cache, tok_is_assignable_no_precondition_check, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcHasUniqueObjectRepresentations:
+      cache_token(cache, tok_has_unique_object_representations, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsAggregate:
+      cache_token(cache, tok_is_aggregate, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcBuiltinAddressOf:
+      cache_token(cache, tok_builtin_addressof, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcBuiltinOffsetOf:
+      cache_token(cache, tok_builtin_offsetof, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcBuiltinBitCast:
+      cache_token(cache, tok_builtin_bit_cast, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcBuiltinIsLayoutCompatible:
+      unexpected_condition_str("SourceKeyword::MsvcBuiltinIsLayoutCompatible "
+                               "is not yet supported");
+      break;
+    case ifc_SourceKeyword_MsvcBuiltinIsPointerInterconvertibleBaseOf:
+      unexpected_condition_str(
+                   "SourceKeyword::MsvcBuiltinIsPointerInterconvertibleBaseOf "
+                   "is not yet supported");
+      break;
+    case ifc_SourceKeyword_MsvcBuiltinIsPointerInterconvertibleWithClass:
+      unexpected_condition_str(
+                "SourceKeyword::MsvcBuiltinIsPointerInterconvertibleWithClass "
+                "is not yet supported");
+      break;
+    case ifc_SourceKeyword_MsvcBuiltinIsCorrespondingMember:
+      unexpected_condition_str(
+                             "SourceKeyword::MsvcBuiltinIsCorrespondingMember "
+                             "is not yet supported");
+      break;
+    case ifc_SourceKeyword_MsvcIsRefClass:
+      cache_token(cache, tok_is_ref_class, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsValueClass:
+      cache_token(cache, tok_is_value_class, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsSimpleValueClass:
+      cache_token(cache, tok_is_simple_value_class, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsInterfaceClass:
+      cache_token(cache, tok_is_interface_class, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsDelegate:
+      cache_token(cache, tok_is_delegate, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsFinal:
+      cache_token(cache, tok_is_final, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcIsSealed:
+      cache_token(cache, tok_is_sealed, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcHasFinalizer:
+      cache_token(cache, tok_has_finalizer, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcHasCopy:
+      cache_token(cache, tok_has_copy, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcHasAssign:
+      cache_token(cache, tok_has_assign, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcHasUserDestructor:
+      cache_token(cache, tok_has_user_destructor, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcPackCardinality:
+      cache_token(cache, tok_sizeof, &pos);
+      cache_token(cache, tok_ellipsis, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcConfusedSizeof:
+      cache_token(cache, tok_sizeof, &pos);
+      break;
+    case ifc_SourceKeyword_MsvcConfusedalignas:
+      cache_token(cache, tok_alignas, &pos);
+      break;
+    default:
+      unexpected_condition_str("Unknown SourceKeyword");
+  }  /* switch */
+}  /* cache_source_keyword */
+
+
+void an_ifc_module::cache_source_identifier(a_token_cache_ptr    cache,
+                                            ifc_SourceIdentifier id,
+                                            ifc_Index            index,
+                                            ifc_SourceLocation   *locus)
+                                                                 const noexcept
+/*
+Add tokens corresponding to id to cache.  index is the index into the IFC file
+for the additional information needed, depending on the kind of id.  pos is the
+position of the Sentence containing id.
+*/
+{
+  a_const_char      *name = NULL;
+  a_source_position pos;
+  a_symbol_locator  loc;
+
+  source_position_from_locus(&pos, locus);
+  clear_locator(&loc, &pos);
+  switch (id) {
+    case ifc_SourceIdentifier_Plain:
+      name = get_string_at_offset((ifc_TextOffset)index);
+      break;
+    case ifc_SourceIdentifier_Msvc:
+      unexpected_condition();
+      break;
+    case ifc_SourceIdentifier_MsvcBuiltinHugeVal:
+      name = "__builtin_huge_val";
+      break;
+    case ifc_SourceIdentifier_MsvcBuiltinHugeValf:
+      name = "__builtin_huge_valf";
+      break;
+    case ifc_SourceIdentifier_MsvcBuiltinNan:
+      name = "__builtin_nan";
+      break;
+    case ifc_SourceIdentifier_MsvcBuiltinNanf:
+      name = "__builtin_nanf";
+      break;
+    case ifc_SourceIdentifier_MsvcBuiltinNans:
+      name = "__builtin_nans";
+      break;
+    case ifc_SourceIdentifier_MsvcBuiltinNansf:
+      name = "__builtin_nansf";
+      break;
+    default:
+      unexpected_condition_str("Unknown SourceIdentifier");
+  }  /* switch */
+  check_assertion(name != NULL);
+  (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
+  cache_token(cache, tok_identifier, &loc.source_position);
+  cache->last_token->extra_info_kind =
+                                (a_token_extra_info_kind)teik_identifier;
+  cache->last_token->variant.locator = loc;
+}  /* cache_source_identifier */
+
+
+void an_ifc_module::cache_word(a_token_cache_ptr cache,
+                               an_ifc_Word       *word) const noexcept
+/*
+Add token(s) corresponding to word to cache.  pos is the position of the
+Sentence containing word.
+*/
+{
+  ifc_SourceLocation *pos = &word->locus;
+
+  switch (word->sort) {
+    case ifc_WordSort_Unknown:
+      break;
+    case ifc_WordSort_Directive:
+      cache_source_directive(cache, (ifc_SourceDirective)word->value, pos);
+      break;
+    case ifc_WordSort_Punctuator:
+      cache_source_punctuator(cache, (ifc_SourcePunctuator)word->value, pos);
+      break;
+    case ifc_WordSort_Literal:
+      cache_source_literal(cache, (ifc_SourceLiteral)word->value, word->index,
+                           pos);
+      break;
+    case ifc_WordSort_Operator:
+      cache_source_operator(cache, (ifc_SourceOperator)word->value, pos);
+      break;
+    case ifc_WordSort_Keyword:
+      cache_source_keyword(cache, (ifc_SourceKeyword)word->value, pos);
+      break;
+    case ifc_WordSort_Identifier:
+      cache_source_identifier(cache, (ifc_SourceIdentifier)word->value,
+                              word->index, pos);
+      break;
+    default:
+      unexpected_condition_str("Unknown WordSort");
+  }  /* switch */
+}  /* add_word_to_cache */
+
+
+void an_ifc_module::cache_sentence(a_token_cache_ptr cache,
+                                   ifc_SentenceIndex sentence) const noexcept
+/*
+Given a SentenceIndex, populate cache with the corresponding tokens.
+*/
+{
+  an_ifc_Sentence   is, *isp;
+
+  if (sentence == 0) {
+    goto done;
+  }  /* if */
+  read_partition_at_index(ifc_sentence, sentence-1);
+  isp = get_Sentence(&is);
+  for (uint32_t idx = 0; idx < isp->cardinality; ++idx) {
+    an_ifc_Word iw, *iwp;
+    read_partition_at_index(ifc_word, isp->start + idx);
+    iwp = get_Word(&iw);
+    cache_word(cache, iwp);
+  }  /* if */
+  terminate_token_cache(cache);
+done:;
+}  /* cache_sentence */
+
+
+void an_ifc_module::cache_type(a_token_cache_ptr  cache,
+                               ifc_TypeIndex      type,
+                               ifc_SourceLocation *locus) const noexcept
+/*
+Cache the tokens corresponding to the given type.  locus is the source location
+of the entity referring to the type.
+*/
+{
+  ifc_TypeSort      tag = type_tag(type);
+  ifc_Index_type    index = type_value(type);
+  a_source_position pos;
+
+  source_position_from_locus(&pos, locus);
+  read_partition_at_index(tag, index);
+  switch (tag) {
+    case ifc_TypeSort_VendorExtension:
+      unexpected_condition();
+      break;
+    case ifc_TypeSort_Fundamental:
+      { an_ifc_TypeSort_Fundamental itsf, *itsfp;
+        itsfp = get_TypeSort_Fundamental(&itsf);
+        switch (itsfp->sign) {
+          case ifc_TypeSign_Plain:
+            break;
+          case ifc_TypeSign_Signed:
+            cache_token(cache, tok_signed, &pos);
+            break;
+          case ifc_TypeSign_Unsigned:
+            cache_token(cache, tok_unsigned, &pos);
+            break;
+          default:
+            unexpected_condition_str("Unexpected TypeSign");
+        }  /* if */
+        switch (itsfp->basis) {
+          case ifc_TypeBasis_Void:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+            cache_token(cache, tok_void, &pos);
+            break;
+          case ifc_TypeBasis_Bool:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+            cache_token(cache, tok_bool, &pos);
+            break;
+          case ifc_TypeBasis_Char:
+            switch (itsfp->precision) {
+              case ifc_TypePrecision_Default:
+                cache_token(cache, tok_char, &pos);
+                break;
+              case ifc_TypePrecision_Bit16:
+                cache_token(cache, tok_char16_t, &pos);
+                break;
+              case ifc_TypePrecision_Bit32:
+                cache_token(cache, tok_char32_t, &pos);
+                break;
+              default:
+                unexpected_condition();
+            }  /* switch */
+            break;
+          case ifc_TypeBasis_Wchar_t:
+            cache_token(cache, tok_wchar_t, &pos);
+            break;
+          case ifc_TypeBasis_Int:
+            switch (itsfp->precision) {
+              case ifc_TypePrecision_Default:
+                cache_token(cache, tok_int, &pos);
+                break;
+              case ifc_TypePrecision_Short:
+                cache_token(cache, tok_short, &pos);
+                break;
+              case ifc_TypePrecision_Long:
+                cache_token(cache, tok_long, &pos);
+                break;
+              case ifc_TypePrecision_Bit16:
+                cache_token(cache, tok_int16, &pos);
+                break;
+              case ifc_TypePrecision_Bit32:
+                cache_token(cache, tok_int32, &pos);
+                break;
+              case ifc_TypePrecision_Bit64:
+                cache_token(cache, tok_int64, &pos);
+                break;
+              case ifc_TypePrecision_Bit128:
+                cache_token(cache, tok_int128, &pos);
+                break;
+              default:
+                unexpected_condition();
+            }  /* switch */
+            break;
+          case ifc_TypeBasis_Float:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+            cache_token(cache, tok_float, &pos);
+            break;
+          case ifc_TypeBasis_Double:
+            if (itsfp->precision == ifc_TypePrecision_Long) {
+              cache_token(cache, tok_long, &pos);
+            } else {
+              check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+            }  /* if */
+            cache_token(cache, tok_double, &pos);
+            break;
+          case ifc_TypeBasis_Nullptr:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+            cache_token(cache, tok_nullptr, &pos);
+            break;
+          case ifc_TypeBasis_Ellipsis:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+            cache_token(cache, tok_ellipsis, &pos);
+            break;
+          case ifc_TypeBasis_SegmentType:
+            unexpected_condition_str("TypeBasis::SegmentType "
+                                     "is not yet handled");
+            break;
+          case ifc_TypeBasis_Class:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+            cache_token(cache, tok_class, &pos);
+            break;
+          case ifc_TypeBasis_Struct:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+            cache_token(cache, tok_struct, &pos);
+            break;
+          case ifc_TypeBasis_Union:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+            cache_token(cache, tok_union, &pos);
+            break;
+          case ifc_TypeBasis_Enum:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+            cache_token(cache, tok_enum, &pos);
+            break;
+          case ifc_TypeBasis_Typename:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+            cache_token(cache, tok_typename, &pos);
+            break;
+          case ifc_TypeBasis_Namespace:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+            cache_token(cache, tok_namespace, &pos);
+            break;
+          case ifc_TypeBasis_Interface:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+            cache_token(cache, tok_interface, &pos);
+            break;
+          case ifc_TypeBasis_Function:
+            unexpected_condition_str("TypeBasis::Function is not yet handled");
+            break;
+          case ifc_TypeBasis_Empty:
+            break;
+          case ifc_TypeBasis_VariableTemplate:
+            unexpected_condition_str("TypeBasis::VariableTemplate "
+                                     "is not yet handled");
+            break;
+          case ifc_TypeBasis_Auto:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+            cache_token(cache, tok_auto_type, &pos);
+            break;
+          case ifc_TypeBasis_DecltypeAuto:
+            check_assertion(itsfp->precision == ifc_TypePrecision_Default);
+            cache_token(cache, tok_decltype, &pos);
+            cache_token(cache, tok_lparen, &pos);
+            cache_token(cache, tok_auto_type, &pos);
+            cache_token(cache, tok_rparen, &pos);
+            break;
+          default:
+            unexpected_condition_str("Unexpected TypeBasis");
+        }  /* switch */
+      }
+      break;
+    case ifc_TypeSort_Designated:
+      unexpected_condition_str("TypeSort::Designated is not yet supported");
+      break;
+    case ifc_TypeSort_Deduced:
+      unexpected_condition_str("TypeSort::Deduced is not yet supported");
+      break;
+    case ifc_TypeSort_Syntactic:
+      unexpected_condition_str("TypeSort::Syntactic is not yet supported");
+      break;
+    case ifc_TypeSort_Expansion:
+      unexpected_condition_str("TypeSort::Expansion is not yet supported");
+      break;
+    case ifc_TypeSort_Pointer:
+      unexpected_condition_str("TypeSort::Pointer is not yet supported");
+      break;
+    case ifc_TypeSort_PointerToMember:
+      unexpected_condition_str("TypeSort::PointerToMember "
+                               "is not yet supported");
+      break;
+    case ifc_TypeSort_LvalueReference:
+      unexpected_condition_str("TypeSort::LvalueReference "
+                               "is not yet supported");
+      break;
+    case ifc_TypeSort_RvalueReference:
+      unexpected_condition_str("TypeSort::RvalueReference "
+                               "is not yet supported");
+      break;
+    case ifc_TypeSort_Function:
+      unexpected_condition_str("TypeSort::Function is not yet supported");
+      break;
+    case ifc_TypeSort_Method:
+      unexpected_condition_str("TypeSort::Method is not yet supported");
+      break;
+    case ifc_TypeSort_Array:
+      unexpected_condition_str("TypeSort::Array is not yet supported");
+      break;
+    case ifc_TypeSort_Typename:
+      unexpected_condition_str("TypeSort::Typename is not yet supported");
+      break;
+    case ifc_TypeSort_Qualified:
+      unexpected_condition_str("TypeSort::Qualified is not yet supported");
+      break;
+    case ifc_TypeSort_Base:
+      unexpected_condition_str("TypeSort::Base is not yet supported");
+      break;
+    case ifc_TypeSort_Decltype:
+      unexpected_condition_str("TypeSort::Decltype is not yet supported");
+      break;
+    case ifc_TypeSort_Placeholder:
+      unexpected_condition_str("TypeSort::Placeholder is not yet supported");
+      break;
+    case ifc_TypeSort_Tuple:
+      unexpected_condition_str("TypeSort::Tuple is not yet supported");
+      break;
+    case ifc_TypeSort_Forall:
+      unexpected_condition_str("TypeSort::Forall is not yet supported");
+      break;
+    case ifc_TypeSort_Unaligned:
+      unexpected_condition_str("TypeSort::Unaligned is not yet supported");
+      break;
+    case ifc_TypeSort_SyntaxTree:
+      unexpected_condition_str("TypeSort::SyntaxTree is not yet supported");
+      break;
+    default:
+      unexpected_condition_str("Unexpected TypeSort");
+  }  /* switch */
+}  /* cache_type */
 
 
 inline size_t an_ifc_module::file_offset_of(an_ifc_partition_kind partition,

@@ -2183,6 +2183,11 @@ extern
 a_cached_token_ptr build_cached_token(a_token_kind	      kind,
                                       a_token_sequence_number sequence_number,
                                       a_source_position	      *position);
+#if DEBUG
+extern void add_to_pragmas_in_reuseable_cache_count(unsigned long count);
+#else /* !DEBUG */
+#define add_to_pragmas_in_reuseable_cache_count(count) /* nothing */
+#endif /* DEBUG */
 /* Save the current token in a token cache. */
 extern void cache_curr_token(a_token_cache *cache);
 /* Save a token stream in a token cache. */

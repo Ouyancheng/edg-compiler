@@ -479,7 +479,31 @@ extern void set_up_template_decl(a_tmpl_decl_state         *state,
                                  a_source_position         *template_pos,
                                  a_template_decl_info_ptr  *p_templ_decl_info);
 
+extern a_boolean check_requires_redecl(a_template_decl_info  *old_tdip,
+                                       a_template_decl_info  *new_tdip,
+                                       a_symbol_locator      *loc,
+                                       a_symbol_ptr          sym);
+
+extern void set_membership_of_template(a_tmpl_decl_state_ptr	decl_state,
+				       a_symbol_ptr		sym);
+
 extern a_template_ptr make_il_template_entry(a_tmpl_decl_state_ptr decl_state);
+
+extern void complete_il_template_entry(a_tmpl_decl_state_ptr  decl_state,
+		                       a_symbol_ptr           sym);
+
+extern void create_prototype_type(
+        a_tmpl_decl_state_ptr			decl_state,
+	a_symbol_ptr				sym,
+	a_template_symbol_supplement_ptr	tssp,
+        a_symbol_ptr				partial_spec_nonreal_sym,
+	a_boolean				is_partial_specialization);
+
+extern void alias_prototype_instantiation(a_tmpl_decl_state_ptr decl_state,
+					  a_symbol_ptr          template_sym);
+
+extern void check_alias_template_redecl(a_tmpl_decl_state_ptr	decl_state,
+					a_symbol_ptr		orig_sym);
 
 extern a_template_arg_ptr templ_arg_list_for_class(a_type_ptr class_type);
 
@@ -519,6 +543,18 @@ extern an_expr_node_ptr scan_type_constraint(a_symbol_ptr  concept_templ);
 extern a_boolean check_template_constraints(a_symbol_ptr        template_sym,
                                             a_template_arg_ptr  args,
                                             a_boolean           diagnose);
+
+extern a_template_param_ptr make_nontype_template_param(
+                                  a_template_nesting_depth  depth,
+                                  a_template_param_list_pos position,
+                                  a_boolean                 is_unnamed,
+                                  a_boolean                 is_pack,
+                                  a_boolean                 is_pack_element,
+                                  a_boolean                 is_non_initial,
+                                  a_boolean                 is_pack_expansion,
+                                  a_symbol_locator          *loc,
+                                  a_type_ptr                param_type,
+                                  a_tmpl_decl_state_ptr     decl_state);
 
 extern a_symbol_ptr find_template_class(
 			     a_symbol_ptr        class_template_sym,

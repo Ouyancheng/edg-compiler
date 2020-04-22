@@ -1973,13 +1973,6 @@ value specified by tap.
 
 
 /* Forward declarations. */
-static void create_prototype_type(
-	a_tmpl_decl_state_ptr			decl_state,
-	a_symbol_ptr				sym,
-	a_template_symbol_supplement_ptr	tssp,
-	a_symbol_ptr				partial_spec_nonreal_sym,
-	a_boolean				is_partial_specialization);
-
 static a_boolean template_arg_is_dependent(a_template_arg_ptr tap);
 
 static a_boolean potentially_equiv_template_param_lists(
@@ -4204,11 +4197,6 @@ static void class_template_declaration(
 static a_symbol_ptr instantiate_out_of_class_variable_template_decl(
                                   a_tmpl_decl_state_ptr            decl_state,
                                   a_template_symbol_supplement_ptr *p_tssp);
-
-static
-void complete_il_template_entry(a_tmpl_decl_state_ptr  decl_state,
-                                a_symbol_ptr           sym);
-
 
 static void update_export_flag_for_class(
 			a_tmpl_decl_state_ptr			decl_state,
@@ -21040,8 +21028,7 @@ the names of the template parameters specified by templ_param_list.
   }  /* for */
 } /* rename_prototype_arg_list */
 
-
-static void create_prototype_type(
+void create_prototype_type(
         a_tmpl_decl_state_ptr			decl_state,
 	a_symbol_ptr				sym,
 	a_template_symbol_supplement_ptr	tssp,
@@ -21921,8 +21908,8 @@ because the extra parameter clause is not in fact ignored.
   return result;
 }  /* allow_extra_gpp_mode_param_clauses */
 
-static void set_membership_of_template(a_tmpl_decl_state_ptr	decl_state,
-				       a_symbol_ptr		sym)
+void set_membership_of_template(a_tmpl_decl_state_ptr	decl_state,
+				a_symbol_ptr		sym)
 /*
 Set the class or namespace membership of the template specified by sym.
 */
@@ -22621,10 +22608,10 @@ thereof.
 }  /* should_cancel_friend_class_template_lookup */
 
 
-static a_boolean check_requires_redecl(a_template_decl_info  *old_tdip,
-                                       a_template_decl_info  *new_tdip,
-                                       a_symbol_locator      *loc,
-                                       a_symbol_ptr          sym)
+a_boolean check_requires_redecl(a_template_decl_info  *old_tdip,
+                                a_template_decl_info  *new_tdip,
+                                a_symbol_locator      *loc,
+                                a_symbol_ptr          sym)
 /*
 Compare the requires clauses for two template declarations described by
 old_tdip and new_tdip (the latter is a redeclaration of the former).  If they
@@ -24779,12 +24766,12 @@ is used in an auto template parameter.
                       tptsp->coordinates.position == DECLTYPE_AUTO_POS_NUMBER;
     }  /* if */
   }  /* if */
-}  /* udpate_auto_template_param_type */
+}  /* update_auto_template_param_type */
 
 
 static a_symbol_ptr make_nontype_template_param_symbol(
-			a_tmpl_decl_state_ptr		decl_state,
-			a_tmpl_param_state_ptr		param_state,
+			a_template_nesting_depth	depth,
+			a_template_param_list_pos	position,
 			a_boolean			is_unnamed,
 			a_boolean			is_pack,
 			a_symbol_locator		*param_locator,
@@ -24812,10 +24799,8 @@ parameter.
   param_con->type = param_type_ptr;
   set_template_param_constant_kind(param_con,
                                (a_template_param_constant_kind)tpck_param);
-  param_con->variant.template_param.
-                    variant.coordinates.depth = decl_state->nesting_depth;
-  param_con->variant.template_param.
-                    variant.coordinates.position = param_state->list_pos;
+  param_con->variant.template_param.variant.coordinates.depth = depth;
+  param_con->variant.template_param.variant.coordinates.position = position;
   param_con->variant.template_param.is_pack = is_pack;
   set_source_corresp(&param_con->source_corresp, sym);
   if (parent_scope_should_be_set_for_template_param()) {
@@ -24833,6 +24818,50 @@ parameter.
   record_template_param_symbol(sym);
   return sym;
 }  /* make_nontype_template_param_symbol */
+
+
+a_template_param_ptr make_nontype_template_param(
+                                  a_template_nesting_depth  depth,
+                                  a_template_param_list_pos position,
+                                  a_boolean                 is_unnamed,
+                                  a_boolean                 is_pack,
+                                  a_boolean                 is_pack_element,
+                                  a_boolean                 is_non_initial,
+                                  a_boolean                 is_pack_expansion,
+                                  a_symbol_locator          *loc,
+                                  a_type_ptr                param_type,
+                                  a_tmpl_decl_state_ptr     decl_state)
+/*
+Create and return a template parameter.  depth is the template nesting depth
+for the template containing the parameter.  position is the parameter position
+within the template parameter list.  If is_unnamed is TRUE, then the parameter
+is unnamed.  If is_pack is TRUE, the parameter is a variadic template
+parameter.  If is_pack_element is TRUE, the parameter is an element of a pack
+expansion and is_non_initial is TRUE if it is not the first parameter of that
+expansion.  *loc is the symbol locator for the parameter and param_type is the
+type of the parameter.  decl_state contains the template declaration parsing
+state.
+*/
+{
+  a_template_param_ptr template_param;
+  a_symbol_ptr         sym;
+
+  sym = make_nontype_template_param_symbol(depth, position, is_unnamed,
+                                           is_pack, loc, param_type);
+  /* Allocate a template parameter and set its fields based on sym. */
+  template_param = alloc_template_param(sym);
+  if (is_pack_element) {
+    template_param->is_pack_element = TRUE;
+  }  /* if */
+  if (is_pack) {
+    template_param_is_variadic(sym, is_pack_element,
+                               is_non_initial,
+                               template_param, decl_state);
+    template_param->is_pack_expansion = is_pack_expansion;
+    sym->is_pack_expansion = is_pack_expansion;
+  }  /* if */
+  return template_param;
+}  /* make_nontype_template_param */
 
 
 static a_template_param_ptr scan_nontype_template_param(
@@ -24874,26 +24903,20 @@ depends on a template parameter.
                                         &uses_auto,
                                         decl_state->nesting_depth,
                                         &decl_pos_block);
-  sym = make_nontype_template_param_symbol(decl_state, param_state, is_unnamed,
-                                           is_pack, &param_locator,
-                                           param_type_ptr);
+  template_param = make_nontype_template_param(decl_state->nesting_depth,
+                                               param_state->list_pos,
+                                               is_unnamed, is_pack,
+                                               is_pack_element,
+                                               is_non_initial_pack_element,
+                                               is_pack_expansion,
+                                               &param_locator, param_type_ptr,
+                                               decl_state);
+  sym = template_param->param_symbol;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   /* Record the position information from decl_pos_block. */
   update_decl_pos_info(&sym->variant.constant->source_corresp,
                        &decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Allocate a template parameter and set its fields based on sym. */
-  template_param = alloc_template_param(sym);
-  if (is_pack_element) {
-    template_param->is_pack_element = TRUE;
-  }  /* if */
-  if (is_pack) {
-    template_param_is_variadic(sym, is_pack_element,
-                               is_non_initial_pack_element,
-                               template_param, decl_state);
-    template_param->is_pack_expansion = is_pack_expansion;
-    sym->is_pack_expansion = is_pack_expansion;
-  }  /* if */
   if (uses_auto) {
     template_param->uses_auto = TRUE;
     update_auto_template_param_type(param_type_ptr);
@@ -25258,7 +25281,8 @@ declaration.
   clear_locator(&locator, &null_source_position);
   locator.symbol_header = symbol_header;
   sym = make_nontype_template_param_symbol(
-                                   decl_state, param_state,
+                                   decl_state->nesting_depth,
+                                   param_state->list_pos,
                                    symbol_header->is_unnamed, /*is_pack=*/TRUE,
                                    &locator,
                                    type_of_unknown_templ_param_nontype);
@@ -26179,7 +26203,6 @@ Make the string version of the template specified by sym and tssp.
 
 #endif /* RECORD_TEMPLATE_STRINGS */
 
-static
 void complete_il_template_entry(a_tmpl_decl_state_ptr  decl_state,
                                 a_symbol_ptr           sym)
 /*
@@ -28899,7 +28922,7 @@ obtained from decl_state.
 }  /* check_alias_template_param_usage */
 
 
-static void alias_prototype_instantiation(
+void alias_prototype_instantiation(
 			ARG_UNUSED a_tmpl_decl_state_ptr	decl_state,
 			a_symbol_ptr				template_sym)
 /*
@@ -28998,8 +29021,8 @@ can be diagnosed at template definition time.
 }  /* alias_prototype_instantiation */
 
 
-static void check_alias_template_redecl(a_tmpl_decl_state_ptr	decl_state,
-					a_symbol_ptr		orig_sym)
+void check_alias_template_redecl(a_tmpl_decl_state_ptr	decl_state,
+				 a_symbol_ptr		orig_sym)
 /*
 decl_state->new_alias_symbol is a redeclaration of the alias template
 specified by orig_sym.  Make sure the new type is the same as the

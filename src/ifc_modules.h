@@ -18,6 +18,8 @@ ifc_modules.h -- Declarations relating to ifc_modules.c (having to do with
 #ifndef IFC_MODULES_H
 #define IFC_MODULES_H 1
 
+#include <decls.h>
+
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
@@ -837,7 +839,7 @@ enum ifc_SourceLiteral : uint16_t {
 };
 
 /* Enumeration for SourceOperator (i.e., types of operators) */
-enum SourceOperator : uint16_t {
+enum ifc_SourceOperator : uint16_t {
   ifc_SourceOperator_Unknown,
   ifc_SourceOperator_Equal,
   ifc_SourceOperator_Comma,
@@ -2135,6 +2137,10 @@ private:
   a_const_char
 		*string_table = NULL;
 			/* The string table of the IFC file. */
+  mutable a_tmpl_decl_state_ptr
+		curr_templ_decl_state = NULL;
+			/* The current template declaration state, NULL if
+			   there is no template declaration being processed. */
 
 public:
   an_ifc_module() noexcept : a_module_interface((a_module_kind)mk_ifc) {}
@@ -2162,6 +2168,12 @@ public:
 #endif /* DEBUG */
 
 private:
+  enum a_non_type_kind : uint8_t {
+    ntk_none,
+    ntk_ellipsis,
+    ntk_namespace,
+    ntk_empty_pack_expansion,
+  };
   inline void init_byte_buffer(size_t offset, size_t length) const noexcept;
   inline void get_bytes_from_buffer(void   *addr,
                                     size_t length) const noexcept;
@@ -2175,6 +2187,9 @@ private:
   static an_ifc_partition_map *find_ifc_partition(a_const_char *name) noexcept;
   void process_ifc_scope(ifc_ScopeIndex scope_index,
                          a_scope_ptr    scope) const noexcept;
+  void process_template_decl(a_module_entity_ptr      mep,
+                             an_ifc_DeclSort_Template *decl,
+                             a_symbol_locator         *loc) const noexcept;
   /* Module entity getters. */
   a_module_entity_ptr get_ifc_module_entity_ptr(
                                        an_ifc_partition_kind partition,
@@ -2185,7 +2200,8 @@ private:
   inline a_module_entity_ptr get_ifc_module_entity_ptr(ifc_DeclIndex index)
                                                                 const noexcept;
   a_scope_ptr get_ifc_scope(ifc_DeclIndex scope_index) const noexcept;
-  a_type_ptr type_for_type_index(ifc_TypeIndex type_index) const noexcept;
+  a_type_ptr type_for_type_index(ifc_TypeIndex   type_index,
+                                 a_non_type_kind *kind) const noexcept;
   a_type_ptr type_for_template_id(an_ifc_ExprSort_TemplateId *templ_id)
                                                                 const noexcept;
   void source_position_from_locus(a_source_position  *pos,
@@ -2208,6 +2224,34 @@ private:
   a_constant_ptr constant_for_expr_index(ifc_ExprIndex expr_index,
                                          a_type_ptr    default_type)
                                                                 const noexcept;
+  /* Token caching. */
+  void cache_type(a_token_cache_ptr  cache,
+                  ifc_TypeIndex      type,
+                  ifc_SourceLocation *locus) const noexcept;
+  void cache_sentence(a_token_cache_ptr cache,
+                      ifc_SentenceIndex sentence) const noexcept;
+  void cache_word(a_token_cache_ptr     cache,
+                  an_ifc_Word           *word) const noexcept;
+  void cache_source_directive(a_token_cache_ptr     cache,
+                              ifc_SourceDirective   directive,
+                              ifc_SourceLocation    *locus) const noexcept;
+  void cache_source_punctuator(a_token_cache_ptr     cache,
+                               ifc_SourcePunctuator  punctuator,
+                               ifc_SourceLocation    *locus) const noexcept;
+  void cache_source_literal(a_token_cache_ptr     cache,
+                            ifc_SourceLiteral     literal,
+                            ifc_Index             index,
+                            ifc_SourceLocation    *locus) const noexcept;
+  void cache_source_operator(a_token_cache_ptr     cache,
+                             ifc_SourceOperator    op,
+                             ifc_SourceLocation    *locus) const noexcept;
+  void cache_source_keyword(a_token_cache_ptr     cache,
+                            ifc_SourceKeyword     keyword,
+                            ifc_SourceLocation    *locus) const noexcept;
+  void cache_source_identifier(a_token_cache_ptr     cache,
+                               ifc_SourceIdentifier  id,
+                               ifc_Index             index,
+                               ifc_SourceLocation    *locus) const noexcept;
   /* Readers and reading helpers. */
   inline size_t file_offset_of(an_ifc_partition_kind partition,
                                ifc_Index_type        index) const noexcept;

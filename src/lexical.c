@@ -1694,6 +1694,17 @@ the newly created token.
   return ctp;
 }  /* build_cached_token */
 
+#if DEBUG
+
+void add_to_pragmas_in_reuseable_cache_count(unsigned long count)
+/*
+Add count to num_pragmas_in_reusable_caches.
+*/
+{
+  num_pragmas_in_reusable_caches += count;
+}  /* add_to_pragmas_in_reuseable_cache_count */
+
+#endif /* DEBUG */
 
 static void make_copy_of_pp_token(a_pp_token_descr_ptr pptdp)
 /*
