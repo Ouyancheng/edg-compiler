@@ -3406,6 +3406,23 @@ that do normal id lookup processing.
          of the active list that are from the associated scope, and see
          if any one is the symbol desired. */
       sym = active_scope_lookup(kind, ssep, locator, lookup_state);
+      if (sym != NULL && lookup_state->is_linkage_lookup &&
+          symbol_is(sym, sk_variable) &&
+          sym->variant.variable.ptr->source_corresp.is_local_to_function &&
+          is_local_scope_kind(scope_stack_top().kind) &&
+          (C_mode() || !strict_ansi_mode)) {
+        /* For a linkage lookup in block scope, ignore local variables.  E.g.:
+             static int i = 42;
+             void g() {
+               static int i;
+               { extern int i; }  // Finds the file-scope i, not the local i.
+             }
+           Core issue 426 revised that.  However, it is not commonly
+           implemented and therefore we only adhere to it in strict C++
+           mode. */
+        sym = NULL;
+        continue;
+      }  /* if */
     }  /* if */
     /* For class and class reactivation scopes, when the symbol is not
        found, see if there is a projection of some symbol into the
