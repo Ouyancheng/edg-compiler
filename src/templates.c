@@ -5414,7 +5414,7 @@ so that they can still be put in the token string that is generated.
 }  /* remove_expression_from_cache */
 
 
-static a_template_cache_segment_ptr extract_member_bodies(
+a_template_cache_segment_ptr extract_member_bodies(
 		a_template_cache_ptr			tcp,
 		a_template_cache_segment_ptr		cache_segments,
 		a_boolean				keep_default_args)
@@ -5540,7 +5540,6 @@ and a list of the unprocessed entries is returned to the caller.
 }  /* extract_member_bodies */
 
 
-static
 void instantiate_class_template(a_symbol_ptr                 template_sym,
                                 a_type_ptr                   prototype_type,
                                 a_template_cache_segment_ptr *tcsp,
@@ -20744,7 +20743,6 @@ is the type kind associated with this declaration.
 }  /* update_nested_template_class_symbol_info */
 
 
-static
 void record_specialization(a_symbol_ptr				template_sym,
    		           a_template_symbol_supplement_ptr	tssp,
 			   a_source_position			*error_pos)
@@ -20857,7 +20855,7 @@ the text of the message to be issued.
 }  /* same_name_as_template_param */
 
 
-static a_symbol_ptr add_partial_specialization(
+a_symbol_ptr add_partial_specialization(
 			a_tmpl_decl_state_ptr	decl_state,
 			a_symbol_ptr		partial_spec_nonreal_sym,
 			a_symbol_locator	*locator,
@@ -22655,6 +22653,298 @@ Otherwise return TRUE.
 }  /* check_requires_redecl */
 
 
+a_symbol_ptr underlying_tmpl_class_sym(a_symbol_ptr          sym,
+                                       a_symbol_locator      *loc,
+                                       a_tmpl_decl_state_ptr decl_state)
+/*
+If sym refers (directly or indirectly) to a template class, check whether a
+partial specialization is possible and return the underlying template symbol.
+loc is the locator for sym.  decl_state is the template declaration state
+block.
+*/
+{
+  /* If the class name is a template ID, then this is probably a declaration of
+     a partial specialization. */
+  if (sym != NULL && is_template_class_symbol(sym) && loc->is_template_id) {
+    /* Check whether this template can be specialized.  Generics and certain
+       templates cannot be partially specialized. */
+    a_symbol_ptr                     class_template_sym;
+    a_template_symbol_supplement_ptr tssp;
+    class_template_sym = template_for_instance(sym);
+    tssp = class_template_sym->variant.template_info;
+    if (tssp->variant.class_template.cannot_be_specialized
+        if_microsoft_extensions(|| decl_state->is_generic)) {
+      pos_sy_error(ec_partial_specialization_not_allowed,
+                   &loc->source_position, class_template_sym);
+      sym = NULL;
+      decl_state->is_partial_specialization = FALSE;
+    }  /* if */
+    if (sym != NULL) {
+      decl_state->is_partial_specialization = TRUE;
+      if (is_class_struct_union_symbol(sym) &&
+          !sym->variant.class_struct_union.type
+              ->variant.class_struct_union.is_prototype_instantiation) {
+        /* If the symbol is not marked as a prototype instantiation yet, then
+           this is the first time we're marking it as a partial
+           specialization. */
+        decl_state->decl_parse->first_decl = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (sym != NULL && gpp_mode && gnu_version >= 30400 &&
+      symbol_is(sym, sk_type)) {
+    /* In g++ mode, if the symbol is a typedef to a prototype instantiation,
+       use the underlying template symbol. */
+    a_type_ptr   tp = sym->variant.type.ptr;
+    a_symbol_ptr new_sym;
+    tp = skip_typerefs(tp);
+    new_sym = symbol_for(tp);
+    if (new_sym != NULL && is_prototype_instantiation_symbol(new_sym)) {
+      a_class_symbol_supplement_ptr cssp;
+      cssp = class_symbol_supp(new_sym);
+      sym = cssp->class_template;
+      /* If this is a partial specialization, get the primary template. */
+      sym = primary_template_of(sym);
+    }  /* if */
+  }  /* if */
+  /* If the symbol found is an injected template symbol, replace it with the
+     template that it represents. */
+  if (sym != NULL && is_injected_template_symbol(sym)) {
+    sym = class_template_for_injected_template_symbol(sym);
+  }  /* if */
+  return sym;
+}  /* underlying_tmpl_class_sym */
+
+
+a_symbol_ptr check_tmpl_class_partial_spec(
+                               a_symbol_ptr          sym,
+                               a_symbol_locator      *loc,
+                               a_tmpl_decl_state_ptr decl_state,
+                               a_symbol_ptr          *partial_spec_nonreal_sym)
+/*
+If this is a partial specialization, sym will be the prototype instantiation
+associated with the partial specialization.  If this is the case, reset sym to
+point to the class template symbol associated with the partial specialization.
+If instead sym points to a nonreal class, then this is probably the initial
+declaration of the partial specialization - in which case set
+*partial_spec_nonreal_sym to the nonreal class symbol so that we retain the
+information about the template argument list that was used and reset sym to
+NULL (indicating that a new class template symbol should be created).  Return
+the updated sym or NULL if an error was encountered.  loc is the locator for
+sym.  decl_state is the template declaration state block. */
+{
+  a_boolean err = FALSE;
+
+  if (is_prototype_instantiation_symbol(sym)) {
+    sym = sym->variant.class_struct_union.extra_info->class_template;
+    check_assertion(sym != NULL);
+    if (sym->variant.template_info->primary_template_sym == NULL) {
+      /* The template found is the prototype instantiation of the primary
+         template.  This occurs if the primary template was named in the
+         template argument list of a partial specialization.  This is
+         not permitted.  Earlier versions of the Microsoft compiler allow
+         this, so only a warning is issued. */
+      an_error_severity severity = es_error;
+      if (microsoft_mode && microsoft_version <= 1600) {
+        severity = es_warning;
+      } else {
+        err = TRUE;
+      }  /* if */
+      pos_diagnostic(severity, ec_partial_spec_is_primary_template,
+                     &loc->source_position);
+    }  /* if */
+  } else if (is_nonreal_instance_class_symbol(sym)) {
+    a_scope_stack_entry_ptr ssep =
+                                &scope_stack[decl_state->effective_decl_level];
+    if (!decl_state->is_template_friend &&
+        decl_state->class_declared_in != NULL &&
+        (!sym->is_class_member ||
+         sym_parent_class(sym) != decl_state->class_declared_in)) {
+      /* A partial specialization in a class, but the entity found is from a
+         different scope. */
+      pos_sy_error(ec_cannot_be_declared_in_scope, &loc->source_position, sym);
+      err = TRUE;
+    } else if (!sym->is_class_member &&
+               ssep->assoc_namespace != sym_parent_namespace_or_null(sym) &&
+               (!ms_extensions && !gpp_mode &&
+                !namespace_is_enclosed_by_scope(sym, ssep))) {
+      pos_error(ec_member_partial_spec_not_in_namespace,
+                &loc->source_position);
+      err = TRUE;
+    } else {
+      /* This is a partial specialization.  Check to see if it an out-of-class
+         partial specialization that requires special processing. */
+      check_for_out_of_class_partial_spec(decl_state,
+                                          template_for_instance(sym));
+      *partial_spec_nonreal_sym = sym;
+      sym = NULL;
+    }  /* if */
+  } else {
+    /* The symbol found is a real class.  This is an invalid partial
+        specialization. */
+    pos_sy_error(ec_bad_partial_specialization, &loc->source_position, sym);
+    err = TRUE;
+  }  /* if */
+  if (decl_state->is_template_friend &&
+      !decl_state->decl_scope_err && !err) {
+    /* A partial specialization is not permitted in a friend declaration. */
+    pos_error(ec_friend_partial_specialization, &loc->source_position);
+    err = TRUE;
+  }  /* if */
+  if (err) {
+    decl_state->is_partial_specialization = FALSE;
+    decl_state->decl_scope_err = TRUE;
+    sym = NULL;
+  }  /* if */
+  return sym;
+}  /* check_tmpl_class_partial_spec */
+
+
+a_symbol_ptr check_tmpl_class_sym_redecl(
+                          a_symbol_ptr                     sym,
+                          a_template_param_ptr             templ_params,
+                          a_symbol_locator                 *loc,
+                          a_type_kind                      type_kind,
+                          a_template_symbol_supplement_ptr tssp,
+                          a_tmpl_decl_state_ptr            decl_state,
+                          a_boolean                        is_nested_class_def,
+                          a_boolean                        *is_redecl,
+                          a_boolean                        *supp_redecl_err)
+/*
+Check whether sym valid for a template class redeclaration.  Return sym and
+set *is_redecl to TRUE if sym is valid enough to be used in a redeclaration,
+NULL otherwise.  templ_params are the template parameters being used in the
+declaration of the template class.  loc is the locator for sym.  type_kind is
+the type of template class being declared.  tssp is the template symbol
+supplement for sym.  decl_state is the template declaration state block.
+is_nested_class_def is TRUE if the declaration is a nested class definition.
+Set *supp_redecl_err to TRUE if returning NULL (indicating this is not a
+redeclaration) and any redeclaration error should be suppressed.
+*/
+{
+  a_boolean err = FALSE;
+
+  if (templ_params == NULL) {
+    /* Don't create a real symbol no template parameter list was provided. */
+    err = TRUE;
+  } else if (sym == NULL) {
+    /* Suppress the following error tests if the no symbol was found. */
+  } else if (symbol_is(sym, sk_class_template) || is_nested_class_def) {
+    /* This is a class template or a nested class within a class template. */
+    *is_redecl = TRUE;
+    if ((type_kind == (a_type_kind)tk_union) !=
+        (tssp->variant.class_template.type_kind == (a_type_kind)tk_union)) {
+      /* Cannot mix union and nonunion declarations. */
+      pos_sy_error(ec_not_compatible_with_previous_decl,
+                    &loc->source_position, sym);
+      err = TRUE;
+    } else if (!sym->defined) {
+      /* Not previously defined. */
+    } else if (decl_state->defines_something) {
+      /* Attempting to redefine a class template. */
+      pos_sy_error(ec_already_defined, &loc->source_position, sym);
+      err = TRUE;
+    }  /* if */
+    if (decl_state->decl_scope_err) err = TRUE;
+    /* Either a definition or a redeclaration.  Make sure the template
+       parameters are compatible with the previous declaration. */
+    if (sym->is_class_member &&
+        !in_prototype_instantiation_or_cli_generic(decl_state) &&
+        (decl_state->class_declared_in == NULL ||
+         decl_state->is_template_friend)) {
+      /* If this is a class member defined outside of its class or a friend
+         function declaration in a class, make sure that the template
+         parameters match those of the original class definition. */
+      if (!member_template_param_list_matches_class(
+                    decl_state, sym,
+                    /*allow_missing_member_constraint=*/
+                                   is_redecl && !decl_state->defines_something,
+                    &error_position)) {
+        err = TRUE;
+      } /* if */
+    }  /* if */
+    if (!err && sym->kind == (a_symbol_kind)sk_class_template &&
+        !tssp->is_nonreal_member) {
+      /* If this is a class template, make sure the template parameters match a
+         previous declaration of the class.  This test is not done if the
+         template found is a nonreal template (that has no template parameter
+         list).  For member templates, default arguments are only allowed on
+         the initial declaration (in the class). */
+      a_boolean default_allowed = !sym->is_class_member ||
+                                  decl_state->class_declared_in != NULL;
+      if (!default_allowed && sym->is_class_member) {
+        a_type_ptr parent_class = sym_parent_class(sym);
+        if (!parent_class->variant.class_struct_union.is_template_class ||
+            !parent_class->
+                    variant.class_struct_union.is_prototype_instantiation) {
+          /* A default argument is allowed on an out-of-class definition
+              of a member of a class that is not a class template. */
+          default_allowed = TRUE;
+        }  /* if */
+      }  /* if */
+      (void)check_requires_redecl(tssp->cache.decl_info, decl_state->decl_info,
+                                  loc, sym);
+      if (microsoft_bugs && microsoft_version < 1310 && sym->defined) {
+        /* The Microsoft compiler (prior to version 7.1) does not check the
+           parameter list of a template that is redeclared after it has been
+           defined. */
+      } else {
+        a_boolean         mismatch;
+        an_error_severity severity = es_error;
+        if (gpp_mode && decl_state->is_template_friend &&
+            loc->is_qualified_name) {
+          /* g++ does not check the parameter list of a friend class template
+             declared with a qualified name. */
+          severity = es_warning;
+        }  /* if */
+        mismatch = !reconcile_template_param_lists(
+                                      templ_params, decl_state, sym,
+                                      &loc->source_position, default_allowed,
+                                      /*checking_parent_params=*/FALSE,
+                                      /*allow_missing_member_constraint=*/TRUE,
+                                      severity);
+        if (mismatch && severity == es_error) err = TRUE;
+      }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cli_or_cx_enabled && !err) {
+        a_type_ptr class_type =
+                           tssp->variant.class_template.prototype_instantiation
+                               ->variant.class_struct_union.type;
+        if (class_type_supp(class_type)->cli_class_type_kind !=
+                                             decl_state->cli_class_type_kind) {
+          pos_sy_error(ec_conflicting_cli_class_template_kinds,
+                       &loc->source_position, sym);
+        }  /* if */
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } /* if */
+  } else if (loc->is_qualified_name) {
+    /* A qualified name that does not refer to a class template symbol.  Issue
+       an error and set the locator to an error locator. */
+    if (is_template_class_symbol(sym) && loc->is_template_id &&
+        !is_real_class_symbol(sym)) {
+      /* The class name was followed by a template parameter list in a later
+         definition.  This is not permitted. */
+      pos_sy_error(ec_templ_param_list_not_allowed, &loc->source_position,
+                   sym);
+    } else {
+      /* Some other kind of invalid symbol. */
+      pos_sy_error(ec_sym_not_a_class_template, &loc->source_position, sym);
+    }  /* if */
+    err = TRUE;
+  } else {
+    /* Force the call to enter symbol, which will report the name clash. */
+    sym = NULL;
+  }  /* if */
+  if (err) {
+    sym = NULL;
+    *supp_redecl_err = TRUE;
+    set_to_named_error_locator(*loc);
+  }  /* if */
+  return sym;
+}  /* check_tmpl_class_sym_redecl */
+
+
 static void class_template_declaration(
                          a_tmpl_decl_state_ptr decl_state,
 		         a_symbol_ptr          *p_sym_ptr,
@@ -22909,58 +23199,7 @@ declaration of a partial specialization declared outside of its class.
         suppress_redecl_error = TRUE;
         make_new_symbol_invisible = TRUE;
       }  /* if */
-      /* If the class name is a template ID, then this is probably a
-         declaration of a partial specialization. */
-      if (sym != NULL && is_template_class_symbol(sym) &&
-          locator_for_curr_id.is_template_id) {
-        /* Check whether this template can be specialized.  Generics and
-           certain templates cannot be partially specialized. */
-        a_symbol_ptr                     class_template_sym;
-        class_template_sym = template_for_instance(sym);
-        tssp = class_template_sym->variant.template_info;
-        if (tssp->variant.class_template.cannot_be_specialized
-            if_microsoft_extensions(|| decl_state->is_generic)) {
-          pos_sy_error(ec_partial_specialization_not_allowed, 
-                       &locator_for_curr_id.source_position, 
-                       class_template_sym);
-          sym = NULL;
-          tssp = NULL;
-          err = TRUE;
-          decl_state->is_partial_specialization = FALSE;
-        }  /* if */
-        if (sym != NULL) {
-          decl_state->is_partial_specialization = TRUE;
-          if (is_class_struct_union_symbol(sym) &&
-              !sym->variant.class_struct_union.type
-                  ->variant.class_struct_union.is_prototype_instantiation) {
-            /* If the symbol is not marked as a prototype instantiation yet,
-               then this is the first time we're marking it as a partial
-               specialization. */
-            decl_state->decl_parse->first_decl = TRUE;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      if (sym != NULL && gpp_mode && gnu_version >= 30400 &&
-          symbol_is(sym, sk_type)) {
-        /* In g++ mode, if the symbol is a typedef to a prototype
-           instantiation, use the underlying template symbol. */
-        a_type_ptr	tp = sym->variant.type.ptr;
-        a_symbol_ptr	new_sym;
-        tp = skip_typerefs(tp);
-        new_sym = symbol_for(tp);
-        if (new_sym != NULL && is_prototype_instantiation_symbol(new_sym)) {
-          a_class_symbol_supplement_ptr	cssp;
-          cssp = class_symbol_supp(new_sym);
-          sym = cssp->class_template;
-          /* If this is a partial specialization, get the primary template. */
-          sym = primary_template_of(sym);
-        }  /* if */
-      }  /* if */
-      /* If the symbol found is an injected template symbol, replace it with
-         the template that it represents. */
-      if (sym != NULL && is_injected_template_symbol(sym)) {
-        sym = class_template_for_injected_template_symbol(sym);
-      }  /* if */
+      sym = underlying_tmpl_class_sym(sym, &locator_for_curr_id, decl_state);
     } else {
       /* Look up the symbol in the current scope.  To do this we must
          temporarily change the decl_scope_level to the effective
@@ -23070,81 +23309,8 @@ declaration of a partial specialization declared outside of its class.
   }  /* if */
 friend_template_checks_done:
   if (decl_state->is_partial_specialization) {
-    a_boolean	err = FALSE;
-    /* If this is a partial specialization, the symbol that was returned
-       by the lookup will be the prototype instantiation associated with
-       the partial specialization.  If this is the case, reset the symbol
-       to point to the class template symbol associated with the partial
-       specialization.  If instead the symbol points to a nonreal class,
-       then this is probably the initial declaration of the partial
-       specialization in which case we save a pointer to the nonreal class
-       so that we retain the information about the template argument list
-       that was used and we reset the symbol pointer to NULL so that a new
-       class template symbol will be created below. */
-    if (is_prototype_instantiation_symbol(sym)) {
-      sym = sym->variant.class_struct_union.extra_info->class_template;
-      check_assertion(sym != NULL);
-      if (sym->variant.template_info->primary_template_sym == NULL) {
-        /* The template found is the prototype instantiation of the primary
-           template.  This occurs if the primary template was named in the
-           template argument list of a partial specialization.  This is
-           not permitted.  Earlier versions of the Microsoft compiler allow
-           this, so only a warning is issued. */
-        an_error_severity severity = es_error;
-        if (microsoft_mode && microsoft_version <= 1600) {
-          severity = es_warning;
-        } else {
-          err = TRUE;
-        }  /* if */
-        pos_diagnostic(severity, ec_partial_spec_is_primary_template,
-                       &locator.source_position);
-      }  /* if */
-    } else if (is_nonreal_instance_class_symbol(sym)) {
-      a_scope_stack_entry_ptr	ssep =
-                                &scope_stack[decl_state->effective_decl_level];
-      if (!decl_state->is_template_friend &&
-                 decl_state->class_declared_in != NULL &&
-                 (!sym->is_class_member ||
-                   sym_parent_class(sym) != decl_state->class_declared_in)) {
-        /* A partial specialization in a class, but the entity found is from
-           a different scope. */
-        pos_sy_error(ec_cannot_be_declared_in_scope, &locator.source_position,
-                     sym);
-        err = TRUE;
-      } else if (!sym->is_class_member &&
-                 ssep->assoc_namespace != sym_parent_namespace_or_null(sym) &&
-                 (!ms_extensions && !gpp_mode &&
-                  !namespace_is_enclosed_by_scope(sym, ssep))) {
-        pos_error(ec_member_partial_spec_not_in_namespace,
-                  &locator.source_position);
-        err = TRUE;
-      } else {
-        /* This is a partial specialization.  Check to see if it an
-           out-of-class partial specialization that requires special
-           processing. */
-        check_for_out_of_class_partial_spec(decl_state,
-                                            template_for_instance(sym));
-        partial_spec_nonreal_sym = sym;
-        sym = NULL;
-      }  /* if */
-    } else {
-      /* The symbol found is a real class.  This is an invalid partial
-         specialization. */
-      pos_sy_error(ec_bad_partial_specialization, &locator.source_position,
-                   sym);
-      err = TRUE;
-    }  /* if */
-    if (decl_state->is_template_friend &&
-        !decl_state->decl_scope_err && !err) {
-      /* A partial specialization is not permitted in a friend declaration. */
-      pos_error(ec_friend_partial_specialization, &locator.source_position);
-      err = TRUE;
-    }  /* if */
-    if (err) {
-      decl_state->is_partial_specialization = FALSE;
-      decl_state->decl_scope_err = TRUE;
-      sym = NULL;
-    }  /* if */
+    sym = check_tmpl_class_partial_spec(sym, &locator, decl_state,
+                                        &partial_spec_nonreal_sym);
   }  /* if */
   /* Except for a partial specialization declared outside of the class,
      create a cache of the non-definition part of the declaration.  This
@@ -23263,130 +23429,12 @@ friend_template_checks_done:
     }  /* if */
   }  /* if */
   {
-    a_boolean  err = FALSE;
-    if (templ_params == NULL) {
-      /* Don't create a real symbol no template parameter list was provided. */
-      err = TRUE;
-    } else if (sym == NULL) {
-      /* Suppress the following error tests if the no symbol was found. */
-    } else if ((sym->kind == (a_symbol_kind)sk_class_template ||
-               is_nested_class_definition)) {
-      /* This is a class template or a nested class within a class
-         template. */
-      is_redecl = TRUE;
-      if ((type_kind == (a_type_kind)tk_union) !=
-          (tssp->variant.class_template.type_kind == (a_type_kind)tk_union)) {
-        /* Cannot mix union and nonunion declarations. */
-        pos_sy_error(ec_not_compatible_with_previous_decl,
-                     &locator.source_position, sym);
-        err = TRUE;
-      } else if (!sym->defined) {
-        /* Not previously defined. */
-        *resolution = is_definition;
-      } else if (is_definition) {
-        /* Attempting to redefine a class template. */
-        pos_sy_error(ec_already_defined, &locator.source_position, sym);
-        err = TRUE;
-      }  /* if */
-      if (decl_state->decl_scope_err) err = TRUE;
-      /* Either a definition or a redeclaration.  Make sure the template
-         parameters are compatible with the previous declaration. */
-      if (sym->is_class_member &&
-          !in_prototype_instantiation_or_cli_generic(decl_state) &&
-          (decl_state->class_declared_in == NULL ||
-           decl_state->is_template_friend)) {
-        /* If this is a class member defined outside of its class or a friend
-           function declaration in a class, make sure that the template
-           parameters match those of the original class definition. */
-        if (!member_template_param_list_matches_class(
-                     decl_state, sym,
-                     /*allow_missing_member_constraint=*/is_redecl &&
-                                                         !is_definition,
-                     &error_position)) {
-          err = TRUE;
-        } /* if */
-      }  /* if */
-      if (!err && sym->kind == (a_symbol_kind)sk_class_template &&
-          !tssp->is_nonreal_member) {
-        /* If this is a class template, make sure the template parameters
-           match a previous declaration of the class.  This test is not
-           done if the template found is a nonreal template (that has no
-           template parameter list).  For member templates, default
-           arguments are only allowed on the initial declaration (in the
-           class). */
-        a_boolean  default_allowed = !sym->is_class_member ||
-                                     decl_state->class_declared_in != NULL;
-        if (!default_allowed && sym->is_class_member) {
-          a_type_ptr	parent_class = sym_parent_class(sym);
-          if (!parent_class->variant.class_struct_union.is_template_class ||
-              !parent_class->
-                     variant.class_struct_union.is_prototype_instantiation) {
-            /* A default argument is allowed on an out-of-class definition
-               of a member of a class that is not a class template. */
-            default_allowed = TRUE;
-          }  /* if */
-        }  /* if */
-        (void)check_requires_redecl(tssp->cache.decl_info, tdip, &locator,
-                                    sym);
-        if (microsoft_bugs && microsoft_version < 1310 && sym->defined) {
-          /* The Microsoft compiler (prior to version 7.1) does not check
-             the parameter list of a template that is redeclared after
-             it has been defined. */
-        } else {
-          a_boolean	mismatch;
-          an_error_severity	severity = es_error;
-          if (gpp_mode && decl_state->is_template_friend &&
-              locator.is_qualified_name) {
-            /* g++ does not check the parameter list of a friend class
-               template declared with a qualified name. */
-            severity = es_warning;
-          }  /* if */
-          mismatch = !reconcile_template_param_lists(
-                              templ_params, decl_state, sym,
-                              &locator.source_position, default_allowed,
-                              /*checking_parent_params=*/FALSE,
-                              /*allow_missing_member_constraint=*/TRUE,
-                              severity);
-          if (mismatch && severity == es_error) err = TRUE;
-        }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (cli_or_cx_enabled && !err) {
-          a_type_ptr  class_type = 
-                        tssp->variant.class_template.prototype_instantiation
-                            ->variant.class_struct_union.type;
-          if (class_type_supp(class_type)->cli_class_type_kind !=
-                                           decl_state->cli_class_type_kind) {
-            pos_sy_error(ec_conflicting_cli_class_template_kinds,
-                         &locator.source_position, sym);
-          }  /* if */
-        }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      } /* if */
-    } else if (locator.is_qualified_name) {
-      /* A qualified name that does not refer to a class template
-         symbol.  Issue an error and set the locator to an error locator. */
-      if (is_template_class_symbol(sym) && locator.is_template_id &&
-          !is_real_class_symbol(sym)) {
-        /* The class name was followed by a template parameter list in a
-           later definition.  This is not permitted. */
-        pos_sy_error(ec_templ_param_list_not_allowed, &locator.source_position,
-                     sym);
-      } else {
-        /* Some other kind of invalid symbol. */
-        pos_sy_error(ec_sym_not_a_class_template, &locator.source_position,
-                     sym);
-      }  /* if */
-      err = TRUE;
-      set_to_named_error_locator(locator);
-      sym = NULL;
-    } else {
-      /* Force the call to enter symbol, which will report the name clash. */
-      sym = NULL;
-    }  /* if */
-    if (err) {
-      sym = NULL;
-      suppress_redecl_error = TRUE;
-      set_to_named_error_locator(locator);
+    sym = check_tmpl_class_sym_redecl(sym, templ_params, &locator, type_kind,
+                                      tssp, decl_state,
+                                      is_nested_class_definition, &is_redecl,
+                                      &suppress_redecl_error);
+    if (sym != NULL && !sym->defined && is_definition) {
+      *resolution = is_definition;
     }  /* if */
   }
   /* Create the symbol entry for this template. */
@@ -24453,7 +24501,7 @@ Scan the default argument of the type template parameter specified by tpp.
 }  /* scan_type_template_param_default_arg */
 
 
-static a_template_param_ptr decl_type_template_param(
+a_template_param_ptr decl_type_template_param(
                                    a_template_param_list_pos   param_pos,
                                    a_symbol_locator            *loc,
                                    a_boolean                   is_named,

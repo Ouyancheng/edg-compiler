@@ -2187,9 +2187,10 @@ private:
   static an_ifc_partition_map *find_ifc_partition(a_const_char *name) noexcept;
   void process_ifc_scope(ifc_ScopeIndex scope_index,
                          a_scope_ptr    scope) const noexcept;
-  void process_template_decl(a_module_entity_ptr      mep,
-                             an_ifc_DeclSort_Template *decl,
-                             a_symbol_locator         *loc) const noexcept;
+  a_template_ptr process_template_decl(a_module_entity_ptr      mep,
+                                       an_ifc_DeclSort_Template *decl,
+                                       a_symbol_locator         *loc)
+                                                                const noexcept;
   /* Module entity getters. */
   a_module_entity_ptr get_ifc_module_entity_ptr(
                                        an_ifc_partition_kind partition,

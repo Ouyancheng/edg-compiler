@@ -2007,12 +2007,18 @@ class_struct_union_case:
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
-            process_template_decl(mep, idstp, &loc);
+            a_template_ptr tmpl = process_template_decl(mep, idstp, &loc);
+            il_entity = (char*)tmpl;
+            kind = iek_template;
           }  /* if */
         }
         break;
       case ifc_DeclSort_Parameter:
         { an_ifc_DeclSort_Parameter idsp, *idspp;
+          a_type_ptr                param_type;
+          a_template_param_ptr      param = NULL, *next_param;
+          a_template_parameter_ptr  il_param = NULL;
+
           idspp = get_DeclSort_Parameter(&idsp);
           check_assertion(idspp->name != 0);
           init_locator_from_name((ifc_NameIndex)0, idspp->name, &idspp->locus,
@@ -2029,34 +2035,26 @@ class_struct_union_case:
                                        "not yet handled");
               break;
             case ifc_ParameterSort_Type:
-              unexpected_condition_str("ParameterSort::Type not yet handled");
+              /* FIXME: Handle unnamed parameters properly */
+              param = decl_type_template_param(idspp->position, &loc,
+                                               /*is_named=*/TRUE, idspp->pack,
+                                               /*constraint=*/NULL,
+                                               curr_templ_decl_state,
+                                               &curr_templ_decl_state->
+                                                               decl_pos_block);
               break;
             case ifc_ParameterSort_NonType:
-              { a_type_ptr               param_type;
-                a_template_param_ptr     param, *next_param;
-                a_template_parameter_ptr il_param;
-
-                param_type = type_for_type_index(idspp->type, /*kind=*/NULL);
-                /* FIXME: Handle unnamed parameters properly. */
-                param = make_nontype_template_param(idspp->level,
-                                                    idspp->position,
-                                                    /*is_unnamed=*/FALSE,
-                                                    idspp->pack,
-                                                    /*is_pack_element=*/FALSE,
-                                                    /*is_non_initial=*/FALSE,
-                                                    /*is_pack_expansion*/FALSE,
-                                                    &loc, param_type,
-                                                    curr_templ_decl_state);
-                next_param = &curr_templ_decl_state->decl_info->parameters;
-                for (; *next_param != NULL; next_param = &(*next_param)->next);
-                *next_param = param;
-                ++curr_templ_decl_state->decl_info->n_params;
-                il_param = alloc_template_parameter();
-                param->il_template_parameter = il_param;
-                param->param_symbol->is_invisible = FALSE;
-                il_entity = (char*)il_param;
-                kind = iek_template_parameter;
-              }
+              param_type = type_for_type_index(idspp->type, /*kind=*/NULL);
+              /* FIXME: Handle unnamed parameters properly. */
+              param = make_nontype_template_param(idspp->level,
+                                                  idspp->position,
+                                                  /*is_unnamed=*/FALSE,
+                                                  idspp->pack,
+                                                  /*is_pack_element=*/FALSE,
+                                                  /*is_non_initial=*/FALSE,
+                                                  /*is_pack_expansion*/FALSE,
+                                                  &loc, param_type,
+                                                  curr_templ_decl_state);
               break;
             case ifc_ParameterSort_Template:
               unexpected_condition_str("ParameterSort::Template "
@@ -2065,6 +2063,18 @@ class_struct_union_case:
             default:
               unexpected_condition_str("Unexpected ParameterSort");
           }  /* switch */
+          if (param != NULL) {
+            next_param = &curr_templ_decl_state->decl_info->parameters;
+            /* Skip to end of parameter list. */
+            for (; *next_param != NULL; next_param = &(*next_param)->next) {}
+            *next_param = param;
+            ++curr_templ_decl_state->decl_info->n_params;
+            il_param = alloc_template_parameter();
+            param->il_template_parameter = il_param;
+            param->param_symbol->is_invisible = FALSE;
+            il_entity = (char*)il_param;
+            kind = iek_template_parameter;
+          }  /* if */
         }
         break;
       case ifc_DeclSort_Method:
@@ -2361,9 +2371,10 @@ in this context.  This routine borrows heavily from decl_level_of_template.
 }  /* decl_level_of_ifc_template */
 
 
-void an_ifc_module::process_template_decl(a_module_entity_ptr      mep,
-                                          an_ifc_DeclSort_Template *decl,
-                                          a_symbol_locator         *loc)
+a_template_ptr an_ifc_module::process_template_decl(
+                                                a_module_entity_ptr      mep,
+                                                an_ifc_DeclSort_Template *decl,
+                                                a_symbol_locator         *loc)
                                                                  const noexcept
 /*
 Process the DeclSort::Template entry corresponding to the given module entity.
@@ -2380,13 +2391,15 @@ Process the DeclSort::Template entry corresponding to the given module entity.
   a_non_type_kind     non_type_kind;
   a_boolean           is_alias_decl = FALSE;
   a_boolean           is_redecl = FALSE;
+  a_boolean           suppress_redecl_error = FALSE;
   a_symbol_ptr        sym, orig_decl_sym = NULL;
   a_template_symbol_supplement_ptr
-                      tssp, orig_decl_tssp;
+                      tssp = NULL, orig_decl_tssp;
   a_partial_scope_stack_state
                       psss;
 
   sym = loc->specific_symbol;
+  error_position = loc->source_position;
   init_dps(&dps, &decl->locus, (ifc_TypeIndex)0, (ifc_Alignment)0,
            ifc_ObjectTraits_None, ifc_MsvcTraits_None, decl->specifiers,
            decl->access, &psss);
@@ -2486,13 +2499,6 @@ Process the DeclSort::Template entry corresponding to the given module entity.
     }  /* if */
     set_membership_of_template(&decl_state, sym);
     set_il_template_entry(&decl_state, orig_decl_sym, orig_decl_tssp);
-    clear_token_cache(&tssp->cache.tokens, /*reuseable=*/TRUE);
-    if (is_alias_decl) {
-      cache_type(&tssp->cache.tokens, (ifc_TypeIndex)decl->entity.index,
-                 &decl->locus);
-    }  /* if */
-    cache_sentence(&tssp->cache.tokens, decl->entity.body);
-    tssp->cache.decl_info = tdip;
     if (!is_redecl) {
       mark_defined(orig_decl_sym, &loc->source_position);
     } else {
@@ -2511,9 +2517,75 @@ Process the DeclSort::Template entry corresponding to the given module entity.
     /* Create the symbol for the prototype instantiation. */
     create_prototype_type(&decl_state, sym, tssp, (a_symbol_ptr)NULL,
                           /*is_partial_specialization=*/FALSE);
+  } else if (is_class_struct_union_type(type)) {
+    a_symbol_ptr partial_spec_nonreal_sym = NULL;
+    a_boolean    is_nested_class_definition = FALSE;
+    decl_state.defines_something = decl->entity.body != 0;
+    if (loc->is_template_id || loc->is_qualified_name) {
+      sym = underlying_tmpl_class_sym(sym, loc, &decl_state);
+    }  /* if */
+    if (decl_state.is_partial_specialization &&
+        is_prototype_instantiation_symbol(sym)) {
+      sym = sym->variant.class_struct_union.extra_info->class_template;
+      check_assertion(sym != NULL);
+    }  /* if */
+    if (decl_state.is_partial_specialization) {
+      sym = check_tmpl_class_partial_spec(sym, loc, &decl_state,
+                                          &partial_spec_nonreal_sym);
+      if (partial_spec_nonreal_sym == NULL) {
+        decl_state.is_partial_specialization = FALSE;
+      }  /* if */
+    }  /* if */
+    if (sym != NULL) {
+      tssp = template_supplement_for_symbol(sym);
+      is_nested_class_definition = is_class_struct_union_symbol(sym) &&
+                                   sym->is_class_member &&
+                                   (!decl_state.is_member_decl ||
+                                    decl_state.is_template_friend) &&
+                                   !loc->is_template_id && tssp != NULL;
+    }
+    sym = check_tmpl_class_sym_redecl(sym, tdip->parameters, loc, type->kind,
+                                      tssp, &decl_state,
+                                      is_nested_class_definition, &is_redecl,
+                                      &suppress_redecl_error);
+    if (sym == NULL) {
+      if (decl_state.is_partial_specialization) {
+        sym = add_partial_specialization(&decl_state, partial_spec_nonreal_sym,
+                                         loc, type->kind);
+      } else {
+        sym = enter_symbol((a_symbol_kind)sk_class_template, loc,
+                           decl_state.effective_decl_level,
+                           suppress_redecl_error);
+        set_membership_of_template(&decl_state, sym);
+      }  /* if */
+      tssp = sym->variant.template_info;
+      tssp->variant.class_template.type_kind = type->kind;
+      tssp->is_variadic = decl_state.is_variadic;
+      tssp->has_variadic_template_params =
+                                       decl_state.has_variadic_template_params;
+      tssp->has_template_param_constraint =
+                                      decl_state.has_template_param_constraint;
+      tssp->variant.class_template.name_linkage =
+                                   (a_name_linkage_kind)nlk_cplusplus_external;
+      set_il_template_entry(&decl_state, sym, tssp);
+      is_redecl = FALSE;
+    }  /* if */
+    if (decl_state.defines_something) {
+      tssp->variant.class_template.type_kind = type->kind;
+      mark_defined(sym, &loc->source_position);
+    } else {
+      mark_declared(sym, &loc->source_position);
+    }  /* if */
+    if (decl_state.is_specialization && !decl_state.is_template_friend) {
+      record_specialization(sym, tssp, &loc->source_position);
+    }  /* if */
+    /* FIXME: Attributes */
+    if (tssp->variant.class_template.prototype_instantiation == NULL) {
+      create_prototype_type(&decl_state, sym, tssp, partial_spec_nonreal_sym,
+                            decl_state.is_partial_specialization);
+    }  /* if */
   } else {
-    unexpected_condition_str("Non-alias DeclSort::Templates "
-                             "are not yet handled");
+    unexpected_condition_str("Unhandled DeclSort::Template kind");
   }  /* if */
   for (; decl_state.number_of_template_decl_scopes != 0;
          decl_state.number_of_template_decl_scopes--) {
@@ -2521,6 +2593,13 @@ Process the DeclSort::Template entry corresponding to the given module entity.
   }  /* for */
   set_il_template_entry(&decl_state, sym, tssp);
   complete_il_template_entry(&decl_state, sym);
+  clear_token_cache(&tssp->cache.tokens, /*reuseable=*/TRUE);
+  if (is_alias_decl) {
+    cache_type(&tssp->cache.tokens, (ifc_TypeIndex)decl->entity.index,
+               &decl->locus);
+  }  /* if */
+  cache_sentence(&tssp->cache.tokens, decl->entity.body);
+  tssp->cache.decl_info = tdip;
   if (is_alias_decl) {
     if (is_redecl) {
       alias_prototype_instantiation(&decl_state,
@@ -2529,9 +2608,34 @@ Process the DeclSort::Template entry corresponding to the given module entity.
     } else {
       alias_prototype_instantiation(&decl_state, sym);
     }  /* if */
+  } else if (is_class_struct_union_type(type)) {
+    if (decl_state.defines_something) {
+      a_symbol_ptr                 prototype_sym;
+      a_type_ptr                   prototype_type;
+      a_template_cache_segment_ptr class_templ_cache_segments = NULL;
+
+      prototype_sym = tssp->variant.class_template.prototype_instantiation;
+      prototype_type = type_symbol_type(prototype_sym);
+      check_assertion_str2(is_class_struct_union_symbol(prototype_sym),
+                           "template_declaration:", "prototype_sym invalid");
+      assoc_template_of(prototype_type) = tssp->il_template_entry;
+      tdip->starting_decl_seq = ++*curr_decl_seq_counter();
+      instantiate_class_template(sym, prototype_type,
+                                 &class_templ_cache_segments, &decl_state);
+      prototype_type->source_corresp.decl_position = sym->decl_position;
+      class_templ_cache_segments =
+                             extract_member_bodies(&tssp->cache,
+                                                   class_templ_cache_segments,
+                                                   /*keep_default_args=*/TRUE);
+      if (class_templ_cache_segments != NULL) {
+        extract_member_bodies(&tssp->cache, class_templ_cache_segments,
+                              /*keep_default_args=*/FALSE);
+      }  /* if */
+    }  /* if */
   }  /* if */
   curr_templ_decl_state = saved_decl_state;
   restore_partial_scope_stack_if_necessary(&psss);
+  return decl_state.il_template_entry;
 }  /* process_template_decl */
 
 
@@ -3009,8 +3113,6 @@ appropriate non-type kind and return NULL.
                 iestidp = get_ExprSort_TemplateId(&iestid);
                 result = type_for_template_id(iestidp);
               }
-              unexpected_condition_str("ExprSort::TemplateId not yet handled "
-                                       "for TypeSort::Syntactic");
               break;
             default:
               unexpected_condition_str("Unexpected ExprSort kind for "
@@ -3102,11 +3204,34 @@ module file.
     unexpected_condition_str("Unexpected type for ExprSort::NamedDecl");
   } else {
     a_module_entity_ptr mep = get_ifc_module_entity_ptr(iesndp->resolution);
+    a_template_ptr      tmpl;
     /* FIXME: Placeholder - need to get the correct scope. */
     mep->scope=il_header.primary_scope;
     process_ifc_declaration(mep, /*defer=*/FALSE, (a_type_ptr)NULL);
-    unexpected_condition_str("ExprSort::NamedDecl::resolution "
-                             "not yet handled.");
+    check_assertion(mep->entity.kind == iek_template);
+    tmpl = (a_template_ptr)mep->entity.ptr;
+    switch (tmpl->kind) {
+      case templk_function:
+      case templk_member_function:
+        result = tmpl->prototype_instantiation.routine->type;
+        break;
+      case templk_class:
+      case templk_member_class:
+      case templk_member_enum:
+        result = tmpl->prototype_instantiation.type;
+        break;
+      case templk_variable:
+      case templk_static_data_member:
+        result = tmpl->prototype_instantiation.variable->type;
+        break;
+      case templk_concept:
+        result = tmpl->prototype_instantiation.constraint->type;
+        break;
+      case templk_template_template_param:
+      case templk_none:
+      default:
+        unexpected_condition();
+    }  /* switch */
   }  /* if */
   return result;
 }  /* type_for_template_id */
@@ -3718,8 +3843,6 @@ Sentence containing punctuator.
     case ifc_SourcePunctuator_MsvcZeroWidthSpace:
       break;
     case ifc_SourcePunctuator_MsvcEndOfPhrase:
-      unexpected_condition_str("SourcePunctuator::MsvcEndOfPhrase "
-                               "not yet handled");
       break;
     case ifc_SourcePunctuator_MsvcFullStop:
       break;
@@ -4037,9 +4160,7 @@ Sentence containing keyword.
       cache_token(cache, tok_constexpr, &pos);
       break;
     case ifc_SourceKeyword_Constinit:
-      /* FIXME: cache_token(cache, tok_constinit, &pos); */
-      unexpected_condition_str("SourceKeyword::Constinit "
-                               "is not yet supported");
+      cache_token(cache, tok_constinit, &pos);
       break;
     case ifc_SourceKeyword_ConstCast:
       cache_token(cache, tok_const_cast, &pos);
