@@ -10991,7 +10991,7 @@ storage_class_specifier:
         break;
       case tok_constinit:
         if (is_parameter) {
-          /* "consteval" may not appear in a function parameter declaration. */
+          /* "constinit" may not appear in a function parameter declaration. */
           pos_error(ec_bad_param_specifier, &error_position);
           err = TRUE;
         } else if (decl_specifiers_seen & DS_CONSTEXPR) {

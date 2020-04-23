@@ -4,7 +4,7 @@ Version 6.1
 C++20: constinit
 
 The front end now supports the "constinit" specifier in C++20 modes.  It is
-used to enforce static initialization of variable with static or thread
+used to enforce static initialization of variables with static or thread
 storage duration.  For example:
 
   constinit int x = 42;   // Okay.

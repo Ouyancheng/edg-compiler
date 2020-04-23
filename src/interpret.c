@@ -17972,9 +17972,9 @@ if the caller has determined that reinterpret_cast expressions can be folded
                X &r = reinterpret_cast<X&>(u.buf); // (1)
            Initialization (1) will be treated as a static initialization.
            In this context, "constinit" variables are treated as "constexpr"
-           variables: We don't want to accept a "constant-initialized"
-           constinit variables whose initializer aren't really constant
-           expressions (in the standard sense). */
+           variables: We don't want to accept "constant-initialized" constinit
+           variables whose initializers aren't really constant expressions (in
+           the standard sense). */
         ips.allow_reinterpret_cast = TRUE;
       }  /* if */
     }  /* if */
