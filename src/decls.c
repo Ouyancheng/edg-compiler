@@ -5356,13 +5356,15 @@ static void check_for_linkage_conflict(a_storage_class    *old_storage_class,
                                        an_id_linkage_kind *linkage,
                                        a_storage_class    *storage_class,
                                        a_source_position  *position,
+                                       a_source_position  *prev_position,
                                        a_boolean          suppress_diagnostic)
 /*
 A variable or routine is being declared again.  The existing storage class
 of the entity is *old_storage_class.  The linkage and storage class of the
 new declaration are given by *linkage and *storage_class.  Issue a diagnostic
 (at the indicated position) if the old and new linkages conflict, and update
-*linkage, *storage_class, and *old_storage_class appropriately.
+*linkage, *storage_class, and *old_storage_class appropriately.  prev_position
+is the position of a previous declaration.
 */
 {
   if ((*linkage == idl_internal) !=
@@ -5378,7 +5380,7 @@ new declaration are given by *linkage and *storage_class.  Issue a diagnostic
       } else if (gcc_version_is(<40000) || microsoft_mode || sun_mode) {
         sev = es_warning;
       }  /* if */
-      pos_diagnostic(sev, ec_linkage_conflict, position);
+      pos2_diagnostic(sev, ec_linkage_conflict, position, prev_position);
     }  /* if */
     /* If either declaration has unspecified storage class (i.e., it's an
        external definition), that takes precedence, and the entity should
@@ -6107,7 +6109,7 @@ associated sk_external_variable or sk_external_routine symbol, if any.
             idlbp->name_linkage == (a_name_linkage_kind)nlk_internal) {
           /* Microsoft compilers silently accept a change to internal
              linkage. */
-          sev = es_warning;
+          sev = es_none;
         }  /* if */
         /* Reset the name linkage in certain cases: when the current linkage
            was explicitly specified whereas the previous one was not, or when
@@ -7346,6 +7348,7 @@ for use in generating cross-reference output describing this declaration.
        vice-versa. */
     check_for_linkage_conflict(&variable_ptr->storage_class, &linkage,
                                &storage_class, &locator->source_position,
+                               &variable_ptr->source_corresp.decl_position,
                                suppress_linkage_diagnostic);
     if (variable_ptr->is_thread_local !=
         ((dps->dso_flags & DSO_THREAD_LOCAL) == DSO_THREAD_LOCAL)) {
@@ -9851,7 +9854,6 @@ skip_overloading:;
        vice-versa. */
     a_boolean suppress_linkage_diagnostic = linked_redecl_error ||
                                             is_guiding_decl;
-
     if (routine_ptr->compiler_generated) {
       /* This is an entry for an intrinsic function or operator (e.g., the
          compiler generated ::operator new or ::operator delete).  It was
@@ -9910,6 +9912,7 @@ skip_overloading:;
     {
       check_for_linkage_conflict(&routine_ptr->storage_class, &linkage,
                                  &storage_class, &locator->source_position,
+                                 &routine_ptr->source_corresp.decl_position,
                                  suppress_linkage_diagnostic);
       if (linkage != idlb.linkage) {
         /* The linkage has been changed, so change the "name linkage", too. */
