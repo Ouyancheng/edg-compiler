@@ -7329,9 +7329,15 @@ for use in generating cross-reference output describing this declaration.
       dps->first_decl = TRUE;
     }  /* if */
   } else {
-    a_boolean  suppress_linkage_diagnostic =
-                   linked_redecl_error || dps->declared_storage_class ==
-                                              (a_storage_class)sc_unspecified;
+    a_boolean  suppress_linkage_diagnostic = linked_redecl_error;
+    if (!C_mode() &&
+        dps->declared_storage_class == (a_storage_class)sc_unspecified) {
+      /* Handle a case like:
+           void g() { extern int const x; }
+           int const x;
+         In C++, x has internal linkage despite not have a "static" storage
+         class specifier.  Don't issue an error on this. */
+    }  /* if */
     /* There is an existing IL entry that we are reusing. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     linked_to_previous_variable = TRUE;
