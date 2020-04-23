@@ -1421,8 +1421,7 @@ Otherwise, set *p_t_params and *p_t_args to NULL.
 a_subst_pairs_array get_current_subst_pairs(void)
 /*
 Return an array describing the substitution pairs for the entity currently
-being instantiated.  The caller is responsible for making sure that
-depth_innermost_instantiation_scope is non-NULL.
+being instantiated.  
 FIXME: What should this do with lambdas appearing in templates?
 */
 {
@@ -1430,26 +1429,28 @@ FIXME: What should this do with lambdas appearing in templates?
   a_scope_stack_entry_ptr  issep;
   a_symbol_ptr             sym;
 
-  issep = &scope_stack[depth_innermost_instantiation_scope];
-  sym = issep->instance_sym;
-  if (sym != NULL && sym->is_class_member) {
-    a_type_ptr  parent_class = sym_parent_class(sym);
-    do {
-      if (parent_class->variant.class_struct_union.is_template_class) {
-        a_subst_pairs_descr  pspd = { NULL, NULL, FALSE, FALSE };
-        get_substitution_pairs_for_template_class(parent_class, &pspd.params,
-                                                  &pspd.args);
-        result.push_back(pspd);
+  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+    issep = &scope_stack[depth_innermost_instantiation_scope];
+    sym = issep->instance_sym;
+    if (sym != NULL && sym->is_class_member) {
+      a_type_ptr  parent_class = sym_parent_class(sym);
+      do {
+        if (parent_class->variant.class_struct_union.is_template_class) {
+          a_subst_pairs_descr  pspd = { NULL, NULL, FALSE, FALSE };
+          get_substitution_pairs_for_template_class(parent_class,
+                                                    &pspd.params, &pspd.args);
+          result.push_back(pspd);
+        }  /* if */
+        parent_class = parent_class_or_null(parent_class);
+      } while (parent_class != NULL);
+      if (result.length() > 1) {
+        reverse_array(&result[0], result.length());
       }  /* if */
-      parent_class = parent_class_or_null(parent_class);
-    } while (parent_class != NULL);
-    if (result.length() > 1) {
-      reverse_array(&result[0], result.length());
     }  /* if */
+    a_subst_pairs_descr  spd = { issep->template_decl_info->parameters,
+                                 issep->template_arg_list, FALSE, FALSE };
+    result.push_back(spd);
   }  /* if */
-  a_subst_pairs_descr  spd = { issep->template_decl_info->parameters,
-                               issep->template_arg_list, FALSE, FALSE };
-  result.push_back(spd);
   return result;
 }  /* get_current_subst_pairs */
 

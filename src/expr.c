@@ -36957,7 +36957,7 @@ called to record the end of the header of the indicated lambda.
 }  /* record_end_of_lambda_header */
 
 
-static an_expr_node_ptr scan_type_requirement(a_boolean  *is_dependent)
+static an_expr_node_ptr scan_type_requirement(void)
 /*
 Scan a requirement of the form
 
@@ -36965,9 +36965,6 @@ Scan a requirement of the form
 
 where <type-name> is the possibly-qualified name of a type (and not a general
 type-id).
-
-If *is_dependent is FALSE and the given type is template dependent, set
-*is_dependent to TRUE.
 */
 {
   an_expr_node_ptr  result;
@@ -36986,9 +36983,6 @@ If *is_dependent is FALSE and the given type is template dependent, set
   if (type_sym != NULL) {
     a_type_ptr  tp = type_symbol_type(type_sym);
     result->variant.type_operand.type = tp;
-    if (!*is_dependent && is_instantiation_dependent_type(tp)) {
-      *is_dependent = TRUE;
-    }  /* if */
     /* Skip over the type name. */
     (void)get_token();
   } else {
@@ -37001,7 +36995,7 @@ If *is_dependent is FALSE and the given type is template dependent, set
 }  /* scan_type_requirement */
 
 
-static an_expr_node_ptr scan_compound_requirement(a_boolean  *is_dependent)
+static an_expr_node_ptr scan_compound_requirement(void)
 /*
 Scan a requirement of the form
 
@@ -37012,9 +37006,6 @@ where <optional-type-constraint> is of the form
 	-> <concept-name> <optional-template-args>
 
 and return a corresponding enk_compound_requirement node.
-
-If *is_dependent is FALSE and <expr> or the optional template arguments are
-instantiation-dependent, set *is_dependent to TRUE.
 */
 {
   an_expr_node_ptr     result, expr;
@@ -37046,9 +37037,6 @@ instantiation-dependent, set *is_dependent to TRUE.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)required_token(tok_rbrace, ec_exp_rbrace);
   remove_stop_token(tok_rbrace);
-  if (!*is_dependent && expr_is_instantiation_dependent(expr)) {
-    *is_dependent = TRUE;
-  }  /* if */
   result->variant.compound_req.expr_and_constraint = expr;
 
   /* Scan an optional "noexcept" keyword. */
@@ -37082,7 +37070,7 @@ instantiation-dependent, set *is_dependent to TRUE.
 }  /* scan_compound_requirement */
 
 
-static an_expr_node_ptr scan_nested_requirement(a_boolean  *is_dependent)
+static an_expr_node_ptr scan_nested_requirement(void)
 /*
 Scan a requirement of the form
 
@@ -37090,9 +37078,6 @@ Scan a requirement of the form
 
 where <expr> is a constraint-expression, and return a corresponding
 enk_nested_req node.
-
-If *is_dependent is FALSE and <expr> is an instantiation-dependent expression,
-set *is_dependent to TRUE.
 */
 {
   an_expr_node_ptr  result, expr;
@@ -37107,14 +37092,11 @@ set *is_dependent to TRUE.
   result->variant.nested_req.constraint = expr;
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   remove_stop_token(tok_semicolon);
-  if (!*is_dependent && expr_is_instantiation_dependent(expr)) {
-    *is_dependent = TRUE;
-  }  /* if */
   return result;
 }  /* scan_nested_requirement */
 
 
-static an_expr_node_ptr scan_simple_requirement(a_boolean  *is_dependent)
+static an_expr_node_ptr scan_simple_requirement(void)
 /*
 Scan a requirement of the form
 
@@ -37122,9 +37104,6 @@ Scan a requirement of the form
 
 where <expr> is unevaluated, and return a pointer to the node representing
 <expr>.
-
-If *is_dependent is FALSE and <expr> is an instantiation-dependent expression,
-set *is_dependent to TRUE.
 */
 {
   an_expr_node_ptr     result;
@@ -37148,9 +37127,6 @@ set *is_dependent to TRUE.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   remove_stop_token(tok_semicolon);
-  if (!*is_dependent && expr_is_instantiation_dependent(result)) {
-    *is_dependent = TRUE;
-  }  /* if */
   return result;
 }  /* scan_simple_requirement */
 
@@ -37176,7 +37152,6 @@ Record the representation or the requires-expression in *result.
 {
   a_memory_region_number   il_region = curr_il_region_number;
   a_source_position        start_pos = pos_curr_token;
-  a_boolean                is_dependent = FALSE;
   a_param_type_ptr         params = NULL;         
   a_token_sequence_number  requires_tsn = curr_token_sequence_number;
   a_requires_range_descr   rrd = requires_ranges->get(requires_tsn);
@@ -37205,7 +37180,6 @@ Record the representation or the requires-expression in *result.
     } else {
       an_expr_node  *node = alloc_expr_node((an_expr_node_kind)enk_requires),
                     **p_last_req = &node->variant.requires_expr.requirements;
-      a_boolean     nondependent_val = TRUE;
       node->variant.requires_expr.parameters = params;
       if (curr_token == tok_rbrace) {
         expr_pos_diagnostic(es_discretionary_error,
@@ -37214,22 +37188,13 @@ Record the representation or the requires-expression in *result.
       for (;;) {
         switch (curr_token) {
           case tok_typename:
-            *p_last_req = scan_type_requirement(&is_dependent);
+            *p_last_req = scan_type_requirement();
             break;
           case tok_lbrace:
-            *p_last_req = scan_compound_requirement(&is_dependent);
-            if (!is_dependent &&
-                (*p_last_req)->variant.compound_req.is_noexcept) {
-              /* A nondependent compound requirement can make the expression
-                 have a false value if it fails the noexcept constraint. */
-              if (expr_might_throw(
-                   (*p_last_req)->variant.compound_req.expr_and_constraint)) {
-                nondependent_val = FALSE;
-              }  /* if */
-            }  /* if */
+            *p_last_req = scan_compound_requirement();
             break;
           case tok_requires:
-            *p_last_req = scan_nested_requirement(&is_dependent);
+            *p_last_req = scan_nested_requirement();
             break;
           case tok_end_of_source:
           case tok_rbrace:
@@ -37238,7 +37203,7 @@ Record the representation or the requires-expression in *result.
             if (!is_expr_start_token(curr_token)) {
               goto done_with_requirements;
             } else {
-              *p_last_req = scan_simple_requirement(&is_dependent);
+              *p_last_req = scan_simple_requirement();
             }  /* if */
             break;
         }  /* switch */
@@ -37253,11 +37218,14 @@ done_with_requirements:
       curr_construct_end_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       (void)required_token(tok_rbrace, ec_exp_rbrace);
-      if (!is_dependent) {
+      if (!is_template_dependent_context() &&
+          !expr_stack->possible_rescan_context) {
         /* A non-dependent requires-expression is usually a "true" constant,
            but it can be "false" if a noexcept constraint failed. */
-        make_integer_constant_operand(result,
-                                      (a_host_large_integer)nondependent_val);
+        a_boolean  val;
+        a_subst_pairs_array  subst_pairs = get_current_subst_pairs();
+        val = requires_expr_satisfied(node, subst_pairs);
+        make_integer_constant_operand(result, (a_host_large_integer)val);
         result->type = bool_type();
         result->variant.constant.type = result->type;
         result->variant.constant.expr = node;

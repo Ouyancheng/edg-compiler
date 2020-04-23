@@ -24804,6 +24804,8 @@ subst_pairs is successful.
         { a_diag_list  diag_list;
           a_template_param_ptr  templ_params;
           a_template_arg_ptr    templ_args;
+          a_source_position     saved_error_pos = error_position;
+          error_position = req->position;
           // FIXME: Should consider all levels...
           templ_params = subst_pairs.back_elem().params;
           templ_args = subst_pairs.back_elem().args;
@@ -24813,6 +24815,7 @@ subst_pairs is successful.
                                   templ_args, templ_params,
                                   /*map_failure_is_fatal=*/TRUE, &diag_list);
           discard_more_info_list(&diag_list);
+          error_position = saved_error_pos;
         }
         break;
       default:
