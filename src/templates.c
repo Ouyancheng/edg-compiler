@@ -15665,7 +15665,7 @@ copy_template_arg_list_with_substitution.
 */
 {
   int                 levels = (int)subst_pairs.length();
-  a_template_arg_ptr  new_args;
+  a_template_arg_ptr  new_args = NULL;
 
   check_assertion(levels > 0);
   for (int k = 0; k < levels && !*copy_error; ++k) {
