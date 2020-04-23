@@ -4300,27 +4300,29 @@ reparse_declarator:
 }  /* scan_lambda_declarator */
 
 
-a_param_type_ptr scan_requires_expr_parameters(void)
+a_param_type_ptr scan_requires_expr_parameters(a_decl_parse_state  *dps)
 /*
 Scan a sequence of parameters for a requires-expression and return a pointer to
-the corresponding param-type entries.
+the corresponding param-type entries.  This establishes a function prototype
+scope that persists after the call.  dps is a pointer to the state representing
+the parse state of the parameters (initialized by this function, and pointed to
+by the scope stack entry created by this function).
 */
 {
-  a_decl_parse_state  dps;
   a_type_ptr          func_type = void_type();
   a_decl_pos_block    decl_pos_block;
   a_param_type_ptr    result = NULL;
   a_symbol_locator    loc;
 
-  init_decl_parse_state(&dps);
-  dps.for_requires_expr_params = TRUE;
+  init_decl_parse_state(dps);
+  dps->for_requires_expr_params = TRUE;
   clear_decl_pos_block(&decl_pos_block);
   check_assertion(curr_token == tok_lparen);
   make_opname_locator((an_opname_kind)onk_function_call, &loc,
                       &pos_curr_token);
   add_stop_token(tok_rparen);
   (void)get_token();
-  function_declarator(&dps, DI_NO_INPUT_FLAGS, &func_type,
+  function_declarator(dps, DI_NO_INPUT_FLAGS, &func_type,
                       (a_func_info_block*)NULL, &loc,
                       /*parent_type=*/(a_type_ptr)NULL,
                       /*is_nonstatic_member=*/FALSE, /*is_constructor=*/FALSE, 

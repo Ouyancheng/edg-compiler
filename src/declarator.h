@@ -427,7 +427,8 @@ extern void scan_lambda_declarator(a_decl_parse_state  *dps,
                                    a_decl_pos_block    *decl_pos_block);
 
 
-extern a_param_type_ptr scan_requires_expr_parameters(void);
+extern
+a_param_type_ptr scan_requires_expr_parameters(a_decl_parse_state  *dps);
 
 extern void make_param_syms_invisible(a_boolean  is_invisible);
 

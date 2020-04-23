@@ -37185,10 +37185,11 @@ Record the representation or the requires-expression in *result.
   if (rrd.next_tsn == a_token_sequence_number()) {
     /* This is the first time this requires-expression is encountered: Parse
        it. */
+    a_decl_parse_state  dps;
     add_stop_token(tok_rbrace);
     if (curr_token == tok_lparen) {
       /* Scan a function-like declarator. */
-      params = scan_requires_expr_parameters();
+      params = scan_requires_expr_parameters(&dps);
     } else {
       (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
                        (a_type_ptr)NULL, (a_routine_ptr)NULL);
