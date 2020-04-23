@@ -18623,7 +18623,13 @@ are ignored even in modes where such specifiers are part of that type.
   }  /* if */
   if (matches_template_type(curr_type, templ_rout_type, 
                             templ_arg_list, templ_param_list, mtt_flags)) {
-    match = TRUE;
+    if (tssp->il_template_entry == NULL ||
+        !template_has_constraints(tssp->il_template_entry) ||
+        template_arg_list_is_dependent(*templ_arg_list) ||
+        check_template_constraints(templ_sym, *templ_arg_list,
+                                   /*diagnose=*/FALSE)) {
+      match = TRUE;
+    }  /* if */
   }  /* if */
   /* Make sure that the types of nontype template parameters that depend
      on other template parameters agree with the types of the deduced
