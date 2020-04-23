@@ -19717,7 +19717,11 @@ structure.
     a_routine_ptr	templ_rout;
     templ_rout = templ_sym->variant.template_info->variant.function.routine;
     if (template_arg_list_involves_error_entity(*new_list) ||
-        is_or_contains_error_type(templ_rout->type)) {
+        is_or_contains_error_type(templ_rout->type) ||
+        (template_has_constraints(tssp->il_template_entry) &&
+         !template_arg_list_is_dependent(*new_list) &&
+         !check_template_constraints(templ_sym, *new_list,
+                                     !scope_stack_top().is_rescan))) {
       /* If the argument list or the type of the prototype instantiation
          contains an error entity, don't do the partial instantiation of
          the template.  Instead, create an error routine that can be used
