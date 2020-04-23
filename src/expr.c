@@ -37266,7 +37266,8 @@ done_with_requirements:
       if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
         /* Associate with the token sequence number of the "requires" token
            the sequence number of the token following the requires expression.
-           This is used to skip the clause in instantiations (see below). */
+           This is used to skip the clause in instantiations (see the
+           token-skipping loop below). */
         rrd.next_tsn = curr_token_sequence_number;
         rrd.requires_expr = node;
         (void)requires_ranges->map_or_replace(requires_tsn, rrd);

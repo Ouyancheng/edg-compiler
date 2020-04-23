@@ -3147,7 +3147,7 @@ a_boolean requires_expr_satisfied(an_expr_node_ptr           requires_expr,
 /*
 Simple structure to track some information associated with "requires" tokens
 in C++20.  Specifically:
-    (a) where the associated construct (requires-clause or requires-expression
+    (a) where the associated construct (requires-clause or requires-expression)
         ends, and
     (b) the representation of the unsubstituted construct.
 */
@@ -3174,7 +3174,7 @@ EXTERN a_requires_range_map
 			/* A map from the token_sequence_number corresponding
 			   to a tok_requires token for a requires-expression
 			   or requires-clause, to the token sequence number
-			   that follows the corresponding construct.   This is
+			   that follows the corresponding construct.  This is
 			   used to skip over those constructs during
 			   instantiations. */
 
