@@ -24419,7 +24419,7 @@ if it's not valid).
     if (!cast_to_reference && !cast_to_void &&
         !gnu_lvalue_cast_case && !microsoft_lvalue_cast_case) {
       /* Normal case (not a cast to reference or cast to void). */
-      if (gpp_mode && gnu_version >= 30400 &&
+      if (gpp_version_is(<40600) && gpp_version_is(>= 30400) &&
           is_pointer_type(type_cast_to) && is_pointer_type(operand->type)) {
         /* g++ versions since 3.4 (through 4.4 at least) have a bug that
            a static_cast of a pointer to a cv-unqualified base class to a

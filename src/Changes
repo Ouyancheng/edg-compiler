@@ -1,5 +1,24 @@
 Version 6.1
 
+4/24/20  [EDGcpfe/22648]
+GNU compatibility: static_cast to pointer to cv-qualified derived class
+
+The changes for EDGcpfe/9593 (see entry of 10/6/09) cause the front end to
+emulate a GCC bug in the handling of static_cast when gnu_version >= 30400.
+That emulation is now disabled when gnu_version < 40600, which corresponds to
+the version where that GCC bug was fixed.  For example:
+
+  struct B { };
+  struct D: B { };
+  D* g(B* p) {
+    return static_cast<const D*>(p);  // Normally an error, but accepted in
+  }                                   // some GNU C++ modes.
+
+This example now triggers an error in GNU C++ modes with gnu_version >= 40600.
+Previously, it was accepted in such modes.  It is still accepted in GNU C++
+modes with gnu_version in the range 30400 to 40599.
+
+
 4/24/20  [EDGcpfe/19729]
 Abort when recursively processing field initializers
 
