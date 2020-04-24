@@ -3810,20 +3810,13 @@ type must be complete.
   }  /* if */
   cssp = class_symbol_supp(symbol_for(class_type));
   fixup_list = cssp->initializer_fixup_list;
-  if (fixup_list != NULL) {
-    /* Clear the list early to avoid recursion. */
-    a_scope_depth  depth = class_type_supp(class_type)->assoc_scope
-                                                      ->depth_in_scope_stack;
-    if (depth != NO_SCOPE_DEPTH) {
-      scope_stack[depth].last_initializer_fixup = NULL;
-    }  /* if */
-    cssp->initializer_fixup_list = NULL;
-  }  /* if */
   for (ifp = fixup_list; ifp != NULL; ifp = next_ifp) {
     a_type_ptr              parent_type = sym_parent_class(ifp->symbol);
     a_decl_parse_state      dps;
     a_memory_region_number  region_to_switch_back_to;
     a_boolean               class_reactivated = FALSE;
+    /* Retain the rest of the fixups in case recursion needs them. */
+    cssp->initializer_fixup_list = ifp->next;
     push_lexical_state_stack();
     if (!(scope_is(&scope_stack_top(), sck_class_struct_union) &&
           same_entities(scope_stack_top().assoc_type, parent_type))) {
@@ -3889,10 +3882,21 @@ type must be complete.
     if (class_reactivated) {
       pop_class_reactivation_scope();
     }  /* if */
-    next_ifp = ifp->next;
+    /* Recursion may have consumed some of the next fixups, so we can't rely on
+       ifp->next. */
+    next_ifp = cssp->initializer_fixup_list;
     free_initializer_fixup(ifp);
     pop_lexical_state_stack();
   }  /* for */
+  if (fixup_list != NULL) {
+    /* All initializers were processed - clear the scope stack reference to the
+       last one, if applicable. */
+    a_scope_depth  depth = class_type_supp(class_type)->assoc_scope
+                                                      ->depth_in_scope_stack;
+    if (depth != NO_SCOPE_DEPTH) {
+      scope_stack[depth].last_initializer_fixup = NULL;
+    }  /* if */
+  }  /* if */
 done:;
 }  /* inclass_initializer_fixup_for_class */
 

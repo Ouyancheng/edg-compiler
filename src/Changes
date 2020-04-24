@@ -1,5 +1,24 @@
 Version 6.1
 
+4/24/20  [EDGcpfe/19729]
+Abort when recursively processing field initializers
+
+When a field initializer references a nested class constructor and that nested
+class has fields with field initializers, the front end could abort in various
+places, such as "copy_non_static_data_member_initializers_if_necessary" and
+"do_constexpr_ctor".  For example:
+
+  struct A {};
+  struct B {
+    A val = C(); // Previously caused an abort
+    struct C {
+      union { int x = 37; };
+    };
+  };
+
+This is now fixed.
+
+
 4/24/20  [EDGcpfe/21759]
 Abort on default argument containing lambda with template parameter list
 
