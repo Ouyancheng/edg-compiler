@@ -565,6 +565,7 @@ a smaller subset).
 /*lint -esym(759,value_of_integer_value)*/
 /*lint -esym(765,value_of_integer_value)*/
 /*lint -esym(714,str_for_integer_value)*/
+/*lint -esym(759,str_for_integer_value)*/
 /*lint -esym(765,str_for_integer_value)*/
 /*lint -esym(769,tok_fract)*/
 /*lint -esym(769,tok_accum)*/

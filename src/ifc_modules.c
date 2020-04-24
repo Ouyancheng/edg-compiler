@@ -2318,7 +2318,7 @@ deferred until they are referenced.
 }  /* process_ifc_scope */
 
 
-void decl_level_of_ifc_template(a_tmpl_decl_state_ptr decl_state)
+static void decl_level_of_ifc_template(a_tmpl_decl_state_ptr decl_state)
 /*
 Determine the effective declaration scope for a template declaration
 in this context.  This routine borrows heavily from decl_level_of_template.
@@ -2426,6 +2426,7 @@ Process the DeclSort::Template entry corresponding to the given module entity.
   }  /* if */
   /* Prepare the template declaration. */
   saved_decl_state = curr_templ_decl_state;
+  /*lint -e1414 assigning address of local variable*/
   curr_templ_decl_state = &decl_state;
   init_templ_decl_state(&decl_state, &dps);
   decl_state.enclosing_scope = mep->scope;
@@ -2856,6 +2857,7 @@ appropriate non-type kind and return NULL.
             case ifc_TypeBasis_Ellipsis:
               check_assertion(itsfp->precision == ifc_TypePrecision_Default);
               check_assertion(kind != NULL);
+              /*lint -e413 likely use of null pointer*/
               *kind = ntk_ellipsis;
               result = NULL;
               break;
@@ -2883,6 +2885,7 @@ appropriate non-type kind and return NULL.
               break;
             case ifc_TypeBasis_Namespace:
               check_assertion(kind != NULL);
+              /*lint -e413 likely use of null pointer*/
               *kind = ntk_namespace;
               result = NULL;
               break;
@@ -2909,6 +2912,7 @@ appropriate non-type kind and return NULL.
               break;
             case ifc_TypeBasis_Empty:
               check_assertion(kind != NULL);
+              /*lint -e413 likely use of null pointer*/
               *kind = ntk_empty_pack_expansion;
               break;
             case ifc_TypeBasis_VariableTemplate:
