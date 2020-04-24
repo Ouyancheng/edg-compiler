@@ -3015,6 +3015,9 @@ Return TRUE if the given routines are compatible with each other.
   } else if (rp1->is_virtual != rp2->is_virtual ||
              rp1->pure_virtual != rp2->pure_virtual) {
     /* result = FALSE; */
+  } else if (rp1->is_defaulted != rp2->is_defaulted ||
+             rp1->is_deleted != rp2->is_deleted) {
+    /* result = FALSE; */
   } else if (!C_mode() && rp1->is_inline != rp2->is_inline &&
              !inline_flag_can_differ(rp1, rp2)) {
     /* In C mode (C99 & GNU C), the inline flag does not need to match.

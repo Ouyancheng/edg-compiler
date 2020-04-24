@@ -1,5 +1,35 @@
 Version 6.1
 
+2/14/20  [EDGcpfe/22583]
+Multiple translation units: Incorrect handling of mismatched default function
+declarations
+
+When compiling multiple translation units, the front end would accept routines
+that had mismatched default declarations.  For template classes with direct
+member initializers, this could cause the defaulted constructor to lose the
+field initializers and (when DO_IL_LOWERING is TRUE) cause an abort in
+"copy_non_static_data_member_initializers_if_necessary".  For example, if a.cpp
+contains:
+
+  template<typename T> struct A {
+    int var = 0;
+    inline A();
+  };
+  A<int> a;
+
+and b.cpp contains:
+
+  template<typename T> struct A {
+    int var = 0;
+    inline A() = default;
+  };
+  A<int> b;
+
+the front end would treat the defaulted A<int>::A() as the definition of
+the non-defaulted A<int>::A().  The front end now issues an error that the two
+declarations are mismatched.
+
+
 4/24/20  [EDGcpfe/22654,EDGcpfe/22655]
 Regression for __is_constructible and __is_destructible
 
