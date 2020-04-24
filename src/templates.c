@@ -32482,6 +32482,7 @@ to TRUE.
     /* If a prototype instantiation should be done for the default
        argument, do it now. */
     if (tpp->do_prototype_instantiation) {
+      tpp->do_prototype_instantiation = FALSE;
       switch (sym_kind) {
         case sk_type:
           type_param_default_arg_prototype_instantiation(tpp);

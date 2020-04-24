@@ -2130,7 +2130,8 @@ typedef struct a_template_param {
 			   template parameter pack with an empty expansion. */
   a_bit_field	do_prototype_instantiation:1;
 			/* TRUE if a prototype instantiation should be done
-			   (or has been done) for this parameter. */
+			   for this parameter.  FALSE if it should not be
+			   done or has already been done. */
   a_bit_field	is_dependent:1;
 			/* TRUE if the declaration of the template parameter
 			   or its default argument is dependent.  For

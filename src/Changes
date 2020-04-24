@@ -1,5 +1,18 @@
 Version 6.1
 
+4/24/20  [EDGcpfe/21759]
+Abort on default argument containing lambda with template parameter list
+
+An abort could occur (at an indeterminate point) as a result of stack
+overflow caused by unbounded recursion if a template default argument
+contained a generic lambda definition with a C++20 explicit template
+parameter list.  Now fixed.
+
+  template <class T> struct C {};
+  template < class T = decltype([]<int I>{}) > struct A { } ; 
+  A<> a;
+
+
 4/23/20  [EDGcpfe/22659]
 C++-generating back end: explicitly-defaulted functions defined as deleted
 
