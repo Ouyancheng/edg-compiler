@@ -19730,7 +19730,8 @@ structure.
       /* If the argument list or the type of the prototype instantiation
          contains an error entity, don't do the partial instantiation of
          the template.  Instead, create an error routine that can be used
-         in place of the routine that would normally be returned. */
+         in place of the routine that would normally be returned.  Do the
+         same if constraint matching failed. */
       is_error_routine = TRUE;
       sym = create_error_routine(templ_sym, 
                                  templ_sym->is_class_member
