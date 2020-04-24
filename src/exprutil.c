@@ -24492,8 +24492,12 @@ subject to SFINAE.
     } else {
       a_diagnostic_ptr  prev_diags = diag_list->tail;
       an_expr_node_ptr  expr = templ->prototype_instantiation.constraint;
+      /* A mapping failure is fatal if we're called as part of checking a
+         template constraint (expr_stack is NULL when that is the case), but
+         not when checking a nested requirement. */
       result = requires_clause_satisfied(expr, new_args, params,
-                                         /*map_failure_is_fatal=*/FALSE,
+                                         /*map_failure_is_fatal=*/
+                                                           expr_stack == NULL,
                                          diag_list, p_fatal);
       if (!result) {
         /* Insert a diagnostic before the ones detailing the constraint
