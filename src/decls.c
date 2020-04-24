@@ -6095,7 +6095,11 @@ associated sk_external_variable or sk_external_routine symbol, if any.
         /* Linkage is not the same, but it's no error as long as the current
            specification is implicit.   In non-strict modes, we only warn in
            the case of variables. */
-        if (ssep->name_linkage_is_explicit &&
+        if (idlbp->storage_class == (a_storage_class)sc_static) {
+          /* A diagnostic was issued elsewhere (see
+             check_for_linkage_conflict).  No need for another one. */
+          sev = es_none;
+        } else if (ssep->name_linkage_is_explicit &&
             !(gpp_mode && idlbp->is_friend_decl)) {
           if (is_function) {
             sev = es_error;
@@ -7337,7 +7341,7 @@ for use in generating cross-reference output describing this declaration.
       /* Handle a case like:
            void g() { extern int const x; }
            int const x;
-         In C++, x has internal linkage despite not have a "static" storage
+         In C++, x has internal linkage despite not having a "static" storage
          class specifier.  Don't issue an error on this. */
     }  /* if */
     /* There is an existing IL entry that we are reusing. */
