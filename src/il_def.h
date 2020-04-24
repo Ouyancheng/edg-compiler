@@ -11890,9 +11890,11 @@ typedef struct a_routine {
 			   appeared on the out-of-class definition. */
   a_bit_field	is_deleted:1;
 			/* In C++, TRUE if this is a function declared with
-			   the "= delete" syntax.  Also TRUE for compiler-
-			   generated functions that should behave as if they
-			   had been declared with that syntax. */
+			   the "= delete" syntax.  Also TRUE for functions
+			   that are explicitly defaulted but implicitly
+			   defined as deleted and for compiler-generated
+			   functions that should behave as if they had been
+			   declared with the "= delete" syntax. */
   a_bit_field	contains_local_static_variable:1;
 			/* TRUE if the function body contains at least one
 			   local static variable. */

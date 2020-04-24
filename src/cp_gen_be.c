@@ -21608,8 +21608,11 @@ handle_as_definition:
   if (decl_within_class) {
     gen_member_function_modifiers(rout, &abstract_generated);
   }  /* if */
-  if (rout->is_deleted) {
-    /* A deleted function definition. */
+  if (rout->is_deleted && !rout->is_defaulted) {
+    /* A deleted function definition.  (Note that an explicitly-defaulted
+       function might be implicitly defined as deleted for various reasons.
+       Such functions will also be marked as "is_deleted", but we want to
+       preserve the original source form as "= default".) */
     write_tok_str(" = delete;");
   } else if (rout->is_defaulted &&
              (is_definition || !rout->defined_outside_of_parent) &&

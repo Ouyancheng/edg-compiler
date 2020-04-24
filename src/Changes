@@ -1,5 +1,21 @@
 Version 6.1
 
+4/23/20  [EDGcpfe/22659]
+C++-generating back end: explicitly-defaulted functions defined as deleted
+
+In cases where a special member function is explicitly defaulted in the
+source but implicitly defined as deleted, the C++-generating back end put
+the function definition as "= delete" instead of "= default", as it was in
+the original source.  This has now been fixed.  For example, with --c++11:
+
+  struct B {
+    B(B&&) = delete;
+  };
+  struct D : B {
+    D(D&&) = default;  // Previously emitted as "= delete"
+  };
+
+
 4/22/20  [EDGcpfe/21592,EDGcpfe/22467]
 C++20: constinit
 
