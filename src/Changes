@@ -1,7 +1,7 @@
 Version 6.1
 
-4/24/20  [EDGcpfe/22654]
-Regression for __is_constructible(..., void)
+4/24/20  [EDGcpfe/22654,EDGcpfe/22655]
+Regression for __is_constructible and __is_destructible
 
 Version 6.0 introduced a regression through the changes for EDGcpfe/21664
 causing an error in the following example:
@@ -10,7 +10,13 @@ causing an error in the following example:
 
 Specifically, the front end complained about void being an incomplete type.
 However, common practice is to accept "void" in that context.  The front end
-now accepts such examples again.
+now accepts such examples again.  Similarly, EDGcpfe/21664 introduced a
+regression of __is_destructible applied to incomplete array types causing the
+following static assertion to fail:
+
+  static_assert(!__is_destructible(int[]), ");
+
+That, too, is now fixed.
 
 
 4/24/20  [EDGcpfe/22648]

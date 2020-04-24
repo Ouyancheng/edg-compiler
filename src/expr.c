@@ -49214,7 +49214,7 @@ invoked destructor is trivial).
   an_expr_stack_entry_ptr saved_expr_stack;
 
   complete_type_is_needed(type);
-  if (is_function_type(type)) {
+  if (is_function_type(type) || is_incomplete_array_type(type)) {
     result = FALSE;
   } else {
     if (is_array_type(type)) type = underlying_array_element_type(type);
