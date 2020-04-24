@@ -49127,7 +49127,8 @@ the corresponding __builtin_is_constructible operation.
         /* The value creation expression is ill-formed: Return a "false"
            result. */
         if ((!gpp_mode  || clang_mode) &&
-            is_incomplete_type(typen) && !is_array_type(typen)) {
+            is_incomplete_type(typen) && !is_array_type(typen) &&
+            !is_void_type(typen)) {
           expr_pos_error(ec_incomplete_type_not_allowed, &argn->position);
         }  /* if */
         result = FALSE;

@@ -1,5 +1,18 @@
 Version 6.1
 
+4/24/20  [EDGcpfe/22654]
+Regression for __is_constructible(..., void)
+
+Version 6.0 introduced a regression through the changes for EDGcpfe/21664
+causing an error in the following example:
+
+  static_assert(!__is_constructible(int&, void), "");
+
+Specifically, the front end complained about void being an incomplete type.
+However, common practice is to accept "void" in that context.  The front end
+now accepts such examples again.
+
+
 4/24/20  [EDGcpfe/22648]
 GNU compatibility: static_cast to pointer to cv-qualified derived class
 
