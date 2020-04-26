@@ -1,5 +1,26 @@
 Version 6.1
 
+4/25/20  [EDGcpfe/22294]
+Substitution failure involving alias templates and exception specifications
+
+In some cases, the substitution of a noexcept specifier that uses an alias
+template that is a member of a class template could produce an incorrect
+result.  This occurred in modes where the exception specification is part
+of the type (i.e., in most C++17 modes).  Now fixed.
+
+  template <typename... Ts> inline constexpr bool V = true;
+  template<typename... Ts> class A;
+  template<int _Np, typename _A> struct B;
+  template<typename T1, typename... Ts> struct B<0, A<T1, Ts...>> {
+    using type = int;
+  };
+  template<typename... Ts> struct A {
+    template<typename U> using C = typename B<0, A>::type;
+    template<typename U> A(U&& __t) noexcept(V<C<U&&>, U&&>);
+  };
+  A<int, char*> f() { return 0; }
+
+
 2/14/20  [EDGcpfe/22583]
 Multiple translation units: Incorrect handling of mismatched default function
 declarations

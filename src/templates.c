@@ -13972,6 +13972,7 @@ to an alias template, the substituted type is returned in *new_type
 {
   a_template_arg_ptr			new_list;
   a_symbol_ptr				new_sym = NULL;
+  a_symbol_ptr				orig_sym;
   a_template_arg_ptr			tap;
   a_template_param_ptr			tpp = NULL;
   a_template_symbol_supplement_ptr	orig_tssp;
@@ -14000,10 +14001,13 @@ to an alias template, the substituted type is returned in *new_type
     tssp = template_sym->variant.template_info;
     templ_param_is_alias = tssp->variant.class_template.is_alias_template;
   }  /* if */
-  tap = orig_type->variant.class_struct_union.extra_info->template_arg_list;
+  orig_sym = symbol_for(orig_type);
+  check_assertion(orig_sym != NULL);
+  tap = template_arg_list_for_symbol(orig_sym);
   /* In deduction guide substitution, we should not find the prototype
      instantiation. */
-  orig_is_prototype = (options & CTWS_DEDUCTION_GUIDE) == 0 &&
+  orig_is_prototype = is_immediate_class_type(orig_type) &&
+                      (options & CTWS_DEDUCTION_GUIDE) == 0 &&
                       orig_type->
                         variant.class_struct_union.is_prototype_instantiation;
   if (orig_is_prototype && orig_tssp->primary_template_sym == NULL &&
@@ -14533,7 +14537,7 @@ is_type is TRUE if the child entity is known to be a type.
       if (do_template_class_subst) {
         /* Do the class template substitution as indicated above. */
         fund_sym = copy_template_class_reference_with_substitution(
-                               fund_sym, sym->variant.class_struct_union.type,
+                               fund_sym, type_symbol_type(sym),
                                templ_arg_list, templ_param_list, source_pos,
                                options, copy_error, ctws_state,
                                (a_type_ptr*)NULL);
@@ -14841,8 +14845,10 @@ a pointer over a reference type or creating an array of references.
     sym = symbol_for(type);
     check_assertion(sym != NULL);
     parent_type = parent_class_of(type);
-    if (parent_type->variant.class_struct_union.is_nonreal_class ||
-        is_cli_open_constructed_instance(parent_type)) {
+    if ((is_immediate_class_type(parent_type) &&
+         (parent_type->variant.class_struct_union.is_nonreal_class ||
+          is_cli_open_constructed_instance(parent_type))) ||
+        is_template_param_type(parent_type)) {
       sym = copy_parent_type_with_substitution(
                                              sym, parent_type,
                                              templ_arg_list, templ_param_list,
