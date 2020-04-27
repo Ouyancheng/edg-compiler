@@ -733,8 +733,8 @@ typedef struct a_decl_parse_state {
 			/* The position of the "auto" specifier (if any). */
   a_source_position
 		constexpr_pos;
-			/* The position of the "constexpr" or "consteval"
-			   specifier (if any). */
+			/* The position of the "constexpr", "consteval", or
+			   "constinit" specifier (if any). */
   a_bit_field
 		in_class_scope:1;
 			/* TRUE if the current declaration appears in class

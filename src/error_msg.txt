@@ -3195,6 +3195,7 @@ ec_empty_requires_expression;;"a requires-expression must specify at least one r
 ec_invalid_constinit;;"\"constinit\" is not valid here"
 ec_constinit_variable_storage;;"\"constinit\" is only valid for declarations of variables with static or thread storage duration"
 ec_constinit_variable_has_dynamic_init;;"constinit variable requires dynamic initialization"
+ec_missing_constinit;;"variable was previously declared with \"constinit\" %p"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

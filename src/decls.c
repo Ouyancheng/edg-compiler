@@ -7413,6 +7413,11 @@ for use in generating cross-reference output describing this declaration.
         move_variable_to_end_of_list(variable_ptr, idlb.linked_symbol,
                                      idlb.from_inline_namespace);
       }  /* if */
+      if (variable_ptr->declared_constinit &&
+          !(dps->dso_flags & DSO_CONSTINIT)) {
+        pos2_diagnostic(es_error, ec_missing_constinit, &dps->specifiers_pos, 
+                        &variable_ptr->source_corresp.decl_position);
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Link the symbol to the IL variable entry. */
@@ -11458,6 +11463,10 @@ the symbol through dps->sym and its linkage (which is always "none") through
         } else {
           var->is_constexpr = TRUE;
         }  /* if */
+      }  /* if */
+      if (var->declared_constinit && !(dps->dso_flags & DSO_CONSTINIT)) {
+        pos2_diagnostic(es_error, ec_missing_constinit, &dps->specifiers_pos, 
+                        &var->source_corresp.decl_position);
       }  /* if */
       if (var->is_thread_local !=
           ((dps->dso_flags & DSO_THREAD_LOCAL) == DSO_THREAD_LOCAL)) {
