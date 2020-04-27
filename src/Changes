@@ -67,7 +67,7 @@ When compiling multiple translation units, the front end would accept routines
 that had mismatched default declarations.  For template classes with direct
 member initializers, this could cause the defaulted constructor to lose the
 field initializers and (when DO_IL_LOWERING is TRUE) cause an abort in
-"copy_non_static_data_member_initializers_if_necessary".  For example, if a.cpp
+copy_non_static_data_member_initializers_if_necessary.  For example, if a.cpp
 contains:
 
   template<typename T> struct A {
