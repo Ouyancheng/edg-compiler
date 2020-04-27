@@ -65,7 +65,7 @@ the non-defaulted A<int>::A().  The front end now issues an error that the two
 declarations are mismatched.
 
 
-4/24/20  [EDGcpfe/22654,EDGcpfe/22655]
+4/24/20  [EDGcpfe/22419,EDGcpfe/22654,EDGcpfe/22655]
 Regression for __is_constructible and __is_destructible
 
 Version 6.0 introduced a regression through the changes for EDGcpfe/21664
