@@ -43,7 +43,7 @@ of the type (i.e., in most C++17 modes).  Now fixed.
   A<int, char*> f() { return 0; }
 
 
-2/14/20  [EDGcpfe/22583]
+4/24/20  [EDGcpfe/22583]
 Multiple translation units: Incorrect handling of mismatched default function
 declarations
 
