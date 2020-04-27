@@ -1,5 +1,21 @@
 Version 6.1
 
+4/27/20  [EDGcpfe/22539]
+Regression in constant folding for GNU statement expressions in C-mode
+
+The change made for EDGcpfe/21184 inadvertently included C-mode when
+determining whether a given struct had a trivial copy function.  This
+could cause constant folding to occur for GNU statement expressions where it
+previously would not have, and in turn caused the wrong C code to be generated
+(when using the C-generating back end).  For example:
+
+  struct a {} b,d;
+  struct a foo()
+  { return ( {b;d;}); } // Previously would generate "return {};"
+
+This is now fixed.
+
+
 4/27/20  [EDGcpfe/21744]
 Incorrect name linkage for explicit specialization of variable template
 
