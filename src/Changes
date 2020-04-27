@@ -1,5 +1,30 @@
 Version 6.1
 
+4/27/20  [EDGcpfe/8863,EDGcpfe/22666]
+Remarks on non-prototype function declarators
+
+C permits function declarators -- known as non-prototype declarators -- that do
+not specify the types of the associated parameters.  For example:
+
+  void f();
+  void f(a) int a; {}  /* Old-style (non-prototype) definition. */
+
+This feature is also accepted in some C++ modes, but it has never been standard
+in C++ and has been "obsolescent" in standard C since C99.  The front end now
+issues a remark about such cases, except for the case of a function definition
+that was first declared with a prototype.  For example:
+
+  void f1();             /* Triggers a remark. Prefer "void f1(void);". */
+  void f2(void (*)());   /* Triggers a remark. */
+  void f3(n) int n; {};  /* Triggers a remark. */
+  void f4(int n);        /* No remark: Prototype declaration. */
+  void f4(n) int n; {}   /* No remark: Previously declared with a prototype. */
+
+This enables functionality similar to GCC's -Wstrict-prototypes option.  The
+severity of the remark can be raised to a warning or an error with the
+--diag_warning or --diag_error options.
+
+
 4/27/20  [EDGcpfe/22539]
 Regression in constant folding for GNU statement expressions in C-mode
 

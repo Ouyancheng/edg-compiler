@@ -2778,6 +2778,28 @@ declaration of a function with the "overloadable" attribute.
 }  /* check_c_mode_ellipsis */
 
 
+static void diag_unprototyped_func_declarator(a_decl_parse_state_ptr  dps)
+/*
+dps is associated with a non-prototyped function declarator.  Issue a remark
+about it, unless this is for a function definition that was previously declared
+with a prototype.
+*/
+{
+  a_boolean  issue_remark = TRUE;
+
+  if (dps->sym != NULL && is_simple_function_symbol(dps->sym) &&
+      dps->is_definition) {
+    a_type_ptr  rtp = routine_symbol_type(dps->sym);
+    if (rout_type_supp(rtp)->prototyped) {
+      issue_remark = FALSE;
+    }  /* if */
+  }  /* if */
+  if (issue_remark) {
+    pos_remark(ec_use_of_non_prototype_func_declarator, &dps->declarator_pos);
+  }  /* if */
+}  /* diag_unprototyped_func_declarator */
+
+
 void function_declarator(a_decl_parse_state  *state,
                          a_decl_flag_set     di_flags,
                          a_type_ptr          *new_type_ptr,
@@ -3980,61 +4002,76 @@ an error if a default argument expression is encountered.
        to func_info. */
     func_info->vla_fixup_list = scope_stack[depth_scope_stack].vla_fixup_list;
     scope_stack[depth_scope_stack].vla_fixup_list = NULL;
-  } else if (any_params) {
-    /* Old-style list of identifiers. */
+  } else {
+    /* Non-prototyped parameter list.  Issue a remark in most cases because
+       non-prototyped function declarators have been obsolescent in C since
+       C99 (and are nonstandard in C++).  An exception is made for definitions
+       of functions that were previously declared with a prototype.  Since we
+       cannot identify such cases at this time, top-level function declarators
+       are handled when parsing is complete. */
     if (!is_top_level_declarator) {
-      /* This type of parameter list is not valid in abstract declarators
-         and non-top-level function declarators. */
-      if (microsoft_mode && C_mode()) {
-        /* No diagnostic in Microsoft C mode. */
-      } else {
-        pos_error(ec_param_id_list_needs_function_def, &error_position);
-      }  /* if */
-    } else if (C_dialect == C_dialect_cplusplus) {
-      /* This type of parameter list is an anachronism in C++. */
-      diagnostic(anachronism_error_severity, ec_old_style_parameter_list);
+      pos_remark(ec_use_of_non_prototype_func_declarator, &start_pos);
+    } else {
+      add_end_of_parse_action(diag_unprototyped_func_declarator, state,
+                              /*secondary_decls=*/TRUE);
     }  /* if */
-    do {
-      add_stop_token(tok_comma);
-      /* Scan the list of identifiers. */
-      if (curr_token != tok_identifier) {
-        if (curr_token == tok_ellipsis && next_token() == tok_rparen) {
-          /* In Microsoft C an ellipsis is permitted (and ignored) on an
-             old-style param list. */
-          diagnostic(microsoft_mode ? es_warning : es_error,
-                     ec_ellipsis_not_allowed);
-          /* Advance past the ellipsis. */
-          (void)get_token();
+    if (any_params) {
+      /* Old-style list of identifiers. */
+      if (!is_top_level_declarator) {
+        /* This type of parameter list is not valid in abstract declarators
+           and non-top-level function declarators. */
+        if (microsoft_mode && C_mode()) {
+          /* No diagnostic in Microsoft C mode. */
         } else {
-          /* Error, expected identifier. */
-          (void)required_token(tok_identifier, ec_exp_identifier);
+          pos_error(ec_param_id_list_needs_function_def, &error_position);
         }  /* if */
-      } else {
-        /* See if the identifier is also a typedef name.  Such a name is
-           not allowed (3.7.1, constraints).  In pcc mode, however, this
-           is allowed. */
-        if (C_dialect != C_dialect_pcc && !microsoft_bugs &&
-            curr_id_is_type_name(GID_NO_OPTIONS, IDS_NO_OPTIONS)) {
-          pos_error(C_mode() ? ec_typedef_cannot_be_param_name :
-                               ec_type_cannot_be_param_name,
-                    &error_position);
-          /* Enter the parameter anyway, for best error recovery. */
-        }  /* if */
-        /* Add the identifier to the parameter id list. */
-        add_to_param_id_list(&locator_for_curr_id, (a_type_ptr)NULL,
-                             (a_source_position*)NULL,
-                             (a_storage_class)sc_unspecified, 
-                             func_info, (a_source_sequence_entry_ptr)NULL,
-                             &last_param_id, /*is_pack_element=*/FALSE);
-        /* Update the param-id entry just created with the source position
-           of the identifier. */
-        last_param_id->old_style_id_pos = locator_for_curr_id.source_position;
-        /* Advance past the identifier. */
-        (void)get_token();
+      } else if (C_dialect == C_dialect_cplusplus) {
+        /* This type of parameter list is an anachronism in C++. */
+        diagnostic(anachronism_error_severity, ec_old_style_parameter_list);
       }  /* if */
-      remove_stop_token(tok_comma);
-      /* Keep looping on a comma, stop otherwise. */
-    } while (loop_token(tok_comma));
+      do {
+        add_stop_token(tok_comma);
+        /* Scan the list of identifiers. */
+        if (curr_token != tok_identifier) {
+          if (curr_token == tok_ellipsis && next_token() == tok_rparen) {
+            /* In Microsoft C an ellipsis is permitted (and ignored) on an
+               old-style param list. */
+            diagnostic(microsoft_mode ? es_warning : es_error,
+                       ec_ellipsis_not_allowed);
+            /* Advance past the ellipsis. */
+            (void)get_token();
+          } else {
+            /* Error, expected identifier. */
+            (void)required_token(tok_identifier, ec_exp_identifier);
+          }  /* if */
+        } else {
+          /* See if the identifier is also a typedef name.  Such a name is
+             not allowed (3.7.1, constraints).  In pcc mode, however, this
+             is allowed. */
+          if (C_dialect != C_dialect_pcc && !microsoft_bugs &&
+              curr_id_is_type_name(GID_NO_OPTIONS, IDS_NO_OPTIONS)) {
+            pos_error(C_mode() ? ec_typedef_cannot_be_param_name :
+                                 ec_type_cannot_be_param_name,
+                      &error_position);
+            /* Enter the parameter anyway, for best error recovery. */
+          }  /* if */
+          /* Add the identifier to the parameter id list. */
+          add_to_param_id_list(&locator_for_curr_id, (a_type_ptr)NULL,
+                               (a_source_position*)NULL,
+                               (a_storage_class)sc_unspecified, 
+                               func_info, (a_source_sequence_entry_ptr)NULL,
+                               &last_param_id, /*is_pack_element=*/FALSE);
+          /* Update the param-id entry just created with the source position
+             of the identifier. */
+          last_param_id->old_style_id_pos =
+                                          locator_for_curr_id.source_position;
+          /* Advance past the identifier. */
+          (void)get_token();
+        }  /* if */
+        remove_stop_token(tok_comma);
+        /* Keep looping on a comma, stop otherwise. */
+      } while (loop_token(tok_comma));
+    }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
