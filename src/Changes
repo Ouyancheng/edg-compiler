@@ -1,5 +1,19 @@
 Version 6.1
 
+4/27/20  [EDGcpfe/21552,EDGcpfe/22064,EDGcpfe/22656]
+Spurious strict-mode error on member selection of a class being defined
+
+Consider:
+
+  struct S {
+    auto f()->int;
+    auto f(int)->decltype((*this).f());  // Previously an error in strict
+  };                                     // C++11 mode.  Now okay.
+
+This example previously elicited a spurious error in strict C++11 (or later)
+mode.  That problem is now fixed.
+
+
 4/25/20  [EDGcpfe/22294]
 Substitution failure involving alias templates and exception specifications
 

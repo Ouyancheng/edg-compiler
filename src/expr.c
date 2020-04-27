@@ -7390,8 +7390,7 @@ type whose member being accessed is incomplete.
   return (this_in_trailing_return_types_enabled || noexcept_enabled) &&
          ((is_arrow_operator &&
            is_this_parameter_operand(operand_1, (a_variable_ptr *)NULL)) ||
-          (!strict_ansi_mode &&
-           type_1 != NULL && is_immediate_class_type(type_1) &&
+          (type_1 != NULL && is_immediate_class_type(type_1) &&
            class_symbol_supp(symbol_for(type_1))->being_defined));
 }  /* field_selection_class_can_be_incomplete */
 
