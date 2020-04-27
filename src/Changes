@@ -1,5 +1,21 @@
 Version 6.1
 
+4/27/20  [EDGcpfe/21744]
+Incorrect name linkage for explicit specialization of variable template
+
+Variable template instances with const-qualified types are given internal
+linkage (although this is expected to changed based on core issue 1713).
+The front end set made such instances static, but did not set the name
+linkage to internal.  This could result in incorrect behavior, such as
+the variable incorrectly being put into a COMDAT group.  Now fixed.
+
+  template <class T> inline T x = T();
+  template <> inline const short x<int> = 1; 
+  int main() {
+    return x<int> != 1;
+  }
+
+
 4/27/20  [EDGcpfe/22581]
 Multiple translation units: Abort when type exists in three or more TUs
 

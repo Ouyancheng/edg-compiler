@@ -17563,6 +17563,7 @@ by this routine.
   if (!sym->is_class_member && symbol_is(sym, sk_variable) &&
       dps->storage_class == (a_storage_class)sc_static) {
     var->storage_class = dps->storage_class;
+    var->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
   }  /* if */
   if (var->type == NULL) {
     var->type = dps->type;
@@ -31141,6 +31142,8 @@ that follows.
             /* Const qualified variable template specializations are given
                internal linkage. */
             vp->storage_class = (a_storage_class)sc_static;
+            vp->source_corresp.name_linkage =
+                                             (a_name_linkage_kind)nlk_internal;
           } else {
             vp->storage_class = (a_storage_class)sc_unspecified;
           }  /* if */
