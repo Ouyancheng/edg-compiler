@@ -21,7 +21,7 @@ Multiple translation units: Abort when type exists in three or more TUs
 
 When compiling multiple translation units where a type exists in more than two
 translation units, the front end could abort in
-"f_set_unvisited_trans_unit_corresp".  This has now been fixed.
+f_set_unvisited_trans_unit_corresp.  This has now been fixed.
 
 
 4/27/20  [EDGcpfe/21552,EDGcpfe/22064,EDGcpfe/22656]
