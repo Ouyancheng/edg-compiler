@@ -770,6 +770,14 @@ this routine will create such a correspondence entry.
   } else if (*tcp1 != NULL && *tcp1 != *tcp2) {
     /* Both entity1 and entity2 have correspondence sets already.  One of
        them must be a singleton and can therefore be freed. */
+    if ((*tcp1)->count > 1) {
+      char*                    etmp = entity2;
+      a_trans_unit_corresp_ptr *ttmp = tcp2;
+      entity2 = entity1;
+      entity1 = etmp;
+      tcp2 = tcp1;
+      tcp1 = ttmp;
+    }  /* if */
     check_assertion_str((*tcp1)->count == 1,
                         "set_trans_unit_corresp: correspondence busy");
     free_trans_unit_corresp(*tcp1);
@@ -889,7 +897,7 @@ static void f_set_unvisited_trans_unit_corresp(
                                            char                        *entity)
 /*
 Detach the given IL entity from a translation unit correspondence entry
-and free the correspondence entry.
+and free the correspondence entry if appropriate.
 */
 {
   a_trans_unit_corresp_ptr  tcp = trans_unit_corresp_of_unknown_entry(entity);
@@ -898,9 +906,12 @@ and free the correspondence entry.
     trace_corresp_check(entity);
     (void)detach_trans_unit_corresp(kind, entity);
 #if CHECKING
-    check_assertion(tcp->count == 1 && tcp->kind == kind);
+    check_assertion(tcp->count >= 1 && tcp->kind == kind);
 #endif /* CHECKING */
-    free_trans_unit_corresp(tcp);
+    --tcp->count;
+    if (tcp->count == 0) {
+      free_trans_unit_corresp(tcp);
+    }  /* if */
     trans_unit_corresp_of_unknown_entry(entity) = NULL;
   }  /* if */
 }  /* f_set_unvisited_trans_unit_corresp */
