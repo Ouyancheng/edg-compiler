@@ -7343,6 +7343,7 @@ for use in generating cross-reference output describing this declaration.
            int const x;
          In C++, x has internal linkage despite not having a "static" storage
          class specifier.  Don't issue an error on this. */
+      suppress_linkage_diagnostic = TRUE;
     }  /* if */
     /* There is an existing IL entry that we are reusing. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
