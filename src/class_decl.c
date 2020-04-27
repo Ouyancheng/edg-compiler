@@ -23466,8 +23466,7 @@ templates from that base template.
     a_routine_ptr       new_rp;
     a_tmpl_decl_state   templ_decl_state;
     a_def_arg_expr_fixup_ptr
-                        daefp, saved_curr_default_args = curr_default_args;
-    a_param_type_ptr    ptp;
+                        saved_curr_default_args = curr_default_args;
     a_token_kind        final_token = tok_semicolon;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Don't issue source sequence entries for generated entities. */
@@ -23545,17 +23544,9 @@ templates from that base template.
       new_rp->is_explicit_constructor = TRUE;
     }  /* if */
     new_tssp->variant.function.decl_cache.decl_info=templ_decl_state.decl_info;
-    curr_default_args = copy_def_arg_expr_fixup_list(
-                                    btssp->variant.function.def_arg_expr_list);
-    daefp = curr_default_args;
-    ptp = new_rp->type->variant.routine.extra_info->param_type_list;
-    for (; ptp != NULL; ptp = ptp->next) {
-      if (ptp->has_default_arg) {
-        daefp->param_type = ptp;
-        daefp = daefp->next;
-      }  /* if */
-    }  /* for */
-    check_assertion(daefp == NULL && ptp == NULL);
+    curr_default_args = NULL;
+    new_tssp->variant.function.def_arg_expr_list =
+       copy_def_arg_expr_fixup_list(btssp->variant.function.def_arg_expr_list);
     complete_generated_member_template(&templ_decl_state, &func_info,
                                        decl_info.decl_state.sym);
     pop_scope();
