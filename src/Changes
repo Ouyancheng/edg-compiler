@@ -57,7 +57,7 @@ Incorrect name linkage for explicit specialization of variable template
 
 Variable template instances with const-qualified types are given internal
 linkage (although this is expected to changed based on core issue 1713).
-The front end set made such instances static, but did not set the name
+The front end made such instances static, but did not set the name
 linkage to internal.  This could result in incorrect behavior, such as
 the variable incorrectly being put into a COMDAT group.  Now fixed.
 
