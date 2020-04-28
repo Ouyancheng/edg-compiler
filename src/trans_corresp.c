@@ -754,17 +754,13 @@ this routine will create such a correspondence entry.
          a correspondence set already (this happens only when entity2 is a
          new canonical entity). */
       *tcp2 = *tcp1;
-#if CHECKING
       ++(*tcp2)->count;
-#endif /* CHECKING */
       update_canonical_entry(kind, entity2);
     } else {
       /* Neither of the two entries had a correspondence node: create one. */
       *tcp2 = alloc_trans_unit_corresp();
       (*tcp2)->kind = kind;
-#if CHECKING
       ++(*tcp2)->count;
-#endif /* CHECKING */
       change_canonical_entry(*tcp2, entity2);
     }  /* if */
   } else if (*tcp1 != NULL && *tcp1 != *tcp2) {
@@ -785,9 +781,7 @@ this routine will create such a correspondence entry.
   /* Add entity1 to the correspondence set of entity2. */
   if (*tcp1 != *tcp2) {
     *tcp1 = *tcp2;
-#if CHECKING
     ++(*tcp2)->count;
-#endif /* CHECKING */
   }  /* if */
   update_canonical_entry(kind, entity1);
   /* Is either entity coming from a primary translation unit? */
@@ -837,9 +831,7 @@ entity to NULL.  Return the address of that pointer.
       check_assertion(total_errors != 0);
       change_canonical_entry(*tcp, (*tcp)->primary);
     }  /* if */
-#if CHECKING
     --(*tcp)->count;
-#endif /* CHECKING */
     *tcp = NULL;
   }  /* if */
   return tcp;
@@ -870,9 +862,7 @@ has not yet been examined for a matching entry in another translation unit.
     /* Allocate a correspondence node. */
     *tcp = alloc_trans_unit_corresp();
     (*tcp)->kind = kind;
-#if CHECKING
     ++(*tcp)->count;
-#endif /* CHECKING */
   } else {
     /* Reuse the correspondence entry.  (Normally, the entry shouldn't be
        shared.  An exception is the sharing by two template entries that are
@@ -905,9 +895,7 @@ and free the correspondence entry if appropriate.
   if (tcp != NULL) {
     trace_corresp_check(entity);
     (void)detach_trans_unit_corresp(kind, entity);
-#if CHECKING
     check_assertion(tcp->count >= 1 && tcp->kind == kind);
-#endif /* CHECKING */
     --tcp->count;
     if (tcp->count == 0) {
       free_trans_unit_corresp(tcp);
