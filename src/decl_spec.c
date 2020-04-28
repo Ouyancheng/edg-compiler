@@ -9941,9 +9941,13 @@ Otherwise, mark the associated variable as having been declared with
       /* Only variables and static data members can be declared "constinit". */
       pos_error(ec_invalid_constinit, &dps->constexpr_pos);
     } else if (!var_has_static_or_thread_storage_duration(vp)) {
+      /* constinit can only be applied to variable with static (or "thread")
+         storage duration. */
       pos_error(ec_constinit_variable_storage, &dps->constexpr_pos);
       vp->declared_constinit = FALSE;
-    } else {
+    } else if (!vp->is_nonreal) {
+      /* Unless the variable is nonreal, a constinit variable cannot have
+         a dynamic initializer. */
       an_init_kind        init_kind;
       an_initializer_ptr  initializer;
       get_variable_initializer(vp, (a_scope*)NULL, &init_kind, &initializer);
