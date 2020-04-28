@@ -21826,8 +21826,12 @@ result_is_lvalue is FALSE.
                     is_error_type(temp_type));
   }  /* if */
   unqual_temp_type = skip_typerefs(temp_type);
+  /* A complete type is needed for a temporary object.  The one exception
+     is the C++/CLI managed nullptr type, which is by definition incomplete
+     but can be used for temporary objects. */
   complete_type_is_needed(temp_type);
-  check_assertion(!is_incomplete_type(temp_type));
+  check_assertion(!is_incomplete_type(temp_type) ||
+                  is_nullptr_type(temp_type));
   if (!is_constant &&
       is_class_struct_union_type(unqual_temp_type)) {
     /* The operand and temporary have a class type.  If it's a C-style

@@ -1,5 +1,16 @@
 Version 6.1
 
+4/27/20  [EDGcpfe/22673]
+Microsoft C++/CLI compatibility: assertion failure using managed nullptr type
+
+In C++/CLI mode, the front end aborted with an assertion failure in
+temp_init_from_operand_full if the source program creates a temporary of
+the managed nullptr type.  This is now fixed.  For example, with --c++cli:
+
+  template<typename T> int f(T&&) { return 0; }
+  int i = f(nullptr);   // Previously aborted
+
+
 4/27/20  [EDGcpfe/8863,EDGcpfe/22666]
 Remarks on non-prototype function declarators
 
