@@ -21253,8 +21253,9 @@ cases so we don't do it here.
       normalize_error_operand(operand);
     } else if (unqual_operand_type->incomplete &&
                !is_managed_nullptr_type(unqual_operand_type) &&
-               (!C_mode() ||
-                unqual_operand_type->kind != (a_type_kind)tk_void)) {
+               (C_mode() ? !type_is(unqual_operand_type, tk_void)
+                         : !could_be_dependent_class_type(
+                                                      unqual_operand_type))) {
       /* Converting a glvalue with incomplete type to a prvalue is an
          error in C++ ([conv.lval]), and undefined behavior in C (C99
          6.3.2.1).  We treat it as an error in C mode except when the
