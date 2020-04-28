@@ -96,9 +96,9 @@ severity of the remark can be raised to a warning or an error with the
 
 
 4/27/20  [EDGcpfe/22539]
-Regression in constant folding for GNU statement expressions in C-mode
+Regression in constant folding for GNU statement expressions in C mode
 
-The change made for EDGcpfe/21184 inadvertently included C-mode when
+The change made for EDGcpfe/21184 inadvertently included C mode when
 determining whether a given struct had a trivial copy function.  This
 could cause constant folding to occur for GNU statement expressions where it
 previously would not have, and in turn caused the wrong C code to be generated
