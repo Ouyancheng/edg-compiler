@@ -24574,9 +24574,12 @@ position information.
      template-param type -- "for now", since it will be replaced with
      an actual type during instantiation of the class or function. */
   sym->variant.type.ptr = template_param_type;
-  if (!decl_state->is_lambda) {
-    /* Don't record "auto" template parameters generated for generic lambdas
-       since they aren't explicitly declared. */
+  if (is_named || loc == NULL || loc->symbol_header->identifier[0] != '<') {
+    /* Don't record template parameters generated for abbreviated function
+       template syntax (including generic lambdas) since they aren't
+       explicitly declared.  Such parameters have is_named == FALSE and have a
+       non-NULL locator whose corresponding identifier is of the form
+       "<auto-N>" (for some integer N). */
     record_template_param_symbol(sym);
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
