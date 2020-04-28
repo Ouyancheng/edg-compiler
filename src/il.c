@@ -20795,7 +20795,10 @@ evaluated is TRUE if the expression is evaluated.
     } else if (symbol_for(rout)->variant.routine.instance_ptr == NULL) {
       expect_error_str("copy_default_arg_expr: missing template instance ptr");
     } else {
-      instantiate_default_argument(symbol_for(rout), ptp);
+      /* If this is an inheriting constructor, instantiate the originating
+         constructor's default argument expression. */
+      a_routine_ptr inh_rout = get_inh_ctor_originator(rout);
+      instantiate_default_argument(symbol_for(inh_rout), ptp);
     }  /* if */
   }  /* if */
   /* Watch out for cases where a default argument is followed by

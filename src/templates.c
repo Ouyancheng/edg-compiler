@@ -16050,12 +16050,17 @@ are flags passed down to the substitution routines.
       ctws_state.preserve_deduced_packs = preserve_deduced_packs;
       templ_rout_type = skip_typerefs(tssp->variant.function.routine->type);
       ++(tssp->variant.function.pending_deductions);
+      /* Ensure any access checks have access to the routine's friends. */
+      (void)push_scope((a_scope_kind)sck_function_access, NO_SCOPE_NUMBER,
+                        (a_type_ptr)NULL, tssp->variant.function.routine);
+      scope_stack_top().template_sym = templ_sym;
       templ_rout_type = copy_type_with_substitution(templ_rout_type,
                                                     templ_arg_list,
                                                     templ_param_list,
 	       					    &templ_sym->decl_position,
 						    ctws_options,
 						    &copy_error, &ctws_state);
+      pop_scope();
       --(tssp->variant.function.pending_deductions);
       if (!copy_error) {
         /* If possible, check that any template template parameters that
@@ -17218,17 +17223,23 @@ declared and before the partial instantiation of the function was done.
       incompatible_substituted_and_rescanned_types_after_fixup(
                                                     substituted_type, type)) {
     if (!is_or_contains_error_type(type) &&
-        !is_or_contains_error_type(templ_rout->type) &&
-        !f_types_are_compatible(substituted_type, type,
-                                TCF_CHECKING_DEDUCTION_RESULT |
-                                TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING)) {
-      /* If the type contains an error type it is likely that the current
-         routine type is already an error routine type produced earlier.
-         Don't issue a diagnostic in this case, but still create an
-         error routine type in case some of the parameter types were not
-         already error types. */
-      pos_ty2_error(ec_bad_type_from_instantiation, &pos_curr_token,
-                    type, templ_rout->type);
+        !is_or_contains_error_type(templ_rout->type)) {
+      if (substituted_type == NULL) {
+        /* Substitution has failed for some reason.  The instantiation should
+           have run into a similar error. */
+        check_assertion(total_errors != 0);
+      } else if (!f_types_are_compatible(
+                                    substituted_type, type,
+                                    TCF_CHECKING_DEDUCTION_RESULT |
+                                    TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING)) {
+        /* If the type contains an error type it is likely that the current
+           routine type is already an error routine type produced earlier.
+           Don't issue a diagnostic in this case, but still create an
+           error routine type in case some of the parameter types were not
+           already error types. */
+        pos_ty2_error(ec_bad_type_from_instantiation, &pos_curr_token,
+                      type, templ_rout->type);
+      }  /* if */
     }  /* if */
     type = create_error_routine_type(templ_rout, parent_class);
     rout->type = type;
@@ -19727,6 +19738,7 @@ structure.
        Note that the symbol will not be added to the symbol table, since it
        is accessed through the list of function instantiation entries. */
     a_routine_ptr	templ_rout;
+    check_assertion(symbol_is(templ_sym, sk_function_template));
     templ_rout = templ_sym->variant.template_info->variant.function.routine;
     if (template_arg_list_involves_error_entity(*new_list) ||
         is_or_contains_error_type(templ_rout->type) ||
@@ -19755,6 +19767,26 @@ structure.
                                                       source_pos);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      if (templ_rout->is_inheriting_ctor) {
+        /* Instantiate the inherited constructor and update the recorded
+           inherited constructor pointer. */
+        a_routine_ptr      ctor = sym->variant.routine.ptr;
+        a_routine_ptr      inh_ctor =
+                                 ctor->friends_or_originator.inherited_routine;
+        a_symbol_ptr       inh_sym = symbol_for(inh_ctor);
+        a_template_arg_ptr templ_arg_list = copy_template_arg_list(*new_list);
+
+        if (symbol_is(inh_sym, sk_member_function)) {
+          inh_sym = inh_sym->variant.routine.instance_ptr->template_sym;
+        }  /* if */
+        check_assertion(symbol_is(inh_sym, sk_function_template));
+        inh_sym = find_template_function(inh_sym, &templ_arg_list,
+                                         explicit_arg_list_present,
+                                         source_pos);
+        check_assertion(symbol_is(inh_sym, sk_member_function));
+        ctor->friends_or_originator.inherited_routine =
+                                                  inh_sym->variant.routine.ptr;
+      }  /* if */
     }  /* if */
 #if DEBUG
     if (debug_level >= 3) {

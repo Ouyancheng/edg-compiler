@@ -9885,6 +9885,28 @@ being created.
 }  /* inh_ctor_init_call_default_ctor */
 
 
+static void inh_ctor_init_call_inh_ctor(a_constructor_init_ptr init,
+                                        a_routine_ptr          ctor,
+                                        a_routine_ptr          inh_ctor)
+/*
+Generate the call to the default constructor for the provided base class
+initializer and update init accordingly.  inh_ctor is the inherited constructor
+that is being called.  ctor is the inheriting constructor that inherited from
+inh_ctor.
+*/
+{
+  a_dynamic_init_ptr dip;
+
+  dip = forwarding_initializer_for_inheriting_constructor(ctor, inh_ctor);
+  init->initializer = dip;
+  init->initializer->is_constructor_init = TRUE;
+  if (exceptions_enabled) {
+    record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                       /*block_lifetime=*/TRUE);
+  }  /* if */
+}  /* inh_ctor_init_call_inh_ctor */
+
+
 a_constructor_init_ptr ctor_inits_for_inheriting_ctor(a_routine_ptr ctor)
 /*
 ctor is a generated inheriting constructor.  Generate and return the required
@@ -9915,18 +9937,11 @@ constructor are initialized in the normal way.
   Dyn_array<Ptr_with_flag<a_constructor_init_ptr>>
                          inits;
   a_base_class_ptr       bcp;
-  a_dynamic_init_ptr     dip;
 
   class_type = parent_class_of(ctor);
   ctsp = class_type_supp(class_type);
   ctor_routine = get_inh_ctor_originator(ctor);
   ctor_owner = parent_class_of(ctor_routine);
-
-  /* Call the inherited constructor now to ensure it's instantiated. */
-  dip = forwarding_initializer_for_inheriting_constructor(ctor, ctor_routine);
-  if (dyn_init_is(dip, dik_constructor)) {
-    ctor_routine = dip->variant.constructor.ptr;
-  }  /* if */
   /* Determine which base classes provided the constructor.  Note that there
      could be more than one in the case of virtual inheritance. */
   for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
@@ -9978,12 +9993,7 @@ constructor are initialized in the normal way.
     /* If flag is TRUE, this participated in the constructor inheritance. */
     if (init.flagged()) {
       if (init->variant.base_class->type == ctor_owner) {
-        init->initializer = dip;
-        init->initializer->is_constructor_init = TRUE;
-        if (exceptions_enabled) {
-          record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
-                                             /*block_lifetime=*/TRUE);
-        }  /* if */
+        inh_ctor_init_call_inh_ctor(init.ptr(), ctor, ctor_routine);
       } else {
         inh_ctor_init_default_initialize_base(init.ptr(), ctor, ctor_routine,
                                               init->variant.base_class->type);
