@@ -1741,21 +1741,46 @@ innermost such class.
     }  /* if */
     if (scope_is(rssep, sck_class_struct_union)) {
       break;
-    } else if (scope_is(rssep, sck_class_reactivation) &&
-               is_unnamed_or_originally_unnamed_tag(rssep->assoc_type)) {
-      /* If a reference was made in a member of an unnamed class, then that
-         member cannot be moved out of the class definition (because there is
-         no valid qualified name for that member).  The entry must therefore
-         be emitted before the source sequence entry for the unnamed class.
-         For example:
-           template<typename T> T max(T x, T y) { return x<y ? y : x; }
-           typedef struct {
-             int f(int i) { return max(i, 42); }
-           } X;
-         Here, the entry for max<int> has to be emitted before the entry for
-         the unnamed struct.
-      */
-      insert_point = rssep->assoc_type->source_corresp.source_sequence_entry;
+    } else if (scope_is(rssep, sck_class_reactivation)) {
+      a_decl_parse_state  *dps = rssep->decl_parse_state;
+      if (dps != NULL && dps->sym != NULL &&
+          symbol_is(dps->sym, sk_static_data_member) &&
+          sym_parent_class(dps->sym) == rssep->assoc_type) {
+        /* A reference from from an initializer of a static data member whose
+           instantiation was deferred (which can happen, e.g., in GNU modes).
+           While parsing can sometimes be deferred for initializers in class
+           templates, they cannot be deferred for initializers in explicit
+           specializations.  Hence we must emit the referenced source sequence
+           entry before the class in which it is referenced.  For example:
+               template<typename> struct S { enum { e = 0 }; };
+               template<typename T> struct X {
+                 static int const N = (int)S<T>::e;
+               };
+               int main() {
+                 return X<float>::N;
+               }
+           In GNU C++ mode, the initializer of X<float>::N is not parsed in
+           during the instantiation of X<float> (i.e., in a class-scope) but
+           later in a class reactivation scope.  Nonetheless, the resulting
+           S<float> source sequence entry must appear before the entries for
+           the X<float> definition.  */
+        insert_point = rssep->assoc_type->source_corresp.source_sequence_entry;
+        break;
+      } else if (is_unnamed_or_originally_unnamed_tag(rssep->assoc_type)) {
+        /* If a reference was made in a member of an unnamed class, then that
+           member cannot be moved out of the class definition (because there is
+           no valid qualified name for that member).  The entry must therefore
+           be emitted before the source sequence entry for the unnamed class.
+           For example:
+             template<typename T> T max(T x, T y) { return x<y ? y : x; }
+             typedef struct {
+               int f(int i) { return max(i, 42); }
+             } X;
+           Here, the entry for max<int> has to be emitted before the entry for
+           the unnamed struct.
+        */
+        insert_point = rssep->assoc_type->source_corresp.source_sequence_entry;
+      }  /* if */
     }  /* if */
   }  /* for */
   if (insert_scope_depth == NO_SCOPE_DEPTH &&

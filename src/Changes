@@ -1,5 +1,44 @@
 Version 6.1
 
+4/28/20  [EDGcpfe/22420]
+C++-generating back end: Out-of-order generated specializations after GNU-mode
+reference in static data member initializer
+
+In configurations with TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to
+TRUE, the C++-generating back end could render generated explicit template
+specializations out of order when the first reference to such a specialization
+appears in a static data member initializer.  For example:
+
+  template <typename> struct S { enum { e = 0 }; };
+  template <typename T> struct X {
+    static int const N = (int)S<T>::e;
+  };
+  int main() {
+    return X<float>::N;
+  }
+
+In GNU C++ mode, the initializer of X<float>::N is not parsed during the
+instantiation of X<float> (because GCC delays in-class static data member
+initializer instantiations until the member is used) but a little later.  As
+a result, the explicit specialization of S<float> appeared after the
+definition of X<float>, which resulted in code rendered by the C++-generating
+back end somewhat like the following:
+
+  template <typename> struct S { enum { e = 0 }; };
+  template <typename T> struct X {
+    static int const N = (int)S<T>::e;
+  };
+  template<> struct X<float> {
+    static int const N = (int)S<float>::e;  // Use of S<float>.
+  };
+  template<> struct S<float> { enum { e = 0 }; };  // Invalid!
+
+That last explicit specialization is invalid since the specialization was
+already previously used.  This problem is now fixed by forcing specializations
+referenced from deferred in-class static data member initializer instantiations
+to be emitted before the data member's parent class.
+
+
 4/28/20  [EDGcpfe/22674]
 Cross-reference output for generic lambda template parameters
 
