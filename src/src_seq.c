@@ -1759,7 +1759,7 @@ innermost such class.
                int main() {
                  return X<float>::N;
                }
-           In GNU C++ mode, the initializer of X<float>::N is not parsed in
+           In GNU C++ mode, the initializer of X<float>::N is not parsed
            during the instantiation of X<float> (i.e., in a class-scope) but
            later in a class reactivation scope.  Nonetheless, the resulting
            S<float> source sequence entry must appear before the entries for
