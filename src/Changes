@@ -62,7 +62,7 @@ to be emitted before the data member's parent class.
 Cross-reference output for generic lambda template parameters
 
 The front end previously never output cross-reference information for the
-declaration of template parameters of generic lambda since until C++17 they
+declaration of template parameters of generic lambdas since until C++17 they
 were always implicitly declared as part of the processing of "auto" lambda
 parameters.  For example:
 
