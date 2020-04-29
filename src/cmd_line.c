@@ -530,7 +530,7 @@ Initialize the option information table.
   add_option_description(optk_microsoft_cpplatest_mode, "ms_c++latest",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_microsoft_c_experimental, "ms_c_experimental",
+  add_option_description(optk_microsoft_c11, "ms_c11",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #if NEAR_AND_FAR_ALLOWED
@@ -2237,7 +2237,7 @@ option values if they were not already set by a command line option.
   }  /* if */
   if (C_mode()) {
     /* Microsoft C mode. */
-    a_boolean ms_c_experimental = FALSE;
+    a_boolean ms_c11 = FALSE;
     /* Allow nonconstant expressions in aggregate initializers for automatic
        variables. */
     allow_nonconstant_auto_aggr_init_in_c_mode = TRUE;
@@ -2245,10 +2245,8 @@ option values if they were not already set by a command line option.
       /* Microsoft C never enters tag names in function prototype scopes. */
       func_prototype_tags_enabled = FALSE;
     }  /* if */
-    if (option_kind_used[(int)optk_microsoft_c_experimental]) {
-      /* Enables "the latest C features" supported by a particular version
-         of Visual Studio. */
-      ms_c_experimental = TRUE;
+    if (option_kind_used[(int)optk_microsoft_c11]) {
+      ms_c11 = TRUE;
     }  /* if */
     /* Recent Microsoft C compilers enable the C++ spelling of static_assert
        (i.e., not _Static_assert). */
@@ -2271,7 +2269,7 @@ option values if they were not already set by a command line option.
       }  /* if */
     }  /* if */
     universal_character_names_allowed = TRUE;
-    if (ms_c_experimental && microsoft_version >= 1927) {
+    if (ms_c11 && microsoft_version >= 1927) {
       /* Visual Studio version 16.7. */
       /* Note that compound literals are already enabled above. */
       if (!(option_kind_used[(int)optk_restrict])) {
@@ -10006,10 +10004,8 @@ enable_microsoft_mode:
         set_C_dialect(C_dialect_cplusplus);
         opt_value = TRUE;
         goto enable_microsoft_mode;
-      case optk_microsoft_c_experimental:
-        /* A placeholder for an as-yet-unnamed command-line option
-           similar to /std:c++latest, but enables "the latest C features"
-           as supported by a particular microsoft version. */
+      case optk_microsoft_c11:
+        /* Emulate the Microsoft /std:c11 option. */
         set_C_dialect(C_dialect_ANSI);
         opt_value = TRUE;
         goto enable_microsoft_mode;

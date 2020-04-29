@@ -125,7 +125,7 @@ typedef enum /*an_option_kind*/ {
   optk_microsoft_cpp17_mode,
   optk_microsoft_cpp20_mode,
   optk_microsoft_cpplatest_mode,
-  optk_microsoft_c_experimental,
+  optk_microsoft_c11,
 #if NEAR_AND_FAR_ALLOWED
   optk_microsoft_16_mode,
 #endif /* NEAR_AND_FAR_ALLOWED */
