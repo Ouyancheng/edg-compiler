@@ -17950,12 +17950,17 @@ member template argument.
                          : con->variant.ptr_to_member.variant.field == NULL) ?
                  null_value_okay
                : TRUE;
-  } else if (null_value_okay && constant_is(con, ck_integer) &&
-             (is_pointer_or_handle_type(con->type) ||
-              is_ptr_to_member_type(con->type)) &&
-             cmplit_integer_constant(con, (a_host_large_integer)0) == 0) {
-    /* A "zero" constant converted to a pointer or pointer-to-member type. */
-    result = TRUE;
+  } else if (null_value_okay && constant_is(con, ck_integer)) {
+    /* A "zero" constant converted to a pointer or pointer-to-member type is
+       acceptable.  In Microsoft mode, a non-zero constant converted to a
+       pointer type is acceptable, too. */
+    a_type_ptr  tp = skip_typerefs(con->type);
+    if ((is_pointer_or_handle_type(tp) || is_ptr_to_member_type(tp)) &&
+        cmplit_integer_constant(con, (a_host_large_integer)0) == 0) {
+      result = TRUE;
+    } else if (microsoft_mode && is_pointer_type(tp)) {
+      result = TRUE;
+    }  /* if */
   }  /* if */
   return result;
 }  /* is_valid_ptr_or_ptr_to_member_templ_arg_constant */
