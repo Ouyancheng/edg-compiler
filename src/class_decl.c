@@ -3990,6 +3990,7 @@ constant-expression.
     /* Re-create a declaration parsing state before parsing the
        initializer. */
     init_decl_parse_state(&dps);
+    dps.in_class_scope = TRUE;
     dps.sym = var_sym;
     dps.type = dps.declared_type = var->type;
     if (gpp_mode && var->template_info != NULL &&

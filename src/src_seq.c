@@ -1743,7 +1743,7 @@ innermost such class.
       break;
     } else if (scope_is(rssep, sck_class_reactivation)) {
       a_decl_parse_state  *dps = rssep->decl_parse_state;
-      if (dps != NULL && dps->sym != NULL &&
+      if (dps != NULL && dps->sym != NULL && dps->in_class_scope &&
           symbol_is(dps->sym, sk_static_data_member) &&
           sym_parent_class(dps->sym) == rssep->assoc_type) {
         /* A reference from an initializer of a static data member whose
