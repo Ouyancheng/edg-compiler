@@ -16045,22 +16045,32 @@ are flags passed down to the substitution routines.
     if (templ_rout_type == NULL) {
       /* This is the first time this routine has been called for this
          template argument list.  Create a new type. */
-      a_ctws_state	ctws_state;
+      a_ctws_state            ctws_state;
+      a_scope_stack_entry_ptr ssep = &scope_stack_top();
+      a_boolean               scope_pushed = FALSE;
       init_ctws_state(&ctws_state);
       ctws_state.preserve_deduced_packs = preserve_deduced_packs;
       templ_rout_type = skip_typerefs(tssp->variant.function.routine->type);
       ++(tssp->variant.function.pending_deductions);
-      /* Ensure any access checks have access to the routine's friends. */
-      (void)push_scope((a_scope_kind)sck_function_access, NO_SCOPE_NUMBER,
-                        (a_type_ptr)NULL, tssp->variant.function.routine);
-      scope_stack_top().template_sym = templ_sym;
+      /* Ensure any access checks can find the routine's friends.  If a
+         function access scope has already been pushed for this template then
+         there's no need to push another. */
+      if (!scope_is(ssep, sck_function_access) ||
+          ssep->template_sym != templ_sym) {
+        (void)push_scope((a_scope_kind)sck_function_access, NO_SCOPE_NUMBER,
+                          (a_type_ptr)NULL, tssp->variant.function.routine);
+        scope_stack_top().template_sym = templ_sym;
+        scope_pushed = TRUE;
+      }  /* if */
       templ_rout_type = copy_type_with_substitution(templ_rout_type,
                                                     templ_arg_list,
                                                     templ_param_list,
 	       					    &templ_sym->decl_position,
 						    ctws_options,
 						    &copy_error, &ctws_state);
-      pop_scope();
+      if (scope_pushed) {
+        pop_scope();
+      }  /* if */
       --(tssp->variant.function.pending_deductions);
       if (!copy_error) {
         /* If possible, check that any template template parameters that
@@ -19775,6 +19785,7 @@ structure.
                                  ctor->friends_or_originator.inherited_routine;
         a_symbol_ptr       inh_sym = symbol_for(inh_ctor);
         a_template_arg_ptr templ_arg_list = copy_template_arg_list(*new_list);
+        a_param_type_ptr   ptp, inh_ptp;
 
         if (symbol_is(inh_sym, sk_member_function)) {
           inh_sym = inh_sym->variant.routine.instance_ptr->template_sym;
@@ -19784,8 +19795,18 @@ structure.
                                          explicit_arg_list_present,
                                          source_pos);
         check_assertion(symbol_is(inh_sym, sk_member_function));
-        ctor->friends_or_originator.inherited_routine =
-                                                  inh_sym->variant.routine.ptr;
+        inh_ctor = inh_sym->variant.routine.ptr;
+        ctor->friends_or_originator.inherited_routine = inh_ctor;
+        ptp = function_type_params(ctor->type);
+        inh_ptp = function_type_params(inh_ctor->type);
+        for (; ptp != NULL && inh_ptp != NULL;
+             ptp = ptp->next, inh_ptp = inh_ptp->next) {
+          if (ptp->has_default_arg) {
+            check_assertion(inh_ptp->has_default_arg);
+            ptp->orig_param_type_for_unevaluated_default_arg_expr = inh_ptp;
+          }  /* if */
+        }  /* for */
+        check_assertion(ptp == NULL && inh_ptp == NULL);
       }  /* if */
     }  /* if */
 #if DEBUG

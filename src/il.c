@@ -20795,10 +20795,28 @@ evaluated is TRUE if the expression is evaluated.
     } else if (symbol_for(rout)->variant.routine.instance_ptr == NULL) {
       expect_error_str("copy_default_arg_expr: missing template instance ptr");
     } else {
-      /* If this is an inheriting constructor, instantiate the originating
-         constructor's default argument expression. */
-      a_routine_ptr inh_rout = get_inh_ctor_originator(rout);
-      instantiate_default_argument(symbol_for(inh_rout), ptp);
+      if (rout->is_inheriting_ctor) {
+        /* Use the default argument expression from the inherited
+           constructor. */
+        a_param_type_ptr inh_ptp = ptp->
+                              orig_param_type_for_unevaluated_default_arg_expr;
+        a_routine_ptr    inh_ctor = inh_ctor_inherited_ctor(rout);
+        ptp->default_arg_expr =
+                           copy_default_arg_expr(inh_ctor, inh_ptp,
+                                                 inside_conditional_expression,
+                                                 potentially_evaluated,
+                                                 evaluated);
+        ptp->has_default_arg = inh_ptp->has_default_arg;
+        ptp->default_arg_expr = inh_ptp->default_arg_expr;
+        ptp->entities_defined_in_default_arg =
+                                      inh_ptp->entities_defined_in_default_arg;
+        ptp->default_arg_appeared_in_class_definition =
+                             inh_ptp->default_arg_appeared_in_class_definition;
+        ptp->has_unevaluated_template_default =
+                                     inh_ptp->has_unevaluated_template_default;
+      } else {
+        instantiate_default_argument(symbol_for(rout), ptp);
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Watch out for cases where a default argument is followed by

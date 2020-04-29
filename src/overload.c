@@ -11597,8 +11597,8 @@ implicit "this" is available, e.g., during overload resolution.
   } else if (ssep->is_rescan) {
     /* Check if we are rescanning (SFINAE) a trailing return type, which could
        also have access to an implicit "this" parameter. */
-    if (scope_is(ssep, sck_function_access)) {
-      /* Skip any scope pushed for SFINAE access checking. */
+    while (scope_is(ssep, sck_function_access)) {
+      /* Skip any scopes pushed for SFINAE access checking. */
       ssep = previous_scope_of(ssep);
     }  /* if */
     if (scope_is(ssep, sck_template_instantiation) &&

@@ -23378,9 +23378,19 @@ will be generated for the given class type.
 {
   a_type_ptr        new_tp = alloc_type((a_type_kind)tk_routine);
   a_routine_type_supplement_ptr
-                    new_rtsp = new_tp->variant.routine.extra_info;
+                    new_rtsp = rout_type_supp(new_tp);
+  a_param_type_ptr  ptp, bptp;
 
   copy_type(brp->type, new_tp);
+  ptp = new_rtsp->param_type_list;
+  bptp = function_type_params(brp->type);
+  for (; ptp != NULL && bptp != NULL; ptp = ptp->next, bptp = bptp->next) {
+    if (ptp->has_default_arg) {
+      check_assertion(bptp->has_default_arg);
+      ptp->orig_param_type_for_unevaluated_default_arg_expr = bptp;
+    }  /* if */
+  }  /* for */
+  check_assertion(ptp == NULL && bptp == NULL);
   new_rtsp->exception_specification = NULL;
   new_rtsp->this_class = class_type;
   return new_tp;
@@ -23546,8 +23556,6 @@ templates from that base template.
     }  /* if */
     new_tssp->variant.function.decl_cache.decl_info=templ_decl_state.decl_info;
     curr_default_args = NULL;
-    new_tssp->variant.function.def_arg_expr_list =
-       copy_def_arg_expr_fixup_list(btssp->variant.function.def_arg_expr_list);
     complete_generated_member_template(&templ_decl_state, &func_info,
                                        decl_info.decl_state.sym);
     pop_scope();
