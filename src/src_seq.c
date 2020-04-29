@@ -1746,7 +1746,7 @@ innermost such class.
       if (dps != NULL && dps->sym != NULL &&
           symbol_is(dps->sym, sk_static_data_member) &&
           sym_parent_class(dps->sym) == rssep->assoc_type) {
-        /* A reference from from an initializer of a static data member whose
+        /* A reference from an initializer of a static data member whose
            instantiation was deferred (which can happen, e.g., in GNU modes).
            While parsing can sometimes be deferred for initializers in class
            templates, they cannot be deferred for initializers in explicit
