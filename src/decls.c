@@ -10137,7 +10137,7 @@ skip_overloading:;
       pop_namespace_extension_scope();
     }  /* if */
   }  /* if */
-  if (!redeclaration &&
+  if (!redeclaration && innermost_function_scope == NULL &&
       (dps->dso_flags & (DSO_CONSTEXPR | DSO_CONSTEVAL)) != 0) {
     if (dps->dso_flags & DSO_CONSTEVAL) {
       routine_ptr->is_consteval = TRUE;

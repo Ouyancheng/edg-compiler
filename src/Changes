@@ -1,5 +1,27 @@
 Version 6.1
 
+4/29/20  [EDGcpfe/22692]
+Memory corruption after block-extern constexpr function declaration
+
+Consider (in C++17 mode or later):
+
+  constexpr int f() {
+    if (static int x = true; true) {  // Error: static not allowed.
+       constexpr int f();
+    }
+    return 1;
+  }
+  int r = f();
+
+This correctly elicits an error for attempting to declare a static variable in
+a constexpr function.  Ordinarily, that causes the interpreter not to permit
+interpretation of calls to f().  However, the subsequent block-extern constexpr
+declaration of f() accidentally re-enabled the interpretation of the call to
+f(), which resulted in memory corruption (usually triggering an abort) when
+attempting to handle the initialization of the static variable.  This is now
+fixed.
+
+
 4/29/20  [EDGcpfe/22690]
 Microsoft compatibility regression: Constant addresses
 
