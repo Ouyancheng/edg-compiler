@@ -21204,6 +21204,26 @@ options.
 }  /* conv_glvalue_expr_to_prvalue_external */
 
 
+static a_boolean incomplete_glvalue_type_okay_for_prvalue(a_type_ptr  utp)
+/*
+The given type is the type of a glvalue operand after skipping typerefs.
+Return TRUE if it is okay for it to be an incomplete type when converted to a
+prvalue.  This is TRUE for nonlocal nonreal class types.  E.g.:
+
+  template<typename T> struct S;
+  template<typename T> void g(S<T> *p) {
+    static_cast<T&&>(*p);  // Okay.
+    struct L;  // Nonreal local type.
+    static_cast<T&&>(*(L*)p);  // Error.
+  }
+*/
+{
+  return is_immediate_class_type(utp) &&
+         utp->variant.class_struct_union.is_nonreal_class &&
+         !utp->source_corresp.is_local_to_function;
+}  /* incomplete_glvalue_type_okay_for_prvalue */
+
+
 void conv_glvalue_to_prvalue(an_operand *operand)
 /*
 Convert a glvalue operand to a prvalue operand.  See section 6.3.2.1 of the
@@ -21254,7 +21274,7 @@ cases so we don't do it here.
     } else if (unqual_operand_type->incomplete &&
                !is_managed_nullptr_type(unqual_operand_type) &&
                (C_mode() ? !type_is(unqual_operand_type, tk_void)
-                         : !could_be_dependent_class_type(
+                         : !incomplete_glvalue_type_okay_for_prvalue(
                                                       unqual_operand_type))) {
       /* Converting a glvalue with incomplete type to a prvalue is an
          error in C++ ([conv.lval]), and undefined behavior in C (C99
