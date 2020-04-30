@@ -470,6 +470,14 @@ Flags to be set for any version that uses the C++ generating back end.
 #define INCLUDE_EDG_TEST_NAMED_REGISTERS 1
 #endif /* IA64_ABI */
 
+/*
+defines_linux.h has been updated to provide better compatibility with
+the g++ headers.  Setting this macro to 0 retains the previous behavior.
+*/
+#ifndef CONFIG_FOR_GPP_HEADER_COMPAIBILITY
+#define CONFIG_FOR_GPP_HEADER_COMPAIBILITY 0
+#endif /* ifndef CONFIG_FOR_GPP_HEADER_COMPAIBILITY */
+
 #endif /* LINUX_TEST_VERSION */
 
 #include "defines_linux.h"

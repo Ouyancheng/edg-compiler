@@ -71,6 +71,31 @@ platform.
 #endif /* ifndef BUILTIN_FUNCTIONS_ENABLED */
 
 /*
+Earlier versions of this file did not define some flags needed for
+compatibility with newer versions of the g++ header files.  This
+macro can be set to 0 if these additional flags should not be set by
+default.  CONFIG_FOR_GPP_HEADER_COMPAIBILITY is only used in this
+file.
+*/
+#ifndef CONFIG_FOR_GPP_HEADER_COMPAIBILITY
+#define CONFIG_FOR_GPP_HEADER_COMPAIBILITY 1
+#endif /* ifndef CONFIG_FOR_GPP_HEADER_COMPAIBILITY */
+
+#if CONFIG_FOR_GPP_HEADER_COMPAIBILITY
+#define THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED 1
+#define FLOAT80_ENABLING_POSSIBLE 1
+#define FLOAT128_ENABLING_POSSIBLE 1
+#define USE_QUADMATH_LIBRARY 1
+#define USE_FLOAT128_FOR_HOST_FP_VALUE 1
+#define INT128_EXTENSIONS_ALLOWED 1
+#define GNU_VECTOR_TYPES_ALLOWED 1
+#define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 0
+#define TYPE_FOR_TARG_ALIGNMENT unsigned short
+#define TARG_MAXIMUM_PACK_ALIGNMENT 32768
+#define TYPE_FOR_A_FIXED_POINT_VALUE an_integer_value
+#endif /* CONFIG_FOR_GPP_HEADER_COMPAIBILITY */
+
+/*
 Configure the legacy configuration as 32-bit or 64-bit (depending on the
 value of TARG_SUPPORTS_X86_64).  An additional configuration (i.e., the
 "other" one of 32-bit or 64-bit) will be defined below.
