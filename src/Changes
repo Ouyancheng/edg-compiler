@@ -1,5 +1,19 @@
 Version 6.1
 
+4/30/20  [EDGcpfe/22546]
+Interpreter error for floating-point compound assignments
+
+The constexpr interpreter previously did not correctly compute compound
+assignments involving two different floating-point types.  For example:
+
+  constexpr float g(float x) {
+     return x += 2.0;  // "float += double", previously produced incorrect
+  }                    // result.
+  static_assert(g(2.0) == 4.0, "");  // Previously failed.  Now okay.
+
+This is now fixed.
+
+
 4/30/20  [EDGcpfe/22635]
 Spurious error on attempt to call friend function with auto return type
 
