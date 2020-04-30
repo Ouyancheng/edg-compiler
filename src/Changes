@@ -1,5 +1,12 @@
 Version 6.1
 
+4/30/20  [EDGcpfe/22679]
+Microsoft compatibility: Efficient sized delete for variable sized classes
+
+The changes for P0722R3 (see EDGcpfe/20036) have now been enabled when
+microsoft_version >= 1927 when --ms_c++latest is specified.
+
+
 4/29/20  [EDGcpfe/22692]
 Memory corruption after block-extern constexpr function declaration
 

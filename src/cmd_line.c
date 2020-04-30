@@ -2821,6 +2821,12 @@ option values if they were not already set by a command line option.
           constinit_enabled = TRUE;
         }  /* if */
       }  /* if */
+      if (microsoft_version >= 1927) {
+        /* Visual Studio version 16.7. */
+        if (ms_cpp20_mode) {
+          destroying_operator_delete_enabled = TRUE;
+        }  /* if */
+      }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
          member functions "deleted", whereas Microsoft compilers prior to 1900
