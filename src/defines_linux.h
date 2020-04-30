@@ -94,6 +94,7 @@ file.
 #define TARG_MAXIMUM_PACK_ALIGNMENT 32768
 #define TYPE_FOR_A_FIXED_POINT_VALUE an_integer_value
 #endif /* CONFIG_FOR_GPP_HEADER_COMPAIBILITY */
+// Force breakage check
 
 /*
 Configure the legacy configuration as 32-bit or 64-bit (depending on the
