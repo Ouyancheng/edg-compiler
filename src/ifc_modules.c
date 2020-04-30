@@ -1801,7 +1801,7 @@ class_struct_union_case:
             itsfp = get_TypeSort_Fundamental(&itsf);
             if (itsfp->basis == ifc_TypeBasis_Typename) {
               /* A type alias; declare a typedef for this case. */
-              init_dps(&dps, &idstap->locus, idstap->initializer,
+              init_dps(&dps, &idstap->locus, idstap->aliasee,
                        (ifc_Alignment)0, ifc_ObjectTraits_None,
                        ifc_MsvcTraits_None, idstap->specifiers, idstap->access,
                        &psss);
@@ -1813,7 +1813,8 @@ class_struct_union_case:
             } else if (itsfp->basis == ifc_TypeBasis_Namespace) {
               /* A namespace alias. */
               /* FIXME: unimplemented. */
-              unexpected_condition();
+              unexpected_condition_str("Namespace aliases "
+                                       "are not yet implemented");
             } else {
               unexpected_condition();
             }  /* if */
@@ -2598,6 +2599,8 @@ Process the DeclSort::Template entry corresponding to the given module entity.
   if (is_alias_decl) {
     cache_type(&tssp->cache.tokens, (ifc_TypeIndex)decl->entity.index,
                &decl->locus);
+  } else if (is_class_struct_union_type(type)) {
+    cache_sentence(&tssp->cache.tokens, decl->entity.head);
   }  /* if */
   cache_sentence(&tssp->cache.tokens, decl->entity.body);
   tssp->cache.decl_info = tdip;
@@ -3187,6 +3190,39 @@ appropriate non-type kind and return NULL.
 }  /* type_for_type_index */
 
 
+a_template_arg_ptr an_ifc_module::template_arg_for_expr(
+                                                      ifc_ExprIndex expr_index)
+                                                                 const noexcept
+/*
+Given an IFC expression index, construct and return a corresponding template
+argument.
+*/
+{
+  a_template_arg_ptr result;
+  a_templ_arg_kind   kind;
+  a_type_ptr         type;
+  ifc_ExprSort       tag = expr_tag(expr_index);
+
+  read_partition_at_index(tag, expr_value(expr_index));
+  switch (tag) {
+    case ifc_ExprSort_Type:
+      { an_ifc_ExprSort_Type iest, *iestp;
+        iestp = get_ExprSort_Type(&iest);
+        kind = (a_templ_arg_kind)tak_type;
+        type = type_for_type_index(iestp->type, /*kind=*/NULL);
+      }
+      break;
+    default:
+      unexpected_condition_str("Unexpected expr kind for template arg");
+  } /* switch */
+  result = alloc_template_arg(kind);
+  if (kind == (a_templ_arg_kind)tak_type) {
+    result->variant.type = type;
+  }  /* if */
+  return result;
+}  /* template_arg_for_expr */
+
+
 a_type_ptr an_ifc_module::type_for_template_id(
                                           an_ifc_ExprSort_TemplateId *templ_id)
                                                                  const noexcept
@@ -3195,48 +3231,86 @@ Returns the type that corresponds to the provided ExprSort::TemplateId in the
 module file.
 */
 {
-  a_type_ptr          result = NULL;
-  //ifc_ExprSort        arg_tag = expr_tag(templ_id->arguments);
-  ifc_ExprSort        pri_tag = expr_tag(templ_id->primary);
-  an_ifc_ExprSort_NamedDecl iesnd, *iesndp;
+  a_type_ptr         result = NULL;
+  a_symbol_ptr       inst_sym;
+  a_template_ptr     tmpl;
+  a_template_arg_ptr arg_list = NULL, *next_arg = &arg_list;
+  a_source_position  pos;
+  ifc_ExprSort       arg_tag = expr_tag(templ_id->arguments);
+  ifc_ExprSort       pri_tag = expr_tag(templ_id->primary);
+  an_ifc_ExprSort_NamedDecl
+                     iesnd, *iesndp;
 
+  source_position_from_locus(&pos, &templ_id->locus);
   read_partition_at_index(pri_tag, expr_value(templ_id->primary));
-  iesndp = get_ExprSort_NamedDecl(&iesnd);
   check_assertion(pri_tag == ifc_ExprSort_NamedDecl);
+  iesndp = get_ExprSort_NamedDecl(&iesnd);
   if (iesndp->type != 0) {
     result = type_for_type_index(iesndp->type, /*kind=*/NULL);
     unexpected_condition_str("Unexpected type for ExprSort::NamedDecl");
   } else {
     a_module_entity_ptr mep = get_ifc_module_entity_ptr(iesndp->resolution);
-    a_template_ptr      tmpl;
-    /* FIXME: Placeholder - need to get the correct scope. */
-    mep->scope=il_header.primary_scope;
     process_ifc_declaration(mep, /*defer=*/FALSE, (a_type_ptr)NULL);
     check_assertion(mep->entity.kind == iek_template);
     tmpl = (a_template_ptr)mep->entity.ptr;
-    switch (tmpl->kind) {
-      case templk_function:
-      case templk_member_function:
-        result = tmpl->prototype_instantiation.routine->type;
-        break;
-      case templk_class:
-      case templk_member_class:
-      case templk_member_enum:
-        result = tmpl->prototype_instantiation.type;
-        break;
-      case templk_variable:
-      case templk_static_data_member:
-        result = tmpl->prototype_instantiation.variable->type;
-        break;
-      case templk_concept:
-        result = tmpl->prototype_instantiation.constraint->type;
-        break;
-      case templk_template_template_param:
-      case templk_none:
-      default:
-        unexpected_condition();
-    }  /* switch */
   }  /* if */
+  if (templ_id->arguments != 0) {
+    read_partition_at_index(arg_tag, expr_value(templ_id->arguments));
+    if (arg_tag == ifc_ExprSort_Tuple) {
+      an_ifc_ExprSort_Tuple iest, *iestp;
+      iestp = get_ExprSort_Tuple(&iest);
+      for (ifc_Index_type idx = 0; idx < iestp->cardinality; ++idx) {
+        ifc_ExprIndex expr_index =
+                       (ifc_ExprIndex)read_index_from_heap(ifc_heap_expr,
+                                                           iestp->start + idx);
+        *next_arg = template_arg_for_expr(expr_index);
+        next_arg = &(*next_arg)->next;
+      }  /* for */
+    } else {
+      *next_arg = template_arg_for_expr(templ_id->arguments);
+      next_arg = &(*next_arg)->next;
+    }  /* if */
+  }  /* if */
+  switch (tmpl->kind) {
+    case templk_function:
+    case templk_member_function:
+      inst_sym = symbol_for(tmpl->prototype_instantiation.routine);
+      inst_sym = inst_sym->variant.routine.instance_ptr->template_sym;
+      inst_sym = find_template_function(inst_sym, &arg_list,
+                                        /*explicit_arg_list_present=*/FALSE,
+                                        &pos);
+      result = inst_sym->variant.routine.ptr->type;
+      break;
+    case templk_class:
+    case templk_member_class:
+    case templk_member_enum:
+      inst_sym = symbol_for(tmpl->prototype_instantiation.type);
+      inst_sym = class_symbol_supp(inst_sym)->class_template;
+      inst_sym = find_template_class(inst_sym, &arg_list,
+                                     /*any_prototype_allowed=*/FALSE,
+                                     /*specific_prototype_allowed=*/NULL,
+                                     /*instantiation_nonreal=*/FALSE,
+                                     /*do_not_create=*/FALSE,
+                                     /*in_substitution=*/FALSE);
+      result = inst_sym->variant.class_struct_union.type;
+      break;
+    case templk_variable:
+    case templk_static_data_member:
+      inst_sym = symbol_for(tmpl->prototype_instantiation.variable);
+      inst_sym = find_template_variable(inst_sym, &arg_list,
+                                        /*prototype_allowed=*/TRUE,
+                                        /*is_use=*/FALSE, /*diagnose=*/TRUE);
+      result = inst_sym->variant.variable.ptr->type;
+      break;
+    case templk_concept:
+      check_assertion(arg_list == NULL);
+      result = tmpl->prototype_instantiation.constraint->type;
+      break;
+    case templk_template_template_param:
+    case templk_none:
+    default:
+      unexpected_condition();
+  }  /* switch */
   return result;
 }  /* type_for_template_id */
 
@@ -5194,6 +5268,23 @@ Overload wrapper for "read_partition_at_index" that converts an
 }  /* read_partition_at_index */
 
 
+inline ifc_Index an_ifc_module::read_index_from_heap(
+                                          an_ifc_partition_kind heap_partition,
+                                          ifc_Index_type        index)
+                                                                 const noexcept
+/*
+Read an ifc_Index from the heap indicated by heap_partition at the given index
+into that partition.
+*/
+{
+  ifc_Index result;
+
+  read_partition_at_index(heap_partition, index);
+  GET_Index(result, /*from_header=*/FALSE);
+  return result;
+}  /* read_index_from_heap */
+
+
 void an_ifc_module::str_ifc_text_offset(ifc_TextOffset      offset,
                                         a_str_control_block *scbp)
                                                                  const noexcept
@@ -6617,7 +6708,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         if (itsfp->basis == ifc_TypeBasis_Typename) {
           /* A type alias. */
           add_string_to_text_buffer(scbp->text_buffer, "typedef ");
-          str_ifc_type_index(idstap->initializer, scbp);
+          str_ifc_type_index(idstap->aliasee, scbp);
           add_char_to_text_buffer(scbp->text_buffer, ' ');
           str_ifc_text_offset(idstap->name, scbp);
         } else if (itsfp->basis == ifc_TypeBasis_Namespace) {

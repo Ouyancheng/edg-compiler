@@ -2205,6 +2205,8 @@ private:
                                  a_non_type_kind *kind) const noexcept;
   a_type_ptr type_for_template_id(an_ifc_ExprSort_TemplateId *templ_id)
                                                                 const noexcept;
+  a_template_arg_ptr template_arg_for_expr(ifc_ExprIndex expr_index)
+                                                                const noexcept;
   void source_position_from_locus(a_source_position  *pos,
                                   ifc_SourceLocation *locus) const noexcept;
   a_const_char *string_from_name_index(ifc_NameIndex    name_index,
@@ -2276,6 +2278,9 @@ private:
                                       ifc_Index_type index) const noexcept;
   inline void read_partition_at_index(ifc_SyntaxSort syntax_kind,
                                       ifc_Index_type index) const noexcept;
+  inline ifc_Index read_index_from_heap(an_ifc_partition_kind heap_partition,
+                                        ifc_Index_type        index)
+                                                                const noexcept;
   /* Stringizers. */
   void str_ifc_text_offset(ifc_TextOffset     offset,
                            a_str_control_block *scbp) const noexcept;
