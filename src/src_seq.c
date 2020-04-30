@@ -1745,7 +1745,8 @@ innermost such class.
       a_decl_parse_state  *dps = rssep->decl_parse_state;
       if (dps != NULL && dps->sym != NULL && dps->in_class_scope &&
           symbol_is(dps->sym, sk_static_data_member) &&
-          sym_parent_class(dps->sym) == rssep->assoc_type) {
+          sym_parent_class(dps->sym) == rssep->assoc_type &&
+          parent_class == NULL) {
         /* A reference from an initializer of a static data member whose
            instantiation was deferred (which can happen, e.g., in GNU modes).
            While parsing can sometimes be deferred for initializers in class
@@ -1763,7 +1764,10 @@ innermost such class.
            during the instantiation of X<float> (i.e., in a class-scope) but
            later in a class reactivation scope.  Nonetheless, the resulting
            S<float> source sequence entry must appear before the entries for
-           the X<float> definition.  */
+           the X<float> definition. If parent_class is non-NULL, the reference
+           is to a member template of a currently-active class and we cannot
+           (and shouldn't) insert the template instance before its parent
+           definition. */
         insert_point = rssep->assoc_type->source_corresp.source_sequence_entry;
         break;
       } else if (is_unnamed_or_originally_unnamed_tag(rssep->assoc_type)) {
