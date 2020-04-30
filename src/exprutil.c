@@ -15887,13 +15887,10 @@ if is_lvalue is TRUE.  Return NULL if the expression cannot be generated.
 
   if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
     if (!in_file_scope(variable) &&
-        (curr_il_region_number == file_scope_region_number ||
-         variable_is_from_other_function(variable))) {
+        curr_il_region_number == file_scope_region_number) {
       /* Can't record a local variable in a file-scope expression.  This, e.g.,
          comes up in constant expressions (like array bounds) that reference
-         const-valued local variables.  Also, can't record a local variable
-         from a different function (comes up in array bounds in lambdas and
-         local classes). */
+         const-valued local variables. */
       check_assertion(curr_expr_kind_is_const() ||
                       curr_expr_kind_is(ek_sizeof) ||
                       expr_stack->is_template_arg_expression ||
