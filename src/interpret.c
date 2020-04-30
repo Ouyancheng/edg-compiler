@@ -14938,31 +14938,11 @@ the value representation of the integer value.
                 } else if (type_kind_is_float_like(
                                          expr->variant.operation.type_kind) &&
                            expr->variant.operation.type_kind == tp->kind) {
-                  /* Floating-point += floating-point.  The operation type
-                     is that of the second operand. */
+                  /* Floating-point += floating-point. */
                   an_internal_float_value  *dst_val = fp_value_at(dst);
-                  an_internal_float_value  tmp;
-                  a_boolean                need_tmp;
-                  need_tmp = opnd1_type->variant.float_kind !=
-                                               opnd2_type->variant.float_kind;
-                  err = FALSE;
-                  if (need_tmp) {
-                    fp_change_kind(dst_val, opnd1_type->variant.float_kind,
-                                   &tmp, opnd2_type->variant.float_kind, &err,
-                                   &depends_on_fp_mode);
-                    dst_val = &tmp;
-                  }  /* if */
-                  if (!err) {
-                    fp_add(opnd2_type->variant.float_kind, dst_val,
-                           fp_value(opnd2_value), dst_val, &err,
-                           &depends_on_fp_mode);
-                  }  /* if */
-                  if (need_tmp && !err) {
-                    dst_val = fp_value_at(dst);
-                    fp_change_kind(&tmp, opnd2_type->variant.float_kind,
-                                   dst_val, opnd1_type->variant.float_kind,
-                                   &err, &depends_on_fp_mode);
-                  }  /* if */
+                  fp_add(tp->variant.float_kind, dst_val,
+                         fp_value(opnd2_value), dst_val, &err,
+                         &depends_on_fp_mode);
                   if (err) {
                     do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
@@ -15098,31 +15078,11 @@ the value representation of the integer value.
                 } else if (type_kind_is_float_like(
                                          expr->variant.operation.type_kind) &&
                            expr->variant.operation.type_kind == tp->kind) {
-                  /* Floating-point -= floating-point.  The operation type
-                     is that of the second operand. */
+                  /* Floating-point -= floating-point. */
                   an_internal_float_value  *dst_val = fp_value_at(dst);
-                  an_internal_float_value  tmp;
-                  a_boolean                need_tmp;
-                  need_tmp = opnd1_type->variant.float_kind !=
-                                               opnd2_type->variant.float_kind;
-                  err = FALSE;
-                  if (need_tmp) {
-                    fp_change_kind(dst_val, opnd1_type->variant.float_kind,
-                                   &tmp, opnd2_type->variant.float_kind, &err,
-                                   &depends_on_fp_mode);
-                    dst_val = &tmp;
-                  }  /* if */
-                  if (!err) {
-                    fp_subtract(tp->variant.float_kind, dst_val,
-                                fp_value(opnd2_value), dst_val, &err,
-                                &depends_on_fp_mode);
-                  }  /* if */
-                  if (need_tmp && !err) {
-                    dst_val = fp_value_at(dst);
-                    fp_change_kind(&tmp, opnd2_type->variant.float_kind,
-                                   dst_val, opnd1_type->variant.float_kind,
-                                   &err, &depends_on_fp_mode);
-                  }  /* if */
+                  fp_subtract(tp->variant.float_kind, dst_val,
+                              fp_value(opnd2_value), dst_val, &err,
+                              &depends_on_fp_mode);
                   if (err) {
                     do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
@@ -15258,31 +15218,11 @@ the value representation of the integer value.
                 } else if (expr->variant.operation.type_kind ==
                                                       (a_type_kind)tk_float &&
                            tp->kind == (a_type_kind)tk_float) {
-                  /* Floating-point *= floating-point.  The operation type
-                     is that of the second operand. */
+                  /* Floating-point *= floating-point. */
                   an_internal_float_value  *dst_val = fp_value_at(dst);
-                  an_internal_float_value  tmp;
-                  a_boolean                need_tmp;
-                  need_tmp = opnd1_type->variant.float_kind !=
-                                               opnd2_type->variant.float_kind;
-                  err = FALSE;
-                  if (need_tmp) {
-                    fp_change_kind(dst_val, opnd1_type->variant.float_kind,
-                                   &tmp, opnd2_type->variant.float_kind, &err,
-                                   &depends_on_fp_mode);
-                    dst_val = &tmp;
-                  }  /* if */
-                  if (!err) {
-                    fp_multiply(tp->variant.float_kind, dst_val,
-                                fp_value(opnd2_value), dst_val, &err,
-                                &depends_on_fp_mode);
-                  }  /* if */
-                  if (need_tmp && !err) {
-                    dst_val = fp_value_at(dst);
-                    fp_change_kind(&tmp, opnd2_type->variant.float_kind,
-                                   dst_val, opnd1_type->variant.float_kind,
-                                   &err, &depends_on_fp_mode);
-                  }  /* if */
+                  fp_multiply(tp->variant.float_kind, dst_val,
+                              fp_value(opnd2_value), dst_val, &err,
+                              &depends_on_fp_mode);
                   if (err) {
                     do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
@@ -15418,31 +15358,11 @@ the value representation of the integer value.
                 } else if (expr->variant.operation.type_kind ==
                                                       (a_type_kind)tk_float &&
                            tp->kind == (a_type_kind)tk_float) {
-                  /* Floating-point /= floating-point.  The operation type
-                     is that of the second operand. */
+                  /* Floating-point /= floating-point. */
                   an_internal_float_value  *dst_val = fp_value_at(dst);
-                  an_internal_float_value  tmp;
-                  a_boolean                need_tmp;
-                  need_tmp = opnd1_type->variant.float_kind !=
-                                               opnd2_type->variant.float_kind;
-                  err = FALSE;
-                  if (need_tmp) {
-                    fp_change_kind(dst_val, opnd1_type->variant.float_kind,
-                                   &tmp, opnd2_type->variant.float_kind, &err,
-                                   &depends_on_fp_mode);
-                    dst_val = &tmp;
-                  }  /* if */
-                  if (!err) {
-                    fp_divide(tp->variant.float_kind, dst_val,
-                              fp_value(opnd2_value), dst_val, &err,
-                              &depends_on_fp_mode);
-                  }  /* if */
-                  if (need_tmp && !err) {
-                    dst_val = fp_value_at(dst);
-                    fp_change_kind(&tmp, opnd2_type->variant.float_kind,
-                                   dst_val, opnd1_type->variant.float_kind,
-                                   &err, &depends_on_fp_mode);
-                  }  /* if */
+                  fp_divide(tp->variant.float_kind, dst_val,
+                            fp_value(opnd2_value), dst_val, &err,
+                            &depends_on_fp_mode);
                   if (err) {
                     do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
