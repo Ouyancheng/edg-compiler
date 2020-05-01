@@ -3213,6 +3213,8 @@ argument.
       }
       break;
     default:
+      kind = tak_type;
+      type = error_type();
       unexpected_condition_str("Unexpected expr kind for template arg");
   } /* switch */
   result = alloc_template_arg(kind);
@@ -3247,6 +3249,7 @@ module file.
   iesndp = get_ExprSort_NamedDecl(&iesnd);
   if (iesndp->type != 0) {
     result = type_for_type_index(iesndp->type, /*kind=*/NULL);
+    tmpl = NULL;
     unexpected_condition_str("Unexpected type for ExprSort::NamedDecl");
   } else {
     a_module_entity_ptr mep = get_ifc_module_entity_ptr(iesndp->resolution);
