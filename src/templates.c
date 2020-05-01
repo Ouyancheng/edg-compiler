@@ -16610,6 +16610,24 @@ instantiated.
                   rout_sym->kind == (a_symbol_kind)sk_member_function);
   rout_ptr = rout_sym->variant.routine.ptr;
   tip = rout_sym->variant.routine.instance_ptr;
+  if (rout_ptr->is_inheriting_ctor) {
+    /* Use the default argument expression from the inherited constructor. */
+    a_param_type_ptr inh_ptp = param->
+                              orig_param_type_for_unevaluated_default_arg_expr;
+    a_routine_ptr    inh_ctor = inh_ctor_inherited_ctor(rout_ptr);
+    if (inh_ptp->has_unevaluated_template_default) {
+      instantiate_default_argument(symbol_for(inh_ctor), inh_ptp);
+    }  /* if */
+    param->default_arg_expr =
+                         duplicate_default_arg_expr(inh_ptp->default_arg_expr);
+    param->has_default_arg = inh_ptp->has_default_arg;
+    param->default_arg_expr = inh_ptp->default_arg_expr;
+    param->entities_defined_in_default_arg =
+                                      inh_ptp->entities_defined_in_default_arg;
+    param->default_arg_appeared_in_class_definition =
+                             inh_ptp->default_arg_appeared_in_class_definition;
+    goto done;
+  }  /* if */
   if (param->default_being_instantiated) {
     /* This default argument (for this instance) is already being instantiated.
        Don't attempt another instantiation. */
