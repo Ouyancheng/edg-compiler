@@ -6303,7 +6303,7 @@ process_assignment:
             element_type = skip_typerefs(operand_1->type);
             element_type = element_type->variant.vector.element_type;
             write_tok_ch('(');
-            dump_cast(make_pointer_type(element_type));
+            dump_cast_to_pointer_to(element_type);
             write_tok_ch('&');
             dump_expr_with_parens(operand_1);
             write_tok_ch(')');
