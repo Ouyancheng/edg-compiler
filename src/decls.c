@@ -1157,7 +1157,7 @@ and associated routines.
        the corresponding type symbol. */
     if (is_generalized_identifier_start(gid_options)) {
       a_boolean  concept_okay =
-                             (ids_options & IDS_REAL_DECLARATOR_ALLOWED) != 0;
+                              (ids_options & IDS_CONCEPT_ID_IS_FOR_TYPE) != 0;
       type_sym = curr_type_symbol(/*is_new_type_name=*/FALSE, is_prescan,
                                   /*in_type_check=*/TRUE,
                                   (ids_options &

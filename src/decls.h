@@ -92,25 +92,25 @@ Flags used to specify options to is_decl_start.
 */
 typedef int an_is_decl_start_options_set;
 
-#define IDS_NO_OPTIONS		0x0
+#define IDS_NO_OPTIONS                 0x0
 			/*lint -esym(755,IDS_NO_OPTIONS)*/
-#define IDS_EXPR_CONTEXT	0x1
+#define IDS_EXPR_CONTEXT               0x1
 			/* TRUE if we are in an expression context. */
-#define IDS_REAL_DECLARATOR_ALLOWED \
-				0x2
+#define IDS_REAL_DECLARATOR_ALLOWED    0x2
 			/* TRUE if a real declarator is allowed. */
-#define IDS_MS_ATTRIB_NOT_ALLOWED \
-				0x4
+#define IDS_MS_ATTRIB_NOT_ALLOWED      0x4
 			/* TRUE if a Microsoft attribute is not allowed in
 			   this context. */
-#define IDS_IS_SIZEOF		0x8
+#define IDS_IS_SIZEOF                  0x8
 			/* TRUE if this is the parenthesized operand of a
 			   sizeof operator. */
-#define IDS_IMPLICIT_TYPENAME_CONTEXT \
-				0x10
+#define IDS_IMPLICIT_TYPENAME_CONTEXT  0x10
 			/* TRUE if this is a context where a dependent
 			   qualified name is known to be a type (a C++20
 			   feature). */
+#define IDS_CONCEPT_ID_IS_FOR_TYPE     0x20
+			/* TRUE if this is a context where a concept-id should
+			   be assumed to introduce a type-constraint. */
 
 /* Test whether or not the current token is the start of a type. */
 extern
