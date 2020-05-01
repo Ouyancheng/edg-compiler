@@ -16628,7 +16628,7 @@ reference entry, or is NULL if none is needed.
        absence of a definition as a (suppressed) expression diagnostic rather
        than letting it be handled as an error "outside the immediate context"
        later on. */
-    a_boolean                could_be_instantiated = routine_sym->defined;
+    a_boolean                could_be_instantiated = FALSE;
     a_template_instance_ptr  tip = routine_sym->variant.routine.instance_ptr;
     if (tip != NULL) {
       a_symbol_ptr  tsym;
@@ -16636,6 +16636,9 @@ reference entry, or is NULL if none is needed.
       if (tsym->defined) {
         could_be_instantiated = TRUE;
       }  /* if */
+    } else if (routine_sym->variant.routine.ptr
+                          ->friend_defined_in_instantiation) {
+      could_be_instantiated = TRUE;
     }  /* if */
     if (!could_be_instantiated) {
       record_suppressed_error();
