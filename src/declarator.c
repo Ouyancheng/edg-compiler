@@ -4351,8 +4351,6 @@ by the scope stack entry created by this function).
   a_param_type_ptr    result = NULL;
   a_symbol_locator    loc;
 
-  init_decl_parse_state(dps);
-  dps->for_requires_expr_params = TRUE;
   clear_decl_pos_block(&decl_pos_block);
   check_assertion(curr_token == tok_lparen);
   make_opname_locator((an_opname_kind)onk_function_call, &loc,
@@ -8275,6 +8273,69 @@ past_postfix_declarator_operators:
 }  /* r_declarator */
 
 
+static void scan_trailing_requires_clause(a_decl_parse_state  *dps,
+                                          a_func_info_block   *func_info,
+                                          a_symbol_locator    *loc)
+/*
+The current token is "requires" following an otherwise-complete declarator
+described by dps, func_info, and loc.  Parse or skip the requires-clause that
+presumably follows, as appropriate, and update dps->trailing_requires_clause
+as needed.
+*/
+{
+  a_boolean  discard_clause = dps->is_template_rescan,
+             is_ordinary_member_instantiation = FALSE,
+             pop_func_prototype_scope = FALSE;
+
+  if (scope_is(&scope_stack_top(), sck_class_struct_union)) {
+    a_type_ptr  class_type = scope_stack_top().assoc_type;
+    if (is_unspecialized_template_class(class_type) &&
+        !class_type->variant.class_struct_union.is_prototype_instantiation) {
+      /* When instantiating ordinary members of class templates, ignore the
+         requires clause.  It will be substituted later. */
+      is_ordinary_member_instantiation = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!type_is(dps->type, tk_routine) ||
+      (!(is_template_dependent_context() &&
+                dps->function_definition_allowed) &&
+       !discard_clause && !is_ordinary_member_instantiation)) {
+    pos_error(ec_trailing_requires_clause_not_on_template, &pos_curr_token);
+  }  /* if */
+  /* Reactivate any parent scope and the function parameter scope. */
+  if (loc->is_class_member) {
+    if (is_immediate_class_type(loc->parent.class_type)) {
+      push_class_reactivation_scope(loc->parent.class_type,
+                                    /*extend_namespace=*/FALSE);
+    }  /* if */
+  } else if (loc->parent.namespace_ptr != NULL) {
+    push_namespace_reactivation_scope(loc->parent.namespace_ptr);
+  }  /* if */
+  if (type_is(dps->type, tk_routine) && func_info != NULL) {
+    (void)push_scope((a_scope_kind)sck_func_prototype, func_info->scope_number,
+                     dps->type, (a_routine_ptr)NULL);
+    scope_stack_top().decl_parse_state = dps;
+    scope_stack_top().outside_parameter_list = TRUE;
+    reactivate_prototype_scope_symbols(func_info->prototype_scope_symbols);
+    pop_func_prototype_scope = TRUE;
+  }  /* if */
+  dps->trailing_requires_clause = scan_requires_clause(discard_clause);
+  if (pop_func_prototype_scope) {
+    pop_scope();
+  }  /* if */
+  if (loc->is_class_member) {
+    if (is_immediate_class_type(loc->parent.class_type)) {
+      pop_class_reactivation_scope();
+    }  /* if */
+  } else if (loc->parent.namespace_ptr != NULL) {
+    pop_namespace_reactivation_scope();
+  }  /* if */
+  if (is_ordinary_member_instantiation) {
+    check_eligibility(dps);
+  }  /* if */
+}  /* scan_trailing_requires_clause */
+
+
 static void use_nonreal_type_for_nested_prototype_type(
 						a_decl_parse_state	*state)
 /*
@@ -8441,27 +8502,7 @@ the parameters.
     state->type = error_type();
   }  /* if */
   if (curr_token == tok_requires) {
-    a_boolean  discard_clause = state->is_template_rescan,
-               is_ordinary_member_instantiation = FALSE;
-    if (scope_is(&scope_stack_top(), sck_class_struct_union)) {
-      a_type_ptr  class_type = scope_stack_top().assoc_type;
-      if (is_unspecialized_template_class(class_type) &&
-          !class_type->variant.class_struct_union.is_prototype_instantiation) {
-        /* When instantiating ordinary members of class templates, ignore the
-           requires clause.  It will be substituted later. */
-        is_ordinary_member_instantiation = TRUE;
-      }  /* if */
-    }  /* if */
-    if (!type_is(state->type, tk_routine) ||
-        (!(is_template_dependent_context() &&
-                  state->function_definition_allowed) &&
-         !discard_clause && !is_ordinary_member_instantiation)) {
-      pos_error(ec_trailing_requires_clause_not_on_template, &pos_curr_token);
-    }  /* if */
-    state->trailing_requires_clause = scan_requires_clause(discard_clause);
-    if (is_ordinary_member_instantiation) {
-      check_eligibility(state);
-    }  /* if */
+    scan_trailing_requires_clause(state, func_info, locator);
   }  /* if */
 }  /* declarator */
 

@@ -34329,15 +34329,15 @@ by param_sym (sk_parameter).
   an_expr_node_ptr         node;
 
   /* First find the nearest enclosing function prototype scope. */
-  while (ssep->kind != (a_scope_kind)sck_func_prototype) ssep -= 1;
+  while (!scope_is(ssep, sck_func_prototype)) ssep -= 1;
   /* If we're no longer in the parameter clause, do not count the innermost
      function prototype scope as a "level". */
   if (ssep->outside_parameter_list) {
     levels_up = 0;
   }  /* if */
   while (ssep->number != param_sym->decl_scope ||
-         ssep->kind != (a_scope_kind)sck_func_prototype) {
-    if (ssep->kind == (a_scope_kind)sck_func_prototype) {
+         !scope_is(ssep, sck_func_prototype)) {
+    if (scope_is(ssep, sck_func_prototype)) {
       /* A function prototype scope that does not indicate the parameter:
          So the reference is at least another "level up" from this scope. */
       ++levels_up;
@@ -37161,12 +37161,16 @@ Record the representation or the requires-expression in *result.
        it. */
     a_decl_parse_state  dps;
     add_stop_token(tok_rbrace);
+    init_decl_parse_state(&dps);
+    dps.for_requires_expr_params = TRUE;
     if (curr_token == tok_lparen) {
       /* Scan a function-like declarator. */
       params = scan_requires_expr_parameters(&dps);
     } else {
       (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
                        (a_type_ptr)NULL, (a_routine_ptr)NULL);
+      scope_stack_top().decl_parse_state = &dps;
+      scope_stack_top().outside_parameter_list = TRUE;
     }  /* if */
     if (is_template_dependent_context()) {
       scope_stack_top().in_template_deduction_context = TRUE;

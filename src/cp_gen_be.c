@@ -14810,10 +14810,12 @@ Render the given requires-expression.
 
   check_assertion(node_is(expr, enk_requires));
   write_tok_str("requires ");
-  if (expr->variant.requires_expr.parameters != NULL) {
-    fpse.params = expr->variant.requires_expr.parameters;
-    fpse.outside_parameter_list = TRUE;
-    push_function_prototype(&fpse, &octl);
+  /* Push a function prototype stack entry so enk_param_ref nodes can be
+     resolved. */
+  fpse.params = expr->variant.requires_expr.parameters;
+  fpse.outside_parameter_list = TRUE;
+  push_function_prototype(&fpse, &octl);
+  if (fpse.params != NULL) {
     write_tok_ch('(');
     gen_param_list(fpse.params, (a_scope_ptr)NULL, /*suppress_def_args=*/TRUE,
                    /*for_ctor=*/FALSE);
@@ -14860,9 +14862,7 @@ Render the given requires-expression.
     write_tok_str("; ");
   }  /* for */
   write_tok_ch('}');
-  if (expr->variant.requires_expr.parameters != NULL) {
-    pop_function_prototype(&octl);
-  }  /* if */
+  pop_function_prototype(&octl);
 }  /* gen_requires_expr */
 
 
@@ -20613,10 +20613,15 @@ declarator (or NULL if it wasn't recorded).
     if (rcp != NULL) {
       /* Render a requires-clause. */
       if (decl_within_class) set_output_position(&rcp->requires_pos);
-      write_tok_str(" requires");
+      write_tok_str(" requires ");
       /* Force parentheses for the constraint expression because the grammar
          in this context is otherwise limited. */
+      a_func_prototype_stack_entry  fpse;
+      fpse.params = function_type_params(skip_typerefs(rout->type));
+      fpse.outside_parameter_list = TRUE;
+      push_function_prototype(&fpse, &octl);
       gen_expr_with_parens(rcp->constraint);
+      pop_function_prototype(&octl);
     }  /* if */
   }
   if (name_context_to_restore != NULL) {

@@ -11418,11 +11418,20 @@ implicit "this" is available, e.g., during overload resolution.
 
   /* If we are in a lambda declarator, step out of it since the closure's
      "this" isn't available (and a captured "this" isn't either since it's
-     only available in the lambda body). */
-  while (scope_is(ssep, sck_func_prototype) &&
-         scope_is(ssep-1, sck_class_struct_union) &&
-         type_is_lambda_closure((ssep-1)->assoc_type)) {
-    ssep -= 2;
+     only available in the lambda body).  Similarly, step out of the scope
+     of requires-expression parameters. */
+  while (scope_is(ssep, sck_func_prototype)) {
+    if (scope_is(ssep-1, sck_class_struct_union) &&
+        type_is_lambda_closure((ssep-1)->assoc_type)) {
+      /* A lambda declarator: Skip it and the closure's scope. */
+      ssep -= 2;
+    } else if (ssep->decl_parse_state != NULL &&
+               ssep->decl_parse_state->for_requires_expr_params) {
+      /* A requires-expression. */
+      ssep -= 1;
+    } else {
+      break;
+    }  /* if */
   }  /* if */
   /* We cannot use innermost_function_scope because it may be NULL due to
      intervening closure classes.  Compute an enclosing_rout_scope instead. */
