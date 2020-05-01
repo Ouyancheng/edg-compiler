@@ -16515,10 +16515,11 @@ Otherwise, return FALSE.
 
 static
 a_template_arg_ptr scan_template_argument_list(
-                                             a_symbol_ptr template_sym,
-                                             a_boolean    skip_first_param,
-                                             a_boolean    *any_errors,
-                                             long         *first_defaulted_arg)
+                                a_symbol_ptr              template_sym,
+                                a_boolean                 skip_first_param,
+                                a_boolean                 *any_errors,
+                                an_identifier_options_set options,
+                                long                      *first_defaulted_arg)
 /*
 Scan a comma separated list of arguments.  The arguments can be type names,
 constant expressions, names or addresses of objects or functions with
@@ -16531,7 +16532,8 @@ associated.  any_errors is set to TRUE if any errors are detected by this
 routine.  Its value is unchanged if no errors are detected.
 first_defaulted_arg is set to the number (starting with 0) of the first
 argument that was taken from the parameter's default argument, or to -1 if
-all arguments were explicit.
+all arguments were explicit.  options is the set of options flags passed
+into the identifier scanning routines.  
 
 If skip_first_param is TRUE, the first parameter of the template is ignored,
 and thus the first scanned argument is matched to the second parameter.  That
@@ -16583,9 +16585,9 @@ template name).
      instantiation.  Such cases must be handled specially for rescanning
      purposes. */
   if (template_sym->is_class_member &&
-      !scope_is(&scope_stack_top(), sck_template_declaration) &&
       sym_parent_class(template_sym)
-                     ->variant.class_struct_union.is_prototype_instantiation) {
+                     ->variant.class_struct_union.is_prototype_instantiation &&
+      (options & GID_IS_CLASS_TEMPLATE_DECL) == 0) {
     template_in_prototype_instantiation = TRUE;
   }  /* if */
   if (symbol_is(template_sym, sk_class_template) &&
@@ -17385,7 +17387,7 @@ occurs when scanning type-constraints).
 
   ++scope_stack_top().pending_templ_arg_lists;
   templ_arg_list = scan_template_argument_list(template_sym, skip_first_param,
-                                               any_errors, 
+                                               any_errors, GID_NO_OPTIONS,
                                                &first_defaulted_arg);
   check_closing_angle_bracket(any_errors);
   --scope_stack_top().pending_templ_arg_lists;
@@ -17789,7 +17791,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
       /* Scan the template argument list. */
       arg_list = scan_template_argument_list(
                                      template_sym, /*skip_first_param=*/FALSE,
-                                     &any_errors, &first_defaulted_arg);
+                                     &any_errors, options,
+                                     &first_defaulted_arg);
     }  /* if */
   } else {
     /* The template is a member of a proxy or nonreal class.  This occurs
@@ -18217,7 +18220,8 @@ indicated by the template argument list.
       /* Scan the template argument list. */
       arg_list = scan_template_argument_list(
                                      template_sym, /*skip_first_param=*/FALSE,
-                                     &any_errors, &first_defaulted_arg);
+                                     &any_errors, options,
+                                     &first_defaulted_arg);
     } else {
       /* The template is a member of a proxy or nonreal class.  This occurs
          as a result of constructs like T::A<int>.  In such cases there is
