@@ -6040,6 +6040,7 @@ enum a_builtin_function_condition_index {
   bfci_9e3f2d008e,
   bfci_9ed43877aa,
   bfci_9efa353721,
+  bfci_9fa29d44e3,
   bfci_a11751e8c7,
   bfci_a1ea1d44f4,
   bfci_a201931f77,
@@ -6404,6 +6405,7 @@ EXTERN a_builtin_condition_string builtin_condition_strings[]
   /* bfci_9e3f2d008e */ "Lx(-30801)[v]",
   /* bfci_9ed43877aa */ "gx(60100-)[v]",
   /* bfci_9efa353721 */ "gx(60100-90099)[v]",
+  /* bfci_9fa29d44e3 */ "mx(1927-)",
   /* bfci_a11751e8c7 */ "SLx(40000-)",
   /* bfci_a1ea1d44f4 */ "mx(1600-)",
   /* bfci_a201931f77 */ "gx(-40199)[v]",
@@ -11402,6 +11404,7 @@ enum a_builtin_function_kind_tag {
   bfk_yn,
   bfk_ynf,
   bfk_ynl,
+  bfk_zero_non_value_bits,
   bfk_last      /* last entry */
 };
 
@@ -20454,6 +20457,7 @@ EXTERN a_builtin_descr builtin_table[]
   { "__builtin_yn", bfci_c3a192d6c1, bfti_a564a35e91, bfk_yn },
   { "__builtin_ynf", bfci_c3a192d6c1, bfti_3d75148905, bfk_ynf },
   { "__builtin_ynl", bfci_c3a192d6c1, bfti_7ee31bbb80, bfk_ynl },
+  { "__builtin_zero_non_value_bits", bfci_9fa29d44e3, bfti_13f171890a, bfk_zero_non_value_bits },
   { "__c11_atomic_compare_exchange_strong", bfci_8f30ba5abe, bfti_1a82453c56, bfk___c11_atomic_compare_exchange_strong },
   { "__c11_atomic_compare_exchange_weak", bfci_8f30ba5abe, bfti_1a82453c56, bfk___c11_atomic_compare_exchange_weak },
   { "__c11_atomic_exchange", bfci_8f30ba5abe, bfti_1a82453c56, bfk___c11_atomic_exchange },

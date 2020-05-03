@@ -13146,6 +13146,10 @@ typedef enum a_builtin_operation_kind_tag {
      the GNU-specific bok_types_compatible is part of the list even when
      GNU_EXTENSIONS_ALLOWED is FALSE).
      */
+  /* Note that in some cases the difference between "builtin operations" and
+     "builtin functions" can be hazy.  If a builtin takes a type argument, it
+     must be a builtin operation, otherwise a builtin function is often
+     a better fit. */
   bok_offsetof,		/* Builtin offsetof (currently only available in some
 			   GNU modes).  Two operands: A type and a field. */
   bok_has_assign,	/* __has_assign.  One operand: A type. */

@@ -268,6 +268,10 @@ extern void make_dtor_implied_arg_list(a_routine_ptr    dtor_routine,
 
 extern a_boolean need_zeroing_for_value_initialization(a_dynamic_init_ptr dip);
 
+extern void insert_runtime_zeroing_call(an_expr_node_ptr   entity_node,
+                                        an_expr_node_ptr   entity_size_node,
+                                        an_insert_location *insert_location);
+
 extern void gen_one_destruction(a_dynamic_init_ptr     dip,
                                 an_insert_location_ptr insert_location);
 
@@ -401,6 +405,11 @@ extern an_expr_node_ptr pre_execute_expression(
 extern an_expr_node_ptr make_memcpy_call(an_expr_node_ptr     dst,
                                          an_expr_node_ptr     src,
                                          a_host_large_integer size);
+
+extern a_routine_ptr helper_routine_to_loop_through_array_elements(
+                                   a_type_ptr         elem_type,
+                                   a_variable_ptr     *element_ptr,
+                                   an_insert_location *caller_insert_location);
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

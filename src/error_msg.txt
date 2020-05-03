@@ -3197,6 +3197,7 @@ ec_constinit_variable_storage;;"\"constinit\" is only valid for declarations of 
 ec_constinit_variable_has_dynamic_init;;"constinit variable requires dynamic initialization"
 ec_missing_constinit;;"variable was previously declared with \"constinit\" %p"
 ec_use_of_non_prototype_func_declarator;;"use of non-prototype function declarator"
+ec_cannot_be_const_qualified;;"argument cannot have a const-qualified type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

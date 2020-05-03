@@ -8157,6 +8157,41 @@ to FALSE and the reason for the failure is recorded in *ips.
         }  /* if */
       }
       break;
+    case bfk_zero_non_value_bits:
+      interpreted = TRUE;
+      /* Generally, __builtin_zero_non_value_bits is a no-op in the
+         interpreter.  Its function is to zero padding bits, but the
+         interpreter doesn't model padding bits (except during a
+         __builtin_bit_cast operation but that doesn't survive after the
+         operation is completed).  Fail if the address points to a
+         runtime data address or the argument is incorrect. */
+      if (args == NULL || args->next != NULL ||
+          !is_pointer_type(args->type) ||
+          is_void_type(type_pointed_to(args->type))) {
+        /* Invalid argument (error has already been given). */
+        do_constexpr_fail(*p_result);
+      } else {
+        a_type_ptr    tp = skip_typerefs(args->type);
+        a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
+        if (!*p_result) {
+          do_constexpr_fail(*p_result);
+        } else {
+          alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
+          if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
+            /* Argument did not have a constexpr value. */
+            do_constexpr_fail(*p_result);
+          } else {
+            a_constexpr_address  *addr = (a_constexpr_address*)arg1_bytes;
+            if (is_runtime_data_address(addr)) {
+              /* Address must be known at constexpr time. */
+              info_with_pos(ec_constexpr_access_to_runtime_storage,
+                            &args->position, ips);
+              do_constexpr_fail(*p_result);
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      break;
     default:
       interpreted = FALSE;
   }  /* switch */

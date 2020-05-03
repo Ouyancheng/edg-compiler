@@ -12805,6 +12805,254 @@ the expression have already been lowered.
 }  /* lower_pm_call */
 
 
+static void zero_non_value_bits(an_expr_node_ptr        start,
+                                size_t                  offset,
+                                size_t                  length,
+                                an_offset_bit_remainder bit_offset,
+                                an_insert_location      *insert_location)
+/*
+Generate code to set length bytes at *(start + offset) to zero and insert
+the generated code at the location specified by insert_location.  If bit_offset
+is non-zero then the first byte to be zeroed must maintain the value of the
+low order bits specified in bit_offset.  For the case when bit_offset is
+zero or length is greater than one, a runtime call is made to perform the
+zeroing (a change could be made to unroll that loop in some cases, but that
+is left to a back end optimizer).
+*/
+{
+  an_expr_node_ptr  expr, size;
+
+  if (bit_offset != 0) {
+    /* The first byte must be handled specially because it contains bitfields
+       that cannot be overwritten.  Create an expression like:
+        *((char*)start+offset) &= mask;
+       */
+    expr = copy_expr_tree(start, CE_NO_OPTIONS);
+    expr = add_cast_if_necessary(expr, char_star_type());
+    expr->next = node_for_integer_constant((long)offset,
+                                            targ_size_t_int_kind);
+    expr = make_operator_node((an_expr_operator_kind)eok_padd,
+                              char_star_type(), expr);
+    expr = add_indirection_to_node(expr);
+    expr->next = node_for_integer_constant((long)((1 << bit_offset)-1),
+                                           plain_char_int_kind);
+    expr = make_operator_node((an_expr_operator_kind)eok_and_assign,
+                              integer_type(plain_char_int_kind), expr);
+    insert_expr(expr, insert_location);
+    length--;
+    offset++;
+  }  /* if */
+  if (length != 0) {
+    /* Use a runtime call to zero the desired bytes. */
+    expr = copy_expr_tree(start, CE_NO_OPTIONS);
+    expr = add_cast_if_necessary(expr, char_star_type());
+    expr->next = node_for_integer_constant((long)offset,
+                                           targ_size_t_int_kind);
+    expr = make_operator_node((an_expr_operator_kind)eok_padd,
+                              char_star_type(), expr);
+    size = node_for_integer_constant((long)length, targ_size_t_int_kind);
+    insert_runtime_zeroing_call(expr, size, insert_location);
+  }  /* if */
+}  /* zero_non_value_bits */
+
+
+static void lower_builtin_zero_non_value_bits_piece(
+                                          an_expr_node_ptr    expr,
+                                          a_type_ptr          type,
+                                          size_t              original_offset,
+                                          a_boolean           *check_only,
+                                          an_insert_location  *insert_location)
+/*
+Called (recursively) to lower a particular field of a class or an array.
+expr specifies a char* pointer to the initial byte of the top-level class or
+array.  type is the original type for the field/array.  original_offset is the
+cumulative offset (from expr) that represents the location of the field/element
+that is being processed.  When check_only is non-NULL, the call is being made
+to see if any padding is necessary and *check_only is returned to the caller
+accordingly (without adding any code).  Any code that is added is inserted
+according to insert_location.
+*/
+{
+  if (type_is(type, tk_struct)) {
+    /* Check between the various fields of a class (but not union) to see if
+       there is padding that needs to be zeroed. */
+    size_t                  byte_offset = 0;
+    an_offset_bit_remainder bit_offset = 0;
+    a_field_ptr             f;
+    for (f = next_non_empty_initializable_field(
+                                  type->variant.class_struct_union.field_list);
+         f != NULL;
+         f = next_non_empty_initializable_field(f->next)) {
+      a_type_ptr field_type = skip_typerefs(f->type);
+      if (f->offset != byte_offset || f->offset_bit_remainder != bit_offset) {
+        /* This field is not at the byte/bit offset that is expected; there
+           must have been some padding added. */
+        if (check_only != NULL) {
+          *check_only = TRUE;
+          break;
+        } else {
+          check_assertion(f->offset >= byte_offset);
+          zero_non_value_bits(expr, original_offset + byte_offset,
+                              f->offset - byte_offset, bit_offset,
+                              insert_location);
+        }  /* if */
+      }  /* if */
+      if (type_is(field_type, tk_struct) || type_is(field_type, tk_array)) {
+        /* Recurse if the field is a class or array that may itself have had
+           padding added. */
+        lower_builtin_zero_non_value_bits_piece(expr, field_type,
+                                                original_offset + byte_offset,
+                                                check_only, insert_location);
+      }  /* if */
+      /* Update byte and bit offsets to reflect where next field should start
+         if there is no padding. */
+      if (f->is_bit_field) {
+        byte_offset = f->offset + (f->bit_size / targ_char_bit);
+        bit_offset = f->offset_bit_remainder + (f->bit_size % targ_char_bit);
+        if (bit_offset == targ_char_bit) {
+          bit_offset = 0;
+          byte_offset++;
+        }  /* if */
+        check_assertion(bit_offset < targ_char_bit);
+      } else {
+        byte_offset = f->offset + field_type->size;
+        bit_offset = 0;
+      }  /* if */
+    }  /* for */
+    if (byte_offset < type->size || bit_offset != 0) {
+      /* Tail padding. */
+      if (check_only != NULL) {
+        *check_only = TRUE;
+      } else {
+        check_assertion(type->size >= byte_offset);
+        zero_non_value_bits(expr, original_offset + byte_offset,
+                            type->size - byte_offset, bit_offset,
+                            insert_location);
+      }  /* if */
+    }  /* if */
+  } else {
+    /* An array may have classes that have padding.  Note that if padding is
+       required in the array case, lowering must create a "helper routine"
+       to perform the zeroing (because the code that is to be inserted is
+       in an expression context -- not a statement context -- so there is
+       no looping construct to available).  Note that the helper routine shares
+       the same memory region as the calling function so it's okay to
+       allocate IL entities in this context. */
+    check_assertion(type_is(type, tk_array));
+    a_boolean padded = FALSE;
+    a_type_ptr elem_type = skip_typerefs(array_element_type(type));
+    /* First, check to see if any of the array elements need padding
+       (no need to create a helper routine it it's going to be a noop). */
+    lower_builtin_zero_non_value_bits_piece(expr, elem_type, original_offset,
+                                            &padded, insert_location);
+    if (padded) {
+      if (check_only != NULL) {
+        *check_only = TRUE;
+      } else {
+        /* A helper routine is needed.  The routine is created here and a call
+           to the routine is added at insert_location, then we recursively
+           call ourselves to handle the array elements (setting that
+           insert location to be in the loop of the helper routine). */
+        an_insert_location  helper_insert_location;
+        a_routine_ptr       helper_routine;
+        a_variable_ptr      element_ptr;
+        an_expr_node_ptr    args = copy_expr_tree(expr, CE_NO_OPTIONS);
+        /* Call the helper routine with two arguments in the current
+           insert_location, i.e., helper(ptr, count). */
+        helper_routine = helper_routine_to_loop_through_array_elements(
+                             elem_type, &element_ptr, &helper_insert_location);
+        args = add_cast(args, make_pointer_type(elem_type));
+        if (is_vla_type(type)) {
+          /* For VLA types, determine the number of elements in the array from
+             the VLA type (which is assumed to have been lowered already, if
+             needed). */
+          args->next = vla_dimension_expr_for_type(type);
+        } else {
+          args->next = node_for_integer_constant((long)
+                                type->variant.array.variant.number_of_elements,
+                                targ_size_t_int_kind);
+        }  /* if */
+        insert_expr(make_call_node(helper_routine, args), insert_location);
+        /* Now recurse to do the actual zeroing of padding bytes of the
+           element type (but use the helper routine's insert location for that
+           code). */
+        lower_builtin_zero_non_value_bits_piece(var_rvalue_expr(element_ptr),
+                                                elem_type, original_offset,
+                                                (a_boolean*)NULL,
+                                                &helper_insert_location);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* lower_builtin_zero_non_value_bits_piece */
+
+
+static void lower_builtin_zero_non_value_bits(an_expr_node_ptr  expr)
+/*
+Lower the __builtin_zero_non_value_bits construct by writing zeros to all
+padding bits/bytes in the given expression.  Only classes (not unions) or
+arrays of classes have any effect (otherwise this is lowered to a noop).
+Note that the expression (and argument) have already been lowered.
+*/
+{
+  an_expr_node_ptr   arg = expr->variant.operation.operands->next;
+  a_type_ptr         type = skip_typerefs(arg->type);
+  an_insert_location insert_location;
+
+  check_assertion(arg != NULL && arg->next == NULL && !arg->is_lvalue &&
+                  is_pointer_type(type));
+  type = type_pointed_to(type);
+  if (type_is(type, tk_struct) || type_is(type, tk_array)) {
+    set_expr_creation_insert_location(&insert_location);
+    if (!is_invariant_expr(arg, /*vars_can_change=*/FALSE,
+                           /*treat_as_potential_prvalue=*/FALSE)) {
+      /* Use a temporary to point to the storage (since the expression might
+         be evaluated more than once). */
+      a_variable_ptr temp_var = assign_expr_to_temp(arg);
+      insert_expr(arg, &insert_location);
+      arg = var_rvalue_expr(temp_var);
+    } else {
+      /* Make sure original expression is evaluated (though its value is
+         not used). */
+      insert_expr(add_cast(arg, void_type()), &insert_location);
+    }  /* if */
+    lower_builtin_zero_non_value_bits_piece(add_cast_to_char_star(arg), type,
+                                            0, (a_boolean*)NULL,
+                                            &insert_location);
+    check_assertion(insert_location.kind == ilk_after_expr);
+    overwrite_node(expr, insert_location.variant.expr);
+  } else {
+    /* There is nothing to zero in the expression, cast it to void (so the
+       expression is executed, but the value is not used). */
+    overwrite_node(expr, add_cast(arg, void_type()));
+  }  /* if */
+}  /* lower_builtin_zero_non_value_bits */
+
+
+static void lower_builtin_function_call(an_expr_node_ptr expr)
+/*
+Called to potentially lower a builtin function call.  The expression is
+an eok_call of a builtin function.
+*/
+{
+  an_expr_node_ptr  routine_node = expr->variant.operation.operands;
+  a_routine_ptr     routine;
+
+  check_assertion(routine_node != NULL &&
+                  is_routine_node(routine_node));
+  routine = routine_from_function_expr(routine_node);
+  check_assertion(routine->special_kind == (a_special_function_kind)sfk_none);
+  switch (routine->variant.builtin_function_kind) {
+    case bfk_none:
+      unexpected_condition();
+    case bfk_zero_non_value_bits:
+      lower_builtin_zero_non_value_bits(expr);
+      break;
+    default:
+      break;
+  }  /* switch */
+}  /* lower_builtin_function_call */
+
+
 void lower_call(an_expr_node_ptr           expr,
                 an_init_pos_descr_ptr      ipdp,
                 ARG_UNUSED a_statement_ptr statement,
@@ -12980,13 +13228,21 @@ detached from the IL tree; otherwise it is set to FALSE.
                     expr->variant.operation.kind == op);
     /* Normal member or non-member call. */
     expr->variant.operation.kind = (an_expr_operator_kind)eok_call;
+    if (routine != NULL &&
+        routine->special_kind == (a_special_function_kind)sfk_none &&
+        routine->variant.builtin_function_kind != bfk_none) {
+      /* Calling a builtin function; see if there is any lowering needed
+         for it. */
+      lower_builtin_function_call(call_expr);
+    } else {
 #if MINIMAL_INLINING
-    if (inlining_enabled &&
-        insert_location.kind == ilk_expr_creation) {
-      /* Inline the call (if no temporaries were created). */
-      do_inlining_of_call(call_expr, statement, expr_has_been_detached);
-    }  /* if */
+      if (inlining_enabled &&
+          insert_location.kind == ilk_expr_creation) {
+        /* Inline the call (if no temporaries were created). */
+        do_inlining_of_call(call_expr, statement, expr_has_been_detached);
+      }  /* if */
 #endif /* MINIMAL_INLINING */
+    }  /* if */
   }  /* if */
   if (insert_location.kind != ilk_expr_creation) {
     /* Some temporaries were created during the lowering of the arguments;

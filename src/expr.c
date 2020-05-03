@@ -5105,13 +5105,32 @@ result_built:
 }  /* scan_builtin_pseudo_call */
 
 
+/* Forward declarations. */
+struct a_builtin_call_adjustment;
+
+/* Define a callback type for adjusting builtins. */
+typedef a_routine_ptr a_builtin_call_adjustment_callback(
+                             an_operand                *target,
+                             an_arg_list_elem_ptr      args,
+                             a_source_position         *closing_paren_position,
+                             a_builtin_call_adjustment *bcap,
+                             an_expr_node_ptr          *arg_list);
+
+static a_builtin_call_adjustment_callback adjust_sync_atomic_builtin;
+static a_builtin_call_adjustment_callback adjust_builtin_zero_non_value_bits;
+
 /*
 Structure used to pass information from builtin_call_needs_adjustment to
-adjust_builtin_call to describe a particular builtin call.  The fields are
-set based on builtin_function_kind and adjustments to the parameter types or
-concrete routine to be called are made as needed based on their values.
+its caller or the callback to describe a particular builtin call.  The fields
+are set based on builtin_function_kind and adjustments to the parameter types
+or concrete routine to be called are made as needed based on their values.
 */
 typedef struct a_builtin_call_adjustment {
+  a_builtin_call_adjustment_callback
+              *callback;
+                        /* When not nullptr, a pointer to a callback routine
+                           to be invoked after the arguments of the builtin
+                           call have been scanned. */
   a_type_ptr  result_type;
                         /* If non-NULL, the return type of the builtin.  If
                            the return type of the routine is dependent on its
@@ -5188,13 +5207,15 @@ builtin function that requires special processing; if so, set the appropriate
 flags in *bcap and return TRUE.  The vast majority of builtin functions
 require no special treatment, but certain sets of builtin functions (e.g,
 __sync__..., __atomic_..., __c11_atomic...) require various modifications.
-After the arguments are scanned, adjust_builtin_call will be called to check
-and adjust the argument and routine types as needed.
+After the arguments are scanned, the routine pointed to by bcap->callback will
+be called to check and adjust the argument and routine types as needed.
 */
 {
   a_builtin_function_kind  bfk;
 
-  /* Initialize all fields in *bcap. */
+  /* Initialize all fields in *bcap (note that fields are initialized to
+     their most likely value, not necessarily zero or NULL). */
+  bcap->callback = adjust_sync_atomic_builtin;  /* Assume most likely case. */
   bcap->result_type = NULL;
   bcap->overloaded_function_symbol = NULL;
   bcap->name_reference = NULL;
@@ -5355,15 +5376,21 @@ and adjust the argument and routine types as needed.
                         (bfk == (a_builtin_function_kind)bfk_operator_new) ?
                           (a_special_function_kind)sfk_builtin_operator_new :
                           (a_special_function_kind)sfk_builtin_operator_delete;
+      bcap->callback = nullptr;
+      break;
+    case bfk_zero_non_value_bits:
+      /* Callback will validate arguments. */
+      bcap->callback = adjust_builtin_zero_non_value_bits;
       break;
     default:
-      /* Nothing more to be done. */
+      /* No special processing is needed for most builtins. */
+      bcap->callback = nullptr;
       break;
   }  /* switch */
   if (bcap->is_c11_atomic) {
     bcap->replace_routine_type = TRUE;
   }  /* if */
-  return bcap->n_args != 0 || bcap->overloaded_function_symbol != NULL;
+  return bcap->callback != nullptr || bcap->overloaded_function_symbol != NULL;
 }  /* builtin_call_needs_adjustment */
 
 
@@ -5403,7 +5430,7 @@ string, or NULL if there is no such function.
 }  /* gnu_builtin_func_by_name */
 
 
-static a_routine_ptr adjust_builtin_call(
+static a_routine_ptr adjust_sync_atomic_builtin(
                              an_operand                *target,
                              an_arg_list_elem_ptr      args,
                              a_source_position         *closing_paren_position,
@@ -5455,7 +5482,7 @@ indicated type.
     while (k < bcap->n_args && *arg != NULL) {
       k += 1;
       arg = p_next_elem(*arg);
-    }  /* for */
+    }  /* while */
     if (*arg != NULL) {
       /* *arg points to the first excess argument. */
       expr_pos_warning(ec_extra_arguments_ignored, init_component_pos(*arg));
@@ -5814,7 +5841,64 @@ indicated type.
   }  /* if */
 done:
   return rout;
-}  /* adjust_builtin_call */
+}  /* adjust_sync_atomic_builtin */
+
+
+static a_routine_ptr adjust_builtin_zero_non_value_bits(
+                             an_operand                *target,
+                             an_arg_list_elem_ptr      args,
+                             a_source_position         *closing_paren_position,
+                             a_builtin_call_adjustment *bcap,
+                             an_expr_node_ptr          *arg_list)
+/*
+Perform special processing for the __builtin_zero_non_value_bits builtin.
+The builtin is declared as taking one "void *" argument, but the argument must
+be a pointer to a complete type and may not be const-qualified.
+*/
+{
+  an_operand *operand;
+  a_boolean  err = FALSE;
+
+  *arg_list = NULL;
+  if (args == NULL) {
+    /* Must have at least one argument. */
+    expr_pos_error(ec_too_few_arguments, closing_paren_position);
+    err = TRUE;
+  } else if (args->next != NULL) {
+    /* Must have exactly one argument. */
+    expr_pos_error(ec_too_many_arguments, init_component_pos(args->next));
+    err = TRUE;
+  } else {
+    check_arg_list_elem_is_expression(args);
+    operand = operand_of_arg_list_elem(args);
+    if (is_an_lvalue(operand)) {
+      // FIXME
+      conv_glvalue_to_prvalue(operand);
+    }  /* if */
+    a_type_ptr arg_type = operand->type;
+    if (!is_pointer_type(arg_type)) {
+      /* Must be pointer type. */
+      expr_pos_error(ec_expr_not_object_pointer, init_component_pos(args));
+      err = TRUE;
+    } else {
+      a_type_ptr type = type_pointed_to(arg_type);
+      if (is_void_type(type)) {
+        /* Can't be pointer to void. */
+        expr_pos_error(ec_expr_not_object_pointer, init_component_pos(args));
+        err = TRUE;
+      } else if (is_const_qualified_type(arg_type) ||
+                 is_const_qualified_type(type)) {
+        /* Can't be const-qualified. */
+        expr_pos_error(ec_cannot_be_const_qualified, init_component_pos(args));
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!err) {
+    *arg_list = make_node_from_operand_for_expr_list(operand);
+  }  /* if */
+  return routine_from_function_operand(target);
+}  /* adjust_builtin_zero_non_value_bits */
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
@@ -6571,12 +6655,12 @@ are expected to be NULL in that case.
   }  /* if */
   error_position = call_position;
 #if BUILTIN_FUNCTIONS_ENABLED
-  if (builtin_needs_adjustment) {
+  if (bcap != NULL && bcap->callback != nullptr) {
     /* Check and adjust the arguments for a call of a builtin function.  Also
        determine the concrete routine being called, based on the argument
        types. */
-    routine = adjust_builtin_call(operand, arg_list, &closing_paren_position,
-                                  bcap, &argument_list);
+    routine = bcap->callback(operand, arg_list, &closing_paren_position, bcap,
+                             &argument_list);
     routine_type = routine->type;
   }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */

@@ -1,5 +1,15 @@
 Version 6.1
 
+5/3/20   [EDGcpfe/22473]
+Microsoft compatibility: __builtin_zero_non_value_bits
+
+The __builtin_zero_non_value_bits builtin function has been added (when
+microsoft_version >= 1927).  This builtin function is used to zero padding
+bits in a class so that compare-and-exchange operations avoid spurious
+failure (see P0528R3).  The builtin takes a pointer to an object and sets
+all bits in the object that are not value bits to zero.  
+
+
 4/30/20  [EDGcpfe/22546]
 Interpreter error for floating-point compound assignments
 
