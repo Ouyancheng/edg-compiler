@@ -1,5 +1,24 @@
 Version 6.1
 
+5/4/20   [EDGcpfe/22468]
+Core issue 2310: Conversion from a derived class to a base class
+
+The resolution of core issue 2310 clarified that a conversion from a derived
+class pointer to a base class pointer requires the derived class to be
+complete.  For example:
+
+  struct B {};
+  struct D: B {
+    static constexpr B *p = (D*)nullptr;  // Now an error in default mode.
+  };
+
+Previously, this example was accepted in all modes.  Now, however, if triggers
+an error by default because D is not complete at the point of the D*-to-B*
+conversion needed for the static data member initializer.  For compatibility
+reasons, the previous behavior is preserved in Clang and GNU C++ modes, and in
+Microsoft C++ mode with microsoft_version < 1927.
+
+
 5/4/20   [EDGcpfe/22471]
 Abort on attempt to substitute condition explicit specifier
 

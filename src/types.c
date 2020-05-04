@@ -9545,13 +9545,18 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         } else if (C_dialect == C_dialect_cplusplus &&
                    is_class_or_struct(unqual_source_type_pointed_to) &&
                    is_class_or_struct(unqual_dest_type_pointed_to) &&
+                   (!unqual_source_type_pointed_to->incomplete ||
+                    gpp_mode || clang_mode || ms_version_is(<1927)) &&
                    (bcp = find_base_class_of(unqual_source_type_pointed_to,
                                              unqual_dest_type_pointed_to))
                                                                      != NULL) {
           /* In C++, a pointer to a class may be implicitly converted to a
              pointer to an accessible base class of that class provided the
-             conversion is unambiguous (ARM 4.6).  We leave the ambiguity
-             and accessibility check to be done when the cast is done. */
+             conversion is unambiguous.  We leave the ambiguity and
+             accessibility check to be done when the cast is done.  The
+             resolution of Core issue 2310 requires the derived class to be
+             complete, but GCC and Clang do not enforce that (as over GCC 10.x
+             and Clang 10.x). */
           okay = TRUE;
           std_conv->cast_base_class = bcp;
         } else if ((!suppress_extensions || !C_mode()) &&
