@@ -5845,11 +5845,11 @@ done:
 
 
 static a_routine_ptr adjust_builtin_zero_non_value_bits(
-                             an_operand                *target,
-                             an_arg_list_elem_ptr      args,
-                             a_source_position         *closing_paren_position,
-                             a_builtin_call_adjustment *bcap,
-                             an_expr_node_ptr          *arg_list)
+                  an_operand                           *target,
+                  an_arg_list_elem_ptr                 args,
+                  a_source_position                    *closing_paren_position,
+                  ARG_UNUSED a_builtin_call_adjustment *bcap,
+                  an_expr_node_ptr                     *arg_list)
 /*
 Perform special processing for the __builtin_zero_non_value_bits builtin.
 The builtin is declared as taking one "void *" argument, but the argument must
@@ -5872,7 +5872,7 @@ be a pointer to a complete type and may not be const-qualified.
     check_arg_list_elem_is_expression(args);
     operand = operand_of_arg_list_elem(args);
     if (is_an_lvalue(operand)) {
-      // FIXME
+      /* An rvalue is needed. */
       conv_glvalue_to_prvalue(operand);
     }  /* if */
     a_type_ptr arg_type = operand->type;

@@ -12804,6 +12804,7 @@ the expression have already been lowered.
                     expr->type, expr->is_lvalue, this_temp_assign_node);
 }  /* lower_pm_call */
 
+#if BUILTIN_FUNCTIONS_ENABLED
 
 static void zero_non_value_bits(an_expr_node_ptr        start,
                                 size_t                  offset,
@@ -13052,6 +13053,7 @@ an eok_call of a builtin function.
   }  /* switch */
 }  /* lower_builtin_function_call */
 
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 void lower_call(an_expr_node_ptr           expr,
                 an_init_pos_descr_ptr      ipdp,
@@ -13228,13 +13230,16 @@ detached from the IL tree; otherwise it is set to FALSE.
                     expr->variant.operation.kind == op);
     /* Normal member or non-member call. */
     expr->variant.operation.kind = (an_expr_operator_kind)eok_call;
+#if BUILTIN_FUNCTIONS_ENABLED
     if (routine != NULL &&
         routine->special_kind == (a_special_function_kind)sfk_none &&
-        routine->variant.builtin_function_kind != bfk_none) {
+        routine->variant.builtin_function_kind !=
+                                           (a_builtin_function_kind)bfk_none) {
       /* Calling a builtin function; see if there is any lowering needed
          for it. */
       lower_builtin_function_call(call_expr);
     } else {
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if MINIMAL_INLINING
       if (inlining_enabled &&
           insert_location.kind == ilk_expr_creation) {
