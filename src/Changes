@@ -1,5 +1,21 @@
 Version 6.1
 
+5/4/20   [EDGcpfe/22680]
+Narrowing conversions to bool
+
+The C++ standardization committee's paper P1957R2 classifies conversions from
+pointer and pointer-to-member types to type bool as "narrowing".  That means
+that the following example is now invalid:
+
+  struct S { int i; };
+  bool b = { &S::i; };  // Previously okay.  Now an error because the
+                        // conversion is deemed "narrowing".
+
+The front end now enforces this by default.  In Clang C++ mode, the constraint
+is enforced when clang_version > 100000, in GNU C++ mode when gnu_version >=
+100000, and in Microsoft mode when microsoft_mode >= 1927.
+
+
 5/4/20   [EDGcpfe/22468]
 Core issue 2310: Conversion from a derived class to a base class
 
