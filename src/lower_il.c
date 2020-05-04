@@ -13238,16 +13238,15 @@ detached from the IL tree; otherwise it is set to FALSE.
       /* Calling a builtin function; see if there is any lowering needed
          for it. */
       lower_builtin_function_call(call_expr);
-    } else {
+    }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if MINIMAL_INLINING
-      if (inlining_enabled &&
-          insert_location.kind == ilk_expr_creation) {
-        /* Inline the call (if no temporaries were created). */
-        do_inlining_of_call(call_expr, statement, expr_has_been_detached);
-      }  /* if */
-#endif /* MINIMAL_INLINING */
+    if (inlining_enabled &&
+        insert_location.kind == ilk_expr_creation) {
+      /* Inline the call (if no temporaries were created). */
+      do_inlining_of_call(call_expr, statement, expr_has_been_detached);
     }  /* if */
+#endif /* MINIMAL_INLINING */
   }  /* if */
   if (insert_location.kind != ilk_expr_creation) {
     /* Some temporaries were created during the lowering of the arguments;
