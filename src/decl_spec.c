@@ -10142,25 +10142,23 @@ attribute.
   /* Skip over the left parenthesis. */
   (void)get_token();
   add_stop_token(tok_rparen);
-  if (scope_is(ssep, sck_template_declaration) &&
+  if (is_prototype_instantiation_context() &&
       !ssep->in_template_deduction_context) {
-    /* We're in a template declaration: The expression may therefore need to
-       be rescanned during deduction. */
+    /* This is a member template or a member of a class template: The
+       expression may therefore need to be rescanned during deduction.
+       Set a flag to ensure that rescan information is recorded. */
     ssep->in_template_deduction_context = TRUE;
     rescannable = TRUE;
+  }  /* if */
+  scan_bool_constant_expression(bool_val);
+  if (rescannable) {
+    ssep->in_template_deduction_context = FALSE;
   }  /* if */
   aap->kind = (an_attribute_arg_kind)aak_constant;
   aap->position = pos_curr_token;
   aap->variant.constant = bool_val;
-  scan_bool_constant_expression(bool_val);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   aap->end_position = curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (rescannable) {
-    ssep->in_template_deduction_context = TRUE;
-  }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  ap->position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
