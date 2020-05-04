@@ -5147,7 +5147,7 @@ class to be defined.
          is already the current scope, which can happen sometimes as part of
          the pushing of the instantiation context above. */
       push_class_reactivation_scope(lambda_class,
-                                    /*extend_namespace=*/FALSE);
+                                    /*entend_namespace=*/FALSE);
     }  /* if */
     (void)push_scope_full((a_scope_kind)sck_template_instantiation,
                           decl_info->declaration_scope, assoc_type,
