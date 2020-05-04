@@ -337,6 +337,7 @@ typedef enum /*an_option_kind*/ {
   optk_relaxed_abstract_checking,
   optk_module_dir,
   optk_modules,
+  optk_concepts,
   optk_last		/* Must be last. */
 } an_option_kind;
 

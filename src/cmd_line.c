@@ -1591,6 +1591,10 @@ Initialize the option information table.
   add_option_description(optk_relaxed_abstract_checking,
                          "no_relaxed_abstract_checking", '\0', /*value=*/FALSE,
                          /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_concepts, "concepts", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_concepts, "no_concepts", '\0', /*value=*/FALSE,
+                         /*arg_required=*/FALSE, pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -3678,7 +3682,9 @@ default mode (e.g., exception handling).
           char8_t_enabled = TRUE;
         }  /* if */
         destroying_operator_delete_enabled = TRUE;
-        concepts_enabled = TRUE;
+        if (!option_kind_used[(int)optk_concepts]) {
+          concepts_enabled = TRUE;
+        }  /* if */
         abbr_func_templates_enabled = TRUE;
         if (!option_kind_used[(int)optk_modules]) {
           modules_enabled = TRUE;
@@ -10803,6 +10809,9 @@ enable_microsoft_mode:
         break;
       case optk_relaxed_abstract_checking:
         relaxed_abstract_checking = opt_value;
+        break;
+      case optk_concepts:
+        concepts_enabled = opt_value;
         break;
       default:
         /* It should not be possible to get here. */

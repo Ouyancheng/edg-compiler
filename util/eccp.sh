@@ -677,6 +677,7 @@ check_abbreviation()
 --compile
 --compile_as_secondary_trans_unit
 --compound_literals
+--concepts
 --const_string_literals
 --context_limit
 --cpfe_only
@@ -816,6 +817,7 @@ check_abbreviation()
 --no_class_name_injection
 --no_code_gen
 --no_compound_literals
+--no_concepts
 --no_const_string_literals
 --no_cppcli
 --no_cppcx
@@ -1642,6 +1644,8 @@ process_option()
          --no_char8_t | \
          --relaxed_abstract_checking | \
          --no_relaxed_abstract_checking | \
+         --concepts | \
+         --no_concepts | \
          --force_vtbl)
 #     Options that require additional processing
       case $arg in
