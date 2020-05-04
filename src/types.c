@@ -5143,7 +5143,7 @@ and a vector are compatible.
       source_constant->kind == (a_constant_repr_kind)ck_template_param) {
     dependent_constant = TRUE;
   }  /* if */
-  if (is_floating_type(source_type)) {
+  if (is_floating(source_type)) {
     if (is_integral(dest_type) ||
         (is_enum(dest_type) &&
          (dest_type->variant.integer.is_scoped_enum ||
@@ -5152,14 +5152,14 @@ and a vector are compatible.
       is_narrowing = TRUE;
 #if C99_IL_EXTENSIONS_SUPPORTED
     } else if (source_type->kind != dest_type->kind &&
-               (is_nonreal_floating_type(source_type) ||
-                is_nonreal_floating_type(dest_type))) {
+               (is_nonreal_floating(source_type) ||
+                is_nonreal_floating(dest_type))) {
       /* Something like _Complex double --> float or double --> _Complex float.
          Not covered by the standard.  May or may not be valid as an implicit
          conversion, but leave that to the caller; don't call it a narrowing
          conversion. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-    } else if (is_floating_type(dest_type)) {
+    } else if (is_floating(dest_type)) {
       /* We ruled out complex and imaginary cases above. */
       check_assertion(is_floating(source_type) &&
                       source_type->kind == dest_type->kind);
@@ -5169,7 +5169,7 @@ and a vector are compatible.
            constant and preserved, even if not with full precision. */
         is_narrowing = TRUE;
         if (source_constant != NULL &&
-            source_constant->kind == (a_constant_repr_kind)ck_float) {
+            constant_is(source_constant, ck_float)) {
           an_internal_float_value fval;
           con_check_done = TRUE;
           check_assertion(is_floating_type(source_constant->type));
@@ -5188,21 +5188,20 @@ and a vector are compatible.
         }  /* if */
       }  /* if */
     }  /* if */
-  } else if (is_integral_or_unscoped_enum_type(source_type)) {
-    if (is_floating_type(dest_type)) {
+  } else if (is_integer_or_unscoped_enum(source_type)) {
+    if (is_floating(dest_type)) {
       /* Integer or unscoped enum to floating.  Okay if the value is constant
          and is preserved. */
       is_narrowing = TRUE;
-      if (source_constant != NULL &&
-          source_constant->kind == (a_constant_repr_kind)ck_integer
+      if (source_constant != NULL && constant_is(source_constant, ck_integer)
 #if C99_IL_EXTENSIONS_SUPPORTED
-          && !is_imaginary_type(dest_type)
+          && !is_imaginary(dest_type)
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-         ) {
+                                     ) {
         a_constant_ptr fp_constant = local_constant();
         a_boolean      complex_dest = FALSE;
 #if C99_IL_EXTENSIONS_SUPPORTED
-        complex_dest = is_complex_type(dest_type);
+        complex_dest = is_complex(dest_type);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         con_check_done = TRUE;
         if (complex_dest) { 
@@ -5256,8 +5255,8 @@ and a vector are compatible.
            without loss. */
         is_narrowing = FALSE;
       }  /* if */
-    } else if (is_integral_type(dest_type) ||
-               (check_enum_target && is_enum_type(dest_type) &&
+    } else if (is_integral(dest_type) ||
+               (check_enum_target && is_enum(dest_type) &&
                 (dest_type->variant.integer.has_explicit_enum_base ||
                  dest_type->variant.integer.is_scoped_enum))) {
       check_assertion(source_type->kind == (a_type_kind)tk_integer &&
@@ -5275,7 +5274,7 @@ and a vector are compatible.
            and is preserved. */
         is_narrowing = TRUE;
         if (source_constant != NULL &&
-            source_constant->kind == (a_constant_repr_kind)ck_integer) {
+            constant_is(source_constant, ck_integer)) {
           con_check_done = TRUE;
           if (in_range_for_integer_kind(source_constant, source_constant,
                                         dest_type->variant.integer.int_kind)) {
@@ -5288,6 +5287,18 @@ and a vector are compatible.
         }  /* if */
       }  /* if */
     }  /* if */
+  } else if (is_bool(dest_type) &&
+             (is_pointer(source_type) || is_ptr_to_member(source_type) ||
+              is_array(source_type) || is_function(source_type)) && 
+             (clang_mode     ? clang_version > 100000 :
+              gpp_mode       ? gnu_version >= 100000 :
+              microsoft_mode ? microsoft_version >= 1927 :
+                               TRUE)) {
+    /* P1957R2 made conversions from pointer types and pointer-to-member types
+       to bool be "narrowing" conversions.  (Since this check may occur before
+       array-to-pointer or function-to-pointer conversion, those two cases
+       must also be checked.) */
+    is_narrowing = TRUE;
   }  /* if */
   if (err_code != NULL) {
     /* Return an appropriate error code. */
