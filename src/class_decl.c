@@ -32701,8 +32701,7 @@ static a_scope_depth decl_level_for_lambda_closure_class(a_boolean  *bad_scope)
 /*
 A lambda appears in the current scope context.  Return the scope depth at
 which the associated closure class should be declared.  Return in *bad_scope
-a flag that indicates whether or not the current scope is valid for a
-lambda.
+a flag that indicates whether or not the current scope is valid for a lambda.
 */
 {
   a_scope_depth           previous_scope;
@@ -32723,11 +32722,6 @@ lambda.
       case sck_class_reactivation:
       case sck_namespace_reactivation:
         goto done;
-      case sck_instantiation_context:
-        /* We might see this while looking for a suitable scope after error
-           recovery. */
-        check_assertion(scope_error);
-        break;
       case sck_template_instantiation:
         /* For a template instantiation scope, keep following the
            previous_scope links in the scope stack.   This will result in
@@ -32754,6 +32748,7 @@ lambda.
           scope_error = TRUE;
         }  /* if */
         break;
+      case sck_instantiation_context:
       default:
         /* Scopes not covered above are unexpected, but it is safe to treat
            them as errors. */
@@ -32764,8 +32759,7 @@ lambda.
 done:
   if (scope_error) {
     /* An error should have already been issued that a lambda is not allowed
-       in a constant expression (which must be the case for the invalid
-       scopes. */
+       in this context (which must be the case for the invalid scopes). */
     expect_error();
   }  /* if */
   *bad_scope = scope_error;
