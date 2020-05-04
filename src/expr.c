@@ -35484,7 +35484,7 @@ type_identifier_case:
                 /* In contexts that aren't constraint expressions, produce a
                    constant entry. */
                 a_constant_ptr        con = local_constant();
-                if (template_arg_list_is_dependent(tap)) {
+                if (is_prototype_instantiation_context()) {
                   make_template_param_expr_constant(node, con);
                 } else {
                   a_boolean             val;
