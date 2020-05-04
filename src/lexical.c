@@ -2340,9 +2340,13 @@ a template argument list or is just a less-than sign.
         (stop_tokens[(int)tok_gt] > 0 || prev_token_was_template) &&
         (curr_token == tok_dynamic_cast || curr_token == tok_static_cast ||
          curr_token == tok_reinterpret_cast || curr_token == tok_const_cast ||
+         (curr_token == tok_identifier &&
+          locator_for_curr_id.specific_symbol != NULL &&
+          symbol_is(locator_for_curr_id.specific_symbol,
+                    sk_concept_template)) ||
          prev_token_was_template)) {
-      /* We're looking for the end of a template argument list and are
-         about to scan over a new-style cast, or we have a "template"
+      /* We're looking for the end of a template argument list and are about
+         to scan over a new-style cast, a concept-id, or we have a "template"
          keyword that indicates the thing following the identifier is a
          template argument list.  We need to look for the ">" that closes
          the template argument list or new-style cast type. */
@@ -17381,10 +17385,12 @@ occurs when scanning type-constraints).
   a_template_arg_ptr  templ_arg_list;
   long                first_defaulted_arg = -1;
 
+  ++scope_stack_top().pending_templ_arg_lists;
   templ_arg_list = scan_template_argument_list(template_sym, skip_first_param,
                                                any_errors, GID_NO_OPTIONS,
                                                &first_defaulted_arg);
   check_closing_angle_bracket(any_errors);
+  --scope_stack_top().pending_templ_arg_lists;
   return templ_arg_list;
 }  /* scan_concept_arg_list */
 
@@ -20040,9 +20046,14 @@ selection operator, in which case it points to the type of the left operand.
        qualified name.  We clear it now because it may be set again if a
        template reference is coalesced and we don't want to lose that value. */
     specific_sym = locator_for_curr_id.specific_symbol;
-    if (!is_conversion_type || next_tok == tok_colon_colon) {
+    if (!(is_conversion_type ||
+          (specific_sym != NULL &&
+           symbol_is(specific_sym, sk_concept_template))) ||
+        next_tok == tok_colon_colon) {
       /* The specific symbol is needed when a special lookup was done for the
-         identifier in a conversion operator. */
+         identifier in a conversion operator.  It is also needed when an
+         identifier denotes a concept (since the caller is responsible for
+         handling an optional template argument list that follows). */
       clear_specific_symbol(locator_for_curr_id);
     }  /* if */
     /* If the class symbol is for a class template, process the argument
