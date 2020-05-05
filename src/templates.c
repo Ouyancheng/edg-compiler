@@ -16621,7 +16621,6 @@ instantiated.
     param->default_arg_expr =
                          duplicate_default_arg_expr(inh_ptp->default_arg_expr);
     param->has_default_arg = inh_ptp->has_default_arg;
-    param->default_arg_expr = inh_ptp->default_arg_expr;
     param->entities_defined_in_default_arg =
                                       inh_ptp->entities_defined_in_default_arg;
     param->default_arg_appeared_in_class_definition =
