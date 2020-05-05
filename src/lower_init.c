@@ -6378,19 +6378,59 @@ element being initialized.  The remaining arguments are passed through
 to lower_dynamic_init_aggregate_constant; see their description there.
 */
 {
-  a_routine_ptr      rp;
-  an_insert_location loop_insert_location;
-  a_variable_ptr     entity_var;
-  an_init_pos_descr  ipd;
+  a_routine_ptr                 rp;
+  a_routine_type_supplement_ptr rtsp;
+  a_type_ptr                    pointer_type, count_type;
+  a_memory_region_number        il_region;
+  a_scope_ptr                   scope;
+  an_insert_location            insert_location, loop_insert_location;
+  a_generated_routine_context   context;
+  a_variable_ptr                entity_var, count_var = NULL;
+  a_statement_ptr               loop_stmt = NULL;
+  an_expr_node_ptr              ptr_increment, expr;
+  a_param_type_ptr              count_param_type = NULL;
+  an_init_pos_descr             ipd;
 
-  type = skip_typerefs(type);
-  check_assertion(is_pointer_type(type));
-  /* Create the helper routine, returning the variable that will point
-     to each element in the array, as well as the location in the loop
-     at which code should be added. */
-  rp = helper_routine_to_loop_through_array_elements(type_pointed_to(type),
-                                                     &entity_var,
-                                                     &loop_insert_location);
+  /* Build the routine entry.  It has two parameters: a pointer to the
+     beginning of the entity being initialized and a count. */
+  pointer_type = skip_typerefs(type);
+  check_assertion(is_pointer_type(pointer_type));
+  count_type = integer_type(targ_size_t_int_kind);
+  rp = make_rout_entry((char *)NULL, (a_storage_class)sc_static,
+                       void_type(), pointer_type);
+  rtsp = rp->type->variant.routine.extra_info;
+  /* In addition to the parameter for the pointer to the entity, add the
+     count parameter. */
+  count_param_type = alloc_param_type(count_type);
+  rtsp->param_type_list->next = count_param_type;
+  /* Build the definition of the routine.  Note that the same memory region
+     is used (because lowering of the repeated constant may involve IL that
+     is already in the current memory region). */
+  scope = make_routine_definition(rp, /*make_return=*/TRUE,
+                                  curr_il_region_number, &il_region);
+  push_generated_routine_context(scope, il_region, &context);
+  /* Create the parameters. */
+  entity_var = make_lowered_param_variable(rtsp->param_type_list->type);
+  count_var = make_lowered_param_variable(count_param_type->type);
+  scope->variant.routine.parameters = entity_var;
+  entity_var->next = count_var;
+  /* Code for the new routine goes in its block. */
+  set_block_start_insert_location(scope->assoc_block, &insert_location);
+  /* Mark the location where any generated stmk_init statements should go. */
+  set_insert_location_mark(&insert_location);
+  /* Insert any generated stmk_inits at the previously marked location. */
+  insert_pending_stmk_init_statements_at_mark(&insert_location);
+  /* Build a loop to initialize the entities. */
+  loop_stmt = alloc_statement((a_statement_kind)stmk_while);
+  insert_statement(loop_stmt, &insert_location);
+  expr = make_operator_node((an_expr_operator_kind)eok_post_decr,
+                            count_type, var_lvalue_expr(count_var));
+  loop_stmt->expr = boolean_controlling_expr(expr);
+  loop_stmt->variant.loop_statement =
+                                 alloc_statement((a_statement_kind)stmk_block);
+  set_block_start_insert_location(loop_stmt->variant.loop_statement,
+                                  &loop_insert_location);
+  /* Set ipd to point to the entity being passed in. */
   set_var_indirect_init_pos_descr(entity_var, &ipd);
   /* Now finish lowering the repeated constant in the context of the
      helper routine. */
@@ -6405,6 +6445,13 @@ to lower_dynamic_init_aggregate_constant; see their description there.
                           others_follow_in_aggr, &loop_insert_location,
                           keep_constant, options);
   }  /* if */
+  /* Increment the pointer at the end of the loop. */
+  ptr_increment = make_operator_node((an_expr_operator_kind)eok_post_incr,
+                                     pointer_type,
+                                     var_lvalue_expr(entity_var));
+  (void)insert_expr_statement(ptr_increment, &loop_insert_location);
+  /* Clean up. */
+  pop_generated_routine_context(scope, il_region, &context);
   return rp;
 }  /* helper_routine_to_initialize_repeated_constant */
 
