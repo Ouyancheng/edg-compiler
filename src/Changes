@@ -1,5 +1,17 @@
 Version 6.1
 
+5/5/20   [EDGcpfe/22712]
+Incorrect disambiguation of enum-base
+
+The front end sometimes did not correctly parse enum-base specifiers because
+of a flaw in the grammar disambiguation code.  For example, in GNU C++11 mode:
+
+  int x;
+  enum E: __typeof(x) {}; // Previously an error.  Now okay.
+
+This is now fixed.
+
+
 5/4/20   [EDGcpfe/22680]
 Narrowing conversions to bool
 

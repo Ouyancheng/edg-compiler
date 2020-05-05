@@ -1438,9 +1438,18 @@ evidence to the contrary.
     prescan_any_prefix_bracketed_attributes(flags);
     /* Scan the decl specifiers. */
     prescan_decl_specifiers(state, decl_spec_flags);
-    if (curr_token == tok_lbrace && (flags & DFS_POSSIBLE_ENUM_BASE) == 0) {
+    if ((flags & DFS_POSSIBLE_ENUM_BASE) != 0) {
+      /* If the following token is a left brace or a semicolon, we have seen
+         an enum-base.  Otherwise, this is something else.  Either way, we
+         have our answer. */
+      if (curr_token != tok_lbrace && curr_token != tok_semicolon) {
+        state->may_be_decl = FALSE;
+      }  /* if */
+      state->terminate = TRUE;
+    } else if (curr_token == tok_lbrace) {
       /* A set of specifiers followed by a brace is a C++11-style functional-
-         notation cast (with an exception for "enum : typename T::X { ..."). */
+         notation cast (with an exception for something like
+         "enum : typename T::X { ...", which was handled above). */
       state->may_be_decl = FALSE;
     }  /* if */
     if (terminate_disambiguation(state)) goto done;
