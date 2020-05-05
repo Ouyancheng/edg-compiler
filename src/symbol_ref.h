@@ -233,18 +233,20 @@ extern void symbol_ref_one_time_init(void);
   record_complete_class_type_needed(tp);                                \
 }
 
-/* This is a context in which a type is required to be complete, so if tp
-   is incomplete see if it is a template class that can be instantiated (or
-   array thereof).  Issuing a diagnostic on an incomplete type is done
-   separately.  Also (if appropriate for the implementation) record that the
-   class was required to be complete in the current context. */
-#define complete_type_is_needed(tp)                                     \
-{                                                                       \
-  if (C_dialect == C_dialect_cplusplus && is_incomplete_type(tp)) {     \
-    check_for_uninstantiated_template_class(tp);                        \
-  }  /* if */                                                           \
-  record_complete_class_type_needed(tp);                                \
-}
+inline void complete_type_is_needed(a_type_ptr  tp)
+/*
+This is a context in which a type is required to be complete, so if tp
+is incomplete see if it is a template class that can be instantiated (or
+array thereof).  Issuing a diagnostic on an incomplete type is done
+separately.  Also (if appropriate for the implementation) record that the
+class was required to be complete in the current context.
+*/
+{
+  if (C_dialect == C_dialect_cplusplus && is_incomplete_type(tp)) {
+    check_for_uninstantiated_template_class(tp);
+  }  /* if */
+  record_complete_class_type_needed(tp);
+}  /* complete_type_is_needed */
 
 /*
 If tp is a real instance of a class template, make sure it is fully
