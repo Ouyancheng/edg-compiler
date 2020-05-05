@@ -9556,7 +9556,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         } else if (C_dialect == C_dialect_cplusplus &&
                    is_class_or_struct(unqual_source_type_pointed_to) &&
                    is_class_or_struct(unqual_dest_type_pointed_to) &&
-                   (!unqual_source_type_pointed_to->incomplete ||
+                   ((complete_type_is_needed(unqual_source_type_pointed_to),
+                     !unqual_source_type_pointed_to->incomplete) ||
                     gpp_mode || clang_mode || ms_version_is(<1927)) &&
                    (bcp = find_base_class_of(unqual_source_type_pointed_to,
                                              unqual_dest_type_pointed_to))
