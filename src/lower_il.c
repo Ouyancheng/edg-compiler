@@ -13230,8 +13230,17 @@ detached from the IL tree; otherwise it is set to FALSE.
                     expr->variant.operation.kind == op);
     /* Normal member or non-member call. */
     expr->variant.operation.kind = (an_expr_operator_kind)eok_call;
+#if MINIMAL_INLINING
+    if (inlining_enabled &&
+        insert_location.kind == ilk_expr_creation) {
+      /* Inline the call (if no temporaries were created). */
+      do_inlining_of_call(call_expr, statement, expr_has_been_detached);
+    }  /* if */
+#endif /* MINIMAL_INLINING */
 #if BUILTIN_FUNCTIONS_ENABLED
-    if (routine != NULL &&
+    if (is_operation_node(call_expr) &&
+        node_operator_is(call_expr, eok_call) &&
+        routine != NULL &&
         routine->special_kind == (a_special_function_kind)sfk_none &&
         routine->variant.builtin_function_kind !=
                                            (a_builtin_function_kind)bfk_none) {
@@ -13240,13 +13249,6 @@ detached from the IL tree; otherwise it is set to FALSE.
       lower_builtin_function_call(call_expr);
     }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-#if MINIMAL_INLINING
-    if (inlining_enabled &&
-        insert_location.kind == ilk_expr_creation) {
-      /* Inline the call (if no temporaries were created). */
-      do_inlining_of_call(call_expr, statement, expr_has_been_detached);
-    }  /* if */
-#endif /* MINIMAL_INLINING */
   }  /* if */
   if (insert_location.kind != ilk_expr_creation) {
     /* Some temporaries were created during the lowering of the arguments;
