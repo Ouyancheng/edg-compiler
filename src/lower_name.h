@@ -152,10 +152,10 @@ extern a_boolean exception_specification_contains_an_individuated_entity(
 extern char *make_prefixed_object_name(a_const_char            *prefix,
                                        a_source_correspondence *scp,
                                        an_il_entry_kind        kind);
-#endif /* NEED_NAME_MANGLING */
-
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
+
+#endif /* NEED_NAME_MANGLING */
 
 #endif /* ifndef LOWER_NAME_H */
 
