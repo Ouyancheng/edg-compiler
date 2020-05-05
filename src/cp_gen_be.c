@@ -18688,6 +18688,7 @@ to add extra parentheses to disambiguate.
   a_boolean may_look_like_type = FALSE;
 
   expr = assoc_expr_if_constant(expr);
+  expr = skip_implicit_steps(expr);
   if (expr->kind == (an_expr_node_kind)enk_temp_init) {
     a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
     dip = skip_constexpr_init_folding(dip);

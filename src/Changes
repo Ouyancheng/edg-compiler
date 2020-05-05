@@ -1,5 +1,19 @@
 Version 6.1
 
+5/5/20   [EDGcpfe/22711]
+C++-generating back end: disambiguating parentheses in initializers
+
+Under some circumstances, the C++-generating back end could omit parentheses
+needed to syntactically disambiguate expressions from types, resulting in
+uncompilable generated code.  This is now fixed.  For example:
+
+  struct S { S() { } };
+  struct T { T(S &&) {} };
+  int main() {
+    T a((S()));   // Previously generated as "a(S())", which is an error
+  }
+
+
 5/5/20   [EDGcpfe/22715]
 Possible incorrect translation of UTF-8 file names on Windows
 
