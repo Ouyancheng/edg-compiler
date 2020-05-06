@@ -129,7 +129,7 @@ buffer.  utf8_character_seen is set to TRUE if any utf8 character is detected.
   buffer[utf16_len-1] = wchar;
 #else /* !(!defined(MEM_MANAGE_H) || STANDALONE_UTILITY_PROGRAM) */
 #define add_to_wchar_buffer(wchar)                                  \
-  utf16_len++;                                                        \
+  utf16_len++;                                                      \
   ensure_text_buffer_space(wchar_translation_buffer,                \
                            (utf16_len) * sizeof(wchar_t));          \
   /* Update the buffer pointer to reflect possible reallocation. */ \
