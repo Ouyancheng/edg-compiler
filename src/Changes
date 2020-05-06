@@ -1,5 +1,35 @@
 Version 6.1
 
+5/6/20   [EDGcpfe/22295]
+Builtin helper operators and functions for layout-compatibility checking
+
+The front end has introduce two builtin operators and two builtin functions
+to implement some C++20 standard library facilities that enable checking of
+layout-compatibility:
+  - __builtin_is_layout_compatible(T1, T2):
+    T1 and T2 denote types.  This operator produces a true value if and
+    only if the given types are layout-compatible.
+  - __builtin_is_pointer_interconvertible_base_of(D, B):
+    D and B denote types.  If either type is not a non-union class type,
+    the result is false.  Otherwise, if the two types are identical,
+    the result is true.  Otherwise, the result is true if and only if B
+    is an unambiguous nonvirtual base class type of D at offset zero in D.
+  - __builtin_is_pointer_interconvertible_with_class(pmd):
+    pmd must have pointer-to-member type.  If pmd is a non-null,
+    pointer-to-data-member value pointing to a data member at offset zero,
+    this builtin pseudo-function produces true.  Otherwise, it produces
+    false.
+  - __builtin_is_corresponding_member(pmd1, pmd2):
+    pmd1 and pmd2 must have pointer-to-member type.  It produces true if
+    and only if both arguments are non-null pointer-to-data-members
+    referring to members that are in the common initial sequence of
+    their respective class types and those members have equal offsets
+    within those class types.
+
+The associated standard library facilities were added to C++20 through the
+C++ standardization committee's paper P0466R5.
+ 
+
 5/5/20   [EDGcpfe/22711]
 C++-generating back end: disambiguating parentheses in initializers
 
