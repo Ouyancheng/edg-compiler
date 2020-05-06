@@ -10446,8 +10446,8 @@ conservatively.
       a_field_ptr  fp1 = fields_of(tp1), fp2;
       result = TRUE;
       fp1 = next_proper_initializable_field(fp1);
+      fp2 = next_proper_initializable_field(fields_of(tp2));
       if (is_class_or_struct(tp1) && is_class_or_struct(tp2)) {
-        fp2 = next_proper_initializable_field(fields_of(tp2));
         /* Two standard-layout non-union class types: Compare the fields one
            by one. */
         while (fp1 != NULL && fp2 != NULL) {
@@ -10463,23 +10463,41 @@ conservatively.
       } else if (type_is(tp1, tk_union) && type_is(tp2, tk_union)) {
         /* Two standard-layout unions: For each field in tp1 find a
            corresponding field in tp2. */
-        while (fp1 != NULL) {
-          fp2 = next_proper_initializable_field(fields_of(tp2));
-          while (fp2 != NULL) {
-            if (fields_are_layout_compatible(fp1, fp2)) {
-              /* A match.  Move on to the next field in tp1 (if any). */
+        /* First check that both unions have the same number of elements. */
+        while (fp1 != NULL && fp2 != NULL) {
+          fp1 = next_proper_initializable_field(fp1->next);
+          fp2 = next_proper_initializable_field(fp2->next);
+        }  /* while */
+        if (fp1 != NULL || fp2 != NULL) {
+          result = FALSE;
+        } else {
+          /* Create a mapping between the two unions. */
+          Ptr_map<a_field_ptr, a_field_ptr>  mappings(4);
+          fp1 = next_proper_initializable_field(fp1);
+          while (fp1 != NULL) {
+            fp2 = next_proper_initializable_field(fields_of(tp2));
+            while (fp2 != NULL) {
+              if (mappings.get(fp2) != NULL) {
+                /* fp2 already has a corresponding member. */
+                continue;
+              }  /* if */
+              if (fields_are_layout_compatible(fp1, fp2)) {
+                /* A match.  Record it and move on to the next field in tp1
+                   (if any). */
+                mappings.map(fp2, fp1);
+                break;
+              }  /* if */
+              fp2 = next_proper_initializable_field(fp2->next);
+            }  /* while */
+            if (fp2 == NULL) {
+              /* We didn't find a match. */
               break;
             }  /* if */
-            fp2 = next_proper_initializable_field(fp2->next);
+            fp1 = next_proper_initializable_field(fp1->next);
           }  /* while */
-          if (fp2 == NULL) {
-            /* We didn't find a match. */
-            break;
+          if (fp1 != NULL) {
+            result = FALSE;
           }  /* if */
-          fp1 = next_proper_initializable_field(fp1->next);
-        }  /* while */
-        if (fp1 != NULL) {
-          result = FALSE;
         }  /* if */
       } else {
         /* A union and a non-union. */

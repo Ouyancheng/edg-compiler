@@ -1923,6 +1923,8 @@ struct Ptr_map: private Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> {
   inline void replace(a_key  key, const a_value  &value);
   inline auto map_or_replace(a_key  key, const a_value  &value) -> a_value;
   inline void unmap(a_key  key);
+  inline auto number_of_elements() const -> an_index
+    { return this->n_elements; }
 #if DEBUG
   void db_ptrs() const;
 #endif /* DEBUG */
