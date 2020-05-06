@@ -10495,6 +10495,30 @@ conservatively.
 }  /* types_are_layout_compatible */
 
 
+a_targ_size_t common_initial_sequence_limit(a_type_ptr  tp1,
+                                            a_type_ptr  tp2)
+/*
+Given two class types, return the byte offset below which fields correspond.
+Currently this does not handle bit field offsets because it is only used for
+pointer-to-data members.
+*/
+{
+  a_targ_size_t  result = 0;
+  a_field_ptr    fp1 = fields_of(tp1), fp2 = fields_of(tp2);
+
+  while (fp1 != NULL && fp2 != NULL) {
+    if (!fields_are_layout_compatible(fp1, fp2)) {
+      break;
+    }  /* if */
+    /* Move the limit one beyond the current field offsets. */
+    result = fp1->offset+1;
+    fp1 = next_proper_initializable_field(fp1->next);
+    fp2 = next_proper_initializable_field(fp2->next);
+  }  /* while */
+  return result;
+}  /* common_initial_sequence_limit */
+
+
 a_boolean impl_ptr_to_member_conversion(
                          a_type_ptr           source_type,
                          a_boolean            source_is_constant,

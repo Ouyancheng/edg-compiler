@@ -8192,6 +8192,82 @@ to FALSE and the reason for the failure is recorded in *ips.
         }  /* if */
       }  /* if */
       break;
+    case bufk_is_pointer_interconvertible_with_class:
+      /* Some type checking was already performed by the front end. */
+      {
+        a_type_ptr    tp = skip_typerefs(args->type);
+        a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
+        interpreted = TRUE;
+        if (!*p_result || !type_is(tp, tk_ptr_to_member)) {
+          do_constexpr_fail(*p_result);
+        } else {
+          alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
+          if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
+            /* The argument did not have a constexpr value. */
+            do_constexpr_fail(*p_result);
+          } else {
+            a_constexpr_ptr_to_mem  *pm_value;
+            a_type_ptr              class_type;
+            pm_value = (a_constexpr_ptr_to_mem*)arg1_bytes;
+            class_type = tp->variant.ptr_to_member.class_of_which_a_member;
+            if (pm_value->is_ptr_to_mem_function ||
+                pm_value->variant.field->offset != 0 ||
+                !class_symbol_supp(symbol_for(class_type))->standard_layout) {
+              /* Non-standard classes and pointer-to-member functions elicit a
+                 "false" result.  If a field is designated but its offset is
+                 not zero, its address is not "interconvertible" with that of
+                 its parent object. */
+              *(an_integer_value*)result_storage = zero_int;
+            } else {
+              *(an_integer_value*)result_storage = one_int;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    case bufk_is_corresponding_member:
+      /* Some type checking was already performed by the front end. */
+      {
+        a_type_ptr    tp1 = skip_typerefs(args->type),
+                      tp2 = skip_typerefs(args->next->type);
+        a_byte_count  n_bytes = value_bytes_for_type(ips, tp1, p_result);
+        interpreted = TRUE;
+        if (!*p_result || !type_is(tp1, tk_ptr_to_member) ||
+            !type_is(tp2, tk_ptr_to_member)) {
+          do_constexpr_fail(*p_result);
+        } else {
+          alloc_complete_object(ips, n_bytes, tp1, arg1_bytes);
+          alloc_complete_object(ips, n_bytes, tp2, arg2_bytes);
+          if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes) ||
+              !do_constexpr_expression(ips, args, arg2_bytes, arg2_bytes)) {
+            /* The arguments did not have a constexpr value. */
+            do_constexpr_fail(*p_result);
+          } else {
+            a_constexpr_ptr_to_mem  *pm_value1, *pm_value2;
+            a_type_ptr              class_type1, class_type2;
+            pm_value1 = (a_constexpr_ptr_to_mem*)arg1_bytes;
+            pm_value2 = (a_constexpr_ptr_to_mem*)arg2_bytes;
+            class_type1 = tp1->variant.ptr_to_member.class_of_which_a_member;
+            class_type2 = tp2->variant.ptr_to_member.class_of_which_a_member;
+            if (pm_value1->is_ptr_to_mem_function ||
+                pm_value2->is_ptr_to_mem_function ||
+                !class_symbol_supp(symbol_for(class_type1))->standard_layout ||
+                !class_symbol_supp(symbol_for(class_type2))->standard_layout ||
+                pm_value1->variant.field->offset !=
+                                           pm_value2->variant.field->offset ||
+                pm_value1->variant.field->offset >=
+                   common_initial_sequence_limit(class_type1, class_type2)) {
+              /* Non-standard classes and pointer-to-member functions elicit a
+                 "false" result.  Members "correspond" if they are within the
+                 "common initial sequence" and have the same offset. */
+              *(an_integer_value*)result_storage = zero_int;
+            } else {
+              *(an_integer_value*)result_storage = one_int;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }
+      break;
     default:
       interpreted = FALSE;
   }  /* switch */

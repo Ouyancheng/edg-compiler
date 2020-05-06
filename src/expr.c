@@ -5116,8 +5116,12 @@ typedef a_routine_ptr a_builtin_call_adjustment_callback(
                              a_builtin_call_adjustment *bcap,
                              an_expr_node_ptr          *arg_list);
 
-static a_builtin_call_adjustment_callback adjust_sync_atomic_builtin;
-static a_builtin_call_adjustment_callback adjust_builtin_zero_non_value_bits;
+/* The following are function declarations (despite looking like variables). */
+static a_builtin_call_adjustment_callback
+		adjust_sync_atomic_builtin,
+		adjust_builtin_zero_non_value_bits,
+		adjust_builtin_is_pointer_interconvertible_with_class,
+		adjust_builtin_is_corresponding_member;
 
 /*
 Structure used to pass information from builtin_call_needs_adjustment to
@@ -5381,6 +5385,14 @@ be called to check and adjust the argument and routine types as needed.
     case bfk_zero_non_value_bits:
       /* Callback will validate arguments. */
       bcap->callback = adjust_builtin_zero_non_value_bits;
+      break;
+    case bufk_is_pointer_interconvertible_with_class:
+      /* Callback will validate arguments. */
+      bcap->callback = adjust_builtin_is_pointer_interconvertible_with_class;
+      break;
+    case bufk_is_corresponding_member:
+      /* Callback will validate arguments. */
+      bcap->callback = adjust_builtin_is_corresponding_member;
       break;
     default:
       /* No special processing is needed for most builtins. */
@@ -5899,6 +5911,117 @@ be a pointer to a complete type and may not be const-qualified.
   }  /* if */
   return routine_from_function_operand(target);
 }  /* adjust_builtin_zero_non_value_bits */
+
+
+static a_routine_ptr adjust_builtin_is_pointer_interconvertible_with_class(
+                  an_operand                           *target,
+                  an_arg_list_elem_ptr                 args,
+                  a_source_position                    *closing_paren_position,
+                  ARG_UNUSED a_builtin_call_adjustment *bcap,
+                  an_expr_node_ptr                     *arg_list)
+/*
+Adjust a call to __builtin_is_pointer_interconvertible_with_class and diagnose
+type errors.  It is declared as having type "bool (...) noexcept", but any call
+must pass in exactly one pointer-to-member value.
+*/
+{
+  a_routine_ptr  result = NULL;
+
+  *arg_list = NULL;
+  if (args == NULL) {
+    /* Must have at least one argument. */
+    expr_pos_error(ec_too_few_arguments, closing_paren_position);
+  } else if (args->next != NULL) {
+    /* Must have exactly one argument. */
+    expr_pos_error(ec_too_many_arguments, init_component_pos(args->next));
+  } else {
+    a_type_ptr  arg_type;
+    a_boolean   err = FALSE;
+    an_operand  *operand;
+    check_arg_list_elem_is_expression(args);
+    operand = operand_of_arg_list_elem(args);
+    if (is_an_lvalue(operand)) {
+      /* An rvalue is needed. */
+      conv_glvalue_to_prvalue(operand);
+    }  /* if */
+    arg_type = operand->type;
+    if (is_ptr_to_member_type(arg_type)) {
+      a_type_ptr  class_type = pm_class_type(arg_type);
+      if (class_type->incomplete) {
+        expr_pos_ty_diagnostic(es_error, ec_ptr_to_mem_of_incomplete_class,
+                               init_component_pos(args), class_type);
+        err = TRUE;
+      }  /* if */
+    } else if (!is_template_dependent_type(arg_type)) {
+      /* The operand must be a pointer-to-member. */
+      expr_pos_error(ec_expr_not_ptr_to_member, init_component_pos(args));
+      err = TRUE;
+    }  /* if */
+    if (!err) {
+      *arg_list = make_node_from_operand_for_expr_list(operand);
+      result = routine_from_function_operand(target);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* adjust_builtin_is_pointer_interconvertible_with_class */
+
+
+static a_routine_ptr adjust_builtin_is_corresponding_member(
+                  an_operand                           *target,
+                  an_arg_list_elem_ptr                 args,
+                  a_source_position                    *closing_paren_position,
+                  ARG_UNUSED a_builtin_call_adjustment *bcap,
+                  an_expr_node_ptr                     *arg_list)
+/*
+Adjust a call to __builtin_is_corresponding_member and diagnose type errors.
+It is declared as having type "bool (...) noexcept", but any call must pass in
+exactly two pointer-to-member values.
+*/
+{
+  a_routine_ptr  result = NULL;
+
+  *arg_list = NULL;
+  if (args == NULL || args->next == NULL) {
+    /* Must have at least two arguments. */
+    expr_pos_error(ec_too_few_arguments, closing_paren_position);
+  } else if (args->next->next != NULL) {
+    /* Must have exactly two arguments. */
+    expr_pos_error(ec_too_many_arguments, init_component_pos(args->next));
+  } else {
+    a_type_ptr  arg_type;
+    a_boolean   err = FALSE;
+    an_operand  *operand;
+    for (; args != NULL && !err; args = args->next) {
+      check_arg_list_elem_is_expression(args);
+      operand = operand_of_arg_list_elem(args);
+      if (is_an_lvalue(operand)) {
+        /* An rvalue is needed. */
+        conv_glvalue_to_prvalue(operand);
+      }  /* if */
+      arg_type = operand->type;
+      if (is_ptr_to_member_type(arg_type)) {
+        a_type_ptr  class_type = pm_class_type(arg_type);
+        if (class_type->incomplete) {
+          expr_pos_ty_diagnostic(es_error, ec_ptr_to_mem_of_incomplete_class,
+                                 init_component_pos(args), class_type);
+          err = TRUE;
+        }  /* if */
+      } else if (!is_template_dependent_type(arg_type)) {
+        /* The operand must be a pointer-to-member. */
+        expr_pos_error(ec_expr_not_ptr_to_member, init_component_pos(args));
+        err = TRUE;
+      }  /* if */
+      if (!err) {
+        *arg_list = make_node_from_operand_for_expr_list(operand);
+        arg_list = &(*arg_list)->next;
+      }  /* if */
+    }  /* for */
+    if (!err) {
+      result = routine_from_function_operand(target);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* adjust_builtin_is_corresponding_member */
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
@@ -6661,6 +6784,12 @@ are expected to be NULL in that case.
        types. */
     routine = bcap->callback(operand, arg_list, &closing_paren_position, bcap,
                              &argument_list);
+    if (routine == NULL) {
+      /* Something went wrong. */
+      expr_expect_error();
+      make_error_operand(result);
+      goto done;
+    }  /* if */
     routine_type = routine->type;
   }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */

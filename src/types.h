@@ -894,6 +894,9 @@ a_boolean member_types_correspond(a_type_ptr dest_type,
 extern a_boolean types_are_layout_compatible(a_type_ptr  tp1,
                                              a_type_ptr  tp2);
 
+extern a_targ_size_t common_initial_sequence_limit(a_type_ptr  tp1,
+                                                   a_type_ptr  tp2);
+
 /*
 Description of differences found while comparing types.
 */

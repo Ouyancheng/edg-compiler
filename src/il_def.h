@@ -15868,13 +15868,11 @@ typedef struct a_template_decl {
 			   entity (not including enclosing parameters). */
   union {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    /* When is_generic is TRUE: */
     a_generic_constraint_clause_ptr
 		where_clauses;
 			/* For C++/CLI generics, this points to the list of
 			   constraints specified, and can be NULL. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* When is_generic is FALSE (or undefined): */
     a_requires_clause_ptr
 		requires_clause;
 			/* The C++20-style requires-clause.  NULL if there is
