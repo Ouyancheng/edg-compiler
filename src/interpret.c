@@ -8211,6 +8211,7 @@ to FALSE and the reason for the failure is recorded in *ips.
             pm_value = (a_constexpr_ptr_to_mem*)arg1_bytes;
             class_type = tp->variant.ptr_to_member.class_of_which_a_member;
             if (pm_value->is_ptr_to_mem_function ||
+                pm_value->variant.field == NULL ||
                 pm_value->variant.field->offset != 0 ||
                 !class_symbol_supp(symbol_for(class_type))->standard_layout) {
               /* Non-standard classes and pointer-to-member functions elicit a
@@ -8251,6 +8252,8 @@ to FALSE and the reason for the failure is recorded in *ips.
             class_type2 = tp2->variant.ptr_to_member.class_of_which_a_member;
             if (pm_value1->is_ptr_to_mem_function ||
                 pm_value2->is_ptr_to_mem_function ||
+                pm_value1->variant.field == NULL ||
+                pm_value2->variant.field == NULL ||
                 !class_symbol_supp(symbol_for(class_type1))->standard_layout ||
                 !class_symbol_supp(symbol_for(class_type2))->standard_layout ||
                 pm_value1->variant.field->offset !=
