@@ -63,11 +63,11 @@ complete.  For example:
     static constexpr B *p = (D*)nullptr;  // Now an error in default mode.
   };
 
-Previously, this example was accepted in all modes.  Now, however, if triggers
+Previously, this example was accepted in all modes.  Now, however, it triggers
 an error by default because D is not complete at the point of the D*-to-B*
 conversion needed for the static data member initializer.  For compatibility
-reasons, the previous behavior is preserved in Clang and GNU C++ modes, and in
-Microsoft C++ mode with microsoft_version < 1927.
+reasons, the previous behavior is preserved in Clang mode, in GNU C++ mode with
+gnu_version < 90000, and in Microsoft C++ mode with microsoft_version < 1927.
 
 
 5/4/20   [EDGcpfe/22471]
