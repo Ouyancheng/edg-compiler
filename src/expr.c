@@ -5892,7 +5892,7 @@ be a pointer to a complete type and may not be const-qualified.
       /* Must be pointer type. */
       expr_pos_error(ec_expr_not_object_pointer, init_component_pos(args));
       err = TRUE;
-    } else {
+    } else if (!is_template_dependent_type(arg_type)) {
       a_type_ptr type = type_pointed_to(arg_type);
       if (is_void_type(type)) {
         /* Can't be pointer to void. */
