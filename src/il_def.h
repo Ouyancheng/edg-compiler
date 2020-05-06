@@ -15868,11 +15868,13 @@ typedef struct a_template_decl {
 			   entity (not including enclosing parameters). */
   union {
 #if MICROSOFT_EXTENSIONS_ALLOWED
+    /* When is_generic is TRUE: */
     a_generic_constraint_clause_ptr
 		where_clauses;
 			/* For C++/CLI generics, this points to the list of
 			   constraints specified, and can be NULL. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* When is_generic is FALSE (or undefined): */
     a_requires_clause_ptr
 		requires_clause;
 			/* The C++20-style requires-clause.  NULL if there is
@@ -17729,6 +17731,8 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__is_function",
   "__builtin_has_attribute",
   "__builtin_bit_cast",
+  "__builtin_is_layout_compatible",
+  "__builtin_is_pointer_interconvertible_base_of",
   "last"
 }
 #endif /* VAR_INITIALIZERS */

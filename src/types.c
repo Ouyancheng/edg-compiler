@@ -4141,8 +4141,8 @@ class will be instantiated if necessary so that its base classes are known.
 a_base_class_ptr find_base_class_of(a_type_ptr derived_class,
                                     a_type_ptr base_class)
 /*
-Like find_base_class_full, with instantiate_if_necessary set to TRUE if called
-from the front end, and FALSE if called from a back end.
+Like find_base_class_of_full, with instantiate_if_necessary set to TRUE if
+called from the front end, and FALSE if called from a back end.
 */
 {
   a_base_class_ptr  bcp = find_base_class_of_full(
