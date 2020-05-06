@@ -9175,6 +9175,103 @@ is TRUE, the backing expression for the returned constant will be set as well.
 }  /* fold_builtin_has_attribute */
 
 
+static void fold_builtin_is_layout_compatible(
+                                       an_expr_node_ptr   expr,
+                                       a_constant_ptr     constant,
+                                       a_boolean          maintain_expression)
+/*
+expr is an enk_builtin_operation node for a __builtin_is_layout_compatible
+operation.  If the operand types are nondependent, store a boolean constant in
+*constant.  The boolean constant will have value "true" if the two operands
+(types) are layout compatible.  If either of the operand types is dependent,
+store a ck_template_param constant in *constant.  The constant will be of the
+tpck_expression variant and will point to the given expression.  If
+maintain_expression is TRUE, the backing expression for the returned constant
+will be set as well.
+*/
+{
+  an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
+                    arg2 = arg1->next;
+  a_type_ptr        type1, type2;
+
+  /* eok_parens shouldn't appear here, since the construct is generated. */
+  check_assertion(arg1 != NULL && arg2 != NULL && arg2->next == NULL &&
+                  arg1->kind == (an_expr_node_kind)enk_type_operand &&
+                  arg2->kind == (an_expr_node_kind)enk_type_operand);
+  type1 = arg1->variant.type_operand.type;
+  type2 = arg2->variant.type_operand.type;
+  if (is_template_dependent_type(type1) ||
+      is_template_dependent_type(type2)) {
+    make_template_param_expr_constant(expr, constant);
+  } else {
+    a_boolean  result = types_are_layout_compatible(type1, type2);
+    clear_constant(constant, (a_constant_repr_kind)ck_integer);
+    set_integer_value(&constant->variant.integer_value,
+                      (a_host_large_integer)result);
+    if (maintain_expression) constant->expr = expr;
+  }  /* if */
+  constant->type = expr->type;
+}  /* fold_builtin_is_layout_compatible */
+
+
+static void fold_builtin_is_pointer_interconvertible_base_of(
+                                       an_expr_node_ptr   expr,
+                                       a_constant_ptr     constant,
+                                       a_boolean          maintain_expression)
+/*
+expr is an enk_builtin_operation node for a
+__builtin_is_pointer_interconvertible_base_of operation.  If the operand types
+are nondependent, store a boolean constant in *constant.  Let B denote the
+first operand (type) and D the second one.  The boolean constant will have
+value "true" if:
+  - B and D are identical non-union class types (ignoring qualifiers), or
+  - B is an unambiguous base of standard-layout class D, and each D object is
+    pointer-interconvertible with its B subobject.
+If either of the operand types is dependent, store a ck_template_param constant
+in *constant.  The constant will be of the tpck_expression variant and will
+point to the given expression.  If maintain_expression is TRUE, the backing
+expression for the returned constant will be set as well.
+*/
+{
+  an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
+                    arg2 = arg1->next;
+  a_type_ptr        type1, type2;
+
+  /* eok_parens shouldn't appear here, since the construct is generated. */
+  check_assertion(arg1 != NULL && arg2 != NULL && arg2->next == NULL &&
+                  arg1->kind == (an_expr_node_kind)enk_type_operand &&
+                  arg2->kind == (an_expr_node_kind)enk_type_operand);
+  type1 = arg1->variant.type_operand.type;
+  type2 = arg2->variant.type_operand.type;
+  if (is_template_dependent_type(type1) ||
+      is_template_dependent_type(type2)) {
+    make_template_param_expr_constant(expr, constant);
+  } else {
+    a_boolean  result = FALSE;
+    type1 = skip_typerefs(type1);
+    type2 = skip_typerefs(type2);
+    if (is_class_or_struct(type1) && is_class_or_struct(type2) &&
+        class_symbol_supp(symbol_for(type1))->standard_layout) {
+      if (same_entities(type1, type2)) {
+        result = TRUE;
+      } else {
+        /* Pointer-interconvertibility is characterized by a zero offset in
+           this case. */
+        a_base_class  *bcp = find_base_class_of(type1, type2);
+        if (bcp != NULL && !bcp->ambiguous && bcp->offset == 0) {
+          result = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    clear_constant(constant, (a_constant_repr_kind)ck_integer);
+    set_integer_value(&constant->variant.integer_value,
+                      (a_host_large_integer)result);
+    if (maintain_expression) constant->expr = expr;
+  }  /* if */
+  constant->type = expr->type;
+}  /* fold_builtin_is_pointer_interconvertible_base_of */
+
+
 void fold_builtin_operation_if_possible(
                               an_expr_node_ptr             expr,
                               a_constant_ptr               constant,
@@ -9318,6 +9415,13 @@ constant is set as well.
         break;
       case bok_builtin_has_attribute:
         fold_builtin_has_attribute(expr, constant, maintain_expression);
+        break;
+      case bok_builtin_is_layout_compatible:
+        fold_builtin_is_layout_compatible(expr, constant, maintain_expression);
+        break;
+      case bok_builtin_is_pointer_interconvertible_base_of:
+        fold_builtin_is_pointer_interconvertible_base_of(
+                                          expr, constant, maintain_expression);
         break;
       default:
         unexpected_condition();

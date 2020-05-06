@@ -381,6 +381,12 @@ Return TRUE if a type is a direct non-union class type.
 }  /* is_class_or_struct */
 
 /*
+Return the list of fields of the given class, struct, or union type.
+*/
+#define fields_of(tp)                                                 \
+  ((tp)->variant.class_struct_union.field_list)
+
+/*
 Return a pointer to the associated class type supplement.
 */
 #define class_type_supp(tp)                                           \
@@ -884,6 +890,9 @@ a_boolean member_types_correspond(a_type_ptr dest_type,
                                   a_boolean  source_is_function,
                                   a_boolean  allow_qualifier_or_eh_mismatch,
                                   a_boolean  *qualifiers_added);
+
+extern a_boolean types_are_layout_compatible(a_type_ptr  tp1,
+                                             a_type_ptr  tp2);
 
 /*
 Description of differences found while comparing types.

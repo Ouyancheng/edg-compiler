@@ -679,6 +679,9 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_concept */
    (an_opname_kind)onk_none,          /* tok_builtin_has_attribute */
    (an_opname_kind)onk_none,          /* tok_builtin_bit_cast */
+   (an_opname_kind)onk_none,          /* tok_builtin_is_layout_compatible */
+   (an_opname_kind)onk_none,
+                          /* tok_builtin_is_pointer_interconvertible_base_of */
    (an_opname_kind)onk_last           /* tok_last */
   }
 #endif /* VAR_INITIALIZERS */

@@ -13608,6 +13608,12 @@ previously-scanned construct of this kind.  Either way, return the result in
       case tok_reference_binds_to_temporary:
         bok = bok_reference_binds_to_temporary;
         break;
+      case tok_builtin_is_layout_compatible:
+        bok = bok_builtin_is_layout_compatible;
+        break;
+      case tok_builtin_is_pointer_interconvertible_base_of:
+        bok = bok_builtin_is_pointer_interconvertible_base_of;
+        break;
       default:
         unexpected_condition();
     }  /* switch */
@@ -32676,6 +32682,8 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_same_as:
     case tok_builtin_has_attribute:
     case tok_builtin_bit_cast:
+    case tok_builtin_is_layout_compatible:
+    case tok_builtin_is_pointer_interconvertible_base_of:
     case tok_requires:
       is_expr_start = TRUE;
       break;
@@ -38320,6 +38328,8 @@ handle_identifier:
     case tok_is_base_of:
     case tok_is_convertible_to:
     case tok_reference_binds_to_temporary:
+    case tok_builtin_is_layout_compatible:
+    case tok_builtin_is_pointer_interconvertible_base_of:
       /* Various binary type traits helper constructs: */
       scan_binary_type_trait_helper((a_rescan_control_block *)NULL,
                                     &local_result);
@@ -46239,6 +46249,12 @@ TRUE if the operator is a unary operator, FALSE otherwise.
     case bok_reference_binds_to_temporary:
       operator_token = tok_reference_binds_to_temporary;
       break;
+    case bok_builtin_is_layout_compatible:
+      operator_token = tok_builtin_is_layout_compatible;
+      break;
+    case bok_builtin_is_pointer_interconvertible_base_of:
+      operator_token = tok_builtin_is_pointer_interconvertible_base_of;
+      break;
     case bok_builtin_has_attribute:
       operator_token = tok_builtin_has_attribute;
       break;
@@ -47114,6 +47130,8 @@ alternative callable from outside, see rescan_expr_with_substitution.
       case tok_is_base_of:
       case tok_is_convertible_to:
       case tok_reference_binds_to_temporary:
+      case tok_builtin_is_layout_compatible:
+      case tok_builtin_is_pointer_interconvertible_base_of:
         scan_binary_type_trait_helper(rcblock, result);
         break;
       case tok_intaddr:

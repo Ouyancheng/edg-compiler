@@ -10396,6 +10396,105 @@ probably the types of the operands of an operation).
 }  /* member_types_correspond */
 
 
+static a_boolean fields_are_layout_compatible(a_field_ptr  fp1,
+                                              a_field_ptr  fp2)
+/*
+Return TRUE if the given fields have the same offset, same bit field length
+(if applicable), and have layout compatible types.
+*/
+{
+  return fp1->offset == fp2->offset &&
+         fp1->is_bit_field == fp2->is_bit_field &&
+         (!fp1->is_bit_field ||
+          (fp1->offset_bit_remainder == fp2->offset_bit_remainder &&
+           fp1->bit_size == fp2->bit_size)) &&
+         types_are_layout_compatible(fp1->type, fp2->type);
+}  /* fields_are_layout_compatible */
+
+
+a_boolean types_are_layout_compatible(a_type_ptr  tp1,
+                                      a_type_ptr  tp2)
+/*
+Return TRUE if the given types are "layout compatible".  For most types, this
+means "identical types" ignoring cv-qualifiers.  In addition:
+  - two enumerations are layout compatible if they have the same
+    underlying type
+  - two class/struct types are layout compatible if they have corresponding
+    members that are layout compatible
+  - two union types are layout compatible if each member of the first has a
+    corresponding member of the second that is layout compatible (ignoring
+    ordering)
+As of the latest working paper (N4861, which describes C++20) the specification
+of layout compatible flawed.  This implementation approximates is somewhat
+conservatively.
+*/
+{
+  a_boolean  result;
+
+  tp1 = skip_typerefs(tp1);
+  tp2 = skip_typerefs(tp2);
+  if (tp1->kind != tp2->kind) {
+    result = FALSE;
+  } else if (is_immediate_enum_type(tp1) && is_immediate_enum_type(tp2)) {
+    result = tp1->variant.integer.int_kind == tp2->variant.integer.int_kind;
+  } else if (is_immediate_class_type(tp1) && is_immediate_class_type(tp2)) {
+    a_class_symbol_supplement_ptr
+         cssp1 = class_symbol_supp(symbol_for(tp1)),
+         cssp2 = class_symbol_supp(symbol_for(tp2));
+    if (cssp1->standard_layout && cssp2->standard_layout &&
+        base_classes_of(tp1) == NULL && base_classes_of(tp2) == NULL) {
+      a_field_ptr  fp1 = fields_of(tp1), fp2;
+      result = TRUE;
+      fp1 = next_proper_initializable_field(fp1);
+      if (is_class_or_struct(tp1) && is_class_or_struct(tp2)) {
+        fp2 = next_proper_initializable_field(fields_of(tp2));
+        /* Two standard-layout non-union class types: Compare the fields one
+           by one. */
+        while (fp1 != NULL && fp2 != NULL) {
+          if (!fields_are_layout_compatible(fp1, fp2)) {
+            break;
+          }  /* if */
+          fp1 = next_proper_initializable_field(fp1->next);
+          fp2 = next_proper_initializable_field(fp2->next);
+        }  /* while */
+        if (fp1 != NULL || fp2 != NULL) {
+          result = FALSE;
+        }  /* if */
+      } else if (type_is(tp1, tk_union) && type_is(tp2, tk_union)) {
+        /* Two standard-layout unions: For each field in tp1 find a
+           corresponding field in tp2. */
+        while (fp1 != NULL) {
+          fp2 = next_proper_initializable_field(fields_of(tp2));
+          while (fp2 != NULL) {
+            if (fields_are_layout_compatible(fp1, fp2)) {
+              /* A match.  Move on to the next field in tp1 (if any). */
+              break;
+            }  /* if */
+            fp2 = next_proper_initializable_field(fp2->next);
+          }  /* while */
+          if (fp2 == NULL) {
+            /* We didn't find a match. */
+            break;
+          }  /* if */
+          fp1 = next_proper_initializable_field(fp1->next);
+        }  /* while */
+        if (fp1 != NULL) {
+          result = FALSE;
+        }  /* if */
+      } else {
+        /* A union and a non-union. */
+        result = FALSE;
+      }  /* if */
+    } else {
+      result = same_entities(tp1, tp2);
+    }  /* if */
+  } else {
+    result = identical_types(tp1, tp2);
+  }  /* if */
+  return result;
+}  /* types_are_layout_compatible */
+
+
 a_boolean impl_ptr_to_member_conversion(
                          a_type_ptr           source_type,
                          a_boolean            source_is_constant,
