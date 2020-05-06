@@ -9250,15 +9250,15 @@ expression for the returned constant will be set as well.
     a_boolean  result = FALSE;
     type1 = skip_typerefs(type1);
     type2 = skip_typerefs(type2);
-    if (is_class_or_struct(type1) && is_class_or_struct(type2) &&
-        class_symbol_supp(symbol_for(type1))->standard_layout) {
+    if (is_class_or_struct(type1) && is_class_or_struct(type2)) {
       if (same_entities(type1, type2)) {
         result = TRUE;
       } else {
         /* Pointer-interconvertibility is characterized by a zero offset in
            this case. */
         a_base_class  *bcp = find_base_class_of(type1, type2);
-        if (bcp != NULL && !bcp->ambiguous && bcp->offset == 0) {
+        if (bcp != NULL && !bcp->ambiguous && !bcp->is_virtual &&
+            bcp->offset == 0) {
           result = TRUE;
         }  /* if */
       }  /* if */
