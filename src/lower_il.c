@@ -13032,7 +13032,7 @@ Note that the expression (and argument) have already been lowered.
 static void lower_builtin_function_call(an_expr_node_ptr expr)
 /*
 Called to potentially lower a builtin function call.  The expression is
-an eok_call of a builtin function.
+an eok_call of a builtin function.  The expression has already been lowered.
 */
 {
   an_expr_node_ptr  routine_node = expr->variant.operation.operands;
@@ -13047,6 +13047,107 @@ an eok_call of a builtin function.
       unexpected_condition();
     case bfk_zero_non_value_bits:
       lower_builtin_zero_non_value_bits(expr);
+      break;
+    case bufk_is_corresponding_member:
+      { an_expr_node_ptr arg1 = expr->variant.operation.operands->next;
+        an_expr_node_ptr arg2 = arg1->next;
+        a_type_ptr       class_type1, class_type2;
+        check_assertion(arg2 != NULL &&
+                        (is_or_was_ptr_to_data_member_type(arg1->type) ||
+                         is_or_was_ptr_to_member_function_type(arg1->type)) &&
+                        (is_or_was_ptr_to_data_member_type(arg2->type) ||
+                         is_or_was_ptr_to_member_function_type(arg2->type)));
+        class_type1= arg1->type->variant.ptr_to_member.class_of_which_a_member;
+        class_type2= arg2->type->variant.ptr_to_member.class_of_which_a_member;
+        if (is_or_was_ptr_to_member_function_type(arg1->type) ||
+            is_or_was_ptr_to_member_function_type(arg2->type) ||
+            !class_symbol_supp(symbol_for(class_type1))->standard_layout ||
+            !class_symbol_supp(symbol_for(class_type2))->standard_layout) {
+          /* Non-standard classes or pointer-to-member functions always elicit
+             a "false" result.  Replace the call with "(arg1, (arg2, 0))". */
+          a_constant_ptr zero_con =
+                              alloc_constant((a_constant_repr_kind)ck_integer);
+          make_zero_of_proper_type(expr->type, zero_con);
+          overwrite_node(expr, make_comma_node(arg1,
+                               make_comma_node(arg2,
+                                        make_node_for_il_constant(zero_con))));
+        } else {
+          /* Result isn't known until run time (otherwise the interpreter
+             would have folded this).  Return 1 if the members are non-null
+             and "correspond" (i.e., if they are within the "common initial
+             sequence" and have the same offset).  That's achieved by replacing
+             the call with this code:
+                (arg1 == arg2 &&
+                 (arg1 != null_value_for_pointer_to_data_member &&
+                  arg1 < common_initial_sequence_limit(class_type1,
+                                                       class_type2))))
+             Note that a temporary may be used for subsequent uses of arg1
+             (if the expression's value might change). */
+          an_expr_node_ptr expr_eq, expr_ne, arg1_copy;
+          a_type_ptr       int_type = integer_type((an_integer_kind)ik_int);
+          arg1_copy = make_reusable_copy(arg1, /*vars_can_change=*/TRUE);
+          expr_eq = make_operator_node((an_expr_operator_kind)eok_eq, int_type,
+                                       arg1);
+          /* Use -1 for the IA-64 ABI and 0 for the Cfront ABI for detecting
+             null pointer-to-data-member values. */
+          arg1_copy->next = node_for_promoted_integer_constant(
+#if IA64_ABI
+                                             -1L,
+#else /* !IA64_ABI */
+                                             0L,
+#endif /* IA64_ABI */
+                                             targ_ptr_to_data_member_int_kind);
+          expr_ne = make_operator_node((an_expr_operator_kind)eok_ne,
+                                       int_type, arg1_copy);
+          arg1_copy = make_reusable_copy(arg1_copy, /*vars_can_change=*/TRUE);
+          arg1_copy->next = node_for_promoted_integer_constant(
+                 (long)common_initial_sequence_limit(class_type1, class_type2),
+                                             targ_ptr_to_data_member_int_kind);
+          expr_ne->next = make_operator_node((an_expr_operator_kind)eok_lt,
+                                    int_type, arg1_copy);
+          expr_eq->next = make_operator_node((an_expr_operator_kind)eok_land,
+                                    int_type, expr_ne);
+          overwrite_node(expr, make_operator_node(
+                                               (an_expr_operator_kind)eok_land,
+                                                int_type, expr_eq));
+        }  /* if */
+      }
+      break;
+    case bufk_is_pointer_interconvertible_with_class:
+      { an_expr_node_ptr arg1 = expr->variant.operation.operands->next;
+        a_type_ptr       class_type;
+        check_assertion(arg1 != NULL && arg1->next == NULL &&
+                        (is_or_was_ptr_to_data_member_type(arg1->type) ||
+                         is_or_was_ptr_to_member_function_type(arg1->type)));
+        class_type = arg1->type->variant.ptr_to_member.class_of_which_a_member;
+        if (is_or_was_ptr_to_member_function_type(arg1->type) ||
+            !class_symbol_supp(symbol_for(class_type))->standard_layout) {
+          /* Non-standard classes or pointer-to-member functions always elicit
+             a "false" result.  Replace the call with "(arg1, 0)". */
+          a_constant_ptr zero_con =
+                              alloc_constant((a_constant_repr_kind)ck_integer);
+          make_zero_of_proper_type(expr->type, zero_con);
+          overwrite_node(expr, make_comma_node(arg1,
+                                         make_node_for_il_constant(zero_con)));
+        } else {
+          /* Result isn't known until run time (otherwise the interpreter
+             would have folded this).  Return 1 if the offset is "zero"
+             (a "zero" offset in the IA-64 ABI is "0", and in the Cfront
+             ABI it's "1").  That's accomplished by replacing the call with
+             (arg1 == 0/1) as appropriate for the ABI. */
+          arg1->next = node_for_promoted_integer_constant(
+#if IA64_ABI
+                                             0L,
+#else /* !IA64_ABI */
+                                             1L,
+#endif /* IA64_ABI */
+                                             targ_ptr_to_data_member_int_kind);
+          arg1 = make_operator_node((an_expr_operator_kind)eok_eq,
+                                    integer_type((an_integer_kind)ik_int),
+                                    arg1);
+          overwrite_node(expr, arg1);
+        }  /* if */
+      }
       break;
     default:
       break;
