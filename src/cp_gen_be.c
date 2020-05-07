@@ -19677,6 +19677,7 @@ this one is such a continuation.
   a_gen_decl_options_set       gd_options = GDO_NO_OPTIONS;
   a_boolean                    saved_suppress_nontype_expr =
                                              octl.suppress_expr_in_nontype_arg;
+  a_boolean                    in_class_decl_no_init;
 
   is_generated_explicit_specialization = FALSE;
   name_ref = get_current_name_ref();
@@ -19965,19 +19966,26 @@ this one is such a continuation.
     }  /* if */
 #endif /* NAMED_REGISTERS_ALLOWED */
     gen_sun_link_scope_specifiers(var->decl_modifiers);
+    in_class_decl_no_init = (var->source_corresp.is_class_member &&
+                             curr_name_context_is_a_class() &&
+                             !var->initializer_in_class);
     if (var->is_constexpr &&
         (var->source_corresp.is_class_member || is_definition)) {
       /* Put out the "constexpr" keyword.  For ordinary variables (i.e., not
          static data members) it should only appear on the definition. */
       if (var->source_corresp.is_class_member &&
-          var->init_kind == (an_init_kind)initk_none) {
-        /* When rendering template instantiations as explicit specializations,
-           we may not have an initializer available (i.e., the variable was
-           not used in a way that requires its initializer to be instantiated).
-           Rendering the explicit specialization with the "constexpr" specifier
-           but no initializer would produce an error.  We therefore drop the
-           "constexpr" specifier and use the effective type (which will have
-           a const-qualifier in the non-reference case) instead. */
+          (var->init_kind == (an_init_kind)initk_none ||
+           in_class_decl_no_init)) {
+        /* When putting out template instantiations as explicit
+           specializations, we may not have an initializer available (i.e.,
+           the variable was not used in a way that requires its initializer
+           to be instantiated).  Putting out the explicit specialization
+           with the "constexpr" specifier but no initializer would produce
+           an error.  The same is true for a non-defining declaration
+           inside a class definition that is defined as constexpr outside
+           the class.  We therefore drop the "constexpr" specifier and use
+           the effective type (which will have a const-qualifier in the
+           non-reference case) instead. */
         var_type = var->type;
       } else {
         write_tok_str("constexpr ");
@@ -19985,7 +19993,7 @@ this one is such a continuation.
     } else if (var->declared_constinit) {
       write_tok_str((!gpp_mode || cpp20_mode) ? "constinit " : "__constinit ");
     }  /* if */
-    if (var->is_inline) {
+    if (var->is_inline && !in_class_decl_no_init) {
       write_tok_str("inline ");
     }  /* if */
     if (var->is_thread_local) {

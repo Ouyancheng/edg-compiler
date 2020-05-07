@@ -1,5 +1,20 @@
 Version 6.1
 
+5/7/20   [EDGcpfe/22728]
+C++-generating back end: non-defining static data member declarations
+
+The C++-generating back end incorrectly put out the constexpr and inline
+specifiers on the non-defining in-class declaration of a static data
+member if they appear on its out-of-class definition.  This is now fixed.
+For example, with --c++20:
+
+  struct S {
+    static const S s;  // Previously declared "constexpr inline"
+    constexpr S(int) { }
+  };
+  constexpr inline const S S::s(0);
+
+
 5/6/20   [EDGcpfe/22295]
 Builtin helper operators and functions for layout-compatibility checking
 
