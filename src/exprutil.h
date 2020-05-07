@@ -1403,6 +1403,9 @@ i.e., it's not inside a sizeof or alignof.
 #define curr_expr_is_potentially_evaluated()                          \
   ((a_boolean)expr_stack->potentially_evaluated)
 
+#define in_unevaluated_expr_context()                                 \
+  (expr_stack != NULL && !curr_expr_is_potentially_evaluated())
+
 /*
 Macro that returns TRUE if the current expression is potentially unevaluated,
 i.e., it's an unevaluated operand or the operand of typeid.
