@@ -13083,25 +13083,29 @@ an eok_call of a builtin function.  The expression has already been lowered.
                                                        class_type2))))
              Note that a temporary may be used for subsequent uses of arg1
              (if the expression's value might change). */
+          long cisl =
+                 (long)common_initial_sequence_limit(class_type1, class_type2);
+          long null_value;
           an_expr_node_ptr expr_eq, expr_ne, arg1_copy;
           a_type_ptr       int_type = integer_type((an_integer_kind)ik_int);
+#if IA64_ABI
+          null_value = -1L;
+#else /* !IA64_ABI */
+          /* Offsets are "off by one" in the Cfront config. */
+          null_value = 0L;
+          cisl++;
+#endif /* IA64_ABI */
           arg1_copy = make_reusable_copy(arg1, /*vars_can_change=*/TRUE);
           expr_eq = make_operator_node((an_expr_operator_kind)eok_eq, int_type,
                                        arg1);
           /* Use -1 for the IA-64 ABI and 0 for the Cfront ABI for detecting
              null pointer-to-data-member values. */
-          arg1_copy->next = node_for_promoted_integer_constant(
-#if IA64_ABI
-                                             -1L,
-#else /* !IA64_ABI */
-                                             0L,
-#endif /* IA64_ABI */
+          arg1_copy->next = node_for_promoted_integer_constant(null_value,
                                              targ_ptr_to_data_member_int_kind);
           expr_ne = make_operator_node((an_expr_operator_kind)eok_ne,
                                        int_type, arg1_copy);
           arg1_copy = make_reusable_copy(arg1_copy, /*vars_can_change=*/TRUE);
-          arg1_copy->next = node_for_promoted_integer_constant(
-                 (long)common_initial_sequence_limit(class_type1, class_type2),
+          arg1_copy->next = node_for_promoted_integer_constant((long)cisl,
                                              targ_ptr_to_data_member_int_kind);
           expr_ne->next = make_operator_node((an_expr_operator_kind)eok_lt,
                                     int_type, arg1_copy);
