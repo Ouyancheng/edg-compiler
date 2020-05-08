@@ -2187,10 +2187,6 @@ private:
   static an_ifc_partition_map *find_ifc_partition(a_const_char *name) noexcept;
   void process_ifc_scope(ifc_ScopeIndex scope_index,
                          a_scope_ptr    scope) const noexcept;
-  a_template_ptr process_template_decl(a_module_entity_ptr      mep,
-                                       an_ifc_DeclSort_Template *decl,
-                                       a_symbol_locator         *loc)
-                                                                const noexcept;
   /* Module entity getters. */
   a_module_entity_ptr get_ifc_module_entity_ptr(
                                        an_ifc_partition_kind partition,
@@ -2209,8 +2205,11 @@ private:
                                                                 const noexcept;
   void source_position_from_locus(a_source_position  *pos,
                                   ifc_SourceLocation *locus) const noexcept;
+  inline a_const_char *get_string_at_offset(ifc_TextOffset offset)
+                                                                const noexcept;
   a_const_char *string_from_name_index(ifc_NameIndex    name_index,
                                        a_symbol_locator *loc) const noexcept;
+  a_const_char *name_from_decl(ifc_DeclIndex decl) const noexcept;
   void init_dps(a_decl_parse_state          *dps,
                 ifc_SourceLocation          *locus,
                 ifc_TypeIndex               type_index,
@@ -2228,9 +2227,17 @@ private:
                                          a_type_ptr    default_type)
                                                                 const noexcept;
   /* Token caching. */
+  void cache_scope(a_token_cache_ptr  cache,
+                   ifc_ScopeIndex     scope,
+                   ifc_SourceLocation *locus) const noexcept;
   void cache_type(a_token_cache_ptr  cache,
                   ifc_TypeIndex      type,
                   ifc_SourceLocation *locus) const noexcept;
+  void cache_decl(a_token_cache_ptr  cache,
+                  ifc_DeclIndex      decl) const noexcept;
+  void cache_chart(a_token_cache_ptr  cache,
+                   ifc_ChartIndex     chart,
+                   ifc_SourceLocation *locus) const noexcept;
   void cache_sentence(a_token_cache_ptr cache,
                       ifc_SentenceIndex sentence) const noexcept;
   void cache_word(a_token_cache_ptr     cache,
@@ -2255,6 +2262,8 @@ private:
                                ifc_SourceIdentifier  id,
                                ifc_Index             index,
                                ifc_SourceLocation    *locus) const noexcept;
+  void cache_decl_template(a_token_cache_ptr        cache,
+                           an_ifc_DeclSort_Template *decl) const noexcept;
   /* Readers and reading helpers. */
   inline size_t file_offset_of(an_ifc_partition_kind partition,
                                ifc_Index_type        index) const noexcept;

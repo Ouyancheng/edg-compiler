@@ -13119,17 +13119,7 @@ restart:
       goto return_from_token_scan;
     }  /* if */
   }  /* if */
-  /* A new token is being scanned from the input stream.  Assign a token
-     sequence number to this token.  The value is incremented by two to
-     reserve a slot in case the token is a ">>" that needs to be split into
-     two tokens because it closes two template argument lists.  This
-     availability is also taken advantage of when associating token sequence
-     numbers with calls to "begin(...)" and "end(...)" in some cases of
-     range-based for loops. */
-  last_token_sequence_number_used += 2;
-  curr_token_sequence_number = last_token_sequence_number_used;
-  last_token_sequence_number_of_token = curr_token_sequence_number;
-  curr_cached_token_handle = NO_CACHED_TOKEN_HANDLE;
+  assign_curr_token_sequence_number();
 rescan_token:
   /* Skip over any initial white space blanks.  These are very common, so
      they're handled inline here.  The other potential white space characters

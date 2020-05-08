@@ -32822,45 +32822,19 @@ static void template_or_specialization_declaration(
                                            a_boolean           is_generic,
                                            a_decl_parse_state  *orig_dps)
 /*
-Scan a template declaration or a template specialization declaration.
-
-This routine determines whether the entity being scanned is a "full
-specialization".  A full specialization is a declaration that declares
-a real function or class and not a template.  In a full specialization
-all of the template parameter clauses contain empty template parameter
-lists (e.g., "template <>").  Declarations that are not full specializations
-are either the specialization of a template or a template declaration.
-
-*final_token should be tok_semicolon and might be updated to tok_rbrace.
+Wrapper for template_or_specialization_declaration_full.  *final_token should
+be tok_semicolon and might be updated to tok_rbrace.
 
 export_present is TRUE if the template keyword was preceded by "export".
 If export_present is TRUE, export_pos is the position of the export
 keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
-
-This function is also called for abbreviated function templates.  That case is
-characterized by orig_dps being non-NULL and pointing to the parse state
-achieved with an initial attempt to parse the declaration as a non-template.
-In particular, orig_dps->variant.auto_params points to a list of descriptions
-of the "auto" parameters.
 */
 {
-  a_tmpl_decl_state		decl_state;
-  a_decl_parse_state		dps;
-  a_def_arg_expr_fixup_ptr	saved_curr_default_args;
-  a_scope_depth			orig_depth = depth_scope_stack;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position             header_pos;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_tmpl_decl_state  decl_state;
+  a_decl_parse_state dps;
 
-  check_assertion_str2(curr_token == tok_template || orig_dps != NULL ||
-                       (curr_token == tok_identifier && is_generic),
-                       "template_or_specialization_declaration:",
-                       "expected tok_template or generic identifier");
   init_decl_parse_state(&dps);
   init_templ_decl_state(&decl_state, &dps);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  header_pos = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Note that select_curr_construct_pragmas is called in the caller.
      extract_curr_construct_pragmas is called to save the list of
      pragmas associated with this template declaration.  This pragma
@@ -32871,28 +32845,69 @@ of the "auto" parameters.
   decl_state.export_position = *export_pos;
   decl_state.starting_token_sequence_number = curr_token_sequence_number;
   decl_state.is_generic = is_generic;
-  saved_curr_default_args = curr_default_args;
-  curr_default_args = NULL;
   decl_state.in_prototype_instantiation =
                     scope_stack[depth_scope_stack].in_prototype_instantiation;
   decl_state.in_generic_definition =
                          scope_stack[depth_scope_stack].in_generic_definition;
   decl_state.final_token_ptr = final_token;
   decl_state.enclosing_scope = scope_stack_top().il_scope;
+  template_or_specialization_declaration_full(&decl_state, is_generic,
+                                              orig_dps);
+}  /* template_or_specialization_declaration */
+
+
+void template_or_specialization_declaration_full(
+                                          a_tmpl_decl_state_ptr decl_state,
+                                          a_boolean             is_generic,
+                                          a_decl_parse_state    *orig_dps)
+/*
+Scan a template declaration or a template specialization declaration.
+
+This routine determines whether the entity being scanned is a "full
+specialization".  A full specialization is a declaration that declares
+a real function or class and not a template.  In a full specialization
+all of the template parameter clauses contain empty template parameter
+lists (e.g., "template <>").  Declarations that are not full specializations
+are either the specialization of a template or a template declaration.
+
+This function is also called for abbreviated function templates.  That case is
+characterized by orig_dps being non-NULL and pointing to the parse state
+achieved with an initial attempt to parse the declaration as a non-template.
+In particular, orig_dps->variant.auto_params points to a list of descriptions
+of the "auto" parameters.
+*/
+{
+  a_decl_parse_state_ptr   dps = decl_state->decl_parse;
+  a_def_arg_expr_fixup_ptr saved_curr_default_args = curr_default_args;
+  a_scope_depth            orig_depth = depth_scope_stack;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position        header_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_boolean                export_present = decl_state->export_present;
+  a_source_position_ptr    export_pos = &decl_state->export_position;
+
+  check_assertion_str2(curr_token == tok_template || orig_dps != NULL ||
+                       (curr_token == tok_identifier && is_generic),
+                       "template_or_specialization_declaration:",
+                       "expected tok_template or generic identifier");
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  header_pos = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  curr_default_args = NULL;
   /* If there are any pk_immediate pragmas associated with the current
      token, process them now, before the current token is cached, instead
      of in get_token, as is usually done. */
   process_curr_token_pragmas();
   /* Start caching the tokens of the declaration. */
-  begin_caching_template_decl(&decl_state, /*include_curr_token=*/TRUE);
+  begin_caching_template_decl(decl_state, /*include_curr_token=*/TRUE);
   /* Determine the initial nesting depth to be used for the template.
      This may be updated later for friend declarations. */
-  nesting_depth_of_template(&decl_state);
+  nesting_depth_of_template(decl_state);
   if (export_present) {
     if (scope_stack[depth_scope_stack].within_unnamed_namespace) {
       /* A template in an unnamed namespace cannot be declared export. */
       pos_error(ec_exported_in_unnamed_namespace, export_pos);
-      decl_state.decl_scope_err = TRUE;
+      decl_state->decl_scope_err = TRUE;
     }  /* if */
   }  /* if */
   /* Create an IL template entry for this declaration.  This is only done
@@ -32900,94 +32915,94 @@ of the "auto" parameters.
      IL entries are usually not created for templates found during prototype
      instantiation of other templates because they will be included in
      the template string of the enclosing template. */
-  decl_state.il_template_entry = make_il_template_entry(&decl_state);
+  decl_state->il_template_entry = make_il_template_entry(decl_state);
   /* Scan one or more template parameter lists.  Each template parameter
      list looks like "template < param-list >".  The param-list is
      optional (but once a parameter list has been specified, all subsequent
      param-lists must be present). */
-  scan_template_param_clauses(&decl_state, orig_dps,
+  scan_template_param_clauses(decl_state, orig_dps,
                               /*is_template_param=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (decl_state.is_generic) {
-    dps.is_generic_declaration = TRUE;
+  if (decl_state->is_generic) {
+    dps->is_generic_declaration = TRUE;
     /* For C++/CLI generics, scan any constraints that may be present. */
-    scan_generic_constraint_clauses(&decl_state);
+    scan_generic_constraint_clauses(decl_state);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Record the location of the end of the template parameter list (and
      generic constraints in C++/CLI mode). */
-  decl_state.last_token_sequence_number_of_params = curr_token_sequence_number;
+  decl_state->last_token_sequence_number_of_params =curr_token_sequence_number;
   /* Get the tokens of the template parameter clauses. */
-  extract_template_parameter_cache(&decl_state);
+  extract_template_parameter_cache(decl_state);
   /* Cache the tokens that make up the rest of the declaration. */
-  cache_template_declaration(&decl_state);
-  decl_level_of_template(&decl_state);
+  cache_template_declaration(decl_state);
+  decl_level_of_template(decl_state);
   /* Make sure that this template declaration is permitted in the current
      scope. */
-  if (decl_state.effective_decl_level == NO_SCOPE_DEPTH) {
-    pos_error(decl_state.is_generic ? ec_bad_generic_declaration_scope
-                                    : ec_bad_template_declaration_scope,
-              &dps.start_pos);
-    decl_state.decl_scope_err = TRUE;
+  if (decl_state->effective_decl_level == NO_SCOPE_DEPTH) {
+    pos_error(decl_state->is_generic ? ec_bad_generic_declaration_scope
+                                     : ec_bad_template_declaration_scope,
+              &dps->start_pos);
+    decl_state->decl_scope_err = TRUE;
     /* Set the effective declaration level to a valid value for the remainder
        of the processing. */
-    decl_state.effective_decl_level = decl_state.err_decl_level;
-    decl_state.orig_decl_level = decl_state.err_decl_level;
+    decl_state->effective_decl_level = decl_state->err_decl_level;
+    decl_state->orig_decl_level = decl_state->err_decl_level;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (decl_state.is_member_decl &&
-             decl_state.class_declared_in
+  } else if (decl_state->is_member_decl &&
+             decl_state->class_declared_in
                                   ->variant.class_struct_union.is_interface) {
     /* Member templates should not appear in interface definitions.  Microsoft
        currently accepts certain cases in C++/CLI mode.  We are rejecting
        all cases pending clarification of this issue. */
-    pos_error(decl_state.is_generic
+    pos_error(decl_state->is_generic
                                   ? ec_interface_cannot_have_member_generics
                                   : ec_interface_cannot_have_member_templates,
-              &dps.start_pos);
-  } else if (decl_state.is_generic && decl_state.is_member_decl &&
+              &dps->start_pos);
+  } else if (decl_state->is_generic && decl_state->is_member_decl &&
              !is_valid_cli_generic_declaration_context()) {
     /* A generic cannot be declared in a template. */
-    pos_error(ec_generic_in_template, &dps.start_pos);
-    decl_state.decl_scope_err = TRUE;
-  } else if (!decl_state.is_generic && decl_state.is_member_decl &&
+    pos_error(ec_generic_in_template, &dps->start_pos);
+    decl_state->decl_scope_err = TRUE;
+  } else if (!decl_state->is_generic && decl_state->is_member_decl &&
              is_cli_generic_definition_context()) {
     /* A template cannot be declared in a generic. */
-    pos_error(ec_template_in_generic, &dps.start_pos);
-    decl_state.decl_scope_err = TRUE;
+    pos_error(ec_template_in_generic, &dps->start_pos);
+    decl_state->decl_scope_err = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
-  if (decl_state.decl_info == NULL) {
+  if (decl_state->decl_info == NULL) {
     /* If no decl_info was created, this must be a full specialization. */
-    decl_state.is_full_specialization = TRUE;
+    decl_state->is_full_specialization = TRUE;
   } else {
-    decl_state.il_template_entry->template_decl = decl_state.template_decl;
+    decl_state->il_template_entry->template_decl = decl_state->template_decl;
     /* Now that we have more information (created as part of the process of
        caching and prescanning the template declaration) finish the
        processing of the template parameter clauses. */
-    complete_template_parameter_clauses(&decl_state);
+    complete_template_parameter_clauses(decl_state);
   }  /* if */
-  if (decl_state.is_full_specialization) {
+  if (decl_state->is_full_specialization) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* An IL template entry was created above.  It is not used for full
        specializations.  If it was given a source sequence entry, remove
        it. */
     if (!source_sequence_entries_disallowed) {
-      a_template_ptr	tp = decl_state.il_template_entry;
+      a_template_ptr	tp = decl_state->il_template_entry;
       f_remove_from_src_seq_list(tp->source_corresp.source_sequence_entry,
                                  orig_depth);
       tp->source_corresp.source_sequence_entry = NULL;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* No IL template entry required. */
-    decl_state.il_template_entry = NULL;
+    decl_state->il_template_entry = NULL;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (decl_state.is_generic && decl_state.decl_info != NULL) {
+  if (decl_state->is_generic && decl_state->decl_info != NULL) {
     /* Create the constraint types based on the C++/CLI constraints. */
-    create_generic_constraint_types(decl_state.decl_info);
+    create_generic_constraint_types(decl_state->decl_info);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (decl_state.is_specialization) {
+  if (decl_state->is_specialization) {
     /* A specialization declaration is only permitted in a namespace scope. */
     a_scope_stack_entry_ptr ssep = scope_stack_entry_for(orig_depth);
     if ((ssep->kind == (a_scope_kind)sck_file ||
@@ -32998,14 +33013,14 @@ of the "auto" parameters.
                allow_in_class_specializations) {
       /* Microsoft and Sun permit specializations to appear in class scopes. */
     } else {
-      if (!decl_state.decl_scope_err) {
+      if (!decl_state->decl_scope_err) {
         pos_error(ec_explicit_specialization_not_in_namespace_scope,
-                  &dps.start_pos);
-        decl_state.decl_scope_err = TRUE;
+                  &dps->start_pos);
+        decl_state->decl_scope_err = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
-  if (decl_state.is_full_specialization) {
+  if (decl_state->is_full_specialization) {
     /* The entity being declared is a full specialization. */
     if (export_present) {
       /* A full specialization cannot be exported. */
@@ -33013,34 +33028,34 @@ of the "auto" parameters.
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     add_element_position(epk_specialization_header, &header_pos,
-                         &dps.extra_positions);
+                         &dps->extra_positions);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* The background cache is not needed for a full specialization. */
-    end_caching_template_decl(&decl_state);
-    full_specialization(&decl_state);
+    end_caching_template_decl(decl_state);
+    full_specialization(decl_state);
   } else if (curr_token == tok_concept) {
     /* A C++20 concept definition. */
     /* Concepts are parsed generically and "instantiated" by semantic
        substitution rather than by replaying tokens.  There is therefore no
        need to cache their tokens. */
-    end_caching_template_decl(&decl_state);
-    scan_concept_definition(&decl_state);
+    end_caching_template_decl(decl_state);
+    scan_concept_definition(decl_state);
   } else {
     /* The entity being declared is a template. */
 #if BACK_END_IS_CP_GEN_BE
     a_template_param_ptr tpp;
     uint32_t             min_template_args = 0;
-    a_template_ptr       tp = decl_state.il_template_entry;
+    a_template_ptr       tp = decl_state->il_template_entry;
     /* Record the number of template parameters without default arguments,
        i.e., the number that must be supplied when naming an instance of
        this template following this declaration. */
-    for (tpp = decl_state.decl_info->parameters;
+    for (tpp = decl_state->decl_info->parameters;
          tpp != NULL && !tpp->has_default_arg;
          tpp = tpp->next) {
       ++min_template_args;
     }  /* for */
 #endif /* BACK_END_IS_CP_GEN_BE */
-    template_declaration(&decl_state);
+    template_declaration(decl_state);
 #if BACK_END_IS_CP_GEN_BE
     if (tp->canonical_template == tp || tpp != NULL) {
       /* Record the minimum number of required template arguments for a
@@ -33053,9 +33068,9 @@ of the "auto" parameters.
     }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
   }  /* if */
-  wrapup_templ_decl_state(&decl_state);
+  wrapup_templ_decl_state(decl_state);
   curr_default_args = saved_curr_default_args;
-}  /* template_or_specialization_declaration */
+}  /* template_or_specialization_declaration_full */
 
 
 void reparse_abbr_func_template(a_decl_parse_state  *orig_dps,

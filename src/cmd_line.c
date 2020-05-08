@@ -5532,11 +5532,6 @@ file.
           "/* version %s, built on %s at %s. */\n\n",
           VERSION_NUMBER, build_date, build_time);
 /* Print the values of all configuration macros. */
-#if defined(ABSTRACT_MODULE_INTERFACE_IS_UNIMPLEMENTED)
-  define_numeric_valued_macro(ABSTRACT_MODULE_INTERFACE_IS_UNIMPLEMENTED);
-#else /* !defined(ABSTRACT_MODULE_INTERFACE_IS_UNIMPLEMENTED) */
-  comment_undefined_macro_name(ABSTRACT_MODULE_INTERFACE_IS_UNIMPLEMENTED);
-#endif /* defined(ABSTRACT_MODULE_INTERFACE_IS_UNIMPLEMENTED) */
 #if defined(ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE)
   define_numeric_valued_macro(ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE);
 #else /* !defined(ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE) */

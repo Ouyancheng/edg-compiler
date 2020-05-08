@@ -48,6 +48,13 @@ struct a_module_entity {
 			   is used rather than a pointer to avoid PCH
 			   issues (should the underlying module file be mapped
 			   to a different address). */
+  a_boolean	imminent;
+			/* When entity.ptr is NULL, this is TRUE if the
+			   definition of the entity has not been completed but
+			   is expected shortly.  This typically means that the
+			   entity should be treated as not defined, but it can
+			   be removed from any lazy symbol lists as its
+			   definition is also no longer deferred. */
   union {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     an_ifc_partition_kind

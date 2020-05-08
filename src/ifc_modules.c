@@ -551,18 +551,18 @@ the comments there).
 */
 #define get_tag_from_partition(partition, start) ((partition) - (start))
 
+inline a_const_char *an_ifc_module::get_string_at_offset(ifc_TextOffset offset)
+                                                                 const noexcept
 /*
-A macro to return a pointer to the IFC string table for a given IFC module
-file and TextOffset.  Strings in the IFC file are NULL-terminated.
+Return a pointer to the IFC string table for a given TextOffset.  Strings in
+the IFC file are NULL-terminated.
 */
+{
 #if EXPENSIVE_CHECKING
-#define verify_offset(offset) \
-  (check_assertion((ifc_Cardinality)(offset) < header.string_table_size)),
-#else /* !EXPENSIVE_CHECKING */
-#define verify_offset(offset) /**/
+  check_assertion((ifc_Cardinality)(offset) < header.string_table_size);
 #endif /* EXPENSIVE_CHECKING */
-#define get_string_at_offset(offset) \
-  (verify_offset(offset) string_table + (offset))
+  return string_table + offset;
+}  /* get_string_at_offset */
 
 #if DEBUG
 
@@ -1545,11 +1545,14 @@ constants for that type).
   char                     *il_entity = NULL;
   a_byte_il_entry_kind     kind = iek_none;
 
-  if (mep->entity.ptr == NULL) {
+  if (!mep->imminent && mep->entity.ptr == NULL) {
     /* Prepare to read from the proper partition for this declaration. */
     read_partition_at_offset(mep->variant.ifc_partition, mep->file_offset);
     tag = (ifc_DeclSort)get_tag_from_partition(mep->variant.ifc_partition,
                                                ifc_decl_start);
+    if (!defer) {
+      mep->imminent = TRUE;
+    }  /* if */
     switch (tag) {
       case ifc_DeclSort_Variable:
         { an_ifc_DeclSort_Variable idsv, *idsvp;
@@ -2008,7 +2011,38 @@ class_struct_union_case:
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
-            a_template_ptr tmpl = process_template_decl(mep, idstp, &loc);
+            a_tmpl_decl_state  decl_state;
+            a_decl_parse_state dps;
+            a_template_ptr     tmpl;
+            a_token_cache      cache;
+            a_token_kind       final_token = tok_semicolon;
+            a_boolean          scope_pushed;
+
+            if (mep->scope == NULL) {
+              mep->scope = get_ifc_scope(idstp->home_scope);
+            }  /* if */
+            scope_pushed = push_module_declaration_context(mep->scope);
+            clear_token_cache(&cache, /*reuseable=*/FALSE);
+            cache_decl_template(&cache, idstp);
+            terminate_token_cache(&cache);
+            rescan_cached_tokens(&cache);
+            init_decl_parse_state(&dps);
+            init_templ_decl_state(&decl_state, &dps);
+            decl_state.pragmas_bound_to_template =
+                                              extract_curr_construct_pragmas();
+            decl_state.starting_token_sequence_number =
+                                                    curr_token_sequence_number;
+            decl_state.final_token_ptr = &final_token;
+            decl_state.enclosing_scope = mep->scope;
+            template_or_specialization_declaration_full(&decl_state,
+                                                        /*is_generic=*/FALSE,
+                                                        /*orig_dps=*/NULL);
+            check_assertion(curr_token == final_token);
+            (void)get_token();
+            check_assertion(curr_token == tok_end_of_source);
+            (void)get_token();
+            tmpl = decl_state.il_template_entry;
+            pop_module_declaration_context(scope_pushed);
             il_entity = (char*)tmpl;
             kind = iek_template;
           }  /* if */
@@ -2078,6 +2112,20 @@ class_struct_union_case:
           }  /* if */
         }
         break;
+      case ifc_DeclSort_Reference:
+        { an_ifc_DeclSort_Reference idsr, *idsrp;
+          a_module_entity_ptr       dmep;
+          idsrp = get_DeclSort_Reference(&idsr);
+          unexpected_condition_str("DeclSort::Reference missing local index");
+          /* FIXME: local_index missing from IFC files */
+          /* dmep = get_ifc_module_entity_ptr(idsrp->local_index); */
+          dmep = get_ifc_module_entity_ptr((ifc_DeclIndex)idsrp->owner);
+          process_ifc_declaration(dmep, /*defer=*/FALSE,
+                                  /*enumeration_type=*/NULL);
+          il_entity = dmep->entity.ptr;
+          kind = dmep->entity.kind;
+        }
+        break;
       case ifc_DeclSort_Method:
       case ifc_DeclSort_Constructor:
       case ifc_DeclSort_Destructor:
@@ -2095,7 +2143,6 @@ class_struct_union_case:
       case ifc_DeclSort_ExplicitInstantiation:
       case ifc_DeclSort_Concept:
       case ifc_DeclSort_InheritedConstructor:
-      case ifc_DeclSort_Reference:
       case ifc_DeclSort_OutputSegment:
       case ifc_DeclSort_UsingDeclaration:
       case ifc_DeclSort_UsingDirective:
@@ -2317,330 +2364,6 @@ deferred until they are referenced.
     pop_module_declaration_context(scope_pushed);
   }  /* if */
 }  /* process_ifc_scope */
-
-
-static void decl_level_of_ifc_template(a_tmpl_decl_state_ptr decl_state)
-/*
-Determine the effective declaration scope for a template declaration
-in this context.  This routine borrows heavily from decl_level_of_template.
-*/
-{
-  a_scope_depth			depth = decl_scope_level;
-  a_scope_stack_entry_ptr	ssep;
-  a_boolean			err = FALSE;
-
-  ssep = &scope_stack_top();
-  /* Skip past any template declaration scopes. */
-  while (ssep->kind == (a_scope_kind)sck_template_declaration ||
-         !(ssep->kind == (a_scope_kind)sck_class_struct_union ||
-           ssep->kind == (a_scope_kind)sck_namespace ||
-           ssep->kind == (a_scope_kind)sck_namespace_extension ||
-           ssep->kind == (a_scope_kind)sck_file)) {
-    /* Skip to depth of the previous decl_scope_level. */
-    ssep = scope_stack_entry_for(ssep->decl_scope_level);
-  }  /* while */
-  depth = scope_depth_of(ssep);
-  decl_state->is_member_decl =
-                           ssep->kind == (a_scope_kind)sck_class_struct_union;
-  /* Save the depth we found for potential use in error recovery before
-     it might be changed below. */
-  decl_state->err_decl_level = depth;
-  if (decl_state->is_member_decl) {
-    /* If this template declaration is within a class definition,
-       save a pointer to the class in which the definition appears. */
-    decl_state->class_declared_in = ssep->assoc_type;
-    decl_state->access = ssep->current_access;
-    /* If the current context is variadic, set is_variadic.  Note that
-       it could already be set based on the template parameters. */
-    if (ssep->in_variadic_template) decl_state->is_variadic = TRUE;
-  }  /* if */
-  if (!decl_state->is_member_decl && ssep->kind != (a_scope_kind)sck_file &&
-      ssep->kind != (a_scope_kind)sck_namespace &&
-      ssep->kind != (a_scope_kind)sck_namespace_extension) {
-    err = TRUE;
-  }  /* if */
-  if (err) depth = NO_SCOPE_DEPTH;
-  decl_state->orig_decl_level = depth;
-  if (!err && decl_state->is_template_friend) {
-    /* For friend declarations the effective declaration level is the nearest
-       namespace scope. */
-    depth = depth_innermost_namespace_scope;
-  }  /* if */
-  decl_state->effective_decl_level = depth;
-  decl_state->is_template_friend = decl_state->is_member_decl &&
-                                           decl_state->is_template_friend;
-}  /* decl_level_of_ifc_template */
-
-
-a_template_ptr an_ifc_module::process_template_decl(
-                                                a_module_entity_ptr      mep,
-                                                an_ifc_DeclSort_Template *decl,
-                                                a_symbol_locator         *loc)
-                                                                 const noexcept
-/*
-Process the DeclSort::Template entry corresponding to the given module entity.
-*loc is the symbol locator for the template symbol.
-*/
-{
-  a_tmpl_decl_state   decl_state, *saved_decl_state;
-  a_decl_parse_state  dps;
-  a_template_decl_info_ptr
-                      tdip = NULL;
-  ifc_ChartSort       chart_sort = chart_tag(decl->chart);
-  a_module_entity_ptr dmep;
-  a_type_ptr          type;
-  a_non_type_kind     non_type_kind;
-  a_boolean           is_alias_decl = FALSE;
-  a_boolean           is_redecl = FALSE;
-  a_boolean           suppress_redecl_error = FALSE;
-  a_symbol_ptr        sym, orig_decl_sym = NULL;
-  a_template_symbol_supplement_ptr
-                      tssp = NULL, orig_decl_tssp;
-  a_partial_scope_stack_state
-                      psss;
-
-  sym = loc->specific_symbol;
-  error_position = loc->source_position;
-  init_dps(&dps, &decl->locus, (ifc_TypeIndex)0, (ifc_Alignment)0,
-           ifc_ObjectTraits_None, ifc_MsvcTraits_None, decl->specifiers,
-           decl->access, &psss);
-  if (mep->scope == NULL) {
-    mep->scope = get_ifc_scope(decl->home_scope);
-  }  /* if */
-  /* Type here can be a "typename", which indicates a template alias, a
-     class/struct/union, function, or variable template. */
-  type = type_for_type_index(decl->type, &non_type_kind);
-  if (type != NULL && type_is(type, tk_unknown)) {
-    is_alias_decl = TRUE;
-  }  /* if */
-  /* If the type is "typename" then entity.index is a TypeIndex.  Otherwise,
-     it's a DeclIndex. */
-  if (decl->entity.index != 0) {
-    if (is_alias_decl) {
-      type_for_type_index((ifc_TypeIndex)decl->entity.index, &non_type_kind);
-      dmep = get_ifc_module_entity_ptr((ifc_TypeIndex)decl->entity.index);
-    } else {
-      dmep = get_ifc_module_entity_ptr((ifc_DeclIndex)decl->entity.index);
-      process_ifc_declaration(dmep, /*defer=*/FALSE,
-                              (a_type_ptr)NULL);
-    }  /* if */
-  }  /* if */
-  /* Prepare the template declaration. */
-  saved_decl_state = curr_templ_decl_state;
-  /*lint -e1414 assigning address of local variable*/
-  curr_templ_decl_state = &decl_state;
-  init_templ_decl_state(&decl_state, &dps);
-  decl_state.enclosing_scope = mep->scope;
-  decl_state.il_template_entry = make_il_template_entry(&decl_state);
-  /* Get the template parameters. */
-  read_partition_at_index(chart_sort, chart_value(decl->chart));
-  switch (chart_sort) {
-    case ifc_ChartSort_None:
-      /* No arguments to the template (i.e., specialization). */
-      decl_state.is_specialization = TRUE;
-      break;
-    case ifc_ChartSort_Unilevel:
-      { an_ifc_ChartSort_Unilevel icsu, *icsup;
-        icsup = get_ChartSort_Unilevel(&icsu);
-        set_up_template_decl(&decl_state, &dps.start_pos, &tdip);
-        for (ifc_Index_type idx = 0; idx < icsup->cardinality;
-              ++idx) {
-          a_module_entity_ptr pmep = get_ifc_module_entity_ptr(
-                                        make_decl_index(ifc_DeclSort_Parameter,
-                                                        icsup->start + idx));
-          pmep->scope = mep->scope;
-          process_ifc_declaration(pmep, /*defer=*/FALSE,
-                                  (a_type_ptr)NULL);
-        }  /* for */
-        check_assertion(decl_state.decl_info->n_params ==
-                                                  icsup->cardinality);
-      }
-      break;
-    case ifc_ChartSort_Multilevel:
-      unexpected_condition_str("ChartSort::Multilevel not handled here");
-      break;
-    default:
-      unexpected_condition_str("Unexpected ChartSort");
-  }  /* switch */
-  decl_level_of_ifc_template(&decl_state);
-  check_assertion(decl_state.orig_decl_level != NO_SCOPE_DEPTH);
-  if (is_alias_decl) {
-    if (sym != NULL) {
-      if (symbol_is(sym, sk_class_template) &&
-          sym->variant.template_info->
-                                    variant.class_template.is_alias_template) {
-        is_redecl = TRUE;
-        decl_state.is_alias_redecl = TRUE;
-        orig_decl_sym = sym;
-        sym = NULL;
-      }  /* if */
-    }  /* if */
-    if (is_redecl) {
-      sym = make_symbol((a_symbol_kind)sk_class_template, loc);
-      sym->decl_scope = orig_decl_sym->decl_scope;
-      decl_state.new_alias_symbol = sym;
-    } else {
-      sym = enter_symbol((a_symbol_kind)sk_class_template, loc,
-                         decl_state.effective_decl_level,
-                         /*suppress_error=*/FALSE);
-      orig_decl_sym = sym;
-      decl_state.defines_something = TRUE;
-    }  /* if */
-    tssp = sym->variant.template_info;
-    tssp->variant.class_template.is_alias_template = TRUE;
-    tssp->is_variadic = decl_state.is_variadic;
-    tssp->has_variadic_template_params=decl_state.has_variadic_template_params;
-    tssp->has_template_param_constraint =
-                                      decl_state.has_template_param_constraint;
-    /* FIXME: Get attributes. */
-    /* tssp->attributes = attributes_from_entity(decl->entity.attributes); */
-    orig_decl_tssp = orig_decl_sym->variant.template_info;
-    if (is_redecl) {
-      (void)check_requires_redecl(orig_decl_tssp->cache.decl_info, tdip, loc,
-                                  orig_decl_sym);
-    }  /* if */
-    set_membership_of_template(&decl_state, sym);
-    set_il_template_entry(&decl_state, orig_decl_sym, orig_decl_tssp);
-    if (!is_redecl) {
-      mark_defined(orig_decl_sym, &loc->source_position);
-    } else {
-      mark_declared(orig_decl_sym, &loc->source_position);
-    }  /* if */
-    if (decl_state.is_alias_redecl) {
-      (void)reconcile_template_param_lists(
-                                      tdip->parameters,
-                                      &decl_state, orig_decl_sym,
-                                      &sym->decl_position,
-                                      /*default_allowed=*/TRUE,
-                                      /*checking_parent_params=*/FALSE,
-                                      /*allow_missing_member_constraint=*/TRUE,
-                                      es_error);
-    }  /* if */
-    /* Create the symbol for the prototype instantiation. */
-    create_prototype_type(&decl_state, sym, tssp, (a_symbol_ptr)NULL,
-                          /*is_partial_specialization=*/FALSE);
-  } else if (is_class_struct_union_type(type)) {
-    a_symbol_ptr partial_spec_nonreal_sym = NULL;
-    a_boolean    is_nested_class_definition = FALSE;
-    decl_state.defines_something = decl->entity.body != 0;
-    if (loc->is_template_id || loc->is_qualified_name) {
-      sym = underlying_tmpl_class_sym(sym, loc, &decl_state);
-    }  /* if */
-    if (decl_state.is_partial_specialization &&
-        is_prototype_instantiation_symbol(sym)) {
-      sym = sym->variant.class_struct_union.extra_info->class_template;
-      check_assertion(sym != NULL);
-    }  /* if */
-    if (decl_state.is_partial_specialization) {
-      sym = check_tmpl_class_partial_spec(sym, loc, &decl_state,
-                                          &partial_spec_nonreal_sym);
-      if (partial_spec_nonreal_sym == NULL) {
-        decl_state.is_partial_specialization = FALSE;
-      }  /* if */
-    }  /* if */
-    if (sym != NULL) {
-      tssp = template_supplement_for_symbol(sym);
-      is_nested_class_definition = is_class_struct_union_symbol(sym) &&
-                                   sym->is_class_member &&
-                                   (!decl_state.is_member_decl ||
-                                    decl_state.is_template_friend) &&
-                                   !loc->is_template_id && tssp != NULL;
-    }
-    sym = check_tmpl_class_sym_redecl(sym, tdip->parameters, loc, type->kind,
-                                      tssp, &decl_state,
-                                      is_nested_class_definition, &is_redecl,
-                                      &suppress_redecl_error);
-    if (sym == NULL) {
-      if (decl_state.is_partial_specialization) {
-        sym = add_partial_specialization(&decl_state, partial_spec_nonreal_sym,
-                                         loc, type->kind);
-      } else {
-        sym = enter_symbol((a_symbol_kind)sk_class_template, loc,
-                           decl_state.effective_decl_level,
-                           suppress_redecl_error);
-        set_membership_of_template(&decl_state, sym);
-      }  /* if */
-      tssp = sym->variant.template_info;
-      tssp->variant.class_template.type_kind = type->kind;
-      tssp->is_variadic = decl_state.is_variadic;
-      tssp->has_variadic_template_params =
-                                       decl_state.has_variadic_template_params;
-      tssp->has_template_param_constraint =
-                                      decl_state.has_template_param_constraint;
-      tssp->variant.class_template.name_linkage =
-                                   (a_name_linkage_kind)nlk_cplusplus_external;
-      set_il_template_entry(&decl_state, sym, tssp);
-      is_redecl = FALSE;
-    }  /* if */
-    if (decl_state.defines_something) {
-      tssp->variant.class_template.type_kind = type->kind;
-      mark_defined(sym, &loc->source_position);
-    } else {
-      mark_declared(sym, &loc->source_position);
-    }  /* if */
-    if (decl_state.is_specialization && !decl_state.is_template_friend) {
-      record_specialization(sym, tssp, &loc->source_position);
-    }  /* if */
-    /* FIXME: Attributes */
-    if (tssp->variant.class_template.prototype_instantiation == NULL) {
-      create_prototype_type(&decl_state, sym, tssp, partial_spec_nonreal_sym,
-                            decl_state.is_partial_specialization);
-    }  /* if */
-  } else {
-    unexpected_condition_str("Unhandled DeclSort::Template kind");
-  }  /* if */
-  for (; decl_state.number_of_template_decl_scopes != 0;
-         decl_state.number_of_template_decl_scopes--) {
-    pop_scope();
-  }  /* for */
-  set_il_template_entry(&decl_state, sym, tssp);
-  complete_il_template_entry(&decl_state, sym);
-  clear_token_cache(&tssp->cache.tokens, /*reuseable=*/TRUE);
-  if (is_alias_decl) {
-    cache_type(&tssp->cache.tokens, (ifc_TypeIndex)decl->entity.index,
-               &decl->locus);
-  } else if (is_class_struct_union_type(type)) {
-    cache_sentence(&tssp->cache.tokens, decl->entity.head);
-  }  /* if */
-  cache_sentence(&tssp->cache.tokens, decl->entity.body);
-  tssp->cache.decl_info = tdip;
-  if (is_alias_decl) {
-    if (is_redecl) {
-      alias_prototype_instantiation(&decl_state,
-                                    decl_state.new_alias_symbol);
-      check_alias_template_redecl(&decl_state, sym);
-    } else {
-      alias_prototype_instantiation(&decl_state, sym);
-    }  /* if */
-  } else if (is_class_struct_union_type(type)) {
-    if (decl_state.defines_something) {
-      a_symbol_ptr                 prototype_sym;
-      a_type_ptr                   prototype_type;
-      a_template_cache_segment_ptr class_templ_cache_segments = NULL;
-
-      prototype_sym = tssp->variant.class_template.prototype_instantiation;
-      prototype_type = type_symbol_type(prototype_sym);
-      check_assertion_str2(is_class_struct_union_symbol(prototype_sym),
-                           "template_declaration:", "prototype_sym invalid");
-      assoc_template_of(prototype_type) = tssp->il_template_entry;
-      tdip->starting_decl_seq = ++*curr_decl_seq_counter();
-      instantiate_class_template(sym, prototype_type,
-                                 &class_templ_cache_segments, &decl_state);
-      prototype_type->source_corresp.decl_position = sym->decl_position;
-      class_templ_cache_segments =
-                             extract_member_bodies(&tssp->cache,
-                                                   class_templ_cache_segments,
-                                                   /*keep_default_args=*/TRUE);
-      if (class_templ_cache_segments != NULL) {
-        extract_member_bodies(&tssp->cache, class_templ_cache_segments,
-                              /*keep_default_args=*/FALSE);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  curr_templ_decl_state = saved_decl_state;
-  restore_partial_scope_stack_if_necessary(&psss);
-  return decl_state.il_template_entry;
-}  /* process_template_decl */
 
 
 a_module_entity_ptr an_ifc_module::get_ifc_module_entity_ptr(
@@ -3212,10 +2935,17 @@ argument.
         type = type_for_type_index(iestp->type, /*kind=*/NULL);
       }
       break;
+    case ifc_ExprSort_UnaryFold:
+      unexpected_condition_str("ExprSort::UnaryFold is not yet handled");
+      goto default_error;
+    case ifc_ExprSort_Monad:
+      unexpected_condition_str("ExprtSort::Monad is not yet handled");
+      goto default_error;
     default:
+      unexpected_condition_str("Unexpected expr kind for template arg");
+default_error:
       kind = tak_type;
       type = error_type();
-      unexpected_condition_str("Unexpected expr kind for template arg");
   } /* switch */
   result = alloc_template_arg(kind);
   if (kind == (a_templ_arg_kind)tak_type) {
@@ -3381,7 +3111,7 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
 
   if (tag == ifc_NameSort_Identifier) {
     /* NameSort::Identifiers just refer to the string table. */
-    result = get_string_at_offset(name_value(name_index));
+    result = get_string_at_offset((ifc_TextOffset)name_value(name_index));
   } else {
     read_partition_at_index(tag, name_value(name_index));
     switch (tag) {
@@ -3475,6 +3205,219 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
   result = operator_text_buffer->buffer;
   return result;
 }  /* string_from_name_index */
+
+
+a_const_char *an_ifc_module::name_from_decl(ifc_DeclIndex decl) const noexcept
+/*
+Given a declaration, return the name associated with that declaration.
+*/
+{
+  a_const_char *result = NULL;
+  ifc_DeclSort tag = decl_tag(decl);
+
+  read_partition_at_index(tag, decl_value(decl));
+  switch (tag) {
+    case ifc_DeclSort_VendorExtension:
+      unexpected_condition();
+      break;
+    case ifc_DeclSort_Enumerator:
+      { an_ifc_DeclSort_Enumerator idse, *idsep;
+        idsep = get_DeclSort_Enumerator(&idse);
+        result = get_string_at_offset(idsep->name);
+      }
+      break;
+    case ifc_DeclSort_Variable:
+      { an_ifc_DeclSort_Variable idsv, *idsvp;
+        idsvp = get_DeclSort_Variable(&idsv);
+        result = string_from_name_index(idsvp->name, /*loc=*/NULL);
+      }
+      break;
+    case ifc_DeclSort_Parameter:
+      { an_ifc_DeclSort_Parameter idsp, *idspp;
+        idspp = get_DeclSort_Parameter(&idsp);
+        result = get_string_at_offset(idspp->name);
+      }
+      break;
+    case ifc_DeclSort_Field:
+      { an_ifc_DeclSort_Field idsf, *idsfp;
+        idsfp = get_DeclSort_Field(&idsf);
+        result = get_string_at_offset(idsfp->name);
+      }
+      break;
+    case ifc_DeclSort_Bitfield:
+      { an_ifc_DeclSort_Bitfield idsb, *idsbp;
+        idsbp = get_DeclSort_Bitfield(&idsb);
+        result = get_string_at_offset(idsbp->name);
+      }
+      break;
+    case ifc_DeclSort_Scope:
+      { an_ifc_DeclSort_Scope idss, *idssp;
+        idssp = get_DeclSort_Scope(&idss);
+        result = string_from_name_index(idssp->name, /*loc=*/NULL);
+      }
+      break;
+    case ifc_DeclSort_Enumeration:
+      { an_ifc_DeclSort_Enumeration idse, *idsep;
+        idsep = get_DeclSort_Enumeration(&idse);
+        result = get_string_at_offset(idsep->name);
+      }
+      break;
+    case ifc_DeclSort_Alias:
+      { an_ifc_DeclSort_Alias idsa, *idsap;
+        idsap = get_DeclSort_Alias(&idsa);
+        result = get_string_at_offset(idsap->name);
+      }
+      break;
+    case ifc_DeclSort_Temploid:
+      unexpected_condition_str("DeclSort::Temploid does not have a name");
+      break;
+    case ifc_DeclSort_Template:
+      { an_ifc_DeclSort_Template idst, *idstp;
+        idstp = get_DeclSort_Template(&idst);
+        result = string_from_name_index(idstp->name, /*loc=*/NULL);
+      }
+      break;
+    case ifc_DeclSort_PartialSpecialization:
+      { an_ifc_DeclSort_PartialSpecialization idsps, *idspsp;
+        idspsp = get_DeclSort_PartialSpecialization(&idsps);
+        result = string_from_name_index(idspsp->name, /*loc=*/NULL);
+      }
+      break;
+    case ifc_DeclSort_ExplicitSpecialization:
+      { an_ifc_DeclSort_ExplicitSpecialization idses, *idsesp;
+        idsesp = get_DeclSort_ExplicitSpecialization(&idses);
+        /* FIXME: Is this reachable? */
+        result = name_from_decl(idsesp->decl);
+      }
+      break;
+    case ifc_DeclSort_ExplicitInstantiation:
+      { an_ifc_DeclSort_ExplicitInstantiation idsei, *idseip;
+        idseip = get_DeclSort_ExplicitInstantiation(&idsei);
+        /* FIXME: Is this reachable? */
+        result = name_from_decl(idseip->decl);
+      }
+      break;
+    case ifc_DeclSort_Concept:
+      { an_ifc_DeclSort_Concept idsc, *idscp;
+        idscp = get_DeclSort_Concept(&idsc);
+        result = get_string_at_offset(idscp->name);
+      }
+      break;
+    case ifc_DeclSort_Function:
+      { an_ifc_DeclSort_Function idsf, *idsfp;
+        idsfp = get_DeclSort_Function(&idsf);
+        result = string_from_name_index(idsfp->name, /*loc=*/NULL);
+      }
+      break;
+    case ifc_DeclSort_Method:
+      { an_ifc_DeclSort_Method idsm, *idsmp;
+        idsmp = get_DeclSort_Method(&idsm);
+        result = string_from_name_index(idsmp->name, /*loc=*/NULL);
+      }
+      break;
+    case ifc_DeclSort_Constructor:
+      { an_ifc_DeclSort_Constructor idsc, *idscp;
+        idscp = get_DeclSort_Constructor(&idsc);
+        result = get_string_at_offset(idscp->name);
+      }
+      break;
+    case ifc_DeclSort_InheritedConstructor:
+      { an_ifc_DeclSort_InheritedConstructor idscic, *idscicp;
+        idscicp = get_DeclSort_InheritedConstructor(&idscic);
+        result = get_string_at_offset(idscicp->name);
+      }
+      break;
+    case ifc_DeclSort_Destructor:
+      { an_ifc_DeclSort_Destructor idsd, *idsdp;
+        idsdp = get_DeclSort_Destructor(&idsd);
+        result = get_string_at_offset(idsdp->name);
+      }
+      break;
+    case ifc_DeclSort_Reference:
+      { an_ifc_DeclSort_Reference idsr, *idsrp;
+        idsrp = get_DeclSort_Reference(&idsr);
+        unexpected_condition_str("DeclSort::Reference "
+                                 "is missing required information");
+        /* result = name_from_decl(idsrp->local_index); */
+        result = get_string_at_offset(idsrp->owner);
+      }
+      break;
+    case ifc_DeclSort_UsingDeclaration:
+      { an_ifc_DeclSort_UsingDeclaration idsud, *idsudp;
+        idsudp = get_DeclSort_UsingDeclaration(&idsud);
+        result = string_from_name_index(idsudp->name, /*loc=*/NULL);
+      }
+      break;
+    case ifc_DeclSort_UsingDirective:
+      { /* an_ifc_DeclSort_UsingDirective idsud, *idsudp;
+        idsudp = get_DeclSort_UsingDirective(&idsud); */
+        unexpected_condition_str("DeclSort::UsingDirective "
+                                 "is not yet defined");
+      }
+      break;
+    case ifc_DeclSort_Friend:
+      { /* an_ifc_DeclSort_Friend idsf, *idsfp;
+        idsfp = get_DeclSort_Friend(&idsf); */
+        unexpected_condition_str("DeclSort::Friend is not yet handled");
+      }
+      break;
+    case ifc_DeclSort_Expansion:
+      { an_ifc_DeclSort_Expansion idse, *idsep;
+        idsep = get_DeclSort_Expansion(&idse);
+        /* FIXME: Is this reachable? */
+        result = name_from_decl(idsep->operand);
+      }
+      break;
+    case ifc_DeclSort_DeductionGuide:
+      { /* an_ifc_DeclSort_DeductionGuide idsdg, *idsdgp;
+        idsdgp = get_DeclSort_DeductionGuide(&idsdg); */
+        unexpected_condition_str("DeclSort::DeductionGuide "
+                                 "is not yet defined");
+      }
+      break;
+    case ifc_DeclSort_Barren:
+      { /* an_ifc_DeclSort_Barren idsb, *idsbp;
+        idsbp = get_DeclSort_Barren(&idsb); */
+        unexpected_condition_str("DeclSort::Barren is not yet defined");
+      }
+      break;
+    case ifc_DeclSort_Tuple:
+      { /* an_ifc_DeclSort_Tuple idst, *idstp;
+        idstp = get_DeclSort_Tuple(&idst); */
+        /* FIXME: Is this reachable? */
+        unexpected_condition_str("DeclSort::Tuple is not yet handled");
+      }
+      break;
+    case ifc_DeclSort_SyntaxTree:
+      { /* an_ifc_DeclSort_SyntaxTree idsst, *idsstp;
+        idsstp = get_DeclSort_SyntaxTree(&idsst); */
+        unexpected_condition_str("DeclSort::SyntaxTree is not yet defined");
+      }
+      break;
+    case ifc_DeclSort_Intrinsic:
+      { an_ifc_DeclSort_Intrinsic idsi, *idsip;
+        idsip = get_DeclSort_Intrinsic(&idsi);
+        result = get_string_at_offset(idsip->name);
+      }
+      break;
+    case ifc_DeclSort_Property:
+      { an_ifc_DeclSort_Property idsp, *idspp;
+        idspp = get_DeclSort_Property(&idsp);
+        result = name_from_decl(idspp->member);
+      }
+      break;
+    case ifc_DeclSort_OutputSegment:
+      { an_ifc_DeclSort_OutputSegment idsos, *idsosp;
+        idsosp = get_DeclSort_OutputSegment(&idsos);
+        result = get_string_at_offset(idsosp->name);
+      }
+      break;
+    default:
+      unexpected_condition_str("Unexpected DeclSort");
+  }  /* switch */
+  check_assertion(result != NULL);
+  return result;
+}  /* name_from_decl */
 
 
 void an_ifc_module::init_dps(a_decl_parse_state          *dps,
@@ -3713,7 +3656,7 @@ FIXME: what other expressions can we get here?
 
 static void cache_token(a_token_cache_ptr     cache,
                         a_token_kind          tok,
-                        a_source_position_ptr pos)
+                        a_source_position_ptr pos) noexcept
 /*
 Add tok to cache.  pos is the position of the token.
 */
@@ -3722,7 +3665,8 @@ Add tok to cache.  pos is the position of the token.
   a_token_sequence_number seq = NO_TOKEN_SEQUENCE_NUMBER;
 
   if (tok != tok_error) {
-    seq = curr_token_sequence_number++;
+    assign_curr_token_sequence_number();
+    seq = curr_token_sequence_number;
   }  /* if */
   ctp = build_cached_token(tok, seq, pos);
   if (cache->first_token == NULL) {
@@ -3735,6 +3679,24 @@ Add tok to cache.  pos is the position of the token.
   cache->token_count++;
 #endif /* DEBUG */
 }  /* cache_token */
+
+
+static void cache_identifier(a_token_cache_ptr cache,
+                             a_const_char      *name,
+                             a_source_position_ptr pos) noexcept
+/*
+Add a tok_identifier for name to cache.  pos is the position of the identifier.
+*/
+{
+  a_symbol_locator  loc;
+
+  check_assertion(name != NULL);
+  clear_locator(&loc, pos);
+  (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
+  cache_token(cache, tok_identifier, pos);
+  cache->last_token->extra_info_kind =(a_token_extra_info_kind)teik_identifier;
+  cache->last_token->variant.locator = loc;
+}  /* cache_identifier */
 
 
 static void cache_pragma(a_token_cache_ptr     cache,
@@ -3928,8 +3890,7 @@ Sentence containing punctuator.
     case ifc_SourcePunctuator_MsvcFullStop:
       break;
     case ifc_SourcePunctuator_MsvcNestedTemplateStart:
-      unexpected_condition_str("SourcePunctuator::MsvcNestedTemplateStart "
-                               "not yet handled");
+      cache_token(cache, tok_template, &pos);
       break;
     case ifc_SourcePunctuator_MsvcDefaultArgumentStart:
       unexpected_condition_str("SourcePunctuator::MsvcDefaultArgumentStart "
@@ -4790,10 +4751,8 @@ position of the Sentence containing id.
 {
   a_const_char      *name = NULL;
   a_source_position pos;
-  a_symbol_locator  loc;
 
   source_position_from_locus(&pos, locus);
-  clear_locator(&loc, &pos);
   switch (id) {
     case ifc_SourceIdentifier_Plain:
       name = get_string_at_offset((ifc_TextOffset)index);
@@ -4823,11 +4782,7 @@ position of the Sentence containing id.
       unexpected_condition_str("Unknown SourceIdentifier");
   }  /* switch */
   check_assertion(name != NULL);
-  (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
-  cache_token(cache, tok_identifier, &loc.source_position);
-  cache->last_token->extra_info_kind =
-                                (a_token_extra_info_kind)teik_identifier;
-  cache->last_token->variant.locator = loc;
+  cache_identifier(cache, name, &pos);
 }  /* cache_source_identifier */
 
 
@@ -4888,9 +4843,34 @@ Given a SentenceIndex, populate cache with the corresponding tokens.
     iwp = get_Word(&iw);
     cache_word(cache, iwp);
   }  /* if */
-  terminate_token_cache(cache);
 done:;
 }  /* cache_sentence */
+
+
+void an_ifc_module::cache_scope(a_token_cache_ptr  cache,
+                                ifc_ScopeIndex     scope,
+                                ifc_SourceLocation *locus) const noexcept
+/*
+For the given scope, cache tokens corresponding to the definition of the scope.
+*/
+{
+  an_ifc_Scope_Descriptor isd, *isdp;
+  a_source_position       pos;
+
+  if (scope == 0) goto done;
+  source_position_from_locus(&pos, locus);
+  read_partition_at_index(ifc_scope_desc, scope - 1);
+  isdp = get_Scope_Descriptor(&isd);
+  cache_token(cache, tok_lbrace, &pos);
+  for (ifc_Index_type idx = 0; idx < isdp->cardinality; ++idx) {
+    an_ifc_Scope_Member ism, *ismp;
+    read_partition_at_index(ifc_scope_member, isdp->start + idx);
+    ismp = get_Scope_Member(&ism);
+    cache_decl(cache, ismp->index);
+  }  /* for */
+  cache_token(cache, tok_rbrace, &pos);
+done:;
+}  /* cache_scope */
 
 
 void an_ifc_module::cache_type(a_token_cache_ptr  cache,
@@ -5060,7 +5040,10 @@ of the entity referring to the type.
       }
       break;
     case ifc_TypeSort_Designated:
-      unexpected_condition_str("TypeSort::Designated is not yet supported");
+      { an_ifc_TypeSort_Designated itsd, *itsdp;
+        itsdp = get_TypeSort_Designated(&itsd);
+        cache_identifier(cache, name_from_decl(itsdp->decl), &pos);
+      }
       break;
     case ifc_TypeSort_Deduced:
       unexpected_condition_str("TypeSort::Deduced is not yet supported");
@@ -5126,6 +5109,265 @@ of the entity referring to the type.
       unexpected_condition_str("Unexpected TypeSort");
   }  /* switch */
 }  /* cache_type */
+
+
+void an_ifc_module::cache_chart(a_token_cache_ptr  cache,
+                                ifc_ChartIndex     chart,
+                                ifc_SourceLocation *locus) const noexcept
+/*
+Cache the tokens corresponding to the given chart.  The caller is expected to
+have already cached the "template" keyword if it's required.
+*/
+{
+  ifc_ChartSort     tag = chart_tag(chart);
+  a_source_position pos;
+
+  source_position_from_locus(&pos, locus);
+  cache_token(cache, tok_lt, &pos);
+  read_partition_at_index(tag, chart_value(chart));
+  switch (tag) {
+    case ifc_ChartSort_None:
+      /* No arguments to the template (i.e., specialization). */
+      break;
+    case ifc_ChartSort_Unilevel:
+      { an_ifc_ChartSort_Unilevel icsu, *icsup;
+        icsup = get_ChartSort_Unilevel(&icsu);
+        for (ifc_Index_type idx = 0; idx < icsup->cardinality; ++idx) {
+          if (idx > 0) cache_token(cache, tok_comma, &pos);
+          cache_decl(cache,
+                     make_decl_index(ifc_DeclSort_Parameter,
+                                     icsup->start + idx));
+        }  /* for */
+      }
+      break;
+    case ifc_ChartSort_Multilevel:
+      unexpected_condition_str("ChartSort::Multilevel is not yet handled");
+      { an_ifc_ChartSort_Multilevel icsm, *icsmp;
+        icsmp = get_ChartSort_Multilevel(&icsm);
+        for (ifc_Index_type idx = 0; idx < icsmp->cardinality; ++idx) {
+          if (idx > 0) cache_token(cache, tok_comma, &pos);
+          /* FIXME: Is this correct? */
+          cache_decl(cache,
+                     make_decl_index(ifc_DeclSort_Temploid,
+                                     icsmp->start + idx));
+        }  /* for */
+      }
+      break;
+    default:
+      unexpected_condition_str("Unexpected ChartSort");
+  }  /* switch */
+  cache_token(cache, tok_gt, &pos);
+}  /* cache_chart */
+
+
+void an_ifc_module::cache_decl_template(a_token_cache_ptr        cache,
+                                        an_ifc_DeclSort_Template *decl)
+                                                                 const noexcept
+/*
+Cache the tokens corresponding to the given template declaration.
+*/
+{
+  a_source_position pos;
+  a_type_ptr        type;
+  a_non_type_kind   kind;
+
+  source_position_from_locus(&pos, &decl->locus);
+  cache_token(cache, tok_template, &pos);
+  cache_chart(cache, decl->chart, &decl->locus);
+  /* FIXME: Handle attributes. */
+  type = type_for_type_index(decl->type, &kind);
+  if (type != NULL && type_is(type, tk_unknown)) {
+    /* This is an alias template declaration. */
+    check_assertion(name_tag(decl->name) == ifc_NameSort_Identifier);
+    cache_token(cache, tok_using, &pos);
+    cache_identifier(cache,
+                     string_from_name_index(decl->name, /*loc=*/NULL), &pos);
+    cache_token(cache, tok_assign, &pos);
+    cache_type(cache, (ifc_TypeIndex)decl->entity.index, &decl->locus);
+    cache_token(cache, tok_semicolon, &pos);
+  } else {
+    cache_type(cache, decl->type, &decl->locus);
+    cache_identifier(cache,
+                     string_from_name_index(decl->name, /*loc=*/NULL), &pos);
+    /* FIXME: What about function templates? */
+    if (decl->entity.body != 0) {
+      cache_sentence(cache, decl->entity.body);
+    } else {
+      cache_token(cache, tok_semicolon, &pos);
+    }  /* if */
+  }  /* if */
+}  /* cache_decl_template */
+
+
+void an_ifc_module::cache_decl(a_token_cache_ptr cache,
+                               ifc_DeclIndex     decl) const noexcept
+/*
+Cache the tokens corresponding to the given declaration.
+*/
+{
+  ifc_DeclSort      tag = decl_tag(decl);
+  a_source_position pos;
+
+  read_partition_at_index(tag, decl_value(decl));
+  switch (tag) {
+    case ifc_DeclSort_VendorExtension:
+      unexpected_condition();
+      break;
+    case ifc_DeclSort_Enumerator:
+      unexpected_condition_str("DeclSort::Enumerator is not yet supported");
+      break;
+    case ifc_DeclSort_Variable:
+      unexpected_condition_str("DeclSort::Variable is not yet supported");
+      break;
+    case ifc_DeclSort_Parameter:
+      { an_ifc_DeclSort_Parameter idsp, *idspp;
+        idspp = get_DeclSort_Parameter(&idsp);
+        source_position_from_locus(&pos, &idspp->locus);
+        switch (idspp->sort) {
+          case ifc_ParameterSort_Type:
+            cache_token(cache, tok_typename, &pos);
+            break;
+          case ifc_ParameterSort_Object:
+            unexpected_condition_str("ParameterSort::Object "
+                                     "is not yet handled");
+            break;
+          case ifc_ParameterSort_NonType:
+            cache_type(cache, idspp->type, &idspp->locus);
+            break;
+          case ifc_ParameterSort_Template:
+            unexpected_condition_str("ParameterSort::Template "
+                                     "is not yet handled");
+            break;
+          default:
+            unexpected_condition_str("Unexpected ParameterSort");
+        }  /* switch */
+        if (idspp->name != 0) {
+          cache_identifier(cache, get_string_at_offset(idspp->name), &pos);
+        }  /* if */
+        if (idspp->pack) {
+          cache_token(cache, tok_ellipsis, &pos);
+        }  /* if */
+        if (idspp->initializer != 0) {
+          unexpected_condition_str("Parameters with initializers "
+                                   "are not yet supported");
+          /* FIXME: Something like:
+          cache_expr(cache, idspp->initializer);
+          */
+        }  /* if */
+        /* FIXME: Handle idspp->constraint. */
+      }
+      break;
+    case ifc_DeclSort_Field:
+      unexpected_condition_str("DeclSort::Field is not yet supported");
+      break;
+    case ifc_DeclSort_Bitfield:
+      unexpected_condition_str("DeclSort::Bitfield is not yet supported");
+      break;
+    case ifc_DeclSort_Scope:
+      { an_ifc_DeclSort_Scope idss, *idssp;
+        idssp = get_DeclSort_Scope(&idss);
+        source_position_from_locus(&pos, &idssp->locus);
+        cache_type(cache, idssp->type, &idssp->locus);
+        cache_identifier(cache,
+                         string_from_name_index(idssp->name, /*loc=*/NULL),
+                         &pos);
+        if (idssp->base != 0) {
+          cache_token(cache, tok_colon, &pos);
+          cache_type(cache, idssp->base, &idssp->locus);
+        }  /* if */
+        cache_scope(cache, idssp->initializer, &idssp->locus);
+        cache_token(cache, tok_semicolon, &pos);
+      }
+      break;
+    case ifc_DeclSort_Enumeration:
+      unexpected_condition_str("DeclSort::Enumeration is not yet supported");
+      break;
+    case ifc_DeclSort_Alias:
+      unexpected_condition_str("DeclSort::Alias is not yet supported");
+      break;
+    case ifc_DeclSort_Temploid:
+      unexpected_condition_str("DeclSort::Temploid is not yet supported");
+      break;
+    case ifc_DeclSort_Template:
+      { an_ifc_DeclSort_Template idst, *idstp;
+        idstp = get_DeclSort_Template(&idst);
+        cache_decl_template(cache, idstp);
+      }
+      break;
+    case ifc_DeclSort_PartialSpecialization:
+      unexpected_condition_str("DeclSort::PartialSpecialization "
+                               "is not yet supported");
+      break;
+    case ifc_DeclSort_ExplicitSpecialization:
+      unexpected_condition_str("DeclSort::ExplicitSpecialization "
+                               "is not yet supported");
+      break;
+    case ifc_DeclSort_ExplicitInstantiation:
+      unexpected_condition_str("DeclSort::ExplicitInstantiation "
+                               "is not yet supported");
+      break;
+    case ifc_DeclSort_Concept:
+      unexpected_condition_str("DeclSort::Concept is not yet supported");
+      break;
+    case ifc_DeclSort_Function:
+      unexpected_condition_str("DeclSort::Function is not yet supported");
+      break;
+    case ifc_DeclSort_Method:
+      unexpected_condition_str("DeclSort::Method is not yet supported");
+      break;
+    case ifc_DeclSort_Constructor:
+      unexpected_condition_str("DeclSort::Constructor is not yet supported");
+      break;
+    case ifc_DeclSort_InheritedConstructor:
+      unexpected_condition_str("DeclSort::InheritedConstructor "
+                               "is not yet supported");
+      break;
+    case ifc_DeclSort_Destructor:
+      unexpected_condition_str("DeclSort::Destructor is not yet supported");
+      break;
+    case ifc_DeclSort_Reference:
+      unexpected_condition_str("DeclSort::Reference is not yet supported");
+      break;
+    case ifc_DeclSort_UsingDeclaration:
+      unexpected_condition_str("DeclSort::UsingDeclaration "
+                               "is not yet supported");
+      break;
+    case ifc_DeclSort_UsingDirective:
+      unexpected_condition_str("DeclSort::UsingDirective "
+                               "is not yet supported");
+      break;
+    case ifc_DeclSort_Friend:
+      unexpected_condition_str("DeclSort::Friend is not yet supported");
+      break;
+    case ifc_DeclSort_Expansion:
+      unexpected_condition_str("DeclSort::Expansion is not yet supported");
+      break;
+    case ifc_DeclSort_DeductionGuide:
+      unexpected_condition_str("DeclSort::DeductionGuide "
+                               "is not yet supported");
+      break;
+    case ifc_DeclSort_Barren:
+      unexpected_condition_str("DeclSort::Barren is not yet supported");
+      break;
+    case ifc_DeclSort_Tuple:
+      unexpected_condition_str("DeclSort::Tuple is not yet supported");
+      break;
+    case ifc_DeclSort_SyntaxTree:
+      unexpected_condition_str("DeclSort::SyntaxTree is not yet supported");
+      break;
+    case ifc_DeclSort_Intrinsic:
+      unexpected_condition_str("DeclSort::Intrinsic is not yet supported");
+      break;
+    case ifc_DeclSort_Property:
+      unexpected_condition_str("DeclSort::Property is not yet supported");
+      break;
+    case ifc_DeclSort_OutputSegment:
+      unexpected_condition_str("DeclSort::OutputSegment is not yet supported");
+      break;
+    default:
+      unexpected_condition_str("Unexpected DeclSort");
+  }  /* switch */
+}  /* cache_decl */
 
 
 inline size_t an_ifc_module::file_offset_of(an_ifc_partition_kind partition,

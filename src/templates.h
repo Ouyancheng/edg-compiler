@@ -564,6 +564,11 @@ extern a_template_param_ptr make_nontype_template_param(
                                   a_type_ptr                param_type,
                                   a_tmpl_decl_state_ptr     decl_state);
 
+extern void template_or_specialization_declaration_full(
+                                           a_tmpl_decl_state   *decl_state,
+                                           a_boolean           is_generic,
+                                           a_decl_parse_state  *orig_dps);
+
 extern a_symbol_ptr find_template_class(
 			     a_symbol_ptr        class_template_sym,
                              a_template_arg_ptr  *new_list,
