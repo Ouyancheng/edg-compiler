@@ -13,7 +13,7 @@ result of the call.  For example:
   template<typename E> struct A { E operator*(); };
   struct C { void operator=(C&&); };
   struct R { static A<C> r(); };
-  auto x = M<R>{}.f([]{});
+  auto x = M<R>{}.f([](C &&p){ return 42; });
 
 Here, the substitution of *T::r() resulted in an internal error.  That issue
 is now fixed.
