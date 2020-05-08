@@ -44989,7 +44989,7 @@ rcblock parameter for this function).
 */
 {
   an_arg_list_elem_ptr     yield_opnd = NULL;
-  a_source_position        operator_position;
+  a_source_position        operator_position = pos_curr_token;
   a_token_sequence_number  operator_tok_seq_number;
   an_expr_node_ptr         node;
 
@@ -44999,7 +44999,6 @@ rcblock parameter for this function).
     flush_tokens();
     goto done;
   }  /* if */
-  operator_position = pos_curr_token;
   if (in_catch_clause()) {
     pos_error(ec_yield_in_catch, &operator_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
