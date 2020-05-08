@@ -2575,7 +2575,7 @@ instantiated.
       return_type = error_type();
       call_op = NULL;
     } else {
-      call_op_templ = lambda_body_for_closure(closure_type)->assoc_template;
+      call_op_templ = generic_call_op->assoc_template;
       check_assertion(call_op_templ != NULL);
       call_op_templ_sym = symbol_for(call_op_templ);
       templ_arg_list = copy_template_arg_list(conv_op->template_arg_list);
