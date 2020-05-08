@@ -17730,6 +17730,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
   }  /* if */
   if (ms_extensions && next_tok == tok_lt &&
       (options & GID_CLASS_TEMPLATE_REQUIRED) != 0 &&
+      template_sym != NULL &&
       template_sym->variant.template_info->is_nonreal_member) {
     /* The Microsoft compiler allows something like "T::U<>" to be used
        as a template template argument.  If we have a nonreal template
