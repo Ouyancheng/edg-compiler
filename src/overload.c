@@ -18609,6 +18609,7 @@ error.  conv_context describes the context of the conversion.
     pos = init_component_pos(alep);
   } else {
     /* Normal case, an expression as source_operand. */
+    check_assertion(source_operand != NULL);
     source_type = source_operand->type;
     source_qualifiers = get_type_qualifiers(source_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
