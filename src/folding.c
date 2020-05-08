@@ -6590,7 +6590,7 @@ start_underlying_expression:
             break;
 handle_field_selection:
             { a_field_ptr field;
-              check_assertion(is_field_node(op2));
+              check_assertion(op2 != NULL && is_field_node(op2));
               field = node_field(op2);
               if (field->is_bit_field &&
                   !is_bit_field_whose_address_can_be_taken(field)) {
