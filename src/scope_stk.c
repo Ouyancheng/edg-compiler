@@ -3646,9 +3646,8 @@ void push_block_reactivation_scope(
 				a_scope_ptr			scope,
 				a_scope_pointers_block_ptr	pointers_block)
 /*
-Reactivate a block scope.  scope is the IL scope for the block, which
-can be NULL.  pointers_block is the pointers_block to be used for the
-scope stack entry.
+Reactivate a block scope.  scope is the IL scope for the block.  pointers_block
+is the pointers_block to be used for the scope stack entry.
 */
 {
   a_symbol_ptr	sym;
@@ -3656,14 +3655,15 @@ scope stack entry.
   /* Note that PS_IS_REACTIVATION is not used here because the symbols
      are reentered so that it looks like a normal (non-reactivated)
      block scope. */
+  check_assertion(scope != NULL);
   (void)push_scope_full((a_scope_kind)sck_block,
-                        scope == NULL ? NO_SCOPE_NUMBER : scope->number,
+                        scope->number,
                         (a_type_ptr)NULL, (a_routine_ptr)NULL,
                         (a_namespace_ptr)NULL,
                         (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                         (a_template_arg_ptr)NULL,
                         (a_template_decl_info_ptr)NULL,
-                        scope == NULL ? NULL : scope->lifetime,
+                        scope->lifetime,
                         scope, pointers_block,
                         PS_NO_OPTIONS);
   /* Reenter any symbols into the symbol table. */
