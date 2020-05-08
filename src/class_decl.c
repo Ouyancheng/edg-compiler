@@ -18035,6 +18035,7 @@ for the union type (class_type).
     tp = underlying_array_element_type(tp);
     tp = skip_typerefs(tp);
   }  /* if */
+  check_assertion(class_type != NULL);
   parent_cssp = symbol_supplement_for_class(class_type);
   if (gpp_mode || clang_mode) {
     initializer_overrides_ctor = has_initializer;
@@ -18056,26 +18057,24 @@ for the union type (class_type).
          will be repeated when a real instantiation of the enclosing union is
          performed. */
     } else if (unrestricted_unions_enabled) {
-      if (class_type != NULL) {
-        if (cssp->has_nontrivial_default_constructor &&
-            !initializer_overrides_ctor) {
-          parent_cssp->variant_member_with_nontrivial_default_ctor = TRUE;
-        }  /* if */
-        if (cssp->makes_copy_construction_nontrivial) {
-          parent_cssp->variant_member_with_nontrivial_copy_ctor = TRUE;
-        }  /* if */
-        if (cssp->makes_move_construction_nontrivial) {
-          parent_cssp->variant_member_with_nontrivial_move_ctor = TRUE;
-        }  /* if */
-        if (has_nontrivial_destructor(cssp)) {
-          parent_cssp->variant_member_with_nontrivial_dtor = TRUE;
-        }  /* if */
-        if (cssp->makes_copy_assignment_nontrivial) {
-          parent_cssp->variant_member_with_nontrivial_copy_assign = TRUE;
-        }  /* if */
-        if (cssp->makes_move_assignment_nontrivial) {
-          parent_cssp->variant_member_with_nontrivial_move_assign = TRUE;
-        }  /* if */
+      if (cssp->has_nontrivial_default_constructor &&
+          !initializer_overrides_ctor) {
+        parent_cssp->variant_member_with_nontrivial_default_ctor = TRUE;
+      }  /* if */
+      if (cssp->makes_copy_construction_nontrivial) {
+        parent_cssp->variant_member_with_nontrivial_copy_ctor = TRUE;
+      }  /* if */
+      if (cssp->makes_move_construction_nontrivial) {
+        parent_cssp->variant_member_with_nontrivial_move_ctor = TRUE;
+      }  /* if */
+      if (has_nontrivial_destructor(cssp)) {
+        parent_cssp->variant_member_with_nontrivial_dtor = TRUE;
+      }  /* if */
+      if (cssp->makes_copy_assignment_nontrivial) {
+        parent_cssp->variant_member_with_nontrivial_copy_assign = TRUE;
+      }  /* if */
+      if (cssp->makes_move_assignment_nontrivial) {
+        parent_cssp->variant_member_with_nontrivial_move_assign = TRUE;
       }  /* if */
     } else {
       if (has_nontrivial_ctor(cssp) || has_nontrivial_destructor(cssp)) {
