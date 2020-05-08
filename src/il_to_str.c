@@ -4231,7 +4231,9 @@ parentheses are not needed.
   } else {
     /* Loop, refining the lvalue each time around, until we get something with
        the right type and right address, or until we decide to give up. */
+#if DO_IL_LOWERING
     a_boolean prev_field_was_base_class_subobject_with_tail_padding = FALSE;
+#endif /* DO_IL_LOWERING */
     for (;;) {
       a_type_ptr unqual_type = skip_typerefs(type);
       if (unqual_type->kind == (a_type_kind)tk_array) {
@@ -4267,7 +4269,9 @@ parentheses are not needed.
           type = element_type;
           *offset -= idx * element_size;
         }  /* if */
+#if DO_IL_LOWERING
         prev_field_was_base_class_subobject_with_tail_padding = FALSE;
+#endif /* DO_IL_LOWERING */
       } else if (unqual_type->kind == (a_type_kind)tk_class ||
                  unqual_type->kind == (a_type_kind)tk_struct) {
         /* A class; try to find a field with the right offset, or at least
@@ -4307,13 +4311,17 @@ parentheses are not needed.
           /* Normal field (not anonymous union field). */
           /* Put out the field selection. */
           if (gen_output) {
+#if DO_IL_LOWERING
             if (prev_field_was_base_class_subobject_with_tail_padding) {
               /* This field is a member of a base class subobject that was
                  promoted by the C-generating back end into the derived
                  class.  Instead of base_obj.base_mem, it must therefore be
                  put out as base_obj_base_mem. */
               octl->output_str("_", octl);
-            } else {
+            } else
+#endif /* DO_IL_LOWERING */
+            /* Do not insert code here. */
+            {
               octl->output_str(".", octl);
             }  /* if */
 #if DO_IL_LOWERING
@@ -4344,7 +4352,9 @@ parentheses are not needed.
           form_unqualified_name(&field->source_corresp, iek_field, octl);
         }  /* if */
         type = field->type;
+#if DO_IL_LOWERING
         prev_field_was_base_class_subobject_with_tail_padding = FALSE;
+#endif /* DO_IL_LOWERING */
       } else {
         /* Some other type (not an aggregate); we can't adjust the offset or
            type.  Give up. */
