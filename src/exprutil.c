@@ -18053,6 +18053,12 @@ error cases.
                                                     dik_class_result_via_ctor,
                                            pos,
                                            &dip);
+    if (expr_stack->possible_rescan_context) {
+      /* Make sure an operand is saved to enable potential rescanning. */
+      an_operand  opnd;
+      make_expression_operand(call_node, &opnd);
+      call_node = make_node_from_operand(&opnd);
+    }  /* if */
     dip->variant.expression = call_node;
     call_node = temp_init_node;
   }  /* if */
