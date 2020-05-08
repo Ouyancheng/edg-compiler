@@ -22749,9 +22749,10 @@ Implement the C++/CLI dispose pattern for this class if it is needed.
       cssp->has_dispose_pattern_idisposable_dispose = TRUE;
       /* The C++/CX IDisposable::Dispose() function is not sealed. */
       if (cppcli_enabled) cssp->needs_new_idisposable_dispose = TRUE;
-    } else if (base_cssp != NULL) {
+    } else {
       /* Record the fact that a base class dispose pattern already implements
          the IDisposable::Dispose() function. */
+      check_assertion(base_cssp != NULL);
       cssp->has_dispose_pattern_idisposable_dispose = TRUE;
       cssp->needs_new_idisposable_dispose =
                                      base_cssp->needs_new_idisposable_dispose;
