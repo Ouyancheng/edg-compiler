@@ -9321,6 +9321,16 @@ declaration following this one is such a continuation.
     /* A bit field.  Put out the size. */
     write_tok_ch(':');
     if (field->bit_size_constant != NULL) {
+      a_boolean need_closing_paren;
+      if (field->has_initializer && field->initializer != NULL &&
+          !field->has_direct_braced_initializer) {
+        /* Avoid precedence issues between the bit-field width expression
+           and the "= <value>" initializer. */
+        write_tok_str(" (");
+        need_closing_paren = TRUE;
+      } else {
+        need_closing_paren = FALSE;
+      }  /* if */
       if (field->bit_size_constant_expr_in_local_expr_node_ref &&
           innermost_function_scope != NULL) {
         /* The expression for the bit-field size contains a reference to
@@ -9334,6 +9344,9 @@ declaration following this one is such a continuation.
         gen_expression(width_expr);
       } else {
         gen_constant(field->bit_size_constant, /*need_parens=*/FALSE);
+      }  /* if */
+      if (need_closing_paren) {
+        write_tok_ch(')');
       }  /* if */
     } else {
       write_unsigned_num((unsigned long)field->bit_size);

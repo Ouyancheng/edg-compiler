@@ -1,5 +1,22 @@
 Version 6.1
 
+5/8/20   [EDGcpfe/22732]
+C++-generating back end: default member initializers for bit-fields
+
+When emitting the declaration of a bit-field with the "=" form of default
+data initializer (a C++20 feature, see EDGcpfe/19998), the C++-generating
+back end failed to enclose the expression for the bit-field width in
+parentheses, leading to the possibility of incorrect code, with the "=
+<value>" being taken as part of the width expression instead of as a
+default member initializer.  This is now fixed.  For example, with --c++20:
+
+  constexpr bool b = true;
+  struct S {
+    int i : (b ? 8 : 16) = 23;  // previously omitted parentheses, attempting
+                                // to assign 23 to 16
+  };
+
+
 5/8/20   [EDGcpfe/22729]
 GNU compatibility: GCC 10.1.0 builtins
 
