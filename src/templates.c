@@ -5318,14 +5318,14 @@ repl_token_kind, add repl_token_kind to the cache.
   /* See if the last token in the cache is followed by an optional
      repl_token_kind token.  Only insert one if there is not already one
      there. */
-  for (ctp = tcsp->last_token->next; ctp != NULL; ctp = ctp->next) {
+  ctp = tcsp->last_token->next;
+  if (ctp != NULL) {
     if (ctp->token != (a_small_token_kind)repl_token_kind) {
       insert_token = TRUE;
     } else {
       body_repl_token = ctp;
     }  /* if */
-    break;
-  }  /* for */
+  }  /* if */
   /* Skip over any pragmas that precede the first token of the body. */
   while (first_token->extra_info_kind ==
                                         (a_token_extra_info_kind)teik_pragma) {
