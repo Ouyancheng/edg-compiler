@@ -1,5 +1,12 @@
 Version 6.1
 
+5/8/20   [EDGcpfe/22729]
+GNU compatibility: GCC 10.1.0 builtins
+
+Builtin signatures have been updated to reflect builtins from GCC version
+10.1.0.
+
+
 5/7/20   [EDGcpfe/22728]
 C++-generating back end: non-defining static data member declarations
 
