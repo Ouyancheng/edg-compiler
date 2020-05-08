@@ -61,7 +61,7 @@ For example, with --c++20:
 5/6/20   [EDGcpfe/22295]
 Builtin helper operators and functions for layout-compatibility checking
 
-The front end has introduce two builtin operators and two builtin functions
+The front end has introduced two builtin operators and two builtin functions
 to implement some C++20 standard library facilities that enable checking of
 layout-compatibility:
   - __builtin_is_layout_compatible(T1, T2):

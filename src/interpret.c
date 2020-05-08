@@ -8214,10 +8214,10 @@ to FALSE and the reason for the failure is recorded in *ips.
                 pm_value->variant.field == NULL ||
                 pm_value->variant.field->offset != 0 ||
                 !class_symbol_supp(symbol_for(class_type))->standard_layout) {
-              /* Non-standard classes and pointer-to-member functions elicit a
-                 "false" result.  If a field is designated but its offset is
-                 not zero, its address is not "interconvertible" with that of
-                 its parent object. */
+              /* Non-standard-layout classes and pointer-to-member functions
+                 elicit a "false" result.  If a field is designated but its
+                 offset is not zero, its address is not "interconvertible"
+                 with that of its parent object. */
               *(an_integer_value*)result_storage = zero_int;
             } else {
               *(an_integer_value*)result_storage = one_int;
@@ -8260,9 +8260,10 @@ to FALSE and the reason for the failure is recorded in *ips.
                                            pm_value2->variant.field->offset ||
                 pm_value1->variant.field->offset >=
                    common_initial_sequence_limit(class_type1, class_type2)) {
-              /* Non-standard classes and pointer-to-member functions elicit a
-                 "false" result.  Members "correspond" if they are within the
-                 "common initial sequence" and have the same offset. */
+              /* Non-standard-layout classes and pointer-to-member functions
+                 elicit a "false" result.  Members "correspond" if they are
+                 within the "common initial sequence" and have the same
+                 offset. */
               *(an_integer_value*)result_storage = zero_int;
             } else {
               *(an_integer_value*)result_storage = one_int;

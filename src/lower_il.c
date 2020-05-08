@@ -13063,8 +13063,9 @@ an eok_call of a builtin function.  The expression has already been lowered.
             is_or_was_ptr_to_member_function_type(arg2->type) ||
             !class_symbol_supp(symbol_for(class_type1))->standard_layout ||
             !class_symbol_supp(symbol_for(class_type2))->standard_layout) {
-          /* Non-standard classes or pointer-to-member functions always elicit
-             a "false" result.  Replace the call with "(arg1, (arg2, 0))". */
+          /* Non-standard-layout classes or pointer-to-member functions always
+             elicit a "false" result.  Replace the call with
+             "(arg1, (arg2, 0))". */
           a_constant_ptr zero_con =
                               alloc_constant((a_constant_repr_kind)ck_integer);
           make_zero_of_proper_type(expr->type, zero_con);
@@ -13126,8 +13127,8 @@ an eok_call of a builtin function.  The expression has already been lowered.
         class_type = arg1->type->variant.ptr_to_member.class_of_which_a_member;
         if (is_or_was_ptr_to_member_function_type(arg1->type) ||
             !class_symbol_supp(symbol_for(class_type))->standard_layout) {
-          /* Non-standard classes or pointer-to-member functions always elicit
-             a "false" result.  Replace the call with "(arg1, 0)". */
+          /* Non-standard-layout classes or pointer-to-member functions always
+             elicit a "false" result.  Replace the call with "(arg1, 0)". */
           a_constant_ptr zero_con =
                               alloc_constant((a_constant_repr_kind)ck_integer);
           make_zero_of_proper_type(expr->type, zero_con);

@@ -10404,7 +10404,7 @@ static a_boolean fields_are_layout_compatible(a_field_ptr  fp1,
                                               a_field_ptr  fp2)
 /*
 Return TRUE if the given fields have the same offset, same bit field length
-(if applicable), and have layout compatible types.
+(if applicable), and have layout-compatible types.
 */
 {
   return fp1->offset == fp2->offset &&
@@ -10419,17 +10419,17 @@ Return TRUE if the given fields have the same offset, same bit field length
 a_boolean types_are_layout_compatible(a_type_ptr  tp1,
                                       a_type_ptr  tp2)
 /*
-Return TRUE if the given types are "layout compatible".  For most types, this
+Return TRUE if the given types are "layout-compatible".  For most types, this
 means "identical types" ignoring cv-qualifiers.  In addition:
-  - two enumerations are layout compatible if they have the same
+  - two enumerations are layout-compatible if they have the same
     underlying type
-  - two class/struct types are layout compatible if they have corresponding
-    members that are layout compatible
-  - two union types are layout compatible if each member of the first has a
-    corresponding member of the second that is layout compatible (ignoring
+  - two class/struct types are layout-compatible if they have corresponding
+    members that are layout-compatible
+  - two union types are layout-compatible if each member of the first has a
+    corresponding member of the second that is layout-compatible (ignoring
     ordering)
 As of the latest working paper (N4861, which describes C++20) the specification
-of layout compatible flawed.  This implementation approximates is somewhat
+of layout-compatible is flawed.  This implementation approximates it somewhat
 conservatively.
 */
 {
@@ -10477,19 +10477,18 @@ conservatively.
         } else {
           /* Create a mapping between the two unions. */
           Ptr_map<a_field_ptr, a_field_ptr>  mappings(4);
-          fp1 = next_proper_initializable_field(fp1);
+          fp1 = next_proper_initializable_field(fields_of(tp1));
           while (fp1 != NULL) {
             fp2 = next_proper_initializable_field(fields_of(tp2));
             while (fp2 != NULL) {
-              if (mappings.get(fp2) != NULL) {
-                /* fp2 already has a corresponding member. */
-                continue;
-              }  /* if */
-              if (fields_are_layout_compatible(fp1, fp2)) {
-                /* A match.  Record it and move on to the next field in tp1
-                   (if any). */
-                mappings.map(fp2, fp1);
-                break;
+              if (mappings.get(fp2) == NULL) {
+                /* fp2 doesn't yet have a corresponding member. */
+                if (fields_are_layout_compatible(fp1, fp2)) {
+                  /* A match.  Record it and move on to the next field in tp1
+                     (if any). */
+                  mappings.map(fp2, fp1);
+                  break;
+                }  /* if */
               }  /* if */
               fp2 = next_proper_initializable_field(fp2->next);
             }  /* while */

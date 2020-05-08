@@ -9183,7 +9183,7 @@ static void fold_builtin_is_layout_compatible(
 expr is an enk_builtin_operation node for a __builtin_is_layout_compatible
 operation.  If the operand types are nondependent, store a boolean constant in
 *constant.  The boolean constant will have value "true" if the two operands
-(types) are layout compatible.  If either of the operand types is dependent,
+(types) are layout-compatible.  If either of the operand types is dependent,
 store a ck_template_param constant in *constant.  The constant will be of the
 tpck_expression variant and will point to the given expression.  If
 maintain_expression is TRUE, the backing expression for the returned constant
@@ -9194,7 +9194,7 @@ will be set as well.
                     arg2 = arg1->next;
   a_type_ptr        type1, type2;
 
-  /* eok_parens shouldn't appear here, since the construct is generated. */
+  /* eok_parens shouldn't appear here, since the operands are types. */
   check_assertion(arg1 != NULL && arg2 != NULL && arg2->next == NULL &&
                   arg1->kind == (an_expr_node_kind)enk_type_operand &&
                   arg2->kind == (an_expr_node_kind)enk_type_operand);
@@ -9237,7 +9237,7 @@ expression for the returned constant will be set as well.
                     arg2 = arg1->next;
   a_type_ptr        type1, type2;
 
-  /* eok_parens shouldn't appear here, since the construct is generated. */
+  /* eok_parens shouldn't appear here, since the operands are types. */
   check_assertion(arg1 != NULL && arg2 != NULL && arg2->next == NULL &&
                   arg1->kind == (an_expr_node_kind)enk_type_operand &&
                   arg2->kind == (an_expr_node_kind)enk_type_operand);

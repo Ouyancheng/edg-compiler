@@ -1165,7 +1165,7 @@ Install the keywords in the symbol table.
     enter_builtin_keyword((a_token_kind)tok_builtin_bit_cast,
                           "__builtin_bit_cast");
   }  /* if */
-  /* Enter keyword in support of P0466R5 ("Layout-compatibility and
+  /* Enter keywords in support of P0466R5 ("Layout-compatibility and
      Pointer-interconvertibility Traits", part of C++20). */
   enter_builtin_keyword((a_token_kind)tok_builtin_is_layout_compatible,
                         "__builtin_is_layout_compatible");
