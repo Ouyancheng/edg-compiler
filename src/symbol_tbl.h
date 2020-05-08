@@ -6181,9 +6181,8 @@ symbol found by the lookup is semantically valid.
 
 /* Return TRUE if the symbol is a template class symbol. */
 #define is_template_class_symbol(sym)				      \
-  (((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||	      \
-    (sym)->kind == (a_symbol_kind)sk_union_tag) &&		      \
-   ((sym)->variant.class_struct_union.extra_info->class_template != NULL))
+  (is_class_struct_union_symbol(sym) &&				      \
+   class_symbol_supp(sym)->class_template != NULL)
 
 /* Return TRUE if the symbol is a template class symbol for a class
    generated from the template (i.e., not a specific definition). */

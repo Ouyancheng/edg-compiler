@@ -4265,6 +4265,8 @@ the template declaration information of the partial specialization.
   tdsp->class_declared_in = class_type;
   tdsp->effective_decl_level = DEPTH_OF_FILE_SCOPE;
   tdsp->il_template_entry = make_il_template_entry(tdsp);
+  tdsp->il_template_entry->template_decl = decl_info->template_decl;
+  tdsp->template_decl = decl_info->template_decl;
   tdsp->out_of_class_instantiation = TRUE;
   tdsp->out_of_class_prototype_sym = oocpsp->symbol;
   tdsp->decl_token_cache = oocpsp->cache.tokens;
@@ -10209,12 +10211,12 @@ by the given template arguments.  Otherwise, return FALSE and, if diagnose is
 TRUE, issue a diagnostic explaining the failure.
 */
 {
-  a_boolean            result = TRUE;
+  a_boolean              result = TRUE;
   a_template_symbol_supplement_ptr
-                       tssp = template_sym->variant.template_info;
-  a_template_ptr       il_entry = tssp->il_template_entry;
-  a_template_decl_ptr  tdp = il_entry->template_decl;
-  a_source_position    diag_pos = error_position;
+                         tssp = template_sym->variant.template_info;
+  a_template_ptr         il_entry = tssp->il_template_entry;
+  a_template_decl_ptr    tdp = il_entry->template_decl;
+  a_source_position      diag_pos = error_position;
   a_requires_clause_ptr  rcp = NULL;
 
   if (tdp != NULL if_microsoft_extensions(&& !tdp->is_generic)) {
@@ -22741,8 +22743,8 @@ loc is the locator for sym.  decl_state is the template declaration state
 block.
 */
 {
-  /* If the class name is a template ID, then this is probably a declaration of
-     a partial specialization. */
+  /* If the class name is a template-id, then this is probably a declaration
+     of a partial specialization. */
   if (sym != NULL && is_template_class_symbol(sym) && loc->is_template_id) {
     /* Check whether this template can be specialized.  Generics and certain
        templates cannot be partially specialized. */
@@ -22756,17 +22758,79 @@ block.
                    &loc->source_position, class_template_sym);
       sym = NULL;
       decl_state->is_partial_specialization = FALSE;
-    }  /* if */
-    if (sym != NULL) {
-      decl_state->is_partial_specialization = TRUE;
-      if (is_class_struct_union_symbol(sym) &&
-          !sym->variant.class_struct_union.type
-              ->variant.class_struct_union.is_prototype_instantiation) {
-        /* If the symbol is not marked as a prototype instantiation yet, then
-           this is the first time we're marking it as a partial
-           specialization. */
-        decl_state->decl_parse->first_decl = TRUE;
+    } else {
+      a_type_ptr          tp = sym->variant.class_struct_union.type;
+      a_template_arg_ptr  args = class_type_supp(tp)->template_arg_list;
+      a_requires_clause   *rcp = decl_state->template_decl
+                                           ->constraint.requires_clause;
+      a_boolean           is_primary_proto = FALSE;
+      a_symbol_ptr        primary_templ = tssp->primary_template_sym;
+      if (primary_templ == NULL) {
+        primary_templ = class_template_sym;
+        if (sym->variant.class_struct_union.type
+               ->variant.class_struct_union.is_prototype_instantiation) {
+          /* sym corresponds to the prototype instantiation of the primary
+             template symbol.  If there is a constraint, that could be valid.
+             Otherwise, an error will be emitted later:
+                template<typename> struct X;
+                template<typename T> requires (!T()) struct X<T>; // Okay
+                template<typename T>                 struct X<T>; // Error
+          */
+          is_primary_proto = TRUE;
+        }  /* if */
+      } else {
+        tssp = primary_templ->variant.template_info;
       }  /* if */
+      if ((rcp != NULL || !is_primary_proto) &&
+          tp->variant.class_struct_union.is_nonreal_class) {
+        /* If a requires clause was specified, sym does not represent the
+           correct nonreal instance since lookup does not take requires
+           clauses into account.
+           If there is no requires clause and we found a partial
+           specialization, we may have accidentally found an unrelated partial
+           specialization.  For example:
+             template<typename> struct X;
+             template<typename T> requires (!T()) struct X<T*>; // (1)
+             template<typename T> struct X<T*>; // (2)
+           X<T*> in (2) would have found (1), but it isn't a redeclaration of
+           (1), but the declaration of a new partial specialization.
+           In both cases, search through the partial specializations to see
+           if a match already exists.  Otherwise, create a new nonreal
+           instance. */
+        a_symbol_ptr  pp_sym = tssp->partial_specializations;
+        sym = NULL;
+        for (; pp_sym != NULL; pp_sym = pp_sym->next) {
+          a_template_ptr     prev_tmpl = pp_sym->variant.template_info
+                                               ->il_template_entry;
+          a_type_ptr         prev_tp = prev_tmpl->prototype_instantiation.type;
+          a_template_arg_ptr
+                             prev_args =
+                                  class_type_supp(prev_tp)->template_arg_list;
+          a_requires_clause  *prev_rcp = prev_tmpl->template_decl
+                                                  ->constraint.requires_clause;
+          an_equiv_templ_arg_options_set
+                             eta_options;
+          eta_options = eta_options_for_template(
+                            pp_sym, pp_sym->variant.template_info);
+          eta_options |= ETA_IS_PROTOTYPE |
+                         ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
+          if (equiv_template_arg_lists(prev_args, args, eta_options) &&
+              equiv_requires_clauses(prev_rcp, rcp)) {
+            sym = symbol_for(prev_tp);
+            break;
+          }  /* if */
+        }  /* for */
+        if (sym == NULL) {
+          /* Create a new nonreal instance. */
+          a_template_arg_ptr  new_args = copy_template_arg_list(args);
+          sym = create_partial_instantiation_of_class(
+                                                primary_templ, new_args,
+                                                /*instantiate_nonreal=*/FALSE,
+                                                /*dependent_arg_list=*/TRUE);
+          decl_state->decl_parse->first_decl = TRUE;
+        }  /* if */
+      }  /* if */
+      decl_state->is_partial_specialization = TRUE;
     }  /* if */
   }  /* if */
   if (sym != NULL && gpp_mode && gnu_version >= 30400 &&
@@ -23276,8 +23340,9 @@ declaration of a partial specialization declared outside of its class.
         sym = NULL;
         suppress_redecl_error = TRUE;
         make_new_symbol_invisible = TRUE;
+      } else {
+        sym = underlying_tmpl_class_sym(sym, &locator_for_curr_id, decl_state);
       }  /* if */
-      sym = underlying_tmpl_class_sym(sym, &locator_for_curr_id, decl_state);
     } else {
       /* Look up the symbol in the current scope.  To do this we must
          temporarily change the decl_scope_level to the effective
