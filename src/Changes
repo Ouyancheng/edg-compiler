@@ -70,7 +70,7 @@ uncompilable generated code.  This is now fixed.  For example:
 Possible incorrect translation of UTF-8 file names on Windows
 
 On Windows configurations, the use of a file name containing UTF-8 characters
-for a file name that is more than 512 characters long could product an
+for a file name that is more than 512 characters long could produce an
 incorrect result as a result of a bug in the buffer expansion code.  Now
 fixed.
 
