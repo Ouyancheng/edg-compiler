@@ -12943,7 +12943,7 @@ according to insert_location.
     a_boolean padded = FALSE;
     a_type_ptr elem_type = skip_typerefs(array_element_type(type));
     /* First, check to see if any of the array elements need padding
-       (no need to create a helper routine it it's going to be a noop). */
+       (no need to create a helper routine if it's going to be a noop). */
     lower_builtin_zero_non_value_bits_piece(expr, elem_type, original_offset,
                                             &padded, insert_location);
     if (padded) {
