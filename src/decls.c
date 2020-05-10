@@ -14082,8 +14082,7 @@ a normal try.
         } else if (handler->parameter == NULL) {
           /* Current handler is a default handler -- it can only be masked by
              another default handler. */
-        } else if (prev_handler->parameter->type != NULL &&
-                   is_immediate_error_type(prev_handler->parameter->type)) {
+        } else if (is_immediate_error_type(prev_handler->parameter->type)) {
           /* No need to check for masking in this case. */
         } else if (type_masks_handler_param_type(prev_handler->parameter->type,
                                                  type_ptr)) {
