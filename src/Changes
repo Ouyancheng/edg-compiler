@@ -1,5 +1,14 @@
 Version 6.1
 
+5/10/20  [EDGcpfe/22743]
+File handle leaked on Windows when using precompiled header files
+
+On Windows, the use of precompiled header files could cause file handles
+to leak.  This is not a problem for most configurations as they would
+be released when the front end exits.  But when using MAKE_FRONT_END_CALLABLE,
+this could be more problematic.  Now fixed.
+
+
 5/8/20   [EDGcpfe/22704]
 Abort on attempt to substitute a call producing a complex object
 

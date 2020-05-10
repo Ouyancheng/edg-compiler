@@ -3305,6 +3305,15 @@ page size.
         }  /* if */
 #endif /* DEBUG */
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
+        /* The handle for mapping is not needed after the view is obtained
+           above. */
+        if (!CloseHandle(f_map)) {
+#if DEBUG
+          if (failed_system_call == NULL) {
+            failed_system_call = "CloseHandle";
+          }  /* if */
+#endif /* DEBUG */
+        }  /* if */
 #if DEBUG
       } else {
         failed_system_call = "CreateFileMapping";
