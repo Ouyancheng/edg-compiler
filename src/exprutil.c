@@ -15810,7 +15810,6 @@ on output it will be an lvalue.
     error_in_operand(ec_expr_not_constant, result);
   } else {
     a_variable_ptr var;
-    a_boolean      err = FALSE;
     orig_result = *result;
     if (is_constant_operand(result) &&
         con_is_exact_addr_of_variable(&result->variant.constant,
@@ -15853,22 +15852,16 @@ on output it will be an lvalue.
         change_some_ref_kinds(result->ref_entries_list,
                               SRK_REFERENCE, SRK_USE);
       }  /* if */
-      if (!err) {
-        /* Add a reference indirection to make an lvalue.  This is similar to
-           adding a "*" operator on top of a pointer prvalue. */
-        node = add_ref_indirection_to_node(node);
-        node->position = result->position;
-      }  /* if */
+      /* Add a reference indirection to make an lvalue.  This is similar to
+         adding a "*" operator on top of a pointer prvalue. */
+      node = add_ref_indirection_to_node(node);
+      node->position = result->position;
     }  /* if */
-    if (err) {
-      conv_to_error_operand(result);
-    } else {
-      make_glvalue_expression_operand(node, result);
-      /* Restore the original source position, etc.  Note that the reference
-         entries are NOT restored, on purpose. */
-      restore_operand_details(result, &orig_result);
-      result->ref_entries_list = NULL;
-    }  /* if */
+    make_glvalue_expression_operand(node, result);
+    /* Restore the original source position, etc.  Note that the reference
+       entries are NOT restored, on purpose. */
+    restore_operand_details(result, &orig_result);
+    result->ref_entries_list = NULL;
   }  /* if */
   /* A reference indirection rules out a constant expression. */
   rule_out_expr_kinds(ROEK_CONSTANT, result);
