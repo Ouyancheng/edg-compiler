@@ -8605,7 +8605,7 @@ constructor, the scanned type is stored for later use.
           is_delegating_init = FALSE;
         }  /* if */
         if (is_delegating_init) {
-          if (cip != NULL && target != NULL) {
+          if (target != NULL) {
             record_nondelegating_target_ctor(ctor, target);
           }  /* if */
           cibp->cip_list = cip;
