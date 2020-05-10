@@ -3375,6 +3375,7 @@ values.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   operand->allow_addr_of_managed_member = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  operand->name_reference = null_name_reference;
   operand->ruled_out_expr_kinds = ROEK_NONE;
   operand->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
